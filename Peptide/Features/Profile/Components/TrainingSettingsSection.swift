@@ -17,10 +17,11 @@ struct TrainingSettingsSection: View {
 
                 MeasurementUnitRow(selection: $store.profile.bodyMetrics.unit)
                     .onChange(of: dataStore.profile.bodyMetrics.unit) { _, _ in
+                        Haptics.selection()
                         dataStore.persistProfile()
                     }
 
-                Divider().foregroundStyle(AppColor.glassBorder)
+                Divider().overlay(AppColor.glassBorder)
 
                 RestTimerRow(selection: restTimerBinding)
             }
@@ -81,14 +82,22 @@ private struct RestTimerRow: View {
             title: "Default rest timer",
             subtitle: "\(Self.label(for: selection)) between sets"
         ) {
-            Picker("Default rest timer", selection: $selection) {
-                ForEach(Self.choices, id: \.self) { seconds in
-                    Text(Self.label(for: seconds)).tag(seconds)
-                }
+            // Six segments fit a phone at default sizes; at large Dynamic
+            // Type or on a narrow screen they'd truncate, so fall back to a menu.
+            ViewThatFits(in: .horizontal) {
+                picker.pickerStyle(.segmented)
+                picker.pickerStyle(.menu)
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
         }
+    }
+
+    private var picker: some View {
+        Picker("Default rest timer", selection: $selection) {
+            ForEach(Self.choices, id: \.self) { seconds in
+                Text(Self.label(for: seconds)).tag(seconds)
+            }
+        }
+        .labelsHidden()
     }
 
     /// "0:30", "1:30", "4:00" — the same m:ss shape the rest timer counts

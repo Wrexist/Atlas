@@ -27,6 +27,8 @@ struct BodyMetricsCard: View {
                             .fontWeight(.semibold)
                             .foregroundStyle(AppColor.accentPrimary)
                     }
+                    .minimumHitArea()
+                    .accessibilityLabel(metrics.isComplete ? "Edit body metrics" : "Add body metrics")
                 }
 
                 if metrics.hasWeight || metrics.hasHeight || (metrics.age ?? 0) > 0 {
@@ -35,8 +37,9 @@ struct BodyMetricsCard: View {
                         metricStat(label: "Height", value: heightText)
                         metricStat(label: "Age", value: ageText)
                     }
+                    .appAnimation(AppAnimation.springSnappy, value: metrics)
 
-                    HStack(spacing: Spacing.xs) {
+                    if metrics.sex != .unspecified {
                         infoChip(metrics.sex.localizedDisplay)
                     }
                 } else {
@@ -93,11 +96,13 @@ struct BodyMetricsCard: View {
                 .font(AppFont.title3)
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textPrimary)
+                .contentTransition(.numericText())
             Text(label)
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 
     private func infoChip(_ text: LocalizedStringKey) -> some View {
@@ -105,7 +110,7 @@ struct BodyMetricsCard: View {
             .font(AppFont.caption)
             .foregroundStyle(AppColor.textSecondary)
             .padding(.horizontal, Spacing.sm)
-            .padding(.vertical, 4)
+            .padding(.vertical, Spacing.xs)
             .background {
                 Capsule()
                     .fill(AppColor.surfaceElevated)

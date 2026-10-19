@@ -36,6 +36,8 @@ struct CycleCardModel {
         let weightDeltaKg: Double?
         let avgSleepHours: Double?
         let hrvTrendDescription: String?
+        /// The sharer's display unit for `weightDeltaKg`.
+        var weightUnit: MeasurementUnit = .metric
     }
 }
 

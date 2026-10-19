@@ -16,33 +16,26 @@ struct CycleMilestonePromptSheet: View {
         VStack(spacing: Spacing.lg) {
             Spacer(minLength: 0)
 
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [AppColor.accentPrimary, AppColor.accentLight],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 96, height: 96)
-                    .shadow(color: AppColor.accentGlow, radius: 18, y: 6)
-                Image(systemName: glyph)
-                    .font(.system(size: 38, weight: .bold))
-                    .foregroundStyle(AppColor.onAccent)
-            }
+            // The milestone family's sculpted object, not a glowing
+            // gradient disc — the same artwork onboarding's heroes use.
+            MilestoneArtwork(symbol: glyph, size: 96, style: .symbol, isActive: true)
+                .accessibilityHidden(true)
+                .staggeredAppear(index: 0)
 
             VStack(spacing: Spacing.sm) {
                 Text(milestone.prompt)
                     .font(AppFont.title2)
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
+                    .accessibilityAddTraits(.isHeader)
+                    .staggeredAppear(index: 1)
 
                 Text(subtitle)
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, Spacing.lg)
+                    .staggeredAppear(index: 2)
             }
 
             VStack(spacing: Spacing.sm) {
@@ -61,12 +54,15 @@ struct CycleMilestonePromptSheet: View {
                 )
             }
             .padding(.horizontal, Spacing.screenPadding)
+            .staggeredAppear(index: 3)
 
             Spacer(minLength: 0)
         }
         .padding(.vertical, Spacing.xl)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppColor.background.ignoresSafeArea())
+        // A milestone is a moment — mark its arrival.
+        .onAppear { Haptics.success() }
     }
 
     private var glyph: String {
@@ -82,7 +78,7 @@ struct CycleMilestonePromptSheet: View {
         case .day7:
             return "A week of consistency on \(proto.name) — show off the streak."
         case .day30:
-            return "30 days in on \(proto.name). Your stats look great."
+            return "30 days in on \(proto.name). Share your progress."
         case .completed:
             return "\(proto.name) is complete. Drop the wrap-up into a story."
         }

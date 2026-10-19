@@ -6,6 +6,9 @@ struct PeptideDetailView: View {
     @State private var showingPicker = false
     @State private var showingBuilder = false
     @State private var showingPaywall = false
+    /// Flips once the hero (which carries the name) scrolls away, so the
+    /// inline bar picks the name up instead of sitting empty.
+    @State private var heroScrolledAway = false
 
     private enum Section: Hashable {
         case hero, yourStacks, about, mechanism, benefits, dosage, sideEffects,
@@ -38,7 +41,9 @@ struct PeptideDetailView: View {
     var body: some View {
         ScrollViewReader { proxy in
         ScrollView {
-            LazyVStack(spacing: Spacing.lg) {
+            // A plain VStack: ~12 sections, and a lazy stack re-created them
+            // on scroll-back, replaying their entrance mid-scroll.
+            VStack(spacing: Spacing.lg) {
                 // Hero Section
                 GlassCard(tinted: true) {
                     VStack(spacing: Spacing.lg) {
@@ -165,7 +170,7 @@ struct PeptideDetailView: View {
                         VStack(alignment: .leading, spacing: Spacing.md) {
                             HStack(spacing: Spacing.sm) {
                                 Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundStyle(Color.orange)
+                                    .foregroundStyle(AppColor.warning)
                                     .accessibilityHidden(true)
                                 Text("Side Effects")
                                     .font(AppFont.headline)
@@ -177,8 +182,8 @@ struct PeptideDetailView: View {
                                     HStack(alignment: .top, spacing: Spacing.sm) {
                                         Image(systemName: "circle.fill")
                                             .font(AppFont.scaled(8))
-                                            .foregroundStyle(Color.orange.opacity(0.7))
-                                            .shadow(color: Color.orange.opacity(0.3), radius: 3)
+                                            .foregroundStyle(AppColor.warning)
+                                            .accessibilityHidden(true)
                                             .padding(.top, 7)
 
                                         Text(effect)
@@ -211,8 +216,8 @@ struct PeptideDetailView: View {
                                     HStack(alignment: .top, spacing: Spacing.sm) {
                                         Image(systemName: "xmark.circle.fill")
                                             .font(AppFont.scaled(11))
-                                            .foregroundStyle(AppColor.destructive.opacity(0.7))
-                                            .shadow(color: AppColor.destructive.opacity(0.3), radius: 3)
+                                            .foregroundStyle(AppColor.destructive)
+                                            .accessibilityHidden(true)
                                             .padding(.top, 3)
 
                                         Text(item)
@@ -292,7 +297,23 @@ struct PeptideDetailView: View {
             .padding(.bottom, Spacing.xxxxl)
         }
         .background(AppColor.background)
+        .onScrollGeometryChange(for: Bool.self) { geometry in
+            geometry.contentOffset.y + geometry.contentInsets.top > 180
+        } action: { _, scrolledAway in
+            heroScrolledAway = scrolledAway
+        }
+        .navigationTitle(peptide.abbreviation)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(peptide.abbreviation)
+                    .font(AppFont.headline)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .opacity(heroScrolledAway ? 1 : 0)
+                    .appAnimation(AppAnimation.quick, value: heroScrolledAway)
+                    .accessibilityHidden(!heroScrolledAway)
+            }
+        }
         .navigationDestination(for: PeptideProtocol.self) { proto in
             ProtocolDetailView(protocol_: proto)
         }
@@ -327,12 +348,7 @@ struct PeptideDetailView: View {
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
-                    Text("\(memberProtocols.count)")
-                        .font(AppFont.scaled(11, weight: .bold))
-                        .foregroundStyle(AppColor.accentLight)
-                        .padding(.horizontal, Spacing.sm)
-                        .padding(.vertical, 2)
-                        .background { Capsule().fill(AppColor.accentLight.opacity(0.18)) }
+                    Badge("\(memberProtocols.count)")
                 }
 
                 VStack(spacing: Spacing.sm) {
@@ -340,7 +356,7 @@ struct PeptideDetailView: View {
                         NavigationLink(value: proto) {
                             stackChip(proto)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
                     }
                 }
             }
@@ -351,9 +367,10 @@ struct PeptideDetailView: View {
     private func stackChip(_ proto: PeptideProtocol) -> some View {
         HStack(spacing: Spacing.md) {
             Circle()
-                .fill(statusColor(proto.status).opacity(0.25))
+                .fill(proto.status.color.opacity(0.25))
                 .frame(width: 8, height: 8)
-                .overlay { Circle().strokeBorder(statusColor(proto.status), lineWidth: 1) }
+                .overlay { Circle().strokeBorder(proto.status.color, lineWidth: 1) }
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(proto.name)
@@ -370,21 +387,21 @@ struct PeptideDetailView: View {
 
             Spacer()
 
+            // The dot alone carried the status by colour; the word makes
+            // it readable without colour and to VoiceOver.
+            Text(proto.status.displayName)
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+
             Image(systemName: "chevron.right")
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textTertiary)
+                .accessibilityHidden(true)
         }
         .padding(.horizontal, Spacing.md)
         .padding(.vertical, Spacing.sm)
         .glassControl(.rect(cornerRadius: Spacing.smallCornerRadius))
-    }
-
-    private func statusColor(_ status: ProtocolStatus) -> Color {
-        switch status {
-        case .active: AppColor.accentLight
-        case .paused: AppColor.warning
-        case .completed: AppColor.textTertiary
-        }
+        .accessibilityElement(children: .combine)
     }
 
     private var disclaimerFooter: some View {
@@ -431,14 +448,14 @@ struct MolecularInfoSection: View {
 
                     if !molecular.weight.isEmpty {
                         if showsFormula {
-                            Divider().foregroundStyle(AppColor.glassBorder)
+                            Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
                         }
                         MolecularRow(label: "Molecular Weight", value: molecular.weight, icon: "scalemass.fill")
                     }
 
                     if let cid = molecular.cid, cid > 0, !molecular.pubchemURL.isEmpty {
                         if showsFormula || !molecular.weight.isEmpty {
-                            Divider().foregroundStyle(AppColor.glassBorder)
+                            Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
                         }
                         if let url = URL(string: molecular.pubchemURL) {
                             Link(destination: url) {

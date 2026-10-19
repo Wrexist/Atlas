@@ -28,28 +28,31 @@ struct ProtocolListView: View {
             ZStack(alignment: .bottomTrailing) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Spacing.xl) {
-                        NavigationLink(value: StackLibraryRoute()) {
-                            GlassEntryRowLabel(
-                                icon: "books.vertical.fill",
-                                title: "Browse the stack library",
-                                subtitle: Text("Research-backed templates from peptide practitioners")
-                            )
-                        }
-                        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
-
                         if dataStore.protocols.isEmpty {
                             EmptyStateView(
                                 icon: "list.clipboard",
                                 title: "No Protocols Yet",
-                                message: "Create your first peptide protocol to start tracking your regimen.",
+                                message: "Build a protocol to track what you take, when, and how it's going.",
                                 action: .init(title: "Create Protocol", icon: "plus") {
                                     Haptics.impact(.medium)
                                     showingBuilder = true
+                                },
+                                secondary: .init(title: "Browse the library", icon: "books.vertical") {
+                                    path.append(StackLibraryRoute())
                                 }
                             )
                             .padding(.top, Spacing.xxl)
                             .sectionAppear(index: 0)
                         } else {
+                            NavigationLink(value: StackLibraryRoute()) {
+                                GlassEntryRowLabel(
+                                    icon: "books.vertical.fill",
+                                    title: "Browse the stack library",
+                                    subtitle: Text("Ready-made templates you can start from")
+                                )
+                            }
+                            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+
                             // Compact vial-shelf glance — "what
                             // compounds am I currently on?" — sits
                             // above the per-protocol detail list so
@@ -67,7 +70,8 @@ struct ProtocolListView: View {
 
                             if !dataStore.activeProtocols.isEmpty {
                                 ProtocolSection(
-                                    title: "Active",
+                                    eyebrow: "Active",
+                                    title: "Running now",
                                     protocols: dataStore.activeProtocols,
                                     onShare: { sharingProtocol = $0 },
                                     zoom: zoom
@@ -89,7 +93,8 @@ struct ProtocolListView: View {
 
                             if !dataStore.pausedProtocols.isEmpty {
                                 ProtocolSection(
-                                    title: "Paused",
+                                    eyebrow: "Paused",
+                                    title: "On hold",
                                     protocols: dataStore.pausedProtocols,
                                     onShare: { sharingProtocol = $0 },
                                     zoom: zoom
@@ -99,7 +104,8 @@ struct ProtocolListView: View {
 
                             if !dataStore.completedProtocols.isEmpty {
                                 ProtocolSection(
-                                    title: "Completed",
+                                    eyebrow: "Completed",
+                                    title: "Finished cycles",
                                     protocols: dataStore.completedProtocols,
                                     onShare: { sharingProtocol = $0 },
                                     zoom: zoom
@@ -108,6 +114,7 @@ struct ProtocolListView: View {
                             }
                         }
                     }
+                    .appAnimation(AppAnimation.springSmooth, value: dataStore.protocols.map(\.status))
                     .padding(.horizontal, Spacing.screenPadding)
                     .padding(.bottom, Spacing.scrollBottomInset)
                     // iPad content cap so the protocol list reads in
@@ -126,12 +133,9 @@ struct ProtocolListView: View {
                     )
                     if blocked {
                         Haptics.warning()
-                    } else {
-                        Haptics.impact(.medium)
-                    }
-                    if blocked {
                         showingPaywall = true
                     } else {
+                        Haptics.impact(.medium)
                         showingBuilder = true
                     }
                 }
@@ -155,6 +159,11 @@ struct ProtocolListView: View {
             .navigationDestination(for: PeptideProtocol.self) { protocol_ in
                 ProtocolDetailView(protocol_: protocol_)
                     .navigationTransition(.zoom(sourceID: protocol_.id, in: zoom))
+            }
+            // Registered here, once, so Protocol → Peptide → Protocol never
+            // stacks a second `Peptide` declaration from a pushed view.
+            .navigationDestination(for: Peptide.self) { peptide in
+                PeptideDetailView(peptide: peptide)
             }
             .navigationDestination(for: CommunityStack.self) { stack in
                 CommunityStackDetailView(stack: stack)
@@ -199,24 +208,21 @@ struct ProtocolListView: View {
 struct StackLibraryRoute: Hashable {}
 
 private struct ProtocolSection: View {
-    let title: String
+    let eyebrow: LocalizedStringKey
+    let title: LocalizedStringKey
     let protocols: [PeptideProtocol]
     let onShare: (PeptideProtocol) -> Void
     let zoom: Namespace.ID
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            Text(title.uppercased())
-                .font(AppFont.caption)
-                .foregroundStyle(AppColor.textTertiary)
-                .tracking(1.5)
-                .padding(.leading, Spacing.xs)
+            HomeSectionHeader(eyebrow: eyebrow, title: title)
 
-            ForEach(Array(protocols.enumerated()), id: \.element.id) { index, protocol_ in
+            ForEach(protocols) { protocol_ in
                 NavigationLink(value: protocol_) {
                     ProtocolCard(protocol_: protocol_)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ScalePressStyle(pressedScale: 0.98))
                 .matchedTransitionSource(id: protocol_.id, in: zoom)
                 .contextMenu {
                     Button {
@@ -225,7 +231,9 @@ private struct ProtocolSection: View {
                         Label("Share Cycle Card", systemImage: "square.and.arrow.up")
                     }
                 }
-                .staggeredAppear(index: index)
+                // Status changes animate at the list root, so a paused or
+                // completed card glides between sections instead of popping.
+                .transition(.opacity.combined(with: .scale(scale: 0.97)))
             }
         }
     }

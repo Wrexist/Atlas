@@ -37,7 +37,7 @@ struct ScreenshotModeRow: View {
         } label: {
             HStack(spacing: Spacing.md) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                         .fill(accent.opacity(0.18))
                         .frame(width: 36, height: 36)
                     Image(systemName: "camera.viewfinder")

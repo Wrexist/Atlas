@@ -17,7 +17,11 @@ struct HealthConnectionCard: View {
     /// pass-through as the meal toggle.
     var activitySyncEnabled: Bool = false
     var onToggleActivitySync: (Bool) -> Void = { _ in }
-    var onConnect: () -> Void = {}
+    /// Awaited so the button can show it's waiting on HealthKit's
+    /// permission sheet rather than sitting idle under it.
+    var onConnect: @MainActor () async -> Void = {}
+
+    @State private var isConnecting = false
 
     var body: some View {
         GlassCard {
@@ -40,28 +44,10 @@ struct HealthConnectionCard: View {
                     }
                 }
 
-                (Text("Connect ")
+                Text("Connect Apple Health to bring heart rate, HRV, sleep and activity into your recovery score.")
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
-                + Text("Apple Health")
-                    .font(AppFont.scaled(16, weight: .semibold))
-                    .foregroundStyle(AppColor.accentLight)
-                + Text(" to sync your health data and get ")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                + Text("personalized insights")
-                    .font(AppFont.scaled(16, weight: .semibold))
-                    .foregroundStyle(AppColor.accentLight)
-                + Text(" based on your ")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                + Text("wearable metrics")
-                    .font(AppFont.scaled(16, weight: .semibold))
-                    .foregroundStyle(AppColor.accentLight)
-                + Text(".")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary))
-                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 if !isConnected {
                     HStack(spacing: Spacing.md) {
@@ -79,25 +65,44 @@ struct HealthConnectionCard: View {
                             .accessibilityElement(children: .combine)
                         }
                     }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
 
-                    GlassButton(title: "Connect Apple Health", icon: "heart.fill", style: .primary, isFullWidth: true) {
-                        onConnect()
+                    GlassButton(
+                        title: isConnecting ? "Connecting…" : "Connect Apple Health",
+                        icon: "heart.fill",
+                        style: .primary,
+                        isFullWidth: true
+                    ) {
+                        Task {
+                            isConnecting = true
+                            await onConnect()
+                            isConnecting = false
+                        }
                     }
+                    .disabled(isConnecting)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 } else {
-                    syncToggle(
-                        title: "Sync workouts, weight and water",
-                        detail: "Finished workouts, weigh-ins and water show up in the Health app, and weigh-ins from a smart scale come back to Atlas.",
-                        isOn: activitySyncEnabled,
-                        onChange: onToggleActivitySync
-                    )
-                    syncToggle(
-                        title: "Write meals to Apple Health",
-                        detail: "Logged calories, protein, carbs and fat will appear in the Health app's nutrition timeline.",
-                        isOn: nutritionWriteEnabled,
-                        onChange: onToggleNutritionWrite
-                    )
+                    VStack(alignment: .leading, spacing: Spacing.lg) {
+                        syncToggle(
+                            title: "Sync workouts, weight and water",
+                            detail: "Finished workouts, weigh-ins and water show up in the Health app, and weigh-ins from a smart scale come back to Atlas.",
+                            isOn: activitySyncEnabled,
+                            onChange: onToggleActivitySync
+                        )
+                        syncToggle(
+                            title: "Write meals to Apple Health",
+                            detail: "Logged calories, protein, carbs and fat will appear in the Health app's nutrition timeline.",
+                            isOn: nutritionWriteEnabled,
+                            onChange: onToggleNutritionWrite
+                        )
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
+            .appAnimation(AppAnimation.springSmooth, value: isConnected)
+        }
+        .onChange(of: isConnected) { _, connected in
+            if connected { Haptics.success() }
         }
     }
 

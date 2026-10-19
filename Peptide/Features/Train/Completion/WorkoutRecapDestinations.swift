@@ -8,7 +8,7 @@ struct WorkoutRecapExercisesView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.lg) {
                 if let summary = store.summary {
-                    Text("\(summary.entries.count) exercises").font(AppFont.subheadline)
+                    Text("^[\(summary.entries.count) exercise](inflect: true)").font(AppFont.subheadline)
                     ForEach(summary.entries) { entry in
                         NavigationLink {
                             WorkoutRecapExerciseDetail(store: store, entryID: entry.id, unit: unit)
@@ -20,7 +20,7 @@ struct WorkoutRecapExercisesView: View {
                                             .frame(width: 64, height: 76)
                                         VStack(alignment: .leading, spacing: Spacing.xs) {
                                             Text(entry.name).font(AppFont.headline)
-                                            Text("\(entry.sets.count) working sets").font(AppFont.subheadline)
+                                            Text("^[\(entry.sets.count) working set](inflect: true)").font(AppFont.subheadline)
                                             if let volume = entry.volumeKg {
                                                 Text(RecapFormat.volume(volume, unit: unit)).font(AppFont.subheadline)
                                             }
@@ -98,43 +98,49 @@ struct WorkoutMuscleDetailsView: View {
                     Text("Muscle map").tag(false)
                     Text("Muscle list").tag(true)
                 }.pickerStyle(.segmented).frame(minHeight: 44)
-                if !showsList {
+                if showsList {
+                    muscleList
+                } else {
                     RecapAnatomy(muscles: summary.muscles).frame(maxWidth: 420).frame(maxWidth: .infinity)
                     RecapMuscleNames(muscles: summary.muscles)
                 }
-                Text("Trained muscles").font(AppFont.headline)
-                ForEach(summary.muscles) { muscle in
-                    NavigationLink {
-                        WorkoutMuscleContributionsView(muscle: muscle, unit: unit)
-                    } label: {
-                        RecapCard {
-                            HStack(spacing: Spacing.md) {
-                                Image(systemName: muscle.role == .primary ? "circle.fill" : "circle.lefthalf.filled")
-                                    .foregroundStyle(muscle.role == .primary ? AppColor.trainingPrimaryMuscle : AppColor.trainingSecondaryMuscle)
-                                    .accessibilityHidden(true)
-                                VStack(alignment: .leading, spacing: Spacing.xs) {
-                                    Text(muscle.name.capitalized).font(AppFont.headline)
-                                    Text("\(muscle.role.rawValue) · \(muscle.setCount) contributing sets")
-                                        .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
-                                }
-                                Spacer(minLength: 0)
-                                Image(systemName: "chevron.right").accessibilityHidden(true)
-                            }
-                        }
-                    }.buttonStyle(.plain).accessibilityIdentifier("recap-muscle-\(muscle.id)")
-                }
                 RecapMissingMapping(count: summary.missingMappings)
                 if summary.muscles.isEmpty { Text("No muscle mapping is available for these logged exercises.") }
-                RecapCard {
-                    VStack(alignment: .leading, spacing: Spacing.sm) {
-                        Text("About muscle mapping").font(AppFont.headline)
-                        Text("Highlights are estimated from your logged exercises and completed working sets. They are not a direct measurement of muscle activation.")
-                        Text("Warm-ups and unfinished sets are excluded. One set can contribute to several muscles; these counts must not be added to find workout sets.")
-                        Text("A muscle can be primary in one exercise and supporting in another. Primary takes precedence on the map; exercise details show both roles. Gray means not highlighted by this mapping, not unused.")
-                    }.font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
-                }
             }.padding(Spacing.screenPadding)
         }.recapScreen(title: "Muscle details")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                RecapInfoButton(title: "About muscle mapping", showsTitle: false) {
+                    Text("Highlights are estimated from your logged exercises and completed working sets. They are not a direct measurement of muscle activation.")
+                    Text("Warm-ups and unfinished sets are excluded. One set can contribute to several muscles; these counts must not be added to find workout sets.")
+                    Text("A muscle can be primary in one exercise and supporting in another. Primary takes precedence on the map; exercise details show both roles. Gray means not highlighted by this mapping, not unused.")
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private var muscleList: some View {
+        Text("Trained muscles").font(AppFont.headline)
+        ForEach(summary.muscles) { muscle in
+            NavigationLink {
+                WorkoutMuscleContributionsView(muscle: muscle, unit: unit)
+            } label: {
+                RecapCard {
+                    HStack(spacing: Spacing.md) {
+                        Image(systemName: muscle.role == .primary ? "circle.fill" : "circle.lefthalf.filled")
+                            .foregroundStyle(muscle.role == .primary ? AppColor.trainingPrimaryMuscle : AppColor.trainingSecondaryMuscle)
+                            .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
+                            Text(muscle.name.capitalized).font(AppFont.headline)
+                            Text("\(muscle.role.rawValue) · ^[\(muscle.setCount) contributing set](inflect: true)")
+                                .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
+                        }
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.right").accessibilityHidden(true)
+                    }
+                }
+            }.buttonStyle(.plain).accessibilityIdentifier("recap-muscle-\(muscle.id)")
+        }
     }
 }
 
@@ -144,7 +150,7 @@ struct WorkoutMuscleContributionsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                Text("\(muscle.setCount) contributing working sets").font(AppFont.headline)
+                Text("^[\(muscle.setCount) contributing working set](inflect: true)").font(AppFont.headline)
                 ForEach(muscle.contributions) { contribution in
                     RecapCard {
                         VStack(alignment: .leading, spacing: Spacing.md) {
@@ -178,7 +184,13 @@ struct WorkoutWeeklyProgressView: View {
 
     private func weeklyContent(_ week: WorkoutRecapEngine.Week) -> some View {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                Text("\(week.count) workouts this week").font(AppFont.title2)
+                HStack(alignment: .firstTextBaseline) {
+                    Text("^[\(week.count) workout](inflect: true) this week").font(AppFont.title2)
+                    Spacer(minLength: Spacing.sm)
+                    RecapInfoButton(title: "How workouts are counted", showsTitle: false) {
+                        Text("Workouts are grouped by their start date in your current calendar and time zone. Finished workouts with working sets and saved manual workouts count. Warm-up-only and unfinished sessions are excluded.")
+                    }
+                }
                 RecapCard {
                     VStack(alignment: .leading, spacing: Spacing.lg) {
                         Text("Completed workouts per day").font(AppFont.headline)
@@ -192,7 +204,7 @@ struct WorkoutWeeklyProgressView: View {
                                     Text(day.date.formatted(.dateTime.weekday(.narrow))).font(AppFont.subheadline)
                                 }.frame(maxWidth: .infinity)
                                     .accessibilityElement(children: .ignore)
-                                    .accessibilityLabel("\(day.date.formatted(.dateTime.weekday(.wide))), \(day.count) workouts")
+                                    .accessibilityLabel(Text("\(day.date.formatted(.dateTime.weekday(.wide))), ^[\(day.count) workout](inflect: true)"))
                             }
                         }
                     }
@@ -207,8 +219,6 @@ struct WorkoutWeeklyProgressView: View {
                         }
                     }
                 }
-                Text("Workouts are grouped by their start date in your current calendar and time zone. Finished workouts with working sets and saved manual workouts count. Warm-up-only and unfinished sessions are excluded.")
-                    .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
                 if week.count == 0 { Text("No completed workouts this week yet.").font(AppFont.body) }
             }.padding(Spacing.screenPadding)
     }

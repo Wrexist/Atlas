@@ -61,11 +61,10 @@ struct MuscleGainsCard: View {
                 )
                 .frame(maxWidth: .infinity)
 
+                // The scoring note lives once, behind the info button on
+                // the "Muscles trained" card above.
                 if hasHistory {
                     topGroupsRow
-                    Text("Training scores weight primary work more than secondary work. They describe logged work, not measured muscle growth.")
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textSecondary)
                 }
             }
         }
@@ -146,24 +145,19 @@ struct MuscleGainsCard: View {
     }
 
     private func statPill(for muscle: AnatomicalMuscle, value: Double) -> some View {
-        VStack(spacing: 4) {
+        VStack(spacing: Spacing.xs) {
             Text(muscle.displayName)
                 .font(AppFont.chipText)
                 .foregroundStyle(AppColor.textPrimary)
             Text(statLabel(for: value))
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textSecondary)
+                .monospacedDigit()
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, Spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .stroke(AppColor.glassBorder, lineWidth: 0.5)
-        )
+        .glassSurface(cornerRadius: Spacing.smallCornerRadius)
+        .accessibilityElement(children: .combine)
     }
 
     private func statLabel(for value: Double) -> String {
@@ -173,7 +167,7 @@ struct MuscleGainsCard: View {
             return "\(weeks)/\(regularityWeeks) weeks"
         case .total:
             let sets = Int(value.rounded())
-            return "\(sets) weighted pts"
+            return "Score \(sets)"
         }
     }
 }

@@ -26,7 +26,7 @@ struct HomeWellnessSection: View {
     }
 
     var body: some View {
-        VStack(spacing: Spacing.xl) {
+        VStack(spacing: Spacing.sm) {
             HomeSectionHeader(eyebrow: "Wellness", title: "How you're feeling")
 
             DailyCheckInCard(
@@ -41,10 +41,12 @@ struct HomeWellnessSection: View {
                 previousEntry: yesterdayOutcome,
                 onSave: { entry in
                     dataStore.logOutcome(entry)
+                    Haptics.success()
                     showOutcomeCheckIn = false
                 },
                 onCancel: { showOutcomeCheckIn = false }
             )
+            .liquidGlassPresentation()
         }
     }
 }

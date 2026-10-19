@@ -47,15 +47,21 @@ struct DoseDayDetailPanel: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             header
 
-            if marks.isEmpty {
-                emptyState
-            } else {
-                VStack(spacing: Spacing.sm) {
-                    ForEach(sortedMarks) { mark in
-                        doseCard(for: mark)
+            // Keyed on the day so a new selection cross-fades in rather
+            // than swapping rows in place; the caller animates the change.
+            Group {
+                if marks.isEmpty {
+                    emptyState
+                } else {
+                    VStack(spacing: Spacing.sm) {
+                        ForEach(sortedMarks) { mark in
+                            doseCard(for: mark)
+                        }
                     }
                 }
             }
+            .id(day)
+            .transition(.opacity.combined(with: .offset(y: 6)))
         }
         .confirmationDialog(
             confirmationTitle,
@@ -117,20 +123,14 @@ struct DoseDayDetailPanel: View {
     // MARK: - Empty state
 
     private var emptyState: some View {
-        Text("No logged or scheduled doses for this day")
-            .font(AppFont.subheadline)
-            .foregroundStyle(AppColor.textSecondary)
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.lg)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.5))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                    }
-            }
+        EmptyStateView(
+            icon: "calendar",
+            title: "Nothing on this day",
+            message: "Doses you log or schedule show up here. Pick another day to see its doses.",
+            style: .compact
+        )
+        .frame(maxWidth: .infinity)
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 
     // MARK: - Dose card
@@ -147,7 +147,7 @@ struct DoseDayDetailPanel: View {
             } label: {
                 cardContent(for: mark)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
             .contextMenu {
                 Button {
                     onEditEntry?(entryID)
@@ -165,9 +165,10 @@ struct DoseDayDetailPanel: View {
                     }
                 }
             }
-            .accessibilityHint("Double-tap to edit, long-press for more options")
+            .accessibilityHint("Edits this dose")
         } else {
             cardContent(for: mark)
+                .accessibilityElement(children: .combine)
         }
     }
 
@@ -230,57 +231,23 @@ struct DoseDayDetailPanel: View {
         }
         .padding(Spacing.md)
         .contentShape(Rectangle())
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 
     private var scheduledBadge: some View {
-        Text("Scheduled")
-            .font(AppFont.scaled(11, weight: .heavy))
-            .tracking(0.6)
-            .foregroundStyle(AppColor.accentLight)
-            .padding(.horizontal, Spacing.xs)
-            .padding(.vertical, 2)
-            .background {
-                Capsule().fill(AppColor.accentPrimary.opacity(0.18))
-            }
-            .overlay {
-                Capsule().strokeBorder(AppColor.accentPrimary.opacity(0.35), lineWidth: 0.5)
-            }
+        Badge("Scheduled")
     }
 
     /// Badge for logged marks whose owning protocol is no longer
-    /// active. Distinct color from the "Scheduled" badge so the user
-    /// can read at a glance "this dose was real, but the protocol it
+    /// active. Neutral tint, distinct from the accent "Scheduled" badge,
+    /// so the user reads "this dose was real, but the protocol it
     /// belongs to is paused / done."
     @ViewBuilder
     private func statusBadge(for status: ProtocolStatus) -> some View {
-        let label: String? = {
-            switch status {
-            case .paused:    return "Paused"
-            case .completed: return "Completed"
-            case .active:    return nil
-            }
-        }()
-        if let label {
-            Text(label)
-                .font(AppFont.scaled(11, weight: .heavy))
-                .tracking(0.6)
-                .foregroundStyle(AppColor.textSecondary)
-                .padding(.horizontal, Spacing.xs)
-                .padding(.vertical, 2)
-                .background {
-                    Capsule().fill(AppColor.surfaceSecondary.opacity(0.8))
-                }
-                .overlay {
-                    Capsule().strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
+        switch status {
+        case .paused:    Badge("Paused", tint: AppColor.textSecondary)
+        case .completed: Badge("Completed", tint: AppColor.textSecondary)
+        case .active:    EmptyView()
         }
     }
 }

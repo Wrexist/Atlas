@@ -9,11 +9,13 @@ struct WorkoutFocusView: View {
     let onFinish: () -> Void
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(DataStore.self) private var dataStore
     @State private var service = WorkoutSessionService.shared
     @State private var library = ExerciseLibrary.shared
     @State private var detailExercise: Exercise?
 
     private var entry: WorkoutExerciseEntry? { session.selectedExercise }
+    private var defaultRestSeconds: Int { dataStore.profile.trainingPreferences?.restTimerDefault ?? 90 }
     private var exercise: Exercise? { entry.flatMap { library.lookup(id: $0.exerciseID) } }
 
     var body: some View {
@@ -103,11 +105,13 @@ struct WorkoutFocusView: View {
                         .symbolRenderingMode(.palette)
                         .foregroundStyle(AppColor.onAccent, AppColor.trainingComplete)
                         .background(Circle().fill(AppColor.trainingPanel))
+                        .symbolEffect(.bounce, value: complete)
                         .transition(.scale.combined(with: .opacity))
                         .accessibilityHidden(true)
                 }
             }
             .appAnimation(AppAnimation.springBouncy, value: complete)
+            .appAnimation(AppAnimation.springSnappy, value: selected)
         }
         .buttonStyle(ScalePressStyle())
         .accessibilityLabel(Text(exercise?.name ?? item.exerciseID))
@@ -121,9 +125,9 @@ struct WorkoutFocusView: View {
         )
         return VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack(alignment: .top) {
-                Text(exercise?.name ?? entry.exerciseID)
-                    .font(AppFont.callout)
-                    .foregroundStyle(AppColor.textSecondary)
+                Text(exercise?.name ?? "Unknown exercise")
+                    .font(AppFont.title3)
+                    .foregroundStyle(AppColor.textPrimary)
                 Spacer(minLength: Spacing.xs)
                 Button { detailExercise = exercise } label: {
                     Image(systemName: "info.circle").minimumHitArea()
@@ -160,15 +164,10 @@ struct WorkoutFocusView: View {
                     Label("Add set", systemImage: "plus").minimumHitArea()
                 }
                 Spacer()
-                Menu {
-                    ForEach(RestTimeOptions.choices(including: entry.restSeconds), id: \.self) { seconds in
-                        Button(RestTimeOptions.label(for: seconds)) {
-                            service.setRestSeconds(seconds, forExerciseEntryID: entry.id)
-                        }
-                    }
-                } label: {
-                    Label("Rest time", systemImage: "timer").minimumHitArea()
+                RestTimeMenu(current: entry.restSeconds ?? defaultRestSeconds) { seconds in
+                    service.setRestSeconds(seconds, forExerciseEntryID: entry.id)
                 }
+                .minimumHitArea()
             }
             .font(AppFont.callout)
             Group {
@@ -278,12 +277,8 @@ private struct WorkoutFocusRestHeader: View {
                                 .formatted(.units(allowed: [.hours, .minutes, .seconds], width: .wide)))
                     }
                     Spacer(minLength: Spacing.xs)
-                    Button(action: onSkip) {
-                        Label("Skip", systemImage: "forward.end.fill")
-                            .font(AppFont.callout).padding(.horizontal, Spacing.md).minimumHitArea()
-                            .background(AppColor.trainingInput, in: Capsule())
-                    }
-                    .buttonStyle(ScalePressStyle())
+                    GlassButton(title: "Skip", icon: "forward.end.fill", style: .secondary, action: onSkip)
+                        .fixedSize()
                 }
                 HStack(spacing: Spacing.sm) {
                     Button(action: onUndo) {

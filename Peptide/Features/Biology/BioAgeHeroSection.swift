@@ -3,10 +3,10 @@ import SwiftUI
 /// Top of the Biology tab. Three states:
 ///
 ///   • `.locked` — free tier: shows the dial outline + scale + particle
-///     cluster where the marker would go, plus an "Unlock with Pro"
-///     capsule. Aspirational, not punitive.
+///     cluster where the marker would go, plus a quiet "Included with
+///     Atlas Pro" caption. The host's promo card carries the one CTA.
 ///   • `.building(progress:)` — Pro tier without enough data: shows
-///     "Building" with a progress bar and the day count.
+///     a progress bar and the day count.
 ///   • `.unlocked(estimate:)` — Pro tier + sufficient data: the arc sweeps
 ///     up to the estimate as the number rolls to it, then the delta against
 ///     chronological age and how sure the estimate is.
@@ -17,8 +17,6 @@ import SwiftUI
 struct BioAgeHeroSection: View {
     let state: BioAgeState?
     let chronologicalAge: Int
-    let asOfDate: Date
-    var onUnlockTapped: () -> Void = {}
     /// Metrics offered in the header pill's menu alongside Biological Age.
     /// Selecting one opens its history; the host owns that routing.
     var metricShortcuts: [Biomarker] = []
@@ -32,6 +30,7 @@ struct BioAgeHeroSection: View {
     }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
     /// What the dial and the number show. Starts at the dial's younger
     /// bound and is animated to the estimate, so the arc sweeps in and the
     /// digits roll rather than the result just appearing.
@@ -46,6 +45,7 @@ struct BioAgeHeroSection: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.top, Spacing.sm)
+        .appAnimation(AppAnimation.springSmooth, value: state)
         .task(id: estimatedAge) { await reveal(to: estimatedAge) }
     }
 
@@ -54,12 +54,7 @@ struct BioAgeHeroSection: View {
     /// The screen's subject, as a control rather than a caption. Tapping
     /// it lists the other metrics the user tracks.
     private var header: some View {
-        VStack(spacing: Spacing.xs) {
-            metricPill
-            Text("As of \(Self.asOfFormatter.string(from: asOfDate))")
-                .font(AppFont.scaled(13, weight: .medium))
-                .foregroundStyle(AppColor.textSecondary)
-        }
+        metricPill
     }
 
     private var metricPill: some View {
@@ -86,7 +81,7 @@ struct BioAgeHeroSection: View {
             }
         } label: {
             HStack(spacing: Spacing.sm) {
-                Image(systemName: "calendar")
+                Image(systemName: "gauge.with.needle")
                     .font(AppFont.scaled(13, weight: .semibold))
                 Text("Biological Age")
                     .font(AppFont.scaled(16, weight: .semibold, design: .rounded))
@@ -127,14 +122,21 @@ struct BioAgeHeroSection: View {
         switch state {
         case nil:
             resolvingCentre
+                .transition(Self.stateTransition)
         case .locked?:
             BioAgeParticleCluster(size: 200)
+                .transition(Self.stateTransition)
         case .building(let progress)?:
             buildingCentre(progress: progress)
+                .transition(Self.stateTransition)
         case .unlocked(let estimate)?:
             unlockedCentre(estimate: estimate)
+                .transition(Self.stateTransition)
         }
     }
+
+    /// Locked → building → unlocked cross-fade rather than swap.
+    private static var stateTransition: AnyTransition { .opacity.combined(with: .scale(scale: 0.96)) }
 
     private var resolvingCentre: some View {
         Circle()
@@ -150,10 +152,7 @@ struct BioAgeHeroSection: View {
                 .font(AppFont.scaled(28, weight: .light, relativeTo: .title1))
                 .foregroundStyle(AppColor.textSecondary)
                 .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion)
-            Text("Building")
-                .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
-                .tracking(1.0)
-                .foregroundStyle(AppColor.textSecondary)
+                .accessibilityHidden(true)
             GlassProgressBar(progress: progress)
                 .frame(width: 140)
         }
@@ -172,7 +171,7 @@ struct BioAgeHeroSection: View {
                 .animation(reduceMotion ? nil : AppAnimation.springSmooth, value: shown)
                 // A neutral drop, not a tinted halo. Legibility over the
                 // starfield only needs the backdrop pushed away.
-                .shadow(color: .black.opacity(0.35), radius: 8, y: 2)
+                .shadow(color: .black.opacity(colorScheme == .dark ? 0.35 : 0), radius: 8, y: 2)
                 .accessibilityLabel(Text("Biological age \(BioAgeFormat.age(estimate.biologicalAge)) years"))
             Text("years")
                 .font(AppFont.scaled(16, weight: .medium))
@@ -203,30 +202,23 @@ struct BioAgeHeroSection: View {
         case nil:
             EmptyView()
         case .locked?:
-            unlockPill
+            proCaption
+                .transition(Self.stateTransition)
         case .building(let progress)?:
             buildingLabel(progress: progress)
+                .transition(Self.stateTransition)
         case .unlocked(let estimate)?:
             unlockedSummary(estimate: estimate)
+                .transition(Self.stateTransition)
         }
     }
 
-    private var unlockPill: some View {
-        Button(action: onUnlockTapped) {
-            HStack(spacing: Spacing.xs) {
-                Image(systemName: "lock.fill")
-                    .font(AppFont.scaled(11, weight: .heavy))
-                Text("Unlock with Pro")
-                    .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
-            }
-            .foregroundStyle(AppColor.textPrimary)
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.sm)
-            .glassControl(.capsule)
-            .minimumHitArea()
-        }
-        .buttonStyle(ScalePressStyle(pressedScale: 0.95))
-        .accessibilityLabel("Unlock biological age with Pro")
+    /// A quiet note, not a second button: the promo card below the hero
+    /// is the one place to upgrade.
+    private var proCaption: some View {
+        Label("Included with Atlas Pro", systemImage: "lock.fill")
+            .font(AppFont.scaled(13, weight: .semibold))
+            .foregroundStyle(AppColor.textSecondary)
     }
 
     private func buildingLabel(progress: Double) -> some View {
@@ -281,13 +273,13 @@ struct BioAgeHeroSection: View {
             if absDelta == 0 {
                 return String(localized: "Matching your age")
             }
-            let formatted = String(format: "%.1f", absDelta)
+            let formatted = BioAgeFormat.age(absDelta)
             return delta < 0
                 ? String(format: String(localized: "%@ years younger"), formatted)
                 : String(format: String(localized: "%@ years older"), formatted)
         }()
         return HStack(spacing: Spacing.xs) {
-            Image(systemName: absDelta == 0 ? "equal" : "sparkles")
+            Image(systemName: absDelta == 0 ? "equal" : (delta < 0 ? "sparkles" : "arrow.up.right"))
                 .font(AppFont.scaled(11, weight: .heavy))
                 .symbolEffect(.bounce, value: hasPlayedReveal && !reduceMotion)
                 .accessibilityHidden(true)
@@ -339,14 +331,6 @@ struct BioAgeHeroSection: View {
         hasPlayedReveal = true
         Haptics.impact(.soft)
     }
-
-    // MARK: - Formatters
-
-    private static let asOfFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.setLocalizedDateFormatFromTemplate("d MMM")
-        return f
-    }()
 }
 
 #Preview("Locked") {
@@ -354,8 +338,7 @@ struct BioAgeHeroSection: View {
         CosmicBackdrop(intensity: 0.55).ignoresSafeArea()
         BioAgeHeroSection(
             state: .locked,
-            chronologicalAge: 26,
-            asOfDate: Date()
+            chronologicalAge: 26
         )
     }
 }
@@ -365,8 +348,7 @@ struct BioAgeHeroSection: View {
         CosmicBackdrop(intensity: 0.55).ignoresSafeArea()
         BioAgeHeroSection(
             state: .building(progress: 4.0 / 7.0),
-            chronologicalAge: 26,
-            asOfDate: Date()
+            chronologicalAge: 26
         )
     }
 }
@@ -384,8 +366,7 @@ struct BioAgeHeroSection: View {
                     .init(kind: .sleep, deltaYears: 0.1, value: 7.4, reference: 7.5),
                 ]
             )),
-            chronologicalAge: 26,
-            asOfDate: Date()
+            chronologicalAge: 26
         )
     }
 }

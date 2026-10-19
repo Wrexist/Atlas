@@ -3,7 +3,8 @@ import SwiftUI
 /// Visual indicator of where a protocol sits in its cycle right
 /// now. Renders the phase title + day-of-phase, a progress bar
 /// across the current phase, and a "next change in N days"
-/// timestamp for the upcoming boundary. Hidden when the protocol
+/// timestamp for the upcoming boundary. Drawn as a bare section of the
+/// protocol header card (no surface of its own). Hidden when the protocol
 /// doesn't carry wash-out info (`washoutWeeks == 0` and the
 /// protocol is in its single on-cycle) since the existing
 /// `CycleProgressBar` already covers that case.
@@ -32,25 +33,6 @@ struct CyclePhaseCard: View {
             progressBar
             footer
         }
-        .padding(Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.55))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [tint.opacity(0.18), Color.clear],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(tint.opacity(0.35), lineWidth: 1)
-                }
-        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
     }
@@ -67,10 +49,10 @@ struct CyclePhaseCard: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(cycleNumberCopy)
-                    .font(AppFont.scaled(11, weight: .heavy))
+                    .font(AppFont.eyebrow)
                     .tracking(0.6)
                     .textCase(.uppercase)
-                    .foregroundStyle(tint.opacity(0.85))
+                    .foregroundStyle(tint)
                 Text(labels.title)
                     .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
@@ -93,41 +75,25 @@ struct CyclePhaseCard: View {
         return LocalizedStringResource("Phase")
     }
 
-    @ViewBuilder
     private var progressBar: some View {
+        GlassProgressBar(progress: barProgress, gradient: [tint])
+    }
+
+    private var barProgress: Double {
         switch status.phase {
-        case .completed:
-            // Solid filled bar — protocol is done.
-            RoundedRectangle(cornerRadius: 4, style: .continuous)
-                .fill(tint.opacity(0.45))
-                .frame(height: 6)
-        case .upcoming:
-            // No progress yet — render the bare track.
-            RoundedRectangle(cornerRadius: 4, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.7))
-                .frame(height: 6)
-        case .onCycle, .washout:
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                        .fill(AppColor.surfaceSecondary.opacity(0.7))
-                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                        .fill(tint)
-                        .frame(width: max(6, proxy.size.width * status.phaseProgress))
-                }
-            }
-            .frame(height: 6)
-            .appAnimation(AppAnimation.springSmooth, value: status.phaseProgress)
+        case .completed: 1
+        case .upcoming: 0
+        case .onCycle, .washout: status.phaseProgress
         }
     }
 
     private var footer: some View {
         HStack(spacing: 4) {
             Image(systemName: "clock")
-                .font(AppFont.scaled(11, weight: .semibold))
+                .font(AppFont.badgeSmall)
                 .foregroundStyle(AppColor.textSecondary)
             Text(footerCopy)
-                .font(AppFont.scaled(11))
+                .font(AppFont.badgeSmall)
                 .foregroundStyle(AppColor.textSecondary)
                 .monospacedDigit()
             Spacer(minLength: 0)

@@ -106,38 +106,23 @@ struct FoodLibraryFlow: View {
         case logged        // success screen with persistent Undo
     }
 
-    // MARK: - Portion picker tuning
-
-    /// Min/max grams the slider exposes. 10 g lower bound rules out
-    /// noise (the user probably means to log nothing rather than
-    /// half a gram of garlic powder); 2,000 g upper bound covers a
-    /// realistic single-sitting maximum without giving the slider
-    /// useless resolution at the top end.
-    static let gramsSliderRange: ClosedRange<Double> = 10...2000
-
-    /// 5 g granularity matches what people actually measure with —
-    /// kitchen scales typically display 1 g resolution but most
-    /// foods are accurate to ~5 g anyway given a label tolerance of
-    /// ±10–20%.
-    static let gramsSliderStep: Double = 5
-
-    /// One-tap shortcut weights. Picked to cover the four common
-    /// portion shapes: a snack (50 g), a single ingredient or
-    /// reference panel (100 g), a typical bowl/plate (200 g), and
-    /// a "whole serving for two" (500 g).
-    static let gramsQuickPicks: [Double] = [50, 100, 200, 500]
-
     /// Minimum number of characters before the search bar fires a
     /// network request. Matches `OpenFoodFactsService.search`'s own
     /// guard so the two layers can't drift.
     static let minimumSearchQueryLength: Int = 2
 
     enum LibraryTab: String, CaseIterable, Identifiable {
-        case all = "All"
-        case favorites = "Favorites"
-        case myFoods = "My Foods"
-        case recipes = "Recipes"
+        case all, favorites, myFoods, recipes
         var id: String { rawValue }
+
+        var title: LocalizedStringKey {
+            switch self {
+            case .all:       "All"
+            case .favorites: "Favorites"
+            case .myFoods:   "My Foods"
+            case .recipes:   "Recipes"
+            }
+        }
 
         var icon: String {
             switch self {
@@ -445,59 +430,15 @@ struct FoodLibraryFlow: View {
                         )
                 }
         }
-        .animation(.easeOut(duration: 0.18), value: searchFieldFocused)
+        .appAnimation(AppAnimation.quick, value: searchFieldFocused)
     }
 
     private var tabSegments: some View {
-        // Horizontal scroller keeps each chip on a single line at its
-        // natural width, so "Favorites" / "My Foods" never wrap to two
-        // lines on narrower phones. On wide devices the four chips fit
-        // without scrolling; on an SE they scroll instead of squashing.
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Spacing.sm) {
-                ForEach(LibraryTab.allCases) { entry in
-                    segmentChip(entry)
-                }
-            }
-            .padding(.horizontal, 2)
-        }
-        .scrollClipDisabled()
-    }
-
-    private func segmentChip(_ entry: LibraryTab) -> some View {
-        let active = (tab == entry)
-        return Button {
-            withAnimation(.easeOut(duration: 0.18)) { tab = entry }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: entry.icon)
-                    .font(AppFont.scaled(11, weight: .semibold))
-                Text(entry.rawValue)
-                    .font(AppFont.scaled(13, weight: active ? .semibold : .medium))
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-            }
-            .foregroundStyle(active ? AppColor.textPrimary : AppColor.textSecondary)
-            .padding(.horizontal, Spacing.md)
-            .frame(height: 36)
-            .background {
-                Capsule()
-                    .fill(active ? AppColor.accentPrimary.opacity(0.22) : Color.clear)
-                    .overlay {
-                        Capsule().strokeBorder(
-                            active ? AppColor.accentPrimary.opacity(0.55) : AppColor.glassBorder,
-                            lineWidth: 1
-                        )
-                    }
-            }
-            // Extend the hit region to the 44pt HIG minimum without
-            // resizing the visible pill — invisible padding around
-            // the chip catches fat-finger taps.
-            .contentShape(Capsule())
-            .frame(minHeight: 44)
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(active ? [.isButton, .isSelected] : .isButton)
+        GlassSegmentedControl(
+            options: LibraryTab.allCases,
+            selected: $tab,
+            label: { $0.title }
+        )
     }
 
     @ViewBuilder
@@ -516,12 +457,11 @@ struct FoodLibraryFlow: View {
             emptyState(
                 icon: "list.bullet.rectangle.fill",
                 title: "No recipes yet",
-                body: "Combine your custom foods into a named recipe — log a multi-ingredient meal in one tap."
+                body: "Combine your custom foods into a named recipe — log a multi-ingredient meal in one tap.",
+                action: .init(title: "Build a recipe", icon: "plus.circle.fill") {
+                    editingRecipe = Recipe(name: "")
+                }
             )
-            GlassButton(title: "Build a recipe", icon: "plus.circle.fill", style: .primary) {
-                editingRecipe = Recipe(name: "")
-            }
-            .padding(.top, Spacing.sm)
         } else {
             sectionHeader("Your recipes (\(profile.recipes.count))")
             ForEach(profile.recipes) { recipe in
@@ -635,12 +575,12 @@ struct FoodLibraryFlow: View {
                     emptyState(
                         icon: "questionmark.app.dashed",
                         title: "No results",
-                        body: "We couldn't find a match for \"\(debouncedQuery)\". Let Atlas AI add it, scan a barcode, or snap a photo."
+                        body: "We couldn't find a match for “\(debouncedQuery)”. Let Atlas AI add it, scan a barcode, or scan a meal photo.",
+                        action: .init(title: "Add “\(debouncedQuery)” with AI", icon: "sparkles") {
+                            aiFillQuery = debouncedQuery
+                            editingCustomFood = .blank
+                        }
                     )
-                    GlassButton(title: "Add \"\(debouncedQuery)\" with AI", icon: "sparkles", style: .primary) {
-                        aiFillQuery = debouncedQuery
-                        editingCustomFood = .blank
-                    }
                 }
             } else {
                 if !results.isEmpty {
@@ -659,7 +599,10 @@ struct FoodLibraryFlow: View {
     @ViewBuilder
     private var browseLanding: some View {
         VStack(spacing: Spacing.md) {
-            quickActionsCard
+            // Spotlight deep-link failures land here, before any search.
+            if let searchError {
+                inlineMessage(icon: "exclamationmark.triangle", text: searchError)
+            }
 
             let recentMeals = LifestyleDataLogic.recentDistinctMeals(in: profile.mealHistory)
             if !recentMeals.isEmpty {
@@ -684,6 +627,7 @@ struct FoodLibraryFlow: View {
                 }
             }
 
+            quickActionsCard
             tipCard
         }
     }
@@ -798,12 +742,11 @@ struct FoodLibraryFlow: View {
             emptyState(
                 icon: "person.crop.rectangle.stack.fill",
                 title: "No custom foods",
-                body: "Create your own foods for meals and ingredients the database doesn't have."
+                body: "Create your own foods for meals and ingredients the database doesn't have.",
+                action: .init(title: "Create custom food", icon: "plus.circle.fill") {
+                    editingCustomFood = .blank
+                }
             )
-            GlassButton(title: "Create custom food", icon: "plus.circle.fill", style: .primary) {
-                editingCustomFood = .blank
-            }
-            .padding(.top, Spacing.sm)
         } else {
             sectionHeader("Your foods (\(profile.customFoods.count))")
             ForEach(profile.customFoods) { custom in
@@ -1083,20 +1026,11 @@ struct FoodLibraryFlow: View {
             Image(systemName: inFlight ? "checkmark" : "plus")
                 .font(AppFont.scaled(13, weight: .bold))
                 .foregroundStyle(inFlight ? AppColor.accentLight : AppColor.onAccent)
+                .contentTransition(.symbolEffect(.replace))
                 .frame(width: 32, height: 32)
                 .background {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: inFlight
-                                    ? [AppColor.accentLight.opacity(0.35), AppColor.accentLight.opacity(0.20)]
-                                    : [AppColor.accentPrimary, AppColor.accentLight],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                    Circle().fill(inFlight ? AppColor.accentLight.opacity(0.2) : AppColor.accentPrimary)
                 }
-                .shadow(color: AppColor.accentPrimary.opacity(inFlight ? 0 : 0.35), radius: 5, y: 2)
                 .minimumHitArea()
         }
         .buttonStyle(.plain)
@@ -1200,7 +1134,7 @@ struct FoodLibraryFlow: View {
     /// Shows the row's "Logged ✓" wash, then clears it after the
     /// confirmation window.
     private func showQuickLogged(foodID: String, category: MealCategory) {
-        withAnimation(.easeOut(duration: 0.18)) {
+        AppAnimation.with(AppAnimation.quick) {
             recentlyQuickLogged[foodID] = category
         }
         // Clear the badge after the confirmation window so the row
@@ -1214,7 +1148,7 @@ struct FoodLibraryFlow: View {
         let task = Task { @MainActor in
             try? await Task.sleep(for: AppAnimation.quickLogConfirmationDuration)
             guard !Task.isCancelled else { return }
-            withAnimation(.easeIn(duration: 0.18)) {
+            AppAnimation.with(AppAnimation.quick) {
                 recentlyQuickLogged.removeValue(forKey: foodID)
             }
             quickLogClearTasks.removeValue(forKey: foodID)
@@ -1225,11 +1159,13 @@ struct FoodLibraryFlow: View {
     private func favoriteToggle(foodID: String, isFavorite: Bool) -> some View {
         Button {
             dataStore.toggleFavoriteFood(id: foodID)
-            BarcodeHaptics.lookupSuccess()
+            Haptics.selection()
         } label: {
             Image(systemName: isFavorite ? "star.fill" : "star")
                 .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(isFavorite ? AppColor.accentLight : AppColor.textSecondary.opacity(0.6))
+                .foregroundStyle(isFavorite ? AppColor.achievement : AppColor.textSecondary)
+                .contentTransition(.symbolEffect(.replace))
+                .symbolEffect(.bounce, value: isFavorite)
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }
@@ -1242,10 +1178,10 @@ struct FoodLibraryFlow: View {
     private func sectionHeader(_ title: LocalizedStringKey) -> some View {
         HStack {
             Text(title)
-                .font(AppFont.scaled(11, weight: .heavy))
+                .font(AppFont.eyebrow)
                 .tracking(0.8)
                 .textCase(.uppercase)
-                .foregroundStyle(AppColor.accentLight.opacity(0.85))
+                .foregroundStyle(AppColor.accentLight)
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 2)
@@ -1255,24 +1191,11 @@ struct FoodLibraryFlow: View {
     private func emptyState(
         icon: String,
         title: LocalizedStringKey,
-        body: LocalizedStringKey
+        body: LocalizedStringKey,
+        action: EmptyStateView.Action? = nil
     ) -> some View {
-        VStack(spacing: Spacing.sm) {
-            Image(systemName: icon)
-                .font(.system(size: 36, weight: .light))
-                .foregroundStyle(AppColor.accentLight)
-                .padding(.top, Spacing.lg)
-            Text(title)
-                .font(AppFont.headline)
-                .foregroundStyle(AppColor.textPrimary)
-            Text(body)
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.lg)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, Spacing.lg)
+        EmptyStateView(icon: icon, title: title, message: body, action: action, style: .compact)
+            .padding(.vertical, Spacing.sm)
     }
 
     private func inlineMessage(icon: String, text: String) -> some View {
@@ -1382,23 +1305,7 @@ struct FoodLibraryFlow: View {
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
 
-                HStack(spacing: Spacing.sm) {
-                    if product.servingGrams != nil {
-                        portionChip(title: "Serving", isActive: portion.isServings) {
-                            portion = .servings(1)
-                        }
-                    }
-                    if product.packageGrams != nil {
-                        portionChip(title: "Whole pack", isActive: portion == .wholePackage) {
-                            portion = .wholePackage
-                        }
-                    }
-                    portionChip(title: "Grams", isActive: portion.isGrams) {
-                        portion = .grams(100)
-                    }
-                }
-
-                portionDetail(for: product)
+                PortionPicker(product: product, portion: $portion)
                 Button("Enter exact grams") { editingExactPortion = true }
                     .minimumHitArea()
                 if let grams = FoodLibraryLogic.previousGrams(for: product, history: profile.mealHistory) {
@@ -1408,113 +1315,6 @@ struct FoodLibraryFlow: View {
                 }
             }
         }
-    }
-
-    @ViewBuilder
-    private func portionDetail(for product: ScannedProduct) -> some View {
-        switch portion {
-        case .servings(let count):
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                HStack {
-                    Stepper(
-                        value: Binding(
-                            get: { count },
-                            set: { portion = .servings($0) }
-                        ),
-                        in: 0.5...10,
-                        step: 0.5
-                    ) {
-                        HStack(spacing: 4) {
-                            Text(formatServings(count))
-                                .font(AppFont.title2)
-                                .monospacedDigit()
-                                .foregroundStyle(AppColor.textPrimary)
-                            Text(count == 1 ? "serving" : "servings")
-                                .font(AppFont.subheadline)
-                                .foregroundStyle(AppColor.textSecondary)
-                        }
-                    }
-                    .tint(AppColor.accentPrimary)
-                }
-                if let label = product.servingSizeText {
-                    Text("1 serving = \(label)")
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textSecondary)
-                }
-            }
-
-        case .wholePackage:
-            HStack {
-                Text("Entire package")
-                    .font(AppFont.title2)
-                    .foregroundStyle(AppColor.textPrimary)
-                Spacer()
-                if let g = product.packageGrams {
-                    Text("\(Int(g.rounded())) g")
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .monospacedDigit()
-                }
-            }
-
-        case .grams(let g):
-            VStack(spacing: Spacing.sm) {
-                HStack(spacing: 4) {
-                    Text("\(Int(g.rounded()))")
-                        .font(AppFont.title2)
-                        .monospacedDigit()
-                        .foregroundStyle(AppColor.textPrimary)
-                    Text("g")
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textSecondary)
-                    Spacer()
-                }
-                Slider(
-                    value: Binding(
-                        get: { g },
-                        set: { portion = .grams($0) }
-                    ),
-                    in: Self.gramsSliderRange,
-                    step: Self.gramsSliderStep
-                )
-                .tint(AppColor.accentPrimary)
-                HStack(spacing: Spacing.xs) {
-                    ForEach(Self.gramsQuickPicks, id: \.self) { quick in
-                        Button("\(Int(quick))g") { portion = .grams(quick) }
-                            .font(AppFont.caption)
-                            .foregroundStyle(AppColor.textSecondary)
-                            .padding(.horizontal, Spacing.sm)
-                            .padding(.vertical, 4)
-                            .background {
-                                Capsule().fill(AppColor.accentPrimary.opacity(0.15))
-                            }
-                    }
-                }
-            }
-        }
-    }
-
-    private func portionChip(title: LocalizedStringKey, isActive: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(AppFont.subheadline)
-                .fontWeight(isActive ? .semibold : .regular)
-                .foregroundStyle(isActive ? AppColor.textPrimary : AppColor.textSecondary)
-                .padding(.horizontal, Spacing.md)
-                .frame(minHeight: 44)
-                .background {
-                    Capsule()
-                        .fill(isActive ? AppColor.accentPrimary.opacity(0.25) : Color.clear)
-                        .overlay {
-                            Capsule().strokeBorder(
-                                isActive ? AppColor.accentPrimary.opacity(0.55) : AppColor.glassBorder,
-                                lineWidth: 1
-                            )
-                        }
-                }
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)
     }
 
     /// OFF entries with incomplete data report 0 kcal/100g for the whole
@@ -1530,39 +1330,23 @@ struct FoodLibraryFlow: View {
         let meal = product.loggable(for: portion)
         let isZeroCalorieOFF = zeroCaloriesPer100g(product)
         return VStack(spacing: Spacing.sm) {
-            GlassCard(tinted: true, padding: Spacing.md) {
-                VStack(alignment: .leading, spacing: Spacing.sm) {
-                    Text("Nutrition")
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textSecondary)
-                    Divider().background(AppColor.glassBorder)
-                    macroRow(label: "Calories", value: "\(meal?.calories ?? 0) kcal")
-                    macroRow(label: "Protein",  value: "\(meal?.proteinG ?? 0) g")
-                    macroRow(label: "Carbs",    value: "\(meal?.carbsG ?? 0) g")
-                    macroRow(label: "Fat",      value: "\(meal?.fatG ?? 0) g")
-                }
-            }
+            MealScanTotalsCard(
+                calories: meal?.calories ?? 0,
+                proteinG: meal?.proteinG ?? 0,
+                carbsG: meal?.carbsG ?? 0,
+                fatG: meal?.fatG ?? 0
+            )
             if isZeroCalorieOFF {
                 inlineMessage(
                     icon: "exclamationmark.triangle.fill",
-                    text: "This product has no calorie data in Open Food Facts. Snap the nutrition label or save it as a custom food."
+                    text: "This product has no calorie data in Open Food Facts. Save it as a custom food with the values from its label."
                 )
+                GlassButton(title: "Create custom food", icon: "plus", style: .secondary, isFullWidth: true) {
+                    var food = CustomFood.blank
+                    food.name = product.name
+                    editingCustomFood = food
+                }
             }
-        }
-    }
-
-    private func macroRow(label: LocalizedStringKey, value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-            Spacer()
-            Text(value)
-                .font(AppFont.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(AppColor.textPrimary)
-                .monospacedDigit()
-                .contentTransition(.numericText())
         }
     }
 
@@ -1598,12 +1382,11 @@ struct FoodLibraryFlow: View {
                 )
             }
             VStack(spacing: Spacing.sm) {
-                GlassButton(title: "Undo", icon: "arrow.uturn.backward", style: .destructive) {
+                GlassButton(title: "Done", style: .primary, isFullWidth: true) { onClose() }
+                GlassButton(title: "Log another food", style: .secondary, isFullWidth: true) { backToBrowse() }
+                GlassButton(title: "Undo", icon: "arrow.uturn.backward", style: .ghost) {
                     undoLastLog()
                 }
-
-                GlassButton(title: "Log another food", style: .secondary) { backToBrowse() }
-                GlassButton(title: "Done", style: .ghost) { onClose() }
             }
             .padding(.top, Spacing.sm)
         }
@@ -1654,7 +1437,6 @@ struct FoodLibraryFlow: View {
         category = MealCategory.auto(for: logTimestamp())
         phase = .review
         searchFieldFocused = false
-        BarcodeHaptics.lookupSuccess()
     }
 
     private func backToBrowse() {
@@ -1981,12 +1763,6 @@ struct FoodLibraryFlow: View {
         }
         guard !Task.isCancelled else { return }
         cachedFavoriteProducts = pulled
-    }
-
-    private func formatServings(_ count: Double) -> String {
-        count.truncatingRemainder(dividingBy: 1) == 0
-            ? String(format: "%.0f", count)
-            : String(format: "%.1f", count)
     }
 
     /// Single canonical VoiceOver label for both OFF and custom-food

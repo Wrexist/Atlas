@@ -36,19 +36,9 @@ struct PaywallPhoneMockupRow: View {
                 .fill(AppColor.background)
                 .overlay {
                     RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.22),
-                                    Color.white.opacity(0.04),
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 2
-                        )
+                        .strokeBorder(AppColor.glassBorder, lineWidth: 2)
                 }
-                .shadow(color: .black.opacity(0.55), radius: 16, x: 0, y: 12)
+                .appShadow(AppShadow.glassElevated)
 
             mockContent(for: kind)
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
@@ -56,7 +46,7 @@ struct PaywallPhoneMockupRow: View {
 
             // Notch — small pill at the top to read as an iPhone silhouette.
             Capsule()
-                .fill(Color.black)
+                .fill(AppColor.background)
                 .frame(width: 60, height: 14)
                 .offset(y: -100)
         }

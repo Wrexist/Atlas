@@ -171,8 +171,6 @@ struct TrialOfferView: View {
             }
 
             await storeService.loadProducts()
-
-            Haptics.success()
         }
     }
 
@@ -250,6 +248,11 @@ struct TrialOfferView: View {
                 .foregroundStyle(AppColor.textSecondary)
         }
         .multilineTextAlignment(.center)
+        // Until StoreKit answers, the eyebrow can't know whether a trial
+        // is redeemable and the prices read "—"; show the shape of the
+        // headline instead of copy that flips a beat later.
+        .loadingPlaceholder(!arePricesLoaded)
+        .appAnimation(AppAnimation.fadeIn, value: arePricesLoaded)
         .animation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion), value: selectedTier)
     }
 
@@ -353,6 +356,7 @@ struct TrialOfferView: View {
                     .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
             }
+            .accessibilityHidden(true)
             Text(title)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textPrimary)
@@ -360,7 +364,9 @@ struct TrialOfferView: View {
             Image(systemName: "checkmark.circle.fill")
                 .font(AppFont.scaled(16))
                 .foregroundStyle(AppColor.accentPrimary)
+                .accessibilityHidden(true)
         }
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Tier picker
@@ -381,7 +387,7 @@ struct TrialOfferView: View {
         let isSelected = selectedTier == tier
         let isAnnual = tier == .annual
         return Button {
-            Haptics.impact(.soft)
+            Haptics.selection()
             withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { selectedTier = tier }
         } label: {
             HStack(spacing: Spacing.md) {
@@ -398,21 +404,27 @@ struct TrialOfferView: View {
                         Text(tier.displayName)
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
-                        if isAnnual, let savings = annualSavingsPercent {
-                            Text("SAVE \(savings)%")
-                                .font(AppFont.scaled(11, weight: .heavy))
+                        if isAnnual {
+                            // Inline, not offset above the card: the old
+                            // floating badge collided with the card above
+                            // when the A/B order put yearly second. "Best
+                            // value" is what the savings maths supports;
+                            // "most popular" was an unverified claim.
+                            Text(annualSavingsPercent.map { "BEST VALUE · SAVE \($0)%" } ?? "BEST VALUE")
+                                .font(AppFont.badge)
                                 .tracking(0.6)
-                                .foregroundStyle(AppColor.background)
+                                .foregroundStyle(AppColor.onAccent)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
                                 .background(
-                                    Capsule().fill(AppColor.accentLight)
+                                    Capsule().fill(AppColor.accentFill)
                                 )
                         }
                     }
                     Text(tierSubtitle(for: tier))
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
+                        .loadingPlaceholder(!arePricesLoaded)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
@@ -423,6 +435,7 @@ struct TrialOfferView: View {
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textTertiary)
                 }
+                .loadingPlaceholder(!arePricesLoaded)
             }
             .padding(Spacing.md)
             .background(
@@ -438,20 +451,9 @@ struct TrialOfferView: View {
                         lineWidth: isSelected ? 1.5 : 0.5
                     )
             )
-            .overlay(alignment: .topTrailing) {
-                if isAnnual {
-                    Text("MOST POPULAR")
-                        .font(AppFont.scaled(8, weight: .heavy))
-                        .tracking(0.8)
-                        .foregroundStyle(AppColor.background)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Capsule().fill(AppColor.accentPrimary))
-                        .offset(x: -Spacing.sm, y: -9)
-                }
-            }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle())
+        .appAnimation(AppAnimation.fadeIn, value: arePricesLoaded)
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 
@@ -501,7 +503,7 @@ struct TrialOfferView: View {
                 VStack(spacing: 2) {
                     if isPurchasing {
                         ProgressView()
-                            .tint(AppColor.textPrimary)
+                            .tint(AppColor.onAccent)
                     } else {
                         HStack(spacing: Spacing.sm) {
                             Image(systemName: "sparkles")
@@ -528,7 +530,7 @@ struct TrialOfferView: View {
                         .overlay(Capsule().strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5))
                 }
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ScalePressStyle(pressedScale: 0.97))
             .disabled(isPurchasing || !arePricesLoaded)
             .opacity(arePricesLoaded ? 1 : 0.5)
             .accessibilityLabel("\(ctaTitle). \(ctaDetail)")
@@ -697,6 +699,19 @@ struct TrialOfferView: View {
     private func declineTrial() {
         Haptics.impact(.light)
         onDecline()
+    }
+}
+
+private extension View {
+    /// Redacted, shimmering stand-in while StoreKit prices load; the
+    /// real content once they arrive.
+    @ViewBuilder
+    func loadingPlaceholder(_ isLoading: Bool) -> some View {
+        if isLoading {
+            self.redacted(reason: .placeholder).shimmer()
+        } else {
+            self
+        }
     }
 }
 

@@ -49,8 +49,11 @@ final class PeptideListViewModel {
         refilter()
     }
 
+    /// Only categories that hold at least one peptide, so no chip leads
+    /// straight to an empty list.
     var categories: [PeptideCategory] {
-        PeptideCategory.allCases
+        let present = Set(allPeptides.map(\.category))
+        return PeptideCategory.allCases.filter(present.contains)
     }
 
     func selectCategory(_ category: PeptideCategory?) {

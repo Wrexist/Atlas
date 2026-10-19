@@ -29,12 +29,10 @@ struct MealStreakBadge: View {
         case 0:        return AppColor.textTertiary
         case 1...2:    return AppColor.accentPrimary
         case 3...6:    return AppColor.accentLight
-        case 7...29:   return AppColor.warning
         default:       return AppColor.streak
         }
     }
 
-    private var shouldShowGlow: Bool { currentStreak >= 7 }
     private var isNewBest: Bool { currentStreak > 0 && currentStreak >= bestStreak }
     private var isHidden: Bool { currentStreak == 0 && bestStreak == 0 }
 
@@ -93,7 +91,7 @@ struct MealStreakBadge: View {
                     .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
                     .contentTransition(.numericText())
-                Text(currentStreak == 1 ? "day streak" : "day meal streak")
+                Text("day streak")
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
             }
@@ -107,7 +105,7 @@ struct MealStreakBadge: View {
     @ViewBuilder
     private var subtitleRow: some View {
         if currentStreak == 0 && bestStreak > 0 {
-            Text("Best: \(bestStreak) days. Log a meal to restart.")
+            Text("Best: ^[\(bestStreak) day](inflect: true). Log a meal to restart.")
                 .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textSecondary)
         } else if isNewBest && currentStreak > 1 {
@@ -115,13 +113,9 @@ struct MealStreakBadge: View {
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(flameTint)
         } else if bestStreak > currentStreak {
-            Text("Best: \(bestStreak) days")
+            Text("Best: ^[\(bestStreak) day](inflect: true)")
                 .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textTertiary)
-        } else if currentStreak >= 7 {
-            Text("On fire 🔥")
-                .font(AppFont.scaled(11, weight: .semibold))
-                .foregroundStyle(flameTint)
         }
     }
 

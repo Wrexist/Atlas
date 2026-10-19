@@ -10,9 +10,9 @@ import SwiftUI
 /// daily insight.
 ///
 /// The hero strip taps the next-pending dose so the user is one
-/// tap away from logging from the top of the scroll. Stat tiles
-/// stay glanceable (no tap-to-dive); the insight row routes to
-/// labs or dismisses the nudge via `onTapInsight`.
+/// tap away from logging from the top of the scroll. Each stat tile
+/// opens the action its footnote names via `onTapTile`; the insight
+/// row routes to labs or the nudge's destination via `onTapInsight`.
 struct TodayOverviewCard: View {
     let snapshot: TodayOverviewSnapshot
     /// Water is stored in fluid ounces. Defaulted so previews stay
@@ -26,6 +26,13 @@ struct TodayOverviewCard: View {
     /// host route a "latest lab" insight to the labs view or just
     /// dismiss the nudge.
     let onTapInsight: (TodayOverviewSnapshot.BottomInsight) -> Void
+    /// Called when a stat tile is tapped. Nil keeps the tiles
+    /// display-only (previews).
+    var onTapTile: ((Tile) -> Void)?
+
+    enum Tile {
+        case calories, mealStreak, checkIn, water
+    }
 
     private var heroAccessibilityLabel: String {
         if let dose = snapshot.nextDose {
@@ -155,10 +162,25 @@ struct TodayOverviewCard: View {
             ],
             spacing: Spacing.sm
         ) {
-            caloriesTile
-            mealStreakTile
-            checkInTile
-            waterTile
+            tileButton(.calories, hint: "Opens your calorie target or Meals") { caloriesTile }
+            tileButton(.mealStreak, hint: "Opens Meals") { mealStreakTile }
+            tileButton(.checkIn, hint: "Goes to today's check-in") { checkInTile }
+            tileButton(.water, hint: "Adds a glass of water") { waterTile }
+        }
+    }
+
+    @ViewBuilder
+    private func tileButton<Content: View>(
+        _ tile: Tile,
+        hint: LocalizedStringKey,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        if let onTapTile {
+            Button { onTapTile(tile) } label: { content() }
+                .buttonStyle(ScalePressStyle(pressedScale: 0.97))
+                .accessibilityHint(hint)
+        } else {
+            content()
         }
     }
 
@@ -168,7 +190,7 @@ struct TodayOverviewCard: View {
             value: snapshot.caloriesToday > 0 || snapshot.calorieTarget != nil
                 ? "\(snapshot.caloriesToday)"
                 : "—",
-            icon: "flame.fill",
+            icon: "fork.knife",
             tint: AppColor.macroProtein,
             footnote: caloriesFootnote,
             progress: caloriesProgress
@@ -194,7 +216,7 @@ struct TodayOverviewCard: View {
         StatTile(
             label: "Meal streak",
             value: snapshot.mealStreak > 0 ? "\(snapshot.mealStreak)" : "—",
-            icon: "leaf.fill",
+            icon: "flame.fill",
             tint: AppColor.streak,
             footnote: snapshot.mealStreak == 1
                 ? String(localized: "day")
@@ -225,53 +247,66 @@ struct TodayOverviewCard: View {
             tint: AppColor.macroWater,
             footnote: snapshot.waterToday > 0
                 ? "\(unit.volumeSuffix) today"
-                : String(localized: "Quick-add from Watch")
+                : String(localized: "Tap to add")
         )
     }
 
     // MARK: - Bottom insight
 
+    /// Protocol insights have no destination, so they render as plain
+    /// text rather than a row that looks pressable and does nothing.
+    @ViewBuilder
     private func bottomInsight(_ insight: TodayOverviewSnapshot.BottomInsight) -> some View {
-        Button {
-            Haptics.impact(.soft)
-            onTapInsight(insight)
-        } label: {
-            HStack(spacing: Spacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(AppColor.accentPrimary.opacity(0.18))
-                        .frame(width: 36, height: 36)
-                    Image(systemName: insight.icon)
-                        .font(AppFont.scaled(16, weight: .semibold))
-                        .foregroundStyle(AppColor.accentPrimary)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(insight.title)
-                        .font(AppFont.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(AppColor.textPrimary)
-                        .lineLimit(1)
-                    Text(insight.body)
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .lineLimit(2)
-                }
-                Spacer(minLength: 0)
+        if case .protocolInsight = insight {
+            insightRow(insight)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(insight.title). \(insight.body)")
+        } else {
+            Button {
+                Haptics.impact(.soft)
+                onTapInsight(insight)
+            } label: {
+                insightRow(insight)
             }
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.sm)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .fill(AppColor.cardOverlay)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                    }
-            }
-            .contentShape(Rectangle())
+            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+            .accessibilityLabel("\(insight.title). \(insight.body)")
         }
-        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
-        .accessibilityLabel("\(insight.title). \(insight.body)")
+    }
+
+    private func insightRow(_ insight: TodayOverviewSnapshot.BottomInsight) -> some View {
+        HStack(spacing: Spacing.md) {
+            ZStack {
+                Circle()
+                    .fill(AppColor.accentPrimary.opacity(0.18))
+                    .frame(width: 36, height: 36)
+                Image(systemName: insight.icon)
+                    .font(AppFont.scaled(16, weight: .semibold))
+                    .foregroundStyle(AppColor.accentPrimary)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(insight.title)
+                    .font(AppFont.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .lineLimit(1)
+                Text(insight.body)
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, Spacing.md)
+        .padding(.vertical, Spacing.sm)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .fill(AppColor.cardOverlay)
+                .overlay {
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                }
+        }
+        .contentShape(Rectangle())
     }
 
     // MARK: - Helpers

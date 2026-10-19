@@ -9,17 +9,20 @@ import SwiftUI
 /// so it can be unit-tested without standing up a DataStore.
 struct TodayTimelineCard: View {
     let events: [TodayTimelineEvent]
+    /// Opens the thing a row describes — the dose sheet, Meals, Train.
+    /// Nil keeps the rows display-only.
+    var onTap: ((TodayTimelineEvent) -> Void)?
 
     var body: some View {
         if events.isEmpty {
             EmptyView()
         } else {
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                HomeSectionHeader(eyebrow: "TIMELINE", title: "Your day")
+                HomeSectionHeader(eyebrow: "Timeline", title: "Your day")
 
                 VStack(spacing: 0) {
                     ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
-                        eventRow(event, isLast: index == events.count - 1)
+                        tappableRow(event, isLast: index == events.count - 1)
                     }
                 }
                 .padding(.vertical, Spacing.sm)
@@ -34,6 +37,32 @@ struct TodayTimelineCard: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func tappableRow(_ event: TodayTimelineEvent, isLast: Bool) -> some View {
+        let row = eventRow(event, isLast: isLast)
+            .contentShape(Rectangle())
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilityLabel(for: event))
+        if let onTap {
+            Button { onTap(event) } label: { row }
+                .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        } else {
+            row
+        }
+    }
+
+    /// One VoiceOver stop per row: "7:00 AM, BPC-157, 500 mcg, pending".
+    private func accessibilityLabel(for event: TodayTimelineEvent) -> String {
+        var parts = [event.date.formatted(date: .omitted, time: .shortened), event.title]
+        if let subtitle = event.subtitle { parts.append(subtitle) }
+        if event.isCompleted {
+            parts.append(String(localized: "done"))
+        } else if event.isPending {
+            parts.append(String(localized: "pending"))
+        }
+        return parts.joined(separator: ", ")
     }
 
     private func eventRow(_ event: TodayTimelineEvent, isLast: Bool) -> some View {
@@ -61,7 +90,8 @@ struct TodayTimelineCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                     Text(event.date, format: .dateTime.hour().minute())
-                        .font(AppFont.scaled(11, weight: .heavy, design: .monospaced))
+                        .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
+                        .monospacedDigit()
                         .foregroundStyle(AppColor.textSecondary)
                     Text(event.title)
                         .font(AppFont.subheadline)
@@ -74,8 +104,9 @@ struct TodayTimelineCard: View {
                             .font(AppFont.scaled(11, weight: .bold))
                             .foregroundStyle(AppColor.success)
                     } else if event.isPending {
-                        Text("PENDING")
-                            .font(AppFont.scaled(8, weight: .heavy))
+                        Text("Pending")
+                            .textCase(.uppercase)
+                            .font(AppFont.badgeSmall)
                             .tracking(0.5)
                             .foregroundStyle(AppColor.warning)
                             .padding(.horizontal, 5)

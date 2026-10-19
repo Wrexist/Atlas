@@ -42,7 +42,9 @@ struct HomeStickyHeader: View {
                 .offset(y: (1 - progress) * 6)
         }
         .padding(.horizontal, Spacing.screenPadding)
-        .padding(.vertical, Spacing.sm)
+        // The avatar's 44pt hit area supplies most of the bar's height,
+        // so the padding stays slim to keep the bar at its old size.
+        .padding(.vertical, Spacing.xxs)
         .background { GlassBarBackground(opacity: progress) }
         .overlay(alignment: .bottom) {
             // Hairline divider that arrives with the rest of the
@@ -91,9 +93,11 @@ struct HomeStickyHeader: View {
                 }
             }
             .frame(width: 30, height: 30)
+            .minimumHitArea()
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Open profile customisation")
+        .buttonStyle(ScalePressStyle())
+        .accessibilityLabel("Profile")
+        .accessibilityHint("Opens your profile and settings")
     }
 }
 

@@ -8,9 +8,8 @@ import SwiftUI
 /// that haven't been upgraded yet) so the rings and the breakdown
 /// always reconcile.
 ///
-/// Tapping a row drills into a (future) per-meal detail sheet — for
-/// v1 it's a static read-out so users see where today's calories
-/// went without leaving the tab.
+/// A static read-out so users see where the day's calories went
+/// without leaving the tab.
 struct MealCategoriesCard: View {
     let breakdown: LifestyleDataLogic.CategoryBreakdown
 
@@ -40,10 +39,10 @@ struct MealCategoriesCard: View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Meals today")
-                    .font(AppFont.scaled(11, weight: .semibold))
+                    .font(AppFont.eyebrow)
                     .tracking(0.8)
                     .textCase(.uppercase)
-                    .foregroundStyle(AppColor.accentLight.opacity(0.85))
+                    .foregroundStyle(AppColor.accentLight)
                 Text("\(totalCalories) kcal logged")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)

@@ -24,6 +24,7 @@ struct PaywallView: View {
     let source: PaywallSource
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(DataStore.self) private var dataStore
     @State private var storeService = StoreService.shared
 
@@ -44,6 +45,9 @@ struct PaywallView: View {
     /// Set when the sheet closes because the user bought, restored or
     /// redeemed — those exits are not dismissals.
     @State private var didConvert = false
+    /// Holds the CTA on a "Welcome to Atlas Pro" beat for a moment after a
+    /// successful purchase, so paying visibly lands before the sheet closes.
+    @State private var didPurchase = false
 
     init(source: PaywallSource = .generic) {
         self.source = source
@@ -56,7 +60,9 @@ struct PaywallView: View {
 
             ScrollView {
                 VStack(spacing: Spacing.lg) {
-                    header
+                    // With a context headline the emblem alone carries the
+                    // brand, so the screen has one heading, not three.
+                    header(showsTitle: source.headline == nil)
                         .padding(.top, Spacing.xxxl)
 
                     if let headline = source.headline {
@@ -134,13 +140,14 @@ struct PaywallView: View {
 
     // MARK: - Header
 
-    private var header: some View {
+    private func header(showsTitle: Bool) -> some View {
         HStack(spacing: Spacing.sm) {
             MilestoneArtwork(size: 40, style: .emblem)
-
-            Text("Atlas Pro")
-                .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .title1))
-                .foregroundStyle(AppColor.textPrimary)
+            if showsTitle {
+                Text("Atlas Pro")
+                    .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .title1))
+                    .foregroundStyle(AppColor.textPrimary)
+            }
         }
     }
 
@@ -212,33 +219,35 @@ struct PaywallView: View {
     }
 
     private var headlineEyebrow: String {
-        guard let product = selectedProduct else { return "EVERYTHING UNLOCKED" }
+        guard let product = selectedProduct else { return String(localized: "EVERYTHING UNLOCKED") }
         if let days = storeService.redeemableTrialDays(for: product) {
-            return "YOUR \(days)-DAY FREE TRIAL"
+            return String(localized: "YOUR \(days)-DAY FREE TRIAL")
         }
-        return product.type == .autoRenewable ? "EVERYTHING UNLOCKED" : "ONE PAYMENT, YOURS FOREVER"
+        return product.type == .autoRenewable
+            ? String(localized: "EVERYTHING UNLOCKED")
+            : String(localized: "ONE PAYMENT, YOURS FOREVER")
     }
 
     private var headlineHero: String {
-        guard let product = selectedProduct else { return "Atlas Pro" }
+        guard let product = selectedProduct else { return String(localized: "Atlas Pro") }
         if let days = storeService.redeemableTrialDays(for: product) {
-            return "\(days) days free"
+            return String(localized: "\(days) days free")
         }
         return product.displayPrice
     }
 
     private var headlineSupport: String {
         guard let product = selectedProduct else {
-            return "Training, nutrition and recovery — one app, everything on."
+            return String(localized: "Training, nutrition and recovery — one app, everything on.")
         }
         guard product.type == .autoRenewable else {
-            return "Pay once. No subscription, nothing to cancel."
+            return String(localized: "Pay once. No subscription, nothing to cancel.")
         }
         let price = "\(product.displayPrice)\(periodSuffix(for: product))"
         if storeService.redeemableTrialDays(for: product) != nil {
-            return "Then \(price). Cancel any time before it starts."
+            return String(localized: "Then \(price). Cancel any time before it starts.")
         }
-        return "\(price) — cancel any time."
+        return String(localized: "\(price) — cancel any time.")
     }
 
     // MARK: - Trust line
@@ -290,7 +299,7 @@ struct PaywallView: View {
                     timelineRow(
                         icon: "gearshape.fill",
                         title: "Day \(max(days - 1, 1))",
-                        detail: "Still not for you? Cancel in Settings — one tap, keep the rest of the trial."
+                        detail: "Still not for you? Cancel anytime in Settings → Apple ID → Subscriptions and keep the rest of the trial."
                     )
                     timelineRow(
                         icon: "checkmark.seal.fill",
@@ -302,7 +311,7 @@ struct PaywallView: View {
         }
     }
 
-    private func timelineRow(icon: String, title: String, detail: String) -> some View {
+    private func timelineRow(icon: String, title: LocalizedStringKey, detail: LocalizedStringKey) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             ZStack {
                 Circle()
@@ -387,7 +396,7 @@ struct PaywallView: View {
                 .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.positive)
                 .accessibilityHidden(true)
-            Text("Cancel in two taps from Settings. Your logs, workouts and photos stay yours either way.")
+            Text("Cancel anytime in Settings → Apple ID → Subscriptions. Your logs, workouts and photos stay yours either way.")
                 .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -521,12 +530,9 @@ struct PaywallView: View {
 
     /// Surfaces the attribution captured on the onboarding creator-code
     /// step. The discount percentage is stored on the profile but is
-    /// NOT shown until the StoreKit / RevenueCat wiring actually applies
-    /// it at checkout — claiming "X% off applied" while charging the
-    /// full price is a trust regression we don't want users to spot
-    /// post-purchase. Once the discount-on-purchase pipeline lands,
-    /// switch the copy back to the "X% off applied — thanks to Y!"
-    /// form via the `appliedDiscount` branch below.
+    /// NOT shown until the purchase flow actually applies it at checkout —
+    /// claiming "X% off applied" while charging the full price is a trust
+    /// regression.
     private func creatorBanner(_ attribution: CreatorAttribution) -> some View {
         let bannerGreen = AppColor.positive
         return HStack(spacing: Spacing.sm) {
@@ -535,21 +541,11 @@ struct PaywallView: View {
                 .foregroundStyle(bannerGreen)
                 .accessibilityHidden(true)              // Text alongside carries the meaning
 
-            VStack(alignment: .leading, spacing: 2) {
-                if let percent = appliedDiscount(for: attribution) {
-                    Text("\(percent)% off applied — thanks to \(attribution.creatorName)!")
-                        .font(AppFont.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(AppColor.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else {
-                    Text("Thanks for using \(attribution.creatorName)'s code")
-                        .font(AppFont.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(AppColor.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
+            Text("Thanks for using \(attribution.creatorName)'s code")
+                .font(AppFont.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(AppColor.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
 
             Spacer(minLength: 0)
         }
@@ -563,18 +559,6 @@ struct PaywallView: View {
                         .strokeBorder(bannerGreen.opacity(0.45), lineWidth: 1)
                 }
         }
-    }
-
-    /// Returns the discount percent only when the checkout pipeline can
-    /// actually apply it. Today that's never — the StoreKit / RevenueCat
-    /// integration is a deferred follow-up — so the banner falls back to
-    /// attribution-only copy. When billing-side support lands, return
-    /// `attribution.discountPercent` here (or a value StoreService can
-    /// confirm is live) and the banner reads "X% off applied" again.
-    private func appliedDiscount(for attribution: CreatorAttribution) -> Int? {
-        // Intentionally returns nil until the discount is actually wired
-        // into the purchase flow. Don't promise a discount we can't deliver.
-        nil
     }
 
     // MARK: - Pricing cards
@@ -594,8 +578,11 @@ struct PaywallView: View {
         VStack(spacing: Spacing.sm) {
             if storeService.products.isEmpty {
                 if isLoadingProducts {
-                    ProgressView()
-                        .frame(maxWidth: .infinity, minHeight: 120)
+                    // The shape of the three plan rows, so prices land in
+                    // place instead of replacing a spinner.
+                    ForEach(0..<3, id: \.self) { _ in
+                        SkeletonBlock(height: 72, cornerRadius: Spacing.cardCornerRadius)
+                    }
                 } else {
                     productsUnavailable
                 }
@@ -607,7 +594,7 @@ struct PaywallView: View {
                     // Guideline 3.1.2(c): the billed amount is the headline
                     // number; the per-month equivalent rides in the subtitle.
                     primaryPrice: annual.displayPrice,
-                    primaryUnit: "/yr",
+                    primaryUnit: String(localized: "/yr"),
                     subtitle: yearlySubtitle(for: annual),
                     badge: savingsBadge
                 )
@@ -617,7 +604,7 @@ struct PaywallView: View {
                     product: monthly,
                     title: "Monthly",
                     primaryPrice: monthly.displayPrice,
-                    primaryUnit: "/mo",
+                    primaryUnit: String(localized: "/mo"),
                     subtitle: monthlySubtitle(for: monthly),
                     badge: nil
                 )
@@ -630,15 +617,16 @@ struct PaywallView: View {
                     product: lifetime,
                     title: "Lifetime",
                     primaryPrice: lifetime.displayPrice,
-                    primaryUnit: "once",
-                    subtitle: "Pay once. Yours forever.",
+                    primaryUnit: String(localized: "once"),
+                    subtitle: String(localized: "Pay once. Yours forever."),
                     // "BEST VALUE" is two words and it was pushing the
                     // title into a mid-word wrap ("Lifet / ime") on the
                     // narrowest phones. One word, same promise.
-                    badge: "FOREVER"
+                    badge: String(localized: "FOREVER")
                 )
             }
         }
+        .appAnimation(AppAnimation.fadeIn, value: storeService.products.isEmpty)
     }
 
     /// Shown when StoreKit returned no products (offline, storefront
@@ -757,6 +745,9 @@ struct PaywallView: View {
             }
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.985))
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .transition(.opacity)
     }
 
     private func radioMark(isSelected: Bool) -> some View {
@@ -792,21 +783,21 @@ struct PaywallView: View {
     /// while the intro offer is live, "Just €2.08/mo" once the user is no
     /// longer eligible (already redeemed an intro in this group).
     private func yearlySubtitle(for product: Product) -> String {
-        let perMonth = perMonthEquivalent(for: product).map { "\($0)/mo" }
+        let perMonth = perMonthEquivalent(for: product).map { String(localized: "\($0)/mo") }
         if storeService.isEligibleForAnnualTrial,
            let trial = storeService.annualTrialDisplay {
             guard let perMonth else { return trial }
             return "\(trial) · \(perMonth)"
         }
-        guard let perMonth else { return "Billed yearly" }
-        return "Just \(perMonth)"
+        guard let perMonth else { return String(localized: "Billed yearly") }
+        return String(localized: "Just \(perMonth)")
     }
 
     private func monthlySubtitle(for product: Product) -> String {
-        let priceLine = "Billed \(product.displayPrice)/mo"
+        let priceLine = String(localized: "Billed \(product.displayPrice)/mo")
         if storeService.isEligibleForMonthlyTrial,
            let trial = storeService.monthlyTrialDisplay {
-            return "\(priceLine) after \(trial)"
+            return String(localized: "\(priceLine) after \(trial)")
         }
         return priceLine
     }
@@ -833,10 +824,10 @@ struct PaywallView: View {
     private func periodSuffix(for product: Product) -> String {
         guard let period = product.subscription?.subscriptionPeriod else { return "" }
         switch period.unit {
-        case .year:  return "/yr"
-        case .month: return "/mo"
-        case .week:  return "/wk"
-        case .day:   return "/day"
+        case .year:  return String(localized: "/yr")
+        case .month: return String(localized: "/mo")
+        case .week:  return String(localized: "/wk")
+        case .day:   return String(localized: "/day")
         @unknown default: return ""
         }
     }
@@ -860,7 +851,7 @@ struct PaywallView: View {
         // negligible saving doesn't ship a "5% OFF" badge that
         // makes the annual tier look weak.
         let percent = Int(((saved as NSDecimalNumber).doubleValue * 100).rounded())
-        return percent >= 5 ? "SAVE \(percent)%" : nil
+        return percent >= 5 ? String(localized: "SAVE \(percent)%") : nil
     }
 
     // MARK: - Pinned purchase footer
@@ -897,7 +888,12 @@ struct PaywallView: View {
             Task { await purchase(product) }
         } label: {
             VStack(spacing: 2) {
-                if isPurchasing {
+                if didPurchase {
+                    Label("Welcome to Atlas Pro", systemImage: "checkmark.circle.fill")
+                        .font(AppFont.scaled(16, weight: .bold))
+                        .symbolEffect(.bounce, value: reduceMotion ? false : didPurchase)
+                        .transition(.opacity)
+                } else if isPurchasing {
                     ProgressView()
                         .progressViewStyle(.circular)
                         .tint(AppColor.onAccent)
@@ -954,24 +950,24 @@ struct PaywallView: View {
     private var ctaDetail: String? {
         guard let product = selectedProduct else { return nil }
         guard product.type == .autoRenewable else {
-            return "\(product.displayPrice) once · no subscription"
+            return String(localized: "\(product.displayPrice) once · no subscription")
         }
         let price = "\(product.displayPrice)\(periodSuffix(for: product))"
         if storeService.redeemableTrialDays(for: product) != nil {
-            return "\(zeroPrice(for: product)) today, then \(price)"
+            return String(localized: "\(zeroPrice(for: product)) today, then \(price)")
         }
-        return "\(price) · cancel any time"
+        return String(localized: "\(price) · cancel any time")
     }
 
     private var ctaAccessibilityLabel: String {
-        guard let product = selectedProduct else { return "Choose a plan" }
+        guard let product = selectedProduct else { return String(localized: "Choose a plan") }
         let action: String
         if product.type != .autoRenewable {
-            action = "Get lifetime access"
+            action = String(localized: "Get lifetime access")
         } else if let days = storeService.redeemableTrialDays(for: product) {
-            action = "Start my \(days) day free trial"
+            action = String(localized: "Start my \(days) day free trial")
         } else {
-            action = "Unlock Atlas Pro"
+            action = String(localized: "Unlock Atlas Pro")
         }
         guard let ctaDetail else { return action }
         return "\(action). \(ctaDetail)"
@@ -979,29 +975,55 @@ struct PaywallView: View {
 
     // MARK: - Footer
 
+    /// One row when it fits; at large Dynamic Type the four links split
+    /// into account actions and legal links so none is clipped.
     private var footerLinks: some View {
-        HStack(spacing: Spacing.md) {
-            Button(action: restore) {
-                Text("Restore").minimumHitArea()
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: Spacing.md) {
+                accountLinks
+                legalLinks
             }
-            .disabled(isRestoring)
-
-            Button {
-                isRedeemingCode = true
-            } label: {
-                Text("Redeem code").minimumHitArea()
-            }
-
-            Link(destination: URL.staticHTTPS("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")) {
-                Text("Terms of Use").minimumHitArea()
-            }
-
-            Link(destination: URL.staticHTTPS("https://wrexist.github.io/Atlas/privacy.html")) {
-                Text("Privacy Policy").minimumHitArea()
+            VStack(spacing: 0) {
+                HStack(spacing: Spacing.md) { accountLinks }
+                HStack(spacing: Spacing.md) { legalLinks }
             }
         }
         .font(AppFont.scaled(11))
         .foregroundStyle(AppColor.textSecondary)
+    }
+
+    @ViewBuilder
+    private var accountLinks: some View {
+        Button(action: restore) {
+            Group {
+                if isRestoring {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .accessibilityLabel("Restoring purchases")
+                } else {
+                    Text("Restore")
+                }
+            }
+            .minimumHitArea()
+        }
+        .disabled(isRestoring)
+
+        Button {
+            isRedeemingCode = true
+        } label: {
+            Text("Redeem code").minimumHitArea()
+        }
+    }
+
+    @ViewBuilder
+    private var legalLinks: some View {
+        Link(destination: URL.staticHTTPS("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")) {
+            Text("Terms of Use").minimumHitArea()
+        }
+
+        Link(destination: URL.staticHTTPS("https://wrexist.github.io/Atlas/privacy.html")) {
+            Text("Privacy Policy").minimumHitArea()
+        }
     }
 
     /// Required by App Store guideline 3.1.2(a) — for a subscription the user
@@ -1039,9 +1061,11 @@ struct PaywallView: View {
     /// The renewal price and cancellation window, inline under the button so
     /// the user sees them without opening the Details sheet.
     private var autoRenewLine: String {
-        let window = "unless cancelled at least 24 hours before the period ends."
-        guard let product = selectedProduct else { return "Auto-renews \(window)" }
-        return "Auto-renews at \(product.displayPrice)\(periodSuffix(for: product)) \(window)"
+        guard let product = selectedProduct else {
+            return String(localized: "Auto-renews unless cancelled at least 24 hours before the period ends.")
+        }
+        let price = "\(product.displayPrice)\(periodSuffix(for: product))"
+        return String(localized: "Auto-renews at \(price) unless cancelled at least 24 hours before the period ends.")
     }
 
     private var disclosureSheet: some View {
@@ -1058,10 +1082,10 @@ struct PaywallView: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     if let monthly = storeService.monthlyProduct {
-                        termRow("Monthly", price: "\(monthly.displayPrice)/month")
+                        termRow(monthly.displayName, length: "1 month", price: "\(monthly.displayPrice)/month")
                     }
                     if let annual = storeService.annualProduct {
-                        termRow("Annual", price: "\(annual.displayPrice)/year")
+                        termRow(annual.displayName, length: "1 year", price: "\(annual.displayPrice)/year")
                     }
                 }
                 .padding(Spacing.lg)
@@ -1079,11 +1103,18 @@ struct PaywallView: View {
         }
     }
 
-    private func termRow(_ label: LocalizedStringKey, price: String) -> some View {
+    /// Product title from App Store Connect, its length and its price —
+    /// the three facts Guideline 3.1.2 asks for on each auto-renewable plan.
+    private func termRow(_ name: String, length: LocalizedStringKey, price: String) -> some View {
         HStack {
-            Text(label)
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textPrimary)
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(verbatim: name)
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textPrimary)
+                Text(length)
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
             Spacer()
             Text(price)
                 .font(AppFont.subheadline)
@@ -1095,6 +1126,7 @@ struct PaywallView: View {
             RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                 .fill(AppColor.surfaceElevated)
         }
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Actions
@@ -1131,6 +1163,8 @@ struct PaywallView: View {
                 didConvert = true
                 OnboardingFunnelTracker.recordEvent(source.purchasedEvent)
                 Haptics.success()
+                AppAnimation.with(AppAnimation.springSnappy) { didPurchase = true }
+                try? await Task.sleep(for: .milliseconds(900))
                 dismiss()
             case .pending:
                 notice = .pending

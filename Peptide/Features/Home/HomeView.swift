@@ -61,6 +61,11 @@ struct HomeView: View {
     /// appear + on each .active scene transition so the rings reflect
     /// the freshest HealthKit reads without blocking the view body.
     @State private var heroSnapshot: HeroMetricSnapshot = .empty
+    /// True until the first `refreshHeroSnapshot()` lands, so the trio
+    /// shows a skeleton instead of flashing "—" rings before real values.
+    @State private var isHeroLoading = true
+    /// Session-only dismissal of the reminder-limit banner.
+    @State private var notificationBannerDismissed = false
     /// Health Monitor grid snapshot — HRV / RHR / Sleep with their
     /// personal-range envelopes. Same refresh cadence as the hero
     /// trio so a freshly-synced HealthKit write updates both at once.
@@ -97,9 +102,10 @@ struct HomeView: View {
         /// Finished sessions this calendar week — the trio's first ring
         /// for a user with no active protocol.
         var workoutsThisWeek = 0
-        /// Whether any session started today — feeds the checklist's
-        /// training row without a SwiftData fetch from `body`.
-        var trainedToday = false
+        /// Today's session count and minutes — feeds the Movement card
+        /// and the checklist's training row without a fetch from `body`.
+        var workoutSummary: (count: Int, minutes: Int) = (0, 0)
+        var trainedToday: Bool { workoutSummary.count > 0 }
     }
 
     private struct HeroDetailItem: Identifiable {
@@ -139,7 +145,7 @@ struct HomeView: View {
             timeline: buildTimelineEvents(),
             primaryReason: buildPrimaryReason(plan: plan),
             workoutsThisWeek: countWorkoutsThisWeek(),
-            trainedToday: dataStore.workoutSummary(for: Date()).count > 0
+            workoutSummary: dataStore.workoutSummary(for: Date())
         )
         // Inside an animation so the cards' numericText digits roll.
         AppAnimation.with(AppAnimation.springSmooth) { derived = next }
@@ -158,7 +164,7 @@ struct HomeView: View {
     /// DataStore.notificationReport which reads a non-observed singleton
     /// and so the banner won't refresh after a reschedule.
     private var shouldShowNotificationBanner: Bool {
-        notificationService.lastReport.hasAnyIssue
+        notificationService.lastReport.hasAnyIssue && !notificationBannerDismissed
     }
 
     /// The "At a glance" trio only has meaning once there's a data
@@ -188,7 +194,7 @@ struct HomeView: View {
         NavigationStack {
             ScrollViewReader { proxy in
             ScrollView {
-                VStack(spacing: Spacing.xl) {
+                VStack(spacing: Spacing.xxl) {
                     WelcomeHeader(
                         greeting: greeting,
                         name: dataStore.profile.name,
@@ -237,7 +243,14 @@ struct HomeView: View {
                        let report = dataStore.notificationReport {
                         NotificationIssueBanner(
                             report: report,
-                            droppedProtocolNames: dataStore.droppedReminderProtocolNames
+                            droppedProtocolNames: dataStore.droppedReminderProtocolNames,
+                            onReview: {
+                                appState.pendingProtocolList = true
+                                appState.showLibrary = true
+                            },
+                            onDismiss: {
+                                AppAnimation.with(AppAnimation.toast) { notificationBannerDismissed = true }
+                            }
                         )
                         .transition(.move(edge: .top).combined(with: .opacity))
                         .sectionAppear(index: 1)
@@ -249,30 +262,27 @@ struct HomeView: View {
                     // (roadmap day-0). They lead with the habit hero
                     // below; the trio's footer offers Connect Health.
                     if showsAtAGlance {
-                        HomeSectionHeader(eyebrow: "Today", title: "At a glance")
-                            .sectionAppear(index: 2)
+                        VStack(spacing: Spacing.sm) {
+                            HomeSectionHeader(eyebrow: "Today", title: "At a glance")
 
-                        // Bevel-style hero trio — Adherence / Recovery /
-                        // Sleep. Three at-a-glance numbers mapping to the
-                        // user's mental model from Whoop / Oura / Bevel.
-                        HeroMetricTrio(
-                            snapshot: heroSnapshot,
-                            onTapRing: { kind in
-                                Haptics.impact(.light)
-                                heroDetailKind = HeroDetailItem(kind: kind)
-                            },
-                            onConnectHealth: {
-                                Haptics.impact(.light)
-                                // Health connection lives on the Profile
-                                // sheet — same destination as the avatar.
-                                appState.showProfile = true
-                            },
-                            leading: heroLeading,
-                            onTapWorkouts: {
-                                Haptics.impact(.light)
-                                appState.selectedTab = .train
-                            }
-                        )
+                            // Bevel-style hero trio — Adherence / Recovery /
+                            // Sleep. Three at-a-glance numbers mapping to the
+                            // user's mental model from Whoop / Oura / Bevel.
+                            HeroMetricTrio(
+                                snapshot: heroSnapshot,
+                                onTapRing: { kind in
+                                    Haptics.impact(.light)
+                                    heroDetailKind = HeroDetailItem(kind: kind)
+                                },
+                                onConnectHealth: connectHealth,
+                                leading: heroLeading,
+                                onTapWorkouts: {
+                                    Haptics.impact(.light)
+                                    appState.selectedTab = .train
+                                },
+                                isLoading: isHeroLoading
+                            )
+                        }
                         .sectionAppear(index: 2)
                     }
 
@@ -328,62 +338,44 @@ struct HomeView: View {
                     )
                     .sectionAppear(index: 5)
 
-                    // MARK: - Meals / Wellness / Movement
-                    //
-                    // Meals is the most-used surface on Today, so it
-                    // sits ABOVE the dose plan/schedule cards now —
-                    // users reached for it most and were scrolling
-                    // past four cards to get there. Doses are still
-                    // surfaced in TodayOverviewCard's hero, and the
-                    // jump chips above reach the full schedule in
-                    // one tap.
-
-                    // HomeMealsSection used to render on the Today scroll
-                    // AND inside MealsContainerView. Spotlight taps with
-                    // a recipe deep-link fired sheets in both mounts
-                    // simultaneously (audit Meals MED 10). Removed from
-                    // Today; the dedicated Meals tab is the single
-                    // owner. The jump-bar .meals chip now navigates to
-                    // the Meals tab (handled in handleJump).
-
                     if !dataStore.protocols.isEmpty, let plan = derived.plan {
                         // The ONE dose section. The header's Manage
                         // button is the labeled Library entry that
                         // replaced the removed cycle pill.
-                        HomeSectionHeader(eyebrow: "Protocols", title: "Today's doses") {
-                            Button {
-                                Haptics.impact(.light)
-                                appState.pendingProtocolList = true
-                                appState.showLibrary = true
-                            } label: {
-                                Text("Manage")
-                                    .font(AppFont.scaled(13, weight: .semibold))
-                                    .foregroundStyle(AppColor.accentLight)
+                        VStack(spacing: Spacing.sm) {
+                            HomeSectionHeader(eyebrow: "Protocols", title: "Today's doses") {
+                                Button {
+                                    Haptics.impact(.light)
+                                    appState.pendingProtocolList = true
+                                    appState.showLibrary = true
+                                } label: {
+                                    Text("Manage")
+                                        .font(AppFont.chipText)
+                                        .foregroundStyle(AppColor.accentLight)
+                                }
+                                .minimumHitArea()
+                                .accessibilityLabel("Manage protocols")
                             }
-                            .minimumHitArea()
-                            .accessibilityLabel("Manage protocols")
-                        }
-                        .scrollReveal()
 
-                        DailyPlanCard(
-                            plan: plan,
-                            onTapDose: { entry in selectedEntry = entry },
-                            onAddProtocol: {
-                                appState.pendingProtocolList = true
-                                appState.showLibrary = true
-                            }
-                        )
+                            DailyPlanCard(
+                                plan: plan,
+                                onTapDose: { entry in selectedEntry = entry },
+                                onAddProtocol: {
+                                    appState.pendingProtocolList = true
+                                    appState.showLibrary = true
+                                }
+                            )
+
+                            TodayScheduleCard(
+                                entries: stats.entries,
+                                onToggle: { entry in
+                                    AppAnimation.with(AppAnimation.springSnappy) { dataStore.toggleEntry(entry.id) }
+                                },
+                                onTap: { entry in selectedEntry = entry }
+                            )
+                        }
                         .id(TodayJumpBar.SectionAnchor.doses)
                         .trackSectionAnchor(.doses)
-                        .scrollReveal()
-
-                        TodayScheduleCard(
-                            entries: stats.entries,
-                            onToggle: { entry in
-                                AppAnimation.with(AppAnimation.springSnappy) { dataStore.toggleEntry(entry.id) }
-                            },
-                            onTap: { entry in selectedEntry = entry }
-                        )
                         .scrollReveal()
                     }
 
@@ -392,7 +384,7 @@ struct HomeView: View {
                         .trackSectionAnchor(.wellness)
                         .scrollReveal()
 
-                    HomeMovementSection()
+                    HomeMovementSection(summary: derived.workoutSummary)
                         .id(TodayJumpBar.SectionAnchor.movement)
                         .trackSectionAnchor(.movement)
                         .scrollReveal()
@@ -420,10 +412,11 @@ struct HomeView: View {
                                     showTargetsEditor = true
                                 case .nudge(_, _, _, .logMeal):
                                     appState.selectedTab = .meals
-                                case .protocolInsight, .nudge:
+                                case .protocolInsight:
                                     break
                                 }
-                            }
+                            },
+                            onTapTile: { tile in handleOverviewTile(tile, proxy: proxy) }
                         )
                         .scrollReveal()
                     }
@@ -433,14 +426,15 @@ struct HomeView: View {
                     // (level / tier / progress). Guarded so the header
                     // never sits alone when no goal date is set.
                     if dataStore.profile.goalDate != nil {
-                        HomeSectionHeader(eyebrow: "Momentum", title: "Your goal")
-                            .scrollReveal()
+                        VStack(spacing: Spacing.sm) {
+                            HomeSectionHeader(eyebrow: "Momentum", title: "Your goal")
 
-                        GoalCountdownCard(
-                            goalDate: dataStore.profile.goalDate,
-                            primaryGoal: dataStore.profile.primaryGoal,
-                            startDate: dataStore.profile.memberSince
-                        )
+                            GoalCountdownCard(
+                                goalDate: dataStore.profile.goalDate,
+                                primaryGoal: dataStore.profile.primaryGoal,
+                                startDate: dataStore.profile.memberSince
+                            )
+                        }
                         .scrollReveal()
                     }
 
@@ -476,8 +470,11 @@ struct HomeView: View {
                     // + check-in + workouts merged into one sorted
                     // list. Hides itself when the day has no events
                     // (a brand-new install before the first log).
-                    TodayTimelineCard(events: derived.timeline)
-                        .scrollReveal()
+                    TodayTimelineCard(
+                        events: derived.timeline,
+                        onTap: { event in handleTimelineTap(event, proxy: proxy) }
+                    )
+                    .scrollReveal()
 
                     // Bevel-style Health Monitor grid — HRV / RHR /
                     // Sleep with personal-range indicators. Hides
@@ -558,10 +555,12 @@ struct HomeView: View {
             .sheet(isPresented: $showProgress) {
                 AtlasProgressView()
                     .environment(dataStore)
+                    .liquidGlassPresentation()
             }
             .sheet(isPresented: $showResearchAssistant) {
                 AIResearchView()
                     .environment(dataStore)
+                    .liquidGlassPresentation()
             }
             // Stack-warning / stack-adjustment / paywall sheets
             // moved to ProtocolsStackHealthSection in Phase 34 —
@@ -727,9 +726,14 @@ struct HomeView: View {
             }
             .navigationDestination(item: $detailWeekStart) { weekStart in
                 if let binding = bindingForWeeklySummary(weekStart: weekStart) {
+                    // Refresh only regenerates the current week, so an
+                    // older recap opened by deep link gets no button
+                    // rather than one that overwrites a different week.
                     WeeklySummaryDetailView(
                         summary: binding,
-                        onRefresh: { await loadWeeklySummary(forceRefresh: true) }
+                        onRefresh: isCurrentWeek(weekStart)
+                            ? { await loadWeeklySummary(forceRefresh: true) }
+                            : nil
                     )
                 } else {
                     // The summary was deleted between push and render —
@@ -752,7 +756,8 @@ struct HomeView: View {
                         recoveryComponents: heroSnapshot.recoveryComponents,
                         lastSleepHours: heroSnapshot.lastSleepHours,
                         sleepTargetHours: 8.0
-                    )
+                    ),
+                    onLogDose: { entry in selectedEntry = entry }
                 )
                 .environment(dataStore)
                 .environment(appState)
@@ -787,6 +792,51 @@ struct HomeView: View {
             proxy.scrollTo(anchor, anchor: .top)
         }
         activeJumpAnchor = anchor
+    }
+
+    /// Asks HealthKit directly from the trio's footer rather than
+    /// sending the user to hunt for the Health row in Profile.
+    private func connectHealth() {
+        Haptics.impact(.light)
+        Task { @MainActor in
+            guard !dataStore.profile.healthConnected,
+                  await dataStore.toggleHealthConnection() else { return }
+            await refreshHeroSnapshot()
+            await refreshHealthRange()
+        }
+    }
+
+    private func handleOverviewTile(_ tile: TodayOverviewCard.Tile, proxy: ScrollViewProxy) {
+        Haptics.impact(.light)
+        switch tile {
+        case .calories:
+            if dataStore.profile.nutritionTargets == nil {
+                showTargetsEditor = true
+            } else {
+                appState.selectedTab = .meals
+            }
+        case .mealStreak:
+            appState.selectedTab = .meals
+        case .checkIn:
+            handleJump(to: .wellness, proxy: proxy)
+        case .water:
+            let glass = TodayChecklistEngine.glassFluidOunces(for: dataStore.profile.bodyMetrics.unit)
+            dataStore.logWater(fluidOunces: glass)
+        }
+    }
+
+    private func handleTimelineTap(_ event: TodayTimelineEvent, proxy: ScrollViewProxy) {
+        Haptics.impact(.light)
+        switch event.tint {
+        case .dose:
+            selectedEntry = dataStore.todayEntries.first { "dose-\($0.id)" == event.id }
+        case .meal:
+            appState.selectedTab = .meals
+        case .workout:
+            appState.selectedTab = .train
+        case .checkIn:
+            handleJump(to: .wellness, proxy: proxy)
+        }
     }
 
     private func handleChecklistAction(_ item: TodayChecklistEngine.Item) {
@@ -872,9 +922,7 @@ struct HomeView: View {
             hasProtocols: !dataStore.protocols.isEmpty,
             healthConnected: dataStore.profile.healthConnected,
             recoveryScore: heroSnapshot.recovery.isAvailable ? heroSnapshot.recovery.displayPercent : nil,
-            sleepHours: heroSnapshot.sleep.isAvailable
-                ? Double(heroSnapshot.sleep.displayPercent) / 100 * 8.0    // approx; 8h target
-                : nil,
+            sleepHours: heroSnapshot.sleep.isAvailable ? heroSnapshot.lastSleepHours : nil,
             adherenceRatio: todayStats.score,
             pendingDoseCount: todayStats.total - todayStats.completed,
             nextDoseAbbreviation: next?.peptide.abbreviation,
@@ -925,7 +973,10 @@ struct HomeView: View {
             adherenceRatio: todayStats.score,
             healthConnected: dataStore.profile.healthConnected
         )
-        AppAnimation.with(AppAnimation.springSmooth) { heroSnapshot = snapshot }
+        AppAnimation.with(AppAnimation.springSmooth) {
+            heroSnapshot = snapshot
+            isHeroLoading = false
+        }
     }
 
     /// Builds the Health Monitor grid's personal-range snapshot.
@@ -1066,8 +1117,12 @@ struct HomeView: View {
         } catch WeeklySummaryService.GenerationError.insufficientData {
             weeklySummaryState = .empty
         } catch {
-            weeklySummaryState = .empty
+            weeklySummaryState = .failed
         }
+    }
+
+    private func isCurrentWeek(_ weekStart: String) -> Bool {
+        WeeklySummaryService.shared.cached(in: dataStore.profile, for: Date())?.weekStart == weekStart
     }
 
     /// Honours the `peptidex://weekly/current` deep-link. Sets the
@@ -1195,8 +1250,8 @@ struct HomeView: View {
         switch hour {
         case 5..<12: return "Good morning"
         case 12..<17: return "Good afternoon"
-        case 17..<22: return "Good evening"
-        default: return "Good night"
+        case 17..<24: return "Good evening"
+        default: return "Up late"
         }
     }
 

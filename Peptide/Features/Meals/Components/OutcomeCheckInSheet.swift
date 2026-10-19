@@ -25,6 +25,7 @@ struct OutcomeCheckInSheet: View {
     @State private var focus: Int = 3
     @State private var note: String = ""
     @State private var didHydrate: Bool = false
+    @Namespace private var pillNamespace
 
     @Environment(\.dismiss) private var dismiss
 
@@ -63,10 +64,10 @@ struct OutcomeCheckInSheet: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(headerCopy)
-                .font(AppFont.scaled(13, weight: .semibold))
-                .tracking(0.6)
+                .font(AppFont.eyebrow)
+                .tracking(0.8)
                 .textCase(.uppercase)
-                .foregroundStyle(AppColor.accentLight.opacity(0.85))
+                .foregroundStyle(AppColor.accentLight)
             Text("Where are you on a scale of 1 to 5?")
                 .font(AppFont.title2)
                 .foregroundStyle(AppColor.textPrimary)
@@ -126,10 +127,12 @@ struct OutcomeCheckInSheet: View {
     ) -> some View {
         HStack(spacing: Spacing.xs) {
             ForEach(1...5, id: \.self) { rating in
-                pill(rating: rating, current: value.wrappedValue, tint: tint) {
+                pill(rating: rating, current: value.wrappedValue, tint: tint, dimension: dimension) {
                     if value.wrappedValue != rating {
-                        Haptics.impact(.light)
-                        value.wrappedValue = rating
+                        Haptics.selection()
+                        AppAnimation.with(AppAnimation.springSnappy) {
+                            value.wrappedValue = rating
+                        }
                     }
                 }
                 .accessibilityLabel("\(dimension.displayName) \(rating) of 5")
@@ -137,7 +140,13 @@ struct OutcomeCheckInSheet: View {
         }
     }
 
-    private func pill(rating: Int, current: Int, tint: Color, action: @escaping () -> Void) -> some View {
+    private func pill(
+        rating: Int,
+        current: Int,
+        tint: Color,
+        dimension: OutcomeDimension,
+        action: @escaping () -> Void
+    ) -> some View {
         let active = rating == current
         return Button(action: action) {
             Text("\(rating)")
@@ -147,19 +156,26 @@ struct OutcomeCheckInSheet: View {
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: 44)
                 .background {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .fill(active ? tint.opacity(0.22) : AppColor.surfaceSecondary.opacity(0.5))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                                .strokeBorder(
-                                    active ? tint.opacity(0.65) : AppColor.glassBorder,
-                                    lineWidth: 1
-                                )
-                        }
+                    // One selection fill per dimension that slides between
+                    // ratings instead of jumping.
+                    if active {
+                        pillShape(fill: tint.opacity(0.22), border: tint.opacity(0.65))
+                            .matchedGeometryEffect(id: dimension, in: pillNamespace)
+                    }
+                }
+                .background {
+                    pillShape(fill: AppColor.surfaceSecondary.opacity(0.5), border: AppColor.glassBorder)
                 }
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(active ? [.isButton, .isSelected] : .isButton)
+    }
+
+    private func pillShape(fill: Color, border: Color) -> some View {
+        let shape = RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+        return shape
+            .fill(fill)
+            .overlay { shape.strokeBorder(border, lineWidth: 1) }
     }
 
     private var noteCard: some View {

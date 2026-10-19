@@ -91,10 +91,10 @@ struct TodayJumpBar: View {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: anchor.systemImage)
                     .font(AppFont.scaled(11, weight: .bold))
-                    .foregroundStyle(isActive ? .white : anchor.accent)
+                    .foregroundStyle(isActive ? AppColor.onAccent : anchor.accent)
                 Text(anchor.label)
                     .font(AppFont.scaled(13, weight: .semibold))
-                    .foregroundStyle(isActive ? .white : AppColor.textPrimary)
+                    .foregroundStyle(isActive ? AppColor.onAccent : AppColor.textPrimary)
             }
             .padding(.horizontal, Spacing.md)
             .frame(minHeight: 36)
@@ -111,8 +111,9 @@ struct TodayJumpBar: View {
                     }
                 }
             }
+            .minimumHitArea()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle())
         .accessibilityLabel(anchor.label)
         .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)
     }
@@ -138,21 +139,12 @@ struct TodayJumpBar: View {
             .foregroundStyle(AppColor.onAccent)
             .padding(.horizontal, Spacing.md)
             .frame(minHeight: 36)
-            .background {
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                AppColor.ctaGradientStart,
-                                AppColor.ctaGradientEnd,
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-            }
+            // The user's theme accent, not the fixed purple CTA
+            // gradient that clashed with every other theme.
+            .background { Capsule().fill(AppColor.accentFill) }
+            .minimumHitArea()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle())
         .accessibilityLabel("Quick log")
         .accessibilityHint("Opens a menu to snap a meal photo or log your next dose.")
     }

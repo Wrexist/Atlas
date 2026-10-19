@@ -14,7 +14,7 @@ struct AchievementToastView: View {
                         .id(achievement.id)
 
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
-                        Text("Achievement Unlocked!")
+                        Text("Achievement unlocked")
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.accentLight)
                         Text(achievement.title)
@@ -37,14 +37,9 @@ struct AchievementToastView: View {
                     .accessibilityLabel("Dismiss")
                 }
                 .padding(Spacing.lg)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .fill(AppColor.surfaceSecondary.opacity(0.95))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                                .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
-                        }
-                }
+                // Same glass as SyncToast, so the two top toasts read as
+                // one family.
+                .glassSurface(cornerRadius: Spacing.cardCornerRadius)
                 .padding(.horizontal, Spacing.screenPadding)
                 .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
                 .accessibilityElement(children: .combine)

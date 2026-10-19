@@ -12,12 +12,13 @@ import SwiftUI
 /// Architecture 07: duplicate destinations removed; the Train tab is
 /// the one training home).
 struct HomeMovementSection: View {
-    @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
+    /// Today's session count and minutes, derived once per store
+    /// revision by `HomeView` rather than fetched from `body`.
+    let summary: (count: Int, minutes: Int)
 
     var body: some View {
-        let summary = dataStore.workoutSummary()
-        VStack(spacing: Spacing.xl) {
+        VStack(spacing: Spacing.sm) {
             HomeSectionHeader(eyebrow: "Movement", title: "Training")
 
             WorkoutCard(

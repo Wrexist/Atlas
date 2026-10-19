@@ -19,6 +19,7 @@ struct MealDaySwitcher: View {
         VStack(spacing: Spacing.xs) {
             header
             WeekDayStrip(offset: $offset)
+                .simultaneousGesture(weekSwipe)
         }
         .padding(Spacing.xs)
         .glassControl(
@@ -66,6 +67,21 @@ struct MealDaySwitcher: View {
             ) { step(7) }
         }
         .padding(.leading, Spacing.sm)
+    }
+
+    /// A horizontal swipe on the strip pages weeks like the chevrons do;
+    /// mostly-vertical drags are left to the scroll view.
+    private var weekSwipe: some Gesture {
+        DragGesture(minimumDistance: 24)
+            .onEnded { value in
+                let dx = value.translation.width
+                guard abs(dx) > abs(value.translation.height) * 1.5, abs(dx) > 40 else { return }
+                if dx < 0, !isAtCurrentWeek {
+                    step(7)
+                } else if dx > 0, !isAtOldestWeek {
+                    step(-7)
+                }
+            }
     }
 
     private var motion: Animation? {

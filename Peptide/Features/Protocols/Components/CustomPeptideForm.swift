@@ -46,7 +46,7 @@ struct CustomPeptideForm: View {
                 .scrollDismissesKeyboard(.interactively)
             }
             .dismissKeyboardOnTap()
-            .navigationTitle("Custom Peptide")
+            .navigationTitle("Add a Compound")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -71,10 +71,10 @@ struct CustomPeptideForm: View {
                     .foregroundStyle(AppColor.textPrimary)
 
                 fieldLabel("Name")
-                styledTextField("e.g., Selank", label: "Name", text: $name)
+                styledTextField("e.g., Creatine", label: "Name", text: $name)
 
                 fieldLabel("Abbreviation")
-                styledTextField("e.g., SLK", label: "Abbreviation", text: $abbreviation)
+                styledTextField("e.g., CRE", label: "Abbreviation", text: $abbreviation)
                     .textInputAutocapitalization(.characters)
             }
         }
@@ -130,50 +130,31 @@ struct CustomPeptideForm: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
 
-                TextField("Optional description or mechanism...", text: $notes, axis: .vertical)
-                    .font(AppFont.body)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .tint(AppColor.accentPrimary)
-                    .lineLimit(3...6)
-                    .padding(Spacing.md)
-                    .background {
-                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                            .fill(AppColor.surfaceElevated)
-                            .overlay {
-                                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                                    .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                            }
-                    }
+                GlassTextField(
+                    placeholder: "Optional description or mechanism…",
+                    text: $notes,
+                    icon: nil,
+                    axis: .vertical
+                )
+                .lineLimit(3...6)
             }
         }
     }
 
-    private func fieldLabel(_ text: String) -> some View {
+    private func fieldLabel(_ text: LocalizedStringKey) -> some View {
         Text(text)
             .font(AppFont.caption)
             .foregroundStyle(AppColor.textTertiary)
     }
 
     /// `label` is what VoiceOver announces. Without it the field's name is
-    /// the placeholder, so the Name field introduced itself as
-    /// "e.g., Selank" — the example read as the label.
-    private func styledTextField(_ placeholder: String,
-                                 label: String,
+    /// the placeholder, so the Name field introduced itself as its example
+    /// ("e.g., Creatine") — the example read as the label.
+    private func styledTextField(_ placeholder: LocalizedStringKey,
+                                 label: LocalizedStringKey,
                                  text: Binding<String>) -> some View {
-        TextField(placeholder, text: text)
+        GlassTextField(placeholder: placeholder, text: text, icon: nil)
             .accessibilityLabel(label)
-            .font(AppFont.body)
-            .foregroundStyle(AppColor.textPrimary)
-            .tint(AppColor.accentPrimary)
-            .padding(Spacing.md)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceElevated)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                    }
-            }
     }
 
     private func save() {
@@ -192,6 +173,7 @@ struct CustomPeptideForm: View {
             imageSystemName: "flask.fill"
         )
         onSave(peptide)
+        Haptics.success()
         dismiss()
     }
 }

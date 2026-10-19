@@ -21,7 +21,7 @@ struct ResearchLinksSection: View {
                         researchRow(link: link)
 
                         if link.id != links.last?.id {
-                            Divider().foregroundStyle(AppColor.glassBorder)
+                            Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
                         }
                     }
                 }
@@ -36,8 +36,11 @@ struct ResearchLinksSection: View {
             Link(destination: url) {
                 researchRowContent(link: link, tappable: true)
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityHint("Opens in Safari")
         } else {
             researchRowContent(link: link, tappable: false)
+                .accessibilityElement(children: .combine)
         }
     }
 
@@ -47,6 +50,7 @@ struct ResearchLinksSection: View {
                 .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.accentPrimary)
                 .frame(width: 20)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(link.title)
@@ -62,6 +66,7 @@ struct ResearchLinksSection: View {
                     Text("\u{2022}")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textTertiary)
+                        .accessibilityHidden(true)
                     Text(verbatim: String(link.year))
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textTertiary)
@@ -70,15 +75,18 @@ struct ResearchLinksSection: View {
                 if !link.pmid.isEmpty {
                     Text("PMID: \(link.pmid)")
                         .font(AppFont.caption)
-                        .foregroundStyle(AppColor.accentPrimary.opacity(0.8))
+                        .foregroundStyle(AppColor.textTertiary)
                 }
             }
 
             Spacer()
 
-            Image(systemName: "arrow.up.right")
-                .font(AppFont.scaled(11, weight: .semibold))
-                .foregroundStyle(tappable ? AppColor.accentPrimary : AppColor.textTertiary)
+            if tappable {
+                Image(systemName: "arrow.up.right")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.accentPrimary)
+                    .accessibilityHidden(true)
+            }
         }
     }
 }

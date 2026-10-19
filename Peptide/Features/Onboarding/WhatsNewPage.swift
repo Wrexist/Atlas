@@ -59,12 +59,12 @@ extension WhatsNewPage {
             eyebrow: "What's new",
             title: "Atlas is built around training",
             body: "Five tabs now cover your whole day: what to do today, how you train, what you eat, how you recover, and the habits that hold it together.",
-            icon: "figure.strengthtraining.traditional",
+            icon: "square.grid.2x2.fill",
             gradient: [
-                Color(red: 0.55, green: 0.50, blue: 0.92),
-                Color(red: 0.95, green: 0.50, blue: 0.55),
+                Color(light: 0x5F57A0, dark: 0x8C80EB),
+                Color(light: 0xA5575F, dark: 0xF2808C),
             ],
-            accent: Color(red: 0.55, green: 0.50, blue: 0.92),
+            accent: Color(light: 0x5F57A0, dark: 0x8C80EB),
             bullets: [
                 "Today: your day and Atlas Score at a glance",
                 "Train, Meals, and Biology each get a tab",
@@ -78,10 +78,10 @@ extension WhatsNewPage {
             body: "Every workout you log lights up the body. The Overview tab shows which muscles you trained this week and surfaces your top three regions with set counts.",
             icon: "figure.strengthtraining.traditional",
             gradient: [
-                Color(red: 0.92, green: 0.45, blue: 0.62),
-                Color(red: 0.55, green: 0.50, blue: 0.85),
+                Color(light: 0xA04E6C, dark: 0xEB739E),
+                Color(light: 0x5F5793, dark: 0x8C80D9),
             ],
-            accent: Color(red: 0.92, green: 0.45, blue: 0.62),
+            accent: Color(light: 0xA04E6C, dark: 0xEB739E),
             bullets: [
                 "Two-tap set logging with auto-prefilled prev values",
                 "PR detection celebrates new e1RM / volume bests",
@@ -95,10 +95,10 @@ extension WhatsNewPage {
             body: "Take a photo of your plate or pick one from your library. Atlas lists what it sees so you can adjust portions before anything is logged.",
             icon: "camera.fill",
             gradient: [
-                Color(red: 1.00, green: 0.62, blue: 0.30),
-                Color(red: 0.95, green: 0.50, blue: 0.30),
+                Color(light: 0xAD6C34, dark: 0xFF9E4C),
+                Color(light: 0xA55734, dark: 0xF2804C),
             ],
-            accent: Color(red: 1.00, green: 0.62, blue: 0.30),
+            accent: Color(light: 0xAD6C34, dark: 0xFF9E4C),
             bullets: [
                 "Review each item and drop anything it got wrong",
                 "Barcode scan for packaged food",
@@ -112,10 +112,10 @@ extension WhatsNewPage {
             body: "Atlas estimates a Biological Age from your cardio fitness, HRV, resting heart rate, sleep, steps, and body composition. It's a direction to watch, not a medical test.",
             icon: "waveform.path.ecg.rectangle",
             gradient: [
-                Color(red: 0.45, green: 0.85, blue: 0.78),
-                Color(red: 0.40, green: 0.55, blue: 0.92),
+                Color(light: 0x4E9387, dark: 0x73D9C7),
+                Color(light: 0x455FA0, dark: 0x668CEB),
             ],
-            accent: Color(red: 0.45, green: 0.85, blue: 0.78),
+            accent: Color(light: 0x4E9387, dark: 0x73D9C7),
             bullets: [
                 "Biological Age dial with the signals behind it (Pro)",
                 "Pick the biomarkers you care about",
@@ -129,10 +129,10 @@ extension WhatsNewPage {
             body: "Check off today's habits in one place. Each one keeps its streak, your best run, and a heatmap of every day you showed up.",
             icon: "star.fill",
             gradient: [
-                Color(red: 0.40, green: 0.74, blue: 0.92),
-                Color(red: 0.48, green: 0.50, blue: 0.92),
+                Color(light: 0x4580A0, dark: 0x66BDEB),
+                Color(light: 0x5357A0, dark: 0x7A80EB),
             ],
-            accent: Color(red: 0.40, green: 0.74, blue: 0.92),
+            accent: Color(light: 0x4580A0, dark: 0x66BDEB),
             bullets: [
                 "Streak, best, and total for every habit",
                 "A heads-up when today's streak is at risk",
@@ -146,10 +146,10 @@ extension WhatsNewPage {
             body: "Your Atlas Score grows only from what you actually log. Complete your habits and log your meals to bank points and level up.",
             icon: "bolt.fill",
             gradient: [
-                Color(red: 0.48, green: 0.50, blue: 0.92),
-                Color(red: 0.36, green: 0.78, blue: 0.55),
+                Color(light: 0x5357A0, dark: 0x7A80EB),
+                Color(light: 0x3E875F, dark: 0x5CC78C),
             ],
-            accent: Color(red: 0.36, green: 0.78, blue: 0.55),
+            accent: Color(light: 0x3E875F, dark: 0x5CC78C),
             bullets: [
                 "Levels come fast early and slow down later",
                 "Climb from Bronze to Diamond",

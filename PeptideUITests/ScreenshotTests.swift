@@ -43,7 +43,7 @@ final class ScreenshotTests: XCTestCase {
         XCTAssertTrue(mealsTab.waitForExistence(timeout: 10))
         mealsTab.tap()
         XCTAssertTrue(mealsTab.isSelected, "Meals navigation must succeed before testing food recovery")
-        let scan = app.buttons["Snap photo"].firstMatch
+        let scan = app.buttons["Scan meal photo"].firstMatch
         XCTAssertTrue(scan.waitForExistence(timeout: 10))
         scan.tap()
         let resume = app.buttons["Resume review"]

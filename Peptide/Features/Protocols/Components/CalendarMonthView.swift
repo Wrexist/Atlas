@@ -28,12 +28,17 @@ struct CalendarMonthView: View {
     }
 
     private let calendar: Calendar = .current
+    /// One selection circle that slides between cells instead of each cell
+    /// painting (and un-painting) its own.
+    @Namespace private var selection
     private static let maxDots = 3
     private static let maxBands = 4
     private static let rowHeight: CGFloat = 52
 
     private var firstWeekday: Int { calendar.firstWeekday }
-    private var grid: [Date] { CalendarMonth.grid(for: monthDate, firstWeekday: firstWeekday, calendar: calendar) }
+    private var grid: [Date] {
+        CalendarMonth.grid(for: monthDate, firstWeekday: firstWeekday, calendar: calendar)
+    }
     private var weekdays: [String] { CalendarMonth.weekdaySymbols(firstWeekday: firstWeekday, calendar: calendar) }
 
     var body: some View {
@@ -46,19 +51,21 @@ struct CalendarMonthView: View {
                 .frame(height: 0.5)
                 .padding(.bottom, Spacing.xs)
 
+            // Built once per body, not once per cell.
+            let days = grid
             VStack(spacing: 0) {
                 ForEach(0..<6, id: \.self) { row in
-                    weekRow(at: row)
+                    weekRow(at: row, in: days)
                 }
             }
         }
     }
 
-    private func weekRow(at row: Int) -> some View {
+    private func weekRow(at row: Int, in days: [Date]) -> some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
                 ForEach(0..<7, id: \.self) { col in
-                    let date = grid[row * 7 + col]
+                    let date = days[row * 7 + col]
                     dayCell(for: date)
                         .frame(maxWidth: .infinity)
                 }
@@ -96,7 +103,9 @@ struct CalendarMonthView: View {
         let marks = dosesByDay[calendar.startOfDay(for: date)] ?? []
 
         return Button {
-            selectedDay = calendar.startOfDay(for: date)
+            AppAnimation.with(AppAnimation.springSnappy) {
+                selectedDay = calendar.startOfDay(for: date)
+            }
             Haptics.selection()
         } label: {
             VStack(spacing: 4) {
@@ -105,13 +114,14 @@ struct CalendarMonthView: View {
                         Circle()
                             .fill(AppColor.accentPrimary)
                             .frame(width: 34, height: 34)
+                            .matchedGeometryEffect(id: "selection", in: selection)
                     } else if isToday {
                         Circle()
                             .fill(AppColor.accentPrimary.opacity(0.14))
                             .frame(width: 34, height: 34)
                     }
                     Text(dayNumber(for: date))
-                        .font(AppFont.scaled(16, weight: dayWeight(isSelected: isSelected, isToday: isToday), design: .rounded))
+                        .font(AppFont.scaled(16, weight: dayWeight(isSelected: isSelected, isToday: isToday, isCurrentMonth: isCurrentMonth), design: .rounded))
                         .foregroundStyle(dateColor(isCurrentMonth: isCurrentMonth, isSelected: isSelected, isToday: isToday))
                         .monospacedDigit()
                 }
@@ -189,15 +199,15 @@ struct CalendarMonthView: View {
         String(calendar.component(.day, from: date))
     }
 
-    private func dayWeight(isSelected: Bool, isToday: Bool) -> Font.Weight {
-        if isSelected { return .bold }
-        if isToday { return .bold }
-        return .medium
+    private func dayWeight(isSelected: Bool, isToday: Bool, isCurrentMonth: Bool) -> Font.Weight {
+        if isSelected || isToday { return .bold }
+        // Spill-over days recede by weight, not by fading the ink.
+        return isCurrentMonth ? .medium : .regular
     }
 
     private func dateColor(isCurrentMonth: Bool, isSelected: Bool, isToday: Bool) -> Color {
-        if isSelected { return .white }
-        if !isCurrentMonth { return AppColor.textTertiary.opacity(0.4) }
+        if isSelected { return AppColor.onAccent }
+        if !isCurrentMonth { return AppColor.textTertiary }
         if isToday { return AppColor.accentLight }
         return AppColor.textPrimary
     }

@@ -18,23 +18,25 @@ struct HomeSectionHeader<Trailing: View>: View {
         HStack(alignment: .lastTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(eyebrow)
-                    .font(AppFont.scaled(11, weight: .semibold))
+                    .font(AppFont.eyebrow)
                     .tracking(0.8)
                     .textCase(.uppercase)
-                    .foregroundStyle(AppColor.accentLight.opacity(0.85))
+                    .foregroundStyle(AppColor.accentLight)
                 Text(title)
                     .font(.system(.title2, design: .rounded, weight: .bold))
                     .foregroundStyle(AppColor.textPrimary)
             }
+            // The eyebrow and title are one heading; the trailing action
+            // stays its own stop so VoiceOver can still reach it.
+            .accessibilityElement(children: .combine)
+            // Header trait so VoiceOver's heading rotor can jump between
+            // Today sections on the long merged scroll (Deep Audit II C15).
+            .accessibilityAddTraits(.isHeader)
             Spacer(minLength: 0)
             trailing()
         }
         .padding(.top, Spacing.xs)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
-        // Header trait so VoiceOver's heading rotor can jump between
-        // Today sections on the long merged scroll (Deep Audit II C15).
-        .accessibilityAddTraits(.isHeader)
     }
 }
 

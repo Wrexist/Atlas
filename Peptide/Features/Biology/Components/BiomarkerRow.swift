@@ -4,7 +4,7 @@ import SwiftUI
 /// badge (icon in a tinted circle, direction arrow overlay) +
 /// name + "Increasing · 72.0 kg" subtitle. Right side: inline
 /// sparkline. Tappable — the host wires the tap to
-/// `BiomarkerDetailSheet` (commit 8) for the 90-day chart view.
+/// `BiomarkerDetailSheet` for the 90-day chart view.
 ///
 /// Layout mirrors Bevel's biomarker rows: small footprint per row
 /// (~64pt tall) so 4–6 cards fit on a phone screen without
@@ -30,6 +30,7 @@ struct BiomarkerRow: View {
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(1)
+                        .contentTransition(.numericText())
                 }
 
                 Spacer(minLength: Spacing.sm)
@@ -40,24 +41,17 @@ struct BiomarkerRow: View {
                         tint: sparklineTint
                     )
                     .frame(width: 64)
-                } else {
-                    // Nothing to plot yet, so the right edge carries the
-                    // affordance instead: this row opens the detail sheet,
-                    // which explains where the reading comes from.
-                    Image(systemName: "chevron.right")
-                        .font(AppFont.scaled(13, weight: .semibold))
-                        .foregroundStyle(AppColor.textTertiary)
                 }
+
+                // Every row opens the detail sheet, so the affordance
+                // stays put whether or not there's a series to plot.
+                Image(systemName: "chevron.right")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityHidden(true)
             }
             .padding(Spacing.md)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.55))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                    }
-            }
+            .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .combine)
@@ -87,7 +81,10 @@ struct BiomarkerRow: View {
             if let arrow = trendArrow {
                 Image(systemName: arrow)
                     .font(AppFont.scaled(8, weight: .heavy))
-                    .foregroundStyle(AppColor.background)
+                    .foregroundStyle(AppColor.onAccent)
+                    // The notch rides a fixed 40pt tile; past this size
+                    // it would clip the tile's corner.
+                    .dynamicTypeSize(...DynamicTypeSize.xxLarge)
                     .padding(2)
                     .background {
                         Circle().fill(badgeTint)
@@ -120,10 +117,10 @@ struct BiomarkerRow: View {
         case .rhrBaseline:      return AppColor.metricHeartRate
         case .sleepBaseline:    return AppColor.metricSleep
         case .stepsBaseline:    return AppColor.metricActivity
-        case .bodyTemperature:  return AppColor.warning
+        case .bodyTemperature:  return AppColor.textSecondary
         case .bodyFat:          return AppColor.streak
         case .waist:            return AppColor.accentLight
-        case .bloodPressure:    return AppColor.destructive
+        case .bloodPressure:    return AppColor.metricHeartRate
         case .latestLabPanel:   return AppColor.accentPrimary
         }
     }

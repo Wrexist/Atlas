@@ -70,7 +70,9 @@ struct TrainContainerView: View {
                     // without forcing the caller to hold the value.
                     workoutDetailDestination(for: id)
                 case .workoutHistory:
+                    // Pushed from "View all"; as a section it sits under "Train".
                     WorkoutHistoryView()
+                        .navigationTitle("History")
                 case .routineBuilder(let id):
                     RoutineBuilderView(routineID: id)
                 }
@@ -139,7 +141,6 @@ struct TrainContainerView: View {
                         }
                         .font(AppFont.caption)
                         .monospacedDigit()
-                        .opacity(0.85)
                     }
                 }
                 Spacer()
@@ -147,12 +148,12 @@ struct TrainContainerView: View {
                     .font(AppFont.scaled(13, weight: .semibold))
                     .accessibilityHidden(true)
             }
-            .foregroundStyle(AppColor.background)
+            .foregroundStyle(AppColor.onAccent)
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.sm)
             .background(
                 RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(AppColor.accentPrimary)
+                    .fill(AppColor.accentFill)
             )
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.xs)

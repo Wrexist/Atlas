@@ -1,14 +1,9 @@
 import SwiftUI
 
 /// Per-session drill-down from the WorkoutHistoryView list. Shows
-/// every logged set, the muscle map for the session, any PRs the
-/// engine detected at the time, perceived effort, and the note —
-/// the full "what happened in this workout" surface so the history
-/// list isn't just a roll-up.
-///
-/// Pulls PRs from `PRDetectionEngine.recordedPRs(for:)` rather than
-/// re-running ingest (which would mutate the records and return
-/// empty on re-open — same bug we fixed in WorkoutFinishView).
+/// every logged set, the muscle map for the session, perceived effort,
+/// and the note — the full "what happened in this workout" surface so
+/// the history list isn't just a roll-up.
 struct WorkoutSessionDetailView: View {
     // One-time seed; successful edits explicitly replace the displayed value.
     @State private var session: WorkoutSession
@@ -191,6 +186,9 @@ struct WorkoutSessionDetailView: View {
         HStack(spacing: Spacing.md) {
             stat(value: "\(session.exercises.count)", label: "Exercises")
             stat(value: "\(session.completedSetCount)", label: "Sets")
+            if session.totalVolumeKg > 0 {
+                stat(value: unit.weightLabel(session.totalVolumeKg), label: "Volume")
+            }
             if let durationLabel {
                 stat(value: durationLabel, label: "Duration")
             }
@@ -202,20 +200,16 @@ struct WorkoutSessionDetailView: View {
             Text(value)
                 .font(AppFont.scaled(20, weight: .bold, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
             Text(label)
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .stroke(AppColor.glassBorder, lineWidth: 0.5)
-        )
+        .glassSurface(cornerRadius: Spacing.smallCornerRadius)
+        .accessibilityElement(children: .combine)
     }
 
     private func perceivedEffortChip(_ effort: Int) -> some View {
@@ -231,10 +225,7 @@ struct WorkoutSessionDetailView: View {
                 .foregroundStyle(AppColor.textPrimary)
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-        )
+        .glassSurface(cornerRadius: Spacing.smallCornerRadius)
     }
 
     private func noteCard(_ note: String) -> some View {
@@ -250,10 +241,7 @@ struct WorkoutSessionDetailView: View {
         }
         .padding(Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-        )
+        .glassSurface(cornerRadius: Spacing.smallCornerRadius)
     }
 
     private var exercisesList: some View {
@@ -271,17 +259,7 @@ struct WorkoutSessionDetailView: View {
     private func exerciseCard(entry: WorkoutExerciseEntry) -> some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             let exercise = library.lookup(id: entry.exerciseID)
-            HStack {
-                ExerciseImageView(exercise: exercise)
-                    .frame(width: 44, height: 44)
-                Text(exercise?.name ?? entry.exerciseID)
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
-                Spacer()
-                Text("\(entry.sets.filter(\.completed).count) sets")
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textSecondary)
-            }
+            exerciseHeader(entry: entry, exercise: exercise)
             Divider().background(AppColor.glassBorder)
             ForEach(entry.sets) { set in
                 HStack(spacing: Spacing.sm) {
@@ -329,14 +307,41 @@ struct WorkoutSessionDetailView: View {
             }
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .stroke(AppColor.glassBorder, lineWidth: 0.5)
-        )
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
+    }
+
+    /// Opens the exercise's detail when it's still in the library. A
+    /// destination link rather than a `TrainNavigation` value, because
+    /// this screen is also pushed inside sheets with their own stack.
+    @ViewBuilder
+    private func exerciseHeader(entry: WorkoutExerciseEntry, exercise: Exercise?) -> some View {
+        let label = HStack {
+            ExerciseImageView(exercise: exercise)
+                .frame(width: 44, height: 44)
+            Text(exercise?.name ?? "Unknown exercise")
+                .font(AppFont.headline)
+                .foregroundStyle(AppColor.textPrimary)
+                .multilineTextAlignment(.leading)
+            Spacer()
+            Text("^[\(entry.sets.filter(\.completed).count) set](inflect: true)")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+            if exercise != nil {
+                Image(systemName: "chevron.right")
+                    .font(AppFont.scaled(13, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityHidden(true)
+            }
+        }
+        .contentShape(Rectangle())
+        if let exercise {
+            NavigationLink {
+                ExerciseDetailView(exerciseID: exercise.id)
+            } label: { label }
+            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        } else {
+            label
+        }
     }
 
     private var dateLabel: String {

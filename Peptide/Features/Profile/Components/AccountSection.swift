@@ -6,6 +6,8 @@ struct AccountSection: View {
     @State private var isConfirmingDeletion = false
     @State private var isConfirmingDataErase = false
     @State private var needsManualAppleRevoke = false
+    @State private var isConfirmingSignOut = false
+    @State private var isDeleting = false
     @State private var cloudSyncState: CloudSyncState?
 
     var body: some View {
@@ -13,21 +15,28 @@ struct AccountSection: View {
             VStack(alignment: .leading, spacing: Spacing.lg) {
                 header
                 syncStatusRow
-                if authService.isSignedIn {
-                    signedInContent
-                } else {
-                    signedOutContent
+                Group {
+                    if authService.isSignedIn {
+                        signedInContent
+                    } else {
+                        signedOutContent
+                    }
                 }
+                .transition(.opacity)
+                .appAnimation(AppAnimation.springSmooth, value: authService.isSignedIn)
                 deleteAllDataButton
+            }
+            .disabled(isDeleting)
+        }
+        .overlay {
+            if isDeleting {
+                deletingOverlay
             }
         }
         .task { cloudSyncState = await SwiftDataRepository.shared.refinedCloudSyncState() }
         .alert("Delete Account?", isPresented: $isConfirmingDeletion) {
             Button("Delete Account", role: .destructive) {
-                Task {
-                    let outcome = await authService.deleteAccountRevokingApple()
-                    needsManualAppleRevoke = outcome == .deletedRevokeManually
-                }
+                Task { await deleteAccount() }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
@@ -37,6 +46,15 @@ struct AccountSection: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text("Your data is erased. To finish, remove Atlas in Settings → your name → Sign in with Apple.")
+        }
+        .confirmationDialog("Sign out?", isPresented: $isConfirmingSignOut, titleVisibility: .visible) {
+            Button("Sign Out", role: .destructive) {
+                Haptics.impact(.medium)
+                authService.signOut()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Your data stays on this device.")
         }
         .alert("Delete All Data?", isPresented: $isConfirmingDataErase) {
             Button("Delete All Data", role: .destructive) {
@@ -77,13 +95,10 @@ struct AccountSection: View {
             Spacer()
 
             HStack(spacing: Spacing.xs) {
-                if authService.isSignedIn {
-                    PulsatingDot(color: AppColor.accentPrimary, size: 8)
-                } else {
-                    Circle()
-                        .fill(AppColor.textTertiary)
-                        .frame(width: 8, height: 8)
-                }
+                // Signed in is a static fact, not live activity — no pulse.
+                Circle()
+                    .fill(authService.isSignedIn ? AppColor.accentPrimary : AppColor.textTertiary)
+                    .frame(width: 8, height: 8)
 
                 Text(authService.isSignedIn ? "Signed In" : "Not Signed In")
                     .font(AppFont.caption)
@@ -139,17 +154,6 @@ struct AccountSection: View {
 
     private var signedOutContent: some View {
         VStack(alignment: .leading, spacing: Spacing.lg) {
-            (Text("Sign in with your ")
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-            + Text("Apple ID")
-                .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(AppColor.accentLight)
-            + Text(" to keep your Atlas account associated with your device. All your protocols, entries, and settings stay on this device.")
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary))
-                .lineSpacing(3)
-
             ZStack {
                 AppleSignInButton(cornerRadius: Spacing.smallCornerRadius) {
                     authService.signIn()
@@ -199,13 +203,43 @@ struct AccountSection: View {
 
             GlassButton(title: "Sign Out", icon: "rectangle.portrait.and.arrow.right",
                         style: .secondary, isFullWidth: true) {
-                authService.signOut()
+                isConfirmingSignOut = true
             }
 
             GlassButton(title: "Delete Account", icon: "trash.fill",
                         style: .destructive, isFullWidth: true) {
                 isConfirmingDeletion = true
             }
+        }
+    }
+
+    // MARK: - Account deletion
+
+    /// Covers the card while the revoke round-trip runs, so the wait reads
+    /// as work in progress rather than a dead tap.
+    private var deletingOverlay: some View {
+        HStack(spacing: Spacing.sm) {
+            ProgressView()
+            Text("Deleting…")
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textPrimary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(
+            AppColor.background.opacity(0.7),
+            in: RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+        )
+        .accessibilityElement(children: .combine)
+    }
+
+    private func deleteAccount() async {
+        isDeleting = true
+        let outcome = await authService.deleteAccountRevokingApple()
+        isDeleting = false
+        switch outcome {
+        case .deleted: Haptics.success()
+        case .deletedRevokeManually: needsManualAppleRevoke = true
+        case .cancelled: break
         }
     }
 

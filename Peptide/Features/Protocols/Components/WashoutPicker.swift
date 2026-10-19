@@ -47,15 +47,6 @@ struct WashoutPicker: View {
             }
         }
         .appAnimation(AppAnimation.quick, value: isEnabled.wrappedValue)
-        .padding(Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.55))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
     }
 
     private var stepperRow: some View {
@@ -65,7 +56,7 @@ struct WashoutPicker: View {
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textPrimary)
                 Text(footerCopy)
-                    .font(AppFont.scaled(11))
+                    .font(AppFont.badgeSmall)
                     .foregroundStyle(AppColor.textSecondary)
                     .monospacedDigit()
             }

@@ -40,27 +40,43 @@ struct CommunityStackCard: View {
                     .multilineTextAlignment(.leading)
 
                 HStack(spacing: Spacing.xs) {
-                    statChip(icon: "flask.fill", value: "\(stack.peptideAbbreviations.count) peptides")
-                    statChip(icon: "calendar", value: "\(stack.cycleLengthWeeks)w")
-                    if !stack.goalTags.isEmpty {
-                        statChip(icon: "target", value: stack.goalTags.first ?? "")
+                    statChip(icon: "flask.fill", value: Text("^[\(stack.peptideAbbreviations.count) peptide](inflect: true)"))
+                    statChip(icon: "calendar", value: Text("^[\(stack.cycleLengthWeeks) week](inflect: true)"))
+                    if let goal = stack.goalTags.first {
+                        statChip(icon: "target", value: Text(LocalizedStringKey(goal)))
                     }
                     Spacer()
                 }
             }
         }
+        // One VoiceOver stop with a spoken summary instead of five fragments.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
     }
 
-    private func statChip(icon: String, value: String) -> some View {
-        HStack(spacing: 4) {
+    private var accessibilitySummary: String {
+        let peptides = stack.peptideAbbreviations.count
+        var parts = [
+            stack.name,
+            "by \(stack.authorName)",
+            peptides == 1 ? "1 peptide" : "\(peptides) peptides",
+            stack.cycleLengthWeeks == 1 ? "1 week" : "\(stack.cycleLengthWeeks) weeks"
+        ]
+        if let goal = stack.goalTags.first { parts.append(goal) }
+        if stack.featured { parts.append("featured") }
+        return parts.joined(separator: ", ")
+    }
+
+    private func statChip(icon: String, value: Text) -> some View {
+        HStack(spacing: Spacing.xs) {
             Image(systemName: icon)
                 .font(AppFont.scaled(11))
-            Text(value)
+            value
                 .font(AppFont.scaled(11, weight: .semibold))
         }
         .foregroundStyle(AppColor.textTertiary)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
+        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, Spacing.xs)
         .background(
             Capsule().fill(AppColor.cardOverlay)
         )

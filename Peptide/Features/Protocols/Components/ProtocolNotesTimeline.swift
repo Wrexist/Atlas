@@ -18,6 +18,9 @@ struct ProtocolNotesTimeline: View {
 
     @State private var editingNote: ProtocolNote?
     @State private var creatingNote: Bool = false
+    /// Context-menu delete routes through the same confirmation the
+    /// editor's Delete button uses, so neither path removes silently.
+    @State private var pendingDelete: ProtocolNote?
 
     private var groupedByDay: [(Date, [ProtocolNote])] {
         let calendar = Calendar.current
@@ -36,6 +39,24 @@ struct ProtocolNotesTimeline: View {
                 }
             }
         }
+        .appAnimation(AppAnimation.springSnappy, value: notes.map(\.id))
+        .confirmationDialog(
+            "Delete this note?",
+            isPresented: Binding(
+                get: { pendingDelete != nil },
+                set: { if !$0 { pendingDelete = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: pendingDelete
+        ) { note in
+            Button("Delete", role: .destructive) {
+                onDelete(note.id)
+                pendingDelete = nil
+            }
+            Button("Cancel", role: .cancel) { pendingDelete = nil }
+        } message: { _ in
+            Text("This can't be undone.")
+        }
         .sheet(item: $editingNote) { note in
             ProtocolNoteEditorSheet(
                 initial: note,
@@ -50,6 +71,7 @@ struct ProtocolNotesTimeline: View {
                 },
                 onCancel: { editingNote = nil }
             )
+            .liquidGlassPresentation()
         }
         .sheet(isPresented: $creatingNote) {
             ProtocolNoteEditorSheet(
@@ -62,6 +84,7 @@ struct ProtocolNotesTimeline: View {
                 onDelete: nil,
                 onCancel: { creatingNote = false }
             )
+            .liquidGlassPresentation()
         }
     }
 
@@ -69,59 +92,54 @@ struct ProtocolNotesTimeline: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Notes")
-                    .font(AppFont.scaled(11, weight: .heavy))
+                    .font(AppFont.eyebrow)
                     .tracking(0.6)
                     .textCase(.uppercase)
-                    .foregroundStyle(AppColor.accentLight.opacity(0.85))
-                Text(notes.isEmpty ? "Capture what's working" : "\(notes.count) entr\(notes.count == 1 ? "y" : "ies")")
+                    .foregroundStyle(AppColor.accentLight)
+                Text(notes.isEmpty ? "Capture what's working" : "^[\(notes.count) entry](inflect: true)")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
-                    .contentTransition(.numericText())
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isHeader)
             Spacer()
             Button {
                 creatingNote = true
             } label: {
-                HStack(spacing: 4) {
+                HStack(spacing: Spacing.xs) {
                     Image(systemName: "plus")
-                        .font(AppFont.scaled(11, weight: .bold))
+                        .font(AppFont.chipText)
                         .accessibilityHidden(true)
                     Text("Add note")
-                        .font(AppFont.scaled(11, weight: .semibold))
+                        .font(AppFont.chipText)
                 }
                 .foregroundStyle(AppColor.accentLight)
                 .padding(.horizontal, Spacing.md)
-                .padding(.vertical, 6)
+                .padding(.vertical, Spacing.xs + Spacing.xxs)
                 .background {
                     Capsule().fill(AppColor.accentPrimary.opacity(0.18))
                 }
+                .minimumHitArea()
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ScalePressStyle())
         }
     }
 
     private var emptyState: some View {
-        VStack(spacing: Spacing.sm) {
-            Image(systemName: "text.bubble")
-                .font(.system(size: 30, weight: .light))
-                .foregroundStyle(AppColor.accentLight)
-            Text("No notes yet")
-                .font(AppFont.headline)
-                .foregroundStyle(AppColor.textPrimary)
-            Text("Capture side effects, energy shifts, mood, anything you want to remember about this protocol.")
-                .font(AppFont.scaled(11))
-                .foregroundStyle(AppColor.textSecondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-        }
+        EmptyStateView(
+            icon: "text.bubble",
+            title: "No notes yet",
+            message: "Capture side effects, energy shifts, mood, anything you want to remember about this protocol.",
+            action: .init(title: "Add note", icon: "plus") { creatingNote = true },
+            style: .compact
+        )
         .frame(maxWidth: .infinity)
-        .padding(.vertical, Spacing.lg)
     }
 
     private func daySection(day: Date, notes: [ProtocolNote]) -> some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text(Self.dayFormatter.string(from: day))
-                .font(AppFont.scaled(11, weight: .heavy))
+                .font(AppFont.eyebrow)
                 .tracking(0.6)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.textTertiary)
@@ -129,6 +147,7 @@ struct ProtocolNotesTimeline: View {
             VStack(spacing: Spacing.xs) {
                 ForEach(notes.sorted(by: { $0.date > $1.date })) { note in
                     row(note)
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
         }
@@ -141,12 +160,12 @@ struct ProtocolNotesTimeline: View {
             HStack(alignment: .top, spacing: Spacing.sm) {
                 if let mood = note.mood {
                     Circle()
-                        .fill(moodTint(mood).opacity(0.55))
+                        .fill(moodTint(mood))
                         .frame(width: 8, height: 8)
                         .padding(.top, 7)
                 } else {
                     Circle()
-                        .fill(AppColor.textTertiary.opacity(0.4))
+                        .strokeBorder(AppColor.textTertiary, lineWidth: 1)
                         .frame(width: 8, height: 8)
                         .padding(.top, 7)
                 }
@@ -157,41 +176,38 @@ struct ProtocolNotesTimeline: View {
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(Self.timeFormatter.string(from: note.date))
-                        .font(AppFont.scaled(11))
+                        .font(AppFont.badgeSmall)
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textTertiary)
                 }
                 Spacer(minLength: 0)
             }
             .padding(Spacing.sm)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.45))
-            }
+            .insetRowBackground(cornerRadius: Spacing.smallCornerRadius)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .contextMenu {
             Button { editingNote = note } label: {
                 Label("Edit", systemImage: "pencil")
             }
             Button(role: .destructive) {
-                onDelete(note.id)
+                Haptics.warning()
+                pendingDelete = note
             } label: {
                 Label("Delete", systemImage: "trash")
             }
         }
     }
 
-    /// Same warm-to-cool palette `OutcomeDimension` uses. Mapped
-    /// onto the 1-5 mood scale so the timeline reads as a single
-    /// design idiom across check-ins and notes.
+    /// Warm-to-cool ramp on the 1-5 mood scale, built from the adaptive
+    /// semantic tokens so each step holds its contrast in light and dark.
     private func moodTint(_ mood: Int) -> Color {
         switch mood {
-        case 5:  Color(red: 0.36, green: 0.78, blue: 0.55)
-        case 4:  Color(red: 0.40, green: 0.74, blue: 0.92)
-        case 3:  Color(red: 1.00, green: 0.78, blue: 0.20)
-        case 2:  Color(red: 0.95, green: 0.62, blue: 0.30)
-        case 1:  Color(red: 0.95, green: 0.50, blue: 0.55)
+        case 5:  AppColor.positive
+        case 4:  AppColor.belowRange
+        case 3:  AppColor.warning
+        case 2:  AppColor.streak
+        case 1:  AppColor.negative
         default: AppColor.textSecondary
         }
     }
@@ -302,7 +318,7 @@ struct ProtocolNoteEditorSheet: View {
             // the focus to avoid an unwanted keyboard pop.
             if !isEditing && initial.body.isEmpty {
                 Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(300))
+                    try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
                     focused = true
                 }
             }

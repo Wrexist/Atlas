@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// "Your Progress" — the show-my-improvement surface. Visualizes the
+/// "Your progress" — the show-my-improvement surface. Visualizes the
 /// earned Atlas Score trend, active streaks, habit consistency and the
 /// on-device progress photos, with positive framing ("+N this week", "↑ vs previous 30 days"). Reached
 /// from the Atlas Score card on Today. Custom `Path` charts (no
@@ -8,15 +8,29 @@ import SwiftUI
 struct AtlasProgressView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(\.dismiss) private var dismiss
+    /// Engine passes (history sort, per-habit streaks, two completion-rate
+    /// windows), computed once per store revision instead of in `body`.
+    @State private var derived = Derived()
+
+    private struct Derived {
+        var history: [MomentumDayPoint] = []
+        var habitCurrentStreak = 0
+        var rate30: Double?
+        var ratePrevious: Double?
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
                     atlasScoreSection
+                        .sectionAppear(index: 0)
                     streaksSection
+                        .sectionAppear(index: 1)
                     consistencySection
+                        .sectionAppear(index: 2)
                     ProgressPhotosCard()
+                        .sectionAppear(index: 3)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.vertical, Spacing.lg)
@@ -24,7 +38,7 @@ struct AtlasProgressView: View {
                 .frame(maxWidth: .infinity)
             }
             .background(AppColor.background)
-            .navigationTitle("Your Progress")
+            .navigationTitle("Your progress")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -33,14 +47,32 @@ struct AtlasProgressView: View {
                         .foregroundStyle(AppColor.accentPrimary)
                 }
             }
+            .task(id: dataStore.revision) { refreshDerived() }
         }
+    }
+
+    private func refreshDerived() {
+        let entries = dataStore.profile.habitEntries
+        let habits = dataStore.activeHabits
+        let frozen = dataStore.profile.streakFreezeDays
+        let previousEnd = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+        let next = Derived(
+            history: dataStore.profile.momentumHistory.sorted { $0.date < $1.date },
+            // Same freeze days Today passes, so the two streaks agree.
+            habitCurrentStreak: habits
+                .map { HabitsService.summary(for: $0, entries: entries, frozenDayKeys: frozen).currentStreak }
+                .max() ?? 0,
+            rate30: HabitsService.completionRate(habits: habits, entries: entries, days: 30),
+            ratePrevious: HabitsService.completionRate(habits: habits, entries: entries, days: 30, endingOn: previousEnd)
+        )
+        AppAnimation.with(AppAnimation.springSmooth) { derived = next }
     }
 
     // MARK: - Atlas Score
 
     private var atlasScoreSection: some View {
         let momentum = dataStore.momentum
-        let history = dataStore.profile.momentumHistory.sorted { $0.date < $1.date }
+        let history = derived.history
         let tint = Color(hex: UInt(momentum.tier.tintHex))
         let week = weekEarned(history)
 
@@ -57,7 +89,7 @@ struct AtlasProgressView: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textSecondary)
                 Spacer()
-                HStack(spacing: 5) {
+                HStack(spacing: Spacing.xs) {
                     Image(systemName: momentum.tier.symbol)
                         .font(AppFont.scaled(11, weight: .semibold))
                     Text("Level \(momentum.level) · \(momentum.tier.name)")
@@ -96,9 +128,7 @@ struct AtlasProgressView: View {
     // MARK: - Streaks
 
     private var streaksSection: some View {
-        let habitCurrent = dataStore.activeHabits
-            .map { HabitsService.summary(for: $0, entries: dataStore.profile.habitEntries).currentStreak }
-            .max() ?? 0
+        let habitCurrent = derived.habitCurrentStreak
 
         return VStack(alignment: .leading, spacing: Spacing.md) {
             sectionHeader("Streaks", systemImage: "flame.fill")
@@ -122,11 +152,13 @@ struct AtlasProgressView: View {
                 .foregroundStyle(current > 0 ? tint : AppColor.textTertiary)
             Text("\(current)")
                 .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                .monospacedDigit()
+                .contentTransition(.numericText())
                 .foregroundStyle(AppColor.textPrimary)
             Text(label)
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textSecondary)
-            Text("best \(best)")
+            Text("Best \(best)")
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textTertiary)
         }
@@ -143,11 +175,8 @@ struct AtlasProgressView: View {
     // MARK: - Consistency
 
     private var consistencySection: some View {
-        let entries = dataStore.profile.habitEntries
-        let habits = dataStore.activeHabits
-        let rate30 = HabitsService.completionRate(habits: habits, entries: entries, days: 30)
-        let prevEnd = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
-        let ratePrev = HabitsService.completionRate(habits: habits, entries: entries, days: 30, endingOn: prevEnd)
+        let rate30 = derived.rate30
+        let ratePrev = derived.ratePrevious
 
         return VStack(alignment: .leading, spacing: Spacing.md) {
             sectionHeader("Habit consistency", systemImage: "checkmark.seal.fill")
@@ -177,10 +206,10 @@ struct AtlasProgressView: View {
     private func deltaBadge(now: Double, prev: Double) -> some View {
         let delta = Int(((now - prev) * 100).rounded())
         let improving = delta >= 0
-        return HStack(spacing: 3) {
+        return HStack(spacing: Spacing.xxs) {
             Image(systemName: improving ? "arrow.up.right" : "arrow.down.right")
                 .font(AppFont.scaled(11, weight: .bold))
-            Text("\(abs(delta))% vs prev 30")
+            Text("\(abs(delta))% vs previous 30 days")
                 .font(AppFont.scaled(11, weight: .semibold))
         }
         .foregroundStyle(improving ? AppColor.success : AppColor.textTertiary)
@@ -225,6 +254,9 @@ private extension View {
 /// numeric headline above it carries the meaning for VoiceOver.
 private struct MomentumTrendChart: View {
     let points: [MomentumDayPoint] // ascending by date
+    /// 0…1 share of the line drawn. Animates in on appear; under Reduce
+    /// Motion `AppAnimation.with` sets it straight to 1.
+    @State private var drawProgress: CGFloat = 0
 
     var body: some View {
         GeometryReader { geo in
@@ -263,6 +295,7 @@ private struct MomentumTrendChart: View {
                     path.move(to: first)
                     for point in pts.dropFirst() { path.addLine(to: point) }
                 }
+                .trim(from: 0, to: drawProgress)
                 .stroke(
                     LinearGradient(
                         colors: [AppColor.accentDark, AppColor.accentLight],
@@ -271,9 +304,21 @@ private struct MomentumTrendChart: View {
                     ),
                     style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
                 )
+
+                // Today's score, arriving as the line finishes drawing.
+                if let last = pts.last {
+                    Circle()
+                        .fill(AppColor.accentLight)
+                        .frame(width: 8, height: 8)
+                        .position(last)
+                        .opacity(drawProgress >= 1 ? 1 : 0)
+                }
             }
         }
         .frame(height: 110)
         .accessibilityHidden(true)
+        .onAppear {
+            AppAnimation.with(AppAnimation.draw) { drawProgress = 1 }
+        }
     }
 }

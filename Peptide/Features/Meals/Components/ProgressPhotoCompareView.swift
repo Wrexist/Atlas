@@ -84,7 +84,7 @@ struct ProgressPhotoCompareView: View {
                         Image(systemName: blurEnabled ? "eye.slash.fill" : "eye.fill")
                             .foregroundStyle(AppColor.accentLight)
                     }
-                    .accessibilityLabel(blurEnabled ? "Reveal photos" : "Blur photos")
+                    .accessibilityLabel(blurEnabled ? "Show photos" : "Hide photos")
                 }
             }
         }
@@ -113,8 +113,8 @@ struct ProgressPhotoCompareView: View {
     private func photoColumn(filename: String?, label: String) -> some View {
         VStack(spacing: 6) {
             Text(label)
-                .font(AppFont.scaled(11, weight: .heavy))
-                .tracking(0.6)
+                .font(AppFont.eyebrow)
+                .tracking(0.8)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.textSecondary)
             if let filename, let image = columnPhotos[filename] {
@@ -200,8 +200,8 @@ struct ProgressPhotoCompareView: View {
     private var pickerStrip: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text("Compare with")
-                .font(AppFont.scaled(11, weight: .heavy))
-                .tracking(0.6)
+                .font(AppFont.eyebrow)
+                .tracking(0.8)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.textSecondary)
                 .padding(.horizontal, 4)

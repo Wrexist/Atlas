@@ -267,7 +267,12 @@ struct StackAlertDetailSheet: View {
             ) {
                 Haptics.success()
                 dismiss()
-                onPrimaryAction()
+                // Let this sheet finish dismissing first — a modal chained
+                // in the same tick can be dropped.
+                Task { @MainActor in
+                    try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
+                    onPrimaryAction()
+                }
             }
 
             Button {

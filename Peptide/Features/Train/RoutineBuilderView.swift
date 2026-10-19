@@ -81,13 +81,14 @@ struct RoutineBuilderView: View {
 
     private func editor(_ routine: Routine) -> some View {
         VStack(spacing: 0) {
-            header(routine)
-                .padding(.horizontal, Spacing.screenPadding)
-                .padding(.bottom, Spacing.md)
-
+            // Zero-exercise stats and a dead Start button would compete
+            // with the empty state's own "Add exercise".
             if routine.exercises.isEmpty {
                 emptyState
             } else {
+                header(routine)
+                    .padding(.horizontal, Spacing.screenPadding)
+                    .padding(.bottom, Spacing.md)
                 slotList(routine)
             }
         }
@@ -111,9 +112,8 @@ struct RoutineBuilderView: View {
                     store.startWorkout(from: routine)
                 }
             }
-            .disabled(routine.exercises.isEmpty)
-            .opacity(routine.exercises.isEmpty ? 0.5 : 1)
         }
+        .appAnimation(AppAnimation.springSnappy, value: routine.exercises.count)
     }
 
     private func stat(_ value: String, label: LocalizedStringKey) -> some View {
@@ -121,6 +121,7 @@ struct RoutineBuilderView: View {
             Text(value)
                 .font(AppFont.scaled(24, weight: .bold, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
+                .contentTransition(.numericText())
             Text(label)
                 .font(AppFont.scaled(11, weight: .semibold))
                 .tracking(0.6)
@@ -343,11 +344,15 @@ private struct RoutineTargetSheet: View {
                     VStack(spacing: Spacing.lg) {
                         Stepper(value: $sets, in: RoutineEditEngine.targetSets) {
                             field("Sets", value: "\(sets)")
+                                .appAnimation(AppAnimation.springSnappy, value: sets)
                         }
+                        .sensoryFeedback(.selection, trigger: sets)
                         Divider().background(AppColor.glassBorder)
                         Stepper(value: $reps, in: RoutineEditEngine.targetReps) {
                             field("Reps", value: "\(reps)")
+                                .appAnimation(AppAnimation.springSnappy, value: reps)
                         }
+                        .sensoryFeedback(.selection, trigger: reps)
                         Divider().background(AppColor.glassBorder)
                         restPicker
                     }

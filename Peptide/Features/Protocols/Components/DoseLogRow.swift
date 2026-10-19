@@ -8,6 +8,8 @@ struct DoseLogRow: View {
             Image(systemName: entry.completed ? "checkmark.circle.fill" : "circle")
                 .font(AppFont.scaled(16))
                 .foregroundStyle(entry.completed ? AppColor.accentPrimary : AppColor.textTertiary)
+                .contentTransition(.symbolEffect(.replace))
+                .symbolEffect(.bounce, value: entry.completed)
 
             Image(systemName: entry.peptide.imageSystemName)
                 .font(AppFont.scaled(11))

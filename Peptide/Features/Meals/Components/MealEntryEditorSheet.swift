@@ -106,13 +106,29 @@ struct MealEntryEditorSheet: View {
                                     .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
                                 ForEach(components) { component in
                                     Button { editingComponent = component } label: {
-                                        HStack {
+                                        HStack(spacing: Spacing.sm) {
                                             Text(component.name)
-                                            Spacer()
+                                                .font(AppFont.scaled(13, weight: .semibold))
+                                                .foregroundStyle(AppColor.textPrimary)
+                                                .lineLimit(1)
+                                            Spacer(minLength: 0)
                                             Text("\(component.grams.formatted()) g")
-                                            Image(systemName: "pencil")
-                                        }.frame(minHeight: 44)
+                                                .font(AppFont.scaled(13))
+                                                .monospacedDigit()
+                                                .foregroundStyle(AppColor.textSecondary)
+                                            Image(systemName: "chevron.right")
+                                                .font(AppFont.scaled(11))
+                                                .foregroundStyle(AppColor.textTertiary)
+                                                .accessibilityHidden(true)
+                                        }
+                                        .padding(.horizontal, Spacing.sm)
+                                        .frame(minHeight: Spacing.minimumHitTarget)
+                                        .background {
+                                            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                                                .fill(AppColor.surfaceSecondary.opacity(0.45))
+                                        }
                                     }
+                                    .buttonStyle(.plain)
                                 }
                                 MealNutrientDetails(components: components)
                             }
@@ -168,16 +184,18 @@ struct MealEntryEditorSheet: View {
     private var summaryCard: some View {
         GlassCard(padding: Spacing.md) {
             HStack(spacing: Spacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(initial.category.tint.opacity(0.20))
-                        .frame(width: 44, height: 44)
-                    Image(systemName: initial.category.icon)
-                        .font(AppFont.scaled(16, weight: .semibold))
-                        .foregroundStyle(initial.category.tint)
-                }
+                Image(systemName: category.icon)
+                    .font(AppFont.scaled(16, weight: .semibold))
+                    .foregroundStyle(category.tint)
+                    .contentTransition(.symbolEffect(.replace))
+                    .frame(width: 44, height: 44)
+                    .background {
+                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                            .fill(category.tint.opacity(0.18))
+                    }
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text(initial.name)
+                    Text(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? initial.name : name)
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(2)
@@ -208,13 +226,13 @@ struct MealEntryEditorSheet: View {
                 Text("Macros & time")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
-                Divider().background(AppColor.glassBorder)
+                Divider().overlay(AppColor.glassBorder)
                 portionChips
                 macroField(label: "Calories", unit: "kcal", text: $calories, field: .calories)
                 macroField(label: "Protein",  unit: "g",    text: $proteinG, field: .protein)
                 macroField(label: "Carbs",    unit: "g",    text: $carbsG,   field: .carbs)
                 macroField(label: "Fat",      unit: "g",    text: $fatG,     field: .fat)
-                Divider().background(AppColor.glassBorder)
+                Divider().overlay(AppColor.glassBorder)
                 DatePicker("Logged at", selection: $date, in: dateRange, displayedComponents: [.date, .hourAndMinute])
                     .font(AppFont.subheadline)
             }

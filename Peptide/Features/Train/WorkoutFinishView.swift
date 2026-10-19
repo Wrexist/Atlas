@@ -11,6 +11,8 @@ struct WorkoutFinishView: View {
     @State private var sharing = false
     @State private var announced = false
     @State private var celebrated = false
+    @State private var showsConfetti = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(session: WorkoutSession, detectedPRs: [PRDetectionEngine.DetectedPR],
          unit: MeasurementUnit, weeklySessionCount: Int? = nil, celebratesSave: Bool = true,
@@ -26,47 +28,36 @@ struct WorkoutFinishView: View {
         ScrollView {
             if let summary = store.summary {
                 VStack(alignment: .leading, spacing: Spacing.lg) {
-                    VStack(spacing: Spacing.sm) {
-                        Image(systemName: "checkmark.circle")
-                            .font(AppFont.scaled(52, weight: .regular))
-                            .foregroundStyle(AppColor.recapSuccess).accessibilityHidden(true)
-                            .symbolEffect(.bounce, value: celebrated)
-                        Text("Workout saved").font(AppFont.title)
-                        Text(summary.name).font(AppFont.headline).multilineTextAlignment(.center)
-                        if let date = summary.session.finishedAt {
-                            Text(date.formatted(date: .abbreviated, time: .shortened))
-                                .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
-                        }
-                    }.frame(maxWidth: .infinity).padding(.vertical, Spacing.sm)
+                    header(summary)
                         .sectionAppear(index: 0)
-                        NavigationLink {
-                            WorkoutWeeklyProgressView(store: store, unit: unit)
-                        } label: {
-                            HStack(spacing: Spacing.md) {
-                                Image(systemName: "chart.bar.fill").foregroundStyle(AppColor.recapSuccess)
-                                Text(store.week.map { "\($0.count) workouts this week" } ?? "Weekly progress unavailable")
-                                    .font(AppFont.subheadline)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                            }.padding(Spacing.cardPadding).frame(minHeight: 52)
-                                .background(AppColor.recapSuccess.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
-                        }.buttonStyle(ScalePressStyle()).accessibilityIdentifier("recap-weekly")
+                    NavigationLink {
+                        WorkoutWeeklyProgressView(store: store, unit: unit)
+                    } label: {
+                        RecapNavigationRow(icon: "chart.bar.fill") {
+                            if let week = store.week {
+                                Text("^[\(week.count) workout](inflect: true) this week")
+                            } else {
+                                Text("Weekly progress unavailable")
+                            }
+                        }
+                    }.buttonStyle(ScalePressStyle()).accessibilityIdentifier("recap-weekly")
                         .sectionAppear(index: 1)
                     if !detectedPRs.isEmpty {
                         RecapNewPRs(prs: detectedPRs, entries: summary.entries, unit: unit)
+                            .sectionAppear(index: 1)
                     }
-                    RecapMetrics(summary: summary, unit: unit)
-                        .sectionAppear(index: 2)
-                    RecapCalculationNotes(summary: summary)
+                    VStack(alignment: .trailing, spacing: 0) {
+                        RecapMetrics(summary: summary, unit: unit)
+                        RecapCalculationNotes(summary: summary)
+                    }
+                    .sectionAppear(index: 2)
                     NavigationLink {
                         WorkoutRecapExercisesView(store: store, unit: unit)
                     } label: {
-                        HStack {
-                            Text("\(summary.entries.count) exercises · View workout")
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                        }.font(AppFont.subheadline).frame(minHeight: 44)
-                    }.accessibilityIdentifier("recap-exercises")
+                        RecapNavigationRow(icon: "list.bullet") {
+                            Text("^[\(summary.entries.count) exercise](inflect: true) · View workout")
+                        }
+                    }.buttonStyle(ScalePressStyle()).accessibilityIdentifier("recap-exercises")
                         .sectionAppear(index: 3)
                     RecapCard {
                         VStack(alignment: .leading, spacing: Spacing.md) {
@@ -77,10 +68,20 @@ struct WorkoutFinishView: View {
                                 .frame(maxWidth: 250).frame(maxWidth: .infinity)
                             RecapMuscleNames(muscles: summary.muscles)
                             RecapMissingMapping(count: summary.missingMappings)
-                            NavigationLink("View details") {
+                            NavigationLink {
                                 WorkoutMuscleDetailsView(summary: summary, unit: unit)
-                            }.font(AppFont.subheadline).frame(minHeight: 44)
-                                .accessibilityIdentifier("recap-muscles")
+                            } label: {
+                                HStack {
+                                    Text("View details")
+                                    Spacer()
+                                    Image(systemName: "chevron.right").accessibilityHidden(true)
+                                }
+                                .font(AppFont.subheadline)
+                                .frame(minHeight: Spacing.minimumHitTarget)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(ScalePressStyle())
+                            .accessibilityIdentifier("recap-muscles")
                         }
                     }
                     .sectionAppear(index: 4)
@@ -125,9 +126,75 @@ struct WorkoutFinishView: View {
                 celebrated = true
                 Haptics.success()
                 AccessibilityNotification.Announcement("Workout saved").post()
+                await celebratePRs()
             }
         }
         .refreshWorkoutRecap(store)
+        .overlay {
+            if showsConfetti {
+                ConfettiView(colors: [AppColor.achievement, AppColor.recapSuccess, AppColor.recapAction])
+                    .ignoresSafeArea()
+            }
+        }
+    }
+
+    /// A fresh save celebrates; reopening an old session from history
+    /// leads with when it happened instead of "Workout saved".
+    private func header(_ summary: WorkoutRecapEngine.Summary) -> some View {
+        VStack(spacing: Spacing.sm) {
+            if celebratesSave {
+                Image(systemName: "checkmark.circle")
+                    .font(AppFont.scaled(52, weight: .regular))
+                    .foregroundStyle(AppColor.recapSuccess).accessibilityHidden(true)
+                    .symbolEffect(.bounce, value: celebrated)
+                Text("Workout saved").font(AppFont.title)
+                Text(summary.name).font(AppFont.headline).multilineTextAlignment(.center)
+                if let date = summary.session.finishedAt {
+                    Text(date.formatted(date: .abbreviated, time: .shortened))
+                        .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
+                }
+            } else {
+                Text(summary.name).font(AppFont.title).multilineTextAlignment(.center)
+                if let date = summary.session.finishedAt {
+                    Text(date.formatted(date: .complete, time: .shortened))
+                        .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
+                        .multilineTextAlignment(.center)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity).padding(.vertical, Spacing.sm)
+    }
+
+    /// One burst for a fresh save that set a PR. Reduce Motion skips it.
+    private func celebratePRs() async {
+        guard celebratesSave, !detectedPRs.isEmpty, !reduceMotion else { return }
+        showsConfetti = true
+        try? await Task.sleep(for: .seconds(2.5))
+        showsConfetti = false
+    }
+}
+
+/// The recap's tappable rows — weekly progress, the exercise list — on the
+/// same card as everything around them, with a trailing chevron.
+private struct RecapNavigationRow<Title: View>: View {
+    let icon: String
+    @ViewBuilder let title: Title
+
+    var body: some View {
+        RecapCard {
+            HStack(spacing: Spacing.md) {
+                Image(systemName: icon)
+                    .foregroundStyle(AppColor.recapSuccess)
+                    .accessibilityHidden(true)
+                title.font(AppFont.subheadline)
+                Spacer(minLength: Spacing.sm)
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(AppColor.recapSecondary)
+                    .accessibilityHidden(true)
+            }
+            .frame(minHeight: Spacing.minimumHitTarget)
+        }
+        .contentShape(Rectangle())
     }
 }
 
@@ -189,24 +256,34 @@ struct RecapMissingMapping: View {
     let count: Int
     var body: some View {
         if count > 0 {
-            Text("Muscle mapping unavailable for \(count) \(count == 1 ? "exercise" : "exercises")")
+            Text("Muscle mapping unavailable for ^[\(count) exercise](inflect: true)")
                 .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
         }
     }
 }
 
+/// Caveats on the totals above, behind an info button rather than as
+/// permanent fine print on the celebration screen.
 struct RecapCalculationNotes: View {
     let summary: WorkoutRecapEngine.Summary
+
+    private var hasNotes: Bool {
+        summary.session.exercises.isEmpty || summary.duration == .unavailable || summary.duration == .notTracked
+            || summary.volumeKg == nil || summary.excludedVolumeSets > 0 || summary.hasLegacyLoad
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            if summary.session.exercises.isEmpty { Text("No exercise or set details were recorded for this workout.") }
-            if summary.duration == .unavailable { Text("Duration unavailable: no valid elapsed time was recorded.") }
-            if summary.duration == .notTracked { Text("This workout was logged without a timer.") }
-            if summary.volumeKg == nil { Text("No supported external-load volume recorded.") }
-            else if summary.excludedVolumeSets > 0 {
-                Text("Volume excludes \(summary.excludedVolumeSets) sets without supported external-load measurements.")
+        if hasNotes {
+            RecapInfoButton(title: "How these are counted") {
+                if summary.session.exercises.isEmpty { Text("No exercise or set details were recorded for this workout.") }
+                if summary.duration == .unavailable { Text("Duration unavailable: no valid elapsed time was recorded.") }
+                if summary.duration == .notTracked { Text("This workout was logged without a timer.") }
+                if summary.volumeKg == nil { Text("No supported external-load volume recorded.") }
+                else if summary.excludedVolumeSets > 0 {
+                    Text("Volume excludes ^[\(summary.excludedVolumeSets) set](inflect: true) without supported external-load measurements.")
+                }
+                if summary.hasLegacyLoad { Text("Volume uses loads as entered. No equipment multiplier is assumed.") }
             }
-            if summary.hasLegacyLoad { Text("Volume uses loads as recorded. No equipment multiplier is assumed.") }
-        }.font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
+        }
     }
 }

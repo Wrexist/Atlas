@@ -23,9 +23,10 @@ struct SettingsView: View {
 
                 RestoreBackupEntryRow(onTap: { showRestoreBackup = true })
 
+                // Developer surfaces stay out of customer builds.
+                #if DEBUG
                 DiagnosticsSection()
 
-                #if DEBUG
                 ScreenshotModeRow()
                 #endif
 

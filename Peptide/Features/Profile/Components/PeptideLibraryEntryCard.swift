@@ -11,17 +11,16 @@ struct PeptideLibraryEntryCard: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
 
-    private var peptideCount: Int { PeptideDatabase.shared.count }
     private var activeProtocols: Int { dataStore.activeProtocols.count }
 
     var body: some View {
         GlassEntryRow(
             icon: "books.vertical.fill",
-            title: "Peptide Library",
-            subtitle: Text(subtitle),
+            title: "Library & Protocols",
+            subtitle: subtitle,
             action: openLibrary
         )
-        .accessibilityHint("Opens the peptide database, protocols, and AI research")
+        .accessibilityHint("Opens the compound library, protocols, and AI research")
     }
 
     private func openLibrary() {
@@ -34,13 +33,11 @@ struct PeptideLibraryEntryCard: View {
         }
     }
 
-    private var subtitle: String {
-        let peptides = "\(peptideCount) peptides"
-        if activeProtocols == 1 {
-            return "\(peptides) · 1 active protocol"
-        } else if activeProtocols > 1 {
-            return "\(peptides) · \(activeProtocols) active protocols"
+    private var subtitle: Text {
+        switch activeProtocols {
+        case 0: Text("Research, protocols and AI answers")
+        case 1: Text("1 active protocol")
+        default: Text("\(activeProtocols) active protocols")
         }
-        return "\(peptides) · research & protocols"
     }
 }

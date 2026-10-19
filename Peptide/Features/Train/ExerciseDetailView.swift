@@ -15,10 +15,15 @@ struct ExerciseDetailView: View {
             if let exercise {
                 VStack(alignment: .leading, spacing: Spacing.lg) {
                     header(for: exercise)
+                        .sectionAppear(index: 0)
                     metadataRow(for: exercise)
+                        .sectionAppear(index: 1)
                     ExerciseHistorySection(exercise: exercise)
+                        .sectionAppear(index: 2)
                     muscleSection(for: exercise)
+                        .sectionAppear(index: 3)
                     instructionsSection(for: exercise)
+                        .sectionAppear(index: 4)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
@@ -29,13 +34,19 @@ struct ExerciseDetailView: View {
                 // false "not found" before the async load completes.
                 loadingState
             } else {
-                VStack(spacing: Spacing.md) {
-                    Text("Couldn't load the exercise library.")
-                    Button("Retry") { Task { await loadLibrary() } }.minimumHitArea()
-                }.padding(Spacing.screenPadding)
+                EmptyStateView(
+                    icon: "exclamationmark.triangle",
+                    title: "Library unavailable",
+                    message: "We couldn't load the exercise library.",
+                    action: .init(title: "Retry", icon: "arrow.clockwise") {
+                        Task { await loadLibrary() }
+                    }
+                )
+                .padding(.top, Spacing.xxxxl)
             }
         }
         .background(AppColor.background.ignoresSafeArea())
+        .navigationTitle(exercise?.name ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .task { await loadLibrary() }
     }
@@ -179,11 +190,21 @@ struct ExerciseDetailView: View {
         .padding(.top, Spacing.xxxxl)
     }
 
+    /// Shaped like the artwork, title, pills and first card, so the page
+    /// doesn't jump when the library lands.
     private var loadingState: some View {
-        ProgressView()
-            .tint(AppColor.accentPrimary)
-            .frame(maxWidth: .infinity)
-            .padding(.top, Spacing.xxxxl)
+        VStack(alignment: .leading, spacing: Spacing.lg) {
+            SkeletonBlock(height: 240, cornerRadius: Spacing.cardCornerRadius)
+            SkeletonBlock(width: 220, height: 24)
+            HStack(spacing: Spacing.sm) {
+                SkeletonBlock(width: 80, height: 28, cornerRadius: Spacing.smallCornerRadius)
+                SkeletonBlock(width: 96, height: 28, cornerRadius: Spacing.smallCornerRadius)
+            }
+            SkeletonBlock(height: 140, cornerRadius: Spacing.cardCornerRadius)
+        }
+        .padding(.horizontal, Spacing.screenPadding)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Loading exercise")
     }
 }
 

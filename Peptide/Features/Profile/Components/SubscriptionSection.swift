@@ -11,8 +11,12 @@ import SwiftUI
 struct SubscriptionSection: View {
     @State private var storeService = StoreService.shared
     @State private var showManageSubscriptions = false
-    @State private var isRestoring = false
+    @State private var restoreState = RestoreState.idle
     @State private var restoreError: String?
+
+    private enum RestoreState: Equatable {
+        case idle, restoring, restored
+    }
 
     var body: some View {
         GlassCard {
@@ -43,15 +47,8 @@ struct SubscriptionSection: View {
                     showManageSubscriptions = true
                 }
 
-                GlassButton(
-                    title: isRestoring ? "Restoring…" : "Restore purchases",
-                    icon: "arrow.clockwise",
-                    style: .ghost,
-                    isFullWidth: true
-                ) {
-                    Task { await restore() }
-                }
-                .disabled(isRestoring)
+                restoreControl
+                    .appAnimation(AppAnimation.fadeIn, value: restoreState)
             }
         }
         .manageSubscriptionsSheet(isPresented: $showManageSubscriptions)
@@ -62,6 +59,40 @@ struct SubscriptionSection: View {
             Button("OK") { restoreError = nil }
         } message: {
             Text(restoreError ?? "")
+        }
+    }
+
+    /// A restore that succeeds changes nothing visible for someone who is
+    /// already Pro, so it says so rather than silently resetting.
+    @ViewBuilder
+    private var restoreControl: some View {
+        switch restoreState {
+        case .idle:
+            GlassButton(
+                title: "Restore purchases",
+                icon: "arrow.clockwise",
+                style: .ghost,
+                isFullWidth: true
+            ) {
+                Task { await restore() }
+            }
+            .transition(.opacity)
+        case .restoring:
+            HStack(spacing: Spacing.sm) {
+                ProgressView()
+                Text("Restoring…")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+            .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
+            .accessibilityElement(children: .combine)
+            .transition(.opacity)
+        case .restored:
+            Label("Purchases restored", systemImage: "checkmark.circle.fill")
+                .font(AppFont.subheadline.weight(.semibold))
+                .foregroundStyle(AppColor.positive)
+                .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
+                .transition(.opacity)
         }
     }
 
@@ -91,19 +122,27 @@ struct SubscriptionSection: View {
         }
         .padding(Spacing.md)
         .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.warning.opacity(0.12))
+            RoundedRectangle(
+                cornerRadius: Spacing.concentric(in: Spacing.cardCornerRadius, inset: Spacing.cardPadding),
+                style: .continuous
+            )
+            .fill(AppColor.warning.opacity(0.12))
         }
     }
 
     private func restore() async {
-        isRestoring = true
-        defer { isRestoring = false }
+        restoreState = .restoring
         do {
             try await storeService.restorePurchases()
         } catch {
+            restoreState = .idle
             restoreError = "Couldn't reach the App Store. Check your connection and try again."
+            return
         }
+        Haptics.success()
+        restoreState = .restored
+        try? await Task.sleep(for: .seconds(2))
+        restoreState = .idle
     }
 
     /// Lifetime buyers have nothing to renew, so they get a different line —
