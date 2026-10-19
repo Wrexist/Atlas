@@ -52,7 +52,7 @@ struct DoseLoggingSheet: View {
                     // Actual dose
                     GlassCard {
                         VStack(alignment: .leading, spacing: Spacing.md) {
-                            Label("Actual Dose", systemImage: "syringe.fill")
+                            Label("Actual dose", systemImage: "syringe.fill")
                                 .font(AppFont.headline)
                                 .foregroundStyle(AppColor.textPrimary)
 
@@ -75,24 +75,22 @@ struct DoseLoggingSheet: View {
                     // Time
                     GlassCard {
                         VStack(alignment: .leading, spacing: Spacing.md) {
-                            Label("Time Taken", systemImage: "clock.fill")
+                            Label("Time taken", systemImage: "clock.fill")
                                 .font(AppFont.headline)
                                 .foregroundStyle(AppColor.textPrimary)
 
-                            DatePicker("", selection: $actualTime, displayedComponents: .hourAndMinute)
-                                .datePickerStyle(.wheel)
+                            DatePicker("Time taken", selection: $actualTime, displayedComponents: .hourAndMinute)
+                                .datePickerStyle(.compact)
                                 .labelsHidden()
-                                .frame(height: 100)
-                                .clipped()
                                 .tint(AppColor.accentPrimary)
                         }
                     }
 
                     // Injection site
-                    if entry.peptide.adminRoute.lowercased().contains("subcutaneous") {
+                    if isInjectable {
                         GlassCard {
                             VStack(alignment: .leading, spacing: Spacing.md) {
-                                Label("Injection Site", systemImage: "figure.arms.open")
+                                Label("Injection site", systemImage: "figure.arms.open")
                                     .font(AppFont.headline)
                                     .foregroundStyle(AppColor.textPrimary)
 
@@ -131,7 +129,7 @@ struct DoseLoggingSheet: View {
                                 .font(AppFont.headline)
                                 .foregroundStyle(AppColor.textPrimary)
 
-                            TextField("Optional notes...", text: $notes, axis: .vertical)
+                            TextField("Optional notes", text: $notes, axis: .vertical)
                                 .font(AppFont.body)
                                 .foregroundStyle(AppColor.textPrimary)
                                 .tint(AppColor.accentPrimary)
@@ -147,20 +145,26 @@ struct DoseLoggingSheet: View {
                                 }
                         }
                     }
-
-                    // Log button
-                    GlassButton(title: "Log Dose", icon: "checkmark.circle.fill", style: .primary, isFullWidth: true) {
-                        onLog(actualDose, actualTime, selectedSite, notes)
-                        dismiss()
-                    }
                 }
                 .padding(.horizontal, Spacing.screenPadding)
-                .padding(.bottom, Spacing.xxxxl)
+                .padding(.bottom, Spacing.lg)
             }
             .scrollDismissesKeyboard(.interactively)
+            // Pinned so the primary action is reachable without
+            // scrolling past every field first.
+            .pinnedFooter {
+                GlassButton(title: "Log dose", icon: "checkmark.circle.fill", style: .primary, isFullWidth: true) {
+                    Haptics.success()
+                    onLog(actualDose, actualTime, selectedSite, notes)
+                    dismiss()
+                }
+                .padding(.horizontal, Spacing.screenPadding)
+                .padding(.top, Spacing.lg)
+                .padding(.bottom, Spacing.md)
+            }
             .dismissKeyboardOnTap()
             .background(AppColor.background)
-            .navigationTitle("Log Dose")
+            .navigationTitle("Log dose")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -169,5 +173,12 @@ struct DoseLoggingSheet: View {
                 }
             }
         }
+    }
+
+    /// Routes that take an injection site — intramuscular as well as
+    /// subcutaneous, which the old substring check left out.
+    private var isInjectable: Bool {
+        let route = entry.peptide.adminRoute.lowercased()
+        return route.contains("subcutaneous") || route.contains("intramuscular")
     }
 }

@@ -33,8 +33,9 @@ struct ProfileToolbarButton: View {
                 }
             }
             .frame(width: 30, height: 30)
+            .minimumHitArea()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.92))
         .accessibilityLabel("Open profile")
     }
 }

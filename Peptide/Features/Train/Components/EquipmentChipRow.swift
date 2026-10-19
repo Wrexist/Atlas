@@ -1,36 +1,44 @@
 import SwiftUI
 
 /// Horizontally scrolling equipment filter row. Same single-select
-/// pattern as `MuscleGroupChipRow` — easy to swap to multi-select
+/// pattern and chip recipe as `MuscleGroupChipRow`, so the two rows in
+/// one filter shelf read as one control — easy to swap to multi-select
 /// once the user research justifies the complexity.
 struct EquipmentChipRow: View {
     @Binding var selection: EquipmentKind?
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Spacing.xs) {
-                GlassChip(
-                    "Any equipment",
-                    tint: AppColor.textPrimary,
-                    style: .prominent,
-                    isSelected: selection == nil
-                ) {
-                    selection = nil
-                }
-                ForEach(EquipmentKind.allCases) { kind in
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: Spacing.xs) {
                     GlassChip(
-                        LocalizedStringKey(kind.displayName),
-                        icon: kind.symbolName,
-                        tint: AppColor.textPrimary,
+                        "Any equipment",
                         style: .prominent,
-                        isSelected: selection == kind
+                        isSelected: selection == nil
                     ) {
-                        selection = (selection == kind) ? nil : kind
+                        selection = nil
+                    }
+                    ForEach(EquipmentKind.allCases) { kind in
+                        GlassChip(
+                            LocalizedStringKey(kind.displayName),
+                            icon: kind.symbolName,
+                            style: .prominent,
+                            isSelected: selection == kind
+                        ) {
+                            selection = (selection == kind) ? nil : kind
+                        }
+                        .id(kind)
                     }
                 }
+                .padding(.horizontal, Spacing.screenPadding)
+                .padding(.vertical, Spacing.xs)
             }
-            .padding(.horizontal, Spacing.screenPadding)
-            .padding(.vertical, Spacing.xs)
+            .onChange(of: selection) { _, kind in
+                guard let kind else { return }
+                AppAnimation.with(AppAnimation.springSnappy) {
+                    proxy.scrollTo(kind, anchor: .center)
+                }
+            }
         }
     }
 }

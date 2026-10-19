@@ -12,6 +12,7 @@ struct WorkoutShareView: View {
     @State private var model = WorkoutShareController()
     @State private var previewImage: UIImage?
     @State private var previewError: String?
+    @State private var previewKey: WorkoutShareRenderKey?
     private var renderKey: WorkoutShareRenderKey {
         WorkoutShareRenderKey(session: summary.session, unit: unit, options: options)
     }
@@ -52,13 +53,23 @@ struct WorkoutShareView: View {
             }
             .interactiveDismissDisabled(model.busy)
             .onChange(of: renderKey) { _, _ in model.optionsChanged() }
+            // The previous card stays up until the new one is ready, then
+            // cross-fades — clearing it first flashed a blank frame on
+            // every option change.
             .task(id: renderKey) {
-                previewImage = nil
                 previewError = nil
                 await ExerciseLibrary.shared.load()
                 guard !Task.isCancelled else { return }
-                do { previewImage = try WorkoutSocialRenderer.image(summary: summary, unit: unit, options: options) }
-                catch { previewError = "Could not prepare the preview. Change a format or try Share again." }
+                do {
+                    let image = try WorkoutSocialRenderer.image(summary: summary, unit: unit, options: options)
+                    AppAnimation.with(AppAnimation.quick) {
+                        previewImage = image
+                        previewKey = renderKey
+                    }
+                } catch {
+                    previewImage = nil
+                    previewError = "Could not prepare the preview. Change a format or try Share again."
+                }
             }
             .onDisappear { model.cancel(); model.player?.pause() }
         }
@@ -103,6 +114,8 @@ struct WorkoutShareView: View {
                     .accessibilityIdentifier("workout-share-video-player")
             } else if let previewImage {
                 Image(uiImage: previewImage).resizable().scaledToFit()
+                    .id(previewKey)
+                    .transition(.opacity)
                     .accessibilityLabel("Workout card preview. \(summary.workingSetLabel) working sets. Duration \(summary.duration.label).")
                     .accessibilityIdentifier("workout-share-rendered-\(options.style.rawValue)-\(options.format.rawValue)")
             } else {

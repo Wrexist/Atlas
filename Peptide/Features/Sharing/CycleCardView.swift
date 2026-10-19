@@ -44,6 +44,10 @@ struct CycleCardView: View {
         .frame(width: Self.canvasWidth, height: Self.canvasHeight)
         .clipped()
         .environment(\.colorScheme, .dark)
+        // A fixed 1080×1920 export: the sharer's own Dynamic Type size
+        // must not resize the PNG's labels (at AX sizes they overflowed
+        // the stat cards), so the canvas renders at the default size.
+        .environment(\.dynamicTypeSize, .large)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
     }
@@ -82,16 +86,9 @@ struct CycleCardView: View {
     private var topBar: some View {
         HStack(alignment: .center) {
             HStack(spacing: 16) {
-                Image(systemName: "flask.fill")
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Color.white, Color(red: 0.78, green: 0.74, blue: 0.96)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .accessibilityHidden(true)
+                // The real brand mark, not a lab flask — every shared
+                // image carries it.
+                atlasMark(size: 48)
                 Text("Atlas")
                     .font(.system(size: 38, weight: .heavy, design: .rounded))
                     .foregroundStyle(.white)
@@ -123,7 +120,7 @@ struct CycleCardView: View {
                 Text("Active since \(activeSinceFormatted)")
                     .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(Color.white.opacity(0.55))
-                Text("Day \(model.cycleDay) of \(model.cycleTotalDays) cycle")
+                Text(cycleProgressLine)
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
             }
@@ -181,6 +178,26 @@ struct CycleCardView: View {
         model.activeSinceDate.formatted(.dateTime.month(.wide).day().year())
     }
 
+    /// "Day 0 of 84" read as a broken counter for a protocol that
+    /// hasn't begun; name the start date instead.
+    private var cycleProgressLine: String {
+        guard model.cycleDay > 0 else { return "Starts \(activeSinceFormatted)" }
+        return "Day \(model.cycleDay) of \(model.cycleTotalDays) cycle"
+    }
+
+    private var streakLabel: String {
+        model.currentStreakDays == 1 ? "1 day" : "\(model.currentStreakDays) days"
+    }
+
+    private func atlasMark(size: CGFloat) -> some View {
+        Image("AtlasLogo")
+            .resizable()
+            .scaledToFill()
+            .frame(width: size, height: size)
+            .clipShape(RoundedRectangle(cornerRadius: size * 0.26, style: .continuous))
+            .accessibilityHidden(true)
+    }
+
     // MARK: - Stats row
 
     private var statsRow: some View {
@@ -194,7 +211,7 @@ struct CycleCardView: View {
                 label: "Adherence"
             )
             statCard(
-                value: "\(model.currentStreakDays) days",
+                value: streakLabel,
                 label: "Streak",
                 trailingGlyph: "🔥"
             )
@@ -245,9 +262,12 @@ struct CycleCardView: View {
 
             HStack(spacing: 18) {
                 if let kg = summary.weightDeltaKg {
+                    // In the sharer's own unit — an imperial user's card
+                    // used to read "+1.8 kg".
+                    let unit = summary.weightUnit
                     healthCard(
                         icon: kg >= 0 ? "arrow.up" : "arrow.down",
-                        value: String(format: "%@%.1f kg", kg >= 0 ? "+" : "", kg),
+                        value: String(format: "%@%.1f %@", kg >= 0 ? "+" : "", unit.weightForDisplay(kg), unit.weightSuffix),
                         label: "Weight"
                     )
                 }
@@ -313,9 +333,8 @@ struct CycleCardView: View {
             qrTile
             Spacer()
             HStack(spacing: 12) {
-                Image(systemName: "flask.fill")
-                    .font(AppFont.scaled(16, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.7))
+                atlasMark(size: 28)
+                    .opacity(0.7)
                 Text(AppConstants.watermarkText)
                     .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.7))
@@ -361,10 +380,10 @@ struct CycleCardView: View {
         } else {
             names = model.peptides.map(\.abbreviation).joined(separator: ", ")
         }
-        return "\(model.subjectTitle) cycle card. Day \(model.cycleDay) of \(model.cycleTotalDays). " +
+        return "\(model.subjectTitle) cycle card. \(cycleProgressLine). " +
                "Peptides: \(names). " +
                "Doses logged: \(model.dosesLogged). Adherence: \(model.adherencePercent) percent. " +
-               "Streak: \(model.currentStreakDays) days. Watermark: Atlas."
+               "Streak: \(streakLabel). Watermark: Atlas."
     }
 
     // MARK: - QR generation

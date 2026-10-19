@@ -112,17 +112,22 @@ struct ReconstitutionCalculator: View {
                 .onChange(of: value) { _, _ in Haptics.selection() }
             HStack(spacing: Spacing.xs) {
                 ForEach(quickPicks, id: \.self) { pick in
-                    Button("\(formatted(pick))") {
+                    Button {
                         Haptics.impact(.light)
                         AppAnimation.with(AppAnimation.springSnappy) { bind.wrappedValue = pick }
+                    } label: {
+                        Text(verbatim: formatted(pick))
+                            .font(AppFont.scaled(11, weight: .semibold))
+                            .foregroundStyle(AppColor.accentLight)
+                            .padding(.horizontal, Spacing.sm)
+                            .padding(.vertical, Spacing.xs)
+                            .background {
+                                Capsule().fill(AppColor.accentPrimary.opacity(0.15))
+                            }
+                            .minimumHitArea()
                     }
-                    .font(AppFont.scaled(11, weight: .semibold))
-                    .foregroundStyle(AppColor.accentLight)
-                    .padding(.horizontal, Spacing.sm)
-                    .padding(.vertical, 4)
-                    .background {
-                        Capsule().fill(AppColor.accentPrimary.opacity(0.15))
-                    }
+                    .buttonStyle(ScalePressStyle(pressedScale: 0.92))
+                    .accessibilityLabel(Text(verbatim: "\(formatted(pick)) \(unit)"))
                 }
             }
         }

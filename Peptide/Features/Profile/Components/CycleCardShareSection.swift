@@ -21,48 +21,11 @@ struct CycleCardShareSection: View {
     }
 
     private var content: some View {
-        Button {
-            showShareSheet = true
-        } label: {
-            HStack(spacing: Spacing.md) {
-                Image(systemName: "square.and.arrow.up.fill")
-                    .font(AppFont.scaled(16, weight: .semibold))
-                    .foregroundStyle(AppColor.onAccent)
-                    .frame(width: 40, height: 40)
-                    .background {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(AppColor.accentFill)
-                    }
-                    .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Share my cycle card")
-                        .font(AppFont.headline)
-                        .foregroundStyle(AppColor.textPrimary)
-                    Text("A 1080×1920 Stories-ready snapshot of your stack and stats.")
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .lineLimit(2)
-                }
-
-                Spacer(minLength: 0)
-
-                Image(systemName: "chevron.right")
-                    .font(AppFont.scaled(11, weight: .bold))
-                    .foregroundStyle(AppColor.textTertiary)
-                    .accessibilityHidden(true)
-            }
-            .padding(Spacing.md)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.6))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                    }
-            }
-        }
-        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        GlassEntryRow(
+            icon: "square.and.arrow.up.fill",
+            title: "Share my cycle card",
+            subtitle: Text("A shareable card of your current cycle and stats."),
+            action: { showShareSheet = true }
+        )
     }
 }

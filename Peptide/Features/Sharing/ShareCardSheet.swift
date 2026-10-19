@@ -81,7 +81,7 @@ struct ShareCardSheet: View {
                     privacyToggle
                     pitch
                     GlassButton(
-                        title: isRendering ? "Preparing…" : "Share Cycle Card",
+                        title: isRendering ? "Preparing…" : "Share card",
                         icon: "square.and.arrow.up",
                         style: .primary,
                         isFullWidth: true
@@ -98,14 +98,16 @@ struct ShareCardSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
+                    Button("Close") { dismiss() }
                 }
             }
             .sheet(isPresented: $showShareSheet) {
                 if let renderedURL {
+                    // Neutral caption: "peptide protocol" contradicted the
+                    // "Hide compound names" choice the image itself honours.
                     ShareSheet(activityItems: [
                         renderedURL,
-                        "Tracking my peptide protocol with Atlas 🧬",
+                        "Tracking my progress with Atlas",
                     ])
                 }
             }
@@ -135,42 +137,40 @@ struct ShareCardSheet: View {
         let previewHeight = Self.previewWidth / Self.previewAspect
         return ZStack {
             if let previewImage {
+                // Re-identified per render so an option toggle cross-fades
+                // to the new card instead of hard-swapping the pixels.
                 Image(uiImage: previewImage)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-            } else {
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.051, green: 0.051, blue: 0.102),
-                        Color(red: 0.102, green: 0.039, blue: 0.180),
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+                    .id(previewImage)
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                    .accessibilityLabel("Share card preview")
+            } else if previewRenderFailed {
+                AppColor.surfaceSecondary
                 VStack(spacing: Spacing.sm) {
-                    if previewRenderFailed {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(AppColor.textTertiary)
-                        Text("Couldn't render the card. Adjust an option to retry.")
-                            .font(AppFont.caption)
-                            .foregroundStyle(AppColor.textTertiary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, Spacing.md)
-                    } else {
-                        ProgressView()
-                            .tint(AppColor.accentLight)
-                        Text("Rendering share card…")
-                            .font(AppFont.caption)
-                            .foregroundStyle(AppColor.textTertiary)
-                    }
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(AppColor.textTertiary)
+                        .accessibilityHidden(true)
+                    Text("Couldn't render the card. Adjust an option to retry.")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Spacing.md)
                 }
-                .accessibilityElement(children: .combine)
+            } else {
+                // The skeleton is the card's own silhouette, so the wait
+                // reads as "your card is coming", not a stalled spinner.
+                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                    .fill(AppColor.surfaceSecondary)
+                    .shimmer()
+                    .accessibilityLabel("Rendering share card")
             }
         }
+        .appAnimation(AppAnimation.fadeIn, value: previewImage)
         .frame(width: Self.previewWidth, height: previewHeight)
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                 .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
         )
         .appShadow(AppShadow.glassDeep)
@@ -250,7 +250,7 @@ struct ShareCardSheet: View {
             .toggleStyle(.switch)
             .tint(AppColor.accentPrimary)
 
-            HStack(spacing: 6) {
+            HStack(spacing: Spacing.xs) {
                 Image(systemName: "lock.fill")
                     .font(AppFont.scaled(11, weight: .semibold))
                 Text("Both off by default. Injection sites are never shared.")
@@ -259,8 +259,8 @@ struct ShareCardSheet: View {
             .foregroundStyle(AppColor.textTertiary)
 
             if isLoadingHealth {
-                HStack(spacing: 6) {
-                    ProgressView().scaleEffect(0.7)
+                HStack(spacing: Spacing.xs) {
+                    ProgressView().controlSize(.mini)
                     Text("Loading health data…")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textTertiary)
@@ -281,7 +281,7 @@ struct ShareCardSheet: View {
 
     private var pitch: some View {
         VStack(spacing: Spacing.xs) {
-            Text("1080 × 1920 · ready for Stories")
+            Text("Sized for Instagram Stories")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
             Text("Brand watermark and QR are baked into the image.")
@@ -303,7 +303,8 @@ struct ShareCardSheet: View {
             healthSummary = CycleCardModel.HealthSummary(
                 weightDeltaKg: weightDeltaSinceCycleStart(),
                 avgSleepHours: nil,
-                hrvTrendDescription: nil
+                hrvTrendDescription: nil,
+                weightUnit: dataStore.profile.bodyMetrics.unit
             )
             return
         }
@@ -319,7 +320,8 @@ struct ShareCardSheet: View {
         healthSummary = CycleCardModel.HealthSummary(
             weightDeltaKg: weightDeltaSinceCycleStart(),
             avgSleepHours: sleepHours,
-            hrvTrendDescription: hrvAvg.map { String(format: "%.0f ms avg", $0) }
+            hrvTrendDescription: hrvAvg.map { String(format: "%.0f ms avg", $0) },
+            weightUnit: dataStore.profile.bodyMetrics.unit
         )
     }
 

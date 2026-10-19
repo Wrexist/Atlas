@@ -82,7 +82,7 @@ struct ReplaceScannedFoodSheet: View {
         guard value.count >= OpenFoodFactsService.minimumSearchQueryLength else { loading = false; return }
         loading = true
         do {
-            try await Task.sleep(for: .milliseconds(500))
+            try await Task.sleep(for: AppAnimation.searchDebounceDelay)
             let found = try await OpenFoodFactsService.shared.search(query: value)
             try Task.checkCancellation()
             var seen = Set<String>()

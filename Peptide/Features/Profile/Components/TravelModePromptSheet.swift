@@ -58,28 +58,20 @@ struct TravelModePromptSheet: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             ZStack {
                 Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                AppColor.accentPrimary.opacity(0.55),
-                                AppColor.accentLight.opacity(0.25),
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .fill(AppColor.accentPrimary.opacity(0.18))
                     .frame(width: 68, height: 68)
                 Image(systemName: "airplane.departure")
-                    .font(.system(size: 28, weight: .semibold))
-                    .foregroundStyle(AppColor.textPrimary)
+                    .font(AppFont.scaled(28, weight: .semibold, relativeTo: .title1))
+                    .foregroundStyle(AppColor.accentLight)
             }
+            .accessibilityHidden(true)
 
             Text("You crossed into a new timezone")
                 .font(AppFont.title2)
                 .foregroundStyle(AppColor.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("Pick how Atlas should handle your dose schedule. You can change it back any time by editing the protocol.")
+            Text("Shift your reminder times to local time? You can change it back any time by editing the protocol.")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -103,7 +95,7 @@ struct TravelModePromptSheet: View {
                     title: change.currentDisplayName,
                     tint: AppColor.accentLight
                 )
-                Divider().background(AppColor.glassBorder)
+                Divider().overlay(AppColor.glassBorder)
                 HStack(spacing: 4) {
                     Image(systemName: "clock.arrow.2.circlepath")
                         .font(AppFont.scaled(11, weight: .semibold))
@@ -154,7 +146,7 @@ struct TravelModePromptSheet: View {
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                 }
-                Text("One of your scheduled doses, shifted to local time.")
+                Text("One of your reminders, shifted to local time.")
                     .font(AppFont.scaled(11))
                     .foregroundStyle(AppColor.textSecondary)
             }
@@ -187,7 +179,7 @@ struct TravelModePromptSheet: View {
                 .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textSecondary)
                 .padding(.top, 1)
-            Text("Shifting moves every active protocol's preferred dose times immediately. Most peptides tolerate the change without issue — consult your provider for compounds that demand strict timing windows.")
+            Text("Shifting moves every active protocol's reminder times immediately.")
                 .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

@@ -28,6 +28,11 @@ struct BiomarkerDetailSheet: View {
     var unit: MeasurementUnit = .metric
 
     @State private var historicalSnapshot: BiomarkerSnapshot?
+    /// True while the 90-day read is in flight, so a short initial
+    /// series shows a loading chart rather than "need more data".
+    @State private var isFetching = false
+    /// The day the user is scrubbing on the chart, as days-ago (≤ 0).
+    @State private var selectedDay: Int?
     @Environment(\.dismiss) private var dismiss
 
     /// What the rest of the view reads — the larger window if the
@@ -49,11 +54,11 @@ struct BiomarkerDetailSheet: View {
                 }
                 .padding(Spacing.screenPadding)
             }
-            .background(AppColor.background)
+            .background(AppColor.background.ignoresSafeArea())
             .navigationTitle(biomarker.displayName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
             }
@@ -64,8 +69,11 @@ struct BiomarkerDetailSheet: View {
                 // we keep rendering the initial snapshot.
                 guard historicalSnapshot == nil,
                       let fetcher = historicalFetcher else { return }
-                if let larger = await fetcher() {
-                    historicalSnapshot = larger
+                isFetching = true
+                let larger = await fetcher()
+                AppAnimation.with(AppAnimation.springSmooth) {
+                    if let larger { historicalSnapshot = larger }
+                    isFetching = false
                 }
             }
         }
@@ -79,6 +87,7 @@ struct BiomarkerDetailSheet: View {
                 .font(AppFont.scaled(48, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
+                .contentTransition(.numericText())
             if let unitString = biomarker.displayUnit(for: unit) {
                 Text(unitString)
                     .font(AppFont.scaled(16, weight: .heavy))
@@ -94,16 +103,19 @@ struct BiomarkerDetailSheet: View {
         return BiomarkerSeriesService.formatValue(biomarker.displayValue(latest, for: unit), for: biomarker)
     }
 
+    /// Direction only, in neutral ink: whether "up" is good depends on the
+    /// biomarker (rising HRV vs rising resting heart rate), so the chip
+    /// doesn't claim either.
     private var trendChip: some View {
-        let (label, icon, tint): (String, String, Color) = {
+        let (label, icon, tint): (LocalizedStringKey, String, Color) = {
             switch snapshot.trend {
-            case .up:           return ("Trending up",   "arrow.up.circle.fill",   AppColor.success)
-            case .down:         return ("Trending down", "arrow.down.circle.fill", AppColor.macroWaterLight)
+            case .up:           return ("Trending up",   "arrow.up.circle.fill",   AppColor.textSecondary)
+            case .down:         return ("Trending down", "arrow.down.circle.fill", AppColor.textSecondary)
             case .flat:         return ("Steady",        "equal.circle.fill",      AppColor.textSecondary)
             case .insufficient: return ("Not enough data", "minus.circle.fill",    AppColor.textTertiary)
             }
         }()
-        return HStack(spacing: 4) {
+        return HStack(spacing: Spacing.xs) {
             Image(systemName: icon)
                 .font(AppFont.scaled(11, weight: .heavy))
             Text(label)
@@ -111,7 +123,7 @@ struct BiomarkerDetailSheet: View {
         }
         .foregroundStyle(tint)
         .padding(.horizontal, Spacing.sm)
-        .padding(.vertical, 5)
+        .padding(.vertical, Spacing.xs)
         .background {
             Capsule().fill(tint.opacity(0.15))
         }
@@ -122,7 +134,7 @@ struct BiomarkerDetailSheet: View {
     private var explainer: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text("WHAT THIS TRACKS")
-                .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
+                .font(AppFont.eyebrow)
                 .tracking(1.0)
                 .foregroundStyle(AppColor.textSecondary)
             Text(explainerBody)
@@ -164,12 +176,18 @@ struct BiomarkerDetailSheet: View {
         if snapshot.sparkline.count >= 4 {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text("RECENT TREND")
-                    .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
+                    .font(AppFont.eyebrow)
                     .tracking(1.0)
                     .foregroundStyle(AppColor.textSecondary)
 
                 trendChart
             }
+        } else if isFetching {
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .fill(AppColor.surfaceSecondary.opacity(0.55))
+                .frame(height: 180 + Spacing.md * 2)
+                .shimmer()
+                .accessibilityLabel("Loading trend")
         } else {
             insufficientChartPlaceholder
         }
@@ -180,7 +198,17 @@ struct BiomarkerDetailSheet: View {
             ForEach(Array(snapshot.sparkline.enumerated()), id: \.offset) { idx, value in
                 trendMarks(idx: idx, value: value)
             }
+            if let selectedDay, let selectedValue = reading(atDay: selectedDay) {
+                RuleMark(x: .value("Day", selectedDay))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .lineStyle(.init(lineWidth: 1))
+                    .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
+                        selectionCallout(day: selectedDay, value: selectedValue)
+                    }
+            }
         }
+        .chartXSelection(value: $selectedDay)
+        .sensoryFeedback(.selection, trigger: selectedDay)
         .chartXAxis {
             // Stride scales with the window — daily ticks
             // would be unreadable at 90 days, weekly is
@@ -206,14 +234,30 @@ struct BiomarkerDetailSheet: View {
         }
         .frame(height: 180)
         .padding(Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.55))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
+    }
+
+    /// The scrubbed day's reading in display units, or `nil` off the series.
+    private func reading(atDay day: Int) -> Double? {
+        let index = snapshot.sparkline.count - 1 + day
+        guard snapshot.sparkline.indices.contains(index) else { return nil }
+        return biomarker.displayValue(snapshot.sparkline[index], for: unit)
+    }
+
+    private func selectionCallout(day: Int, value: Double) -> some View {
+        VStack(spacing: Spacing.xxs) {
+            Text(BiomarkerSeriesService.formatValue(value, for: biomarker)
+                 + (biomarker.displayUnit(for: unit).map { " \($0)" } ?? ""))
+                .font(AppFont.scaled(13, weight: .bold, design: .rounded))
+                .foregroundStyle(AppColor.textPrimary)
+                .monospacedDigit()
+            Text(dayLabel(daysAgo: day))
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
         }
+        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, Spacing.xs)
+        .glassSurface(cornerRadius: Spacing.chipCornerRadius)
     }
 
     @ChartContentBuilder
@@ -247,25 +291,24 @@ struct BiomarkerDetailSheet: View {
         )
     }
 
+    /// "Today", else the calendar date ("12 Mar"), so ticks read in the
+    /// user's locale rather than as English abbreviations.
     private func dayLabel(daysAgo: Int) -> String {
-        if daysAgo == 0 { return "Today" }
-        if daysAgo == -7 { return "1w" }
-        if daysAgo == -14 { return "2w" }
-        if daysAgo == -30 { return "1mo" }
-        if daysAgo == -60 { return "2mo" }
-        if daysAgo == -90 { return "3mo" }
-        return "\(abs(daysAgo))d"
+        if daysAgo == 0 { return String(localized: "Today") }
+        let date = Calendar.current.date(byAdding: .day, value: daysAgo, to: .now) ?? .now
+        return date.formatted(.dateTime.day().month(.abbreviated))
     }
 
     /// Picks an axis stride that produces readable tick labels
     /// across the spectrum of window sizes the sheet might
-    /// render — 14 daily samples (initial snapshot) → 2-day
-    /// stride, 90 daily samples (historical) → 14-day stride.
+    /// render — 14 daily samples (initial snapshot) → 4-day
+    /// stride, 90 daily samples (historical) → 14-day stride. Wide
+    /// enough that dated labels ("12 Mar") don't collide.
     private var axisStride: Int {
         let count = snapshot.sparkline.count
         if count >= 80 { return 14 }
         if count >= 30 { return 7 }
-        return 2
+        return 4
     }
 
     private var insufficientChartPlaceholder: some View {
@@ -290,7 +333,7 @@ struct BiomarkerDetailSheet: View {
     private var deltaBlock: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text("VS RECENT AVERAGE")
-                .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
+                .font(AppFont.eyebrow)
                 .tracking(1.0)
                 .foregroundStyle(AppColor.textSecondary)
             Text(deltaLine)
@@ -299,14 +342,7 @@ struct BiomarkerDetailSheet: View {
         }
         .padding(Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.55))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 
     private var deltaLine: String {

@@ -63,8 +63,7 @@ struct ProgressPhotosCard: View {
         }
         .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(cardBackground)
-        .liquidGlass(.rect(cornerRadius: Spacing.cardCornerRadius))
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         .onChange(of: pickerItem) { _, newValue in
             Task { await loadAndPersist(item: newValue) }
         }
@@ -160,6 +159,7 @@ struct ProgressPhotosCard: View {
                                     .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
                             }
                     }
+                    .minimumHitArea()
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Compare progress photos")
@@ -191,7 +191,10 @@ struct ProgressPhotosCard: View {
                 // PhotosPicker's `label:` closure isn't @MainActor-isolated
                 // under Swift 6 strict concurrency, and the MainActor-bound
                 // `liquidGlass` modifier can't be applied inside it. The
-                // capsule's fill + stroke still read as glass.
+                // capsule's fill + stroke still read as glass. Same reason
+                // the 44pt target is spelled out instead of `minimumHitArea()`.
+                .frame(minWidth: Spacing.minimumHitTarget, minHeight: Spacing.minimumHitTarget)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
         }
@@ -235,7 +238,7 @@ struct ProgressPhotosCard: View {
             // whether they're about to reveal or open.
             .accessibilityElement(children: .ignore)
             .accessibilityAddTraits(.isButton)
-            .accessibilityLabel(isRevealed ? Text("Open progress photo viewer") : Text("Reveal progress photo"))
+            .accessibilityLabel(isRevealed ? Text("Open progress photo viewer") : Text("Show progress photo"))
             .onTapGesture {
                 // Two-phase tap: first tap unblurs (privacy-by-
                 // default), second tap on an unblurred photo opens
@@ -285,15 +288,6 @@ struct ProgressPhotosCard: View {
                 .foregroundStyle(AppColor.textTertiary.opacity(0.6))
         }
         .aspectRatio(1, contentMode: .fit)
-    }
-
-    private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-            .fill(AppColor.surfaceSecondary.opacity(0.6))
-            .overlay {
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-            }
     }
 
     // MARK: - Picker → disk

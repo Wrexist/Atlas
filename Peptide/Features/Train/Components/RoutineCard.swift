@@ -60,6 +60,8 @@ struct RoutineCard: View {
     let onOpen: () -> Void
     let onStart: () -> Void
 
+    @State private var startTaps = 0
+
     private var routine: Routine { summary.routine }
 
     var body: some View {
@@ -73,7 +75,7 @@ struct RoutineCard: View {
                     }
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ScalePressStyle(pressedScale: 0.98))
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel(accessibilityLabel)
                 .accessibilityHint("Opens the routine to edit it")
@@ -84,24 +86,12 @@ struct RoutineCard: View {
     }
 
     private var glyph: some View {
-        ZStack {
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            AppColor.accentPrimary.opacity(0.45),
-                            AppColor.accentLight.opacity(0.25),
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: 44, height: 44)
-            Image(systemName: summary.muscleGroup.symbolName)
-                .font(AppFont.scaled(20, weight: .semibold))
-                .foregroundStyle(AppColor.onAccent)
-        }
-        .accessibilityHidden(true)
+        Image(systemName: summary.muscleGroup.symbolName)
+            .font(AppFont.scaled(20, weight: .semibold))
+            .foregroundStyle(AppColor.accentLight)
+            .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
+            .background(Circle().fill(AppColor.accentFill.opacity(0.18)))
+            .accessibilityHidden(true)
     }
 
     private var details: some View {
@@ -130,15 +120,17 @@ struct RoutineCard: View {
     private var startButton: some View {
         Button {
             Haptics.impact(.medium)
+            startTaps += 1
             onStart()
         } label: {
             Image(systemName: "play.fill")
                 .font(AppFont.scaled(16, weight: .bold))
                 .foregroundStyle(AppColor.onAccent)
+                .symbolEffect(.bounce, value: startTaps)
                 .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
                 .background(Circle().fill(AppColor.accentFill))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle())
         .accessibilityLabel("Start \(routine.name)")
         .disabled(routine.exercises.isEmpty)
         .opacity(routine.exercises.isEmpty ? 0.4 : 1)

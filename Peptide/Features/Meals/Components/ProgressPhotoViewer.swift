@@ -18,8 +18,6 @@ struct ProgressPhotoViewer: View {
 
     @State private var selected: String?
     @State private var blurEnabled: Bool = false
-    @State private var compareMode: Bool = false
-    @State private var compareTarget: String?
     /// Decoded pages, held only for the visible window. A viewer-sized
     /// bitmap is ~20 MB, so decoding every photo up front would be tens
     /// of megabytes resident for pages the user may never swipe to.
@@ -107,7 +105,7 @@ struct ProgressPhotoViewer: View {
                             }
                         } label: {
                             Label(
-                                blurEnabled ? "Unblur" : "Blur photo",
+                                blurEnabled ? "Show" : "Hide",
                                 systemImage: blurEnabled ? "eye" : "eye.slash"
                             )
                         }

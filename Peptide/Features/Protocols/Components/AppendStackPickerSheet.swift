@@ -46,23 +46,24 @@ struct AppendStackPickerSheet: View {
                 }
             }
         }
-        .liquidGlassPresentation(detents: [.medium, .large])
     }
 
     private func row(for proto: PeptideProtocol) -> some View {
         let isSelected = proto.id == selectedId
         return Button {
+            Haptics.selection()
             onPick(proto.id)
         } label: {
             GlassCard(tinted: isSelected) {
                 HStack(spacing: Spacing.md) {
                     Image(systemName: proto.status.iconName)
                         .font(AppFont.scaled(16))
-                        .foregroundStyle(statusColor(proto.status))
+                        .foregroundStyle(proto.status.color)
                         .frame(width: 28, height: 28)
                         .background {
-                            Circle().fill(statusColor(proto.status).opacity(0.15))
+                            Circle().fill(proto.status.color.opacity(0.15))
                         }
+                        .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text(proto.name)
@@ -79,29 +80,17 @@ struct AppendStackPickerSheet: View {
 
                     Spacer()
 
-                    if isSelected {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(AppFont.scaled(16))
-                            .foregroundStyle(AppColor.accentLight)
-                            .transition(.scale.combined(with: .opacity))
-                    } else {
-                        Image(systemName: "chevron.right")
-                            .font(AppFont.scaled(11, weight: .semibold))
-                            .foregroundStyle(AppColor.textTertiary)
-                            .accessibilityHidden(true)
-                    }
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "chevron.right")
+                        .font(isSelected ? AppFont.scaled(16) : AppFont.scaled(11, weight: .semibold))
+                        .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textTertiary)
+                        .contentTransition(.symbolEffect(.replace))
+                        .accessibilityHidden(true)
                 }
             }
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
-    }
-
-    private func statusColor(_ status: ProtocolStatus) -> Color {
-        switch status {
-        case .active: AppColor.accentPrimary
-        case .paused: AppColor.warning
-        case .completed: AppColor.textSecondary
-        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     private func subtitle(for proto: PeptideProtocol) -> String {

@@ -51,14 +51,14 @@ struct FoodPortionEditor: View {
                         Text("g").foregroundStyle(AppColor.textSecondary)
                     }
                 } footer: {
-                    Text("Enter 5–2,000 g. Use a decimal point or comma, without thousands separators.")
+                    Text("5–2,000 g")
                 }
                 Section("For this portion") {
                     if let preview {
-                        LabeledContent("Calories", value: "\(preview.calories) kcal")
-                        LabeledContent("Protein", value: "\(preview.proteinG) g")
-                        LabeledContent("Carbs", value: "\(preview.carbsG) g")
-                        LabeledContent("Fat", value: "\(preview.fatG) g")
+                        previewRow("Calories", value: preview.calories, unit: "kcal")
+                        previewRow("Protein", value: preview.proteinG, unit: "g")
+                        previewRow("Carbs", value: preview.carbsG, unit: "g")
+                        previewRow("Fat", value: preview.fatG, unit: "g")
                     } else {
                         Text("Enter a valid amount to preview nutrition.")
                             .foregroundStyle(AppColor.textSecondary)
@@ -66,6 +66,8 @@ struct FoodPortionEditor: View {
                 }
             }
             .glassFormStyle()
+            .appAnimation(AppAnimation.quick, value: preview?.calories)
+            .onAppear { amountFocused = true }
             .navigationTitle("Exact portion")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -84,6 +86,16 @@ struct FoodPortionEditor: View {
                     Button("Done") { amountFocused = false }
                 }
             }
+        }
+    }
+
+    private func previewRow(_ title: LocalizedStringKey, value: Int, unit: String) -> some View {
+        LabeledContent {
+            Text("\(value) \(unit)")
+                .monospacedDigit()
+                .contentTransition(.numericText(value: Double(value)))
+        } label: {
+            Text(title)
         }
     }
 }

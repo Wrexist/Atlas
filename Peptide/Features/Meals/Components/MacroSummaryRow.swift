@@ -83,8 +83,11 @@ struct MacroSummaryRow: View {
                         title: "Calories",
                         value: consumed.caloriesKcal,
                         target: "/\(targets.calories) kcal",
-                        color: AppColor.accentPrimary,
-                        index: 0
+                        // The outer ring is split by meal colour, so a single
+                        // accent dot would name a colour the ring doesn't use.
+                        color: breakdown == nil ? AppColor.accentPrimary : AppColor.textTertiary,
+                        index: 0,
+                        overBy: max(0, consumed.caloriesKcal - targets.calories)
                     )
                     legend(
                         title: "Protein",
@@ -120,7 +123,7 @@ struct MacroSummaryRow: View {
         }
         .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(cardBackground)
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius, tinted: true)
         .onAppear { hasAppeared = true }
         .onChange(of: consumed.waterFluidOunces) { oldValue, newValue in
             if selectedWaterAmount != nil && newValue > oldValue { waterFeedback &+= 1 }
@@ -201,7 +204,7 @@ struct MacroSummaryRow: View {
 
     /// The number rolls up from zero alongside its ring via `numericText`,
     /// so SwiftUI animates the glyphs; no per-frame timer.
-    private func legend(title: LocalizedStringKey, value: Int, target: String, color: Color, index: Int) -> some View {
+    private func legend(title: LocalizedStringKey, value: Int, target: String, color: Color, index: Int, overBy: Int = 0) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
             Circle()
                 .fill(color)
@@ -210,15 +213,15 @@ struct MacroSummaryRow: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 Text(title)
-                    .font(AppFont.scaled(11, weight: .semibold))
+                    .font(AppFont.eyebrow)
                     .foregroundStyle(AppColor.textSecondary)
                     .textCase(.uppercase)
-                    .tracking(0.6)
+                    .tracking(0.8)
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     let shown = isRevealed ? value : 0
                     Text(String(shown))
                         .font(AppFont.scaled(20, weight: .semibold, design: .rounded))
-                        .foregroundStyle(AppColor.textPrimary)
+                        .foregroundStyle(overBy > 0 && targets.calories > 0 ? AppColor.warning : AppColor.textPrimary)
                         .monospacedDigit()
                         .contentTransition(.numericText(value: Double(shown)))
                         .animation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion), value: value)
@@ -226,6 +229,12 @@ struct MacroSummaryRow: View {
                     Text(target)
                         .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
+                        .monospacedDigit()
+                }
+                if overBy > 0 && targets.calories > 0 {
+                    Text("+\(overBy) over")
+                        .font(AppFont.scaled(11, weight: .semibold))
+                        .foregroundStyle(AppColor.warning)
                         .monospacedDigit()
                 }
             }
@@ -273,7 +282,7 @@ struct MacroSummaryRow: View {
             selectedWaterAmount = option.fluidOunces
             onAddWater(option.fluidOunces)
         } label: {
-            HStack(spacing: 4) {
+            HStack(spacing: Spacing.xs) {
                 Image(systemName: "drop.fill")
                     .font(AppFont.scaled(11, weight: .bold))
                     .completionPulse(trigger: waterFeedback, isActive: selectedWaterAmount == option.fluidOunces)
@@ -289,6 +298,7 @@ struct MacroSummaryRow: View {
                 tint: AppColor.macroWater.opacity(0.18),
                 border: AppColor.macroWater.opacity(0.32)
             )
+            .minimumHitArea()
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.94))
         .accessibilityLabel("Add \(option.spokenAmount(in: unit)) \(unit.volumeSpokenUnit) of water")
@@ -311,28 +321,6 @@ struct MacroSummaryRow: View {
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.94))
         .accessibilityLabel("Undo last water")
-    }
-
-    private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-            .fill(AppColor.surfaceSecondary.opacity(0.6))
-            .overlay {
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                AppColor.accentPrimary.opacity(0.08),
-                                Color.clear,
-                            ],
-                            startPoint: .topTrailing,
-                            endPoint: .bottomLeading
-                        )
-                    )
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-            }
     }
 
     private var accessibilitySummary: String {

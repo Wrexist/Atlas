@@ -125,7 +125,7 @@ private struct RecapSetEditor: View {
             numberField("Reps", value: Binding(get: { Double(set.reps) }, set: { set.reps = Int($0) }),
                         range: 0...Double(SetEntryLimits.reps.upperBound), wholeNumber: true)
             Picker("Load convention", selection: measurement.load) {
-                Text("As recorded (legacy)").tag(SetEntry.Measurement.Load.recorded)
+                Text("As entered").tag(SetEntry.Measurement.Load.recorded)
                 Text("Combined total").tag(SetEntry.Measurement.Load.total)
                 Text("Each, both counted").tag(SetEntry.Measurement.Load.eachPair)
                 Text("Per side, recorded reps only").tag(SetEntry.Measurement.Load.perSide)

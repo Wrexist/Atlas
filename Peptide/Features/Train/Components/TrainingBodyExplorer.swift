@@ -40,6 +40,11 @@ struct TrainingBodyExplorer: View {
     }
 
     var body: some View {
+        content
+            .appAnimation(AppAnimation.springSnappy, value: selected)
+    }
+
+    private var content: some View {
         VStack(spacing: Spacing.md) {
             Picker("Body view", selection: $side) {
                 ForEach(Side.allCases, id: \.self) { side in
@@ -92,14 +97,20 @@ struct TrainingBodyExplorer: View {
                         Text(selectionDescription)
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.textSecondary)
-                        Label("View muscle history", systemImage: "chevron.right")
-                            .font(AppFont.subheadline)
+                        HStack(spacing: Spacing.xs) {
+                            Text("View muscle history")
+                            Image(systemName: "chevron.right").accessibilityHidden(true)
+                        }
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.accentPrimary)
                     }
                     .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                     .padding(Spacing.md)
                     .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: Spacing.smallCornerRadius))
                 }
+                .buttonStyle(ScalePressStyle())
                 .accessibilityIdentifier("selected-muscle-history")
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
             if !highlights.isEmpty {

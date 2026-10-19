@@ -19,21 +19,32 @@ struct AchievementsSection: View {
                     Text("\(unlocked.count)/\(achievements.count)")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
+                        .contentTransition(.numericText())
+                        .appAnimation(AppAnimation.springSnappy, value: unlocked.count)
                 }
 
-                // Unlocked
                 if !unlocked.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: Spacing.sm) {
                             ForEach(unlocked) { achievement in
-                                achievementBadge(achievement, unlocked: true)
+                                achievementBadge(achievement)
+                                    .scrollTransition { content, phase in
+                                        content
+                                            .scaleEffect(phase.isIdentity ? 1 : 0.9)
+                                            .opacity(phase.isIdentity ? 1 : 0.6)
+                                    }
                             }
                         }
+                        .scrollTargetLayout()
                     }
+                    .scrollTargetBehavior(.viewAligned)
                 }
 
-                // Next to unlock
-                if let next = locked.first {
+                if !achievements.isEmpty && locked.isEmpty {
+                    Label("All achievements unlocked", systemImage: "checkmark.seal.fill")
+                        .font(AppFont.subheadline.weight(.semibold))
+                        .foregroundStyle(AppColor.achievement)
+                } else if let next = locked.first {
                     HStack(spacing: Spacing.md) {
                         Image(systemName: next.icon)
                             .font(AppFont.scaled(16))
@@ -63,18 +74,18 @@ struct AchievementsSection: View {
         }
     }
 
-    private func achievementBadge(_ achievement: Achievement, unlocked: Bool) -> some View {
+    private func achievementBadge(_ achievement: Achievement) -> some View {
         VStack(spacing: Spacing.xs) {
             MilestoneArtwork(
                 symbol: achievement.icon,
-                tint: unlocked ? AppColor.achievement : AppColor.textTertiary,
+                tint: AppColor.achievement,
                 size: 56,
                 isActive: false
             )
 
             Text(achievement.title)
                 .font(AppFont.badgeSmall)
-                .foregroundStyle(unlocked ? AppColor.textPrimary : AppColor.textTertiary)
+                .foregroundStyle(AppColor.textPrimary)
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
         }

@@ -123,6 +123,7 @@ struct NutritionTargetsEditor: View {
                 }
 
                 macroBar
+                macroSumCheck
 
                 HStack(spacing: Spacing.lg) {
                     macroLegend("Protein", grams: intValue(protein), tint: AppColor.macroProtein)
@@ -150,6 +151,22 @@ struct NutritionTargetsEditor: View {
         .frame(height: 10)
         .background(Capsule().fill(AppColor.surfaceSecondary.opacity(0.6)))
         .clipShape(Capsule())
+    }
+
+    private var macroCalories: Int {
+        intValue(protein) * Self.kcalProtein + intValue(carbs) * Self.kcalCarbs + intValue(fat) * Self.kcalFat
+    }
+
+    /// Macros rarely land exactly on the calorie target, so this only
+    /// turns to warning when they're more than 10% apart.
+    private var macroSumCheck: some View {
+        let target = intValue(calories)
+        let isOff = target > 0 && Double(abs(macroCalories - target)) > Double(target) * 0.10
+        return Text("Macros = \(macroCalories) kcal")
+            .font(AppFont.caption)
+            .monospacedDigit()
+            .foregroundStyle(isOff ? AppColor.warning : AppColor.textSecondary)
+            .contentTransition(.numericText())
     }
 
     private func segment(width: CGFloat, tint: Color) -> some View {
@@ -188,7 +205,7 @@ struct NutritionTargetsEditor: View {
                             .foregroundStyle(AppColor.textPrimary)
                         Text(hasPersonalStats
                              ? "Based on your stats + \(goalLabel) goal"
-                             : "A \(goalLabel) starting point — add stats in Profile to personalise")
+                             : "A \(goalLabel) starting point — add stats in Profile to personalize")
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.textSecondary)
                     }
@@ -202,26 +219,15 @@ struct NutritionTargetsEditor: View {
                     recChip("\(rec.fatG)", "F", tint: AppColor.macroFat)
                 }
 
-                Button {
+                GlassButton(
+                    title: isApplied ? "Applied" : "Use these targets",
+                    icon: isApplied ? "checkmark.circle.fill" : "sparkles",
+                    style: isApplied ? .secondary : .primary,
+                    isFullWidth: true
+                ) {
                     Haptics.impact(.soft)
                     apply(rec)
-                } label: {
-                    HStack(spacing: Spacing.xs) {
-                        Image(systemName: isApplied ? "checkmark.circle.fill" : "sparkles")
-                        Text(isApplied ? "Applied" : "Use these targets")
-                    }
-                    .font(AppFont.subheadline.weight(.semibold))
-                    .foregroundStyle(isApplied ? AppColor.accentLight : AppColor.onAccent)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, Spacing.sm + 2)
-                    .background {
-                        Capsule()
-                            .fill(isApplied
-                                  ? AppColor.accentPrimary.opacity(0.18)
-                                  : AppColor.accentPrimary)
-                    }
                 }
-                .buttonStyle(.plain)
                 .disabled(isApplied)
             }
         }
@@ -289,7 +295,9 @@ struct NutritionTargetsEditor: View {
                     .foregroundStyle(isSelected ? AppColor.onAccent.opacity(0.8) : AppColor.textSecondary)
                 if isRecommended {
                     Text("Recommended")
-                        .font(AppFont.scaled(8, weight: .bold))
+                        .font(AppFont.badge)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                         .foregroundStyle(isSelected ? AppColor.onAccent.opacity(0.8) : AppColor.accentLight)
                 }
             }
@@ -330,20 +338,20 @@ struct NutritionTargetsEditor: View {
     private var macrosCard: some View {
         GlassCard {
             VStack(spacing: 0) {
-                inputRow(icon: "fish.fill", tint: AppColor.macroProtein, title: "Protein", unit: "g", text: $protein, field: .protein)
+                inputRow(icon: "p.circle.fill", tint: AppColor.macroProtein, title: "Protein", unit: "g", text: $protein, field: .protein)
                 rowDivider
-                inputRow(icon: "leaf.fill", tint: AppColor.macroCarbs, title: "Carbs", unit: "g", text: $carbs, field: .carbs)
+                inputRow(icon: "c.circle.fill", tint: AppColor.macroCarbs, title: "Carbs", unit: "g", text: $carbs, field: .carbs)
                 rowDivider
-                inputRow(icon: "drop.fill", tint: AppColor.macroFat, title: "Fat", unit: "g", text: $fat, field: .fat)
+                inputRow(icon: "f.circle.fill", tint: AppColor.macroFat, title: "Fat", unit: "g", text: $fat, field: .fat)
                 rowDivider
-                inputRow(icon: "circle.grid.cross.fill", tint: AppColor.accentPrimary, title: "Fiber", unit: "g", text: $fiber, field: .fiber)
+                inputRow(icon: "leaf.fill", tint: AppColor.accentPrimary, title: "Fiber", unit: "g", text: $fiber, field: .fiber)
             }
         }
     }
 
     private var rowDivider: some View {
         Divider()
-            .background(AppColor.glassBorder)
+            .overlay(AppColor.glassBorder)
             .padding(.vertical, Spacing.xs)
     }
 

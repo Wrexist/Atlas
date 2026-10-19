@@ -84,7 +84,7 @@ struct BarcodeScannerView: UIViewControllerRepresentable {
             guard !fired, let payload = Self.firstBarcodePayload(in: addedItems) else { return }
             fired = true
             dataScanner.stopScanning()
-            Haptics.impact(.light)
+            BarcodeHaptics.detected()
             onDetected(payload)
         }
 

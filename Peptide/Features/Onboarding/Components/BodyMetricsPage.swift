@@ -1,9 +1,9 @@
 import SwiftUI
 
 /// "Height & weight" onboarding step. Collects weight, height, age, and
-/// gender via scroll-wheel pickers and gender pills. The numbers feed the
-/// next step (Daily targets) which renders a calorie/macro estimate using
-/// the Mifflin-St Jeor formula.
+/// sex via scroll-wheel pickers and pills. The numbers feed the daily
+/// calorie / macro estimate (Mifflin-St Jeor) shown on the Projection
+/// step and persisted as the Meals tab's targets.
 ///
 /// Inputs are stored canonically in metric (`weightKg`, `heightCm`). The
 /// metric/imperial toggle controls only the picker presentation — flipping
@@ -11,26 +11,17 @@ import SwiftUI
 /// converted value on each render.
 ///
 /// IMPORTANT: The numbers here power a *reference-only* calorie/macro
-/// estimate, not a dose calculator. Atlas still does not recommend
-/// peptide doses. The disclaimer on screen 2 makes the reference-only
-/// nature explicit.
+/// estimate, not a dose calculator. The medical disclaimer step makes
+/// the reference-only nature explicit.
 struct BodyMetricsPage: View {
     @Binding var metrics: BodyMetrics
 
     var body: some View {
         VStack(spacing: Spacing.lg) {
-            VStack(spacing: Spacing.sm) {
-                Text("Height & weight")
-                    .font(AppFont.title)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .multilineTextAlignment(.center)
-
-                Text("Used to personalise your protocol tracking.")
-                    .font(AppFont.body)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Spacing.lg)
-            }
+            OnboardingHeader(
+                title: "Height & weight",
+                subtitle: "Used to set your calorie and protein targets."
+            )
 
             unitToggle
 
@@ -51,7 +42,7 @@ struct BodyMetricsPage: View {
             unitChip(label: "Metric", unit: .metric)
             unitChip(label: "Imperial", unit: .imperial)
         }
-        .padding(4)
+        .padding(Spacing.xs)
         .glassControl(.capsule)
     }
 
@@ -59,7 +50,7 @@ struct BodyMetricsPage: View {
         let isSelected = metrics.unit == unit
         return Button {
             AppAnimation.with(AppAnimation.springSnappy) { metrics.unit = unit }
-            Haptics.impact(.soft)
+            Haptics.selection()
         } label: {
             Text(label)
                 .font(AppFont.subheadline)
@@ -67,6 +58,7 @@ struct BodyMetricsPage: View {
                 .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
                 .padding(.horizontal, Spacing.lg)
                 .padding(.vertical, Spacing.xs)
+                .frame(minHeight: Spacing.minimumHitTarget)
                 .background {
                     if isSelected {
                         Capsule()
@@ -153,7 +145,7 @@ struct BodyMetricsPage: View {
 
     private var genderPills: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Label("Gender", systemImage: "person.crop.circle")
+            Label("Sex (for calorie estimate)", systemImage: "person.crop.circle")
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textSecondary)
 
@@ -169,26 +161,21 @@ struct BodyMetricsPage: View {
         let isSelected = metrics.sex == option
         return Button {
             AppAnimation.with(AppAnimation.springSnappy) { metrics.sex = option }
-            Haptics.impact(.soft)
+            Haptics.selection()
         } label: {
             Text(option.localizedShortLabel)
                 .font(AppFont.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textSecondary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.sm)
-                .background {
-                    Capsule()
-                        .fill(isSelected ? AppColor.accentPrimary.opacity(0.18) : AppColor.surfaceSecondary.opacity(0.6))
-                        .overlay {
-                            Capsule().strokeBorder(
-                                isSelected ? AppColor.accentPrimary.opacity(0.45) : AppColor.glassBorder,
-                                lineWidth: 0.5
-                            )
-                        }
-                }
+                .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
+                .glassControl(
+                    .capsule,
+                    tint: isSelected ? AppColor.accentPrimary.opacity(0.18) : nil,
+                    border: isSelected ? AppColor.accentPrimary.opacity(0.45) : AppColor.glassBorder,
+                    interactive: false
+                )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle())
         .accessibilityLabel(option.localizedDisplay)
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }

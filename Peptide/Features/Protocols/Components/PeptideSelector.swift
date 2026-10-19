@@ -8,6 +8,11 @@ struct PeptideSelector: View {
     @State private var selectedCategory: PeptideCategory?
     @State private var showSelectedOnly = false
     @State private var showCustomForm = false
+    /// The unfiltered list is the whole database (200+ rows) inline in the
+    /// builder's scroll, so it starts collapsed to a short preview.
+    @State private var showAll = false
+
+    private static let previewCount = 8
 
     private var availableCategories: [PeptideCategory] {
         let present = Set(allPeptides.map(\.category))
@@ -37,6 +42,23 @@ struct PeptideSelector: View {
         return result
     }
 
+    private var isCollapsed: Bool {
+        !showAll && searchText.isEmpty && selectedCategory == nil && !showSelectedOnly
+    }
+
+    /// The first few rows plus anything already selected further down, so a
+    /// pick never disappears behind the disclosure — and rows never reorder
+    /// when toggled.
+    private func visiblePeptides(from filtered: [Peptide]) -> [Peptide] {
+        guard isCollapsed, filtered.count > Self.previewCount else { return filtered }
+        let head = filtered.prefix(Self.previewCount)
+        let headIDs = Set(head.map(\.id))
+        let selectedTail = filtered.dropFirst(Self.previewCount).filter {
+            selectedPeptides.contains($0.id) && !headIDs.contains($0.id)
+        }
+        return Array(head) + selectedTail
+    }
+
     var body: some View {
         VStack(spacing: Spacing.sm) {
             searchBar
@@ -45,13 +67,29 @@ struct PeptideSelector: View {
 
             selectionSummary
 
-            if filteredPeptides.isEmpty {
+            let filtered = filteredPeptides
+            if filtered.isEmpty {
                 emptyState
             } else {
+                let visible = visiblePeptides(from: filtered)
                 LazyVStack(spacing: Spacing.xs) {
-                    ForEach(filteredPeptides) { peptide in
+                    ForEach(visible) { peptide in
                         peptideRow(peptide)
                     }
+                }
+
+                if visible.count < filtered.count {
+                    Button {
+                        AppAnimation.with(AppAnimation.springSnappy) { showAll = true }
+                    } label: {
+                        Text("Show all (\(filtered.count))")
+                            .font(AppFont.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(AppColor.accentLight)
+                            .frame(maxWidth: .infinity)
+                            .minimumHitArea()
+                    }
+                    .buttonStyle(ScalePressStyle())
                 }
             }
 
@@ -76,7 +114,7 @@ struct PeptideSelector: View {
                 Image(systemName: "plus.circle.fill")
                     .font(AppFont.scaled(16, weight: .semibold))
                     .accessibilityHidden(true)
-                Text("Add Custom Peptide")
+                Text("Add your own compound")
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
             }
@@ -100,43 +138,9 @@ struct PeptideSelector: View {
     }
 
     private var searchBar: some View {
-        HStack(spacing: Spacing.sm) {
-            Image(systemName: "magnifyingglass")
-                .font(AppFont.scaled(13))
-                .foregroundStyle(AppColor.textTertiary)
-
-            TextField("Search peptides...", text: $searchText)
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textPrimary)
-                .tint(AppColor.accentPrimary)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
-
-            if !searchText.isEmpty {
-                Button {
-                    AppAnimation.with(AppAnimation.springSnappy) {
-                        searchText = ""
-                    }
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(AppFont.scaled(13))
-                        .foregroundStyle(AppColor.textTertiary)
-                        .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
-                        .contentShape(Rectangle())
-                }
-                .accessibilityLabel("Clear search")
-                .transition(.scale.combined(with: .opacity))
-            }
-        }
-        .padding(Spacing.sm)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceElevated)
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
+        GlassTextField(placeholder: "Search compounds", text: $searchText)
+            .autocorrectionDisabled()
+            .textInputAutocapitalization(.never)
     }
 
     private var categoryFilters: some View {
@@ -203,29 +207,33 @@ struct PeptideSelector: View {
                     Text("Clear")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
+                        .minimumHitArea()
                 }
             }
         }
     }
 
     private var emptyState: some View {
-        VStack(spacing: Spacing.sm) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 28))
-                .foregroundStyle(AppColor.textTertiary)
-            Text("No peptides match")
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-            Text("Try a different search or filter")
-                .font(AppFont.caption)
-                .foregroundStyle(AppColor.textTertiary)
-        }
+        EmptyStateView(
+            icon: "magnifyingglass",
+            title: "No compounds match",
+            message: "Try a different search or filter.",
+            action: addCustomAction,
+            style: .compact
+        )
         .frame(maxWidth: .infinity)
-        .padding(.vertical, Spacing.xl)
+    }
+
+    private var addCustomAction: EmptyStateView.Action? {
+        guard onAddCustomPeptide != nil else { return nil }
+        return EmptyStateView.Action(title: "Add your own", icon: "plus") {
+            showCustomForm = true
+        }
     }
 
     private func peptideRow(_ peptide: Peptide) -> some View {
         Button {
+            Haptics.selection()
             AppAnimation.with(AppAnimation.springSnappy) {
                 if selectedPeptides.contains(peptide.id) {
                     selectedPeptides.remove(peptide.id)
@@ -241,6 +249,7 @@ struct PeptideSelector: View {
                     .font(AppFont.scaled(20))
                     .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textTertiary)
                     .contentTransition(.symbolEffect(.replace))
+                    .accessibilityHidden(true)
 
                 Image(systemName: peptide.imageSystemName)
                     .font(AppFont.scaled(13))
@@ -264,11 +273,6 @@ struct PeptideSelector: View {
                 }
 
                 Spacer()
-
-                Text(peptide.dosageRange)
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .lineLimit(1)
             }
             .padding(.vertical, Spacing.xs)
             .padding(.horizontal, Spacing.sm)
@@ -284,6 +288,8 @@ struct PeptideSelector: View {
             }
         }
         .buttonStyle(ScalePressStyle())
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(selectedPeptides.contains(peptide.id) ? .isSelected : [])
     }
 }
 

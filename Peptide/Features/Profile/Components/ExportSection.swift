@@ -20,31 +20,14 @@ struct ExportSection: View {
                     }
                 }
 
-                (Text("Export your ")
+                Text("Export your workouts, meals, check-ins and protocols.")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
-                + Text("protocol history")
-                    .font(AppFont.scaled(11, weight: .semibold))
-                    .foregroundStyle(AppColor.accentLight)
-                + Text(" and ")
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textSecondary)
-                + Text("tracking data")
-                    .font(AppFont.scaled(11, weight: .semibold))
-                    .foregroundStyle(AppColor.accentLight))
 
-                HStack(spacing: Spacing.md) {
-                    GlassButton(title: "CSV", icon: "tablecells", style: .secondary) {
-                        isPro ? exportCSV() : (showPaywall = true)
-                    }
-
-                    GlassButton(title: "Backup", icon: "externaldrive.fill", style: .secondary) {
-                        isPro ? exportJSON() : (showPaywall = true)
-                    }
-
-                    GlassButton(title: "PDF", icon: "doc.richtext", style: .secondary) {
-                        isPro ? exportPDF() : (showPaywall = true)
-                    }
+                // Three buttons overflow a row at large Dynamic Type.
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: Spacing.md) { primaryExports }
+                    VStack(alignment: .leading, spacing: Spacing.sm) { primaryExports }
                 }
 
                 // Per-domain CSVs surface as a secondary row of
@@ -75,6 +58,29 @@ struct ExportSection: View {
         }
     }
 
+    /// The protocol CSV is empty for anyone not running a protocol, so it
+    /// only shows for those who are.
+    @ViewBuilder
+    private var primaryExports: some View {
+        if !dataStore.protocols.isEmpty {
+            GlassButton(title: "CSV", icon: "tablecells", style: .secondary) {
+                isPro ? exportCSV() : (showPaywall = true)
+            }
+        }
+
+        GlassButton(title: "Backup", icon: "externaldrive.fill", style: .secondary) {
+            isPro ? exportJSON() : (showPaywall = true)
+        }
+
+        GlassButton(title: "PDF", icon: "doc.richtext", style: .secondary) {
+            isPro ? exportPDF() : (showPaywall = true)
+        }
+    }
+
+    private var dateStamp: String {
+        Date().formatted(.iso8601.year().month().day())
+    }
+
     /// Routes a freshly-written export file to the share sheet, or raises
     /// the failure alert when the write returned nil (disk full / sandbox
     /// error). Previously these failures no-op'd silently and the user
@@ -93,8 +99,7 @@ struct ExportSection: View {
             protocols: dataStore.protocols,
             entries: dataStore.entries
         )
-        let dateStr = Date().formatted(.iso8601.year().month().day())
-        share(ExportService.shared.writeCSV(csv, filename: "atlas-export-\(dateStr).csv"))
+        share(ExportService.shared.writeCSV(csv, filename: "atlas-export-\(dateStamp).csv"))
     }
 
     /// Three text buttons stacked beneath the primary export row
@@ -108,7 +113,7 @@ struct ExportSection: View {
         let hasOutcomes = !dataStore.profile.outcomeHistory.isEmpty
         if hasLabs || hasMeals || hasOutcomes {
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                Divider().background(AppColor.glassBorder).padding(.vertical, 2)
+                Divider().overlay(AppColor.glassBorder).padding(.vertical, Spacing.xxs)
                 Text("By section")
                     .font(AppFont.scaled(11, weight: .heavy))
                     .tracking(0.6)
@@ -149,32 +154,31 @@ struct ExportSection: View {
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, Spacing.sm)
             .padding(.horizontal, Spacing.sm)
+            .frame(minHeight: Spacing.minimumHitTarget)
             .background {
                 RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                     .fill(AppColor.surfaceSecondary.opacity(0.45))
             }
+            .contentShape(.rect)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
     }
 
     private func exportLabsCSV() {
         let csv = ExportService.shared.exportLabsCSV(labs: dataStore.profile.labHistory)
-        let dateStr = Date().formatted(.iso8601.year().month().day())
-        share(ExportService.shared.writeCSV(csv, filename: "atlas-labs-\(dateStr).csv"))
+        share(ExportService.shared.writeCSV(csv, filename: "atlas-labs-\(dateStamp).csv"))
     }
 
     private func exportMealsCSV() {
         let csv = ExportService.shared.exportMealsCSV(meals: dataStore.profile.mealHistory)
-        let dateStr = Date().formatted(.iso8601.year().month().day())
-        share(ExportService.shared.writeCSV(csv, filename: "atlas-meals-\(dateStr).csv"))
+        share(ExportService.shared.writeCSV(csv, filename: "atlas-meals-\(dateStamp).csv"))
     }
 
     private func exportOutcomesCSV() {
         let csv = ExportService.shared.exportOutcomesCSV(outcomes: dataStore.profile.outcomeHistory)
-        let dateStr = Date().formatted(.iso8601.year().month().day())
-        share(ExportService.shared.writeCSV(csv, filename: "atlas-checkins-\(dateStr).csv"))
+        share(ExportService.shared.writeCSV(csv, filename: "atlas-checkins-\(dateStamp).csv"))
     }
 
     private func exportJSON() {
@@ -191,8 +195,7 @@ struct ExportSection: View {
             exportError = "Couldn't prepare the backup. Please try again."
             return
         }
-        let dateStr = Date().formatted(.iso8601.year().month().day())
-        share(ExportService.shared.writeJSON(data, filename: "atlas-backup-\(dateStr).json"))
+        share(ExportService.shared.writeJSON(data, filename: "atlas-backup-\(dateStamp).json"))
     }
 
     private func exportPDF() {
@@ -202,8 +205,7 @@ struct ExportSection: View {
                 entries: dataStore.entries,
                 profile: dataStore.profile
             )
-            let dateStr = Date().formatted(.iso8601.year().month().day())
-            if let url = ExportService.shared.writePDF(data, filename: "atlas-report-\(dateStr).pdf") {
+                if let url = ExportService.shared.writePDF(data, filename: "atlas-report-\(dateStamp).pdf") {
                 exportURL = url
                 showShareSheet = true
             } else {

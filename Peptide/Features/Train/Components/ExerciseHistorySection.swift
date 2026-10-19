@@ -10,6 +10,8 @@ struct ExerciseHistorySection: View {
     @State private var loading = true
     @State private var failed = false
     @State private var expanded = false
+    /// Bars grow in from zero the first time the chart shows.
+    @State private var barsShown = false
     private var unit: MeasurementUnit { dataStore.profile.bodyMetrics.unit }
 
     var body: some View {
@@ -34,7 +36,7 @@ struct ExerciseHistorySection: View {
                     }
                     if visits.count > 3 {
                         Button(expanded ? "Show recent workouts" : "Show all \(visits.count) workouts") {
-                            expanded.toggle()
+                            AppAnimation.with(AppAnimation.springSnappy) { expanded.toggle() }
                         }.minimumHitArea()
                     }
                     Text("Warm-ups and unfinished sets are excluded. Set counts describe logged activity, not strength or muscle activation.")
@@ -54,13 +56,17 @@ struct ExerciseHistorySection: View {
                 .font(AppFont.subheadline)
             Chart(Array(visits.prefix(8).reversed())) { visit in
                 BarMark(x: .value("Workout", visit.id.uuidString),
-                        y: .value("Working sets", visit.sets.count))
+                        y: .value("Working sets", barsShown ? visit.sets.count : 0))
                     .foregroundStyle(AppColor.accentPrimary)
             }
             .chartXAxis(.hidden)
             .chartYAxis { AxisMarks(values: .automatic(desiredCount: 3)) }
+            .chartYScale(domain: 0...max(1, visits.prefix(8).map(\.sets.count).max() ?? 1))
             .frame(height: 100)
             .accessibilityHidden(true)
+            .onAppear {
+                AppAnimation.with(AppAnimation.springSmooth) { barsShown = true }
+            }
             Text("Oldest to newest. Exact dates and sets are listed below.")
                 .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
         }
@@ -83,7 +89,7 @@ struct ExerciseHistorySection: View {
                 }.frame(minHeight: 44)
             }
             .accessibilityHint("Opens the saved workout and editing options")
-            Text("\(visit.sets.count) working sets").font(AppFont.caption)
+            Text("^[\(visit.sets.count) working set](inflect: true)").font(AppFont.caption)
             ForEach(visit.sets) { set in
                 Text(RecapFormat.set(set, unit: unit))
                     .font(AppFont.callout).monospacedDigit()

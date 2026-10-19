@@ -11,6 +11,47 @@ struct RecapCard<Content: View>: View {
     }
 }
 
+/// Method notes on demand. Recap screens lead with the result; how it was
+/// counted sits one tap away in a popover instead of in permanent fine
+/// print — and never in a share image.
+struct RecapInfoButton<Notes: View>: View {
+    let title: LocalizedStringKey
+    var showsTitle = true
+    @ViewBuilder let notes: Notes
+    @State private var showing = false
+
+    var body: some View {
+        Button { showing = true } label: {
+            Label(title, systemImage: "info.circle")
+                .labelStyle(InfoLabelStyle(showsTitle: showsTitle))
+                .font(AppFont.subheadline)
+                .frame(minHeight: Spacing.minimumHitTarget)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel(title)
+        .popover(isPresented: $showing) {
+            VStack(alignment: .leading, spacing: Spacing.sm) { notes }
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(idealWidth: 320, alignment: .leading)
+                .padding(Spacing.lg)
+                .presentationCompactAdaptation(.popover)
+        }
+    }
+
+    private struct InfoLabelStyle: LabelStyle {
+        let showsTitle: Bool
+        func makeBody(configuration: Configuration) -> some View {
+            if showsTitle {
+                HStack(spacing: Spacing.xs) { configuration.icon; configuration.title }
+            } else {
+                configuration.icon.frame(minWidth: Spacing.minimumHitTarget)
+            }
+        }
+    }
+}
+
 struct RecapAction: View {
     let title: String
     let action: () -> Void
@@ -54,7 +95,7 @@ enum RecapFormat {
             case .eachPair: convention = " each · both counted"
             case .total: convention = " total"
             case .perSide: convention = " per side · recorded side"
-            default: convention = " recorded"
+            default: convention = ""
             }
             let role = m?.kind == .assisted ? " assistance" : (m?.kind == .bodyweight ? " added" : "")
             return "\(load) \(unit.weightSuffix)\(role)\(convention) × \(reps)"

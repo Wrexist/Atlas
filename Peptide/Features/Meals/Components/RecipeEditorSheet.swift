@@ -133,11 +133,17 @@ struct RecipeEditorSheet: View {
         )
         return GlassCard(tinted: true, padding: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text(RecipeDataLogic.review(for: livePreview, customFoods: availableCustomFoods).totals == nil ? "Partial preview · Fix missing foods or portions before logging" : "Logs as")
-                    .font(AppFont.scaled(11, weight: .heavy))
-                    .tracking(0.6)
+                let isPartial = RecipeDataLogic.review(for: livePreview, customFoods: availableCustomFoods).totals == nil
+                Text(isPartial ? "Partial" : "Logs as")
+                    .font(AppFont.eyebrow)
+                    .tracking(0.8)
                     .textCase(.uppercase)
-                    .foregroundStyle(AppColor.accentLight.opacity(0.85))
+                    .foregroundStyle(AppColor.accentLight)
+                if isPartial {
+                    Text("Fix missing foods or portions before logging.")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
                 HStack(spacing: Spacing.lg) {
                     macroPill(value: "\(totals.calories)", label: "kcal", tint: AppColor.accentLight)
                     macroPill(value: "\(totals.proteinG)g", label: "protein", tint: AppColor.macroProtein)
@@ -171,8 +177,8 @@ struct RecipeEditorSheet: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack {
                 Text("Ingredients (\(components.count))")
-                    .font(AppFont.scaled(11, weight: .heavy))
-                    .tracking(0.6)
+                    .font(AppFont.eyebrow)
+                    .tracking(0.8)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.textTertiary)
                 Spacer()
@@ -191,6 +197,7 @@ struct RecipeEditorSheet: View {
                     .background {
                         Capsule().fill(AppColor.accentPrimary.opacity(0.15))
                     }
+                    .minimumHitArea()
                 }
                 .buttonStyle(.plain)
             }
@@ -302,24 +309,19 @@ struct RecipeFoodPickerSheet: View {
     let onPick: (CustomFood) -> Void
     let onCancel: () -> Void
 
+    @Environment(DataStore.self) private var dataStore
+    @State private var creatingFood: CustomFood?
+
     var body: some View {
         NavigationStack {
             Group {
                 if foods.isEmpty {
-                    VStack(spacing: Spacing.md) {
-                        Image(systemName: "person.crop.rectangle.stack")
-                            .font(.system(size: 36, weight: .light))
-                            .foregroundStyle(AppColor.accentLight)
-                        Text("No custom foods yet")
-                            .font(AppFont.headline)
-                            .foregroundStyle(AppColor.textPrimary)
-                        Text("Create custom foods first — recipes are built from them.")
-                            .font(AppFont.subheadline)
-                            .foregroundStyle(AppColor.textSecondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, Spacing.lg)
-                    }
-                    .padding(.top, Spacing.xxxl)
+                    EmptyStateView(
+                        icon: "person.crop.rectangle.stack",
+                        title: "No custom foods yet",
+                        message: "Recipes are built from your custom foods. Create one and it's added here.",
+                        action: .init(title: "Create custom food", icon: "plus") { creatingFood = .blank }
+                    )
                 } else {
                     List(foods) { food in
                         Button {
@@ -349,6 +351,18 @@ struct RecipeFoodPickerSheet: View {
                     Button("Cancel", action: onCancel)
                 }
             }
+            .sheet(item: $creatingFood) { food in
+                CustomFoodEditorSheet(
+                    initial: food,
+                    onSave: { saved in
+                        dataStore.saveCustomFood(saved)
+                        creatingFood = nil
+                        onPick(saved)
+                    },
+                    onCancel: { creatingFood = nil },
+                    onDelete: nil
+                )
+            }
         }
     }
 }
@@ -362,6 +376,7 @@ struct RecipeComponentEditorSheet: View {
     let onCancel: () -> Void
 
     @State private var portion: ScannedProduct.Portion = .grams(100)
+    @FocusState private var gramsFocused: Bool
 
     var body: some View {
         NavigationStack {
@@ -391,6 +406,10 @@ struct RecipeComponentEditorSheet: View {
                         onSave(updated)
                     }
                 }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { gramsFocused = false }
+                }
             }
         }
         .onAppear { portion = initial.portion }
@@ -403,12 +422,24 @@ struct RecipeComponentEditorSheet: View {
             HStack {
                 Text("Grams")
                 Spacer()
+                // Type an exact weight; the stepper is for nudging it.
                 Stepper(value: Binding(
                     get: { g },
                     set: { portion = .grams($0) }
                 ), in: 5...2000, step: 5) {
-                    Text("\(Int(g.rounded()))g")
+                    HStack(spacing: Spacing.xxs) {
+                        TextField("Grams", value: Binding(
+                            get: { g },
+                            set: { portion = .grams(min(2000, max(5, $0))) }
+                        ), format: .number.precision(.fractionLength(0)))
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.trailing)
                         .monospacedDigit()
+                        .focused($gramsFocused)
+                        .accessibilityLabel("Grams")
+                        Text("g")
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
                 }
             }
         case .servings(let s):

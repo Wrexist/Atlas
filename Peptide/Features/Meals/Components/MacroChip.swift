@@ -5,6 +5,7 @@ import SwiftUI
 /// for anyone who can't separate the tints.
 struct MacroChip: View {
     let symbol: String
+    let name: String
     let grams: Int
     let tint: Color
 
@@ -23,20 +24,21 @@ struct MacroChip: View {
         .padding(.horizontal, Spacing.sm)
         .padding(.vertical, Spacing.xxs)
         .background(tint.opacity(0.14), in: Capsule())
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("\(grams) grams \(name)"))
     }
 }
 
 extension MacroChip {
     static func protein(_ grams: Int) -> MacroChip {
-        MacroChip(symbol: "p.circle.fill", grams: grams, tint: AppColor.macroProtein)
+        MacroChip(symbol: "p.circle.fill", name: String(localized: "protein"), grams: grams, tint: AppColor.macroProtein)
     }
 
     static func carbs(_ grams: Int) -> MacroChip {
-        MacroChip(symbol: "c.circle.fill", grams: grams, tint: AppColor.macroCarbs)
+        MacroChip(symbol: "c.circle.fill", name: String(localized: "carbs"), grams: grams, tint: AppColor.macroCarbs)
     }
 
     static func fat(_ grams: Int) -> MacroChip {
-        MacroChip(symbol: "f.circle.fill", grams: grams, tint: AppColor.macroFat)
+        MacroChip(symbol: "f.circle.fill", name: String(localized: "fat"), grams: grams, tint: AppColor.macroFat)
     }
 }

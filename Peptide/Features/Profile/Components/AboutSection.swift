@@ -32,12 +32,8 @@ struct AboutSection: View {
                     .foregroundStyle(AppColor.textPrimary)
 
                 VStack(spacing: Spacing.md) {
-                    AboutRow(title: "Version", value: Self.appVersion)
-                    Divider().foregroundStyle(AppColor.glassBorder)
-                    AboutRow(title: "Build", value: Self.buildNumber)
-                    Divider().foregroundStyle(AppColor.glassBorder)
-                    AboutRow(title: "Peptide Database", value: "\(PeptideDatabase.shared.count) peptides")
-                    Divider().foregroundStyle(AppColor.glassBorder)
+                    AboutRow(title: "Version", value: "\(Self.appVersion) (\(Self.buildNumber))")
+                    Divider().overlay(AppColor.glassBorder)
                     NavigationLink {
                         PrivacySummaryView()
                     } label: {
@@ -49,10 +45,11 @@ struct AboutSection: View {
                             Image(systemName: "chevron.right")
                                 .font(AppFont.scaled(11, weight: .semibold))
                                 .foregroundStyle(AppColor.textTertiary)
+                                .accessibilityHidden(true)
                         }
                     }
                     .buttonStyle(.plain)
-                    Divider().foregroundStyle(AppColor.glassBorder)
+                    Divider().overlay(AppColor.glassBorder)
                     Button { showDisclaimer = true } label: {
                         HStack {
                             Text("Medical Disclaimer")
@@ -66,15 +63,15 @@ struct AboutSection: View {
                         }
                     }
                     .buttonStyle(.plain)
-                    Divider().foregroundStyle(AppColor.glassBorder)
+                    Divider().overlay(AppColor.glassBorder)
                     AboutLinkRow(title: "Terms of Use", destination: Self.termsURL)
-                    Divider().foregroundStyle(AppColor.glassBorder)
+                    Divider().overlay(AppColor.glassBorder)
                     AboutLinkRow(title: "Privacy Policy", destination: Self.privacyURL)
-                    Divider().foregroundStyle(AppColor.glassBorder)
+                    Divider().overlay(AppColor.glassBorder)
                     AboutLinkRow(title: "Contact Support", destination: Self.supportURL)
-                    Divider().foregroundStyle(AppColor.glassBorder)
+                    Divider().overlay(AppColor.glassBorder)
                     AboutLinkRow(title: "Rate Atlas", destination: Self.writeReviewURL)
-                    Divider().foregroundStyle(AppColor.glassBorder)
+                    Divider().overlay(AppColor.glassBorder)
                     Button { showWhatsNewReplay = true } label: {
                         HStack {
                             Label("Replay What's New tour", systemImage: "sparkles")
@@ -84,6 +81,7 @@ struct AboutSection: View {
                             Image(systemName: "chevron.right")
                                 .font(AppFont.scaled(11, weight: .semibold))
                                 .foregroundStyle(AppColor.textTertiary)
+                                .accessibilityHidden(true)
                         }
                     }
                     .buttonStyle(.plain)
@@ -92,21 +90,13 @@ struct AboutSection: View {
                 HStack {
                     Spacer()
                     VStack(spacing: Spacing.xs) {
-                        Image(systemName: "atom")
-                            .font(AppFont.scaled(24))
-                            .foregroundStyle(AppColor.accentPrimary)
-                            .pulse()
+                        MilestoneArtwork(size: 32, style: .emblem, isActive: false, playsOnArrival: false)
+                            .accessibilityHidden(true)
 
                         Text("Atlas")
                             .font(AppFont.footnote)
                             .fontWeight(.semibold)
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [AppColor.accentPrimary, AppColor.accentLight],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
+                            .foregroundStyle(AppColor.textSecondary)
                     }
                     Spacer()
                 }
@@ -139,7 +129,7 @@ struct MedicalDisclaimerSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.lg) {
                     Image(systemName: "stethoscope")
-                        .font(.system(size: 40))
+                        .font(AppFont.scaled(40, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.accentPrimary)
                         .frame(maxWidth: .infinity, alignment: .center)
 
@@ -159,7 +149,7 @@ struct MedicalDisclaimerSheet: View {
             .navigationTitle("Medical Disclaimer")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
             }

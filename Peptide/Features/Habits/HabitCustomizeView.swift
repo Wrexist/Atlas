@@ -83,7 +83,7 @@ struct HabitCustomizeView: View {
                   spacing: Spacing.sm) {
             ForEach(HabitIconCatalog.all, id: \.self) { symbol in
                 Button {
-                    Haptics.impact(.soft)
+                    Haptics.selection()
                     iconSymbol = symbol
                 } label: {
                     Image(systemName: symbol)
@@ -99,6 +99,7 @@ struct HabitCustomizeView: View {
                             Circle().stroke(iconSymbol == symbol ? tint : Color.clear,
                                             lineWidth: 1)
                         }
+                        .scaleEffect(iconSymbol == symbol ? 1.08 : 1)
                         .minimumHitArea()
                 }
                 .buttonStyle(.plain)
@@ -107,6 +108,7 @@ struct HabitCustomizeView: View {
             }
         }
         .padding(.vertical, Spacing.xs)
+        .appAnimation(AppAnimation.springSnappy, value: iconSymbol)
     }
 
     private var colorGrid: some View {
@@ -114,7 +116,7 @@ struct HabitCustomizeView: View {
                   spacing: Spacing.sm) {
             ForEach(HabitTintCatalog.all, id: \.self) { hex in
                 Button {
-                    Haptics.impact(.soft)
+                    Haptics.selection()
                     tintHex = hex
                 } label: {
                     ZStack {
@@ -133,14 +135,34 @@ struct HabitCustomizeView: View {
                             lineWidth: 1.5
                         )
                     }
+                    .scaleEffect(tintHex == hex ? 1.08 : 1)
                     .minimumHitArea()
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Color")
+                .accessibilityLabel(Self.colorName(for: hex))
                 .accessibilityAddTraits(tintHex == hex ? [.isSelected, .isButton] : .isButton)
             }
         }
         .padding(.vertical, Spacing.xs)
+        .appAnimation(AppAnimation.springSnappy, value: tintHex)
+    }
+
+    /// Spoken name for a swatch, so VoiceOver can tell them apart.
+    private static func colorName(for hex: UInt32) -> String {
+        switch hex {
+        case 0xCF7272: String(localized: "Red")
+        case 0xE89BC4: String(localized: "Pink")
+        case 0xC59FFF: String(localized: "Violet")
+        case 0x9B72CF: String(localized: "Purple")
+        case 0x6B8AFF: String(localized: "Blue")
+        case 0x4CB8C4: String(localized: "Cyan")
+        case 0x5BC489: String(localized: "Green")
+        case 0xD4A844: String(localized: "Amber")
+        case 0xFFB347: String(localized: "Orange")
+        case 0xCFA68B: String(localized: "Brown")
+        case 0x8E9499: String(localized: "Graphite")
+        default:       String(localized: "Color")
+        }
     }
 
     /// Bigger step for big-number targets so the stepper isn't useless at

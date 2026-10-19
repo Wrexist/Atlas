@@ -43,6 +43,7 @@ struct TrainOverviewView: View {
     @State private var inspectedDays: Int? = 7
     @State private var inspectedPeriodLabel = "Last 7 days"
     @SceneStorage("train.overview.details") private var showsTrainingDetails = false
+    @State private var showsMapInfo = false
 
     private enum TrainingMapPeriod: Int, CaseIterable {
         case today = 1, week = 7, month = 30
@@ -81,25 +82,8 @@ struct TrainOverviewView: View {
                     topMusclesRow
                         .sectionAppear(index: 3)
                 }
-                DisclosureGroup("Training trends & calendar", isExpanded: $showsTrainingDetails) {
-                  VStack(spacing: Spacing.lg) {
-                    MuscleGainsCard(
-                    totals: totalFrequencies,
-                    regularity: regularity,
-                    onIdentify: { muscle, days in
-                        inspectedDays = days
-                        inspectedPeriodLabel = days == nil ? "All workouts" : "Last 12 calendar weeks"
-                        inspectedMuscle = muscle
-                    }
-                    )
-                    calendarCard
-                  }
-                  .padding(.top, Spacing.md)
-                }
-                .font(AppFont.headline)
-                .tint(AppColor.accentPrimary)
-                .accessibilityIdentifier("training-trends-disclosure")
-                .scrollReveal()
+                trainingDetails
+                    .scrollReveal()
             }
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.xxxxl)
@@ -130,6 +114,62 @@ struct TrainOverviewView: View {
                 sessions: sessions
             )
         }
+    }
+
+    // MARK: - Trends & calendar
+
+    private var trainingDetails: some View {
+        VStack(spacing: Spacing.lg) {
+            trainingDetailsHeader
+            if showsTrainingDetails {
+                VStack(spacing: Spacing.lg) {
+                    MuscleGainsCard(
+                        totals: totalFrequencies,
+                        regularity: regularity,
+                        onIdentify: { muscle, days in
+                            inspectedDays = days
+                            inspectedPeriodLabel = days == nil ? "All workouts" : "Last 12 calendar weeks"
+                            inspectedMuscle = muscle
+                        }
+                    )
+                    calendarCard
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .appAnimation(AppAnimation.springSnappy, value: showsTrainingDetails)
+    }
+
+    /// Collapsible header on the same glass row as the cards around it,
+    /// rather than a system `DisclosureGroup` that reads as a Settings row.
+    private var trainingDetailsHeader: some View {
+        Button {
+            Haptics.selection()
+            showsTrainingDetails.toggle()
+        } label: {
+            HStack(spacing: Spacing.md) {
+                Image(systemName: "chart.bar.xaxis")
+                    .font(AppFont.scaled(16, weight: .semibold))
+                    .foregroundStyle(AppColor.accentLight)
+                    .accessibilityHidden(true)
+                Text("Trends & calendar")
+                    .font(AppFont.headline)
+                    .foregroundStyle(AppColor.textPrimary)
+                Spacer(minLength: Spacing.sm)
+                Image(systemName: "chevron.right")
+                    .font(AppFont.scaled(13, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .rotationEffect(.degrees(showsTrainingDetails ? 90 : 0))
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, Spacing.cardPadding)
+            .frame(minHeight: Spacing.minimumHitTarget + Spacing.sm)
+            .contentShape(Rectangle())
+            .glassSurface(cornerRadius: Spacing.cardCornerRadius)
+        }
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        .accessibilityValue(showsTrainingDetails ? "Expanded" : "Collapsed")
+        .accessibilityIdentifier("training-trends-disclosure")
     }
 
     /// Primary CTA — kicks off an empty workout. Hidden when one's
@@ -217,20 +257,15 @@ struct TrainOverviewView: View {
                             .font(AppFont.title)
                             .foregroundStyle(AppColor.textPrimary)
                         Text(weekHasTraining
-                             ? "Completed working sets - \(selectedPeriod.detail.lowercased())"
+                             ? "Completed working sets · \(selectedPeriod.detail.lowercased())"
                              : "Log a workout and watch your body light up.")
                             .font(AppFont.subheadline)
                             .foregroundStyle(AppColor.textSecondary)
                     }
                     Spacer(minLength: 0)
-                    NavigationLink(value: TrainNavigation.workoutHistory) {
-                        Image(systemName: "calendar")
-                            .font(AppFont.scaled(16, weight: .semibold))
-                            .foregroundStyle(AppColor.textSecondary)
-                            .minimumHitArea()
+                    if weekHasTraining {
+                        mapInfoButton
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Workout history")
                 }
 
                 Picker("Training period", selection: Binding(
@@ -250,17 +285,6 @@ struct TrainOverviewView: View {
                 )
                 .frame(maxWidth: .infinity)
 
-                // Both of these describe heat that isn't there yet on a
-                // fresh install, where the subtitle above is already
-                // carrying the message.
-                if weekHasTraining {
-                    Text("Select Front or Back for a closer look. Tap a muscle for its exercises.")
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textTertiary)
-                    Text("Relative training score: primary work counts more than secondary work. Not a measure of growth or recovery.")
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textSecondary)
-                }
 
                 if selectedPeriod == .week, let trainingContextCaption {
                     Text(trainingContextCaption)
@@ -268,6 +292,35 @@ struct TrainOverviewView: View {
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }
+        }
+    }
+
+    /// The how-to and the scoring note, on demand instead of two
+    /// permanent paragraphs under the map.
+    private var mapInfoButton: some View {
+        Button {
+            showsMapInfo = true
+        } label: {
+            Image(systemName: "info.circle")
+                .font(AppFont.scaled(16, weight: .semibold))
+                .foregroundStyle(AppColor.textSecondary)
+                .minimumHitArea()
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("About this map")
+        .popover(isPresented: $showsMapInfo) {
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                Text("Select Front or Back for a closer look. Tap a muscle for its exercises.")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textPrimary)
+                Text("Relative training score: primary work counts more than secondary work. Not a measure of growth or recovery.")
+                    .font(AppFont.footnote)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(idealWidth: 300)
+            .padding(Spacing.lg)
+            .presentationCompactAdaptation(.popover)
         }
     }
 
@@ -311,25 +364,27 @@ struct TrainOverviewView: View {
     }
 
     private func topMusclePill(for muscle: AnatomicalMuscle, count: Double) -> some View {
-        let setCount = Int(count.rounded())
-        return VStack(spacing: 4) {
-            Text(muscle.displayName)
-                .font(AppFont.chipText)
-                .foregroundStyle(AppColor.textPrimary)
-            Text("\(setCount) weighted pts")
-                .font(AppFont.caption)
-                .foregroundStyle(AppColor.textSecondary)
+        let score = Int(count.rounded())
+        return Button {
+            inspectRecentMuscle(muscle)
+        } label: {
+            VStack(spacing: Spacing.xs) {
+                Text(muscle.displayName)
+                    .font(AppFont.chipText)
+                    .foregroundStyle(AppColor.textPrimary)
+                Text("Score \(score)")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Spacing.sm)
+            .glassSurface(cornerRadius: Spacing.smallCornerRadius)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, Spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .stroke(AppColor.glassBorder, lineWidth: 0.5)
-        )
+        .buttonStyle(ScalePressStyle())
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("Shows the exercises you logged for this muscle")
     }
 
     // MARK: - Recent workouts
@@ -364,15 +419,13 @@ struct TrainOverviewView: View {
     }
 
     private var emptyRecentWorkouts: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text("No sessions yet")
-                .font(AppFont.callout)
-                .foregroundStyle(AppColor.textPrimary)
-            Text("Browse the Exercises tab and log your first set — it'll show up here.")
-                .font(AppFont.footnote)
-                .foregroundStyle(AppColor.textSecondary)
-        }
-        .padding(.vertical, Spacing.sm)
+        // No action button: Start workout sits directly above this card.
+        EmptyStateView(
+            icon: "dumbbell",
+            title: "No sessions yet",
+            message: "Start a workout or pick a routine — it'll land here.",
+            style: .compact
+        )
     }
 
     /// A recent-session row, now a real NavigationLink into
@@ -458,15 +511,14 @@ struct TrainOverviewView: View {
 /// siblings.
 struct TrainingCalendarGrid: View {
     let sessions: [WorkoutSession]
-
-    private var trainedDays: Set<Date> {
-        let cal = Calendar.current
-        return Set(sessions.map { cal.startOfDay(for: $0.startedAt) })
-    }
+    /// Scales with Dynamic Type so the day numbers don't clip.
+    @ScaledMetric private var cellHeight: CGFloat = 28
 
     var body: some View {
         let cal = Calendar.current
         let now = Date()
+        // Built once per render, not once per day cell.
+        let trainedDays = Set(sessions.map { cal.startOfDay(for: $0.startedAt) })
         guard let monthInterval = cal.dateInterval(of: .month, for: now),
               let firstDayWeekday = cal.dateComponents([.weekday], from: monthInterval.start).weekday
         else { return AnyView(EmptyView()) }
@@ -489,10 +541,10 @@ struct TrainingCalendarGrid: View {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 7),
                           spacing: 6) {
                     ForEach(0..<leadingBlanks, id: \.self) { _ in
-                        Color.clear.frame(height: 28)
+                        Color.clear.frame(height: cellHeight)
                     }
                     ForEach(1...daysInMonth, id: \.self) { day in
-                        dayCell(for: day, monthStart: monthInterval.start, calendar: cal)
+                        dayCell(for: day, monthStart: monthInterval.start, calendar: cal, trainedDays: trainedDays)
                     }
                 }
             }
@@ -513,7 +565,7 @@ struct TrainingCalendarGrid: View {
         }
     }
 
-    private func dayCell(for day: Int, monthStart: Date, calendar: Calendar) -> some View {
+    private func dayCell(for day: Int, monthStart: Date, calendar: Calendar, trainedDays: Set<Date>) -> some View {
         let date = calendar.date(byAdding: .day, value: day - 1, to: monthStart) ?? monthStart
         let trained = trainedDays.contains(calendar.startOfDay(for: date))
         let isToday = calendar.isDateInToday(date)
@@ -524,7 +576,7 @@ struct TrainingCalendarGrid: View {
             .foregroundStyle(textColor(trained: trained, isToday: isToday, isFuture: isFuture))
             .monospacedDigit()
             .frame(maxWidth: .infinity)
-            .frame(height: 28)
+            .frame(height: cellHeight)
             .background(
                 RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
                     .fill(backgroundColor(trained: trained, isToday: isToday))
@@ -533,17 +585,20 @@ struct TrainingCalendarGrid: View {
                 RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
                     .stroke(isToday ? AppColor.accentPrimary : Color.clear, lineWidth: 1)
             )
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(date.formatted(.dateTime.month().day()))
+            .accessibilityValue(trained ? "Trained" : "")
     }
 
     private func textColor(trained: Bool, isToday: Bool, isFuture: Bool) -> Color {
-        if isFuture { return AppColor.textTertiary.opacity(0.6) }
-        if trained { return AppColor.background }
+        if isFuture { return AppColor.textTertiary }
+        if trained { return AppColor.onAccent }
         if isToday { return AppColor.accentPrimary }
         return AppColor.textSecondary
     }
 
     private func backgroundColor(trained: Bool, isToday: Bool) -> Color {
-        if trained { return AppColor.accentPrimary }
+        if trained { return AppColor.accentFill }
         return Color.clear
     }
 }

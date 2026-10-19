@@ -17,6 +17,10 @@ struct LabPanelDetailView: View {
     let panel: LabPanel
 
     @State private var editingEntry: LabValue?
+    @State private var creatingEntry = false
+    @State private var pendingDelete: LabValue?
+    /// The date the user is scrubbing on the chart.
+    @State private var selectedDate: Date?
 
     private var entries: [LabValue] {
         dataStore.labEntries(for: panel)
@@ -48,20 +52,65 @@ struct LabPanelDetailView: View {
         .background(AppColor.background)
         .navigationTitle(panel.displayName)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    Haptics.impact(.light)
+                    creatingEntry = true
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(AppFont.scaled(20))
+                        .foregroundStyle(AppColor.accentPrimary)
+                }
+                .accessibilityLabel(Text("Log a new \(panel.displayName) value"))
+            }
+        }
+        .sheet(isPresented: $creatingEntry) {
+            LabEntryEditor(
+                initial: nil,
+                defaultPanel: panel,
+                sex: userSex,
+                onSave: { value in
+                    AppAnimation.with(AppAnimation.springSnappy) { dataStore.saveLabValue(value) }
+                    creatingEntry = false
+                },
+                onDelete: nil,
+                onCancel: { creatingEntry = false }
+            )
+            .liquidGlassPresentation()
+        }
         .sheet(item: $editingEntry) { entry in
             LabEntryEditor(
                 initial: entry,
                 sex: userSex,
                 onSave: { value in
-                    dataStore.saveLabValue(value)
+                    AppAnimation.with(AppAnimation.springSnappy) { dataStore.saveLabValue(value) }
                     editingEntry = nil
                 },
                 onDelete: { id in
-                    dataStore.deleteLabValue(id: id)
+                    AppAnimation.with(AppAnimation.springSnappy) { dataStore.deleteLabValue(id: id) }
                     editingEntry = nil
                 },
                 onCancel: { editingEntry = nil }
             )
+            .liquidGlassPresentation()
+        }
+        .confirmationDialog(
+            "Delete this entry?",
+            isPresented: Binding(
+                get: { pendingDelete != nil },
+                set: { if !$0 { pendingDelete = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: pendingDelete
+        ) { entry in
+            Button("Delete", role: .destructive) {
+                Haptics.warning()
+                AppAnimation.with(AppAnimation.springSnappy) { dataStore.deleteLabValue(id: entry.id) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { _ in
+            Text("This can't be undone. The trend chart will skip the deleted point.")
         }
         .onChange(of: entries.count) { _, newCount in
             // If the user deleted the last entry while on this
@@ -77,15 +126,15 @@ struct LabPanelDetailView: View {
         GlassCard(padding: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 HStack(alignment: .firstTextBaseline) {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text("Latest")
-                            .font(AppFont.scaled(11, weight: .heavy))
+                            .font(AppFont.eyebrow)
                             .tracking(0.6)
                             .textCase(.uppercase)
-                            .foregroundStyle(panel.tint.opacity(0.85))
+                            .foregroundStyle(AppColor.textSecondary)
                         if let latest {
                             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                                Text(formatted(latest.value))
+                                Text(LabValueFormat.string(latest.value))
                                     .font(AppFont.scaled(34, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                                     .monospacedDigit()
                                     .foregroundStyle(AppColor.textPrimary)
@@ -98,39 +147,43 @@ struct LabPanelDetailView: View {
                                 .font(AppFont.scaled(11))
                                 .foregroundStyle(AppColor.textTertiary)
                                 .monospacedDigit()
+                            if let change = changeSincePrevious {
+                                Text(change)
+                                    .font(AppFont.scaled(13, weight: .semibold))
+                                    .foregroundStyle(AppColor.textSecondary)
+                                    .monospacedDigit()
+                            }
                         }
                     }
                     Spacer(minLength: 0)
-                    if let range = panel.typicalRange(for: userSex) {
-                        rangePill(range: range, value: latest?.value)
+                    if let latest, let status = LabRangeStatus(value: latest.value, panel: panel, sex: userSex) {
+                        rangePill(status)
                     }
                 }
             }
         }
     }
 
-    private func rangePill(range: ClosedRange<Double>, value: Double?) -> some View {
-        let status: RangeStatus = {
-            guard let value else { return .unknown }
-            if value < range.lowerBound { return .below }
-            if value > range.upperBound { return .above }
-            return .within
-        }()
-        let (label, tint): (LocalizedStringKey, Color) = {
-            switch status {
-            case .within:  return ("In range", AppColor.positive)
-            case .below:   return ("Below range", AppColor.belowRange)
-            case .above:   return ("Above range", AppColor.negative)
-            case .unknown: return ("No reference", AppColor.textSecondary)
-            }
-        }()
-        return Text(label)
+    /// "↑ 12% since 3 Mar", against the draw before the latest.
+    private var changeSincePrevious: String? {
+        guard entries.count >= 2, let latest else { return nil }
+        let previous = entries[entries.count - 2]
+        guard previous.value != 0 else { return nil }
+        let fraction = (latest.value - previous.value) / abs(previous.value)
+        let arrow = fraction > 0 ? "↑" : (fraction < 0 ? "↓" : "→")
+        let percent = abs(fraction).formatted(.percent.precision(.fractionLength(0)))
+        let date = previous.date.formatted(.dateTime.day().month(.abbreviated))
+        return String(localized: "\(arrow) \(percent) since \(date)")
+    }
+
+    private func rangePill(_ status: LabRangeStatus) -> some View {
+        Text(status.label)
             .font(AppFont.scaled(11, weight: .heavy))
-            .foregroundStyle(tint)
+            .foregroundStyle(status.tint)
             .padding(.horizontal, Spacing.sm)
-            .padding(.vertical, 4)
+            .padding(.vertical, Spacing.xs)
             .background {
-                Capsule().fill(tint.opacity(0.18))
+                Capsule().fill(status.tint.opacity(0.18))
             }
     }
 
@@ -140,7 +193,7 @@ struct LabPanelDetailView: View {
         GlassCard(padding: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text("Trend")
-                    .font(AppFont.scaled(11, weight: .heavy))
+                    .font(AppFont.eyebrow)
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.textTertiary)
@@ -152,23 +205,19 @@ struct LabPanelDetailView: View {
     private var chart: some View {
         Chart {
             if let range = panel.typicalRange(for: userSex) {
-                // Subtle band for the typical adult reference range.
-                // RuleMark + AreaMark would require axis bounds we
-                // don't know in advance; RectangleMark in a chart
-                // with a value axis won't render the way we want.
-                // Use two RuleMarks (low + high) so the user reads
-                // the band as "between these lines".
-                RuleMark(y: .value("Low ref", range.lowerBound))
-                    .foregroundStyle(AppColor.textTertiary.opacity(0.4))
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
-                    .annotation(position: .leading, alignment: .leading) {
-                        Text("ref")
-                            .font(AppFont.scaled(8))
-                            .foregroundStyle(AppColor.textTertiary)
-                    }
-                RuleMark(y: .value("High ref", range.upperBound))
-                    .foregroundStyle(AppColor.textTertiary.opacity(0.4))
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                // A RectangleMark with only y bounds spans the whole
+                // plot width, so the band needs no x-axis bounds.
+                RectangleMark(
+                    yStart: .value("Low ref", range.lowerBound),
+                    yEnd: .value("High ref", range.upperBound)
+                )
+                .foregroundStyle(AppColor.positive.opacity(0.08))
+                .annotation(position: .overlay, alignment: .topLeading) {
+                    Text("Typical range")
+                        .font(AppFont.badgeSmall)
+                        .foregroundStyle(AppColor.textTertiary)
+                        .padding(Spacing.xs)
+                }
             }
 
             ForEach(entries) { entry in
@@ -176,15 +225,31 @@ struct LabPanelDetailView: View {
                     x: .value("Date", entry.date),
                     y: .value("Value", entry.value)
                 )
-                .foregroundStyle(panel.tint.gradient)
+                .foregroundStyle(panel.tint)
                 .interpolationMethod(.monotone)
-                .symbol(.circle)
+
+                PointMark(
+                    x: .value("Date", entry.date),
+                    y: .value("Value", entry.value)
+                )
+                .foregroundStyle(pointTint(for: entry))
                 .symbolSize(60)
             }
+
+            if let selected = selectedEntry {
+                RuleMark(x: .value("Date", selected.date))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .lineStyle(.init(lineWidth: 1))
+                    .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
+                        selectionCallout(selected)
+                    }
+            }
         }
+        .chartXSelection(value: $selectedDate)
+        .sensoryFeedback(.selection, trigger: selectedEntry?.id)
         .frame(height: 200)
         .chartXAxis {
-            AxisMarks(values: .stride(by: chartXStride)) { value in
+            AxisMarks(values: .stride(by: chartXStride.component, count: chartXStride.count)) { _ in
                 AxisGridLine().foregroundStyle(AppColor.glassBorder)
                 AxisTick().foregroundStyle(AppColor.glassBorder)
                 AxisValueLabel(format: .dateTime.month(.abbreviated).day())
@@ -200,14 +265,44 @@ struct LabPanelDetailView: View {
         }
     }
 
-    /// Picks a sensible x-axis stride based on the date span.
-    /// Single draws and 1-month spans get monthly ticks; longer
-    /// spans get quarterly — both keep the chart from being a wall
-    /// of labels.
-    private var chartXStride: Calendar.Component {
-        guard let first = entries.first, let last = entries.last else { return .month }
+    /// Colours a draw by where it sits against the typical range, so an
+    /// out-of-range point reads at a glance.
+    private func pointTint(for entry: LabValue) -> Color {
+        LabRangeStatus(value: entry.value, panel: panel, sex: userSex)?.tint ?? panel.tint
+    }
+
+    /// The draw nearest the scrubbed date.
+    private var selectedEntry: LabValue? {
+        guard let selectedDate else { return nil }
+        return entries.min {
+            abs($0.date.timeIntervalSince(selectedDate)) < abs($1.date.timeIntervalSince(selectedDate))
+        }
+    }
+
+    private func selectionCallout(_ entry: LabValue) -> some View {
+        VStack(spacing: Spacing.xxs) {
+            Text("\(LabValueFormat.string(entry.value)) \(panel.canonicalUnit)")
+                .font(AppFont.scaled(13, weight: .bold, design: .rounded))
+                .foregroundStyle(AppColor.textPrimary)
+                .monospacedDigit()
+            Text(entry.date.formatted(.dateTime.day().month(.abbreviated).year()))
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+        }
+        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, Spacing.xs)
+        .glassSurface(cornerRadius: Spacing.chipCornerRadius)
+    }
+
+    /// Picks an x-axis stride from the date span so the axis never
+    /// becomes a wall of labels: weekly under 45 days, monthly up to
+    /// six months, quarterly beyond.
+    private var chartXStride: (component: Calendar.Component, count: Int) {
+        guard let first = entries.first, let last = entries.last else { return (.month, 1) }
         let days = Calendar.current.dateComponents([.day], from: first.date, to: last.date).day ?? 0
-        return days > 180 ? .month : .weekOfYear
+        if days < 45 { return (.weekOfYear, 1) }
+        if days <= 180 { return (.month, 1) }
+        return (.month, 3)
     }
 
     // MARK: - History list
@@ -216,7 +311,7 @@ struct LabPanelDetailView: View {
         GlassCard(padding: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text("History")
-                    .font(AppFont.scaled(11, weight: .heavy))
+                    .font(AppFont.eyebrow)
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.textTertiary)
@@ -253,7 +348,7 @@ struct LabPanelDetailView: View {
                 }
                 Spacer(minLength: 0)
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
-                    Text(formatted(entry.value))
+                    Text(LabValueFormat.string(entry.value))
                         .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
@@ -261,6 +356,10 @@ struct LabPanelDetailView: View {
                         .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                 }
+                Image(systemName: "chevron.right")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityHidden(true)
             }
             .padding(.vertical, Spacing.sm)
             .padding(.horizontal, Spacing.sm)
@@ -270,13 +369,14 @@ struct LabPanelDetailView: View {
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        .accessibilityHint("Opens this entry to edit")
         .contextMenu {
             Button { editingEntry = entry } label: {
                 Label("Edit", systemImage: "pencil")
             }
             Button(role: .destructive) {
-                dataStore.deleteLabValue(id: entry.id)
+                pendingDelete = entry
             } label: {
                 Label("Delete", systemImage: "trash")
             }
@@ -290,27 +390,53 @@ struct LabPanelDetailView: View {
             .padding(.top, Spacing.xxl)
     }
 
-    private func formatted(_ value: Double) -> String {
-        if value.truncatingRemainder(dividingBy: 1) == 0 {
-            return String(format: "%.0f", value)
-        }
-        if value < 10 {
-            return String(format: "%.2f", value)
-        }
-        return String(format: "%.1f", value)
-    }
-
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateStyle = .medium
         f.timeStyle = .none
         return f
     }()
+}
 
-    private enum RangeStatus {
-        case within
-        case below
-        case above
-        case unknown
+/// Where a reading sits against its panel's typical range. This, not the
+/// direction of change, is what a lab row colours: a rising LDL and a
+/// rising HDL mean opposite things.
+enum LabRangeStatus {
+    case below, within, above
+
+    init?(value: Double, panel: LabPanel, sex: BiologicalSex) {
+        guard let range = panel.typicalRange(for: sex) else { return nil }
+        if value < range.lowerBound {
+            self = .below
+        } else if value > range.upperBound {
+            self = .above
+        } else {
+            self = .within
+        }
+    }
+
+    var label: LocalizedStringKey {
+        switch self {
+        case .within: "In range"
+        case .below:  "Below range"
+        case .above:  "Above range"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .within: AppColor.positive
+        case .below:  AppColor.belowRange
+        case .above:  AppColor.negative
+        }
+    }
+}
+
+/// One way to print a lab value everywhere: whole numbers bare, small
+/// values to two places, the rest to one — with the locale's separator.
+enum LabValueFormat {
+    static func string(_ value: Double) -> String {
+        let digits: ClosedRange<Int> = value.truncatingRemainder(dividingBy: 1) == 0 ? 0...0 : (abs(value) < 10 ? 0...2 : 0...1)
+        return value.formatted(.number.precision(.fractionLength(digits)).grouping(.never))
     }
 }

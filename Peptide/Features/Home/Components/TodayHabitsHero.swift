@@ -146,7 +146,7 @@ struct TodayHabitsHero: View {
                         .foregroundStyle(AppColor.textPrimary)
                         .contentTransition(.numericText())
                     Text("done")
-                        .font(AppFont.scaled(8, weight: .semibold))
+                        .font(AppFont.badgeSmall)
                         .foregroundStyle(AppColor.textTertiary)
                 }
             } else {
@@ -203,15 +203,16 @@ struct TodayHabitsHero: View {
             Haptics.impact(.soft)
             appState.selectedTab = .habits
         } label: {
-            HStack(spacing: 4) {
+            HStack(spacing: Spacing.xs) {
                 Text("View all habits")
                 Image(systemName: "chevron.right")
                     .font(AppFont.scaled(11, weight: .bold))
             }
-            .font(AppFont.scaled(11, weight: .semibold))
+            .font(AppFont.chipText)
             .foregroundStyle(AppColor.accentLight)
+            .minimumHitArea()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle())
     }
 
     private var summaryAccessibilityLabel: String {

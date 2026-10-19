@@ -26,8 +26,6 @@ struct ExerciseLibraryView: View {
             content
         }
         .background(AppColor.background)
-        .navigationTitle("Exercises")
-        .navigationBarTitleDisplayMode(.large)
         .searchable(
             text: $browsing.query,
             placement: .navigationBarDrawer(displayMode: .always),
@@ -95,8 +93,7 @@ struct ExerciseLibraryView: View {
         )
 
         if !library.isLoaded && isLoading {
-            ProgressView("Loading exercises…")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ExerciseRowSkeletonList()
         } else if library.bundled.isEmpty {
             emptyLibraryState
         } else if results.isEmpty {
@@ -131,6 +128,7 @@ struct ExerciseLibraryView: View {
             }
             .scrollTargetLayout()
             .padding(.bottom, Spacing.xxxl)
+            .appAnimation(AppAnimation.springSnappy, value: results.map(\.id))
         }
         .scrollPosition(id: $browsing.visibleExerciseID, anchor: .top)
         .scrollDismissesKeyboard(.interactively)
@@ -138,8 +136,9 @@ struct ExerciseLibraryView: View {
 
     private func resultsCount(_ count: Int) -> some View {
         HStack {
-            Text("\(count) \(count == 1 ? "exercise" : "exercises")")
+            Text("^[\(count) exercise](inflect: true)")
                 .font(AppFont.footnote)
+                .contentTransition(.numericText())
                 .foregroundStyle(AppColor.textSecondary)
             Spacer()
             if browsing.muscleFilter != nil || browsing.equipmentFilter != nil || !browsing.query.isEmpty {
@@ -193,5 +192,6 @@ struct ExerciseLibraryView: View {
                 }
             }
     }
+    .environment(DataStore(seedSampleData: true))
     .preferredColorScheme(.dark)
 }

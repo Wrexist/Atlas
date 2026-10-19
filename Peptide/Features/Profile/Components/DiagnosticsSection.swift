@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Developer-facing diagnostics row in Profile. Surfaces the
+/// Developer-facing diagnostics row in Settings (debug builds only). Surfaces the
 /// MetricKit subscription's captured payload count so the wiring
 /// is visible without leaving the device, and offers a tap-in
 /// sheet showing the latest 20 records (kind, timestamp, raw JSON
@@ -12,7 +12,6 @@ import SwiftUI
 struct DiagnosticsSection: View {
     @State private var diagnosticsService = DiagnosticsService.shared
     @State private var showDetail = false
-    @AppStorage(OnboardingFunnelTracker.consentKey) private var shareOnboardingFunnel = false
 
     var body: some View {
         GlassCard {
@@ -42,27 +41,7 @@ struct DiagnosticsSection: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(diagnosticsService.records.isEmpty)
-
-                // Consent gate for the onboarding-funnel drain. Only
-                // rendered when the build actually carries a drain
-                // endpoint — current builds don't, so this stays
-                // invisible and the Privacy screen's claims hold.
-                if OnboardingFunnelTracker.drainConfigured {
-                    Divider().foregroundStyle(AppColor.glassBorder)
-                    Toggle(isOn: $shareOnboardingFunnel) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Share onboarding diagnostics")
-                                .font(AppFont.subheadline)
-                                .foregroundStyle(AppColor.textPrimary)
-                            Text("Off by default. When on, setup-flow step timings upload once under a random ID — never your name, email, or health data.")
-                                .font(AppFont.caption)
-                                .foregroundStyle(AppColor.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .tint(AppColor.accentPrimary)
-                    .accessibilityLabel("Share onboarding diagnostics")
-                }
+                .opacity(diagnosticsService.records.isEmpty ? 0.5 : 1)
             }
         }
         .sheet(isPresented: $showDetail) {
@@ -77,7 +56,8 @@ struct DiagnosticsSection: View {
         }
         let crashCount = diagnosticsService.records.filter { $0.kind == .diagnostic }.count
         let metricCount = total - crashCount
-        return "\(crashCount) diagnostic · \(metricCount) metric · last \(relativeTime(for: diagnosticsService.records[0].receivedAt))"
+        let last = relativeTime(for: diagnosticsService.records[0].receivedAt)
+        return String(localized: "\(crashCount) diagnostic · \(metricCount) metric · last \(last)")
     }
 
     private func relativeTime(for date: Date) -> String {

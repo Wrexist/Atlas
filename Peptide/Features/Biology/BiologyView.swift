@@ -41,41 +41,25 @@ struct BiologyView: View {
                         state: resolved?.state,
                         chronologicalAge: resolved?.chronologicalAge
                             ?? BioAgeStateResolver.chronologicalAgeFallback,
-                        asOfDate: Date(),
-                        onUnlockTapped: { presentPaywall() },
                         metricShortcuts: visibleBiomarkers,
                         onSelectMetric: { openDetail(for: $0) },
                         onExplainTapped: { showBioAgeExplainer = true }
                     )
+                    .sectionAppear(index: 0)
 
                     if case .locked? = resolved?.state {
                         PremiumPromoCard(
                             eyebrow: "ATLAS PRO",
-                            title: "View Your Biological Age",
+                            title: "See your Biological Age",
                             subtitle: "Track how you're aging and discover which habits move your Biological Age.",
-                            ctaLabel: "View",
+                            ctaLabel: "Unlock",
                             qualifier: "Available for users 18+",
                             onTap: { presentPaywall() }
                         )
+                        .sectionAppear(index: 1)
                     }
 
-                    if needsHealthConnection {
-                        GlassEntryRow(
-                            icon: "heart.text.square.fill",
-                            title: "Connect Apple Health",
-                            subtitle: Text("Fills in cardio fitness, HRV, resting heart rate, sleep and steps"),
-                            action: connectHealth
-                        )
-                        .accessibilityHint("Asks for read access to Apple Health")
-                    } else if needsHealthUpgrade {
-                        GlassEntryRow(
-                            icon: "lungs.fill",
-                            title: "Add cardio fitness",
-                            subtitle: Text("Let Atlas read VO2 max from Apple Health for a sharper estimate"),
-                            action: requestNewHealthTypes
-                        )
-                        .accessibilityHint("Asks Apple Health for access to VO2 max")
-                    }
+                    healthPrompt
 
                     bioAgeDetail
 
@@ -125,7 +109,6 @@ struct BiologyView: View {
                 EditBiomarkersSheet(
                     config: editConfigBinding,
                     isPro: storeService.isProUser,
-                    onDismiss: persistConfigChanges,
                     unit: dataStore.profile.bodyMetrics.unit
                 )
                 .liquidGlassPresentation()
@@ -153,6 +136,7 @@ struct BiologyView: View {
                 consumePendingLabsDeepLink()
             }
         }
+        .appAnimation(AppAnimation.springSmooth, value: healthPromptState)
         // Single `.task(id:)` keyed on the inputs `refreshState` reads.
         // It auto-cancels the prior run when either input changes, so
         // two near-simultaneous changes can't land out of order and
@@ -163,6 +147,38 @@ struct BiologyView: View {
                              healthConnected: dataStore.profile.healthConnected)) {
             await refreshState()
         }
+    }
+
+    /// Asks for Health access while it's missing, and slides away once
+    /// granted rather than vanishing.
+    @ViewBuilder
+    private var healthPrompt: some View {
+        Group {
+            if needsHealthConnection {
+                GlassEntryRow(
+                    icon: "heart.text.square.fill",
+                    title: "Connect Apple Health",
+                    subtitle: Text("Fills in cardio fitness, HRV, resting heart rate, sleep and steps"),
+                    action: connectHealth
+                )
+                .accessibilityHint("Asks for read access to Apple Health")
+            } else if needsHealthUpgrade {
+                GlassEntryRow(
+                    icon: "lungs.fill",
+                    title: "Add cardio fitness",
+                    subtitle: Text("Let Atlas read VO2 max from Apple Health for a sharper estimate"),
+                    action: requestNewHealthTypes
+                )
+                .accessibilityHint("Asks Apple Health for access to VO2 max")
+            }
+        }
+        .transition(.opacity.combined(with: .move(edge: .top)))
+        .sectionAppear(index: 1)
+    }
+
+    /// Which Health prompt is showing, so its exit animates.
+    private var healthPromptState: Int {
+        needsHealthConnection ? 2 : (needsHealthUpgrade ? 1 : 0)
     }
 
     /// The estimate's explanation, below the hero: what moved it, how it
@@ -223,7 +239,7 @@ struct BiologyView: View {
         let count = dataStore.latestLabSummaries.count
         return count == 0
             ? Text("Log blood work and track your results")
-            : Text("Markers tracked: \(count)")
+            : Text("^[\(count) panel](inflect: true) tracked")
     }
 
     private func openLabs() {
@@ -238,6 +254,7 @@ struct BiologyView: View {
     private func connectHealth() {
         Task { @MainActor in
             guard await dataStore.toggleHealthConnection() else { return }
+            Haptics.success()
             await reload()
         }
     }
@@ -246,6 +263,7 @@ struct BiologyView: View {
         Haptics.impact(.light)
         Task { @MainActor in
             guard await HealthKitService.shared.requestAuthorization() else { return }
+            Haptics.success()
             await reload()
         }
     }

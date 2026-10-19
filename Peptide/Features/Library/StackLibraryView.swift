@@ -2,15 +2,28 @@ import SwiftUI
 
 struct StackLibraryView: View {
     @Environment(DataStore.self) private var dataStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var searchText = ""
     @State private var selectedTag: String?
+    /// The bundled catalogue never changes while the screen is up, so it's
+    /// ranked once rather than re-sorted on every body pass and keystroke.
+    @State private var rankedStacks: [CommunityStack]
+    @State private var goalTags: [String]
 
-    private var rankedStacks: [CommunityStack] {
-        CommunityStackService.shared.ranked()
+    init() {
+        let service = CommunityStackService.shared
+        _rankedStacks = State(initialValue: service.ranked())
+        _goalTags = State(initialValue: service.allGoalTags)
+    }
+
+    private var isShowingCarousel: Bool {
+        searchText.isEmpty && selectedTag == nil && !featuredStacks.isEmpty
     }
 
     private var filteredStacks: [CommunityStack] {
-        var result = rankedStacks
+        // Featured stacks already sit in the carousel above; listing them
+        // again straight underneath read as a duplicate.
+        var result = isShowingCarousel ? rankedStacks.filter { !$0.featured } : rankedStacks
         if let selectedTag {
             result = result.filter { $0.goalTags.contains(selectedTag) }
         }
@@ -30,15 +43,11 @@ struct StackLibraryView: View {
         rankedStacks.filter(\.featured)
     }
 
-    private var goalTags: [String] {
-        CommunityStackService.shared.allGoalTags
-    }
-
     var body: some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
                 GlassTextField(
-                    placeholder: "Search stacks, peptides...",
+                    placeholder: "Search stacks, peptides…",
                     text: $searchText
                 )
                 .padding(.horizontal, Spacing.screenPadding)
@@ -46,21 +55,23 @@ struct StackLibraryView: View {
                 tagChips
                     .padding(.horizontal, Spacing.screenPadding)
 
-                if searchText.isEmpty && selectedTag == nil && !featuredStacks.isEmpty {
+                if isShowingCarousel {
                     featuredCarousel
                 }
 
+                let stacks = filteredStacks
                 LazyVStack(spacing: Spacing.md) {
-                    ForEach(filteredStacks) { stack in
+                    ForEach(Array(stacks.enumerated()), id: \.element.id) { index, stack in
                         NavigationLink(value: stack) {
                             CommunityStackCard(stack: stack)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+                        .staggeredAppear(index: index)
                     }
                 }
                 .padding(.horizontal, Spacing.screenPadding)
 
-                if filteredStacks.isEmpty {
+                if stacks.isEmpty && !isShowingCarousel {
                     emptyState
                         .padding(.top, Spacing.xxxl)
                 }
@@ -81,11 +92,13 @@ struct StackLibraryView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Spacing.xs) {
                 GlassChip("All", isSelected: selectedTag == nil) {
-                    selectedTag = nil
+                    AppAnimation.with(AppAnimation.springSnappy) { selectedTag = nil }
                 }
                 ForEach(goalTags, id: \.self) { tag in
                     GlassChip(LocalizedStringKey(tag), isSelected: selectedTag == tag) {
-                        selectedTag = (selectedTag == tag) ? nil : tag
+                        AppAnimation.with(AppAnimation.springSnappy) {
+                            selectedTag = (selectedTag == tag) ? nil : tag
+                        }
                     }
                 }
             }
@@ -93,42 +106,48 @@ struct StackLibraryView: View {
     }
 
     private var featuredCarousel: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text("FEATURED")
-                .font(AppFont.caption)
-                .foregroundStyle(AppColor.textTertiary)
-                .tracking(1.5)
+        // Captured as a value: the scroll-transition closure is @Sendable.
+        let shrinks = !reduceMotion
+        return VStack(alignment: .leading, spacing: Spacing.sm) {
+            HomeSectionHeader(eyebrow: "Featured", title: "Editor's picks")
                 .padding(.horizontal, Spacing.screenPadding)
 
+            // Paged, snapping carousel: one card per page with the next
+            // peeking in, and off-centre cards eased back.
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: Spacing.md) {
                     ForEach(featuredStacks) { stack in
                         NavigationLink(value: stack) {
                             CommunityStackCard(stack: stack)
-                                .frame(width: 300)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+                        .containerRelativeFrame(.horizontal) { length, _ in length * 0.86 }
+                        .scrollTransition { card, phase in
+                            card
+                                .scaleEffect(shrinks && !phase.isIdentity ? 0.94 : 1)
+                                .opacity(phase.isIdentity ? 1 : 0.7)
+                        }
                     }
                 }
-                .padding(.horizontal, Spacing.screenPadding)
+                .scrollTargetLayout()
             }
+            .contentMargins(.horizontal, Spacing.screenPadding, for: .scrollContent)
+            .scrollTargetBehavior(.viewAligned)
         }
     }
 
     private var emptyState: some View {
-        VStack(spacing: Spacing.md) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 36))
-                .foregroundStyle(AppColor.textTertiary)
-            Text("No stacks match")
-                .font(AppFont.headline)
-                .foregroundStyle(AppColor.textSecondary)
-            Text("Try a different search term or clear the filter.")
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textTertiary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
+        EmptyStateView(
+            icon: "magnifyingglass",
+            title: "No stacks match",
+            message: "Try a different search term or clear the filter.",
+            action: .init(title: "Clear filters", icon: "xmark.circle.fill") {
+                AppAnimation.with(AppAnimation.springSnappy) {
+                    searchText = ""
+                    selectedTag = nil
+                }
+            }
+        )
         .padding(.horizontal, Spacing.screenPadding)
     }
 }

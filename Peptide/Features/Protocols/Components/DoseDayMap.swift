@@ -7,7 +7,6 @@ import Foundation
 struct CalendarDoseMark: Identifiable, Hashable {
     enum Kind: Hashable { case logged, scheduled }
 
-    let id = UUID()
     let kind: Kind
     let day: Date
     let peptideID: UUID
@@ -26,6 +25,14 @@ struct CalendarDoseMark: Identifiable, Hashable {
     /// on the calendar — render it with a muted treatment so the user
     /// can distinguish historical from active doses.
     let protocolStatus: ProtocolStatus
+
+    /// Derived from content rather than minted per build, so a rebuilt map
+    /// keeps the same identities and `ForEach` can diff and animate it.
+    /// Unique per day: logged marks differ by entry, and scheduled marks
+    /// are emitted at most once per compound per day.
+    var id: String {
+        "\(kind)-\(day.timeIntervalSinceReferenceDate)-\(peptideID)-\(entryID?.uuidString ?? "")"
+    }
 }
 
 /// Builds a per-day map of marks across both logged entries and scheduled
@@ -75,15 +82,18 @@ enum DoseDayMap {
         }
 
         // Scheduled — for every day in the grid, emit one mark per
-        // (active-protocol × peptide) when the day's weekday matches the
-        // schedule and the day sits inside the cycle window. Skip when a
+        // (active-protocol × peptide) when the peptide's own schedule (its
+        // override, else the protocol default — weekly or every-N-days)
+        // lands on that day inside the cycle window. Skip when a
         // logged mark for the same compound already exists that day so the
         // dot row doesn't show two of the same colour.
         for day in grid {
             for proto in protocols where proto.status == .active {
                 guard isDayInCycle(day, protocol: proto, calendar: cal) else { continue }
-                guard isWeekdayMatch(day: day, schedule: proto.schedule, calendar: cal) else { continue }
                 for peptide in proto.peptides {
+                    let schedule = proto.schedule(for: peptide.id)
+                    guard isScheduled(schedule, on: day, protocolStart: proto.startDate, calendar: cal)
+                    else { continue }
                     // Suppress when *any* mark for this compound on this
                     // day already exists — covers both the "logged
                     // already" case and the "another active protocol in
@@ -104,8 +114,8 @@ enum DoseDayMap {
                         peptideAbbreviation: peptide.abbreviation,
                         // Never the database research range: that would present a
                         // reference figure as the user's own dose (Guideline 1.4.1).
-                        dose: proto.schedule.customDose ?? String(localized: "Dose not set"),
-                        time: proto.schedule.preferredTimes.first,
+                        dose: schedule.customDose ?? String(localized: "Dose not set"),
+                        time: schedule.preferredTimes.first,
                         injectionSite: nil,
                         entryID: nil,
                         // Synthetic scheduled marks only emit for
@@ -134,16 +144,27 @@ enum DoseDayMap {
         return day < end
     }
 
-    private static func isWeekdayMatch(
-        day: Date,
-        schedule: ProtocolSchedule,
+    /// `ProtocolSchedule.isActive(on:)`, except an interval schedule with
+    /// no stored anchor (library imports) counts from the protocol's start
+    /// instead of matching every day.
+    private static func isScheduled(
+        _ schedule: ProtocolSchedule,
+        on day: Date,
+        protocolStart: Date,
         calendar: Calendar
     ) -> Bool {
-        // ProtocolSchedule encodes daysOfWeek as ISO 1=Mon…7=Sun, while
-        // Calendar.weekday is 1=Sun…7=Sat — convert before comparing.
-        let weekday = calendar.component(.weekday, from: day)
-        let iso = weekday == 1 ? 7 : weekday - 1
-        return schedule.daysOfWeek.contains(iso)
+        guard schedule.isInterval, schedule.intervalAnchor == nil else {
+            return schedule.isActive(on: day, calendar: calendar)
+        }
+        let anchored = ProtocolSchedule(
+            daysOfWeek: schedule.daysOfWeek,
+            timesPerDay: schedule.timesPerDay,
+            preferredTimes: schedule.preferredTimes,
+            customDose: schedule.customDose,
+            intervalDays: schedule.intervalDays,
+            intervalAnchor: protocolStart
+        )
+        return anchored.isActive(on: day, calendar: calendar)
     }
 
     private static func timeString(for date: Date, calendar: Calendar) -> String {

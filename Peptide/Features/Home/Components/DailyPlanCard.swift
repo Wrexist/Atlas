@@ -178,7 +178,7 @@ struct DailyPlanCard: View {
             Text("\(count)")
                 .font(AppFont.scaled(11, weight: .bold))
                 .foregroundStyle(AppColor.textSecondary)
-                .padding(.horizontal, 8)
+                .padding(.horizontal, Spacing.sm)
                 .padding(.vertical, 2)
                 .background { Capsule().fill(AppColor.surfaceElevated) }
         }
@@ -222,12 +222,18 @@ private struct DailyPlanDoseRow: View {
                     }
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        // One VoiceOver stop per dose instead of order, icon, name,
+        // flag, dose and time read separately.
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(dose.entry.completed ? "Taken" : "Pending")
+        .accessibilityHint("Opens dose logging")
     }
 
     private var topRow: some View {
         HStack(spacing: Spacing.sm) {
             orderBadge
+                .accessibilityHidden(true)
 
             Image(systemName: dose.entry.peptide.imageSystemName)
                 .font(AppFont.scaled(13))
@@ -238,9 +244,10 @@ private struct DailyPlanDoseRow: View {
                         .fill(dose.entry.peptide.category.color.opacity(0.15))
                 }
                 .symbolEffect(.bounce, value: dose.entry.completed)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 1) {
-                HStack(spacing: 6) {
+                HStack(spacing: Spacing.xs) {
                     Text(dose.entry.peptide.abbreviation)
                         .font(AppFont.subheadline)
                         .fontWeight(.semibold)
@@ -283,8 +290,9 @@ private struct DailyPlanDoseRow: View {
     }
 
     private var fastedFlag: some View {
-        Text("FASTED")
-            .font(AppFont.scaled(8, weight: .bold))
+        Text("Fasted")
+            .textCase(.uppercase)
+            .font(AppFont.badgeSmall)
             .foregroundStyle(AppColor.warning)
             .padding(.horizontal, 5)
             .padding(.vertical, 1)

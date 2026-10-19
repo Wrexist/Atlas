@@ -24,10 +24,13 @@ struct RoutinesView: View {
         Group {
             if store.routines.isEmpty {
                 emptyState
+                    .transition(.opacity)
             } else {
                 routineList
+                    .transition(.opacity)
             }
         }
+        .appAnimation(AppAnimation.springSmooth, value: store.routines.isEmpty)
         .background(AppColor.background.ignoresSafeArea())
         .toolbar {
             if !store.routines.isEmpty {
@@ -43,6 +46,7 @@ struct RoutinesView: View {
             rebuildSummaries()
         }
         .task(id: store.routines) { rebuildSummaries() }
+        .onAppear(perform: discardUntouchedRoutines)
         .alert("Rename routine", isPresented: renameBinding) {
             TextField("Routine name", text: $renameText)
             Button("Cancel", role: .cancel) { renaming = nil }
@@ -78,12 +82,13 @@ struct RoutinesView: View {
                 .padding(.bottom, Spacing.sm)
 
             List {
-                ForEach(summaries) { summary in
+                ForEach(Array(summaries.enumerated()), id: \.element.id) { index, summary in
                     RoutineCard(
                         summary: summary,
                         onOpen: { open(summary.routine.id) },
                         onStart: { start(summary.routine) }
                     )
+                    .staggeredAppear(index: index)
                     .listRowInsets(EdgeInsets(
                         top: Spacing.xs,
                         leading: Spacing.screenPadding,
@@ -172,6 +177,16 @@ struct RoutinesView: View {
 
     private func create(from template: RoutineTemplate) {
         open(store.create(name: template.name, exercises: template.makeExercises()).id)
+    }
+
+    /// "New routine" saves an empty routine before pushing its builder.
+    /// Coming back here without adding an exercise or renaming it
+    /// shouldn't leave that empty card behind.
+    private func discardUntouchedRoutines() {
+        for routine in store.routines
+        where routine.exercises.isEmpty && routine.name == RoutineStore.untitledName {
+            store.delete(id: routine.id)
+        }
     }
 
     private func open(_ id: UUID) {

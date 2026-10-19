@@ -17,6 +17,9 @@ struct HeroMetricDetailSheet: View {
     /// Recovery / Sleep). All fields are optional so the sheet
     /// degrades gracefully when a metric has no data.
     let context: Context
+    /// Opens dose logging for a tapped Adherence row. Called after this
+    /// sheet has dismissed, so the host can present the next modal.
+    var onLogDose: ((ProtocolEntry) -> Void)?
 
     struct Context {
         let todayEntries: [ProtocolEntry]
@@ -106,7 +109,13 @@ struct HeroMetricDetailSheet: View {
             case .adherence:
                 Button {
                     dismiss()
-                    appState.showLibrary = true
+                    // Open the protocol list once this sheet is gone — the
+                    // Library presented in the same tick can be dropped.
+                    Task { @MainActor in
+                        try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
+                        appState.pendingProtocolList = true
+                        appState.showLibrary = true
+                    }
                 } label: {
                     Label("Manage protocols", systemImage: "list.bullet.rectangle")
                 }
@@ -262,7 +271,7 @@ struct HeroMetricDetailSheet: View {
     private var explainerBody: String {
         switch kind {
         case .adherence:
-            return String(localized: "Your daily peptide protocol works when it's followed consistently — adherence captures how much of today's planned dosing you've actually logged.")
+            return String(localized: "Your protocol works when it's followed consistently — adherence captures how much of today's planned dosing you've actually logged.")
         case .recovery:
             return String(localized: "Recovery is a 0–100 read on whether your body is ready to push or rest. Higher HRV + adequate sleep + a steady resting heart rate all push the number up; a short night or a stress spike pull it down.")
         case .sleep:
@@ -299,7 +308,7 @@ struct HeroMetricDetailSheet: View {
             } else {
                 VStack(spacing: Spacing.xs) {
                     ForEach(context.todayEntries) { entry in
-                        doseRow(entry)
+                        doseButton(entry)
                     }
                 }
             }
@@ -332,6 +341,27 @@ struct HeroMetricDetailSheet: View {
                 }
         }
         .accessibilityElement(children: .combine)
+    }
+
+    /// A pending dose opened from the ring should be loggable from here,
+    /// not just listed.
+    @ViewBuilder
+    private func doseButton(_ entry: ProtocolEntry) -> some View {
+        if let onLogDose {
+            Button {
+                dismiss()
+                Task { @MainActor in
+                    try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
+                    onLogDose(entry)
+                }
+            } label: {
+                doseRow(entry)
+            }
+            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+            .accessibilityHint("Opens dose logging")
+        } else {
+            doseRow(entry)
+        }
     }
 
     private func doseRow(_ entry: ProtocolEntry) -> some View {

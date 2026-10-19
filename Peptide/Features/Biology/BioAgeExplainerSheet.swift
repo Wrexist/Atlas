@@ -82,7 +82,7 @@ struct BioAgeExplainerSheet: View {
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
-                Text("Up to \(String(format: "%.1f", kind.maxSwingYears)) years")
+                Text("Up to \(BioAgeFormat.age(kind.maxSwingYears)) years")
                     .font(AppFont.caption)
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.textSecondary)

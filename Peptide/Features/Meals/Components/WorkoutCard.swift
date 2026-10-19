@@ -12,24 +12,15 @@ struct WorkoutCard: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: Spacing.md) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 11, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    AppColor.accentPrimary.opacity(0.35),
-                                    AppColor.accentLight.opacity(0.20),
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 40, height: 40)
-                    Image(systemName: "dumbbell.fill")
-                        .font(AppFont.scaled(16, weight: .semibold))
-                        .foregroundStyle(AppColor.textPrimary)
-                }
-                .shadow(color: AppColor.accentPrimary.opacity(0.25), radius: 6, y: 3)
+                Image(systemName: "dumbbell.fill")
+                    .font(AppFont.scaled(16, weight: .semibold))
+                    .foregroundStyle(AppColor.accentLight)
+                    .frame(width: 40, height: 40)
+                    .background {
+                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                            .fill(AppColor.accentPrimary.opacity(0.18))
+                    }
+                    .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Workout Tracker")

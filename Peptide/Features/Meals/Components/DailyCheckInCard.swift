@@ -44,14 +44,14 @@ struct DailyCheckInCard: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Daily check-in")
-                    .font(AppFont.scaled(13, weight: .semibold))
-                    .tracking(0.6)
+                    .font(AppFont.eyebrow)
+                    .tracking(0.8)
                     .textCase(.uppercase)
-                    .foregroundStyle(AppColor.accentLight.opacity(0.85))
+                    .foregroundStyle(AppColor.accentLight)
                 Text("How are you feeling today?")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
-                Text("30 seconds. Powers your correlation insights.")
+                Text("30 seconds. Helps Atlas spot what's working.")
                     .font(AppFont.scaled(11))
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -64,7 +64,7 @@ struct DailyCheckInCard: View {
                 .foregroundStyle(AppColor.textSecondary)
         }
         .padding(Spacing.md)
-        .background(cardBackground(tinted: true))
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius, tinted: true)
     }
 
     // MARK: - Filled (summary) state
@@ -75,21 +75,25 @@ struct DailyCheckInCard: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Today's check-in")
-                    .font(AppFont.scaled(13, weight: .semibold))
-                    .tracking(0.6)
+                    .font(AppFont.eyebrow)
+                    .tracking(0.8)
                     .textCase(.uppercase)
-                    .foregroundStyle(AppColor.accentLight.opacity(0.85))
+                    .foregroundStyle(AppColor.accentLight)
                 scoreStrip(entry)
             }
 
             Spacer(minLength: 0)
 
-            Text("Edit")
-                .font(AppFont.scaled(11, weight: .semibold))
-                .foregroundStyle(AppColor.accentLight)
+            HStack(spacing: Spacing.xxs) {
+                Text("Edit")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                Image(systemName: "chevron.right")
+                    .font(AppFont.scaled(11, weight: .semibold))
+            }
+            .foregroundStyle(AppColor.accentLight)
         }
         .padding(Spacing.md)
-        .background(cardBackground(tinted: false))
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 
     private func scoreStrip(_ entry: OutcomeEntry) -> some View {
@@ -110,30 +114,6 @@ struct DailyCheckInCard: View {
                 .accessibilityLabel("\(dim.displayName) \(value) of 5")
             }
         }
-    }
-
-    private func cardBackground(tinted: Bool) -> some View {
-        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-            .fill(AppColor.surfaceSecondary.opacity(0.55))
-            .overlay {
-                if tinted {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    AppColor.accentPrimary.opacity(0.14),
-                                    Color.clear,
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                }
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-            }
     }
 
     private var accessibilityLabel: String {

@@ -2,7 +2,6 @@ import SwiftUI
 
 struct LanguagePickerRow: View {
     @Environment(LocalizationManager.self) private var localization
-    @Environment(DataStore.self) private var dataStore
     @State private var isPresented = false
 
     var body: some View {
@@ -14,7 +13,7 @@ struct LanguagePickerRow: View {
                 Image(systemName: "character.bubble.fill")
                     .font(AppFont.scaled(13))
                     .foregroundStyle(AppColor.accentPrimary)
-                    .frame(width: 24)
+                    .frame(width: settingsIconColumnWidth)
                     .accessibilityHidden(true)
 
                 Text("Language")
@@ -55,7 +54,6 @@ struct LanguagePickerRow: View {
 
 struct LanguagePickerSheet: View {
     @Environment(LocalizationManager.self) private var localization
-    @Environment(DataStore.self) private var dataStore
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -75,7 +73,7 @@ struct LanguagePickerSheet: View {
                         )
 
                         Divider()
-                            .foregroundStyle(AppColor.glassBorder)
+                            .overlay(AppColor.glassBorder)
                             .padding(.vertical, Spacing.xs)
 
                         ForEach(AppLanguage.shipped) { language in
@@ -136,6 +134,7 @@ private struct LanguageRow: View {
                         .background(
                             Circle().fill(AppColor.cardOverlay)
                         )
+                        .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text(nativeName)
@@ -164,10 +163,14 @@ private struct LanguageRow: View {
                             isSelected ? AppColor.accentPrimary : AppColor.glassBorder
                         )
                         .symbolRenderingMode(.hierarchical)
+                        .contentTransition(.symbolEffect(.replace))
+                        .accessibilityHidden(true)
                 }
             }
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     private var systemLanguageDescription: String {
@@ -183,6 +186,5 @@ private struct LanguageRow: View {
 #Preview {
     LanguagePickerSheet()
         .environment(LocalizationManager.shared)
-        .environment(DataStore(seedSampleData: true))
         .preferredColorScheme(.dark)
 }

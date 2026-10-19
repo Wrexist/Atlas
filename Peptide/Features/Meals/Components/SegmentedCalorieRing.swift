@@ -75,11 +75,11 @@ struct SegmentedCalorieRing: View {
         return min(1.0, Double(max(0, breakdown.totalCalories)) / Double(target))
     }
 
-    /// Track if the user crossed their calorie target. Drives the
-    /// faint glow indicator overlay so over-target days are
-    /// visually distinct without redrawing the ring.
-    private var isOverTarget: Bool {
-        target > 0 && breakdown.totalCalories > target
+    /// How far past the target the day went, as a fraction of a second
+    /// lap (capped at one full lap). Zero when on or under target.
+    private var overflowProgress: Double {
+        guard target > 0, breakdown.totalCalories > target else { return 0 }
+        return min(1.0, Double(breakdown.totalCalories - target) / Double(target))
     }
 
     /// 0 → 1 multiplier on every segment's trim, so the first appear
@@ -94,11 +94,12 @@ struct SegmentedCalorieRing: View {
             ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
                 arc(for: segment)
             }
-            if isOverTarget && reveal == 1 {
-                overTargetGlow
+            if overflowProgress > 0 {
+                overflowLap
             }
         }
         .appAnimation(AppAnimation.springSmooth, value: totalProgress)
+        .appAnimation(AppAnimation.springSmooth, value: overflowProgress)
         .onAppear {
             guard !hasAppeared else { return }
             withAnimation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion)) {
@@ -128,30 +129,17 @@ struct SegmentedCalorieRing: View {
                 ),
                 style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt)
             )
-            // Soft glow hugging the stroke — kept tight so it stays clear
-            // of the protein ring inside and the over-target halo outside.
-            .shadow(color: segment.tint.opacity(0.35), radius: lineWidth / 3)
             .rotationEffect(.degrees(-90))
     }
 
-    /// Soft outer halo when the user crossed their target. Drawn
-    /// outside the ring's natural bounds so it reads as celebration
-    /// rather than "I'm bleeding off the edge".
-    private var overTargetGlow: some View {
+    /// A thin second lap in the warning tint for calories past target,
+    /// Activity-ring style, so going over reads as "past the line"
+    /// rather than as an error glow.
+    private var overflowLap: some View {
         Circle()
-            .stroke(
-                LinearGradient(
-                    colors: [
-                        AppColor.warning.opacity(0.30),
-                        AppColor.warning.opacity(0.15),
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ),
-                lineWidth: lineWidth + 4
-            )
-            .blur(radius: 6)
-            .opacity(0.6)
+            .trim(from: 0, to: overflowProgress * reveal)
+            .stroke(AppColor.warning, style: StrokeStyle(lineWidth: lineWidth / 3, lineCap: .round))
+            .rotationEffect(.degrees(-90))
     }
 
     private var accessibilityDescription: String {

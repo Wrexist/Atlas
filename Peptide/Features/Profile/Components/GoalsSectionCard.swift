@@ -32,10 +32,8 @@ struct GoalsSectionCard: View {
                         let isSelected = selectedKeys.contains(entry.key)
 
                         Button {
-                            Haptics.impact(.soft)
-                            AppAnimation.with(AppAnimation.springSnappy) {
-                                onToggle(entry.key)
-                            }
+                            Haptics.selection()
+                            onToggle(entry.key)
                         } label: {
                             HStack(spacing: Spacing.xs) {
                                 if isSelected {
@@ -44,8 +42,7 @@ struct GoalsSectionCard: View {
                                         .transition(.scale.combined(with: .opacity))
                                 }
                                 Text(entry.displayName)
-                                    .font(AppFont.footnote)
-                                    .fontWeight(.semibold)
+                                    .font(AppFont.chipText)
                             }
                             .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
                             .padding(.horizontal, Spacing.md)
@@ -61,6 +58,7 @@ struct GoalsSectionCard: View {
                                             )
                                     }
                             }
+                            .appAnimation(AppAnimation.springSnappy, value: isSelected)
                         }
                         .buttonStyle(ScalePressStyle(pressedScale: 0.95))
                         .accessibilityLabel(entry.displayName)

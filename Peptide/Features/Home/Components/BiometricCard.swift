@@ -13,64 +13,72 @@ struct BiometricCard: View {
     let sample: HealthRangeService.Sample?
     var onTap: (() -> Void)?
 
+    /// Only a real button when there's somewhere to go — a Button with
+    /// no action reads to VoiceOver as a control that does nothing.
+    @ViewBuilder
     var body: some View {
-        Button {
-            onTap?()
-        } label: {
-            HStack(alignment: .top, spacing: Spacing.sm) {
-                VStack(alignment: .leading, spacing: Spacing.xs) {
-                    HStack(spacing: 4) {
-                        Image(systemName: icon)
-                            .font(AppFont.scaled(11, weight: .semibold))
-                            .foregroundStyle(AppColor.textSecondary)
-                        Text(label)
-                            .font(AppFont.scaled(11, weight: .semibold))
-                            .foregroundStyle(AppColor.textSecondary)
-                    }
+        if let onTap {
+            Button(action: onTap) { content }
+                .buttonStyle(ScalePressStyle())
+                .accessibilityElement(children: .combine)
+        } else {
+            content
+                .accessibilityElement(children: .combine)
+        }
+    }
 
-                    HStack(alignment: .firstTextBaseline, spacing: 3) {
-                        Text(value)
-                            .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
-                            .foregroundStyle(AppColor.textPrimary)
-                            .monospacedDigit()
-                            .contentTransition(.numericText())
-                        Text(unit)
-                            .font(AppFont.scaled(11, weight: .semibold))
-                            .foregroundStyle(AppColor.textSecondary)
-                    }
-
-                    statusPill
-
-                    if let caption = sample?.confidenceCaption {
-                        Text(caption)
-                            .font(AppFont.scaled(8, weight: .medium))
-                            .foregroundStyle(AppColor.textSecondary)
-                            .lineLimit(1)
-                    }
+    private var content: some View {
+        HStack(alignment: .top, spacing: Spacing.sm) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                HStack(spacing: 4) {
+                    Image(systemName: icon)
+                        .font(AppFont.scaled(11, weight: .semibold))
+                        .foregroundStyle(AppColor.textSecondary)
+                    Text(label)
+                        .font(AppFont.scaled(11, weight: .semibold))
+                        .foregroundStyle(AppColor.textSecondary)
                 }
 
-                Spacer(minLength: 0)
+                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                    Text(value)
+                        .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                        .foregroundStyle(AppColor.textPrimary)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                    Text(unit)
+                        .font(AppFont.scaled(11, weight: .semibold))
+                        .foregroundStyle(AppColor.textSecondary)
+                }
 
-                if let sample {
-                    PersonalRangeIndicator(
-                        fraction: sample.positionInRange,
-                        tint: tint(for: sample)
-                    )
+                statusPill
+
+                if let caption = sample?.confidenceCaption {
+                    Text(caption)
+                        .font(AppFont.badgeSmall)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .lineLimit(1)
                 }
             }
-            .padding(Spacing.md)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.55))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                    }
+
+            Spacer(minLength: 0)
+
+            if let sample {
+                PersonalRangeIndicator(
+                    fraction: sample.positionInRange,
+                    tint: tint(for: sample)
+                )
             }
         }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
+        .padding(Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .fill(AppColor.surfaceSecondary.opacity(0.55))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                }
+        }
     }
 
     // MARK: - Status pill
@@ -119,7 +127,7 @@ struct BiometricCard: View {
         case (_, .normal):
             return AppColor.success
         case (.higherIsBetter, .lower), (.lowerIsBetter, .higher):
-            return AppColor.macroWaterLight        // soft blue — cautionary, not danger
+            return AppColor.belowRange             // soft blue — cautionary, not danger
         case (.neutral, _):
             return AppColor.accentLight
         }

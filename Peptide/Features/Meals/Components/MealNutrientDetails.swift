@@ -23,7 +23,7 @@ struct MealNutrientDetails: View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             row("Fiber", value: MealFoodComponent.completeTotal(components.map(\.fiberG)))
             row("Total sugars", value: MealFoodComponent.completeTotal(components.map(\.sugarsG)))
-            Text("From the recorded foods and portions. Missing source values are unavailable.")
+            Text("Not available for every food.")
                 .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
         }
     }
@@ -41,7 +41,7 @@ struct DailyMealNutrientsCard: View {
                 Text("Fiber & sugar").font(AppFont.headline)
                 row("Fiber", coverage: .derive(entries: entries, nutrient: \.fiberG))
                 row("Total sugars", coverage: .derive(entries: entries, nutrient: \.sugarsG))
-                Text("Based on meal entries with source data. Partial totals exclude foods with missing values; they are not complete daily totals.")
+                Text("From foods with label data.")
                     .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
             }
         }
@@ -52,7 +52,7 @@ struct DailyMealNutrientsCard: View {
                 "\($0.formatted(.number.precision(.fractionLength(0...1)))) g\(coverage.missing > 0 ? " · Partial" : "")"
             } ?? "Unavailable")
             if coverage.missing > 0 {
-                Text("Missing data for \(coverage.missing) foods or entries")
+                Text("^[\(coverage.missing) item](inflect: true) without label data")
                     .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
             }
         }

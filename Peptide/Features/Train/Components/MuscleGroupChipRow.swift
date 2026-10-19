@@ -9,28 +9,39 @@ struct MuscleGroupChipRow: View {
     @Binding var selection: MuscleGroup?
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Spacing.xs) {
-                GlassChip(
-                    "All",
-                    style: .prominent,
-                    isSelected: selection == nil
-                ) {
-                    selection = nil
-                }
-                ForEach(MuscleGroup.allCases) { group in
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: Spacing.xs) {
                     GlassChip(
-                        LocalizedStringKey(group.displayName),
-                        icon: group.symbolName,
+                        "All",
                         style: .prominent,
-                        isSelected: selection == group
+                        isSelected: selection == nil
                     ) {
-                        selection = (selection == group) ? nil : group
+                        selection = nil
+                    }
+                    ForEach(MuscleGroup.allCases) { group in
+                        GlassChip(
+                            LocalizedStringKey(group.displayName),
+                            icon: group.symbolName,
+                            style: .prominent,
+                            isSelected: selection == group
+                        ) {
+                            selection = (selection == group) ? nil : group
+                        }
+                        .id(group)
                     }
                 }
+                .padding(.horizontal, Spacing.screenPadding)
+                .padding(.vertical, Spacing.xs)
             }
-            .padding(.horizontal, Spacing.screenPadding)
-            .padding(.vertical, Spacing.xs)
+            // A pick made elsewhere (the body picker) can land on a chip
+            // that's scrolled off-screen; bring it into view.
+            .onChange(of: selection) { _, group in
+                guard let group else { return }
+                AppAnimation.with(AppAnimation.springSnappy) {
+                    proxy.scrollTo(group, anchor: .center)
+                }
+            }
         }
     }
 }

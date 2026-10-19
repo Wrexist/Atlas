@@ -4,6 +4,9 @@ struct BenefitTag: View {
     let text: String
     var icon: String?
     var color: Color = AppColor.accentPrimary
+    /// Trailing arrow marking a tag that navigates, so it reads differently
+    /// from the inert tags beside it.
+    var isLink = false
 
     var body: some View {
         HStack(alignment: .center, spacing: 4) {
@@ -16,6 +19,11 @@ struct BenefitTag: View {
                 .fontWeight(.semibold)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
+            if isLink {
+                Image(systemName: "chevron.right")
+                    .font(AppFont.scaled(8, weight: .bold))
+                    .accessibilityHidden(true)
+            }
         }
         .foregroundStyle(color)
         .padding(.horizontal, Spacing.sm)
@@ -28,7 +36,6 @@ struct BenefitTag: View {
                         .strokeBorder(color.opacity(0.3), lineWidth: 0.5)
                 }
         }
-        .shadow(color: color.opacity(0.15), radius: 3, y: 1)
     }
 }
 
@@ -61,9 +68,10 @@ struct StackTagFlow: View {
                 let style = BenefitStyleMap.style(for: stack, fallbackColor: fallbackColor)
                 if let target = PeptideDatabase.peptide(matching: stack), target.id != excludingPeptideID {
                     NavigationLink(value: target) {
-                        BenefitTag(text: stack, icon: style.icon, color: style.color)
+                        BenefitTag(text: stack, icon: style.icon, color: style.color, isLink: true)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(ScalePressStyle())
+                    .accessibilityAddTraits(.isLink)
                     .accessibilityHint("Opens \(target.abbreviation) details")
                 } else {
                     BenefitTag(text: stack, icon: style.icon, color: style.color)
