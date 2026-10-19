@@ -6,6 +6,7 @@ struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var storeService = StoreService.shared
     @State private var achievementService = AchievementService.shared
+    @AppStorage(HealthSyncSettings.enabledKey) private var healthActivitySync = false
     @State private var authService = AuthService.shared
     @State private var showReconstitutionCalculator = false
     @State private var showProfileCustomization = false
@@ -89,6 +90,10 @@ struct ProfileView: View {
                         nutritionWriteEnabled: dataStore.profile.healthKitNutritionEnabled,
                         onToggleNutritionWrite: { enabled in
                             Task { await dataStore.setHealthKitNutritionEnabled(enabled) }
+                        },
+                        activitySyncEnabled: healthActivitySync,
+                        onToggleActivitySync: { enabled in
+                            Task { await dataStore.setHealthActivitySyncEnabled(enabled) }
                         },
                         onConnect: { connectHealthKit() }
                     )
