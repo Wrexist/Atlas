@@ -473,8 +473,9 @@ final class ScreenshotTests: XCTestCase {
             ).firstMatch
             XCTAssertTrue(exercise.waitForExistence(timeout: 10))
             exercise.tap()
+            // Section headings can report isHittable == false under the
+            // glass card, so position by frame instead of reveal().
             let heading = app.staticTexts["Muscles worked"]
-            reveal(heading)
             scrollOnScreen(heading)
             capture(named: "activation-\(appearance)-01-detail")
             let triceps = app.buttons["muscle-row-Triceps"]
