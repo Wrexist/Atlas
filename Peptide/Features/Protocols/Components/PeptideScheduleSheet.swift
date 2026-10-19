@@ -212,38 +212,9 @@ struct PeptideScheduleSheet: View {
                     .foregroundStyle(AppColor.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                HStack(spacing: Spacing.sm) {
-                    TextField("e.g., 300 mcg", text: $customDose)
-                        .font(AppFont.body)
-                        .foregroundStyle(AppColor.textPrimary)
-                        .tint(AppColor.accentPrimary)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                        .padding(Spacing.md)
-                        .background {
-                            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                                .fill(AppColor.surfaceElevated)
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                                }
-                        }
-
-                    if !customDose.isEmpty {
-                        Button {
-                            AppAnimation.with(AppAnimation.springSnappy) { customDose = "" }
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(AppFont.scaled(16))
-                                .foregroundStyle(AppColor.textTertiary)
-                                .minimumHitArea()
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Clear dose")
-                        .transition(.opacity)
-                    }
-                }
-
+                GlassTextField(placeholder: "e.g., 300 mcg", text: $customDose, icon: nil)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
             }
         }
     }

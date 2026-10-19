@@ -251,69 +251,40 @@ struct WeeklySummaryHeroCard: View {
             ],
             spacing: Spacing.sm
         ) {
-            statTile(
+            StatTile(
                 label: "Compliance",
                 value: "\(Int((stats.compliancePct * 100).rounded()))%",
-                accent: accent
+                tint: accent
             )
-            statTile(
+            StatTile(
                 label: "Streak",
                 value: stats.currentStreak == 1 ? "1 day" : "\(stats.currentStreak) days",
-                accent: AppColor.streak
+                tint: AppColor.streak
             )
             if let composite = stats.avgCheckInScore {
-                statTile(
+                StatTile(
                     label: "Check-in",
                     value: String(format: "%.1f", composite),
-                    accent: AppColor.metricHRV
+                    tint: AppColor.metricHRV
                 )
             }
             if let calories = stats.avgCalories {
-                statTile(
+                StatTile(
                     label: "Avg kcal",
                     value: "\(calories)",
-                    accent: AppColor.macroProtein
+                    tint: AppColor.macroProtein
                 )
             }
             if let delta = stats.hrvDelta {
                 let prefix = delta > 0 ? "+" : ""
-                statTile(
+                StatTile(
                     label: "HRV Δ",
                     value: "\(prefix)\(delta) ms",
-                    accent: delta >= 0
+                    tint: delta >= 0
                         ? AppColor.positive
                         : AppColor.negative
                 )
             }
-        }
-    }
-
-    private func statTile(
-        label: LocalizedStringKey,
-        value: String,
-        accent: Color
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(AppFont.scaled(11, weight: .heavy))
-                .tracking(0.5)
-                .textCase(.uppercase)
-                .foregroundStyle(AppColor.textSecondary)
-            Text(value)
-                .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
-                .foregroundStyle(accent)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Spacing.sm)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.cardOverlay)
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
         }
     }
 

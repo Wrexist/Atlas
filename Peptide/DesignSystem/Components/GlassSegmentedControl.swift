@@ -2,83 +2,124 @@ import SwiftUI
 
 /// The app's one segmented control. The selection pill slides between
 /// segments via `matchedGeometryEffect`, mirroring the system tab bar.
-struct GlassSegmentedControl<T: Hashable & CustomStringConvertible>: View {
+///
+/// - `.standard` sits on a glass track with a tinted pill — for picking a
+///   mode inside a card or sheet.
+/// - `.prominent` drops the track and fills the pill with the accent — for
+///   a screen's top-level section switcher.
+struct GlassSegmentedControl<T: Hashable>: View {
+    enum Style {
+        case standard
+        case prominent
+    }
+
     let options: [T]
     @Binding var selected: T
-    var namespace: Namespace.ID
-    /// Optional override that returns a localized title for an option. When
-    /// nil, falls back to `option.description` (verbatim — not localized).
-    var label: ((T) -> LocalizedStringKey)?
+    var style: Style = .standard
+    let label: (T) -> LocalizedStringKey
+    var icon: ((T) -> String)?
+
+    @Namespace private var pillNamespace
 
     var body: some View {
-        HStack(spacing: Spacing.xs) {
+        switch style {
+        case .standard:
+            segments(spacing: 0)
+                .padding(Spacing.xs)
+                .glassControl(.capsule, interactive: false)
+        case .prominent:
+            segments(spacing: Spacing.sm)
+        }
+    }
+
+    private func segments(spacing: CGFloat) -> some View {
+        HStack(spacing: spacing) {
             ForEach(options, id: \.self) { option in
-                Button {
-                    guard selected != option else { return }
-                    Haptics.selection()
-                    AppAnimation.with(AppAnimation.springSnappy) {
-                        selected = option
-                    }
-                } label: {
-                    optionLabel(for: option)
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(
-                    selected == option ? [.isButton, .isSelected] : .isButton
-                )
+                segment(for: option)
             }
         }
-        .padding(Spacing.xs)
-        .glassControl(.capsule, interactive: false)
     }
 
-    private func optionLabel(for option: T) -> some View {
-        title(for: option)
-            .font(AppFont.subheadline)
-            .foregroundStyle(
-                selected == option ? AppColor.textPrimary : AppColor.textSecondary
-            )
-            .padding(.horizontal, Spacing.lg)
+    private func segment(for option: T) -> some View {
+        let isSelected = selected == option
+        return Button {
+            guard !isSelected else { return }
+            Haptics.selection()
+            AppAnimation.with(AppAnimation.springSnappy) {
+                selected = option
+            }
+        } label: {
+            HStack(spacing: Spacing.xs) {
+                if let icon {
+                    Image(systemName: icon(option))
+                        .font(AppFont.scaled(11, weight: .semibold))
+                        .accessibilityHidden(true)
+                }
+                Text(label(option))
+                    .font(AppFont.subheadline)
+                    .fontWeight(.semibold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+            .foregroundStyle(foreground(isSelected: isSelected))
+            .padding(.horizontal, style == .prominent ? Spacing.lg : Spacing.md)
             .padding(.vertical, Spacing.sm)
+            .frame(maxWidth: style == .prominent ? nil : CGFloat.infinity)
             .frame(minHeight: Spacing.minimumHitTarget)
-            .background { selectionBackground(for: option) }
-    }
-
-    @ViewBuilder
-    private func title(for option: T) -> some View {
-        if let label {
-            Text(label(option))
-        } else {
-            Text(option.description)
+            .background {
+                if isSelected {
+                    pill.matchedGeometryEffect(id: "segment", in: pillNamespace)
+                }
+            }
+            .contentShape(Capsule())
         }
+        .buttonStyle(ScalePressStyle())
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    /// The moving pill. It's a plain tinted capsule rather than a second
-    /// glass surface — stacking `glassEffect` inside an already-glass track
-    /// is what made the control read as a muddy grey slab on iOS 26.
+    private func foreground(isSelected: Bool) -> Color {
+        guard isSelected else { return AppColor.textSecondary }
+        return style == .prominent ? AppColor.onAccent : AppColor.textPrimary
+    }
+
+    /// The moving pill. On the standard track it's a plain tinted capsule
+    /// rather than a second glass surface — stacking `glassEffect` inside an
+    /// already-glass track is what made the control read as a muddy grey
+    /// slab on iOS 26.
     @ViewBuilder
-    private func selectionBackground(for option: T) -> some View {
-        if selected == option {
+    private var pill: some View {
+        switch style {
+        case .standard:
             Capsule(style: .continuous)
                 .fill(AppColor.accentPrimary.opacity(0.18))
                 .overlay {
                     Capsule(style: .continuous)
                         .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
                 }
-                .matchedGeometryEffect(id: "segment", in: namespace)
+        case .prominent:
+            Capsule(style: .continuous)
+                .fill(AppColor.accentFill)
         }
     }
 }
 
 #Preview {
-    @Previewable @Namespace var ns
     @Previewable @State var selected = "Week"
     ZStack {
         AppColor.background.ignoresSafeArea()
-        GlassSegmentedControl(
-            options: ["Week", "Month", "3 Months"],
-            selected: $selected,
-            namespace: ns
-        )
+        VStack(spacing: Spacing.lg) {
+            GlassSegmentedControl(
+                options: ["Week", "Month", "3 Months"],
+                selected: $selected,
+                label: { LocalizedStringKey($0) }
+            )
+            GlassSegmentedControl(
+                options: ["Week", "Month", "3 Months"],
+                selected: $selected,
+                style: .prominent,
+                label: { LocalizedStringKey($0) }
+            )
+        }
+        .padding(Spacing.screenPadding)
     }
 }

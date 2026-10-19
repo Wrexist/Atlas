@@ -142,10 +142,9 @@ struct PeptideSelector: View {
     private var categoryFilters: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Spacing.xs) {
-                FilterChip(
-                    title: "All",
+                GlassChip(
+                    "All",
                     icon: "square.grid.2x2",
-                    color: AppColor.accentPrimary,
                     isSelected: selectedCategory == nil && !showSelectedOnly
                 ) {
                     AppAnimation.with(AppAnimation.springSnappy) {
@@ -155,10 +154,9 @@ struct PeptideSelector: View {
                 }
 
                 if !selectedPeptides.isEmpty {
-                    FilterChip(
-                        title: "Selected",
+                    GlassChip(
+                        "Selected",
                         icon: "checkmark.circle.fill",
-                        color: AppColor.accentPrimary,
                         isSelected: showSelectedOnly
                     ) {
                         AppAnimation.with(AppAnimation.springSnappy) {
@@ -171,10 +169,10 @@ struct PeptideSelector: View {
                 }
 
                 ForEach(availableCategories) { category in
-                    FilterChip(
-                        title: category.localizedTitle,
+                    GlassChip(
+                        category.localizedTitle,
                         icon: category.iconName,
-                        color: category.color,
+                        tint: category.color,
                         isSelected: selectedCategory == category
                     ) {
                         AppAnimation.with(AppAnimation.springSnappy) {
@@ -283,41 +281,6 @@ struct PeptideSelector: View {
                                 .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
                         }
                 }
-            }
-        }
-        .buttonStyle(ScalePressStyle())
-    }
-}
-
-private struct FilterChip: View {
-    let title: LocalizedStringKey
-    let icon: String
-    let color: Color
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(AppFont.scaled(11, weight: .semibold))
-                Text(title)
-                    .font(AppFont.caption)
-                    .fontWeight(.semibold)
-            }
-            .foregroundStyle(isSelected ? color : AppColor.textSecondary)
-            .padding(.horizontal, Spacing.sm)
-            .padding(.vertical, 6)
-            .background {
-                Capsule()
-                    .fill(isSelected ? color.opacity(0.18) : AppColor.surfaceElevated)
-                    .overlay {
-                        Capsule()
-                            .strokeBorder(
-                                isSelected ? color.opacity(0.5) : AppColor.glassBorder,
-                                lineWidth: 0.5
-                            )
-                    }
             }
         }
         .buttonStyle(ScalePressStyle())

@@ -5,29 +5,19 @@ struct CategoryFilterChips: View {
     let selected: PeptideCategory?
     let onSelect: (PeptideCategory?) -> Void
 
-    private func handleSelect(_ category: PeptideCategory?) {
-        guard category != selected else { return }
-        Haptics.selection()
-        onSelect(category)
-    }
-
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Spacing.sm) {
-                FilterChip(
-                    title: "All",
-                    isSelected: selected == nil,
-                    color: AppColor.accentPrimary
-                ) {
+                GlassChip("All", isSelected: selected == nil) {
                     handleSelect(nil)
                 }
 
                 ForEach(categories) { category in
-                    FilterChip(
-                        title: category.localizedTitle,
+                    GlassChip(
+                        category.localizedTitle,
                         icon: category.iconName,
-                        isSelected: selected == category,
-                        color: category.color
+                        tint: category.color,
+                        isSelected: selected == category
                     ) {
                         handleSelect(category)
                     }
@@ -36,50 +26,10 @@ struct CategoryFilterChips: View {
             .padding(.horizontal, Spacing.screenPadding)
         }
     }
-}
 
-private struct FilterChip: View {
-    let title: LocalizedStringKey
-    var icon: String?
-    let isSelected: Bool
-    let color: Color
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: Spacing.xs) {
-                if let icon {
-                    Image(systemName: icon)
-                        .font(AppFont.scaled(11, weight: .semibold))
-                }
-                Text(title)
-                    .font(AppFont.footnote)
-                    .fontWeight(.semibold)
-            }
-            .foregroundStyle(isSelected ? color : AppColor.textSecondary)
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.sm)
-            .background {
-                Capsule()
-                    .fill(isSelected ? color.opacity(0.15) : AppColor.cardOverlay)
-                    .overlay {
-                        Capsule()
-                            .strokeBorder(
-                                isSelected ? color.opacity(0.3) : AppColor.glassBorder,
-                                lineWidth: 0.5
-                            )
-                    }
-            }
-        }
-        .buttonStyle(GlassPressStyle())
-    }
-}
-
-private struct GlassPressStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .appAnimation(AppAnimation.springSnappy, value: configuration.isPressed)
+    private func handleSelect(_ category: PeptideCategory?) {
+        guard category != selected else { return }
+        onSelect(category)
     }
 }
 

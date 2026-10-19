@@ -36,9 +36,9 @@ struct ScheduleEditor: View {
     var body: some View {
         VStack(spacing: Spacing.lg) {
             if let cadenceBinding = cadenceMode {
-                LiquidGlassSegmentedControl(
-                    selection: cadenceBinding,
+                GlassSegmentedControl(
                     options: ScheduleCadenceMode.allCases,
+                    selected: cadenceBinding,
                     label: { $0.label },
                     icon: { $0.icon }
                 )
@@ -108,7 +108,7 @@ struct ScheduleEditor: View {
                 .buttonStyle(.plain)
             }
 
-            HStack(spacing: 6) {
+            HStack(spacing: Spacing.xs) {
                 ForEach(1...7, id: \.self) { day in
                     DayChip(
                         label: dayNames[day - 1],
@@ -277,84 +277,37 @@ private struct DayChip: View {
             Text(label)
                 .font(AppFont.caption)
                 .fontWeight(.semibold)
-                .foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.textTertiary)
+                .lineLimit(1)
+                .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textSecondary)
                 .frame(maxWidth: .infinity)
-                .frame(height: 40)
-                .glassControl(
-                    .rect(cornerRadius: Spacing.smallCornerRadius),
-                    tint: isSelected ? AppColor.accentPrimary.opacity(0.32) : AppColor.surfaceElevated,
-                    border: isSelected ? AppColor.glassBorderActive : AppColor.glassBorder
-                )
-                .shadow(
-                    color: isSelected ? AppColor.accentGlow : .clear,
-                    radius: isSelected ? 8 : 0,
-                    y: isSelected ? 2 : 0
-                )
-                .scaleEffect(isSelected ? 1.0 : 0.97)
+                .frame(height: Spacing.minimumHitTarget)
+                .background { selectedFill }
+                .chipSurface(isSelected: isSelected)
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.92))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    /// A selected day is a solid accent tile carrying `onAccent`; an
+    /// unselected one is plain glass. Exactly one of the two paints, so the
+    /// chip never stacks a fill under the glass material.
+    @ViewBuilder
+    private var selectedFill: some View {
+        if isSelected {
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .fill(AppColor.accentFill)
+        }
     }
 }
 
-// MARK: - LiquidGlassSegmentedControl
-
-/// Custom segmented control with a sliding glass-tinted indicator that
-/// follows the selection. Replaces `Picker(.segmented)` because the system
-/// control can't be tinted to match the rest of the app's liquid-glass
-/// styling and animates noticeably less smoothly.
-struct LiquidGlassSegmentedControl<Option: Hashable>: View {
-    @Binding var selection: Option
-    let options: [Option]
-    let label: (Option) -> LocalizedStringKey
-    let icon: (Option) -> String
-
-    @Namespace private var pillNamespace
-
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(options, id: \.self) { option in
-                segmentButton(for: option)
-            }
+private extension View {
+    @ViewBuilder
+    func chipSurface(isSelected: Bool) -> some View {
+        if isSelected {
+            self
+        } else {
+            glassControl(.rect(cornerRadius: Spacing.smallCornerRadius), interactive: false)
         }
-        .padding(4)
-        .glassControl(.capsule)
-    }
-
-    private func segmentButton(for option: Option) -> some View {
-        let isSelected = option == selection
-        return Button {
-            guard option != selection else { return }
-            Haptics.impact(.light)
-            AppAnimation.with(AppAnimation.step) {
-                selection = option
-            }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: icon(option))
-                    .font(AppFont.scaled(11, weight: .semibold))
-                    .accessibilityHidden(true)
-                Text(label(option))
-                    .font(AppFont.subheadline)
-                    .fontWeight(.semibold)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-            }
-            .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.sm)
-            .frame(maxWidth: .infinity)
-            .background {
-                if isSelected {
-                    Capsule()
-                        .fill(AppColor.accentPrimary.opacity(0.18))
-                        .overlay {
-                            Capsule().strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
-                        }
-                        .matchedGeometryEffect(id: "segment-pill", in: pillNamespace)
-                }
-            }
-        }
-        .buttonStyle(ScalePressStyle(pressedScale: 0.96))
     }
 }
 

@@ -7,11 +7,9 @@ struct BioAgeTrendCard: View {
     let points: [PerformanceAgeEngine.TrendPoint]
     let chronologicalAge: Int
 
-    enum Window: Int, CaseIterable, CustomStringConvertible {
+    enum Window: Int, CaseIterable {
         case month = 30
         case quarter = 90
-
-        var description: String { "\(rawValue)" }
 
         var label: LocalizedStringKey {
             switch self {
@@ -22,7 +20,6 @@ struct BioAgeTrendCard: View {
     }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Namespace private var rangeNamespace
     @State private var range: Window = .quarter
     @State private var drawProgress: CGFloat = 0
 
@@ -40,7 +37,6 @@ struct BioAgeTrendCard: View {
                 GlassSegmentedControl(
                     options: Window.allCases,
                     selected: $range,
-                    namespace: rangeNamespace,
                     label: { $0.label }
                 )
                 .fixedSize()

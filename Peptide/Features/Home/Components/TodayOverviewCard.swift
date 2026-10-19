@@ -163,13 +163,13 @@ struct TodayOverviewCard: View {
     }
 
     private var caloriesTile: some View {
-        OverviewTile(
-            icon: "flame.fill",
-            iconTint: AppColor.macroProtein,
-            label: String(localized: "Calories"),
+        StatTile(
+            label: "Calories",
             value: snapshot.caloriesToday > 0 || snapshot.calorieTarget != nil
                 ? "\(snapshot.caloriesToday)"
                 : "—",
+            icon: "flame.fill",
+            tint: AppColor.macroProtein,
             footnote: caloriesFootnote,
             progress: caloriesProgress
         )
@@ -191,26 +191,25 @@ struct TodayOverviewCard: View {
     }
 
     private var mealStreakTile: some View {
-        OverviewTile(
-            icon: "leaf.fill",
-            iconTint: AppColor.streak,
-            label: String(localized: "Meal streak"),
+        StatTile(
+            label: "Meal streak",
             value: snapshot.mealStreak > 0 ? "\(snapshot.mealStreak)" : "—",
+            icon: "leaf.fill",
+            tint: AppColor.streak,
             footnote: snapshot.mealStreak == 1
                 ? String(localized: "day")
                 : (snapshot.mealStreak > 1
                     ? String(localized: "days in a row")
-                    : String(localized: "Log to start")),
-            progress: nil
+                    : String(localized: "Log to start"))
         )
     }
 
     private var checkInTile: some View {
-        OverviewTile(
-            icon: "heart.text.square.fill",
-            iconTint: AppColor.metricHRV,
-            label: String(localized: "Check-in"),
+        StatTile(
+            label: "Check-in",
             value: snapshot.checkInScore.map { String(format: "%.1f", $0) } ?? "—",
+            icon: "heart.text.square.fill",
+            tint: AppColor.metricHRV,
             footnote: snapshot.checkInScore != nil
                 ? String(localized: "of 5.0")
                 : String(localized: "30-sec check-in"),
@@ -219,15 +218,14 @@ struct TodayOverviewCard: View {
     }
 
     private var waterTile: some View {
-        OverviewTile(
-            icon: "drop.fill",
-            iconTint: AppColor.macroWater,
-            label: String(localized: "Water"),
+        StatTile(
+            label: "Water",
             value: snapshot.waterToday > 0 ? "\(unit.volumeValue(snapshot.waterToday))" : "—",
+            icon: "drop.fill",
+            tint: AppColor.macroWater,
             footnote: snapshot.waterToday > 0
                 ? "\(unit.volumeSuffix) today"
-                : String(localized: "Quick-add from Watch"),
-            progress: nil
+                : String(localized: "Quick-add from Watch")
         )
     }
 
@@ -291,78 +289,6 @@ struct TodayOverviewCard: View {
 // into `HeroMetricTrio.adherence`, so the duplicate ring was both
 // redundant data and ~80pt of wasted vertical space. Stat tiles +
 // next-dose strip + insight are the remaining responsibilities.
-
-// MARK: - Tile
-
-/// One stat tile in the 2×2 grid. The progress arc is optional —
-/// when nil the tile renders a flat icon chip instead, keeping
-/// the row visually balanced when only some domains have a
-/// meaningful target to fill.
-private struct OverviewTile: View {
-    let icon: String
-    let iconTint: Color
-    let label: String
-    let value: String
-    let footnote: String
-    let progress: Double?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            HStack {
-                ZStack {
-                    if let progress {
-                        Circle()
-                            .stroke(iconTint.opacity(0.18), lineWidth: 3)
-                        Circle()
-                            .trim(from: 0, to: max(0.001, progress))
-                            .stroke(
-                                iconTint,
-                                style: StrokeStyle(lineWidth: 3, lineCap: .round)
-                            )
-                            .rotationEffect(.degrees(-90))
-                            .appAnimation(AppAnimation.springSmooth, value: progress)
-                    } else {
-                        Circle()
-                            .fill(iconTint.opacity(0.18))
-                    }
-                    Image(systemName: icon)
-                        .font(AppFont.scaled(11, weight: .heavy))
-                        .foregroundStyle(iconTint)
-                }
-                .frame(width: 28, height: 28)
-                Spacer()
-            }
-            Text(value)
-                .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
-                .monospacedDigit()
-                .contentTransition(.numericText())
-                .foregroundStyle(AppColor.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            Text(label)
-                .font(AppFont.scaled(11, weight: .heavy))
-                .tracking(0.5)
-                .textCase(.uppercase)
-                .foregroundStyle(AppColor.textSecondary)
-            Text(footnote)
-                .font(AppFont.scaled(11, weight: .regular))
-                .foregroundStyle(AppColor.textTertiary)
-                .lineLimit(1)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.cardOverlay)
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(label): \(value). \(footnote)")
-    }
-}
 
 // `CompactCompliancePill` lived in the card's deleted header and
 // went away with it — same role now covered by HeroMetricTrio.

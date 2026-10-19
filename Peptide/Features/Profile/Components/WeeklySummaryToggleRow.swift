@@ -53,15 +53,7 @@ struct WeeklySummaryToggleRow: View {
                             .fontWeight(.semibold)
                             .foregroundStyle(AppColor.textPrimary)
                         if !isPro {
-                            Text("PRO")
-                                .font(AppFont.scaled(8, weight: .heavy))
-                                .tracking(0.5)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 2)
-                                .foregroundStyle(AppColor.onAccent)
-                                .background {
-                                    Capsule().fill(AppColor.accentFill)
-                                }
+                            Badge("PRO", style: .solid)
                         }
                     }
                     Text(subtitle(isPro: isPro))

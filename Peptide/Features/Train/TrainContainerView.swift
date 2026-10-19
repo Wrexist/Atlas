@@ -23,18 +23,17 @@ struct TrainContainerView: View {
     /// every return to this tab, and re-opening a workout the user just
     /// minimized would make minimizing pointless.
     @State private var restoredActiveWorkout = false
-    @Namespace private var sectionIndicator
 
     enum Section: String, CaseIterable, Identifiable {
         case overview, routines, exercises, history
         var id: String { rawValue }
 
-        var displayName: String {
+        var displayName: LocalizedStringKey {
             switch self {
-            case .overview:  return "Overview"
-            case .routines:  return "Routines"
-            case .exercises: return "Exercises"
-            case .history:   return "History"
+            case .overview:  "Overview"
+            case .routines:  "Routines"
+            case .exercises: "Exercises"
+            case .history:   "History"
             }
         }
     }
@@ -172,21 +171,12 @@ struct TrainContainerView: View {
         // Dynamic Type sizes are wider than an iPhone — a fixed HStack
         // would clip the last section rather than let the user reach it.
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Spacing.sm) {
-                ForEach(Section.allCases) { item in
-                    SectionTab(
-                        title: item.displayName,
-                        isSelected: section == item,
-                        namespace: sectionIndicator
-                    ) {
-                        guard section != item else { return }
-                        Haptics.selection()
-                        withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) {
-                            section = item
-                        }
-                    }
-                }
-            }
+            GlassSegmentedControl(
+                options: Section.allCases,
+                selected: $section,
+                style: .prominent,
+                label: { $0.displayName }
+            )
             .padding(.horizontal, Spacing.screenPadding)
         }
         .scrollClipDisabled()
@@ -224,41 +214,6 @@ struct TrainContainerView: View {
                 message: "This session may have been deleted."
             )
             .navigationTitle("Workout")
-        }
-    }
-
-    // MARK: - SectionTab
-
-    private struct SectionTab: View {
-        let title: String
-        let isSelected: Bool
-        let namespace: Namespace.ID
-        let action: () -> Void
-
-        var body: some View {
-            Button(action: action) {
-                Text(title)
-                    .font(AppFont.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textSecondary)
-                    .padding(.horizontal, Spacing.lg)
-                    .padding(.vertical, Spacing.sm)
-                    .background {
-                        // Only the selected pill draws a surface, and it
-                        // travels between sections rather than cross-fading
-                        // — the movement is what tells the user the two are
-                        // the same control.
-                        if isSelected {
-                            Capsule()
-                                .fill(AppColor.accentFill)
-                                .matchedGeometryEffect(id: "section", in: namespace)
-                        }
-                    }
-                    .frame(minHeight: Spacing.minimumHitTarget)
-                    .contentShape(Capsule())
-            }
-            .buttonStyle(ScalePressStyle())
-            .accessibilityAddTraits(isSelected ? .isSelected : [])
         }
     }
 }

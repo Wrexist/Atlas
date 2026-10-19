@@ -90,7 +90,14 @@ struct CustomPeptideForm: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: Spacing.xs) {
                         ForEach(PeptideCategory.allCases) { option in
-                            categoryChip(option)
+                            GlassChip(
+                                option.localizedTitle,
+                                icon: option.iconName,
+                                tint: option.color,
+                                isSelected: category == option
+                            ) {
+                                category = option
+                            }
                         }
                     }
                     .padding(.horizontal, 1)
@@ -167,37 +174,6 @@ struct CustomPeptideForm: View {
                             .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                     }
             }
-    }
-
-    private func categoryChip(_ option: PeptideCategory) -> some View {
-        let isSelected = category == option
-        return Button {
-            category = option
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: option.iconName)
-                    .font(AppFont.scaled(11, weight: .semibold))
-                    .accessibilityHidden(true)
-                Text(option.localizedTitle)
-                    .font(AppFont.caption)
-                    .fontWeight(.semibold)
-            }
-            .foregroundStyle(isSelected ? option.color : AppColor.textSecondary)
-            .padding(.horizontal, Spacing.sm)
-            .padding(.vertical, 6)
-            .background {
-                Capsule()
-                    .fill(isSelected ? option.color.opacity(0.18) : AppColor.surfaceElevated)
-                    .overlay {
-                        Capsule()
-                            .strokeBorder(
-                                isSelected ? option.color.opacity(0.5) : AppColor.glassBorder,
-                                lineWidth: 0.5
-                            )
-                    }
-            }
-        }
-        .buttonStyle(.plain)
     }
 
     private func save() {

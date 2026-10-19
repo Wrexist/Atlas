@@ -3,9 +3,7 @@ import SwiftUI
 /// One-line entry tile for the reconstitution calculator. Sits in
 /// Profile between the Apple Health card and the Export section —
 /// the "tools" cluster — so users discover it when they're already
-/// in setup-and-config mode. Visually a smaller tile than the
-/// other Profile cards to signal "utility" rather than "primary
-/// affordance".
+/// in setup-and-config mode.
 struct ReconstitutionEntryCard: View {
     let onTap: () -> Void
 

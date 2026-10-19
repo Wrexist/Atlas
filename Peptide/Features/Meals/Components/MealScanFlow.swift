@@ -1116,11 +1116,10 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
 
     var isUncertain: Bool { replacementSourceID == nil && confidence < Self.uncertaintyThreshold }
 
-    enum PortionMode: String, CaseIterable, Identifiable, CustomStringConvertible, Codable {
+    enum PortionMode: String, CaseIterable, Identifiable, Codable {
         case serving, grams
         var id: Self { self }
-        var label: String { self == .serving ? "Servings" : "Grams" }
-        var description: String { label }
+        var label: LocalizedStringKey { self == .serving ? "Servings" : "Grams" }
     }
 
     /// Current portion expressed in servings, where one serving is the
@@ -1250,7 +1249,6 @@ private struct FoodItemEditCard: View {
     @Binding var item: EditableFoodItem
     let onSave: () -> Void
     /// Drives the sliding selection pill on the Servings/Grams control.
-    @Namespace private var portionNS
     /// Lets the low-confidence hint put the cursor in the name field —
     /// telling the user the name might be wrong is only half a feature
     /// if fixing it is a separate hunt for the tap target.
@@ -1459,7 +1457,7 @@ private struct FoodItemEditCard: View {
         GlassSegmentedControl(
             options: EditableFoodItem.PortionMode.allCases,
             selected: $item.portionMode,
-            namespace: portionNS
+            label: { $0.label }
         )
     }
 

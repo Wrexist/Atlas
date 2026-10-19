@@ -191,9 +191,14 @@ struct PeptideListView: View {
                 )
                 .padding(.horizontal, Spacing.screenPadding)
 
-                AddCustomPeptideCard {
-                    showCustomForm = true
-                }
+                // Invites a custom peptide, drug, or pill not in the database.
+                GlassEntryRow(
+                    icon: "plus",
+                    title: "Add Custom Peptide or Pill",
+                    subtitle: Text("Add anything not in the database — peptides, drugs, supplements"),
+                    action: { showCustomForm = true }
+                )
+                .accessibilityHint("Opens a form to add a custom peptide, drug, or supplement")
                 .padding(.horizontal, Spacing.screenPadding)
 
                 GlassTextField(
@@ -336,111 +341,14 @@ private struct ProtocolsEntryCard: View {
     }
 
     var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: Spacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(AppColor.accentPrimary.opacity(0.18))
-                        .frame(width: 44, height: 44)
-                    Image(systemName: "flask.fill")
-                        .font(AppFont.scaled(16, weight: .bold))
-                        .foregroundStyle(AppColor.accentLight)
-                }
-
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text(title)
-                        .font(AppFont.headline)
-                        .foregroundStyle(AppColor.textPrimary)
-                    Text(subtitle)
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-                }
-
-                Spacer()
-
-                if isEmpty {
-                    Text("Get started")
-                        .font(AppFont.scaled(13, weight: .heavy))
-                        .foregroundStyle(AppColor.accentPrimary)
-                } else {
-                    Image(systemName: "chevron.right")
-                        .font(AppFont.scaled(11, weight: .semibold))
-                        .foregroundStyle(AppColor.textTertiary)
-                }
-            }
-            .padding(Spacing.md)
-            .frame(maxWidth: .infinity)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(AppColor.accentPrimary.opacity(isEmpty ? 0.12 : 0.06))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                            .strokeBorder(
-                                isEmpty ? AppColor.accentPrimary.opacity(0.45) : AppColor.glassBorder,
-                                lineWidth: isEmpty ? 1 : 0.5
-                            )
-                    }
-            }
-        }
-        .buttonStyle(ScalePressStyle())
+        GlassEntryRow(
+            icon: "flask.fill",
+            title: title,
+            subtitle: Text(subtitle),
+            badge: isEmpty ? Badge("Get started", style: .solid) : nil,
+            action: onTap
+        )
         .accessibilityLabel(isEmpty ? "Create your first protocol" : "Open your protocols")
-    }
-}
-
-/// Prominent affordance at the top of the Peptides tab inviting the user to
-/// add a custom peptide, drug, or pill not in the database.
-private struct AddCustomPeptideCard: View {
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: Spacing.md) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .fill(AppColor.accentPrimary.opacity(0.18))
-                        .frame(width: 44, height: 44)
-                    Image(systemName: "plus")
-                        .font(AppFont.scaled(16, weight: .bold))
-                        .foregroundStyle(AppColor.accentLight)
-                }
-
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text("Add Custom Peptide or Pill")
-                        .font(AppFont.headline)
-                        .foregroundStyle(AppColor.textPrimary)
-                    Text("Add anything not in the database — peptides, drugs, supplements")
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(AppFont.scaled(11, weight: .semibold))
-                    .foregroundStyle(AppColor.textTertiary)
-            }
-            .padding(Spacing.md)
-            .frame(maxWidth: .infinity)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.6))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                            .fill(AppColor.glassTint)
-                    }
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                            .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
-                    }
-            }
-        }
-        .buttonStyle(ScalePressStyle())
-        .accessibilityLabel("Add custom peptide or pill")
-        .accessibilityHint("Opens a form to add a custom peptide, drug, or supplement")
     }
 }
 

@@ -108,7 +108,18 @@ struct ProfileView: View {
                     ReconstitutionEntryCard(onTap: { showReconstitutionCalculator = true })
                         .scrollReveal()
 
-                    SettingsEntryRow()
+                    // The way into Settings at the foot of Profile; the
+                    // toolbar gear goes to the same place.
+                    NavigationLink {
+                        SettingsView()
+                    } label: {
+                        GlassEntryRowLabel(
+                            icon: "gearshape.fill",
+                            title: "Settings",
+                            subtitle: Text("Training, reminders, appearance, data, account and about.")
+                        )
+                    }
+                    .buttonStyle(ScalePressStyle(pressedScale: 0.98))
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
@@ -180,49 +191,6 @@ struct ProfileView: View {
             current.insert(goal)
         }
         dataStore.updateGoals(current)
-    }
-}
-
-/// The way into `SettingsView`, at the foot of Profile. The gear in the
-/// toolbar goes to the same place.
-private struct SettingsEntryRow: View {
-    var body: some View {
-        NavigationLink {
-            SettingsView()
-        } label: {
-            HStack(spacing: Spacing.md) {
-                Image(systemName: "gearshape.fill")
-                    .font(AppFont.scaled(16, weight: .semibold))
-                    .foregroundStyle(AppColor.accentLight)
-                    .frame(width: 36, height: 36)
-                    .background {
-                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                            .fill(AppColor.accentPrimary.opacity(0.18))
-                    }
-                    .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Settings")
-                        .font(AppFont.headline)
-                        .foregroundStyle(AppColor.textPrimary)
-                    Text("Training, reminders, appearance, data, account and about.")
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Spacer(minLength: 0)
-
-                Image(systemName: "chevron.right")
-                    .font(AppFont.scaled(11, weight: .bold))
-                    .foregroundStyle(AppColor.textTertiary)
-                    .accessibilityHidden(true)
-            }
-            .padding(Spacing.md)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .glassSurface(cornerRadius: Spacing.cardCornerRadius)
-        }
-        .buttonStyle(.plain)
     }
 }
 

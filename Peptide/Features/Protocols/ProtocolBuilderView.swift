@@ -405,41 +405,11 @@ struct ProtocolBuilderView: View {
     }
 
     private var browseLibraryRow: some View {
-        HStack(spacing: Spacing.md) {
-            ZStack {
-                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .fill(AppColor.accentPrimary.opacity(0.18))
-                    .frame(width: 44, height: 44)
-                Image(systemName: "books.vertical.fill")
-                    .font(AppFont.scaled(16, weight: .bold))
-                    .foregroundStyle(AppColor.accentLight)
-            }
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Start from a library stack")
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
-                Text("Browse research-backed templates")
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textSecondary)
-            }
-            Spacer()
-            Image(systemName: "chevron.right")
-                .font(AppFont.scaled(11, weight: .semibold))
-                .foregroundStyle(AppColor.textTertiary)
-        }
-        .padding(Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .fill(AppColor.glassTint)
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
-                }
-        }
+        GlassEntryRowLabel(
+            icon: "books.vertical.fill",
+            title: "Start from a library stack",
+            subtitle: Text("Browse research-backed templates")
+        )
     }
 
     private func warningsCard(_ warnings: [StackRecommendationEngine.Warning]) -> some View {

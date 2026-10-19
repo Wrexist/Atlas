@@ -97,40 +97,11 @@ struct TrackCalendarSection: View {
     // MARK: - Schedule / Cycle toggle
 
     private var modeToggle: some View {
-        HStack(spacing: 0) {
-            ForEach(CalendarDisplayMode.allCases) { mode in
-                modeChip(mode)
-            }
-        }
-        .padding(4)
-        .glassControl(.capsule)
-    }
-
-    private func modeChip(_ mode: CalendarDisplayMode) -> some View {
-        let isSelected = displayMode == mode
-        return Button {
-            AppAnimation.with(AppAnimation.springSnappy) { displayMode = mode }
-            Haptics.selection()
-        } label: {
-            Text(mode.label)
-                .font(AppFont.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.xs)
-                .background {
-                    if isSelected {
-                        Capsule()
-                            .fill(AppColor.accentPrimary.opacity(0.18))
-                            .overlay {
-                                Capsule()
-                                    .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
-                            }
-                    }
-                }
-        }
-        .buttonStyle(ScalePressStyle())
-        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+        GlassSegmentedControl(
+            options: CalendarDisplayMode.allCases,
+            selected: $displayMode,
+            label: { $0.label }
+        )
     }
 
     // MARK: - Filter shelf
