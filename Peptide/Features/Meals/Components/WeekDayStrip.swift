@@ -10,11 +10,14 @@ struct WeekDayStrip: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var pillNamespace
     @State private var hasAppeared = false
+    /// The week last drawn, so a new week knows which side to slide in from.
+    @State private var shownWeekStart: Int?
 
     private static let selectableOffsets = -LifestyleDataLogic.maxMealDayLookback...0
 
     var body: some View {
         let week = Self.weekOffsets(containing: offset)
+        let fromLater = week.lowerBound > (shownWeekStart ?? week.lowerBound)
         HStack(spacing: Spacing.xxs) {
             ForEach(week, id: \.self) { dayOffset in
                 cell(dayOffset)
@@ -28,7 +31,18 @@ struct WeekDayStrip: View {
                     )
             }
         }
-        .onAppear { hasAppeared = true }
+        // A new week slides in from the side time moved toward; the old
+        // one fades rather than guessing a direction it was drawn without.
+        .id(week.lowerBound)
+        .transition(.asymmetric(
+            insertion: reduceMotion ? .opacity : .move(edge: fromLater ? .trailing : .leading).combined(with: .opacity),
+            removal: .opacity
+        ))
+        .onAppear {
+            hasAppeared = true
+            shownWeekStart = week.lowerBound
+        }
+        .onChange(of: week.lowerBound) { _, start in shownWeekStart = start }
     }
 
     private func cell(_ dayOffset: Int) -> some View {
@@ -62,7 +76,7 @@ struct WeekDayStrip: View {
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.94))
         .disabled(!isSelectable)
         .accessibilityLabel(Text(day, format: .dateTime.weekday(.wide).month(.wide).day()))
         .accessibilityValue(dayOffset == 0 ? Text("Today") : Text(""))

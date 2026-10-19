@@ -134,7 +134,7 @@ struct AIResearchView: View {
             }
             .onChange(of: transcript.count) { _, _ in
                 guard let last = transcript.last else { return }
-                withAnimation(.easeOut(duration: 0.25)) {
+                AppAnimation.with(AppAnimation.fadeIn) {
                     proxy.scrollTo(last.id, anchor: .bottom)
                 }
             }

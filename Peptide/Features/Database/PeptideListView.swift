@@ -227,7 +227,7 @@ struct PeptideListView: View {
                         }
                     }
                     .padding(.horizontal, Spacing.screenPadding)
-                    .animation(AppAnimation.fadeIn, value: viewModel.filteredPeptides.map(\.id))
+                    .appAnimation(AppAnimation.fadeIn, value: viewModel.filteredPeptides.map(\.id))
                 }
             }
             .padding(.top, Spacing.sm)

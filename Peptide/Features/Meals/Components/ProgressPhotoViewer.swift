@@ -76,7 +76,7 @@ struct ProgressPhotoViewer: View {
                         dateChip(filename: selected)
                             .padding(.bottom, Spacing.xl)
                             .transition(.opacity)
-                            .animation(.easeOut(duration: 0.18), value: selected)
+                            .appAnimation(AppAnimation.quick, value: selected)
                     }
                 }
             }
@@ -102,7 +102,7 @@ struct ProgressPhotoViewer: View {
                             }
                         }
                         Button {
-                            withAnimation(.easeOut(duration: 0.18)) {
+                            AppAnimation.with(AppAnimation.quick) {
                                 blurEnabled.toggle()
                             }
                         } label: {
@@ -135,7 +135,7 @@ struct ProgressPhotoViewer: View {
                 .resizable()
                 .scaledToFit()
                 .blur(radius: blurEnabled ? 22 : 0)
-                .animation(.easeOut(duration: 0.18), value: blurEnabled)
+                .appAnimation(AppAnimation.quick, value: blurEnabled)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if !resolved.contains(filename) {
             // Decode in flight. The viewport is already black, so an

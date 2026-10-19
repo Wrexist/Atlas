@@ -41,7 +41,10 @@ struct HabitRowCard: View {
         .accessibilityLabel("\(habit.name). \(summary.currentStreak) day streak, \(summary.totalCompletedDays) days total.")
         .accessibilityAddTraits(.isButton)
         .onChange(of: summary.isCompletedToday) { _, completed in
-            if completed { completionTrigger &+= 1 }
+            guard completed else { return }
+            completionTrigger &+= 1
+            // The habit's payoff, not every tap of a multi-count habit.
+            Haptics.success()
         }
     }
 
@@ -92,9 +95,12 @@ struct HabitRowCard: View {
                     Circle()
                         .fill(habit.tint)
                         .frame(width: 22, height: 22)
+                        .transition(.scale.combined(with: .opacity))
                     Image(systemName: "checkmark")
                         .font(AppFont.scaled(11, weight: .bold))
                         .foregroundStyle(AppColor.background)
+                        .symbolEffect(.bounce, value: summary.isCompletedToday)
+                        .transition(.scale.combined(with: .opacity))
                 } else if summary.todayProgress > 0 {
                     Circle()
                         .trim(from: 0, to: summary.todayProgress)

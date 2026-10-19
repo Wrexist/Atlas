@@ -145,7 +145,7 @@ struct NutritionTargetsEditor: View {
                 segment(width: geo.size.width * c / total, tint: .blue)
                 segment(width: geo.size.width * f / total, tint: .orange)
             }
-            .animation(AppAnimation.springSmooth, value: total)
+            .appAnimation(AppAnimation.springSmooth, value: total)
         }
         .frame(height: 10)
         .background(Capsule().fill(AppColor.surfaceSecondary.opacity(0.6)))
@@ -404,7 +404,7 @@ struct NutritionTargetsEditor: View {
     }
 
     private func apply(_ targets: NutritionTargets) {
-        withAnimation(AppAnimation.springSmooth) {
+        AppAnimation.with(AppAnimation.springSmooth) {
             calories = String(targets.calories)
             protein = String(targets.proteinG)
             carbs = String(targets.carbsG)

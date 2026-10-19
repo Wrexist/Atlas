@@ -30,7 +30,8 @@ struct MealCategoryPicker: View {
         let active = (selection == category)
         let tint = category.tint
         return Button {
-            withAnimation(.easeOut(duration: 0.18)) {
+            Haptics.selection()
+            AppAnimation.with(AppAnimation.quick) {
                 selection = category
             }
         } label: {

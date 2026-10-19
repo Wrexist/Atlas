@@ -18,7 +18,7 @@ struct GlassTextField: View {
 
             if !text.isEmpty {
                 Button {
-                    withAnimation(AppAnimation.springSnappy) {
+                    AppAnimation.with(AppAnimation.springSnappy) {
                         text = ""
                     }
                 } label: {

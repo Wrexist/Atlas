@@ -72,6 +72,7 @@ struct HabitsView: View {
                     } else {
                         if dataStore.habitStreakAtRisk {
                             streakFreezeBanner
+                                .transition(.move(edge: .top).combined(with: .opacity))
                         }
                         habitsSummaryHeader(rows: visibleRows)
                         progressLink
@@ -100,6 +101,7 @@ struct HabitsView: View {
                                     Label("Delete", systemImage: "trash")
                                 }
                             }
+                            .transition(.opacity.combined(with: .move(edge: .top)))
                         }
                     }
                 }
@@ -159,12 +161,15 @@ struct HabitsView: View {
 
     private func rebuildRows() {
         let entries = dataStore.profile.habitEntries
-        rows = habits.map { habit in
+        let next = habits.map { habit in
             let summary = HabitsService.summary(for: habit, entries: entries, frozenDayKeys: dataStore.profile.streakFreezeDays)
             let days = HabitsService.heatmap(for: habit, entries: entries, dayCount: 182)
             let columns = HabitsService.heatmapColumns(from: days)
             return Row(habit: habit, summary: summary, columns: columns, heatmapStart: days.first?.date)
         }
+        // Rows land a transaction after the toggle that changed them, so the
+        // stats only roll and the heatmap only fades if this one animates.
+        AppAnimation.with(AppAnimation.springSnappy) { rows = next }
     }
 
     /// At-a-glance header for the tab root: today's completion ring, best
@@ -267,7 +272,7 @@ struct HabitsView: View {
             Spacer(minLength: 0)
             Button {
                 Haptics.success()
-                withAnimation(AppAnimation.springSmooth) {
+                AppAnimation.with(AppAnimation.springSmooth) {
                     dataStore.applyStreakFreeze()
                 }
             } label: {

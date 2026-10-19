@@ -109,7 +109,7 @@ struct TrackCalendarSection: View {
     private func modeChip(_ mode: CalendarDisplayMode) -> some View {
         let isSelected = displayMode == mode
         return Button {
-            withAnimation(AppAnimation.springSnappy) { displayMode = mode }
+            AppAnimation.with(AppAnimation.springSnappy) { displayMode = mode }
             Haptics.selection()
         } label: {
             Text(mode.label)
@@ -152,7 +152,7 @@ struct TrackCalendarSection: View {
     private var allFilterPill: some View {
         let isActive = filterPeptideID == nil
         return Button {
-            withAnimation(AppAnimation.springSnappy) { filterPeptideID = nil }
+            AppAnimation.with(AppAnimation.springSnappy) { filterPeptideID = nil }
             Haptics.selection()
         } label: {
             Text("All")
@@ -178,7 +178,7 @@ struct TrackCalendarSection: View {
     private func filterPill(for peptide: Peptide) -> some View {
         let isActive = filterPeptideID == peptide.id
         return Button {
-            withAnimation(AppAnimation.springSnappy) {
+            AppAnimation.with(AppAnimation.springSnappy) {
                 filterPeptideID = isActive ? nil : peptide.id
             }
             Haptics.selection()
@@ -263,7 +263,7 @@ struct TrackCalendarSection: View {
         )
         return Button {
             let now = Date()
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+            AppAnimation.with(AppAnimation.step) {
                 monthDate = Calendar.current.startOfMonth(for: now)
                 selectedDay = Calendar.current.startOfDay(for: now)
             }
@@ -311,7 +311,7 @@ struct TrackCalendarSection: View {
 
     private func shiftMonth(by months: Int) {
         guard let next = Calendar.current.date(byAdding: .month, value: months, to: monthDate) else { return }
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+        AppAnimation.with(AppAnimation.step) {
             monthDate = Calendar.current.startOfMonth(for: next)
         }
         Haptics.impact(.light)

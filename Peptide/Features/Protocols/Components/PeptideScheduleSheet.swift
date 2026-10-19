@@ -96,7 +96,7 @@ struct PeptideScheduleSheet: View {
                     .padding(.horizontal, Spacing.screenPadding)
                     .padding(.bottom, Spacing.xxxxl)
                     .padding(.top, Spacing.md)
-                    .animation(AppAnimation.springSnappy, value: useCustom)
+                    .appAnimation(AppAnimation.springSnappy, value: useCustom)
                 }
             }
             .navigationTitle(peptide.abbreviation)
@@ -231,7 +231,7 @@ struct PeptideScheduleSheet: View {
 
                     if !customDose.isEmpty {
                         Button {
-                            withAnimation(AppAnimation.springSnappy) { customDose = "" }
+                            AppAnimation.with(AppAnimation.springSnappy) { customDose = "" }
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .font(AppFont.scaled(16))

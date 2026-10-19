@@ -117,7 +117,7 @@ struct AddToStackSheet: View {
             guard !alreadyIn else { return }
             let success = dataStore.addPeptide(peptide, toProtocolId: proto.id)
             if success {
-                withAnimation(AppAnimation.springSnappy) {
+                AppAnimation.with(AppAnimation.springSnappy) {
                     justAddedTo = proto.id
                 }
                 let delayMs: UInt64 = reduceMotion ? 0 : 600
@@ -208,7 +208,7 @@ private struct StackPickerPressStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
             .opacity(configuration.isPressed ? 0.85 : 1.0)
-            .animation(AppAnimation.springSnappy, value: configuration.isPressed)
+            .appAnimation(AppAnimation.springSnappy, value: configuration.isPressed)
     }
 }
 

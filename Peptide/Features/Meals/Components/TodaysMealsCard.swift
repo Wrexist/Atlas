@@ -89,8 +89,13 @@ struct TodaysMealsCard: View {
                 } onDelete: {
                     pendingDelete = entry
                 }
+                .transition(.asymmetric(
+                    insertion: .move(edge: .top).combined(with: .opacity),
+                    removal: .opacity.combined(with: .scale(scale: 0.95))
+                ))
             }
         }
+        .appAnimation(AppAnimation.springSnappy, value: entries.map(\.id))
     }
 }
 

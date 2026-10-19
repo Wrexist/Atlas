@@ -45,44 +45,49 @@ struct ProfileView: View {
                     )
                     .sectionAppear(index: 0)
 
-                    if storeService.isProUser || storeService.isInBillingRetry {
-                        SubscriptionSection()
-                            .sectionAppear(index: 1)
-                    } else {
-                        UpgradePromptCard()
-                            .sectionAppear(index: 1)
+                    Group {
+                        if storeService.isProUser || storeService.isInBillingRetry {
+                            SubscriptionSection()
+                        } else {
+                            UpgradePromptCard()
+                        }
                     }
+                    // A purchase made from inside this sheet swaps the
+                    // card; cross-fade it rather than cut.
+                    .transition(.opacity.combined(with: .scale(0.98)))
+                    .appAnimation(AppAnimation.springSmooth, value: storeService.isProUser)
+                    .sectionAppear(index: 1)
 
                     // Units + rest timer, up top: the settings a
                     // training-first user changes most were buried at
                     // the bottom of the general Settings card.
                     TrainingSettingsSection()
-                        .sectionAppear(index: 1)
+                        .sectionAppear(index: 2)
 
                     // Earned Atlas Score — the rewards identity, sitting
                     // above the achievement badges it sums up. Taps open
                     // the full progress view.
                     AtlasScoreCard(onTap: { showProgress = true })
-                        .sectionAppear(index: 2)
+                        .sectionAppear(index: 3)
 
                     AchievementsSection(achievements: achievementService.achievements)
-                        .sectionAppear(index: 2)
+                        .scrollReveal()
 
                     CycleCardShareSection()
-                        .sectionAppear(index: 3)
+                        .scrollReveal()
 
                     GoalsSectionCard(
                         goalCatalog: goalCatalog,
                         selectedKeys: Set(dataStore.profile.goals),
                         onToggle: toggleGoal
                     )
-                    .sectionAppear(index: 4)
+                    .scrollReveal()
 
                     BodyMetricsCard(
                         metrics: dataStore.profile.bodyMetrics,
                         onUpdate: { dataStore.updateBodyMetrics($0) }
                     )
-                    .sectionAppear(index: 5)
+                    .scrollReveal()
 
                     HealthConnectionCard(
                         isConnected: dataStore.profile.healthConnected,
@@ -92,12 +97,12 @@ struct ProfileView: View {
                         },
                         onConnect: { connectHealthKit() }
                     )
-                    .sectionAppear(index: 6)
+                    .scrollReveal()
 
                     // Peptide Library (database + Protocols + AI research) —
                     // its home now that Habits took the tab-bar slot.
                     PeptideLibraryEntryCard()
-                        .sectionAppear(index: 7)
+                        .scrollReveal()
 
                     // Labs entry lives on the Biology tab (renamed
                     // from Insights in Phase 33). It's a high-
@@ -106,31 +111,31 @@ struct ProfileView: View {
                     // settings tab here.
 
                     ReconstitutionEntryCard(onTap: { showReconstitutionCalculator = true })
-                        .sectionAppear(index: 7)
+                        .scrollReveal()
 
                     WeeklySummaryToggleRow()
-                        .sectionAppear(index: 8)
+                        .scrollReveal()
 
                     ScreenshotModeRow()
-                        .sectionAppear(index: 9)
+                        .scrollReveal()
 
                     ExportSection()
-                        .sectionAppear(index: 10)
+                        .scrollReveal()
 
                     RestoreBackupEntryRow(onTap: { showRestoreBackup = true })
-                        .sectionAppear(index: 11)
+                        .scrollReveal()
 
                     AccountSection()
-                        .sectionAppear(index: 12)
+                        .scrollReveal()
 
                     AppearanceSettings()
-                        .sectionAppear(index: 13)
+                        .scrollReveal()
 
                     DiagnosticsSection()
-                        .sectionAppear(index: 14)
+                        .scrollReveal()
 
                     AboutSection()
-                        .sectionAppear(index: 15)
+                        .scrollReveal()
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)

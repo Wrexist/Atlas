@@ -100,7 +100,7 @@ struct HeroMetricTrio: View {
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.96))
         .accessibilityLabel(value.accessibilityLabel(for: kind))
     }
 
@@ -133,7 +133,7 @@ struct HeroMetricTrio: View {
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.96))
         .accessibilityLabel("Workouts this week, \(done) of \(target)")
         .accessibilityHint("Opens Train")
     }
@@ -161,7 +161,7 @@ struct HeroMetricTrio: View {
             Button(action: onConnectHealth) {
                 footerContent(chevron: true)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ScalePressStyle(pressedScale: 0.96))
             .minimumHitArea()
             .accessibilityElement(children: .combine)
             .accessibilityLabel("Connect Apple Health for Recovery and Sleep scores")

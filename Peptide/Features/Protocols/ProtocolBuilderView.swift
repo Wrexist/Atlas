@@ -158,7 +158,7 @@ struct ProtocolBuilderView: View {
                                 ))
                         }
                     }
-                    .animation(.spring(response: 0.45, dampingFraction: 0.82), value: currentStep)
+                    .appAnimation(AppAnimation.step, value: currentStep)
                 }
             }
             .navigationTitle(builderTitle)
@@ -176,7 +176,7 @@ struct ProtocolBuilderView: View {
                             .foregroundStyle(AppColor.textSecondary)
                     } else {
                         Button {
-                            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                            AppAnimation.with(AppAnimation.step) {
                                 currentStep = 0
                             }
                         } label: {
@@ -199,7 +199,7 @@ struct ProtocolBuilderView: View {
                                 .disabled(!canCreate)
                         } else {
                             Button("Next") {
-                                withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                                AppAnimation.with(AppAnimation.step) {
                                     currentStep = 1
                                 }
                             }
@@ -361,7 +361,7 @@ struct ProtocolBuilderView: View {
                     Button {
                         Haptics.impact(.light)
                         if isAppending {
-                            withAnimation(AppAnimation.springSnappy) {
+                            AppAnimation.with(AppAnimation.springSnappy) {
                                 appendTargetProtocolId = nil
                             }
                         } else {
@@ -387,7 +387,7 @@ struct ProtocolBuilderView: View {
                 protocols: dataStore.activeProtocols + dataStore.pausedProtocols,
                 selectedId: appendTargetProtocolId,
                 onPick: { id in
-                    withAnimation(AppAnimation.springSnappy) {
+                    AppAnimation.with(AppAnimation.springSnappy) {
                         appendTargetProtocolId = id
                     }
                     isShowingAppendPicker = false
@@ -805,7 +805,7 @@ private struct StepIndicator: View {
                         radius: index <= currentStep ? 6 : 0,
                         y: 0
                     )
-                    .animation(.spring(response: 0.45, dampingFraction: 0.78), value: currentStep)
+                    .appAnimation(AppAnimation.step, value: currentStep)
             }
         }
     }

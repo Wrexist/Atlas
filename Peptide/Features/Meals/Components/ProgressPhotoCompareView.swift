@@ -77,7 +77,7 @@ struct ProgressPhotoCompareView: View {
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
-                        withAnimation(.easeOut(duration: 0.18)) {
+                        AppAnimation.with(AppAnimation.quick) {
                             blurEnabled.toggle()
                         }
                     } label: {
@@ -122,7 +122,7 @@ struct ProgressPhotoCompareView: View {
                     .resizable()
                     .scaledToFill()
                     .blur(radius: blurEnabled ? 18 : 0)
-                    .animation(.easeOut(duration: 0.18), value: blurEnabled)
+                    .appAnimation(AppAnimation.quick, value: blurEnabled)
                     .frame(maxWidth: .infinity)
                     .aspectRatio(3.0 / 4.0, contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous))
@@ -228,7 +228,7 @@ struct ProgressPhotoCompareView: View {
     private func thumbnailButton(filename: String) -> some View {
         let active = filename == resolvedCompare
         return Button {
-            withAnimation(.easeOut(duration: 0.18)) {
+            AppAnimation.with(AppAnimation.quick) {
                 compareWith = filename
             }
             Haptics.impact(.light)

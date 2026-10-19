@@ -696,7 +696,7 @@ struct OnboardingView: View {
             return
         }
         if let match = CreatorCodeService.lookup(trimmed) {
-            withAnimation(AppAnimation.springBouncy) {
+            AppAnimation.with(AppAnimation.springBouncy) {
                 creatorAttribution = match
                 creatorError = nil
             }
@@ -706,7 +706,7 @@ struct OnboardingView: View {
             OnboardingFunnelTracker.recordEvent("creator_code_applied")
             Haptics.success()
         } else {
-            withAnimation(AppAnimation.fadeIn) { creatorError = "Code not found — double-check and try again." }
+            AppAnimation.with(AppAnimation.fadeIn) { creatorError = "Code not found — double-check and try again." }
             OnboardingFunnelTracker.recordEvent("creator_code_invalid")
             Haptics.error()
         }
@@ -927,7 +927,7 @@ struct OnboardingView: View {
         let isSelected = attributionChannel == channel
         return Button {
             Haptics.impact(.soft)
-            withAnimation(AppAnimation.springSnappy) { attributionChannel = channel }
+            AppAnimation.with(AppAnimation.springSnappy) { attributionChannel = channel }
             OnboardingFunnelTracker.recordEvent("attribution_\(channel.rawValue)")
         } label: { chipLabel(channel: channel, isSelected: isSelected) }
         .buttonStyle(.plain)
@@ -1030,13 +1030,13 @@ struct OnboardingView: View {
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
                     .contentTransition(.opacity)
-                    .animation(.easeInOut(duration: 0.25), value: goalHasBeenSelected)
+                    .appAnimation(AppAnimation.quick, value: goalHasBeenSelected)
                 Text(goalSubheadline)
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)
                     .contentTransition(.opacity)
-                    .animation(.easeInOut(duration: 0.25), value: goalHasBeenSelected)
+                    .appAnimation(AppAnimation.quick, value: goalHasBeenSelected)
             }
             .padding(.top, Spacing.xl)
             .padding(.bottom, Spacing.md)
@@ -1067,13 +1067,13 @@ struct OnboardingView: View {
                     // viewport and the chips sit below the fold, hiding
                     // the next-step affordance (audit Onboarding 4.14).
                     guard isSelected else { return }
-                    withAnimation(AppAnimation.springSmooth) {
+                    AppAnimation.with(AppAnimation.springSmooth) {
                         proxy.scrollTo(Self.goalDateAnchorID, anchor: .bottom)
                     }
                 }
             }
         }
-        .animation(AppAnimation.springSmooth, value: goalHasBeenSelected)
+        .appAnimation(AppAnimation.springSmooth, value: goalHasBeenSelected)
     }
 
     private static let goalDateAnchorID = "onboarding.goal.dateSection"
@@ -1135,7 +1135,7 @@ struct OnboardingView: View {
         let isSelected = Calendar.current.isDate(goalDate, inSameDayAs: candidate)
         return Button {
             Haptics.impact(.soft)
-            withAnimation(AppAnimation.springSnappy) { goalDate = candidate }
+            AppAnimation.with(AppAnimation.springSnappy) { goalDate = candidate }
         } label: {
             Text(label)
                 .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
@@ -1160,7 +1160,7 @@ struct OnboardingView: View {
         let selected = selectedGoals.contains(goal)
         return Button {
             haptic()
-            withAnimation(AppAnimation.springSmooth) { toggleGoal(goal) }
+            AppAnimation.with(AppAnimation.springSmooth) { toggleGoal(goal) }
         } label: {
             VStack(spacing: Spacing.sm) {
                 Image(systemName: goal.icon)
@@ -1563,7 +1563,7 @@ struct OnboardingView: View {
                      : "Tap the circle to log this set.")
                     .font(AppFont.footnote)
                     .foregroundStyle(demoCelebrate ? AppColor.positive : AppColor.textTertiary)
-                    .animation(AppAnimation.fadeIn, value: demoCelebrate)
+                    .appAnimation(AppAnimation.fadeIn, value: demoCelebrate)
             }
         }
     }
@@ -1690,7 +1690,7 @@ struct OnboardingView: View {
             .padding(.horizontal, Spacing.lg)
         }
         .onAppear {
-            withAnimation(AppAnimation.springSmooth.delay(0.2)) {
+            AppAnimation.with(AppAnimation.springSmooth.delay(0.2)) {
                 projectionRevealed = true
             }
         }
@@ -2457,14 +2457,14 @@ private struct ProjectionChart: View {
         )
         .onChange(of: revealed) { _, newValue in
             if newValue {
-                withAnimation(.easeOut(duration: 1.6)) { drawAmount = 1 }
+                AppAnimation.with(AppAnimation.draw) { drawAmount = 1 }
             } else {
                 drawAmount = 0
             }
         }
         .onAppear {
             if revealed {
-                withAnimation(.easeOut(duration: 1.6)) { drawAmount = 1 }
+                AppAnimation.with(AppAnimation.draw) { drawAmount = 1 }
             }
         }
     }

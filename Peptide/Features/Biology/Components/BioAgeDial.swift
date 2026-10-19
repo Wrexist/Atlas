@@ -85,7 +85,7 @@ struct BioAgeDial: View {
                 style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
             )
             .rotationEffect(.degrees(startAngle + 90))
-            .animation(AppAnimation.springSmooth, value: progress)
+            .appAnimation(AppAnimation.springSmooth, value: progress)
     }
 
     /// Convert sweep angle to a trim range. SwiftUI's Circle trim runs 0…1
@@ -113,7 +113,7 @@ struct BioAgeDial: View {
                 .shadow(color: AppColor.accentGlow, radius: 8)
                 .offset(y: -(size / 2))
                 .rotationEffect(.degrees(angle(for: markerValue)))
-                .animation(AppAnimation.springSmooth, value: markerValue)
+                .appAnimation(AppAnimation.springSmooth, value: markerValue)
         }
     }
 

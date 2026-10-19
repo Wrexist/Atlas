@@ -327,7 +327,7 @@ struct StackAdjustmentSheet: View {
         let color = isIncluded ? AppColor.accentPrimary : AppColor.destructive
         return Button {
             Haptics.impact(.light)
-            withAnimation(AppAnimation.springSnappy) {
+            AppAnimation.with(AppAnimation.springSnappy) {
                 if isIncluded {
                     selectedPeptideIds.remove(peptide.id)
                 } else {

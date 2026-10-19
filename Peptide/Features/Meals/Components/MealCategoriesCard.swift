@@ -114,6 +114,7 @@ struct MealCategoriesCard: View {
                 RoundedRectangle(cornerRadius: 3, style: .continuous)
                     .fill(tint.opacity(0.85))
                     .frame(width: max(2, proxy.size.width * fraction))
+                    .appAnimation(AppAnimation.springSmooth, value: fraction)
             }
         }
         .frame(height: 6)
