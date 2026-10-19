@@ -163,8 +163,10 @@ HealthKit:
   step in onboarding, or later from the Profile tab — always
   user-initiated, never automatic. Atlas reads heart rate, HRV,
   resting heart rate, sleep, body mass, steps, and active energy.
-  It writes ONLY meal macros (calories, protein, carbs, fat), and only
-  if the user turns on "Sync to Apple Health" (off by default). Both
+  It writes meal macros (calories, protein, carbs, fat) only if the
+  user turns on "Write meals to Apple Health", and finished workouts,
+  weigh-ins and water only if the user turns on "Sync workouts, weight
+  and water" (both off by default). Both
   NSHealthShareUsageDescription and NSHealthUpdateUsageDescription are
   declared in Info.plist.
 • Denying HealthKit hides the recovery surfaces. No other feature is

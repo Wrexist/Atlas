@@ -673,7 +673,9 @@ onboarding, or later from the Profile tab — the user always initiates
 it. Atlas reads five metrics from Apple Health: HRV, resting heart
 rate, VO2 max, sleep, and step count. It
 optionally writes meal macros (calories, protein, carbs, fat) if the
-user enables "Sync to Apple Health" from Profile. Both
+user enables "Write meals to Apple Health" from Profile, and finished
+workouts, weigh-ins and water (reading weight back from scales) if the
+user enables "Sync workouts, weight and water". Both
 NSHealthShareUsageDescription and NSHealthUpdateUsageDescription are
 declared in Info.plist with strings describing their exact use,
 including the one off-device flow: the opt-in Pro weekly summary sends
