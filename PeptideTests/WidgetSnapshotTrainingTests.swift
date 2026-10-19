@@ -92,6 +92,23 @@ final class WidgetSnapshotTrainingTests: XCTestCase {
         XCTAssertNil(result.lastWorkout)
     }
 
+    // MARK: - Week strip
+
+    func test_trainingDays_areDistinctDaysInsideTheCurrentWeek() {
+        let monday = calendar.startOfDay(for: now.addingTimeInterval(-2 * 86_400))
+        let lastWeek = now.addingTimeInterval(-8 * 86_400)
+        let result = snapshot([
+            // Two sessions on Wednesday count as one day.
+            session(startedAt: now.addingTimeInterval(-7_200), finishedAt: now.addingTimeInterval(-3_600)),
+            session(startedAt: now.addingTimeInterval(-1_800), finishedAt: now),
+            session(startedAt: monday.addingTimeInterval(36_000), finishedAt: monday.addingTimeInterval(39_600)),
+            session(startedAt: lastWeek, finishedAt: lastWeek.addingTimeInterval(3_600)),
+            session(startedAt: now.addingTimeInterval(-600), finishedAt: nil),
+        ])
+
+        XCTAssertEqual(result.trainingDays, [monday, calendar.startOfDay(for: now)])
+    }
+
     // MARK: - Last workout
 
     func test_lastWorkout_isTheMostRecentlyFinished_notTheMostRecentlyStarted() {
@@ -168,6 +185,34 @@ final class WidgetSnapshotTrainingTests: XCTestCase {
         XCTAssertEqual(data.activeWorkoutStartedAt, active.startedAt)
     }
 
+    func test_build_reportsPauseState_soTheWidgetClockFreezes() {
+        var active = session(startedAt: now.addingTimeInterval(-1_800), finishedAt: nil)
+        let pausedAt = now.addingTimeInterval(-300)
+        active.focus = WorkoutFocusState(pausedAt: pausedAt, pausedSeconds: 120)
+        let data = WidgetSnapshotBuilder.build(
+            today: [], next: nil,
+            activeWorkout: active,
+            now: now,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(data.activeWorkoutPausedAt, pausedAt)
+        XCTAssertEqual(data.activeWorkoutPausedSeconds, 120, accuracy: 0.001)
+    }
+
+    func test_build_runningWorkout_hasNoOpenPause() {
+        let active = session(startedAt: now.addingTimeInterval(-900), finishedAt: nil)
+        let data = WidgetSnapshotBuilder.build(
+            today: [], next: nil,
+            activeWorkout: active,
+            now: now,
+            calendar: calendar
+        )
+
+        XCTAssertNil(data.activeWorkoutPausedAt)
+        XCTAssertEqual(data.activeWorkoutPausedSeconds, 0)
+    }
+
     func test_build_treatsAFinishedActiveSessionAsNotInProgress() {
         // WorkoutSessionService clears `activeSession` on finish, but the
         // widget must not claim a workout is running off a stale hand-off.
@@ -224,6 +269,10 @@ final class WidgetSnapshotTrainingTests: XCTestCase {
         XCTAssertEqual(decoded?.weeklyVolumeKg, 0)
         XCTAssertFalse(decoded?.workoutInProgress ?? true)
         XCTAssertEqual(decoded?.weightSuffix, "kg")
+        XCTAssertEqual(decoded?.trainingDaysThisWeek, [])
+        XCTAssertNil(decoded?.activeWorkoutPausedAt)
+        XCTAssertEqual(decoded?.activeWorkoutPausedSeconds, 0)
+        XCTAssertEqual(decoded?.proteinTarget, 0)
     }
 
     func test_trainingFields_roundTripThroughTheSharedContainerCodec() {
@@ -249,5 +298,22 @@ final class WidgetSnapshotTrainingTests: XCTestCase {
         XCTAssertEqual(decoded?.lastWorkout?.volumeKg ?? 0, 500, accuracy: 0.001)
         XCTAssertEqual(decoded?.workoutsThisWeek, 1)
         XCTAssertEqual(decoded?.weightSuffix, "lb")
+        XCTAssertEqual(decoded?.trainingDaysThisWeek, [calendar.startOfDay(for: now)])
+    }
+
+    // MARK: - Nutrition targets
+
+    func test_build_carriesMacroTargets_forTheWidgetBars() {
+        let data = WidgetSnapshotBuilder.build(
+            today: [], next: nil,
+            targets: NutritionTargets(calories: 2400, proteinG: 180, carbsG: 240, fatG: 80, fiberG: 30),
+            now: now,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(data.calorieTarget, 2400)
+        XCTAssertEqual(data.proteinTarget, 180)
+        XCTAssertEqual(data.carbsTarget, 240)
+        XCTAssertEqual(data.fatTarget, 80)
     }
 }

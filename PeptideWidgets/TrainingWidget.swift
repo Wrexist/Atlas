@@ -8,52 +8,104 @@ import SwiftUI
 /// no unit maths happens inside a body.
 struct TrainingEntry: TimelineEntry {
     let date: Date
-    /// Start of the workout in progress, or nil when none is.
-    let activeSince: Date?
+    /// Where the running workout's clock counts from: its start shifted
+    /// by the time spent paused, so `Text(style: .timer)` agrees with the
+    /// app after a pause and resume. Nil when no workout is running.
+    let clockStart: Date?
+    /// Elapsed seconds frozen at the open pause, or nil while the clock
+    /// runs.
+    let pausedElapsed: Int?
     let workoutsThisWeek: Int
     let weeklySets: Int
     let weeklyVolume: Double
     let unitSuffix: String
+    let week: [TrainingDay]
     let lastName: String
     let lastFinishedAt: Date?
     let lastSets: Int
     let lastVolume: Double
     let lastDurationMinutes: Int
 
+    var isActive: Bool { clockStart != nil }
+
     /// Nothing to look back on yet — the widget offers the first
     /// workout instead of an empty stat block.
     var hasHistory: Bool { lastFinishedAt != nil }
 
-    static let empty = TrainingEntry(
-        date: .now, activeSince: nil, workoutsThisWeek: 0, weeklySets: 0,
-        weeklyVolume: 0, unitSuffix: "kg", lastName: "", lastFinishedAt: nil,
-        lastSets: 0, lastVolume: 0, lastDurationMinutes: 0
-    )
+    /// An unnamed session falls back to the weekday it happened on — the
+    /// payload carries "" rather than a second optional.
+    var lastTitle: String {
+        guard let finished = lastFinishedAt else { return "" }
+        return lastName.isEmpty ? finished.formatted(.dateTime.weekday(.wide)) : lastName
+    }
 
-    static let placeholder = TrainingEntry(
-        date: .now,
-        activeSince: nil,
-        workoutsThisWeek: 3,
-        weeklySets: 42,
-        weeklyVolume: 12_480,
-        unitSuffix: "kg",
-        lastName: "Push A",
-        lastFinishedAt: .now.addingTimeInterval(-86_400),
-        lastSets: 16,
-        lastVolume: 4_320,
-        lastDurationMinutes: 58
-    )
+    static var empty: TrainingEntry {
+        TrainingEntry(
+            date: .now, clockStart: nil, pausedElapsed: nil, workoutsThisWeek: 0,
+            weeklySets: 0, weeklyVolume: 0, unitSuffix: "kg",
+            week: TrainingDay.week(containing: .now, trained: []),
+            lastName: "", lastFinishedAt: nil, lastSets: 0, lastVolume: 0,
+            lastDurationMinutes: 0
+        )
+    }
+
+    static var placeholder: TrainingEntry {
+        let calendar = Calendar.current
+        let weekStart = calendar.dateInterval(of: .weekOfYear, for: .now)?.start ?? .now
+        let trained = [0, 2, 4]
+            .compactMap { calendar.date(byAdding: .day, value: $0, to: weekStart) }
+            .filter { $0 <= .now }
+        return TrainingEntry(
+            date: .now,
+            clockStart: nil,
+            pausedElapsed: nil,
+            workoutsThisWeek: trained.count,
+            weeklySets: 42,
+            weeklyVolume: 12_480,
+            unitSuffix: "kg",
+            week: TrainingDay.week(containing: .now, trained: trained),
+            lastName: "Push A",
+            lastFinishedAt: .now.addingTimeInterval(-86_400),
+            lastSets: 16,
+            lastVolume: 4_320,
+            lastDurationMinutes: 58
+        )
+    }
+}
+
+/// One day of the Monday-to-Sunday strip.
+struct TrainingDay: Hashable {
+    let date: Date
+    let trained: Bool
+    let isToday: Bool
+    let isFuture: Bool
+
+    /// The seven days of the week containing `now`, in the user's
+    /// calendar, each marked against the days a session finished on.
+    static func week(
+        containing now: Date,
+        trained: [Date],
+        calendar: Calendar = .current
+    ) -> [TrainingDay] {
+        guard let interval = calendar.dateInterval(of: .weekOfYear, for: now) else { return [] }
+        return (0..<7).compactMap { offset in
+            guard let day = calendar.date(byAdding: .day, value: offset, to: interval.start) else {
+                return nil
+            }
+            let isToday = calendar.isDate(day, inSameDayAs: now)
+            return TrainingDay(
+                date: day,
+                trained: trained.contains { calendar.isDate($0, inSameDayAs: day) },
+                isToday: isToday,
+                isFuture: !isToday && day > now
+            )
+        }
+    }
 }
 
 // MARK: - Timeline Provider
 
 struct TrainingTimelineProvider: TimelineProvider {
-    private static let decoder: JSONDecoder = {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return decoder
-    }()
-
     func placeholder(in context: Context) -> TrainingEntry { .placeholder }
 
     func getSnapshot(in context: Context, completion: @escaping (TrainingEntry) -> Void) {
@@ -62,30 +114,33 @@ struct TrainingTimelineProvider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<TrainingEntry>) -> Void) {
         let entry = currentEntry()
-        let calendar = Calendar.current
-        // Midnight always, so a finished session stops reading as
-        // "today" and a new week's counters start from zero.
-        let midnight = calendar.startOfDay(
-            for: calendar.date(byAdding: .day, value: 1, to: .now) ?? .now
-        )
-        // A running workout renders its elapsed time with
-        // `Text(style: .timer)`, which ticks on its own — the reload is
-        // only there to catch the finish, so it stays cheap either way.
-        let cadence = entry.activeSince == nil ? 30 : 15
-        let next = calendar.date(byAdding: .minute, value: cadence, to: .now) ?? .now
-        completion(Timeline(entries: [entry], policy: .after(min(next, midnight))))
+        // A running workout's timer ticks on its own; the reload is only
+        // there to catch the finish, so it stays cheap either way.
+        let next = WidgetStore.nextRefresh(after: .now, minutes: entry.isActive ? 15 : 30)
+        completion(Timeline(entries: [entry], policy: .after(next)))
     }
 
     private func currentEntry() -> TrainingEntry {
-        guard let data = loadWidgetData() else { return .empty }
+        guard let data = WidgetStore.load() else { return .empty }
         let last = data.lastWorkout
+        // The weekly figures belong to the week the app last wrote them
+        // in. Past a Monday with no app launch they would be last week's,
+        // so the widget starts the new week at zero instead.
+        let sameWeek = Calendar.current.isDate(data.lastUpdated, equalTo: .now, toGranularity: .weekOfYear)
+        let start = data.activeWorkoutStartedAt
+        var pausedElapsed: Int?
+        if let start, let pausedAt = data.activeWorkoutPausedAt {
+            pausedElapsed = max(0, Int(pausedAt.timeIntervalSince(start) - data.activeWorkoutPausedSeconds))
+        }
         return TrainingEntry(
             date: .now,
-            activeSince: data.activeWorkoutStartedAt,
-            workoutsThisWeek: data.workoutsThisWeek,
-            weeklySets: data.weeklySetCount,
-            weeklyVolume: data.volumeInUserUnit(data.weeklyVolumeKg),
+            clockStart: start?.addingTimeInterval(data.activeWorkoutPausedSeconds),
+            pausedElapsed: pausedElapsed,
+            workoutsThisWeek: sameWeek ? data.workoutsThisWeek : 0,
+            weeklySets: sameWeek ? data.weeklySetCount : 0,
+            weeklyVolume: sameWeek ? data.volumeInUserUnit(data.weeklyVolumeKg) : 0,
             unitSuffix: data.weightSuffix,
+            week: TrainingDay.week(containing: .now, trained: sameWeek ? data.trainingDaysThisWeek : []),
             lastName: last?.name ?? "",
             lastFinishedAt: last?.finishedAt,
             lastSets: last?.setCount ?? 0,
@@ -93,232 +148,345 @@ struct TrainingTimelineProvider: TimelineProvider {
             lastDurationMinutes: last?.durationMinutes ?? 0
         )
     }
+}
 
-    private func loadWidgetData() -> WidgetData? {
-        guard let url = FileManager.default
-            .containerURL(forSecurityApplicationGroupIdentifier: AppGroup.identifier)?
-            .appendingPathComponent("widget-data.json"),
-              let data = try? Data(contentsOf: url) else { return nil }
-        return try? Self.decoder.decode(WidgetData.self, from: data)
+// MARK: - Pieces
+
+private let trainingTint = WidgetPalette.training
+private let trainingGlyph = "figure.strengthtraining.traditional"
+
+private func sessionsWord(_ count: Int) -> LocalizedStringKey {
+    count == 1 ? "session" : "sessions"
+}
+
+/// Monday to Sunday, a dot per day: filled where a session finished,
+/// ringed for today, faded for days still to come. The week's rhythm at
+/// a glance, which a count alone can't show.
+private struct WeekStrip: View {
+    let days: [TrainingDay]
+    var showsLetters = true
+    var dot: CGFloat = 12
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(days, id: \.date) { day in
+                VStack(spacing: 3) {
+                    Circle()
+                        .fill(day.trained ? trainingTint : WidgetPalette.track)
+                        .overlay {
+                            if day.isToday && !day.trained {
+                                Circle().strokeBorder(trainingTint, lineWidth: 1.5)
+                            }
+                        }
+                        .frame(width: dot, height: dot)
+                        .opacity(day.isFuture ? 0.5 : 1)
+                        .widgetAccentable(day.trained || day.isToday)
+                    if showsLetters {
+                        Text(day.date.formatted(.dateTime.weekday(.narrow)))
+                            .font(.caption2.weight(day.isToday ? .bold : .medium))
+                            .foregroundStyle(day.isToday ? .primary : .secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("Trained \(days.filter(\.trained).count) of 7 days this week"))
     }
 }
 
-// MARK: - Shared pieces
-
-/// Brand blue for training, matching the Watch complications'
-/// `WatchScoreColor.training`. The widget extension can't import the
-/// app module, so the value is reproduced rather than tokenised.
-private let trainingTint = Color(red: 0.216, green: 0.541, blue: 0.867)
-
-/// Volume reads as a count, not a measurement — nobody needs the
-/// decimal on 12,480 kg lifted.
-private func volumeLabel(_ value: Double, suffix: String) -> String {
-    "\(Int(value.rounded()).formatted()) \(suffix)"
-}
-
-private struct TrainingHeader: View {
-    let title: String
+/// The running workout's clock, or the frozen time while it's paused —
+/// matching the Live Activity instead of ticking on past it.
+private struct WorkoutClock: View {
+    let entry: TrainingEntry
+    let font: Font
 
     var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "figure.strengthtraining.traditional")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(trainingTint)
-            Text(title)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            Spacer(minLength: 0)
+        Group {
+            if let paused = entry.pausedElapsed {
+                Text(Duration.seconds(paused).formatted(
+                    .time(pattern: paused >= 3600 ? .hourMinuteSecond : .minuteSecond)
+                ))
+            } else if let start = entry.clockStart {
+                Text(start, style: .timer)
+            }
+        }
+        .font(font)
+        .monospacedDigit()
+        .lineLimit(1)
+        .minimumScaleFactor(0.6)
+    }
+}
+
+private struct ActiveWorkoutBlock: View {
+    let entry: TrainingEntry
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            WorkoutClock(entry: entry, font: .system(.largeTitle, design: .rounded, weight: .bold))
+                .foregroundStyle(entry.pausedElapsed == nil ? trainingTint : Color.secondary)
+                .widgetAccentable()
+            Label(
+                entry.pausedElapsed == nil ? LocalizedStringKey("In progress") : "Paused",
+                systemImage: entry.pausedElapsed == nil ? "record.circle" : "pause.circle.fill"
+            )
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
         }
     }
 }
 
-/// Elapsed time of the running workout. `Text(style: .timer)` counts up
-/// from the start date without the extension being woken per second.
-private struct ActiveWorkoutBlock: View {
-    let since: Date
-    let compact: Bool
+private struct SessionCount: View {
+    let count: Int
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Text("\(count)")
+                .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                .monospacedDigit()
+                .foregroundStyle(trainingTint)
+                .contentTransition(.numericText(value: Double(count)))
+                .widgetAccentable()
+            Text(sessionsWord(count))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        .lineLimit(1)
+    }
+}
+
+/// A user with history but nothing yet this week: point back at the last
+/// session instead of a large blue zero.
+private struct FreshWeekBlock: View {
+    let entry: TrainingEntry
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(since, style: .timer)
-                .font(.system(size: compact ? 26 : 30, weight: .heavy, design: .rounded))
-                .monospacedDigit()
+            Text("Fresh week")
+                .font(.headline)
+            if let finished = entry.lastFinishedAt {
+                Text("Last: \(entry.lastTitle), \(finished.formatted(.relative(presentation: .named)))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+        }
+    }
+}
+
+private struct FirstWorkoutPrompt: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Image(systemName: "dumbbell.fill")
+                .font(.title2)
                 .foregroundStyle(trainingTint)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-            Text("Workout in progress")
-                .font(.system(size: 11, weight: .medium))
+                .widgetAccentable()
+            Text("No workouts yet")
+                .font(.headline)
+            Text("Tap to start your first session.")
+                .font(.caption)
                 .foregroundStyle(.secondary)
-                .lineLimit(1)
         }
     }
 }
 
 private struct StatPair: View {
     let value: String
-    let label: String
+    let label: LocalizedStringKey
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(value)
-                .font(.system(size: 15, weight: .heavy))
-                .monospacedDigit()
+                .font(.subheadline.weight(.bold).monospacedDigit())
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
-                .font(.system(size: 9, weight: .medium))
+                .font(.caption2)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }
     }
 }
 
-// MARK: - Small
+private func header(_ entry: TrainingEntry) -> WidgetHeader {
+    WidgetHeader(
+        glyph: trainingGlyph,
+        title: entry.isActive ? "Workout" : "This week",
+        tint: trainingTint
+    )
+}
 
-struct SmallTrainingView: View {
+// MARK: - Home screen
+
+private struct SmallTrainingView: View {
     let entry: TrainingEntry
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            TrainingHeader(title: entry.activeSince == nil ? "This week" : "Training")
-
-            Spacer(minLength: 0)
-
-            if let since = entry.activeSince {
-                ActiveWorkoutBlock(since: since, compact: true)
-            } else if entry.hasHistory {
-                weekSummary
+        VStack(alignment: .leading, spacing: 0) {
+            header(entry)
+            Spacer(minLength: 6)
+            if entry.isActive {
+                ActiveWorkoutBlock(entry: entry)
+                Spacer(minLength: 0)
+            } else if !entry.hasHistory {
+                FirstWorkoutPrompt()
+                Spacer(minLength: 0)
             } else {
-                firstWorkoutPrompt
+                if entry.workoutsThisWeek == 0 {
+                    FreshWeekBlock(entry: entry)
+                } else {
+                    SessionCount(count: entry.workoutsThisWeek)
+                }
+                Spacer(minLength: 6)
+                WeekStrip(days: entry.week)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .containerBackground(.fill.tertiary, for: .widget)
-    }
-
-    private var weekSummary: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(alignment: .firstTextBaseline, spacing: 3) {
-                Text("\(entry.workoutsThisWeek)")
-                    .font(.system(size: 30, weight: .heavy, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(trainingTint)
-                Text(entry.workoutsThisWeek == 1 ? "session" : "sessions")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.secondary)
-            }
-            Text(volumeLabel(entry.weeklyVolume, suffix: entry.unitSuffix))
-                .font(.system(size: 11, weight: .semibold))
-                .monospacedDigit()
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-            if let finished = entry.lastFinishedAt {
-                Text("Last \(finished.formatted(.relative(presentation: .named)))")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
-            }
-        }
-    }
-
-    private var firstWorkoutPrompt: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Image(systemName: "dumbbell.fill")
-                .font(.system(size: 22))
-                .foregroundStyle(trainingTint)
-            Text("No workouts yet")
-                .font(.system(size: 14, weight: .semibold))
-            Text("Tap to start one")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-        }
+        .widgetBackdrop(trainingTint)
     }
 }
 
-// MARK: - Medium
-
-struct MediumTrainingView: View {
+private struct MediumTrainingView: View {
     let entry: TrainingEntry
 
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
-            VStack(alignment: .leading, spacing: 6) {
-                TrainingHeader(title: entry.activeSince == nil ? "This week" : "Training")
-
-                if let since = entry.activeSince {
-                    ActiveWorkoutBlock(since: since, compact: false)
+        Group {
+            if !entry.isActive && !entry.hasHistory {
+                // One empty state across the full width, not two half
+                // ones next to a "0 sessions" column.
+                VStack(alignment: .leading, spacing: 0) {
+                    header(entry)
                     Spacer(minLength: 0)
-                } else {
-                    HStack(alignment: .firstTextBaseline, spacing: 3) {
-                        Text("\(entry.workoutsThisWeek)")
-                            .font(.system(size: 34, weight: .heavy, design: .rounded))
-                            .monospacedDigit()
-                            .foregroundStyle(trainingTint)
-                        Text(entry.workoutsThisWeek == 1 ? "session" : "sessions")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(.secondary)
-                    }
+                    FirstWorkoutPrompt()
                     Spacer(minLength: 0)
-                    HStack(spacing: 12) {
-                        StatPair(value: "\(entry.weeklySets)", label: "sets")
-                        StatPair(
-                            value: volumeLabel(entry.weeklyVolume, suffix: entry.unitSuffix),
-                            label: "volume"
-                        )
-                    }
+                }
+            } else {
+                HStack(spacing: 16) {
+                    weekColumn
+                    Divider()
+                    lastWorkoutColumn
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            Divider()
-
-            lastWorkoutColumn
-                .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .containerBackground(.fill.tertiary, for: .widget)
+        .widgetBackdrop(trainingTint)
+    }
+
+    private var weekColumn: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            header(entry)
+            Spacer(minLength: 6)
+            if entry.isActive {
+                ActiveWorkoutBlock(entry: entry)
+            } else if entry.workoutsThisWeek == 0 {
+                FreshWeekBlock(entry: entry)
+            } else {
+                SessionCount(count: entry.workoutsThisWeek)
+                Text("\(entry.weeklySets) sets · \(WidgetFormat.volume(entry.weeklyVolume, suffix: entry.unitSuffix))")
+                    .font(.caption.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 6)
+            WeekStrip(days: entry.week)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var lastWorkoutColumn: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 2) {
             Text("Last workout")
-                .font(.caption2)
+                .font(.caption2.weight(.semibold))
+                .textCase(.uppercase)
+                .tracking(0.5)
                 .foregroundStyle(.secondary)
-
             if let finished = entry.lastFinishedAt {
-                // An unnamed session falls back to when it happened —
-                // the payload carries "" rather than a second optional.
-                Text(entry.lastName.isEmpty
-                     ? finished.formatted(.dateTime.weekday(.wide))
-                     : entry.lastName)
-                    .font(.system(size: 15, weight: .bold))
+                Text(entry.lastTitle)
+                    .font(.headline)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                 Text(finished.formatted(.relative(presentation: .named)))
-                    .font(.system(size: 10))
-                    .foregroundStyle(.tertiary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
-
-                Spacer(minLength: 0)
-
-                HStack(spacing: 12) {
+                Spacer(minLength: 4)
+                HStack(spacing: 10) {
                     StatPair(value: "\(entry.lastSets)", label: "sets")
-                    StatPair(value: "\(entry.lastDurationMinutes)m", label: "time")
+                    StatPair(value: WidgetFormat.duration(minutes: entry.lastDurationMinutes), label: "time")
+                    StatPair(value: WidgetFormat.volume(entry.lastVolume, suffix: entry.unitSuffix), label: "volume")
                 }
-                Text(volumeLabel(entry.lastVolume, suffix: entry.unitSuffix))
-                    .font(.system(size: 11, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
             } else {
-                Text("Nothing logged yet")
-                    .font(.system(size: 14, weight: .semibold))
+                Text("Your first finished session lands here.")
+                    .font(.caption)
                     .foregroundStyle(.secondary)
-                Text("Your first session lands here.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.tertiary)
                 Spacer(minLength: 0)
             }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - Lock screen
+
+private struct CircularTrainingView: View {
+    let entry: TrainingEntry
+
+    var body: some View {
+        ZStack {
+            AccessoryWidgetBackground()
+            VStack(spacing: 0) {
+                Image(systemName: entry.pausedElapsed == nil ? trainingGlyph : "pause.fill")
+                    .font(.caption)
+                if entry.isActive {
+                    WorkoutClock(entry: entry, font: .caption.weight(.bold))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 4)
+                } else {
+                    Text("\(entry.workoutsThisWeek)")
+                        .font(.system(.title3, design: .rounded, weight: .bold))
+                        .contentTransition(.numericText(value: Double(entry.workoutsThisWeek)))
+                }
+            }
+            .widgetAccentable()
+        }
+    }
+}
+
+private struct RectangularTrainingView: View {
+    let entry: TrainingEntry
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Label(entry.isActive ? LocalizedStringKey("Workout") : "This week", systemImage: trainingGlyph)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .widgetAccentable()
+            if entry.isActive {
+                WorkoutClock(entry: entry, font: .headline)
+            } else {
+                Text("^[\(entry.workoutsThisWeek) session](inflect: true)")
+                    .font(.headline)
+                WeekStrip(days: entry.week, showsLetters: false, dot: 8)
+            }
+        }
+        .lineLimit(1)
+    }
+}
+
+private struct InlineTrainingView: View {
+    let entry: TrainingEntry
+
+    var body: some View {
+        if entry.isActive {
+            Label {
+                if let paused = entry.pausedElapsed {
+                    Text("Paused at \(Duration.seconds(paused).formatted(.time(pattern: .minuteSecond)))")
+                } else if let start = entry.clockStart {
+                    Text("Workout \(Text(start, style: .timer))")
+                }
+            } icon: {
+                Image(systemName: trainingGlyph)
+            }
+        } else {
+            Label("^[\(entry.workoutsThisWeek) session](inflect: true) this week", systemImage: trainingGlyph)
         }
     }
 }
@@ -326,15 +494,16 @@ struct MediumTrainingView: View {
 // MARK: - Widget
 
 struct TrainingWidgetView: View {
-    @Environment(\.widgetFamily) var family
+    @Environment(\.widgetFamily) private var family
     let entry: TrainingEntry
 
     var body: some View {
         switch family {
-        case .systemMedium:
-            MediumTrainingView(entry: entry)
-        default:
-            SmallTrainingView(entry: entry)
+        case .systemMedium: MediumTrainingView(entry: entry)
+        case .accessoryCircular: CircularTrainingView(entry: entry).accessoryBackdrop()
+        case .accessoryRectangular: RectangularTrainingView(entry: entry).accessoryBackdrop()
+        case .accessoryInline: InlineTrainingView(entry: entry).accessoryBackdrop()
+        default: SmallTrainingView(entry: entry)
         }
     }
 }
@@ -348,7 +517,10 @@ struct TrainingWidget: Widget {
                 .widgetURL(WidgetDeepLink.train)
         }
         .configurationDisplayName("Training")
-        .description("This week's sessions, and your last workout.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .description("Your week at a glance, your last workout, and a live timer while you train.")
+        .supportedFamilies([
+            .systemSmall, .systemMedium,
+            .accessoryCircular, .accessoryRectangular, .accessoryInline,
+        ])
     }
 }
