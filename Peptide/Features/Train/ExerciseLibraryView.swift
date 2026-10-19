@@ -34,15 +34,6 @@ struct ExerciseLibraryView: View {
             prompt: Text("Search exercises, muscles, equipment")
         )
         .task { await loadLibrary() }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { showsBodyPicker = true } label: {
-                    Image(systemName: "figure.stand")
-                }
-                .accessibilityLabel("Pick muscles on body")
-                .accessibilityIdentifier("exercise-body-picker")
-            }
-        }
         .sheet(isPresented: $showsBodyPicker) {
             BodyMusclePicker(selection: $browsing.muscleFilter)
         }
@@ -58,10 +49,27 @@ struct ExerciseLibraryView: View {
 
     private var filterShelf: some View {
         VStack(spacing: Spacing.xxs) {
-            MuscleGroupChipRow(selection: $browsing.muscleFilter)
+            HStack(spacing: 0) {
+                bodyPickerButton
+                    .padding(.leading, Spacing.screenPadding)
+                MuscleGroupChipRow(selection: $browsing.muscleFilter)
+            }
             EquipmentChipRow(selection: $browsing.equipmentFilter)
         }
         .padding(.bottom, Spacing.xs)
+    }
+
+    private var bodyPickerButton: some View {
+        Button { showsBodyPicker = true } label: {
+            Image(systemName: "figure.stand")
+                .font(AppFont.scaled(16, weight: .semibold))
+                .foregroundStyle(AppColor.accentPrimary)
+                .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
+                .background(Circle().fill(AppColor.surfaceSecondary))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Pick muscles on body")
+        .accessibilityIdentifier("exercise-body-picker")
     }
 
     // MARK: - Content

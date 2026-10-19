@@ -474,17 +474,15 @@ final class ScreenshotTests: XCTestCase {
             XCTAssertTrue(exercise.waitForExistence(timeout: 10))
             exercise.tap()
             let heading = app.staticTexts["Muscles worked"]
-            if !heading.waitForExistence(timeout: 5) {
-                print("HIERARCHY-BEGIN\n\(app.debugDescription)\nHIERARCHY-END")
-            }
             reveal(heading)
-            scrollOnScreen(app.buttons["muscle-row-Chest"])
+            scrollOnScreen(heading)
             capture(named: "activation-\(appearance)-01-detail")
             let triceps = app.buttons["muscle-row-Triceps"]
             reveal(triceps)
             triceps.tap()
             capture(named: "activation-\(appearance)-02-focused")
-            app.navigationBars.buttons.element(boundBy: 0).tap()
+            app.swipeDown()
+            app.navigationBars.buttons.firstMatch.tap()
 
             if app.buttons["Cancel"].exists { app.buttons["Cancel"].tap() }
             let picker = app.buttons["exercise-body-picker"].firstMatch
