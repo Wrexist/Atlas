@@ -12,12 +12,15 @@ struct TrackCalendarSection: View {
     let activePeptides: [Peptide]
 
     /// Single calendar reference shared across the grid build, the
-    /// mark build, the day-of-month math, and the per-day selection.
-    /// If `Calendar.current.firstWeekday` ever changes mid-session
-    /// (locale flip, user-region change), capturing once into @State
-    /// keeps the grid and the marks in lockstep. Re-init on the
-    /// view's `.task` so a relaunch picks up the new locale.
+    /// mark build, the day-of-month math, the month paging and the
+    /// per-day selection. If `Calendar.current.firstWeekday` changes
+    /// mid-session (locale flip, user-region change), capturing once
+    /// into @State keeps the grid and the marks in lockstep; a relaunch
+    /// picks up the new locale.
     @State private var calendar: Calendar = .current
+    /// +1 when paging forward, -1 back — picks the side the next month
+    /// slides in from.
+    @State private var monthDirection = 1
     @State private var monthDate: Date = Calendar.current.startOfMonth(for: Date())
     @State private var selectedDay: Date = Calendar.current.startOfDay(for: Date())
     @State private var filterPeptideID: UUID?
@@ -52,11 +55,9 @@ struct TrackCalendarSection: View {
         return CycleBands.bands(for: grid, protocols: scoped)
     }
 
-    private var selectedDayMarks: [CalendarDoseMark] {
-        filteredMap[calendar.startOfDay(for: selectedDay)] ?? []
-    }
-
     var body: some View {
+        // Built once per body: the grid and the detail panel both read it.
+        let doseMap = filteredMap
         VStack(spacing: Spacing.md) {
             if !activePeptides.isEmpty {
                 filterShelf
@@ -64,11 +65,11 @@ struct TrackCalendarSection: View {
 
             modeToggle
 
-            calendarCard
+            calendarCard(doseMap)
 
             DoseDayDetailPanel(
                 day: selectedDay,
-                marks: selectedDayMarks,
+                marks: doseMap[calendar.startOfDay(for: selectedDay)] ?? [],
                 onEditEntry: { entryID in
                     // Resolve to the live entry — the panel only carries the
                     // ID, not the full ProtocolEntry, so re-renders after a
@@ -121,29 +122,9 @@ struct TrackCalendarSection: View {
     }
 
     private var allFilterPill: some View {
-        let isActive = filterPeptideID == nil
-        return Button {
+        GlassChip("All", isSelected: filterPeptideID == nil) {
             AppAnimation.with(AppAnimation.springSnappy) { filterPeptideID = nil }
-            Haptics.selection()
-        } label: {
-            Text("All")
-                .font(AppFont.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(isActive ? AppColor.textPrimary : AppColor.textSecondary)
-                .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.sm)
-                .background {
-                    Capsule()
-                        .fill(isActive ? AppColor.accentPrimary.opacity(0.22) : AppColor.surfaceSecondary.opacity(0.6))
-                        .overlay {
-                            Capsule().strokeBorder(
-                                isActive ? AppColor.accentPrimary.opacity(0.45) : AppColor.glassBorder,
-                                lineWidth: 0.5
-                            )
-                        }
-                }
         }
-        .buttonStyle(ScalePressStyle(pressedScale: 0.95))
     }
 
     private func filterPill(for peptide: Peptide) -> some View {
@@ -183,22 +164,27 @@ struct TrackCalendarSection: View {
             }
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.95))
+        .accessibilityLabel("Show only \(peptide.name)")
+        .accessibilityAddTraits(isActive ? .isSelected : [])
     }
 
     // MARK: - Calendar card
 
-    private var calendarCard: some View {
+    private func calendarCard(_ doseMap: [Date: [CalendarDoseMark]]) -> some View {
         GlassCard(padding: Spacing.lg) {
             VStack(spacing: Spacing.lg) {
                 navigationHeader
                 CalendarMonthView(
                     monthDate: monthDate,
-                    dosesByDay: filteredMap,
+                    dosesByDay: doseMap,
                     displayMode: displayMode,
                     bandsPerRow: bandsPerRow,
                     selectedDay: $selectedDay
                 )
+                .id(monthDate)
+                .transition(.push(from: monthDirection > 0 ? .trailing : .leading))
             }
+            .clipped()
         }
     }
 
@@ -226,37 +212,35 @@ struct TrackCalendarSection: View {
         }
     }
 
+    /// Only shown off the current month — there's nowhere to jump to
+    /// otherwise.
+    @ViewBuilder
     private var todayButton: some View {
-        let isOnCurrentMonth = Calendar.current.isDate(
-            monthDate,
-            equalTo: Date(),
-            toGranularity: .month
-        )
-        return Button {
-            let now = Date()
-            AppAnimation.with(AppAnimation.step) {
-                monthDate = Calendar.current.startOfMonth(for: now)
-                selectedDay = Calendar.current.startOfDay(for: now)
-            }
-            Haptics.selection()
-        } label: {
-            Text("Today")
-                .font(AppFont.scaled(11, weight: .semibold))
-                .foregroundStyle(isOnCurrentMonth ? AppColor.textTertiary : AppColor.accentLight)
-                .padding(.horizontal, Spacing.sm)
-                .padding(.vertical, 6)
-                .background {
-                    Capsule()
-                        .strokeBorder(
-                            isOnCurrentMonth ? AppColor.glassBorder : AppColor.accentPrimary.opacity(0.4),
-                            lineWidth: 0.5
-                        )
+        let now = Date()
+        if !calendar.isDate(monthDate, equalTo: now, toGranularity: .month) {
+            Button {
+                monthDirection = monthDate < now ? 1 : -1
+                AppAnimation.with(AppAnimation.step) {
+                    monthDate = calendar.startOfMonth(for: now)
+                    selectedDay = calendar.startOfDay(for: now)
                 }
+                Haptics.selection()
+            } label: {
+                Text("Today")
+                    .font(AppFont.badgeSmall)
+                    .foregroundStyle(AppColor.accentLight)
+                    .padding(.horizontal, Spacing.sm)
+                    .padding(.vertical, Spacing.xs)
+                    .background {
+                        Capsule()
+                            .strokeBorder(AppColor.accentPrimary.opacity(0.4), lineWidth: 0.5)
+                    }
+                    .minimumHitArea()
+            }
+            .buttonStyle(ScalePressStyle(pressedScale: 0.9))
+            .transition(.opacity.combined(with: .scale))
+            .accessibilityLabel("Jump to today")
         }
-        .buttonStyle(.plain)
-        .disabled(isOnCurrentMonth)
-        .opacity(isOnCurrentMonth ? 0.55 : 1)
-        .accessibilityLabel("Jump to today")
     }
 
     private func chevronButton(direction: Int, icon: String) -> some View {
@@ -281,9 +265,17 @@ struct TrackCalendarSection: View {
     }
 
     private func shiftMonth(by months: Int) {
-        guard let next = Calendar.current.date(byAdding: .month, value: months, to: monthDate) else { return }
+        guard let next = calendar.date(byAdding: .month, value: months, to: monthDate) else { return }
+        let newMonth = calendar.startOfMonth(for: next)
+        let now = Date()
+        monthDirection = months
         AppAnimation.with(AppAnimation.step) {
-            monthDate = Calendar.current.startOfMonth(for: next)
+            monthDate = newMonth
+            // Keep the detail panel on a day that's actually on screen:
+            // today if it falls in the new month, else the 1st.
+            selectedDay = calendar.isDate(newMonth, equalTo: now, toGranularity: .month)
+                ? calendar.startOfDay(for: now)
+                : newMonth
         }
         Haptics.impact(.light)
     }

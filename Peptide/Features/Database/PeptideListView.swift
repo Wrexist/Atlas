@@ -89,6 +89,23 @@ struct PeptideListView: View {
             ProtocolListView()
                 .liquidGlassPresentation()
         }
+        .sheet(isPresented: $showCustomForm) {
+            CustomPeptideForm { peptide in
+                dataStore.addCustomPeptide(peptide)
+                refreshPeptides()
+            }
+            .liquidGlassPresentation()
+        }
+        .sheet(isPresented: $showResearchAssistant) {
+            AIResearchView()
+                .environment(dataStore)
+                .liquidGlassPresentation()
+        }
+        .sheet(isPresented: $showPaywall) {
+            PaywallView(source: .aiResearch)
+                .environment(dataStore)
+                .liquidGlassPresentation()
+        }
     }
 
     /// One-shot: when the AppState flag is set, present the protocol
@@ -107,26 +124,13 @@ struct PeptideListView: View {
             sidebarContent(useNavigationLinks: false)
                 .navigationTitle("Library")
                 .toolbar { sidebarToolbar }
-                .sheet(isPresented: $showCustomForm) {
-                    CustomPeptideForm { peptide in
-                        dataStore.addCustomPeptide(peptide)
-                        refreshPeptides()
-                    }
-                    .liquidGlassPresentation()
-                }
-                .sheet(isPresented: $showResearchAssistant) {
-                    AIResearchView()
-                        .environment(dataStore)
-                }
-                .sheet(isPresented: $showPaywall) {
-                    PaywallView(source: .aiResearch)
-                        .environment(dataStore)
-                        .liquidGlassPresentation()
-                }
         } detail: {
             NavigationStack {
                 if let selectedPeptide {
                     PeptideDetailView(peptide: selectedPeptide)
+                        .navigationDestination(for: Peptide.self) { peptide in
+                            PeptideDetailView(peptide: peptide)
+                        }
                 } else {
                     EmptyStateView(
                         icon: "flask",
@@ -153,22 +157,6 @@ struct PeptideListView: View {
                     PeptideDetailView(peptide: peptide)
                         .navigationTransition(.zoom(sourceID: peptide.id, in: zoom))
                 }
-                .sheet(isPresented: $showCustomForm) {
-                    CustomPeptideForm { peptide in
-                        dataStore.addCustomPeptide(peptide)
-                        refreshPeptides()
-                    }
-                    .liquidGlassPresentation()
-                }
-                .sheet(isPresented: $showResearchAssistant) {
-                    AIResearchView()
-                        .environment(dataStore)
-                }
-                .sheet(isPresented: $showPaywall) {
-                    PaywallView(source: .aiResearch)
-                        .environment(dataStore)
-                        .liquidGlassPresentation()
-                }
         }
     }
 
@@ -181,31 +169,13 @@ struct PeptideListView: View {
     private func sidebarContent(useNavigationLinks: Bool) -> some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
-                // Protocol creation lives here now (moved off Today).
-                // Reads as the primary CTA for a new user with no
-                // protocols, then collapses to a compact "manage"
-                // entry once they have one.
-                ProtocolsEntryCard(
-                    activeCount: dataStore.activeProtocols.count,
-                    onTap: { showProtocols = true }
-                )
-                .padding(.horizontal, Spacing.screenPadding)
-
-                // Invites a custom peptide, drug, or pill not in the database.
-                GlassEntryRow(
-                    icon: "plus",
-                    title: "Add Custom Peptide or Pill",
-                    subtitle: Text("Add anything not in the database — peptides, drugs, supplements"),
-                    action: { showCustomForm = true }
-                )
-                .accessibilityHint("Opens a form to add a custom peptide, drug, or supplement")
-                .padding(.horizontal, Spacing.screenPadding)
-
-                GlassTextField(
-                    placeholder: "Search peptides...",
-                    text: $viewModel.searchText
-                )
-                .padding(.horizontal, Spacing.screenPadding)
+                // New-user CTA only: once a protocol exists the toolbar's
+                // Protocols button is the way back in, so the card would
+                // just push the list further down.
+                if dataStore.activeProtocols.isEmpty {
+                    ProtocolsEntryCard(onTap: { showProtocols = true })
+                        .padding(.horizontal, Spacing.screenPadding)
+                }
 
                 CategoryFilterChips(
                     categories: viewModel.categories,
@@ -233,6 +203,16 @@ struct PeptideListView: View {
                     }
                     .padding(.horizontal, Spacing.screenPadding)
                     .appAnimation(AppAnimation.fadeIn, value: viewModel.filteredPeptides.map(\.id))
+
+                    // Invites a compound, drug, or pill not in the database.
+                    GlassEntryRow(
+                        icon: "plus",
+                        title: "Add your own compound",
+                        subtitle: Text("Anything not in the database — peptides, drugs, supplements"),
+                        action: { showCustomForm = true }
+                    )
+                    .accessibilityHint("Opens a form to add a custom peptide, drug, or supplement")
+                    .padding(.horizontal, Spacing.screenPadding)
                 }
             }
             .padding(.top, Spacing.sm)
@@ -240,6 +220,13 @@ struct PeptideListView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .background(AppColor.background)
+        // Pinned under the title so search stays reachable however far
+        // down the list the user has scrolled.
+        .searchable(
+            text: $viewModel.searchText,
+            placement: .navigationBarDrawer(displayMode: .always),
+            prompt: "Search compounds"
+        )
         .refreshable {
             // The peptide database is in-memory, so refresh just re-pulls
             // any custom peptides the user added on another device via
@@ -304,51 +291,31 @@ struct PeptideListView: View {
             .accessibilityLabel("Open protocols")
         }
         ToolbarItem(placement: .topBarTrailing) {
-            Text("\(viewModel.allPeptides.count)")
-                .font(AppFont.caption)
-                .fontWeight(.semibold)
-                .foregroundStyle(AppColor.accentPrimary)
-                .padding(.horizontal, Spacing.sm)
-                .padding(.vertical, Spacing.xxs)
-                .background {
-                    Capsule()
-                        .fill(AppColor.accentPrimary.opacity(0.15))
-                }
+            Button {
+                showCustomForm = true
+            } label: {
+                Label("Add your own compound", systemImage: "plus")
+                    .labelStyle(.iconOnly)
+                    .font(AppFont.scaled(16, weight: .semibold))
+                    .foregroundStyle(AppColor.accentPrimary)
+            }
+            .accessibilityLabel("Add your own compound")
         }
     }
 }
 
-/// Top-of-Library entry into protocols. Doubles as the new-user
-/// "create your first protocol" CTA (this moved off the Today tab) and,
-/// once protocols exist, a compact way back into the protocol list.
+/// Top-of-Library new-user CTA into protocols (moved off the Today tab).
 private struct ProtocolsEntryCard: View {
-    let activeCount: Int
     let onTap: () -> Void
-
-    private var isEmpty: Bool { activeCount == 0 }
-
-    private var title: LocalizedStringKey {
-        isEmpty ? "Create your first protocol" : "Your protocols"
-    }
-
-    private var subtitle: String {
-        if isEmpty {
-            return String(localized: "Track doses, streaks, and compliance.")
-        }
-        return activeCount == 1
-            ? String(localized: "1 active · tap to manage")
-            : String(format: String(localized: "%d active · tap to manage"), activeCount)
-    }
 
     var body: some View {
         GlassEntryRow(
-            icon: "flask.fill",
-            title: title,
-            subtitle: Text(subtitle),
-            badge: isEmpty ? Badge("Get started", style: .solid) : nil,
+            icon: "list.clipboard.fill",
+            title: "Create your first protocol",
+            subtitle: Text("Track what you take and how consistent you are."),
+            badge: Badge("Get started", style: .solid),
             action: onTap
         )
-        .accessibilityLabel(isEmpty ? "Create your first protocol" : "Open your protocols")
     }
 }
 

@@ -5,6 +5,7 @@ struct ProtocolDetailView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(\.dismiss) private var dismiss
     @State private var showDeleteConfirmation = false
+    @State private var showCompleteConfirmation = false
     @State private var showEditSheet = false
     @State private var showShareCard = false
     @State private var schedulingPeptide: Peptide?
@@ -54,12 +55,7 @@ struct ProtocolDetailView: View {
                             }
                             Spacer()
 
-                            HStack(spacing: Spacing.xs) {
-                                Image(systemName: liveProtocol.status.iconName)
-                                Text(liveProtocol.status.displayName)
-                            }
-                            .font(AppFont.caption)
-                            .foregroundStyle(liveProtocol.status.color)
+                            StatusBadge(status: liveProtocol.status)
                         }
 
                         if liveProtocol.status == .active {
@@ -96,12 +92,11 @@ struct ProtocolDetailView: View {
                 }
                 .sectionAppear(index: 0)
 
-                // Protocol Actions
-                HStack(spacing: Spacing.md) {
-                    GlassButton(title: "Edit", icon: "pencil", style: .secondary) {
-                        showEditSheet = true
-                    }
-                    protocolActions
+                // Status actions. Side by side when they fit, stacked at
+                // accessibility text sizes rather than truncating.
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: Spacing.md) { protocolActions }
+                    VStack(spacing: Spacing.sm) { protocolActions }
                 }
                 .sectionAppear(index: 1)
 
@@ -113,14 +108,7 @@ struct ProtocolDetailView: View {
                                 .font(AppFont.headline)
                                 .foregroundStyle(AppColor.textPrimary)
                             if customScheduleCount > 0 {
-                                Text("\(customScheduleCount) custom")
-                                    .font(AppFont.scaled(8, weight: .bold))
-                                    .foregroundStyle(AppColor.accentPrimary)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background {
-                                        Capsule().fill(AppColor.accentPrimary.opacity(0.15))
-                                    }
+                                Badge("\(customScheduleCount) custom")
                             }
                             Spacer()
                             Text("Tap to edit schedule")
@@ -134,7 +122,7 @@ struct ProtocolDetailView: View {
                         ForEach(Array(peptides.enumerated()), id: \.element.id) { index, peptide in
                             peptideRow(peptide, in: liveProtocol)
                             if index < peptides.count - 1 {
-                                Divider().foregroundStyle(AppColor.glassBorder)
+                                Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
                             }
                         }
                     }
@@ -153,18 +141,22 @@ struct ProtocolDetailView: View {
                             value: liveProtocol.schedule.daysDescription
                         )
 
-                        Divider().foregroundStyle(AppColor.glassBorder)
+                        Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
 
                         scheduleDetailRow(label: "Times/Day", value: "\(liveProtocol.schedule.timesPerDay)x")
 
-                        Divider().foregroundStyle(AppColor.glassBorder)
+                        // Interval protocols imported from the library carry
+                        // no preferred times; an empty row reads as broken.
+                        if !liveProtocol.schedule.preferredTimes.isEmpty {
+                            Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
 
-                        scheduleDetailRow(
-                            label: "Preferred",
-                            value: liveProtocol.schedule.preferredTimes.joined(separator: ", ")
-                        )
+                            scheduleDetailRow(
+                                label: "Preferred",
+                                value: liveProtocol.schedule.preferredTimes.joined(separator: ", ")
+                            )
+                        }
 
-                        Divider().foregroundStyle(AppColor.glassBorder)
+                        Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
 
                         scheduleDetailRow(
                             label: "Cycle",
@@ -179,7 +171,7 @@ struct ProtocolDetailView: View {
                 if !liveProtocol.notes.isEmpty {
                     GlassCard {
                         VStack(alignment: .leading, spacing: Spacing.md) {
-                            Label("Notes", systemImage: "note.text")
+                            Label("About this protocol", systemImage: "note.text")
                                 .font(AppFont.headline)
                                 .foregroundStyle(AppColor.textPrimary)
 
@@ -203,7 +195,7 @@ struct ProtocolDetailView: View {
                         onDelete: { dataStore.deleteProtocolNote(id: $0) }
                     )
                 }
-                .sectionAppear(index: 4)
+                .sectionAppear(index: 5)
 
                 // Recent logs
                 GlassCard {
@@ -230,26 +222,30 @@ struct ProtocolDetailView: View {
                         } else {
                             ForEach(Array(recentEntries.enumerated()), id: \.element.id) { index, entry in
                                 Button {
-                                    dataStore.toggleEntry(entry.id)
+                                    Haptics.selection()
+                                    AppAnimation.with(AppAnimation.springSnappy) {
+                                        dataStore.toggleEntry(entry.id)
+                                    }
                                 } label: {
                                     DoseLogRow(entry: entry)
                                 }
                                 .buttonStyle(.plain)
 
                                 if index < recentEntries.count - 1 {
-                                    Divider().foregroundStyle(AppColor.glassBorder)
+                                    Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
                                 }
                             }
                         }
                     }
                 }
-                .sectionAppear(index: 5)
+                .sectionAppear(index: 6)
 
                 // Delete button
                 GlassButton(title: "Delete Protocol", icon: "trash", style: .destructive, isFullWidth: true) {
+                    Haptics.warning()
                     showDeleteConfirmation = true
                 }
-                .sectionAppear(index: 6)
+                .sectionAppear(index: 7)
             }
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.xxxxl)
@@ -257,6 +253,9 @@ struct ProtocolDetailView: View {
         .background(AppColor.background)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Edit") { showEditSheet = true }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     showShareCard = true
@@ -270,12 +269,20 @@ struct ProtocolDetailView: View {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
                 dataStore.deleteProtocol(id: protocol_.id)
+                Haptics.success()
             }
         } message: {
             Text("This will permanently delete \"\(liveProtocol.name)\" and all its logged entries.")
         }
-        .navigationDestination(for: Peptide.self) { peptide in
-            PeptideDetailView(peptide: peptide)
+        .confirmationDialog(
+            "Complete \(liveProtocol.name)?",
+            isPresented: $showCompleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Complete Protocol") { setStatus(.completed) }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("It moves to Completed and stops scheduling doses. You can restart it later.")
         }
         .onChange(of: dataStore.protocols.contains(where: { $0.id == protocol_.id })) { _, exists in
             if !exists { dismiss() }
@@ -332,14 +339,7 @@ struct ProtocolDetailView: View {
                                 .font(AppFont.headline)
                                 .foregroundStyle(AppColor.textPrimary)
                             if isCustom {
-                                Text("CUSTOM")
-                                    .font(AppFont.scaled(8, weight: .bold))
-                                    .foregroundStyle(AppColor.accentPrimary)
-                                    .padding(.horizontal, 5)
-                                    .padding(.vertical, 2)
-                                    .background {
-                                        Capsule().fill(AppColor.accentPrimary.opacity(0.15))
-                                    }
+                                Badge("Custom")
                             }
                         }
                         HStack(spacing: Spacing.xs) {
@@ -405,32 +405,41 @@ struct ProtocolDetailView: View {
     }
 
     private func formattedDate(_ date: Date) -> String {
-        date.formatted(.dateTime.month(.abbreviated).day().year(.twoDigits))
+        date.formatted(.dateTime.month(.abbreviated).day().year())
     }
 
     @ViewBuilder
     private var protocolActions: some View {
-        HStack(spacing: Spacing.md) {
-            switch liveProtocol.status {
-            case .active:
-                GlassButton(title: "Pause", icon: "pause.fill", style: .secondary) {
-                    dataStore.updateProtocolStatus(id: protocol_.id, to: .paused)
-                }
-                GlassButton(title: "Complete", icon: "checkmark", style: .primary) {
-                    dataStore.updateProtocolStatus(id: protocol_.id, to: .completed)
-                }
-            case .paused:
-                GlassButton(title: "Resume", icon: "play.fill", style: .primary) {
-                    dataStore.updateProtocolStatus(id: protocol_.id, to: .active)
-                }
-                GlassButton(title: "Complete", icon: "checkmark", style: .secondary) {
-                    dataStore.updateProtocolStatus(id: protocol_.id, to: .completed)
-                }
-            case .completed:
-                GlassButton(title: "Restart", icon: "arrow.counterclockwise", style: .primary) {
-                    dataStore.updateProtocolStatus(id: protocol_.id, to: .active)
-                }
+        switch liveProtocol.status {
+        case .active:
+            GlassButton(title: "Pause", icon: "pause.fill", style: .secondary) {
+                setStatus(.paused)
             }
+            GlassButton(title: "Complete", icon: "checkmark", style: .primary) {
+                showCompleteConfirmation = true
+            }
+        case .paused:
+            GlassButton(title: "Resume", icon: "play.fill", style: .primary) {
+                setStatus(.active)
+            }
+            GlassButton(title: "Complete", icon: "checkmark", style: .secondary) {
+                showCompleteConfirmation = true
+            }
+        case .completed:
+            GlassButton(title: "Restart", icon: "arrow.counterclockwise", style: .primary) {
+                setStatus(.active)
+            }
+        }
+    }
+
+    private func setStatus(_ status: ProtocolStatus) {
+        if status == .completed {
+            Haptics.success()
+        } else {
+            Haptics.impact(.light)
+        }
+        AppAnimation.with(AppAnimation.springSnappy) {
+            dataStore.updateProtocolStatus(id: protocol_.id, to: status)
         }
     }
 }
@@ -443,6 +452,8 @@ private struct MiniStat: View {
         VStack(spacing: Spacing.xxs) {
             Text(value)
                 .font(AppFont.headline)
+                .monospacedDigit()
+                .contentTransition(.numericText())
                 .foregroundStyle(AppColor.accentLight)
             Text(label)
                 .font(AppFont.caption)

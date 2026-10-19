@@ -15,7 +15,7 @@ struct ProtocolCard: View {
                         HStack(spacing: Spacing.sm) {
                             StatusBadge(status: protocol_.status)
 
-                            Text("\(protocol_.peptides.count) peptides")
+                            Text("^[\(protocol_.peptides.count) peptide](inflect: true)")
                                 .font(AppFont.caption)
                                 .foregroundStyle(AppColor.textSecondary)
                         }
@@ -27,6 +27,8 @@ struct ProtocolCard: View {
                         VStack(alignment: .trailing, spacing: Spacing.xxs) {
                             Text("Week \(protocol_.weekNumber)")
                                 .font(AppFont.headline)
+                                .monospacedDigit()
+                                .contentTransition(.numericText())
                                 .foregroundStyle(AppColor.accentLight)
                             Text("of \(protocol_.cycleLengthWeeks)")
                                 .font(AppFont.caption)
@@ -48,7 +50,7 @@ struct ProtocolCard: View {
                                 .frame(width: 30, height: 30)
                                 .overlay {
                                     Circle()
-                                        .strokeBorder(AppColor.surfaceElevated, lineWidth: 2)
+                                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                                 }
 
                             Image(systemName: peptide.imageSystemName)
@@ -69,11 +71,14 @@ struct ProtocolCard: View {
                     if protocol_.status == .active {
                         Text("\(protocol_.daysRemaining)d left")
                             .font(AppFont.caption)
+                            .monospacedDigit()
+                            .contentTransition(.numericText())
                             .foregroundStyle(AppColor.textSecondary)
                     }
                 }
             }
         }
+        .appAnimation(AppAnimation.springSnappy, value: protocol_.cycleProgress)
         // The peptide avatars are a visual summary of the count already
         // announced above, so they're hidden and the card reads as one item.
         .accessibilityElement(children: .combine)
@@ -82,7 +87,7 @@ struct ProtocolCard: View {
 
     private var accessibilitySummary: String {
         var parts = [protocol_.name, protocol_.status.displayName]
-        parts.append("\(protocol_.peptides.count) peptides")
+        parts.append(protocol_.peptides.count == 1 ? "1 peptide" : "\(protocol_.peptides.count) peptides")
         if protocol_.status == .active {
             parts.append("week \(protocol_.weekNumber) of \(protocol_.cycleLengthWeeks)")
             parts.append("\(protocol_.daysRemaining) days left")
@@ -91,13 +96,14 @@ struct ProtocolCard: View {
     }
 }
 
-private struct StatusBadge: View {
+struct StatusBadge: View {
     let status: ProtocolStatus
 
     var body: some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: status.iconName)
-                .font(AppFont.scaled(8))
+                .font(AppFont.badge)
+                .contentTransition(.symbolEffect(.replace))
             Text(status.displayName)
                 .font(AppFont.caption)
                 .fontWeight(.semibold)

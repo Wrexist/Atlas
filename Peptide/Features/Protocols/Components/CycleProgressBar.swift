@@ -17,6 +17,8 @@ struct CycleProgressBar: View {
                 Text("\(Int(protocol_.cycleProgress * 100))%")
                     .font(AppFont.caption)
                     .fontWeight(.semibold)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
                     .foregroundStyle(AppColor.accentLight)
 
                 Spacer()
@@ -26,5 +28,15 @@ struct CycleProgressBar: View {
                     .foregroundStyle(AppColor.textTertiary)
             }
         }
+        .appAnimation(AppAnimation.springSnappy, value: protocol_.cycleProgress)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Cycle progress")
+        .accessibilityValue(accessibilityValue)
+    }
+
+    private var accessibilityValue: String {
+        let start = protocol_.startDate.formatted(.dateTime.month(.wide).day())
+        let end = protocol_.endDate.formatted(.dateTime.month(.wide).day())
+        return "\(Int(protocol_.cycleProgress * 100)) percent, \(start) to \(end)"
     }
 }

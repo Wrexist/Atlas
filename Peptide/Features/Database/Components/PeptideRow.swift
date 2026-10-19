@@ -14,8 +14,11 @@ struct PeptideRow: View {
                     .font(AppFont.scaled(20))
                     .foregroundStyle(peptide.category.color)
             }
+            .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: Spacing.xs) {
+            // The coloured tile already names the category (and VoiceOver
+            // reads it as the value), so the row stays two lines tall.
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(peptide.abbreviation)
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
@@ -24,8 +27,6 @@ struct PeptideRow: View {
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                     .lineLimit(1)
-
-                PeptideCategoryBadge(category: peptide.category)
             }
 
             Spacer()
@@ -35,7 +36,10 @@ struct PeptideRow: View {
                 .foregroundStyle(AppColor.textTertiary)
                 .accessibilityHidden(true)
         }
-        .glassCard(cornerRadius: Spacing.smallCornerRadius, padding: Spacing.md)
+        .padding(Spacing.md)
+        // A flat inset surface, not a live glass effect: 200+ of these sit
+        // in one lazy list, and per-row glass made scrolling heavy and busy.
+        .insetRowBackground(cornerRadius: Spacing.smallCornerRadius)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(peptide.abbreviation), \(peptide.name)")
         .accessibilityValue(peptide.category.displayName)

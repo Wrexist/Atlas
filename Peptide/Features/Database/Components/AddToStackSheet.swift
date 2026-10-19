@@ -5,6 +5,10 @@ struct AddToStackSheet: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    /// How long the "Added" state holds before the sheet closes, so the
+    /// confirmation registers.
+    private static let addedConfirmationHold: Duration = .milliseconds(600)
+
     let peptide: Peptide
     var onCreateNew: () -> Void
 
@@ -26,7 +30,7 @@ struct AddToStackSheet: View {
                         VStack(spacing: Spacing.md) {
                             ForEach(Array(availableProtocols.enumerated()), id: \.element.id) { index, proto in
                                 stackRow(proto)
-                                    .sectionAppear(index: index)
+                                    .staggeredAppear(index: index)
                             }
                         }
                     }
@@ -38,9 +42,10 @@ struct AddToStackSheet: View {
                         isFullWidth: true
                     ) {
                         dismiss()
-                        let delayMs: UInt64 = reduceMotion ? 0 : 250
+                        // Wait out the dismissal: presenting the builder
+                        // before this sheet is gone gets silently dropped.
                         Task { @MainActor in
-                            try? await Task.sleep(for: .milliseconds(delayMs))
+                            try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
                             onCreateNew()
                         }
                     }
@@ -55,7 +60,7 @@ struct AddToStackSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
+                    Button("Cancel") { dismiss() }
                         .foregroundStyle(AppColor.accentLight)
                 }
             }
@@ -90,22 +95,13 @@ struct AddToStackSheet: View {
     }
 
     private var emptyState: some View {
-        GlassCard {
-            VStack(spacing: Spacing.md) {
-                Image(systemName: "square.stack.3d.up.slash")
-                    .font(.system(size: 32))
-                    .foregroundStyle(AppColor.textTertiary)
-                Text("No stacks yet")
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textSecondary)
-                Text("Create your first stack to add \(peptide.abbreviation).")
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textTertiary)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.md)
-        }
+        EmptyStateView(
+            icon: "square.stack.3d.up.slash",
+            title: "No stacks yet",
+            message: "Create your first stack to add \(peptide.abbreviation).",
+            style: .compact
+        )
+        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
@@ -117,12 +113,14 @@ struct AddToStackSheet: View {
             guard !alreadyIn else { return }
             let success = dataStore.addPeptide(peptide, toProtocolId: proto.id)
             if success {
+                Haptics.success()
                 AppAnimation.with(AppAnimation.springSnappy) {
                     justAddedTo = proto.id
                 }
-                let delayMs: UInt64 = reduceMotion ? 0 : 600
                 Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(delayMs))
+                    if !reduceMotion {
+                        try? await Task.sleep(for: Self.addedConfirmationHold)
+                    }
                     dismiss()
                 }
             }
@@ -145,7 +143,7 @@ struct AddToStackSheet: View {
                         .lineLimit(1)
 
                     HStack(spacing: Spacing.xs) {
-                        Text("\(proto.peptides.count) peptide\(proto.peptides.count == 1 ? "" : "s")")
+                        Text("^[\(proto.peptides.count) peptide](inflect: true)")
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.textSecondary)
 
@@ -178,28 +176,21 @@ struct AddToStackSheet: View {
             Image(systemName: (alreadyIn || justAdded) ? "checkmark" : "plus")
                 .font(AppFont.scaled(13, weight: .bold))
                 .foregroundStyle(AppColor.accentLight)
+                .contentTransition(.symbolEffect(.replace))
+                .symbolEffect(.bounce, value: justAdded)
         }
-        .liquidGlass(.circle)
+        .accessibilityHidden(true)
     }
 
     @ViewBuilder
     private func statusBadge(alreadyIn: Bool, justAdded: Bool, status: ProtocolStatus) -> some View {
         if justAdded {
-            badgeText("Added", color: AppColor.accentLight, bg: AppColor.accentLight.opacity(0.2))
+            Badge("Added", icon: "checkmark")
         } else if alreadyIn {
-            badgeText("In stack", color: AppColor.accentPrimary, bg: AppColor.accentPrimary.opacity(0.15))
+            Badge("In stack")
         } else if status == .paused {
-            badgeText("Paused", color: AppColor.warning, bg: AppColor.warning.opacity(0.15))
+            Badge("Paused", tint: AppColor.warning)
         }
-    }
-
-    private func badgeText(_ text: String, color: Color, bg: Color) -> some View {
-        Text(text)
-            .font(AppFont.scaled(11, weight: .bold))
-            .foregroundStyle(color)
-            .padding(.horizontal, Spacing.sm)
-            .padding(.vertical, 4)
-            .background { Capsule().fill(bg) }
     }
 }
 

@@ -7,22 +7,25 @@ struct CommunityStackDetailView: View {
     @State private var storeService = StoreService.shared
     @State private var didFork = false
     @State private var showingPaywall = false
-    /// Stable id for the preview proto so SwiftUI doesn't churn on body re-runs.
-    @State private var previewID = UUID()
-    /// Memoised peptide list — looking up each abbreviation against the
-    /// PeptideDatabase on every render was wasted work, and the result
-    /// is stable for the lifetime of this view.
-    @State private var resolvedPeptidesCache: [Peptide] = []
-    /// Memoised preview protocol. Built once on `.task` and reused so
-    /// the share-card preview doesn't reconstruct the struct (and re-
-    /// resolve every abbreviation) on every body evaluation.
-    @State private var previewProtocolCache: PeptideProtocol?
+    /// Resolved once, up front: filling these in a `.task` left the first
+    /// frame claiming the stack's peptides were missing (warning copy,
+    /// disabled CTA) until the lookup landed.
+    @State private var resolvedPeptides: [Peptide]
+    /// Built once so the share-card preview doesn't reconstruct the struct
+    /// (and re-resolve every abbreviation) on every body evaluation.
+    @State private var previewProtocol: PeptideProtocol
 
-    private func buildPreviewProtocol() -> PeptideProtocol {
+    init(stack: CommunityStack) {
+        self.stack = stack
         let peptides = stack.peptideAbbreviations.compactMap { PeptideDatabase.peptide(matching: $0) }
+        _resolvedPeptides = State(initialValue: peptides)
+        _previewProtocol = State(initialValue: Self.makePreviewProtocol(for: stack, peptides: peptides))
+    }
+
+    private static func makePreviewProtocol(for stack: CommunityStack, peptides: [Peptide]) -> PeptideProtocol {
         let times = (1...max(1, stack.scheduleTimesPerDay)).map { _ in "8:00 AM" }
         return PeptideProtocol(
-            id: previewID,
+            id: UUID(),
             name: stack.name,
             peptides: peptides,
             schedule: ProtocolSchedule(
@@ -41,14 +44,10 @@ struct CommunityStackDetailView: View {
         )
     }
 
-    private var resolvedPeptides: [Peptide] { resolvedPeptidesCache }
-    private var previewProtocol: PeptideProtocol { previewProtocolCache ?? buildPreviewProtocol() }
-
     var body: some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
                 hero
-                authorChip
                 cardPreview
                 description
                 peptidesList
@@ -64,30 +63,22 @@ struct CommunityStackDetailView: View {
         .background(AppColor.background)
         .navigationTitle(stack.name)
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            // Resolve peptides + build preview protocol once. Doing
-            // this in computed properties recomputed each on every
-            // body evaluation (4-8 PeptideDatabase lookups per
-            // render), including during scrolls.
-            let peptides = stack.peptideAbbreviations.compactMap { PeptideDatabase.peptide(matching: $0) }
-            resolvedPeptidesCache = peptides
-            previewProtocolCache = buildPreviewProtocol()
-        }
     }
 
+    /// Name and author lead the screen (the inline bar title alone left the
+    /// most important text at 17pt), with the stack's shape underneath.
     private var hero: some View {
         GlassCard(tinted: stack.featured) {
-            VStack(alignment: .leading, spacing: Spacing.md) {
-                HStack(spacing: Spacing.sm) {
+            VStack(alignment: .leading, spacing: Spacing.lg) {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
                     if stack.featured {
-                        Label("Featured", systemImage: "star.fill")
-                            .font(AppFont.scaled(11, weight: .bold))
-                            .foregroundStyle(AppColor.accentLight)
-                            .padding(.horizontal, Spacing.sm)
-                            .padding(.vertical, 4)
-                            .background(Capsule().fill(AppColor.glassTint))
+                        Badge("Featured", icon: "star.fill")
                     }
-                    Spacer()
+                    Text(stack.name)
+                        .font(AppFont.title)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .accessibilityAddTraits(.isHeader)
+                    authorLine
                 }
 
                 HStack(spacing: Spacing.xl) {
@@ -97,39 +88,27 @@ struct CommunityStackDetailView: View {
                     miniStat(value: "\(stack.scheduleDaysOfWeek.count)d", label: "Per week")
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
-    private var authorChip: some View {
-        HStack(spacing: Spacing.md) {
-            ZStack {
-                Circle()
-                    .fill(AppColor.accentPrimary.opacity(0.2))
-                    .frame(width: 44, height: 44)
-                Image(systemName: "person.crop.circle.fill")
-                    .font(AppFont.scaled(20))
-                    .foregroundStyle(AppColor.accentLight)
-            }
+    private var authorLine: some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: "person.crop.circle.fill")
+                .font(AppFont.scaled(20))
+                .foregroundStyle(AppColor.accentLight)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(stack.authorName)
-                    .font(AppFont.headline)
+                    .font(AppFont.subheadline)
+                    .fontWeight(.semibold)
                     .foregroundStyle(AppColor.textPrimary)
                 Text(stack.authorHandle ?? stack.authorTitle ?? "Atlas Editorial")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
             }
-            Spacer()
         }
-        .padding(.horizontal, Spacing.cardPadding)
-        .padding(.vertical, Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.cardOverlay)
-                .overlay(
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                )
-        )
+        .accessibilityElement(children: .combine)
     }
 
     private var cardPreview: some View {
@@ -144,9 +123,9 @@ struct CommunityStackDetailView: View {
                     width: ShareCardRenderer.canvasSize.width * 0.32,
                     height: ShareCardRenderer.canvasSize.height * 0.32
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
                         .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                 )
                 .frame(maxWidth: .infinity)
@@ -168,14 +147,10 @@ struct CommunityStackDetailView: View {
                     .foregroundStyle(AppColor.textSecondary)
                     .lineSpacing(3)
                 if !stack.goalTags.isEmpty {
-                    HStack(spacing: 6) {
+                    // Wraps rather than clipping once there are 3+ tags.
+                    FlowLayout(spacing: Spacing.xs) {
                         ForEach(stack.goalTags, id: \.self) { tag in
-                            Text(tag)
-                                .font(AppFont.scaled(11, weight: .semibold))
-                                .foregroundStyle(AppColor.accentLight)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(Capsule().fill(AppColor.glassTint))
+                            Badge(LocalizedStringKey(tag))
                         }
                     }
                 }
@@ -198,14 +173,14 @@ struct CommunityStackDetailView: View {
                     ForEach(Array(resolvedPeptides.enumerated()), id: \.element.id) { index, peptide in
                         peptideRow(peptide)
                         if index < resolvedPeptides.count - 1 {
-                            Divider().foregroundStyle(AppColor.glassBorder)
+                            Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
                         }
                     }
                 }
 
                 let missing = stack.peptideAbbreviations.count - resolvedPeptides.count
                 if missing > 0 {
-                    Text("\(missing) peptide\(missing == 1 ? "" : "s") not in your library")
+                    Text("^[\(missing) peptide](inflect: true) not in your library")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textTertiary)
                 }
@@ -252,6 +227,7 @@ struct CommunityStackDetailView: View {
         .disabled(didFork || resolvedPeptides.isEmpty)
         .sheet(isPresented: $showingPaywall) {
             PaywallView(source: .communityStack)
+                .liquidGlassPresentation()
         }
     }
 
@@ -280,6 +256,7 @@ struct CommunityStackDetailView: View {
         }
         let proto = CommunityStackService.shared.forkToProtocol(stack)
         dataStore.addProtocol(proto)
+        Haptics.success()
         didFork = true
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(600))

@@ -22,8 +22,6 @@ struct PeptideScheduleSheet: View {
     @State private var intervalAnchor: Date
     @State private var preferredTimes: [String]
 
-    private static let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-
     init(
         peptide: Peptide,
         defaultSchedule: ProtocolSchedule,
@@ -80,7 +78,8 @@ struct PeptideScheduleSheet: View {
                                         cadenceMode: $cadenceMode,
                                         intervalDays: $intervalDays,
                                         preferredTimes: $preferredTimes,
-                                        dayNames: Self.dayNames
+                                        intervalAnchor: intervalAnchor,
+                                        dayNames: ScheduleEditor.isoWeekdayNames
                                     )
                                 }
                             }
@@ -145,7 +144,7 @@ struct PeptideScheduleSheet: View {
     private var modeToggle: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                Toggle(isOn: $useCustom.animation(AppAnimation.springSnappy)) {
+                Toggle(isOn: $useCustom) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Custom schedule")
                             .font(AppFont.subheadline)
@@ -179,7 +178,7 @@ struct PeptideScheduleSheet: View {
                         .foregroundStyle(AppColor.textPrimary)
                 }
 
-                Divider().foregroundStyle(AppColor.glassBorder)
+                Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
 
                 HStack {
                     Text("Times/Day")
@@ -240,6 +239,7 @@ struct PeptideScheduleSheet: View {
         } else {
             onSave(nil)
         }
+        Haptics.success()
         dismiss()
     }
 }

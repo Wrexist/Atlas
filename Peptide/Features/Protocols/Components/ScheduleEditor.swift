@@ -31,7 +31,16 @@ struct ScheduleEditor: View {
     /// shows per-slot DatePickers; otherwise it just stays in step with
     /// `timesPerDay` and the caller generates default times.
     var preferredTimes: Binding<[String]>?
+    /// First dose of an interval schedule; the hint counts from here.
+    var intervalAnchor: Date = Date()
     let dayNames: [String]
+
+    /// Short weekday names in the data model's ISO order (index 0 = Monday),
+    /// from the user's locale rather than hard-coded English.
+    static var isoWeekdayNames: [String] {
+        let symbols = Calendar.current.shortStandaloneWeekdaySymbols
+        return Array(symbols[1...]) + [symbols[0]]
+    }
 
     var body: some View {
         VStack(spacing: Spacing.lg) {
@@ -61,7 +70,7 @@ struct ScheduleEditor: View {
             }
             .appAnimation(AppAnimation.springSnappy, value: effectiveMode)
 
-            Divider().foregroundStyle(AppColor.glassBorder)
+            Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
 
             timesPerDayStepper
 
@@ -71,7 +80,7 @@ struct ScheduleEditor: View {
             }
 
             if let cycleBinding = cycleLengthWeeks {
-                Divider().foregroundStyle(AppColor.glassBorder)
+                Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
                 cycleLengthStepper(binding: cycleBinding)
             }
         }
@@ -140,6 +149,7 @@ struct ScheduleEditor: View {
                 Spacer()
 
                 LiquidGlassStepper(
+                    label: "Dose interval",
                     value: binding,
                     range: 1...30,
                     formatter: { $0 == 1 ? "1 day" : "\($0) days" },
@@ -156,10 +166,11 @@ struct ScheduleEditor: View {
     }
 
     private func intervalHint(for n: Int) -> String {
+        let start = intervalAnchor.formatted(.dateTime.month().day())
         switch n {
-        case 1: "Doses fire every day."
-        case 2: "Doses fire every other day."
-        default: "Doses fire every \(n) days, starting today."
+        case 1: return String(localized: "One dose every day, from \(start)")
+        case 2: return String(localized: "One dose every other day, from \(start)")
+        default: return String(localized: "One dose every \(n) days, from \(start)")
         }
     }
 
@@ -172,6 +183,7 @@ struct ScheduleEditor: View {
                 .foregroundStyle(AppColor.textSecondary)
             Spacer()
             LiquidGlassStepper(
+                label: "Times per day",
                 value: $timesPerDay,
                 range: 1...4,
                 formatter: { "\($0)" },
@@ -250,6 +262,7 @@ struct ScheduleEditor: View {
                 .foregroundStyle(AppColor.textSecondary)
             Spacer()
             LiquidGlassStepper(
+                label: "Cycle length",
                 value: binding,
                 range: 1...24,
                 formatter: { "\($0) wk" },
@@ -317,6 +330,9 @@ private extension View {
 /// for times-per-day, interval days, and cycle weeks so all three stay
 /// visually consistent.
 struct LiquidGlassStepper: View {
+    /// What VoiceOver announces for the whole control; the value and the
+    /// swipe-to-adjust action ride on the same element.
+    let label: LocalizedStringKey
     @Binding var value: Int
     let range: ClosedRange<Int>
     var formatter: (Int) -> String = { "\($0)" }
@@ -350,6 +366,16 @@ struct LiquidGlassStepper: View {
                 AppAnimation.with(AppAnimation.springSnappy) { value += 1 }
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label)
+        .accessibilityValue(formatter(value))
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment where value < range.upperBound: value += 1
+            case .decrement where value > range.lowerBound: value -= 1
+            default: break
+            }
+        }
     }
 
     private func stepperButton(
@@ -368,7 +394,9 @@ struct LiquidGlassStepper: View {
         .buttonStyle(ScalePressStyle(pressedScale: 0.88))
         .disabled(!isEnabled)
         .opacity(isEnabled ? 1 : 0.5)
-        .accessibilityLabel(icon.contains("minus") ? "Decrease" : "Increase")
+        // Folded into the stepper's single adjustable element above; kept
+        // so the button is never an unlabelled control on its own.
+        .accessibilityLabel(icon == "minus" ? "Decrease" : "Increase")
     }
 
     private func tick() {

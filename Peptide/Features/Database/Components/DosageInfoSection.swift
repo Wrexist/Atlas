@@ -16,16 +16,12 @@ struct DosageInfoSection: View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.lg) {
                 HStack(spacing: Spacing.sm) {
-                    Image(systemName: "syringe.fill")
+                    Image(systemName: "chart.bar.doc.horizontal")
                         .foregroundStyle(peptide.category.color)
                         .accessibilityHidden(true)
                     Text("Reported in Research")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
-                    Spacer()
-                    if !peptide.researchLinks.isEmpty {
-                        citationChip
-                    }
                 }
 
                 Text("Educational summary of values reported in published research literature. Atlas does not recommend, prescribe, or calculate doses — always confirm anything you do with a qualified clinician.")
@@ -34,13 +30,13 @@ struct DosageInfoSection: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 VStack(spacing: Spacing.md) {
-                    DosageRow(label: "Reported Range", value: peptide.dosageRange, icon: "scalemass.fill")
-                    Divider().foregroundStyle(AppColor.glassBorder)
-                    DosageRow(label: "Reported Frequency", value: peptide.frequency, icon: "clock.fill")
-                    Divider().foregroundStyle(AppColor.glassBorder)
-                    DosageRow(label: "Half-Life", value: peptide.halfLife, icon: "hourglass")
-                    Divider().foregroundStyle(AppColor.glassBorder)
-                    DosageRow(label: "Administration", value: peptide.adminRoute, icon: "cross.vial.fill")
+                    let rows = visibleRows
+                    ForEach(rows) { row in
+                        if row.id != rows.first?.id {
+                            Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
+                        }
+                        DosageRow(label: row.label, value: row.value, icon: row.id)
+                    }
                 }
 
                 if !peptide.researchLinks.isEmpty {
@@ -61,7 +57,7 @@ struct DosageInfoSection: View {
                             Capsule().fill(AppColor.accentPrimary.opacity(0.12))
                         }
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(ScalePressStyle())
                     .accessibilityHint("Scrolls to the research citations for this peptide")
                 }
             }
@@ -69,30 +65,16 @@ struct DosageInfoSection: View {
         }
     }
 
-    private var citationChip: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "doc.text.magnifyingglass")
-                .font(AppFont.scaled(11, weight: .bold))
-            Text(citationCountText)
-                .font(AppFont.scaled(11, weight: .bold))
-        }
-        .foregroundStyle(AppColor.accentLight)
-        .padding(.horizontal, 6)
-        .padding(.vertical, 2)
-        .background {
-            Capsule().fill(AppColor.accentPrimary.opacity(0.15))
-        }
-        .accessibilityLabel(accessibleCitationLabel)
-    }
-
-    private var citationCountText: String {
-        let count = peptide.researchLinks.count
-        return count == 1 ? "1 SOURCE" : "\(count) SOURCES"
-    }
-
-    private var accessibleCitationLabel: String {
-        let count = peptide.researchLinks.count
-        return count == 1 ? "1 research citation" : "\(count) research citations"
+    /// Custom compounds carry no half-life or route, so a row only shows
+    /// when it has a value — a blank right column read as a broken screen.
+    private var visibleRows: [DosageField] {
+        [
+            DosageField(id: "scalemass.fill", label: "Reported Range", value: peptide.dosageRange),
+            DosageField(id: "clock.fill", label: "Reported Frequency", value: peptide.frequency),
+            DosageField(id: "hourglass", label: "Half-Life", value: peptide.halfLife),
+            DosageField(id: "cross.vial.fill", label: "Administration", value: peptide.adminRoute)
+        ]
+        .filter { !$0.value.trimmingCharacters(in: .whitespaces).isEmpty }
     }
 
     private var sourcesLabel: LocalizedStringKey {
@@ -100,6 +82,13 @@ struct DosageInfoSection: View {
             ? "View source citation"
             : "View source citations"
     }
+}
+
+/// One labelled value; `id` is its (unique) SF Symbol.
+private struct DosageField: Identifiable {
+    let id: String
+    let label: LocalizedStringKey
+    let value: String
 }
 
 private struct DosageRow: View {
@@ -114,6 +103,7 @@ private struct DosageRow: View {
                     .font(AppFont.scaled(11))
                     .foregroundStyle(AppColor.accentPrimary)
                     .frame(width: 20)
+                    .accessibilityHidden(true)
 
                 Text(label)
                     .font(AppFont.subheadline)
