@@ -580,17 +580,25 @@ final class ScreenshotTests: XCTestCase {
     private func scrollOnScreen(_ element: XCUIElement) {
         XCTAssertTrue(element.waitForExistence(timeout: 10))
         let window = app.windows.firstMatch.frame
-        for _ in 0..<8 {
+        for _ in 0..<10 {
             let frame = element.frame
             if frame.minY < window.minY + 100 {
-                app.swipeDown()
+                drag(by: 250)
             } else if frame.maxY > window.maxY - 120 {
-                app.swipeUp()
+                drag(by: -250)
             } else {
                 return
             }
         }
         XCTFail("\(element.label) never scrolled on screen: \(element.frame) in \(window)")
+    }
+
+    /// A slow press-and-drag scrolls by roughly its own length, where a
+    /// swipe flings far enough to jump right past a mid-sized target.
+    private func drag(by points: CGFloat) {
+        let center = app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        center.press(forDuration: 0.1, thenDragTo: center.withOffset(CGVector(dx: 0, dy: points)),
+                     withVelocity: .slow, thenHoldForDuration: 0.3)
     }
 
     private func scrollToTop() {
