@@ -83,20 +83,20 @@ struct GoalCountdownCard: View {
         }
     }
 
+    /// The section header above already says "Your goal", so the card
+    /// only names which goal — and shows nothing when there isn't one.
+    @ViewBuilder
     private var header: some View {
-        HStack(spacing: Spacing.sm) {
-            Image(systemName: "flag.checkered")
-                .font(AppFont.scaled(13, weight: .semibold))
-                .foregroundStyle(AppColor.accentLight)
-            Text("YOUR GOAL")
-                .font(AppFont.scaled(11, weight: .heavy))
-                .tracking(1.2)
-                .foregroundStyle(AppColor.textSecondary)
-            Spacer()
-            if let label = primaryGoalLabel {
+        if let label = primaryGoalLabel {
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: "flag.checkered")
+                    .font(AppFont.scaled(13, weight: .semibold))
+                    .foregroundStyle(AppColor.accentLight)
+                    .accessibilityHidden(true)
                 Text(label)
                     .font(AppFont.caption.weight(.semibold))
                     .foregroundStyle(AppColor.textPrimary)
+                Spacer(minLength: 0)
             }
         }
     }

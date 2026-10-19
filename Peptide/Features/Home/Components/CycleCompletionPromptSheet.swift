@@ -84,11 +84,21 @@ struct CycleCompletionPromptSheet: View {
     }
 
     private var dismissButton: some View {
-        Button("Decide later", action: onDismiss)
-            .font(AppFont.footnote.weight(.semibold))
-            .foregroundStyle(AppColor.textTertiary)
-            .padding(.top, Spacing.xs)
-            .accessibilityHint("Dismiss the prompt. After 3 dismissals or 7 days, the protocol auto-completes.")
+        VStack(spacing: Spacing.xxs) {
+            Button("Decide later", action: onDismiss)
+                .font(AppFont.footnote.weight(.semibold))
+                .foregroundStyle(AppColor.textSecondary)
+                .buttonStyle(ScalePressStyle())
+                .minimumHitArea()
+                .accessibilityHint("Dismisses the prompt")
+            // Shown, not just spoken — sighted users need the rule too.
+            Text("After 3 dismissals or 7 days, the protocol completes automatically.")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textTertiary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.top, Spacing.xs)
     }
 }
 
@@ -134,6 +144,6 @@ private struct CompletionAction: View {
                     }
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
     }
 }

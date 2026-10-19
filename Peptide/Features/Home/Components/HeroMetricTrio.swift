@@ -4,8 +4,9 @@ import SwiftUI
 /// Adherence (taken doses) / Recovery (HRV + sleep + RHR composite)
 /// / Sleep (last night's hours vs target). Each ring tells a
 /// distinct part of "should I push or recover today?" so the user
-/// gets the same one-glance answer Bevel / Whoop give for training,
-/// in the peptide-protocol context.
+/// gets the same one-glance answer Bevel / Whoop give for training.
+/// The first ring is workouts this week for users without a
+/// protocol (see `HeroLeadingMetric`).
 ///
 /// The trio drives off `HeroMetricSnapshot` which is built once on
 /// view appear and refreshed when scene phase returns to .active.
@@ -26,6 +27,9 @@ struct HeroMetricTrio: View {
     /// workouts against their training-days target.
     var leading: HeroLeadingMetric = .adherence
     var onTapWorkouts: (() -> Void)?
+    /// True until the first HealthKit snapshot lands. The rings render
+    /// as a shimmering placeholder instead of flashing "—" first.
+    var isLoading = false
 
     /// Width of the ring row, measured so the rings shrink to fit on
     /// small phones instead of clipping. Zero until first layout.
@@ -45,15 +49,16 @@ struct HeroMetricTrio: View {
 
     var body: some View {
         VStack(spacing: Spacing.sm) {
-            HStack(alignment: .top, spacing: Spacing.sm) {
-                switch leading {
-                case .adherence:
-                    ringTile(.adherence, value: snapshot.adherence)
-                case .workouts(let done, let target):
-                    workoutsTile(done: done, target: target)
+            Group {
+                if isLoading {
+                    ringRow
+                        .redacted(reason: .placeholder)
+                        .shimmer()
+                        .allowsHitTesting(false)
+                        .accessibilityLabel("Loading today's metrics")
+                } else {
+                    ringRow
                 }
-                ringTile(.recovery,  value: snapshot.recovery)
-                ringTile(.sleep,     value: snapshot.sleep)
             }
             // minWidth 0 makes the frame report the proposed width even
             // while the rings are still at full size, so the measurement
@@ -61,7 +66,7 @@ struct HeroMetricTrio: View {
             .frame(minWidth: 0, maxWidth: .infinity)
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { rowWidth = $0 }
 
-            if snapshot.needsHealthConnection {
+            if !isLoading, snapshot.needsHealthConnection {
                 healthConnectionFooter
             }
         }
@@ -76,6 +81,19 @@ struct HeroMetricTrio: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Today's metrics")
+    }
+
+    private var ringRow: some View {
+        HStack(alignment: .top, spacing: Spacing.sm) {
+            switch leading {
+            case .adherence:
+                ringTile(.adherence, value: snapshot.adherence)
+            case .workouts(let done, let target):
+                workoutsTile(done: done, target: target)
+            }
+            ringTile(.recovery,  value: snapshot.recovery)
+            ringTile(.sleep,     value: snapshot.sleep)
+        }
     }
 
     // MARK: - Ring tile
@@ -185,7 +203,7 @@ struct HeroMetricTrio: View {
             .minimumHitArea()
             .accessibilityElement(children: .combine)
             .accessibilityLabel("Connect Apple Health for Recovery and Sleep scores")
-            .accessibilityHint("Opens your profile, where Health connects")
+            .accessibilityHint("Asks for Apple Health access")
         } else {
             footerContent(chevron: false)
         }

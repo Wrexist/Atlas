@@ -19,7 +19,7 @@ struct TodayScheduleCard: View {
 
                     Spacer()
 
-                    Text("\(entries.count) doses")
+                    Text("^[\(entries.count) dose](inflect: true)")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
                 }
@@ -65,6 +65,7 @@ private struct ScheduleRow: View {
                     .font(AppFont.scaled(20))
                     .foregroundStyle(entry.completed ? AppColor.accentPrimary : AppColor.textTertiary)
                     .contentTransition(.symbolEffect(.replace))
+                    .minimumHitArea()
             }
             .buttonStyle(ScalePressStyle())
             .accessibilityLabel(entry.completed ? "Mark dose incomplete" : "Mark dose complete")

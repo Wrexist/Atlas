@@ -3,28 +3,46 @@ import SwiftUI
 struct NotificationIssueBanner: View {
     let report: ScheduleReport
     let droppedProtocolNames: [String]
+    /// Opens the protocol list, where dose times can be trimmed.
+    let onReview: () -> Void
+    let onDismiss: () -> Void
 
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "bell.badge.slash.fill")
-                        .font(AppFont.scaled(16, weight: .semibold))
-                        .foregroundStyle(AppColor.warning)
-                    Text(headline)
-                        .font(AppFont.subheadline.weight(.semibold))
-                        .foregroundStyle(AppColor.textPrimary)
-                    Spacer()
+                HStack(alignment: .top, spacing: Spacing.sm) {
+                    VStack(alignment: .leading, spacing: Spacing.sm) {
+                        HStack(spacing: Spacing.sm) {
+                            Image(systemName: "bell.badge.slash.fill")
+                                .font(AppFont.scaled(16, weight: .semibold))
+                                .foregroundStyle(AppColor.warning)
+                                .accessibilityHidden(true)
+                            Text(headline)
+                                .font(AppFont.subheadline.weight(.semibold))
+                                .foregroundStyle(AppColor.textPrimary)
+                        }
+
+                        Text(detail)
+                            .font(AppFont.caption)
+                            .foregroundStyle(AppColor.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityElement(children: .combine)
+
+                    Button(action: onDismiss) {
+                        Image(systemName: "xmark")
+                            .font(AppFont.scaled(11, weight: .bold))
+                            .foregroundStyle(AppColor.textTertiary)
+                    }
+                    .buttonStyle(ScalePressStyle())
+                    .minimumHitArea()
+                    .accessibilityLabel("Dismiss")
                 }
 
-                Text(detail)
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                GlassButton(title: "Review reminders", icon: "bell.badge", style: .secondary, action: onReview)
             }
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(headline). \(detail)")
     }
 
     private var headline: String {
@@ -42,7 +60,7 @@ struct NotificationIssueBanner: View {
         var parts: [String] = []
         if !droppedProtocolNames.isEmpty {
             let list = droppedProtocolNames.joined(separator: ", ")
-            parts.append("Reminders for \(list) exceed iOS's \(NotificationService.pendingRequestLimit)-pending limit. Consider pausing some protocols or reducing dose times.")
+            parts.append("iOS allows \(NotificationService.pendingRequestLimit) scheduled reminders. Reminders for \(list) won't fire — pause a protocol or trim dose times.")
         }
         if !report.invalidTimes.isEmpty {
             let list = report.invalidTimes.prefix(3).joined(separator: ", ")

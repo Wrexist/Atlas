@@ -28,7 +28,7 @@ struct CycleTransitionCard: View {
         HStack(alignment: .top, spacing: Spacing.md) {
             Image(systemName: transition.weeksRemaining == 0 ? "exclamationmark.circle.fill" : "clock.fill")
                 .font(AppFont.scaled(13))
-                .foregroundStyle(transition.weeksRemaining == 0 ? Color.orange : AppColor.accentPrimary)
+                .foregroundStyle(transition.weeksRemaining == 0 ? AppColor.warning : AppColor.accentPrimary)
                 .frame(width: 20)
                 .padding(.top, 2)
 
@@ -41,12 +41,12 @@ struct CycleTransitionCard: View {
 
                     Text(transition.weeksRemaining == 0 ? "Cycle complete" : "\(transition.weeksRemaining)w remaining")
                         .font(AppFont.scaled(8, weight: .bold))
-                        .foregroundStyle(transition.weeksRemaining == 0 ? Color.orange : AppColor.accentLight)
+                        .foregroundStyle(transition.weeksRemaining == 0 ? AppColor.warning : AppColor.accentLight)
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
                         .background {
                             Capsule().fill(
-                                (transition.weeksRemaining == 0 ? Color.orange : AppColor.accentLight).opacity(0.15)
+                                (transition.weeksRemaining == 0 ? AppColor.warning : AppColor.accentLight).opacity(0.15)
                             )
                         }
                 }

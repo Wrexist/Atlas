@@ -10,10 +10,12 @@ import SwiftUI
 /// Refresh hands the request back to `WeeklySummaryService` via
 /// the `onRefresh` closure, which performs the mutation against
 /// `dataStore.profile` and re-routes the new summary back into
-/// the view's `summary` binding.
+/// the view's `summary` binding. Nil hides refresh — the service
+/// only regenerates the current week, so an older recap can't be
+/// refreshed in place.
 struct WeeklySummaryDetailView: View {
     @Binding var summary: WeeklySummary
-    let onRefresh: () async -> Void
+    let onRefresh: (() async -> Void)?
     @State private var isRefreshing = false
 
     private var accent: Color {
@@ -35,22 +37,23 @@ struct WeeklySummaryDetailView: View {
         .navigationTitle("Week recap")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { @MainActor in
-                        isRefreshing = true
-                        await onRefresh()
-                        isRefreshing = false
+            if let onRefresh {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        Task { @MainActor in
+                            isRefreshing = true
+                            await onRefresh()
+                            isRefreshing = false
+                            Haptics.success()
+                        }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                            .font(AppFont.scaled(16, weight: .semibold))
+                            .symbolEffect(.rotate, options: .repeating, isActive: isRefreshing)
                     }
-                } label: {
-                    Image(systemName: isRefreshing
-                          ? "arrow.clockwise.circle"
-                          : "arrow.clockwise")
-                        .font(AppFont.scaled(16, weight: .semibold))
-                        .symbolEffect(.rotate, value: isRefreshing)
+                    .disabled(isRefreshing)
+                    .accessibilityLabel(isRefreshing ? "Refreshing summary" : "Refresh summary")
                 }
-                .disabled(isRefreshing)
-                .accessibilityLabel("Refresh summary")
             }
         }
     }
@@ -64,7 +67,6 @@ struct WeeklySummaryDetailView: View {
                     Circle()
                         .fill(accent)
                         .frame(width: 64, height: 64)
-                        .shadow(color: accent.opacity(0.45), radius: 12, y: 6)
                     Image(systemName: "chart.bar.doc.horizontal.fill")
                         .font(.system(size: 26, weight: .heavy))
                         .foregroundStyle(AppColor.onAccent)
@@ -95,13 +97,16 @@ struct WeeklySummaryDetailView: View {
             ],
             spacing: Spacing.sm
         ) {
-            StatTile(
-                label: "Compliance",
-                value: "\(Int((summary.keyStats.compliancePct * 100).rounded()))%",
-                tint: accent,
-                footnote: "\(summary.keyStats.dosesCompleted) of \(summary.keyStats.dosesTotal) doses",
-                size: .large
-            )
+            // A week with no scheduled doses has nothing to adhere to.
+            if summary.keyStats.dosesTotal > 0 {
+                StatTile(
+                    label: "Adherence",
+                    value: "\(Int((summary.keyStats.compliancePct * 100).rounded()))%",
+                    tint: accent,
+                    footnote: "\(summary.keyStats.dosesCompleted) of \(summary.keyStats.dosesTotal) doses",
+                    size: .large
+                )
+            }
             StatTile(
                 label: "Streak",
                 value: "\(summary.keyStats.currentStreak)",
@@ -174,23 +179,24 @@ struct WeeklySummaryDetailView: View {
         let kindLabel = summary.kind == .ai
             ? String(localized: "Personalised by AI")
             : String(localized: "Offline summary — try refreshing")
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return "\(kindLabel) · \(formatter.string(from: summary.generatedAt))"
+        let generated = summary.generatedAt.formatted(date: .abbreviated, time: .shortened)
+        return "\(kindLabel) · \(generated)"
     }
 
     // MARK: - Date helper
 
-    private func weekTitle(for isoWeekStart: String) -> String {
+    /// Static so `body` doesn't allocate a formatter on every render.
+    private static let weekStartParser: ISO8601DateFormatter = {
         let parser = ISO8601DateFormatter()
         parser.formatOptions = [.withFullDate]
-        guard let date = parser.date(from: isoWeekStart) else {
+        return parser
+    }()
+
+    private func weekTitle(for isoWeekStart: String) -> String {
+        guard let date = Self.weekStartParser.date(from: isoWeekStart) else {
             return String(localized: "Week recap")
         }
-        let display = DateFormatter()
-        display.dateFormat = "MMMM d"
-        display.locale = .current
-        return String(format: String(localized: "Week of %@"), display.string(from: date))
+        let display = date.formatted(.dateTime.month(.wide).day())
+        return String(format: String(localized: "Week of %@"), display)
     }
 }

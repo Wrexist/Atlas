@@ -15,13 +15,11 @@ import SwiftUI
 ///                    truncated paragraph, four stat tiles, "Read
 ///                    full recap →" CTA. Tap pushes the detail.
 ///   • `.empty`     — engine returned `nil` (insufficient data).
-///                    Encouraging CTA to log a check-in or dose;
-///                    suppresses the rest of the card chrome.
-///
-/// Lives next to the Today Overview Card; the lifecycle in
-/// `HomeView` mounts this above it on Sunday + Monday and demotes
-/// it to a compact chip from Tuesday onwards (see
-/// `WeeklySummaryCompactChip`).
+///                    Encouraging nudge to keep logging; suppresses
+///                    the rest of the card chrome.
+///   • `.failed`    — the recap service couldn't be reached. Says so
+///                    and offers Try again, instead of blaming the
+///                    user's data.
 struct WeeklySummaryHeroCard: View {
     let state: State
     let onTap: () -> Void
@@ -31,6 +29,7 @@ struct WeeklySummaryHeroCard: View {
         case loading
         case ready(WeeklySummary)
         case empty
+        case failed
     }
 
     private var accent: Color {
@@ -47,6 +46,7 @@ struct WeeklySummaryHeroCard: View {
             case .loading:    loadingCard
             case .ready(let summary): readyCard(summary)
             case .empty:      emptyCard
+            case .failed:     failedCard
             }
         }
         .transition(.opacity)
@@ -58,6 +58,7 @@ struct WeeklySummaryHeroCard: View {
         case .loading: 0
         case .ready:   1
         case .empty:   2
+        case .failed:  3
         }
     }
 
@@ -96,7 +97,7 @@ struct WeeklySummaryHeroCard: View {
                     )
 
                     Text(truncated(summary.text, to: 280))
-                        .font(AppFont.scaled(13, weight: .semibold))
+                        .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)
                         .multilineTextAlignment(.leading)
                         .lineSpacing(3)
@@ -129,12 +130,28 @@ struct WeeklySummaryHeroCard: View {
     // MARK: - Empty
 
     private var emptyCard: some View {
+        messageCard(
+            title: "Your weekly recap will appear here",
+            message: "Log workouts, meals or a check-in on a few more days and your recap appears here."
+        )
+    }
+
+    // MARK: - Failed
+
+    private var failedCard: some View {
+        messageCard(
+            title: "Couldn't reach the recap service",
+            message: "Your data is safe. Check your connection and try again."
+        )
+    }
+
+    private func messageCard(title: String, message: LocalizedStringKey) -> some View {
         GlassCard(tinted: true) {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 eyebrowRow(badge: nil)
-                heroRow(title: "Your weekly recap will appear here", aiBadge: false)
-                Text("Log a check-in or a dose for a few more days this week, and we'll have enough signal to summarise.")
-                    .font(AppFont.scaled(13))
+                heroRow(title: title, aiBadge: false)
+                Text(message)
+                    .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, Spacing.xs)
@@ -150,8 +167,8 @@ struct WeeklySummaryHeroCard: View {
                         }
                         .foregroundStyle(accent)
                     }
-                    .buttonStyle(.plain)
-                    .padding(.top, Spacing.xs)
+                    .buttonStyle(ScalePressStyle())
+                    .minimumHitArea()
                 }
             }
         }
@@ -217,7 +234,6 @@ struct WeeklySummaryHeroCard: View {
                 Circle()
                     .fill(accent)
                     .frame(width: 44, height: 44)
-                    .shadow(color: accent.opacity(0.45), radius: 10, y: 4)
                 Image(systemName: "chart.bar.doc.horizontal.fill")
                     .font(AppFont.scaled(16, weight: .heavy))
                     .foregroundStyle(AppColor.onAccent)
@@ -251,11 +267,14 @@ struct WeeklySummaryHeroCard: View {
             ],
             spacing: Spacing.sm
         ) {
-            StatTile(
-                label: "Compliance",
-                value: "\(Int((stats.compliancePct * 100).rounded()))%",
-                tint: accent
-            )
+            // Fitness-only weeks have no doses; "0%" would read as failure.
+            if stats.dosesTotal > 0 {
+                StatTile(
+                    label: "Adherence",
+                    value: "\(Int((stats.compliancePct * 100).rounded()))%",
+                    tint: accent
+                )
+            }
             StatTile(
                 label: "Streak",
                 value: stats.currentStreak == 1 ? "1 day" : "\(stats.currentStreak) days",
