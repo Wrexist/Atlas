@@ -10,18 +10,10 @@ struct ThemeChoicePage: View {
 
     var body: some View {
         VStack(spacing: Spacing.xxl) {
-            VStack(spacing: Spacing.sm) {
-                Text("Make it yours.")
-                    .font(AppFont.title)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .multilineTextAlignment(.center)
-
-                Text("Choose your look. You can change this any time in Settings.")
-                    .font(AppFont.body)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Spacing.lg)
-            }
+            OnboardingHeader(
+                title: "Make it yours.",
+                subtitle: "Choose your look. You can change this any time in Settings."
+            )
 
             displayModeSection
 
@@ -109,13 +101,12 @@ struct ThemeChoicePage: View {
                     .overlay {
                         Circle().strokeBorder(AppColor.onAccent.opacity(0.18), lineWidth: 0.5)
                     }
-                    .shadow(color: themeColor.primary.opacity(isSelected ? 0.55 : 0.0), radius: 8, y: 2)
 
                 if isSelected {
                     Image(systemName: "checkmark")
                         .font(AppFont.scaled(13, weight: .heavy))
                         .foregroundStyle(AppColor.onAccent)
-                        .shadow(color: .black.opacity(0.35), radius: 1)
+                        .transition(.scale.combined(with: .opacity))
                 }
             }
             .frame(maxWidth: .infinity)
@@ -169,7 +160,7 @@ struct ThemeChoicePage: View {
         AppAnimation.with(AppAnimation.springSnappy) {
             theme.displayMode = mode
         }
-        Haptics.impact(.soft)
+        Haptics.selection()
     }
 
     private func select(_ color: AppThemeColor) {
@@ -177,7 +168,7 @@ struct ThemeChoicePage: View {
         AppAnimation.with(AppAnimation.springSnappy) {
             theme.theme = color
         }
-        Haptics.impact(.soft)
+        Haptics.selection()
     }
 }
 

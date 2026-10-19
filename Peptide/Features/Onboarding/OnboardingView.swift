@@ -3,7 +3,7 @@ import SwiftUI
 import UIKit
 #endif
 
-/// Onboarding for Atlas — a health & fitness app. 18 steps covering
+/// Onboarding for Atlas — a health & fitness app. 16 steps covering
 /// training, nutrition, biology / recovery signals, AI-assisted
 /// research, and optional supplement tracking. Lean — every step
 /// earns its place: a moment, a data ask, a permission ask, or a
@@ -57,6 +57,15 @@ struct OnboardingView: View {
     @State private var timeOfDay: PreferredTimeOfDay = .anytime
     @State private var equipment: Set<EquipmentKind> = [.bodyweight]
     @State private var bounceTrigger = 0
+    /// Set once the saved profile has been copied into the step state, so
+    /// a later `.onAppear` can't clobber edits the user hasn't saved yet.
+    @State private var hasHydratedFromProfile = false
+    // Refused last-deselect on the equipment grid.
+    @State private var keepOneEquipmentHinted = false
+    @State private var shakingEquipment: EquipmentKind?
+    @State private var equipmentShakeOffset: CGFloat = 0
+    @Environment(\.openURL) private var openURL
+    @State private var notificationsDenied = false
     @State private var requestingHealth = false
     @State private var requestingNotifications = false
     /// Pinned reference to the AuthService singleton so the
@@ -178,8 +187,8 @@ struct OnboardingView: View {
             case .recomp:         return "Recomp"
             case .betterSleep:    return "Better sleep"
             case .recovery:       return "Faster recovery"
-            case .antiAging:      return "Anti-aging"
-            case .skinHair:       return "Skin & hair"
+            case .antiAging:      return "Healthy aging"
+            case .skinHair:       return "Look & feel better"
             case .energy:         return "More energy"
             }
         }
@@ -234,9 +243,9 @@ struct OnboardingView: View {
         }
         var icon: String {
             switch self {
-            case .beginner:     return "leaf.fill"
-            case .intermediate: return "flame.fill"
-            case .advanced:     return "bolt.fill"
+            case .beginner:     return "figure.walk"
+            case .intermediate: return "figure.strengthtraining.traditional"
+            case .advanced:     return "trophy.fill"
             }
         }
     }
@@ -251,10 +260,10 @@ struct OnboardingView: View {
         Binding(
             get: { page },
             set: { newValue in
-                if newValue > page {
-                    Haptics.warning()
-                    return
-                }
+                // A blocked forward swipe just settles back — no
+                // warning buzz, which read as an error for a gesture
+                // the user had every reason to try.
+                guard newValue <= page else { return }
                 page = newValue
             }
         )
@@ -327,6 +336,7 @@ struct OnboardingView: View {
         }
         .onAppear {
             OnboardingFunnelTracker.recordStepEntered(stepName(for: page), index: page)
+            hydrateFromProfile()
             // Re-hydrate goalDate + selected-goal state from a
             // previously-saved profile in case the user re-opened
             // onboarding (debug menu, reset-onboarding tester).
@@ -368,6 +378,22 @@ struct OnboardingView: View {
                 nameFocused = false
                 dismissKeyboard()
             }
+            // Move VoiceOver to the new step instead of leaving focus
+            // parked on the footer button of the step that just left.
+            UIAccessibility.post(notification: .screenChanged, argument: nil)
+            if newPage == Page.ready {
+                Haptics.success()
+            }
+            // Driven by the page, not the step's `.onAppear`: the paged
+            // TabView mounts neighbours, so the curve used to draw while
+            // the user was still on the Demo-set page.
+            if newPage == Page.projection {
+                AppAnimation.with(AppAnimation.springSmooth.delay(0.2)) {
+                    projectionRevealed = true
+                }
+            } else {
+                projectionRevealed = false
+            }
         }
         .task(id: scenePhase) {
             // Re-check OS permission state when the user returns from
@@ -380,6 +406,7 @@ struct OnboardingView: View {
             guard scenePhase == .active else { return }
             let status = await NotificationService.shared.checkAuthorization()
             notificationsAuthorized = (status == .authorized || status == .provisional)
+            notificationsDenied = status == .denied
         }
         .fullScreenCover(isPresented: $showTrialOffer) {
             // Post-Ready paywall. Both branches advance into the
@@ -451,29 +478,53 @@ struct OnboardingView: View {
         }
     }
 
+    /// Copies whatever an earlier run already saved into the step state.
+    /// Resuming mid-flow restores `page`, but without this every field
+    /// behind it fell back to its default: the Ready summary showed a
+    /// generic schedule, and Projection skipped the nutrition-target
+    /// write because `bodyMetrics` read as unspecified.
+    private func hydrateFromProfile() {
+        guard !hasHydratedFromProfile else { return }
+        hasHydratedFromProfile = true
+        let profile = dataStore.profile
+        if name.isEmpty { name = profile.name }
+        if bodyMetrics == .unspecified { bodyMetrics = profile.bodyMetrics }
+        if let prefs = profile.trainingPreferences {
+            daysPerWeek = prefs.daysPerWeek
+            preferredDays = prefs.preferredDays
+            timeOfDay = prefs.timeOfDay
+            if !prefs.equipmentAccess.isEmpty { equipment = prefs.equipmentAccess }
+        }
+    }
+
     // MARK: - Chrome
 
     private var topBar: some View {
         HStack(spacing: Spacing.md) {
-            if page > 0 {
-                Button {
-                    haptic()
-                    withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { page = max(0, page - 1) }
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(AppFont.scaled(16, weight: .semibold))
-                        .foregroundStyle(AppColor.textPrimary)
-                        .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
-                        .background(Circle().fill(AppColor.surfaceSecondary.opacity(0.6)))
+            // Both side slots share the back button's 44pt so the
+            // progress capsule stays centred on every page, Welcome
+            // included.
+            ZStack {
+                if page > 0 {
+                    Button {
+                        haptic()
+                        withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { page = max(0, page - 1) }
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(AppFont.scaled(16, weight: .semibold))
+                            .foregroundStyle(AppColor.textPrimary)
+                            .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
+                            .glassControl(.circle)
+                    }
+                    .accessibilityLabel("Back")
+                    .transition(.opacity.combined(with: .scale(scale: 0.8)))
                 }
-                .accessibilityLabel("Back")
-            } else {
-                Color.clear.frame(width: 36, height: 36)
             }
+            .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
             Spacer()
             progressIndicator
             Spacer()
-            Color.clear.frame(width: 36, height: 36)
+            Color.clear.frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
         }
     }
 
@@ -507,6 +558,10 @@ struct OnboardingView: View {
                 .contentTransition(.numericText())
                 .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: page)
         }
+        // The capsule and the "3 / 16" counter are one fact; read as two
+        // stops they were meaningless on their own.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Step \(min(page + 1, totalPages)) of \(totalPages)")
     }
 
     private var progressFraction: CGFloat {
@@ -535,6 +590,7 @@ struct OnboardingView: View {
                 }
                 .font(AppFont.footnote)
                 .foregroundStyle(AppColor.textSecondary)
+                .minimumHitArea()
             }
         }
         .padding(.horizontal, Spacing.screenPadding)
@@ -563,35 +619,29 @@ struct OnboardingView: View {
     }
 
     private var primaryButton: some View {
-        Button(action: primaryAction) {
-            HStack {
-                Text(primaryTitle)
-                    .font(AppFont.headline)
-                if page < totalPages - 1 {
-                    Image(systemName: "arrow.right")
-                        .font(AppFont.scaled(16, weight: .semibold))
-                }
-            }
-            .foregroundStyle(AppColor.background)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: Spacing.sheetCornerRadius, style: .continuous)
-                    .fill(primaryEnabled ? AppColor.textPrimary : AppColor.textTertiary.opacity(0.4))
-            )
-        }
-        .buttonStyle(.plain)
-        .disabled(!primaryEnabled)
+        PrimaryCTAButton(title: LocalizedStringKey(primaryTitle), action: primaryAction)
+            // "Continue" → "I understand" → "Apply" cross-fades instead
+            // of jump-cutting between steps.
+            .contentTransition(.interpolate)
+            .appAnimation(AppAnimation.springSnappy, value: primaryTitle)
+            .disabled(!primaryEnabled)
     }
 
     private var primaryTitle: String {
         switch page {
         case Page.welcome:      return "Let's go"
         case Page.disclaimer:   return "I understand"
-        case Page.creatorCode:  return creatorAttribution == nil ? "Apply" : "Continue"
+        case Page.creatorCode:  return hasCreatorCodeToApply ? "Apply" : "Continue"
         case Page.ready:        return "Open Atlas"
         default:                return "Continue"
         }
+    }
+
+    /// "Apply" only once there's a code to apply — an empty field reads
+    /// "Continue", since that's what tapping it does.
+    private var hasCreatorCodeToApply: Bool {
+        creatorAttribution == nil
+            && !creatorCodeInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var primaryEnabled: Bool {
@@ -753,6 +803,8 @@ struct OnboardingView: View {
         #endif
     }
 
+    /// Primary-CTA and navigation feedback. Chips and toggles use
+    /// `Haptics.selection()`; commit moments use `Haptics.success()`.
     private func haptic() {
         Haptics.impact(.light)
     }
@@ -760,30 +812,50 @@ struct OnboardingView: View {
     // MARK: - Welcome
 
     private var welcome: some View {
-        VStack(spacing: Spacing.xl) {
-            Spacer()
-            HeroLogo(
-                size: 148,
-                bounceTrigger: bounceTrigger,
-                isActive: page == Page.welcome
-            )
-            VStack(spacing: Spacing.md) {
-                Text("Welcome to\nAtlas.")
-                    .font(AppFont.scaled(56, weight: .bold, design: .rounded, relativeTo: .largeTitle))
-                    .foregroundStyle(AppColor.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(-4)
-                Text("Train. Eat. Recover.\nIn one place.")
-                    .font(AppFont.title3)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
+        centeredScroll {
+            VStack(spacing: Spacing.xl) {
+                Spacer()
+                HeroLogo(
+                    size: 148,
+                    bounceTrigger: bounceTrigger,
+                    isActive: page == Page.welcome
+                )
+                .staggeredAppear(index: 0)
+                VStack(spacing: Spacing.md) {
+                    Text("Welcome to\nAtlas.")
+                        .font(AppFont.scaled(56, weight: .bold, design: .rounded, relativeTo: .largeTitle))
+                        .foregroundStyle(AppColor.textPrimary)
+                        .multilineTextAlignment(.center)
+                        .accessibilityAddTraits(.isHeader)
+                        .staggeredAppear(index: 1)
+                    Text("Train. Eat. Recover.\nIn one place.")
+                        .font(AppFont.title3)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .staggeredAppear(index: 2)
+                }
+                SocialProofPill()
+                    .padding(.top, Spacing.sm)
+                    .staggeredAppear(index: 3)
+                Spacer()
+                Spacer()
             }
-            SocialProofPill()
-                .padding(.top, Spacing.sm)
-            Spacer()
-            Spacer()
+            .padding(.horizontal, Spacing.lg)
         }
-        .padding(.horizontal, Spacing.lg)
+    }
+
+    /// A page that centres its content with `Spacer`s when it fits, and
+    /// scrolls instead of pushing controls off screen when it doesn't —
+    /// the 56pt Welcome title and the Sign-in button stack both overflow
+    /// at accessibility type sizes.
+    private func centeredScroll<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        GeometryReader { proxy in
+            ScrollView {
+                content()
+                    .frame(minHeight: proxy.size.height)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+        }
     }
 
     // MARK: - Sign in with Apple
@@ -793,50 +865,51 @@ struct OnboardingView: View {
     /// across devices, abandoned-onboarding retargeting hooks, and
     /// referral credit when the backend ships.
     private var signInStep: some View {
-        VStack(spacing: Spacing.xl) {
-            Spacer()
-            HeroIcon(symbol: "person.crop.circle.fill", bounceTrigger: bounceTrigger, isActive: page == Page.signIn)
-            VStack(spacing: Spacing.md) {
-                Text("Save your\nprogress.")
-                    .font(AppFont.scaled(38, weight: .bold, design: .rounded, relativeTo: .largeTitle))
-                    .foregroundStyle(AppColor.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(-2)
-                Text("Optional. Back up across your devices.")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Spacing.lg)
-            }
-            VStack(spacing: Spacing.md) {
-                if authService.isSignedIn {
-                    signedInBadge
-                } else if authService.isSigningIn {
-                    HStack(spacing: Spacing.sm) {
-                        ProgressView()
-                        Text("Signing in…")
-                            .font(AppFont.callout)
-                            .foregroundStyle(AppColor.textSecondary)
+        centeredScroll {
+            VStack(spacing: Spacing.xl) {
+                Spacer()
+                HeroIcon(symbol: "person.crop.circle.fill", bounceTrigger: bounceTrigger, isActive: page == Page.signIn)
+                OnboardingHeader(
+                    title: "Save your progress.",
+                    subtitle: "Optional. Back up across your devices."
+                )
+                VStack(spacing: Spacing.md) {
+                    Group {
+                        if authService.isSignedIn {
+                            signedInBadge
+                        } else if authService.isSigningIn {
+                            HStack(spacing: Spacing.sm) {
+                                ProgressView()
+                                Text("Signing in…")
+                                    .font(AppFont.callout)
+                                    .foregroundStyle(AppColor.textSecondary)
+                            }
+                            .frame(height: 50)
+                        } else {
+                            AppleSignInButton {
+                                Haptics.impact(.medium)
+                                OnboardingFunnelTracker.recordEvent("sign_in_initiated")
+                                authService.signIn()
+                            }
+                            .frame(height: 50)
+                        }
                     }
-                    .frame(height: 50)
-                } else {
-                    AppleSignInButton {
-                        Haptics.impact(.medium)
-                        OnboardingFunnelTracker.recordEvent("sign_in_initiated")
-                        authService.signIn()
-                    }
-                    .frame(height: 50)
-                    .padding(.horizontal, Spacing.lg)
-                }
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
 
-                signInDisclosureRow(icon: "icloud.fill", text: "Cloud sync across iPhone, iPad, and Watch.")
-                signInDisclosureRow(icon: "lock.shield.fill", text: "Atlas never sees your email — Apple relays it.")
+                    signInDisclosureRow(icon: "icloud.fill", text: "Cloud sync across iPhone, iPad, and Watch.")
+                    signInDisclosureRow(icon: "lock.shield.fill", text: "Atlas never sees your email — Apple relays it.")
+                }
+                .appAnimation(AppAnimation.springSnappy, value: authService.isSignedIn)
+                .appAnimation(AppAnimation.springSnappy, value: authService.isSigningIn)
+                Spacer()
             }
-            Spacer()
+            .padding(.horizontal, Spacing.lg)
         }
-        .padding(.horizontal, Spacing.lg)
+        .onChange(of: authService.isSignedIn) { _, signedIn in
+            if signedIn { Haptics.success() }
+        }
         .alert(
-            authService.lastError?.title ?? "",
+            authService.lastError?.title ?? "Sign-in failed",
             isPresented: signInErrorBinding,
             presenting: authService.lastError
         ) { _ in
@@ -859,19 +932,19 @@ struct OnboardingView: View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "checkmark.seal.fill")
                 .foregroundStyle(AppColor.accentPrimary)
+                .symbolEffect(.bounce, value: authService.isSignedIn)
+                .accessibilityHidden(true)
             Text(authService.userDisplayName.map { "Signed in as \($0)" } ?? "Signed in with Apple")
                 .font(AppFont.callout.weight(.semibold))
                 .foregroundStyle(AppColor.textPrimary)
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.md)
-        .background(
-            Capsule()
-                .fill(AppColor.accentPrimary.opacity(0.14))
-        )
-        .overlay(
-            Capsule()
-                .strokeBorder(AppColor.accentPrimary.opacity(0.45), lineWidth: 0.5)
+        .glassControl(
+            .capsule,
+            tint: AppColor.accentPrimary.opacity(0.18),
+            border: AppColor.accentPrimary.opacity(0.45),
+            interactive: false
         )
     }
 
@@ -887,7 +960,6 @@ struct OnboardingView: View {
                 .fixedSize(horizontal: false, vertical: true)
             Spacer()
         }
-        .padding(.horizontal, Spacing.lg)
     }
 
     // MARK: - Attribution survey
@@ -897,18 +969,9 @@ struct OnboardingView: View {
     /// the user profile. Skippable.
     private var attributionStep: some View {
         VStack(spacing: Spacing.lg) {
-            VStack(spacing: Spacing.sm) {
-                Text("Where did you hear\nabout Atlas?")
-                    .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
-                    .foregroundStyle(AppColor.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(-2)
-                Text("Optional.")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.top, Spacing.xl)
+            OnboardingHeader(title: "Where did you hear about Atlas?", subtitle: "Optional.")
+                .padding(.horizontal, Spacing.lg)
+                .padding(.top, Spacing.xl)
 
             ScrollView {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())],
@@ -926,14 +989,13 @@ struct OnboardingView: View {
     private func attributionChip(_ channel: AttributionChannel) -> some View {
         let isSelected = attributionChannel == channel
         return Button {
-            Haptics.impact(.soft)
+            Haptics.selection()
             AppAnimation.with(AppAnimation.springSnappy) { attributionChannel = channel }
             OnboardingFunnelTracker.recordEvent("attribution_\(channel.rawValue)")
         } label: { chipLabel(channel: channel, isSelected: isSelected) }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle())
         .accessibilityLabel(channel.displayName)
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
-        .accessibilityHint(isSelected ? "" : "Selects how you heard about Atlas")
     }
 
     @ViewBuilder
@@ -955,14 +1017,7 @@ struct OnboardingView: View {
         }
         .padding(Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(isSelected ? AppColor.accentPrimary.opacity(0.12) : AppColor.surfaceSecondary.opacity(0.6))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .stroke(isSelected ? AppColor.accentPrimary : AppColor.glassBorder, lineWidth: isSelected ? 1 : 0.5)
-        )
+        .onboardingChoice(isSelected: isSelected)
     }
 
     // MARK: - Name
@@ -971,12 +1026,8 @@ struct OnboardingView: View {
         VStack(spacing: Spacing.xl) {
             HeroIcon(symbol: "person.fill", bounceTrigger: bounceTrigger, isActive: page == Page.name)
                 .padding(.top, Spacing.xl)
-            VStack(spacing: Spacing.sm) {
-                Text("What should we call you?")
-                    .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
-                    .foregroundStyle(AppColor.textPrimary)
-                    .multilineTextAlignment(.center)
-            }
+            OnboardingHeader(title: "What should we call you?")
+                .padding(.horizontal, Spacing.lg)
             GlassTextField(placeholder: "First name", text: $name, icon: nil, focus: $nameFocused)
                 .textInputAutocapitalization(.words)
                 .submitLabel(.continue)
@@ -1012,21 +1063,9 @@ struct OnboardingView: View {
     /// commitment without burning a full page on date-picking.
     private var goalStep: some View {
         VStack(spacing: 0) {
-            VStack(spacing: Spacing.xs) {
-                Text(goalHeadline)
-                    .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
-                    .foregroundStyle(AppColor.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .contentTransition(.opacity)
-                    .appAnimation(AppAnimation.quick, value: goalHasBeenSelected)
-                Text(goalSubheadline)
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .contentTransition(.opacity)
-                    .appAnimation(AppAnimation.quick, value: goalHasBeenSelected)
-            }
-            .padding(.top, Spacing.xl)
+            OnboardingHeader(title: "What are your goals?", subtitle: "Pick all that apply")
+                .padding(.horizontal, Spacing.lg)
+                .padding(.top, Spacing.xl)
             .padding(.bottom, Spacing.md)
 
             ScrollViewReader { proxy in
@@ -1066,20 +1105,6 @@ struct OnboardingView: View {
 
     private static let goalDateAnchorID = "onboarding.goal.dateSection"
 
-    private var goalHeadline: String {
-        goalHasBeenSelected ? "Hit it by when?" : "What are your goals?"
-    }
-
-    private var goalSubheadline: String {
-        if !goalHasBeenSelected {
-            return "Pick all that apply"
-        }
-        let count = selectedGoals.count
-        return count <= 1
-            ? "Set a target date to commit"
-            : "\(count) goals · set a target date to commit"
-    }
-
     /// True after the user has tapped a goal card at least once.
     /// Drives the date-section reveal so the picker only appears
     /// once there's an intention to anchor it to.
@@ -1087,10 +1112,12 @@ struct OnboardingView: View {
 
     private var goalDateSection: some View {
         VStack(spacing: Spacing.sm) {
+            sectionEyebrow("Target date")
+                .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: Spacing.sm) {
-                goalDateChip("8 wks",  weeks: 8)
-                goalDateChip("12 wks", weeks: 12)
-                goalDateChip("6 mo",   weeks: 26)
+                goalDateChip("8 wks", a11yLabel: "8 weeks", weeks: 8)
+                goalDateChip("12 wks", a11yLabel: "12 weeks", weeks: 12)
+                goalDateChip("6 mo", a11yLabel: "6 months", weeks: 26)
             }
 
             DatePicker(
@@ -1102,14 +1129,7 @@ struct OnboardingView: View {
             .datePickerStyle(.compact)
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.sm)
-            .background(
-                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.6))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .stroke(AppColor.glassBorder, lineWidth: 0.5)
-            )
+            .glassSurface(cornerRadius: Spacing.smallCornerRadius)
 
             Text(goalDateSummary)
                 .font(AppFont.caption)
@@ -1118,42 +1138,35 @@ struct OnboardingView: View {
         }
     }
 
-    private func goalDateChip(_ label: String, weeks: Int) -> some View {
+    private func goalDateChip(_ label: LocalizedStringKey, a11yLabel: String, weeks: Int) -> some View {
         let candidate = Calendar.current.date(byAdding: .weekOfYear, value: weeks, to: Date()) ?? Date()
         let isSelected = Calendar.current.isDate(goalDate, inSameDayAs: candidate)
         return Button {
-            Haptics.impact(.soft)
+            Haptics.selection()
             AppAnimation.with(AppAnimation.springSnappy) { goalDate = candidate }
         } label: {
             Text(label)
                 .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
-                .foregroundStyle(isSelected ? AppColor.background : AppColor.textPrimary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.sm)
-                .background(
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .fill(isSelected ? primaryGoal.tint : AppColor.surfaceSecondary.opacity(0.7))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .stroke(isSelected ? primaryGoal.tint : AppColor.glassBorder, lineWidth: isSelected ? 1 : 0.5)
-                )
+                .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textPrimary)
+                .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
+                .onboardingFilledChoice(isSelected: isSelected)
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Target date \(label.replacingOccurrences(of: "wks", with: " weeks").replacingOccurrences(of: "mo", with: " months"))")
+        .buttonStyle(ScalePressStyle())
+        .accessibilityLabel("Target date \(a11yLabel)")
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 
     private func goalCard(_ goal: PrimaryGoal) -> some View {
         let selected = selectedGoals.contains(goal)
         return Button {
-            haptic()
+            Haptics.selection()
             AppAnimation.with(AppAnimation.springSmooth) { toggleGoal(goal) }
         } label: {
             VStack(spacing: Spacing.sm) {
                 Image(systemName: goal.icon)
                     .font(.system(size: 28, weight: .semibold))
                     .foregroundStyle(goal.tint)
+                    .symbolEffect(.bounce, value: selected)
                 Text(goal.displayName)
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
@@ -1161,14 +1174,7 @@ struct OnboardingView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.lg)
-            .background(
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(selected ? goal.tint.opacity(0.18) : AppColor.surfaceSecondary.opacity(0.6))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .stroke(selected ? goal.tint : AppColor.glassBorder, lineWidth: selected ? 1.5 : 0.5)
-            )
+            .onboardingChoice(isSelected: selected, tint: goal.tint, cornerRadius: Spacing.cardCornerRadius)
             .overlay(alignment: .topTrailing) {
                 if selected {
                     Image(systemName: "checkmark.circle.fill")
@@ -1180,7 +1186,7 @@ struct OnboardingView: View {
                 }
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle())
         .accessibilityLabel(goal.displayName)
         .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
     }
@@ -1212,22 +1218,26 @@ struct OnboardingView: View {
 
     /// Weeks between today and the user's chosen goal date, clamped to
     /// at least one week. Used by the projection step's headline and
-    /// the ProjectionChart's framing.
+    /// the ProjectionChart's framing. Counted in calendar days and
+    /// rounded: truncating the raw interval read "11 weeks" a few
+    /// seconds after the user tapped "12 wks".
     private var goalWeeks: Int {
-        max(1, Int(goalDate.timeIntervalSince(Date()) / (60 * 60 * 24 * 7)))
+        let calendar = Calendar.current
+        let days = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: Date()),
+            to: calendar.startOfDay(for: goalDate)
+        ).day ?? 0
+        return max(1, Int((Double(days) / 7).rounded()))
     }
 
     // MARK: - Experience
 
     private var experienceStep: some View {
         VStack(spacing: Spacing.lg) {
-            VStack(spacing: Spacing.sm) {
-                Text("How much experience?")
-                    .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
-                    .foregroundStyle(AppColor.textPrimary)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.top, Spacing.xl)
+            OnboardingHeader(title: "How much experience?")
+                .padding(.horizontal, Spacing.lg)
+                .padding(.top, Spacing.xl)
 
             VStack(spacing: Spacing.sm) {
                 ForEach(Experience.allCases) { experienceRow($0) }
@@ -1240,8 +1250,8 @@ struct OnboardingView: View {
     private func experienceRow(_ level: Experience) -> some View {
         let selected = experienceLevel == level.rawValue
         return Button {
-            haptic()
-            experienceLevel = level.rawValue
+            Haptics.selection()
+            AppAnimation.with(AppAnimation.springSnappy) { experienceLevel = level.rawValue }
         } label: {
             HStack(spacing: Spacing.md) {
                 Image(systemName: level.icon)
@@ -1260,19 +1270,14 @@ struct OnboardingView: View {
                 if selected {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(AppColor.accentPrimary)
+                        .transition(.scale.combined(with: .opacity))
                 }
             }
             .padding(Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(selected ? AppColor.accentPrimary.opacity(0.12) : AppColor.surfaceSecondary.opacity(0.6))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .stroke(selected ? AppColor.accentPrimary : AppColor.glassBorder, lineWidth: selected ? 1 : 0.5)
-            )
+            .onboardingChoice(isSelected: selected, cornerRadius: Spacing.cardCornerRadius)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle())
+        .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
     }
 
     // MARK: - Body metrics
@@ -1289,13 +1294,9 @@ struct OnboardingView: View {
 
     private var scheduleStep: some View {
         VStack(spacing: Spacing.lg) {
-            VStack(spacing: Spacing.sm) {
-                Text("When do you train?")
-                    .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
-                    .foregroundStyle(AppColor.textPrimary)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.top, Spacing.xl)
+            OnboardingHeader(title: "When do you train?")
+                .padding(.horizontal, Spacing.lg)
+                .padding(.top, Spacing.xl)
 
             ScrollView {
                 VStack(spacing: Spacing.lg) {
@@ -1311,31 +1312,24 @@ struct OnboardingView: View {
 
     private var daysStepper: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text("Days per week")
-                .font(AppFont.footnote)
-                .foregroundStyle(AppColor.textSecondary)
-                .textCase(.uppercase)
+            sectionEyebrow("Days per week")
             HStack(spacing: Spacing.xs) {
                 ForEach(2...6, id: \.self) { count in
+                    let isSelected = daysPerWeek == count
                     Button {
-                        haptic()
-                        daysPerWeek = count
+                        Haptics.selection()
+                        AppAnimation.with(AppAnimation.springSnappy) { daysPerWeek = count }
                     } label: {
                         Text("\(count)")
                             .font(AppFont.headline.weight(.bold))
-                            .foregroundStyle(daysPerWeek == count ? AppColor.background : AppColor.textPrimary)
+                            .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textPrimary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, Spacing.md)
-                            .background(
-                                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                                    .fill(daysPerWeek == count ? AppColor.accentPrimary : AppColor.surfaceSecondary.opacity(0.6))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                                    .stroke(daysPerWeek == count ? Color.clear : AppColor.glassBorder, lineWidth: 0.5)
-                            )
+                            .onboardingFilledChoice(isSelected: isSelected)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(ScalePressStyle())
+                    .accessibilityLabel("\(count) days per week")
+                    .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
                 }
             }
         }
@@ -1343,31 +1337,30 @@ struct OnboardingView: View {
 
     private var weekdayPicker: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text("Preferred days (optional)")
-                .font(AppFont.footnote)
-                .foregroundStyle(AppColor.textSecondary)
-                .textCase(.uppercase)
-            HStack(spacing: 6) {
+            sectionEyebrow("Preferred days (optional)")
+            HStack(spacing: Spacing.xs) {
                 ForEach(Weekday.allCases) { day in
+                    let isSelected = preferredDays.contains(day)
                     Button {
-                        haptic()
-                        if preferredDays.contains(day) {
-                            preferredDays.remove(day)
-                        } else {
-                            preferredDays.insert(day)
+                        Haptics.selection()
+                        AppAnimation.with(AppAnimation.springSnappy) {
+                            if isSelected {
+                                _ = preferredDays.remove(day)
+                            } else {
+                                _ = preferredDays.insert(day)
+                            }
                         }
                     } label: {
                         Text(day.shortName.prefix(1).uppercased())
                             .font(AppFont.footnote.weight(.bold))
-                            .foregroundStyle(preferredDays.contains(day) ? AppColor.background : AppColor.textPrimary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 40)
-                            .background(
-                                Circle()
-                                    .fill(preferredDays.contains(day) ? AppColor.accentPrimary : AppColor.surfaceSecondary.opacity(0.6))
-                            )
+                            .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textPrimary)
+                            .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
+                            .onboardingFilledChoice(isSelected: isSelected, .capsule)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(ScalePressStyle())
+                    // "T" and "S" are ambiguous spoken; say the day.
+                    .accessibilityLabel(day.rawValue.capitalized)
+                    .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
                 }
             }
         }
@@ -1375,43 +1368,46 @@ struct OnboardingView: View {
 
     private var timeOfDayPicker: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text("Preferred time")
-                .font(AppFont.footnote)
-                .foregroundStyle(AppColor.textSecondary)
-                .textCase(.uppercase)
+            sectionEyebrow("Preferred time")
             HStack(spacing: Spacing.xs) {
                 ForEach(PreferredTimeOfDay.allCases) { slot in
+                    let isSelected = timeOfDay == slot
                     Button {
-                        haptic()
-                        timeOfDay = slot
+                        Haptics.selection()
+                        AppAnimation.with(AppAnimation.springSnappy) { timeOfDay = slot }
                     } label: {
                         Text(slot.displayName)
                             .font(AppFont.footnote.weight(.semibold))
-                            .foregroundStyle(timeOfDay == slot ? AppColor.background : AppColor.textPrimary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, Spacing.sm)
-                            .background(
-                                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                                    .fill(timeOfDay == slot ? AppColor.accentPrimary : AppColor.surfaceSecondary.opacity(0.6))
-                            )
+                            .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textPrimary)
+                            .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
+                            .onboardingFilledChoice(isSelected: isSelected)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(ScalePressStyle())
+                    .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
                 }
             }
         }
+    }
+
+    /// One eyebrow style for every in-step section label, matching the
+    /// theme picker's "DISPLAY MODE" / "COLOR THEME" headers.
+    private func sectionEyebrow(_ text: LocalizedStringKey) -> some View {
+        Text(text)
+            .font(AppFont.eyebrow)
+            .tracking(1.5)
+            .textCase(.uppercase)
+            .foregroundStyle(AppColor.textSecondary)
+            .accessibilityAddTraits(.isHeader)
     }
 
     // MARK: - Equipment
 
     private var equipmentStep: some View {
         VStack(spacing: Spacing.lg) {
-            VStack(spacing: Spacing.sm) {
-                Text("What gear do you have?")
-                    .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
-                    .foregroundStyle(AppColor.textPrimary)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.top, Spacing.xl)
+            OnboardingHeader(title: "What gear do you have?", subtitle: keepOneEquipmentHint)
+                .padding(.horizontal, Spacing.lg)
+                .appAnimation(AppAnimation.fadeIn, value: keepOneEquipmentHinted)
+                .padding(.top, Spacing.xl)
 
             ScrollView {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())],
@@ -1434,19 +1430,24 @@ struct OnboardingView: View {
     private func equipmentCard(_ kind: EquipmentKind) -> some View {
         let selected = equipment.contains(kind)
         return Button {
-            haptic()
             if selected {
                 // Always keep at least one option selected — an empty
                 // set makes ExerciseLibrary filters return zero hits
                 // and the program preview renders a blank list. The
-                // last-deselect is silently ignored so the user
-                // notices a non-response rather than getting trapped
-                // in a broken-state next step.
-                if equipment.count > 1 {
-                    equipment.remove(kind)
+                // last deselect is refused out loud — a warning buzz,
+                // a shake, and the "Keep at least one" subtitle — so
+                // it doesn't read as a dead tap.
+                guard equipment.count > 1 else {
+                    Haptics.warning()
+                    keepOneEquipmentHinted = true
+                    Task { await shakeEquipmentCard(kind) }
+                    return
                 }
+                Haptics.selection()
+                AppAnimation.with(AppAnimation.springSnappy) { _ = equipment.remove(kind) }
             } else {
-                equipment.insert(kind)
+                Haptics.selection()
+                AppAnimation.with(AppAnimation.springSnappy) { _ = equipment.insert(kind) }
             }
         } label: {
             VStack(spacing: Spacing.xs) {
@@ -1458,6 +1459,7 @@ struct OnboardingView: View {
                 Image(systemName: kind.symbolName)
                     .font(AppFont.scaled(24, weight: .semibold))
                     .foregroundStyle(selected ? AppColor.accentPrimary : AppColor.textSecondary)
+                    .symbolEffect(.bounce, value: selected)
                     .frame(height: 32)
                 Text(kind.displayName)
                     .font(AppFont.footnote.weight(.semibold))
@@ -1469,16 +1471,28 @@ struct OnboardingView: View {
             // instead of clipping the label.
             .frame(maxWidth: .infinity, minHeight: 96)
             .padding(.vertical, Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .fill(selected ? AppColor.accentPrimary.opacity(0.12) : AppColor.surfaceSecondary.opacity(0.6))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .stroke(selected ? AppColor.accentPrimary : AppColor.glassBorder, lineWidth: selected ? 1 : 0.5)
-            )
+            .onboardingChoice(isSelected: selected)
+            .offset(x: shakingEquipment == kind ? equipmentShakeOffset : 0)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle())
+        .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
+    }
+
+    private var keepOneEquipmentHint: LocalizedStringKey? {
+        keepOneEquipmentHinted ? "Keep at least one" : nil
+    }
+
+    /// Three-step horizontal shake (8 → -8 → 0), the lock screen's
+    /// refusal idiom. Skipped under Reduce Motion; the warning haptic
+    /// and the subtitle already carry the message.
+    private func shakeEquipmentCard(_ kind: EquipmentKind) async {
+        guard !reduceMotion else { return }
+        shakingEquipment = kind
+        AppAnimation.with(AppAnimation.shake) { equipmentShakeOffset = 8 }
+        try? await Task.sleep(for: .milliseconds(80))
+        AppAnimation.with(AppAnimation.shake) { equipmentShakeOffset = -8 }
+        try? await Task.sleep(for: .milliseconds(80))
+        AppAnimation.with(AppAnimation.shakeSettle) { equipmentShakeOffset = 0 }
     }
 
     // MARK: - Try a set (interactive workout demo)
@@ -1486,21 +1500,15 @@ struct OnboardingView: View {
     private var demoSetStep: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                VStack(alignment: .leading, spacing: Spacing.sm) {
-                    Text("Try logging a set.")
-                        .font(AppFont.scaled(32, weight: .bold, design: .rounded, relativeTo: .largeTitle))
-                        .foregroundStyle(AppColor.textPrimary)
-                    Text("Two taps. That's the whole loop.")
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textSecondary)
-                }
-                .padding(.top, Spacing.xl)
+                OnboardingHeader(title: "Try logging a set.", subtitle: "Two taps. That's the whole loop.")
+                    .padding(.top, Spacing.xl)
 
                 demoCard
                     .padding(.top, Spacing.sm)
 
                 if demoCelebrate {
                     successBanner
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
                 Spacer(minLength: 100)
@@ -1541,9 +1549,9 @@ struct OnboardingView: View {
                 .onChange(of: demoSet.completed) { _, completed in
                     if completed && !demoCelebrate {
                         withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { demoCelebrate = true }
-                        if !UIAccessibility.isReduceMotionEnabled {
-                            Haptics.success()
-                        }
+                        // Haptics aren't motion; `Haptics` already honours
+                        // the user's own haptics toggle.
+                        Haptics.success()
                     }
                 }
                 Text(demoCelebrate
@@ -1602,8 +1610,8 @@ struct OnboardingView: View {
         case .stayConsistent: return "Consistency Builder"
         case .betterSleep:    return "Recovery & Sleep Hygiene"
         case .recovery:       return "Active Recovery Plan"
-        case .antiAging:      return "Longevity Protocol"
-        case .skinHair:       return "Skin & Hair Protocol"
+        case .antiAging:      return "Healthy Aging Plan"
+        case .skinHair:       return "Look & Feel Plan"
         case .energy:         return "Energy & Vitality Plan"
         }
     }
@@ -1617,16 +1625,10 @@ struct OnboardingView: View {
     private var projectionStep: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                VStack(alignment: .leading, spacing: Spacing.sm) {
-                    Text(projectionHeadline)
-                        .font(AppFont.scaled(32, weight: .bold, design: .rounded, relativeTo: .largeTitle))
-                        .foregroundStyle(AppColor.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(projectionSubtitle)
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                OnboardingHeader(
+                    title: LocalizedStringKey(projectionHeadline),
+                    subtitle: LocalizedStringKey(projectionSubtitle)
+                )
                 .padding(.top, Spacing.xl)
 
                 ProjectionChart(
@@ -1654,7 +1656,7 @@ struct OnboardingView: View {
                         // a real Mifflin-St Jeor estimate.
                         projectionStatRow(
                             label: "Daily targets",
-                            value: "\(targets.calories) kcal · \(targets.proteinG)P · \(targets.carbsG)C · \(targets.fatG)F",
+                            value: "\(targets.calories) kcal\n\(targets.proteinG) g protein · \(targets.carbsG) g carbs · \(targets.fatG) g fat",
                             icon: "fork.knife",
                             tint: AppColor.achievement
                         )
@@ -1677,14 +1679,6 @@ struct OnboardingView: View {
             }
             .padding(.horizontal, Spacing.lg)
         }
-        .onAppear {
-            AppAnimation.with(AppAnimation.springSmooth.delay(0.2)) {
-                projectionRevealed = true
-            }
-        }
-        .onDisappear {
-            projectionRevealed = false
-        }
     }
 
     private var projectionHeadline: String {
@@ -1699,7 +1693,7 @@ struct OnboardingView: View {
         case .betterSleep:    return "Track your sleep\nover \(weeks) weeks"
         case .recovery:       return "Track your recovery\nover \(weeks) weeks"
         case .antiAging:      return "Track your biomarkers\nover \(weeks) weeks"
-        case .skinHair:       return "Track skin & hair\nover \(weeks) weeks"
+        case .skinHair:       return "Track how you look & feel\nover \(weeks) weeks"
         case .energy:         return "Track your energy\nover \(weeks) weeks"
         }
     }
@@ -1715,7 +1709,7 @@ struct OnboardingView: View {
         case .stayConsistent:
             return "Consistency curve from \(daysPerWeek) sessions per week."
         case .betterSleep, .recovery, .antiAging, .skinHair, .energy:
-            return "Trend curve from your protocol and recovery signals."
+            return "Trend curve from your recovery signals."
         }
     }
 
@@ -1747,13 +1741,19 @@ struct OnboardingView: View {
 
     // The realistic-range clamps are expressed in kilograms because the
     // underlying model is; the label converts afterwards so an imperial
-    // user reads "9 lb", not "4 kg".
+    // user reads "9 lb", not "4 kg". Both estimates are per 12-week
+    // block and scale with the chosen span, so "8 weeks" and "26 weeks"
+    // no longer promise the same number.
     private var projectedMuscleGain: String {
-        bodyMetrics.unit.weightLabel(Double(min(6, max(2, Int(estimatedMuscleGainKg)))))
+        bodyMetrics.unit.weightLabel(min(6, max(1, (estimatedMuscleGainKg * goalSpanFactor).rounded())))
     }
 
     private var projectedFatLoss: String {
-        bodyMetrics.unit.weightLabel(Double(min(10, max(3, Int(estimatedFatLossKg)))))
+        bodyMetrics.unit.weightLabel(min(10, max(1, (estimatedFatLossKg * goalSpanFactor).rounded())))
+    }
+
+    private var goalSpanFactor: Double {
+        Double(goalWeeks) / 12
     }
 
     private var estimatedMuscleGainKg: Double {
@@ -1761,8 +1761,7 @@ struct OnboardingView: View {
     }
 
     private var estimatedFatLossKg: Double {
-        let bodyW = bodyMetrics.weightKg ?? 75
-        return min(10, max(3, bodyW * 0.05))
+        (bodyMetrics.weightKg ?? 75) * 0.05
     }
 
     private func projectionStatRow(label: String, value: String, icon: String, tint: Color) -> some View {
@@ -1778,18 +1777,13 @@ struct OnboardingView: View {
                 Text(value)
                     .font(AppFont.callout.weight(.semibold))
                     .foregroundStyle(AppColor.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .stroke(AppColor.glassBorder, lineWidth: 0.5)
-        )
+        .glassSurface(cornerRadius: Spacing.smallCornerRadius)
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Medical disclaimer
@@ -1799,21 +1793,14 @@ struct OnboardingView: View {
             VStack(spacing: Spacing.lg) {
                 HeroIcon(symbol: "stethoscope", bounceTrigger: bounceTrigger, isActive: page == Page.disclaimer)
                     .padding(.top, Spacing.xl)
-                VStack(spacing: Spacing.sm) {
-                    Text("A quick safety note.")
-                        .font(AppFont.scaled(30, weight: .bold, design: .rounded, relativeTo: .largeTitle))
-                        .foregroundStyle(AppColor.textPrimary)
-                        .multilineTextAlignment(.center)
-                    Text("Atlas is an educational and tracking tool — not a replacement for a clinician.")
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, Spacing.lg)
-                }
+                OnboardingHeader(
+                    title: "A quick safety note.",
+                    subtitle: "Atlas is an educational and tracking tool — not a replacement for a clinician."
+                )
 
                 VStack(alignment: .leading, spacing: Spacing.md) {
                     disclaimerBullet(
-                        icon: "checkmark.shield.fill",
+                        icon: "xmark.shield.fill",
                         text: "Atlas does **not** prescribe, recommend, or calculate doses for any supplement, medication, or training protocol."
                     )
                     disclaimerBullet(
@@ -1827,14 +1814,7 @@ struct OnboardingView: View {
                 }
                 .padding(Spacing.lg)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .fill(AppColor.surfaceSecondary.opacity(0.6))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .stroke(AppColor.glassBorder, lineWidth: 0.5)
-                )
+                .glassSurface(cornerRadius: Spacing.cardCornerRadius)
 
                 Spacer(minLength: 100)
             }
@@ -1863,17 +1843,11 @@ struct OnboardingView: View {
             VStack(spacing: Spacing.lg) {
                 HeroIcon(symbol: "bell.badge.fill", bounceTrigger: bounceTrigger, isActive: page == Page.notifications)
                     .padding(.top, Spacing.xl)
-                VStack(spacing: Spacing.sm) {
-                    Text("Stay on track.")
-                        .font(AppFont.scaled(32, weight: .bold, design: .rounded, relativeTo: .largeTitle))
-                        .foregroundStyle(AppColor.textPrimary)
-                        .multilineTextAlignment(.center)
-                    Text("Workout reminders, weekly recaps,\nand rest-timer alerts.")
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, Spacing.lg)
-                }
+                OnboardingHeader(
+                    title: "Stay on track.",
+                    subtitle: "Workout reminders, weekly recaps,\nand rest-timer alerts."
+                )
+                .padding(.horizontal, Spacing.lg)
 
                 NotificationPreviewCard(
                     title: "Leg day in 30 minutes",
@@ -1883,22 +1857,22 @@ struct OnboardingView: View {
                 .padding(.horizontal, Spacing.lg)
                 .padding(.top, Spacing.sm)
 
+                // Once denied, iOS never shows the prompt again — re-asking
+                // was a dead tap. Route to Settings instead.
                 permissionRow(
                     icon: "bell.fill",
                     title: "Enable notifications",
-                    subtitle: "Tap to allow. You can change this anytime.",
+                    subtitle: notificationsDenied
+                        ? "Turned off in Settings. Tap to open Settings."
+                        : "Tap to allow. You can change this anytime.",
                     isLoading: requestingNotifications,
                     isOn: notificationsAuthorized,
-                    action: requestNotifications
+                    action: notificationsDenied ? openAppSettings : requestNotifications
                 )
                 .padding(.horizontal, Spacing.lg)
 
                 Spacer(minLength: 100)
             }
-        }
-        .task {
-            let status = await NotificationService.shared.checkAuthorization()
-            notificationsAuthorized = (status == .authorized || status == .provisional)
         }
     }
 
@@ -1914,17 +1888,11 @@ struct OnboardingView: View {
                     isActive: page == Page.health
                 )
                 .padding(.top, Spacing.xl)
-                VStack(spacing: Spacing.sm) {
-                    Text("Connect Apple Health.")
-                        .font(AppFont.scaled(32, weight: .bold, design: .rounded, relativeTo: .largeTitle))
-                        .foregroundStyle(AppColor.textPrimary)
-                        .multilineTextAlignment(.center)
-                    Text("Unlock Recovery, HRV trends,\nand sleep-quality insights.")
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, Spacing.lg)
-                }
+                OnboardingHeader(
+                    title: "Connect Apple Health.",
+                    subtitle: "Unlock Recovery, HRV trends,\nand sleep-quality insights."
+                )
+                .padding(.horizontal, Spacing.lg)
 
                 healthValuePreview
                     .padding(.horizontal, Spacing.lg)
@@ -1940,7 +1908,7 @@ struct OnboardingView: View {
                 )
                 .padding(.horizontal, Spacing.lg)
 
-                Text("Reads only by default. Optional nutrition-write turns on later from Profile. Lockable with Face ID.")
+                Text("Reads only by default. Optional nutrition-write turns on later from Profile.")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textTertiary)
                     .padding(.top, Spacing.xs)
@@ -2011,14 +1979,7 @@ struct OnboardingView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .stroke(AppColor.glassBorder, lineWidth: 0.5)
-        )
+        .glassSurface(cornerRadius: Spacing.smallCornerRadius)
     }
 
     private func permissionRow(icon: String, title: String, subtitle: String,
@@ -2041,26 +2002,31 @@ struct OnboardingView: View {
                 Spacer()
                 if isLoading {
                     ProgressView()
-                } else if isOn {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(AppColor.positive)
                 } else {
-                    Image(systemName: "chevron.right")
-                        .foregroundStyle(AppColor.textTertiary)
+                    Image(systemName: isOn ? "checkmark.circle.fill" : "chevron.right")
+                        .foregroundStyle(isOn ? AppColor.positive : AppColor.textTertiary)
+                        .contentTransition(.symbolEffect(.replace))
+                        .accessibilityHidden(true)
                 }
             }
             .padding(Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.6))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .stroke(AppColor.glassBorder, lineWidth: 0.5)
-            )
+            .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle())
         .disabled(isLoading || isOn)
+        .accessibilityValue(isOn ? "Enabled" : "Off")
+        .onChange(of: isOn) { _, granted in
+            if granted { Haptics.success() }
+        }
+    }
+
+    private func openAppSettings() {
+        haptic()
+        #if canImport(UIKit)
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            openURL(url)
+        }
+        #endif
     }
 
     private func requestHealth() {
@@ -2089,6 +2055,7 @@ struct OnboardingView: View {
             let granted = await NotificationService.shared.requestAuthorization()
             requestingNotifications = false
             notificationsAuthorized = granted
+            notificationsDenied = !granted
             // Surface the OS grant on the user's dose-reminders flag too
             // so peptide-protocol reminders fire by default the first time
             // the user adds a protocol. Independent of the OS auth state
@@ -2121,16 +2088,23 @@ struct OnboardingView: View {
                 ReadyHero(bounceTrigger: bounceTrigger, isActive: page == Page.ready)
                     .padding(.top, Spacing.xl)
                 if !name.isEmpty {
-                    Text("You're set, \(name).")
-                        .font(AppFont.scaled(28, weight: .bold, design: .rounded, relativeTo: .largeTitle))
-                        .foregroundStyle(AppColor.textPrimary)
-                        .multilineTextAlignment(.center)
+                    OnboardingHeader(title: "You're set, \(name).")
                 }
+                // Re-identified when Ready becomes the live page so the
+                // rows stagger in on arrival, not while pre-mounted
+                // off-screen beside the Creator-code step.
                 VStack(spacing: Spacing.sm) {
                     summaryRow(label: "Goal", value: primaryGoal.displayName)
-                    summaryRow(label: "Experience", value: experienceLevel.capitalized)
+                        .staggeredAppear(index: 0)
+                    summaryRow(
+                        label: "Experience",
+                        value: Experience(rawValue: experienceLevel)?.title ?? experienceLevel.capitalized
+                    )
+                    .staggeredAppear(index: 1)
                     summaryRow(label: "Schedule", value: "\(daysPerWeek)× per week, \(timeOfDay.displayName.lowercased())")
+                        .staggeredAppear(index: 2)
                     summaryRow(label: "Program", value: recommendedProgramName)
+                        .staggeredAppear(index: 3)
                     if let attribution = creatorAttribution {
                         // Attribution only — no percentage; the checkout
                         // applies no discount (see CreatorCodeService).
@@ -2138,8 +2112,10 @@ struct OnboardingView: View {
                             label: "Referral",
                             value: "via \(attribution.creatorName)"
                         )
+                        .staggeredAppear(index: 4)
                     }
                 }
+                .id(page == Page.ready)
 
                 widgetTipCard
                 Spacer(minLength: 100)
@@ -2171,14 +2147,8 @@ struct OnboardingView: View {
             Spacer(minLength: 0)
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.accentPrimary.opacity(0.08))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .stroke(AppColor.accentPrimary.opacity(0.25), lineWidth: 0.5)
-        )
+        .glassSurface(cornerRadius: Spacing.smallCornerRadius, tinted: true)
+        .accessibilityElement(children: .combine)
         .padding(.top, Spacing.sm)
     }
 
@@ -2194,20 +2164,15 @@ struct OnboardingView: View {
             Spacer()
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .stroke(AppColor.glassBorder, lineWidth: 0.5)
-        )
+        .glassSurface(cornerRadius: Spacing.smallCornerRadius)
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Creator code / affiliate apply
 
     /// Dual-purpose step. For users with a code: enter it and we
-    /// stamp the attribution + discount onto the profile. For users
+    /// stamp the attribution onto the profile (credit only — no
+    /// discount is applied at checkout). For users
     /// without a code: tap "Apply to be an affiliate" to surface a
     /// short form (handle, audience, channel link). Either path
     /// advances the onboarding; the step is skippable.
@@ -2217,17 +2182,10 @@ struct OnboardingView: View {
                 HeroIcon(symbol: "person.text.rectangle", bounceTrigger: bounceTrigger, isActive: page == Page.creatorCode)
                     .padding(.top, Spacing.xl)
 
-                VStack(spacing: Spacing.sm) {
-                    Text("Got a creator code?")
-                        .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .largeTitle))
-                        .foregroundStyle(AppColor.textPrimary)
-                        .multilineTextAlignment(.center)
-                    Text("Have a friend's code? Enter it below.")
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, Spacing.lg)
-                }
+                OnboardingHeader(
+                    title: "Have a code?",
+                    subtitle: "Enter a creator or referral code below."
+                )
 
                 if let attribution = creatorAttribution {
                     creatorSuccessCard(attribution)
@@ -2393,6 +2351,10 @@ private struct ProjectionChart: View {
     let revealed: Bool
 
     @State private var drawAmount: CGFloat = 0
+    /// Separate from `drawAmount`: reading the model value (already 1
+    /// the instant the draw starts) put the endpoint dot on screen at
+    /// frame 0, ahead of the line it caps.
+    @State private var dotVisible = false
 
     var body: some View {
         VStack(spacing: Spacing.sm) {
@@ -2419,13 +2381,13 @@ private struct ProjectionChart: View {
                             style: StrokeStyle(lineWidth: 3.5, lineCap: .round)
                         )
 
-                    if drawAmount > 0.85 {
+                    if dotVisible {
                         Circle()
                             .strokeBorder(goal.tint, lineWidth: 3)
                             .background(Circle().fill(AppColor.background))
                             .frame(width: 14, height: 14)
                             .position(endPoint(in: size))
-                            .transition(.opacity)
+                            .transition(.scale.combined(with: .opacity))
                     }
                 }
             }
@@ -2441,26 +2403,30 @@ private struct ProjectionChart: View {
             .foregroundStyle(AppColor.textSecondary)
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .stroke(AppColor.glassBorder, lineWidth: 0.5)
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            "Projected \(goal.displayName.lowercased()) trend from today to \(targetDate.formatted(.dateTime.month(.wide).day()))"
         )
         .onChange(of: revealed) { _, newValue in
             if newValue {
-                AppAnimation.with(AppAnimation.draw) { drawAmount = 1 }
+                reveal()
             } else {
                 drawAmount = 0
+                dotVisible = false
             }
         }
         .onAppear {
-            if revealed {
-                AppAnimation.with(AppAnimation.draw) { drawAmount = 1 }
-            }
+            if revealed { reveal() }
         }
+    }
+
+    /// The curve draws, then the endpoint dot lands as the line reaches
+    /// it. `AppAnimation.with` drops both to an instant state change
+    /// under Reduce Motion.
+    private func reveal() {
+        AppAnimation.with(AppAnimation.draw) { drawAmount = 1 }
+        AppAnimation.with(AppAnimation.springSnappy.delay(1.0)) { dotVisible = true }
     }
 
     /// Convex up for gain-style goals, convex down for loss-style goals.
@@ -2534,33 +2500,56 @@ private struct ThemePickerCover: View {
     @State private var themeManager = ThemeManager.shared
 
     var body: some View {
-        ZStack {
-            AppColor.background.ignoresSafeArea()
-            VStack {
-                ScrollView {
-                    ThemeChoicePage(theme: themeManager)
-                        .padding(.horizontal, Spacing.screenPadding)
-                        .padding(.top, Spacing.xxl)
-                }
-                Button(action: {
-                    Haptics.impact(.medium)
-                    onContinue()
-                }) {
-                    Text("Enter Atlas")
-                        .font(AppFont.headline)
-                        .foregroundStyle(AppColor.background)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, Spacing.md)
-                        .background(
-                            RoundedRectangle(cornerRadius: Spacing.sheetCornerRadius, style: .continuous)
-                                .fill(AppColor.textPrimary)
-                        )
-                }
-                .buttonStyle(.plain)
+        ScrollView {
+            ThemeChoicePage(theme: themeManager)
                 .padding(.horizontal, Spacing.screenPadding)
-                .padding(.bottom, Spacing.xl)
-            }
+                .padding(.top, Spacing.xxl)
         }
+        .pinnedFooter {
+            PrimaryCTAButton(title: "Enter Atlas") {
+                Haptics.impact(.medium)
+                onContinue()
+            }
+            .padding(.horizontal, Spacing.screenPadding)
+            .padding(.top, Spacing.lg)
+            .padding(.bottom, Spacing.xl)
+        }
+        .background(AppColor.background.ignoresSafeArea())
         .preferredColorScheme(themeManager.displayMode.preferredScheme)
+    }
+}
+
+private extension View {
+    /// The one selection chrome for onboarding choice cards — goals,
+    /// attribution, experience, equipment. Neutral glass at rest; a
+    /// tinted wash and tint hairline once picked. Replaces fifteen
+    /// hand-copied fill-plus-stroke rectangles.
+    func onboardingChoice(
+        isSelected: Bool,
+        tint: Color = AppColor.accentPrimary,
+        cornerRadius: CGFloat = Spacing.smallCornerRadius
+    ) -> some View {
+        glassControl(
+            .rect(cornerRadius: cornerRadius),
+            tint: isSelected ? tint.opacity(0.18) : nil,
+            border: isSelected ? tint : AppColor.glassBorder,
+            interactive: false
+        )
+    }
+
+    /// Compact pickers (days, weekdays, time slots, target-date chips)
+    /// fill solid when picked. `accentFill` is the stop that carries
+    /// `onAccent` ink at AA in every theme; the old `accentPrimary` fill
+    /// under `background` ink did not.
+    @ViewBuilder
+    func onboardingFilledChoice(
+        isSelected: Bool,
+        _ preset: GlassPreset = .rect(cornerRadius: Spacing.smallCornerRadius)
+    ) -> some View {
+        if isSelected {
+            self.background { preset.shape.fill(AppColor.accentFill) }
+        } else {
+            self.glassControl(preset, interactive: false)
+        }
     }
 }

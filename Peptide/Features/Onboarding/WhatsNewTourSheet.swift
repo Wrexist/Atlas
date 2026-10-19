@@ -20,8 +20,6 @@ struct WhatsNewTourSheet: View {
     let onComplete: () -> Void
 
     @State private var currentIndex: Int = 0
-    @State private var heroPulse: Bool = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var currentPage: WhatsNewPage {
         pages.indices.contains(currentIndex) ? pages[currentIndex] : pages[0]
@@ -45,12 +43,10 @@ struct WhatsNewTourSheet: View {
                     .padding(.bottom, Spacing.lg)
             }
         }
-        .onAppear { triggerHeroPulse() }
+        // Haptics aren't motion — `Haptics` honours the user's own
+        // toggle, so the page tick isn't gated on Reduce Motion.
         .onChange(of: currentIndex) { _, _ in
-            triggerHeroPulse()
-            if !reduceMotion {
-                Haptics.impact(.soft)
-            }
+            Haptics.selection()
         }
     }
 
@@ -98,16 +94,11 @@ struct WhatsNewTourSheet: View {
                     .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
                     .padding(.horizontal, Spacing.md)
-                    .padding(.vertical, 8)
-                    .background {
-                        Capsule()
-                            .fill(AppColor.surfaceSecondary.opacity(0.45))
-                            .overlay {
-                                Capsule().strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                            }
-                    }
+                    .padding(.vertical, Spacing.sm)
+                    .glassControl(.capsule, interactive: false)
+                    .minimumHitArea()
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ScalePressStyle())
             .accessibilityLabel("Skip tour")
         }
         .padding(.horizontal, Spacing.screenPadding)
@@ -132,34 +123,40 @@ struct WhatsNewTourSheet: View {
         .indexViewStyle(.page(backgroundDisplayMode: .never))
     }
 
+    /// Scrolls so a long body plus four bullets stays reachable at large
+    /// Dynamic Type sizes instead of clipping under the CTA.
     private func pageView(page: WhatsNewPage) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.lg) {
-            heroCard(page: page)
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text(page.eyebrow)
-                    .font(AppFont.scaled(11, weight: .heavy))
-                    .tracking(1.0)
-                    .textCase(.uppercase)
-                    .foregroundStyle(page.accent.opacity(0.95))
-                Text(page.title)
-                    .font(.system(.title, design: .rounded, weight: .heavy))
-                    .foregroundStyle(AppColor.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(page.body)
-                    .font(AppFont.scaled(16))
-                    .foregroundStyle(AppColor.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+        ScrollView {
+            VStack(alignment: .leading, spacing: Spacing.lg) {
+                heroCard(page: page)
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    // Eyebrow in ink, not the page accent: the pastel
+                    // accents fell to ~2:1 on the light background.
+                    Text(page.eyebrow)
+                        .font(AppFont.eyebrow)
+                        .tracking(1.0)
+                        .textCase(.uppercase)
+                        .foregroundStyle(AppColor.textSecondary)
+                    Text(page.title)
+                        .font(AppFont.title)
+                        .foregroundStyle(AppColor.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
+                    Text(page.body)
+                        .font(AppFont.scaled(16))
+                        .foregroundStyle(AppColor.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                bulletList(page: page)
             }
-            bulletList(page: page)
-            Spacer(minLength: 0)
         }
+        .scrollBounceBehavior(.basedOnSize)
+        .scrollIndicators(.hidden)
     }
 
-    /// Big tinted card holding the hero glyph. Pulses softly on
-    /// page change so the user's eye catches it as new content.
-    /// The pulse is one-shot per page; the timing matches
-    /// `heroPulse` which the parent toggles in
-    /// `triggerHeroPulse`.
+    /// Big tinted card holding the hero glyph. The glyph bounces once
+    /// on page change so the eye catches it as new content;
+    /// `symbolEffect` sits it out under Reduce Motion on its own.
     private func heroCard(page: WhatsNewPage) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: Spacing.sheetCornerRadius, style: .continuous)
@@ -189,13 +186,8 @@ struct WhatsNewTourSheet: View {
                 .font(.system(size: 60, weight: .semibold))
                 .foregroundStyle(AppColor.onAccent)
                 .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
-                .scaleEffect(heroPulse ? 1.08 : 1.0)
-                .animation(
-                    reduceMotion
-                        ? nil
-                        : AppAnimation.springBouncy,
-                    value: heroPulse
-                )
+                .symbolEffect(.bounce, value: currentIndex)
+                .accessibilityHidden(true)
         }
         .clipShape(RoundedRectangle(cornerRadius: Spacing.sheetCornerRadius, style: .continuous))
         .frame(height: 160)
@@ -219,6 +211,7 @@ struct WhatsNewTourSheet: View {
                     .font(AppFont.scaled(11, weight: .heavy))
                     .foregroundStyle(tint)
             }
+            .accessibilityHidden(true)
             Text(text)
                 .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.textPrimary)
@@ -257,33 +250,15 @@ struct WhatsNewTourSheet: View {
     /// Primary CTA. Reads "Continue" until the last page, then
     /// becomes "Get started" — psychologically that final button
     /// feels like a commitment rather than another page-turn.
+    /// The app's one primary CTA. It used to fill with the page's own
+    /// pastel gradient, which put `onAccent` ink under 2:1 on the mint
+    /// and orange pages; `PrimaryCTAButton` fills with the contrast-
+    /// checked CTA stops instead, and the page colour stays on the hero
+    /// card and the active dot.
     private var primaryButton: some View {
-        Button {
+        PrimaryCTAButton(title: isLastPage ? "Get started" : "Continue") {
             advance()
-        } label: {
-            HStack(spacing: Spacing.sm) {
-                Text(isLastPage ? "Get started" : "Continue")
-                    .font(AppFont.scaled(16, weight: .heavy))
-                Image(systemName: isLastPage ? "arrow.right.circle.fill" : "chevron.right")
-                    .font(AppFont.scaled(13, weight: .heavy))
-                    .accessibilityHidden(true)
-            }
-            .foregroundStyle(AppColor.onAccent)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.lg)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: currentPage.gradient,
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .shadow(color: currentPage.accent.opacity(0.45), radius: 12, y: 6)
-            }
         }
-        .buttonStyle(ScalePressStyle(pressedScale: 0.97))
         .accessibilityLabel(isLastPage ? "Get started" : "Continue to next page")
     }
 
@@ -302,19 +277,5 @@ struct WhatsNewTourSheet: View {
     private func completeAndDismiss() {
         Haptics.success()
         onComplete()
-    }
-
-    private func triggerHeroPulse() {
-        guard !reduceMotion else { return }
-        // Toggle then snap back. The view modifier's
-        // animation(_:value:) catches both transitions, so the
-        // pulse fires on every flip without bookkeeping.
-        heroPulse = false
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(60))
-            heroPulse = true
-            try? await Task.sleep(for: .milliseconds(420))
-            heroPulse = false
-        }
     }
 }
