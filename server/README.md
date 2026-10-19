@@ -17,6 +17,7 @@ real Anthropic API is reached one hop away.
 | Route                        | Purpose                            | iOS service           |
 | ---------------------------- | ---------------------------------- | --------------------- |
 | `POST /api/meal-scan`        | Meal photo → macros (Claude vision)| MealScannerService    |
+| `POST /api/food-scan`        | Smart scan: photo, barcode product or typed food → items, per-100g nutrition, portion options, price (structured output) | MealScannerService |
 | `POST /api/ai-research`      | Multi-turn research chat           | AIResearchService     |
 | `POST /api/weekly-summary`   | AI weekly recap (prompt-cached)    | WeeklySummaryService  |
 | `GET/POST /api/attest-register` | App Attest key registration     | AppAttestService      |
@@ -49,6 +50,11 @@ forward to `api.anthropic.com/v1/messages` live there.
        rejected, so an incomplete list looks like it works and just
        quietly serves the wrong model. Existing deployments pinned to
        `claude-sonnet-4-6` keep scanning on 4.6 until this is updated.
+     - `FOOD_SCAN_MODEL` — model for `/api/food-scan`. Default
+       `claude-opus-5-5`. Not subject to `ALLOWED_MODELS`: the app
+       never names a model on this route, the server picks it.
+       `claude-sonnet-5-5` roughly halves the cost per scan.
+     - `FOOD_SCAN_EFFORT` — `low` (default), `medium` or `high`.
      - `RATE_LIMIT_RPM` — per-IP request cap per minute per route.
        Default 20 (`WEEKLY_RPM`, default 6, for weekly-summary).
      - `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` — add the

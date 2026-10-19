@@ -35,7 +35,7 @@ DOMAIN_PALETTE_FILES = {
     "ProtocolNotesTimeline.swift", "AvatarPreset.swift", "HabitEditSheet.swift",
     "BarcodeScanFlow.swift", "ShareCardSheet.swift", "AnatomyDebugView.swift",
     "ProgressPhotoViewer.swift", "ProgressPhotoCompareView.swift",
-    "PaywallPhoneMockupRow.swift", "CompoundVial.swift",
+    "PaywallPhoneMockupRow.swift", "CompoundVial.swift", "DepthMealCamera.swift",
 }
 
 # The 8-point grid, plus the half-step (2) and the odd-but-intentional 6 used

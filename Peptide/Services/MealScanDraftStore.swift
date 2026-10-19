@@ -13,6 +13,7 @@ struct MealScanDraft: Codable, Equatable {
     var pendingEntries: [MealEntry] = []
     var undoRequested = false
     var accountIdentity: Data?
+    var insight: ScanInsight?
 }
 
 #if DEBUG

@@ -116,8 +116,16 @@
       photographing meals for AI nutrition estimation. A meal photo you
       submit is sent over HTTPS to our proxy server, forwarded to Anthropic's
       Claude API for analysis. Our proxy does not store it; Anthropic
-      processes it under its commercial API terms. Barcode
-      images and label scans never leave your device; an optional profile
+      processes it under its commercial API terms. The same applies to a
+      photo of a product package you ask Atlas to read, to a food name
+      you type into "Fill with AI", and to a meal you type or dictate. After you allow AI features, the name,
+      brand and nutrition facts of a product you scan by barcode are sent the
+      same way to estimate its price and portions. Each of these requests
+      also carries up to 15 of your recent corrections to earlier scans
+      (the food name Atlas guessed, the name and amount you logged), kept
+      on your device and erased with your data, so estimates match how you
+      eat. Barcode images and
+      on-device label scans never leave your device; an optional profile
       photo is stored locally. If you pick a meal photo from your library,
       Atlas reads only that photo and its capture date.
     </p>
