@@ -26,5 +26,9 @@ struct PeptideWidgetBundle: WidgetBundle {
         ComplianceWidget()
         DoseWindowLiveActivity()
         WorkoutLiveActivity()
+        ScanMealControl()
+        LogWaterControl()
+        StartWorkoutControl()
+        LogWeightControl()
     }
 }

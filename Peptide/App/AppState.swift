@@ -88,6 +88,12 @@ final class AppState {
     /// active. Set by the `atlas://pro` deep link, the one-time trial
     /// win-back, and Today's research-assistant row; cleared on dismiss.
     var presentedPaywall: PaywallSource?
+    /// Set by `peptidex://quick/<action>` links; `PeptideApp` performs it
+    /// through `QuickActionRouter` and clears it.
+    var pendingQuickAction: QuickAction?
+    /// The meal scanner or weight entry, opened by a quick action and
+    /// presented from the root over whichever tab is active.
+    var presentedQuickSheet: QuickActionSheet?
 }
 
 /// Routes a `peptidex://` (or `atlas://`) URL onto AppState. Extracted from
@@ -129,6 +135,10 @@ enum DeepLinkRouter {
         case "meals":
             // Nutrition widget → the Meals tab's log-entry pickers.
             appState.selectedTab = .meals
+        case "quick":
+            // Widget buttons → `peptidex://quick/<QuickAction>`.
+            guard let action = QuickAction(rawValue: url.lastPathComponent) else { return false }
+            appState.pendingQuickAction = action
         case "pro":
             // `atlas://pro` → the paywall. A Pro user has nothing to buy,
             // so the link is handled but opens nothing. Profile and the

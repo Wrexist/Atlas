@@ -308,9 +308,24 @@ private struct MediumNutritionView: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            CalorieRing(entry: entry, lineWidth: 10)
-                .overlay { CalorieCenter(entry: entry, large: true) }
-                .frame(width: 104, height: 104)
+            VStack(spacing: 8) {
+                CalorieRing(entry: entry, lineWidth: 9)
+                    .overlay { CalorieCenter(entry: entry, large: true) }
+                    .frame(width: 86, height: 86)
+                HStack(spacing: 10) {
+                    if let scan = QuickAction.scanMeal.url {
+                        Link(destination: scan) {
+                            QuickActionGlyph(systemImage: QuickAction.scanMeal.systemImage)
+                        }
+                        .accessibilityLabel(Text(QuickAction.scanMeal.title))
+                    }
+                    Button(intent: LogWaterGlassIntent()) {
+                        QuickActionGlyph(systemImage: QuickAction.logWater.systemImage)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("Log a glass of water"))
+                }
+            }
 
             VStack(alignment: .leading, spacing: 6) {
                 WidgetHeader(
@@ -333,6 +348,20 @@ private struct MediumNutritionView: View {
         entry.target > 0
             ? "\(entry.calories.formatted()) / \(entry.target.formatted())"
             : "\(entry.calories.formatted()) kcal"
+    }
+}
+
+/// The small round buttons under the medium widget's ring: scan a meal
+/// (opens the scanner) and log a glass of water (no app launch).
+private struct QuickActionGlyph: View {
+    let systemImage: String
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(WidgetPalette.brand)
+            .frame(width: 32, height: 32)
+            .background(Circle().fill(WidgetPalette.brand.opacity(0.16)))
     }
 }
 
