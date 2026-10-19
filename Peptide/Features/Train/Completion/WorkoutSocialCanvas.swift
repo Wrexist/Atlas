@@ -70,15 +70,8 @@ struct WorkoutSocialCanvas: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-
-            VStack(spacing: 3) {
-                Text("Muscle focus estimated from logged exercises")
-                if options.includeVolume && summary.volumeKg != nil && summary.excludedVolumeSets > 0 {
-                    Text("Volume includes supported external-load sets only")
-                }
-            }
-            .font(.caption2).foregroundStyle(AppColor.recapSecondary)
-            .multilineTextAlignment(.center)
+            // Method notes live behind the recap's info buttons, not in the
+            // exported image.
         }
         .fixedSize(horizontal: false, vertical: true)
     }

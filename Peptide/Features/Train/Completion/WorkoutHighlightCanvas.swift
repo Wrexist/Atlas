@@ -56,16 +56,16 @@ struct WorkoutHighlightCanvas: View {
             }
             HStack(spacing: 12) {
                 Label(summary.duration.label, systemImage: "clock")
-                Text(summary.entries.isEmpty ? "Exercises not logged" : "\(summary.entries.count) exercises")
+                if summary.entries.isEmpty {
+                    Text("Exercises not logged")
+                } else {
+                    Text("^[\(summary.entries.count) exercise](inflect: true)")
+                }
                 if options.includeVolume && summary.volumeKg != nil {
                     Text("\(summary.workingSetLabel) sets")
                 }
             }
             .font(.caption).monospacedDigit()
-            if options.includeVolume && summary.volumeKg != nil && summary.excludedVolumeSets > 0 {
-                Text("Supported external-load sets only").font(.caption2)
-                    .foregroundStyle(AppColor.recapSecondary)
-            }
             Divider()
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {

@@ -23,6 +23,7 @@ struct ActiveWorkoutView: View {
     @State private var workoutName: String = ""
     @FocusState private var nameFieldFocused: Bool
     @State private var showOverview = false
+    @State private var showOverviewPicker = false
     @State private var saving = false
     @State private var saveError: String?
     @State private var pendingEffort: Int?
@@ -36,24 +37,32 @@ struct ActiveWorkoutView: View {
 
     var body: some View {
         NavigationStack {
-            if saving || saveError != nil {
-                WorkoutSaveStatusView(saving: saving, error: saveError,
-                    retry: { finish(perceivedEffort: pendingEffort, note: pendingNote) },
-                    returnToWorkout: { sessionService.cancelFinishAttempt(); saveError = nil })
-            } else if let session = sessionService.activeSession {
-                content(for: session)
-            } else if let finished = finishedSession {
-                WorkoutFinishView(
-                    session: finished,
-                    detectedPRs: finishedPRs,
-                    unit: unit,
-                    weeklySessionCount: weeklySessionCount(asOf: finished),
-                    onClose: { dismiss() }
-                )
-                .task { await requestReviewIfEarned() }
-            } else {
-                noActiveSession
+            ZStack {
+                if saving || saveError != nil {
+                    WorkoutSaveStatusView(saving: saving, error: saveError,
+                        retry: { finish(perceivedEffort: pendingEffort, note: pendingNote) },
+                        returnToWorkout: { sessionService.cancelFinishAttempt(); saveError = nil })
+                        .transition(Self.phaseTransition)
+                } else if let session = sessionService.activeSession {
+                    content(for: session)
+                        .transition(Self.phaseTransition)
+                } else if let finished = finishedSession {
+                    WorkoutFinishView(
+                        session: finished,
+                        detectedPRs: finishedPRs,
+                        unit: unit,
+                        weeklySessionCount: weeklySessionCount(asOf: finished),
+                        onClose: { dismiss() }
+                    )
+                    .task { await requestReviewIfEarned() }
+                    .transition(Self.phaseTransition)
+                } else {
+                    noActiveSession
+                        .transition(Self.phaseTransition)
+                }
             }
+            .appAnimation(AppAnimation.springSmooth, value: saving)
+            .appAnimation(AppAnimation.springSmooth, value: finishedSession?.id)
         }
         .interactiveDismissDisabled(saving || saveError != nil)
         // Keep the presenter alive when finishing replaces the active content
@@ -83,6 +92,10 @@ struct ActiveWorkoutView: View {
         }
         .onChange(of: sessionService.activeSession?.id) { _, _ in syncNameFromSession() }
     }
+
+    /// Saving → summary (or back to the workout) settles in rather than
+    /// cutting.
+    private static var phaseTransition: AnyTransition { .opacity.combined(with: .scale(scale: 0.98)) }
 
     /// Lets the finish screen's celebration play before iOS decides
     /// whether to show its review sheet. `ReviewPromptService` still
@@ -180,14 +193,20 @@ struct ActiveWorkoutView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                GlassIconButton(icon: "xmark", accessibilityLabel: "Minimize workout", action: minimize)
+                GlassIconButton(icon: "chevron.down", accessibilityLabel: "Minimize workout", action: minimize)
             }
             ToolbarItem(placement: .principal) {
                 Menu {
                     Button("Workout overview", systemImage: "list.bullet") { showOverview = true }
                     Button("Add exercise", systemImage: "plus") { showExercisePicker = true }
-                    Button("Finish workout", systemImage: "checkmark") { showFinishSheet = true }
-                        .disabled(session.completedSetCount == 0)
+                    Button { showFinishSheet = true } label: {
+                        Text("Finish workout")
+                        if session.completedSetCount == 0 {
+                            Text("Complete a set first")
+                        }
+                        Image(systemName: "checkmark")
+                    }
+                    .disabled(session.completedSetCount == 0)
                     Button(role: .destructive) { showDiscardConfirm = true } label: {
                         Label("Discard workout", systemImage: "trash")
                     }
@@ -237,6 +256,13 @@ struct ActiveWorkoutView: View {
                         Button("Done") { commitWorkoutName(); showOverview = false }
                             .accessibilityIdentifier("workout-overview-done")
                     }
+                }
+            }
+            // Its own presenter: the workout-level picker can't open while
+            // this sheet is still up.
+            .sheet(isPresented: $showOverviewPicker) {
+                ExercisePickerSheet { exercise in
+                    sessionService.addExercise(exercise)
                 }
             }
         }
@@ -341,7 +367,6 @@ struct ActiveWorkoutView: View {
                             sessionService.removeExercise(id: entry.id)
                         },
                         onSetRestSeconds: { seconds in
-                            Haptics.selection()
                             sessionService.setRestSeconds(seconds, forExerciseEntryID: entry.id)
                         }
                     )
@@ -351,22 +376,13 @@ struct ActiveWorkoutView: View {
     }
 
     private var emptyExerciseState: some View {
-        VStack(spacing: Spacing.sm) {
-            Image(systemName: "figure.strengthtraining.traditional")
-                .font(.system(size: 36, weight: .light))
-                .foregroundStyle(AppColor.textSecondary)
-                .padding(.top, Spacing.lg)
-            Text("Add your first exercise")
-                .font(AppFont.headline)
-                .foregroundStyle(AppColor.textPrimary)
-            Text("Pick from 870+ exercises filtered by muscle and equipment.")
-                .font(AppFont.callout)
-                .foregroundStyle(AppColor.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.lg)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.bottom, Spacing.md)
+        EmptyStateView(
+            icon: "figure.strengthtraining.traditional",
+            title: "Add your first exercise",
+            message: "Search the library by name, muscle or equipment.",
+            action: .init(title: "Add exercise", icon: "plus") { showOverviewPicker = true },
+            style: .compact
+        )
     }
 
     // MARK: - No active session fallback
@@ -444,14 +460,18 @@ private struct FinishWorkoutSheet: View {
     private var effortSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             sectionTitle("How hard was it?")
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 88), spacing: Spacing.sm)],
-                spacing: Spacing.sm
-            ) {
+            // A fixed 1–5 scale: five adaptive word chips wrapped 3 + 2.
+            HStack(spacing: Spacing.sm) {
                 ForEach(Self.effortLabels.indices, id: \.self) { index in
                     effortChip(value: index + 1, label: Self.effortLabels[index])
                 }
             }
+            .appAnimation(AppAnimation.springSnappy, value: effort)
+            Text(effort.map { Self.effortLabels[$0 - 1] } ?? "1 is easy, 5 is everything you had")
+                .font(AppFont.footnote)
+                .foregroundStyle(effort == nil ? AppColor.textTertiary : AppColor.textPrimary)
+                .frame(maxWidth: .infinity)
+                .accessibilityHidden(true)
         }
     }
 
@@ -461,8 +481,9 @@ private struct FinishWorkoutSheet: View {
             Haptics.selection()
             effort = isSelected ? nil : value
         } label: {
-            Text(label)
-                .font(AppFont.callout.weight(.semibold))
+            Text("\(value)")
+                .font(AppFont.headline)
+                .monospacedDigit()
                 .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textPrimary)
                 .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
                 .background(
@@ -474,7 +495,7 @@ private struct FinishWorkoutSheet: View {
                         .stroke(AppColor.glassBorder, lineWidth: 0.5)
                 )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle())
         .accessibilityLabel(Text("Effort \(value) of 5, \(label)"))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }

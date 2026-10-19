@@ -72,3 +72,31 @@ struct ExerciseRow: View {
         }
     }
 }
+
+/// Loading stand-in shaped like `ExerciseRow`, so the list doesn't jump
+/// when the library finishes parsing.
+struct ExerciseRowSkeletonList: View {
+    var rowCount = 8
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(0..<rowCount, id: \.self) { _ in
+                HStack(spacing: Spacing.md) {
+                    SkeletonBlock(width: 56, height: 56, cornerRadius: Spacing.smallCornerRadius)
+                    VStack(alignment: .leading, spacing: Spacing.sm) {
+                        SkeletonBlock(width: 180, height: 14)
+                        SkeletonBlock(width: 90, height: 12)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(.vertical, Spacing.xs)
+                .padding(.horizontal, Spacing.screenPadding)
+                .padding(.vertical, Spacing.xxs)
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Loading exercises")
+    }
+}

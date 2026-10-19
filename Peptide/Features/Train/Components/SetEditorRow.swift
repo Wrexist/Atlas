@@ -138,6 +138,11 @@ struct SetEditorRow: View {
         }
     }
 
+    /// A logged set's numbers step back so the sets still to do lead.
+    private var fieldInk: Color {
+        set.completed ? AppColor.textSecondary : AppColor.textPrimary
+    }
+
     private var weightField: some View {
         HStack(spacing: Spacing.xs) {
             TextField(unit.weightSuffix,
@@ -149,7 +154,7 @@ struct SetEditorRow: View {
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.center)
                 .font(AppFont.callout.weight(.semibold))
-                .foregroundStyle(AppColor.textPrimary)
+                .foregroundStyle(fieldInk)
                 .monospacedDigit()
                 .focused($weightFocused)
                 .accessibilityIdentifier("workout-weight-\(set.index)")
@@ -157,7 +162,7 @@ struct SetEditorRow: View {
                 Text(unit.weightSuffix).font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
             }
         }
-            .frame(width: focusStyle ? nil : 60, height: focusStyle ? inputHeight : 32)
+            .frame(width: focusStyle ? nil : 60, height: focusStyle ? inputHeight : Spacing.minimumHitTarget)
             .frame(maxWidth: focusStyle ? .infinity : nil)
             .padding(.horizontal, focusStyle ? Spacing.sm : 0)
             .background(
@@ -183,11 +188,11 @@ struct SetEditorRow: View {
             .keyboardType(.numberPad)
             .multilineTextAlignment(.center)
             .font(AppFont.callout.weight(.semibold))
-            .foregroundStyle(AppColor.textPrimary)
+            .foregroundStyle(fieldInk)
             .monospacedDigit()
             .focused($repsFocused)
             .accessibilityIdentifier("workout-reps-\(set.index)")
-            .frame(width: focusStyle ? nil : 48, height: focusStyle ? inputHeight : 32)
+            .frame(width: focusStyle ? nil : 48, height: focusStyle ? inputHeight : Spacing.minimumHitTarget)
             .frame(maxWidth: focusStyle ? .infinity : nil)
             .background(
                 RoundedRectangle(cornerRadius: focusStyle ? Spacing.sheetCornerRadius : Spacing.chipCornerRadius, style: .continuous)
@@ -225,7 +230,7 @@ struct SetEditorRow: View {
         .buttonStyle(.plain)
         .disabled(isPaused)
         .accessibilityIdentifier("workout-complete-\(set.index)")
-        .accessibilityLabel(set.completed ? "Set complete" : "Mark set complete")
+        .accessibilityLabel(set.completed ? "Set \(set.index) complete" : "Mark set \(set.index) complete")
         .accessibilityValue(isCurrent ? "Current set" : "")
     }
 

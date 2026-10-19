@@ -60,19 +60,23 @@ struct ExercisePickerSheet: View {
                 prompt: Text("Search exercises")
             )
             .pinnedFooter {
-                if !picks.exercises.isEmpty {
-                    VStack(spacing: Spacing.sm) {
-                        selectionTray
-                        GlassButton(title: "Add (\(picks.exercises.count))", icon: "plus", isFullWidth: true) {
-                            commit()
+                ZStack {
+                    if !picks.exercises.isEmpty {
+                        VStack(spacing: Spacing.sm) {
+                            selectionTray
+                            GlassButton(title: "Add (\(picks.exercises.count))", icon: "plus", isFullWidth: true) {
+                                commit()
+                            }
+                            .disabled(picks.committed)
+                            .accessibilityIdentifier("exercise-picker-add")
                         }
-                        .disabled(picks.committed)
-                        .accessibilityIdentifier("exercise-picker-add")
+                        .padding(.horizontal, Spacing.screenPadding)
+                        .padding(.top, Spacing.md)
+                        .padding(.bottom, Spacing.sm)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
-                    .padding(.horizontal, Spacing.screenPadding)
-                    .padding(.top, Spacing.md)
-                    .padding(.bottom, Spacing.sm)
                 }
+                .appAnimation(AppAnimation.springSnappy, value: picks.exercises.isEmpty)
             }
             .task {
                 await loadLibrary()
@@ -120,10 +124,12 @@ struct ExercisePickerSheet: View {
                             .frame(maxWidth: 240)
                             .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: Spacing.sm))
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(ScalePressStyle())
                         .accessibilityLabel("Remove \(exercise.name) from selection")
+                        .transition(.scale.combined(with: .opacity))
                     }
                 }
+                .appAnimation(AppAnimation.springSnappy, value: picks.exercises.map(\.id))
             }.scrollIndicators(.hidden)
         }
         .accessibilityIdentifier("exercise-picker-selection")
@@ -164,8 +170,7 @@ struct ExercisePickerSheet: View {
             equipment: equipmentFilter
         )
         if !library.isLoaded && isLoading {
-            ProgressView("Loading exercises…")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ExerciseRowSkeletonList()
         } else if !library.isLoaded {
             EmptyStateView(icon: "exclamationmark.triangle", title: "Library unavailable",
                            message: "Couldn't load exercises. Your selections are still here.",
@@ -174,32 +179,15 @@ struct ExercisePickerSheet: View {
             })
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if results.isEmpty {
-            VStack(spacing: Spacing.md) {
-                EmptyStateView(
-                    icon: "magnifyingglass",
-                    title: "No matches",
-                    message: "Don't see your lift? Create a custom exercise to add it to your routine."
-                )
-                Button("Clear search and filters", action: clearFilters)
-                    .minimumHitArea()
-                Button {
+            EmptyStateView(
+                icon: "magnifyingglass",
+                title: "No matches",
+                message: "Don't see your lift? Create a custom exercise.",
+                action: .init(title: "Create custom exercise", icon: "plus") {
                     creatingCustomExercise = true
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "plus.circle.fill")
-                            .accessibilityHidden(true)
-                        Text("Create custom exercise")
-                    }
-                    .font(AppFont.callout.weight(.semibold))
-                    .foregroundStyle(AppColor.accentPrimary)
-                    .padding(.horizontal, Spacing.lg)
-                    .padding(.vertical, Spacing.md)
-                    .background(
-                        Capsule().fill(AppColor.accentPrimary.opacity(0.12))
-                    )
-                }
-                .buttonStyle(.plain)
-            }
+                },
+                secondary: .init(title: "Clear search and filters", perform: clearFilters)
+            )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             ScrollView {
@@ -254,11 +242,16 @@ struct ExercisePickerSheet: View {
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "plus.circle")
                     .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(AppColor.accentPrimary)
+                    .contentTransition(.symbolEffect(.replace))
                     .accessibilityHidden(true)
             }
         }
         .buttonStyle(.plain)
         .padding(.horizontal, Spacing.screenPadding)
+        // The glyph alone is 20pt; a wash across the row makes the
+        // selection readable while scrolling past.
+        .background(isSelected ? AppColor.accentPrimary.opacity(0.08) : Color.clear)
+        .appAnimation(AppAnimation.quick, value: isSelected)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityHint(isSelected ? "Removes from selection" : "Adds to selection")
     }

@@ -15,6 +15,9 @@ struct PlateCalculatorSheet: View {
     @State private var target: Double = 0
     @State private var barWeight: Double = 0
     @State private var hasSeeded = false
+    @FocusState private var focusedField: Field?
+
+    private enum Field { case target, bar }
 
     /// Plates drawn per side before the diagram collapses the rest into a
     /// "+n" badge — past this the stack would run off a phone screen.
@@ -45,19 +48,21 @@ struct PlateCalculatorSheet: View {
                     Button("Done") { dismiss() }
                         .fontWeight(.semibold)
                 }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { focusedField = nil }
+                        .fontWeight(.semibold)
+                }
             }
         }
         .liquidGlassPresentation(detents: [.medium, .large])
         .onAppear(perform: seed)
-        .onChange(of: unit) { _, newUnit in
-            barWeight = PlateCalculatorEngine.defaultBarWeight(for: newUnit)
-        }
     }
 
     // MARK: - Inputs
 
     private var unitPicker: some View {
-        Picker("Unit", selection: $unit) {
+        Picker("Unit", selection: Binding(get: { unit }, set: { switchUnit(to: $0) })) {
             Text("kg").tag(MeasurementUnit.metric)
             Text("lb").tag(MeasurementUnit.imperial)
         }
@@ -67,14 +72,14 @@ struct PlateCalculatorSheet: View {
     private var inputs: some View {
         GlassCard {
             VStack(spacing: Spacing.md) {
-                weightField("Target", value: $target)
+                weightField("Target", value: $target, field: .target)
                 Divider().background(AppColor.glassBorder)
-                weightField("Bar", value: $barWeight)
+                weightField("Bar", value: $barWeight, field: .bar)
             }
         }
     }
 
-    private func weightField(_ label: LocalizedStringKey, value: Binding<Double>) -> some View {
+    private func weightField(_ label: LocalizedStringKey, value: Binding<Double>, field: Field) -> some View {
         HStack(spacing: Spacing.sm) {
             Text(label)
                 .font(AppFont.headline)
@@ -82,6 +87,7 @@ struct PlateCalculatorSheet: View {
             Spacer(minLength: 0)
             TextField(label, value: value, format: .number.precision(.fractionLength(0...2)))
                 .keyboardType(.decimalPad)
+                .focused($focusedField, equals: field)
                 .multilineTextAlignment(.trailing)
                 .font(AppFont.scaled(24, weight: .bold, design: .rounded))
                 .foregroundStyle(AppColor.accentLight)
@@ -203,6 +209,16 @@ struct PlateCalculatorSheet: View {
     }
 
     // MARK: - Helpers
+
+    /// Carries the target across units (100 kg becomes 220.5 lb, not
+    /// 100 lb) and swaps in that unit's standard bar.
+    private func switchUnit(to newUnit: MeasurementUnit) {
+        guard newUnit != unit else { return }
+        let targetKg = unit.kilograms(fromDisplayed: target)
+        unit = newUnit
+        target = (newUnit.weightForDisplay(targetKg) * 10).rounded() / 10
+        barWeight = PlateCalculatorEngine.defaultBarWeight(for: newUnit)
+    }
 
     private func seed() {
         guard !hasSeeded else { return }

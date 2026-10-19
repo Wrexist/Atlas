@@ -100,21 +100,7 @@ struct WorkoutExerciseCard: View {
     }
 
     private var restMenu: some View {
-        Menu {
-            ForEach(RestTimeOptions.choices(including: effectiveRestSeconds), id: \.self) { seconds in
-                Button {
-                    onSetRestSeconds(seconds)
-                } label: {
-                    if seconds == effectiveRestSeconds {
-                        Label(RestTimeOptions.label(for: seconds), systemImage: "checkmark")
-                    } else {
-                        Text(RestTimeOptions.label(for: seconds))
-                    }
-                }
-            }
-        } label: {
-            Label("Rest time · \(RestTimeOptions.label(for: effectiveRestSeconds))", systemImage: "timer")
-        }
+        RestTimeMenu(current: effectiveRestSeconds, onSelect: onSetRestSeconds)
     }
 
     /// Logged work is only lost behind a confirmation; an exercise with
@@ -166,5 +152,32 @@ struct WorkoutExerciseCard: View {
             )
         }
         .buttonStyle(.plain)
+    }
+}
+
+/// The one rest-time picker for an exercise in a workout — the overview
+/// card and the focus screen both use it, so both show the current value
+/// and tick the same haptic.
+struct RestTimeMenu: View {
+    let current: Int
+    let onSelect: (Int) -> Void
+
+    var body: some View {
+        Menu {
+            ForEach(RestTimeOptions.choices(including: current), id: \.self) { seconds in
+                Button {
+                    Haptics.selection()
+                    onSelect(seconds)
+                } label: {
+                    if seconds == current {
+                        Label(RestTimeOptions.label(for: seconds), systemImage: "checkmark")
+                    } else {
+                        Text(RestTimeOptions.label(for: seconds))
+                    }
+                }
+            }
+        } label: {
+            Label("Rest time · \(RestTimeOptions.label(for: current))", systemImage: "timer")
+        }
     }
 }

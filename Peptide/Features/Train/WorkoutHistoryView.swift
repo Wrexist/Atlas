@@ -8,6 +8,9 @@ struct WorkoutHistoryView: View {
     @State private var groupedSessions: [MonthGroup] = []
     @State private var hasLoaded: Bool = false
     @State private var sessionService = WorkoutSessionService.shared
+    @Environment(DataStore.self) private var dataStore
+
+    private var unit: MeasurementUnit { dataStore.profile.bodyMetrics.unit }
 
     /// Explicit type rather than a `.init` shorthand inside the call —
     /// leading-dot syntax in an optional-typed ternary is the kind of
@@ -28,7 +31,7 @@ struct WorkoutHistoryView: View {
                 EmptyStateView(
                     icon: "calendar",
                     title: "No workouts logged yet",
-                    message: "Once you finish your first session, it'll show up here with PRs and a monthly recap.",
+                    message: "Once you finish your first session, it'll show up here, grouped by month.",
                     // TrainContainerView presents the active workout as soon
                     // as `activeSession` appears, so starting one here needs
                     // no plumbing back through the parent.
@@ -40,6 +43,8 @@ struct WorkoutHistoryView: View {
             }
         }
         .onAppear(perform: reload)
+        // A workout finished or edited elsewhere bumps the revision.
+        .onChange(of: dataStore.revision) { _, _ in reload() }
     }
 
     /// Always hosted inside TrainContainerView's `NavigationStack`, so it
@@ -55,7 +60,7 @@ struct WorkoutHistoryView: View {
                                 NavigationLink(value: TrainNavigation.workoutDetail(session.id)) {
                                     row(for: session)
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(ScalePressStyle(pressedScale: 0.98))
                             }
                         }
                     } header: {
@@ -82,34 +87,41 @@ struct WorkoutHistoryView: View {
     }
 
     private func row(for session: WorkoutSession) -> some View {
-        HStack(alignment: .top, spacing: Spacing.md) {
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(alignment: .center, spacing: Spacing.md) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(session.displayDate)
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textTertiary)
                 Text(session.name ?? "Workout")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
-                Text("\(session.exercises.count) exercises · \(session.completedSetCount) sets")
+                Text(summaryLine(for: session))
                     .font(AppFont.footnote)
                     .foregroundStyle(AppColor.textSecondary)
             }
-            Spacer()
+            Spacer(minLength: Spacing.sm)
             if let duration = session.durationLabel {
-                Text(duration)
+                Label(duration, systemImage: "clock")
                     .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .monospacedDigit()
             }
+            Image(systemName: "chevron.right")
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(AppColor.textTertiary)
+                .accessibilityHidden(true)
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .stroke(AppColor.glassBorder, lineWidth: 0.5)
-        )
+        .contentShape(Rectangle())
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func summaryLine(for session: WorkoutSession) -> String {
+        let exercises = session.exercises.count == 1 ? "1 exercise" : "\(session.exercises.count) exercises"
+        let sets = session.completedSetCount == 1 ? "1 set" : "\(session.completedSetCount) sets"
+        guard session.totalVolumeKg > 0 else { return "\(exercises) · \(sets)" }
+        return "\(exercises) · \(sets) · \(unit.weightLabel(session.totalVolumeKg))"
     }
 
     // MARK: - Grouping
