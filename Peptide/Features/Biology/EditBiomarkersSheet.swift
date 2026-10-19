@@ -123,7 +123,7 @@ struct EditBiomarkersSheet: View {
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)
                     if biomarker.requiresPro {
-                        proBadge
+                        ProBadge()
                     }
                 }
                 if let unitString = biomarker.displayUnit(for: unit) {
@@ -157,18 +157,6 @@ struct EditBiomarkersSheet: View {
         .padding(.vertical, 4)
         .opacity(biomarker.requiresPro && !isPro ? 0.55 : 1.0)
         .accessibilityElement(children: .combine)
-    }
-
-    private var proBadge: some View {
-        Text("PRO")
-            .font(AppFont.scaled(8, weight: .heavy, design: .rounded))
-            .tracking(0.5)
-            .foregroundStyle(AppColor.accentPrimary)
-            .padding(.horizontal, 5)
-            .padding(.vertical, 1)
-            .background {
-                Capsule().fill(AppColor.accentPrimary.opacity(0.15))
-            }
     }
 
     private var emptyVisibleHint: some View {

@@ -52,15 +52,7 @@ struct ScreenshotModeRow: View {
                             .font(AppFont.subheadline)
                             .fontWeight(.semibold)
                             .foregroundStyle(AppColor.textPrimary)
-                        Text("DEMO")
-                            .font(AppFont.scaled(8, weight: .heavy))
-                            .tracking(0.5)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
-                            .foregroundStyle(AppColor.onAccent)
-                            .background {
-                                Capsule().fill(accent)
-                            }
+                        Badge("DEMO", style: .solid, tint: accent)
                     }
                     Text(subtitle)
                         .font(AppFont.caption)

@@ -15,58 +15,23 @@ struct PeptideLibraryEntryCard: View {
     private var activeProtocols: Int { dataStore.activeProtocols.count }
 
     var body: some View {
-        Button {
-            Haptics.impact(.light)
-            let app = appState
-            dismiss()
-            Task { @MainActor in
-                try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
-                app.showLibrary = true
-            }
-        } label: {
-            HStack(spacing: Spacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(AppColor.accentPrimary.opacity(0.18))
-                        .frame(width: 44, height: 44)
-                    Image(systemName: "books.vertical.fill")
-                        .font(AppFont.scaled(16, weight: .bold))
-                        .foregroundStyle(AppColor.accentLight)
-                        .accessibilityHidden(true)
-                }
-
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text("Peptide Library")
-                        .font(AppFont.headline)
-                        .foregroundStyle(AppColor.textPrimary)
-                    Text(subtitle)
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(AppFont.scaled(11, weight: .semibold))
-                    .foregroundStyle(AppColor.textTertiary)
-                    .accessibilityHidden(true)
-            }
-            .padding(Spacing.md)
-            .frame(maxWidth: .infinity)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.6))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                    }
-            }
-        }
-        .buttonStyle(ScalePressStyle())
-        .accessibilityLabel("Peptide Library")
+        GlassEntryRow(
+            icon: "books.vertical.fill",
+            title: "Peptide Library",
+            subtitle: Text(subtitle),
+            action: openLibrary
+        )
         .accessibilityHint("Opens the peptide database, protocols, and AI research")
+    }
+
+    private func openLibrary() {
+        Haptics.impact(.light)
+        let app = appState
+        dismiss()
+        Task { @MainActor in
+            try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
+            app.showLibrary = true
+        }
     }
 
     private var subtitle: String {

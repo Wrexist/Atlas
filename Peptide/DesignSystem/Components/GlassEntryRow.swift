@@ -1,64 +1,95 @@
 import SwiftUI
 
-/// The canonical tappable "entry row" used across the app — an icon in a
-/// tinted circle, a title + subtitle, and a trailing chevron, on the
-/// standard inset surface. One source of truth so these rows are
-/// pixel-identical everywhere instead of each surface re-implementing the
-/// same chrome (Profile tools, food/protocol entry cards, settings rows).
+/// The canonical tappable "entry row" used across the app — an icon on a
+/// tinted tile, a title + optional subtitle, an optional trailing `Badge`
+/// and a chevron, on the standard inset surface. One source of truth so
+/// these rows are pixel-identical everywhere instead of each surface
+/// re-implementing the same chrome (Profile tools, Library and Protocol
+/// entries, food search, settings rows).
+///
+/// `GlassEntryRow` is the `Button` form. A row that pushes a navigation
+/// destination wraps `GlassEntryRowLabel` in its own `NavigationLink` with
+/// `ScalePressStyle(pressedScale: 0.98)`.
+struct GlassEntryRow: View {
+    private let label: GlassEntryRowLabel
+    private let action: () -> Void
+
+    init(
+        icon: String,
+        tint: Color? = nil,
+        title: LocalizedStringKey,
+        subtitle: Text? = nil,
+        badge: Badge? = nil,
+        action: @escaping () -> Void
+    ) {
+        label = GlassEntryRowLabel(icon: icon, tint: tint, title: title, subtitle: subtitle, badge: badge)
+        self.action = action
+    }
+
+    var body: some View {
+        Button(action: action) { label }
+            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+    }
+}
+
+/// The visual body of `GlassEntryRow`, for rows whose trigger isn't a plain
+/// `Button` (a `NavigationLink`).
 ///
 /// Subtitle is passed as a `Text` so callers keep their own localisation
 /// (a `LocalizedStringResource`, a literal key, an interpolated string)
-/// while the row owns the styling — font, colour, single-line shrink.
-struct GlassEntryRow: View {
+/// while the row owns the styling. `tint` colours the icon tile; leave it
+/// `nil` for the theme accent.
+struct GlassEntryRowLabel: View {
     let icon: String
-    var iconGradient: [Color] = [
-        AppColor.accentPrimary.opacity(0.45),
-        AppColor.accentLight.opacity(0.25),
-    ]
+    var tint: Color?
     let title: LocalizedStringKey
-    let subtitle: Text
-    let action: () -> Void
+    var subtitle: Text?
+    var badge: Badge?
+
+    private static let tileSize: CGFloat = 40
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: Spacing.sm) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: iconGradient,
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 38, height: 38)
-                    Image(systemName: icon)
-                        .font(AppFont.scaled(16, weight: .semibold))
-                        .foregroundStyle(.white)
+        HStack(spacing: Spacing.md) {
+            Image(systemName: icon)
+                .font(AppFont.scaled(16, weight: .semibold))
+                .foregroundStyle(tint ?? AppColor.accentLight)
+                .frame(width: Self.tileSize, height: Self.tileSize)
+                .background {
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .fill((tint ?? AppColor.accentPrimary).opacity(0.18))
                 }
+                .accessibilityHidden(true)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(AppFont.scaled(16, weight: .semibold))
-                        .foregroundStyle(AppColor.textPrimary)
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(title)
+                    .font(AppFont.headline)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .lineLimit(2)
+                if let subtitle {
                     subtitle
-                        .font(AppFont.scaled(11))
+                        .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
+                        .lineLimit(2)
                 }
-
-                Spacer(minLength: 0)
-
-                Image(systemName: "chevron.right")
-                    .font(AppFont.scaled(13, weight: .semibold))
-                    .foregroundStyle(AppColor.textSecondary)
             }
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.md)
-            .insetRowBackground()
+            .multilineTextAlignment(.leading)
+
+            Spacer(minLength: 0)
+
+            if let badge {
+                badge
+            }
+
+            Image(systemName: "chevron.right")
+                .font(AppFont.scaled(11, weight: .semibold))
+                .foregroundStyle(AppColor.textTertiary)
+                .accessibilityHidden(true)
         }
-        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        .padding(Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .insetRowBackground()
+        .contentShape(.rect)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -93,11 +124,13 @@ extension View {
                 action: {}
             )
             GlassEntryRow(
-                icon: "syringe.fill",
-                title: "Reconstitution calculator",
-                subtitle: Text("Vial mg + bac water → exact syringe units"),
+                icon: "flask.fill",
+                title: "Create your first protocol",
+                subtitle: Text("Track doses, streaks, and compliance."),
+                badge: Badge("Get started", style: .solid),
                 action: {}
             )
+            GlassEntryRow(icon: "gearshape.fill", tint: AppColor.recap, title: "Settings", action: {})
         }
         .padding(Spacing.screenPadding)
     }
