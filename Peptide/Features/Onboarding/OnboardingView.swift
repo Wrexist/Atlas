@@ -849,9 +849,10 @@ struct OnboardingView: View {
     /// the 56pt Welcome title and the Sign-in button stack both overflow
     /// at accessibility type sizes.
     private func centeredScroll<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        GeometryReader { proxy in
+        let pageContent = content()
+        return GeometryReader { proxy in
             ScrollView {
-                content()
+                pageContent
                     .frame(minHeight: proxy.size.height)
             }
             .scrollBounceBehavior(.basedOnSize)
