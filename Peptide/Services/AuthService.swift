@@ -347,11 +347,13 @@ final class AuthService {
         ExportService.shared.clearExports()
         // Records kept outside the main stores: pending reminders carry
         // protocol names and times, Live Activities show doses, and
-        // achievements and barcode history sit in UserDefaults.
+        // achievements, barcode history and scan corrections sit in
+        // UserDefaults.
         NotificationService.shared.cancelAll()
         DoseLiveActivityService.shared.endAll()
         AchievementService.shared.eraseAll()
         Task { await BarcodeScanHistory.shared.removeAll() }
+        ScanCorrectionMemory.shared.eraseAll()
         if let store { resetInMemoryState(of: store) }
     }
 

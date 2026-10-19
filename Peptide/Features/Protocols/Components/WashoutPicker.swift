@@ -46,7 +46,7 @@ struct WashoutPicker: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .animation(.easeOut(duration: 0.18), value: isEnabled.wrappedValue)
+        .appAnimation(AppAnimation.quick, value: isEnabled.wrappedValue)
         .padding(Spacing.md)
         .background {
             RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)

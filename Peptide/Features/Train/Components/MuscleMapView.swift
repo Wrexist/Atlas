@@ -35,8 +35,6 @@ enum MuscleHighlight: Hashable, Sendable {
 /// Uses shaded asset layers when available, with a Canvas fallback.
 struct MuscleMapView: View {
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     let highlights: [AnatomicalMuscle: MuscleHighlight]
     var orientation: Orientation = .both
     // The app's accent, not a hardcoded red/blue pair. Atlas ships five
@@ -181,7 +179,7 @@ struct MuscleMapView: View {
         if let onIdentify {
             if let hit { onIdentify(hit) }
         } else {
-            withAnimation(.easeOut(duration: 0.2)) { identified = hit }
+            AppAnimation.with(AppAnimation.quick) { identified = hit }
         }
     }
 
@@ -258,7 +256,7 @@ struct MuscleMapView: View {
                     .allowsHitTesting(false)
             }
         }
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.24), value: highlights)
+        .appAnimation(AppAnimation.quick, value: highlights)
     }
 
     /// Hue a trained muscle takes on in the asset renderer.

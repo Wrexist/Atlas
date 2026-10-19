@@ -129,13 +129,15 @@ struct HomeView: View {
     /// plus one day-scoped SwiftData fetch — but it must not run from `body`.
     private func refreshDerived() {
         let plan = DailyScheduleEngine.plan(for: dataStore.todayEntries)
-        derived = DerivedToday(
+        let next = DerivedToday(
             overview: TodayOverviewSnapshot.build(from: dataStore),
             plan: plan,
             timeline: buildTimelineEvents(),
             primaryReason: buildPrimaryReason(plan: plan),
             workoutsThisWeek: countWorkoutsThisWeek()
         )
+        // Inside an animation so the cards' numericText digits roll.
+        AppAnimation.with(AppAnimation.springSmooth) { derived = next }
     }
 
     private func countWorkoutsThisWeek() -> Int {
@@ -196,6 +198,7 @@ struct HomeView: View {
                         }
                     )
                     .sectionAppear(index: 0)
+                    .scrollHandOff()
 
                     // Today reads status → recommendation → action
                     // (Product Architecture 07). The removed
@@ -220,7 +223,7 @@ struct HomeView: View {
                         isQuickLogOpen: showQuickLogSheet,
                         onQuickLog: { showQuickLogSheet = true }
                     )
-                    .sectionAppear(index: 0)
+                    .sectionAppear(index: 1)
 
                     // Observed via the @State notificationService so the banner
                     // re-renders when a reschedule writes a fresh report. Reading
@@ -231,7 +234,8 @@ struct HomeView: View {
                             report: report,
                             droppedProtocolNames: dataStore.droppedReminderProtocolNames
                         )
-                        .sectionAppear(index: 0)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .sectionAppear(index: 1)
                     }
 
                     // PRIMARY STATUS. Hide the adherence/recovery/sleep
@@ -241,7 +245,7 @@ struct HomeView: View {
                     // below; the trio's footer offers Connect Health.
                     if showsAtAGlance {
                         HomeSectionHeader(eyebrow: "Today", title: "At a glance")
-                            .sectionAppear(index: 0)
+                            .sectionAppear(index: 2)
 
                         // Bevel-style hero trio — Adherence / Recovery /
                         // Sleep. Three at-a-glance numbers mapping to the
@@ -264,7 +268,7 @@ struct HomeView: View {
                                 appState.selectedTab = .train
                             }
                         )
-                        .sectionAppear(index: 0)
+                        .sectionAppear(index: 2)
                     }
 
                     // PRIMARY RECOMMENDATION — the one thing
@@ -276,8 +280,12 @@ struct HomeView: View {
                     // intensity") — just reconciled across more signals
                     // than coaching alone used to see.
                     if let reason = derived.primaryReason {
+                        // Keyed on the title so a new recommendation
+                        // cross-fades in rather than swapping text in place.
                         CoachingCard(message: reason.message)
-                            .sectionAppear(index: 0)
+                            .id(reason.message.title)
+                            .transition(.opacity.combined(with: .scale(0.98)))
+                            .sectionAppear(index: 3)
                     }
 
                     if let weeklyState = weeklySummaryState,
@@ -292,7 +300,7 @@ struct HomeView: View {
                             },
                             onRetry: { Task { await loadWeeklySummary(forceRefresh: true) } }
                         )
-                        .sectionAppear(index: 0)
+                        .sectionAppear(index: 3)
                     }
 
                     // PRIMARY ACTION — today's habits, the daily
@@ -300,7 +308,7 @@ struct HomeView: View {
                     // summary work is snapshotted off-body inside the
                     // component (audit A6).
                     TodayHabitsHero()
-                        .sectionAppear(index: 1)
+                        .sectionAppear(index: 4)
 
                     // MARK: - Meals / Wellness / Movement
                     //
@@ -337,7 +345,7 @@ struct HomeView: View {
                             .minimumHitArea()
                             .accessibilityLabel("Manage protocols")
                         }
-                        .sectionAppear(index: 3)
+                        .scrollReveal()
 
                         DailyPlanCard(
                             plan: plan,
@@ -349,25 +357,27 @@ struct HomeView: View {
                         )
                         .id(TodayJumpBar.SectionAnchor.doses)
                         .trackSectionAnchor(.doses)
-                        .sectionAppear(index: 3)
+                        .scrollReveal()
 
                         TodayScheduleCard(
                             entries: stats.entries,
-                            onToggle: { entry in dataStore.toggleEntry(entry.id) },
+                            onToggle: { entry in
+                                AppAnimation.with(AppAnimation.springSnappy) { dataStore.toggleEntry(entry.id) }
+                            },
                             onTap: { entry in selectedEntry = entry }
                         )
-                        .sectionAppear(index: 3)
+                        .scrollReveal()
                     }
 
                     HomeWellnessSection()
                         .id(TodayJumpBar.SectionAnchor.wellness)
                         .trackSectionAnchor(.wellness)
-                        .sectionAppear(index: 5)
+                        .scrollReveal()
 
                     HomeMovementSection()
                         .id(TodayJumpBar.SectionAnchor.movement)
                         .trackSectionAnchor(.movement)
-                        .sectionAppear(index: 5)
+                        .scrollReveal()
 
                     // ANALYSIS from here down — glanceable summaries the
                     // user pulls up on demand, after every actionable
@@ -397,7 +407,7 @@ struct HomeView: View {
                                 }
                             }
                         )
-                        .sectionAppear(index: 6)
+                        .scrollReveal()
                     }
 
                     // Momentum — goal countdown for users who committed
@@ -406,18 +416,18 @@ struct HomeView: View {
                     // never sits alone when no goal date is set.
                     if dataStore.profile.goalDate != nil {
                         HomeSectionHeader(eyebrow: "Momentum", title: "Your goal")
-                            .sectionAppear(index: 6)
+                            .scrollReveal()
 
                         GoalCountdownCard(
                             goalDate: dataStore.profile.goalDate,
                             primaryGoal: dataStore.profile.primaryGoal,
                             startDate: dataStore.profile.memberSince
                         )
-                        .sectionAppear(index: 6)
+                        .scrollReveal()
                     }
 
                     AtlasScoreCard(onTap: { showProgress = true })
-                        .sectionAppear(index: 6)
+                        .scrollReveal()
 
                     // The AI research chat's only other entry is an icon
                     // in the Library toolbar. Pro opens the chat; free
@@ -429,7 +439,7 @@ struct HomeView: View {
                             appState.presentedPaywall = .aiResearch
                         }
                     }
-                    .sectionAppear(index: 6)
+                    .scrollReveal()
 
                     // Protocol tracking is an optional advanced feature,
                     // so with zero protocols its entry sits down here
@@ -441,7 +451,7 @@ struct HomeView: View {
                             appState.pendingProtocolList = true
                             appState.showLibrary = true
                         }
-                        .sectionAppear(index: 6)
+                        .scrollReveal()
                     }
 
                     // Bevel-style chronological feed — doses + meals
@@ -449,7 +459,7 @@ struct HomeView: View {
                     // list. Hides itself when the day has no events
                     // (a brand-new install before the first log).
                     TodayTimelineCard(events: derived.timeline)
-                        .sectionAppear(index: 6)
+                        .scrollReveal()
 
                     // Bevel-style Health Monitor grid — HRV / RHR /
                     // Sleep with personal-range indicators. Hides
@@ -457,7 +467,7 @@ struct HomeView: View {
                     // there's not enough HealthKit history to render
                     // a meaningful range.
                     HealthMonitorGrid(snapshot: healthRange)
-                        .sectionAppear(index: 7)
+                        .scrollReveal()
 
                     // The standalone bottom insight card used to live
                     // here; removed in this pass because TodayOverviewCard
@@ -466,6 +476,7 @@ struct HomeView: View {
                     // top of the scroll. Showing it twice was duplication,
                     // not depth.
                 }
+                .appAnimation(AppAnimation.toast, value: shouldShowNotificationBanner)
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
                 // Cap content width on iPad / landscape — without this
@@ -638,7 +649,7 @@ struct HomeView: View {
             .onChange(of: achievementService.latestUnlock?.id) { _, newId in
                 if let newId, let achievement = achievementService.achievements.first(where: { $0.id == newId }) {
                     toastAchievement = achievement
-                    withAnimation(AppAnimation.springBouncy) { showAchievementToast = true }
+                    AppAnimation.with(AppAnimation.springBouncy) { showAchievementToast = true }
                     if Self.reviewWorthyAchievements.contains(newId) {
                         Task { @MainActor in
                             try? await Task.sleep(for: .seconds(2))
@@ -679,7 +690,8 @@ struct HomeView: View {
             // the first `refreshDerived()`).
             .onChange(of: heroSnapshot) { _, _ in
                 let plan = derived.plan ?? DailyScheduleEngine.plan(for: dataStore.todayEntries)
-                derived.primaryReason = buildPrimaryReason(plan: plan)
+                let reason = buildPrimaryReason(plan: plan)
+                AppAnimation.with(AppAnimation.springSmooth) { derived.primaryReason = reason }
             }
             .onAppear {
                 checkMilestonePrompt()
@@ -748,7 +760,7 @@ struct HomeView: View {
         // Every chip scrolls within Today now — the Meals and Biology
         // chips that duplicated the tab bar were dropped (Product
         // Architecture 07: no duplicate destinations).
-        withAnimation(.smooth(duration: 0.35)) {
+        AppAnimation.with(AppAnimation.settle) {
             proxy.scrollTo(anchor, anchor: .top)
         }
         activeJumpAnchor = anchor
@@ -876,7 +888,7 @@ struct HomeView: View {
             adherenceRatio: todayStats.score,
             healthConnected: dataStore.profile.healthConnected
         )
-        heroSnapshot = snapshot
+        AppAnimation.with(AppAnimation.springSmooth) { heroSnapshot = snapshot }
     }
 
     /// Builds the Health Monitor grid's personal-range snapshot.
@@ -888,12 +900,13 @@ struct HomeView: View {
             healthRange = .init(hrv: nil, rhr: nil, sleep: nil)
             return
         }
+        let previous = healthRange
         healthRange = await HealthRangeService.build()
-        // Surface the Bevel-style "Sync Complete" toast only when the
-        // refresh actually produced at least one card — avoids the
-        // false-positive of "synced!" on a brand-new install that
-        // has no HealthKit data yet.
-        if healthRange.hrv != nil || healthRange.rhr != nil || healthRange.sleep != nil {
+        // "Sync Complete" only when the refresh brought something new.
+        // Firing on any non-empty result announced a sync on every tab
+        // return, and stacked on top of an achievement toast.
+        let hasData = healthRange.hrv != nil || healthRange.rhr != nil || healthRange.sleep != nil
+        if hasData && healthRange != previous && !showAchievementToast {
             showSyncToast = true
         }
     }

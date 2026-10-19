@@ -116,6 +116,7 @@ struct MacroSummaryRow: View {
                         .transition(.opacity.combined(with: .scale(scale: 0.9)))
                 }
             }
+            .appAnimation(AppAnimation.springSnappy, value: onUndoWater != nil)
         }
         .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)

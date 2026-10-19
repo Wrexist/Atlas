@@ -87,7 +87,8 @@ struct RecapMetrics: View {
     private func metric(_ title: String, value: String, icon: String) -> some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Image(systemName: icon).foregroundStyle(AppColor.recapAction).accessibilityHidden(true)
-            valueText(value).monospacedDigit().fixedSize(horizontal: false, vertical: true)
+            valueText(value).monospacedDigit().contentTransition(.numericText())
+                .fixedSize(horizontal: false, vertical: true)
             Text(title).font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -124,8 +125,13 @@ enum RecapMuscles {
 
 struct RecapAnatomy: View {
     let muscles: [WorkoutRecapEngine.Muscle]
+    /// Ignite the figure on appear. Off for snapshot renders (share card).
+    var animatesReveal = false
     var body: some View {
-        if TrainingAnatomy.isAvailable, !muscles.isEmpty {
+        if TrainingAnatomy.isAvailable, !muscles.isEmpty, animatesReveal {
+            StagedMuscleMap(highlights: RecapMuscles.highlights(muscles), identifiesOnTap: false)
+                .accessibilityHidden(true)
+        } else if TrainingAnatomy.isAvailable, !muscles.isEmpty {
             MuscleMapView(highlights: RecapMuscles.highlights(muscles),
                           primaryColor: AppColor.trainingPrimaryMuscle,
                           secondaryColor: AppColor.trainingSecondaryMuscle,

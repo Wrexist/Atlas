@@ -69,10 +69,13 @@ struct TodayHabitsHero: View {
         Group {
             if dataStore.activeHabits.isEmpty {
                 emptyCard
+                    .transition(.opacity.combined(with: .scale(0.97)))
             } else {
                 populatedCard
+                    .transition(.opacity.combined(with: .scale(0.97)))
             }
         }
+        .appAnimation(AppAnimation.springSmooth, value: dataStore.activeHabits.isEmpty)
         .task { rebuild() }
         .onChange(of: dataStore.profile.habitEntries) { _, _ in rebuild() }
         .onChange(of: dataStore.activeHabits) { _, _ in rebuild() }
@@ -85,11 +88,12 @@ struct TodayHabitsHero: View {
     }
 
     private func rebuild() {
-        snapshot = HabitsHeroSnapshot.build(
+        let next = HabitsHeroSnapshot.build(
             activeHabits: dataStore.activeHabits,
             entries: dataStore.profile.habitEntries,
             frozenDayKeys: dataStore.profile.streakFreezeDays
         )
+        AppAnimation.with(AppAnimation.springSnappy) { snapshot = next }
     }
 
     // MARK: - Populated
@@ -160,6 +164,7 @@ struct TodayHabitsHero: View {
                 Image(systemName: "flame.fill")
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.streak)
+                    .symbolEffect(.bounce, value: snapshot.bestCurrentStreak)
                 Text("\(snapshot.bestCurrentStreak) day streak")
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)

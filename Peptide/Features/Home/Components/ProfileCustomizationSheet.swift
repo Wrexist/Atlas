@@ -560,7 +560,7 @@ struct ProfileCustomizationSheet: View {
         let selected = selection.wrappedValue == color
         return Button {
             guard !selected else { return }
-            withAnimation(.snappy(duration: 0.2)) {
+            AppAnimation.with(AppAnimation.quick) {
                 selection.wrappedValue = color
             }
             Haptics.impact(.light)

@@ -40,6 +40,11 @@ struct CustomFood: Codable, Hashable, Identifiable, Sendable {
     /// "1 slice"). Pure UI hint — the math uses `servingGrams`.
     var servingLabel: String?
 
+    /// Typical price per 100 g, so the library can estimate the cost of
+    /// any portion. Filled by the smart scanner or "Fill with AI"; nil
+    /// for foods added by hand.
+    var pricePer100g: FoodPriceEstimate?
+
     /// Stamp on create / edit. Used to sort the "My Foods" tab so the
     /// food you just added lands at the top.
     var updatedAt: Date
@@ -51,6 +56,7 @@ struct CustomFood: Codable, Hashable, Identifiable, Sendable {
         per100g: ScannedProduct.Nutriments,
         servingGrams: Double? = nil,
         servingLabel: String? = nil,
+        pricePer100g: FoodPriceEstimate? = nil,
         updatedAt: Date = Date()
     ) {
         self.id = id
@@ -59,6 +65,7 @@ struct CustomFood: Codable, Hashable, Identifiable, Sendable {
         self.per100g = per100g
         self.servingGrams = servingGrams
         self.servingLabel = servingLabel
+        self.pricePer100g = pricePer100g
         self.updatedAt = updatedAt
     }
 }
@@ -90,6 +97,14 @@ extension CustomFood {
             novaGroup: nil,
             fetchedAt: fetchedAt
         )
+    }
+}
+
+extension CustomFood {
+    /// Estimated cost of one serving, or of 100 g when the food has no
+    /// serving size — what a library row shows next to the calories.
+    var typicalPrice: FoodPriceEstimate? {
+        pricePer100g?.scaled(by: (servingGrams ?? 100) / 100)
     }
 }
 

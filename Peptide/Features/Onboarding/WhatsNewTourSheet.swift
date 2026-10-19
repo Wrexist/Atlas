@@ -71,7 +71,7 @@ struct WhatsNewTourSheet: View {
                 endPoint: .bottomTrailing
             )
             .ignoresSafeArea()
-            .animation(.easeInOut(duration: 0.55), value: currentIndex)
+            .appAnimation(AppAnimation.springSmooth, value: currentIndex)
 
             // Soft corner vignette so the gradient never washes
             // out the text on lighter accents.
@@ -193,7 +193,7 @@ struct WhatsNewTourSheet: View {
                 .animation(
                     reduceMotion
                         ? nil
-                        : .spring(response: 0.55, dampingFraction: 0.55),
+                        : AppAnimation.springBouncy,
                     value: heroPulse
                 )
         }
@@ -247,7 +247,7 @@ struct WhatsNewTourSheet: View {
                 Capsule()
                     .fill(isActive ? currentPage.accent : AppColor.textTertiary.opacity(0.4))
                     .frame(width: isActive ? 22 : 6, height: 6)
-                    .animation(.spring(response: 0.4, dampingFraction: 0.75), value: currentIndex)
+                    .appAnimation(AppAnimation.springSnappy, value: currentIndex)
             }
         }
         .accessibilityElement(children: .ignore)
@@ -294,7 +294,7 @@ struct WhatsNewTourSheet: View {
             completeAndDismiss()
             return
         }
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
+        AppAnimation.with(AppAnimation.springSmooth) {
             currentIndex += 1
         }
     }

@@ -114,7 +114,7 @@ struct PeptideSelector: View {
 
             if !searchText.isEmpty {
                 Button {
-                    withAnimation(AppAnimation.springSnappy) {
+                    AppAnimation.with(AppAnimation.springSnappy) {
                         searchText = ""
                     }
                 } label: {
@@ -148,7 +148,7 @@ struct PeptideSelector: View {
                     color: AppColor.accentPrimary,
                     isSelected: selectedCategory == nil && !showSelectedOnly
                 ) {
-                    withAnimation(AppAnimation.springSnappy) {
+                    AppAnimation.with(AppAnimation.springSnappy) {
                         selectedCategory = nil
                         showSelectedOnly = false
                     }
@@ -161,7 +161,7 @@ struct PeptideSelector: View {
                         color: AppColor.accentPrimary,
                         isSelected: showSelectedOnly
                     ) {
-                        withAnimation(AppAnimation.springSnappy) {
+                        AppAnimation.with(AppAnimation.springSnappy) {
                             showSelectedOnly.toggle()
                             if showSelectedOnly {
                                 selectedCategory = nil
@@ -177,7 +177,7 @@ struct PeptideSelector: View {
                         color: category.color,
                         isSelected: selectedCategory == category
                     ) {
-                        withAnimation(AppAnimation.springSnappy) {
+                        AppAnimation.with(AppAnimation.springSnappy) {
                             selectedCategory = (selectedCategory == category) ? nil : category
                             showSelectedOnly = false
                         }
@@ -198,7 +198,7 @@ struct PeptideSelector: View {
                     .foregroundStyle(AppColor.accentPrimary)
                 Spacer()
                 Button {
-                    withAnimation(AppAnimation.springSnappy) {
+                    AppAnimation.with(AppAnimation.springSnappy) {
                         selectedPeptides.removeAll()
                     }
                 } label: {
@@ -228,7 +228,7 @@ struct PeptideSelector: View {
 
     private func peptideRow(_ peptide: Peptide) -> some View {
         Button {
-            withAnimation(AppAnimation.springSnappy) {
+            AppAnimation.with(AppAnimation.springSnappy) {
                 if selectedPeptides.contains(peptide.id) {
                     selectedPeptides.remove(peptide.id)
                 } else {

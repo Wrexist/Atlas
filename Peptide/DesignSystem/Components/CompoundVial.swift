@@ -125,7 +125,7 @@ struct CompoundVial: View {
                     )
                 )
                 .frame(height: m.bodyHeight * liquidLevel)
-                .animation(.easeInOut(duration: 0.8), value: liquidLevel)
+                .appAnimation(AppAnimation.springGentle, value: liquidLevel)
 
             // Inner left highlight — full-height crisp Bézier, soft
             // alpha. Replaces the dot-shaped quadratic stroke that

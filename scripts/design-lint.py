@@ -35,7 +35,7 @@ DOMAIN_PALETTE_FILES = {
     "ProtocolNotesTimeline.swift", "AvatarPreset.swift", "HabitEditSheet.swift",
     "BarcodeScanFlow.swift", "ShareCardSheet.swift", "AnatomyDebugView.swift",
     "ProgressPhotoViewer.swift", "ProgressPhotoCompareView.swift",
-    "PaywallPhoneMockupRow.swift", "CompoundVial.swift",
+    "PaywallPhoneMockupRow.swift", "CompoundVial.swift", "DepthMealCamera.swift",
 }
 
 # The 8-point grid, plus the half-step (2) and the odd-but-intentional 6 used
@@ -350,6 +350,42 @@ def rule_unnamed_motion(path, source, code) -> list[Finding]:
         out.append(Finding(path, line_of(code, m.start()), "unnamed-motion",
                            "animation with no explicit duration or easing; use an "
                            "AppAnimation constant so the motion is named", "error"))
+    return out
+
+
+# Rebuilt by the food scan PR (#190); their curves move onto tokens once that
+# lands rather than conflicting with it now.
+PENDING_MOTION_MIGRATION = {"FoodLibraryFlow.swift"}
+
+
+def rule_curve_literal(path, source, code) -> list[Finding]:
+    """R3, third clause — one motion vocabulary.
+
+    `rule_unnamed_motion` catches motion with no curve at all. This catches
+    the opposite drift: a hand-tuned `.spring(response: 0.42, …)` that is
+    *almost* `AppAnimation.step`. Sixty of those made every screen move at a
+    slightly different speed. Curves are named once in
+    `AnimationConstants.swift`; everywhere else uses the name.
+
+    Looping ambient and loading motion (`repeatForever`) is exempt: its
+    duration is the effect's own period, and `rule_motion` /
+    `rule_unguarded_loop` already govern it.
+    """
+    if path.name == "AnimationConstants.swift" or path.name in PENDING_MOTION_MIGRATION:
+        return []
+    out = []
+    pattern = (r"(?<![\w.])(?:Animation)?\.(?:spring|easeOut|easeIn|easeInOut|linear|"
+               r"snappy|smooth|bouncy|interpolatingSpring|interactiveSpring)\(")
+    for m in re.finditer(pattern, code):
+        args = balanced_args(code, m.end() - 1)
+        if args is None or not args.strip():
+            continue
+        after = code[m.end() + len(args):m.end() + len(args) + 80]
+        if re.match(r"\)(?:\s*\.delay\([^)]*\))?\s*\.repeatForever", after):
+            continue
+        out.append(Finding(path, line_of(code, m.start()), "curve-literal",
+                           "hand-tuned animation curve; use (or add) an AppAnimation "
+                           "token in AnimationConstants.swift", "error"))
     return out
 
 
@@ -771,6 +807,7 @@ RULES = [
     rule_glow,
     rule_untargeted_animation,
     rule_unnamed_motion,
+    rule_curve_literal,
     rule_placeholder_copy,
     rule_placeholder_as_label,
     rule_hit_target,

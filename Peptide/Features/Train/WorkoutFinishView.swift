@@ -10,6 +10,7 @@ struct WorkoutFinishView: View {
     @State private var editing = false
     @State private var sharing = false
     @State private var announced = false
+    @State private var celebrated = false
 
     init(session: WorkoutSession, detectedPRs: [PRDetectionEngine.DetectedPR],
          unit: MeasurementUnit, weeklySessionCount: Int? = nil, celebratesSave: Bool = true,
@@ -29,6 +30,7 @@ struct WorkoutFinishView: View {
                         Image(systemName: "checkmark.circle")
                             .font(AppFont.scaled(52, weight: .regular))
                             .foregroundStyle(AppColor.recapSuccess).accessibilityHidden(true)
+                            .symbolEffect(.bounce, value: celebrated)
                         Text("Workout saved").font(AppFont.title)
                         Text(summary.name).font(AppFont.headline).multilineTextAlignment(.center)
                         if let date = summary.session.finishedAt {
@@ -36,6 +38,7 @@ struct WorkoutFinishView: View {
                                 .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
                         }
                     }.frame(maxWidth: .infinity).padding(.vertical, Spacing.sm)
+                        .sectionAppear(index: 0)
                         NavigationLink {
                             WorkoutWeeklyProgressView(store: store, unit: unit)
                         } label: {
@@ -47,11 +50,13 @@ struct WorkoutFinishView: View {
                                 Image(systemName: "chevron.right")
                             }.padding(Spacing.cardPadding).frame(minHeight: 52)
                                 .background(AppColor.recapSuccess.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
-                        }.buttonStyle(.plain).accessibilityIdentifier("recap-weekly")
+                        }.buttonStyle(ScalePressStyle()).accessibilityIdentifier("recap-weekly")
+                        .sectionAppear(index: 1)
                     if !detectedPRs.isEmpty {
                         RecapNewPRs(prs: detectedPRs, entries: summary.entries, unit: unit)
                     }
                     RecapMetrics(summary: summary, unit: unit)
+                        .sectionAppear(index: 2)
                     RecapCalculationNotes(summary: summary)
                     NavigationLink {
                         WorkoutRecapExercisesView(store: store, unit: unit)
@@ -62,12 +67,13 @@ struct WorkoutFinishView: View {
                             Image(systemName: "chevron.right")
                         }.font(AppFont.subheadline).frame(minHeight: 44)
                     }.accessibilityIdentifier("recap-exercises")
+                        .sectionAppear(index: 3)
                     RecapCard {
                         VStack(alignment: .leading, spacing: Spacing.md) {
                             Text("Muscle focus").font(AppFont.headline)
                             Text("Estimated from your logged exercises")
                                 .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
-                            RecapAnatomy(muscles: summary.muscles)
+                            RecapAnatomy(muscles: summary.muscles, animatesReveal: true)
                                 .frame(maxWidth: 250).frame(maxWidth: .infinity)
                             RecapMuscleNames(muscles: summary.muscles)
                             RecapMissingMapping(count: summary.missingMappings)
@@ -77,6 +83,7 @@ struct WorkoutFinishView: View {
                                 .accessibilityIdentifier("recap-muscles")
                         }
                     }
+                    .sectionAppear(index: 4)
                     if store.metadataUnavailable {
                         Text("Exercise metadata is unavailable. Your saved sets are still shown.").font(AppFont.subheadline)
                         Button("Retry exercise metadata") { Task { await store.load() } }.frame(minHeight: 44)
@@ -115,6 +122,7 @@ struct WorkoutFinishView: View {
             await store.load()
             if celebratesSave && !announced {
                 announced = true
+                celebrated = true
                 Haptics.success()
                 AccessibilityNotification.Announcement("Workout saved").post()
             }

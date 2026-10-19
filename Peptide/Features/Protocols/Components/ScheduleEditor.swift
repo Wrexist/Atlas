@@ -59,7 +59,7 @@ struct ScheduleEditor: View {
                         ))
                 }
             }
-            .animation(AppAnimation.springSnappy, value: effectiveMode)
+            .appAnimation(AppAnimation.springSnappy, value: effectiveMode)
 
             Divider().foregroundStyle(AppColor.glassBorder)
 
@@ -75,7 +75,7 @@ struct ScheduleEditor: View {
                 cycleLengthStepper(binding: cycleBinding)
             }
         }
-        .animation(AppAnimation.springSmooth, value: timesPerDay)
+        .appAnimation(AppAnimation.springSmooth, value: timesPerDay)
     }
 
     private var effectiveMode: ScheduleCadenceMode {
@@ -93,7 +93,7 @@ struct ScheduleEditor: View {
                 Spacer()
                 Button {
                     triggerSelectionHaptic()
-                    withAnimation(AppAnimation.springSnappy) {
+                    AppAnimation.with(AppAnimation.springSnappy) {
                         if selectedDays.count == 7 {
                             selectedDays = [1, 2, 3, 4, 5]
                         } else {
@@ -115,7 +115,7 @@ struct ScheduleEditor: View {
                         isSelected: selectedDays.contains(day)
                     ) {
                         triggerSelectionHaptic()
-                        withAnimation(AppAnimation.springBouncy) {
+                        AppAnimation.with(AppAnimation.springBouncy) {
                             if selectedDays.contains(day) {
                                 selectedDays.remove(day)
                             } else {
@@ -325,7 +325,7 @@ struct LiquidGlassSegmentedControl<Option: Hashable>: View {
         return Button {
             guard option != selection else { return }
             Haptics.impact(.light)
-            withAnimation(.spring(response: 0.42, dampingFraction: 0.78)) {
+            AppAnimation.with(AppAnimation.step) {
                 selection = option
             }
         } label: {
@@ -377,7 +377,7 @@ struct LiquidGlassStepper: View {
             ) {
                 guard value > range.lowerBound else { return }
                 tick()
-                withAnimation(AppAnimation.springSnappy) { value -= 1 }
+                AppAnimation.with(AppAnimation.springSnappy) { value -= 1 }
             }
 
             Text(formatter(value))
@@ -386,7 +386,7 @@ struct LiquidGlassStepper: View {
                 .frame(width: width)
                 .monospacedDigit()
                 .contentTransition(.numericText())
-                .animation(.snappy(duration: 0.18), value: value)
+                .appAnimation(AppAnimation.quick, value: value)
 
             stepperButton(
                 icon: "plus",
@@ -394,7 +394,7 @@ struct LiquidGlassStepper: View {
             ) {
                 guard value < range.upperBound else { return }
                 tick()
-                withAnimation(AppAnimation.springSnappy) { value += 1 }
+                AppAnimation.with(AppAnimation.springSnappy) { value += 1 }
             }
         }
     }
@@ -478,7 +478,7 @@ private struct TimeSlotRow: View {
                     .foregroundStyle(AppColor.textPrimary)
                     .monospacedDigit()
                     .contentTransition(.numericText())
-                    .animation(.snappy(duration: 0.2), value: timeString)
+                    .appAnimation(AppAnimation.quick, value: timeString)
 
                 Image(systemName: "chevron.right")
                     .font(AppFont.scaled(11, weight: .semibold))

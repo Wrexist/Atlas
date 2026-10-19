@@ -72,10 +72,14 @@ struct TrainOverviewView: View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
                 startWorkoutButton
+                    .sectionAppear(index: 0)
                 recentWorkoutsCard
+                    .sectionAppear(index: 1)
                 weeklyMuscleCard
+                    .sectionAppear(index: 2)
                 if weekHasTraining {
                     topMusclesRow
+                        .sectionAppear(index: 3)
                 }
                 DisclosureGroup("Training trends & calendar", isExpanded: $showsTrainingDetails) {
                   VStack(spacing: Spacing.lg) {
@@ -95,6 +99,7 @@ struct TrainOverviewView: View {
                 .font(AppFont.headline)
                 .tint(AppColor.accentPrimary)
                 .accessibilityIdentifier("training-trends-disclosure")
+                .scrollReveal()
             }
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.xxxxl)
@@ -113,7 +118,7 @@ struct TrainOverviewView: View {
         }
         .onChange(of: selectedPeriod) { _, _ in
             Haptics.selection()
-            refreshFrequencies()
+            AppAnimation.with(AppAnimation.springSmooth) { refreshFrequencies() }
         }
         .sheet(item: $inspectedMuscle) { muscle in
             MuscleHistorySheet(
@@ -134,6 +139,7 @@ struct TrainOverviewView: View {
     private var startWorkoutButton: some View {
         if sessionService.activeSession == nil {
             PrimaryCTAButton(title: "Start workout", icon: "play.fill", shape: .rounded) {
+                Haptics.impact(.medium)
                 sessionService.startWorkout()
             }
         }

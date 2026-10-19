@@ -38,6 +38,7 @@ struct DailyPlanCard: View {
                 } else {
                     ForEach(visibleSlots) { scheduledSlot in
                         slotSection(scheduledSlot)
+                            .transition(.move(edge: .top).combined(with: .opacity))
                     }
 
                     if hiddenSlotCount > 0 || (plan.slots.count > 1 && isExpanded) {
@@ -51,13 +52,14 @@ struct DailyPlanCard: View {
 
     private var expandToggle: some View {
         Button {
-            withAnimation(.smooth(duration: 0.28)) {
+            AppAnimation.with(AppAnimation.settle) {
                 isExpanded.toggle()
             }
         } label: {
             HStack(spacing: Spacing.xs) {
-                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                Image(systemName: "chevron.down")
                     .font(AppFont.scaled(11, weight: .bold))
+                    .rotationEffect(.degrees(isExpanded ? 180 : 0))
                 Text(isExpanded
                      ? "Show less"
                      : "Show \(hiddenSlotCount) more time slot\(hiddenSlotCount == 1 ? "" : "s")")
@@ -68,7 +70,7 @@ struct DailyPlanCard: View {
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.vertical, Spacing.xs)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle())
     }
 
     // MARK: - Header

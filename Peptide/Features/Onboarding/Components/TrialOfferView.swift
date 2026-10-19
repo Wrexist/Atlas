@@ -641,7 +641,7 @@ struct TrialOfferView: View {
         Haptics.impact(.medium)
         errorMessage = nil
         guard let product = productForSelectedTier else {
-            withAnimation(AppAnimation.fadeIn) { errorMessage = "Plan still loading. Try again in a moment." }
+            AppAnimation.with(AppAnimation.fadeIn) { errorMessage = "Plan still loading. Try again in a moment." }
             return
         }
         isPurchasing = true
@@ -660,14 +660,14 @@ struct TrialOfferView: View {
                     Haptics.success()
                     onAccept()
                 case .pending:
-                    withAnimation(AppAnimation.fadeIn) {
+                    AppAnimation.with(AppAnimation.fadeIn) {
                         errorMessage = "Purchase pending approval. We'll unlock Pro as soon as it's approved."
                     }
                 case .userCancelled:
                     break // no UI noise on explicit cancel
                 }
             } catch {
-                withAnimation(AppAnimation.fadeIn) { errorMessage = "Couldn't complete the purchase. Please try again." }
+                AppAnimation.with(AppAnimation.fadeIn) { errorMessage = "Couldn't complete the purchase. Please try again." }
             }
         }
     }
@@ -686,10 +686,10 @@ struct TrialOfferView: View {
                     Haptics.success()
                     onAccept()
                 } else {
-                    withAnimation(AppAnimation.fadeIn) { errorMessage = "No previous purchase found to restore." }
+                    AppAnimation.with(AppAnimation.fadeIn) { errorMessage = "No previous purchase found to restore." }
                 }
             } catch {
-                withAnimation(AppAnimation.fadeIn) { errorMessage = "Restore failed. Check your internet connection and try again." }
+                AppAnimation.with(AppAnimation.fadeIn) { errorMessage = "Restore failed. Check your internet connection and try again." }
             }
         }
     }

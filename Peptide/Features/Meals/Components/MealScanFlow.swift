@@ -30,6 +30,8 @@ struct MealScanFlow: View {
     /// one. Nil for a tray of unrelated things, which is what keeps the
     /// combine control from appearing where it would make no sense.
     @State private var suggestedMealName: String?
+    /// The scan-level reading — what it is, a summary, the model's tips.
+    @State private var insight: ScanInsight?
     /// Editable because the model's name is a guess. Seeded from
     /// `suggestedMealName` and only ever shown when combining.
     @State private var mealName: String = ""
@@ -63,6 +65,10 @@ struct MealScanFlow: View {
     @State private var recovery: MealScanDraft?
     @State private var draftError: String?
     @State private var draftPhoto: Data?
+    @State private var isDescribing = false
+    /// Set only for a photo just taken with the LiDAR camera.
+    @State private var photoScale: PhotoScale?
+    @State private var mealText = ""
     @State private var draftGeneration = MealScanDraftStore.shared.generation
     @State private var checkedDraft = false
     @State private var discardConfirmation = false
@@ -84,7 +90,7 @@ struct MealScanFlow: View {
         return LifestyleDataLogic.logTimestamp(on: logDay)
     }
 
-    private enum ImageSource { case camera, library }
+    private enum ImageSource { case camera, library, words }
 
     private enum Phase: Equatable {
         case pickImage
@@ -112,7 +118,7 @@ struct MealScanFlow: View {
                 case .analyzing:  analyzing
                 case .review:     reviewCard
                 case .error:      errorCard
-                case .saving: ProgressView(undoRequested ? "Undoing meal?" : "Saving meal?")
+                case .saving: ProgressView(undoRequested ? "Undoing meal…" : "Saving meal…")
                 case .logged: loggedCard
                 case .saveError: saveErrorCard
                 }
@@ -168,24 +174,35 @@ struct MealScanFlow: View {
                 .liquidGlassPresentation()
         }
         .sheet(isPresented: $showConsent, onDismiss: resumeAfterConsent) {
-            AIConsentSheet(whatIsSent: "The meal photo you take or pick.")
+            AIConsentSheet(whatIsSent: "The meal photo you take or pick, or the meal you describe.")
                 .liquidGlassPresentation()
         }
+        .sheet(isPresented: $isDescribing) {
+            MealDescriptionSheet(text: $mealText) { text in
+                isDescribing = false
+                image = nil
+                photoScale = nil
+                capturedAtDate = Date()
+                chosenLogDate = nil
+                phase = .analyzing
+                inFlightTask?.cancel()
+                inFlightTask = Task { await runAnalysis(describing: text) }
+            }
+            .liquidGlassPresentation()
+        }
         .fullScreenCover(isPresented: $isShowingCamera) {
-            CameraPicker(
-                onPicked: { captured in
-                    isShowingCamera = false
-                    image = captured
-                    capturedAtDate = Date()
-                    chosenLogDate = nil
-                    phase = .analyzing
-                    inFlightTask?.cancel()
-                    inFlightTask = Task { await runAnalysis(on: captured) }
-                },
-                onCancel: { isShowingCamera = false },
-                cameraDevice: .rear,
-                allowsEditing: false
-            )
+            Group {
+                if DepthMealCamera.isAvailable {
+                    DepthMealCamera(onPicked: { photographed($0, scale: $1) }, onCancel: { isShowingCamera = false })
+                } else {
+                    CameraPicker(
+                        onPicked: { photographed($0, scale: nil) },
+                        onCancel: { isShowingCamera = false },
+                        cameraDevice: .rear,
+                        allowsEditing: false
+                    )
+                }
+            }
             .ignoresSafeArea()
         }
         .alert(item: $cameraDeniedAlert) { reason in
@@ -231,6 +248,7 @@ struct MealScanFlow: View {
         switch source {
         case .camera:  Task { await tapTakePhoto() }
         case .library: isShowingLibrary = true
+        case .words:   isDescribing = true
         }
     }
 
@@ -269,7 +287,7 @@ struct MealScanFlow: View {
                 GlassCard {
                     VStack(alignment: .leading, spacing: Spacing.sm) {
                         Text("Unfinished meal scan").font(AppFont.headline)
-                        Text("\(recovery.items.count) foods ? \(recovery.date.formatted(date: .abbreviated, time: .shortened))")
+                        Text("\(recovery.items.count) foods · \(recovery.date.formatted(date: .abbreviated, time: .shortened))")
                             .font(AppFont.callout)
                         Button("Resume review") { resumeDraft(recovery) }.minimumHitArea()
                         Button("Discard draft", role: .destructive) { discardConfirmation = true }.minimumHitArea()
@@ -282,7 +300,7 @@ struct MealScanFlow: View {
                 Button("Discard unreadable draft", role: .destructive) { discardConfirmation = true }.minimumHitArea()
             }
             previewBox
-            Text("Snap or pick a photo of your meal — Claude separates each food so you can fine-tune the portions before logging.")
+            Text("Snap a photo of your meal or describe it — Claude separates each food so you can fine-tune the portions before logging.")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
@@ -290,33 +308,26 @@ struct MealScanFlow: View {
 
             VStack(spacing: Spacing.sm) {
                 if UIImagePickerController.SourceType.cameraIsAvailable {
-                    Button {
+                    GlassButton(title: "Take photo", icon: "camera.fill", style: .primary, isFullWidth: true) {
                         openImageSource(.camera)
-                    } label: {
-                        pickerButtonLabel(
-                            icon: "camera.fill",
-                            title: "Take photo",
-                            style: .primary
-                        )
                     }
-                    .buttonStyle(.plain)
                     .accessibilityHint("Opens the camera to capture a meal photo.")
                     .disabled(recovery != nil || draftError != nil)
                 }
 
-                Button {
+                GlassButton(title: "Choose from library", icon: "photo.on.rectangle", style: .secondary, isFullWidth: true) {
                     openImageSource(.library)
-                } label: {
-                    pickerButtonLabel(
-                        icon: "photo.on.rectangle",
-                        title: "Choose from library",
-                        style: .secondary
-                    )
                 }
-                .buttonStyle(.plain)
                 .accessibilityHint("Picks an existing photo from your library.")
                 .disabled(recovery != nil || draftError != nil)
+
+                GlassButton(title: "Type or dictate", icon: "text.bubble", style: .secondary, isFullWidth: true) {
+                    openImageSource(.words)
+                }
+                .accessibilityHint("Describe what you ate in your own words.")
+                .disabled(recovery != nil || draftError != nil)
             }
+            .padding(.horizontal, Spacing.lg)
 
             if let scansRemaining {
                 scanAllowanceCaption(remaining: scansRemaining)
@@ -337,38 +348,6 @@ struct MealScanFlow: View {
         .multilineTextAlignment(.center)
         .padding(.horizontal, Spacing.lg)
         .accessibilityElement(children: .combine)
-    }
-
-    private enum PickerButtonStyle { case primary, secondary }
-
-    @ViewBuilder
-    nonisolated private func pickerButtonLabel(icon: String, title: LocalizedStringKey, style: PickerButtonStyle) -> some View {
-        HStack(spacing: Spacing.sm) {
-            Image(systemName: icon)
-                .font(AppFont.scaled(13, weight: .bold))
-            Text(title)
-                .font(AppFont.scaled(16, weight: .bold))
-        }
-        .foregroundStyle(AppColor.onAccent)
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, Spacing.md)
-        .background {
-            Capsule()
-                .fill(
-                    style == .primary
-                        ? AnyShapeStyle(AppColor.accentFill)
-                        : AnyShapeStyle(AppColor.surfaceSecondary.opacity(0.85))
-                )
-                .overlay {
-                    Capsule().strokeBorder(
-                        style == .primary
-                            ? Color.clear
-                            : AppColor.glassBorder,
-                        lineWidth: 0.5
-                    )
-                }
-        }
-        .padding(.horizontal, Spacing.lg)
     }
 
     /// The photo, sized once and clipped at that size.
@@ -484,6 +463,7 @@ struct MealScanFlow: View {
     private var totalProtein: Int { includedItems.reduce(0) { $0 + $1.proteinG } }
     private var totalCarbs: Int { includedItems.reduce(0) { $0 + $1.carbsG } }
     private var totalFat: Int { includedItems.reduce(0) { $0 + $1.fatG } }
+    private var totalPrice: FoodPriceEstimate? { FoodPriceEstimate.total(includedItems.compactMap(\.price)) }
 
     /// True when the model was unsure about most of what it saw.
     ///
@@ -521,6 +501,10 @@ struct MealScanFlow: View {
                         retakeButton
                     }
                     .padding(Spacing.md)
+                }
+
+                if let insight {
+                    ScanInsightCard(insight: insight, totalPrice: totalPrice)
                 }
 
                 HStack(alignment: .firstTextBaseline) {
@@ -721,7 +705,7 @@ struct MealScanFlow: View {
     private var draftSnapshot: MealScanDraft {
         MealScanDraft(items: items, photo: draftPhoto, date: logDate, category: category,
                       suggestedName: suggestedMealName, name: mealName, combine: logAsOneMeal,
-                      pendingEntries: pendingEntries, undoRequested: undoRequested)
+                      pendingEntries: pendingEntries, undoRequested: undoRequested, insight: insight)
     }
 
     private func loadDraft() {
@@ -761,9 +745,11 @@ struct MealScanFlow: View {
         items = draft.items
         draftPhoto = draft.photo
         image = draft.photo.flatMap(UIImage.init(data:))
+        photoScale = nil
         chosenLogDate = draft.date
         category = draft.category
         suggestedMealName = draft.suggestedName
+        insight = draft.insight
         mealName = draft.name
         logAsOneMeal = draft.combine
         pendingEntries = draft.pendingEntries
@@ -787,7 +773,9 @@ struct MealScanFlow: View {
             recovery = nil
             draftError = nil
             items = []
+            insight = nil
             image = nil
+            photoScale = nil
             draftPhoto = nil
             selectedItem = nil
             pendingEntries = []
@@ -821,6 +809,7 @@ struct MealScanFlow: View {
             try Task.checkCancellation()
             await MainActor.run {
                 image = ui
+                photoScale = nil
                 capturedAtDate = capturedAt
                 chosenLogDate = nil
                 phase = .analyzing
@@ -842,24 +831,58 @@ struct MealScanFlow: View {
         }
     }
 
+    /// A camera photo, with the LiDAR scale when the phone measured one.
+    private func photographed(_ captured: UIImage, scale: PhotoScale?) {
+        isShowingCamera = false
+        image = captured
+        photoScale = scale
+        capturedAtDate = Date()
+        chosenLogDate = nil
+        phase = .analyzing
+        inFlightTask?.cancel()
+        inFlightTask = Task { await runAnalysis(on: captured) }
+    }
+
     private func runAnalysis(on image: UIImage) async {
+        await analyse(photo: image) {
+            try await MealScannerService.shared.smartScan(
+                image: image, hint: photoScale?.hint, corrections: ScanCorrectionMemory.shared.recent)
+        }
+    }
+
+    private func runAnalysis(describing text: String) async {
+        await analyse(photo: nil) {
+            try await MealScannerService.shared.describeMeal(text, corrections: ScanCorrectionMemory.shared.recent)
+        }
+    }
+
+    /// Shared tail of a photo or a described meal: ground the items,
+    /// fill the review and save the draft.
+    private func analyse(photo image: UIImage?, scan: () async throws -> MealScannerService.SmartScan) async {
         do {
-            let result = try await MealScannerService.shared.analyzeItems(image: image)
+            let result = try await scan()
             try Task.checkCancellation()
             guard !result.items.isEmpty else { throw MealScannerService.ScanError.noFoodDetected }
+            let grounded = await FoodGrounding.ground(result.items, myFoods: dataStore.profile.customFoods)
+            try Task.checkCancellation()
+            // A single item is already its own name; only a multi-item
+            // meal gets the "log as one meal" reading.
+            let dishName = result.insight.kind == .meal && result.items.count > 1
+                ? result.insight.title.nilIfEmpty : nil
             await MainActor.run {
                 if !result.items.isEmpty, !storeService.isProUser {
                     MealScanQuota.recordSuccessfulScan()
                     refreshScansRemaining()
                 }
-                draftPhoto = (image.resizedTo(maxEdge: 1200) ?? image).jpegData(compressionQuality: 0.75)
-                items = result.items.map(EditableFoodItem.init(from:))
-                suggestedMealName = result.mealName
-                mealName = result.mealName ?? ""
+                draftPhoto = image.flatMap { ($0.resizedTo(maxEdge: 1200) ?? $0).jpegData(compressionQuality: 0.75) }
+                items = grounded.map(EditableFoodItem.init(from:))
+                insight = result.insight
+                suggestedMealName = dishName
+                mealName = dishName ?? ""
                 // Default to one line in the diary when the plate is clearly
                 // one dish. "Spaghetti Bolognese" is what the user ate; three
                 // rows is bookkeeping they did not ask for.
-                logAsOneMeal = result.mealName != nil
+                logAsOneMeal = dishName != nil
                 // Auto-categorise from the PHOTO's capture time, not
                 // the analyze-finished time. Otherwise a yesterday-
                 // dinner photo picked at 10am gets bucketed as snack
@@ -929,11 +952,22 @@ struct MealScanFlow: View {
                 } else {
                     hasLogged = true
                     phase = .logged
+                    rememberCorrections()
                     Haptics.success()
                 }
             } catch {
                 phase = .saveError
             }
+        }
+    }
+
+    /// Teaches the scanner the renames and portion fixes in what was just
+    /// logged, so the next scan of the same food starts from them.
+    private func rememberCorrections() {
+        for item in includedItems {
+            guard let seen = item.aiName else { continue }
+            ScanCorrectionMemory.shared.record(seen: seen, seenGrams: item.aiGrams, loggedAs: item.name,
+                                               grams: item.grams, brand: item.brand)
         }
     }
 
@@ -999,7 +1033,7 @@ struct MealScanFlow: View {
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
         let existingID = dataStore.profile.customFoods.first { existing in
-            existing.brand == nil
+            existing.brand == item.brand
                 && existing.name.trimmingCharacters(in: .whitespacesAndNewlines)
                     .lowercased() == normalizedName
         }?.id
@@ -1007,12 +1041,14 @@ struct MealScanFlow: View {
         let food = CustomFood(
             id: existingID ?? UUID(),
             name: item.name,
+            brand: item.brand,
             per100g: item.per100g,
             // One serving = the model's depicted-portion estimate, not
             // whatever the user dialed the portion to before saving, so
             // the library's "Serving" mode stays accurate on re-log.
             servingGrams: item.aiGrams > 0 ? item.aiGrams : nil,
-            servingLabel: item.quantityLabel.nilIfEmpty
+            servingLabel: item.quantityLabel.nilIfEmpty,
+            pricePer100g: item.pricePer100g
         )
         dataStore.saveCustomFood(food)
         Haptics.success()
@@ -1056,6 +1092,19 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
     /// Whether the portion controls step in whole servings or raw grams.
     /// Defaults to servings — most people think "1 sandwich", not "180 g".
     var portionMode: PortionMode = .serving
+    var brand: String?
+    /// Amounts the scanner suggested for this particular food, shown as
+    /// the first quick-pick chips.
+    var portionOptions: [FoodPortionOption]?
+    /// Typical price of the scanner's depicted amount (`aiGrams`).
+    var aiPrice: FoodPriceEstimate?
+    /// What the scanner called it, before any rename or replacement.
+    var aiName: String?
+    /// A detail the photo couldn't show, and which answer the user picked
+    /// (nil: the first, which the scan's values already assume).
+    var question: ScanQuestion?
+    var answerIndex: Int?
+    var verifiedBy: VerifiedFoodSource?
 
     /// Below this the row asks the user to confirm the name.
     ///
@@ -1098,16 +1147,19 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
         include = true
         savedToLibrary = false
         confidence = item.confidence
-        per100g = ScannedProduct.Nutriments(
-            calories: Double(item.calories) / basis * 100,
-            proteinG: Double(item.proteinG) / basis * 100,
-            carbsG: Double(item.carbsG) / basis * 100,
-            fatG: Double(item.fatG) / basis * 100,
-            fiberG: nil,
-            sugarsG: nil
-        )
+        brand = item.brand
+        portionOptions = item.portionOptions
+        aiPrice = item.price
+        aiName = item.name
+        question = item.question
+        verifiedBy = item.verifiedBy
+        per100g = SmartFoodLogic.per100g(of: item)
         originalPer100g = per100g
     }
+
+    /// The estimate rescaled to the amount currently dialled in.
+    var price: FoodPriceEstimate? { aiPrice?.scaled(by: grams / aiGrams) }
+    var pricePer100g: FoodPriceEstimate? { aiPrice?.scaled(by: 100 / aiGrams) }
 
     func withFreshIdentity() -> EditableFoodItem {
         var copy = self
@@ -1126,8 +1178,37 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
         savedToLibrary = false
     }
 
+    /// Offered only while the values are still the scan's own; a manual
+    /// edit or a replacement food makes the question moot.
+    var openQuestion: ScanQuestion? {
+        guard !nutritionEdited, replacementSourceID == nil else { return nil }
+        return question
+    }
+
+    var selectedAnswer: Int { answerIndex ?? 0 }
+
+    /// The database check still describes the values shown.
+    var activeVerification: VerifiedFoodSource? {
+        guard !nutritionEdited, replacementSourceID == nil else { return nil }
+        return verifiedBy
+    }
+
+    /// Swaps in the answer's values. The portion keeps any change the
+    /// user already made, scaled by how the answer changes the weight
+    /// (frying adds the oil's grams).
+    mutating func answer(_ index: Int) {
+        guard let question = openQuestion, question.answers.indices.contains(index) else { return }
+        let from = question.answers[selectedAnswer]
+        let to = question.answers[index]
+        per100g = to.per100g
+        grams = min(2000, max(5, (grams * to.grams / from.grams).rounded()))
+        answerIndex = index
+        savedToLibrary = false
+    }
+
     mutating func resetNutrition() {
         per100g = originalPer100g
+        answerIndex = nil
         replacementSourceID = nil
         replacementServingGrams = nil
         replacementServingLabel = nil
@@ -1186,6 +1267,9 @@ private struct FoodItemEditCard: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             header
             if item.include {
+                if let question = item.openQuestion {
+                    questionRow(question)
+                }
                 Divider().overlay(AppColor.glassBorder)
                 modePicker
                 portionStepper
@@ -1204,7 +1288,16 @@ private struct FoodItemEditCard: View {
                 // Macros on the left, save affordance on the right —
                 // one balanced row instead of two stacked ones.
                 HStack(spacing: Spacing.sm) {
-                    macroSummary
+                    VStack(alignment: .leading, spacing: 2) {
+                        macroSummary
+                        if let price = item.price {
+                            Text(price.formatted)
+                                .font(AppFont.caption)
+                                .foregroundStyle(AppColor.textTertiary)
+                                .monospacedDigit()
+                                .accessibilityLabel("Estimated cost \(price.formatted)")
+                        }
+                    }
                     Spacer(minLength: Spacing.sm)
                     saveButton
                 }
@@ -1281,7 +1374,12 @@ private struct FoodItemEditCard: View {
                         .foregroundStyle(AppColor.textTertiary)
                         .lineLimit(1)
                 }
-                if item.isUncertain {
+                if let verified = item.activeVerification {
+                    Label(verified.displayName, systemImage: "checkmark.seal.fill")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.positive)
+                        .lineLimit(1)
+                } else if item.isUncertain {
                     uncertaintyHint
                 }
             }
@@ -1324,6 +1422,37 @@ private struct FoodItemEditCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Check this food. Tap to edit its name. Use Edit calories and macros to correct its nutrition.")
+    }
+
+    /// The scanner's follow-up about something the photo can't show.
+    /// Tapping an answer swaps in its values; the calories roll.
+    private func questionRow(_ question: ScanQuestion) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Label(question.question, systemImage: "sparkles")
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+            HStack(spacing: Spacing.xs) {
+                ForEach(Array(question.answers.enumerated()), id: \.offset) { index, answer in
+                    let isActive = index == item.selectedAnswer
+                    Button {
+                        Haptics.selection()
+                        withAnimation(AppAnimation.springSnappy) { item.answer(index) }
+                    } label: {
+                        Text(answer.label)
+                            .font(AppFont.scaled(11, weight: .semibold))
+                            .foregroundStyle(isActive ? .white : AppColor.textSecondary)
+                            .padding(.horizontal, Spacing.sm)
+                            .padding(.vertical, 5)
+                            .background {
+                                Capsule().fill(isActive ? AppColor.accentPrimary : AppColor.surfaceElevated)
+                            }
+                    }
+                    .buttonStyle(.plain)
+                    .minimumHitArea()
+                    .accessibilityAddTraits(isActive ? .isSelected : [])
+                }
+            }
+        }
     }
 
     private var modePicker: some View {
@@ -1425,6 +1554,9 @@ private struct FoodItemEditCard: View {
     private var presetChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Spacing.xs) {
+                ForEach(item.portionOptions ?? []) { option in
+                    chip(label: option.label, grams: option.grams)
+                }
                 switch item.portionMode {
                 case .serving:
                     ForEach(Self.servingPresets, id: \.self) { count in

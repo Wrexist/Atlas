@@ -40,7 +40,9 @@ struct ScanProgressBar: View {
                         // travelling one — the label carries the meaning, and
                         // an endlessly moving element is exactly what that
                         // setting exists to stop.
-                        .offset(x: isSweeping ? travel * 0.6 : -travel * 0.4)
+                        // At rest the bar sat fully left of the clip, so
+                        // Reduce Motion showed an empty track; centre it.
+                        .offset(x: reduceMotion ? travel * 0.3 : (isSweeping ? travel * 0.6 : -travel * 0.4))
                         .opacity(reduceMotion ? 0.55 : 1)
                 }
                 .clipShape(Capsule(style: .continuous))

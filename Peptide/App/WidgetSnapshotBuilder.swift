@@ -63,6 +63,7 @@ enum WidgetSnapshotBuilder {
         }
 
         let trainingFields = training(from: workouts, now: now, calendar: calendar)
+        let running = activeWorkout.flatMap { $0.isActive ? $0 : nil }
 
         return WidgetData(
             nextPeptideName: next?.peptide.abbreviation ?? "",
@@ -77,6 +78,9 @@ enum WidgetSnapshotBuilder {
             proteinToday: consumption.proteinG,
             carbsToday: consumption.carbsG,
             fatToday: consumption.fatG,
+            proteinTarget: targets?.proteinG ?? 0,
+            carbsTarget: targets?.carbsG ?? 0,
+            fatTarget: targets?.fatG ?? 0,
             mealsByCategory: meals,
             lastWorkout: trainingFields.lastWorkout,
             workoutsThisWeek: trainingFields.workoutsThisWeek,
@@ -84,7 +88,10 @@ enum WidgetSnapshotBuilder {
             weeklyVolumeKg: trainingFields.weeklyVolumeKg,
             // An in-progress session is reported here, never as
             // history — the widget's live layout keys off its presence.
-            activeWorkoutStartedAt: activeWorkout.flatMap { $0.isActive ? $0.startedAt : nil },
+            activeWorkoutStartedAt: running?.startedAt,
+            activeWorkoutPausedSeconds: running?.focus?.pausedSeconds ?? 0,
+            activeWorkoutPausedAt: running?.focus?.pausedAt,
+            trainingDaysThisWeek: trainingFields.trainingDays,
             measurementUnit: unit.rawValue
         )
     }
@@ -119,7 +126,9 @@ enum WidgetSnapshotBuilder {
                 .map { summary(of: $0) },
             workoutsThisWeek: thisWeek.count,
             weeklySetCount: thisWeek.reduce(0) { $0 + $1.completedSetCount },
-            weeklyVolumeKg: thisWeek.reduce(0) { $0 + $1.totalVolumeKg }
+            weeklyVolumeKg: thisWeek.reduce(0) { $0 + $1.totalVolumeKg },
+            trainingDays: Set(thisWeek.map { calendar.startOfDay(for: $0.finishedAt ?? $0.startedAt) })
+                .sorted()
         )
     }
 
@@ -130,6 +139,8 @@ enum WidgetSnapshotBuilder {
         var workoutsThisWeek: Int
         var weeklySetCount: Int
         var weeklyVolumeKg: Double
+        /// Start of each day this week with a finished session, oldest first.
+        var trainingDays: [Date]
     }
 
     private static func summary(of session: WorkoutSession) -> WidgetWorkoutSummary {

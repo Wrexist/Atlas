@@ -58,6 +58,7 @@ struct TodayJumpBar: View {
     let onQuickLog: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Namespace private var activePill
 
     private var chips: [SectionAnchor] {
         SectionAnchor.allCases.filter { $0 != .doses || showsDoses }
@@ -71,6 +72,8 @@ struct TodayJumpBar: View {
                 }
                 quickLogButton
             }
+            // One pill slides between chips as the active section changes.
+            .appAnimation(AppAnimation.springSnappy, value: activeAnchor)
             .padding(.horizontal, Spacing.xs)
             .padding(.vertical, 2)
         }
@@ -96,20 +99,17 @@ struct TodayJumpBar: View {
             .padding(.horizontal, Spacing.md)
             .frame(minHeight: 36)
             .background {
-                Capsule()
-                    .fill(
-                        isActive
-                            ? AnyShapeStyle(anchor.accent)
-                            : AnyShapeStyle(AppColor.surfaceSecondary.opacity(0.65))
-                    )
-                    .overlay {
-                        Capsule().strokeBorder(
-                            isActive
-                                ? AppColor.onAccent.opacity(0.25)
-                                : AppColor.glassBorder,
-                            lineWidth: 0.5
-                        )
+                ZStack {
+                    Capsule()
+                        .fill(AppColor.surfaceSecondary.opacity(0.65))
+                        .overlay { Capsule().strokeBorder(AppColor.glassBorder, lineWidth: 0.5) }
+                    if isActive {
+                        Capsule()
+                            .fill(anchor.accent)
+                            .overlay { Capsule().strokeBorder(AppColor.onAccent.opacity(0.25), lineWidth: 0.5) }
+                            .matchedGeometryEffect(id: "activePill", in: activePill)
                     }
+                }
             }
         }
         .buttonStyle(.plain)

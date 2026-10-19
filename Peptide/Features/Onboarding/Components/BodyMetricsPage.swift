@@ -58,7 +58,7 @@ struct BodyMetricsPage: View {
     private func unitChip(label: LocalizedStringKey, unit: MeasurementUnit) -> some View {
         let isSelected = metrics.unit == unit
         return Button {
-            withAnimation(AppAnimation.springSnappy) { metrics.unit = unit }
+            AppAnimation.with(AppAnimation.springSnappy) { metrics.unit = unit }
             Haptics.impact(.soft)
         } label: {
             Text(label)
@@ -168,7 +168,7 @@ struct BodyMetricsPage: View {
     private func genderPill(_ option: BiologicalSex) -> some View {
         let isSelected = metrics.sex == option
         return Button {
-            withAnimation(AppAnimation.springSnappy) { metrics.sex = option }
+            AppAnimation.with(AppAnimation.springSnappy) { metrics.sex = option }
             Haptics.impact(.soft)
         } label: {
             Text(option.localizedShortLabel)

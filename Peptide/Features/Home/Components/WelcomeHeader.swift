@@ -9,7 +9,7 @@ struct WelcomeHeader: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hasGreeted = false
-    @State private var avatarScale: CGFloat = 1.0
+    @State private var greetTrigger = 0
     @State private var iconBounce = 0
 
     private var displayName: String {
@@ -96,21 +96,17 @@ struct WelcomeHeader: View {
             }
         }
         .liquidGlass(.circle)
-        .scaleEffect(avatarScale)
+        .phaseAnimator([1.0, 1.08], trigger: greetTrigger) { avatar, scale in
+            avatar.scaleEffect(scale)
+        } animation: { _ in
+            AppAnimation.springBouncy
+        }
         .onAppear {
             guard !hasGreeted else { return }
             hasGreeted = true
             guard !reduceMotion else { return }
             iconBounce &+= 1
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.55).delay(0.15)) {
-                avatarScale = 1.08
-            }
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(380))
-                withAnimation(.spring(response: 0.55, dampingFraction: 0.75)) {
-                    avatarScale = 1.0
-                }
-            }
+            greetTrigger &+= 1
         }
     }
 }

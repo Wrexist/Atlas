@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 /// Create-or-edit sheet for a `CustomFood`. Opens from the food library
 /// when the user can't find what they're looking for (or wants to save
@@ -8,6 +9,10 @@ import SwiftUI
 /// applies unmodified at log time. A second "Serving" section captures
 /// the optional grams-per-serving + serving label so the review sheet
 /// can show the "Serving" portion chip on this food.
+///
+/// "Fill with AI" fills every field from a typed name ("Oatly Barista
+/// 1 l") or a photo of the package, so adding a food is a sentence or a
+/// snap instead of copying a nutrition panel by hand.
 ///
 /// Validates inline: the Save button stays disabled until the name is
 /// non-empty and the calorie value is greater than zero. Everything
@@ -19,6 +24,9 @@ struct CustomFoodEditorSheet: View {
     /// Present-only when editing an existing food. Nil for the create
     /// flow — the trash button is suppressed in that case.
     let onDelete: ((UUID) -> Void)?
+    /// When set, the editor starts by filling itself from these words —
+    /// the library's "Add … with AI" path.
+    var autoFillQuery: String? = nil
 
     @State private var name: String = ""
     @State private var brand: String = ""
@@ -31,10 +39,23 @@ struct CustomFoodEditorSheet: View {
     @State private var servingGrams: String = ""
     @State private var servingLabel: String = ""
     @State private var showDeleteConfirm = false
+    @State private var pricePer100g: FoodPriceEstimate?
+    @State private var aiQuery = ""
+    @State private var aiPhoto: PhotosPickerItem?
+    @State private var isFilling = false
+    @State private var fillError: String?
+    /// A fill held on the device until the user allows sending it to the
+    /// AI (Guideline 5.1.2(i)).
+    @State private var pendingFill: PendingFill?
+
+    private enum PendingFill {
+        case text(String)
+        case photo(UIImage)
+    }
 
     @FocusState private var focused: Field?
     enum Field: Hashable {
-        case name, brand, calories, protein, carbs, fat, fiber, sugars, servingGrams, servingLabel
+        case aiQuery, name, brand, calories, protein, carbs, fat, fiber, sugars, servingGrams, servingLabel
     }
 
     private var trimmedName: String {
@@ -69,6 +90,8 @@ struct CustomFoodEditorSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                aiFillSection
+
                 Section("Identity") {
                     TextField("Name (e.g. Mum's lasagna)", text: $name)
                         .focused($focused, equals: .name)
@@ -100,6 +123,22 @@ struct CustomFoodEditorSheet: View {
                     Text("Default serving (optional)")
                 } footer: {
                     Text("Adds a one-tap \"1 serving\" portion to the review sheet — handy if this food has a natural serving size.")
+                }
+
+                if let typicalPrice = draftFood.typicalPrice {
+                    Section {
+                        HStack {
+                            Text("Typical price")
+                                .foregroundStyle(AppColor.textPrimary)
+                            Spacer()
+                            Text(typicalPrice.formatted)
+                                .foregroundStyle(AppColor.textSecondary)
+                                .monospacedDigit()
+                        }
+                        Button("Remove price", role: .destructive) { pricePer100g = nil }
+                    } footer: {
+                        Text(priceFootnote)
+                    }
                 }
 
                 if isEditing {
@@ -148,7 +187,144 @@ struct CustomFoodEditorSheet: View {
         // `.onAppear` fires once per presentation, where `.task` would
         // re-run on every observation cycle and clobber the user's
         // in-progress edits when DataStore publishes a change.
-        .onAppear { hydrate() }
+        .onAppear {
+            hydrate(from: initial, showZeros: isEditing)
+            if let autoFillQuery {
+                aiQuery = autoFillQuery
+                Task { await fill(fromText: autoFillQuery) }
+            }
+        }
+        .onChange(of: aiPhoto) { _, item in
+            guard let item else { return }
+            Task { await fill(fromPhoto: item) }
+        }
+        .sheet(isPresented: Binding(get: { pendingFill != nil && !AIDataConsent.isGranted },
+                                    set: { if !$0 { resumePendingFill() } })) {
+            AIConsentSheet(whatIsSent: "The food you type, or the photo of its package.")
+        }
+    }
+
+    private var aiFillSection: some View {
+        Section {
+            HStack(spacing: Spacing.sm) {
+                TextField("e.g. Oatly Barista 1 l, a banana", text: $aiQuery)
+                    .focused($focused, equals: .aiQuery)
+                    .submitLabel(.go)
+                    .onSubmit { Task { await fill(fromText: aiQuery) } }
+                if isFilling {
+                    ProgressView()
+                } else {
+                    Button {
+                        Task { await fill(fromText: aiQuery) }
+                    } label: {
+                        Image(systemName: "sparkles")
+                            .foregroundStyle(AppColor.accentPrimary)
+                    }
+                    .buttonStyle(.plain)
+                    .minimumHitArea()
+                    .disabled(aiQuery.nilIfEmpty == nil)
+                    .accessibilityLabel("Fill in with AI")
+                }
+            }
+            PhotosPicker(selection: $aiPhoto, matching: .images, photoLibrary: .shared()) {
+                Label("Fill from a photo of the package", systemImage: "camera.viewfinder")
+            }
+            .disabled(isFilling)
+            if let fillError {
+                Text(fillError)
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.warning)
+            }
+        } header: {
+            Text("Fill with AI")
+        } footer: {
+            Text("Type a food or product, or pick a photo of its label. Atlas fills in nutrition, a serving and a typical price — check them before saving.")
+        }
+    }
+
+    private var priceFootnote: LocalizedStringKey {
+        draftFood.servingGrams == nil ? "Estimated per 100 g by Atlas AI." : "Estimated per serving by Atlas AI."
+    }
+
+    /// The food as currently typed, for live previews like the price row.
+    private var draftFood: CustomFood {
+        CustomFood(id: initial.id, name: trimmedName, per100g: initial.per100g,
+                   servingGrams: Self.parseDecimal(servingGrams).flatMap { $0 > 0 ? $0 : nil },
+                   pricePer100g: pricePer100g)
+    }
+
+    private func resumePendingFill() {
+        guard let pending = pendingFill else { return }
+        pendingFill = nil
+        guard AIDataConsent.isGranted else { return }
+        Task {
+            switch pending {
+            case .text(let query): await fill(fromText: query)
+            case .photo(let image): await fill(fromImage: image)
+            }
+        }
+    }
+
+    private func fill(fromText text: String) async {
+        guard let query = text.nilIfEmpty, !isFilling else { return }
+        guard AIDataConsent.isGranted else {
+            pendingFill = .text(query)
+            return
+        }
+        startFill()
+        do {
+            applyFill(try await MealScannerService.shared.describeProduct(.init(query: query),
+                                                                      corrections: ScanCorrectionMemory.shared.recent))
+        } catch {
+            failFill(error)
+        }
+    }
+
+    private func fill(fromPhoto item: PhotosPickerItem) async {
+        defer { aiPhoto = nil }
+        guard let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) else {
+            failFill(MealScannerService.ScanError.invalidResponse)
+            return
+        }
+        guard AIDataConsent.isGranted else {
+            pendingFill = .photo(image)
+            return
+        }
+        await fill(fromImage: image)
+    }
+
+    private func fill(fromImage image: UIImage) async {
+        guard !isFilling else { return }
+        startFill()
+        do {
+            applyFill(try await MealScannerService.shared.smartScan(
+                image: image, hint: "A packaged food or its nutrition label, being added to the user's food library.",
+                corrections: ScanCorrectionMemory.shared.recent))
+        } catch {
+            failFill(error)
+        }
+    }
+
+    private func startFill() {
+        isFilling = true
+        fillError = nil
+        focused = nil
+    }
+
+    private func applyFill(_ scan: MealScannerService.SmartScan) {
+        isFilling = false
+        guard let food = SmartFoodLogic.customFood(from: scan, id: initial.id) else {
+            failFill(MealScannerService.ScanError.parseFailure)
+            return
+        }
+        hydrate(from: food, showZeros: true)
+        Haptics.success()
+    }
+
+    private func failFill(_ error: Error) {
+        isFilling = false
+        fillError = error.localizedDescription
+        Haptics.error()
     }
 
     private func macroField(
@@ -181,22 +357,24 @@ struct CustomFoodEditorSheet: View {
     /// Pull the initial values into local @State on appear. Plain
     /// assignment in `init` would force a full View-init rewrite to
     /// avoid the State-from-init pitfall.
-    private func hydrate() {
-        name = initial.name
-        brand = initial.brand ?? ""
+    private func hydrate(from food: CustomFood, showZeros: Bool) {
+        name = food.name
+        brand = food.brand ?? ""
         // For required macro fields, show "0" rather than "" so a
         // legitimate zero-fat food (e.g. plain whey isolate) reads
         // as "0g fat" instead of empty-with-placeholder. Optional
         // fields (fiber, sugars, servingGrams) still collapse to ""
         // so a "Optional" placeholder hint can guide the user.
-        calories = isEditing ? formatRequired(initial.per100g.calories) : formatOrEmpty(initial.per100g.calories)
-        protein = isEditing ? formatRequired(initial.per100g.proteinG) : formatOrEmpty(initial.per100g.proteinG)
-        carbs = isEditing ? formatRequired(initial.per100g.carbsG) : formatOrEmpty(initial.per100g.carbsG)
-        fat = isEditing ? formatRequired(initial.per100g.fatG) : formatOrEmpty(initial.per100g.fatG)
-        fiber = formatOrEmptyOptional(initial.per100g.fiberG)
-        sugars = formatOrEmptyOptional(initial.per100g.sugarsG)
-        servingGrams = formatOrEmptyOptional(initial.servingGrams)
-        servingLabel = initial.servingLabel ?? ""
+        let format = showZeros ? formatRequired : formatOrEmpty
+        calories = format(food.per100g.calories)
+        protein = format(food.per100g.proteinG)
+        carbs = format(food.per100g.carbsG)
+        fat = format(food.per100g.fatG)
+        fiber = formatOrEmptyOptional(food.per100g.fiberG)
+        sugars = formatOrEmptyOptional(food.per100g.sugarsG)
+        servingGrams = formatOrEmptyOptional(food.servingGrams)
+        servingLabel = food.servingLabel ?? ""
+        pricePer100g = food.pricePer100g
 
         // Auto-focus the name field on a fresh food — the user almost
         // always wants to start typing immediately.
@@ -231,6 +409,7 @@ struct CustomFoodEditorSheet: View {
             per100g: nutrients,
             servingGrams: Self.parseDecimal(servingGrams).flatMap { $0 > 0 ? $0 : nil },
             servingLabel: servingLabel.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
+            pricePer100g: pricePer100g,
             updatedAt: Date()
         )
         onSave(saved)

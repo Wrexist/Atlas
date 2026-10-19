@@ -68,15 +68,19 @@ struct HomeMealsSection: View {
                 eyebrow: "Meals",
                 title: "Capture what you ate"
             )
+            .sectionAppear(index: 0)
 
             MealDaySwitcher(offset: $dayOffset)
+                .sectionAppear(index: 1)
 
             FoodLibraryEntryCard(onTap: { showFoodLibrary = true })
+                .sectionAppear(index: 2)
 
             LogMealEntryPicker(
                 onScanBarcode: { showBarcodeScan = true },
                 onSnapPhoto: { showMealScan = true }
             )
+            .sectionAppear(index: 3)
 
             if dataStore.profile.nutritionTargets == nil {
                 targetsPrompt
@@ -116,16 +120,22 @@ struct HomeMealsSection: View {
                     showTargetsEditor = true
                 }
             }
+            .sectionAppear(index: 4)
 
             MealStreakBadge(
                 currentStreak: dataStore.mealLoggingStreak,
                 bestStreak: dataStore.bestMealLoggingStreak
             )
+            .scrollReveal()
 
             let dayEntries = dataStore.mealEntries(for: selectedDay)
-            if !dayEntries.isEmpty { DailyMealNutrientsCard(entries: dayEntries) }
+            if !dayEntries.isEmpty {
+                DailyMealNutrientsCard(entries: dayEntries)
+                    .scrollReveal()
+            }
             if dailyConsumption.caloriesKcal > 0 || !dayEntries.isEmpty {
                 MealCategoriesCard(breakdown: dailyBreakdown)
+                    .scrollReveal()
 
                 TodaysMealsCard(
                     entries: dayEntries,
@@ -134,6 +144,7 @@ struct HomeMealsSection: View {
                     onLogAgain: logAgain,
                     onDelete: { id in dataStore.unlogMealEntry(id: id) }
                 )
+                .scrollReveal()
             }
         }
         .sheet(isPresented: $showMealScan) {
@@ -198,7 +209,7 @@ struct HomeMealsSection: View {
             guard lastWaterLog != nil else { return }
             try? await Task.sleep(for: AppAnimation.logSuccessAutoCloseDelay)
             guard !Task.isCancelled else { return }
-            withAnimation(AppAnimation.fadeIn) { lastWaterLog = nil }
+            AppAnimation.with(AppAnimation.fadeIn) { lastWaterLog = nil }
         }
         .onChange(of: dayOffset) { _, _ in
             lastWaterLog = nil
@@ -244,7 +255,7 @@ struct HomeMealsSection: View {
     private func logWater(fluidOunces: Double) {
         let date = LifestyleDataLogic.logTimestamp(on: selectedDay)
         dataStore.logWater(fluidOunces: fluidOunces, date: date)
-        withAnimation(AppAnimation.fadeIn) {
+        AppAnimation.with(AppAnimation.fadeIn) {
             lastWaterLog = WaterLog(fluidOunces: fluidOunces, date: date)
         }
     }
@@ -253,7 +264,7 @@ struct HomeMealsSection: View {
         guard let log = lastWaterLog else { return }
         dataStore.logWater(fluidOunces: -log.fluidOunces, date: log.date)
         Haptics.impact(.light)
-        withAnimation(AppAnimation.fadeIn) { lastWaterLog = nil }
+        AppAnimation.with(AppAnimation.fadeIn) { lastWaterLog = nil }
     }
 
     /// Duplicates a logged meal onto the viewed day at the current

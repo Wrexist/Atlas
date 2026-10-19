@@ -33,7 +33,7 @@ struct GoalsSectionCard: View {
 
                         Button {
                             Haptics.impact(.soft)
-                            withAnimation(AppAnimation.springSnappy) {
+                            AppAnimation.with(AppAnimation.springSnappy) {
                                 onToggle(entry.key)
                             }
                         } label: {
