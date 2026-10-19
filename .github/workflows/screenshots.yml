@@ -135,11 +135,13 @@ jobs:
               elif isinstance(o, list):
                   for v in o: yield from walk(v)
           items = list(walk(m))
-          snaps = sorted(n for n, f in items if n.startswith("UI Snapshot"))
+          snaps = sorted(n for n, f in items if n.startswith("UI Snapshot")
+                         and os.path.getsize("screenshots/" + f) > 4000)
           def shot(n, f, label):
               out = "/tmp/" + label + ".jpg"
               subprocess.run(["sips", "-s", "format", "jpeg", "-s", "formatOptions", "70", "-Z", "900",
-                              "screenshots/" + f, "--out", out], check=True, capture_output=True)
+                              "screenshots/" + f, "--out", out], capture_output=True)
+              if not os.path.exists(out): return
               data = base64.b64encode(open(out, "rb").read()).decode()
               for i in range(0, len(data), 3000):
                   print(f"SHOT|{label}.jpg|{i // 3000}|{data[i:i + 3000]}")

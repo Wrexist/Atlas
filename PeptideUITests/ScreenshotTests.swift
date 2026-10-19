@@ -575,15 +575,20 @@ final class ScreenshotTests: XCTestCase {
 
     /// SwiftUI `Menu` buttons can report `isHittable == false` while fully on
     /// screen, so this scrolls by frame instead and the caller taps by
-    /// coordinate. It only swipes up: the menus it serves sit below the
-    /// fold, and a swipe down at the top of a sheet dismisses it.
+    /// coordinate. It swipes down only when the element sits above the
+    /// viewport, so a sheet already at its top is never swiped away.
     private func scrollOnScreen(_ element: XCUIElement) {
         XCTAssertTrue(element.waitForExistence(timeout: 10))
         let window = app.windows.firstMatch.frame
-        for _ in 0..<6 {
+        for _ in 0..<8 {
             let frame = element.frame
-            if frame.minY >= window.minY + 100 && frame.maxY <= window.maxY - 120 { return }
-            app.swipeUp()
+            if frame.minY < window.minY + 100 {
+                app.swipeDown()
+            } else if frame.maxY > window.maxY - 120 {
+                app.swipeUp()
+            } else {
+                return
+            }
         }
         XCTFail("\(element.label) never scrolled on screen: \(element.frame) in \(window)")
     }
