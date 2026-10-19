@@ -129,19 +129,28 @@ jobs:
               if isinstance(o, dict):
                   n = o.get("suggestedHumanReadableName", "")
                   f = o.get("exportedFileName")
-                  if f and n.startswith("activation-"):
+                  if f:
                       yield n, f
                   for v in o.values(): yield from walk(v)
               elif isinstance(o, list):
                   for v in o: yield from walk(v)
-          for n, f in walk(m):
-              out = "/tmp/" + n.split("_0_")[0] + ".jpg"
+          items = list(walk(m))
+          snaps = sorted(n for n, f in items if n.startswith("UI Snapshot"))
+          def shot(n, f, label):
+              out = "/tmp/" + label + ".jpg"
               subprocess.run(["sips", "-s", "format", "jpeg", "-s", "formatOptions", "70", "-Z", "900",
                               "screenshots/" + f, "--out", out], check=True, capture_output=True)
               data = base64.b64encode(open(out, "rb").read()).decode()
-              name = os.path.basename(out)
               for i in range(0, len(data), 3000):
-                  print(f"SHOT|{name}|{i // 3000}|{data[i:i + 3000]}")
+                  print(f"SHOT|{label}.jpg|{i // 3000}|{data[i:i + 3000]}")
+          for n, f in items:
+              if n.startswith("activation-"):
+                  shot(n, f, n.split("_0_")[0])
+              elif snaps and n == snaps[-1]:
+                  shot(n, f, "last-snapshot")
+              elif n.startswith("Debug description"):
+                  for line in open("screenshots/" + f, errors="replace"):
+                      print("DBG|" + line.rstrip())
           PY
 
       - name: Upload screenshots

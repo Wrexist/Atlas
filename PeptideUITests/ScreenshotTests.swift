@@ -585,7 +585,7 @@ final class ScreenshotTests: XCTestCase {
             if frame.minY >= window.minY + 100 && frame.maxY <= window.maxY - 120 { return }
             app.swipeUp()
         }
-        XCTFail("\(element.identifier) never scrolled on screen")
+        XCTFail("\(element.label) never scrolled on screen: \(element.frame) in \(window)")
     }
 
     private func scrollToTop() {
