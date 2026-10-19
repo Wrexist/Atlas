@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Settings pushed from Profile, so Profile itself stays about the user —
 /// identity, progress, goals, body and health — and the switches live here.
-/// Each card carries its own title, in the order Training, Notifications,
+/// Each card carries its own title, in the order Training, Reminders, Notifications,
 /// Preferences, Data, Account, About.
 struct SettingsView: View {
     @Environment(DataStore.self) private var dataStore
@@ -12,6 +12,8 @@ struct SettingsView: View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
                 TrainingSettingsSection()
+
+                DailyRemindersSection()
 
                 WeeklySummaryToggleRow()
 

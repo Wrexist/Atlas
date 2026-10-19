@@ -56,6 +56,7 @@ struct HomeView: View {
     /// the picker; the action enum drives which sheet actually mounts.
     @State private var showQuickLogSheet = false
     @State private var quickLogAction: QuickLogAction?
+    @State private var showWeightSheet = false
     /// Bevel-style hero metric trio snapshot. Loaded async on first
     /// appear + on each .active scene transition so the rings reflect
     /// the freshest HealthKit reads without blocking the view body.
@@ -96,6 +97,9 @@ struct HomeView: View {
         /// Finished sessions this calendar week — the trio's first ring
         /// for a user with no active protocol.
         var workoutsThisWeek = 0
+        /// Whether any session started today — feeds the checklist's
+        /// training row without a SwiftData fetch from `body`.
+        var trainedToday = false
     }
 
     private struct HeroDetailItem: Identifiable {
@@ -134,7 +138,8 @@ struct HomeView: View {
             plan: plan,
             timeline: buildTimelineEvents(),
             primaryReason: buildPrimaryReason(plan: plan),
-            workoutsThisWeek: countWorkoutsThisWeek()
+            workoutsThisWeek: countWorkoutsThisWeek(),
+            trainedToday: dataStore.workoutSummary(for: Date()).count > 0
         )
         // Inside an animation so the cards' numericText digits roll.
         AppAnimation.with(AppAnimation.springSmooth) { derived = next }
@@ -309,6 +314,19 @@ struct HomeView: View {
                     // component (audit A6).
                     TodayHabitsHero()
                         .sectionAppear(index: 4)
+
+                    // The day's logging loop in one card — every open
+                    // row is also the shortcut that closes it.
+                    TodayChecklistCard(
+                        state: TodayChecklistEngine.state(
+                            profile: dataStore.profile,
+                            consumption: dataStore.consumption(),
+                            trainedToday: derived.trainedToday
+                        ),
+                        unit: dataStore.profile.bodyMetrics.unit,
+                        onAction: handleChecklistAction
+                    )
+                    .sectionAppear(index: 5)
 
                     // MARK: - Meals / Wellness / Movement
                     //
@@ -740,6 +758,11 @@ struct HomeView: View {
                 .environment(appState)
                 .liquidGlassPresentation()
             }
+            .sheet(isPresented: $showWeightSheet) {
+                LogWeightSheet()
+                    .environment(dataStore)
+                    .liquidGlassPresentation()
+            }
             .sheet(isPresented: $showQuickLogSheet) {
                 LogMealSheet(
                     nextDose: dataStore.nextDose,
@@ -764,6 +787,20 @@ struct HomeView: View {
             proxy.scrollTo(anchor, anchor: .top)
         }
         activeJumpAnchor = anchor
+    }
+
+    private func handleChecklistAction(_ item: TodayChecklistEngine.Item) {
+        switch item {
+        case .meals:
+            quickLogAction = .meal
+        case .training:
+            appState.selectedTab = .train
+        case .water:
+            let glass = TodayChecklistEngine.glassFluidOunces(for: dataStore.profile.bodyMetrics.unit)
+            dataStore.logWater(fluidOunces: glass)
+        case .weight:
+            showWeightSheet = true
+        }
     }
 
     /// Closes the quick-log menu, then mounts the picked flow once the

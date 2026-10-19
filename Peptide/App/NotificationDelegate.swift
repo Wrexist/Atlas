@@ -85,24 +85,54 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
             }
             return
 
+        case DailyReminderScheduler.repeatMealAction:
+            let userInfo = response.notification.request.content.userInfo
+            let categoryRaw = userInfo["mealCategory"] as? String
+            let firedAt = response.notification.date
+            Task { @MainActor [dataStore] in
+                defer { completionHandler() }
+                guard let categoryRaw, let category = MealCategory(rawValue: categoryRaw) else { return }
+                dataStore.repeatMeals(category, from: firedAt)
+                await DailyReminderScheduler.reconcile(dataStore: dataStore)
+            }
+            return
+
+        case DailyReminderScheduler.logWeightAction:
+            let typed = (response as? UNTextInputNotificationResponse)?.userText ?? ""
+            Task { @MainActor [dataStore] in
+                defer { completionHandler() }
+                guard let kilograms = DailyReminderEngine.parsedWeightKilograms(
+                    typed,
+                    unit: dataStore.profile.bodyMetrics.unit
+                ) else {
+                    AppLog.notifications.warning("Weigh-in reply was not a usable weight")
+                    return
+                }
+                dataStore.logWeight(kg: kilograms)
+                await DailyReminderScheduler.reconcile(dataStore: dataStore)
+            }
+            return
+
         default:
             break
         }
 
-        // Deep-link routing for a plain tap on the notification body.
-        // Local-notification taps never pass through `onOpenURL`, so the
-        // `deeplink` userInfo the weekly-recap scheduler embeds was a
-        // no-op — "Tap to see how the week went" just foregrounded the
-        // app on whatever tab was open. Mirror what onOpenURL does for
-        // the same URL: park the flag on AppState, switch to Today, and
-        // let HomeView's existing consumer present the recap.
-        if response.actionIdentifier == UNNotificationDefaultActionIdentifier,
+        // Deep-link routing for a plain tap on the notification body, and
+        // for the foreground actions that only need to land somewhere.
+        // Local-notification taps never pass through `onOpenURL`, so mirror
+        // it: hand the embedded `deeplink` to the same router the widgets
+        // and Live Activities use.
+        let opensDeepLink = [
+            UNNotificationDefaultActionIdentifier,
+            DailyReminderScheduler.scanMealAction,
+            DailyReminderScheduler.startWorkoutAction,
+        ].contains(action)
+        if opensDeepLink,
            let deeplink = response.notification.request.content.userInfo["deeplink"] as? String,
-           deeplink == "peptidex://weekly/current" {
+           let url = URL(string: deeplink) {
             Task { @MainActor [appState] in
                 defer { completionHandler() }
-                appState.selectedTab = .today
-                appState.pendingWeeklyRecap = true
+                DeepLinkRouter.route(url, appState: appState, isPro: StoreService.shared.isProUser)
             }
             return
         }
