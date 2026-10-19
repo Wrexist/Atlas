@@ -62,7 +62,7 @@ struct WorkoutFinishView: View {
                             Text("Muscle focus").font(AppFont.headline)
                             Text("Estimated from your logged exercises")
                                 .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
-                            RecapAnatomy(muscles: summary.muscles)
+                            RecapAnatomy(muscles: summary.muscles, animatesReveal: true)
                                 .frame(maxWidth: 250).frame(maxWidth: .infinity)
                             RecapMuscleNames(muscles: summary.muscles)
                             RecapMissingMapping(count: summary.missingMappings)
