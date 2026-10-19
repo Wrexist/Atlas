@@ -2114,6 +2114,13 @@ struct OnboardingView: View {
                 // belt-and-braces persist.
                 dataStore.persistProfile()
             }
+            // This step promises workout reminders, so a grant switches
+            // the training-day nudge on at the time picked earlier.
+            if granted {
+                var reminders = DailyReminderSettings.load(training: dataStore.profile.trainingPreferences)
+                reminders.slots[.workout]?.isEnabled = true
+                reminders.save()
+            }
             OnboardingFunnelTracker.recordEvent(granted ? "notifications_granted" : "notifications_denied")
         }
     }

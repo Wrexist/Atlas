@@ -89,6 +89,11 @@ final class NotificationService {
     /// bypasses NotificationService entirely").
     nonisolated static let adHocIDPrefix = "adhoc-"
 
+    /// Prefix for the meal / workout / weigh-in reminders. Their lifecycle
+    /// belongs to `DailyReminderScheduler`; the dose scheduler reserves
+    /// and preserves them the same way it does habits.
+    nonisolated static let dailyIDPrefix = "daily-"
+
     /// Fixed identifier for the one "your free trial ends in 2 days"
     /// reminder. One slot at most, so re-scheduling replaces rather than
     /// stacks, and the dose scheduler reserves and preserves it the same
@@ -266,7 +271,8 @@ final class NotificationService {
         // habit/snooze namespaces already occupy or iOS silently drops
         // whichever requests are added last.
         let reservedSlots = currentIDs.filter {
-            $0.hasPrefix(Self.habitIDPrefix) || $0.hasPrefix(Self.snoozeIDPrefix) || $0 == Self.trialReminderID
+            $0.hasPrefix(Self.habitIDPrefix) || $0.hasPrefix(Self.snoozeIDPrefix)
+                || $0.hasPrefix(Self.dailyIDPrefix) || $0 == Self.trialReminderID
         }.count
         let doseLimit = max(0, Self.pendingRequestLimit - reservedSlots)
         let kept = Array(pendingRequests.prefix(doseLimit))
@@ -280,6 +286,7 @@ final class NotificationService {
         // owns their lifecycle so we must not sweep them here.
         let preservedSnoozes = currentIDs.filter { $0.hasPrefix(Self.snoozeIDPrefix) }
         let preservedHabits = currentIDs.filter { $0.hasPrefix(Self.habitIDPrefix) }
+        let preservedDaily = currentIDs.filter { $0.hasPrefix(Self.dailyIDPrefix) }
         // The Sunday weekly-recap request lives in its own scheduler but
         // shares the pending-request pool. `reconcilePendingState()` absorbs
         // its fixed ID into `currentIDs` on launch, and without this carve-out
@@ -291,6 +298,7 @@ final class NotificationService {
             .subtracting(newIDs)
             .subtracting(preservedSnoozes)
             .subtracting(preservedHabits)
+            .subtracting(preservedDaily)
             .subtracting(preservedWeekly)
 
         if !toRemove.isEmpty {
@@ -300,7 +308,7 @@ final class NotificationService {
             center.add(entry.request)
         }
 
-        currentIDs = newIDs.union(preservedSnoozes).union(preservedHabits).union(preservedWeekly)
+        currentIDs = newIDs.union(preservedSnoozes).union(preservedHabits).union(preservedDaily).union(preservedWeekly)
         requestedCount = pendingRequests.count
         scheduledCount = kept.count
 
@@ -494,7 +502,14 @@ final class NotificationService {
             actions: [markAction, snooze15, snooze30, snooze60],
             intentIdentifiers: []
         )
-        center.setNotificationCategories([category])
+        center.setNotificationCategories(DailyReminderScheduler.categories.union([category]))
+    }
+
+    /// Replaces the tracked daily-reminder IDs with the set
+    /// `DailyReminderScheduler` just scheduled, so the dose scheduler's
+    /// slot budget counts them.
+    func trackDailyReminders(_ ids: Set<String>) {
+        currentIDs = currentIDs.filter { !$0.hasPrefix(Self.dailyIDPrefix) }.union(ids)
     }
 
     /// Returns the snooze duration (in seconds) for a notification
@@ -529,7 +544,8 @@ final class NotificationService {
     /// flipping that switch shouldn't silently break their habit reminders.
     func cancelProtocolReminders() {
         let toKeep = currentIDs.filter {
-            $0.hasPrefix(Self.snoozeIDPrefix) || $0.hasPrefix(Self.habitIDPrefix) || $0 == Self.trialReminderID
+            $0.hasPrefix(Self.snoozeIDPrefix) || $0.hasPrefix(Self.habitIDPrefix)
+                || $0.hasPrefix(Self.dailyIDPrefix) || $0 == Self.trialReminderID
         }
         let toRemove = currentIDs.subtracting(toKeep)
         if !toRemove.isEmpty {

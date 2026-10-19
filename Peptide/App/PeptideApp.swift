@@ -220,6 +220,11 @@ struct PeptideApp: App {
                 // burst of dose toggles right before backgrounding doesn't
                 // get lost.
                 dataStore.flushPendingSave()
+                // Leaving the app is the moment a just-logged meal, weigh-
+                // in or workout should cancel today's matching reminder.
+                Task { @MainActor in
+                    await DailyReminderScheduler.reconcile(dataStore: dataStore)
+                }
             }
             if phase == .active {
                 ReviewPromptService.shared.recordLaunch()
@@ -267,6 +272,7 @@ struct PeptideApp: App {
                         profile: dataStore.profile,
                         isPro: StoreService.shared.isProUser
                     )
+                    await DailyReminderScheduler.reconcile(dataStore: dataStore)
                 }
                 detectTimezoneChange()
                 maybePresentWhatsNewTour()
@@ -487,6 +493,7 @@ struct PeptideApp: App {
             // by `doseRemindersEnabled`. Re-stamp them every activation so a
             // reminderTime change made on another device propagates.
             NotificationService.shared.scheduleHabitReminders(for: dataStore.activeHabits)
+            await DailyReminderScheduler.reconcile(dataStore: dataStore)
 
             guard dataStore.profile.doseRemindersEnabled else {
                 NotificationService.shared.cancelProtocolReminders()

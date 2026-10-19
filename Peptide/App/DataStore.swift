@@ -1113,6 +1113,33 @@ final class DataStore {
         }
     }
 
+    /// Re-logs the previous day's `category` entries at the current time —
+    /// the meal reminder's "Same as yesterday" action. A no-op when that
+    /// meal is already logged today, so a second tap can't double it.
+    func repeatMeals(_ category: MealCategory, from reminderDate: Date) {
+        let now = Date()
+        let calendar = Calendar.current
+        guard !profile.mealHistory.contains(where: {
+            $0.category == category && calendar.isDate($0.date, inSameDayAs: now)
+        }) else { return }
+
+        let previous = DailyReminderEngine.previousDayMeals(category, before: reminderDate, in: profile.mealHistory)
+        for meal in previous {
+            logMealEntry(MealEntry(
+                date: now,
+                category: category,
+                name: meal.name,
+                calories: meal.calories,
+                proteinG: meal.proteinG,
+                carbsG: meal.carbsG,
+                fatG: meal.fatG,
+                sourceID: meal.sourceID,
+                source: meal.source,
+                components: meal.components
+            ))
+        }
+    }
+
     /// Stable IDs make retry and interrupted completion idempotent.
     /// Health writes start only after the local profile commit succeeds.
     @ObservationIgnored private var mealHealthWriteTask: Task<Void, Never>?
