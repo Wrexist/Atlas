@@ -1037,6 +1037,8 @@ final class DataStore {
     func logWeight(kg: Double, date: Date = Date()) {
         LifestyleDataLogic.logWeight(into: &profile, kg: kg, date: date)
         save()
+        guard HealthSyncSettings.isEnabled else { return }
+        Task { await HealthKitService.shared.writeBodyMass(kg: kg, date: date) }
     }
 
     /// Weight history with at-most-one entry per calendar day.
@@ -1047,8 +1049,11 @@ final class DataStore {
     }
 
     func deleteWeight(id: UUID) {
+        let deleted = profile.weightHistory.first { $0.id == id }
         LifestyleDataLogic.deleteWeight(from: &profile, id: id)
         save()
+        guard let deleted, HealthSyncSettings.isEnabled else { return }
+        Task { await HealthKitService.shared.deleteBodyMass(onDayOf: deleted.date) }
     }
 
     func logMeal(calories: Int, proteinG: Int, carbsG: Int, fatG: Int, date: Date = Date()) {
@@ -1078,6 +1083,7 @@ final class DataStore {
     func logWater(oz: Int, date: Date = Date()) {
         LifestyleDataLogic.logWater(into: &profile, oz: oz, date: date)
         save()
+        mirrorWaterToHealth(fluidOunces: Double(oz), date: date)
     }
 
     /// Exact-amount water log used by the Meals tab quick-adds. A
@@ -1085,6 +1091,18 @@ final class DataStore {
     func logWater(fluidOunces: Double, date: Date = Date()) {
         LifestyleDataLogic.logWater(into: &profile, fluidOunces: fluidOunces, date: date)
         save()
+        mirrorWaterToHealth(fluidOunces: fluidOunces, date: date)
+    }
+
+    private func mirrorWaterToHealth(fluidOunces: Double, date: Date) {
+        guard HealthSyncSettings.isEnabled else { return }
+        Task {
+            if fluidOunces > 0 {
+                await HealthKitService.shared.writeWater(fluidOunces: fluidOunces, date: date)
+            } else {
+                await HealthKitService.shared.deleteLatestWater(fluidOunces: -fluidOunces, onDayOf: date)
+            }
+        }
     }
 
     /// Today's (or any day's) consumption bucket, or an empty stub.
@@ -1233,6 +1251,32 @@ final class DataStore {
         profile.healthKitNutritionEnabled = enabled
         save()
         return true
+    }
+
+    /// Turns "Sync workouts, weight and water" on or off. Like the meal
+    /// toggle, it only stays on once the permission prompt completed.
+    @discardableResult
+    func setHealthActivitySyncEnabled(_ enabled: Bool) async -> Bool {
+        if enabled {
+            guard await HealthKitService.shared.requestActivitySyncAuthorization() else {
+                UserDefaults.standard.set(false, forKey: HealthSyncSettings.enabledKey)
+                return false
+            }
+        }
+        UserDefaults.standard.set(enabled, forKey: HealthSyncSettings.enabledKey)
+        if enabled { await importHealthWeights() }
+        return true
+    }
+
+    /// Takes in weigh-ins from a smart scale or another app for days
+    /// Atlas has no weight, so the trend and checklist see them too.
+    func importHealthWeights() async {
+        guard HealthSyncSettings.isEnabled else { return }
+        let external = await HealthKitService.shared.externalWeights(days: HealthSyncEngine.importWindowDays)
+        let additions = HealthSyncEngine.weightsToImport(external, existing: profile.weightHistory)
+        guard !additions.isEmpty else { return }
+        profile.weightHistory = (profile.weightHistory + additions).sorted { $0.date < $1.date }
+        save()
     }
 
     /// Per-category breakdown for today (or any day). Used by the
@@ -1634,6 +1678,9 @@ final class DataStore {
             .map { Set($0.exercises.map(\.exerciseID)) } ?? []
         repo.beginSaveBatch()
         repo.deleteWorkoutSession(id: id)
+        if HealthSyncSettings.isEnabled {
+            Task { await HealthKitService.shared.deleteWorkout(id: id) }
+        }
         PRDetectionEngine.shared.recompute(exerciseIDs: affectedExercises)
         cacheVersion &+= 1
         // Same reason as `recordWorkoutFinished`: a repo-level write is
@@ -2555,6 +2602,7 @@ final class DataStore {
         performCycleAutoCompletion()
         regenerateTodayEntries()
         Task { await refreshWatchVitals() }
+        Task { await importHealthWeights() }
     }
 
     /// Re-pulls protocols / entries / profile from the repository — used by

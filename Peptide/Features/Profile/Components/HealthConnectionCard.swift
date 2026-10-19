@@ -12,6 +12,11 @@ struct HealthConnectionCard: View {
     /// flipping the underlying state once granted — pass-through
     /// because the request is async.
     var onToggleNutritionWrite: (Bool) -> Void = { _ in }
+    /// Whether finished workouts, weigh-ins and water are mirrored to
+    /// Apple Health, and scale weigh-ins read back. Same async
+    /// pass-through as the meal toggle.
+    var activitySyncEnabled: Bool = false
+    var onToggleActivitySync: (Bool) -> Void = { _ in }
     /// Awaited so the button can show it's waiting on HealthKit's
     /// permission sheet rather than sitting idle under it.
     var onConnect: @MainActor () async -> Void = {}
@@ -77,8 +82,21 @@ struct HealthConnectionCard: View {
                     .disabled(isConnecting)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 } else {
-                    nutritionWriteToggle
-                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    VStack(alignment: .leading, spacing: Spacing.lg) {
+                        syncToggle(
+                            title: "Sync workouts, weight and water",
+                            detail: "Finished workouts, weigh-ins and water show up in the Health app, and weigh-ins from a smart scale come back to Atlas.",
+                            isOn: activitySyncEnabled,
+                            onChange: onToggleActivitySync
+                        )
+                        syncToggle(
+                            title: "Write meals to Apple Health",
+                            detail: "Logged calories, protein, carbs and fat will appear in the Health app's nutrition timeline.",
+                            isOn: nutritionWriteEnabled,
+                            onChange: onToggleNutritionWrite
+                        )
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
             .appAnimation(AppAnimation.springSmooth, value: isConnected)
@@ -88,20 +106,21 @@ struct HealthConnectionCard: View {
         }
     }
 
-    /// Inline toggle exposed once the user has connected. Lets logged
-    /// meals (food library + barcode scan + photo scan) mirror into
-    /// Apple Health's nutrition timeline so Atlas plays well with
-    /// the rest of the user's health stack. Off by default.
-    private var nutritionWriteToggle: some View {
-        Toggle(isOn: Binding(
-            get: { nutritionWriteEnabled },
-            set: { onToggleNutritionWrite($0) }
-        )) {
+    /// Inline write toggles exposed once the user has connected, so
+    /// Atlas plays well with the rest of the user's health stack. Both
+    /// are off by default.
+    private func syncToggle(
+        title: LocalizedStringKey,
+        detail: LocalizedStringKey,
+        isOn: Bool,
+        onChange: @escaping (Bool) -> Void
+    ) -> some View {
+        Toggle(isOn: Binding(get: { isOn }, set: onChange)) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Write meals to Apple Health")
+                Text(title)
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textPrimary)
-                Text("Logged calories, protein, carbs and fat will appear in the Health app's nutrition timeline.")
+                Text(detail)
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)

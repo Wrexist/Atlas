@@ -126,6 +126,9 @@ final class WorkoutSessionService {
         activeSession = nil
         invalidatePreviousSetCache()
         WorkoutLiveActivityService.shared.finish(session)
+        if HealthSyncSettings.isEnabled {
+            Task { await HealthKitService.shared.writeWorkout(session) }
+        }
         // Reward training (and any new PR). Both this service and the
         // store are @MainActor, so the call is a direct hop.
         DataStore.current?.recordWorkoutFinished(detectedPRCount: detections.count)
