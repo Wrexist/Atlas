@@ -46,7 +46,7 @@ struct MacroSummaryRow: View {
         self.onUndoWater = onUndoWater
     }
 
-    private static let waterTargetOz: Int = 100
+    private static let waterTargetOz = TodayChecklistEngine.waterTargetOz
 
     private var caloriesProgress: Double {
         guard targets.calories > 0 else { return 0 }
