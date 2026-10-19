@@ -477,6 +477,8 @@ final class ScreenshotTests: XCTestCase {
             // glass card, so position by frame instead of reveal().
             let heading = app.staticTexts["Muscles worked"]
             scrollOnScreen(heading)
+            // Lift the card to the top so the whole figure clears the tab bar.
+            drag(by: -min(heading.frame.minY - 110, 280))
             capture(named: "activation-\(appearance)-01-detail")
             let triceps = app.buttons["muscle-row-Triceps"]
             reveal(triceps)

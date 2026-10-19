@@ -35,7 +35,7 @@ struct ExerciseLibraryView: View {
         )
         .task { await loadLibrary() }
         .sheet(isPresented: $showsBodyPicker) {
-            BodyMusclePicker(selection: $browsing.muscleFilter)
+            BodyMusclePicker(selection: bodyPickSelection, equipment: browsing.equipmentFilter)
         }
     }
 
@@ -70,6 +70,18 @@ struct ExerciseLibraryView: View {
         .buttonStyle(.plain)
         .accessibilityLabel("Pick muscles on body")
         .accessibilityIdentifier("exercise-body-picker")
+    }
+
+    /// Picking on the body starts a fresh browse, so it drops any search
+    /// text that would hide the exercises the picker just counted.
+    private var bodyPickSelection: Binding<MuscleGroup?> {
+        Binding(
+            get: { browsing.muscleFilter },
+            set: { group in
+                if group != nil { browsing.query = "" }
+                browsing.muscleFilter = group
+            }
+        )
     }
 
     // MARK: - Content

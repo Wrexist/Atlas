@@ -5,6 +5,7 @@ import SwiftUI
 /// confirming applies that group as the library filter.
 struct BodyMusclePicker: View {
     @Binding var selection: MuscleGroup?
+    var equipment: EquipmentKind? = nil
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -22,7 +23,7 @@ struct BodyMusclePicker: View {
     }
 
     private var exerciseCount: Int {
-        picked.map { library.filter(muscleGroup: $0).count } ?? 0
+        picked.map { library.filter(muscleGroup: $0, equipment: equipment).count } ?? 0
     }
 
     var body: some View {
