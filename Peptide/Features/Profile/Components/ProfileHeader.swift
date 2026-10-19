@@ -2,9 +2,8 @@ import SwiftUI
 
 struct ProfileHeader: View {
     let name: String
-    let memberDuration: String
+    let memberSince: Date
     let protocolCount: Int
-    let peptideCount: Int
     let daysLogged: Int
     var workoutCount: Int = 0
     var avatarImageData: Data? = nil
@@ -28,11 +27,9 @@ struct ProfileHeader: View {
                 editableAvatar
 
                 VStack(spacing: Spacing.xs) {
-                    Text(displayName.isEmpty ? "Atlas User" : displayName)
-                        .font(AppFont.title)
-                        .foregroundStyle(AppColor.textPrimary)
+                    nameLine
 
-                    Text("Member for \(memberDuration)")
+                    Text("Member since \(memberSince, format: .dateTime.month(.wide).year())")
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
                 }
@@ -46,17 +43,14 @@ struct ProfileHeader: View {
                         .padding(.horizontal, Spacing.sm)
                 }
 
-                // Protocol counts only for users who run one — for
-                // everyone else two zeros would frame Atlas as a dose
-                // tracker, so their training shows instead.
+                // Training and days are everyone's stats; Protocols joins
+                // them only for users who run one, so it never shows a zero.
                 HStack(spacing: Spacing.xxl) {
+                    ProfileStat(value: workoutCount, label: "Workouts")
+                    ProfileStat(value: daysLogged, label: "Days")
                     if protocolCount > 0 {
-                        ProfileStat(value: "\(protocolCount)", label: "Protocols")
-                        ProfileStat(value: "\(peptideCount)", label: "Peptides")
-                    } else {
-                        ProfileStat(value: "\(workoutCount)", label: "Workouts")
+                        ProfileStat(value: protocolCount, label: "Protocols")
                     }
-                    ProfileStat(value: "\(daysLogged)", label: "Days")
                 }
             }
             .frame(maxWidth: .infinity)
@@ -65,6 +59,21 @@ struct ProfileHeader: View {
                     GlassIconButton(icon: "pencil", accessibilityLabel: "Edit profile", size: 32, action: onEdit)
                 }
             }
+        }
+    }
+
+    /// A missing name is an invitation to add one, not a placeholder.
+    @ViewBuilder
+    private var nameLine: some View {
+        if !displayName.isEmpty {
+            Text(displayName)
+                .font(AppFont.title)
+                .foregroundStyle(AppColor.textPrimary)
+        } else if let onEdit {
+            Button("Add your name", action: onEdit)
+                .font(AppFont.headline)
+                .foregroundStyle(AppColor.textSecondary)
+                .minimumHitArea()
         }
     }
 
@@ -101,7 +110,7 @@ struct ProfileHeader: View {
 
                 if displayName.isEmpty {
                     Image(systemName: "person.fill")
-                        .font(.system(size: 32))
+                        .font(AppFont.scaled(32, weight: .semibold, relativeTo: .title1))
                         .foregroundStyle(AppColor.accentLight)
                 } else {
                     Text(String(displayName.prefix(1)))
@@ -118,30 +127,26 @@ struct ProfileHeader: View {
 
     private var avatarBorder: some View {
         Circle()
-            .strokeBorder(
-                LinearGradient(
-                    colors: [AppColor.accentLight, AppColor.accentPrimary],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ),
-                lineWidth: 2
-            )
+            .strokeBorder(AppColor.glassBorderActive, lineWidth: 1.5)
     }
 }
 
 private struct ProfileStat: View {
-    let value: String
+    let value: Int
     let label: LocalizedStringKey
 
     var body: some View {
         VStack(spacing: Spacing.xxs) {
-            Text(value)
+            Text(value, format: .number)
                 .font(AppFont.title2)
                 .foregroundStyle(AppColor.accentLight)
+                .contentTransition(.numericText())
+                .appAnimation(AppAnimation.springSnappy, value: value)
             Text(label)
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textSecondary)
         }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -150,9 +155,8 @@ private struct ProfileStat: View {
         AppColor.background.ignoresSafeArea()
         ProfileHeader(
             name: "Alex",
-            memberDuration: "3 months",
+            memberSince: .now.addingTimeInterval(-90 * 86_400),
             protocolCount: 4,
-            peptideCount: 14,
             daysLogged: 45,
             bio: "Optimizing recovery and sleep."
         )
@@ -164,7 +168,7 @@ private struct ProfileStat: View {
 #Preview("New User") {
     ZStack {
         AppColor.background.ignoresSafeArea()
-        ProfileHeader(name: "", memberDuration: "1 month", protocolCount: 0, peptideCount: 0, daysLogged: 0)
+        ProfileHeader(name: "", memberSince: .now, protocolCount: 0, daysLogged: 0)
             .padding(Spacing.screenPadding)
     }
     .preferredColorScheme(.dark)

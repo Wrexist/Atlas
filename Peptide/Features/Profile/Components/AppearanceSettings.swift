@@ -21,23 +21,27 @@ struct AppearanceSettings: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
 
-                VStack(alignment: .leading, spacing: Spacing.xs) {
-                    SettingsToggleRow(
-                        icon: "bell.fill",
-                        title: "Dose Reminders",
-                        subtitle: "Get notified for scheduled doses",
-                        isOn: $store.profile.doseRemindersEnabled
-                    )
-                    .onChange(of: dataStore.profile.doseRemindersEnabled) { _, enabled in
-                        handleDoseRemindersToggle(enabled)
+                // Protocol reminders only mean something to someone
+                // running a protocol.
+                if !dataStore.activeProtocols.isEmpty {
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        SettingsToggleRow(
+                            icon: "bell.fill",
+                            title: "Protocol reminders",
+                            subtitle: "Get notified for scheduled doses",
+                            isOn: $store.profile.doseRemindersEnabled
+                        )
+                        .onChange(of: dataStore.profile.doseRemindersEnabled) { _, enabled in
+                            handleDoseRemindersToggle(enabled)
+                        }
+
+                        if dataStore.profile.doseRemindersEnabled, notificationService.requestedCount > 0 {
+                            notificationStatusRow
+                        }
                     }
 
-                    if dataStore.profile.doseRemindersEnabled, notificationService.requestedCount > 0 {
-                        notificationStatusRow
-                    }
+                    Divider().overlay(AppColor.glassBorder)
                 }
-
-                Divider().foregroundStyle(AppColor.glassBorder)
 
                 SettingsToggleRow(
                     icon: "hand.tap.fill",
@@ -50,31 +54,31 @@ struct AppearanceSettings: View {
                 }
 
                 if biometricService.isAvailable || dataStore.profile.biometricLockEnabled {
-                    Divider().foregroundStyle(AppColor.glassBorder)
+                    Divider().overlay(AppColor.glassBorder)
 
                     SettingsToggleRow(
                         icon: biometricService.biometryIcon,
                         title: "\(biometricService.biometryName) Lock",
-                        subtitle: "Hides the app behind a quick \(biometricService.biometryName) check on launch. Your data isn't separately encrypted — this is a privacy screen, not full disk encryption.",
+                        subtitle: "Require \(biometricService.biometryName) to open Atlas.",
                         isOn: $store.profile.biometricLockEnabled
                     )
-                    .onChange(of: dataStore.profile.biometricLockEnabled) { _, _ in
-                        dataStore.persistProfile()
+                    .onChange(of: dataStore.profile.biometricLockEnabled) { _, enabled in
+                        handleBiometricLockToggle(enabled)
                     }
                 }
 
-                Divider().foregroundStyle(AppColor.glassBorder)
+                Divider().overlay(AppColor.glassBorder)
 
                 ThemePickerRow(
                     selection: $themeBinding.theme
                 )
 
-                Divider().foregroundStyle(AppColor.glassBorder)
+                Divider().overlay(AppColor.glassBorder)
 
                 DisplayModeRow(selection: $themeBinding.displayMode)
 
                 if AppLanguage.shipped.count > 1 {
-                    Divider().foregroundStyle(AppColor.glassBorder)
+                    Divider().overlay(AppColor.glassBorder)
 
                     LanguagePickerRow()
                 }
@@ -88,12 +92,12 @@ struct AppearanceSettings: View {
         return HStack(spacing: Spacing.sm) {
             Image(systemName: overLimit ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
                 .font(AppFont.scaled(11))
-                .foregroundStyle(overLimit ? .orange : AppColor.accentPrimary)
+                .foregroundStyle(overLimit ? AppColor.warning : AppColor.accentPrimary)
 
             if overLimit {
                 Text("\(notificationService.scheduledCount) of \(notificationService.requestedCount) reminders active (iOS limit: \(limit))")
                     .font(AppFont.caption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(AppColor.warning)
             } else {
                 Text("\(notificationService.scheduledCount) reminders scheduled")
                     .font(AppFont.caption)
@@ -101,6 +105,22 @@ struct AppearanceSettings: View {
             }
         }
         .padding(.leading, settingsIconColumnWidth + Spacing.md)
+    }
+
+    /// Turning the lock on proves the user can pass it first, so nobody
+    /// locks themselves behind a check they can't clear.
+    private func handleBiometricLockToggle(_ enabled: Bool) {
+        guard enabled else {
+            dataStore.persistProfile()
+            return
+        }
+        Task {
+            if await biometricService.authenticate() {
+                dataStore.persistProfile()
+            } else {
+                dataStore.profile.biometricLockEnabled = false
+            }
+        }
     }
 
     private func handleDoseRemindersToggle(_ enabled: Bool) {
@@ -131,30 +151,28 @@ private struct SettingsToggleRow: View {
     let subtitle: LocalizedStringKey
     @Binding var isOn: Bool
 
+    /// The label lives inside the `Toggle` so VoiceOver reads the row as
+    /// one switch with its title, subtitle and value.
     var body: some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: icon)
-                .font(AppFont.scaled(13))
-                .foregroundStyle(AppColor.accentPrimary)
-                .frame(width: settingsIconColumnWidth)
+        Toggle(isOn: $isOn) {
+            HStack(spacing: Spacing.md) {
+                Image(systemName: icon)
+                    .font(AppFont.scaled(13))
+                    .foregroundStyle(AppColor.accentPrimary)
+                    .frame(width: settingsIconColumnWidth)
+                    .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(title)
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textPrimary)
-                Text(subtitle)
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textTertiary)
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text(title)
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text(subtitle)
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                }
             }
-            .accessibilityElement(children: .combine)
-
-            Spacer()
-
-            Toggle("", isOn: $isOn)
-                .labelsHidden()
-                .tint(AppColor.accentPrimary)
-                .accessibilityLabel(title)
         }
+        .tint(AppColor.accentPrimary)
     }
 }
 
@@ -197,7 +215,7 @@ private struct ThemePickerRow: View {
             AppAnimation.with(AppAnimation.quick) {
                 selection = theme
             }
-            Haptics.impact(.light)
+            Haptics.selection()
         } label: {
             Circle()
                 .fill(theme.primary)
@@ -215,6 +233,7 @@ private struct ThemePickerRow: View {
                 )
                 .minimumHitArea()
                 .accessibilityLabel(theme.displayName)
+                .accessibilityValue(isSelected ? Text("Selected") : Text(verbatim: ""))
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
         }
         .buttonStyle(.plain)

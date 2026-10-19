@@ -35,9 +35,8 @@ struct ProfileView: View {
                 VStack(spacing: Spacing.lg) {
                     ProfileHeader(
                         name: dataStore.profile.name,
-                        memberDuration: memberDuration,
+                        memberSince: dataStore.profile.memberSince,
                         protocolCount: dataStore.protocols.count,
-                        peptideCount: Set(dataStore.protocols.flatMap(\.peptides).map(\.id)).count,
                         daysLogged: dataStore.totalDaysLogged,
                         workoutCount: workoutCount,
                         avatarImageData: dataStore.profile.avatarImageData,
@@ -63,7 +62,7 @@ struct ProfileView: View {
                     // above the achievement badges it sums up. Taps open
                     // the full progress view.
                     AtlasScoreCard(onTap: { showProgress = true })
-                        .sectionAppear(index: 3)
+                        .sectionAppear(index: 2)
 
                     AchievementsSection(achievements: achievementService.achievements)
                         .scrollReveal()
@@ -90,23 +89,18 @@ struct ProfileView: View {
                         onToggleNutritionWrite: { enabled in
                             Task { await dataStore.setHealthKitNutritionEnabled(enabled) }
                         },
-                        onConnect: { connectHealthKit() }
+                        onConnect: connectHealthKit
                     )
                     .scrollReveal()
 
-                    // Peptide Library (database + Protocols + AI research) —
-                    // its home now that Habits took the tab-bar slot.
                     PeptideLibraryEntryCard()
                         .scrollReveal()
 
-                    // Labs entry lives on the Biology tab (renamed
-                    // from Insights in Phase 33). It's a high-
-                    // engagement analytical feature, not a settings-
-                    // flavoured tool, and it was hiding behind a
-                    // settings tab here.
-
-                    ReconstitutionEntryCard(onTap: { showReconstitutionCalculator = true })
-                        .scrollReveal()
+                    // The calculator only matters to someone running a protocol.
+                    if !dataStore.protocols.isEmpty {
+                        ReconstitutionEntryCard(onTap: { showReconstitutionCalculator = true })
+                            .scrollReveal()
+                    }
 
                     // The way into Settings at the foot of Profile; the
                     // toolbar gear goes to the same place.
@@ -162,25 +156,13 @@ struct ProfileView: View {
                 AtlasProgressView()
                     .environment(dataStore)
             }
-            // Labs sheet + the `pendingLabsOpen` deep-link
-            // consumption live on `BiologyView` now — labs sit
-            // alongside the biomarker list on the Biology tab, and
-            // the Home overview-card insight tap routes there.
         }
     }
 
-    private var memberDuration: String {
-        let months = Calendar.current.dateComponents([.month], from: dataStore.profile.memberSince, to: Date()).month ?? 0
-        return months <= 1 ? "1 month" : "\(months) months"
-    }
-
-    private func connectHealthKit() {
-        Task { @MainActor in
-            // toggleHealthConnection now requests authorization internally
-            // and refuses to flip ON without a grant — so we can call it
-            // directly without a separate pre-check.
-            _ = await dataStore.toggleHealthConnection()
-        }
+    /// `toggleHealthConnection` requests authorization itself and refuses
+    /// to flip on without a grant, so no separate pre-check is needed.
+    private func connectHealthKit() async {
+        _ = await dataStore.toggleHealthConnection()
     }
 
     private func toggleGoal(_ goal: String) {

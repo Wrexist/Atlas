@@ -10,6 +10,7 @@ import SwiftUI
 /// both at the same time.
 struct PrivacySummaryView: View {
     @State private var aiConsentGranted = AIDataConsent.isGranted
+    @AppStorage(OnboardingFunnelTracker.consentKey) private var shareOnboardingFunnel = false
 
     var body: some View {
         ScrollView {
@@ -22,7 +23,7 @@ struct PrivacySummaryView: View {
                         ForEach(Array(Self.rows.enumerated()), id: \.offset) { index, row in
                             PrivacyRow(row: row)
                             if index < Self.rows.count - 1 {
-                                Divider().foregroundStyle(AppColor.glassBorder)
+                                Divider().overlay(AppColor.glassBorder)
                             }
                         }
                     }
@@ -31,6 +32,12 @@ struct PrivacySummaryView: View {
 
                 aiSharingCard
                     .sectionAppear(index: 2)
+
+                // Only rendered when the build carries a drain endpoint —
+                // current builds don't, so the claims above hold.
+                if OnboardingFunnelTracker.drainConfigured {
+                    funnelConsentCard
+                }
 
                 manifestChip
                     .sectionAppear(index: 3)
@@ -47,15 +54,10 @@ struct PrivacySummaryView: View {
     private var header: some View {
         VStack(spacing: Spacing.sm) {
             Image(systemName: "lock.shield.fill")
-                .font(.system(size: 44, weight: .semibold))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [AppColor.accentLight, AppColor.accentPrimary],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
+                .font(AppFont.scaled(44, weight: .semibold, relativeTo: .largeTitle))
+                .foregroundStyle(AppColor.accentPrimary)
                 .padding(.top, Spacing.md)
+                .accessibilityHidden(true)
 
             Text("Your logs stay on your phone")
                 .font(AppFont.title2)
@@ -82,14 +84,35 @@ struct PrivacySummaryView: View {
                 if aiConsentGranted {
                     GlassButton(title: "Turn off AI data sharing", style: .secondary, isFullWidth: true) {
                         AIDataConsent.revoke()
+                        Haptics.success()
                         aiConsentGranted = false
                     }
+                    .transition(.opacity)
                 } else {
                     Text("Off. Atlas asks before anything is sent.")
                         .font(AppFont.footnote)
                         .foregroundStyle(AppColor.textTertiary)
+                        .transition(.opacity)
                 }
             }
+            .appAnimation(AppAnimation.springSmooth, value: aiConsentGranted)
+        }
+    }
+
+    private var funnelConsentCard: some View {
+        GlassCard {
+            Toggle(isOn: $shareOnboardingFunnel) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text("Share onboarding diagnostics")
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text("Off by default. When on, setup-flow step timings upload once under a random ID — never your name, email, or health data.")
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .tint(AppColor.accentPrimary)
         }
     }
 
@@ -133,6 +156,11 @@ struct PrivacySummaryView: View {
             detail: "When enabled, sync runs through your personal CloudKit container. We never see it."
         ),
         .init(
+            icon: "lock.fill",
+            title: "App lock is a privacy screen.",
+            detail: "Face ID or Touch ID lock hides Atlas on launch. It doesn't add encryption beyond what iOS already gives your data."
+        ),
+        .init(
             icon: "square.and.arrow.up",
             title: "Your data is portable.",
             detail: "Atlas Pro exports your full history as CSV, JSON, or PDF, so you are never locked in."
@@ -149,6 +177,7 @@ private struct PrivacyRow: View {
                 .font(AppFont.scaled(20, weight: .semibold))
                 .foregroundStyle(AppColor.accentPrimary)
                 .frame(width: 32, height: 32)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(row.title)
@@ -166,8 +195,8 @@ private struct PrivacyRow: View {
 
     struct Row {
         let icon: String
-        let title: String
-        let detail: String
+        let title: LocalizedStringResource
+        let detail: LocalizedStringResource
     }
 }
 

@@ -24,7 +24,6 @@ struct RestoreBackupSheet: View {
 
     @State private var phase: Phase = .pick
     @State private var showingFileImporter = false
-    @State private var pickedURL: URL?
     @State private var preview: BackupImportService.Preview?
     @State private var backup: AppBackup?
     @State private var errorMessage: String?
@@ -44,14 +43,15 @@ struct RestoreBackupSheet: View {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
                     switch phase {
-                    case .pick: pickPhase
-                    case .preview: previewPhase
-                    case .confirming(let strategy): confirmPhase(strategy)
-                    case .applying: applyingPhase
-                    case .done: donePhase
-                    case .failed: failedPhase
+                    case .pick: pickPhase.transition(Self.phaseTransition)
+                    case .preview: previewPhase.transition(Self.phaseTransition)
+                    case .confirming(let strategy): confirmPhase(strategy).transition(Self.phaseTransition)
+                    case .applying: applyingPhase.transition(Self.phaseTransition)
+                    case .done: donePhase.transition(Self.phaseTransition)
+                    case .failed: failedPhase.transition(Self.phaseTransition)
                     }
                 }
+                .appAnimation(AppAnimation.springSmooth, value: phase)
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.vertical, Spacing.xl)
             }
@@ -74,19 +74,22 @@ struct RestoreBackupSheet: View {
 
     // MARK: - Phases
 
+    /// Each step slides in from the trailing edge, reading as forward motion.
+    private static let phaseTransition = AnyTransition.asymmetric(
+        insertion: .move(edge: .trailing).combined(with: .opacity),
+        removal: .opacity
+    )
+
     private var pickPhase: some View {
         VStack(spacing: Spacing.lg) {
             HeroCard(
                 icon: "tray.and.arrow.down.fill",
                 title: "Restore from a backup",
-                subtitle: "Pick a JSON file you previously exported from Atlas. A safety copy of your current data is saved on this device first."
+                subtitle: Text("Pick a JSON file you previously exported from Atlas. A safety copy of your current data is saved on this device first.")
             )
-            Button {
+            PrimaryCTAButton(title: "Pick a backup file", icon: "folder", shape: .rounded) {
                 showingFileImporter = true
-            } label: {
-                PrimaryButtonLabel(title: "Pick a backup file", icon: "folder")
             }
-            .buttonStyle(.plain)
         }
     }
 
@@ -96,7 +99,7 @@ struct RestoreBackupSheet: View {
                 HeroCard(
                     icon: "doc.text.magnifyingglass",
                     title: "Backup looks valid",
-                    subtitle: "Exported \(preview.exportDate.formatted(date: .abbreviated, time: .shortened)). Choose how to apply it."
+                    subtitle: Text("Exported \(preview.exportDate.formatted(date: .abbreviated, time: .shortened)). Choose how to apply it.")
                 )
                 BackupSummaryCard(preview: preview)
             }
@@ -111,7 +114,7 @@ struct RestoreBackupSheet: View {
                 )
                 StrategyCard(
                     title: "Replace current data",
-                    detail: "Wipes your current protocols, entries, and profile, then restores from the backup. A snapshot is taken first.",
+                    detail: "Wipes your current workouts, meals, protocols and profile, then restores from the backup. A snapshot is taken first.",
                     icon: "arrow.triangle.2.circlepath",
                     style: .destructive,
                     onTap: { phase = .confirming(.replace) }
@@ -126,25 +129,21 @@ struct RestoreBackupSheet: View {
                 icon: strategy == .replace ? "exclamationmark.triangle.fill" : "checkmark.circle.fill",
                 title: strategy == .replace ? "Confirm replace" : "Confirm merge",
                 subtitle: strategy == .replace
-                    ? "Your current data will be replaced. A safety copy of your current data is saved on this device first."
-                    : "Your current data is kept; only items missing from your library are added."
+                    ? Text("Your current data will be replaced. A safety copy of your current data is saved on this device first.")
+                    : Text("Your current data is kept; only items missing from your library are added.")
             )
             VStack(spacing: Spacing.sm) {
-                Button {
+                PrimaryCTAButton(
+                    title: strategy == .replace ? "Replace and restore" : "Merge and restore",
+                    icon: "checkmark",
+                    shape: .rounded
+                ) {
                     apply(strategy: strategy)
-                } label: {
-                    PrimaryButtonLabel(
-                        title: strategy == .replace ? "Replace and restore" : "Merge and restore",
-                        icon: "checkmark"
-                    )
                 }
-                .buttonStyle(.plain)
 
-                Button("Back") {
+                GlassButton(title: "Back", style: .ghost, isFullWidth: true) {
                     phase = .preview
                 }
-                .font(AppFont.footnote.weight(.semibold))
-                .foregroundStyle(AppColor.textSecondary)
             }
         }
     }
@@ -166,17 +165,13 @@ struct RestoreBackupSheet: View {
             HeroCard(
                 icon: "checkmark.seal.fill",
                 title: "Restore complete",
-                subtitle: "Your data is back. A safety copy of your previous data is saved on this device."
+                subtitle: Text("Your data is back. A safety copy of your previous data is saved on this device."),
+                bouncesOnAppear: true
             )
             if let resultPreview {
                 BackupSummaryCard(preview: resultPreview)
             }
-            Button("Done") { dismiss() }
-                .buttonStyle(.plain)
-                .padding(Spacing.md)
-                .frame(maxWidth: .infinity)
-                .background(AppColor.accentPrimary.opacity(0.18))
-                .clipShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous))
+            PrimaryCTAButton(title: "Done", shape: .rounded) { dismiss() }
         }
     }
 
@@ -185,18 +180,13 @@ struct RestoreBackupSheet: View {
             HeroCard(
                 icon: "xmark.octagon.fill",
                 title: "Restore failed",
-                subtitle: errorMessage ?? "Something went wrong while reading the backup file."
+                subtitle: errorMessage.map { Text($0) }
+                    ?? Text("Something went wrong while reading the backup file.")
             )
-            Button("Try a different file") {
-                pickedURL = nil
+            PrimaryCTAButton(title: "Try a different file", icon: "folder", shape: .rounded) {
                 errorMessage = nil
                 phase = .pick
             }
-            .buttonStyle(.plain)
-            .padding(Spacing.md)
-            .frame(maxWidth: .infinity)
-            .background(AppColor.accentPrimary.opacity(0.18))
-            .clipShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous))
         }
     }
 
@@ -209,7 +199,6 @@ struct RestoreBackupSheet: View {
             phase = .failed
         case .success(let urls):
             guard let url = urls.first else { return }
-            pickedURL = url
             validatePickedFile(url)
         }
     }
@@ -276,19 +265,28 @@ struct RestoreBackupSheet: View {
 private struct HeroCard: View {
     let icon: String
     let title: LocalizedStringKey
-    let subtitle: String
+    let subtitle: Text
+    /// One bounce when the card lands — the success beat on "Restore complete".
+    var bouncesOnAppear = false
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hasAppeared = false
 
     var body: some View {
         VStack(spacing: Spacing.sm) {
             Image(systemName: icon)
-                .font(.system(size: 38, weight: .light))
+                .font(AppFont.scaled(38, weight: .light, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.accentPrimary)
+                .symbolEffect(.bounce, value: hasAppeared)
                 .padding(.top, Spacing.sm)
+                .onAppear {
+                    if bouncesOnAppear && !reduceMotion { hasAppeared = true }
+                }
             Text(title)
                 .font(AppFont.title)
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.center)
-            Text(subtitle)
+            subtitle
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
@@ -304,22 +302,22 @@ private struct BackupSummaryCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            row("Protocols", "\(preview.protocolsCount)")
-            row("Entries", "\(preview.entriesCount)")
-            row("Profile", preview.profileName)
-            if preview.hasMealHistory  { row("Meal history",   "Included") }
-            if preview.hasLabHistory   { row("Lab history",    "Included") }
-            if preview.hasWeightHistory { row("Weight history", "Included") }
             // v1 backups carried no training data at all — say so
             // explicitly rather than letting "full backup" imply it.
             if preview.workoutSessionsCount > 0 {
-                row("Workouts", "\(preview.workoutSessionsCount)")
+                row("Workouts", count(preview.workoutSessionsCount))
             } else {
-                row("Workouts", "Not in this backup")
+                row("Workouts", Text("Not in this backup"))
             }
-            if preview.routinesCount > 0 { row("Routines", "\(preview.routinesCount)") }
-            if preview.customPeptidesCount > 0 { row("Custom compounds", "\(preview.customPeptidesCount)") }
-            row("Backup version", preview.version)
+            if preview.routinesCount > 0 { row("Routines", count(preview.routinesCount)) }
+            if preview.hasMealHistory  { row("Meal history", Text("Included")) }
+            row("Protocols", count(preview.protocolsCount))
+            row("Entries", count(preview.entriesCount))
+            row("Profile", Text(verbatim: preview.profileName))
+            if preview.hasLabHistory   { row("Lab history", Text("Included")) }
+            if preview.hasWeightHistory { row("Weight history", Text("Included")) }
+            if preview.customPeptidesCount > 0 { row("Custom compounds", count(preview.customPeptidesCount)) }
+            row("Backup version", Text(verbatim: preview.version))
         }
         .padding(Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -333,14 +331,17 @@ private struct BackupSummaryCard: View {
         }
     }
 
-    @ViewBuilder
-    private func row(_ label: String, _ value: String) -> some View {
+    private func count(_ value: Int) -> Text {
+        Text(value, format: .number)
+    }
+
+    private func row(_ label: LocalizedStringKey, _ value: Text) -> some View {
         HStack {
             Text(label)
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textSecondary)
             Spacer()
-            Text(value)
+            value
                 .font(AppFont.subheadline.weight(.semibold))
                 .foregroundStyle(AppColor.textPrimary)
         }
@@ -350,7 +351,7 @@ private struct BackupSummaryCard: View {
 private struct StrategyCard: View {
     enum Style { case primary, destructive }
     let title: LocalizedStringKey
-    let detail: String
+    let detail: LocalizedStringKey
     let icon: String
     let style: Style
     let onTap: () -> Void
@@ -392,27 +393,5 @@ private struct StrategyCard: View {
             }
         }
         .buttonStyle(.plain)
-    }
-}
-
-private struct PrimaryButtonLabel: View {
-    let title: LocalizedStringKey
-    let icon: String
-
-    var body: some View {
-        HStack(spacing: Spacing.sm) {
-            Image(systemName: icon)
-                .font(AppFont.scaled(16, weight: .bold))
-            Text(title)
-                .font(AppFont.headline)
-        }
-        .foregroundStyle(AppColor.onAccent)
-        .padding(.horizontal, Spacing.lg)
-        .padding(.vertical, Spacing.md)
-        .frame(maxWidth: .infinity)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.accentFill)
-        }
     }
 }

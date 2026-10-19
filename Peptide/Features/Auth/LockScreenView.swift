@@ -3,7 +3,6 @@ import SwiftUI
 struct LockScreenView: View {
     let onUnlock: () -> Void
 
-    @Environment(DataStore.self) private var dataStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var biometricService = BiometricService.shared
     @State private var isAuthenticating = false
@@ -15,13 +14,14 @@ struct LockScreenView: View {
             Spacer()
 
             Image(systemName: "lock.fill")
-                .font(.system(size: 48))
+                .font(AppFont.scaled(48, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.accentPrimary)
-                .symbolEffect(.bounce, value: iconBounce)
+                .symbolEffect(.bounce, value: reduceMotion ? 0 : iconBounce)
+                .accessibilityHidden(true)
                 .offset(x: shakeOffset)
 
             VStack(spacing: Spacing.sm) {
-                Text("Atlas is Locked")
+                Text("Atlas is locked")
                     .font(AppFont.title)
                     .foregroundStyle(AppColor.textPrimary)
 
@@ -32,23 +32,12 @@ struct LockScreenView: View {
 
             Spacer()
 
-            Button {
+            PrimaryCTAButton(
+                title: "Unlock with \(biometricService.biometryName)",
+                icon: biometricService.biometryIcon
+            ) {
                 Task { await unlock() }
-            } label: {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: biometricService.biometryIcon)
-                        .font(AppFont.scaled(20))
-                        .accessibilityHidden(true)
-                    Text("Unlock with \(biometricService.biometryName)")
-                        .font(AppFont.headline)
-                }
-                .foregroundStyle(AppColor.onAccent)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.md)
-                .background(AppColor.accentFill)
-                .clipShape(RoundedRectangle(cornerRadius: Spacing.controlCornerRadius))
             }
-            .buttonStyle(ScalePressStyle(pressedScale: 0.97))
             .disabled(isAuthenticating)
             .padding(.horizontal, Spacing.xxl)
             .padding(.bottom, Spacing.xxxxl)
