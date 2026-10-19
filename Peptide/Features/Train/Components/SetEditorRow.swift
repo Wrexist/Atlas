@@ -140,7 +140,7 @@ struct SetEditorRow: View {
 
     /// A logged set's numbers step back so the sets still to do lead.
     private var fieldInk: Color {
-        set.completed ? AppColor.textSecondary : AppColor.textPrimary
+        self.set.completed ? AppColor.textSecondary : AppColor.textPrimary
     }
 
     private var weightField: some View {
