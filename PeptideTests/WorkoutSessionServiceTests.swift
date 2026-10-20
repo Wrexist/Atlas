@@ -347,6 +347,22 @@ final class WorkoutSessionServiceTests: XCTestCase {
         XCTAssertEqual(applied.reps, 6)
     }
 
+    func test_supersetSet_movesToThePartnerWithoutResting() throws {
+        _ = service.startWorkout()
+        service.addExercise(bench())
+        service.addExercise(bench())
+        let first = try XCTUnwrap(service.activeSession?.exercises.first)
+        service.supersetWithNext(first.id)
+
+        var set = try XCTUnwrap(first.sets.first)
+        set.completed = true
+        service.updateSet(set, inExerciseEntryID: first.id)
+
+        let session = try XCTUnwrap(service.activeSession)
+        XCTAssertNil(session.focus?.rest, "Rest waits until the round is done")
+        XCTAssertEqual(session.focus?.selectedEntryID, session.exercises[1].id)
+    }
+
     func test_renameWorkout_emptyStringClearsName() {
         _ = service.startWorkout(routine: Routine(name: "Old", exercises: []))
         service.renameWorkout("  ")

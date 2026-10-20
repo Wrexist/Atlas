@@ -22,10 +22,8 @@ struct WorkoutExerciseEntry: Codable, Hashable, Identifiable, Sendable {
     /// the timer can flex per-exercise without per-set rows getting
     /// noisy.
     var restSeconds: Int?
-    /// IDs of other exercise entries in the same session that share a
-    /// superset with this one. Empty for standalone exercises. A
-    /// superset is a symmetric relation, encoded redundantly on both
-    /// sides so look-up at render time is a single property access.
+    /// Shared by every entry in the same superset; nil for a standalone
+    /// exercise. Members are worked in rounds, one set each, before resting.
     var supersetGroup: UUID?
 
     init(

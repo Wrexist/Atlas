@@ -354,6 +354,10 @@ struct ActiveWorkoutView: View {
                         },
                         progression: sessionService.progression(for: entry),
                         effectiveRestSeconds: entry.restSeconds ?? defaultRestSeconds,
+                        supersetLetter: session.supersetLetter(for: entry.id),
+                        canSupersetWithNext: session.entryBelow(entry.id).map {
+                            $0.supersetGroup == nil || $0.supersetGroup != entry.supersetGroup
+                        } ?? false,
                         onSetUpdate: { updated in
                             sessionService.updateSet(updated, inExerciseEntryID: entry.id)
                         },
@@ -372,6 +376,12 @@ struct ActiveWorkoutView: View {
                         },
                         onApplyProgression: {
                             sessionService.applyProgression(toExerciseEntryID: entry.id)
+                        },
+                        onSupersetWithNext: {
+                            sessionService.supersetWithNext(entry.id)
+                        },
+                        onRemoveFromSuperset: {
+                            sessionService.removeFromSuperset(entry.id)
                         }
                     )
                 }

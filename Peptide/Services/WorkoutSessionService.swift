@@ -190,6 +190,20 @@ final class WorkoutSessionService {
         for i in session.exercises.indices {
             session.exercises[i].index = i
         }
+        session.dissolveLoneSupersets()
+        persist(session)
+    }
+
+    /// Supersets `entryID` with the exercise below it.
+    func supersetWithNext(_ entryID: UUID) {
+        guard var session = activeSession else { return }
+        session.linkSupersetWithNext(entryID)
+        persist(session)
+    }
+
+    func removeFromSuperset(_ entryID: UUID) {
+        guard var session = activeSession else { return }
+        session.unlinkSuperset(entryID)
         persist(session)
     }
 
@@ -254,7 +268,10 @@ final class WorkoutSessionService {
             session.focus?.rest = nil
             let seconds = session.exercises[exIdx].restSeconds
                 ?? DataStore.current?.profile.trainingPreferences?.restTimerDefault ?? 90
-            if seconds > 0, let target = session.nextPendingSet(after: entryID) {
+            if let target = session.nextPendingSet(after: entryID),
+               session.continuesSuperset(from: entryID, to: target.entry) {
+                session.focus?.selectedEntryID = target.entry
+            } else if seconds > 0, let target = session.nextPendingSet(after: entryID) {
                 session.focus?.rest = WorkoutRestContext(
                     sourceEntryID: entryID, sourceSetID: updated.id,
                     targetEntryID: target.entry, targetSetID: target.set,
