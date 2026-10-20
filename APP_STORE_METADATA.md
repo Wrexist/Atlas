@@ -225,24 +225,40 @@ for copy.)*
 ## "What's New" *(4000 char limit)*
 
 ```
-Atlas 1.4: a redesigned Apple Watch app.
+Atlas 1.5: log from your wrist, your lock screen and a single photo.
 
-APPLE WATCH
-• All-new watch app: turn the Digital Crown through Today, Recovery, Sleep Score, Nutrition and Protocol
-• Recovery: a heart that beats at your resting rate, with HRV and your Recovery score
-• Sleep Score: last night by stage (awake, REM, core and deep), ready the moment you wake
-• Habit and protocol rings, calorie and protein rings, and one-tap water and dose logging
-• New Recovery and Sleep Score complications for your watch face
+SMARTER FOOD SCANNING
+• Photo scans now ask a quick follow-up when a dish is unclear, and one tap updates the numbers
+• Values are checked against your own foods and Open Food Facts when there's a match
+• Describe or dictate a meal in your own words instead of taking a photo
+• The scanner learns from the names and portions you correct
+• On iPhone Pro models, the LiDAR camera measures distance for better portion estimates
+• Can't find a barcode? Snap the package and Atlas reads it for you
+
+TRAINING
+• Log sets from your Apple Watch while your phone stays on the bench
+• Skip rest and complete a set straight from the Live Activity on your lock screen
+• A muscle map shows what each exercise works
+
+EVERY DAY
+• Gentle reminders for meals, training days and weigh-ins, with "Same as yesterday" and quick weight replies
+• A Today checklist for meals, workout, water and weight
+• Quick actions from the Home Screen, Control Center and interactive widgets
+• Optional Apple Health sync: workouts, weight and water
+
+NEW COMPLICATIONS AND WIDGETS
+• Workout and Calories & Protein complications for your watch face
+• Redesigned widgets, now on the Lock Screen too
 
 ALSO
-• Doses you log on the watch reach your iPhone faster
-• Your Atlas Score and habits stay on the watch while a dose syncs
+• Smoother motion and a cleaner look across the app
+• Biological Age and Protocol named the same way everywhere
 • Reliability fixes throughout
 
 Feedback → support@peptidesai.com
 ```
 
-*(682 / 4 000)*
+*(1 412 / 4 000)*
 ---
 
 ## Age Rating
