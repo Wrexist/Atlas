@@ -358,7 +358,7 @@ final class WorkoutSessionService {
         let routine = activeSession?.routineID.flatMap { id in
             RoutineStore.shared.routines.first { $0.id == id }
         }
-        return progression(forExerciseID: entry.exerciseID, routine: routine)
+        return progression(for: entry.exerciseID, targetReps: targetReps(for: entry, in: routine))
     }
 
     /// Fills the exercise's unchecked working sets with its suggestion.
@@ -371,9 +371,19 @@ final class WorkoutSessionService {
         persist(session)
     }
 
-    private func progression(forExerciseID id: String, routine: Routine?) -> ProgressionEngine.Suggestion? {
+    /// The slot this entry was seeded from. Entries take their slot's
+    /// position, so a routine listing one exercise twice keeps each slot's
+    /// own target; an entry moved since falls back to the first match.
+    private func targetReps(for entry: WorkoutExerciseEntry, in routine: Routine?) -> Int? {
+        guard let slots = routine?.exercises.sorted(by: { $0.index < $1.index }) else { return nil }
+        if slots.indices.contains(entry.index), slots[entry.index].exerciseID == entry.exerciseID {
+            return slots[entry.index].targetReps
+        }
+        return slots.first(where: { $0.exerciseID == entry.exerciseID })?.targetReps
+    }
+
+    private func progression(for id: String, targetReps target: Int?) -> ProgressionEngine.Suggestion? {
         let exercise = ExerciseLibrary.shared.lookup(id: id)
-        let target = routine?.exercises.first(where: { $0.exerciseID == id })?.targetReps
         let unit = DataStore.current?.profile.bodyMetrics.unit ?? .metric
         return ProgressionEngine.suggestion(
             previous: previousSessionSets(forExerciseID: id),
@@ -386,7 +396,7 @@ final class WorkoutSessionService {
     /// (the default), so the workout opens at the weight to beat.
     private func progressed(_ entry: WorkoutExerciseEntry, routine: Routine?) -> WorkoutExerciseEntry {
         guard DataStore.current?.profile.trainingPreferences?.autoProgression ?? true,
-              let suggestion = progression(forExerciseID: entry.exerciseID, routine: routine)
+              let suggestion = progression(for: entry.exerciseID, targetReps: targetReps(for: entry, in: routine))
         else { return entry }
         var seeded = entry
         seeded.sets = ProgressionEngine.apply(suggestion, to: entry.sets)

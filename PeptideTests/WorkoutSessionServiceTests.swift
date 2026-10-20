@@ -327,6 +327,21 @@ final class WorkoutSessionServiceTests: XCTestCase {
         XCTAssertEqual(session.exercises[0].sets.map(\.reps), [8, 8, 8])
     }
 
+    func test_startWorkout_routineListingAnExerciseTwice_keepsEachSlotsTarget() {
+        let saved = DataStore.current
+        DataStore.current = nil
+        defer { DataStore.current = saved }
+        logBenchWorkout(weightKg: 80, reps: 8)
+
+        let session = service.startWorkout(routine: Routine(name: "Push", exercises: [
+            RoutineExercise(exerciseID: bench().id, index: 0, targetSets: 1, targetReps: 8),
+            RoutineExercise(exerciseID: bench().id, index: 1, targetSets: 1, targetReps: 12),
+        ]))
+
+        XCTAssertEqual(session.exercises[0].sets[0].reps, 8)
+        XCTAssertEqual(session.exercises[1].sets[0].reps, 12, "The second slot keeps its own target")
+    }
+
     func test_applyProgression_fillsTheUncheckedSets() throws {
         let saved = DataStore.current
         DataStore.current = nil

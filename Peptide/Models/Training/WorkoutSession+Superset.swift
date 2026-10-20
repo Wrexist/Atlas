@@ -23,15 +23,17 @@ extension WorkoutSession {
         return String(Character(UnicodeScalar(UInt8(65 + position % 26))))
     }
 
-    /// True while a round is still going: the next set belongs to a later
-    /// member of the same superset, so the rest timer waits.
+    /// True while a round is still going: the target is another member
+    /// that hasn't matched the source's set count yet, so the rest timer
+    /// waits. Counting sets rather than comparing positions keeps a round
+    /// started on a later member (B, then A) rest-free too.
     func continuesSuperset(from entryID: UUID, to targetID: UUID) -> Bool {
-        let ordered = exercises.sorted { $0.index < $1.index }
-        guard let source = ordered.first(where: { $0.id == entryID }),
-              let target = ordered.first(where: { $0.id == targetID }),
+        guard entryID != targetID,
+              let source = exercises.first(where: { $0.id == entryID }),
+              let target = exercises.first(where: { $0.id == targetID }),
               let group = source.supersetGroup, target.supersetGroup == group
         else { return false }
-        return target.index > source.index
+        return target.completedWorkingSets.count < source.completedWorkingSets.count
     }
 
     /// The exercise below `entryID` in the workout, if any.

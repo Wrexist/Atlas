@@ -69,6 +69,19 @@ final class SupersetTests: XCTestCase {
         XCTAssertFalse(session.continuesSuperset(from: b.id, to: a.id), "The round is over, so rest")
     }
 
+    func test_roundStartedOnTheLaterMember_stillSkipsRest() {
+        let group = UUID()
+        var session = WorkoutSession(exercises: [entry(0, group: group), entry(1, group: group)])
+        let a = session.exercises[0], b = session.exercises[1]
+
+        session = completing(session, entry: 1, set: 0)
+        XCTAssertEqual(session.nextPendingSet(after: b.id)?.entry, a.id)
+        XCTAssertTrue(session.continuesSuperset(from: b.id, to: a.id))
+
+        session = completing(session, entry: 0, set: 0)
+        XCTAssertFalse(session.continuesSuperset(from: a.id, to: b.id), "Both have done one set, so rest")
+    }
+
     func test_standaloneExercise_keepsGoingOnItself() {
         let session = WorkoutSession(exercises: [entry(0), entry(1)])
         let first = session.exercises[0]
