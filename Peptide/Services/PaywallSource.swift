@@ -32,7 +32,7 @@ enum PaywallSource: String, CaseIterable, Identifiable, Sendable {
         case .weeklyRecap:    return "Get your weekly AI recap"
         case .export:         return "Export your full history"
         case .aiResearch:     return "Ask the AI research assistant"
-        case .communityStack: return "Use this stack as a protocol"
+        case .communityStack: return "Use this as your protocol"
         case .mealScanLimit:  return "Unlimited AI meal scans"
         case .winBack:        return "Welcome back to Atlas Pro"
         case .profile, .deepLink, .generic: return nil

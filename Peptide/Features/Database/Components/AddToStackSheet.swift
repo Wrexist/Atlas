@@ -36,7 +36,7 @@ struct AddToStackSheet: View {
                     }
 
                     GlassButton(
-                        title: "Create New Stack",
+                        title: "Create New Protocol",
                         icon: "plus.circle.fill",
                         style: .secondary,
                         isFullWidth: true
@@ -56,7 +56,7 @@ struct AddToStackSheet: View {
                 .padding(.bottom, Spacing.xxxxl)
             }
             .background(AppColor.background)
-            .navigationTitle("Add to Stack")
+            .navigationTitle("Add to Protocol")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -83,7 +83,7 @@ struct AddToStackSheet: View {
                     Text(peptide.abbreviation)
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
-                    Text("Pick a stack to add this peptide to")
+                    Text("Pick a protocol to add this peptide to")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
                 }
@@ -97,8 +97,8 @@ struct AddToStackSheet: View {
     private var emptyState: some View {
         EmptyStateView(
             icon: "square.stack.3d.up.slash",
-            title: "No stacks yet",
-            message: "Create your first stack to add \(peptide.abbreviation).",
+            title: "No protocols yet",
+            message: "Create your first protocol to add \(peptide.abbreviation).",
             style: .compact
         )
         .frame(maxWidth: .infinity)
@@ -187,7 +187,7 @@ struct AddToStackSheet: View {
         if justAdded {
             Badge("Added", icon: "checkmark")
         } else if alreadyIn {
-            Badge("In stack")
+            Badge("In protocol")
         } else if status == .paused {
             Badge("Paused", tint: AppColor.warning)
         }

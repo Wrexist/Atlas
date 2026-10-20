@@ -43,7 +43,7 @@ struct ProtocolsStackHealthSection: View {
             || dataStore.profile.healthConnected
         {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                HomeSectionHeader(eyebrow: "Stack health", title: "How it's holding up")
+                HomeSectionHeader(eyebrow: "Protocol health", title: "How it's holding up")
 
                 if let completeness {
                     StackCompletenessCard(completeness: completeness)

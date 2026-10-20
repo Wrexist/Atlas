@@ -22,7 +22,7 @@ struct ProfileStacksCard: View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 HStack(alignment: .firstTextBaseline) {
-                    Label("Your Stacks", systemImage: "square.stack.3d.up.fill")
+                    Label("Your Protocols", systemImage: "square.stack.3d.up.fill")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
@@ -51,7 +51,7 @@ struct ProfileStacksCard: View {
                         openLibraryAfterDismiss()
                     } label: {
                         HStack(spacing: Spacing.xs) {
-                            Text("Manage Stacks")
+                            Text("Manage Protocols")
                             Image(systemName: "arrow.up.right")
                                 .font(AppFont.scaled(11, weight: .semibold))
                         }
@@ -91,7 +91,7 @@ struct ProfileStacksCard: View {
                 .font(.system(size: 32))
                 .foregroundStyle(AppColor.textTertiary)
 
-            Text("No stacks yet")
+            Text("No protocols yet")
                 .font(AppFont.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textSecondary)
@@ -106,7 +106,7 @@ struct ProfileStacksCard: View {
                 dismiss()
                 openLibraryAfterDismiss()
             } label: {
-                Label("Create Stack", systemImage: "plus")
+                Label("Create Protocol", systemImage: "plus")
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.accentLight)
@@ -235,7 +235,7 @@ struct ProfileStacksCard: View {
     private func subtitle(for stack: PeptideProtocol) -> String {
         let abbreviations = stack.peptides.prefix(3).map(\.abbreviation).joined(separator: " · ")
         let extras = stack.peptides.count > 3 ? " +\(stack.peptides.count - 3)" : ""
-        let body = abbreviations.isEmpty ? "Empty stack" : abbreviations + extras
+        let body = abbreviations.isEmpty ? "Empty protocol" : abbreviations + extras
         return "\(body) — \(stack.schedule.summary)"
     }
 

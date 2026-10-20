@@ -103,10 +103,10 @@ extension StackRecommendationEngine {
 
         // If stack average is short (<4h) and candidate is long (>12h), or vice versa
         if avgHL < 4 && candidateHL > 12 {
-            return (1, .halfLifeComplement(description: "Long-acting — extends coverage beyond your short-acting stack"))
+            return (1, .halfLifeComplement(description: "Long-acting — extends coverage beyond your short-acting protocol"))
         }
         if avgHL > 12 && candidateHL < 4 {
-            return (1, .halfLifeComplement(description: "Short-acting — adds acute pulses to your long-acting stack"))
+            return (1, .halfLifeComplement(description: "Short-acting — adds acute pulses to your long-acting protocol"))
         }
         return (0, nil)
     }

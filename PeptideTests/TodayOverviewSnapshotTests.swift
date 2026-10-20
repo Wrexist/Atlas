@@ -10,8 +10,6 @@ final class TodayOverviewSnapshotTests: XCTestCase {
         let store = DataStore(seedSampleData: false)
         let snapshot = TodayOverviewSnapshot.build(from: store)
         XCTAssertFalse(snapshot.hasAnySignal)
-        XCTAssertNil(snapshot.complianceFraction)
-        XCTAssertNil(snapshot.nextDose)
         XCTAssertNil(snapshot.checkInScore)
         XCTAssertNil(snapshot.latestLab)
         XCTAssertEqual(snapshot.caloriesToday, 0)
@@ -136,6 +134,9 @@ final class TodayOverviewSnapshotTests: XCTestCase {
             XCTFail("Expected protocol insight to win over latest-lab")
             return
         }
+        // A protocol insight is reason enough to show the card, even
+        // though doses themselves no longer count as a signal.
+        XCTAssertTrue(snapshot.hasAnySignal)
     }
 
     func test_build_bottomInsight_freshUserGetsCalorieTargetNudge() {

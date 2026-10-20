@@ -84,7 +84,7 @@ enum StackAdjustmentEngine {
             switch self {
             case .discard: return "Discard"
             case .moveTo(_, let name, _): return "Move to \(name)"
-            case .createStack: return "Create new stack"
+            case .createStack: return "Create new protocol"
             }
         }
 

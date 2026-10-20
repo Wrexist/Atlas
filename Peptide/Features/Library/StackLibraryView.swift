@@ -47,7 +47,7 @@ struct StackLibraryView: View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
                 GlassTextField(
-                    placeholder: "Search stacks, peptides…",
+                    placeholder: "Search protocols, peptides…",
                     text: $searchText
                 )
                 .padding(.horizontal, Spacing.screenPadding)
@@ -80,7 +80,7 @@ struct StackLibraryView: View {
             .padding(.bottom, Spacing.xxxxl)
         }
         .background(AppColor.background)
-        .navigationTitle("Stack Library")
+        .navigationTitle("Protocol Library")
         // The `CommunityStack` navigation destination is declared by
         // every host stack that pushes this view (ProtocolListView,
         // ProtocolBuilderView). Declaring it again here collides on
@@ -139,7 +139,7 @@ struct StackLibraryView: View {
     private var emptyState: some View {
         EmptyStateView(
             icon: "magnifyingglass",
-            title: "No stacks match",
+            title: "No protocols match",
             message: "Try a different search term or clear the filter.",
             action: .init(title: "Clear filters", icon: "xmark.circle.fill") {
                 AppAnimation.with(AppAnimation.springSnappy) {

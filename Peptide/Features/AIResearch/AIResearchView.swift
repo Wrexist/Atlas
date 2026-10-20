@@ -213,7 +213,7 @@ struct AIResearchView: View {
     private var composer: some View {
         HStack(spacing: Spacing.sm) {
             GlassTextField(
-                placeholder: "Ask about a compound, stack, or study…",
+                placeholder: "Ask about a compound, protocol, or study…",
                 text: $input,
                 icon: nil,
                 axis: .vertical,

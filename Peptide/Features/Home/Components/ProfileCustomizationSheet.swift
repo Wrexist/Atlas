@@ -394,12 +394,12 @@ struct ProfileCustomizationSheet: View {
                 accessibilityLabel: "Days logged: \(dataStore.totalDaysLogged)"
             )
             StatTile(
-                label: "Stacks",
+                label: "Protocols",
                 value: "\(dataStore.protocols.count)",
                 icon: "square.stack.3d.up.fill",
                 tint: AppColor.accentLight,
                 surface: .glass,
-                accessibilityLabel: "Stacks created: \(dataStore.protocols.count)"
+                accessibilityLabel: "Protocols created: \(dataStore.protocols.count)"
             )
             StatTile(
                 label: "Member",

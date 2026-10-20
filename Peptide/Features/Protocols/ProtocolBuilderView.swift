@@ -110,7 +110,7 @@ struct ProtocolBuilderView: View {
     private var previewProtocol: PeptideProtocol {
         PeptideProtocol(
             id: editingProtocol?.id ?? previewID,
-            name: name.trimmingCharacters(in: .whitespaces).isEmpty ? "New Stack" : name,
+            name: name.trimmingCharacters(in: .whitespaces).isEmpty ? "New Protocol" : name,
             peptides: orderedSelectedPeptides,
             schedule: defaultSchedule,
             peptideSchedules: peptideOverrides,
@@ -296,7 +296,7 @@ struct ProtocolBuilderView: View {
                             .foregroundStyle(AppColor.textPrimary)
 
                         if !isAppending {
-                            GlassTextField(placeholder: "e.g., Recovery Stack", text: $name, icon: nil)
+                            GlassTextField(placeholder: "e.g., Recovery Protocol", text: $name, icon: nil)
                         } else if let target = appendTargetProtocol {
                             Text("Adding to \"\(target.name)\". The peptides you pick below will inherit \(target.schedule.summary).")
                                 .font(AppFont.caption)

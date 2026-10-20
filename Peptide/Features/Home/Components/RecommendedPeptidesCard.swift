@@ -7,7 +7,7 @@ struct RecommendedPeptidesCard: View {
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                Label("Recommended for Your Stack", systemImage: "sparkles")
+                Label("Recommended for Your Protocol", systemImage: "sparkles")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
 

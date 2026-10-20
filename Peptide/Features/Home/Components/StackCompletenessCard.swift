@@ -21,7 +21,7 @@ struct StackCompletenessCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: Spacing.xs) {
-                    Text("Stack Completeness")
+                    Text("Protocol Completeness")
                         .font(AppFont.subheadline)
                         .fontWeight(.semibold)
                         .foregroundStyle(AppColor.textPrimary)

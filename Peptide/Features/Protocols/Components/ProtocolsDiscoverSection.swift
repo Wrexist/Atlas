@@ -22,7 +22,7 @@ struct ProtocolsDiscoverSection: View {
 
         if !plannerSuggestions.isEmpty || !recommendations.isEmpty {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                HomeSectionHeader(eyebrow: "Discover", title: "Add to your stack")
+                HomeSectionHeader(eyebrow: "Discover", title: "Add to your protocol")
 
                 if !plannerSuggestions.isEmpty {
                     SmartCyclePlannerCard(suggestions: plannerSuggestions)

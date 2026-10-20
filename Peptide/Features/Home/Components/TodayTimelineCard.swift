@@ -1,15 +1,16 @@
 import SwiftUI
 
 /// Bevel-style chronological "what happened today" feed — merges
-/// dose entries, meals, the daily check-in, and workouts into one
-/// vertically sorted timeline. Lets the user read their day as a
-/// single story instead of jumping between four sections.
+/// meals, the daily check-in, and workouts into one vertically
+/// sorted timeline. Doses are left out on purpose: they have one
+/// home on Today, the "Today's doses" section, which carries their
+/// taken/pending state.
 ///
 /// Build logic is a pure function (`TodayTimelineEvent.build(...)`)
 /// so it can be unit-tested without standing up a DataStore.
 struct TodayTimelineCard: View {
     let events: [TodayTimelineEvent]
-    /// Opens the thing a row describes — the dose sheet, Meals, Train.
+    /// Opens the thing a row describes — Meals, Train, the check-in.
     /// Nil keeps the rows display-only.
     var onTap: ((TodayTimelineEvent) -> Void)?
 
@@ -53,15 +54,10 @@ struct TodayTimelineCard: View {
         }
     }
 
-    /// One VoiceOver stop per row: "7:00 AM, BPC-157, 500 mcg, pending".
+    /// One VoiceOver stop per row: "7:15 AM, Oats and berries, 420 kcal · 28g protein".
     private func accessibilityLabel(for event: TodayTimelineEvent) -> String {
         var parts = [event.date.formatted(date: .omitted, time: .shortened), event.title]
         if let subtitle = event.subtitle { parts.append(subtitle) }
-        if event.isCompleted {
-            parts.append(String(localized: "done"))
-        } else if event.isPending {
-            parts.append(String(localized: "pending"))
-        }
         return parts.joined(separator: ", ")
     }
 
@@ -99,22 +95,6 @@ struct TodayTimelineCard: View {
                         .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(1)
                     Spacer(minLength: 0)
-                    if event.isCompleted {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(AppFont.scaled(11, weight: .bold))
-                            .foregroundStyle(AppColor.success)
-                    } else if event.isPending {
-                        Text("Pending")
-                            .textCase(.uppercase)
-                            .font(AppFont.badgeSmall)
-                            .tracking(0.5)
-                            .foregroundStyle(AppColor.warning)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 1)
-                            .background {
-                                Capsule().fill(AppColor.warning.opacity(0.15))
-                            }
-                    }
                 }
                 if let subtitle = event.subtitle {
                     Text(subtitle)
@@ -129,7 +109,6 @@ struct TodayTimelineCard: View {
 
     private func color(for tint: TodayTimelineEvent.TimelineTint) -> Color {
         switch tint {
-        case .dose:    AppColor.accentPrimary
         case .meal:    AppColor.macroProtein
         case .checkIn: AppColor.metricHRV
         case .workout: AppColor.metricActivity
@@ -150,37 +129,20 @@ struct TodayTimelineEvent: Identifiable, Equatable, Sendable {
     let tint: TimelineTint
     let title: String
     let subtitle: String?
-    let isCompleted: Bool
-    let isPending: Bool
 
     enum TimelineTint: Equatable, Sendable {
-        case dose, meal, checkIn, workout
+        case meal, checkIn, workout
     }
 
     /// Builds the sorted timeline from the day's raw entries.
     /// Caller provides the data; the function decides ordering and
     /// row content. Pure — no DataStore or HealthKit reads.
     static func build(
-        doses: [ProtocolEntry],
         meals: [MealEntry],
         checkIn: OutcomeEntry?,
-        workouts: [WorkoutEntry],
-        now: Date = Date()
+        workouts: [WorkoutEntry]
     ) -> [TodayTimelineEvent] {
         var events: [TodayTimelineEvent] = []
-
-        for entry in doses {
-            events.append(TodayTimelineEvent(
-                id: "dose-\(entry.id)",
-                date: entry.actualTime ?? entry.date,
-                icon: "syringe.fill",
-                tint: .dose,
-                title: entry.peptide.abbreviation,
-                subtitle: entry.dose,
-                isCompleted: entry.completed,
-                isPending: !entry.completed && (entry.date <= now)
-            ))
-        }
 
         for meal in meals {
             events.append(TodayTimelineEvent(
@@ -189,9 +151,7 @@ struct TodayTimelineEvent: Identifiable, Equatable, Sendable {
                 icon: meal.category.icon,
                 tint: .meal,
                 title: meal.name,
-                subtitle: "\(meal.calories) kcal · \(meal.proteinG)g protein",
-                isCompleted: true,
-                isPending: false
+                subtitle: "\(meal.calories) kcal · \(meal.proteinG)g protein"
             ))
         }
 
@@ -203,9 +163,7 @@ struct TodayTimelineEvent: Identifiable, Equatable, Sendable {
                 icon: "heart.text.square.fill",
                 tint: .checkIn,
                 title: "Daily check-in",
-                subtitle: String(format: "%.1f / 5 across energy, sleep, recovery, mood, focus", avg),
-                isCompleted: true,
-                isPending: false
+                subtitle: String(format: "%.1f / 5 across energy, sleep, recovery, mood, focus", avg)
             ))
         }
 
@@ -216,9 +174,7 @@ struct TodayTimelineEvent: Identifiable, Equatable, Sendable {
                 icon: "figure.run",
                 tint: .workout,
                 title: workout.name,
-                subtitle: workoutSubtitle(workout),
-                isCompleted: true,
-                isPending: false
+                subtitle: workoutSubtitle(workout)
             ))
         }
 
@@ -242,18 +198,12 @@ struct TodayTimelineEvent: Identifiable, Equatable, Sendable {
         cal.date(bySettingHour: h, minute: m, second: 0, of: now) ?? now
     }
     let events: [TodayTimelineEvent] = [
-        .init(id: "1", date: at(6, 30), icon: "syringe.fill", tint: .dose,
-              title: "BPC-157", subtitle: "5 mg",
-              isCompleted: true, isPending: false),
         .init(id: "2", date: at(7, 15), icon: "sun.horizon.fill", tint: .meal,
-              title: "Oats and berries", subtitle: "420 kcal · 28g protein",
-              isCompleted: true, isPending: false),
+              title: "Oats and berries", subtitle: "420 kcal · 28g protein"),
         .init(id: "3", date: at(8, 0), icon: "figure.run", tint: .workout,
-              title: "Push day", subtitle: "45 min · 5×5",
-              isCompleted: true, isPending: false),
-        .init(id: "4", date: at(18, 0), icon: "syringe.fill", tint: .dose,
-              title: "Ipamorelin", subtitle: "200 mcg",
-              isCompleted: false, isPending: true),
+              title: "Push day", subtitle: "45 min · 5×5"),
+        .init(id: "4", date: at(18, 30), icon: "heart.text.square.fill", tint: .checkIn,
+              title: "Daily check-in", subtitle: "3.8 / 5 across energy, sleep, recovery, mood, focus"),
     ]
     return ZStack {
         AppColor.background.ignoresSafeArea()
