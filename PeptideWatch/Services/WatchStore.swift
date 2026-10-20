@@ -61,6 +61,51 @@ final class WatchStore: NSObject, ObservableObject {
         watchData = data
         persistToDisk(data)
         WidgetCenter.shared.reloadAllTimelines()
+        scheduleRestEndHaptic(for: data.workout)
+    }
+
+    /// Sends a workout tap to the phone and shows its likely result at
+    /// once, so logging a set never waits on the round trip. The phone's
+    /// next push replaces the guess with what it actually applied.
+    func sendWorkout(_ command: WatchWorkoutCommand) {
+        guard let workout = watchData.workout else { return }
+        let request = WatchWorkoutRequest(sessionId: workout.sessionId, command: command, issuedAt: Date())
+        guard let payload = request.encoded() else { return }
+        if case .completeSet = command {
+            // A second tap would log the next set too, since the first
+            // one already moved the page on. Held like a dose toggle.
+            guard !isSending else { return }
+            isSending = true
+            WKInterfaceDevice.current().play(.success)
+        } else {
+            WKInterfaceDevice.current().play(.click)
+        }
+        apply(watchData.replacingWorkout(workout.applying(command, at: request.issuedAt)))
+        sendOrQueue([
+            "action": WatchMessage.workout,
+            WatchMessage.workoutRequestKey: payload,
+        ])
+    }
+
+    /// The rest countdown currently armed, so a push that leaves the rest
+    /// unchanged doesn't restart the wait.
+    private var armedRestEnd: Date?
+    private var restHapticTask: Task<Void, Never>?
+
+    /// Taps the wrist when the rest ends while the app is open. With the
+    /// app closed, the phone's own "Time to lift" notification reaches the
+    /// watch instead.
+    private func scheduleRestEndHaptic(for workout: WatchWorkoutSnapshot?) {
+        let endsAt = workout.flatMap { $0.isResting(at: Date()) ? $0.rest?.endsAt : nil }
+        guard endsAt != armedRestEnd else { return }
+        armedRestEnd = endsAt
+        restHapticTask?.cancel()
+        guard let endsAt else { return }
+        restHapticTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(endsAt.timeIntervalSinceNow))
+            guard !Task.isCancelled, self?.armedRestEnd == endsAt else { return }
+            WKInterfaceDevice.current().play(.notification)
+        }
     }
 
     /// Best effort by design: the published state is already updated, so

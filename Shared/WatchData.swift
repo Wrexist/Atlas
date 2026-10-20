@@ -117,9 +117,9 @@ enum SleepBand: Sendable {
 }
 
 struct WatchData: Codable, Sendable {
-    let todayEntries: [WatchEntry]
-    let completedToday: Int
-    let totalToday: Int
+    private(set) var todayEntries: [WatchEntry]
+    private(set) var completedToday: Int
+    private(set) var totalToday: Int
     let lastUpdated: Date
     /// Current dose-logging streak. Decode-if-present so a phone running an
     /// older build that doesn't write this field still decodes cleanly on
@@ -160,6 +160,11 @@ struct WatchData: Codable, Sendable {
     /// Recovery + sleep. Nil when Apple Health isn't connected on the
     /// phone; the Watch hides the Recovery and Sleep pages in that case.
     let vitals: WatchVitalsSnapshot?
+    /// The workout in progress on the phone, or nil. Drives the Watch's
+    /// Workout page and the live state of the Training complication.
+    private(set) var workout: WatchWorkoutSnapshot?
+    /// This week's training, for the Training complication between workouts.
+    let training: WatchTrainingSnapshot?
 
     var compliance: Double {
         totalToday > 0 ? Double(completedToday) / Double(totalToday) : 0
@@ -184,7 +189,9 @@ struct WatchData: Codable, Sendable {
         trainingHabitsDone: Int? = nil,
         trainingHabitsTotal: Int? = nil,
         measurementUnit: String? = nil,
-        vitals: WatchVitalsSnapshot? = nil
+        vitals: WatchVitalsSnapshot? = nil,
+        workout: WatchWorkoutSnapshot? = nil,
+        training: WatchTrainingSnapshot? = nil
     ) {
         self.todayEntries = todayEntries
         self.completedToday = completedToday
@@ -205,6 +212,8 @@ struct WatchData: Codable, Sendable {
         self.trainingHabitsTotal = trainingHabitsTotal
         self.measurementUnit = measurementUnit
         self.vitals = vitals
+        self.workout = workout
+        self.training = training
     }
 
     init(from decoder: Decoder) throws {
@@ -228,33 +237,28 @@ struct WatchData: Codable, Sendable {
         trainingHabitsTotal = try c.decodeIfPresent(Int.self, forKey: .trainingHabitsTotal)
         measurementUnit = try c.decodeIfPresent(String.self, forKey: .measurementUnit)
         vitals = try c.decodeIfPresent(WatchVitalsSnapshot.self, forKey: .vitals)
+        workout = try c.decodeIfPresent(WatchWorkoutSnapshot.self, forKey: .workout)
+        training = try c.decodeIfPresent(WatchTrainingSnapshot.self, forKey: .training)
     }
 
     /// The same snapshot with a new dose list — what an optimistic Watch
-    /// tap needs. Rebuilding through the memberwise init instead silently
-    /// dropped every field the caller forgot to re-pass.
+    /// tap needs. Copying and mutating carries every other field forward;
+    /// rebuilding through the memberwise init silently dropped whichever
+    /// ones the caller forgot to re-pass.
     func replacingEntries(_ entries: [WatchEntry]) -> WatchData {
-        WatchData(
-            todayEntries: entries,
-            completedToday: entries.filter(\.completed).count,
-            totalToday: entries.count,
-            lastUpdated: lastUpdated,
-            currentStreak: currentStreak,
-            weeklyCompliance: weeklyCompliance,
-            totalDosesLogged: totalDosesLogged,
-            nutrition: nutrition,
-            atlasScore: atlasScore,
-            atlasLevel: atlasLevel,
-            atlasTier: atlasTier,
-            atlasProgress: atlasProgress,
-            atlasTodayEarned: atlasTodayEarned,
-            healthHabitsDone: healthHabitsDone,
-            healthHabitsTotal: healthHabitsTotal,
-            trainingHabitsDone: trainingHabitsDone,
-            trainingHabitsTotal: trainingHabitsTotal,
-            measurementUnit: measurementUnit,
-            vitals: vitals
-        )
+        var copy = self
+        copy.todayEntries = entries
+        copy.completedToday = entries.filter(\.completed).count
+        copy.totalToday = entries.count
+        return copy
+    }
+
+    /// The same snapshot with a new workout state, for an optimistic
+    /// Watch tap and for the phone's set-by-set pushes.
+    func replacingWorkout(_ workout: WatchWorkoutSnapshot?) -> WatchData {
+        var copy = self
+        copy.workout = workout
+        return copy
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -266,6 +270,7 @@ struct WatchData: Codable, Sendable {
         case trainingHabitsDone, trainingHabitsTotal
         case measurementUnit
         case vitals
+        case workout, training
     }
 
     static let empty = WatchData(
@@ -288,4 +293,8 @@ enum WatchMessage {
     /// all fire for free.
     static let logWater = "logWater"
     static let ozKey = "oz"
+    /// Watch → phone workout command. Carries `workoutRequestKey` with a
+    /// JSON-encoded `WatchWorkoutRequest`.
+    static let workout = "workout"
+    static let workoutRequestKey = "request"
 }
