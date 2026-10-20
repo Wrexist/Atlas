@@ -17,4 +17,7 @@ enum CrossProcessNotification {
     static let pendingDoseLogQueued = "com.peptidesai.app.pendingDoseLogQueued"
     /// Posted when a Control Center or widget tap queues a glass of water.
     static let pendingWaterLogQueued = "com.peptidesai.app.pendingWaterLogQueued"
+    /// Posted when the workout Live Activity's button queues a skip-rest
+    /// or complete-set tap.
+    static let pendingWorkoutActionQueued = "com.peptidesai.app.pendingWorkoutActionQueued"
 }

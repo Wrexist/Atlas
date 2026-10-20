@@ -243,4 +243,40 @@ final class WorkoutFocusServiceTests: XCTestCase {
         XCTAssertNil(result.session.focus?.rest)
         XCTAssertFalse(result.session.isPaused)
     }
+
+    func test_completeNextSet_ticksFirstOpenSetAndStartsRest() throws {
+        let entry = start()
+        service.completeNextSet()
+        let session = try XCTUnwrap(service.activeSession)
+        XCTAssertTrue(session.exercises[0].sets[0].completed)
+        XCTAssertEqual(session.completedSetCount, 1)
+        XCTAssertEqual(session.focus?.rest?.targetSetID, entry.sets[1].id)
+    }
+
+    func test_completeNextSet_duringRest_ticksTheSetTheRestLeadsTo() throws {
+        start()
+        service.completeNextSet()
+        service.completeNextSet()
+        let sets = try XCTUnwrap(service.activeSession?.exercises[0].sets)
+        XCTAssertEqual(sets.map(\.completed), [true, true, false, false])
+    }
+
+    func test_completeNextSet_whilePaused_changesNothing() {
+        start()
+        service.togglePause()
+        service.completeNextSet()
+        XCTAssertEqual(service.activeSession?.completedSetCount, 0)
+    }
+
+    func test_liveActivityTapForAnotherWorkout_isDropped() throws {
+        start()
+        PendingWorkoutActionStore.enqueue(.init(sessionId: UUID(), action: .completeSet, tappedAt: Date()))
+        WorkoutActivityActionProcessor.drain()
+        XCTAssertEqual(service.activeSession?.completedSetCount, 0)
+
+        let id = try XCTUnwrap(service.activeSession?.id)
+        PendingWorkoutActionStore.enqueue(.init(sessionId: id, action: .completeSet, tappedAt: Date()))
+        WorkoutActivityActionProcessor.drain()
+        XCTAssertEqual(service.activeSession?.completedSetCount, 1)
+    }
 }

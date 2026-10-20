@@ -263,6 +263,7 @@ struct PeptideApp: App {
                 // the same scene-phase tick.
                 PendingDoseLogProcessor.drain(into: dataStore)
                 QuickActionRouter.drainPendingWater(into: dataStore)
+                WorkoutActivityActionProcessor.drain()
                 // Re-evaluate which scheduled doses are in their
                 // active window so the lock-screen Live Activities
                 // start / end without needing the user to open the

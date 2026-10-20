@@ -357,6 +357,22 @@ final class WorkoutSessionService {
         persist(session)
     }
 
+    /// The Live Activity's "Complete set": ticks the set the rest is
+    /// counting down to, or else the next open set of the current
+    /// exercise, exactly as checking it off in the app would.
+    func completeNextSet(now: Date = Date()) {
+        guard let session = activeSession, !session.isPaused else { return }
+        let target = session.focus?.rest.map { (entry: $0.targetEntryID, set: $0.targetSetID) }
+            ?? session.selectedExercise.flatMap { session.nextPendingSet(after: $0.id) }
+        guard let target,
+              var set = session.exercises.first(where: { $0.id == target.entry })?
+                .sets.first(where: { $0.id == target.set }),
+              !set.completed
+        else { return }
+        set.completed = true
+        updateSet(set, inExerciseEntryID: target.entry, now: now)
+    }
+
     func adjustRest(by seconds: TimeInterval, now: Date = Date()) {
         guard var session = activeSession, var rest = session.focus?.rest else { return }
         let remaining = max(0, rest.remaining(at: now) + seconds)

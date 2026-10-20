@@ -90,8 +90,25 @@ enum QuickActionSheet: String, Identifiable {
 
 /// SwiftUI has no hook for home-screen quick actions, so a minimal app
 /// delegate installs a scene delegate that forwards them to
-/// `QuickActionInbox`, which `PeptideApp` watches.
+/// `QuickActionInbox`, which `PeptideApp` watches. It also listens for
+/// the workout Live Activity's button.
 final class AtlasAppDelegate: NSObject, UIApplicationDelegate {
+    private var workoutActionToken: PendingDoseLogProcessor.ObservationToken?
+
+    /// Registered here rather than in a view because iOS may launch the
+    /// app in the background just to run a Live Activity button's
+    /// intent, and no scene builds on that launch.
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        MainActor.assumeIsolated {
+            workoutActionToken = WorkoutActivityActionProcessor.startObserving()
+            WorkoutActivityActionProcessor.drain()
+        }
+        return true
+    }
+
     func application(
         _ application: UIApplication,
         configurationForConnecting connectingSceneSession: UISceneSession,
