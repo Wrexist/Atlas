@@ -352,6 +352,7 @@ struct ActiveWorkoutView: View {
                         previousSetsLookup: {
                             sessionService.previousSessionSets(forExerciseID: entry.exerciseID)
                         },
+                        progression: sessionService.progression(for: entry),
                         effectiveRestSeconds: entry.restSeconds ?? defaultRestSeconds,
                         onSetUpdate: { updated in
                             sessionService.updateSet(updated, inExerciseEntryID: entry.id)
@@ -368,6 +369,9 @@ struct ActiveWorkoutView: View {
                         },
                         onSetRestSeconds: { seconds in
                             sessionService.setRestSeconds(seconds, forExerciseEntryID: entry.id)
+                        },
+                        onApplyProgression: {
+                            sessionService.applyProgression(toExerciseEntryID: entry.id)
                         }
                     )
                 }

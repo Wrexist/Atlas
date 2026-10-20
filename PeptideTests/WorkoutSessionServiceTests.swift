@@ -313,6 +313,40 @@ final class WorkoutSessionServiceTests: XCTestCase {
         XCTAssertEqual(service.lastCompletedSet(forExerciseID: bench().id)?.reps, 3)
     }
 
+    func test_startWorkout_fromRoutine_afterHittingTheTarget_seedsTheNextLoad() {
+        let saved = DataStore.current
+        DataStore.current = nil
+        defer { DataStore.current = saved }
+        logBenchWorkout(weightKg: 80, reps: 8)
+
+        let session = service.startWorkout(routine: Routine(name: "Push", exercises: [
+            RoutineExercise(exerciseID: bench().id, index: 0, targetSets: 3, targetReps: 8),
+        ]))
+
+        XCTAssertEqual(session.exercises[0].sets.map(\.weightKg), [82.5, 82.5, 82.5])
+        XCTAssertEqual(session.exercises[0].sets.map(\.reps), [8, 8, 8])
+    }
+
+    func test_applyProgression_fillsTheUncheckedSets() throws {
+        let saved = DataStore.current
+        DataStore.current = nil
+        defer { DataStore.current = saved }
+        logBenchWorkout(weightKg: 80, reps: 10)
+        _ = service.startWorkout()
+        service.addExercise(bench())
+        let entry = try XCTUnwrap(service.activeSession?.exercises.first)
+        var set = try XCTUnwrap(entry.sets.first)
+        set.weightKg = 70
+        set.reps = 12
+        service.updateSet(set, inExerciseEntryID: entry.id)
+
+        service.applyProgression(toExerciseEntryID: entry.id)
+
+        let applied = try XCTUnwrap(service.activeSession?.exercises.first?.sets.first)
+        XCTAssertEqual(applied.weightKg, 82.5)
+        XCTAssertEqual(applied.reps, 6)
+    }
+
     func test_renameWorkout_emptyStringClearsName() {
         _ = service.startWorkout(routine: Routine(name: "Old", exercises: []))
         service.renameWorkout("  ")

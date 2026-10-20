@@ -69,6 +69,7 @@ final class WorkoutSessionService {
             RoutineSeedEngine.sessionExercises(for: routine) { exerciseID in
                 lastCompletedSet(forExerciseID: exerciseID)
             }
+            .map { entry in progressed(entry, routine: routine) }
         } ?? []
 
         let session = WorkoutSession(
@@ -166,7 +167,7 @@ final class WorkoutSessionService {
         // placeholder every time (audit Train M4). Default to a
         // conservative 8 reps when no history exists.
         let seed = lastCompletedSet(forExerciseID: exercise.id)
-        let entry = WorkoutExerciseEntry(
+        let entry = progressed(WorkoutExerciseEntry(
             exerciseID: exercise.id,
             index: nextIndex,
             sets: [SetEntry(
@@ -175,7 +176,7 @@ final class WorkoutSessionService {
                 reps: seed?.reps ?? 8,
                 measurement: seed?.measurement
             )]
-        )
+        ), routine: nil)
         session.exercises.append(entry)
         if session.focus == nil { session.focus = WorkoutFocusState() }
         session.focus?.selectedEntryID = entry.id
@@ -330,6 +331,49 @@ final class WorkoutSessionService {
             if !completed.isEmpty { return completed }
         }
         return []
+    }
+
+    // MARK: - Progression
+
+    /// The next step for an exercise in the active workout, read from the
+    /// last session that logged it. Nil without history or comparable load.
+    func progression(for entry: WorkoutExerciseEntry) -> ProgressionEngine.Suggestion? {
+        let routine = activeSession?.routineID.flatMap { id in
+            RoutineStore.shared.routines.first { $0.id == id }
+        }
+        return progression(forExerciseID: entry.exerciseID, routine: routine)
+    }
+
+    /// Fills the exercise's unchecked working sets with its suggestion.
+    func applyProgression(toExerciseEntryID entryID: UUID) {
+        guard var session = activeSession,
+              let idx = session.exercises.firstIndex(where: { $0.id == entryID }),
+              let suggestion = progression(for: session.exercises[idx])
+        else { return }
+        session.exercises[idx].sets = ProgressionEngine.apply(suggestion, to: session.exercises[idx].sets)
+        persist(session)
+    }
+
+    private func progression(forExerciseID id: String, routine: Routine?) -> ProgressionEngine.Suggestion? {
+        let exercise = ExerciseLibrary.shared.lookup(id: id)
+        let target = routine?.exercises.first(where: { $0.exerciseID == id })?.targetReps
+        let unit = DataStore.current?.profile.bodyMetrics.unit ?? .metric
+        return ProgressionEngine.suggestion(
+            previous: previousSessionSets(forExerciseID: id),
+            repRange: ProgressionEngine.repRange(targetReps: target, mechanic: exercise?.mechanic),
+            incrementKg: ProgressionEngine.incrementKg(for: exercise?.equipmentKind ?? .other, unit: unit)
+        )
+    }
+
+    /// Seeds a new entry at its suggested load when auto-progression is on
+    /// (the default), so the workout opens at the weight to beat.
+    private func progressed(_ entry: WorkoutExerciseEntry, routine: Routine?) -> WorkoutExerciseEntry {
+        guard DataStore.current?.profile.trainingPreferences?.autoProgression ?? true,
+              let suggestion = progression(forExerciseID: entry.exerciseID, routine: routine)
+        else { return entry }
+        var seeded = entry
+        seeded.sets = ProgressionEngine.apply(suggestion, to: entry.sets)
+        return seeded
     }
 
     // MARK: - Focus and session clocks

@@ -137,6 +137,14 @@ struct WorkoutFocusView: View {
             }
             statusHeader(entry)
             Divider()
+            if let progression = service.progression(for: entry) {
+                ProgressionHint(
+                    suggestion: progression, unit: unit,
+                    canApply: ProgressionEngine.isPending(progression, in: entry.sets)
+                ) {
+                    service.applyProgression(toExerciseEntryID: entry.id)
+                }
+            }
             if exercise?.equipmentKind == .dumbbell {
                 Text("Weight per dumbbell · Reps")
                     .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)

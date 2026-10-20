@@ -11,6 +11,8 @@ struct WorkoutExerciseCard: View {
     /// exercise. Each row's "60 × 8" cue is paired to one of them by
     /// `PreviousSetEngine`; empty means no history and the cue reads "—".
     let previousSetsLookup: () -> [SetEntry]
+    /// Today's target from `ProgressionEngine`; nil without history.
+    let progression: ProgressionEngine.Suggestion?
     /// Rest the timer will use after a set here — the entry's own
     /// override or the user's default — so the menu can tick it.
     let effectiveRestSeconds: Int
@@ -19,6 +21,7 @@ struct WorkoutExerciseCard: View {
     let onRemoveSet: (UUID) -> Void
     let onRemoveExercise: () -> Void
     let onSetRestSeconds: (Int) -> Void
+    let onApplyProgression: () -> Void
 
     @State private var confirmingRemoval = false
     @State private var showingPlateCalculator = false
@@ -32,6 +35,13 @@ struct WorkoutExerciseCard: View {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 header
                 Divider().background(AppColor.glassBorder)
+                if let progression {
+                    ProgressionHint(
+                        suggestion: progression, unit: unit,
+                        canApply: ProgressionEngine.isPending(progression, in: entry.sets),
+                        onApply: onApplyProgression
+                    )
+                }
                 setsList
                 addSetButton
             }
