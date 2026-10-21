@@ -32,7 +32,8 @@ enum RoutineSeedEngine {
         for routine: Routine,
         previousSet: (String) -> SetEntry? = { _ in nil }
     ) -> [WorkoutExerciseEntry] {
-        routine.exercises
+        let supersets = supersetMembers(in: routine)
+        return routine.exercises
             .sorted { $0.index < $1.index }
             .enumerated()
             .map { position, slot in
@@ -41,9 +42,22 @@ enum RoutineSeedEngine {
                     index: position,
                     sets: seededSets(for: slot, previous: previousSet(slot.exerciseID)),
                     note: slot.note,
-                    restSeconds: slot.restSeconds ?? routine.defaultRestSeconds
+                    restSeconds: slot.restSeconds ?? routine.defaultRestSeconds,
+                    supersetGroup: slot.supersetGroup.flatMap { supersets[$0] == nil ? nil : $0 }
                 )
             }
+    }
+
+    /// Slots of each superset with at least two members, in routine order.
+    /// A group left with one slot (its partner deleted in the builder) is
+    /// no superset, so it's dropped here rather than seeded.
+    static func supersetMembers(in routine: Routine) -> [UUID: [RoutineExercise]] {
+        let grouped = routine.exercises
+            .sorted { $0.index < $1.index }
+            .compactMap { slot in slot.supersetGroup.map { (group: $0, slot: slot) } }
+        return Dictionary(grouping: grouped, by: { $0.group })
+            .mapValues { members in members.map { $0.slot } }
+            .filter { $0.value.count > 1 }
     }
 
     private static func seededSets(
@@ -65,7 +79,7 @@ enum RoutineSeedEngine {
     /// Total target sets across the routine. The routine card's headline
     /// number, and what makes two routines comparable at a glance.
     static func totalSets(in routine: Routine) -> Int {
-        routine.exercises.reduce(0) { $0 + min(max(1, $1.targetSets), maxSeededSets) }
+        routine.exercises.reduce(0) { $0 + clampedSets($1) }
     }
 
     /// Rough wall-clock minutes: work plus rest between sets. Rounded to
@@ -73,13 +87,30 @@ enum RoutineSeedEngine {
     /// promising "47 min".
     static func estimatedMinutes(for routine: Routine) -> Int {
         guard !routine.exercises.isEmpty else { return 0 }
-        let seconds = routine.exercises.reduce(0) { total, slot in
-            let sets = min(max(1, slot.targetSets), maxSeededSets)
-            let rest = slot.restSeconds ?? routine.defaultRestSeconds ?? fallbackRestSeconds
-            // One fewer rest than sets — the last set of an exercise runs
-            // into the next exercise's setup, not a logged rest.
-            return total + sets * secondsPerSet + max(0, sets - 1) * rest
-        }
+        let seconds = estimatedSeconds(for: routine)
         return max(5, Int((Double(seconds) / 60.0 / 5.0).rounded()) * 5)
+    }
+
+    /// Unrounded work plus rest. A superset rests once per round, after its
+    /// last member, so pairing two exercises saves their in-between rests.
+    static func estimatedSeconds(for routine: Routine) -> Int {
+        let supersets = supersetMembers(in: routine)
+        return routine.exercises.reduce(0) { total, slot in
+            let sets = clampedSets(slot)
+            let rest = slot.restSeconds ?? routine.defaultRestSeconds ?? fallbackRestSeconds
+            let work = sets * secondsPerSet
+            guard let members = slot.supersetGroup.flatMap({ supersets[$0] }) else {
+                // One fewer rest than sets — the last set of an exercise runs
+                // into the next exercise's setup, not a logged rest.
+                return total + work + max(0, sets - 1) * rest
+            }
+            guard members.last?.id == slot.id else { return total + work }
+            let rounds = members.map(clampedSets).max() ?? sets
+            return total + work + max(0, rounds - 1) * rest
+        }
+    }
+
+    private static func clampedSets(_ slot: RoutineExercise) -> Int {
+        min(max(1, slot.targetSets), maxSeededSets)
     }
 }

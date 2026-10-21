@@ -59,7 +59,8 @@ enum RoutineEditEngine {
                     targetRPE: slot.targetRPE,
                     targetPercentOf1RM: slot.targetPercentOf1RM,
                     restSeconds: slot.restSeconds,
-                    note: slot.note
+                    note: slot.note,
+                    supersetGroup: slot.supersetGroup
                 )
             },
             defaultRestSeconds: routine.defaultRestSeconds,

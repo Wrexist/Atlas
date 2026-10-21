@@ -58,6 +58,18 @@ final class RoutineEditEngineTests: XCTestCase {
                       "Shared slot ids would make the two routines edit each other")
     }
 
+    func test_duplicate_keepsSupersetPairs() {
+        let group = UUID()
+        let original = Routine(name: "Arms", exercises: [
+            RoutineExercise(exerciseID: "Barbell_Curl", index: 0, supersetGroup: group),
+            RoutineExercise(exerciseID: "Triceps_Pushdown", index: 1, supersetGroup: group),
+        ])
+
+        let copy = RoutineEditEngine.duplicate(original, existingNames: ["Arms"])
+
+        XCTAssertEqual(copy.exercises.map(\.supersetGroup), [group, group])
+    }
+
     func test_duplicate_namesTheCopyFinderStyle() {
         let original = routine("Push day")
 
