@@ -1698,8 +1698,7 @@ final class DataStore {
             if HealthSyncSettings.isEnabled {
                 Task { await HealthKitService.shared.writeWorkout(session) }
             }
-            updateWidgetData()
-            updateWatchData()
+            refreshTrainingGlanceables()
         }
         // Quick-log sessions have no exercises, so no PRs are possible.
         recordWorkoutFinished(detectedPRCount: 0)
@@ -1729,8 +1728,7 @@ final class DataStore {
         if repo.commitDidFail {
             lastError = Self.saveFailureMessage
         } else {
-            updateWidgetData()
-            updateWatchData()
+            refreshTrainingGlanceables()
         }
     }
 
@@ -1768,6 +1766,7 @@ final class DataStore {
     /// today's. Same reasoning as the cache bump in
     /// `recordWorkoutFinished`, applied to the out-of-process snapshot.
     func refreshTrainingGlanceables() {
+        widgetWorkouts = nil
         updateWidgetData()
         updateWatchData()
     }
@@ -1792,8 +1791,7 @@ final class DataStore {
         PRDetectionEngine.shared.recompute(exerciseIDs: exerciseIDs)
         cacheVersion &+= 1
         revision &+= 1
-        updateWidgetData()
-        updateWatchData()
+        refreshTrainingGlanceables()
     }
 
     /// (count, totalMinutes) for workout sessions logged on `date`'s
@@ -2396,6 +2394,7 @@ final class DataStore {
         self.protocols = newProtocols
         self.entries = newEntries
         cacheVersion &+= 1
+        widgetWorkouts = nil
         // Refresh widget + watch surfaces so the lock-screen
         // accessory + Watch Today page render the demo numbers
         // for the screenshots. Safe to call even though
@@ -2427,6 +2426,9 @@ final class DataStore {
     @ObservationIgnored private(set) var widgetUpdateCountForTesting = 0
     @ObservationIgnored private(set) var watchUpdateCountForTesting = 0
     #endif
+    /// The payload last written to the App Group container.
+    @ObservationIgnored private var lastWidgetData: WidgetData?
+    @ObservationIgnored private var widgetWorkouts: [WorkoutSession]?
 
     /// Last recovery + sleep glance pushed to the Watch. HealthKit is
     /// async-only and `updateWatchData()` is sync, so the snapshot is
@@ -2517,16 +2519,26 @@ final class DataStore {
             consumption: LifestyleDataLogic.consumption(in: profile, for: Date()),
             targets: profile.nutritionTargets,
             breakdown: LifestyleDataLogic.mealsByCategory(in: profile, for: Date()),
-            // Newest-first and bounded: 30 sessions covers the current
-            // week plus the last finished workout for any user, without
-            // decoding the whole history on every mutation that lands
-            // here. The builder filters the in-progress session out.
-            workouts: repo.loadWorkoutSessions(limit: 30),
+            workouts: recentWidgetWorkouts(),
             activeWorkout: WorkoutSessionService.shared.activeSession,
             unit: profile.bodyMetrics.unit
         )
+        if let lastWidgetData, data.hasSameContent(as: lastWidgetData) { return }
+        lastWidgetData = data
         PersistenceService.shared.updateWidgetData(data)
         WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    /// Newest-first and bounded: 30 sessions covers the current week plus
+    /// the last finished workout for any user. Cached because most widget
+    /// pushes follow dose and meal saves that leave workouts untouched;
+    /// `refreshTrainingGlanceables` drops the cache after workout writes.
+    /// The builder filters the in-progress session out.
+    private func recentWidgetWorkouts() -> [WorkoutSession] {
+        if let widgetWorkouts { return widgetWorkouts }
+        let loaded = repo.loadWorkoutSessions(limit: 30)
+        widgetWorkouts = loaded
+        return loaded
     }
 
     /// Pushes a snapshot through `WatchSyncService`. Math (compliance
@@ -2715,8 +2727,7 @@ final class DataStore {
         // CloudKit-driven pulls land here; without these the lock-
         // screen widget and the Watch tab would stay stale until the
         // next user mutation or the widget's 15-min auto-timer.
-        updateWidgetData()
-        updateWatchData()
+        refreshTrainingGlanceables()
     }
 
     /// Transactionally applies a backup import — the user has
@@ -2837,8 +2848,7 @@ final class DataStore {
         }
 
         regenerateTodayEntries()
-        updateWidgetData()
-        updateWatchData()
+        refreshTrainingGlanceables()
         rescheduleNotificationsIfEnabled()
     }
 
