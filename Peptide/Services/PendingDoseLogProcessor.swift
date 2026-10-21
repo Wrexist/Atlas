@@ -71,14 +71,17 @@ enum PendingDoseLogProcessor {
 
         var applied = 0
         for log in pending {
-            guard let entry = dataStore.entries.first(where: { $0.id == log.entryId }),
-                  !entry.completed
+            guard let index = dataStore.entries.firstIndex(where: { $0.id == log.entryId }),
+                  !dataStore.entries[index].completed
             else { continue }
+            // Stamp the tap, not the drain — the user may only open
+            // Atlas hours after logging from the lock screen.
+            dataStore.entries[index].actualTime = log.loggedAt
             // Use the in-app toggle path so every downstream
             // listener (achievements, streak math, widget reload,
             // live activity reconcile, watch sync) fires exactly
             // as if the user had tapped the row in the UI.
-            dataStore.toggleEntry(entry.id)
+            dataStore.toggleEntry(log.entryId)
             applied += 1
         }
         if applied > 0 {
