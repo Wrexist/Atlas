@@ -304,7 +304,7 @@ struct MealScanFlow: View {
                 GlassCard {
                     VStack(alignment: .leading, spacing: Spacing.sm) {
                         Text("Unfinished meal scan").font(AppFont.headline)
-                        Text("\(recovery.items.count) foods · \(recovery.date.formatted(date: .abbreviated, time: .shortened))")
+                        Text("^[\(recovery.items.count) food](inflect: true) · \(recovery.date.formatted(date: .abbreviated, time: .shortened))")
                             .font(AppFont.callout)
                         Button("Resume review") { resumeDraft(recovery) }.minimumHitArea()
                         Button("Discard draft", role: .destructive) { discardIsRetake = false; discardConfirmation = true }.minimumHitArea()
@@ -638,7 +638,7 @@ struct MealScanFlow: View {
                 Image(systemName: "checkmark.circle.fill")
                     .font(AppFont.scaled(13, weight: .bold))
                     .foregroundStyle(AppColor.positive)
-                Text("\(items.count) items detected")
+                Text("^[\(items.count) item](inflect: true) detected")
                     .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
             }
