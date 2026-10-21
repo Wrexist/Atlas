@@ -149,7 +149,10 @@ struct HomeMealsSection: View {
                     .scrollReveal()
             }
             if dailyConsumption.caloriesKcal > 0 || !dayEntries.isEmpty {
-                MealCategoriesCard(breakdown: dailyBreakdown)
+                MealCategoriesCard(
+                    breakdown: dailyBreakdown,
+                    dayTitle: dayOffset == 0 ? nil : MealDaySwitcher.title(for: selectedDay)
+                )
                     .scrollReveal()
 
                 TodaysMealsCard(

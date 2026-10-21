@@ -12,6 +12,8 @@ import SwiftUI
 /// without leaving the tab.
 struct MealCategoriesCard: View {
     let breakdown: LifestyleDataLogic.CategoryBreakdown
+    /// Nil for today; otherwise the viewed day ("Yesterday", "Mon 12 May").
+    var dayTitle: String? = nil
 
     private var maxCalories: Int {
         max(
@@ -38,7 +40,7 @@ struct MealCategoriesCard: View {
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Meals today")
+                Text(dayTitle.map { String(localized: "Meals · \($0)") } ?? String(localized: "Meals today"))
                     .font(AppFont.eyebrow)
                     .tracking(0.8)
                     .textCase(.uppercase)
