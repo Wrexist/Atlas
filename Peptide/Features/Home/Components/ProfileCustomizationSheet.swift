@@ -92,7 +92,7 @@ struct ProfileCustomizationSheet: View {
             .scrollDismissesKeyboard(.interactively)
             .background(AppColor.background)
             .dismissKeyboardOnTap()
-            .navigationTitle("Customize Profile")
+            .navigationTitle("Customize profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
