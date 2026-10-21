@@ -488,23 +488,31 @@ final class StackRecommendationEngineTests: XCTestCase {
 
     // MARK: - Performance
 
-    func test_recommendations_performanceFor208Peptides() {
+    /// Generous wall-clock ceiling: catches an accidental quadratic blow-up
+    /// without flaking on a slow CI simulator. `measure {}` without a
+    /// committed baseline would assert nothing.
+    private let performanceBudget = Duration.seconds(1)
+
+    func test_recommendations_fullDatabase_finishWithinBudget() {
         let stack = peptides(abbrevs: ["BPC-157", "TB-500", "CJC-1295 DAC"])
         guard !stack.isEmpty else { return XCTFail("Fixture peptides missing from the database") }
         let context = StackRecommendationEngine.RecommendationContext(
             currentPeptides: stack, database: database, goals: ["recovery", "muscle growth"],
             activeProtocols: [], entries: []
         )
-        measure {
+        let elapsed = ContinuousClock().measure {
             _ = StackRecommendationEngine.recommendations(context: context)
         }
+        XCTAssertLessThan(elapsed, performanceBudget)
     }
 
-    func test_warnings_performanceFor20ActivePeptides() {
+    func test_warnings_twentyActivePeptides_finishWithinBudget() {
         let stack = Array(database.prefix(20))
-        measure {
+        XCTAssertEqual(stack.count, 20, "Fixture database shrank below 20 entries")
+        let elapsed = ContinuousClock().measure {
             _ = StackRecommendationEngine.warnings(for: stack)
         }
+        XCTAssertLessThan(elapsed, performanceBudget)
     }
 
     // MARK: - Edge Cases
