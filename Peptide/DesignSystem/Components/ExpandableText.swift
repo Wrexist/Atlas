@@ -63,7 +63,9 @@ struct ExpandableText: View {
                     .font(AppFont.caption)
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.accentPrimary)
+                    .minimumHitArea()
                 }
+                .buttonStyle(ScalePressStyle())
                 .accessibilityHint(isExpanded ? "Collapse text" : "Expand full text")
                 .transition(.opacity)
             }
