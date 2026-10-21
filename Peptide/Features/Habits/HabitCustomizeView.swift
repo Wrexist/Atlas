@@ -41,7 +41,7 @@ struct HabitCustomizeView: View {
             Section("Target") {
                 Toggle("Track a count", isOn: $enableTarget)
                 if enableTarget {
-                    Stepper(value: $targetValue, in: 1...100000, step: targetStep) {
+                    Stepper(value: $targetValue, in: Self.targetRange) {
                         HStack {
                             Text("Target")
                             Spacer()
@@ -165,19 +165,14 @@ struct HabitCustomizeView: View {
         }
     }
 
-    /// Bigger step for big-number targets so the stepper isn't useless at
-    /// 10,000 steps.
-    private var targetStep: Int {
-        if targetValue >= 10000 { return 500 }
-        if targetValue >= 1000  { return 100 }
-        if targetValue >= 100   { return 10 }
-        return 1
-    }
+    /// Each tap on a countable habit adds one, so a target has to be
+    /// reachable by tapping.
+    private static let targetRange = 1...50
 
     private var targetHint: LocalizedStringKey {
         switch category {
-        case .health:        return "e.g. 8 (glasses of water), 10000 (steps)"
-        case .fitness:       return "e.g. 30 (minutes), 100 (push-ups)"
+        case .health:        return "e.g. 8 (glasses of water)"
+        case .fitness:       return "e.g. 3 (sets), 5 (stretch breaks)"
         case .learning:      return "e.g. 20 (pages), 1 (lesson)"
         case .mindfulness:   return "e.g. 10 (minutes meditating)"
         case .productivity:  return "e.g. 3 (deep-work blocks)"
