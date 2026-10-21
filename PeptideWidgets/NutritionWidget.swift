@@ -85,17 +85,23 @@ struct NutritionTimelineProvider: TimelineProvider {
 
     private func currentEntry() -> NutritionEntry {
         guard let data = WidgetStore.load() else { return .empty }
+        // The intake belongs to the day the app last wrote it. Past
+        // midnight with no app launch it would be yesterday's, so the
+        // widget starts the new day at zero against the same targets.
+        let today = Calendar.current.isDateInToday(data.lastUpdated)
         return NutritionEntry(
             date: .now,
-            calories: data.caloriesToday,
+            calories: today ? data.caloriesToday : 0,
             target: data.calorieTarget,
-            protein: data.proteinToday,
-            carbs: data.carbsToday,
-            fat: data.fatToday,
+            protein: today ? data.proteinToday : 0,
+            carbs: today ? data.carbsToday : 0,
+            fat: today ? data.fatToday : 0,
             proteinTarget: data.proteinTarget,
             carbsTarget: data.carbsTarget,
             fatTarget: data.fatTarget,
-            meals: data.mealsByCategory
+            meals: today ? data.mealsByCategory : data.mealsByCategory.map {
+                WidgetMealSlot(category: $0.category, calories: 0, entryCount: 0)
+            }
         )
     }
 }
