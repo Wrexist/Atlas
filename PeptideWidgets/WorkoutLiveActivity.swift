@@ -133,9 +133,13 @@ private enum WorkoutActivityStyle {
         }
     }
 
+    /// The frozen clock, in the same H:MM:SS / M:SS shape the running
+    /// timer and the training widget use.
     static func pausedTime(_ state: WorkoutActivityAttributes.ContentState) -> String {
         let seconds = max(0, state.pausedElapsedSeconds ?? 0)
-        return String(format: "%d:%02d", seconds / 60, seconds % 60)
+        return Duration.seconds(seconds).formatted(
+            .time(pattern: seconds >= 3600 ? .hourMinuteSecond : .minuteSecond)
+        )
     }
 
     static func glyph(for state: WorkoutActivityAttributes.ContentState) -> String {
@@ -278,9 +282,17 @@ private struct WorkoutLockView: View {
                     .foregroundStyle(.secondary)
             }
         case .paused:
-            Text(WorkoutActivityStyle.pausedTime(state))
-                .font(.title3.monospacedDigit())
-                .accessibilityLabel("Workout paused")
+            VStack(alignment: .trailing, spacing: 0) {
+                Text(WorkoutActivityStyle.pausedTime(state))
+                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(.primary)
+                    .accessibilityLabel("Paused at \(WorkoutActivityStyle.pausedTime(state))")
+                Text("paused")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+            }
         case .lifting:
             VStack(alignment: .trailing, spacing: 0) {
                 Text(state.activeTimerStartedAt ?? attributes.startedAt, style: .timer)
@@ -437,8 +449,14 @@ private struct IslandTimer: View {
                     .foregroundStyle(.white.opacity(0.6))
             case .paused:
                 Text(WorkoutActivityStyle.pausedTime(state))
-                    .font(.headline.monospacedDigit())
-                    .accessibilityLabel("Workout paused")
+                    .font(.system(size: 17, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(.white)
+                    .accessibilityLabel("Paused at \(WorkoutActivityStyle.pausedTime(state))")
+                Text("paused")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.6))
+                    .accessibilityHidden(true)
             case .lifting:
                 Text(state.activeTimerStartedAt ?? attributes.startedAt, style: .timer)
                     .font(.system(size: 17, weight: .heavy, design: .rounded))
