@@ -239,9 +239,7 @@ struct TrainContainerView: View {
 
     @ViewBuilder
     private func workoutDetailDestination(for id: UUID) -> some View {
-        if let session = SwiftDataRepository.shared
-            .loadWorkoutSessions()
-            .first(where: { $0.id == id }) {
+        if let session = SwiftDataRepository.shared.loadWorkoutSession(id: id) {
             WorkoutSessionDetailView(session: session)
         } else {
             // Session was deleted between deep-link generation and
