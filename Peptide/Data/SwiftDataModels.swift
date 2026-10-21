@@ -139,7 +139,9 @@ final class StoredProtocol {
             authorName: authorName,
             authorHandle: authorHandle,
             forkedFromStackId: forkedFromStackIdString.flatMap(UUID.init(uuidString:)),
-            createdAt: createdAt ?? Date()
+            // Legacy rows predate `createdAt`; `startDate` is the same on
+            // every device, so the backfill written by `update` agrees.
+            createdAt: createdAt ?? startDate
         )
     }
 }

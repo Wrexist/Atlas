@@ -443,9 +443,12 @@ enum LifestyleDataLogic {
     }
 
     /// Soft cap on `mealHistory` so the profile blob can't grow
-    /// without bound. 5 meals/day × 365 days × 2 years = 3,650
-    /// entries × ~150 B serialised ≈ 550 KB. Plenty of headroom for
-    /// the typical user without bloating the CloudKit record.
+    /// without bound: 5 meals/day × 365 days × 2 years = 3,650 entries.
+    /// A plain entry serialises to ~150 B, but a scanned meal carrying
+    /// `components` (per-100 g nutriments for each food) runs ~1 KB, so
+    /// a heavy scanner user can reach a few MB here. CloudKit moves an
+    /// oversized binary column to an asset rather than failing the
+    /// record, but the whole blob is still re-encoded on every save.
     /// Today's entries are always preserved past the cap so the
     /// rings can't lose data mid-day.
     static let maxMealHistoryEntries: Int = 3650
