@@ -152,9 +152,11 @@ final class DataStore {
 
         // Phase 2: self is fully initialized — safe to call methods.
         if repo.isInoperable {
-            self.lastError = "Storage unavailable — please reinstall the app to restore data persistence."
+            // Never advise reinstalling: deleting the app erases any data
+            // that hasn't reached iCloud yet.
+            self.lastError = String(localized: "Atlas can't open its storage. Restart the app; if this keeps happening, contact support before deleting the app.")
         } else if repo.isUsingFallbackStore {
-            self.lastError = "Storage unavailable — changes won't be saved between launches."
+            self.lastError = String(localized: "Storage unavailable — changes won't be saved between launches.")
         }
         // Cold launch loads only the recent entry window synchronously —
         // every first-frame surface (Today, calendar month, 13-week
@@ -2321,7 +2323,7 @@ final class DataStore {
     /// Banner copy for a transient live-save failure. Kept as a
     /// constant so `performSaveNow` can both set and clear exactly
     /// this message without disturbing other `lastError` states.
-    static let saveFailureMessage = "Couldn't save your latest changes — your device may be low on storage."
+    static let saveFailureMessage = String(localized: "Couldn't save your latest changes — your device may be low on storage.")
 
     // MARK: - Ephemeral / screenshot mode
 

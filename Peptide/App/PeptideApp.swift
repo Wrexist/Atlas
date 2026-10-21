@@ -693,7 +693,7 @@ struct PersistenceErrorBanner: View {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.caption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(AppColor.warning)
                 Text(message)
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textPrimary)
@@ -703,7 +703,7 @@ struct PersistenceErrorBanner: View {
             .padding(.horizontal, Spacing.lg)
             .padding(.vertical, Spacing.sm)
             .frame(maxWidth: .infinity)
-            .background(.orange.opacity(0.15))
+            .background(AppColor.warning.opacity(0.14))
             .accessibilityElement(children: .combine)
             .accessibilityLabel("Warning: \(message)")
         }
