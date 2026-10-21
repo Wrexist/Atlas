@@ -179,6 +179,39 @@ final class MealScannerServiceTests: XCTestCase {
         }
     }
 
+    func test_analyze_payloadTooLarge_throwsImageTooLarge() async {
+        MockURLProtocol.handler = { request in
+            (Self.response(for: request, status: 413), Data())
+        }
+        await XCTAssertThrowsErrorAsync(try await service.analyze(image: tinyImage())) { error in
+            if case .imageTooLarge = error as? MealScannerService.ScanError {} else {
+                XCTFail("Expected .imageTooLarge, got \(error)")
+            }
+        }
+    }
+
+    func test_analyze_retryableUpstreamFailure_retriesOnce() async {
+        let attempts = AttemptCounter()
+        MockURLProtocol.handler = { request in
+            attempts.bump()
+            return (Self.response(for: request, status: 502), Data(#"{"error":{"message":"Upstream error","retryable":true}}"#.utf8))
+        }
+        await XCTAssertThrowsErrorAsync(try await service.analyze(image: tinyImage()))
+        XCTAssertEqual(attempts.value, 2)
+    }
+
+    func test_analyze_unmarkedServerFailure_isNotRetried() async {
+        // A truncated answer or a spent budget would fail again, and the
+        // second try is another paid vision call.
+        let attempts = AttemptCounter()
+        MockURLProtocol.handler = { request in
+            attempts.bump()
+            return (Self.response(for: request, status: 503), Data(#"{"error":{"message":"Service unavailable"}}"#.utf8))
+        }
+        await XCTAssertThrowsErrorAsync(try await service.analyze(image: tinyImage()))
+        XCTAssertEqual(attempts.value, 1)
+    }
+
     func test_analyze_throwsUnauthorisedOn401() async {
         MockURLProtocol.handler = { request in
             (Self.response(for: request, status: 401), Data())

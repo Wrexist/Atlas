@@ -373,9 +373,12 @@ export async function forwardToAnthropic(req, res, {
       // carry org IDs / model hints, and the exact status (401/429/
       // 529) leaks server-side key state useful for reconnaissance.
       // Collapse every upstream failure into a generic 502; the real
-      // status is logged server-side only.
+      // status is logged server-side only. Only an overloaded or
+      // rate-limited upstream is marked worth the app paying for a
+      // second try; anything else fails the same way again.
       console.error(`[${logLabel}] upstream non-2xx`, upstream.status);
-      res.status(502).json({ error: { message: 'Upstream error' } });
+      const retryable = upstream.status === 429 || upstream.status >= 500;
+      res.status(502).json({ error: { message: 'Upstream error', ...(retryable && { retryable: true }) } });
       return;
     }
 
@@ -396,7 +399,7 @@ export async function forwardToAnthropic(req, res, {
       return;
     }
     console.error(`[${logLabel}] fetch failure`, err);
-    res.status(502).json({ error: { message: 'Proxy failure' } });
+    res.status(502).json({ error: { message: 'Proxy failure', retryable: true } });
   } finally {
     clearTimeout(timeout);
   }

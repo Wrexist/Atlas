@@ -269,3 +269,37 @@ test('a shaped route rejects multi-turn chat, extra images and long text', async
   assert.equal((await forwardShaped(withContent('10.0.9.4', 'x'.repeat(4001)), 'shape-bad')).statusCode, 400);
   assert.equal(upstream.length, 0);
 });
+
+// Upstream answers each call with the next status; null throws, as a
+// network failure does.
+function stubFailingUpstream(t, statuses) {
+  const real = globalThis.fetch;
+  const queue = [...statuses];
+  globalThis.fetch = async () => {
+    const status = queue.shift();
+    if (status === null) throw new TypeError('fetch failed');
+    return new Response('{}', { status });
+  };
+  t.after(() => {
+    globalThis.fetch = real;
+  });
+}
+
+test('an overloaded or unreachable upstream is marked retryable', async (t) => {
+  setEnv(t, { ...BASE_ENV, RATE_LIMIT_RPM: '1000' });
+  const statuses = [529, 429, null];
+  stubFailingUpstream(t, statuses);
+  for (const status of statuses) {
+    const res = await forward(makeReq('10.0.9.5'), 'retry-yes');
+    assert.equal(res.statusCode, 502);
+    assert.equal(res.body.error.retryable, true, `upstream ${status}`);
+  }
+});
+
+test('an upstream client error is not marked retryable', async (t) => {
+  setEnv(t, { ...BASE_ENV, RATE_LIMIT_RPM: '1000' });
+  stubFailingUpstream(t, [400]);
+  const res = await forward(makeReq('10.0.9.6'), 'retry-no');
+  assert.equal(res.statusCode, 502);
+  assert.equal(res.body.error.retryable, undefined);
+});

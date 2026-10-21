@@ -560,7 +560,7 @@ final class MockURLProtocol: URLProtocol {
 /// Thread-safe attempt counter used by retry tests. MockURLProtocol's
 /// handler is `@Sendable` and called synchronously from a background
 /// loader queue, so plain Int captures aren't safe.
-private final class AttemptCounter: @unchecked Sendable {
+final class AttemptCounter: @unchecked Sendable {
     private let lock = NSLock()
     private var count = 0
     /// Returns the 0-indexed attempt number before incrementing.

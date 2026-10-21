@@ -101,9 +101,6 @@ final class MealScannerService: Sendable {
         }
     }
 
-    /// 5xx statuses worth one retry — a transient proxy / upstream
-    /// hiccup rather than a client error.
-    private static let retryableStatuses: Set<Int> = [502, 503, 504]
     /// URLError codes that mean "no usable connection" — surfaced as a
     /// dedicated `.offline` so the UI shows actionable copy.
     private static let offlineCodes: Set<URLError.Code> = [
@@ -410,9 +407,10 @@ final class MealScannerService: Sendable {
     }
 
     /// Sends the request, retrying once on a transient transport
-    /// failure or a 502/503/504 response. A genuine offline condition
-    /// is classified into `ScanError.offline` so the UI can show
-    /// actionable copy instead of the raw `URLError` description.
+    /// failure or a response the proxy marks retryable. A genuine
+    /// offline condition is classified into `ScanError.offline` so the
+    /// UI can show actionable copy instead of the raw `URLError`
+    /// description.
     private func sendWithRetry(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         let maxAttempts = 2
         var attempt = 0
@@ -433,7 +431,7 @@ final class MealScannerService: Sendable {
                 guard let http = response as? HTTPURLResponse else {
                     throw ScanError.invalidResponse
                 }
-                if Self.retryableStatuses.contains(http.statusCode), attempt < maxAttempts {
+                if !(200..<300).contains(http.statusCode), Self.isRetryable(data), attempt < maxAttempts {
                     try await Task.sleep(for: .seconds(1.5))
                     continue
                 }
@@ -449,6 +447,18 @@ final class MealScannerService: Sendable {
                 throw error
             }
         }
+    }
+
+    /// The proxy marks the failures a second try can fix: an overloaded
+    /// or unreachable upstream. A truncated or unparseable answer, a spent
+    /// budget or a timeout would fail the same way again, and every try
+    /// is a paid vision call.
+    static func isRetryable(_ body: Data) -> Bool {
+        struct Envelope: Decodable {
+            struct Failure: Decodable { let retryable: Bool? }
+            let error: Failure?
+        }
+        return (try? JSONDecoder().decode(Envelope.self, from: body))?.error?.retryable == true
     }
 
     // MARK: - Internals
