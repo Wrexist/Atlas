@@ -471,13 +471,14 @@ jobs:
         # warnings are printed for review.
         run: python3 scripts/design-lint.py --all
 
-      - name: Design checker self-tests
+      - name: Checker self-tests
         # design-lint.py once went blind on a rule (rule_glow) without
-        # anything noticing — its own unit suite exists for exactly that
-        # reason, but until now only ran locally via scripts/check.sh.
-        # Run it here so a checker regression fails the PR, not a later
-        # human review.
-        run: python3 scripts/test_design_lint.py
+        # anything noticing. Each checker's own unit suite runs here so a
+        # checker regression fails the PR, not a later human review.
+        run: |
+          python3 scripts/test_design_lint.py
+          python3 scripts/test_copy_claims.py
+          python3 scripts/test_contrast_check.py
 
       - name: Copy claims vs source
         # Pins numeric marketing copy (exercise counts, compound counts,
