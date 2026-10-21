@@ -17,6 +17,13 @@ final class WorkoutSessionService {
     private(set) var activeSession: WorkoutSession?
     private(set) var lastFinishError: String?
     private var pendingFinish: WorkoutSession?
+    /// Set when `closeIfStale` closed a forgotten workout, so the Train
+    /// tab can say so once. Cleared by `acknowledgeStaleClosure`.
+    private(set) var staleClosure: StaleClosure?
+
+    enum StaleClosure: Equatable {
+        case discarded, finished
+    }
 
     /// How recently a session must have started for a second `startWorkout`
     /// to be treated as a duplicate tap rather than a fresh workout. Roughly
@@ -31,6 +38,9 @@ final class WorkoutSessionService {
         // whose workout is long gone — or lose one whose workout isn't.
         reconcileRest()
         WorkoutLiveActivityService.shared.reconcile(active: activeSession)
+        // Deferred: closing reaches DataStore, which reads `.shared` —
+        // still mid-initialisation here.
+        Task { [weak self] in self?.closeIfStale() }
     }
 
     // MARK: - Lifecycle
@@ -100,17 +110,18 @@ final class WorkoutSessionService {
     /// Mark the session complete. Returns the finished session for
     /// the finish-screen render path; the service drops its
     /// `activeSession` so the next `startWorkout` is unambiguous.
+    /// `end` is the recorded finish time — earlier than now only when a
+    /// forgotten workout is closed after the fact.
     @discardableResult
-    func finishWorkout(perceivedEffort: Int? = nil, note: String? = nil) -> FinishedWorkout? {
+    func finishWorkout(perceivedEffort: Int? = nil, note: String? = nil, at end: Date = Date()) -> FinishedWorkout? {
         guard var session = activeSession else { return nil }
         guard session.completedSetCount > 0 else {
             lastFinishError = "Complete at least one working set before finishing."
             return nil
         }
-        let now = Date()
-        session.focus?.resume(at: now)
+        session.focus?.resume(at: end)
         session.focus?.rest = nil
-        session.finishedAt = now
+        session.finishedAt = end
         session.perceivedEffort = perceivedEffort
         session.note = note
         if let pendingFinish, pendingFinish.id == session.id { session = pendingFinish }
@@ -155,6 +166,41 @@ final class WorkoutSessionService {
         WorkoutLiveActivityService.shared.endAll()
         DataStore.current?.refreshTrainingGlanceables()
         AppLog.training.info("Workout discarded (id: \(session.id, privacy: .public))")
+    }
+
+    /// Closes a workout left open for hours (see `WorkoutStalenessEngine`)
+    /// through the normal finish / discard paths, so HealthKit, PRs, the
+    /// Watch and widgets all hear about it. Runs on relaunch and whenever
+    /// the app returns to the foreground.
+    @discardableResult
+    func closeIfStale(now: Date = Date()) -> StaleClosure? {
+        guard let session = activeSession else { return nil }
+        let closure: StaleClosure
+        switch WorkoutStalenessEngine.verdict(for: session, now: now) {
+        case .keep:
+            return nil
+        case .discard:
+            discardWorkout()
+            closure = .discarded
+        case .finish(let end):
+            // A failed finish attempt's snapshot would override `end`.
+            cancelFinishAttempt()
+            guard finishWorkout(at: end) != nil else {
+                cancelFinishAttempt()
+                return nil
+            }
+            // Skip the Live Activity's summary beat: it celebrates a
+            // workout that ended hours ago.
+            WorkoutLiveActivityService.shared.endAll()
+            closure = .finished
+        }
+        staleClosure = closure
+        AppLog.training.info("Stale workout closed (id: \(session.id, privacy: .public), \(String(describing: closure), privacy: .public))")
+        return closure
+    }
+
+    func acknowledgeStaleClosure() {
+        staleClosure = nil
     }
 
     // MARK: - Mutations

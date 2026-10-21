@@ -144,6 +144,49 @@ final class WorkoutSessionServiceTests: XCTestCase {
         XCTAssertEqual(repo.loadWorkoutSessions().filter { $0.id == session.id }.count, 0)
     }
 
+    // MARK: - Stale sessions
+
+    func test_closeIfStale_emptySessionOpenForDays_discardsRow() {
+        let started = service.startWorkout(now: Date().addingTimeInterval(-208 * 3600))
+        XCTAssertEqual(service.closeIfStale(), .discarded)
+        XCTAssertNil(service.activeSession)
+        XCTAssertEqual(service.staleClosure, .discarded)
+        XCTAssertTrue(repo.loadWorkoutSessions().filter { $0.id == started.id }.isEmpty)
+        service.acknowledgeStaleClosure()
+        XCTAssertNil(service.staleClosure)
+    }
+
+    func test_closeIfStale_loggedSession_finishesAtLastSetNotNow() throws {
+        let start = Date().addingTimeInterval(-10 * 3600)
+        let started = service.startWorkout(routine: Routine(name: "Test", exercises: [
+            RoutineExercise(exerciseID: "Incline_Dumbbell_Press", index: 0, targetSets: 1, targetReps: 10)
+        ]), now: start)
+        let entry = try XCTUnwrap(service.activeSession?.exercises.first)
+        var set = try XCTUnwrap(entry.sets.first)
+        set.completed = true
+        set.weightKg = 25
+        let lastSet = start.addingTimeInterval(1800)
+        service.updateSet(set, inExerciseEntryID: entry.id, now: lastSet)
+
+        XCTAssertEqual(service.closeIfStale(), .finished)
+        service.acknowledgeStaleClosure()
+        XCTAssertNil(service.activeSession)
+        let stored = try XCTUnwrap(repo.loadWorkoutSessions().first { $0.id == started.id })
+        XCTAssertEqual(
+            try XCTUnwrap(stored.finishedAt).timeIntervalSince1970,
+            lastSet.addingTimeInterval(WorkoutStalenessEngine.finishBuffer).timeIntervalSince1970,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(stored.completedSetCount, 1)
+    }
+
+    func test_closeIfStale_recentSession_isLeftOpen() throws {
+        try service.startWorkoutWithOneCompletedSet()
+        XCTAssertNil(service.closeIfStale())
+        XCTAssertNotNil(service.activeSession)
+        XCTAssertNil(service.staleClosure)
+    }
+
     // MARK: - Mutations
 
     private func bench() -> Exercise {

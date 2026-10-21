@@ -264,6 +264,9 @@ struct PeptideApp: App {
                 PendingDoseLogProcessor.drain(into: dataStore)
                 QuickActionRouter.drainPendingWater(into: dataStore)
                 WorkoutActivityActionProcessor.drain()
+                // After the drain, so a set ticked on the lock screen
+                // counts as activity before staleness is judged.
+                WorkoutSessionService.shared.closeIfStale()
                 // Re-evaluate which scheduled doses are in their
                 // active window so the lock-screen Live Activities
                 // start / end without needing the user to open the
@@ -568,7 +571,9 @@ struct TabAccessoryView: View {
 
     var body: some View {
         if tab == .train || dataStore.activeProtocols.isEmpty {
-            WorkoutAccessoryView()
+            // Train draws its own resume banner for a workout in
+            // progress; repeating it here stacks two identical pills.
+            WorkoutAccessoryView(reportsActiveWorkout: tab != .train)
         } else {
             NextDoseAccessoryView()
         }
@@ -579,6 +584,7 @@ struct TabAccessoryView: View {
 /// held in state rather than read in `body`: `workoutSummary` faults
 /// SwiftData, and the accessory re-renders on every tab change.
 struct WorkoutAccessoryView: View {
+    let reportsActiveWorkout: Bool
     @Environment(DataStore.self) private var dataStore
     @State private var sessionService = WorkoutSessionService.shared
     @State private var loggedToday = 0
@@ -603,13 +609,17 @@ struct WorkoutAccessoryView: View {
         }
     }
 
+    private var showsActiveWorkout: Bool {
+        reportsActiveWorkout && sessionService.activeSession != nil
+    }
+
     private var icon: String {
-        if sessionService.activeSession != nil { return "figure.run" }
+        if showsActiveWorkout { return "figure.run" }
         return loggedToday > 0 ? "checkmark.circle.fill" : "dumbbell.fill"
     }
 
     private var label: LocalizedStringKey {
-        if sessionService.activeSession != nil { return "Workout in progress" }
+        if showsActiveWorkout { return "Workout in progress" }
         return loggedToday > 0
             ? "All workouts logged for today"
             : "No workout logged yet today"
