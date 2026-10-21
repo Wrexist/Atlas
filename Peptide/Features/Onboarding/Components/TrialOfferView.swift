@@ -295,7 +295,7 @@ struct TrialOfferView: View {
 
     // MARK: - Value banner
 
-    /// Static "best value" banner. This used to be a live 10-minute
+    /// Static value banner. This used to be a live 10-minute
     /// "WELCOME OFFER ENDS IN mm:ss" countdown with a draining bar — but
     /// nothing actually changed at 0:00: the price, the trial, and the
     /// products were identical before and after, which makes it exactly the
@@ -306,10 +306,15 @@ struct TrialOfferView: View {
     /// that offer's actual deadline, never a synthetic one.
     private var valueBanner: some View {
         // "Free trial" only while this Apple ID can still redeem one —
-        // same eligibility gate as the headline and the CTA.
-        let caption = trialDays != nil
-            ? "Best value — start with a free trial"
-            : "Best value — full access, cancel anytime"
+        // same eligibility gate as the headline and the CTA. "Best value"
+        // only describes annual, so Monthly gets the offer alone.
+        let caption: String
+        switch (selectedTier == .annual, trialDays != nil) {
+        case (true, true):   caption = "Best value — start with a free trial"
+        case (true, false):  caption = "Best value — full access, cancel anytime"
+        case (false, true):  caption = "Start with a free trial"
+        case (false, false): caption = "Full access, cancel anytime"
+        }
         return HStack(spacing: Spacing.xs) {
             Image(systemName: "bolt.fill")
                 .font(AppFont.scaled(13, weight: .bold))
