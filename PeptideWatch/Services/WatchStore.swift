@@ -285,11 +285,6 @@ extension WatchStore: WCSessionDelegate {
         Task { @MainActor in self.adoptIfNewer(decoded) }
     }
 
-    nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
-        guard let decoded = Self.decodeWatchData(from: message) else { return }
-        Task { @MainActor in self.apply(decoded) }
-    }
-
     /// A live push of the same second as the shown snapshot is still
     /// adopted (the wire format keeps whole seconds); an older one that
     /// arrives late would revert newer taps, so it is dropped.
