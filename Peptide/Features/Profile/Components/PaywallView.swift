@@ -852,6 +852,22 @@ struct PaywallView: View {
     /// "/yr", "/mo" — read from the product's own renewal period rather
     /// than its identifier, so a future weekly plan can't render as a
     /// yearly one.
+    /// "1 month", "1 year" — the subscription length, localised.
+    private func periodLength(for product: Product) -> String {
+        guard let period = product.subscription?.subscriptionPeriod else { return "" }
+        var components = DateComponents()
+        switch period.unit {
+        case .year:  components.year = period.value
+        case .month: components.month = period.value
+        case .week:  components.weekOfMonth = period.value
+        case .day:   components.day = period.value
+        @unknown default: return ""
+        }
+        let formatter = DateComponentsFormatter()
+        formatter.unitsStyle = .full
+        return formatter.string(from: components) ?? ""
+    }
+
     private func periodSuffix(for product: Product) -> String {
         guard let period = product.subscription?.subscriptionPeriod else { return "" }
         switch period.unit {
@@ -1099,10 +1115,10 @@ struct PaywallView: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     if let monthly = storeService.monthlyProduct {
-                        termRow(monthly.displayName, length: "1 month", price: "\(monthly.displayPrice)/month")
+                        termRow(for: monthly)
                     }
                     if let annual = storeService.annualProduct {
-                        termRow(annual.displayName, length: "1 year", price: "\(annual.displayPrice)/year")
+                        termRow(for: annual)
                     }
                 }
                 .padding(Spacing.lg)
@@ -1122,18 +1138,20 @@ struct PaywallView: View {
 
     /// Product title from App Store Connect, its length and its price —
     /// the three facts Guideline 3.1.2 asks for on each auto-renewable plan.
-    private func termRow(_ name: String, length: LocalizedStringKey, price: String) -> some View {
+    /// Length and price period come from the product itself, so this sheet
+    /// can't disagree with what App Store Connect will charge.
+    private func termRow(for product: Product) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(verbatim: name)
+                Text(verbatim: product.displayName)
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textPrimary)
-                Text(length)
+                Text(verbatim: periodLength(for: product))
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
             }
             Spacer()
-            Text(price)
+            Text(verbatim: "\(product.displayPrice)\(periodSuffix(for: product))")
                 .font(AppFont.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.accentLight)
