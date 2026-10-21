@@ -21,8 +21,7 @@ struct ExerciseImageView: View {
         .background(AppColor.trainingBackground)
         .overlay(alignment: .bottomTrailing) {
             if let exercise {
-                Image(systemName: exercise.equipmentKind.symbolName)
-                    .font(AppFont.scaled(11, weight: .semibold))
+                GlyphImage(glyph: exercise.equipmentKind.glyph)
                     .foregroundStyle(AppColor.textSecondary)
                     .padding(3)
                     .background(AppColor.trainingPanel, in: Circle())

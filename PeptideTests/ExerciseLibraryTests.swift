@@ -116,19 +116,20 @@ final class ExerciseLibraryTests: XCTestCase {
         }
     }
 
-    func test_filter_bodyweightEquipment_includesBodyOnlyAndNoneRaw() {
-        // The dataset uses both "body only" and (rarely) "none" / nil
-        // — our taxonomy collapses both to `.bodyweight`. Make sure
-        // the filter picks both up.
+    func test_filter_bodyweightEquipment_includesBodyOnlyNoneAndUntaggedHangs() {
+        // The dataset uses "body only", nil, and "other" for pull-ups,
+        // dips and stretches that need no load — all read as bodyweight.
+        // Nothing tagged with real kit (barbell, cable…) may leak in.
         let bodyweight = library.filter(equipment: .bodyweight)
         XCTAssertFalse(bodyweight.isEmpty)
         for exercise in bodyweight {
             let raw = exercise.equipment?.lowercased() ?? ""
             XCTAssertTrue(
-                raw.isEmpty || raw == "body only" || raw == "none" || raw == "bodyweight",
+                ["", "body only", "none", "bodyweight", "other"].contains(raw),
                 "Bodyweight filter included \(exercise.name) with raw equipment \(raw)"
             )
         }
+        XCTAssertTrue(bodyweight.contains { $0.id == "Mixed_Grip_Chin" })
     }
 
     func test_filter_byQuery_matchesNameSubstring() {
@@ -188,8 +189,16 @@ final class ExerciseLibraryTests: XCTestCase {
     func test_availableForEquipment_filtersToSubset() {
         let scoped = library.availableForEquipment([.barbell])
         XCTAssertFalse(scoped.isEmpty)
+        // A barbell gym also has the EZ bar and loose plates.
+        let covered: Set<EquipmentKind> = [.barbell, .ezBar, .plate]
         for exercise in scoped {
-            XCTAssertEqual(exercise.equipmentKind, .barbell)
+            XCTAssertTrue(covered.contains(exercise.equipmentKind), exercise.name)
         }
+    }
+
+    func test_availableForEquipment_machineAccess_coversTheSmithMachine() {
+        let scoped = library.availableForEquipment([.machine])
+        XCTAssertTrue(scoped.contains { $0.id == "Smith_Machine_Squat" })
+        XCTAssertFalse(scoped.contains { $0.id == "Trap_Bar_Deadlift" })
     }
 }

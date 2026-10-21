@@ -252,9 +252,7 @@ struct RoutineBuilderView: View {
 
     private func detail(of exerciseID: String) -> String {
         guard let exercise = library.lookup(id: exerciseID) else { return "Not in your library" }
-        let equipment = exercise.equipment?.capitalized
-        return [exercise.muscleGroup.displayName, equipment]
-            .compactMap { $0 }
+        return [exercise.muscleGroup.displayName, exercise.equipmentKind.displayName]
             .joined(separator: " · ")
     }
 }

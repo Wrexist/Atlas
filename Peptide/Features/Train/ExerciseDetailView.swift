@@ -74,22 +74,25 @@ struct ExerciseDetailView: View {
     private func metadataRow(for exercise: Exercise) -> some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), alignment: .leading)], alignment: .leading, spacing: Spacing.xs) {
             metadataPill(
-                icon: exercise.equipmentKind.symbolName,
+                glyph: exercise.equipmentKind.glyph,
                 label: exercise.equipmentKind.displayName
             )
+            ForEach(EquipmentAccessory.allCases.filter { exercise.equipmentAccessories.contains($0) }) { accessory in
+                metadataPill(glyph: accessory.glyph, label: accessory.displayName)
+            }
             metadataPill(
-                icon: "figure.run",
+                glyph: .system("figure.run"),
                 label: levelLabel(exercise.level)
             )
             if let mechanic = exercise.mechanic {
                 metadataPill(
-                    icon: "gearshape.fill",
+                    glyph: .system("gearshape.fill"),
                     label: mechanic.rawValue.capitalized
                 )
             }
             if let force = exercise.force {
                 metadataPill(
-                    icon: "arrow.up.right.circle.fill",
+                    glyph: .system("arrow.up.right.circle.fill"),
                     label: force.rawValue.capitalized
                 )
             }
@@ -97,10 +100,9 @@ struct ExerciseDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func metadataPill(icon: String, label: String) -> some View {
+    private func metadataPill(glyph: AppGlyph, label: String) -> some View {
         HStack(spacing: Spacing.xs) {
-            Image(systemName: icon)
-                .font(AppFont.scaled(11, weight: .semibold))
+            GlyphImage(glyph: glyph)
             Text(label)
                 .font(AppFont.chipText)
         }

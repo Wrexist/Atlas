@@ -10,7 +10,7 @@ import Foundation
 /// `category`, muscle names) come directly from the dataset's vocabulary
 /// and are surfaced verbatim on the exercise detail screen. The
 /// `MuscleGroup` and `EquipmentKind` collapsed enums sit above the raw
-/// strings to drive the filter chip row — see their `from(raw:)` helpers.
+/// strings to drive the filter chip row.
 ///
 /// User-created exercises live in a separate SwiftData `@Model` so this
 /// type can stay a pure `Codable Sendable` value loaded from the bundle.
@@ -91,11 +91,15 @@ extension Exercise {
         return .fullBody
     }
 
-    /// Collapsed equipment enum used for filter chips. Returns
-    /// `.bodyweight` for missing / "none" equipment so the chip count
-    /// matches the dataset's "no equipment needed" intuition.
+    /// The kit this exercise is done with, read from the raw equipment
+    /// string and the name together — see `EquipmentClassificationEngine`.
     var equipmentKind: EquipmentKind {
-        EquipmentKind.fromRaw(equipment)
+        EquipmentClassificationEngine.kind(for: self)
+    }
+
+    /// Bench, rack, pull-up bar or box the exercise also needs.
+    var equipmentAccessories: Set<EquipmentAccessory> {
+        EquipmentClassificationEngine.accessories(for: self)
     }
 
     /// Stable display force string for the detail screen. Returns the

@@ -33,16 +33,16 @@ enum ProgressionEngine {
 
     /// The smallest jump the equipment usually allows, in kilograms. Zero
     /// for bodyweight (progress by reps); nil where load isn't comparable
-    /// session to session (bands, unknown kit).
+    /// session to session (bands, balls, rollers, loose plates, unknown kit).
     static func incrementKg(for equipment: EquipmentKind, unit: MeasurementUnit) -> Double? {
         switch equipment {
-        case .barbell, .smith, .machine, .cable:
+        case .barbell, .smith, .ezBar, .trapBar, .machine, .cable:
             return unit == .metric ? 2.5 : unit.kilograms(fromDisplayed: 5)
         case .dumbbell, .kettlebell:
             return unit == .metric ? 2 : unit.kilograms(fromDisplayed: 5)
         case .bodyweight:
             return 0
-        case .band, .other:
+        case .band, .plate, .medicineBall, .swissBall, .foamRoller, .other:
             return nil
         }
     }

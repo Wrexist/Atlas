@@ -21,7 +21,7 @@ struct EquipmentChipRow: View {
                     ForEach(EquipmentKind.allCases) { kind in
                         GlassChip(
                             LocalizedStringKey(kind.displayName),
-                            icon: kind.symbolName,
+                            glyph: kind.glyph,
                             style: .prominent,
                             isSelected: selection == kind
                         ) {

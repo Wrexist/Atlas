@@ -64,7 +64,8 @@ struct CustomExerciseEditorSheet: View {
                 Section("Equipment") {
                     Picker("Equipment", selection: $equipment) {
                         ForEach(EquipmentKind.allCases.filter { $0 != .other }) { kind in
-                            Label(kind.displayName, systemImage: kind.symbolName).tag(kind)
+                            Label { Text(kind.displayName) } icon: { kind.glyph.image }
+                                .tag(kind)
                         }
                     }
                     .pickerStyle(.menu)
