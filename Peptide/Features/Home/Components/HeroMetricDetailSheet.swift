@@ -311,6 +311,7 @@ struct HeroMetricDetailSheet: View {
                 VStack(spacing: Spacing.xs) {
                     ForEach(context.todayEntries) { entry in
                         doseButton(entry)
+                            .accessibilityValue(entry.completed ? "Taken" : "Pending")
                     }
                 }
             }
@@ -371,6 +372,7 @@ struct HeroMetricDetailSheet: View {
             Image(systemName: entry.completed ? "checkmark.circle.fill" : "circle")
                 .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(entry.completed ? AppColor.success : AppColor.textTertiary)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
                 Text(entry.peptide.name)
                     .font(AppFont.subheadline)
