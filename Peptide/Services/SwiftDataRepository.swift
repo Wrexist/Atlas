@@ -759,7 +759,7 @@ final class SwiftDataRepository {
         if ProfileMergeEngine.mealsChanged(from: baseline, to: profile) {
             rebased = ProfileMergeEngine.rebasingMeals(local: profile, baseline: baseline, remote: try row.toUserProfile())
         }
-        try row.update(from: rebased, since: StoredProfile.make(from: baseline))
+        try row.update(from: rebased, since: baseline)
     }
 
     func loadProfile() -> UserProfile? {

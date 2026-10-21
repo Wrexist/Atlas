@@ -369,12 +369,14 @@ final class StoredProfile {
         return stored
     }
 
-    /// Writes `profile` into this row. `baseline` is the row as this
-    /// device last read or wrote it: a column whose new value still
-    /// matches it wasn't edited here, so it keeps whatever another
+    /// Writes `profile` into this row. `baseline` is the profile as this
+    /// device last read or wrote it: a field whose new value still
+    /// matches it wasn't edited here, so its column keeps whatever another
     /// device synced into it meanwhile instead of being reverted by
-    /// stale in-memory state. Without a baseline every column is written.
-    func update(from profile: UserProfile, since baseline: StoredProfile? = nil) throws {
+    /// stale in-memory state. Comparing values rather than encoded bytes
+    /// also skips encoding the slices a save didn't touch. Without a
+    /// baseline every column is written.
+    func update(from profile: UserProfile, since baseline: UserProfile? = nil) throws {
         // Assign only what actually changed. Every property assignment
         // marks its CloudKit record field dirty and ships it on the next
         // sync — and an untouched field is exactly what lets CloudKit
@@ -384,67 +386,80 @@ final class StoredProfile {
             _ keyPath: ReferenceWritableKeyPath<StoredProfile, T>, _ value: T
         ) {
             guard self[keyPath: keyPath] != value else { return }
-            if let baseline, baseline[keyPath: keyPath] == value { return }
             self[keyPath: keyPath] = value
             contentChanged = true
         }
-        assign(\.name, profile.name)
-        assign(\.memberSince, profile.memberSince)
-        assign(\.healthConnected, profile.healthConnected)
-        assign(\.hapticFeedbackEnabled, profile.hapticFeedbackEnabled)
-        assign(\.doseRemindersEnabled, profile.doseRemindersEnabled)
-        assign(\.biometricLockEnabled, profile.biometricLockEnabled)
-        assign(\.goalsData, try sdEncoder.encode(profile.goals))
-        assign(\.bodyMetricsData, try sdEncoder.encode(profile.bodyMetrics))
-        assign(\.avatarImageData, profile.avatarImageData)
-        assign(\.bio, profile.bio.isEmpty ? nil : profile.bio)
-        assign(\.primaryGoal, profile.primaryGoal)
+        func edited<V: Equatable>(_ field: (UserProfile) -> V) -> Bool {
+            guard let baseline else { return true }
+            return field(baseline) != field(profile)
+        }
+        if edited(\.name) { assign(\.name, profile.name) }
+        if edited(\.memberSince) { assign(\.memberSince, profile.memberSince) }
+        if edited(\.healthConnected) { assign(\.healthConnected, profile.healthConnected) }
+        if edited(\.hapticFeedbackEnabled) { assign(\.hapticFeedbackEnabled, profile.hapticFeedbackEnabled) }
+        if edited(\.doseRemindersEnabled) { assign(\.doseRemindersEnabled, profile.doseRemindersEnabled) }
+        if edited(\.biometricLockEnabled) { assign(\.biometricLockEnabled, profile.biometricLockEnabled) }
+        if edited(\.goals) { assign(\.goalsData, try sdEncoder.encode(profile.goals)) }
+        if edited(\.bodyMetrics) { assign(\.bodyMetricsData, try sdEncoder.encode(profile.bodyMetrics)) }
+        if edited(\.avatarImageData) { assign(\.avatarImageData, profile.avatarImageData) }
+        if edited(\.bio) { assign(\.bio, profile.bio.isEmpty ? nil : profile.bio) }
+        if edited(\.primaryGoal) { assign(\.primaryGoal, profile.primaryGoal) }
         let residual = try sdEncoder.encode(ProfileExtension.residual(of: profile))
-        if !holdsUnreadable(ProfileExtension.self, at: \.extensionData, replacingWith: residual) {
+        let residualEdited = try baseline.map {
+            try sdEncoder.encode(ProfileExtension.residual(of: $0)) != residual
+        } ?? true
+        if residualEdited, !holdsUnreadable(ProfileExtension.self, at: \.extensionData, replacingWith: residual) {
             assign(\.extensionData, residual)
         }
-        try writeSlices(from: profile, assign: { keyPath, value in
+        try writeSlices(from: profile, since: baseline, assign: { keyPath, value in
             assign(keyPath, value)
         })
         assign(\.singletonKey, Self.canonicalSingletonKey)
         if contentChanged { updatedAt = Date() }
     }
 
-    /// Encodes each split feature area into its own column. On the
-    /// update path a column this build can't read is left untouched.
+    /// Encodes each split feature area into its own column. A slice equal
+    /// to `baseline`'s wasn't edited here and is neither encoded nor
+    /// written. On the update path a column this build can't read is left
+    /// untouched.
     private func writeSlices(
         from profile: UserProfile,
+        since baseline: UserProfile? = nil,
         assign: ((ReferenceWritableKeyPath<StoredProfile, Data?>, Data?) -> Void)? = nil
     ) throws {
         let set: (ReferenceWritableKeyPath<StoredProfile, Data?>, Data?) -> Void =
             assign ?? { self[keyPath: $0] = $1 }
-        func write<T: Codable>(_ keyPath: ReferenceWritableKeyPath<StoredProfile, Data?>, _ slice: T) throws {
-            let data = try sdEncoder.encode(slice)
+        func write<T: Codable & Equatable>(
+            _ keyPath: ReferenceWritableKeyPath<StoredProfile, Data?>,
+            _ slice: (UserProfile) -> T
+        ) throws {
+            let value = slice(profile)
+            if let baseline, slice(baseline) == value { return }
+            let data = try sdEncoder.encode(value)
             if assign != nil, holdsUnreadable(T.self, at: keyPath, replacingWith: data) { return }
             set(keyPath, data)
         }
-        try write(\.mealsData, MealsSlice(
-            mealHistory: profile.mealHistory,
-            dailyConsumption: profile.dailyConsumption
-        ))
-        try write(\.habitsData, HabitsSlice(
-            habits: profile.habits,
-            habitEntries: profile.habitEntries
-        ))
-        try write(\.momentumData, MomentumSlice(
-            atlasScore: profile.atlasScore,
-            atlasLevel: profile.atlasLevel,
-            momentumAwardedToday: profile.momentumAwardedToday,
-            lastMomentumAwardDay: profile.lastMomentumAwardDay,
-            momentumHistory: profile.momentumHistory
-        ))
-        try write(\.weightHistoryData, profile.weightHistory)
-        try write(\.labsData, profile.labHistory)
-        try write(\.outcomesData, profile.outcomeHistory)
-        try write(\.foodLibraryData, FoodLibrarySlice(
-            customFoods: profile.customFoods,
-            favoriteFoodIDs: Array(profile.favoriteFoodIDs).sorted()
-        ))
+        try write(\.mealsData) {
+            MealsSlice(mealHistory: $0.mealHistory, dailyConsumption: $0.dailyConsumption)
+        }
+        try write(\.habitsData) {
+            HabitsSlice(habits: $0.habits, habitEntries: $0.habitEntries)
+        }
+        try write(\.momentumData) {
+            MomentumSlice(
+                atlasScore: $0.atlasScore,
+                atlasLevel: $0.atlasLevel,
+                momentumAwardedToday: $0.momentumAwardedToday,
+                lastMomentumAwardDay: $0.lastMomentumAwardDay,
+                momentumHistory: $0.momentumHistory
+            )
+        }
+        try write(\.weightHistoryData) { $0.weightHistory }
+        try write(\.labsData) { $0.labHistory }
+        try write(\.outcomesData) { $0.outcomeHistory }
+        try write(\.foodLibraryData) {
+            FoodLibrarySlice(customFoods: $0.customFoods, favoriteFoodIDs: Array($0.favoriteFoodIDs).sorted())
+        }
         // Never synced — see `summariesData`.
         set(\.summariesData, nil)
     }
@@ -599,17 +614,17 @@ final class StoredProfile {
 /// Each groups only fields that are always edited together, so a
 /// CloudKit field-level merge preserves unrelated features edited on
 /// another device.
-struct MealsSlice: Codable {
+struct MealsSlice: Codable, Equatable {
     var mealHistory: [MealEntry] = []
     var dailyConsumption: [String: DailyConsumption] = [:]
 }
 
-struct HabitsSlice: Codable {
+struct HabitsSlice: Codable, Equatable {
     var habits: [Habit] = []
     var habitEntries: [HabitEntry] = []
 }
 
-struct MomentumSlice: Codable {
+struct MomentumSlice: Codable, Equatable {
     var atlasScore: Int = 0
     var atlasLevel: Int = 1
     var momentumAwardedToday: Int = 0
@@ -617,7 +632,7 @@ struct MomentumSlice: Codable {
     var momentumHistory: [MomentumDayPoint] = []
 }
 
-struct FoodLibrarySlice: Codable {
+struct FoodLibrarySlice: Codable, Equatable {
     var customFoods: [CustomFood] = []
     /// `[String]` (sorted) for a deterministic on-disk shape; collapsed
     /// back to `Set<String>` on read.
