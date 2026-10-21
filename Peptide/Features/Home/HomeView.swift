@@ -563,6 +563,7 @@ struct HomeView: View {
                     initial: dataStore.profile.nutritionTargets ?? .zero,
                     bodyMetrics: dataStore.profile.bodyMetrics,
                     goalRaw: dataStore.profile.primaryGoal,
+                    expenditure: dataStore.expenditureEstimate(),
                     onSave: { targets in
                         dataStore.updateNutritionTargets(targets)
                         showTargetsEditor = false

@@ -155,6 +155,7 @@ struct HomeMealsSection: View {
             )
             .scrollReveal()
         }
+        .onAppear { dataStore.refreshAdaptiveTargets() }
         .sheet(isPresented: $showMealScan) {
             MealScanFlow(onClose: { showMealScan = false }, logDay: selectedDay)
                 .environment(dataStore)
@@ -208,6 +209,7 @@ struct HomeMealsSection: View {
                 initial: dataStore.profile.nutritionTargets ?? .zero,
                 bodyMetrics: dataStore.profile.bodyMetrics,
                 goalRaw: dataStore.profile.primaryGoal,
+                expenditure: dataStore.expenditureEstimate(),
                 onSave: { targets in
                     dataStore.updateNutritionTargets(targets)
                     showTargetsEditor = false
