@@ -66,8 +66,8 @@ struct PeptideApp: App {
             WatchSyncService.shared.onMarkIncomplete = { entryId, _ in
                 store.markEntryIncomplete(entryId)
             }
-            WatchSyncService.shared.onLogWater = { oz in
-                store.logWater(oz: oz)
+            WatchSyncService.shared.onLogWater = { oz, date in
+                store.logWater(oz: oz, date: date)
             }
             // Resolve haptics against the live profile so the global
             // "Haptic Feedback" toggle is honoured everywhere without

@@ -2511,7 +2511,8 @@ final class DataStore {
             measurementUnit: profile.bodyMetrics.unit.rawValue,
             vitals: watchVitals,
             workout: watchWorkout,
-            training: WatchWorkoutSnapshotBuilder.training(from: repo.loadWorkoutSessions(limit: 30))
+            training: WatchWorkoutSnapshotBuilder.training(from: repo.loadWorkoutSessions(limit: 30)),
+            hapticsEnabled: profile.hapticFeedbackEnabled
         )
     }
 

@@ -17,6 +17,7 @@ enum WatchPage: Hashable {
 /// since that is why the user raised their wrist.
 struct WatchRootView: View {
     @EnvironmentObject private var store: WatchStore
+    @Environment(\.scenePhase) private var scenePhase
     @State private var selection: WatchPage = .today
 
     private var pages: [WatchPage] {
@@ -48,6 +49,12 @@ struct WatchRootView: View {
         }
         .onChange(of: pages) { _, pages in
             if !pages.contains(selection) { selection = .today }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { store.refreshForNow() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+            store.refreshForNow()
         }
     }
 

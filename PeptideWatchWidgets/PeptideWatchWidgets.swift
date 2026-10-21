@@ -38,39 +38,40 @@ struct WatchDoseProvider: TimelineProvider {
 
     func getSnapshot(in context: Context, completion: @escaping (WatchDoseEntry) -> Void) {
         if context.isPreview { completion(.placeholder); return }
-        completion(currentEntry())
+        completion(entry(at: .now))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<WatchDoseEntry>) -> Void) {
-        let entry = currentEntry()
+        let current = entry(at: .now)
         let calendar = Calendar.current
         // Refresh at the next dose time, otherwise every 15 minutes, otherwise
-        // at midnight.
+        // at midnight. The midnight entry empties the day even when the
+        // refresh runs late.
         let midnight = calendar.startOfDay(
             for: calendar.date(byAdding: .day, value: 1, to: .now) ?? .now
         )
         let fifteenMin = calendar.date(byAdding: .minute, value: 15, to: .now) ?? .now
         let nextUpdate: Date
-        if let doseDate = entry.nextDoseTime, doseDate > .now, doseDate <= fifteenMin {
+        if let doseDate = current.nextDoseTime, doseDate > .now, doseDate <= fifteenMin {
             nextUpdate = min(doseDate.addingTimeInterval(60), midnight)
         } else {
             nextUpdate = min(fifteenMin, midnight)
         }
-        completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
+        completion(Timeline(entries: [current, entry(at: midnight)], policy: .after(nextUpdate)))
     }
 
     /// Reads the same `watch_data.json` the watch app already syncs to via
     /// `WatchSyncService` — the widget surface piggybacks on the existing
     /// pipeline, no new sync code required.
-    private func currentEntry() -> WatchDoseEntry {
+    private func entry(at date: Date) -> WatchDoseEntry {
         guard let url = FileManager.default
                 .containerURL(forSecurityApplicationGroupIdentifier: AppGroup.identifier)?
                 .appendingPathComponent("watch_data.json"),
               let data = try? Data(contentsOf: url),
-              let watchData = try? Self.decoder.decode(WatchData.self, from: data)
+              let watchData = try? Self.decoder.decode(WatchData.self, from: data).forDisplay(at: date)
         else {
             return WatchDoseEntry(
-                date: .now, nextPeptide: "", nextDose: "",
+                date: date, nextPeptide: "", nextDose: "",
                 nextDoseTime: nil, completedToday: 0, totalToday: 0
             )
         }
@@ -78,7 +79,7 @@ struct WatchDoseProvider: TimelineProvider {
         let next = watchData.todayEntries.first { !$0.completed }
 
         return WatchDoseEntry(
-            date: .now,
+            date: date,
             nextPeptide: next?.abbreviation ?? "",
             nextDose: next?.dose ?? "",
             nextDoseTime: next?.scheduledTime,
@@ -225,28 +226,30 @@ struct WatchMomentumProvider: TimelineProvider {
     func placeholder(in context: Context) -> WatchMomentumEntry { .placeholder }
 
     func getSnapshot(in context: Context, completion: @escaping (WatchMomentumEntry) -> Void) {
-        completion(context.isPreview ? .placeholder : currentEntry())
+        completion(context.isPreview ? .placeholder : entry(at: .now))
     }
 
+    /// Ends on a midnight entry that clears the day's "+N today" and habit
+    /// counts, even when the refresh runs late.
     func getTimeline(in context: Context, completion: @escaping (Timeline<WatchMomentumEntry>) -> Void) {
         let calendar = Calendar.current
         let midnight = calendar.startOfDay(
             for: calendar.date(byAdding: .day, value: 1, to: .now) ?? .now
         )
         let next = min(calendar.date(byAdding: .minute, value: 30, to: .now) ?? .now, midnight)
-        completion(Timeline(entries: [currentEntry()], policy: .after(next)))
+        completion(Timeline(entries: [entry(at: .now), entry(at: midnight)], policy: .after(next)))
     }
 
-    private func currentEntry() -> WatchMomentumEntry {
+    private func entry(at date: Date) -> WatchMomentumEntry {
         guard let url = FileManager.default
                 .containerURL(forSecurityApplicationGroupIdentifier: AppGroup.identifier)?
                 .appendingPathComponent("watch_data.json"),
               let data = try? Data(contentsOf: url),
-              let wd = try? Self.decoder.decode(WatchData.self, from: data)
+              let wd = try? Self.decoder.decode(WatchData.self, from: data).forDisplay(at: date)
         else { return .empty }
 
         return WatchMomentumEntry(
-            date: .now,
+            date: date,
             score: wd.atlasScore ?? 0,
             level: wd.atlasLevel ?? 1,
             tier: wd.atlasTier ?? "bronze",
