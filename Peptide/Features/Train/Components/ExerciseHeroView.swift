@@ -101,5 +101,8 @@ struct ExerciseMuscleThumbnail: View {
             .offset(x: -focus.minX * width, y: -focus.minY * height)
         }
         .clipped()
+        // Flattens the stack of masked, blurred figure copies into one
+        // tile-sized layer, so a scrolling list composites one image per row.
+        .drawingGroup()
     }
 }
