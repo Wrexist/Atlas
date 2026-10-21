@@ -212,7 +212,9 @@ struct HeroMetricDetailSheet: View {
             return String(format: String(localized: "%d of %d doses logged today"), completed, total)
         case .recovery:
             guard valueForRing.isAvailable else {
-                return String(localized: "Connect Apple Health to unlock Recovery.")
+                return snapshot.healthConnected
+                    ? String(localized: "Not enough recent data — wear your Apple Watch overnight to build a baseline.")
+                    : String(localized: "Connect Apple Health to unlock Recovery.")
             }
             return String(localized: "Composite of HRV, last night's sleep, and resting heart rate.")
         case .sleep:

@@ -66,8 +66,13 @@ struct HeroMetricTrio: View {
             .frame(minWidth: 0, maxWidth: .infinity)
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { rowWidth = $0 }
 
-            if !isLoading, snapshot.needsHealthConnection {
-                healthConnectionFooter
+            if !isLoading {
+                if snapshot.needsHealthConnection {
+                    healthConnectionFooter
+                } else if snapshot.awaitsHealthData {
+                    footerContent(Self.awaitingDataMessage, chevron: false)
+                        .accessibilityElement(children: .combine)
+                }
             }
         }
         .padding(Spacing.md)
@@ -197,7 +202,7 @@ struct HeroMetricTrio: View {
     private var healthConnectionFooter: some View {
         if let onConnectHealth {
             Button(action: onConnectHealth) {
-                footerContent(chevron: true)
+                footerContent(Self.connectHealthMessage, chevron: true)
             }
             .buttonStyle(ScalePressStyle(pressedScale: 0.96))
             .minimumHitArea()
@@ -205,16 +210,23 @@ struct HeroMetricTrio: View {
             .accessibilityLabel("Connect Apple Health for Recovery and Sleep scores")
             .accessibilityHint("Asks for Apple Health access")
         } else {
-            footerContent(chevron: false)
+            footerContent(Self.connectHealthMessage, chevron: false)
         }
     }
 
-    private func footerContent(chevron: Bool) -> some View {
+    private static var connectHealthMessage: LocalizedStringKey {
+        "Connect Apple Health for Recovery & Sleep scores"
+    }
+    private static var awaitingDataMessage: LocalizedStringKey {
+        "Not enough recent Health data — wear your Apple Watch overnight to build a baseline"
+    }
+
+    private func footerContent(_ message: LocalizedStringKey, chevron: Bool) -> some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: "heart.text.square.fill")
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
-            Text("Connect Apple Health for Recovery & Sleep scores")
+            Text(message)
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
                 .lineLimit(2)
@@ -345,6 +357,11 @@ struct HeroMetricSnapshot: Equatable, Sendable {
     /// rather than "permissions denied" — different copy.
     var needsHealthConnection: Bool {
         !healthConnected && (!recovery.isAvailable || !sleep.isAvailable)
+    }
+
+    /// Connected, but Recovery or Sleep has no recent samples to score.
+    var awaitsHealthData: Bool {
+        healthConnected && (!recovery.isAvailable || !sleep.isAvailable)
     }
 
     static let empty = HeroMetricSnapshot(
