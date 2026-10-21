@@ -308,13 +308,15 @@ struct PeptideApp: App {
         }
     }
 
-    /// What `PrivacyLockWindow` should show. Locked: the lock screen until
-    /// the user authenticates. Unlocked: a plain cover whenever the scene
-    /// isn't active, so the app-switcher snapshot (taken on the way to
-    /// the background) never shows doses, weight or Biological Age.
+    /// What `PrivacyLockWindow` should show. A plain cover whenever the
+    /// scene isn't active, so the app-switcher snapshot (taken on the way
+    /// to the background) never shows doses, weight or Biological Age.
+    /// The lock screen once the app is coming back, so its Face ID prompt
+    /// runs in the foreground — and stays through that prompt, which
+    /// itself makes the scene inactive.
     private var privacyCover: PrivacyLockWindow.Cover? {
         guard hasCompletedOnboarding, dataStore.profile.biometricLockEnabled else { return nil }
-        if !isUnlocked { return .lock }
+        if !isUnlocked { return scenePhase == .background ? .snapshot : .lock }
         return scenePhase == .active ? nil : .snapshot
     }
 
