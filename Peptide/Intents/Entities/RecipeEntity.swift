@@ -62,7 +62,10 @@ struct RecipeEntityQuery: EntityQuery {
 
     @MainActor
     private static func allEntities(in store: DataStore) -> [RecipeEntity] {
-        store.profile.recipes.map { recipe in
+        // A CloudKit merge or restore can duplicate a recipe; one entity
+        // per id keeps the id lookup in `entities(for:)` from trapping.
+        var seen: Set<UUID> = []
+        return store.profile.recipes.filter { seen.insert($0.id).inserted }.map { recipe in
             let totals = RecipeDataLogic.totals(
                 for: recipe,
                 customFoods: store.profile.customFoods

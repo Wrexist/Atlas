@@ -81,7 +81,10 @@ struct FoodEntityQuery: EntityQuery {
         var out: [FoodEntity] = []
         out.reserveCapacity(store.profile.customFoods.count)
 
-        for food in store.profile.customFoods {
+        // A CloudKit merge or restore can duplicate a food; one entity
+        // per id keeps the id lookup in `entities(for:)` from trapping.
+        var seen: Set<String> = []
+        for food in store.profile.customFoods where seen.insert(food.foodID).inserted {
             out.append(FoodEntity(
                 id: food.foodID,
                 displayName: food.name,
