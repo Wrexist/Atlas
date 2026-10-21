@@ -18,6 +18,7 @@ import PhotosUI
 /// non-empty and the calorie value is greater than zero. Everything
 /// else can stay zero.
 struct CustomFoodEditorSheet: View {
+    @Environment(DataStore.self) private var dataStore
     let initial: CustomFood
     let onSave: (CustomFood) -> Void
     let onCancel: () -> Void
@@ -47,6 +48,8 @@ struct CustomFoodEditorSheet: View {
     /// A fill held on the device until the user allows sending it to the
     /// AI (Guideline 5.1.2(i)).
     @State private var pendingFill: PendingFill?
+    @State private var showScanLimitPaywall = false
+    @State private var storeService = StoreService.shared
 
     private enum PendingFill {
         case text(String)
@@ -202,6 +205,11 @@ struct CustomFoodEditorSheet: View {
                                     set: { if !$0 { resumePendingFill() } })) {
             AIConsentSheet(whatIsSent: "The food you type, or the photo of its package.")
         }
+        .sheet(isPresented: $showScanLimitPaywall) {
+            PaywallView(source: .mealScanLimit)
+                .environment(dataStore)
+                .liquidGlassPresentation()
+        }
     }
 
     private var aiFillSection: some View {
@@ -280,8 +288,14 @@ struct CustomFoodEditorSheet: View {
         }
     }
 
+    /// A photo fill is a paid vision scan, so it spends the same weekly
+    /// allowance as a meal photo.
     private func fill(fromPhoto item: PhotosPickerItem) async {
         defer { aiPhoto = nil }
+        guard MealScanQuota.remainingThisWeek(isPro: storeService.isProUser) != 0 else {
+            showScanLimitPaywall = true
+            return
+        }
         guard let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) else {
             failFill(MealScannerService.ScanError.invalidResponse)
             return
@@ -297,9 +311,11 @@ struct CustomFoodEditorSheet: View {
         guard !isFilling else { return }
         startFill()
         do {
-            applyFill(try await MealScannerService.shared.smartScan(
+            let scan = try await MealScannerService.shared.smartScan(
                 image: image, hint: "A packaged food or its nutrition label, being added to the user's food library.",
-                corrections: ScanCorrectionMemory.shared.recent))
+                corrections: ScanCorrectionMemory.shared.recent)
+            if !scan.items.isEmpty, !storeService.isProUser { MealScanQuota.recordSuccessfulScan() }
+            applyFill(scan)
         } catch {
             failFill(error)
         }

@@ -71,6 +71,8 @@ struct BarcodeScanFlow: View {
     /// it to the AI (Guideline 5.1.2(i)).
     @State private var pendingPackageImage: UIImage?
     @State private var showPackageConsent = false
+    @State private var showScanLimitPaywall = false
+    @State private var storeService = StoreService.shared
 
     private enum Phase: Equatable {
         case preflight       // checking camera permission + device support
@@ -660,6 +662,11 @@ struct BarcodeScanFlow: View {
         }) {
             AIConsentSheet(whatIsSent: "The photo of the package you take or pick.")
         }
+        .sheet(isPresented: $showScanLimitPaywall) {
+            PaywallView(source: .mealScanLimit)
+                .environment(dataStore)
+                .liquidGlassPresentation()
+        }
         .fullScreenCover(isPresented: $isShowingPackageCamera) {
             CameraPicker(
                 onPicked: { image in
@@ -808,6 +815,7 @@ struct BarcodeScanFlow: View {
     private var packagePhotoButton: some View {
         if UIImagePickerController.SourceType.cameraIsAvailable {
             GlassButton(title: "Photograph the package", icon: "sparkles", style: .primary) {
+                guard !scanLimitReached() else { return }
                 // Ask before the camera opens, so the consent sheet never
                 // has to present over a dismissing camera.
                 guard AIDataConsent.isGranted else {
@@ -1117,7 +1125,16 @@ struct BarcodeScanFlow: View {
         }
     }
 
+    /// A package read is a paid photo scan, so it spends the same weekly
+    /// allowance as a meal photo.
+    private func scanLimitReached() -> Bool {
+        guard MealScanQuota.remainingThisWeek(isPro: storeService.isProUser) == 0 else { return false }
+        showScanLimitPaywall = true
+        return true
+    }
+
     private func requestReadPackage(_ image: UIImage) async {
+        guard !scanLimitReached() else { return }
         guard AIDataConsent.isGranted else {
             pendingPackageImage = image
             showPackageConsent = true
@@ -1146,6 +1163,7 @@ struct BarcodeScanFlow: View {
                 throw MealScannerService.ScanError.noFoodDetected
             }
             await MainActor.run {
+                if !storeService.isProUser { MealScanQuota.recordSuccessfulScan() }
                 product = read
                 insight = scan
                 productReadByAI = true
