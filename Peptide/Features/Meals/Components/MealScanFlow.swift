@@ -25,6 +25,9 @@ struct MealScanFlow: View {
     /// the plate before logging.
     @State private var items: [EditableFoodItem] = []
     @State private var errorText: String?
+    /// The error is about the photo itself, so the card offers another
+    /// photo instead of retrying this one.
+    @State private var errorNeedsNewPhoto = false
     @State private var category: MealCategory = MealCategory.auto(for: Date())
     /// The dish the model thinks these items add up to, when they add up to
     /// one. Nil for a tray of unrelated things, which is what keeps the
@@ -696,21 +699,38 @@ struct MealScanFlow: View {
             title: "Couldn't read this meal",
             message: LocalizedStringKey(errorText ?? String(localized: "Something went wrong. Check your connection and retry.")),
             accent: AppColor.warning,
-            action: .init(title: image == nil ? "Try again" : "Retry", icon: "arrow.clockwise") { retryAnalysis() }
+            action: canRetryPhoto ? retryAction : newPhotoAction,
+            secondary: canRetryPhoto ? newPhotoAction : nil
         )
     }
 
+    private var canRetryPhoto: Bool { image != nil && !errorNeedsNewPhoto }
+
+    private var retryAction: EmptyStateView.Action {
+        .init(title: "Retry", icon: "arrow.clockwise") { retryAnalysis() }
+    }
+
+    private var newPhotoAction: EmptyStateView.Action {
+        .init(title: image == nil ? "Try again" : "Choose another photo", icon: "photo.on.rectangle") { chooseAnotherPhoto() }
+    }
+
+    /// Re-runs analysis on the photo already loaded — no need to make the
+    /// user re-pick and re-upload after a transient failure.
     private func retryAnalysis() {
+        guard let image else { return chooseAnotherPhoto() }
         errorText = nil
-        if let image {
-            // Re-run analysis on the photo already loaded — no need to
-            // make the user re-pick and re-upload after a transient failure.
-            phase = .analyzing
-            inFlightTask = Task { await runAnalysis(on: image) }
-        } else {
-            selectedItem = nil
-            phase = .pickImage
-        }
+        phase = .analyzing
+        inFlightTask?.cancel()
+        inFlightTask = Task { await runAnalysis(on: image) }
+    }
+
+    private func chooseAnotherPhoto() {
+        errorText = nil
+        errorNeedsNewPhoto = false
+        image = nil
+        photoScale = nil
+        selectedItem = nil
+        phase = .pickImage
     }
 
     private var draftSnapshot: MealScanDraft {
@@ -807,6 +827,7 @@ struct MealScanFlow: View {
                 guard !Task.isCancelled else { return }
                 await MainActor.run {
                     errorText = "Couldn't load that photo. Try a different one."
+                    errorNeedsNewPhoto = true
                     phase = .error
                 }
                 return
@@ -837,6 +858,7 @@ struct MealScanFlow: View {
                 // diagnostic purposes.
                 AppLog.persistence.error("PhotosPicker loadImage failed: \(error.localizedDescription, privacy: .private)")
                 errorText = "Couldn't load that photo. Try another one."
+                errorNeedsNewPhoto = true
                 phase = .error
             }
         }
@@ -908,6 +930,7 @@ struct MealScanFlow: View {
             guard !Task.isCancelled else { return }
             await MainActor.run {
                 errorText = error.localizedDescription
+                errorNeedsNewPhoto = (error as? MealScannerService.ScanError)?.needsDifferentPhoto ?? false
                 phase = .error
                 Haptics.error()
             }

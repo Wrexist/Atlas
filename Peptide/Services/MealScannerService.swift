@@ -91,6 +91,14 @@ final class MealScannerService: Sendable {
             case .routeMissing:         "Meal scanner returned HTTP 404."
             }
         }
+
+        /// Sending the same photo again can't change the answer.
+        var needsDifferentPhoto: Bool {
+            switch self {
+            case .imageTooLarge, .implausibleResult, .noFoodDetected, .declined: true
+            default: false
+            }
+        }
     }
 
     /// 5xx statuses worth one retry — a transient proxy / upstream
