@@ -53,7 +53,7 @@ struct AppearanceSettings: View {
 
                 SettingsToggleRow(
                     icon: "hand.tap.fill",
-                    title: "Haptic Feedback",
+                    title: "Haptic feedback",
                     subtitle: "Vibrate on interactions",
                     isOn: $store.profile.hapticFeedbackEnabled
                 )
@@ -66,7 +66,7 @@ struct AppearanceSettings: View {
 
                     SettingsToggleRow(
                         icon: biometricService.biometryIcon,
-                        title: "\(biometricService.biometryName) Lock",
+                        title: "\(biometricService.biometryName) lock",
                         subtitle: "Require \(biometricService.biometryName) to open Atlas.",
                         isOn: $store.profile.biometricLockEnabled
                     )
@@ -197,7 +197,7 @@ private struct ThemePickerRow: View {
                     .frame(width: settingsIconColumnWidth)
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text("Accent Color")
+                    Text("Accent color")
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(selection.displayName)

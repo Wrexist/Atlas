@@ -30,7 +30,7 @@ import UIKit
 /// (which carry no actor isolation) and stays callable from any
 /// context; in practice every call site is already on the main thread.
 enum Haptics {
-    /// Resolves the user's current Haptic Feedback preference. Defaults
+    /// Resolves the user's current haptic feedback preference. Defaults
     /// to `true` to match `UserProfile`'s default, so a haptic fired
     /// before `configure` runs still does the expected thing.
     private static var resolveEnabled: () -> Bool = { true }

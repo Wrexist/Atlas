@@ -291,7 +291,7 @@
         }
       }
     },
-    "Accent Color": {
+    "Accent color": {
       "localizations": {
         "ar": {
           "stringUnit": {
@@ -4003,7 +4003,7 @@
         }
       }
     },
-    "Haptic Feedback": {
+    "Haptic feedback": {
       "localizations": {
         "ar": {
           "stringUnit": {
@@ -4757,7 +4757,7 @@
         }
       }
     },
-    "Medical Disclaimer": {
+    "Medical disclaimer": {
       "localizations": {
         "ar": {
           "stringUnit": {
@@ -9223,7 +9223,7 @@
         }
       }
     },
-    "Your Goals": {
+    "Your goals": {
       "localizations": {
         "ar": {
           "stringUnit": {

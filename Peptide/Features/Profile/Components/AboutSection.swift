@@ -55,7 +55,7 @@ struct AboutSection: View {
                     Divider().overlay(AppColor.glassBorder)
                     Button { showDisclaimer = true } label: {
                         HStack {
-                            Text("Medical Disclaimer")
+                            Text("Medical disclaimer")
                                 .font(AppFont.subheadline)
                                 .foregroundStyle(AppColor.textSecondary)
                             Spacer()
@@ -151,7 +151,7 @@ struct MedicalDisclaimerSheet: View {
                 .padding(Spacing.screenPadding)
             }
             .background(AppColor.background)
-            .navigationTitle("Medical Disclaimer")
+            .navigationTitle("Medical disclaimer")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
