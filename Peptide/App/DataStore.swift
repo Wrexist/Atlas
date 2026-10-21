@@ -1758,8 +1758,8 @@ final class DataStore {
         updateWatchData()
     }
 
-    /// (count, totalMinutes) for workout sessions logged on `date`'s
-    /// calendar day.
+    /// (count, totalMinutes) for finished workout sessions on `date`'s
+    /// calendar day. A session still in progress isn't logged yet.
     func workoutSummary(for date: Date = Date()) -> (count: Int, minutes: Int) {
         // Reads from `StoredWorkoutSession` now (Plan C) — quick-log
         // entries and Train-tab sessions both land there. Uses the
@@ -1773,13 +1773,9 @@ final class DataStore {
             return (0, 0)
         }
         let sessions = repo.loadWorkoutSessions(startedBetween: dayStart..<dayEnd)
-        let count = sessions.count
-        let minutes = sessions.reduce(0) { acc, session in
-            guard session.finishedAt != nil else { return acc }
-            let secs = session.elapsedSeconds()
-            return acc + max(0, Int(secs / 60))
-        }
-        return (count, minutes)
+            .filter { !$0.isActive }
+        let minutes = sessions.reduce(0) { $0 + $1.elapsedSeconds() / 60 }
+        return (sessions.count, minutes)
     }
 
     func addProgressPhotoFilename(_ filename: String) {

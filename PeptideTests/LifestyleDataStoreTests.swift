@@ -175,4 +175,15 @@ final class LifestyleDataStoreTests: XCTestCase {
         XCTAssertEqual(prior.count, 1)
         XCTAssertEqual(prior.minutes, 50)
     }
+
+    /// Starting a workout must not tick Today's "Workout logged" row
+    /// before the session is finished.
+    func test_workoutSummary_activeSession_isNotCounted() {
+        let store = makeStore()
+        SwiftDataRepository.shared.upsertWorkoutSession(WorkoutSession(name: "Push", startedAt: Date()))
+
+        let summary = store.workoutSummary()
+        XCTAssertEqual(summary.count, 0)
+        XCTAssertEqual(summary.minutes, 0)
+    }
 }

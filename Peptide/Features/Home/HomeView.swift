@@ -909,26 +909,23 @@ struct HomeView: View {
         // timeline still expects the legacy `WorkoutEntry` shape, so
         // adapt at this boundary. Empty-exercise quick-log sessions
         // still render — the timeline only needs name + date +
-        // duration.
+        // duration. A session still in progress isn't "Logged" yet.
         let dayStart = cal.startOfDay(for: now)
         let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
         let workoutsToday: [WorkoutEntry] = SwiftDataRepository.shared
             .loadWorkoutSessions(startedBetween: dayStart..<dayEnd)
+            .filter { !$0.isActive }
             .map { session in
                 let sets = session.exercises.flatMap(\.sets)
                 let reps = sets.reduce(0) { $0 + $1.reps }
                 let avgReps = sets.isEmpty ? 0 : reps / sets.count
-                let duration: Int = {
-                    guard session.finishedAt != nil else { return 0 }
-                    return session.elapsedSeconds() / 60
-                }()
                 return WorkoutEntry(
                     id: session.id,
                     date: session.startedAt,
                     name: session.name ?? "Workout",
                     sets: sets.count,
                     reps: avgReps,
-                    durationMinutes: duration
+                    durationMinutes: session.elapsedSeconds() / 60
                 )
             }
         return TodayTimelineEvent.build(
