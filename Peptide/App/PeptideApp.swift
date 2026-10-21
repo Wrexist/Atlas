@@ -173,6 +173,17 @@ struct PeptideApp: App {
                 appState.selectedTab = .meals
                 appState.pendingFoodLogID = deepLink
             }
+            .onReceive(NotificationCenter.default.publisher(
+                for: UIApplication.significantTimeChangeNotification
+            )) { _ in
+                // Midnight, a timezone change or a DST jump while the app
+                // stays open: Today would otherwise keep yesterday's doses
+                // until the next activation.
+                guard scenePhase == .active else { return }
+                dataStore.handleAppActivation()
+                DoseLiveActivityService.shared.reconcile(entries: dataStore.entries)
+                detectTimezoneChange()
+            }
             .sheet(item: $travelChange) { change in
                 TravelModePromptSheet(
                     change: change,
