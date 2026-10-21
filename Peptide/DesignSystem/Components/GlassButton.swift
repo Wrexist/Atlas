@@ -30,7 +30,9 @@ struct GlassButton: View {
             if style == .ghost {
                 label
             } else {
-                label.glassControl(.capsule, tint: tint, border: border)
+                // ScalePressStyle owns the press response; interactive
+                // glass would run a second, competing scale on iOS 26.
+                label.glassControl(.capsule, tint: tint, border: border, interactive: false)
             }
         }
         .buttonStyle(ScalePressStyle())
@@ -104,7 +106,8 @@ struct GlassIconButton: View {
                 .glassControl(
                     .circle,
                     tint: tinted ? AppColor.accentPrimary.opacity(0.18) : nil,
-                    border: tinted ? AppColor.glassBorderActive : AppColor.glassBorder
+                    border: tinted ? AppColor.glassBorderActive : AppColor.glassBorder,
+                    interactive: false
                 )
         }
         .buttonStyle(ScalePressStyle())
