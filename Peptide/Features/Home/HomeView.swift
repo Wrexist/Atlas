@@ -24,7 +24,8 @@ struct HomeView: View {
     // tab's avatar button route through the same presentation.
     /// 0…1 fade progress for the sticky compressing header. Driven
     /// by `.onScrollGeometryChange` so the bar materialises in lock-
-    /// step with the user's finger.
+    /// step with the user's finger. Handed down as a binding and never
+    /// read here, so scroll frames re-render only the header.
     @State private var stickyProgress: Double = 0
     /// State of the Sunday-recap card on Today. Loads on the first
     /// appear of each weekend; cached entries pre-fill the .ready
@@ -112,9 +113,11 @@ struct HomeView: View {
         /// for a user with no active protocol.
         var workoutsThisWeek = 0
         /// Today's session count and minutes — feeds the Movement card
-        /// and the checklist's training row without a fetch from `body`.
+        /// without a fetch from `body`.
         var workoutSummary: (count: Int, minutes: Int) = (0, 0)
-        var trainedToday: Bool { workoutSummary.count > 0 }
+        /// The logging checklist. Filters the full meal and weight
+        /// histories, so it's built here rather than in `body`.
+        var checklist: TodayChecklistEngine.State?
     }
 
     private struct HeroDetailItem: Identifiable {
@@ -148,13 +151,19 @@ struct HomeView: View {
     /// plus one day-scoped SwiftData fetch — but it must not run from `body`.
     private func refreshDerived() {
         let plan = DailyScheduleEngine.plan(for: dataStore.todayEntries)
+        let workoutSummary = dataStore.workoutSummary(for: Date())
         let next = DerivedToday(
             overview: TodayOverviewSnapshot.build(from: dataStore),
             plan: plan,
             timeline: buildTimelineEvents(),
             primaryReason: buildPrimaryReason(plan: plan),
             workoutsThisWeek: countWorkoutsThisWeek(),
-            workoutSummary: dataStore.workoutSummary(for: Date())
+            workoutSummary: workoutSummary,
+            checklist: TodayChecklistEngine.state(
+                profile: dataStore.profile,
+                consumption: dataStore.consumption(),
+                trainedToday: workoutSummary.count > 0
+            )
         )
         // Inside an animation so the cards' numericText digits roll.
         AppAnimation.with(AppAnimation.springSmooth) { derived = next }
@@ -346,16 +355,14 @@ struct HomeView: View {
 
                     // The day's logging loop in one card — every open
                     // row is also the shortcut that closes it.
-                    TodayChecklistCard(
-                        state: TodayChecklistEngine.state(
-                            profile: dataStore.profile,
-                            consumption: dataStore.consumption(),
-                            trainedToday: derived.trainedToday
-                        ),
-                        unit: dataStore.profile.bodyMetrics.unit,
-                        onAction: handleChecklistAction
-                    )
-                    .sectionAppear(index: 5)
+                    if let checklist = derived.checklist {
+                        TodayChecklistCard(
+                            state: checklist,
+                            unit: dataStore.profile.bodyMetrics.unit,
+                            onAction: handleChecklistAction
+                        )
+                        .sectionAppear(index: 5)
+                    }
 
                     if !dataStore.protocols.isEmpty, let plan = derived.plan {
                         // The ONE place doses appear on Today — the
@@ -548,7 +555,7 @@ struct HomeView: View {
                         Haptics.impact(.light)
                         appState.showProfile = true
                     },
-                    progress: stickyProgress
+                    progress: $stickyProgress
                 )
             }
             .sheet(item: $selectedEntry) { entry in
@@ -939,6 +946,7 @@ struct HomeView: View {
     /// snapshot. Pure read — synchronous so the view body can
     /// consume it without an async hop.
     private func buildCoachingContext() -> CoachingMessageEngine.Context {
+        let stats = todayStats
         let next = dataStore.nextDose
         let nextTimeDisplay: String? = next.map {
             DateFormatter.localizedString(from: $0.date, dateStyle: .none, timeStyle: .short)
@@ -951,8 +959,8 @@ struct HomeView: View {
             healthConnected: dataStore.profile.healthConnected,
             recoveryScore: heroSnapshot.recovery.isAvailable ? heroSnapshot.recovery.displayPercent : nil,
             sleepHours: heroSnapshot.sleep.isAvailable ? heroSnapshot.lastSleepHours : nil,
-            adherenceRatio: todayStats.score,
-            pendingDoseCount: todayStats.total - todayStats.completed,
+            adherenceRatio: stats.score,
+            pendingDoseCount: stats.total - stats.completed,
             nextDoseAbbreviation: next?.peptide.abbreviation,
             nextDoseTimeDisplay: nextTimeDisplay,
             hourOfDay: Calendar.current.component(.hour, from: Date()),
