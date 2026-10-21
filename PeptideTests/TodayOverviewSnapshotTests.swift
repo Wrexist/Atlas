@@ -62,6 +62,30 @@ final class TodayOverviewSnapshotTests: XCTestCase {
         XCTAssertNil(snapshot.checkInScore)
     }
 
+    // MARK: - Browsing a past day
+
+    func test_build_pastDay_readsThatDaysWaterAndCheckIn() throws {
+        let store = DataStore(seedSampleData: false)
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+        store.logWater(oz: 24, date: yesterday)
+        store.logWater(oz: 40)
+        store.logOutcome(
+            OutcomeEntry(date: yesterday, energy: 2, sleepQuality: 2, recovery: 2, mood: 2, focus: 2)
+        )
+
+        let snapshot = TodayOverviewSnapshot.build(from: store, now: yesterday)
+
+        XCTAssertEqual(snapshot.waterToday, 24)
+        XCTAssertEqual(try XCTUnwrap(snapshot.checkInScore), 2.0, accuracy: 0.001)
+    }
+
+    func test_build_withoutInsight_dropsBottomInsight() {
+        let store = DataStore(seedSampleData: false)
+        // No target → the build would otherwise pick the calorie nudge.
+        let snapshot = TodayOverviewSnapshot.build(from: store, includesInsight: false)
+        XCTAssertNil(snapshot.bottomInsight)
+    }
+
     // MARK: - Lab summary
 
     func test_build_latestLab_reportsShortNameAndDaysAgo() {

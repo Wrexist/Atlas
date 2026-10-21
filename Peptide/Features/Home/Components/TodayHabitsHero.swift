@@ -21,20 +21,34 @@ struct HabitsHeroSnapshot: Equatable {
 
     static let empty = HabitsHeroSnapshot(items: [], dueCount: 0, doneCount: 0, bestCurrentStreak: 0)
 
-    /// 0…1 of today's due habits completed.
+    /// 0…1 of the day's due habits completed.
     var progress: Double {
         guard dueCount > 0 else { return 0 }
         return min(1, Double(doneCount) / Double(dueCount))
     }
 
-    static func build(activeHabits: [Habit], entries: [HabitEntry], frozenDayKeys: Set<String> = []) -> HabitsHeroSnapshot {
+    /// `day` scopes completion, due-ness, streaks and the weekly count, so
+    /// Today can show how a past day stood when the user browses back.
+    static func build(
+        activeHabits: [Habit],
+        entries: [HabitEntry],
+        frozenDayKeys: Set<String> = [],
+        on day: Date = Date(),
+        calendar: Calendar = .current
+    ) -> HabitsHeroSnapshot {
         var items: [Item] = []
         var due = 0
         var done = 0
         var best = 0
         for habit in activeHabits {
-            let summary = HabitsService.summary(for: habit, entries: entries, frozenDayKeys: frozenDayKeys)
-            let weekly = HabitsService.weeklyProgress(for: habit, entries: entries)
+            let summary = HabitsService.summary(
+                for: habit,
+                entries: entries,
+                frozenDayKeys: frozenDayKeys,
+                on: day,
+                calendar: calendar
+            )
+            let weekly = HabitsService.weeklyProgress(for: habit, entries: entries, on: day, calendar: calendar)
             items.append(
                 Item(
                     habit: habit,
@@ -59,9 +73,15 @@ struct HabitsHeroSnapshot: Equatable {
 /// active streak, the Atlas Score, and tap-to-complete chips. The app's
 /// "what do I do today, and how am I doing?" surface — the first thing the
 /// user sees and acts on.
+///
+/// Given a past `day` it shows how that day stood, read-only: the chips
+/// stop toggling and the streak line describes the day instead of
+/// inviting a tap.
 struct TodayHabitsHero: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
+    /// The day shown. Nil follows the live clock — today, read-write.
+    var day: Date?
     @State private var snapshot: HabitsHeroSnapshot = .empty
     @State private var addingNew = false
 
@@ -79,6 +99,7 @@ struct TodayHabitsHero: View {
         .task { rebuild() }
         .onChange(of: dataStore.profile.habitEntries) { _, _ in rebuild() }
         .onChange(of: dataStore.activeHabits) { _, _ in rebuild() }
+        .onChange(of: day) { _, _ in rebuild() }
         .sheet(isPresented: $addingNew) {
             HabitEditSheet(editing: nil) { habit in
                 dataStore.addHabit(habit)
@@ -91,10 +112,13 @@ struct TodayHabitsHero: View {
         let next = HabitsHeroSnapshot.build(
             activeHabits: dataStore.activeHabits,
             entries: dataStore.profile.habitEntries,
-            frozenDayKeys: dataStore.profile.streakFreezeDays
+            frozenDayKeys: dataStore.profile.streakFreezeDays,
+            on: day ?? Date()
         )
         AppAnimation.with(AppAnimation.springSnappy) { snapshot = next }
     }
+
+    private var isReadOnly: Bool { day != nil }
 
     // MARK: - Populated
 
@@ -119,7 +143,7 @@ struct TodayHabitsHero: View {
         HStack(spacing: Spacing.md) {
             ring
             VStack(alignment: .leading, spacing: 3) {
-                Text("Today's habits")
+                (isReadOnly ? Text("Habits") : Text("Today's habits"))
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
                 streakLine
@@ -169,6 +193,10 @@ struct TodayHabitsHero: View {
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
             }
+        } else if isReadOnly {
+            (snapshot.dueCount > 0 ? Text("No streak running") : Text("Nothing was due"))
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
         } else if snapshot.dueCount > 0 {
             Text("Tap one to start your streak")
                 .font(AppFont.subheadline)
@@ -192,6 +220,7 @@ struct TodayHabitsHero: View {
                         weeklyTarget: item.weeklyTarget,
                         onTap: { dataStore.toggleHabitEntry(habitId: item.habit.id) }
                     )
+                    .disabled(isReadOnly)
                 }
             }
         }
@@ -216,9 +245,10 @@ struct TodayHabitsHero: View {
     }
 
     private var summaryAccessibilityLabel: String {
+        let dayWord = isReadOnly ? "that day" : "today"
         let progress = snapshot.dueCount > 0
-            ? "\(snapshot.doneCount) of \(snapshot.dueCount) habits done today"
-            : "No habits due today"
+            ? "\(snapshot.doneCount) of \(snapshot.dueCount) habits done \(dayWord)"
+            : "No habits due \(dayWord)"
         let streak = snapshot.bestCurrentStreak > 0
             ? ", \(snapshot.bestCurrentStreak) day streak"
             : ""
