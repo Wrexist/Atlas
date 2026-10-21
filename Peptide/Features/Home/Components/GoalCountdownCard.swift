@@ -148,23 +148,31 @@ struct GoalCountdownCard: View {
         .accessibilityLabel("Goal reached. Time to set your next one.")
     }
 
+    /// Counts down in weeks, switching to days in the final week so the
+    /// hero number never reads "0 weeks".
     private func countdown(weeks: Int, days: Int) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
-            Text("\(weeks)")
+        let inFinalWeek = weeks == 0
+        return HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
+            Text("\(inFinalWeek ? days : weeks)")
                 .font(AppFont.scaled(44, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())
             VStack(alignment: .leading, spacing: 0) {
-                Text(weeks == 1 ? "week" : "weeks")
+                Text(heroUnit(weeks: weeks, days: days))
                     .font(AppFont.subheadline.weight(.semibold))
                     .foregroundStyle(AppColor.textSecondary)
-                Text("\(days) day\(days == 1 ? "" : "s") remaining")
+                Text(inFinalWeek ? "remaining" : "^[\(days) day](inflect: true) remaining")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textTertiary)
             }
             Spacer()
         }
+    }
+
+    private func heroUnit(weeks: Int, days: Int) -> LocalizedStringKey {
+        if weeks == 0 { return days == 1 ? "day" : "days" }
+        return weeks == 1 ? "week" : "weeks"
     }
 
     private func footer(targetDate: Date) -> some View {
