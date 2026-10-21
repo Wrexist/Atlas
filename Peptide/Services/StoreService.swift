@@ -239,14 +239,25 @@ final class StoreService {
         return try await purchase(monthly)
     }
 
-    func restorePurchases() async throws {
+    enum RestoreOutcome: Equatable, Sendable {
+        case completed
+        /// The user dismissed Apple's sign-in sheet — a choice, not a
+        /// failure, so callers stay quiet.
+        case userCancelled
+    }
+
+    @discardableResult
+    func restorePurchases() async throws -> RestoreOutcome {
         do {
             try await AppStore.sync()
+        } catch StoreKitError.userCancelled {
+            return .userCancelled
         } catch {
             AppLog.storeKit.error("AppStore.sync failed: \(error.localizedDescription, privacy: .public)")
             throw error
         }
         await updatePurchasedProducts()
+        return .completed
     }
 
     // MARK: - Entitlement Checking

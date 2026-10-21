@@ -750,7 +750,7 @@ struct TrialOfferView: View {
         Task {
             defer { isRestoring = false }
             do {
-                try await storeService.restorePurchases()
+                guard try await storeService.restorePurchases() == .completed else { return }
                 if storeService.isProUser {
                     Haptics.success()
                     onAccept()

@@ -135,7 +135,10 @@ struct SubscriptionSection: View {
     private func restore() async {
         restoreState = .restoring
         do {
-            try await storeService.restorePurchases()
+            guard try await storeService.restorePurchases() == .completed else {
+                restoreState = .idle
+                return
+            }
         } catch {
             restoreState = .idle
             restoreError = "Couldn't reach the App Store. Check your connection and try again."
