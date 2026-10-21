@@ -103,14 +103,14 @@ final class DataStoreTests: XCTestCase {
     }
 
     func test_entriesFor_respectsDaysCutoff() {
-        guard let proto = store.protocols.first else { return }
+        guard let proto = store.protocols.first else { return XCTFail("Seed data should include a protocol") }
         let entries7 = store.entriesFor(protocolId: proto.id, days: 7)
         let entries30 = store.entriesFor(protocolId: proto.id, days: 30)
         XCTAssertLessThanOrEqual(entries7.count, entries30.count)
     }
 
     func test_entriesFor_sortedByDateDescending() {
-        guard let proto = store.protocols.first else { return }
+        guard let proto = store.protocols.first else { return XCTFail("Seed data should include a protocol") }
         let entries = store.entriesFor(protocolId: proto.id, days: 30)
         for (newer, older) in zip(entries, entries.dropFirst()) {
             XCTAssertGreaterThanOrEqual(newer.date, older.date)

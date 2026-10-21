@@ -99,9 +99,9 @@ final class StackRecommendationEngineTests: XCTestCase {
         XCTAssertNotNil(timingData["CJC-1295 DAC"], "CJC-1295 DAC should have timing data")
         XCTAssertNotNil(timingData["AOD-9604"], "AOD-9604 should have timing data")
 
-        // If both peptides exist in DB, test the signal
+        // Test the signal on a real GH-secretagogue pair
         let stack = peptides(abbrevs: ["CJC-1295 DAC", "Ipamorelin"])
-        guard stack.count == 2 else { return }
+        guard stack.count == 2 else { return XCTFail("Fixture peptides missing from the database") }
         let context = StackRecommendationEngine.RecommendationContext(
             currentPeptides: stack, database: database, goals: [],
             activeProtocols: [], entries: []
@@ -115,7 +115,7 @@ final class StackRecommendationEngineTests: XCTestCase {
 
     func test_complianceWeighting_boostsHighComplianceCategories() {
         let stack = peptides(abbrevs: ["BPC-157"])
-        guard !stack.isEmpty else { return }
+        guard !stack.isEmpty else { return XCTFail("Fixture peptides missing from the database") }
 
         // Create entries with high compliance for the growth category
         let entries = (0..<20).map { i in
@@ -140,7 +140,7 @@ final class StackRecommendationEngineTests: XCTestCase {
     func test_routeDiversity_bonusForNonInjectable() {
         // Stack of subcutaneous peptides
         let stack = peptides(abbrevs: ["BPC-157", "TB-500", "CJC-1295 DAC"])
-        guard stack.count == 3 else { return }
+        guard stack.count == 3 else { return XCTFail("Fixture peptides missing from the database") }
         let context = StackRecommendationEngine.RecommendationContext(
             currentPeptides: stack, database: database, goals: [],
             activeProtocols: [], entries: []
@@ -159,7 +159,7 @@ final class StackRecommendationEngineTests: XCTestCase {
         // Use Tesamorelin (26-38 min = ~0.5h, short) as the stack peptide
         // and IGF-1 LR3 (20-30 hours, long) as the candidate
         let stack = peptides(abbrevs: ["Tesamorelin"])
-        guard !stack.isEmpty else { return }
+        guard !stack.isEmpty else { return XCTFail("Fixture peptides missing from the database") }
         let context = StackRecommendationEngine.RecommendationContext(
             currentPeptides: stack, database: database, goals: [],
             activeProtocols: [], entries: []
@@ -172,7 +172,7 @@ final class StackRecommendationEngineTests: XCTestCase {
 
     func test_experienceFiltering_simplerForBeginners() {
         let stack = peptides(abbrevs: ["BPC-157"])
-        guard !stack.isEmpty else { return }
+        guard !stack.isEmpty else { return XCTFail("Fixture peptides missing from the database") }
         // Beginner: 0 active protocols
         let context = StackRecommendationEngine.RecommendationContext(
             currentPeptides: stack, database: database, goals: [],
@@ -187,30 +187,31 @@ final class StackRecommendationEngineTests: XCTestCase {
         }
     }
 
-    func test_diminishingReturns_penalizes4thInCategory() {
-        // 3 recovery peptides already in stack (BPC-157, TB-500, GHK-Cu are .recovery in the JSON DB)
-        let stack = peptides(abbrevs: ["BPC-157", "TB-500", "GHK-Cu"])
-        guard stack.count == 3 else { return }
+    func test_diminishingReturns_penalizes4thInCategory() throws {
+        // 3 recovery peptides already in stack (BPC-157, TB-500, TB-4 are .recovery in the JSON DB)
+        let stack = peptides(abbrevs: ["BPC-157", "TB-500", "TB-4"])
+        guard stack.count == 3 else { return XCTFail("Fixture peptides missing from the database") }
         // Verify they share a category
         let category = stack[0].category
-        guard stack.allSatisfy({ $0.category == category }) else { return }
+        guard stack.allSatisfy({ $0.category == category }) else {
+            return XCTFail("Fixture peptides must share a category")
+        }
 
         let context = StackRecommendationEngine.RecommendationContext(
             currentPeptides: stack, database: database, goals: [],
             activeProtocols: [], entries: []
         )
         // Find another peptide in the same category to test the penalty
-        if let fourth = database.first(where: { candidate in
+        let fourth = try XCTUnwrap(database.first(where: { candidate in
             candidate.category == category && !stack.contains(where: { $0.id == candidate.id })
-        }) {
-            let (score, _) = StackRecommendationEngine.scoreDiminishingReturns(candidate: fourth, context: context)
-            XCTAssertLessThan(score, 0, "4th peptide in same category should be penalized")
-        }
+        }), "Database needs a 4th peptide in the same category")
+        let (score, _) = StackRecommendationEngine.scoreDiminishingReturns(candidate: fourth, context: context)
+        XCTAssertLessThan(score, 0, "4th peptide in same category should be penalized")
     }
 
     func test_seasonalScoring_boostsImmuneInWinter() {
         let stack = peptides(abbrevs: ["BPC-157"])
-        guard !stack.isEmpty else { return }
+        guard !stack.isEmpty else { return XCTFail("Fixture peptides missing from the database") }
         // Use December as the date
         let winterDate = Calendar.current.date(from: DateComponents(year: 2026, month: 12, day: 15))!
         let context = StackRecommendationEngine.RecommendationContext(
@@ -259,7 +260,7 @@ final class StackRecommendationEngineTests: XCTestCase {
             $0.sideEffects.contains(where: { $0.lowercased().contains("nausea") })
         }
         let stack = Array(nauseaPeptides.prefix(4))
-        guard stack.count >= 3 else { return }
+        guard stack.count >= 3 else { return XCTFail("Fixture peptides missing from the database") }
         let warnings = StackRecommendationEngine.warnings(for: stack)
         let hasCompounding = warnings.contains { $0.title.contains("Compounding") }
         XCTAssertTrue(hasCompounding, "3+ peptides sharing nausea side effect should trigger compounding warning")
@@ -268,7 +269,7 @@ final class StackRecommendationEngineTests: XCTestCase {
     func test_categoryOverload_triggersAt4() {
         // Need 4+ peptides in same category (growth)
         let growthPeptides = database.filter { $0.category == .growth }.prefix(5)
-        guard growthPeptides.count > 3 else { return }
+        guard growthPeptides.count > 3 else { return XCTFail("Fixture peptides missing from the database") }
         let warnings = StackRecommendationEngine.warnings(for: Array(growthPeptides))
         let hasOverload = warnings.contains { $0.title.contains("focus") || $0.title.contains("Heavy") }
         XCTAssertTrue(hasOverload, "Should warn about category overloading with 4+ growth peptides")
@@ -276,7 +277,7 @@ final class StackRecommendationEngineTests: XCTestCase {
 
     func test_mechanismRedundancy_detectsGHSR() {
         let stack = peptides(abbrevs: ["Ipamorelin", "GHRP-6"])
-        guard stack.count == 2 else { return }
+        guard stack.count == 2 else { return XCTFail("Fixture peptides missing from the database") }
         let warnings = StackRecommendationEngine.warnings(for: stack)
         let hasRedundancy = warnings.contains {
             $0.title.contains("GHS-R") || $0.title.contains("Known interaction")
@@ -290,7 +291,7 @@ final class StackRecommendationEngineTests: XCTestCase {
             $0.adminRoute.lowercased().contains("subcutaneous") &&
             !$0.frequency.lowercased().contains("week")
         }.prefix(5)
-        guard injectables.count >= 4 else { return }
+        guard injectables.count >= 4 else { return XCTFail("Fixture peptides missing from the database") }
         let warnings = StackRecommendationEngine.warnings(for: Array(injectables))
         let hasBurden = warnings.contains { $0.title.contains("injection burden") }
         // Injection burden fires when daily count > 4; depends on frequency strings
@@ -301,7 +302,7 @@ final class StackRecommendationEngineTests: XCTestCase {
 
     func test_knownInteractions_findsResearchedPairs() {
         let stack = peptides(abbrevs: ["Semaglutide", "Tirzepatide"])
-        guard stack.count == 2 else { return }
+        guard stack.count == 2 else { return XCTFail("Fixture peptides missing from the database") }
         let warnings = StackRecommendationEngine.warnings(for: stack)
         // The engine may surface this as a "Known interaction", mechanism pathway redundancy,
         // or pathway group warning — any of these indicates the pair was detected
@@ -318,7 +319,7 @@ final class StackRecommendationEngineTests: XCTestCase {
     // MARK: - New Warnings
 
     func test_cycleLengthWarning_triggersAfterOnWeeks() {
-        guard let bpc = peptide(abbrev: "BPC-157") else { return }
+        guard let bpc = peptide(abbrev: "BPC-157") else { return XCTFail("Fixture peptides missing from the database") }
         // BPC-157 cycle is 6 weeks on. Create a protocol started 10 weeks ago
         let tenWeeksAgo = Calendar.current.date(byAdding: .weekOfYear, value: -10, to: Date())!
         let proto = PeptideProtocol(
@@ -335,7 +336,7 @@ final class StackRecommendationEngineTests: XCTestCase {
     }
 
     func test_desensitizationRisk_triggersAtRiskOnset() {
-        guard let ipamorelin = peptide(abbrev: "Ipamorelin") else { return }
+        guard let ipamorelin = peptide(abbrev: "Ipamorelin") else { return XCTFail("Fixture peptides missing from the database") }
         // Ipamorelin desensitization risk at 8 weeks. Create protocol started 10 weeks ago
         let tenWeeksAgo = Calendar.current.date(byAdding: .weekOfYear, value: -10, to: Date())!
         let proto = PeptideProtocol(
@@ -343,7 +344,7 @@ final class StackRecommendationEngineTests: XCTestCase {
             schedule: ProtocolSchedule(daysOfWeek: [1, 2, 3, 4, 5], timesPerDay: 1, preferredTimes: ["9:00 PM"]),
             cycleLengthWeeks: 12, startDate: tenWeeksAgo, status: .active, notes: ""
         )
-        guard let bpc = peptide(abbrev: "BPC-157") else { return }
+        guard let bpc = peptide(abbrev: "BPC-157") else { return XCTFail("Fixture peptides missing from the database") }
         let warnings = StackRecommendationEngine.warnings(
             for: [ipamorelin, bpc], activeProtocols: [proto]
         )
@@ -353,7 +354,7 @@ final class StackRecommendationEngineTests: XCTestCase {
 
     func test_hepatotoxicityStacking_triggersAt2() {
         let stack = peptides(abbrevs: ["MK-677", "IGF-1 LR3"])
-        guard stack.count == 2 else { return }
+        guard stack.count == 2 else { return XCTFail("Fixture peptides missing from the database") }
         let warnings = StackRecommendationEngine.warnings(for: stack)
         let hasHepato = warnings.contains { $0.title.contains("liver") }
         XCTAssertTrue(hasHepato, "Should warn about multiple hepatotoxic peptides")
@@ -361,7 +362,7 @@ final class StackRecommendationEngineTests: XCTestCase {
 
     func test_timingConflicts_detectsAvoidWithPairs() {
         let stack = peptides(abbrevs: ["Semax", "Selank"])
-        guard stack.count == 2 else { return }
+        guard stack.count == 2 else { return XCTFail("Fixture peptides missing from the database") }
         let warnings = StackRecommendationEngine.warnings(for: stack)
         let hasTimingConflict = warnings.contains { $0.title.contains("Timing separation") }
         XCTAssertTrue(hasTimingConflict, "Should detect Semax/Selank timing conflict")
@@ -380,7 +381,7 @@ final class StackRecommendationEngineTests: XCTestCase {
     func test_completeness_partialWhenCategoryOnly() {
         // Recovery goal with a recovery peptide but no validated stack fully matched
         let stack = peptides(abbrevs: ["BPC-157"])
-        guard !stack.isEmpty else { return }
+        guard !stack.isEmpty else { return XCTFail("Fixture peptides missing from the database") }
         let result = StackRecommendationEngine.stackCompleteness(
             for: stack, goals: ["recovery"], from: database
         )
@@ -394,7 +395,7 @@ final class StackRecommendationEngineTests: XCTestCase {
     func test_completeness_fullWhenValidatedStackComplete() {
         // Wolverine stack (BPC-157 + TB-500) targets recovery/tissue repair
         let stack = peptides(abbrevs: ["BPC-157", "TB-500"])
-        guard stack.count == 2 else { return }
+        guard stack.count == 2 else { return XCTFail("Fixture peptides missing from the database") }
         let result = StackRecommendationEngine.stackCompleteness(
             for: stack, goals: ["recovery"], from: database
         )
@@ -406,7 +407,7 @@ final class StackRecommendationEngineTests: XCTestCase {
 
     func test_completeness_suggestsMissingCategories() {
         let stack = peptides(abbrevs: ["BPC-157"]) // growth/recovery, no cognitive
-        guard !stack.isEmpty else { return }
+        guard !stack.isEmpty else { return XCTFail("Fixture peptides missing from the database") }
         let result = StackRecommendationEngine.stackCompleteness(
             for: stack, goals: ["cognitive enhancement"], from: database
         )
@@ -420,7 +421,7 @@ final class StackRecommendationEngineTests: XCTestCase {
     // MARK: - Cycle Transitions
 
     func test_cycleTransitions_detectsApproachingEnd() {
-        guard let bpc = peptide(abbrev: "BPC-157") else { return }
+        guard let bpc = peptide(abbrev: "BPC-157") else { return XCTFail("Fixture peptides missing from the database") }
         // BPC-157 cycle is 6 weeks. Start 5 weeks ago = 1 week remaining
         let fiveWeeksAgo = Calendar.current.date(byAdding: .weekOfYear, value: -5, to: Date())!
         let proto = PeptideProtocol(
@@ -434,7 +435,7 @@ final class StackRecommendationEngineTests: XCTestCase {
     }
 
     func test_cycleTransitions_includesOverdueProtocols() {
-        guard let ipamorelin = peptide(abbrev: "Ipamorelin") else { return }
+        guard let ipamorelin = peptide(abbrev: "Ipamorelin") else { return XCTFail("Fixture peptides missing from the database") }
         // Ipamorelin cycle is 8 weeks. Start 12 weeks ago = overdue
         let twelveWeeksAgo = Calendar.current.date(byAdding: .weekOfYear, value: -12, to: Date())!
         let proto = PeptideProtocol(
@@ -489,7 +490,7 @@ final class StackRecommendationEngineTests: XCTestCase {
 
     func test_recommendations_performanceFor208Peptides() {
         let stack = peptides(abbrevs: ["BPC-157", "TB-500", "CJC-1295 DAC"])
-        guard !stack.isEmpty else { return }
+        guard !stack.isEmpty else { return XCTFail("Fixture peptides missing from the database") }
         let context = StackRecommendationEngine.RecommendationContext(
             currentPeptides: stack, database: database, goals: ["recovery", "muscle growth"],
             activeProtocols: [], entries: []
@@ -515,7 +516,7 @@ final class StackRecommendationEngineTests: XCTestCase {
 
     func test_singlePeptide_returnsRecommendationsAndNoPairwiseWarnings() {
         let stack = peptides(abbrevs: ["BPC-157"])
-        guard !stack.isEmpty else { return }
+        guard !stack.isEmpty else { return XCTFail("Fixture peptides missing from the database") }
         let recs = StackRecommendationEngine.recommendations(for: stack, from: database)
         XCTAssertFalse(recs.isEmpty, "Single peptide should still produce recommendations")
         // Backward-compat call (empty activeProtocols) produces no per-peptide warnings
@@ -542,7 +543,7 @@ final class StackRecommendationEngineTests: XCTestCase {
 
     func test_experienceLevel_correctlyDetermined() {
         let onePeptide = peptides(abbrevs: ["BPC-157"])
-        guard !onePeptide.isEmpty else { return }
+        guard !onePeptide.isEmpty else { return XCTFail("Fixture peptides missing from the database") }
 
         // Beginner: 0 protocols (0 unique peptides)
         let beginner = StackRecommendationEngine.RecommendationContext(
@@ -553,7 +554,7 @@ final class StackRecommendationEngineTests: XCTestCase {
 
         // Intermediate: protocol with 3-6 unique peptides
         let threePeptides = peptides(abbrevs: ["BPC-157", "TB-500", "GHK-Cu"])
-        guard threePeptides.count == 3 else { return }
+        guard threePeptides.count == 3 else { return XCTFail("Fixture peptides missing from the database") }
         let midProto = PeptideProtocol(
             id: UUID(), name: "Recovery", peptides: threePeptides,
             schedule: ProtocolSchedule(daysOfWeek: [1, 3, 5], timesPerDay: 1, preferredTimes: ["8:00 AM"]),
@@ -567,7 +568,7 @@ final class StackRecommendationEngineTests: XCTestCase {
 
         // Advanced: protocols with 7+ unique peptides
         let manyPeptides = Array(database.prefix(8))
-        guard manyPeptides.count >= 7 else { return }
+        guard manyPeptides.count >= 7 else { return XCTFail("Fixture peptides missing from the database") }
         let bigProto = PeptideProtocol(
             id: UUID(), name: "Full Stack", peptides: manyPeptides,
             schedule: ProtocolSchedule(daysOfWeek: [1, 2, 3, 4, 5], timesPerDay: 1, preferredTimes: ["8:00 AM"]),
