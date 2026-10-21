@@ -353,7 +353,7 @@ struct WorkoutSessionDetailView: View {
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.leading)
             Spacer()
-            Text("^[\(entry.sets.filter(\.completed).count) set](inflect: true)")
+            Text("^[\(entry.completedWorkingSets.count) working set](inflect: true)")
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textSecondary)
             if exercise != nil {
