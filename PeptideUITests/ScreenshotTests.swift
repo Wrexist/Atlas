@@ -683,9 +683,9 @@ final class ScreenshotTests: XCTestCase {
         app.launch()
     }
 
-    /// Walks the five tabs and captures each. Tabs that don't appear are
-    /// skipped rather than failing, so one renamed tab can't lose the
-    /// whole run. The Biology tab additionally opens the paywall — see
+    /// Walks the five tabs and captures each, failing on a missing or
+    /// unselected tab so a capture can never be filed under the wrong
+    /// name. The Biology tab additionally opens the paywall — see
     /// `capturePaywall`.
     ///
     /// Two different first-launch overlays can appear at any point in
@@ -713,9 +713,10 @@ final class ScreenshotTests: XCTestCase {
 
         for (offset, tab) in Self.secondaryTabs.enumerated() {
             let button = app.tabBars.buttons[tab]
-            guard button.waitForExistence(timeout: 5) else { continue }
+            XCTAssertTrue(button.waitForExistence(timeout: 5), "\(tab) tab missing")
             button.tap()
             dismissOverlaysIfNeeded()
+            XCTAssertTrue(button.isSelected, "\(tab) tab should be selected before its capture")
             capture(named: String(format: "%@-%02d-%@", prefix, offset + 2, tab))
 
             if tab == "Biology" {
