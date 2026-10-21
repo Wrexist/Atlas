@@ -312,7 +312,7 @@ struct BioAgeHeroSection: View {
 
     private func deltaBadge(for estimate: PerformanceAgeEngine.Estimate) -> some View {
         let delta = estimate.biologicalAge - Double(chronologicalAge)
-        let absDelta = abs(delta) < 0.05 ? 0 : abs(delta)
+        let absDelta = abs(delta) < Self.matchingTolerance ? 0 : abs(delta)
         let badgeTint = tint(for: estimate)
         let label: String = {
             if absDelta == 0 {
@@ -342,8 +342,14 @@ struct BioAgeHeroSection: View {
 
     /// Green when younger / matching; warm orange when older.
     private func tint(for estimate: PerformanceAgeEngine.Estimate) -> Color {
-        estimate.biologicalAge <= Double(chronologicalAge) ? AppColor.positive : AppColor.negative
+        estimate.biologicalAge - Double(chronologicalAge) < Self.matchingTolerance
+            ? AppColor.positive
+            : AppColor.negative
     }
+
+    /// Below this many years either way the badge reads "Matching your
+    /// age", so the tint treats it as matching too.
+    private static let matchingTolerance = 0.05
 
     // MARK: - Reveal
 
