@@ -26,9 +26,6 @@ final class DoseLiveActivityService {
     /// didn't open the app" without leaving stale activities for
     /// hours. Shared with the widget, which reads it as "missed".
     private static let stalenessMinutes = DoseWindowAttributes.ContentState.windowCloseMinutes
-    /// How long the "Logged" badge stays up before the activity
-    /// dismisses itself.
-    private static let loggedSeconds: TimeInterval = 4
 
     private init() {}
 
@@ -84,7 +81,7 @@ final class DoseLiveActivityService {
             completed: true,
             loggedAt: currentState.loggedAt ?? Date()
         )
-        let dismissAt = Date().addingTimeInterval(Self.loggedSeconds)
+        let dismissAt = Date().addingTimeInterval(DoseWindowAttributes.ContentState.loggedBadgeSeconds)
         Task {
             await activity.end(
                 ActivityContent(state: updated, staleDate: nil),

@@ -127,6 +127,10 @@ extension DoseWindowAttributes.ContentState {
     /// unlogged dose reads as missed and the app ends the activity.
     static let windowCloseMinutes: Int = 90
 
+    /// How long the "Logged" badge stays up before the activity
+    /// dismisses itself, whichever process ends it.
+    static let loggedBadgeSeconds: TimeInterval = 4
+
     /// When the activity's content goes stale: just past the due-now
     /// tolerance. A Live Activity only redraws on a push or at its
     /// stale date, and status is read from the clock at draw time, so
