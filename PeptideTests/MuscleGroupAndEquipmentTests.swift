@@ -43,6 +43,13 @@ final class MuscleGroupAndEquipmentTests: XCTestCase {
         XCTAssertNil(MuscleGroup.fromRaw("widgets"))
     }
 
+    func test_customExercise_storingGroupRawValue_roundTripsToThatGroup() {
+        for group in MuscleGroup.allCases {
+            let custom = CustomExercise(name: "Custom", primaryMuscles: [group.rawValue])
+            XCTAssertEqual(custom.asExercise().muscleGroup, group, "\(group)")
+        }
+    }
+
     // MARK: - Exercise.muscleGroup
 
     private func lift(
