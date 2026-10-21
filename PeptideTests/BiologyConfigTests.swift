@@ -116,6 +116,22 @@ final class BiologyConfigTests: XCTestCase {
         XCTAssertEqual(decoded, original)
     }
 
+    func test_decode_missingKeys_fallsBackToDefaults() throws {
+        let data = Data(#"{"visibleBiomarkers":["weight"]}"#.utf8)
+        let decoded = try JSONDecoder().decode(BiologyConfig.self, from: data)
+        XCTAssertEqual(decoded.visibleBiomarkers, [.weight])
+        XCTAssertTrue(decoded.hiddenBiomarkers.isEmpty)
+        XCTAssertFalse(decoded.hasSeenIntro)
+    }
+
+    func test_decode_unknownBiomarker_isDroppedNotThrown() throws {
+        let data = Data(#"{"visibleBiomarkers":["weight","futureMarker"],"hiddenBiomarkers":["futureMarker"],"hasSeenIntro":true}"#.utf8)
+        let decoded = try JSONDecoder().decode(BiologyConfig.self, from: data)
+        XCTAssertEqual(decoded.visibleBiomarkers, [.weight])
+        XCTAssertTrue(decoded.hiddenBiomarkers.isEmpty)
+        XCTAssertTrue(decoded.hasSeenIntro)
+    }
+
     /// The migration story: an older UserProfile JSON has no
     /// `biologyConfig` key. The decoder must land on
     /// `.default` rather than throwing. Verified at the

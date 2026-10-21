@@ -5,10 +5,11 @@ import Foundation
 /// on `UserProfile` so it round-trips with the rest of the
 /// profile through CloudKit / JSON / SwiftData sidecar.
 ///
-/// Codable with default values everywhere so an older build
-/// reading a newer profile (or vice-versa) decodes cleanly via
-/// Swift's synthesized `init(from:)` — the synthesizer skips
-/// missing keys when the property has a default.
+/// Decoding is hand-written (see the extension below): a missing
+/// key falls back to its default and an unknown biomarker raw value
+/// is dropped, so an older build reading a newer profile (or
+/// vice-versa) never fails — a failure here would empty the whole
+/// `ProfileExtension` it lives in.
 struct BiologyConfig: Codable, Hashable, Sendable {
     /// Biomarkers the user wants on the Biology tab, in render
     /// order. Drives `BiomarkerListSection.visibleBiomarkers`.
@@ -25,7 +26,7 @@ struct BiologyConfig: Codable, Hashable, Sendable {
     /// it on next launch instead of getting silently skipped.
     var hasSeenIntro: Bool = false
 
-    /// Canonical default config. Used by the manual decoder when
+    /// Canonical default config. Used by the profile decoders when
     /// the field is missing on an older profile JSON. Mirrors
     /// `Biomarker.defaultVisible` so a fresh install and an
     /// upgrading user converge on the same starting state.
@@ -70,5 +71,27 @@ struct BiologyConfig: Codable, Hashable, Sendable {
     var availableBiomarkers: [Biomarker] {
         let claimed = Set(visibleBiomarkers).union(hiddenBiomarkers)
         return Biomarker.allCases.filter { $0.hasDataSource && !claimed.contains($0) }
+    }
+}
+
+extension BiologyConfig {
+    private enum CodingKeys: String, CodingKey {
+        case visibleBiomarkers, hiddenBiomarkers, hasSeenIntro
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        visibleBiomarkers = try Self.decodeBiomarkers(c, .visibleBiomarkers) ?? Biomarker.defaultVisible
+        hiddenBiomarkers = try Self.decodeBiomarkers(c, .hiddenBiomarkers) ?? []
+        hasSeenIntro = try c.decodeIfPresent(Bool.self, forKey: .hasSeenIntro) ?? false
+    }
+
+    /// Decodes raw values and drops any this build doesn't know, so a
+    /// biomarker added in a newer build can't fail the decode.
+    private static func decodeBiomarkers(
+        _ c: KeyedDecodingContainer<CodingKeys>,
+        _ key: CodingKeys
+    ) throws -> [Biomarker]? {
+        try c.decodeIfPresent([String].self, forKey: key)?.compactMap(Biomarker.init(rawValue:))
     }
 }

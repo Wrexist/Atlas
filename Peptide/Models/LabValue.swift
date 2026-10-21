@@ -114,6 +114,14 @@ enum LabPanel: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var id: String { rawValue }
 
+    /// A panel added in a newer build decodes as `.other` instead of
+    /// throwing — a throw here would fail the whole lab history (and
+    /// the profile blob carrying it) on an older build.
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = LabPanel(rawValue: raw) ?? .other
+    }
+
     var displayName: String {
         switch self {
         case .totalTestosterone:  String(localized: "Total testosterone")
