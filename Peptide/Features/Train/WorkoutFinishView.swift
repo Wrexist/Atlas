@@ -23,7 +23,7 @@ struct WorkoutFinishView: View {
         self.onClose = onClose
         self.celebratesSave = celebratesSave
         _detectedPRs = State(initialValue: detectedPRs)
-        _store = State(initialValue: WorkoutRecapStore(session: session))
+        _store = State(initialValue: WorkoutRecapStore(session: session, anchorsWeekOnSession: !celebratesSave))
     }
 
     var body: some View {
@@ -37,7 +37,7 @@ struct WorkoutFinishView: View {
                     } label: {
                         RecapNavigationRow(icon: "chart.bar.fill") {
                             if let week = store.week {
-                                Text("^[\(week.count) workout](inflect: true) this week")
+                                Text("^[\(week.count) workout](inflect: true) \(week.phrase)")
                             } else {
                                 Text("Weekly progress unavailable")
                             }

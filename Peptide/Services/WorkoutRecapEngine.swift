@@ -152,15 +152,27 @@ enum WorkoutRecapEngine {
         let days: [Day]
         let count: Int
         let volumeKg: Double?
+        /// False when the week was anchored on a past workout.
+        let isCurrent: Bool
+
+        var title: String {
+            guard !isCurrent, let start = days.first?.date else { return String(localized: "This week") }
+            return String(localized: "Week of \(start.formatted(.dateTime.day().month(.abbreviated)))")
+        }
+        /// Trailing phrase for counts: "this week" or "that week".
+        var phrase: String {
+            isCurrent ? String(localized: "this week") : String(localized: "that week")
+        }
     }
 
-    /// Current locale/calendar week. A qualifying workout is finished and has
-    /// working sets or is a legacy manual log without structured exercise data.
-    /// Start date matches Atlas history.
-    static func week(sessions: [WorkoutSession], catalog: [String: Exercise],
+    /// The locale/calendar week containing `anchor` (today when nil). A
+    /// qualifying workout is finished and has working sets or is a legacy
+    /// manual log without structured exercise data. Start date matches
+    /// Atlas history.
+    static func week(sessions: [WorkoutSession], catalog: [String: Exercise], anchor: Date? = nil,
                      now: Date = Date(), calendar: Calendar = .current) -> Week {
-        guard let interval = calendar.dateInterval(of: .weekOfYear, for: now) else {
-            return Week(days: [], count: 0, volumeKg: nil)
+        guard let interval = calendar.dateInterval(of: .weekOfYear, for: anchor ?? now) else {
+            return Week(days: [], count: 0, volumeKg: nil, isCurrent: true)
         }
         var seen = Set<UUID>()
         let included = sessions.filter {
@@ -173,6 +185,7 @@ enum WorkoutRecapEngine {
             return Day(date: date, count: included.filter { calendar.isDate($0.session.startedAt, inSameDayAs: date) }.count)
         }
         let volumes = included.compactMap(\.volumeKg)
-        return Week(days: days, count: included.count, volumeKg: volumes.isEmpty ? nil : volumes.reduce(0, +))
+        return Week(days: days, count: included.count, volumeKg: volumes.isEmpty ? nil : volumes.reduce(0, +),
+                    isCurrent: now >= interval.start && now < interval.end)
     }
 }

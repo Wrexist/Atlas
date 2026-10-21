@@ -154,6 +154,21 @@ final class WorkoutRecapTests: XCTestCase {
         XCTAssertEqual(week.days.map(\.count), [2, 0, 0, 0, 0, 0, 0])
     }
 
+    func test_weekAnchoredOnPastWorkout_countsThatWeekNotToday() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "Europe/Stockholm"))
+        calendar.firstWeekday = 2
+        let march = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 3, day: 4, hour: 18)))
+        let now = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 10, day: 7, hour: 12)))
+        let past = WorkoutRecapFixture.push(finishedAt: march)
+        let week = WorkoutRecapEngine.week(sessions: [past], catalog: [:], anchor: past.startedAt,
+                                           now: now, calendar: calendar)
+        XCTAssertEqual(week.count, 1)
+        XCTAssertFalse(week.isCurrent)
+        XCTAssertEqual(week.days.first.map { calendar.component(.day, from: $0.date) }, 2)
+        XCTAssertTrue(WorkoutRecapEngine.week(sessions: [past], catalog: [:], now: now, calendar: calendar).isCurrent)
+    }
+
     func test_weekAcrossDaylightSavingUsesSevenLocalDays() throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "Europe/Stockholm"))
