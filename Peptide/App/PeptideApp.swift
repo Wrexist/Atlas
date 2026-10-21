@@ -94,12 +94,10 @@ struct PeptideApp: App {
                         .environment(dataStore)
                         .preferredColorScheme(themeManager.displayMode.preferredScheme)
                         .tint(AppColor.accentPrimary)
-                } else if dataStore.profile.biometricLockEnabled, !isUnlocked {
-                    LockScreenView { isUnlocked = true }
-                        .environment(dataStore)
-                        .preferredColorScheme(themeManager.displayMode.preferredScheme)
-                        .tint(AppColor.accentPrimary)
                 } else {
+                    // Stays mounted while locked — the lock covers it from
+                    // its own window — so open sheets, navigation and
+                    // in-progress flows survive a trip to the background.
                     mainContent
                 }
             }
@@ -107,6 +105,9 @@ struct PeptideApp: App {
             .environment(\.locale, localization.effectiveLocale)
             .environment(\.layoutDirection, localization.layoutDirection)
             .id(localization.selectedCode ?? "system")
+            .onChange(of: privacyCover, initial: true) { _, cover in
+                syncPrivacyCover(cover)
+            }
             .task {
                 // Decode the bundled peptide catalog off the main
                 // thread, after the first frame. Every consumer
@@ -291,6 +292,37 @@ struct PeptideApp: App {
         }
     }
 
+    /// What `PrivacyLockWindow` should show. Locked: the lock screen until
+    /// the user authenticates. Unlocked: a plain cover whenever the scene
+    /// isn't active, so the app-switcher snapshot (taken on the way to
+    /// the background) never shows doses, weight or Biological Age.
+    private var privacyCover: PrivacyLockWindow.Cover? {
+        guard hasCompletedOnboarding, dataStore.profile.biometricLockEnabled else { return nil }
+        if !isUnlocked { return .lock }
+        return scenePhase == .active ? nil : .snapshot
+    }
+
+    private func syncPrivacyCover(_ cover: PrivacyLockWindow.Cover?) {
+        switch cover {
+        case .lock:
+            PrivacyLockWindow.shared.show(.lock, content: privacyCoverContent(LockScreenView { isUnlocked = true }))
+        case .snapshot:
+            PrivacyLockWindow.shared.show(.snapshot, content: privacyCoverContent(PrivacyCoverView()))
+        case nil:
+            PrivacyLockWindow.shared.hide()
+        }
+    }
+
+    /// The lock window hosts its own view tree, outside the app's
+    /// environment, so it gets the language and theme here.
+    private func privacyCoverContent(_ cover: some View) -> some View {
+        cover
+            .environment(\.locale, localization.effectiveLocale)
+            .environment(\.layoutDirection, localization.layoutDirection)
+            .preferredColorScheme(themeManager.displayMode.preferredScheme)
+            .tint(AppColor.accentPrimary)
+    }
+
     /// Presents the "What's New" tour exactly once per version
     /// bump for existing users. Fresh installs (i.e. users who
     /// haven't finished onboarding yet) are excluded — the
@@ -375,7 +407,11 @@ struct PeptideApp: App {
             dataStore.acknowledgeTimezone(TimeZone.current.identifier)
             return
         }
-        if let change = TimezoneChangeDetector.detect(previousIdentifier: stored) {
+        // Not over onboarding: the prompt is about protocols the user
+        // hasn't set up yet. Over the lock it's harmless — it presents
+        // beneath the lock window and can't be answered until unlock.
+        if hasCompletedOnboarding,
+           let change = TimezoneChangeDetector.detect(previousIdentifier: stored) {
             travelChange = change
         }
     }
