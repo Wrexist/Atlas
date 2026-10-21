@@ -858,6 +858,26 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertEqual(TravelModeLogic.shiftTime("11:00 AM", byHours: -3), "8:00 AM")
     }
 
+    func test_travelShift_withCustomDose_keepsDoseAndInterval() {
+        let anchor = Date(timeIntervalSince1970: 1_800_000_000)
+        let schedule = ProtocolSchedule(
+            daysOfWeek: [1, 3, 5],
+            timesPerDay: 1,
+            preferredTimes: ["8:00 AM"],
+            customDose: "300 mcg",
+            intervalDays: 2,
+            intervalAnchor: anchor
+        )
+
+        let shifted = TravelModeLogic.shiftSchedule(schedule, byHours: 3)
+
+        XCTAssertEqual(shifted.preferredTimes, ["11:00 AM"])
+        XCTAssertEqual(shifted.customDose, "300 mcg")
+        XCTAssertEqual(shifted.intervalDays, 2)
+        XCTAssertEqual(shifted.intervalAnchor, anchor)
+        XCTAssertEqual(shifted.daysOfWeek, [1, 3, 5])
+    }
+
     func test_streakFreeze_isLimitedToOnePerMonth() {
         var profile = UserProfile.fresh
         // Mid-month, so yesterday and two days ago share today's month.

@@ -73,6 +73,7 @@ enum TravelModeLogic {
             daysOfWeek: schedule.daysOfWeek,
             timesPerDay: schedule.timesPerDay,
             preferredTimes: shifted,
+            customDose: schedule.customDose,
             intervalDays: schedule.intervalDays,
             intervalAnchor: schedule.intervalAnchor
         )
