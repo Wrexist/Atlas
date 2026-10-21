@@ -188,7 +188,13 @@ targets:
       - path: PeptideWatch
         excludes:
           - "**/.DS_Store"
-      - path: Shared
+      # Only the payload types the watch reads. The rest of Shared holds
+      # iPhone-only App Intents and pending-log stores that nothing on the
+      # watch drains, so a Shortcuts run there would be silently lost.
+      - path: Shared/AppGroup.swift
+      - path: Shared/WatchData.swift
+      - path: Shared/WatchWorkout.swift
+      - path: Shared/WidgetWorkoutSummary.swift
       - path: WatchShared
     dependencies:
       - target: PeptideWatchWidgets
@@ -223,7 +229,10 @@ targets:
         excludes:
           - "**/.DS_Store"
           - Info.plist
-      - path: Shared
+      - path: Shared/AppGroup.swift
+      - path: Shared/WatchData.swift
+      - path: Shared/WatchWorkout.swift
+      - path: Shared/WidgetWorkoutSummary.swift
       - path: WatchShared
     info:
       path: PeptideWatchWidgets/Info.plist
