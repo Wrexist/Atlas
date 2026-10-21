@@ -127,10 +127,14 @@ final class NotificationService {
         UNUserNotificationCenter.current().add(request) { _ in /* best effort */ }
     }
 
-    /// Cancels a request previously scheduled via `scheduleOneShot(id:...)`.
+    /// Cancels a request previously scheduled via `scheduleOneShot(id:...)`,
+    /// and clears it from Notification Center if it already fired — a
+    /// "Rest's up" alert for a finished or discarded workout is stale.
     nonisolated static func cancelOneShot(id: String) {
-        UNUserNotificationCenter.current()
-            .removePendingNotificationRequests(withIdentifiers: ["\(adHocIDPrefix)\(id)"])
+        let identifiers = ["\(adHocIDPrefix)\(id)"]
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+        center.removeDeliveredNotifications(withIdentifiers: identifiers)
     }
 
     /// Pure collision check + resolution for `scheduleHabitReminders`: if
