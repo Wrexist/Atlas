@@ -237,6 +237,26 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         XCTAssertEqual(product.name, "Coca-Cola")
     }
 
+    func test_search_timeout_retriesAndReportsServiceUnavailable() async {
+        // A slow OFF isn't the user being offline.
+        let counter = AttemptCounter()
+        MockURLProtocol.handler = { _ in
+            counter.bump()
+            throw URLError(.timedOut)
+        }
+        await XCTAssertThrowsErrorAsync(try await service.search(query: "oats")) { error in
+            XCTAssertEqual(error as? OpenFoodFactsService.LookupError, .serviceUnavailable)
+        }
+        XCTAssertGreaterThanOrEqual(counter.value, 2)
+    }
+
+    func test_search_noConnection_reportsNetworkUnavailable() async {
+        MockURLProtocol.handler = { _ in throw URLError(.notConnectedToInternet) }
+        await XCTAssertThrowsErrorAsync(try await service.search(query: "oats")) { error in
+            XCTAssertEqual(error as? OpenFoodFactsService.LookupError, .networkUnavailable)
+        }
+    }
+
     func test_fetch_throwsInvalidBarcode_whenBarcodeIsGarbage() async {
         await XCTAssertThrowsErrorAsync(try await service.fetch(barcode: "not-a-barcode")) { error in
             XCTAssertEqual(error as? OpenFoodFactsService.LookupError, .invalidBarcode)

@@ -459,8 +459,7 @@ final class OpenFoodFactsService: Sendable {
         let response: URLResponse
         do {
             (data, response) = try await session.data(for: request)
-        } catch let urlError as URLError where urlError.code == .notConnectedToInternet
-                                            || urlError.code == .dataNotAllowed {
+        } catch let urlError as URLError where Self.isNetworkUnavailable(urlError) {
             // Genuinely offline. The error card hints that cached
             // results still work, so the user knows what to expect.
             throw LookupError.networkUnavailable
@@ -552,18 +551,12 @@ final class OpenFoodFactsService: Sendable {
         return nil
     }
 
+    /// Only a device with no connection is "offline". A timeout or a
+    /// dropped connection means OFF is slow, so those go through the
+    /// retry loop and end as `.serviceUnavailable`.
     private static func isNetworkUnavailable(_ error: URLError) -> Bool {
         switch error.code {
-        case .notConnectedToInternet,
-             .dataNotAllowed,
-             .timedOut,
-             .networkConnectionLost,
-             .cannotConnectToHost,
-             .cannotFindHost,
-             .dnsLookupFailed,
-             .internationalRoamingOff,
-             .callIsActive,
-             .secureConnectionFailed:
+        case .notConnectedToInternet, .dataNotAllowed, .internationalRoamingOff:
             return true
         default:
             return false
