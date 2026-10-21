@@ -91,6 +91,11 @@ struct HomeView: View {
     /// `dataStore.revision` change instead.
     @State private var derived = DerivedToday()
     @Environment(\.requestReview) private var requestReview
+    @Environment(\.scenePhase) private var scenePhase
+    /// Start of the calendar day Today is showing. Re-synced on midnight,
+    /// time-zone changes and every foreground, so the derived models and
+    /// the habits hero roll over even when nothing else mutates the store.
+    @State private var displayedDay = Calendar.current.startOfDay(for: .now)
 
     private struct DerivedToday {
         var overview: TodayOverviewSnapshot?
@@ -153,6 +158,16 @@ struct HomeView: View {
         )
         // Inside an animation so the cards' numericText digits roll.
         AppAnimation.with(AppAnimation.springSmooth) { derived = next }
+    }
+
+    /// Rolls Today over to the current calendar day (re-keying the derived
+    /// models when it changed) and re-reads the HealthKit-backed rings, which
+    /// can move without any store mutation — overnight sleep, a new HRV sample.
+    private func syncDisplayedDay() {
+        let today = Calendar.current.startOfDay(for: .now)
+        if today != displayedDay { displayedDay = today }
+        Task { await refreshHeroSnapshot() }
+        Task { await refreshHealthRange() }
     }
 
     private func countWorkoutsThisWeek() -> Int {
@@ -326,7 +341,7 @@ struct HomeView: View {
                     // completion ring, and the active streak. Per-habit
                     // summary work is snapshotted off-body inside the
                     // component (audit A6).
-                    TodayHabitsHero()
+                    TodayHabitsHero(day: displayedDay)
                         .sectionAppear(index: 4)
 
                     // The day's logging loop in one card — every open
@@ -703,6 +718,16 @@ struct HomeView: View {
             // once on first appear, which covers the initial population too.
             .task(id: dataStore.revision) {
                 refreshDerived()
+            }
+            .onChange(of: displayedDay) { _, _ in refreshDerived() }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { syncDisplayedDay() }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+                syncDisplayedDay()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
+                syncDisplayedDay()
             }
             // The coaching copy reads recovery + sleep off the hero snapshot,
             // so it has to re-pick when that lands (it arrives async, after

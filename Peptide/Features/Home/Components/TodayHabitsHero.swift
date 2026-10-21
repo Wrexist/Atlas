@@ -62,6 +62,9 @@ struct HabitsHeroSnapshot: Equatable {
 struct TodayHabitsHero: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
+    /// The calendar day Today is showing; a rollover re-evaluates which
+    /// habits are due and done.
+    let day: Date
     @State private var snapshot: HabitsHeroSnapshot = .empty
     @State private var addingNew = false
 
@@ -79,6 +82,7 @@ struct TodayHabitsHero: View {
         .task { rebuild() }
         .onChange(of: dataStore.profile.habitEntries) { _, _ in rebuild() }
         .onChange(of: dataStore.activeHabits) { _, _ in rebuild() }
+        .onChange(of: day) { _, _ in rebuild() }
         .sheet(isPresented: $addingNew) {
             HabitEditSheet(editing: nil) { habit in
                 dataStore.addHabit(habit)
