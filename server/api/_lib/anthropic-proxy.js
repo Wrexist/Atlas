@@ -267,6 +267,7 @@ export async function forwardToAnthropic(req, res, {
   buildBody,
   readResponse,
   betas,
+  requireJson = false,
   timeoutMs = 25_000,
 }) {
   if (req.method !== 'POST') {
@@ -319,6 +320,14 @@ export async function forwardToAnthropic(req, res, {
     // configured" advertises a half-deployed environment.
     console.error(`[${logLabel}] ANTHROPIC_API_KEY missing on this deployment`);
     refuse(res, 'unavailable');
+    return;
+  }
+
+  // Opt-in, because older app builds on the pass-through routes never
+  // promised a content type. A route that owns its prompt knows its
+  // only caller sends JSON, so anything else is not the app.
+  if (requireJson && !/^application\/json\b/i.test(req.headers['content-type'] || '')) {
+    res.status(415).json({ error: { message: 'Unsupported content type' } });
     return;
   }
 
