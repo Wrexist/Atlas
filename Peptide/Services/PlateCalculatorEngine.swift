@@ -18,8 +18,8 @@ enum PlateCalculatorEngine {
         let perSide: [PlateCount]
         /// Bar plus both sides — what is actually on the bar.
         let loadedTotal: Double
-        /// Target minus `loadedTotal`: the part the available plates
-        /// cannot make. Zero when the target is exactly loadable.
+        /// Target minus `loadedTotal`. Zero when the target is exactly
+        /// loadable; negative when the nearest load is just over it.
         let remainder: Double
 
         var isExact: Bool { remainder == 0 }
@@ -35,7 +35,9 @@ enum PlateCalculatorEngine {
         case loaded(Loadout)
         /// The target is lighter than the empty bar.
         case belowBar
-        /// A non-finite, non-positive or absurdly large target or bar weight.
+        /// A non-finite, non-positive or absurdly large target, or a
+        /// negative or absurd bar weight. A bar may weigh zero: some Smith
+        /// machines are counterbalanced.
         case invalid
     }
 
@@ -46,41 +48,87 @@ enum PlateCalculatorEngine {
     static let kilogramPlates: [Double] = [25, 20, 15, 10, 5, 2.5, 1.25]
     static let poundPlates: [Double] = [45, 35, 25, 10, 5, 2.5]
 
-    static func defaultBarWeight(for unit: MeasurementUnit) -> Double {
-        unit == .metric ? 20 : 45
-    }
-
     static func defaultPlates(for unit: MeasurementUnit) -> [Double] {
         unit == .metric ? kilogramPlates : poundPlates
     }
 
     /// Greedy, heaviest plate first, with an unlimited supply of each
-    /// size. For the standard plate sets greedy is optimal; for an odd
-    /// custom set it still never overshoots the target.
+    /// size. When the target isn't loadable it settles on the nearer of
+    /// the best load under it and that load plus one lightest plate a
+    /// side, preferring the lighter on a tie — so 22 kg on a 20 kg bar
+    /// becomes 22.5, but 21 stays the empty bar.
     static func calculate(target: Double, barWeight: Double, plates: [Double]) -> Outcome {
-        guard isPlausible(target), isPlausible(barWeight) else { return .invalid }
+        guard isPlausible(target), barWeight == 0 || isPlausible(barWeight) else { return .invalid }
         let targetUnits = hundredths(target)
         let barUnits = hundredths(barWeight)
         guard targetUnits >= barUnits else { return .belowBar }
 
-        var remainingPerSide = (targetUnits - barUnits) / 2
-        var perSide: [PlateCount] = []
-        for plate in usablePlates(plates) {
-            let count = remainingPerSide / plate
-            guard count > 0 else { continue }
-            perSide.append(PlateCount(weight: value(plate), count: count))
-            remainingPerSide -= count * plate
+        let sizes = usablePlates(plates)
+        var perSide = load(perSideUnits: (targetUnits - barUnits) / 2, sizes: sizes)
+        if let lightest = sizes.last {
+            let under = barUnits + 2 * units(perSide)
+            let heavier = load(perSideUnits: units(perSide) + lightest, sizes: sizes)
+            let over = barUnits + 2 * units(heavier)
+            if over > targetUnits, over - targetUnits < targetUnits - under { perSide = heavier }
         }
 
-        let loadedUnits = barUnits + 2 * perSide.reduce(0) { $0 + hundredths($1.weight) * $1.count }
+        let loadedUnits = barUnits + 2 * units(perSide)
         return .loaded(Loadout(
-            perSide: perSide,
+            perSide: perSide.map { PlateCount(weight: value($0.size), count: $0.count) },
             loadedTotal: value(loadedUnits),
             remainder: value(targetUnits - loadedUnits)
         ))
     }
 
+    /// The smallest change in total load the plates allow — one of the
+    /// lightest plate on each side. Nil when there are no usable plates.
+    static func smallestJump(plates: [Double]) -> Double? {
+        usablePlates(plates).last.map { value(2 * $0) }
+    }
+
+    // MARK: - Plate colours
+
+    /// Competition colour bands, by a plate's weight in kilos so pound
+    /// plates take the colour of their nearest kilo cousin (45 lb is
+    /// blue like 20 kg). Change plates below 5 kg are all grey.
+    enum Tone: Equatable, Sendable {
+        case red, blue, yellow, green, white, grey
+    }
+
+    static func tone(forPlate weight: Double, unit: MeasurementUnit) -> Tone {
+        switch unit.kilograms(fromDisplayed: weight) {
+        case 22.5...:     return .red
+        case 17.5..<22.5: return .blue
+        case 12.5..<17.5: return .yellow
+        case 7.5..<12.5:  return .green
+        case 4.5..<7.5:   return .white
+        default:          return .grey
+        }
+    }
+
     // MARK: - Fixed-point helpers
+
+    private struct UnitCount {
+        let size: Int
+        let count: Int
+    }
+
+    /// Greedy fill of one side, never over `perSideUnits`.
+    private static func load(perSideUnits: Int, sizes: [Int]) -> [UnitCount] {
+        var remaining = perSideUnits
+        var stack: [UnitCount] = []
+        for size in sizes {
+            let count = remaining / size
+            guard count > 0 else { continue }
+            stack.append(UnitCount(size: size, count: count))
+            remaining -= count * size
+        }
+        return stack
+    }
+
+    private static func units(_ stack: [UnitCount]) -> Int {
+        stack.reduce(0) { $0 + $1.size * $1.count }
+    }
 
     /// Positive, de-duplicated plate sizes in hundredths, heaviest first.
     private static func usablePlates(_ plates: [Double]) -> [Int] {

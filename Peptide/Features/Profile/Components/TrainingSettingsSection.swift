@@ -1,8 +1,9 @@
 import SwiftUI
 
 /// The settings a training-first user reaches for most — display units,
-/// the rest timer's fallback length and auto-progression — surfaced near
-/// the top of Profile instead of at the bottom of the general Settings card.
+/// the rest timer's fallback length, auto-progression, and the plates and
+/// bars the plate calculator loads — surfaced near the top of Profile
+/// instead of at the bottom of the general Settings card.
 struct TrainingSettingsSection: View {
     @Environment(DataStore.self) private var dataStore
 
@@ -33,8 +34,40 @@ struct TrainingSettingsSection: View {
                     subtitle: "Start each exercise at the weight and reps to beat",
                     isOn: autoProgressionBinding
                 )
+
+                Divider().overlay(AppColor.glassBorder)
+
+                PlateInventoryRow(unit: unit, available: platesBinding)
+
+                Divider().overlay(AppColor.glassBorder)
+
+                BarWeightsRow(unit: unit, weight: barWeightBinding)
             }
         }
+    }
+
+    private var unit: MeasurementUnit { dataStore.profile.bodyMetrics.unit }
+
+    private var platesBinding: Binding<[Double]> {
+        Binding(
+            get: { preferences.plates(for: unit) },
+            set: { plates in
+                var updated = preferences
+                updated.setPlates(plates, for: unit)
+                dataStore.updateTrainingPreferences(updated)
+            }
+        )
+    }
+
+    private func barWeightBinding(_ bar: BarKind) -> Binding<Double> {
+        Binding(
+            get: { preferences.barWeight(bar, unit: unit) },
+            set: { weight in
+                var updated = preferences
+                updated.setBarWeight(weight, for: bar, unit: unit)
+                dataStore.updateTrainingPreferences(updated)
+            }
+        )
     }
 
     /// `trainingPreferences` is nil until onboarding's training steps run,
@@ -124,6 +157,77 @@ private struct RestTimerRow: View {
     /// down in, and short enough for six segments on a phone.
     private static func label(for seconds: Int) -> String {
         String(format: "%d:%02d", seconds / 60, seconds % 60)
+    }
+}
+
+/// Which standard plates the user's gym stocks, in the display unit. The
+/// plate calculator only loads these, and a barbell's progression jump is
+/// a pair of the lightest one.
+private struct PlateInventoryRow: View {
+    let unit: MeasurementUnit
+    @Binding var available: [Double]
+
+    var body: some View {
+        SettingsPickerRow(
+            icon: "circle.circle.fill",
+            title: "Plates",
+            subtitle: "The plate calculator and barbell jumps use these"
+        ) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: Spacing.xs)], alignment: .leading, spacing: Spacing.xs) {
+                ForEach(PlateCalculatorEngine.defaultPlates(for: unit), id: \.self) { plate in
+                    GlassChip(
+                        "\(plate.formatted(.number.precision(.fractionLength(0...2)))) \(unit.weightSuffix)",
+                        isSelected: available.contains(plate)
+                    ) {
+                        toggle(plate)
+                    }
+                }
+            }
+        }
+    }
+
+    private func toggle(_ plate: Double) {
+        if available.contains(plate) {
+            available.removeAll { $0 == plate }
+        } else {
+            available = (available + [plate]).sorted(by: >)
+        }
+    }
+}
+
+/// Empty weight of each bar the plate calculator knows, in the display
+/// unit. Zero is allowed: some Smith machines are counterbalanced.
+private struct BarWeightsRow: View {
+    let unit: MeasurementUnit
+    let weight: (BarKind) -> Binding<Double>
+
+    private var step: Double { unit == .metric ? 0.5 : 1 }
+    private var range: ClosedRange<Double> { unit == .metric ? 0...40 : 0...90 }
+
+    var body: some View {
+        SettingsPickerRow(
+            icon: "scalemass.fill",
+            title: "Bar weights",
+            subtitle: "What each empty bar weighs at your gym"
+        ) {
+            VStack(spacing: Spacing.xs) {
+                ForEach(BarKind.allCases) { bar in
+                    Stepper(value: weight(bar), in: range, step: step) {
+                        HStack(spacing: Spacing.sm) {
+                            Text(bar.displayName)
+                                .font(AppFont.subheadline)
+                                .foregroundStyle(AppColor.textPrimary)
+                            Spacer(minLength: Spacing.xs)
+                            Text("\(weight(bar).wrappedValue.formatted(.number.precision(.fractionLength(0...1)))) \(unit.weightSuffix)")
+                                .font(AppFont.subheadline.weight(.semibold))
+                                .monospacedDigit()
+                                .foregroundStyle(AppColor.textSecondary)
+                        }
+                    }
+                    .onChange(of: weight(bar).wrappedValue) { _, _ in Haptics.selection() }
+                }
+            }
+        }
     }
 }
 

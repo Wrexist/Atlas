@@ -156,6 +156,9 @@ struct WorkoutFocusView: View {
             } else {
                 Text("Weight · Reps").font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
             }
+            if let bar = exercise?.equipmentKind.bar, let set = entry.setToLoad, set.isWholeBarLoad {
+                PlateLoadStrip(weightKg: set.weightKg, unit: unit, bar: bar)
+            }
             VStack(spacing: 0) {
                 ForEach(entry.sets) { set in
                     SetEditorRow(
