@@ -583,7 +583,7 @@ struct TrialOfferView: View {
                 }
             }
             .buttonStyle(ScalePressStyle(pressedScale: 0.97))
-            .disabled(isPurchasing || !arePricesLoaded)
+            .disabled(isPurchasing || isRestoring || !arePricesLoaded)
             .opacity(arePricesLoaded ? 1 : 0.5)
             .accessibilityLabel("\(ctaTitle). \(ctaDetail)")
 
@@ -711,7 +711,7 @@ struct TrialOfferView: View {
     // MARK: - Actions
 
     private func startTrial() {
-        guard !isPurchasing else { return }
+        guard !isPurchasing, !isRestoring else { return }
         Haptics.impact(.medium)
         notice = nil
         guard let product = productForSelectedTier else {
