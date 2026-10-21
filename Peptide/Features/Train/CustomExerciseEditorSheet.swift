@@ -107,7 +107,7 @@ struct CustomExerciseEditorSheet: View {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         let custom = CustomExercise(
-            id: editing?.id ?? "custom_\(UUID().uuidString)",
+            id: editing?.id ?? "\(CustomExercise.idPrefix)\(UUID().uuidString)",
             name: trimmed,
             primaryMuscles: [primaryMuscle.rawValue],
             secondaryMuscles: secondaryMuscles

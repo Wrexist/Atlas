@@ -94,6 +94,9 @@ extension Exercise {
 
     static let fullBodyGroupThreshold = 5
 
+    /// A user-made exercise lifted by `CustomExercise.asExercise()`.
+    var isCustom: Bool { id.hasPrefix(CustomExercise.idPrefix) }
+
     /// The kit this exercise is done with, read from the raw equipment
     /// string and the name together — see `EquipmentClassificationEngine`.
     var equipmentKind: EquipmentKind {

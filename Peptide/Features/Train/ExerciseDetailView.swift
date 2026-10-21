@@ -80,10 +80,12 @@ struct ExerciseDetailView: View {
             ForEach(EquipmentAccessory.allCases.filter { exercise.equipmentAccessories.contains($0) }) { accessory in
                 metadataPill(glyph: accessory.glyph, label: accessory.displayName)
             }
-            metadataPill(
-                glyph: .system("figure.run"),
-                label: levelLabel(exercise.level)
-            )
+            if !exercise.isCustom {
+                metadataPill(
+                    glyph: .system("figure.run"),
+                    label: levelLabel(exercise.level)
+                )
+            }
             if let mechanic = exercise.mechanic {
                 metadataPill(
                     glyph: .system("gearshape.fill"),

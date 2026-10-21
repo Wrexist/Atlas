@@ -80,6 +80,7 @@ final class ExerciseLibraryTests: XCTestCase {
         let hit = library.lookup(id: id)
         XCTAssertNotNil(hit, "Stable bundled id \(id) should resolve")
         XCTAssertEqual(hit?.name, "3/4 Sit-Up")
+        XCTAssertEqual(hit?.isCustom, false)
     }
 
     func test_lookup_byUnknownID_returnsNil() {
@@ -95,6 +96,7 @@ final class ExerciseLibraryTests: XCTestCase {
         XCTAssertNotNil(hit)
         XCTAssertEqual(hit?.name, "Test Curl")
         XCTAssertEqual(hit?.primaryMuscles, ["biceps"])
+        XCTAssertEqual(hit?.isCustom, true)
     }
 
     func test_displayName_unknownID_readsUnknownExerciseNotTheRawID() {
