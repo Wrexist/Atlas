@@ -454,18 +454,28 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Guard against committed proxy secrets
-        # CI injects MEAL_SCANNER_SECRET / AI_RESEARCH_SECRET /
-        # WEEKLY_SUMMARY_SECRET into Info.plist at build time only.
-        # The committed file must never contain them — fail the PR if
-        # it does, so a local inject-then-commit can't leak the live
-        # proxy secret into git history.
+        # ios-testflight injects every *_SECRET key into Info.plist at
+        # build time only. No committed plist may contain them — fail
+        # the PR if one does, so a local inject-then-commit can't leak a
+        # live proxy secret into git history.
         run: |
-          if grep -lE 'MEAL_SCANNER_SECRET|AI_RESEARCH_SECRET|WEEKLY_SUMMARY_SECRET' \
-            Peptide/Resources/Info.plist 2>/dev/null; then
-            echo "::error::Proxy secret keys found in a committed Info.plist — remove before merging."
+          if git grep -lE 'MEAL_SCANNER_SECRET|AI_RESEARCH_SECRET|WEEKLY_SUMMARY_SECRET|APP_ATTEST_SECRET|APPLE_REVOKE_SECRET' \
+            -- '*.plist'; then
+            echo "::error::Proxy secret keys found in a committed plist — remove before merging."
             exit 1
           fi
           echo "OK: no proxy secret keys committed."
+
+      - name: Guard against committed Anthropic keys
+        # The proxy holds the Anthropic key so the binary never ships
+        # one. A real key is 90+ characters; the docs' placeholders
+        # (`sk-ant-your-key-here`, `sk-ant-...`) are too short to match.
+        run: |
+          if git grep -nE 'sk-ant-[A-Za-z0-9_-]{20,}'; then
+            echo "::error::An Anthropic API key is committed — remove it and rotate the key."
+            exit 1
+          fi
+          echo "OK: no Anthropic keys committed."
 
       - name: Design system check
         # SwiftLint covers Swift-level problems; this covers design-system
