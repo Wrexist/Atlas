@@ -394,18 +394,22 @@ enum WeeklySummaryEngine {
         let bothWeeksDosed = current.keyStats.dosesTotal > 0 && previous.keyStats.dosesTotal > 0
         let complianceDeltaPoints = (current.keyStats.compliancePct - previous.keyStats.compliancePct) * 100
         if bothWeeksDosed && abs(complianceDeltaPoints) >= meaningfulCompliancePercentPoints {
-            let direction = complianceDeltaPoints > 0 ? "up" : "down"
-            return "Compliance \(direction) \(Int(abs(complianceDeltaPoints).rounded()))% from last week"
+            let points = Int(abs(complianceDeltaPoints).rounded())
+            return complianceDeltaPoints > 0
+                ? String(localized: "Adherence up \(points) points from last week")
+                : String(localized: "Adherence down \(points) points from last week")
         }
 
         let streakDelta = current.keyStats.currentStreak - previous.keyStats.currentStreak
         if streakDelta >= meaningfulStreakDays {
-            return "Your streak grew by \(streakDelta) days this week"
+            // `meaningfulStreakDays` ≥ 2, so "days" is always plural.
+            return String(localized: "Your streak grew by \(streakDelta) days this week")
         }
 
         if let hrvDelta = current.keyStats.hrvDelta, abs(hrvDelta) >= meaningfulHRVDeltaMs {
-            let direction = hrvDelta > 0 ? "up" : "down"
-            return "HRV \(direction) \(abs(hrvDelta)) ms versus last week"
+            return hrvDelta > 0
+                ? String(localized: "HRV up \(abs(hrvDelta)) ms versus last week")
+                : String(localized: "HRV down \(abs(hrvDelta)) ms versus last week")
         }
 
         return nil

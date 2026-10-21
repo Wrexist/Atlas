@@ -306,18 +306,18 @@ final class WeeklySummaryEngineTests: XCTestCase {
         XCTAssertNil(WeeklySummaryEngine.changeHeadline(current: current, previous: nil))
     }
 
-    func test_changeHeadline_meaningfulComplianceIncrease_reportsPercent() {
+    func test_changeHeadline_meaningfulComplianceIncrease_reportsPoints() {
         let current = makeSummary(weekStart: "2026-01-12", compliancePct: 0.9)
         let previous = makeSummary(weekStart: "2026-01-05", compliancePct: 0.7)
         let headline = WeeklySummaryEngine.changeHeadline(current: current, previous: previous)
-        XCTAssertEqual(headline, "Compliance up 20% from last week")
+        XCTAssertEqual(headline, "Adherence up 20 points from last week")
     }
 
     func test_changeHeadline_meaningfulComplianceDecrease_reportsDownDirection() {
         let current = makeSummary(weekStart: "2026-01-12", compliancePct: 0.6)
         let previous = makeSummary(weekStart: "2026-01-05", compliancePct: 0.8)
         let headline = WeeklySummaryEngine.changeHeadline(current: current, previous: previous)
-        XCTAssertEqual(headline, "Compliance down 20% from last week")
+        XCTAssertEqual(headline, "Adherence down 20 points from last week")
     }
 
     func test_changeHeadline_noiseLevelComplianceChange_fallsThroughToNil() {
@@ -374,7 +374,7 @@ final class WeeklySummaryEngineTests: XCTestCase {
         let current = makeSummary(weekStart: "2026-01-12", compliancePct: 0.9, currentStreak: 6, hrvDelta: 10)
         let previous = makeSummary(weekStart: "2026-01-05", compliancePct: 0.7, currentStreak: 3, hrvDelta: nil)
         let headline = WeeklySummaryEngine.changeHeadline(current: current, previous: previous)
-        XCTAssertEqual(headline, "Compliance up 20% from last week")
+        XCTAssertEqual(headline, "Adherence up 20 points from last week")
     }
 
     func test_changeHeadline_priorityOrder_streakBeatsHRVWhenBothMeaningful() {

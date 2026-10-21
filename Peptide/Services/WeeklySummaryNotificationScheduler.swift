@@ -42,7 +42,7 @@ enum WeeklySummaryNotificationScheduler {
     /// generated summary to compare against, or when nothing tracked
     /// changed by a meaningful margin. Never asserts a trend it can't
     /// back with a real delta.
-    static let genericBody = String(localized: "Tap to see how the week went — compliance, streak, and the patterns that mattered.")
+    static let genericBody = String(localized: "Tap to see how the week went — training, nutrition, recovery, and the patterns that mattered.")
 
     /// The two most recently *generated* summaries in `profile
     /// .weeklySummaries`, newest first. Deliberately not "this calendar
@@ -69,7 +69,7 @@ enum WeeklySummaryNotificationScheduler {
         else {
             return genericBody
         }
-        return "\(headline) — tap for the full recap."
+        return String(localized: "\(headline) — tap for the full recap.")
     }
 
     /// Pulls the matching pending request and replaces it with a

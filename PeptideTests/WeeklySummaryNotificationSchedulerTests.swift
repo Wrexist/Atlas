@@ -71,7 +71,7 @@ final class WeeklySummaryNotificationSchedulerTests: XCTestCase {
         profile.weeklySummaries = [current.weekStart: current, previous.weekStart: previous]
         XCTAssertEqual(
             WeeklySummaryNotificationScheduler.notificationBody(for: profile),
-            "Compliance up 20% from last week — tap for the full recap."
+            "Adherence up 20 points from last week — tap for the full recap."
         )
     }
 
@@ -92,7 +92,7 @@ final class WeeklySummaryNotificationSchedulerTests: XCTestCase {
         // meaningful-change floor but report a different, wrong number.
         XCTAssertEqual(
             WeeklySummaryNotificationScheduler.notificationBody(for: profile),
-            "Compliance up 20% from last week — tap for the full recap."
+            "Adherence up 20 points from last week — tap for the full recap."
         )
     }
 }
