@@ -74,7 +74,7 @@ struct TableDishSheet: View {
                     } label: {
                         Image(systemName: draft.isFavorite ? "heart.fill" : "heart")
                             .font(AppFont.scaled(20, weight: .semibold))
-                            .foregroundStyle(draft.isFavorite ? AppColor.destructive : AppColor.textSecondary)
+                            .foregroundStyle(draft.isFavorite ? AppColor.accentPrimary : AppColor.textSecondary)
                             .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
                             .contentTransition(.symbolEffect(.replace))
                             .symbolEffect(.bounce, value: draft.isFavorite)
