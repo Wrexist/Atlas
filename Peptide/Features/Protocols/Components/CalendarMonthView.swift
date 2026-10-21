@@ -112,7 +112,7 @@ struct CalendarMonthView: View {
                 ZStack {
                     if isSelected {
                         Circle()
-                            .fill(AppColor.accentPrimary)
+                            .fill(AppColor.accentFill)
                             .frame(width: 34, height: 34)
                             .matchedGeometryEffect(id: "selection", in: selection)
                     } else if isToday {

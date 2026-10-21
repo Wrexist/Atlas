@@ -76,7 +76,7 @@ struct TableSaveToast: View {
                 .font(AppFont.scaled(13, weight: .bold))
                 .foregroundStyle(AppColor.onAccent)
                 .frame(width: 32, height: 32)
-                .background(Circle().fill(AppColor.success))
+                .background(Circle().fill(AppColor.accentFill))
                 .completionPulse(trigger: progress.total)
                 .accessibilityHidden(true)
         case .failed:

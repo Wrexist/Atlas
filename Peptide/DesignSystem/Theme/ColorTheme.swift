@@ -109,6 +109,8 @@ enum AppColor {
 
     static let destructive = Color(light: 0xD32F2F, dark: 0xFF4444)
     static let warning = Color(light: 0x9A6B00, dark: 0xFFB800)
+    /// An ink, never a fill: it is `accentPrimary`, so `onAccent` on it
+    /// drops below 3:1 in the dark scheme. Fill with `accentFill`.
     static var success: Color { ThemeManager.shared.theme.primary }
 
     // MARK: - Glass
