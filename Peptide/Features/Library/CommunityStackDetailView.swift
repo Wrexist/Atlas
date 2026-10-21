@@ -86,10 +86,22 @@ struct CommunityStackDetailView: View {
                 }
 
                 HStack(spacing: Spacing.xl) {
-                    miniStat(value: "\(stack.peptideAbbreviations.count)", label: "Peptides")
-                    miniStat(value: "\(stack.cycleLengthWeeks)w", label: "Cycle")
-                    miniStat(value: "\(stack.scheduleTimesPerDay)x", label: "Per day")
-                    miniStat(value: "\(stack.scheduleDaysOfWeek.count)d", label: "Per week")
+                    miniStat(
+                        value: "\(stack.peptideAbbreviations.count)", label: "Peptides",
+                        spoken: Text("^[\(stack.peptideAbbreviations.count) peptide](inflect: true)")
+                    )
+                    miniStat(
+                        value: "\(stack.cycleLengthWeeks)w", label: "Cycle",
+                        spoken: Text("^[\(stack.cycleLengthWeeks) week](inflect: true) cycle")
+                    )
+                    miniStat(
+                        value: "\(stack.scheduleTimesPerDay)x", label: "Per day",
+                        spoken: Text("^[\(stack.scheduleTimesPerDay) time](inflect: true) per day")
+                    )
+                    miniStat(
+                        value: "\(stack.scheduleDaysOfWeek.count)d", label: "Per week",
+                        spoken: Text("^[\(stack.scheduleDaysOfWeek.count) day](inflect: true) per week")
+                    )
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -235,7 +247,9 @@ struct CommunityStackDetailView: View {
         }
     }
 
-    private func miniStat(value: String, label: String) -> some View {
+    /// `value` is a compact abbreviation ("8w"), so VoiceOver reads
+    /// `spoken` with the words in full instead.
+    private func miniStat(value: String, label: String, spoken: Text) -> some View {
         VStack(spacing: 2) {
             Text(value)
                 .font(AppFont.headline)
@@ -245,6 +259,8 @@ struct CommunityStackDetailView: View {
                 .foregroundStyle(AppColor.textSecondary)
         }
         .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(spoken)
     }
 
     private func useThisStack() {
