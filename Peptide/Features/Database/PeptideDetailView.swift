@@ -319,9 +319,6 @@ struct PeptideDetailView: View {
                     .accessibilityHidden(!heroScrolledAway)
             }
         }
-        .navigationDestination(for: PeptideProtocol.self) { proto in
-            ProtocolDetailView(protocol_: proto)
-        }
         .sensoryFeedback(.impact(weight: .medium), trigger: showingPicker) { _, new in new }
         .glassSheet(isPresented: $showingPicker) {
             AddToStackSheet(peptide: peptide) {

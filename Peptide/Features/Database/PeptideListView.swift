@@ -131,6 +131,9 @@ struct PeptideListView: View {
                         .navigationDestination(for: Peptide.self) { peptide in
                             PeptideDetailView(peptide: peptide)
                         }
+                        .navigationDestination(for: PeptideProtocol.self) { proto in
+                            ProtocolDetailView(protocol_: proto)
+                        }
                 } else {
                     EmptyStateView(
                         icon: "flask",
@@ -156,6 +159,9 @@ struct PeptideListView: View {
                 .navigationDestination(for: Peptide.self) { peptide in
                     PeptideDetailView(peptide: peptide)
                         .navigationTransition(.zoom(sourceID: peptide.id, in: zoom))
+                }
+                .navigationDestination(for: PeptideProtocol.self) { proto in
+                    ProtocolDetailView(protocol_: proto)
                 }
         }
     }

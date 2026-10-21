@@ -642,6 +642,9 @@ struct HomeView: View {
             .navigationDestination(for: Peptide.self) { peptide in
                 PeptideDetailView(peptide: peptide)
             }
+            .navigationDestination(for: PeptideProtocol.self) { proto in
+                ProtocolDetailView(protocol_: proto)
+            }
             .overlay {
                 if celebrationCenter.current == nil, let achievement = toastAchievement {
                     AchievementToastView(achievement: achievement, isShowing: $showAchievementToast)
