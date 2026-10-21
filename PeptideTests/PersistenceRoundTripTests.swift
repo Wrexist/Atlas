@@ -663,6 +663,17 @@ final class PersistenceRoundTripTests: XCTestCase {
         }
     }
 
+    func test_labTrend_twoZeroValues_isStable() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let prev = LabValue(
+            date: calendar.date(byAdding: .day, value: -30, to: today)!,
+            panel: .crp, value: 0
+        )
+        let next = LabValue(date: today, panel: .crp, value: 0)
+        XCTAssertEqual(LabDataLogic.computeTrend(entries: [prev, next]), .stable)
+    }
+
     func test_latestPerPanel_returnsMostRecentPerPanelAndPreservesCategoryOrder() {
         var profile = UserProfile.fresh
         let cal = Calendar.current
