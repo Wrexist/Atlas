@@ -270,36 +270,18 @@ final class NotificationService {
         // check-in), but they must not be scheduled past the slots the
         // habit/snooze namespaces already occupy or iOS silently drops
         // whichever requests are added last.
-        let reservedSlots = currentIDs.filter {
-            $0.hasPrefix(Self.habitIDPrefix) || $0.hasPrefix(Self.snoozeIDPrefix)
-                || $0.hasPrefix(Self.dailyIDPrefix) || $0 == Self.trialReminderID
-        }.count
+        let preserved = currentIDs.filter { Self.isOwnedByAnotherScheduler($0) }
+        let reservedSlots = preserved.count
         let doseLimit = max(0, Self.pendingRequestLimit - reservedSlots)
         let kept = Array(pendingRequests.prefix(doseLimit))
         let dropped = Array(pendingRequests.dropFirst(doseLimit))
         let droppedProtocolIDs = Set(dropped.map(\.protocolID))
 
         let newIDs = Set(kept.map(\.request.identifier))
-        // Preserve user-initiated snoozes across reschedules — they're one-shot
-        // transient requests that iOS clears after firing, not stale doses.
-        // Habit reminders live in a separate namespace; their own scheduler
-        // owns their lifecycle so we must not sweep them here.
-        let preservedSnoozes = currentIDs.filter { $0.hasPrefix(Self.snoozeIDPrefix) }
-        let preservedHabits = currentIDs.filter { $0.hasPrefix(Self.habitIDPrefix) }
-        let preservedDaily = currentIDs.filter { $0.hasPrefix(Self.dailyIDPrefix) }
-        // The Sunday weekly-recap request lives in its own scheduler but
-        // shares the pending-request pool. `reconcilePendingState()` absorbs
-        // its fixed ID into `currentIDs` on launch, and without this carve-out
-        // the next protocol edit's set-diff cancelled it — edit a protocol on
-        // Saturday evening, never reopen, and the Sunday 09:00 push silently
-        // vanished.
-        let preservedWeekly = currentIDs.intersection([WeeklySummaryNotificationScheduler.identifier, Self.trialReminderID])
-        let toRemove = currentIDs
-            .subtracting(newIDs)
-            .subtracting(preservedSnoozes)
-            .subtracting(preservedHabits)
-            .subtracting(preservedDaily)
-            .subtracting(preservedWeekly)
+        // Snoozes, habit / daily / ad-hoc reminders, the trial reminder and
+        // the Sunday recap share the pending pool but belong to other
+        // schedulers; the set-diff must never sweep them.
+        let toRemove = currentIDs.subtracting(newIDs).subtracting(preserved)
 
         if !toRemove.isEmpty {
             center.removePendingNotificationRequests(withIdentifiers: Array(toRemove))
@@ -308,7 +290,7 @@ final class NotificationService {
             center.add(entry.request)
         }
 
-        currentIDs = newIDs.union(preservedSnoozes).union(preservedHabits).union(preservedDaily).union(preservedWeekly)
+        currentIDs = newIDs.union(preserved)
         requestedCount = pendingRequests.count
         scheduledCount = kept.count
 
@@ -539,14 +521,22 @@ final class NotificationService {
         lastReport = .empty
     }
 
-    /// Wipes only the protocol-dose reminders, leaving habit reminders and
-    /// pending snoozes intact. Used when the user disables dose reminders —
-    /// flipping that switch shouldn't silently break their habit reminders.
+    /// True for a pending request that the dose scheduler doesn't own:
+    /// snoozes, habit / daily / ad-hoc reminders, the trial reminder and the
+    /// Sunday recap. Shared by the dose set-diff, its slot reservation and
+    /// `cancelProtocolReminders` so the three can never disagree.
+    static func isOwnedByAnotherScheduler(_ identifier: String) -> Bool {
+        let prefixes = [Self.snoozeIDPrefix, Self.habitIDPrefix, Self.dailyIDPrefix, Self.adHocIDPrefix]
+        return prefixes.contains { identifier.hasPrefix($0) }
+            || identifier == Self.trialReminderID
+            || identifier == WeeklySummaryNotificationScheduler.identifier
+    }
+
+    /// Wipes only the protocol-dose reminders, leaving every other
+    /// scheduler's requests (see `isOwnedByAnotherScheduler`) intact. Used
+    /// when the user disables dose reminders — flipping that switch shouldn't silently break their habit reminders.
     func cancelProtocolReminders() {
-        let toKeep = currentIDs.filter {
-            $0.hasPrefix(Self.snoozeIDPrefix) || $0.hasPrefix(Self.habitIDPrefix)
-                || $0.hasPrefix(Self.dailyIDPrefix) || $0 == Self.trialReminderID
-        }
+        let toKeep = currentIDs.filter { Self.isOwnedByAnotherScheduler($0) }
         let toRemove = currentIDs.subtracting(toKeep)
         if !toRemove.isEmpty {
             center.removePendingNotificationRequests(withIdentifiers: Array(toRemove))
