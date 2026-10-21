@@ -8,6 +8,7 @@ struct ProtocolDetailView: View {
     @State private var showCompleteConfirmation = false
     @State private var showEditSheet = false
     @State private var showShareCard = false
+    @State private var showPaywall = false
     @State private var schedulingPeptide: Peptide?
 
     private var liveProtocol: PeptideProtocol {
@@ -295,6 +296,10 @@ struct ProtocolDetailView: View {
             ShareCardSheet(subject: .singleProtocol(liveProtocol))
                 .liquidGlassPresentation()
         }
+        .sheet(isPresented: $showPaywall) {
+            PaywallView(source: .protocolLimit)
+                .liquidGlassPresentation()
+        }
         .sheet(item: $schedulingPeptide) { peptide in
             PeptideScheduleSheet(
                 peptide: peptide,
@@ -427,19 +432,33 @@ struct ProtocolDetailView: View {
             }
         case .completed:
             GlassButton(title: "Restart", icon: "arrow.counterclockwise", style: .primary) {
-                setStatus(.active)
+                // A finished cycle needs a fresh start date, not just a
+                // status flip — otherwise it reads 100% done and
+                // auto-completes again on the next launch.
+                applyStatusChange(.active) {
+                    dataStore.restartProtocol(id: protocol_.id)
+                }
             }
         }
     }
 
     private func setStatus(_ status: ProtocolStatus) {
+        applyStatusChange(status) {
+            dataStore.updateProtocolStatus(id: protocol_.id, to: status)
+        }
+    }
+
+    /// Runs `change` and plays its haptic, or presents the paywall when
+    /// the free-tier cap blocked an activation.
+    private func applyStatusChange(_ status: ProtocolStatus, _ change: () -> Bool) {
+        guard AppAnimation.with(AppAnimation.springSnappy, change) else {
+            if status == .active { showPaywall = true }
+            return
+        }
         if status == .completed {
             Haptics.success()
         } else {
             Haptics.impact(.light)
-        }
-        AppAnimation.with(AppAnimation.springSnappy) {
-            dataStore.updateProtocolStatus(id: protocol_.id, to: status)
         }
     }
 }

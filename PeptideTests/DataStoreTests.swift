@@ -73,6 +73,28 @@ final class DataStoreTests: XCTestCase {
         XCTAssertEqual(updated?.status, .paused)
     }
 
+    func test_restartProtocol_completedCycle_resetsStartDateAndActivates() {
+        for other in store.protocols {
+            store.updateProtocolStatus(id: other.id, to: .paused)
+        }
+        let finished = PeptideProtocol(
+            id: UUID(),
+            name: "Finished Protocol",
+            peptides: [],
+            schedule: ProtocolSchedule(daysOfWeek: [1, 3, 5], timesPerDay: 1, preferredTimes: ["8:00 AM"]),
+            cycleLengthWeeks: 4,
+            startDate: Calendar.current.date(byAdding: .weekOfYear, value: -12, to: Date())!,
+            status: .completed,
+            notes: ""
+        )
+        store.addProtocol(finished)
+
+        XCTAssertTrue(store.restartProtocol(id: finished.id))
+        let updated = store.protocols.first { $0.id == finished.id }
+        XCTAssertEqual(updated?.status, .active)
+        XCTAssertEqual(updated?.startDate, Calendar.current.startOfDay(for: Date()))
+    }
+
     // MARK: - Entry Management
 
     func test_toggleEntry_flipsCompletionState() {
