@@ -77,6 +77,7 @@ struct GlassChip: View {
                 }
             }
             .glassControl(.capsule, tint: wash, border: border, interactive: false)
+            .minimumHitArea()
         }
         .buttonStyle(ScalePressStyle())
         .accessibilityAddTraits(isSelected ? .isSelected : [])
