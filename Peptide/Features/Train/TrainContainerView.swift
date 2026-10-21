@@ -25,7 +25,7 @@ struct TrainContainerView: View {
     @State private var restoredActiveWorkout = false
     @State private var isVisible = false
     @State private var showStaleNotice = false
-    @State private var staleNoticeMessage: LocalizedStringKey = ""
+    @State private var staleNoticeMessage: LocalizedStringResource = ""
 
     enum Section: String, CaseIterable, Identifiable {
         case overview, routines, exercises, history
