@@ -328,7 +328,9 @@ struct HeroMetricValue: Equatable, Sendable {
         case .recovery:  name = "Recovery"
         case .sleep:     name = "Sleep"
         }
-        guard isAvailable else { return "\(name), no data" }
+        guard isAvailable else {
+            return kind == .adherence ? "\(name), no doses today" : "\(name), no data"
+        }
         return "\(name), \(displayPercent) percent"
     }
 }
@@ -374,18 +376,20 @@ struct HeroMetricSnapshot: Equatable, Sendable {
     )
 
     /// Builds the snapshot. Adherence is synchronous (uses the
-    /// caller's already-computed ratio); Recovery and Sleep pull
-    /// from HealthKit via `RecoveryScoreEngine`. Safe to call from
+    /// caller's already-computed ratio, `nil` on a day with no doses
+    /// scheduled so the ring rests instead of reading 0%); Recovery
+    /// and Sleep pull from HealthKit via `RecoveryScoreEngine`. Safe to call from
     /// `.task` in HomeView — the call sites batch their work so a
     /// scene-phase change re-runs once, not three times.
     static func build(
-        adherenceRatio: Double,
+        adherenceRatio: Double?,
         healthConnected: Bool,
         sleepTargetHours: Double = 8.0
     ) async -> HeroMetricSnapshot {
+        let adherence = adherenceRatio.map(HeroMetricValue.percent) ?? .unavailable
         guard healthConnected else {
             return HeroMetricSnapshot(
-                adherence: .percent(adherenceRatio),
+                adherence: adherence,
                 recovery: .unavailable,
                 sleep: .unavailable,
                 healthConnected: false,
@@ -422,7 +426,7 @@ struct HeroMetricSnapshot: Equatable, Sendable {
         }()
 
         return HeroMetricSnapshot(
-            adherence: .percent(adherenceRatio),
+            adherence: adherence,
             recovery: recoveryValue,
             sleep: sleepValue,
             healthConnected: true,

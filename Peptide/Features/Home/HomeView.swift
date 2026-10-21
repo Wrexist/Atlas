@@ -1000,8 +1000,9 @@ struct HomeView: View {
     /// to HealthKit. Cheap to call — the underlying queries are
     /// cached for short windows by HealthKit itself.
     private func refreshHeroSnapshot() async {
+        let stats = todayStats
         let snapshot = await HeroMetricSnapshot.build(
-            adherenceRatio: todayStats.score,
+            adherenceRatio: stats.total > 0 ? stats.score : nil,
             healthConnected: dataStore.profile.healthConnected
         )
         AppAnimation.with(AppAnimation.springSmooth) {
