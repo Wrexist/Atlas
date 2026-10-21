@@ -87,6 +87,10 @@ struct WatchRecoveryEntryView: View {
         }
         .gaugeStyle(.accessoryCircular)
         .tint(WatchPalette.heart)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            vitals?.recoveryScore.map { Text("Recovery score \($0)") } ?? Text("Recovery score unavailable")
+        )
         .containerBackground(for: .widget) { Color.clear }
     }
 
@@ -172,6 +176,8 @@ struct WatchSleepEntryView: View {
                 Image(systemName: "bed.double.fill")
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(sleep.map { Text("Sleep score \($0.score)") } ?? Text("Sleep score unavailable"))
         .containerBackground(for: .widget) { Color.clear }
     }
 

@@ -297,6 +297,15 @@ private struct CircularProtocolView: View {
         }
         .gaugeStyle(.accessoryCircular)
         .widgetAccentable()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityText)
+    }
+
+    /// "2/3" reads as "two slash three"; say what the gauge counts.
+    private var accessibilityText: Text {
+        entry.isOutdated
+            ? Text("Open Atlas to update")
+            : Text("\(entry.completed) of \(entry.total) doses logged")
     }
 }
 

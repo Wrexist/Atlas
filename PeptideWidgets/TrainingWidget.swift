@@ -435,6 +435,7 @@ private struct CircularTrainingView: View {
             VStack(spacing: 0) {
                 Image(systemName: entry.pausedElapsed == nil ? trainingGlyph : "pause.fill")
                     .font(.caption)
+                    .accessibilityHidden(true)
                 if entry.isActive {
                     WorkoutClock(entry: entry, font: .caption.weight(.bold))
                         .multilineTextAlignment(.center)
@@ -443,6 +444,7 @@ private struct CircularTrainingView: View {
                     Text("\(entry.workoutsThisWeek)")
                         .font(.system(.title3, design: .rounded, weight: .bold))
                         .contentTransition(.numericText(value: Double(entry.workoutsThisWeek)))
+                        .accessibilityLabel(Text("\(entry.workoutsThisWeek) workouts this week"))
                 }
             }
             .widgetAccentable()

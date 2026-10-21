@@ -384,6 +384,15 @@ private struct CircularNutritionView: View {
         }
         .gaugeStyle(.accessoryCircular)
         .widgetAccentable()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityText)
+    }
+
+    /// The compact "1.2K" carries no unit or target when spoken.
+    private var accessibilityText: Text {
+        entry.target > 0
+            ? Text("\(entry.calories) of \(entry.target) calories")
+            : Text("\(entry.calories) calories")
     }
 }
 
@@ -402,6 +411,7 @@ private struct RectangularNutritionView: View {
             Text("P \(entry.protein) · C \(entry.carbs) · F \(entry.fat)")
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
+                .accessibilityLabel(Text("Protein \(entry.protein) grams, carbs \(entry.carbs) grams, fat \(entry.fat) grams"))
             Gauge(value: entry.progress) { EmptyView() }
                 .gaugeStyle(.accessoryLinearCapacity)
         }
