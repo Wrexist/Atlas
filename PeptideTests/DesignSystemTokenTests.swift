@@ -97,6 +97,26 @@ final class DesignSystemTokenTests: XCTestCase {
         XCTAssertGreaterThan(brightness(of: dark), 0.02)
     }
 
+    // MARK: - BenefitStyleMap
+
+    func test_dnaRepairBenefit_getsTheImmuneStyleNotGenericRepair() {
+        let style = BenefitStyleMap.style(for: "DNA Repair", fallbackColor: .clear)
+        XCTAssertEqual(style.icon, "staroflife.fill")
+    }
+
+    /// First match wins, so a keyword containing an earlier one is dead.
+    func test_benefitKeywords_neverShadowedByAnEarlierKeyword() {
+        let keywords = BenefitStyleMap.mappings.map { $0.keyword }
+        for (index, keyword) in keywords.enumerated() {
+            for earlier in keywords[..<index] {
+                XCTAssertFalse(
+                    keyword.localizedCaseInsensitiveContains(earlier),
+                    "\"\(keyword)\" is shadowed by \"\(earlier)\""
+                )
+            }
+        }
+    }
+
     private func brightness(of color: UIColor) -> CGFloat {
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         color.getRed(&r, green: &g, blue: &b, alpha: &a)
