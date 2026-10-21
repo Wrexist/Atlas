@@ -667,7 +667,7 @@ struct WorkoutAccessoryView: View {
     private var label: LocalizedStringKey {
         if showsActiveWorkout { return "Workout in progress" }
         return loggedToday > 0
-            ? "All workouts logged for today"
+            ? "Workout logged today"
             : "No workout logged yet today"
     }
 }
