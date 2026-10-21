@@ -261,11 +261,11 @@ final class DataStore {
 
     /// Coalesces CloudKit-import notifications (they fire in bursts
     /// during a sync) into one `reloadFromDisk()`, deferred while a
-    /// debounced local save is still pending — the user's in-memory
+    /// local change hasn't reached the store yet — the user's in-memory
     /// edits win locally and land via their own save; reloading over
     /// them mid-edit would drop keystrokes. If the store never goes
     /// quiet within the retry budget the refresh is skipped; the next
-    /// import event or foreground pass catches up.
+    /// import event catches up.
     @ObservationIgnored private var cloudImportRefreshTask: Task<Void, Never>?
 
     @MainActor
@@ -275,18 +275,25 @@ final class DataStore {
         cloudImportRefreshTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .seconds(2))
             var attempts = 0
-            while !Task.isCancelled, self?.pendingSaveTask != nil, attempts < 10 {
+            while !Task.isCancelled, self?.hasUnsavedChanges == true, attempts < 10 {
                 try? await Task.sleep(for: .seconds(1))
                 attempts += 1
             }
             guard !Task.isCancelled,
                   let self,
-                  self.pendingSaveTask == nil,
+                  !self.hasUnsavedChanges,
                   !self.isEphemeral
             else { return }
             AppLog.persistence.log("CloudKit import finished; refreshing in-memory state")
             self.reloadFromDisk()
         }
+    }
+
+    /// True while an in-memory change hasn't been committed: a debounced
+    /// save is pending, or the last one failed and left state dirty.
+    private var hasUnsavedChanges: Bool {
+        pendingSaveTask != nil || protocolsNeedSave || entriesNeedSave || profileNeedsSave
+            || !pendingProtocolDeletions.isEmpty || !pendingEntryDeletions.isEmpty
     }
 
     @MainActor
@@ -2191,6 +2198,9 @@ final class DataStore {
         pendingSaveTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .milliseconds(Int64(Self.saveDebounceMs)))
             guard let self, !Task.isCancelled else { return }
+            // Cleared before the write so a CloudKit refresh waiting on
+            // it can run once the save lands.
+            self.pendingSaveTask = nil
             self.performSaveNow()
         }
     }
