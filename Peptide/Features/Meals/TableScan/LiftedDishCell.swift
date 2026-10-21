@@ -56,7 +56,8 @@ struct LiftedDishCell: View {
             suggestion
         }
         .opacity(dish.include ? 1 : 0.45)
-        .appAnimation(AppAnimation.quick, value: dish.include)
+        .appAnimation(AppAnimation.springSnappy, value: dish.include)
+        .appAnimation(AppAnimation.step, value: dish.reading)
     }
 
     private var sticker: some View {
@@ -72,8 +73,9 @@ struct LiftedDishCell: View {
                             .scaledToFit()
                             .frame(height: Self.stickerHeight)
                             .matchedGeometryEffect(id: dish.id, in: namespace)
-                            .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
+                            .shadow(color: .black.opacity(dish.include ? 0.18 : 0.06), radius: 8, y: 4)
                             .saturation(dish.include ? 1 : 0)
+                            .scaleEffect(dish.include ? 1 : 0.9)
                     } else {
                         Color.clear.frame(height: Self.stickerHeight)
                     }
@@ -84,7 +86,10 @@ struct LiftedDishCell: View {
                     .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(dish.include ? AppColor.accentPrimary : AppColor.textTertiary)
                     .background(Circle().fill(AppColor.background).padding(Spacing.xxs))
+                    .contentTransition(.symbolEffect(.replace))
+                    .symbolEffect(.bounce, value: dish.include)
                     .opacity(isLanded ? 1 : 0)
+                    .scaleEffect(isLanded ? 1 : 0.4)
             }
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.96))
@@ -98,8 +103,15 @@ struct LiftedDishCell: View {
         return String(localized: "Dish")
     }
 
-    @ViewBuilder
+    /// The scan's answer swaps in where the placeholder was, growing in
+    /// from the chip's leading edge.
     private var suggestion: some View {
+        Group { suggestionContent }
+            .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .leading)))
+    }
+
+    @ViewBuilder
+    private var suggestionContent: some View {
         switch dish.reading {
         case .pending:
             Capsule()
@@ -127,11 +139,12 @@ struct LiftedDishCell: View {
                 .foregroundStyle(AppColor.textPrimary)
                 .padding(.horizontal, Spacing.sm)
                 .padding(.vertical, Spacing.xs)
+                .glassControl(.capsule, tint: AppColor.accentPrimary.opacity(0.12), interactive: false)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(minHeight: Spacing.minimumHitTarget)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ScalePressStyle(pressedScale: 0.95))
+            .minimumHitArea()
             .accessibilityHint("Uses this name for the dish.")
         case .failed:
             Button(action: onRetry) {
@@ -152,6 +165,7 @@ struct LiftedDishCell: View {
 /// labels in half a sheet's width.
 struct DishKindPicker: View {
     @Binding var selection: DishKind
+    @Namespace private var pill
 
     var body: some View {
         HStack(spacing: Spacing.xxs) {
@@ -169,7 +183,9 @@ struct DishKindPicker: View {
                         .frame(maxWidth: .infinity, minHeight: 32)
                         .background {
                             if selection == kind {
-                                Capsule().fill(AppColor.background)
+                                Capsule()
+                                    .fill(AppColor.background)
+                                    .matchedGeometryEffect(id: "kind", in: pill)
                             }
                         }
                         .contentShape(Capsule())
@@ -180,6 +196,6 @@ struct DishKindPicker: View {
         }
         .padding(Spacing.xxs)
         .glassControl(.capsule, interactive: false)
-        .appAnimation(AppAnimation.quick, value: selection)
+        .appAnimation(AppAnimation.springSnappy, value: selection)
     }
 }

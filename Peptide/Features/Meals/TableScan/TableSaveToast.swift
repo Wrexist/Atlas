@@ -43,11 +43,20 @@ struct TableSaveToast: View {
         HStack(spacing: Spacing.md) {
             icon(progress)
                 .frame(width: 32, height: 32)
-            Text(message(progress))
-                .font(AppFont.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(AppColor.textPrimary)
-                .contentTransition(.numericText())
+                .transition(.scale(scale: 0.5).combined(with: .opacity))
+                .id(progress.outcome)
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text(message(progress))
+                    .font(AppFont.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .contentTransition(.numericText())
+                if progress.outcome == nil {
+                    ProgressView(value: Double(progress.saved), total: Double(max(progress.total, 1)))
+                        .tint(AppColor.accentPrimary)
+                        .accessibilityHidden(true)
+                }
+            }
             Spacer(minLength: 0)
         }
         .padding(.horizontal, Spacing.md)
@@ -68,6 +77,7 @@ struct TableSaveToast: View {
                 .foregroundStyle(AppColor.onAccent)
                 .frame(width: 32, height: 32)
                 .background(Circle().fill(AppColor.success))
+                .completionPulse(trigger: progress.total)
                 .accessibilityHidden(true)
         case .failed:
             Image(systemName: "exclamationmark.triangle.fill")

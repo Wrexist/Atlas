@@ -55,7 +55,10 @@ struct TableScanFlow: View {
     @State private var work: Task<Void, Never>?
     @State private var readQueue: Task<Void, Never>?
     @State private var isFinished = false
+    @State private var shutterCount = 0
+    @State private var isSweeping = false
     @Namespace private var lift
+    @Namespace private var lensPill
 
     /// Readings the proxy is asked for at once. Eight plates fired together
     /// trip its per-device rate limit.
@@ -186,6 +189,23 @@ struct TableScanFlow: View {
         .overlay(alignment: .bottom) {
             if cameraState == .live { lensPicker.padding(.bottom, Spacing.lg) }
         }
+        .overlay { shutterFlash }
+    }
+
+    /// A quick white blink when the shutter fires, so the shot reads as
+    /// taken before the lifting starts.
+    private var shutterFlash: some View {
+        AppColor.onAccent
+            .keyframeAnimator(initialValue: 0.0, trigger: shutterCount) { flash, value in
+                flash.opacity(value)
+            } keyframes: { _ in
+                KeyframeTrack {
+                    LinearKeyframe(0.85, duration: 0.04)
+                    CubicKeyframe(0, duration: 0.32)
+                }
+            }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 
     private var lensPicker: some View {
@@ -202,7 +222,11 @@ struct TableScanFlow: View {
                         .padding(.horizontal, Spacing.md)
                         .frame(minHeight: 32)
                         .background {
-                            if lens == option { Capsule().fill(AppColor.background) }
+                            if lens == option {
+                                Capsule()
+                                    .fill(AppColor.background)
+                                    .matchedGeometryEffect(id: "lens", in: lensPill)
+                            }
                         }
                         .contentShape(Capsule())
                 }
@@ -212,7 +236,7 @@ struct TableScanFlow: View {
         }
         .padding(Spacing.xxs)
         .glassControl(.capsule, interactive: false)
-        .appAnimation(AppAnimation.quick, value: lens)
+        .appAnimation(AppAnimation.springSnappy, value: lens)
     }
 
     private var thirdsGrid: some View {
@@ -263,22 +287,48 @@ struct TableScanFlow: View {
                         .scaledToFill()
                 }
             }
-            .overlay {
-                Rectangle()
-                    .fill(AppColor.onAccent.opacity(0.08))
-                    .shimmer()
-                    .accessibilityHidden(true)
-            }
+            .overlay { scanSweep }
             .overlay(alignment: .bottom) {
-                Text("Lifting your dishes…")
-                    .font(AppFont.footnote)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .padding(.horizontal, Spacing.md)
-                    .padding(.vertical, Spacing.sm)
-                    .glassControl(.capsule, interactive: false)
-                    .padding(.bottom, Spacing.lg)
+                HStack(spacing: Spacing.sm) {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(AppColor.accentPrimary)
+                    Text("Lifting your dishes…")
+                        .font(AppFont.footnote)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(AppColor.textPrimary)
+                }
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.sm)
+                .glassControl(.capsule, interactive: false)
+                .padding(.bottom, Spacing.lg)
             }
+    }
+
+    /// A soft band of light sweeping the photo while Vision works — steady,
+    /// like a scanner bed, rather than a busy shimmer. Still under Reduce
+    /// Motion, where the spinner in the pill carries the wait.
+    private var scanSweep: some View {
+        GeometryReader { geo in
+            LinearGradient(
+                colors: [.clear, AppColor.accentLight.opacity(0.28), AppColor.onAccent.opacity(0.35), .clear],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: geo.size.height * 0.22)
+            .offset(y: isSweeping ? geo.size.height * 0.85 : -geo.size.height * 0.08)
+            .opacity(reduceMotion ? 0 : 1)
+        }
+        .background(AppColor.background.opacity(0.12))
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
+                isSweeping = true
+            }
+        }
+        .onDisappear { isSweeping = false }
     }
 
     private var reviewGrid: some View {
@@ -331,6 +381,7 @@ struct TableScanFlow: View {
             Image(systemName: "fork.knife.circle")
                 .font(AppFont.scaled(24, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
+                .symbolEffect(.bounce, value: errorText)
                 .accessibilityHidden(true)
             Text(errorText ?? String(localized: "Something went wrong. Try again."))
                 .font(AppFont.subheadline)
@@ -483,6 +534,7 @@ struct TableScanFlow: View {
 
     private func shoot() {
         Haptics.impact(.medium)
+        if !reduceMotion { shutterCount += 1 }
         work?.cancel()
         work = Task {
             guard let image = await camera.capture() else { return }

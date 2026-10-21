@@ -58,12 +58,15 @@ struct TableDishSheet: View {
                             Image(systemName: star <= draft.rating ? "star.fill" : "star")
                                 .font(AppFont.scaled(20, weight: .semibold))
                                 .foregroundStyle(star <= draft.rating ? AppColor.accentPrimary : AppColor.textTertiary)
+                                .contentTransition(.symbolEffect(.replace))
+                                .scaleEffect(star == draft.rating ? 1.15 : 1)
                                 .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel(Text("\(star) stars"))
                         .accessibilityAddTraits(star == draft.rating ? .isSelected : [])
                     }
+                    .appAnimation(AppAnimation.springBouncy, value: draft.rating)
                     Spacer(minLength: 0)
                     Button {
                         draft.isFavorite.toggle()
@@ -74,6 +77,7 @@ struct TableDishSheet: View {
                             .foregroundStyle(draft.isFavorite ? AppColor.destructive : AppColor.textSecondary)
                             .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
                             .contentTransition(.symbolEffect(.replace))
+                            .symbolEffect(.bounce, value: draft.isFavorite)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Favourite")

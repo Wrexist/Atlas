@@ -86,7 +86,7 @@ struct PlateTableView: View {
 
     private func table(_ dishes: [TableDish]) -> some View {
         ZStack {
-            AppColor.surfaceSecondary
+            TableSurface()
             if isPlaying {
                 SpriteView(scene: scene, options: [.allowsTransparency])
                     .accessibilityLabel("Plates in play. Tilt your phone to move them.")
@@ -102,20 +102,28 @@ struct PlateTableView: View {
     private func restingPlates(_ dishes: [TableDish]) -> some View {
         let cells = PlateTableLayout.cells(count: dishes.count, in: tableArea)
         return ZStack(alignment: .topLeading) {
-            ForEach(Array(zip(dishes, cells)), id: \.0.id) { dish, cell in
+            ForEach(Array(zip(dishes, cells).enumerated()), id: \.element.0.id) { index, pair in
+                let (dish, cell) = pair
                 Button { openDish = dish } label: {
-                    VStack(spacing: Spacing.xxs) {
+                    VStack(spacing: Spacing.xs) {
                         plateImage(dish)
                             .frame(width: cell.width, height: cell.height)
+                            .rotationEffect(.degrees(Self.restingTilt(index)))
                         if showsLabels {
                             Text(plateLabel(dish))
                                 .font(AppFont.caption)
+                                .fontWeight(.semibold)
                                 .foregroundStyle(AppColor.textPrimary)
                                 .lineLimit(1)
+                                .padding(.horizontal, Spacing.sm)
+                                .padding(.vertical, Spacing.xxs)
+                                .glassControl(.capsule, interactive: false)
+                                .transition(.opacity.combined(with: .scale(scale: 0.8, anchor: .top)))
                         }
                     }
                 }
                 .buttonStyle(ScalePressStyle(pressedScale: 0.95))
+                .staggeredAppear(index: index)
                 .position(x: cell.midX, y: cell.midY + topInset)
                 .accessibilityLabel(Text(plateLabel(dish)))
                 .accessibilityHint("Opens this dish.")
@@ -144,6 +152,12 @@ struct PlateTableView: View {
         }
     }
 
+    /// Each plate sits a little turned, the way nobody sets a table on a
+    /// grid. Fixed per position so the table looks the same every visit.
+    private static func restingTilt(_ index: Int) -> Double {
+        [-5, 4, -3, 6, -6, 3, -4, 5][index % 8]
+    }
+
     private func plateLabel(_ dish: TableDish) -> String {
         dish.rating > 0 ? "\(dish.name) ★\(dish.rating)" : dish.name
     }
@@ -161,7 +175,7 @@ struct PlateTableView: View {
             HStack(spacing: Spacing.sm) {
                 GlassIconButton(icon: "chevron.left", accessibilityLabel: "Back", size: 36) { onClose() }
                 Spacer(minLength: 0)
-                toggle("Labels", icon: "tag", isOn: showsLabels) {
+                toggle("Labels", icon: showsLabels ? "tag.fill" : "tag", isOn: showsLabels) {
                     showsLabels.toggle()
                     scene.setLabelsVisible(showsLabels)
                 }
@@ -190,7 +204,7 @@ struct PlateTableView: View {
                         scene.toss()
                     }
                 }
-                .transition(.opacity)
+                .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
         .padding(.horizontal, Spacing.lg)
@@ -204,6 +218,7 @@ struct PlateTableView: View {
             Haptics.selection()
         } label: {
             Label(title, systemImage: icon)
+                .contentTransition(.symbolEffect(.replace))
                 .font(AppFont.footnote)
                 .fontWeight(.semibold)
                 .foregroundStyle(isOn ? AppColor.onAccent : AppColor.textPrimary)
@@ -259,17 +274,10 @@ struct PlateTableView: View {
                     .accessibilityHidden(true)
             }
 
-            HStack(spacing: Spacing.md) {
-                Label(moment.date.formatted(date: .omitted, time: .shortened), systemImage: "clock")
-                Label(dishes.count == 1 ? String(localized: "1 dish") : String(localized: "\(dishes.count) dishes"), systemImage: "fork.knife")
-                Label("\(dishes.reduce(0) { $0 + $1.calories }) kcal", systemImage: "flame")
-                Label("\(dishes.reduce(0) { $0 + $1.proteinG }) g protein", systemImage: "bolt")
-            }
-            .font(AppFont.caption)
-            .foregroundStyle(AppColor.textSecondary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
-            .accessibilityElement(children: .combine)
+            .sectionAppear(index: 0)
+
+            stats(moment, dishes: dishes)
+                .sectionAppear(index: 1)
 
             TextField("How was it? Type or talk…", text: $note, axis: .vertical)
                 .font(AppFont.body)
@@ -279,7 +287,22 @@ struct PlateTableView: View {
                 .padding(Spacing.md)
                 .glassControl(.rect(cornerRadius: Spacing.controlCornerRadius), interactive: false)
                 .accessibilityLabel("Note on this meal")
+                .sectionAppear(index: 2)
         }
+    }
+
+    /// Time, dishes, calories and protein as four small tiles; the numbers
+    /// roll when a dish is edited or taken off.
+    private func stats(_ moment: TableMoment, dishes: [TableDish]) -> some View {
+        let calories = dishes.reduce(0) { $0 + $1.calories }
+        let protein = dishes.reduce(0) { $0 + $1.proteinG }
+        return HStack(spacing: Spacing.sm) {
+            StatTile(icon: "clock", value: moment.date.formatted(date: .omitted, time: .shortened), unit: String(localized: "time"))
+            StatTile(icon: "fork.knife", value: "\(dishes.count)", unit: dishes.count == 1 ? String(localized: "dish") : String(localized: "dishes"))
+            StatTile(icon: "flame.fill", value: "\(calories)", unit: String(localized: "kcal"))
+            StatTile(icon: "bolt.fill", value: "\(protein) g", unit: String(localized: "protein"))
+        }
+        .appAnimation(AppAnimation.settle, value: [dishes.count, calories, protein])
     }
 
     static func title(for moment: TableMoment) -> String {
@@ -348,6 +371,62 @@ struct PlateTableView: View {
         let renderer = ImageRenderer(content: card)
         renderer.scale = 3
         shareImage = renderer.uiImage.map { Image(uiImage: $0) }
+    }
+}
+
+/// One figure under the table: a tinted glyph, the value, and its unit.
+private struct StatTile: View {
+    let icon: String
+    let value: String
+    let unit: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
+            Image(systemName: icon)
+                .font(AppFont.scaled(11, weight: .semibold))
+                .foregroundStyle(AppColor.accentLight)
+                .accessibilityHidden(true)
+            Text(value)
+                .font(AppFont.scaled(16, weight: .bold, design: .rounded, relativeTo: .headline))
+                .foregroundStyle(AppColor.textPrimary)
+                .monospacedDigit()
+                .contentTransition(.numericText())
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(unit)
+                .font(AppFont.caption)
+                .foregroundStyle(AppColor.textSecondary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Spacing.md)
+        .glassControl(.rect(cornerRadius: Spacing.controlCornerRadius), interactive: false)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// The table the plates rest on: a soft dotted cloth that fades into the
+/// page below, so the plates sit on something without a hard edge.
+private struct TableSurface: View {
+    var body: some View {
+        AppColor.surfaceSecondary
+            .overlay {
+                Canvas { context, size in
+                    let step: CGFloat = 18
+                    var dots = Path()
+                    for x in stride(from: step / 2, to: size.width, by: step) {
+                        for y in stride(from: step / 2, to: size.height, by: step) {
+                            dots.addEllipse(in: CGRect(x: x - 1, y: y - 1, width: 2, height: 2))
+                        }
+                    }
+                    context.fill(dots, with: .color(AppColor.textTertiary.opacity(0.18)))
+                }
+            }
+            .overlay(alignment: .bottom) {
+                LinearGradient(colors: [AppColor.background.opacity(0), AppColor.background], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 64)
+            }
+            .accessibilityHidden(true)
     }
 }
 

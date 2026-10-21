@@ -80,6 +80,7 @@ struct LatestTableCard: View {
                 .rotationEffect(.degrees(index.isMultiple(of: 2) ? -6 : 7))
                 .offset(y: index.isMultiple(of: 2) ? -10 : 12)
                 .shadow(color: .black.opacity(0.18), radius: 6, y: 3)
+                .staggeredAppear(index: index)
                 .zIndex(Double(index))
             }
             if dishes.count > 5 {
