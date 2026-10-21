@@ -101,8 +101,8 @@ struct MetricRing<Center: View>: View {
                 AngularGradient(
                     gradient: Gradient(colors: gradient),
                     center: .center,
-                    startAngle: .degrees(-90),
-                    endAngle: .degrees(270)
+                    startAngle: .degrees(0),
+                    endAngle: .degrees(360)
                 ),
                 style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round)
             )
