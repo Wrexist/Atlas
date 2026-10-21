@@ -31,18 +31,20 @@ enum Heartbeat {
 
 /// The Recovery page's hero: a heart that beats at the user's own resting
 /// heart rate and sends a ripple out on every beat. Holds still in Always
-/// On and under Reduce Motion.
+/// On and under Reduce Motion, and stops drawing while its page is off
+/// screen.
 struct PulsingHeart: View {
     let bpm: Int
     var size: CGFloat = 64
 
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.watchPageIsActive) private var isActive
 
     private var isStill: Bool { isLuminanceReduced || reduceMotion }
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: nil, paused: isStill)) { context in
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: isStill || !isActive)) { context in
             let sinceR = Heartbeat.beats(at: context.date, bpm: bpm) - Heartbeat.rPeak
             let phase = Heartbeat.fraction(sinceR)
             ZStack {
@@ -83,7 +85,8 @@ struct PulsingHeart: View {
 }
 
 /// A live ECG strip that scrolls at the user's resting rate, newest beat
-/// at the right edge, older trace fading out to the left.
+/// at the right edge, older trace fading out to the left. Paused, like the
+/// heart, while its page is off screen.
 struct ECGTrace: View {
     let bpm: Int
     /// How many beats fit across the strip.
@@ -91,9 +94,10 @@ struct ECGTrace: View {
 
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.watchPageIsActive) private var isActive
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: isLuminanceReduced || reduceMotion)) { context in
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: isLuminanceReduced || reduceMotion || !isActive)) { context in
             Canvas { graphics, size in
                 guard size.width > 0 else { return }
                 let now = Heartbeat.beats(at: context.date, bpm: bpm)
