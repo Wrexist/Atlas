@@ -67,6 +67,7 @@ struct TodayHabitsHero: View {
     let day: Date
     @State private var snapshot: HabitsHeroSnapshot = .empty
     @State private var addingNew = false
+    @ScaledMetric(relativeTo: .headline) private var emptyIconSize: CGFloat = 40
 
     var body: some View {
         Group {
@@ -153,6 +154,8 @@ struct TodayHabitsHero: View {
                         .font(AppFont.badgeSmall)
                         .foregroundStyle(AppColor.textTertiary)
                 }
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
             } else {
                 Image(systemName: "leaf.fill")
                     .font(AppFont.scaled(16, weight: .semibold))
@@ -241,7 +244,7 @@ struct TodayHabitsHero: View {
                     ZStack {
                         Circle()
                             .fill(AppColor.accentPrimary.opacity(0.15))
-                            .frame(width: 40, height: 40)
+                            .frame(width: emptyIconSize, height: emptyIconSize)
                         Image(systemName: "checkmark.seal.fill")
                             .font(AppFont.scaled(16, weight: .semibold))
                             .foregroundStyle(AppColor.accentPrimary)
@@ -253,7 +256,7 @@ struct TodayHabitsHero: View {
                         Text("Small wins, every day. Watch your streak — and your Atlas Score — climb.")
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.textSecondary)
-                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer()
                     Image(systemName: "plus.circle.fill")
