@@ -108,7 +108,7 @@ struct WeeklySummaryToggleRow: View {
         dataStore.persistProfile()
         Task { @MainActor in
             await WeeklySummaryNotificationScheduler.reconcile(
-                profile: dataStore.profile,
+                dataStore: dataStore,
                 isPro: storeService.isProUser
             )
         }

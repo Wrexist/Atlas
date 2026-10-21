@@ -271,7 +271,7 @@ struct PeptideApp: App {
                 // "permission status changed in Settings".
                 Task { @MainActor in
                     await WeeklySummaryNotificationScheduler.reconcile(
-                        profile: dataStore.profile,
+                        dataStore: dataStore,
                         isPro: StoreService.shared.isProUser
                     )
                     await DailyReminderScheduler.reconcile(dataStore: dataStore)
