@@ -104,7 +104,7 @@ struct WatchAccessoryRectangularView: View {
                     .widgetAccentable()
             }
             Text(entry.nextPeptide.isEmpty
-                 ? (entry.totalToday == 0 ? "No protocols" : "All complete")
+                 ? (entry.totalToday == 0 ? "No doses today" : "All complete")
                  : "\(entry.nextPeptide) · \(entry.nextDose)")
                 .font(.caption2)
                 .lineLimit(1)
