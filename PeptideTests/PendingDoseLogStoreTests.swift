@@ -59,6 +59,16 @@ final class PendingDoseLogStoreTests: XCTestCase {
         _ = PendingDoseLogStore.peek(defaults: defaults)
         XCTAssertEqual(PendingDoseLogStore.peek(defaults: defaults).count, 1)
     }
+
+    func test_drain_legacyArrayInbox_stillDeliversQueuedTaps() throws {
+        let legacy = PendingDoseLogStore.PendingLog(entryId: UUID(), loggedAt: Date(timeIntervalSince1970: 1000))
+        let current = PendingDoseLogStore.PendingLog(entryId: UUID(), loggedAt: Date(timeIntervalSince1970: 2000))
+        defaults.set(try JSONEncoder().encode([legacy]), forKey: "com.peptidesai.app.pendingDoseLogs")
+        PendingDoseLogStore.enqueue(current, defaults: defaults)
+
+        XCTAssertEqual(PendingDoseLogStore.drain(defaults: defaults), [legacy, current])
+        XCTAssertTrue(PendingDoseLogStore.drain(defaults: defaults).isEmpty)
+    }
 }
 
 @MainActor
