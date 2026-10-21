@@ -7,6 +7,7 @@ import UserNotifications
 /// pending requests through `DailyReminderScheduler`.
 struct DailyRemindersSection: View {
     @Environment(DataStore.self) private var dataStore
+    @Environment(\.scenePhase) private var scenePhase
     @State private var settings = DailyReminderSettings.defaults(training: nil)
     @State private var permissionDenied = false
 
@@ -40,6 +41,11 @@ struct DailyRemindersSection: View {
         }
         .task {
             settings = DailyReminderSettings.load(training: dataStore.profile.trainingPreferences)
+        }
+        .task(id: scenePhase) {
+            // Re-checked on return from iOS Settings, so the banner clears
+            // as soon as the user grants notifications there.
+            guard scenePhase == .active else { return }
             permissionDenied = await NotificationService.shared.checkAuthorization() == .denied
         }
     }
