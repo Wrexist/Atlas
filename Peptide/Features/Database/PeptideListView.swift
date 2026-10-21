@@ -77,6 +77,11 @@ struct PeptideListView: View {
             refreshPeptides()
             consumePendingProtocolList()
         }
+        // Custom compounds can be added from the Protocol builder, deleted,
+        // or arrive by CloudKit sync while Library stays on screen.
+        .onChange(of: dataStore.customPeptides) { _, _ in
+            refreshPeptides()
+        }
         .onChange(of: appState.pendingProtocolList) { _, newValue in
             if newValue { consumePendingProtocolList() }
         }
