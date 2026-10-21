@@ -12,7 +12,7 @@ final class LabValueTests: XCTestCase {
     }
 
     func test_decode_knownPanel_roundTrips() throws {
-        let original = LabValue(date: Date(timeIntervalSince1970: 0), panel: .hba1c, value: 5.4)
+        let original = LabValue(date: Date(timeIntervalSince1970: 0), panel: .hba1c, value: 5.4, updatedAt: Date(timeIntervalSince1970: 0))
         let data = try JSONEncoder().encode(original)
         XCTAssertEqual(try JSONDecoder().decode(LabValue.self, from: data), original)
     }
