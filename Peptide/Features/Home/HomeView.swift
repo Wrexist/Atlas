@@ -1072,7 +1072,8 @@ struct HomeView: View {
         if !forceRefresh, let cached = WeeklySummaryService.shared.cachedIfFresh(
             profile: dataStore.profile,
             protocols: dataStore.protocols,
-            entries: dataStore.entries
+            entries: dataStore.entries,
+            workoutDates: dataStore.recentWorkoutDates()
         ) {
             weeklySummaryState = .ready(cached)
             return
@@ -1090,6 +1091,7 @@ struct HomeView: View {
                 profile: dataStore.profile,
                 protocols: dataStore.protocols,
                 entries: dataStore.entries,
+                workoutDates: dataStore.recentWorkoutDates(),
                 hrvSeries: hrv,
                 // Pass a stable category code rather than the
                 // free-text title — the title can embed details about

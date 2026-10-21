@@ -104,16 +104,18 @@ function sanitiseAggregate(agg) {
   if (completed === undefined || total === undefined) return null;
   if (total < 0 || total > 200) return null; // a week can't exceed this; reject blatant noise
 
-  const clean = {
-    weekStart: agg.weekStart,
-    compliance: {
+  const clean = { weekStart: agg.weekStart };
+  // A week with no protocol doses still gets a recap from training,
+  // meals and check-ins; omit compliance so the model can't report 0 %.
+  if (total > 0) {
+    clean.compliance = {
       completed,
       total,
       pct: asNum(c.pct) ?? 0,
       bestDayPct: asNum(c.bestDayPct) ?? 0,
       activeDaysCount: asInt(c.activeDaysCount) ?? 0,
-    },
-  };
+    };
+  }
 
   const s = agg.streak;
   if (s && typeof s === 'object') {

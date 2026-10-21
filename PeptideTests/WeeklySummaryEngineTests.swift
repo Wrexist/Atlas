@@ -70,6 +70,35 @@ final class WeeklySummaryEngineTests: XCTestCase {
         XCTAssertEqual(agg?.compliance.activeDaysCount, 3)
     }
 
+    func test_build_noDosesButThreeWorkoutDays_returnsAggregate() {
+        let workoutDates = (0..<3).map { calendar.date(byAdding: .day, value: $0, to: weekMonday)! }
+        let agg = WeeklySummaryEngine.build(
+            profile: .fresh,
+            protocols: [],
+            entries: [],
+            workoutDates: workoutDates,
+            referenceDate: weekMonday
+        )
+        XCTAssertNotNil(agg)
+        XCTAssertEqual(agg?.compliance.total, 0)
+    }
+
+    func test_build_mixedActivityAcrossThreeDays_returnsAggregate() {
+        var profile = UserProfile.fresh
+        profile.outcomeHistory = [
+            OutcomeEntry(date: calendar.date(byAdding: .day, value: 1, to: weekMonday)!,
+                         energy: 3, sleepQuality: 3, recovery: 3, mood: 3, focus: 3),
+        ]
+        let agg = WeeklySummaryEngine.build(
+            profile: profile,
+            protocols: [],
+            entries: [entry(daysFromMonday: 0, completed: true)],
+            workoutDates: [calendar.date(byAdding: .day, value: 2, to: weekMonday)!],
+            referenceDate: weekMonday
+        )
+        XCTAssertNotNil(agg)
+    }
+
     // MARK: - Compliance math
 
     func test_compliance_partial_reportsExactPct() throws {

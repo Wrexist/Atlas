@@ -50,7 +50,7 @@ final class WeeklySummaryService {
         /// the card entirely.
         case disabled
         /// `WeeklySummaryEngine.build(...)` returned nil. Fewer
-        /// than 3 active dose days in the window. Caller suppresses
+        /// than 3 days with any logged activity in the window. Caller suppresses
         /// the card.
         case insufficientData
         case proxyNotConfigured
@@ -72,6 +72,7 @@ final class WeeklySummaryService {
         profile: UserProfile,
         protocols: [PeptideProtocol],
         entries: [ProtocolEntry],
+        workoutDates: [Date] = [],
         hrvSeries: [(date: Date, value: Double)] = [],
         rhrSeries: [(date: Date, value: Double)] = [],
         sleepSeries: [(date: Date, value: Double)] = [],
@@ -87,6 +88,7 @@ final class WeeklySummaryService {
             profile: profile,
             protocols: protocols,
             entries: entries,
+            workoutDates: workoutDates,
             referenceDate: referenceDate,
             hrvSeries: hrvSeries,
             rhrSeries: rhrSeries,
@@ -139,12 +141,14 @@ final class WeeklySummaryService {
         profile: UserProfile,
         protocols: [PeptideProtocol],
         entries: [ProtocolEntry],
+        workoutDates: [Date] = [],
         referenceDate: Date = Date()
     ) -> WeeklySummary? {
         guard let aggregate = WeeklySummaryEngine.build(
             profile: profile,
             protocols: protocols,
             entries: entries,
+            workoutDates: workoutDates,
             referenceDate: referenceDate
         ) else { return nil }
         guard let cached = profile.weeklySummaries[aggregate.weekStart],

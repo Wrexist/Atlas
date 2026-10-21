@@ -13,11 +13,12 @@ import Foundation
 /// list of what's excluded.
 enum WeeklySummaryEngine {
 
-    /// Minimum days of dose data before the engine returns a
-    /// non-nil aggregate. Below this we suppress the summary
-    /// entirely — averages over 1-2 days are noise, the AI would
-    /// happily invent confidence anyway.
-    static let minDoseDaysForSummary: Int = 3
+    /// Minimum days with any logged activity (dose, workout, meal,
+    /// habit or check-in) before the engine returns a non-nil
+    /// aggregate. Below this we suppress the summary entirely —
+    /// averages over 1-2 days are noise, the AI would happily invent
+    /// confidence anyway.
+    static let minActiveDaysForSummary: Int = 3
 
     /// Builds the aggregate for the calendar week containing
     /// `referenceDate`. Returns nil when there isn't enough signal
@@ -27,10 +28,13 @@ enum WeeklySummaryEngine {
     /// `hrvSeries`, `rhrSeries`, `sleepSeries` are optional —
     /// pass `nil` (or empty arrays) when the user hasn't connected
     /// Apple Health, and the biometrics block is suppressed.
+    /// `workoutDates` are training-session start dates; they count
+    /// toward the active-day gate.
     static func build(
         profile: UserProfile,
         protocols: [PeptideProtocol],
         entries: [ProtocolEntry],
+        workoutDates: [Date] = [],
         referenceDate: Date = Date(),
         hrvSeries: [(date: Date, value: Double)] = [],
         rhrSeries: [(date: Date, value: Double)] = [],
@@ -43,10 +47,20 @@ enum WeeklySummaryEngine {
 
         let weekEntries = entries.filter { weekRange.contains($0.date) }
 
-        // Active day count gates the whole summary. Fewer than
-        // three active days → not enough signal.
-        let activeDays = activeDayCount(in: weekEntries, calendar: calendar)
-        guard activeDays >= minDoseDaysForSummary else { return nil }
+        // Active day count gates the whole summary. Protocols are
+        // optional, so any logged activity counts — a week of training,
+        // meals and check-ins earns a recap without a single dose.
+        var activityDates = weekEntries.map(\.date)
+        activityDates.append(contentsOf: workoutDates)
+        activityDates.append(contentsOf: profile.mealHistory.map(\.date))
+        activityDates.append(contentsOf: profile.dailyConsumption.values.filter { $0.caloriesKcal > 0 }.map(\.date))
+        activityDates.append(contentsOf: profile.habitEntries.map(\.date))
+        activityDates.append(contentsOf: profile.outcomeHistory.map(\.date))
+        let activeDays = activeDayCount(
+            of: activityDates.filter { weekRange.contains($0) },
+            calendar: calendar
+        )
+        guard activeDays >= minActiveDaysForSummary else { return nil }
 
         let compliance = computeCompliance(
             for: weekEntries,
@@ -147,16 +161,12 @@ enum WeeklySummaryEngine {
             total: total,
             pct: pct,
             bestDayPct: bestDay,
-            activeDaysCount: activeDayCount(in: weekEntries, calendar: calendar)
+            activeDaysCount: activeDayCount(of: weekEntries.map(\.date), calendar: calendar)
         )
     }
 
-    private static func activeDayCount(
-        in entries: [ProtocolEntry],
-        calendar: Calendar
-    ) -> Int {
-        let days = Set(entries.map { calendar.startOfDay(for: $0.date) })
-        return days.count
+    private static func activeDayCount(of dates: [Date], calendar: Calendar) -> Int {
+        Set(dates.map { calendar.startOfDay(for: $0) }).count
     }
 
     // MARK: - Outcomes
@@ -381,8 +391,9 @@ enum WeeklySummaryEngine {
     static func changeHeadline(current: WeeklySummary, previous: WeeklySummary?) -> String? {
         guard let previous else { return nil }
 
+        let bothWeeksDosed = current.keyStats.dosesTotal > 0 && previous.keyStats.dosesTotal > 0
         let complianceDeltaPoints = (current.keyStats.compliancePct - previous.keyStats.compliancePct) * 100
-        if abs(complianceDeltaPoints) >= meaningfulCompliancePercentPoints {
+        if bothWeeksDosed && abs(complianceDeltaPoints) >= meaningfulCompliancePercentPoints {
             let direction = complianceDeltaPoints > 0 ? "up" : "down"
             return "Compliance \(direction) \(Int(abs(complianceDeltaPoints).rounded()))% from last week"
         }

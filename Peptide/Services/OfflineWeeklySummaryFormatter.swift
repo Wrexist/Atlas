@@ -30,6 +30,9 @@ enum OfflineWeeklySummaryFormatter {
     // MARK: - Opener
 
     private static func opener(for aggregate: WeeklyAggregate) -> String {
+        guard aggregate.compliance.total > 0 else {
+            return "Here's how your week came together."
+        }
         let pct = Int((aggregate.compliance.pct * 100).rounded())
         let completed = aggregate.compliance.completed
         let total = aggregate.compliance.total
@@ -115,6 +118,9 @@ enum OfflineWeeklySummaryFormatter {
     // MARK: - Closer
 
     private static func closer(for aggregate: WeeklyAggregate) -> String {
+        guard aggregate.compliance.total > 0 else {
+            return "Keep the rhythm going next week — consistency compounds."
+        }
         let pct = aggregate.compliance.pct
 
         if pct >= 0.9 {
