@@ -644,6 +644,7 @@ final class StoredProfile {
             weeklySummaryEnabled: ext.weeklySummaryEnabled ?? false,
             weeklySummaries: slice(summariesData, legacy: ext.weeklySummaries ?? [:]),
             biologyConfig: ext.biologyConfig,
+            todayLayout: ext.todayLayout,
             trainingPreferences: ext.trainingPreferences,
             goalDate: ext.goalDate,
             habits: habitsSlice.habits,
@@ -731,6 +732,8 @@ private struct ProfileExtension: Codable {
     /// decodes against this struct's synthesized init(from:)
     /// without losing other fields.
     var biologyConfig: BiologyConfig = .default
+    /// Today screen arrangement. Defaults so older blobs decode.
+    var todayLayout: TodayLayout = .default
     /// Training prefs from the redesigned onboarding. Optional so
     /// pre-pivot blobs decode cleanly and `toUserProfile` leaves the
     /// profile field nil for older accounts.
@@ -791,6 +794,7 @@ private struct ProfileExtension: Codable {
         recipes = try c.decodeIfPresent([Recipe].self, forKey: .recipes) ?? []
         protocolNotes = try c.decodeIfPresent([ProtocolNote].self, forKey: .protocolNotes) ?? []
         biologyConfig = try c.decodeIfPresent(BiologyConfig.self, forKey: .biologyConfig) ?? .default
+        todayLayout = try c.decodeIfPresent(TodayLayout.self, forKey: .todayLayout) ?? .default
         trainingPreferences = try c.decodeIfPresent(TrainingPreferences.self, forKey: .trainingPreferences)
         weeklySummaryEnabled = try c.decodeIfPresent(Bool.self, forKey: .weeklySummaryEnabled)
         weeklySummaries = try c.decodeIfPresent([String: WeeklySummary].self, forKey: .weeklySummaries)
@@ -826,6 +830,7 @@ private struct ProfileExtension: Codable {
         ext.recipes = profile.recipes
         ext.protocolNotes = profile.protocolNotes
         ext.biologyConfig = profile.biologyConfig
+        ext.todayLayout = profile.todayLayout
         ext.trainingPreferences = profile.trainingPreferences
         ext.weeklySummaryEnabled = profile.weeklySummaryEnabled
         ext.goalDate = profile.goalDate
