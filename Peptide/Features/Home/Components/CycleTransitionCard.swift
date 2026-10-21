@@ -39,7 +39,7 @@ struct CycleTransitionCard: View {
                         .fontWeight(.semibold)
                         .foregroundStyle(AppColor.textPrimary)
 
-                    Text(transition.weeksRemaining == 0 ? "Cycle complete" : "\(transition.weeksRemaining)w remaining")
+                    Text(transition.weeksRemaining == 0 ? "Cycle complete" : "^[\(transition.weeksRemaining) week](inflect: true) left")
                         .font(AppFont.badge)
                         .foregroundStyle(transition.weeksRemaining == 0 ? AppColor.warning : AppColor.accentLight)
                         .padding(.horizontal, 5)

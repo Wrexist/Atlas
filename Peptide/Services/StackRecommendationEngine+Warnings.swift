@@ -269,7 +269,7 @@ extension StackRecommendationEngine {
                     : " Consider transitioning to \(cycle.transitionSuggestions.joined(separator: " or "))."
                 warnings.append(Warning(
                     severity: .caution,
-                    title: "\(peptide.abbreviation) — \(overBy)w over cycle",
+                    title: String(AttributedString(localized: "\(peptide.abbreviation) is ^[\(overBy) week](inflect: true) past its cycle").characters),
                     detail: "Recommended cycle is \(cycle.onWeeks) weeks on / \(cycle.offWeeks) weeks off. You're at week \(weeksElapsed). \(cycle.reason).",
                     suggestion: "Schedule a \(cycle.offWeeks)-week off period.\(transitionText)",
                     peptides: [peptide.abbreviation],

@@ -330,7 +330,7 @@ final class StackRecommendationEngineTests: XCTestCase {
         let warnings = StackRecommendationEngine.warnings(
             for: [bpc], activeProtocols: [proto]
         )
-        let hasCycleWarning = warnings.contains { $0.title.contains("over cycle") }
+        let hasCycleWarning = warnings.contains { $0.title.contains("past its cycle") }
         XCTAssertTrue(hasCycleWarning, "Should warn about BPC-157 being over its recommended cycle")
     }
 
