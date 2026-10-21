@@ -2790,6 +2790,7 @@ final class DataStore {
         let liveEntryIDs = Set(repo.loadEntryIDs())
         let importEntryIDs = Set(newEntries.map(\.id))
 
+        repo.beginSaveBatch()
         repo.upsertProtocols(newProtocols)
         repo.upsertEntries(newEntries)
 
@@ -2807,7 +2808,6 @@ final class DataStore {
         }
 
         repo.saveProfile(newProfile)
-        persistedProfile = newProfile
 
         // v2 training + custom-peptide payload. `nil` = the backup
         // predates these sections; leave the live stores untouched.
@@ -2846,6 +2846,24 @@ final class DataStore {
             cacheVersion &+= 1
             revision &+= 1
         }
+
+        // A failed commit leaves the restored state dirty in memory, so
+        // the next save retries the write instead of reporting success.
+        if repo.commitDidFail {
+            lastError = Self.saveFailureMessage
+            throw NSError(
+                domain: "Peptide.BackupImport",
+                code: 2,
+                userInfo: [NSLocalizedDescriptionKey:
+                    "The restore couldn't be saved — your device may be low on storage."]
+            )
+        }
+        // Everything assigned above is now on disk; left dirty, the next
+        // save would upsert the whole restore a second time.
+        protocolsNeedSave = false
+        entriesNeedSave = false
+        profileNeedsSave = false
+        persistedProfile = newProfile
 
         regenerateTodayEntries()
         refreshTrainingGlanceables()

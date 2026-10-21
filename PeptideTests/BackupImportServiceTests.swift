@@ -185,6 +185,23 @@ final class BackupImportServiceTests: XCTestCase {
         )
     }
 
+    func test_replace_whenCommitFails_throwsInsteadOfReportingSuccess() {
+        let dataStore = makeDataStore()
+        let repo = SwiftDataRepository.shared
+        defer { repo.forceCommitFailureForTesting = false }
+        let backup = AppBackup(
+            exportDate: Date(),
+            version: "1.0",
+            protocols: [makeProtocol(named: "Backup A")],
+            entries: [],
+            profile: makeProfile(named: "Backup user")
+        )
+
+        repo.forceCommitFailureForTesting = true
+        XCTAssertThrowsError(try BackupImportService.apply(backup, strategy: .replace, into: dataStore))
+        XCTAssertEqual(dataStore.lastError, DataStore.saveFailureMessage)
+    }
+
     // MARK: - Helpers
 
     private func makeDataStore() -> DataStore {
