@@ -120,7 +120,9 @@ final class PersistenceService: @unchecked Sendable {
 
     func updateWidgetData(_ data: WidgetData) {
         guard let url = widgetDataURL else { return }
-        save(data, to: url)
+        // The widget extension reads this on the Lock Screen and at its
+        // midnight reload — while the device is locked.
+        save(data, to: url, protection: .completeFileProtectionUntilFirstUserAuthentication)
         Self.excludeFromBackup(url)
     }
 
@@ -222,12 +224,16 @@ final class PersistenceService: @unchecked Sendable {
     /// disk to keep the in-memory state coherent with the on-disk
     /// truth. The error is also logged for diagnostics.
     @discardableResult
-    private func save<T: Encodable>(_ value: T, to url: URL) -> Bool {
+    private func save<T: Encodable>(
+        _ value: T,
+        to url: URL,
+        protection: Data.WritingOptions = .completeFileProtection
+    ) -> Bool {
         queue.sync {
             do {
                 let data = try encoder.encode(value)
-                // .completeFileProtection encrypts the file at rest while
-                // the device is locked. The profile JSON carries the
+                // .completeFileProtection (the default) encrypts the file
+                // at rest while the device is locked. The profile JSON carries the
                 // user's captured email and creator-attribution data and
                 // shouldn't be readable from a locked-device filesystem
                 // dump (audit security H-1). Backups still include the
@@ -235,7 +241,7 @@ final class PersistenceService: @unchecked Sendable {
                 // restore to recover their name / metrics / weight
                 // history; the email and attribution survive too. The
                 // protection only blocks the off-device-attacker case.
-                try data.write(to: url, options: [.atomic, .completeFileProtection])
+                try data.write(to: url, options: [.atomic, protection])
                 return true
             } catch {
                 AppLog.persistence.error("Failed to save \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
