@@ -32,6 +32,12 @@ struct LabEntryEditor: View {
 
     private var isEditing: Bool { initial != nil }
 
+    /// `.other` is reserved for the custom-panel editor and has no name or
+    /// unit, so it's offered only to an entry that already is one.
+    private func pickablePanels(in category: LabPanel.Category) -> [LabPanel] {
+        LabPanel.allCases.filter { $0.category == category && ($0 != .other || initial?.panel == .other) }
+    }
+
     /// `defaultPanel` pre-selects the panel for a new entry — the panel
     /// being viewed, or the one the user logged most recently.
     init(
@@ -47,7 +53,7 @@ struct LabEntryEditor: View {
         self.onSave = onSave
         self.onDelete = onDelete
         self.onCancel = onCancel
-        _panel = State(initialValue: initial?.panel ?? defaultPanel ?? .vitaminD)
+        _panel = State(initialValue: initial?.panel ?? defaultPanel.flatMap { $0 == .other ? nil : $0 } ?? .vitaminD)
         _valueText = State(initialValue: initial.map { LabValueFormat.string($0.value) } ?? "")
         _drawDate = State(initialValue: initial?.date ?? Date())
         _source = State(initialValue: initial?.source ?? "")
@@ -110,7 +116,7 @@ struct LabEntryEditor: View {
                     Picker("Panel", selection: $panel) {
                         ForEach(LabPanel.Category.allCases) { category in
                             Section(category.displayName) {
-                                ForEach(LabPanel.allCases.filter { $0.category == category }) { p in
+                                ForEach(pickablePanels(in: category)) { p in
                                     Text(p.displayName).tag(p)
                                 }
                             }
