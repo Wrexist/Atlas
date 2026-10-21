@@ -173,6 +173,9 @@ struct WatchSleepEntryView: View {
                 Image(systemName: "bed.double.fill")
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(sleep.map { String(localized: "Sleep Score \($0.score), \($0.band.label)") }
+                            ?? String(localized: "No sleep recorded last night"))
         .containerBackground(for: .widget) { Color.clear }
     }
 

@@ -132,7 +132,15 @@ struct WatchAccessoryCircularView: View {
                 }
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(spoken)
         .containerBackground(for: .widget) { Color.clear }
+    }
+
+    private var spoken: String {
+        entry.totalToday == 0
+            ? String(localized: "No doses today")
+            : String(localized: "\(entry.completedToday) of \(entry.totalToday) doses taken")
     }
 }
 
@@ -278,6 +286,8 @@ struct WatchAtlasCircularView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(String(localized: "Atlas Score \(entry.score), level \(entry.level)"))
         .containerBackground(for: .widget) { Color.clear }
     }
 }
