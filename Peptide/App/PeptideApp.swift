@@ -118,7 +118,6 @@ struct PeptideApp: App {
                 }
             }
             if phase == .active {
-                ReviewPromptService.shared.recordLaunch()
                 UpsellScheduler.recordActiveDay()
                 dataStore.handleAppActivation()
                 // Re-check notification authorization. If the user
@@ -195,6 +194,13 @@ struct PeptideApp: App {
         .id(localization.selectedCode ?? "system")
         .onChange(of: privacyCover, initial: true) { _, cover in
             syncPrivacyCover(cover)
+        }
+        .task {
+            // Once per launch the user sees, not per `.active`: returning
+            // from Control Center or a Face ID sheet isn't a launch, and
+            // counting those cleared the review prompt's engagement gate
+            // in the first session.
+            ReviewPromptService.shared.recordLaunch()
         }
         .task {
             // Decode the bundled peptide catalog off the main
