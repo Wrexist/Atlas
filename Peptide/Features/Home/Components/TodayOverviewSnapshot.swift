@@ -20,9 +20,10 @@ struct TodayOverviewSnapshot: Equatable, Sendable {
     /// Target calories — populated from `NutritionTargets`. `nil`
     /// flips the tile to the "set a goal" empty state.
     let calorieTarget: Int?
-    /// Water ounces logged today. Same zero-vs-nil semantics as
+    /// Exact fluid ounces logged today, so metric reads back the
+    /// millilitres the user added. Same zero-vs-nil semantics as
     /// `caloriesToday` — always populated.
-    let waterToday: Int
+    let waterToday: Double
 
     // MARK: - Lifestyle streak
 
@@ -143,7 +144,7 @@ extension TodayOverviewSnapshot {
         return TodayOverviewSnapshot(
             caloriesToday: consumption.caloriesKcal,
             calorieTarget: targets?.calories,
-            waterToday: consumption.waterOz,
+            waterToday: consumption.waterFluidOunces,
             mealStreak: dataStore.mealLoggingStreak,
             checkInScore: dataStore.outcome(for: now)?.composite,
             latestLab: lab,

@@ -182,4 +182,11 @@ final class BodyMetricsTests: XCTestCase {
         XCTAssertEqual(MeasurementUnit.metric.volumeLabel(34), "1.0 L")
         XCTAssertEqual(MeasurementUnit.metric.volumeLabel(100), "3.0 L")
     }
+
+    func test_metricVolume_fractionalOunces_readsBackExactMillilitres() {
+        let glass = 250 / 29.5735
+        XCTAssertEqual(MeasurementUnit.metric.volumeLabel(glass), "250 mL")
+        XCTAssertEqual(MeasurementUnit.metric.volumeValue(glass), 250)
+        XCTAssertEqual(MeasurementUnit.imperial.volumeLabel(glass), "8 oz")
+    }
 }

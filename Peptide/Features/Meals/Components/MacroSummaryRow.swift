@@ -99,7 +99,7 @@ struct MacroSummaryRow: View {
                     legend(
                         title: "Water",
                         value: LifestyleDataLogic.displayedWater(consumed, unit: unit),
-                        target: "/\(unit.volumeLabel(Self.waterTargetOz))",
+                        target: "/\(unit.volumeLabel(Double(Self.waterTargetOz)))",
                         color: AppColor.macroWaterLight,
                         index: 2
                     )
@@ -326,7 +326,7 @@ struct MacroSummaryRow: View {
     private var accessibilitySummary: String {
         let calorieLine = "Calories \(consumed.caloriesKcal) of \(targets.calories)"
         let proteinLine = "Protein \(consumed.proteinG) of \(targets.proteinG) grams"
-        let waterLine = "Water \(LifestyleDataLogic.displayedWater(consumed, unit: unit)) of \(unit.volumeValue(Self.waterTargetOz)) \(unit.volumeSpokenUnit)"
+        let waterLine = "Water \(LifestyleDataLogic.displayedWater(consumed, unit: unit)) of \(unit.volumeValue(Double(Self.waterTargetOz))) \(unit.volumeSpokenUnit)"
         return "\(calorieLine). \(proteinLine). \(waterLine)."
     }
 }

@@ -132,8 +132,8 @@ struct TodayChecklistCard: View {
                 ? String(localized: "On the plan today — tap to start")
                 : String(localized: "Recovery counts too")
         case .water:
-            let current = Int(state.waterFluidOunces.rounded())
-            return String(localized: "\(unit.volumeLabel(current)) of \(unit.volumeLabel(TodayChecklistEngine.waterTargetOz))")
+            let target = Double(TodayChecklistEngine.waterTargetOz)
+            return String(localized: "\(unit.volumeLabel(state.waterFluidOunces)) of \(unit.volumeLabel(target))")
         case .weight:
             guard let kg = state.weightTodayKg else { return String(localized: "Tap to log today's weight") }
             return unit.weightLabel(kg, fractionDigits: 1)
