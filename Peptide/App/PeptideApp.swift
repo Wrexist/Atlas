@@ -7,18 +7,14 @@ import RevenueCat
 @main
 struct PeptideApp: App {
     @UIApplicationDelegateAdaptor(AtlasAppDelegate.self) private var appDelegate
-    @State private var appState = AppState()
+    @State private var appState: AppState
     @State private var dataStore: DataStore
     @State private var localization = LocalizationManager.shared
     @State private var themeManager = ThemeManager.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
-    @State private var notificationDelegate: NotificationDelegate?
-    /// Holds the Darwin-notification observer that listens for
-    /// widget-extension "Log dose" intent taps. Lifetime tied to
-    /// the app's WindowGroup — released only on app termination.
-    @State private var pendingDoseLogToken: PendingDoseLogProcessor.ObservationToken?
-    /// Same, for water glasses tapped in Control Center or on a widget.
-    @State private var pendingWaterToken: PendingDoseLogProcessor.ObservationToken?
+    /// `UNUserNotificationCenter` holds its delegate weakly; this keeps it
+    /// alive for the process.
+    @State private var notificationDelegate: NotificationDelegate
     @State private var quickActionInbox = QuickActionInbox.shared
     @State private var isUnlocked = false
     @Environment(\.scenePhase) private var scenePhase
@@ -57,7 +53,7 @@ struct PeptideApp: App {
 
         // App.init() may be nonisolated in strict Swift 6 mode; assumeIsolated
         // bridges to @MainActor safely since @main always runs on the main thread.
-        _dataStore = State(wrappedValue: MainActor.assumeIsolated {
+        let launch = MainActor.assumeIsolated {
             MigrationService.shared.migrateIfNeeded()
             let store = DataStore()
             WatchSyncService.shared.onMarkComplete = { entryId, _ in
@@ -75,8 +71,19 @@ struct PeptideApp: App {
             Haptics.configure { [weak store] in
                 store?.profile.hapticFeedbackEnabled ?? true
             }
-            return store
-        })
+            // The delegate must be in place before launch finishes, or
+            // iOS drops the response that launched the app: a "Mark as
+            // Taken" or weight reply that cold-starts Atlas, often in the
+            // background where no scene (and no view task) ever builds.
+            let appState = AppState()
+            let delegate = NotificationDelegate(dataStore: store, appState: appState)
+            UNUserNotificationCenter.current().delegate = delegate
+            NotificationService.shared.registerCategories()
+            return (store: store, appState: appState, notificationDelegate: delegate)
+        }
+        _dataStore = State(wrappedValue: launch.store)
+        _appState = State(wrappedValue: launch.appState)
+        _notificationDelegate = State(wrappedValue: launch.notificationDelegate)
     }
 
     var body: some Scene {
@@ -499,21 +506,6 @@ struct PeptideApp: App {
                 .liquidGlassPresentation()
         }
         .task {
-            let delegate = NotificationDelegate(dataStore: dataStore, appState: appState)
-            notificationDelegate = delegate
-            UNUserNotificationCenter.current().delegate = delegate
-            NotificationService.shared.registerCategories()
-
-            // Register the Darwin-notification observer once per
-            // scene. The token is stored on `pendingDoseLogToken`
-            // for lifetime ownership — releasing it removes the
-            // observer.
-            if pendingDoseLogToken == nil {
-                pendingDoseLogToken = PendingDoseLogProcessor.startObserving(dataStore)
-            }
-            if pendingWaterToken == nil {
-                pendingWaterToken = QuickActionRouter.observePendingWater()
-            }
             QuickActionRouter.installHomeScreenShortcuts()
 
             // Repopulate the in-memory ID tracker from iOS's actual pending
