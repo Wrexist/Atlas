@@ -46,7 +46,7 @@ struct RecommendedPeptidesCard: View {
         }
     }
 
-    private func reasonBadge(_ text: String, color: Color, bgOpacity: Double) -> some View {
+    private func reasonBadge(_ text: LocalizedStringKey, color: Color, bgOpacity: Double) -> some View {
         Text(text)
             .font(AppFont.badge)
             .foregroundStyle(color)

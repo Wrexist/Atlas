@@ -82,7 +82,7 @@ struct HealthSummaryCard: View {
         .padding(.vertical, Spacing.sm)
     }
 
-    private func metricView(icon: String, value: String?, unit: String, label: String) -> some View {
+    private func metricView(icon: String, value: String?, unit: String, label: LocalizedStringKey) -> some View {
         let reading = value.map { unit.isEmpty ? $0 : "\($0) \(unit)" }
         return VStack(spacing: Spacing.xs) {
             Image(systemName: icon)
@@ -101,7 +101,7 @@ struct HealthSummaryCard: View {
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(label): \(reading ?? "no data")")
+        .accessibilityLabel(Text("\(Text(label)): \(reading ?? String(localized: "no data"))"))
     }
 
     private func loadHealthData() async {

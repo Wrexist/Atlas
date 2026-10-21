@@ -201,8 +201,8 @@ struct ProfileStacksCard: View {
             parts.append(abbreviations)
         }
         if stack.status == .active {
-            parts.append("Week \(stack.weekNumber) of \(stack.cycleLengthWeeks)")
-            parts.append("\(stack.daysRemaining) days remaining")
+            parts.append(String(localized: "Week \(stack.weekNumber) of \(stack.cycleLengthWeeks)"))
+            parts.append(String(AttributedString(localized: "^[\(stack.daysRemaining) day](inflect: true) remaining").characters))
         }
         return parts.joined(separator: ". ")
     }
