@@ -84,27 +84,26 @@ final class ScreenshotTests: XCTestCase {
         XCTAssertTrue(mealsTab.waitForExistence(timeout: 10))
         mealsTab.tap()
 
-        let card = app.buttons["latest-table-card"]
-        for _ in 0..<6 where !(card.exists && card.isHittable) { app.swipeUp() }
-        capture(named: "table-\(appearance)-01-latest-card")
-
-        let scan = app.buttons["Scan the whole table"].firstMatch
-        for _ in 0..<6 where !(scan.exists && scan.isHittable) { app.swipeDown() }
-        scan.tap()
-        // The lifting pill sits on glass, which can fold its text into
-        // another element; match any element by label instead.
-        let lifting = element(labelContaining: "Lifting")
-        if lifting.waitForExistence(timeout: 10) {
+        // The fixture opens the scan itself once Meals appears, so the run
+        // doesn't hang on a tap landing mid-scroll.
+        let flow = app.descendants(matching: .any)["table-scan-flow"]
+        XCTAssertTrue(flow.waitForExistence(timeout: 15), "Table scan sheet never opened")
+        if element(labelContaining: "Lifting").waitForExistence(timeout: 5) {
             capture(named: "table-\(appearance)-02-lifting")
-        } else {
-            capture(named: "table-\(appearance)-02-after-tap")
         }
-        XCTAssertTrue(element(labelContaining: "Nice table").waitForExistence(timeout: 15))
+        let review = element(labelContaining: "Nice table")
+        if !review.waitForExistence(timeout: 15) {
+            capture(named: "table-\(appearance)-02-stuck")
+            XCTFail("Review never appeared")
+            return
+        }
         sleep(2)
         capture(named: "table-\(appearance)-03-review")
         app.buttons["Close"].firstMatch.tap()
 
+        let card = app.buttons["latest-table-card"]
         for _ in 0..<6 where !(card.exists && card.isHittable) { app.swipeUp() }
+        capture(named: "table-\(appearance)-01-latest-card")
         card.tap()
         XCTAssertTrue(app.buttons["Play"].waitForExistence(timeout: 10))
         sleep(2)

@@ -167,7 +167,9 @@ struct HomeMealsSection: View {
         }
         #if DEBUG
         .task {
-            if TableScanFixture.isRequested { await TableScanFixture.seedTable(in: dataStore) }
+            guard TableScanFixture.isRequested else { return }
+            await TableScanFixture.seedTable(in: dataStore)
+            showTableScan = true
         }
         #endif
         .sheet(isPresented: $showTableScan) {

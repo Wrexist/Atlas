@@ -80,6 +80,7 @@ struct TableScanFlow: View {
         .padding(.top, Spacing.xl)
         .padding(.bottom, Spacing.lg)
         .background(AppColor.background)
+        .accessibilityIdentifier("table-scan-flow")
         .appAnimation(AppAnimation.step, value: phase)
         .interactiveDismissDisabled(phase == .lifting || isReading)
         .task { await startCamera() }
