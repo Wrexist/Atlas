@@ -2134,16 +2134,31 @@ struct OnboardingView: View {
         .padding(.top, Spacing.sm)
     }
 
+    /// Label and value side by side while both fit on one line; at large
+    /// Dynamic Type sizes the value drops under the label instead of
+    /// truncating either.
     private func summaryRow(label: String, value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(AppFont.footnote)
-                .foregroundStyle(AppColor.textSecondary)
-                .frame(width: 100, alignment: .leading)
-            Text(value)
-                .font(AppFont.callout.weight(.semibold))
-                .foregroundStyle(AppColor.textPrimary)
-            Spacer()
+        let labelText = Text(label)
+            .font(AppFont.footnote)
+            .foregroundStyle(AppColor.textSecondary)
+        let valueText = Text(value)
+            .font(AppFont.callout.weight(.semibold))
+            .foregroundStyle(AppColor.textPrimary)
+        return ViewThatFits(in: .horizontal) {
+            HStack {
+                labelText
+                    .lineLimit(1)
+                    .frame(minWidth: 100, alignment: .leading)
+                valueText
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                labelText
+                valueText
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(Spacing.md)
         .glassSurface(cornerRadius: Spacing.smallCornerRadius)
