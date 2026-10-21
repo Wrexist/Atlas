@@ -22,6 +22,7 @@ struct ProtocolBuilderView: View {
     @State private var intervalAnchor: Date = Date()
     @State private var preferredTimes: [String] = ["8:00 AM"]
     @State private var currentStep = 0
+    @State private var navigationPath = NavigationPath()
     @State private var peptideOverrides: [UUID: ProtocolSchedule] = [:]
     @State private var editingOverridePeptide: Peptide?
     @State private var appendTargetProtocolId: UUID?
@@ -159,7 +160,7 @@ struct ProtocolBuilderView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ZStack {
                 AppColor.background.ignoresSafeArea()
 
@@ -192,7 +193,7 @@ struct ProtocolBuilderView: View {
                 StackLibraryView()
             }
             .navigationDestination(for: CommunityStack.self) { stack in
-                CommunityStackDetailView(stack: stack)
+                CommunityStackDetailView(stack: stack, onUseTemplate: applyTemplate)
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -244,20 +245,7 @@ struct ProtocolBuilderView: View {
                     selectedPeptides.insert(peptide.id)
                 }
                 if let proto = editingProtocol {
-                    name = proto.name
-                    selectedPeptides = Set(proto.peptides.map(\.id))
-                    cycleLengthWeeks = proto.cycleLengthWeeks
-                    washoutWeeks = proto.washoutWeeks
-                    timesPerDay = proto.schedule.timesPerDay
-                    notes = proto.notes
-                    selectedDays = Set(proto.schedule.daysOfWeek)
-                    peptideOverrides = proto.peptideSchedules
-                    preferredTimes = proto.schedule.preferredTimes
-                    if proto.schedule.isInterval, let n = proto.schedule.intervalDays {
-                        cadenceMode = .interval
-                        intervalDays = n
-                        intervalAnchor = proto.schedule.intervalAnchor ?? proto.startDate
-                    }
+                    hydrate(from: proto)
                 }
             }
             .onChange(of: selectedPeptides) { _, newValue in
@@ -333,6 +321,34 @@ struct ProtocolBuilderView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .dismissKeyboardOnTap()
+    }
+
+    private func hydrate(from proto: PeptideProtocol) {
+        name = proto.name
+        selectedPeptides = Set(proto.peptides.map(\.id))
+        cycleLengthWeeks = proto.cycleLengthWeeks
+        washoutWeeks = proto.washoutWeeks
+        timesPerDay = proto.schedule.timesPerDay
+        notes = proto.notes
+        selectedDays = Set(proto.schedule.daysOfWeek)
+        peptideOverrides = proto.peptideSchedules
+        preferredTimes = proto.schedule.preferredTimes
+        if proto.schedule.isInterval, let n = proto.schedule.intervalDays {
+            cadenceMode = .interval
+            intervalDays = n
+            intervalAnchor = proto.schedule.intervalAnchor ?? proto.startDate
+        } else {
+            cadenceMode = .weekly
+        }
+    }
+
+    /// "Start from → Template" pre-fills this builder and returns to it,
+    /// so the user reviews the template here rather than ending up with
+    /// a saved copy behind a builder that can still create a second one.
+    private func applyTemplate(_ stack: CommunityStack) {
+        hydrate(from: CommunityStackService.shared.forkToProtocol(stack))
+        currentStep = 0
+        navigationPath = NavigationPath()
     }
 
     private var isAppending: Bool { appendTargetProtocolId != nil }

@@ -2,6 +2,9 @@ import SwiftUI
 
 struct CommunityStackDetailView: View {
     let stack: CommunityStack
+    /// Set when the protocol builder hosts this screen: the template then
+    /// pre-fills the builder instead of being saved as a protocol of its own.
+    let onUseTemplate: ((CommunityStack) -> Void)?
     @Environment(DataStore.self) private var dataStore
     @Environment(\.dismiss) private var dismiss
     @State private var storeService = StoreService.shared
@@ -15,8 +18,9 @@ struct CommunityStackDetailView: View {
     /// (and re-resolve every abbreviation) on every body evaluation.
     @State private var previewProtocol: PeptideProtocol
 
-    init(stack: CommunityStack) {
+    init(stack: CommunityStack, onUseTemplate: ((CommunityStack) -> Void)? = nil) {
         self.stack = stack
+        self.onUseTemplate = onUseTemplate
         let peptides = stack.peptideAbbreviations.compactMap { PeptideDatabase.peptide(matching: $0) }
         _resolvedPeptides = State(initialValue: peptides)
         _previewProtocol = State(initialValue: Self.makePreviewProtocol(for: stack, peptides: peptides))
@@ -246,6 +250,11 @@ struct CommunityStackDetailView: View {
     private func useThisStack() {
         guard !didFork else { return }
         guard !resolvedPeptides.isEmpty else { return }
+        if let onUseTemplate {
+            Haptics.selection()
+            onUseTemplate(stack)
+            return
+        }
         // Honor the free-tier 3-active-protocol cap. The Pro gate on
         // the FAB in ProtocolListView is the documented path; this
         // route used to bypass it (audit Library P0.3).
