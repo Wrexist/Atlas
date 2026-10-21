@@ -139,6 +139,22 @@ final class AIResearchServiceTests: XCTestCase {
         XCTAssertEqual(messages.last?["content"] as? String, "Second message")
     }
 
+    func test_reply_evenLengthHistoryPastCap_firstMessageIsUser() async throws {
+        let captured = SendableBox<URLRequest?>(nil)
+        MockURLProtocol.handler = { request in
+            captured.set(request)
+            return (Self.ok(for: request), Data(Fixtures.helloReply.utf8))
+        }
+        let history = (0..<40).map { i in
+            AIResearchService.Turn(role: i.isMultiple(of: 2) ? .user : .assistant, content: "Turn \(i)")
+        }
+        _ = try await service.reply(history: history, newUserPrompt: "Next question", in: [])
+        let body = try Self.decodeBody(captured.value)
+        let messages = body["messages"] as? [[String: Any]] ?? []
+        XCTAssertEqual(messages.first?["role"] as? String, "user")
+        XCTAssertLessThanOrEqual(messages.count, 40)
+    }
+
     /// The proxy prepends the persona and safety rules; repeating them
     /// client-side only spent the 4000-character system budget.
     func test_reply_noMentionedCompound_sendsNoSystem() async throws {

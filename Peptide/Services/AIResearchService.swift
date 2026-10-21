@@ -305,7 +305,13 @@ final class AIResearchService: Sendable {
         // server's per-request message cap. Without this trim, sessions
         // longer than ~20 user/assistant exchanges silently fail with
         // an opaque "Malformed request body" from the proxy.
-        let trimmed = history.suffix(Self.maxHistoryTurns)
+        // The Messages API needs the conversation to open on a user
+        // turn, and an even-length suffix of an alternating history
+        // starts on an assistant one.
+        let trimmed = history
+            .filter { !$0.content.isEmpty }
+            .suffix(Self.maxHistoryTurns)
+            .drop(while: { $0.role == .assistant })
         var messages: [[String: Any]] = trimmed.map { turn in
             [
                 "role": turn.role.rawValue,
