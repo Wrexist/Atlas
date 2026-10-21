@@ -95,10 +95,7 @@ struct StackAlertDetailSheet: View {
             .navigationTitle("Alert details")
             .navigationBarTitleDisplayMode(.inline)
         }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
-        .presentationBackground(.thinMaterial)
-        .presentationCornerRadius(Spacing.cardCornerRadius + 8)
+        .liquidGlassPresentation(detents: [.medium, .large])
     }
 
     // MARK: - Sections

@@ -43,7 +43,7 @@ extension View {
         } else {
             applyingDetents(detents)
                 .presentationDragIndicator(.visible)
-                .presentationCornerRadius(Spacing.cardCornerRadius)
+                .presentationCornerRadius(Spacing.sheetCornerRadius)
                 .presentationBackground(.ultraThinMaterial)
         }
     }
