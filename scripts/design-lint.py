@@ -389,6 +389,43 @@ def rule_curve_literal(path, source, code) -> list[Finding]:
     return out
 
 
+def rule_motion_unaware_animation(path, source, code) -> list[Finding]:
+    """R12 — named motion still has to stop under Reduce Motion.
+
+    `.animation(AppAnimation.x, value:)` names the curve but plays it for a
+    user who asked the system to stop moving things. `.appAnimation(_:value:)`
+    is the reduce-motion-aware spelling; a raw `.animation` is only right when
+    its argument already routes through `motionAware(_:reduceMotion:)`.
+    """
+    if path.name == "AnimationConstants.swift":
+        return []
+    out = []
+    for m in re.finditer(r"\.animation\(\s*AppAnimation\.", code):
+        # `$binding.animation(_:)` is a Binding transform, not the modifier.
+        if re.search(r"\$[\w.]+$", code[max(0, m.start() - 40):m.start()]):
+            continue
+        args = balanced_args(code, code.index("(", m.start()))
+        if args is None or "reduceMotion" in args:
+            continue
+        out.append(Finding(path, line_of(code, m.start()), "motion-unaware-animation",
+                           "`.animation(AppAnimation…)` ignores Reduce Motion; use "
+                           ".appAnimation(_:value:)", "error"))
+    return out
+
+
+def rule_raw_sensory_feedback(path, source, code) -> list[Finding]:
+    """SwiftUI's `.sensoryFeedback` plays even with the user's Haptic Feedback
+    setting off. `.appSensoryFeedback` routes it through `Haptics`."""
+    if path.name == "AppSensoryFeedback.swift":
+        return []
+    out = []
+    for m in re.finditer(r"\.sensoryFeedback\(", code):
+        out.append(Finding(path, line_of(code, m.start()), "raw-sensory-feedback",
+                           "`.sensoryFeedback` ignores the Haptic Feedback setting; "
+                           "use .appSensoryFeedback", "error"))
+    return out
+
+
 def rule_placeholder_copy(path, source, code) -> list[Finding]:
     out = []
     for m in PLACEHOLDER_COPY.finditer(code):
@@ -807,6 +844,8 @@ RULES = [
     rule_glow,
     rule_untargeted_animation,
     rule_unnamed_motion,
+    rule_motion_unaware_animation,
+    rule_raw_sensory_feedback,
     rule_curve_literal,
     rule_placeholder_copy,
     rule_placeholder_as_label,

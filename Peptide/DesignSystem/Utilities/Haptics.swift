@@ -42,7 +42,7 @@ enum Haptics {
         resolveEnabled = isEnabled
     }
 
-    private static var isEnabled: Bool { resolveEnabled() }
+    static var isEnabled: Bool { resolveEnabled() }
 
     /// Light positional tick for selection changes — chip taps, ring
     /// taps, segment switches. The everyday "I registered that" feel.

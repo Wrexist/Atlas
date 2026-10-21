@@ -631,7 +631,7 @@ struct BarcodeScanFlow: View {
             }
             .padding(.top, Spacing.sm)
         }
-        .animation(AppAnimation.springSnappy, value: identity)
+        .appAnimation(AppAnimation.springSnappy, value: identity)
         .onChange(of: packagePickerItem) { _, newValue in
             guard let newValue else { return }
             Task {

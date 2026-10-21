@@ -163,6 +163,6 @@ struct RecipeLogConfirmSheet: View {
             saveFailed = !didLog
         }
         .disabled(review.totals == nil || totals.calories == 0 || didLog)
-        .sensoryFeedback(.success, trigger: didLog)
+        .appSensoryFeedback(.success, trigger: didLog)
     }
 }

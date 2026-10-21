@@ -208,7 +208,7 @@ struct BiomarkerDetailSheet: View {
             }
         }
         .chartXSelection(value: $selectedDay)
-        .sensoryFeedback(.selection, trigger: selectedDay)
+        .appSensoryFeedback(.selection, trigger: selectedDay)
         .chartXAxis {
             // Stride scales with the window — daily ticks
             // would be unreadable at 90 days, weekly is

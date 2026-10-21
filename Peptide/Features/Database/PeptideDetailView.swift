@@ -317,7 +317,7 @@ struct PeptideDetailView: View {
         .navigationDestination(for: PeptideProtocol.self) { proto in
             ProtocolDetailView(protocol_: proto)
         }
-        .sensoryFeedback(.impact(weight: .medium), trigger: showingPicker) { _, new in new }
+        .appSensoryFeedback(.impact(weight: .medium), trigger: showingPicker) { _, new in new }
         .glassSheet(isPresented: $showingPicker) {
             AddToStackSheet(peptide: peptide) {
                 if StoreService.shared.requiresPro(activeProtocolCount: dataStore.activeProtocols.count) {

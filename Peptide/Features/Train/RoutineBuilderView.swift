@@ -344,13 +344,13 @@ private struct RoutineTargetSheet: View {
                             field("Sets", value: "\(sets)")
                                 .appAnimation(AppAnimation.springSnappy, value: sets)
                         }
-                        .sensoryFeedback(.selection, trigger: sets)
+                        .appSensoryFeedback(.selection, trigger: sets)
                         Divider().background(AppColor.glassBorder)
                         Stepper(value: $reps, in: RoutineEditEngine.targetReps) {
                             field("Reps", value: "\(reps)")
                                 .appAnimation(AppAnimation.springSnappy, value: reps)
                         }
-                        .sensoryFeedback(.selection, trigger: reps)
+                        .appSensoryFeedback(.selection, trigger: reps)
                         Divider().background(AppColor.glassBorder)
                         restPicker
                     }

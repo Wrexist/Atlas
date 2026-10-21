@@ -60,7 +60,7 @@ struct AIResearchView: View {
                     .disabled(transcript.isEmpty)
                 }
             }
-            .sensoryFeedback(.impact(weight: .light), trigger: sendCount)
+            .appSensoryFeedback(.impact(weight: .light), trigger: sendCount)
             .onDisappear {
                 // Stop any in-flight Anthropic call when the sheet
                 // closes — otherwise a 30-second response keeps

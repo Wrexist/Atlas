@@ -246,7 +246,7 @@ struct LabPanelDetailView: View {
             }
         }
         .chartXSelection(value: $selectedDate)
-        .sensoryFeedback(.selection, trigger: selectedEntry?.id)
+        .appSensoryFeedback(.selection, trigger: selectedEntry?.id)
         .frame(height: 200)
         .chartXAxis {
             AxisMarks(values: .stride(by: chartXStride.component, count: chartXStride.count)) { _ in

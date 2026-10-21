@@ -146,7 +146,7 @@ struct PortionPicker: View {
             .accessibilityLabel("Grams")
             // A tick every 25 g so dragging has a feel without buzzing
             // on each 5 g step.
-            .sensoryFeedback(.selection, trigger: Int(grams / 25))
+            .appSensoryFeedback(.selection, trigger: Int(grams / 25))
             HStack(spacing: Spacing.xs) {
                 ForEach(Self.quickGrams, id: \.self) { quick in
                     quickPick(quick, isActive: grams == quick)

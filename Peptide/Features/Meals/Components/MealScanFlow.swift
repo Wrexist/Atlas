@@ -570,7 +570,7 @@ struct MealScanFlow: View {
                 Text("Photo estimates can miss ingredients and portions. Review each item’s calories and amounts before logging.")
                     .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
             }
-            .animation(AppAnimation.springSnappy, value: includedItems.count)
+            .appAnimation(AppAnimation.springSnappy, value: includedItems.count)
         }
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
@@ -1482,7 +1482,7 @@ private struct FoodItemEditCard: View {
             }
         }
         .appAnimation(AppAnimation.quick, value: item.grams)
-        .sensoryFeedback(.selection, trigger: item.grams)
+        .appSensoryFeedback(.selection, trigger: item.grams)
     }
 
     private var servingStepper: some View {
