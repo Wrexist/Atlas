@@ -39,10 +39,10 @@ struct HealthSummaryCard: View {
                     noDataState
                 } else {
                     HStack(spacing: Spacing.md) {
-                        metricView(icon: "heart.fill", value: restingHR.map { "\(Int($0))" } ?? "--", unit: "bpm", label: "Resting HR")
-                        metricView(icon: "waveform.path.ecg", value: hrv.map { "\(Int($0))" } ?? "--", unit: "ms", label: "HRV")
-                        metricView(icon: "moon.fill", value: sleepHours.map { String(format: "%.1f", $0) } ?? "--", unit: "hrs", label: "Sleep")
-                        metricView(icon: "figure.walk", value: steps.map { "\(Int($0 / 1000))k" } ?? "--", unit: "", label: "Steps")
+                        metricView(icon: "heart.fill", value: restingHR.map { "\(Int($0))" }, unit: "bpm", label: "Resting HR")
+                        metricView(icon: "waveform.path.ecg", value: hrv.map { "\(Int($0))" }, unit: "ms", label: "HRV")
+                        metricView(icon: "moon.fill", value: sleepHours.map { String(format: "%.1f", $0) }, unit: "hrs", label: "Sleep")
+                        metricView(icon: "figure.walk", value: steps.map { Int($0).formatted(.number.notation(.compactName)) }, unit: "", label: "Steps")
                     }
                 }
             }
@@ -82,13 +82,14 @@ struct HealthSummaryCard: View {
         .padding(.vertical, Spacing.sm)
     }
 
-    private func metricView(icon: String, value: String, unit: String, label: String) -> some View {
-        VStack(spacing: Spacing.xs) {
+    private func metricView(icon: String, value: String?, unit: String, label: String) -> some View {
+        let reading = value.map { unit.isEmpty ? $0 : "\($0) \(unit)" }
+        return VStack(spacing: Spacing.xs) {
             Image(systemName: icon)
                 .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.accentPrimary)
                 .accessibilityHidden(true)              // label below conveys the metric name
-            Text(value + (unit.isEmpty ? "" : " ") + unit)
+            Text(reading ?? "—")
                 .font(AppFont.caption)
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textPrimary)
@@ -100,7 +101,7 @@ struct HealthSummaryCard: View {
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(label): \(value) \(unit)")
+        .accessibilityLabel("\(label): \(reading ?? "no data")")
     }
 
     private func loadHealthData() async {
