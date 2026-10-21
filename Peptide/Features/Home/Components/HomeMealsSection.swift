@@ -114,6 +114,7 @@ struct HomeMealsSection: View {
                                 .font(AppFont.scaled(11, weight: .semibold))
                         }
                         .foregroundStyle(AppColor.accentLight)
+                        .minimumHitArea()
                     }
                     .buttonStyle(.plain)
                 }
