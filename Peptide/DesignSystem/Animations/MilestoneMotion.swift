@@ -32,6 +32,8 @@ private struct MilestoneMotion: ViewModifier {
         var sheen: CGFloat = -1
     }
 
+    private static let sheenEnd: CGFloat = 1.4
+
     private var enabled: Bool {
         isActive && isVisible && !reduceMotion && scenePhase == .active
     }
@@ -41,20 +43,22 @@ private struct MilestoneMotion: ViewModifier {
             .keyframeAnimator(initialValue: Pose(), trigger: animationTrigger) { view, pose in
                 view
                     .overlay {
-                        GeometryReader { geometry in
-                            Rectangle()
-                                .fill(LinearGradient(
-                                    colors: [.clear, AppColor.onAccent.opacity(0.38), .clear],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                ))
-                                .frame(width: geometry.size.width * 0.3)
-                                .rotationEffect(.degrees(18))
-                                .offset(x: geometry.size.width * pose.sheen)
+                        // Only mounted mid-sweep: the mask redraws the whole artwork.
+                        if enabled && pose.sheen > -1 && pose.sheen < Self.sheenEnd {
+                            GeometryReader { geometry in
+                                Rectangle()
+                                    .fill(LinearGradient(
+                                        colors: [.clear, AppColor.onAccent.opacity(0.38), .clear],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    ))
+                                    .frame(width: geometry.size.width * 0.3)
+                                    .rotationEffect(.degrees(18))
+                                    .offset(x: geometry.size.width * pose.sheen)
+                            }
+                            .mask(content)
+                            .allowsHitTesting(false)
                         }
-                        .mask(content)
-                        .opacity(enabled ? 1 : 0)
-                        .allowsHitTesting(false)
                     }
                     .scaleEffect(
                         x: enabled && style != .shine ? (style == .flicker ? 2 - pose.scale : pose.scale) : 1,
@@ -81,7 +85,7 @@ private struct MilestoneMotion: ViewModifier {
                 KeyframeTrack(\.sheen) {
                     MoveKeyframe(-1)
                     LinearKeyframe(-1, duration: 0.18)
-                    CubicKeyframe(1.4, duration: 0.62)
+                    CubicKeyframe(Self.sheenEnd, duration: 0.62)
                 }
             }
             .onAppear { isVisible = true }
