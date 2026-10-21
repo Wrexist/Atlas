@@ -427,7 +427,7 @@ final class NotificationService {
         let interval = fireDate.timeIntervalSinceNow
         guard interval > 0 else { return }
         let content = UNMutableNotificationContent()
-        content.title = "Atlas Pro trial"
+        content.title = String(localized: "Atlas Pro trial", comment: "Trial-ending reminder title.")
         content.body = body
         content.sound = .default
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
@@ -455,7 +455,7 @@ final class NotificationService {
     func registerCategories() {
         let markAction = UNNotificationAction(
             identifier: "MARK_TAKEN",
-            title: "Mark as Taken",
+            title: String(localized: "Mark as taken", comment: "Dose reminder action — logs the dose."),
             options: [.foreground]
         )
         // Three snooze options instead of one — long-press on the
@@ -466,17 +466,17 @@ final class NotificationService {
         // single shared handler.
         let snooze15 = UNNotificationAction(
             identifier: "SNOOZE_15",
-            title: "Remind in 15 min",
+            title: String(localized: "Remind in 15 min", comment: "Dose reminder action — snooze 15 minutes."),
             options: []
         )
         let snooze30 = UNNotificationAction(
             identifier: "SNOOZE_30",
-            title: "Remind in 30 min",
+            title: String(localized: "Remind in 30 min", comment: "Dose reminder action — snooze 30 minutes."),
             options: []
         )
         let snooze60 = UNNotificationAction(
             identifier: "SNOOZE_60",
-            title: "Remind in 1 hour",
+            title: String(localized: "Remind in 1 hour", comment: "Dose reminder action — snooze 1 hour."),
             options: []
         )
         let category = UNNotificationCategory(
@@ -575,7 +575,10 @@ final class NotificationService {
     ) -> UNMutableNotificationContent {
         let content = UNMutableNotificationContent()
         if let peptide = peptides.first, peptides.count == 1 {
-            content.title = "Time for \(peptide.abbreviation)"
+            content.title = String(
+                localized: "Time for \(peptide.abbreviation)",
+                comment: "Dose reminder title — value is the compound's abbreviation."
+            )
             let dose = proto.schedule(for: peptide.id).resolvedDose(for: peptide)
             content.body = "\(peptide.name) \u{2022} \(dose)"
         } else {
