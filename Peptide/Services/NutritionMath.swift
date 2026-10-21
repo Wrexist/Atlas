@@ -164,7 +164,11 @@ enum NutritionMath {
         let intent = GoalIntent(goalRaw: goalRaw)
         let bmr = mifflinStJeor(weightKg: weightKg, heightCm: heightCm, age: age, sex: metrics.sex)
         let tdee = bmr * metrics.activityLevel.tdeeMultiplier
-        let targetCalories = tdee * intent.calorieMultiplier
+        // A deficit never drops below the common clinical floor (or BMR,
+        // when that is higher), capped at maintenance so the floor itself
+        // can't become a surplus for a very small, sedentary user.
+        let safetyFloor = min(tdee, max(minimumDailyCalories(for: metrics.sex), bmr))
+        let targetCalories = max(tdee * intent.calorieMultiplier, safetyFloor)
 
         let fatCalories = targetCalories * fatCalorieFraction
         let fatGRaw = fatCalories / kcalPerGramFat
@@ -266,6 +270,17 @@ enum NutritionMath {
     /// cases use the average of the male/female constants (-78) so a
     /// non-binary user still gets a reasonable estimate without forcing
     /// them into a sex they don't identify with.
+    /// Lowest daily intake a recommendation may suggest without medical
+    /// supervision: 1,500 kcal for men, 1,200 kcal otherwise.
+    static func minimumDailyCalories(for sex: BiologicalSex) -> Double {
+        switch sex {
+        case .male:        return 1500
+        case .female,
+             .other,
+             .unspecified: return 1200
+        }
+    }
+
     static func mifflinStJeor(
         weightKg: Double,
         heightCm: Double,
