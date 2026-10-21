@@ -214,13 +214,25 @@ struct LabSummaryRow: View {
 
     private var panel: LabPanel { summary.latest.panel }
 
-    // Non-Sendable Foundation formatter; thread-safe for read-only
-    // use after configuration.
-    nonisolated(unsafe) private static let relative: RelativeDateTimeFormatter = {
+    private static let relative: RelativeDateTimeFormatter = {
         let f = RelativeDateTimeFormatter()
         f.unitsStyle = .short
+        f.dateTimeStyle = .named
+        f.formattingContext = .beginningOfSentence
         return f
     }()
+
+    /// "Today", "Yesterday", "3 days ago". The draw date is picked without
+    /// a time, so it's compared by day; hours since it was logged would
+    /// read "3 hr. ago" for a morning draw.
+    private static func drawDay(_ date: Date) -> String {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let day = calendar.startOfDay(for: date)
+        return day == today
+            ? relative.localizedString(from: DateComponents(day: 0))
+            : relative.localizedString(for: day, relativeTo: today)
+    }
 
     var body: some View {
         HStack(spacing: Spacing.md) {
@@ -244,7 +256,7 @@ struct LabSummaryRow: View {
                     .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(1)
-                Text(Self.relative.localizedString(for: summary.latest.date, relativeTo: Date()))
+                Text(Self.drawDay(summary.latest.date))
                     .font(AppFont.scaled(11))
                     .foregroundStyle(AppColor.textSecondary)
                     .monospacedDigit()
