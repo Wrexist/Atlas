@@ -54,13 +54,15 @@ final class AIResearchService: Sendable {
 
         var errorDescription: String? {
             switch self {
-            case .proxyNotConfigured:   "AI research isn't configured for this build. Set AI_RESEARCH_ENDPOINT and AI_RESEARCH_SECRET in Secrets.xcconfig and rebuild."
-            case .unauthorised:         "Couldn't sign in to the research assistant. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build."
-            case .offline:              "You're offline — the research assistant needs an internet connection. Reconnect and try again."
-            case .rateLimited:          "You're sending questions faster than the assistant can answer. Wait a minute and try again."
-            case .serviceUnavailable:   "The research assistant is temporarily offline. Try again in a few minutes."
+            // Build-config detail belongs in the log, not in front of
+            // customers; they only need to know the assistant is down.
+            case .proxyNotConfigured:   String(localized: "The research assistant isn't available right now. Update Atlas or try again later.")
+            case .unauthorised:         String(localized: "Couldn't sign in to the research assistant. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build.")
+            case .offline:              String(localized: "You're offline — the research assistant needs an internet connection. Reconnect and try again.")
+            case .rateLimited:          String(localized: "You're sending questions faster than the assistant can answer. Wait a minute and try again.")
+            case .serviceUnavailable:   String(localized: "The research assistant is temporarily offline. Try again in a few minutes.")
             case .requestFailed(let m): m
-            case .invalidResponse:      "The assistant returned an unexpected response."
+            case .invalidResponse:      String(localized: "The assistant returned an unexpected response.")
             }
         }
     }
