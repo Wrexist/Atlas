@@ -25,6 +25,10 @@ final class ExerciseLibrary {
     private(set) var custom: [CustomExercise] = []
 
     private var byID: [String: Exercise] = [:]
+    /// Bundled + custom, sorted by name, with each row's filter keys
+    /// worked out once. `filter` runs on every library render, so it
+    /// must not re-classify or re-sort ~870 exercises per keystroke.
+    private var catalog: [CatalogEntry] = []
     /// `private(set)` so views can distinguish "still loading" from
     /// "loaded, genuinely no match" instead of flashing a false
     /// not-found state before `load()` completes.
@@ -66,6 +70,7 @@ final class ExerciseLibrary {
         // a duplicate id in a bad exercises.json edit/OTA would otherwise
         // trap and crash the app on launch.
         byID = Dictionary(decoded.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        rebuildCatalog()
         isLoaded = true
         AppLog.training.info(
             "ExerciseLibrary loaded \(decoded.count, privacy: .public) exercises in \(Int(Date().timeIntervalSince(started) * 1000), privacy: .public)ms"
@@ -79,12 +84,20 @@ final class ExerciseLibrary {
         isLoaded = false
         bundled = []
         byID = [:]
+        rebuildCatalog()
     }
 
     /// Replaces the custom-exercise overlay. Called by the Train tab
     /// after fetching the user's `StoredCustomExercise` rows.
     func attachCustomExercises(_ exercises: [CustomExercise]) {
         custom = exercises
+        rebuildCatalog()
+    }
+
+    private func rebuildCatalog() {
+        catalog = (bundled + custom.map { $0.asExercise() })
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            .map(CatalogEntry.init)
     }
 
     // MARK: - Lookup
@@ -126,50 +139,16 @@ final class ExerciseLibrary {
         category: Exercise.Category? = nil,
         level: Exercise.Level? = nil
     ) -> [Exercise] {
-        let needle = query?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let needleEmpty = needle?.isEmpty ?? true
+        let needle = query?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
 
-        let merged = bundled + custom.map { $0.asExercise() }
-
-        return merged
-            .filter { exercise in
-                if let group = muscleGroup, exercise.muscleGroup != group {
-                    return false
-                }
-                if let equipment, exercise.equipmentKind != equipment {
-                    return false
-                }
-                if let category, exercise.category != category {
-                    return false
-                }
-                if let level, exercise.level != level {
-                    return false
-                }
-                if !needleEmpty, let needle {
-                    if !exerciseMatchesQuery(exercise, needle: needle) {
-                        return false
-                    }
-                }
-                return true
-            }
-            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-    }
-
-    /// True when any of the exercise's searchable fields contains the
-    /// pre-lowercased needle. Pulled out for readability and to keep
-    /// the hot path in `filter(...)` tight.
-    private func exerciseMatchesQuery(_ exercise: Exercise, needle: String) -> Bool {
-        if exercise.name.lowercased().contains(needle) { return true }
-        for muscle in exercise.primaryMuscles where muscle.lowercased().contains(needle) {
-            return true
+        return catalog.filter { entry in
+            if let muscleGroup, entry.muscleGroup != muscleGroup { return false }
+            if let equipment, entry.equipmentKind != equipment { return false }
+            if let category, entry.exercise.category != category { return false }
+            if let level, entry.exercise.level != level { return false }
+            return needle.isEmpty || entry.searchFields.contains { $0.contains(needle) }
         }
-        for muscle in exercise.secondaryMuscles where muscle.lowercased().contains(needle) {
-            return true
-        }
-        if let equipment = exercise.equipment, equipment.lowercased().contains(needle) {
-            return true
-        }
-        return exercise.equipmentKind.displayName.lowercased().contains(needle)
+        .map(\.exercise)
     }
 
     /// Returns exercises the user's configured equipment access covers
@@ -181,5 +160,26 @@ final class ExerciseLibrary {
         guard !access.isEmpty else { return bundled + custom.map { $0.asExercise() } }
         return (bundled + custom.map { $0.asExercise() })
             .filter { $0.equipmentKind.isAvailable(with: access) }
+    }
+}
+
+/// One catalog row with the keys `filter` matches on. `searchFields` are
+/// the lowercased name, raw muscle strings, raw equipment string and the
+/// classified equipment name.
+private struct CatalogEntry {
+    let exercise: Exercise
+    let muscleGroup: MuscleGroup
+    let equipmentKind: EquipmentKind
+    let searchFields: [String]
+
+    init(_ exercise: Exercise) {
+        let kind = exercise.equipmentKind
+        self.exercise = exercise
+        muscleGroup = exercise.muscleGroup
+        equipmentKind = kind
+        var fields = [exercise.name] + exercise.primaryMuscles + exercise.secondaryMuscles
+        if let equipment = exercise.equipment { fields.append(equipment) }
+        fields.append(kind.displayName)
+        searchFields = fields.map { $0.lowercased() }
     }
 }

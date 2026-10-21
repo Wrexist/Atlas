@@ -103,6 +103,17 @@ final class ExerciseLibraryTests: XCTestCase {
 
     // MARK: - Filter
 
+    func test_filter_afterAttachingCustom_includesItSortedByName() {
+        let custom = CustomExercise(name: "Aaa Test Curl", primaryMuscles: ["biceps"])
+        library.attachCustomExercises([custom])
+        defer { library.attachCustomExercises([]) }
+
+        let results = library.filter(query: "aaa test")
+        XCTAssertEqual(results.map(\.id), [custom.id])
+        let names = library.filter().map(\.name)
+        XCTAssertEqual(names, names.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending })
+    }
+
     func test_filter_byMuscleGroup_returnsOnlyMatches() {
         let chestOnly = library.filter(muscleGroup: .chest)
         XCTAssertFalse(chestOnly.isEmpty, "Expected chest exercises to exist in dataset")
