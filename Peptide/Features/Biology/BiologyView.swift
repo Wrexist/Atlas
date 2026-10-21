@@ -145,7 +145,7 @@ struct BiologyView: View {
         // leave `resolved` reflecting stale inputs.
         .task(id: RefreshKey(isPro: storeService.isProUser,
                              metrics: dataStore.profile.bodyMetrics,
-                             weighIns: dataStore.profile.weightHistory.count,
+                             weightHistory: dataStore.profile.weightHistory,
                              healthConnected: dataStore.profile.healthConnected)) {
             await refreshState()
         }
@@ -218,7 +218,7 @@ struct BiologyView: View {
     private struct RefreshKey: Equatable {
         let isPro: Bool
         let metrics: BodyMetrics
-        let weighIns: Int
+        let weightHistory: [WeightEntry]
         let healthConnected: Bool
     }
 
