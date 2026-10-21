@@ -380,6 +380,7 @@ private struct AllSetsDoneCard: View {
                     Label("Add set", systemImage: "plus")
                         .frame(maxWidth: .infinity)
                 }
+                .disabled(store.isSending)
             }
             Text("Finish the workout on your iPhone.")
                 .font(.caption2)

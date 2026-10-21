@@ -113,16 +113,17 @@ final class WatchStore: NSObject, ObservableObject {
         let request = WatchWorkoutRequest(sessionId: workout.sessionId, command: command, issuedAt: issuedAt)
         guard let payload = request.encoded() else { return }
         // A second "Complete set" tap would log the next set too, since
-        // the first one already moved the page on. Held like a dose toggle.
+        // the first one already moved the page on, and a second "Add set"
+        // would add another set under a fresh id. Held like a dose toggle.
         let guarded = switch command {
-        case .completeSet: true
+        case .completeSet, .addSet: true
         default: false
         }
         if guarded {
             guard !isSending else { return }
             isSending = true
         }
-        play(guarded ? .success : .click)
+        if case .completeSet = command { play(.success) } else { play(.click) }
         apply(watchData.replacingWorkout(workout.applying(command, at: issuedAt)))
         sendOrQueue([
             "action": WatchMessage.workout,
