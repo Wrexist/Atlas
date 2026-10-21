@@ -117,6 +117,11 @@ struct GoalCountdownCard: View {
                     Text("\(Int((fraction * 100).rounded()))%")
                         .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                         .foregroundStyle(AppColor.textPrimary)
+                        // The ring is a fixed 56pt; shrink rather than
+                        // overflow it at accessibility text sizes.
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .padding(.horizontal, Spacing.sm)
                 }
                 .accessibilityHidden(true)
             }
