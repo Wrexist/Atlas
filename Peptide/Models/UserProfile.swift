@@ -215,12 +215,10 @@ struct CreatorAttribution: Codable, Hashable, Sendable {
     let discountPercent: Int
 }
 
-/// Application submitted via the "Apply to be an affiliate" CTA on
-/// the onboarding creator step. Stored locally until the Atlas
-/// creator-program backend ships; the same struct shape will be
-/// POSTed to the application-intake endpoint on first sync. We
-/// deliberately capture only what we need to follow up — handle,
-/// audience size band, channel URL, optional notes.
+/// Creator-program application from the retired onboarding apply
+/// form. Nothing writes it any more (there is no intake backend); the
+/// type and the profile field stay so existing local / CloudKit rows
+/// keep decoding without a schema change.
 struct AffiliateApplication: Codable, Hashable, Sendable {
     enum Channel: String, Codable, Hashable, Sendable, CaseIterable, Identifiable {
         case instagram, tiktok, youtube, podcast, newsletter, website, other
@@ -378,10 +376,8 @@ struct UserProfile: Codable, Sendable {
     /// discount and (eventually) by the backend to count installs /
     /// conversions per creator.
     var creatorAttribution: CreatorAttribution?
-    /// Submitted via the "Apply to be an affiliate" button on the
-    /// onboarding creator step. Local-only until the backend ships;
-    /// the eventual sync job can replay this row to the creator-
-    /// program intake endpoint without re-prompting the user.
+    /// Legacy creator-program application; read-only, see
+    /// `AffiliateApplication`.
     var affiliateApplication: AffiliateApplication?
     /// Set when the user opts in on the onboarding email-capture step.
     /// Local-only today; will be drained into Supabase + Resend when the

@@ -305,17 +305,13 @@ our AI proxy to generate the recap; the request is processed transiently
 and not stored, which is why it is not a collected-data category. Meal
 photos sent to the AI meal scanner are handled the same way.
 
-### Before configuring any data drain in a shipped build
+### Before adding any upload of user data
 
-The dormant drains (`AffiliateIntakeEndpoint`, `OnboardingFunnelEndpoint`
-in Info.plist) are host-allowlisted and consent-gated in code, but the
-"No data collected" answers above are only true while those keys stay
-unset. A build that sets either key MUST first:
+The app has no data drains: onboarding funnel events and the creator-code
+attribution stay on-device. A build that starts sending anything new off
+the device MUST first:
 
-1. Update this nutrition label — affiliate intake collects **Name,
-   Email Address, Other User Content** (linked to user, App
-   Functionality); the funnel drain collects **Product Interaction**
-   (not linked, Analytics).
+1. Update this nutrition label.
 2. Update the `PrivacyInfo.xcprivacy` collected-data-types arrays.
 3. Update `PrivacySummaryView` ("no backend / data never leaves your
    phone" claims) and the screenshot deck slot that renders it.
