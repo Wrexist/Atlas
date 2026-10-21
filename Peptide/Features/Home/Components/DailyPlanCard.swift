@@ -317,7 +317,7 @@ private struct DailyPlanDoseRow: View {
                 .foregroundStyle(AppColor.accentPrimary)
                 .frame(width: 14)
             VStack(alignment: .leading, spacing: 1) {
-                Text("Co-inject with \(combo.withAbbreviation) — \(combo.stackName)")
+                Text("Often researched with \(combo.withAbbreviation)")
                     .font(AppFont.caption)
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.accentLight)
