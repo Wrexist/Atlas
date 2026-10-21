@@ -100,8 +100,8 @@ enum LifestyleDataLogic {
         profile.dailyConsumption[key] = bucket
     }
 
-    /// Adds whole ounces of water to the day's bucket. Siri, the Watch
-    /// and the widget deep-link log in ounces, so they stay on this path.
+    /// Adds whole ounces of water to the day's bucket. The Watch and
+    /// the widget deep-link log in ounces, so they stay on this path.
     static func logWater(into profile: inout UserProfile, oz: Int, date: Date) {
         let key = consumptionKey(for: date)
         var bucket = profile.dailyConsumption[key] ?? DailyConsumption.empty(on: date)
