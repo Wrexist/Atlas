@@ -1063,12 +1063,13 @@ struct PaywallView: View {
             } label: {
                 (
                     Text(autoRenewLine)
-                    + Text(" Details").foregroundColor(AppColor.accentLight)
+                    + Text(" Details").foregroundStyle(AppColor.accentLight)
                 )
                 .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textTertiary)
                 .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
+                .contentShape(.rect)
             }
             .buttonStyle(.plain)
         }
