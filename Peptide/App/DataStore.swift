@@ -549,9 +549,9 @@ final class DataStore {
             peptide: existing.peptide,
             date: existing.date,
             dose: existing.dose,
-            notes: notes.isEmpty ? existing.notes : notes,
+            notes: notes,
             completed: true,
-            actualDose: actualDose,
+            actualDose: actualDose?.nilIfEmpty,
             actualTime: actualTime,
             injectionSite: injectionSite
         )

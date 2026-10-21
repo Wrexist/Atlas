@@ -336,6 +336,19 @@ final class DataStoreTests: XCTestCase {
         XCTAssertEqual(store.entries.first { $0.id == entry.id }?.completed, true)
     }
 
+    func test_logDose_clearedNotesAndBlankDose_areStoredAsCleared() {
+        guard let entry = store.entries.first else {
+            XCTFail("No entries in store")
+            return
+        }
+        store.logDose(entryId: entry.id, actualDose: "250 mcg", actualTime: nil, injectionSite: nil, notes: "Left side")
+        store.logDose(entryId: entry.id, actualDose: "  ", actualTime: nil, injectionSite: nil, notes: "")
+
+        let updated = store.entries.first { $0.id == entry.id }
+        XCTAssertEqual(updated?.notes, "")
+        XCTAssertNil(updated?.actualDose)
+    }
+
     func test_watchMarkIncompleteDuplicateDelivery_doesNotComplete() {
         guard let entry = store.entries.first(where: { !$0.completed }) else {
             XCTFail("No incomplete entries in seed data")
