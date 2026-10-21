@@ -163,17 +163,11 @@ private extension WorkoutSession {
         historyDate.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())
     }
 
-    /// "42m" / "1h 12m" — nil for sessions without a finishedAt
-    /// (shouldn't happen for entries in this view since we filter,
-    /// but defensive).
+    /// The recap's duration, so history, detail and recap agree. Nil when
+    /// the workout's time wasn't tracked or can't be trusted.
     var durationLabel: String? {
-        guard finishedAt != nil else { return nil }
-        let interval = elapsedSeconds()
-        guard interval > 0 else { return nil }
-        let totalMinutes = Int(interval / 60)
-        if totalMinutes < 60 { return "\(totalMinutes)m" }
-        let hours = totalMinutes / 60
-        let minutes = totalMinutes % 60
-        return minutes == 0 ? "\(hours)h" : "\(hours)h \(minutes)m"
+        let duration = WorkoutRecapEngine.duration(of: self)
+        guard case .tracked = duration else { return nil }
+        return duration.label
     }
 }
