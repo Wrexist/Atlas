@@ -10,6 +10,9 @@ struct AppearanceSettings: View {
     @State private var notificationService = NotificationService.shared
     @State private var biometricService = BiometricService.shared
     @State private var themeManager = ThemeManager.shared
+    /// Set when turning protocol reminders on hits a denied permission, so
+    /// the toggle bouncing back comes with a route to Settings.
+    @State private var notificationsDenied = false
 
     var body: some View {
         @Bindable var store = dataStore
@@ -37,6 +40,11 @@ struct AppearanceSettings: View {
 
                         if dataStore.profile.doseRemindersEnabled, notificationService.requestedCount > 0 {
                             notificationStatusRow
+                        }
+
+                        if notificationsDenied {
+                            NotificationsDeniedRow()
+                                .padding(.leading, settingsIconColumnWidth + Spacing.md)
                         }
                     }
 
@@ -128,6 +136,7 @@ struct AppearanceSettings: View {
         if enabled {
             Task {
                 let authorized = await NotificationService.shared.requestAuthorization()
+                notificationsDenied = !authorized
                 if authorized {
                     NotificationService.shared.scheduleNotifications(for: dataStore.activeProtocols)
                 } else {

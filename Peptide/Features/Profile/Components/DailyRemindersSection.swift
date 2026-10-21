@@ -7,7 +7,6 @@ import UserNotifications
 /// pending requests through `DailyReminderScheduler`.
 struct DailyRemindersSection: View {
     @Environment(DataStore.self) private var dataStore
-    @Environment(\.openURL) private var openURL
     @State private var settings = DailyReminderSettings.defaults(training: nil)
     @State private var permissionDenied = false
 
@@ -24,7 +23,7 @@ struct DailyRemindersSection: View {
                 }
 
                 if permissionDenied {
-                    permissionRow
+                    NotificationsDeniedRow()
                 }
 
                 ForEach(Array(DailyReminderKind.allCases.enumerated()), id: \.element) { index, kind in
@@ -43,29 +42,6 @@ struct DailyRemindersSection: View {
             settings = DailyReminderSettings.load(training: dataStore.profile.trainingPreferences)
             permissionDenied = await NotificationService.shared.checkAuthorization() == .denied
         }
-    }
-
-    private var permissionRow: some View {
-        Button {
-            if let url = URL(string: UIApplication.openSettingsURLString) {
-                openURL(url)
-            }
-        } label: {
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(AppFont.scaled(11))
-                    .foregroundStyle(AppColor.warning)
-                Text("Notifications are off for Atlas. Turn them on in Settings.")
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.leading)
-                Spacer(minLength: 0)
-                Image(systemName: "arrow.up.right")
-                    .font(AppFont.scaled(11, weight: .semibold))
-                    .foregroundStyle(AppColor.textTertiary)
-            }
-        }
-        .buttonStyle(.plain)
     }
 
     private func subtitle(for kind: DailyReminderKind) -> LocalizedStringKey {
@@ -164,6 +140,36 @@ private struct DailyReminderRow: View {
                 slot.minute = parts.minute ?? slot.minute
             }
         )
+    }
+}
+
+/// Shown wherever a reminder toggle needs notification permission the
+/// user has denied: iOS won't ask twice, so Settings is the only route.
+/// Shared with `AppearanceSettings`' protocol reminders.
+struct NotificationsDeniedRow: View {
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        Button {
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                openURL(url)
+            }
+        } label: {
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(AppFont.scaled(11))
+                    .foregroundStyle(AppColor.warning)
+                Text("Notifications are off for Atlas. Turn them on in Settings.")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.leading)
+                Spacer(minLength: 0)
+                Image(systemName: "arrow.up.right")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
 
