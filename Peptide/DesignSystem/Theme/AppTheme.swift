@@ -55,7 +55,7 @@ enum AppThemeColor: String, CaseIterable, Codable, Identifiable {
     private static let purpleRamp = Ramp(
         primary:   Color(light: 0x5B52B8, dark: 0x7F77DD),
         light:     Color(light: 0xB03060, dark: 0xE2769A),
-        dark:      Color(light: 0x3E3773, dark: 0x534B96),
+        dark:      Color(light: 0x3E3773, dark: 0x685EBB),
         highlight: Color(light: 0x534B96, dark: 0xE8D2E2),
         washInk:   Color(light: 0x3E3773, dark: 0xE2769A)
     )
@@ -69,18 +69,19 @@ enum AppThemeColor: String, CaseIterable, Codable, Identifiable {
     private static let amberRamp = Ramp(
         primary:   Color(light: 0x9A6112, dark: 0xBA7517),
         light:     Color(light: 0x8A5F14, dark: 0xD89438),
-        dark:      Color(light: 0x714810, dark: 0x8E5A12),
+        dark:      Color(light: 0x714810, dark: 0x955E13),
         highlight: Color(light: 0x8E5A12, dark: 0xF1D8B0),
         washInk:   Color(light: 0x714810, dark: 0xD89438)
     )
     /// Graphite's ink stops have to invert like every other ramp: pinning
     /// them to one value put accent ink at 1.8:1 on the dark background,
-    /// which is what "reads on either surface" was assumed to avoid. Only
-    /// `dark` — the fill stop that carries `onAccent` — stays put.
+    /// which is what "reads on either surface" was assumed to avoid. The
+    /// `dark` fill stop inverts too: pinned near-black, accent fills
+    /// vanished into the dark background (1.15:1).
     private static let onyxRamp = Ramp(
         primary:   Color(light: 0x3F3F3D, dark: 0xC9C9C7),
         light:     Color(light: 0x5C5C5A, dark: 0xDEDEDC),
-        dark:      Color(hex: 0x1F1F1D),
+        dark:      Color(light: 0x1F1F1D, dark: 0x6A6A67),
         highlight: Color(light: 0x3F3F3D, dark: 0xC9C9C7),
         washInk:   Color(light: 0x1F1F1D, dark: 0xDEDEDC)
     )

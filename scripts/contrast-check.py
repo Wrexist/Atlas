@@ -180,6 +180,12 @@ def main() -> int:
             ratio = contrast(tokens["onAccent"][scheme_index], stops["dark"][scheme_index])
             rows.append((scheme, "onAccent", "on", f"{ramp}.accentFill",
                          ratio, AA_TEXT, ratio >= AA_TEXT))
+            # The fill itself is a UI component (WCAG 1.4.11): it has to
+            # separate from the surfaces it sits on, not just carry its ink.
+            for surface in SURFACES:
+                ratio = contrast(stops["dark"][scheme_index], tokens[surface][scheme_index])
+                rows.append((scheme, f"{ramp}.accentFill", "on", surface,
+                             ratio, AA_LARGE, ratio >= AA_LARGE))
 
     # Completion uses its own quiet surfaces rather than the app's glass ramp.
     for index, scheme in enumerate(("light", "dark")):
