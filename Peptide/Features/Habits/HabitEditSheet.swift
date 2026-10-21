@@ -14,6 +14,7 @@ struct HabitEditSheet: View {
     let onDelete: ((UUID) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
 
     @State private var name: String
     @State private var iconSymbol: String
@@ -27,6 +28,7 @@ struct HabitEditSheet: View {
     @State private var reminderTime: Date
     @State private var category: HabitCategory
     @State private var showingDeleteConfirm: Bool = false
+    @State private var notificationsDenied: Bool = false
 
     @FocusState private var nameFocused: Bool
 
@@ -130,6 +132,20 @@ struct HabitEditSheet: View {
             }
             .onAppear {
                 if editing == nil { nameFocused = true }
+            }
+            .task {
+                if enableReminder {
+                    notificationsDenied = await NotificationService.shared.checkAuthorization() == .denied
+                }
+            }
+            // Covers both the chips and the Customize toggle, which share
+            // this state. Asking here is what lets a habit reminder fire
+            // for someone who skipped notifications in onboarding.
+            .onChange(of: enableReminder) { _, enabled in
+                guard enabled else { return }
+                Task {
+                    notificationsDenied = !(await NotificationService.shared.requestAuthorization())
+                }
             }
         }
     }
@@ -312,7 +328,36 @@ struct HabitEditSheet: View {
                     reminderChip(slot)
                 }
             }
+            if enableReminder && notificationsDenied {
+                notificationsDeniedRow
+            }
         }
+    }
+
+    private var notificationsDeniedRow: some View {
+        Button {
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                openURL(url)
+            }
+        } label: {
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(AppFont.scaled(11))
+                    .foregroundStyle(AppColor.warning)
+                    .accessibilityHidden(true)
+                Text("Notifications are off for Atlas. Turn them on in Settings.")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.leading)
+                Spacer(minLength: 0)
+                Image(systemName: "arrow.up.right")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityHidden(true)
+            }
+            .frame(minHeight: Spacing.minimumHitTarget)
+        }
+        .buttonStyle(.plain)
     }
 
     private func reminderChip(_ slot: HabitReminderSlot) -> some View {
