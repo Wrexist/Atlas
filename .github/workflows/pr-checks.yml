@@ -5,13 +5,24 @@ name: PR Checks
 # `ios` output, so docs/server/scripts-only PRs skip the macOS runner
 # entirely. The `ready_for_review` event triggers the workflow when a
 # draft is marked ready so the build kicks off without an extra push.
-# `labeled` lets `run-ui-tests` take effect without forcing the dev to
-# push again. See per-job `if:` conditions for what each label / state
-# actually unlocks.
+#
+# There is deliberately no `labeled` trigger. A label run shared this
+# workflow's concurrency group, so adding any label cancelled the
+# in-flight build, and the label run then skipped the build and
+# reported a green `pr-checks` for a commit nothing had compiled. Add
+# `run-ui-tests` and push to have it take effect.
+#
+# Pushes to main and a nightly run catch what a PR cannot: a main that
+# went red from a toolchain bump on the runner image, or from a commit
+# that reached main without a PR.
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review, labeled]
+    types: [opened, synchronize, reopened, ready_for_review]
     branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 4 * * *'
 
 permissions:
   contents: read
@@ -24,7 +35,7 @@ permissions:
   actions: write
 
 concurrency:
-  group: pr-checks-${{ github.event.pull_request.number }}
+  group: pr-checks-${{ github.event.pull_request.number || format('{0}-{1}', github.event_name, github.ref) }}
   cancel-in-progress: true
 
 jobs:
@@ -56,7 +67,8 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           # Fail-safe default: if anything below errors out, run the
-          # macOS build. Skipping a needed build is far more expensive
+          # macOS build. Push and schedule runs have no base SHA, so the
+          # diff fails and they always build. Skipping a needed build is far more expensive
           # (a red merged PR) than paying for one we didn't strictly
           # need.
           IOS=true
@@ -88,13 +100,9 @@ jobs:
     # Skip macOS entirely on docs/server-only PRs (filter says no iOS
     # changes) and on drafts. macos-15 runs at ~$0.062/min — a single
     # 15-min skip saves ~$0.93.
-    # A `labeled` event only needs the macOS build when the label is the
-    # one that unlocks the UI tests; any other label used to re-run the
-    # whole 40-minute build.
     if: >-
       needs.filter.outputs.ios == 'true'
-      && github.event.pull_request.draft == false
-      && (github.event.action != 'labeled' || github.event.label.name == 'run-ui-tests')
+      && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     runs-on: macos-15
     # 40, up from 25, because 25 killed a run whose tests were all
     # passing. Observed job wall-clock across five runs: 7.5, 12.8, 18.0,
