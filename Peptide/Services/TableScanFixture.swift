@@ -68,9 +68,11 @@ enum TableScanFixture {
     // MARK: - A kept table
 
     /// Keeps one dinner table today, unless one is already on file.
-    static func seedTable(in dataStore: DataStore) async {
+    /// True only the first time, which is when the run opens the scan.
+    @discardableResult
+    static func seedTable(in dataStore: DataStore) async -> Bool {
         let store = TableMomentStore.shared
-        guard store.moments(on: Date()).isEmpty else { return }
+        guard store.moments(on: Date()).isEmpty else { return false }
         let date = Date()
         let kept = dishes.map { dish in
             TableMomentStore.Draft.Dish(
@@ -87,6 +89,7 @@ enum TableScanFixture {
             moment.dishes[0].isFavorite = true
             store.update(moment)
         }
+        return true
     }
 
     // MARK: - Drawing
