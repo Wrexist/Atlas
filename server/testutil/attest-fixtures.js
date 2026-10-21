@@ -35,7 +35,7 @@ export function setEnv(t, vars) {
 }
 
 // In-memory Upstash double: honours the pipeline commands the attest
-// registry and rate limiter issue.
+// registry, rate limiter and scan quota issue.
 export function fakeUpstash(t) {
   const store = new Map();
   const real = globalThis.fetch;
@@ -55,8 +55,13 @@ export function fakeUpstash(t) {
           store.delete(args[0]);
           return { result: v };
         }
-        case 'INCR': {
-          const v = parseInt(store.get(args[0]) ?? '0', 10) + 1;
+        case 'INCR':
+        case 'INCRBY':
+        case 'DECR':
+        case 'DECRBY': {
+          const step = cmd.endsWith('BY') ? parseInt(args[1], 10) : 1;
+          const sign = cmd.startsWith('DECR') ? -1 : 1;
+          const v = parseInt(store.get(args[0]) ?? '0', 10) + sign * step;
           store.set(args[0], String(v));
           return { result: v };
         }

@@ -88,6 +88,13 @@ same auth, App Attest gate and limiter.
        enforce mode. `ATTEST_CHALLENGE_RPM` (default 60) and
        `ATTEST_RPM` (default 30) cap registration challenges and
        submissions per IP per minute.
+     - `FREE_SCANS_PER_WEEK` — server-side free-tier AI meal scans per
+       install per ISO week. Default `3`, matching the app's
+       `MealScanQuota.freeScansPerWeek` — change both together. `0`
+       turns the server check off. Needs the Upstash vars above; see
+       "Free scan quota" below.
+     - `STOREKIT_BUNDLE_ID` — bundle ID a Pro transaction must carry.
+       Default `com.peptidesai.app`; only set it for a different app.
 4. Note the deploy URL (e.g. `https://peptidex-proxy.vercel.app`).
 
 ## Wire the iOS app
@@ -164,7 +171,10 @@ endpoint.
   ceiling. `BUDGET_FAIL_OPEN=1` opts out.
 - **Stable refusal codes**: limit and availability refusals carry
   `error.code` — `rate_limited`, `blocked` and `daily_quota` (429,
-  with `Retry-After`) or `unavailable` (503).
+  with `Retry-After`), `scan_quota` (429, free weekly scans spent) or
+  `unavailable` (503).
+- **Free scan quota** (`_lib/scan-quota.js`, `/api/food-scan` only).
+  See below.
 - **Body sanitisation**: only `model`, `max_tokens`, `messages`, and
   optional `system` are forwarded; everything else is stripped so a
   compromised client can't smuggle alternate prompts or `tools`.
@@ -255,3 +265,35 @@ The proxy is a sanitised forward to `api.anthropic.com/v1/messages`:
 ```
 
 The proxy adds `x-api-key` + `anthropic-version` and forwards.
+
+## Free scan quota
+
+The app gives free users `FREE_SCANS_PER_WEEK` AI meal scans (photo or
+described meal) per week and counts them in UserDefaults for instant UI —
+which a reinstall wipes. The proxy keeps the authoritative count:
+
+- The app sends `X-Atlas-Scan-Metered: 1` on those scans only (barcode
+  and package reads stay free), plus `X-Atlas-Install-Id`, a UUID kept
+  in the Keychain so it survives deleting the app, and
+  `X-Atlas-Scan-Week`, its local ISO week so both counters turn over at
+  the user's Monday midnight.
+- Pro users also send `X-Atlas-Entitlement`: the StoreKit 2 signed
+  transaction (JWS) of their Pro entitlement. `_lib/storekit-jws.js`
+  verifies the x5c chain to Apple Root CA - G3 (pinned by SHA-256
+  fingerprint), the ES256 signature, the bundle ID, a Pro product ID,
+  no revocation, and expiry (plus Apple's 16-day billing grace). A
+  verified Pro request is never counted.
+- A free install's fourth scan in the week gets
+  `429 { error: { code: "scan_quota" } }` before reaching Anthropic, and
+  the app shows its upgrade sheet. A scan that finds no food, fails
+  upstream or is refused for another reason is refunded, so — like the
+  app — only successful scans count.
+- Counters live in Upstash under `scanq:<install>:<week>` (14-day TTL).
+  **Fails open**: with no Upstash vars, or Upstash unreachable, every
+  scan is allowed. This is a product allowance, not a spend ceiling —
+  `ANTHROPIC_DAILY_REQUEST_BUDGET` is that.
+
+The install ID and the metered flag are client-asserted, the same trust
+level as the shared secret: they stop a reinstall from resetting the
+allowance, not a modified client. App Attest enforce mode is what raises
+that bar.
