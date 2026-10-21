@@ -240,7 +240,7 @@ struct PeptideDetailView: View {
                                 Image(systemName: "square.stack.3d.up.fill")
                                     .foregroundStyle(peptide.category.color)
                                     .accessibilityHidden(true)
-                                Text("Commonly Stacked With")
+                                Text("Often Paired With")
                                     .font(AppFont.headline)
                                     .foregroundStyle(AppColor.textPrimary)
                             }
