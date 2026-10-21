@@ -275,6 +275,34 @@ final class WidgetSnapshotTrainingTests: XCTestCase {
         XCTAssertEqual(decoded?.proteinTarget, 0)
     }
 
+    // MARK: - Abandoned workout
+
+    private func payload(startedAt: Date, writtenAt: Date) -> WidgetData {
+        WidgetData(
+            nextPeptideName: "", nextDose: "", nextDoseTime: nil,
+            completedToday: 0, totalToday: 0, lastUpdated: writtenAt,
+            activeWorkoutStartedAt: startedAt
+        )
+    }
+
+    func test_activeWorkoutStart_recentPayload_reportsTheRunningWorkout() {
+        let start = now.addingTimeInterval(-3_600)
+        let data = payload(startedAt: start, writtenAt: now.addingTimeInterval(-600))
+        XCTAssertEqual(data.activeWorkoutStart(at: now), start)
+    }
+
+    func test_activeWorkoutStart_payloadPastTheIdleLimit_dropsTheWorkout() {
+        let data = payload(
+            startedAt: now.addingTimeInterval(-3 * 86_400),
+            writtenAt: now.addingTimeInterval(-(WidgetData.abandonedWorkoutAge + 60))
+        )
+        XCTAssertNil(data.activeWorkoutStart(at: now))
+    }
+
+    func test_abandonedWorkoutAge_matchesTheStalenessEngine() {
+        XCTAssertEqual(WidgetData.abandonedWorkoutAge, WorkoutStalenessEngine.loggedIdleLimit)
+    }
+
     func test_trainingFields_roundTripThroughTheSharedContainerCodec() {
         let source = WidgetSnapshotBuilder.build(
             today: [], next: nil,

@@ -127,7 +127,7 @@ struct TrainingTimelineProvider: TimelineProvider {
         // in. Past a Monday with no app launch they would be last week's,
         // so the widget starts the new week at zero instead.
         let sameWeek = Calendar.current.isDate(data.lastUpdated, equalTo: .now, toGranularity: .weekOfYear)
-        let start = data.activeWorkoutStartedAt
+        let start = data.activeWorkoutStart(at: .now)
         var pausedElapsed: Int?
         if let start, let pausedAt = data.activeWorkoutPausedAt {
             pausedElapsed = max(0, Int(pausedAt.timeIntervalSince(start) - data.activeWorkoutPausedSeconds))

@@ -15,6 +15,7 @@ enum WorkoutStalenessEngine {
 
     /// An empty session is abandoned sooner: there is nothing to lose.
     static let emptyIdleLimit: TimeInterval = 4 * 3600
+    /// `WidgetData.abandonedWorkoutAge` mirrors this for the widget.
     static let loggedIdleLimit: TimeInterval = 6 * 3600
     /// Time credited after the last logged set — the final rest and
     /// re-rack the user did before walking away.
