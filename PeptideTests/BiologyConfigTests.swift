@@ -12,7 +12,6 @@ final class BiologyConfigTests: XCTestCase {
     func test_default_matchesBiomarkerDefaultVisible() {
         XCTAssertEqual(BiologyConfig.default.visibleBiomarkers, Biomarker.defaultVisible)
         XCTAssertTrue(BiologyConfig.default.hiddenBiomarkers.isEmpty)
-        XCTAssertFalse(BiologyConfig.default.hasSeenIntro)
     }
 
     // MARK: - Mutations
@@ -108,8 +107,7 @@ final class BiologyConfigTests: XCTestCase {
     func test_codable_roundTripPreservesAllFields() throws {
         let original = BiologyConfig(
             visibleBiomarkers: [.weight, .sleepBaseline],
-            hiddenBiomarkers: [.hrvBaseline],
-            hasSeenIntro: true
+            hiddenBiomarkers: [.hrvBaseline]
         )
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(BiologyConfig.self, from: data)
@@ -121,7 +119,6 @@ final class BiologyConfigTests: XCTestCase {
         let decoded = try JSONDecoder().decode(BiologyConfig.self, from: data)
         XCTAssertEqual(decoded.visibleBiomarkers, [.weight])
         XCTAssertTrue(decoded.hiddenBiomarkers.isEmpty)
-        XCTAssertFalse(decoded.hasSeenIntro)
     }
 
     func test_decode_unknownBiomarker_isDroppedNotThrown() throws {
@@ -129,7 +126,6 @@ final class BiologyConfigTests: XCTestCase {
         let decoded = try JSONDecoder().decode(BiologyConfig.self, from: data)
         XCTAssertEqual(decoded.visibleBiomarkers, [.weight])
         XCTAssertTrue(decoded.hiddenBiomarkers.isEmpty)
-        XCTAssertTrue(decoded.hasSeenIntro)
     }
 
     /// The migration story: an older UserProfile JSON has no
@@ -159,14 +155,12 @@ final class BiologyConfigTests: XCTestCase {
             healthConnected: false,
             biologyConfig: BiologyConfig(
                 visibleBiomarkers: [.weight, .hrvBaseline],
-                hiddenBiomarkers: [.sleepBaseline],
-                hasSeenIntro: true
+                hiddenBiomarkers: [.sleepBaseline]
             )
         )
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(UserProfile.self, from: data)
         XCTAssertEqual(decoded.biologyConfig.visibleBiomarkers, [.weight, .hrvBaseline])
         XCTAssertEqual(decoded.biologyConfig.hiddenBiomarkers, [.sleepBaseline])
-        XCTAssertTrue(decoded.biologyConfig.hasSeenIntro)
     }
 }

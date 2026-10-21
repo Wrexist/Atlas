@@ -91,20 +91,6 @@ enum Biomarker: String, CaseIterable, Codable, Hashable, Sendable {
         }
     }
 
-    /// True when the biomarker's data comes (entirely or partly)
-    /// from HealthKit. The UI uses this to suppress cards when
-    /// the user hasn't connected Health, vs cards backed by
-    /// manual logging that work standalone.
-    var requiresHealthKit: Bool {
-        switch self {
-        case .hrvBaseline, .rhrBaseline, .sleepBaseline,
-             .stepsBaseline, .bodyTemperature:
-            return true
-        case .weight, .bodyFat, .waist, .bloodPressure, .latestLabPanel:
-            return false
-        }
-    }
-
     /// True when the biomarker is gated behind Atlas Pro. The
     /// HealthKit baselines are free (already collected by the
     /// app's existing surfaces); manual-entry body composition
@@ -134,24 +120,6 @@ enum Biomarker: String, CaseIterable, Codable, Hashable, Sendable {
         case .stepsBaseline, .bodyTemperature, .bodyFat,
              .waist, .bloodPressure:
             return false
-        }
-    }
-
-    /// Default display order on the Biology tab. The user can
-    /// override this in EditBiomarkersSheet (commit 8); the
-    /// stored config falls back to this when no override is set.
-    var preferredOrder: Int {
-        switch self {
-        case .weight:           return 0
-        case .hrvBaseline:      return 1
-        case .rhrBaseline:      return 2
-        case .sleepBaseline:    return 3
-        case .stepsBaseline:    return 4
-        case .bodyTemperature:  return 5
-        case .bodyFat:          return 6
-        case .waist:            return 7
-        case .bloodPressure:    return 8
-        case .latestLabPanel:   return 9
         }
     }
 

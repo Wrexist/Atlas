@@ -1,7 +1,7 @@
 import Foundation
 
-/// User's Biology tab preferences — which biomarkers to show, in
-/// what order, and whether they've seen the one-shot intro. Lives
+/// User's Biology tab preferences — which biomarkers to show, and in
+/// what order. Lives
 /// on `UserProfile` so it round-trips with the rest of the
 /// profile through CloudKit / JSON / SwiftData sidecar.
 ///
@@ -19,12 +19,6 @@ struct BiologyConfig: Codable, Hashable, Sendable {
     /// added" — `EditBiomarkersSheet` shows them in a third
     /// section so the user can pull them in.
     var hiddenBiomarkers: [Biomarker] = []
-    /// One-shot welcome / intro sheet flag. Future commit may
-    /// surface a brief explainer the first time a user opens the
-    /// Biology tab; the flag prevents re-presentation. Defaults
-    /// false so existing users — who never saw the intro — see
-    /// it on next launch instead of getting silently skipped.
-    var hasSeenIntro: Bool = false
 
     /// Canonical default config. Used by the profile decoders when
     /// the field is missing on an older profile JSON. Mirrors
@@ -76,14 +70,13 @@ struct BiologyConfig: Codable, Hashable, Sendable {
 
 extension BiologyConfig {
     private enum CodingKeys: String, CodingKey {
-        case visibleBiomarkers, hiddenBiomarkers, hasSeenIntro
+        case visibleBiomarkers, hiddenBiomarkers
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         visibleBiomarkers = try Self.decodeBiomarkers(c, .visibleBiomarkers) ?? Biomarker.defaultVisible
         hiddenBiomarkers = try Self.decodeBiomarkers(c, .hiddenBiomarkers) ?? []
-        hasSeenIntro = try c.decodeIfPresent(Bool.self, forKey: .hasSeenIntro) ?? false
     }
 
     /// Decodes raw values and drops any this build doesn't know, so a

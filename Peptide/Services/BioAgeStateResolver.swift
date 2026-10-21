@@ -136,20 +136,3 @@ enum BioAgeStateResolver {
         }
     }
 }
-
-// MARK: - BioAgeState Equatable conformance hop
-
-extension BioAgeHeroSection.BioAgeState {
-    public static func == (lhs: Self, rhs: Self) -> Bool {
-        switch (lhs, rhs) {
-        case (.locked, .locked), (.needsAge, .needsAge):
-            return true
-        case (.building(let a), .building(let b)):
-            return a == b
-        case (.unlocked(let a), .unlocked(let b)):
-            return a == b
-        default:
-            return false
-        }
-    }
-}
