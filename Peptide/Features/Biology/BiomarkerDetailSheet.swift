@@ -155,7 +155,7 @@ struct BiomarkerDetailSheet: View {
         case .rhrBaseline:
             return String(localized: "Your resting heart rate. Lower is typically better — athletes commonly sit in the 50s.")
         case .sleepBaseline:
-            return String(localized: "Total time asleep per night. Atlas's recovery score uses 8 hours as a default target.")
+            return String(localized: "Total time asleep per night. It feeds both your recovery score and your Biological Age.")
         case .stepsBaseline:
             return String(localized: "Daily step count. Loosely correlates with total activity volume.")
         case .bodyTemperature:
