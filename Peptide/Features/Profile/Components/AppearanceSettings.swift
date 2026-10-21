@@ -195,6 +195,7 @@ private struct ThemePickerRow: View {
                     .font(AppFont.scaled(13))
                     .foregroundStyle(AppColor.accentPrimary)
                     .frame(width: settingsIconColumnWidth)
+                    .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("Accent color")
