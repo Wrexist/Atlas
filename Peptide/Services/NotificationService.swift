@@ -586,8 +586,8 @@ final class NotificationService {
         let content = UNMutableNotificationContent()
         if let peptide = peptides.first, peptides.count == 1 {
             content.title = "Time for \(peptide.abbreviation)"
-            let dose = proto.schedule(for: peptide.id).resolvedDose(for: peptide)
-            content.body = "\(peptide.name) \u{2022} \(dose)"
+            let dose = proto.schedule(for: peptide.id).resolvedDose
+            content.body = dose.isEmpty ? peptide.name : "\(peptide.name) \u{2022} \(dose)"
         } else {
             let names = peptides.map(\.abbreviation).joined(separator: ", ")
             content.title = proto.name

@@ -2847,7 +2847,7 @@ final class DataStore {
                 protocolId: proto.id,
                 peptide: peptide,
                 date: entryDate,
-                dose: schedule.resolvedDose(for: peptide),
+                dose: schedule.resolvedDose,
                 notes: "",
                 completed: false
             )

@@ -19,6 +19,23 @@ final class ProtocolScheduleCadenceTests: XCTestCase {
         return calendar.date(from: c)!
     }
 
+    // MARK: - resolvedDose
+
+    func test_resolvedDose_noCustomDose_isEmptyNotResearchRange() {
+        let s = ProtocolSchedule(daysOfWeek: [1], timesPerDay: 1, preferredTimes: ["8:00 AM"])
+        XCTAssertEqual(s.resolvedDose, "")
+    }
+
+    func test_resolvedDose_whitespaceCustomDose_isEmpty() {
+        let s = ProtocolSchedule(daysOfWeek: [1], timesPerDay: 1, preferredTimes: ["8:00 AM"], customDose: "  \n")
+        XCTAssertEqual(s.resolvedDose, "")
+    }
+
+    func test_resolvedDose_customDose_isTrimmed() {
+        let s = ProtocolSchedule(daysOfWeek: [1], timesPerDay: 1, preferredTimes: ["8:00 AM"], customDose: " 300 mcg ")
+        XCTAssertEqual(s.resolvedDose, "300 mcg")
+    }
+
     // MARK: - isInterval
 
     func test_isInterval_falseWhenNilOrZero() {

@@ -77,19 +77,13 @@ struct ProtocolSchedule: Hashable, Codable, Sendable {
         "\(compactDaysDescription) · \(timesPerDay)x"
     }
 
-    /// Returns the dose for an entry, preferring the custom override and
-    /// falling back to the peptide's high end of its default dosage range.
-    /// Whitespace- or newline-only overrides are treated as empty so legacy
-    /// data with stray whitespace doesn't surface as a custom dose.
-    func resolvedDose(for peptide: Peptide) -> String {
-        if let customDose {
-            let normalized = customDose.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !normalized.isEmpty { return normalized }
-        }
-        return peptide.dosageRange
-            .components(separatedBy: "-")
-            .last?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? peptide.dosageRange
+    /// The user's own dose, or empty when they haven't set one. Never
+    /// derived from the database's free-text research range: that prose
+    /// doesn't parse into a dose, and presenting a reference figure as
+    /// the user's dose breaks Guideline 1.4.1. Whitespace-only overrides
+    /// from legacy data count as unset.
+    var resolvedDose: String {
+        customDose?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
 
     // MARK: - Codable (backwards-compatible: customDose / interval are optional)
