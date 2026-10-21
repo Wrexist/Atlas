@@ -85,7 +85,7 @@ struct BodyMusclePicker: View {
     }
 
     private var caption: some View {
-        Text(picked.map { "\($0.displayName) · \(exerciseCount) exercises" } ?? "Tap a muscle to see what trains it")
+        Text(picked.map { muscle -> LocalizedStringKey in "\(muscle.displayName) · ^[\(exerciseCount) exercise](inflect: true)" } ?? "Tap a muscle to see what trains it")
             .font(AppFont.headline)
             .foregroundStyle(picked == nil ? AppColor.textSecondary : AppColor.textPrimary)
             .contentTransition(.numericText())
@@ -98,7 +98,7 @@ struct BodyMusclePicker: View {
             Haptics.impact()
             dismiss()
         } label: {
-            Text(picked == nil ? "Choose a muscle" : "Show \(exerciseCount) exercises")
+            Text(picked == nil ? "Choose a muscle" : "Show ^[\(exerciseCount) exercise](inflect: true)")
                 .font(AppFont.headline)
                 .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
         }

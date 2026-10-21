@@ -138,9 +138,8 @@ struct RoutineCard: View {
 
     private var metaLine: String {
         guard !routine.exercises.isEmpty else { return "No exercises yet" }
-        let count = routine.exercises.count
-        let exercises = count == 1 ? "1 exercise" : "\(count) exercises"
-        return "\(exercises) · \(summary.totalSets) sets · ~\(summary.estimatedMinutes) min"
+        let line = AttributedString(localized: "^[\(routine.exercises.count) exercise](inflect: true) · ^[\(summary.totalSets) set](inflect: true) · ~\(summary.estimatedMinutes) min")
+        return String(line.characters)
     }
 
     private var exerciseLine: String {

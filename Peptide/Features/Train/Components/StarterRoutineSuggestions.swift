@@ -39,7 +39,7 @@ struct StarterRoutineSuggestions: View {
                     Text(template.name)
                         .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
-                    Text("\(template.summary) · \(template.slots.count) exercises")
+                    Text("\(template.summary) · ^[\(template.slots.count) exercise](inflect: true)")
                         .font(AppFont.scaled(11))
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(1)

@@ -446,7 +446,7 @@ struct TrainOverviewView: View {
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(session.completedSetCount) sets")
+                    Text("^[\(session.completedSetCount) set](inflect: true)")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                         .monospacedDigit()

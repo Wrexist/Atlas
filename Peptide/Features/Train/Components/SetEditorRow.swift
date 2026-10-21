@@ -129,7 +129,7 @@ struct SetEditorRow: View {
                     .minimumHitArea()
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text("Previous: \(formatted(prev.weightKg)) \(unit.weightSpokenUnit) for \(prev.reps) reps"))
+            .accessibilityLabel(Text("Previous: \(formatted(prev.weightKg)) \(unit.weightSpokenUnit) for ^[\(prev.reps) rep](inflect: true)"))
             .accessibilityHint(Text("Fills this set with the same weight and reps"))
         } else {
             Text("—")
@@ -204,7 +204,7 @@ struct SetEditorRow: View {
                             lineWidth: repsFocused ? 1 : 0.5)
             )
             .accessibilityLabel(Text("Reps for set \(set.index)"))
-            .accessibilityValue(Text("\(set.reps) reps"))
+            .accessibilityValue(Text("^[\(set.reps) rep](inflect: true)"))
     }
 
     private var completionToggle: some View {
