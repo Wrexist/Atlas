@@ -325,7 +325,7 @@ final class TrainingStorageTests: XCTestCase {
 
         let detected = PRDetectionEngine.shared.ingest(session: session)
 
-        XCTAssertEqual(detected.map(\.kind), [.sessionVolume])
+        XCTAssertTrue(detected.isEmpty, "A first volume is a baseline and no merged best was beaten")
         let loaded = repo.loadPersonalRecords()
         XCTAssertEqual(loaded.count, 1, "Upsert must collapse synced duplicate rows")
         XCTAssertEqual(loaded.first?.bestEstimatedOneRepMaxKg, 120)

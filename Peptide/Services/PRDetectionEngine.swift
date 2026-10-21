@@ -56,7 +56,9 @@ final class PRDetectionEngine {
 
     /// Walks a finished session's exercises, compares each one's
     /// stats against the cached `PersonalRecord`, and upserts any
-    /// new maxes. Returns the deltas so the UI can celebrate.
+    /// new maxes. Returns the deltas so the UI can celebrate. The
+    /// first value ever logged for a kind is stored as a silent
+    /// baseline: a PR has to beat something.
     @discardableResult
     func ingest(session: WorkoutSession, restrictTo: Set<String>? = nil) -> [DetectedPR] {
         var records = Self.loadRecordsByExercise()
@@ -113,35 +115,43 @@ final class PRDetectionEngine {
             var dirty = false
 
             if bestE1RM > (record.bestEstimatedOneRepMaxKg ?? 0) {
+                if record.bestEstimatedOneRepMaxKg != nil {
+                    detected.append(.init(exerciseID: exerciseID,
+                                          kind: .estimatedOneRepMax,
+                                          value: bestE1RM))
+                }
                 record.bestEstimatedOneRepMaxKg = bestE1RM
                 record.bestEstimatedOneRepMaxAt = finishedAt
-                detected.append(.init(exerciseID: exerciseID,
-                                      kind: .estimatedOneRepMax,
-                                      value: bestE1RM))
                 dirty = true
             }
             if bestAbs > (record.bestAbsoluteWeightKg ?? 0) {
+                if record.bestAbsoluteWeightKg != nil {
+                    detected.append(.init(exerciseID: exerciseID,
+                                          kind: .absoluteWeight,
+                                          value: bestAbs))
+                }
                 record.bestAbsoluteWeightKg = bestAbs
                 record.bestAbsoluteWeightAt = finishedAt
-                detected.append(.init(exerciseID: exerciseID,
-                                      kind: .absoluteWeight,
-                                      value: bestAbs))
                 dirty = true
             }
             if sessionVolume > (record.bestSessionVolumeKg ?? 0) {
+                if record.bestSessionVolumeKg != nil {
+                    detected.append(.init(exerciseID: exerciseID,
+                                          kind: .sessionVolume,
+                                          value: sessionVolume))
+                }
                 record.bestSessionVolumeKg = sessionVolume
                 record.bestSessionVolumeAt = finishedAt
-                detected.append(.init(exerciseID: exerciseID,
-                                      kind: .sessionVolume,
-                                      value: sessionVolume))
                 dirty = true
             }
             if bestBodyweightReps > (record.bestRepsBodyweight ?? 0) {
+                if record.bestRepsBodyweight != nil {
+                    detected.append(.init(exerciseID: exerciseID,
+                                          kind: .bodyweightReps,
+                                          value: Double(bestBodyweightReps)))
+                }
                 record.bestRepsBodyweight = bestBodyweightReps
                 record.bestRepsBodyweightAt = finishedAt
-                detected.append(.init(exerciseID: exerciseID,
-                                      kind: .bodyweightReps,
-                                      value: Double(bestBodyweightReps)))
                 dirty = true
             }
 

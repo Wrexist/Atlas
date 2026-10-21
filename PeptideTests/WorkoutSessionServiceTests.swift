@@ -480,14 +480,14 @@ final class PRDetectionEngineIngestTests: XCTestCase {
         )
     }
 
-    func test_ingest_firstSession_recordsAllThreePRs() {
+    func test_ingest_firstSession_storesBaselineWithoutCelebrating() {
         let s = session(exerciseID: "Bench", sets: [
             SetEntry(index: 1, weightKg: 100, reps: 5, completed: true),
             SetEntry(index: 2, weightKg: 100, reps: 5, completed: true),
         ])
         let detected = PRDetectionEngine.shared.ingest(session: s)
-        XCTAssertEqual(detected.count, 3,
-                       "First session for an exercise should set e1RM + abs + volume PRs")
+        XCTAssertTrue(detected.isEmpty,
+                      "The first log of an exercise is a baseline, not a PR")
         let stored = repo.loadPersonalRecords()
         XCTAssertEqual(stored.count, 1)
         XCTAssertEqual(stored.first?.exerciseID, "Bench")

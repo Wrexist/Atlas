@@ -69,6 +69,10 @@ final class PRDetectionEngineTests: XCTestCase {
     // MARK: - Bodyweight reps (Train H3 regression)
 
     func test_bodyweightPushUps_recordRepsPR_evenAtWeightZero() {
+        _ = PRDetectionEngine.shared.ingest(session: session(
+            exerciseID: "test_pushups",
+            sets: [completedSet(weightKg: 0, reps: 20)]
+        ))
         let pushUps25 = completedSet(weightKg: 0, reps: 25)
         let s = session(exerciseID: "test_pushups", sets: [pushUps25])
 
@@ -78,6 +82,17 @@ final class PRDetectionEngineTests: XCTestCase {
             detections.contains { $0.kind == .bodyweightReps && $0.value == 25 },
             "Expected a bodyweightReps PR for 25 push-ups; got \(detections)"
         )
+    }
+
+    func test_firstEverLog_storesBaselineWithoutDetectingPRs() {
+        let detections = PRDetectionEngine.shared.ingest(session: session(
+            exerciseID: "test_bench",
+            sets: [completedSet(weightKg: 60, reps: 8)]
+        ))
+        XCTAssertTrue(detections.isEmpty, "Nothing to beat yet; got \(detections)")
+        let record = SwiftDataRepository.shared.loadPersonalRecords()
+            .first { $0.exerciseID == "test_bench" }
+        XCTAssertEqual(record?.bestAbsoluteWeightKg, 60)
     }
 
     func test_bodyweightPushUps_betterSecondSession_firesAgain() {
@@ -115,6 +130,10 @@ final class PRDetectionEngineTests: XCTestCase {
     // MARK: - Weighted PRs (smoke test for the existing tracks)
 
     func test_weightedSquat_recordsAllThreeWeightedKinds() {
+        _ = PRDetectionEngine.shared.ingest(session: session(
+            exerciseID: "test_squat",
+            sets: [completedSet(weightKg: 90, reps: 5)]
+        ))
         let topSet = completedSet(weightKg: 100, reps: 5)
         let detections = PRDetectionEngine.shared.ingest(session: session(
             exerciseID: "test_squat",
