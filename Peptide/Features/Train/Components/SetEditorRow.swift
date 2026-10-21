@@ -24,13 +24,16 @@ struct SetEditorRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .callout) private var inputHeight: CGFloat = 48
+    @ScaledMetric(relativeTo: .callout) private var compactWeightWidth: CGFloat = 60
+    @ScaledMetric(relativeTo: .callout) private var compactRepsWidth: CGFloat = 48
+    @ScaledMetric(relativeTo: .callout) private var compactInputHeight: CGFloat = Spacing.minimumHitTarget
     @FocusState private var weightFocused: Bool
     @FocusState private var repsFocused: Bool
     @State private var completionTrigger = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            let rowLayout = focusStyle && dynamicTypeSize.isAccessibilitySize
+            let rowLayout = dynamicTypeSize.isAccessibilitySize
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.sm))
                 : AnyLayout(HStackLayout(spacing: Spacing.sm))
             rowLayout {
@@ -162,7 +165,7 @@ struct SetEditorRow: View {
                 Text(unit.weightSuffix).font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
             }
         }
-            .frame(width: focusStyle ? nil : 60, height: focusStyle ? inputHeight : Spacing.minimumHitTarget)
+            .frame(width: focusStyle ? nil : compactWeightWidth, height: focusStyle ? inputHeight : compactInputHeight)
             .frame(maxWidth: focusStyle ? .infinity : nil)
             .padding(.horizontal, focusStyle ? Spacing.sm : 0)
             .background(
@@ -192,7 +195,7 @@ struct SetEditorRow: View {
             .monospacedDigit()
             .focused($repsFocused)
             .accessibilityIdentifier("workout-reps-\(set.index)")
-            .frame(width: focusStyle ? nil : 48, height: focusStyle ? inputHeight : Spacing.minimumHitTarget)
+            .frame(width: focusStyle ? nil : compactRepsWidth, height: focusStyle ? inputHeight : compactInputHeight)
             .frame(maxWidth: focusStyle ? .infinity : nil)
             .background(
                 RoundedRectangle(cornerRadius: focusStyle ? Spacing.sheetCornerRadius : Spacing.chipCornerRadius, style: .continuous)
