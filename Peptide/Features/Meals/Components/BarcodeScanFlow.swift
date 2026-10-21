@@ -72,6 +72,8 @@ struct BarcodeScanFlow: View {
     @State private var pendingPackageImage: UIImage?
     @State private var showPackageConsent = false
     @State private var showScanLimitPaywall = false
+    /// Camera access was declined (not restricted), so Settings can fix it.
+    @State private var cameraDenied = false
     @State private var storeService = StoreService.shared
 
     private enum Phase: Equatable {
@@ -319,6 +321,18 @@ struct BarcodeScanFlow: View {
                 handleDetected(barcode: manualBarcode)
             }
             .disabled(manualBarcode.trimmingCharacters(in: .whitespaces).count < 8)
+
+            if cameraDenied {
+                openSettingsButton
+            }
+        }
+    }
+
+    private var openSettingsButton: some View {
+        GlassButton(title: "Open Settings", icon: "gear", style: .secondary) {
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(url)
+            }
         }
     }
 
@@ -870,6 +884,10 @@ struct BarcodeScanFlow: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.lg)
             VStack(spacing: Spacing.sm) {
+                if cameraDenied {
+                    openSettingsButton
+                }
+
                 GlassButton(title: "Try again", style: .primary) {
                     errorText = nil
                     product = nil
@@ -940,6 +958,7 @@ struct BarcodeScanFlow: View {
             case .authorized:
                 phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
             case .denied, .restricted:
+                cameraDenied = status == .denied
                 errorText = "Camera access is off. Enable it in Settings to scan barcodes, or type a code below."
                 phase = .manualEntry
             case .notDetermined:
@@ -1121,7 +1140,9 @@ struct BarcodeScanFlow: View {
     }
 
     private func openPackageCamera() async {
-        if await CameraAuthorization.resolve() == .granted {
+        let outcome = await CameraAuthorization.resolve()
+        cameraDenied = outcome == .denied
+        if outcome == .granted {
             isShowingPackageCamera = true
         } else {
             errorText = "Allow camera access in Settings to photograph the package."
