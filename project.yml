@@ -320,6 +320,11 @@ schemes:
     test:
       config: Debug
       storeKitConfiguration: Peptide/Resources/Products.storekit
+      # Feeds the Coverage report step in pr-checks.yml; XcodeGen
+      # defaults this to false, which left that step reading nothing.
+      gatherCoverageData: true
+      coverageTargets:
+        - Peptide
       targets:
         - PeptideTests
         - PeptideUITests
