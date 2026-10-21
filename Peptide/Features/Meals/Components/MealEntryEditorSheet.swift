@@ -22,6 +22,10 @@ struct MealEntryEditorSheet: View {
     @State private var carbsG: String
     @State private var fatG: String
     @State private var date: Date
+    /// The macros the sheet last filled in itself (as logged, a portion
+    /// chip, or a re-weighed food). Typed values that differ no longer
+    /// match `components`, so those are dropped on save.
+    @State private var appliedMacros: LoggableMeal
     @State private var showDeleteConfirm: Bool = false
     @FocusState private var focusedField: MacroField?
 
@@ -51,6 +55,7 @@ struct MealEntryEditorSheet: View {
         _carbsG = State(initialValue: String(initial.carbsG))
         _fatG = State(initialValue: String(initial.fatG))
         _date = State(initialValue: initial.date)
+        _appliedMacros = State(initialValue: LifestyleDataLogic.scaledMacros(of: initial, by: 1))
     }
 
     /// The typed macros, or nil while any field is blank or not a
@@ -293,6 +298,7 @@ struct MealEntryEditorSheet: View {
     }
 
     private func apply(_ macros: LoggableMeal) {
+        appliedMacros = macros
         calories = String(macros.calories)
         proteinG = String(macros.proteinG)
         carbsG = String(macros.carbsG)
@@ -344,7 +350,7 @@ struct MealEntryEditorSheet: View {
         guard let macros = editedMacros, !trimmedName.isEmpty else { return }
         var updated = initial
         updated.name = trimmedName
-        updated.components = components
+        updated.components = macros == appliedMacros ? components : nil
         updated.category = category
         updated.calories = macros.calories
         updated.proteinG = macros.proteinG
