@@ -145,7 +145,7 @@ struct AtlasProgressView: View {
         .cardChrome()
     }
 
-    private func streakTile(label: String, current: Int, best: Int, tint: Color) -> some View {
+    private func streakTile(label: LocalizedStringKey, current: Int, best: Int, tint: Color) -> some View {
         VStack(spacing: Spacing.xxs) {
             Image(systemName: "flame.fill")
                 .font(AppFont.scaled(16, weight: .semibold))
@@ -169,7 +169,7 @@ struct AtlasProgressView: View {
                 .fill(AppColor.surfaceElevated.opacity(0.5))
         )
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(label): \(current) day streak, best \(best)")
+        .accessibilityLabel(Text(label) + Text(verbatim: ": ") + Text("^[\(current) day](inflect: true) streak, best \(best)"))
     }
 
     // MARK: - Consistency
@@ -220,7 +220,7 @@ struct AtlasProgressView: View {
 
     // MARK: - Shared
 
-    private func sectionHeader(_ title: String, systemImage: String) -> some View {
+    private func sectionHeader(_ title: LocalizedStringKey, systemImage: String) -> some View {
         HStack(spacing: 6) {
             Image(systemName: systemImage)
                 .font(AppFont.scaled(13, weight: .semibold))
