@@ -467,7 +467,8 @@ private struct FinishWorkoutSheet: View {
     private var effortSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             sectionTitle("How hard was it?")
-            // A fixed 1–5 scale: five adaptive word chips wrapped 3 + 2.
+            // A fixed 1–5 scale: five numbered chips in one row; the caption
+            // below names the selected level.
             HStack(spacing: Spacing.sm) {
                 ForEach(Self.effortLabels.indices, id: \.self) { index in
                     effortChip(value: index + 1, label: Self.effortLabels[index])

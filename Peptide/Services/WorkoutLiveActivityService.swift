@@ -80,9 +80,9 @@ final class WorkoutLiveActivityService {
         }
     }
 
-    /// Pushes the session's current set / exercise counts. The rest
-    /// countdown is carried over untouched — it isn't derived from the
-    /// session, and a set being logged shouldn't reset it.
+    /// Pushes the session's current set / exercise counts and its rest
+    /// countdown, both read from the session (`focus.rest`), so logging a
+    /// set leaves a running rest timer where it was.
     func update(_ session: WorkoutSession) {
         guard #available(iOS 16.1, *),
               let activity = currentActivity(for: session.id) else { return }
@@ -182,8 +182,8 @@ final class WorkoutLiveActivityService {
         )
     }
 
-    /// The exercise the user is working through: the first with an
-    /// unchecked working set, falling back to the last one they touched
+    /// The exercise the user is working through: the one selected in the
+    /// focus view, else the first with an unchecked set, else the first,
     /// so a finished-but-not-sealed workout doesn't blank the label.
     private static func currentExerciseName(in session: WorkoutSession) -> String {
         guard let entry = session.selectedExercise else { return "" }
