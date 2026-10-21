@@ -30,23 +30,22 @@ enum Heartbeat {
 }
 
 /// The Recovery page's hero: a heart that beats at the user's own resting
-/// heart rate and sends a ripple out on every beat. Holds still in Always
-/// On and under Reduce Motion, and stops drawing while its page is off
-/// screen.
+/// heart rate and sends a ripple out on every beat. Holds still when there
+/// is no resting heart rate, in Always On and under Reduce Motion, and
+/// stops drawing while its page is off screen.
 struct PulsingHeart: View {
-    let bpm: Int
+    let bpm: Int?
     var size: CGFloat = 64
 
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.watchPageIsActive) private var isActive
 
-    private var isStill: Bool { isLuminanceReduced || reduceMotion }
+    private var isStill: Bool { bpm == nil || isLuminanceReduced || reduceMotion }
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30, paused: isStill || !isActive)) { context in
-            let sinceR = Heartbeat.beats(at: context.date, bpm: bpm) - Heartbeat.rPeak
-            let phase = Heartbeat.fraction(sinceR)
+            let phase = bpm.map { Heartbeat.fraction(Heartbeat.beats(at: context.date, bpm: $0) - Heartbeat.rPeak) } ?? 0
             ZStack {
                 ForEach(0..<2, id: \.self) { index in
                     ripple(age: (phase + Double(index)) / 2)
