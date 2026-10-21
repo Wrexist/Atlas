@@ -299,6 +299,17 @@ enum BodyMetricsRanges {
     static let defaultWeightKg: Int = 75
     static let defaultAge: Int = 30
 
+    /// The wheels display the defaults for unset fields, so committing the
+    /// step must store them too — otherwise an untouched wheel saves nil
+    /// and the nutrition targets can't be derived.
+    static func filledWithDefaults(_ metrics: BodyMetrics) -> BodyMetrics {
+        var filled = metrics
+        filled.heightCm = filled.heightCm ?? Double(defaultHeightCm)
+        filled.weightKg = filled.weightKg ?? Double(defaultWeightKg)
+        filled.age = filled.age ?? defaultAge
+        return filled
+    }
+
     static func clampHeightCm(_ v: Int) -> Int { v.clamped(to: heightCm) }
     static func clampHeightFeet(_ v: Int) -> Int { v.clamped(to: heightFeet) }
     static func clampWeightKg(_ v: Int) -> Int { v.clamped(to: weightKg) }

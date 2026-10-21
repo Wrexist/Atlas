@@ -690,6 +690,7 @@ struct OnboardingView: View {
             // save, so we never clobber an explicit choice.
             bodyMetrics.activityLevel = activityFromExperience()
         case Page.bodyMetrics:
+            bodyMetrics = BodyMetricsRanges.filledWithDefaults(bodyMetrics)
             dataStore.updateBodyMetrics(bodyMetrics)
         case Page.schedule, Page.equipment:
             // Schedule and equipment both feed the same struct.

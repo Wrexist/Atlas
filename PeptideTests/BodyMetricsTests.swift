@@ -31,6 +31,22 @@ final class BodyMetricsTests: XCTestCase {
         XCTAssertTrue(m.isComplete)
     }
 
+    func test_filledWithDefaults_untouchedWheels_storeDisplayedDefaults() {
+        let filled = BodyMetricsRanges.filledWithDefaults(.unspecified)
+        XCTAssertEqual(filled.heightCm, Double(BodyMetricsRanges.defaultHeightCm))
+        XCTAssertEqual(filled.weightKg, Double(BodyMetricsRanges.defaultWeightKg))
+        XCTAssertEqual(filled.age, BodyMetricsRanges.defaultAge)
+        XCTAssertTrue(filled.isComplete)
+    }
+
+    func test_filledWithDefaults_keepsUserValues() {
+        var m = BodyMetrics.unspecified
+        m.weightKg = 92
+        let filled = BodyMetricsRanges.filledWithDefaults(m)
+        XCTAssertEqual(filled.weightKg, 92)
+        XCTAssertEqual(filled.heightCm, Double(BodyMetricsRanges.defaultHeightCm))
+    }
+
     // MARK: - Codable round-trip
 
     func test_bodyMetrics_codableRoundTrip() throws {
