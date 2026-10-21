@@ -19,12 +19,14 @@ struct FoodArtwork: Equatable {
         return fallback
     }
 
-    /// Short keywords ("te", "ost", "ris") must be a whole word so they
-    /// don't fire inside "toast" or "pris"; longer ones match the start
-    /// of a word, which catches plurals and Swedish compounds
-    /// ("jordgubbsylt", "kycklingfilé").
+    /// Short keywords ("te", "ost", "ris") and ones marked with a leading
+    /// "=" must be a whole word so they don't fire inside "toast",
+    /// "pris" or "vattenmelon"; other longer ones match the start of a
+    /// word, which catches plurals and Swedish compounds ("jordgubbsylt",
+    /// "kycklingfilé").
     private static func matches(_ keyword: String, words: [String], text: String) -> Bool {
         if keyword.contains(" ") { return text.contains(keyword) }
+        if keyword.hasPrefix("=") { return words.contains(String(keyword.dropFirst())) }
         if keyword.count <= 3 { return words.contains(keyword) }
         return words.contains { $0.hasPrefix(keyword) }
     }
@@ -49,11 +51,11 @@ struct FoodArtwork: Equatable {
     /// is a burger.
     private static let catalog: [Entry] = [
         Entry(emoji: "🍬", tint: AppColor.destructive,
-              keywords: "candy|godis|gummy|gummies|bilar|ferrari|lakrits|licorice|sweets|skum|geléhall|marshmallow"),
+              keywords: "candy|godis|gummy|gummies|bilar|ferrari|lakrits|licorice|sweets|skumgodis|geléhall|marshmallow"),
         Entry(emoji: "🍫", tint: AppColor.macroFat,
               keywords: "chocolate|choklad|cocoa|kakao|marabou|snickers|twix|kitkat"),
         Entry(emoji: "🍦", tint: AppColor.macroWater,
-              keywords: "ice cream|glass|gelato|sorbet"),
+              keywords: "ice cream|gelato|sorbet"),
         Entry(emoji: "🍪", tint: AppColor.macroCarbs,
               keywords: "cookie|kaka|kakor|kex|biscuit|digestive|brownie"),
         Entry(emoji: "🍰", tint: AppColor.macroCarbs,
@@ -66,9 +68,9 @@ struct FoodArtwork: Equatable {
         Entry(emoji: "🍔", tint: AppColor.macroProtein, keywords: "burger|hamburgare|hamburger"),
         Entry(emoji: "🌮", tint: AppColor.warning, keywords: "taco|tacos|burrito|wrap|quesadilla"),
         Entry(emoji: "🍣", tint: AppColor.macroWater, keywords: "sushi|maki|nigiri|poke"),
-        Entry(emoji: "🍜", tint: AppColor.macroCarbs, keywords: "ramen|noodle|noodles|nudlar|pho|soup|soppa"),
+        Entry(emoji: "🍜", tint: AppColor.macroCarbs, keywords: "ramen|noodle|noodles|nudlar|glassnudlar|pho|soup|soppa"),
         Entry(emoji: "🍝", tint: AppColor.macroCarbs, keywords: "pasta|spaghetti|penne|lasagne|lasagna|makaroner|fusilli"),
-        Entry(emoji: "🍚", tint: AppColor.macroCarbs, keywords: "rice|ris|risotto|basmati|jasmin"),
+        Entry(emoji: "🍚", tint: AppColor.macroCarbs, keywords: "rice|ris|risotto|basmati|jasminris"),
         Entry(emoji: "🥣", tint: AppColor.macroCarbs,
               keywords: "oat|oats|havre|havregryn|gröt|porridge|müsli|muesli|granola|cereal|flingor"),
         Entry(emoji: "🍞", tint: AppColor.macroCarbs,
@@ -88,7 +90,7 @@ struct FoodArtwork: Equatable {
         Entry(emoji: "🧈", tint: AppColor.warning, keywords: "butter|smör|margarine|bregott"),
         Entry(emoji: "🫒", tint: AppColor.success, keywords: "olive|oliv|oil|olja|rapsolja"),
         Entry(emoji: "🥛", tint: AppColor.macroWater,
-              keywords: "milk|mjölk|yoghurt|yogurt|kvarg|quark|filmjölk|cottage|skyr|fil|kefir"),
+              keywords: "milk|mjölk|skummjölk|yoghurt|yogurt|kvarg|quark|filmjölk|cottage|skyr|fil|kefir"),
         Entry(emoji: "🍵", tint: AppColor.success, keywords: "tea|te|matcha|chai"),
         Entry(emoji: "☕", tint: AppColor.macroFat,
               keywords: "coffee|kaffe|latte|espresso|cappuccino|americano|flat white"),
@@ -96,7 +98,7 @@ struct FoodArtwork: Equatable {
         Entry(emoji: "🍷", tint: AppColor.destructive, keywords: "wine|vin|prosecco|champagne"),
         Entry(emoji: "🥤", tint: AppColor.accentPrimary,
               keywords: "soda|läsk|cola|juice|saft|energy|shake|smoothie|sprite|fanta|pepsi|nocco"),
-        Entry(emoji: "💧", tint: AppColor.macroWater, keywords: "water|vatten|mineralvatten"),
+        Entry(emoji: "💧", tint: AppColor.macroWater, keywords: "water|=vatten|mineralvatten"),
         Entry(emoji: "🍓", tint: AppColor.destructive,
               keywords: "strawberry|strawberries|jordgubb|jordgubbar|hallon|raspberry|raspberries|berry|berries|bär|blåbär|blueberry|blueberries|lingon"),
         Entry(emoji: "🍌", tint: AppColor.warning, keywords: "banana|bananas|banan|bananer"),
@@ -113,6 +115,9 @@ struct FoodArtwork: Equatable {
         Entry(emoji: "🥦", tint: AppColor.success,
               keywords: "broccoli|kål|spinach|spenat|salad|sallad|vegetable|vegetables|grönsak|grönsaker|kale|ärtor|peas|bönor|beans|linser|lentils|gurka|cucumber|paprika"),
         Entry(emoji: "🥟", tint: AppColor.macroCarbs, keywords: "gyoza|dumpling|dumplings"),
+        // Last: Swedish "glass" (ice cream) is also the English serving
+        // word, so "Glass of milk" and "Glass noodles" match their food first.
+        Entry(emoji: "🍦", tint: AppColor.macroWater, keywords: "=glass"),
     ]
 }
 
