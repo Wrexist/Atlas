@@ -48,7 +48,7 @@ struct PrimaryCTAButton: View {
             // A tinted drop under a filled shape, not a halo behind a
             // glyph — the elevation idiom the accent medallions use.
             .shadow(color: AppColor.accentGlow, radius: 14, y: 6)
-            .opacity(isEnabled ? 1 : 0.4)
+            .opacity(isEnabled ? 1 : AppOpacity.disabled)
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.97))
     }

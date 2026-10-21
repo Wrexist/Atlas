@@ -36,6 +36,7 @@ struct GlassButton: View {
             }
         }
         .buttonStyle(ScalePressStyle())
+        .opacity(isEnabled ? 1 : AppOpacity.disabled)
     }
 
     private var label: some View {
@@ -55,7 +56,6 @@ struct GlassButton: View {
         .padding(.vertical, Spacing.md)
         .frame(minHeight: Spacing.minimumHitTarget)
         .foregroundStyle(foregroundColor)
-        .opacity(isEnabled ? 1 : 0.4)
     }
 
     /// Kept at ~0.15–0.18. Above that the tint stops reading as coloured glass

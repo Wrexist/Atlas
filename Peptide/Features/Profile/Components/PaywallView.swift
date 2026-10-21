@@ -931,7 +931,7 @@ struct PaywallView: View {
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.97))
         .disabled(selectedProduct == nil || isPurchasing)
-        .opacity(selectedProduct == nil ? 0.5 : 1)
+        .opacity(selectedProduct == nil ? AppOpacity.disabled : 1)
         .accessibilityLabel(ctaAccessibilityLabel)
     }
 

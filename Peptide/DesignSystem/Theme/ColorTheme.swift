@@ -212,6 +212,11 @@ enum AppColor {
     static let metricActivity = Color(light: 0x35603F, dark: 0x4A7C59)
 }
 
+enum AppOpacity {
+    /// Applied to a whole disabled control — surface and label together.
+    static let disabled: Double = 0.4
+}
+
 extension Color {
     init(hex: UInt, opacity: Double = 1.0) {
         self.init(
