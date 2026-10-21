@@ -278,6 +278,15 @@ final class AuthService {
             }
             self.coordinator = coordinator
             coordinator.start()
+            // Same watchdog as `signIn()`: Apple's auth daemon can hang, and
+            // without it the deletion card waits on "Deleting…" forever. A
+            // timeout reads as `.unavailable`, so the erase still runs and
+            // the user is told to revoke manually. `finish` resolves once,
+            // so a late callback (or this, after one) can't resume twice.
+            Task { @MainActor in
+                try? await Task.sleep(for: Self.signInTimeout)
+                coordinator.finish(.failure(ASAuthorizationError(.failed)))
+            }
         }
     }
 
