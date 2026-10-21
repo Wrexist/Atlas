@@ -63,6 +63,12 @@ final class DataStore {
     @ObservationIgnored private var cacheVersion: Int = 0
     @ObservationIgnored private var versionedDay: Date = Calendar.current.startOfDay(for: Date())
 
+    /// When activation last pulled from HealthKit. A glance at Control
+    /// Center or a Face ID prompt also re-activates the scene, and each
+    /// pull republishes to the Watch and widgets.
+    @ObservationIgnored private var lastHealthRefresh: Date?
+    private static let healthRefreshInterval: TimeInterval = 5 * 60
+
     /// IDs scheduled for delete on the next save. Replaces the
     /// previous "bulk-replace and delete-missing" save path that
     /// silently dropped CloudKit-added records the local in-memory
@@ -1062,7 +1068,20 @@ final class DataStore {
         LifestyleDataLogic.logWeight(into: &profile, kg: kg, date: date)
         save()
         guard HealthSyncSettings.isEnabled else { return }
-        Task { await HealthKitService.shared.writeBodyMass(kg: kg, date: date) }
+        enqueueBodyMassHealthWrite { await HealthKitService.shared.writeBodyMass(kg: kg, date: date) }
+    }
+
+    /// Body-mass mirroring is delete-then-save for the day, so two quick
+    /// weigh-ins run concurrently would both delete, then both save and
+    /// leave two samples. Each write waits for the one before it.
+    @ObservationIgnored private var bodyMassHealthWriteTask: Task<Void, Never>?
+
+    private func enqueueBodyMassHealthWrite(_ write: @escaping @Sendable @MainActor () async -> Void) {
+        let previous = bodyMassHealthWriteTask
+        bodyMassHealthWriteTask = Task {
+            await previous?.value
+            await write()
+        }
     }
 
     /// Weight history with at-most-one entry per calendar day.
@@ -1078,7 +1097,8 @@ final class DataStore {
         LifestyleDataLogic.deleteWeight(from: &profile, id: id)
         save()
         guard let deleted, HealthSyncSettings.isEnabled else { return }
-        Task { await HealthKitService.shared.deleteBodyMass(onDayOf: deleted.date) }
+        let day = deleted.date
+        enqueueBodyMassHealthWrite { await HealthKitService.shared.deleteBodyMass(onDayOf: day) }
     }
 
     func logWater(oz: Int, date: Date = Date()) {
@@ -1692,9 +1712,10 @@ final class DataStore {
             .map { Set($0.exercises.map(\.exerciseID)) } ?? []
         repo.beginSaveBatch()
         repo.deleteWorkoutSession(id: id)
-        if HealthSyncSettings.isEnabled {
-            Task { await HealthKitService.shared.deleteWorkout(id: id) }
-        }
+        // Not gated on the sync toggle: a workout mirrored while sync was
+        // on must still leave Health. It matches only Atlas's own sample
+        // and fails quietly without permission.
+        Task { await HealthKitService.shared.deleteWorkout(id: id) }
         PRDetectionEngine.shared.recompute(exerciseIDs: affectedExercises)
         cacheVersion &+= 1
         // Same reason as `recordWorkoutFinished`: a repo-level write is
@@ -2664,6 +2685,15 @@ final class DataStore {
         // scheduled entries before the status change lands.
         performCycleAutoCompletion()
         regenerateTodayEntries()
+        refreshHealthIfDue()
+    }
+
+    private func refreshHealthIfDue() {
+        let now = Date()
+        if let last = lastHealthRefresh,
+           now.timeIntervalSince(last) < Self.healthRefreshInterval,
+           Calendar.current.isDate(last, inSameDayAs: now) { return }
+        lastHealthRefresh = now
         Task { await refreshWatchVitals() }
         Task { await importHealthWeights() }
     }

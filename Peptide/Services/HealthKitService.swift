@@ -69,13 +69,9 @@ final class HealthKitService {
     /// is non-Sendable and a `static let` of a non-Sendable type on a
     /// MainActor-isolated class produces Swift 6 warnings.
     ///
-    /// `MealEntry` doesn't carry fiber as a top-level field today —
-    /// the food library tracks it in `ScannedProduct.Nutriments`
-    /// only, not in the integer-macros log shape. Requesting fiber
-    /// write permission when we never write a fiber sample would
-    /// surface a permission prompt the app can't honor, so it's
-    /// deliberately omitted here. Bring fiber back once MealEntry
-    /// gains a `fiberG: Int` field.
+    /// Fiber is left out: `writeMealEntry` doesn't write a fiber sample
+    /// (though `MealEntry.fiberG` now exists), and asking for a write
+    /// permission the app never uses would be an empty prompt.
     private var nutritionWriteTypes: Set<HKSampleType> {
         [
             HKQuantityType(.dietaryEnergyConsumed),
@@ -113,8 +109,8 @@ final class HealthKitService {
 
     // MARK: - Nutrition write
 
-    /// Writes a `MealEntry`'s macros to Apple Health as five quantity
-    /// samples (energy, protein, carbs, fat, fiber). Each sample's
+    /// Writes a `MealEntry`'s macros to Apple Health as four quantity
+    /// samples (energy, protein, carbs, fat). Each sample's
     /// `HKMetadataKeyExternalUUID` is set to the entry's UUID so the
     /// matching `deleteSamples(forEntryID:)` call can find them again
     /// on undo — without that anchor we'd have to delete by date
@@ -179,9 +175,7 @@ final class HealthKitService {
             date: entry.date,
             metadata: baseMetadata
         ))
-        // Fiber intentionally omitted — `MealEntry` doesn't expose
-        // it separately. See `nutritionWriteTypes` doc comment for
-        // the full rationale.
+        // Fiber not written — see `nutritionWriteTypes`.
         guard !samples.isEmpty else { return }
 
         do {
