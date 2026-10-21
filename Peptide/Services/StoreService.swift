@@ -363,6 +363,8 @@ final class StoreService {
     /// Re-reads the subscription group's renewal state. `currentEntitlements`
     /// drops a subscription once it leaves grace and enters plain billing
     /// retry, so the status API is the only place that state is visible.
+    /// It is also where a turned-off auto-renew shows, which retires the
+    /// trial-ending reminder.
     private func refreshBillingRetryState() async {
         guard let subscription = (monthlyProduct ?? annualProduct)?.subscription,
               let statuses = try? await subscription.status
@@ -372,6 +374,12 @@ final class StoreService {
         }
         isInBillingRetry = statuses.contains {
             $0.state == .inBillingRetryPeriod || $0.state == .inGracePeriod
+        }
+        // An unverified renewal info counts as renewing, so only a
+        // verified auto-renew-off clears the reminder.
+        let willRenew = statuses.contains { (try? $0.renewalInfo.payloadValue)?.willAutoRenew ?? true }
+        if !statuses.isEmpty && !willRenew {
+            NotificationService.shared.cancelTrialReminder()
         }
     }
 

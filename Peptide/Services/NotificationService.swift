@@ -459,6 +459,13 @@ final class NotificationService {
         }
     }
 
+    /// Drops the trial-ending reminder once auto-renew is off: its "you'll
+    /// be charged" line is false for a trial the user already cancelled.
+    func cancelTrialReminder() {
+        center.removePendingNotificationRequests(withIdentifiers: [Self.trialReminderID])
+        currentIDs.remove(Self.trialReminderID)
+    }
+
     private struct TimeslotKey: Hashable {
         let day: Int
         let time: String
