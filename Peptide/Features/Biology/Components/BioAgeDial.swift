@@ -25,6 +25,8 @@ struct BioAgeDial: View {
     var rangeHalfSpan: Int = 5
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// The pulse clock stops while the dial is scrolled out of view.
+    @State private var isOnScreen = true
 
     private var lowerBound: Double { Double(chronologicalAge - rangeHalfSpan) }
     private var upperBound: Double { Double(chronologicalAge + rangeHalfSpan) }
@@ -60,6 +62,7 @@ struct BioAgeDial: View {
             boundLabels
         }
         .frame(width: size, height: size)
+        .onScrollVisibilityChange { isOnScreen = $0 }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityDescription)
     }
@@ -128,7 +131,7 @@ struct BioAgeDial: View {
     @ViewBuilder
     private var markerPulse: some View {
         if let markerValue {
-            TimelineView(.animation(minimumInterval: 1.0 / 30)) { context in
+            TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !isOnScreen)) { context in
                 let phase = context.date.timeIntervalSinceReferenceDate
                     .truncatingRemainder(dividingBy: Self.pulsePeriod) / Self.pulsePeriod
                 Circle()
