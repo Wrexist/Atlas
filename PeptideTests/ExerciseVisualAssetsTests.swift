@@ -18,7 +18,7 @@ final class ExerciseVisualAssetsTests: XCTestCase {
                                            candidates: front))
         // Just outside the chest's lateral boundary, without another candidate
         // stealing the nearby hit. Zero tolerance must preserve exact behavior.
-        let nearby = CGPoint(x: 374, y: 365)
+        let nearby = CGPoint(x: 368, y: 365)
         XCTAssertNil(TrainingAnatomy.hitTest(nearby, in: rect, candidates: [.pecSternal], tolerance: 0))
         XCTAssertEqual(TrainingAnatomy.hitTest(nearby, in: rect, candidates: [.pecSternal]), .pecSternal)
     }
@@ -34,7 +34,7 @@ final class ExerciseVisualAssetsTests: XCTestCase {
             let path = TrainingAnatomy.path(for: muscle, in: rect)
             XCTAssertFalse(path.isEmpty, muscle.rawValue)
             XCTAssertTrue(rect.contains(path.boundingRect), muscle.rawValue)
-            XCTAssertEqual(path.boundingRect.midX, rect.midX, accuracy: 0.01)
+            XCTAssertEqual(path.boundingRect.midX, CGFloat(TrainingAnatomy.mirrorAxis), accuracy: 0.01)
         }
     }
 

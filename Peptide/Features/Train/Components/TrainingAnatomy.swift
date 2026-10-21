@@ -4,6 +4,10 @@ import SwiftUI
 /// Coordinates are authored against the unmodified 1024 x 1536 source artwork.
 enum TrainingAnatomy {
     static let aspect: CGFloat = 2.0 / 3.0
+    /// The sculpt's midline in artwork pixels. Regions are authored for the
+    /// figure's right side and mirrored here — about the body, not the
+    /// canvas centre, which sits three pixels off it.
+    static let mirrorAxis: Double = 509
     static let front = "atlas_body_front"
     static let back = "atlas_body_back"
     static let regions: [String: [[Double]]] = {
@@ -29,8 +33,8 @@ enum TrainingAnatomy {
         for mirrored in [false, true] {
             let points = coordinates.compactMap { pair -> CGPoint? in
                 guard pair.count == 2 else { return nil }
-                let x = pair[0] / 1024
-                return CGPoint(x: rect.minX + (mirrored ? 1 - x : x) * rect.width,
+                let x = (mirrored ? 2 * mirrorAxis - pair[0] : pair[0]) / 1024
+                return CGPoint(x: rect.minX + x * rect.width,
                                y: rect.minY + pair[1] / 1536 * rect.height)
             }
             guard points.count >= 3 else { continue }
