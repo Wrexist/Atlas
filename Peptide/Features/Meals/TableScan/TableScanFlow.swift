@@ -30,6 +30,8 @@ struct TableScanFlow: View {
 
     @State private var phase: Phase = .capture
     @State private var photo: UIImage?
+    /// When an imported photo was taken; nil for a shot from the viewfinder.
+    @State private var capturedAt: Date?
     @State private var dishes: [ReviewDish] = []
     @State private var landed: Set<UUID> = []
     @State private var dissolveStart: Date?
@@ -53,10 +55,13 @@ struct TableScanFlow: View {
     @State private var hasSpentScan = false
 
     @State private var work: Task<Void, Never>?
-    @State private var readQueue: Task<Void, Never>?
+    /// Every queue still reading — each new batch waits on the one before,
+    /// so all of them are cancelled together.
+    @State private var readQueues: [Task<Void, Never>] = []
     @State private var isFinished = false
     @State private var shutterCount = 0
     @State private var isSweeping = false
+    @State private var confirmsDiscard = false
     @Namespace private var lift
     @Namespace private var lensPill
 
@@ -103,6 +108,12 @@ struct TableScanFlow: View {
             AIConsentSheet(whatIsSent: "A cut-out of each dish on the table you photograph.")
                 .liquidGlassPresentation()
         }
+        .confirmationDialog("Discard this table?", isPresented: $confirmsDiscard, titleVisibility: .visible) {
+            Button("Discard table", role: .destructive) { close() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Your dishes won't be logged.")
+        }
         .sheet(isPresented: $showScanLimitPaywall) {
             PaywallView(source: .mealScanLimit)
                 .environment(dataStore)
@@ -127,7 +138,7 @@ struct TableScanFlow: View {
                 }
             }
             Spacer(minLength: 0)
-            GlassIconButton(icon: "xmark", accessibilityLabel: "Close", size: 32) { close() }
+            GlassIconButton(icon: "xmark", accessibilityLabel: "Close", size: 32) { requestClose() }
         }
     }
 
@@ -232,6 +243,7 @@ struct TableScanFlow: View {
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
+                .minimumHitArea()
                 .accessibilityAddTraits(lens == option ? .isSelected : [])
             }
         }
@@ -471,7 +483,7 @@ struct TableScanFlow: View {
             }
             GlassButton(title: keepTitle, style: .primary, isFullWidth: true) { keep() }
                 .disabled(isReading || keepableCount == 0)
-            Button("Discard") { close() }
+            Button("Discard") { requestClose() }
                 .font(AppFont.footnote)
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(minHeight: Spacing.minimumHitTarget)
@@ -545,6 +557,7 @@ struct TableScanFlow: View {
         work?.cancel()
         work = Task {
             guard let image = await camera.capture() else { return }
+            capturedAt = nil
             if saveOriginal { UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil) }
             await liftDishes(from: image)
         }
@@ -556,6 +569,7 @@ struct TableScanFlow: View {
             phase = .failed
             return
         }
+        capturedAt = PhotoCaptureDate.captureDate(fromImageData: data)
         await liftDishes(from: image)
     }
 
@@ -633,8 +647,9 @@ struct TableScanFlow: View {
 
     private func restart() {
         work?.cancel()
-        readQueue?.cancel()
+        cancelReads()
         photo = nil
+        capturedAt = nil
         dishes = []
         errorText = nil
         phase = .capture
@@ -653,8 +668,8 @@ struct TableScanFlow: View {
     private func readPending() {
         let ids = dishes.filter { $0.reading == .pending }.map(\.id)
         guard !ids.isEmpty else { return }
-        let previous = readQueue
-        readQueue = Task {
+        let previous = readQueues.last
+        readQueues.append(Task {
             await previous?.value
             await withTaskGroup(of: Void.self) { group in
                 var queue = ids.makeIterator()
@@ -663,25 +678,34 @@ struct TableScanFlow: View {
                     group.addTask { @MainActor in await read(id) }
                 }
                 while await group.next() != nil {
-                    guard let id = queue.next() else { continue }
+                    guard !Task.isCancelled, let id = queue.next() else { continue }
                     group.addTask { @MainActor in await read(id) }
                 }
             }
-        }
+        })
+    }
+
+    private func cancelReads() {
+        readQueues.forEach { $0.cancel() }
+        readQueues = []
     }
 
     private func read(_ id: UUID) async {
-        guard let sticker = dishes.first(where: { $0.id == id })?.sticker else { return }
+        // A batch queued behind another may list a dish that one has read.
+        guard let dish = dishes.first(where: { $0.id == id }), dish.reading == .pending else { return }
         let result: ReviewDish.Reading
         do {
-            let reading = try await TableDishReader.read(sticker, myFoods: dataStore.profile.customFoods)
+            let reading = try await TableDishReader.read(dish.sticker, myFoods: dataStore.profile.customFoods)
             result = .read(reading)
             spendScanOnce()
+        } catch MealScannerService.ScanError.noFoodDetected {
+            result = .notFood
         } catch {
             result = .failed(error.localizedDescription)
         }
         guard !Task.isCancelled, let index = dishes.firstIndex(where: { $0.id == id }) else { return }
         dishes[index].reading = result
+        if result == .notFood { dishes[index].include = false }
         if case .read(let reading) = result, reading.kind == .drink {
             dishes[index].kind = .drink
         }
@@ -699,7 +723,10 @@ struct TableScanFlow: View {
 
     private var logDate: Date {
         if let addingTo { return addingTo.date }
-        return Calendar.current.isDateInToday(logDay) ? Date() : LifestyleDataLogic.logTimestamp(on: logDay)
+        let shotAt = capturedAt ?? Date()
+        let calendar = Calendar.current
+        if calendar.isDateInToday(logDay) || calendar.isDate(shotAt, inSameDayAs: logDay) { return shotAt }
+        return LifestyleDataLogic.logTimestamp(on: logDay)
     }
 
     private func draft() -> TableMomentStore.Draft? {
@@ -721,6 +748,15 @@ struct TableScanFlow: View {
         onKeep(draft)
     }
 
+    /// Read dishes already cost a scan, so they aren't thrown away on one tap.
+    private func requestClose() {
+        if dishes.contains(where: { if case .read = $0.reading { true } else { false } }) {
+            confirmsDiscard = true
+        } else {
+            close()
+        }
+    }
+
     private func close() {
         isFinished = true
         onClose()
@@ -730,7 +766,7 @@ struct TableScanFlow: View {
     /// let go.
     private func finishOnDismiss() {
         work?.cancel()
-        readQueue?.cancel()
+        cancelReads()
         camera.stop()
         guard !isFinished, phase == .review, !isReading, let draft = draft() else { return }
         isFinished = true
