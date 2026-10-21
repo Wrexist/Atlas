@@ -645,6 +645,7 @@ struct HomeView: View {
                         // this protocol. Clear the dismiss counter
                         // instead so subsequent dismissals on the
                         // extended cycle start from zero.
+                        CycleCompletionService.shared.resetDismissals(for: item.proto)
                         dataStore.extendProtocol(id: item.proto.id, byWeeks: 2)
                         completionPromptResolved = true
                         completionPrompt = nil
