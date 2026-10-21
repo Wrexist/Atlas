@@ -9,11 +9,17 @@ final class HealthKitService {
     static let shared = HealthKitService()
 
     private let store = HKHealthStore()
+    private let availability: () -> Bool
 
-    private init() {}
+    /// `availability` is injectable so tests can exercise the
+    /// unavailable path on a simulator, where HealthKit reports
+    /// available.
+    init(availability: @escaping () -> Bool = HKHealthStore.isHealthDataAvailable) {
+        self.availability = availability
+    }
 
     var isAvailable: Bool {
-        HKHealthStore.isHealthDataAvailable()
+        availability()
     }
 
     /// Exactly the types the app reads back: HRV and resting heart rate
