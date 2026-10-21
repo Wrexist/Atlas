@@ -490,15 +490,20 @@ final class DataStore {
         entries[index].completed.toggle()
         save()
         Haptics.impact(becoming ? .light : .soft)
-        // Live Activity reconciliation: when the user marks a dose
-        // taken from the app (or undoes it), push the matching state
-        // into any open lock-screen activity so the countdown stops
-        // and the "Logged" badge appears before auto-dismiss.
         if becoming {
-            DoseLiveActivityService.shared.markCompleted(entryId)
+            doseWasTaken(entries[index])
         } else {
             DoseLiveActivityService.shared.reconcile(entries: entries)
         }
+    }
+
+    /// A dose just became taken. Pushes that into any open lock-screen
+    /// activity so the countdown stops and the "Logged" badge appears
+    /// before auto-dismiss, and withdraws the reminder's snoozes and its
+    /// copy in Notification Center so neither nags about a logged dose.
+    private func doseWasTaken(_ entry: ProtocolEntry) {
+        DoseLiveActivityService.shared.markCompleted(entry.id)
+        Task { await NotificationService.shared.clearReminders(for: entry) }
     }
 
     /// Idempotent completion setters for externally delivered commands
@@ -536,7 +541,10 @@ final class DataStore {
             injectionSite: injectionSite
         )
         save()
-        if !wasCompleted { Haptics.success() }
+        if !wasCompleted {
+            Haptics.success()
+            doseWasTaken(entries[index])
+        }
     }
 
     /// Removes a previously-logged dose — flips `completed` back to false
