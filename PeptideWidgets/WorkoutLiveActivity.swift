@@ -300,7 +300,9 @@ private struct WorkoutLockView: View {
                     .monospacedDigit()
                     .multilineTextAlignment(.trailing)
                     .foregroundStyle(.primary)
-                    .frame(maxWidth: 88)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .frame(maxWidth: 100)
                 Text("elapsed")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.secondary)
@@ -480,6 +482,8 @@ private struct IslandTimer: View {
                     .monospacedDigit()
                     .multilineTextAlignment(.trailing)
                     .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     .frame(maxWidth: 72)
                 Text("elapsed")
                     .font(.system(size: 10, weight: .medium))
@@ -520,7 +524,9 @@ private struct CompactTiming: View {
                 .font(.system(size: 13, weight: .bold))
                 .monospacedDigit()
                 .foregroundStyle(accent)
-                .frame(maxWidth: 48)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(maxWidth: 56)
         }
     }
 }
