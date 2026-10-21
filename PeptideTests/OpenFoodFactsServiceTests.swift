@@ -259,7 +259,7 @@ final class OpenFoodFactsServiceTests: XCTestCase {
             barcode: "5449000000996",
             name: "Cached Cola",
             brand: nil, imageURL: nil,
-            servingSizeText: nil, servingGrams: nil, packageGrams: nil,
+            servingSizeText: nil, servingGrams: nil, packageGrams: 330,
             per100g: .init(calories: 1, proteinG: 0, carbsG: 0, fatG: 0, fiberG: nil, sugarsG: nil),
             nutriScore: nil, novaGroup: nil,
             fetchedAt: Date()
@@ -275,6 +275,36 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         let result = try await service.fetch(barcode: "5449000000996")
         XCTAssertEqual(result.name, "Cached Cola")
         XCTAssertEqual(callCount.value, 0, "Cache hit must not touch network")
+    }
+
+    // MARK: - Package weight from printed quantity
+
+    func test_packageGrams_readsPlainWeight() {
+        XCTAssertEqual(OpenFoodFactsService.packageGrams(fromQuantity: "130 g"), 130)
+        XCTAssertEqual(OpenFoodFactsService.packageGrams(fromQuantity: "130g ℮"), 130)
+    }
+
+    func test_packageGrams_convertsKilogramsAndLitres() {
+        XCTAssertEqual(OpenFoodFactsService.packageGrams(fromQuantity: "0,5 kg"), 500)
+        XCTAssertEqual(OpenFoodFactsService.packageGrams(fromQuantity: "33 cl"), 330)
+        XCTAssertEqual(OpenFoodFactsService.packageGrams(fromQuantity: "1.5 L"), 1500)
+    }
+
+    func test_packageGrams_multipliesMultipacks() {
+        XCTAssertEqual(OpenFoodFactsService.packageGrams(fromQuantity: "6 x 33 cl"), 1980)
+    }
+
+    func test_packageGrams_returnsNil_whenNoUnit() {
+        XCTAssertNil(OpenFoodFactsService.packageGrams(fromQuantity: "1 bag"))
+        XCTAssertNil(OpenFoodFactsService.packageGrams(fromQuantity: ""))
+    }
+
+    func test_fetch_fallsBackToPrintedQuantity_whenProductQuantityMissing() async throws {
+        let body = #"{"status":1,"product":{"product_name":"Ferrari Hallon","quantity":"130 g","serving_quantity":5.6,"nutriments":{"energy-kcal_100g":340}}}"#
+        MockURLProtocol.handler = { request in (Self.ok(for: request), Data(body.utf8)) }
+        let product = try await service.fetch(barcode: "5449000000996")
+        XCTAssertEqual(product.packageGrams, 130)
+        XCTAssertEqual(product.servingGrams, 5.6)
     }
 
     // MARK: - Stale-while-revalidate

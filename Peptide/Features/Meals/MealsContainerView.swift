@@ -33,6 +33,7 @@ struct MealsContainerView: View {
                 .frame(maxWidth: .infinity)
             }
             .background(AppColor.background.ignoresSafeArea())
+            .overlay { TableSaveToast() }
             .navigationTitle("Meals")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {

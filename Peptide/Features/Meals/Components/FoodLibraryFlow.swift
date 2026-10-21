@@ -797,7 +797,7 @@ struct FoodLibraryFlow: View {
             select(product)
         } label: {
             HStack(spacing: Spacing.sm) {
-                productThumbnail(product)
+                FoodThumbnail(name: product.name, imageURL: product.imageURL)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(product.name)
                         .font(AppFont.scaled(16, weight: .semibold))
@@ -842,7 +842,7 @@ struct FoodLibraryFlow: View {
             select(food.toScannedProduct())
         } label: {
             HStack(spacing: Spacing.sm) {
-                customFoodIcon
+                FoodThumbnail(name: food.name)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(food.name)
                         .font(AppFont.scaled(16, weight: .semibold))
@@ -905,14 +905,7 @@ struct FoodLibraryFlow: View {
             relogMeal(meal)
         } label: {
             HStack(spacing: Spacing.sm) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .fill(meal.category.tint.opacity(0.20))
-                        .frame(width: 44, height: 44)
-                    Image(systemName: meal.source.icon)
-                        .font(AppFont.scaled(16, weight: .semibold))
-                        .foregroundStyle(meal.category.tint)
-                }
+                FoodThumbnail(name: meal.name)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(meal.name)
                         .font(AppFont.scaled(16, weight: .semibold))
@@ -922,13 +915,7 @@ struct FoodLibraryFlow: View {
                         .font(AppFont.scaled(11))
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(1)
-                    HStack(spacing: Spacing.xs) {
-                        macroChip(label: "kcal", value: meal.calories, tint: AppColor.accentLight)
-                        macroChip(label: "P", value: meal.proteinG, tint: AppColor.macroProtein)
-                        macroChip(label: "C", value: meal.carbsG, tint: AppColor.macroCarbs)
-                        macroChip(label: "F", value: meal.fatG, tint: AppColor.macroFat)
-                    }
-                    .padding(.top, 2)
+                    macroPreview(calories: meal.calories, protein: meal.proteinG, carbs: meal.carbsG, fat: meal.fatG)
                 }
                 Spacer(minLength: 0)
                 Image(systemName: inFlight ? "checkmark" : "arrow.clockwise")
@@ -954,59 +941,58 @@ struct FoodLibraryFlow: View {
         .accessibilityHint("Logs this meal again.")
     }
 
-    private var customFoodIcon: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.accentPrimary.opacity(0.25))
-                .frame(width: 44, height: 44)
-            Image(systemName: "fork.knife")
-                .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(AppColor.accentLight)
-        }
-    }
-
-    private func productThumbnail(_ product: ScannedProduct) -> some View {
-        AsyncImage(url: product.imageURL) { phase in
-            switch phase {
-            case .success(let image):
-                image.resizable().scaledToFit()
-            default:
-                Image(systemName: "shippingbox.fill")
-                    .font(AppFont.scaled(16, weight: .light))
-                    .foregroundStyle(AppColor.textSecondary)
-            }
-        }
-        .frame(width: 44, height: 44)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-        }
-    }
-
     private func macroPreview(_ n: ScannedProduct.Nutriments) -> some View {
-        HStack(spacing: Spacing.xs) {
-            macroChip(label: "kcal", value: Int(n.calories.rounded()), tint: AppColor.accentLight)
-            macroChip(label: "P", value: Int(n.proteinG.rounded()), tint: AppColor.macroProtein)
-            macroChip(label: "C", value: Int(n.carbsG.rounded()), tint: AppColor.macroCarbs)
-            macroChip(label: "F", value: Int(n.fatG.rounded()), tint: AppColor.macroFat)
+        macroPreview(
+            calories: Int(n.calories.rounded()),
+            protein: Int(n.proteinG.rounded()),
+            carbs: Int(n.carbsG.rounded()),
+            fat: Int(n.fatG.rounded())
+        )
+    }
+
+    /// One line, never wrapped: a kcal pill, then protein, carbs and fat
+    /// as coloured letters with grams. Narrow rows drop the letters and
+    /// keep the colour dots.
+    private func macroPreview(calories: Int, protein: Int, carbs: Int, fat: Int) -> some View {
+        ViewThatFits(in: .horizontal) {
+            macroLine(calories: calories, protein: protein, carbs: carbs, fat: fat, lettered: true)
+            macroLine(calories: calories, protein: protein, carbs: carbs, fat: fat, lettered: false)
         }
         .padding(.top, 2)
     }
 
-    private func macroChip(label: LocalizedStringKey, value: Int, tint: Color) -> some View {
-        HStack(spacing: 2) {
-            Text("\(value)")
-                .font(AppFont.scaled(11, weight: .heavy))
+    private func macroLine(calories: Int, protein: Int, carbs: Int, fat: Int, lettered: Bool) -> some View {
+        HStack(spacing: Spacing.sm) {
+            Text("\(calories) kcal")
+                .font(AppFont.scaled(11, weight: .bold))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
-            Text(label)
-                .font(AppFont.scaled(8, weight: .semibold))
-                .foregroundStyle(tint.opacity(0.85))
+                .padding(.horizontal, Spacing.sm)
+                .padding(.vertical, 2)
+                .background(Capsule().fill(AppColor.accentPrimary.opacity(0.18)))
+            macroValue("P", grams: protein, tint: AppColor.macroProtein, lettered: lettered)
+            macroValue("C", grams: carbs, tint: AppColor.macroCarbs, lettered: lettered)
+            macroValue("F", grams: fat, tint: AppColor.macroFat, lettered: lettered)
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 2)
-        .background {
-            Capsule().fill(tint.opacity(0.18))
+        .lineLimit(1)
+        .fixedSize()
+    }
+
+    private func macroValue(_ letter: LocalizedStringKey, grams: Int, tint: Color, lettered: Bool) -> some View {
+        HStack(spacing: 3) {
+            if lettered {
+                Text(letter)
+                    .font(AppFont.scaled(11, weight: .heavy))
+                    .foregroundStyle(tint)
+            } else {
+                Circle()
+                    .fill(tint)
+                    .frame(width: 6, height: 6)
+            }
+            Text("\(grams)g")
+                .font(AppFont.scaled(11, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(AppColor.textSecondary)
         }
     }
 
@@ -1246,26 +1232,11 @@ struct FoodLibraryFlow: View {
 
     private func reviewHeader(_ product: ScannedProduct) -> some View {
         HStack(spacing: Spacing.md) {
-            if product.barcode.hasPrefix("custom:") {
-                customFoodIcon
-                    .frame(width: 56, height: 56)
-            } else {
-                AsyncImage(url: product.imageURL) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image.resizable().scaledToFit()
-                    default:
-                        Image(systemName: "shippingbox.fill")
-                            .font(AppFont.scaled(24, weight: .light))
-                            .foregroundStyle(AppColor.textSecondary)
-                    }
-                }
-                .frame(width: 56, height: 56)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .fill(AppColor.surfaceSecondary.opacity(0.6))
-                }
-            }
+            FoodThumbnail(
+                name: product.name,
+                imageURL: product.barcode.hasPrefix("custom:") ? nil : product.imageURL,
+                size: 56
+            )
             VStack(alignment: .leading, spacing: 4) {
                 Text(product.name)
                     .font(AppFont.title2)

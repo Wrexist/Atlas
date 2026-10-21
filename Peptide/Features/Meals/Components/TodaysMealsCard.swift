@@ -118,7 +118,9 @@ struct MealEntryRow: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: Spacing.md) {
-                categoryTile
+                // `MealEntry` stores no photo, so the row leads with the
+                // picture its name points to.
+                FoodThumbnail(name: entry.name, size: tileSize)
                 VStack(alignment: .leading, spacing: Spacing.xs) {
                     HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
                         Text(entry.name)
@@ -179,20 +181,6 @@ struct MealEntryRow: View {
         .accessibilityLabel(Self.accessibilityLabel(for: entry))
         .accessibilityHint("Opens the entry to edit or delete it. Long-press to log it again.")
         .accessibilityAction(named: Text("Log again"), onLogAgain)
-    }
-
-    /// `MealEntry` stores no photo (the scan image and the Open Food Facts
-    /// product image are both dropped at log time), so every row leads with
-    /// the category glyph in a thumbnail-sized tile.
-    private var categoryTile: some View {
-        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-            .fill(entry.category.tint.opacity(0.18))
-            .frame(width: tileSize, height: tileSize)
-            .overlay {
-                Image(systemName: entry.category.icon)
-                    .font(AppFont.scaled(16, weight: .semibold))
-                    .foregroundStyle(entry.category.tint)
-            }
     }
 
     @ViewBuilder

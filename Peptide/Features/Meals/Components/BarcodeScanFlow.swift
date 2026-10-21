@@ -257,21 +257,7 @@ struct BarcodeScanFlow: View {
             handleDetected(barcode: product.barcode)
         } label: {
             VStack(spacing: Spacing.xs) {
-                AsyncImage(url: product.imageURL) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image.resizable().scaledToFit()
-                    default:
-                        Image(systemName: "shippingbox.fill")
-                            .font(AppFont.scaled(20, weight: .light))
-                            .foregroundStyle(AppColor.textSecondary)
-                    }
-                }
-                .frame(width: 48, height: 48)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .fill(AppColor.surfaceSecondary.opacity(0.6))
-                }
+                FoodThumbnail(name: product.name, imageURL: product.imageURL, size: 48)
 
                 Text(product.name)
                     .font(AppFont.scaled(11, weight: .semibold))
@@ -456,21 +442,7 @@ struct BarcodeScanFlow: View {
 
     private func productHeader(_ product: ScannedProduct) -> some View {
         HStack(spacing: Spacing.md) {
-            AsyncImage(url: product.imageURL) { phase in
-                switch phase {
-                case .success(let image):
-                    image.resizable().scaledToFit()
-                default:
-                    Image(systemName: "shippingbox.fill")
-                        .font(AppFont.scaled(24, weight: .light))
-                        .foregroundStyle(AppColor.textSecondary)
-                }
-            }
-            .frame(width: 56, height: 56)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.6))
-            }
+            FoodThumbnail(name: product.name, imageURL: product.imageURL, size: 56)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(product.name)
@@ -534,11 +506,11 @@ struct BarcodeScanFlow: View {
 
     private var actionButtons: some View {
         HStack(spacing: Spacing.sm) {
-            GlassButton(title: "Scan another", style: .secondary) {
+            GlassButton(title: "Scan another", style: .secondary, isFullWidth: true) {
                 resetForRescan()
             }
 
-            GlassButton(title: addButtonTitle, style: .primary) {
+            GlassButton(title: addButtonTitle, style: .primary, isFullWidth: true) {
                 confirm()
             }
             .disabled(currentMacros(for: product) == nil)

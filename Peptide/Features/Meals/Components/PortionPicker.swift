@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The portion control shared by the barcode and food-library review
-/// screens: a segmented switch between serving, whole pack and grams,
+/// screens: a segmented switch between serving, package and grams,
 /// over the matching detail — a servings stepper, the package weight, or
 /// a gram slider with quick picks. One copy so the two flows can't drift.
 struct PortionPicker: View {
@@ -55,7 +55,7 @@ struct PortionPicker: View {
     private func label(_ mode: Mode) -> LocalizedStringKey {
         switch mode {
         case .serving: "Serving"
-        case .wholePack: "Whole pack"
+        case .wholePack: "Package"
         case .grams: "Grams"
         }
     }
@@ -103,14 +103,21 @@ struct PortionPicker: View {
     }
 
     private var wholePackage: some View {
-        HStack {
-            Text("Entire package")
-                .font(AppFont.title2)
-                .foregroundStyle(AppColor.textPrimary)
-            Spacer()
-            if let grams = product.packageGrams {
-                Text("\(Int(grams.rounded())) g")
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
+                Text("1")
+                    .font(AppFont.title2)
+                    .monospacedDigit()
+                    .foregroundStyle(AppColor.textPrimary)
+                Text("whole package")
                     .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                Spacer()
+            }
+            .frame(minHeight: Spacing.minimumHitTarget)
+            if let grams = product.packageGrams {
+                Text("1 package = \(Int(grams.rounded())) g")
+                    .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                     .monospacedDigit()
             }

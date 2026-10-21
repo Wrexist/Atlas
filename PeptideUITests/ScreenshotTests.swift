@@ -65,6 +65,67 @@ final class ScreenshotTests: XCTestCase {
         XCTAssertTrue(app.buttons["meal-scan-log"].waitForExistence(timeout: 10))
     }
 
+    func test_captureTableScan() {
+        captureTableScan(appearance: "dark")
+    }
+
+    func test_captureTableScan_lightMode() {
+        captureTableScan(appearance: "light")
+    }
+
+    /// The whole-table scan end to end on drawn plates: the Latest table
+    /// card, lifting, the review grid, the table at rest and in play, and
+    /// one dish opened.
+    private func captureTableScan(appearance: String) {
+        launch(appearance: appearance, extraArguments: ["--table-scan-fixture"])
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
+        dismissOverlaysIfNeeded()
+        let mealsTab = app.tabBars.buttons["Meals"]
+        XCTAssertTrue(mealsTab.waitForExistence(timeout: 10))
+        mealsTab.tap()
+
+        // The fixture opens the scan itself once Meals appears, so the run
+        // doesn't hang on a tap landing mid-scroll.
+        let flow = app.descendants(matching: .any)["table-scan-flow"]
+        XCTAssertTrue(flow.waitForExistence(timeout: 15), "Table scan sheet never opened")
+        if element(labelContaining: "Lifting").waitForExistence(timeout: 5) {
+            capture(named: "table-\(appearance)-02-lifting")
+        }
+        let review = element(labelContaining: "Nice table")
+        if !review.waitForExistence(timeout: 15) {
+            capture(named: "table-\(appearance)-02-stuck")
+            XCTFail("Review never appeared")
+            return
+        }
+        sleep(2)
+        capture(named: "table-\(appearance)-03-review")
+        app.buttons["Close"].firstMatch.tap()
+
+        let card = app.buttons["latest-table-card"]
+        for _ in 0..<6 where !(card.exists && card.isHittable) { app.swipeUp() }
+        capture(named: "table-\(appearance)-01-latest-card")
+        card.tap()
+        XCTAssertTrue(app.buttons["Play"].waitForExistence(timeout: 10))
+        sleep(2)
+        capture(named: "table-\(appearance)-04-table")
+        app.buttons["Play"].tap()
+        sleep(2)
+        capture(named: "table-\(appearance)-05-play")
+        app.buttons["Play"].tap()
+        sleep(1)
+
+        let ramen = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Tonkotsu'")).firstMatch
+        if ramen.waitForExistence(timeout: 5) {
+            ramen.tap()
+            sleep(1)
+            capture(named: "table-\(appearance)-06-dish")
+        }
+    }
+
+    private func element(labelContaining text: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
+    }
+
     func test_captureWorkoutSocialSharing() {
         openCompletedFixture(appearance: "dark")
         app.buttons["Share workout"].tap()

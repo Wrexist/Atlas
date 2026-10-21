@@ -27,32 +27,20 @@ struct MealScanTotalsCard: View {
     }
 
     var body: some View {
-        HStack(spacing: Spacing.lg) {
-            VStack(alignment: .leading, spacing: Spacing.md) {
-                HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
-                    Text("Total")
-                        .font(AppFont.headline)
-                        .foregroundStyle(AppColor.textPrimary)
-                    Spacer(minLength: Spacing.sm)
-                    Text("\(calories)")
-                        .font(AppFont.scaled(24, weight: .heavy, design: .rounded))
-                        .foregroundStyle(AppColor.textPrimary)
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-                        .animation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion), value: calories)
-                    Text("kcal")
-                        .font(AppFont.caption)
-                        .foregroundStyle(AppColor.textSecondary)
-                }
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text("Total")
+                .font(AppFont.headline)
+                .foregroundStyle(AppColor.textPrimary)
 
-                VStack(alignment: .leading, spacing: Spacing.sm) {
+            HStack(spacing: Spacing.lg) {
+                ring
+                Grid(alignment: .leading, horizontalSpacing: Spacing.sm, verticalSpacing: Spacing.sm) {
                     macroRow("Protein", grams: proteinG, share: shares.protein, tint: AppColor.macroProtein)
                     macroRow("Carbs", grams: carbsG, share: shares.carbs, tint: AppColor.macroCarbs)
                     macroRow("Fat", grams: fatG, share: shares.fat, tint: AppColor.macroFat)
                 }
+                .frame(maxWidth: .infinity)
             }
-
-            ring
         }
         .padding(Spacing.lg)
         .glassSurface(cornerRadius: Spacing.cardCornerRadius, tinted: true)
@@ -63,25 +51,35 @@ struct MealScanTotalsCard: View {
         )
     }
 
-    private func macroRow(_ title: String, grams: Int, share: Double, tint: Color) -> some View {
-        HStack(spacing: Spacing.sm) {
-            Circle()
-                .fill(tint)
-                .frame(width: 8, height: 8)
-            Text(title)
-                .font(AppFont.caption)
-                .foregroundStyle(AppColor.textSecondary)
-            Text("\(grams)g")
-                .font(AppFont.scaled(13, weight: .bold))
+    /// One grid row: name, grams and energy share each sit in their own
+    /// column, so the numbers line up whatever the label widths.
+    private func macroRow(_ title: LocalizedStringKey, grams: Int, share: Double, tint: Color) -> some View {
+        GridRow {
+            HStack(spacing: Spacing.sm) {
+                Circle()
+                    .fill(tint)
+                    .frame(width: 8, height: 8)
+                Text(title)
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .lineLimit(1)
+            }
+            .gridColumnAlignment(.leading)
+            Text("\(grams) g")
+                .font(AppFont.scaled(16, weight: .bold))
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
                 .contentTransition(.numericText())
                 .animation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion), value: grams)
-            Spacer(minLength: Spacing.xs)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .gridColumnAlignment(.trailing)
             Text(share.formatted(.percent.precision(.fractionLength(0))))
                 .font(AppFont.caption)
+                .fontWeight(.semibold)
                 .foregroundStyle(tint)
                 .monospacedDigit()
+                .frame(minWidth: 36, alignment: .trailing)
+                .gridColumnAlignment(.trailing)
         }
     }
 
@@ -95,8 +93,23 @@ struct MealScanTotalsCard: View {
             arc(from: 0, to: shares.protein, tint: AppColor.macroProtein)
             arc(from: shares.protein, to: shares.protein + shares.carbs, tint: AppColor.macroCarbs)
             arc(from: shares.protein + shares.carbs, to: shares.protein + shares.carbs + shares.fat, tint: AppColor.macroFat)
+
+            VStack(spacing: 0) {
+                Text("\(calories)")
+                    .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .contentTransition(.numericText())
+                    .animation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion), value: calories)
+                Text("kcal")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+            .padding(.horizontal, Spacing.md)
         }
-        .frame(width: 84, height: 84)
+        .frame(width: 96, height: 96)
         .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: [proteinG, carbsG, fatG])
         .accessibilityHidden(true)
     }
