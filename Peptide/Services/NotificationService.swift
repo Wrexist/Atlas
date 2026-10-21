@@ -531,8 +531,11 @@ final class NotificationService {
         }
     }
 
+    /// Removes pending requests and the ones already sitting in
+    /// Notification Center, so no dose reminder outlives an erase.
     func cancelAll() {
         center.removeAllPendingNotificationRequests()
+        center.removeAllDeliveredNotifications()
         currentIDs.removeAll()
         scheduledCount = 0
         requestedCount = 0

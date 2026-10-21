@@ -75,7 +75,7 @@ final class FoodSpotlightService: Sendable {
         guard !items.isEmpty else {
             // Nothing to index — clear out any stale entries so the
             // Spotlight surface doesn't outlive the data.
-            try? await index.deleteSearchableItems(withDomainIdentifiers: [Self.domainIdentifier])
+            await removeAll()
             return
         }
 
@@ -108,6 +108,14 @@ final class FoodSpotlightService: Sendable {
                 "Spotlight removeCustomFood failed: \(error.localizedDescription, privacy: .public)"
             )
         }
+    }
+
+    /// Drops every food-library entry from Spotlight. Used when the index
+    /// should be empty and by "Delete All Data", which must not leave the
+    /// user's foods and recipes searchable system-wide.
+    func removeAll() async {
+        guard isAvailable else { return }
+        try? await index.deleteSearchableItems(withDomainIdentifiers: [Self.domainIdentifier])
     }
 
     // MARK: - Item builders

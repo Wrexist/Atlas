@@ -355,14 +355,19 @@ final class AuthService {
         TableMomentStore.shared.deleteAll()
         BackupSnapshotService.deleteAll()
         ExportService.shared.clearExports()
-        // Records kept outside the main stores: pending reminders carry
-        // protocol names and times, Live Activities show doses, and
-        // achievements, barcode history and scan corrections sit in
-        // UserDefaults.
+        // Records kept outside the main stores: reminders carry protocol
+        // names and times, Live Activities show doses, achievements, barcode
+        // history and scan corrections sit in UserDefaults, the product
+        // cache feeds "recently scanned", and Spotlight indexes custom
+        // foods and recipes.
         NotificationService.shared.cancelAll()
         DoseLiveActivityService.shared.endAll()
         AchievementService.shared.eraseAll()
-        Task { await BarcodeScanHistory.shared.removeAll() }
+        Task {
+            await BarcodeScanHistory.shared.removeAll()
+            await BarcodeProductCache.shared.clear()
+            await FoodSpotlightService.shared.removeAll()
+        }
         ScanCorrectionMemory.shared.eraseAll()
         if let store { resetInMemoryState(of: store) }
     }
