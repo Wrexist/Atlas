@@ -31,11 +31,13 @@ struct ExerciseHistorySection: View {
                         .font(AppFont.callout).foregroundStyle(AppColor.textSecondary)
                 } else {
                     if visits.count > 1 { activityChart }
-                    ForEach(Array(visits.prefix(expanded ? visits.count : 3))) { visit in
+                    let shown = Array(visits.prefix(expanded ? visits.count : 3))
+                    ForEach(shown) { visit in
+                        if visit.id != shown.first?.id { Divider() }
                         visitRow(visit)
                     }
                     if visits.count > 3 {
-                        Button(expanded ? "Show recent workouts" : "Show all \(visits.count) workouts") {
+                        Button(expanded ? "Show fewer" : "Show all \(visits.count) workouts") {
                             AppAnimation.with(AppAnimation.springSnappy) { expanded.toggle() }
                         }.minimumHitArea()
                     }
@@ -95,7 +97,6 @@ struct ExerciseHistorySection: View {
                     .font(AppFont.callout).monospacedDigit()
                     .foregroundStyle(AppColor.textSecondary)
             }
-            Divider()
         }
     }
 
