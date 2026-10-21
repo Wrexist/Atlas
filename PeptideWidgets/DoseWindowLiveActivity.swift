@@ -145,13 +145,13 @@ private func statusShortLabel(
 ) -> String {
     switch state.status() {
     case .upcoming:
-        return "Due \(state.doseTime.formatted(date: .omitted, time: .shortened))"
+        return String(localized: "Due \(state.doseTime.formatted(date: .omitted, time: .shortened))")
     case .dueNow:
-        return "now"
+        return String(localized: "now")
     case .late:
-        return "Late"
+        return String(localized: "Late")
     case .completed:
-        return "Logged"
+        return String(localized: "Logged")
     }
 }
 
@@ -552,7 +552,7 @@ private struct IslandTrailingTimer: View {
                 .font(.system(size: 17, weight: .heavy, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(missed ? .white.opacity(0.55) : accent)
-            Text(missed ? "Tap to log" : statusShortLabel(for: state))
+            Text(missed ? String(localized: "Tap to log") : statusShortLabel(for: state))
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.55))
                 .textCase(.uppercase)

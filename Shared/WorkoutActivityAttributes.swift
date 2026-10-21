@@ -150,7 +150,7 @@ extension WorkoutActivityAttributes.ContentState {
     /// What to print as the title. Kept here so the lock screen, the
     /// compact pill and the expanded island can't disagree.
     var displayName: String {
-        workoutName.isEmpty ? "Workout" : workoutName
+        workoutName.isEmpty ? String(localized: "Workout") : workoutName
     }
 }
 #endif

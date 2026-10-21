@@ -160,14 +160,14 @@ private enum WorkoutActivityStyle {
     static func subtitle(for state: WorkoutActivityAttributes.ContentState) -> String {
         switch state.status() {
         case .paused:
-            return "Workout paused"
+            return String(localized: "Workout paused")
         case .finished:
-            return "\(state.completedSets) sets · done"
+            return String(localized: "\(state.completedSets) sets · done")
         case .resting, .lifting:
             if !state.currentExercise.isEmpty { return state.currentExercise }
             return state.exerciseCount == 0
-                ? "Add your first exercise"
-                : "\(state.completedSets)/\(state.totalSets) sets"
+                ? String(localized: "Add your first exercise")
+                : String(localized: "\(state.completedSets)/\(state.totalSets) sets")
         }
     }
 }
