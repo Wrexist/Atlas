@@ -556,7 +556,14 @@ struct FoodLibraryFlow: View {
                     customFoodRow(custom)
                 }
             }
-            if isSearching && results.isEmpty {
+            if debouncedQuery.count < Self.minimumSearchQueryLength {
+                // `runSearch` doesn't query this short, so "No results"
+                // would be a claim nobody checked.
+                Text("Keep typing to search Open Food Facts.")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else if isSearching && results.isEmpty {
                 searchSkeleton
             } else if let searchError, results.isEmpty {
                 inlineMessage(icon: "exclamationmark.triangle", text: searchError)
