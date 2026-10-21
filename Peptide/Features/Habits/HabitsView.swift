@@ -252,7 +252,7 @@ struct HabitsView: View {
                     Image(systemName: "bolt.fill")
                         .font(AppFont.scaled(11, weight: .bold))
                         .foregroundStyle(AppColor.accentLight)
-                    Text("Level \(momentum.level) · \(momentum.score) pts")
+                    Text("Level \(momentum.level) · ^[\(momentum.score) point](inflect: true)")
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
                 }
