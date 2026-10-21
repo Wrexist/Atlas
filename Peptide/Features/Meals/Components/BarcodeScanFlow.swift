@@ -892,12 +892,13 @@ struct BarcodeScanFlow: View {
     // MARK: - Small components
 
     private func nutriScorePill(_ score: String) -> some View {
-        Text(score.uppercased())
+        let palette = Self.nutriScorePalette(score)
+        return Text(score.uppercased())
             .font(AppFont.scaled(13, weight: .heavy))
-            .foregroundStyle(AppColor.onAccent)
+            .foregroundStyle(palette.ink)
             .frame(width: 28, height: 28)
             .background {
-                Circle().fill(Self.nutriScoreColor(score))
+                Circle().fill(palette.fill)
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Nutri-Score \(score.uppercased())")
@@ -906,14 +907,17 @@ struct BarcodeScanFlow: View {
 
     // MARK: - Helpers
 
-    private static func nutriScoreColor(_ score: String) -> Color {
+    /// Fill and letter colour together: near-white is under 3:1 on the
+    /// light B and C fills, so those take a fixed dark ink.
+    private static func nutriScorePalette(_ score: String) -> (fill: Color, ink: Color) {
+        let darkInk = Color(hex: 0x111114)
         switch score.lowercased() {
-        case "a":  Color(red: 0.16, green: 0.59, blue: 0.27)
-        case "b":  Color(red: 0.51, green: 0.74, blue: 0.21)
-        case "c":  Color(red: 0.96, green: 0.78, blue: 0.18)
-        case "d":  Color(red: 0.94, green: 0.49, blue: 0.18)
-        case "e":  Color(red: 0.86, green: 0.20, blue: 0.18)
-        default:   AppColor.textSecondary
+        case "a":  return (Color(red: 0.16, green: 0.59, blue: 0.27), AppColor.onAccent)
+        case "b":  return (Color(red: 0.51, green: 0.74, blue: 0.21), darkInk)
+        case "c":  return (Color(red: 0.96, green: 0.78, blue: 0.18), darkInk)
+        case "d":  return (Color(red: 0.94, green: 0.49, blue: 0.18), AppColor.onAccent)
+        case "e":  return (Color(red: 0.86, green: 0.20, blue: 0.18), AppColor.onAccent)
+        default:   return (AppColor.textSecondary, AppColor.onAccent)
         }
     }
 
