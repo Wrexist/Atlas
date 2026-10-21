@@ -181,6 +181,12 @@ def rule_fixed_font(path, source, code) -> list[Finding]:
         return []
     out = []
     lines = code.split("\n")
+    # A text-style system font scales, but it sidesteps the type ramp —
+    # the one place sizes, weights and designs are decided.
+    for m in re.finditer(r"\.system\(\.[a-z]\w*\b", code):
+        out.append(Finding(path, line_of(code, m.start()), "fixed-font",
+                           "text-style .system font bypasses AppFont; use an AppFont "
+                           "token or AppFont.scaled(_:relativeTo:)", "error"))
     for m in re.finditer(r"\.system\(size:\s*(\d+(?:\.\d+)?)", code):
         size = float(m.group(1))
         line = line_of(code, m.start())

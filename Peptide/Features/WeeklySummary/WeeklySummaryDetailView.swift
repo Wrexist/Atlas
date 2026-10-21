@@ -79,7 +79,7 @@ struct WeeklySummaryDetailView: View {
                         .textCase(.uppercase)
                         .foregroundStyle(accent)
                     Text(weekTitle(for: summary.weekStart))
-                        .font(.system(.title2, design: .rounded, weight: .heavy))
+                        .font(AppFont.scaled(24, weight: .heavy, design: .rounded, relativeTo: .title2))
                         .foregroundStyle(AppColor.textPrimary)
                 }
                 Spacer(minLength: 0)
