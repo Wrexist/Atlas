@@ -20,7 +20,7 @@ enum PeptideCompatibilityData {
     static let validatedStacks: [ValidatedStack] = [
         // Recovery
         ValidatedStack(
-            name: "Wolverine Stack",
+            name: "Wolverine",
             peptideAbbreviations: ["BPC-157", "TB-500"],
             goal: "Tissue repair & recovery",
             synergy: "BPC-157 upregulates VEGF and nitric oxide for blood vessel formation while TB-500 regulates actin for cell migration. Together they address complementary stages of the healing cascade.",
@@ -30,19 +30,19 @@ enum PeptideCompatibilityData {
             name: "Extended Wolverine",
             peptideAbbreviations: ["BPC-157", "TB-500", "GHK-Cu"],
             goal: "Full-spectrum tissue repair",
-            synergy: "Adds GHK-Cu's collagen synthesis (up to 70% increase in Type I/III collagen) to the Wolverine stack. GHK-Cu provides the copper cofactor for lysyl oxidase cross-linking that neither BPC-157 nor TB-500 directly addresses.",
+            synergy: "Adds GHK-Cu's collagen synthesis (up to 70% increase in Type I/III collagen) to the Wolverine combination. GHK-Cu provides the copper cofactor for lysyl oxidase cross-linking that neither BPC-157 nor TB-500 directly addresses.",
             notes: "Three complementary mechanisms with zero receptor overlap."
         ),
         // Growth Hormone
         ValidatedStack(
-            name: "GH Pulse Stack",
+            name: "GH Pulse",
             peptideAbbreviations: ["CJC-1295 DAC", "Ipamorelin"],
             goal: "Growth hormone optimization",
             synergy: "CJC-1295 (GHRH analog) activates cAMP/PKA via the GHRH receptor while Ipamorelin (GHS-R agonist) activates phospholipase C via the ghrelin receptor. Different receptors produce synergistic GH release 2-3x greater than either alone.",
             notes: "Gold standard GH stack. Ipamorelin is selective — doesn't elevate cortisol or prolactin unlike GHRP-2/6."
         ),
         ValidatedStack(
-            name: "GH Pulse Stack (non-DAC)",
+            name: "GH Pulse (non-DAC)",
             peptideAbbreviations: ["Mod GRF 1-29", "Ipamorelin"],
             goal: "Pulsatile growth hormone release",
             synergy: "Same GHRH+GHRP synergy mechanism as CJC-1295/Ipamorelin but with shorter-acting Mod GRF for more natural pulsatile GH release patterns.",
@@ -65,7 +65,7 @@ enum PeptideCompatibilityData {
         ),
         // Immune
         ValidatedStack(
-            name: "Immune Defense Stack",
+            name: "Immune Defense",
             peptideAbbreviations: ["TA1", "LL-37", "KPV"],
             goal: "Comprehensive immune support",
             synergy: "TA1 boosts adaptive immunity (T-cell maturation). LL-37 provides direct innate antimicrobial action (disrupts bacterial/viral membranes). KPV suppresses excessive inflammation via NF-κB inhibition. Three layers of defense with minimal overlap.",
@@ -88,7 +88,7 @@ enum PeptideCompatibilityData {
         ),
         // Anti-Aging
         ValidatedStack(
-            name: "Longevity Stack",
+            name: "Longevity",
             peptideAbbreviations: ["Epitalon", "GHK-Cu", "BPC-157"],
             goal: "Anti-aging and cellular renewal",
             synergy: "Epitalon activates telomerase for telomere maintenance. GHK-Cu stimulates collagen/elastin synthesis and has broad gene-resetting activity. BPC-157 provides systemic cytoprotection. Addresses aging at genetic (telomeres), structural (collagen), and protective levels.",
@@ -96,7 +96,7 @@ enum PeptideCompatibilityData {
         ),
         // Performance & Athletic
         ValidatedStack(
-            name: "Performance Stack",
+            name: "Performance",
             peptideAbbreviations: ["BPC-157", "TB-500", "CJC-1295 DAC", "Ipamorelin"],
             goal: "Athletic performance and recovery",
             synergy: "BPC-157 and TB-500 accelerate tissue repair through complementary mechanisms (VEGF/NO and actin regulation). CJC-1295/Ipamorelin elevate GH for systemic anabolism and protein synthesis. Four non-overlapping pathways supporting training recovery.",
@@ -106,7 +106,7 @@ enum PeptideCompatibilityData {
             name: "Full Recovery Protocol",
             peptideAbbreviations: ["BPC-157", "TB-500", "GHK-Cu", "Ipamorelin"],
             goal: "Comprehensive injury recovery",
-            synergy: "Wolverine stack (BPC-157 + TB-500) for tissue repair, GHK-Cu for collagen remodeling, Ipamorelin for GH-mediated protein synthesis. Covers inflammation, cell migration, extracellular matrix rebuilding, and systemic recovery.",
+            synergy: "The Wolverine combination (BPC-157 + TB-500) for tissue repair, GHK-Cu for collagen remodeling, Ipamorelin for GH-mediated protein synthesis. Covers inflammation, cell migration, extracellular matrix rebuilding, and systemic recovery.",
             notes: "Appropriate for post-surgical or significant injury recovery."
         ),
         ValidatedStack(
@@ -118,7 +118,7 @@ enum PeptideCompatibilityData {
         ),
         // Sleep & Recovery
         ValidatedStack(
-            name: "Deep Sleep Stack",
+            name: "Deep Sleep",
             peptideAbbreviations: ["CJC-1295 DAC", "Ipamorelin", "Epitalon"],
             goal: "Sleep quality and nocturnal recovery",
             synergy: "CJC-1295/Ipamorelin pre-bed dosing amplifies natural nocturnal GH pulse for deep sleep-phase recovery. Epitalon supports melatonin synthesis via pineal gland activation, improving circadian rhythm regulation.",
@@ -148,7 +148,7 @@ enum PeptideCompatibilityData {
             notes: "Tesamorelin is FDA-approved for HIV-associated lipodystrophy."
         ),
         ValidatedStack(
-            name: "Lean Mass Stack",
+            name: "Lean Mass",
             peptideAbbreviations: ["CJC-1295 DAC", "Ipamorelin", "IGF-1 LR3"],
             goal: "Lean muscle growth",
             synergy: "CJC-1295/Ipamorelin elevate systemic GH for protein synthesis and recovery. IGF-1 LR3 provides direct downstream anabolic signaling with extended half-life (20-30 hours). GH peptides drive hepatic IGF-1; exogenous IGF-1 LR3 adds localized muscle-specific growth.",

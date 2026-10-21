@@ -65,7 +65,7 @@ final class StackRecommendationEngineTests: XCTestCase {
     }
 
     func test_validatedStackScoring_findsMatchFromPartialStack() {
-        // BPC-157 is part of the Wolverine Stack (BPC-157 + TB-500)
+        // BPC-157 is part of the Wolverine combination (BPC-157 + TB-500)
         let stack = peptides(abbrevs: ["BPC-157"])
         let recs = StackRecommendationEngine.recommendations(for: stack, from: database, limit: 20)
         let hasValidated = recs.contains { rec in
@@ -76,7 +76,7 @@ final class StackRecommendationEngineTests: XCTestCase {
                 return false
             }
         }
-        XCTAssertTrue(hasValidated, "Should recommend TB-500 as part of Wolverine Stack")
+        XCTAssertTrue(hasValidated, "Should recommend TB-500 as part of the Wolverine combination")
     }
 
     func test_sharedBenefits_scoresOverlappingBenefits() {
@@ -227,7 +227,7 @@ final class StackRecommendationEngineTests: XCTestCase {
 
     func test_confidence_highForValidatedStack() {
         let reasons: [StackRecommendationEngine.RecommendationReason] = [
-            .validatedStack(name: "Wolverine Stack", synergy: "test"),
+            .validatedStack(name: "Wolverine", synergy: "test"),
             .commonStack(pairsWith: ["BPC-157"]),
         ]
         let confidence = StackRecommendationEngine.computeConfidence(reasons: reasons, score: 5)
