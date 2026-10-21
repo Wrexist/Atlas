@@ -27,6 +27,7 @@ import sys
 REPO = pathlib.Path(__file__).resolve().parent.parent
 COLOR_THEME = REPO / "Peptide" / "DesignSystem" / "Theme" / "ColorTheme.swift"
 APP_THEME = REPO / "Peptide" / "DesignSystem" / "Theme" / "AppTheme.swift"
+MODEL_COLORS = REPO / "Peptide" / "DesignSystem" / "Theme" / "ModelColors.swift"
 
 AA_TEXT = 4.5
 AA_LARGE = 3.0
@@ -82,6 +83,26 @@ def parse_ramps(path: pathlib.Path) -> dict[str, dict[str, tuple[int, int]]]:
     return ramps
 
 
+def parse_categories(path: pathlib.Path) -> dict[str, tuple[int, int]]:
+    """PeptideCategory case -> (light, dark)."""
+    return {
+        m.group(1): (int(m.group(2), 16), int(m.group(3), 16))
+        for m in re.finditer(
+            r"case \.(\w+):\s*Color\(light:\s*0x([0-9A-Fa-f]{6}),\s*dark:\s*0x([0-9A-Fa-f]{6})",
+            path.read_text(),
+        )
+    }
+
+
+def blend(fg: int, bg: int, alpha: float) -> int:
+    """`fg.opacity(alpha)` composited over an opaque `bg`."""
+    out = 0
+    for shift in (16, 8, 0):
+        f, b = (fg >> shift) & 0xFF, (bg >> shift) & 0xFF
+        out |= round(f * alpha + b * (1 - alpha)) << shift
+    return out
+
+
 # Ink tokens and the threshold each is held to. Tokens that only ever colour a
 # glyph, chart stroke or border are non-text under WCAG and get the 3:1 bar;
 # anything that sets running text gets 4.5:1.
@@ -125,6 +146,19 @@ def main() -> int:
                     ratio = contrast(stops[stop][scheme_index], bg)
                     rows.append((scheme, f"{ramp}.{stop}", "on", surface,
                                  ratio, AA_TEXT, ratio >= AA_TEXT))
+
+    # PeptideCategory colours set 13pt badge text on their own 0.15 wash. The
+    # light values are held to running-text AA there; the dark values are the
+    # original domain hues and get the 3:1 domain-colour bar.
+    for category, pair in parse_categories(MODEL_COLORS).items():
+        for scheme_index, scheme in enumerate(("light", "dark")):
+            threshold = AA_TEXT if scheme == "light" else AA_LARGE
+            ink = pair[scheme_index]
+            for surface in SURFACES:
+                wash = blend(ink, tokens[surface][scheme_index], 0.15)
+                ratio = contrast(ink, wash)
+                rows.append((scheme, f"category.{category}", "on", f"{surface}+wash",
+                             ratio, threshold, ratio >= threshold))
 
     # onAccent is the ink printed on a filled accent surface. That fill is
     # `AppColor.accentFill`, which maps to the ramp's `dark` stop — `primary`
