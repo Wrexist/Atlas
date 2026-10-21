@@ -1,5 +1,7 @@
 # Photoreal Anatomy Map — Production Plan
 
+> **Superseded (2026-10-21).** The app draws only the AnatomyV2 body (`TrainingAnatomy`, regions in `anatomy-regions-v2.json`; see `tools/anatomy/README.md`). The legacy mask pack, `AnatomyAssets`, `BodyAnatomy`, `AnatomyDebugView` and the Blender/Z-Anatomy render tooling described below were removed; this page is kept as history.
+
 Goal: replace the vector muscle map with a **photoreal, grayscale muscular
 body** (front + back) where each muscle is tinted by how hard it was
 trained — matching the reference render — while staying crisp, performant,

@@ -1,5 +1,7 @@
 # Exercise focus and catalog visual rollout
 
+> **Superseded (2026-10-21).** Exercise visuals are now the AnatomyV2 body with the exercise's muscles marked (`ExerciseAnatomyEngine`, `ExerciseHeroView`, `ExerciseImageView`). The poster manifest, `ExerciseVisualAssets`, the stock start/finish photos and their scripts were removed; this page is kept as history.
+
 Implemented on 2026-10-03. The shared presentation now covers all 873 catalog exercises. There are 13 dedicated illustrations; 860 entries use their individual muscle maps. This is not completion of the bespoke 873-poster or live-metrics production work.
 
 ## Delivered code
