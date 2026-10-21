@@ -1,4 +1,5 @@
 import Foundation
+import ImageIO
 import UIKit
 @preconcurrency import Vision
 
@@ -49,7 +50,8 @@ enum NutritionLabelOCR {
     static func recognize(image: UIImage) async throws -> ScannedProduct {
         guard let cgImage = image.cgImage else { throw OCRError.visionUnavailable }
 
-        let lines = try await recognizeLines(from: cgImage)
+        let orientation = CGImagePropertyOrientation(image.imageOrientation)
+        let lines = try await recognizeLines(from: cgImage, orientation: orientation)
         guard !lines.isEmpty else { throw OCRError.noTextFound }
 
         guard let parsed = NutritionLabelParser.parse(lines: lines) else {
@@ -76,7 +78,10 @@ enum NutritionLabelOCR {
     /// so the extra ~200ms is worth the better extraction. Sorted
     /// top-to-bottom so the parser can rely on label layout
     /// (calories appear before macros in standard FDA layout).
-    private static func recognizeLines(from cgImage: CGImage) async throws -> [String] {
+    private static func recognizeLines(
+        from cgImage: CGImage,
+        orientation: CGImagePropertyOrientation
+    ) async throws -> [String] {
         try await withCheckedThrowingContinuation { continuation in
             let request = VNRecognizeTextRequest { request, error in
                 if let error {
@@ -97,12 +102,30 @@ enum NutritionLabelOCR {
             request.usesLanguageCorrection = false  // numbers + units, not prose
             request.recognitionLanguages = ["en-US"]
 
-            let handler = VNImageRequestHandler(cgImage: cgImage, orientation: .up, options: [:])
+            let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation, options: [:])
             do {
                 try handler.perform([request])
             } catch {
                 continuation.resume(throwing: error)
             }
+        }
+    }
+}
+
+private extension CGImagePropertyOrientation {
+    /// `UIImage.cgImage` is the raw sensor bitmap; a portrait photo
+    /// carries `.right` here, and Vision needs it to read the text upright.
+    init(_ orientation: UIImage.Orientation) {
+        switch orientation {
+        case .up:            self = .up
+        case .upMirrored:    self = .upMirrored
+        case .down:          self = .down
+        case .downMirrored:  self = .downMirrored
+        case .left:          self = .left
+        case .leftMirrored:  self = .leftMirrored
+        case .right:         self = .right
+        case .rightMirrored: self = .rightMirrored
+        @unknown default:    self = .up
         }
     }
 }
