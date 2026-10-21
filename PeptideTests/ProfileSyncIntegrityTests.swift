@@ -279,6 +279,15 @@ final class ProfileSyncIntegrityTests: XCTestCase {
         XCTAssertEqual(try row.toUserProfile().habitEntries.count, 1)
     }
 
+    func test_workoutMigrationMarker_survivesARoundTrip() throws {
+        var profile = baseProfile()
+        profile.workoutLegacyMigrationCompleted = true
+
+        let row = try StoredProfile.make(from: profile)
+
+        XCTAssertTrue(try row.toUserProfile().workoutLegacyMigrationCompleted)
+    }
+
     // MARK: - Apple Health imports
 
     func test_healthImportedWeight_staysOutOfTheSyncedColumn_butLoads() throws {

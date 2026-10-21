@@ -563,6 +563,7 @@ final class StoredProfile {
             progressPhotoFilenames: ext.progressPhotoFilenames,
             dailyConsumption: meals.dailyConsumption,
             workoutHistory: ext.workoutHistory,
+            workoutLegacyMigrationCompleted: ext.workoutLegacyMigrationCompleted,
             avatarImageData: avatarImageData,
             bio: bio ?? "",
             primaryGoal: primaryGoal,
@@ -640,6 +641,7 @@ private struct ProfileExtension: Codable {
     var progressPhotoFilenames: [String] = []
     var dailyConsumption: [String: DailyConsumption] = [:]
     var workoutHistory: [WorkoutEntry] = []
+    var workoutLegacyMigrationCompleted: Bool = false
     var customFoods: [CustomFood] = []
     /// Encoded as `[String]` so the round-trip JSON has a deterministic
     /// shape (Set has no ordering guarantee). The accessor on
@@ -708,6 +710,7 @@ private struct ProfileExtension: Codable {
         progressPhotoFilenames = try c.decodeIfPresent([String].self, forKey: .progressPhotoFilenames) ?? []
         dailyConsumption = try c.decodeIfPresent([String: DailyConsumption].self, forKey: .dailyConsumption) ?? [:]
         workoutHistory = try c.decodeIfPresent([WorkoutEntry].self, forKey: .workoutHistory) ?? []
+        workoutLegacyMigrationCompleted = try c.decodeIfPresent(Bool.self, forKey: .workoutLegacyMigrationCompleted) ?? false
         customFoods = try c.decodeIfPresent([CustomFood].self, forKey: .customFoods) ?? []
         favoriteFoodIDs = try c.decodeIfPresent([String].self, forKey: .favoriteFoodIDs) ?? []
         mealHistory = try c.decodeIfPresent([MealEntry].self, forKey: .mealHistory) ?? []
@@ -747,6 +750,7 @@ private struct ProfileExtension: Codable {
         ext.emailSubscription = profile.emailSubscription
         ext.progressPhotoFilenames = profile.progressPhotoFilenames
         ext.workoutHistory = profile.workoutHistory
+        ext.workoutLegacyMigrationCompleted = profile.workoutLegacyMigrationCompleted
         ext.healthKitNutritionEnabled = profile.healthKitNutritionEnabled
         ext.lastKnownTimezoneIdentifier = profile.lastKnownTimezoneIdentifier
         ext.streakFreezeDays = Array(profile.streakFreezeDays).sorted()
