@@ -7,6 +7,10 @@ import SwiftUI
 struct WorkoutHistoryView: View {
     @State private var groupedSessions: [MonthGroup] = []
     @State private var hasLoaded: Bool = false
+    /// Grows a page at a time so long-time users can reach older months
+    /// without the first open decoding years of sessions.
+    @State private var fetchLimit = SwiftDataRepository.workoutHistoryFetchLimit
+    @State private var hasOlderSessions = false
     @State private var sessionService = WorkoutSessionService.shared
     @Environment(DataStore.self) private var dataStore
 
@@ -66,6 +70,13 @@ struct WorkoutHistoryView: View {
                     } header: {
                         sectionHeader(group.month.formatted(.dateTime.month(.wide).year()))
                     }
+                }
+                if hasOlderSessions {
+                    GlassButton(title: "Load older workouts", icon: "clock.arrow.circlepath", style: .secondary) {
+                        fetchLimit += SwiftDataRepository.workoutHistoryFetchLimit
+                        reload()
+                    }
+                    .frame(maxWidth: .infinity)
                 }
             }
             .padding(.horizontal, Spacing.screenPadding)
@@ -148,9 +159,9 @@ struct WorkoutHistoryView: View {
     }
 
     private func reload() {
-        let finished = SwiftDataRepository.shared.loadWorkoutSessions()
-            .filter { $0.finishedAt != nil }
-        groupedSessions = Self.group(finished)
+        let loaded = SwiftDataRepository.shared.loadWorkoutSessions(limit: fetchLimit)
+        hasOlderSessions = loaded.count >= fetchLimit
+        groupedSessions = Self.group(loaded.filter { $0.finishedAt != nil })
         hasLoaded = true
     }
 }
