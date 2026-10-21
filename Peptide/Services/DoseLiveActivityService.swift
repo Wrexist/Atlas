@@ -26,18 +26,9 @@ final class DoseLiveActivityService {
     /// didn't open the app" without leaving stale activities for
     /// hours.
     private static let stalenessMinutes: Int = 90
-
-    /// In-flight "show Logged for 4s then end" tasks, keyed by entry id.
-    /// Tracked so a subsequent `reconcile` / `endAll` / repeat
-    /// `markCompleted` can cancel a stale closer instead of letting two
-    /// `activity.end(...)` calls race.
-    private var dismissTasks: [UUID: Task<Void, Never>] = [:]
-
-    /// Identity token for the current dismiss task per entry. A task
-    /// re-checks its token after the 4s sleep before calling `end()`:
-    /// once past the sleep, `cancel()` is a no-op, so a `reconcile` or
-    /// a repeat `markCompleted` would otherwise race a second `end()`.
-    private var dismissTokens: [UUID: UUID] = [:]
+    /// How long the "Logged" badge stays up before the activity
+    /// dismisses itself.
+    private static let loggedSeconds: TimeInterval = 4
 
     private init() {}
 
@@ -59,14 +50,8 @@ final class DoseLiveActivityService {
         let openActivities = Activity<DoseWindowAttributes>.activities
 
         // End activities whose entries are no longer in-window or
-        // gone entirely. Cancel any pending dismiss-after-Logged task —
-        // it would call end() a second time once it wakes up.
+        // gone entirely.
         for activity in openActivities where !inWindowIDs.contains(activity.attributes.entryId) {
-            let entryId = activity.attributes.entryId
-            dismissTasks.removeValue(forKey: entryId)?.cancel()
-            // Invalidate the token so a dismiss task already past its
-            // sleep bows out instead of racing this end().
-            dismissTokens.removeValue(forKey: entryId)
             Task { await activity.end(nil, dismissalPolicy: .immediate) }
         }
 
@@ -80,9 +65,9 @@ final class DoseLiveActivityService {
         }
     }
 
-    /// Push the `completed = true` content state for the matching
-    /// activity. Doesn't end immediately — the live activity briefly
-    /// shows "Logged" before the next reconcile pass dismisses it.
+    /// Ends the matching activity on its `completed = true` state. The
+    /// system keeps the "Logged" badge up briefly, then dismisses it —
+    /// no app-side timer, so it clears even if the app is suspended.
     func markCompleted(_ entryId: UUID) {
         guard #available(iOS 16.1, *), areLiveActivitiesEnabled else { return }
         guard let activity = Activity<DoseWindowAttributes>.activities.first(where: {
@@ -99,41 +84,18 @@ final class DoseLiveActivityService {
             completed: true,
             loggedAt: currentState.loggedAt ?? Date()
         )
-        // Cancel any prior dismiss-after-Logged task for this entry so
-        // we don't double-end, and mint a fresh identity token.
-        dismissTasks.removeValue(forKey: entryId)?.cancel()
-        let token = UUID()
-        dismissTokens[entryId] = token
-        dismissTasks[entryId] = Task { [weak self] in
-            await activity.update(ActivityContent(state: updated, staleDate: nil))
-            // Auto-dismiss after a short confirmation window so the
-            // user sees the "Logged" badge, then the lock screen
-            // clears itself.
-            do {
-                try await Task.sleep(nanoseconds: 4_000_000_000)
-            } catch {
-                return // cancelled — leave the activity for reconcile to clean up
-            }
-            // Past the sleep, cancel() is a no-op — re-check that this
-            // task is still the current one before ending the activity
-            // so a superseding markCompleted / reconcile doesn't race
-            // a second end().
-            guard await self?.dismissTokens[entryId] == token else { return }
-            await activity.end(nil, dismissalPolicy: .immediate)
-            await MainActor.run {
-                self?.dismissTasks.removeValue(forKey: entryId)
-                self?.dismissTokens.removeValue(forKey: entryId)
-                return ()
-            }
+        let dismissAt = Date().addingTimeInterval(Self.loggedSeconds)
+        Task {
+            await activity.end(
+                ActivityContent(state: updated, staleDate: nil),
+                dismissalPolicy: .after(dismissAt)
+            )
         }
     }
 
     /// End every open activity. Used on logout / data reset paths.
     func endAll() {
         guard #available(iOS 16.1, *) else { return }
-        dismissTasks.values.forEach { $0.cancel() }
-        dismissTasks.removeAll()
-        dismissTokens.removeAll()
         for activity in Activity<DoseWindowAttributes>.activities {
             Task { await activity.end(nil, dismissalPolicy: .immediate) }
         }
