@@ -135,8 +135,21 @@ struct WorkoutFocusView: View {
                 .accessibilityLabel("Exercise instructions")
                 .disabled(exercise == nil)
             }
+            if let letter = session.supersetLetter(for: entry.id) {
+                Label(supersetCaption(letter: letter, entryID: entry.id), systemImage: "link")
+                    .font(AppFont.caption.weight(.semibold))
+                    .foregroundStyle(AppColor.accentPrimary)
+            }
             statusHeader(entry)
             Divider()
+            if let progression = service.progression(for: entry) {
+                ProgressionHint(
+                    suggestion: progression, unit: unit,
+                    canApply: ProgressionEngine.isPending(progression, in: entry.sets)
+                ) {
+                    service.applyProgression(toExerciseEntryID: entry.id)
+                }
+            }
             if exercise?.equipmentKind == .dumbbell {
                 Text("Weight per dumbbell · Reps")
                     .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
@@ -192,6 +205,14 @@ struct WorkoutFocusView: View {
         .padding(Spacing.xl)
         .foregroundStyle(AppColor.textPrimary)
         .background(AppColor.trainingPanel, in: RoundedRectangle(cornerRadius: Spacing.sheetCornerRadius))
+    }
+
+    /// "Superset A · with Incline Dumbbell Press".
+    private func supersetCaption(letter: String, entryID: UUID) -> String {
+        let partners = session.supersetPartners(of: entryID)
+            .map { library.lookup(id: $0.exerciseID)?.name ?? $0.exerciseID }
+            .formatted(.list(type: .and))
+        return String(localized: "Superset \(letter) · with \(partners)")
     }
 
     private func statusHeader(_ entry: WorkoutExerciseEntry) -> some View {

@@ -145,7 +145,7 @@ struct AppearanceSettings: View {
     }
 }
 
-private struct SettingsToggleRow: View {
+struct SettingsToggleRow: View {
     let icon: String
     let title: LocalizedStringKey
     let subtitle: LocalizedStringKey

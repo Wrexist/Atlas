@@ -11,14 +11,23 @@ struct WorkoutExerciseCard: View {
     /// exercise. Each row's "60 × 8" cue is paired to one of them by
     /// `PreviousSetEngine`; empty means no history and the cue reads "—".
     let previousSetsLookup: () -> [SetEntry]
+    /// Today's target from `ProgressionEngine`; nil without history.
+    let progression: ProgressionEngine.Suggestion?
     /// Rest the timer will use after a set here — the entry's own
     /// override or the user's default — so the menu can tick it.
     let effectiveRestSeconds: Int
+    /// "A", "B"… when this exercise is in a superset.
+    let supersetLetter: String?
+    /// False for the last exercise, or when it's already in the superset below.
+    let canSupersetWithNext: Bool
     let onSetUpdate: (SetEntry) -> Void
     let onAddSet: () -> Void
     let onRemoveSet: (UUID) -> Void
     let onRemoveExercise: () -> Void
     let onSetRestSeconds: (Int) -> Void
+    let onApplyProgression: () -> Void
+    let onSupersetWithNext: () -> Void
+    let onRemoveFromSuperset: () -> Void
 
     @State private var confirmingRemoval = false
     @State private var showingPlateCalculator = false
@@ -32,6 +41,13 @@ struct WorkoutExerciseCard: View {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 header
                 Divider().background(AppColor.glassBorder)
+                if let progression {
+                    ProgressionHint(
+                        suggestion: progression, unit: unit,
+                        canApply: ProgressionEngine.isPending(progression, in: entry.sets),
+                        onApply: onApplyProgression
+                    )
+                }
                 setsList
                 addSetButton
             }
@@ -50,7 +66,11 @@ struct WorkoutExerciseCard: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(2)
-                if let exercise {
+                if let supersetLetter {
+                    Label("Superset \(supersetLetter)", systemImage: "link")
+                        .font(AppFont.caption.weight(.semibold))
+                        .foregroundStyle(AppColor.accentPrimary)
+                } else if let exercise {
                     Text(exercise.muscleGroup.displayName)
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.textSecondary)
@@ -61,6 +81,16 @@ struct WorkoutExerciseCard: View {
 
             Menu {
                 restMenu
+                if canSupersetWithNext {
+                    Button(action: onSupersetWithNext) {
+                        Label("Superset with next exercise", systemImage: "link")
+                    }
+                }
+                if supersetLetter != nil {
+                    Button(action: onRemoveFromSuperset) {
+                        Label("Remove from superset", systemImage: "xmark.circle")
+                    }
+                }
                 Button {
                     showingPlateCalculator = true
                 } label: {

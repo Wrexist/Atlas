@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Shared exercise artwork, metadata, muscle breakdown and instructions.
+/// Shared exercise body map and muscle breakdown, metadata and instructions.
 struct ExerciseDetailView: View {
     let exerciseID: String
     @State private var library = ExerciseLibrary.shared
@@ -16,11 +16,13 @@ struct ExerciseDetailView: View {
                 VStack(alignment: .leading, spacing: Spacing.lg) {
                     header(for: exercise)
                         .sectionAppear(index: 0)
-                    metadataRow(for: exercise)
-                        .sectionAppear(index: 1)
-                    ExerciseHistorySection(exercise: exercise)
-                        .sectionAppear(index: 2)
+                    // The exercise's visual is its body map: the muscles it
+                    // trains, marked on the Atlas figure, front and back.
                     muscleSection(for: exercise)
+                        .sectionAppear(index: 1)
+                    metadataRow(for: exercise)
+                        .sectionAppear(index: 2)
+                    ExerciseHistorySection(exercise: exercise)
                         .sectionAppear(index: 3)
                     instructionsSection(for: exercise)
                         .sectionAppear(index: 4)
@@ -60,22 +62,11 @@ struct ExerciseDetailView: View {
     // MARK: - Header
 
     private func header(for exercise: Exercise) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            exerciseArtwork(for: exercise)
-                .frame(height: 240)
-
-            Text(exercise.name)
-                .font(AppFont.title)
-                .foregroundStyle(AppColor.textPrimary)
-                .multilineTextAlignment(.leading)
-        }
-        .padding(.top, Spacing.sm)
-    }
-
-    private func exerciseArtwork(for exercise: Exercise) -> some View {
-        ExerciseHeroView(exercise: exercise)
-            .padding(Spacing.md)
-            .background(AppColor.trainingBackground, in: RoundedRectangle(cornerRadius: Spacing.cardCornerRadius))
+        Text(exercise.name)
+            .font(AppFont.title)
+            .foregroundStyle(AppColor.textPrimary)
+            .multilineTextAlignment(.leading)
+            .padding(.top, Spacing.sm)
     }
 
     // MARK: - Metadata pills

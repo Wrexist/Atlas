@@ -33,7 +33,7 @@ DESIGN_SYSTEM = REPO / "Peptide" / "DesignSystem"
 DOMAIN_PALETTE_FILES = {
     "WhatsNewPage.swift", "MuscleMapView.swift", "CycleCardView.swift",
     "ProtocolNotesTimeline.swift", "AvatarPreset.swift", "HabitEditSheet.swift",
-    "BarcodeScanFlow.swift", "ShareCardSheet.swift", "AnatomyDebugView.swift",
+    "BarcodeScanFlow.swift", "ShareCardSheet.swift",
     "ProgressPhotoViewer.swift", "ProgressPhotoCompareView.swift",
     "PaywallPhoneMockupRow.swift", "CompoundVial.swift", "DepthMealCamera.swift",
 }

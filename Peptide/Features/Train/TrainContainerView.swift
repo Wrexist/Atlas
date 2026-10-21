@@ -23,6 +23,9 @@ struct TrainContainerView: View {
     /// every return to this tab, and re-opening a workout the user just
     /// minimized would make minimizing pointless.
     @State private var restoredActiveWorkout = false
+    @State private var isVisible = false
+    @State private var showStaleNotice = false
+    @State private var staleNoticeMessage: LocalizedStringKey = ""
 
     enum Section: String, CaseIterable, Identifiable {
         case overview, routines, exercises, history
@@ -49,6 +52,14 @@ struct TrainContainerView: View {
                     .transition(.opacity.combined(with: .offset(y: 8)))
             }
             .background(AppColor.background.ignoresSafeArea())
+            .overlay(alignment: .top) {
+                SyncToast(
+                    isShowing: $showStaleNotice,
+                    message: staleNoticeMessage,
+                    autoDismissAfter: .seconds(4)
+                )
+                .padding(.top, Spacing.sm)
+            }
             .navigationTitle("Train")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
@@ -92,6 +103,11 @@ struct TrainContainerView: View {
             ActiveWorkoutView()
         }
         .onAppear {
+            isVisible = true
+            // Before the restore below: a workout forgotten overnight is
+            // closed, not re-opened.
+            sessionService.closeIfStale()
+            surfaceStaleClosure()
             // If a workout was already in progress when this view
             // mounted (process re-launch, app re-entry), surface it
             // immediately so the user doesn't have to discover it
@@ -101,6 +117,15 @@ struct TrainContainerView: View {
             if sessionService.activeSession != nil {
                 showActiveWorkout = true
             }
+        }
+        .onDisappear { isVisible = false }
+        .onChange(of: sessionService.staleClosure) { _, closure in
+            guard closure != nil else { return }
+            // Left open overnight, the workout screen would come back
+            // to an empty "no workout" state.
+            showActiveWorkout = false
+            // Off-screen, the notice waits for the next `onAppear`.
+            if isVisible { surfaceStaleClosure() }
         }
         .onChange(of: sessionService.activeSession?.id) { oldID, newID in
             // Auto-present whenever a different session begins —
@@ -112,6 +137,15 @@ struct TrainContainerView: View {
             // so the cover lifecycle is owned downstream.
             if let newID, newID != oldID { showActiveWorkout = true }
         }
+    }
+
+    private func surfaceStaleClosure() {
+        guard let closure = sessionService.staleClosure else { return }
+        sessionService.acknowledgeStaleClosure()
+        staleNoticeMessage = closure == .finished
+            ? "Saved your unfinished workout to History"
+            : "Cleared an empty workout left open"
+        showStaleNotice = true
     }
 
     private var showsWorkoutBanner: Bool {
@@ -134,7 +168,11 @@ struct TrainContainerView: View {
                         .font(AppFont.callout.weight(.semibold))
                     if let active = sessionService.activeSession {
                         HStack(spacing: Spacing.xs) {
-                            Text(active.startedAt, style: .timer)
+                            // Active time, not wall clock: frozen while
+                            // paused, and pauses don't count.
+                            TimelineView(.periodic(from: .now, by: 1)) { context in
+                                Text(WorkoutClock.label(active.elapsedSeconds(now: context.date)))
+                            }
                             Text("·")
                             Text("\(active.completedSetCount) sets logged")
                                 .contentTransition(.numericText())

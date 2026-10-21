@@ -36,8 +36,8 @@ struct Exercise: Codable, Hashable, Identifiable, Sendable {
     let category: Category
     /// Image paths relative to the dataset's `exercises/` root, e.g.
     /// `Decline_EZ_Bar_Triceps_Extension/0.jpg`. Two per exercise
-    /// (start + end position). Retained as source provenance; presentation
-    /// uses ExerciseVisualAssets keyed by the stable exercise ID.
+    /// (start + end position). Retained as source provenance only; the app
+    /// draws every exercise as the body map (`ExerciseAnatomyEngine`).
     let images: [String]
 
     enum Force: String, Codable, Sendable {

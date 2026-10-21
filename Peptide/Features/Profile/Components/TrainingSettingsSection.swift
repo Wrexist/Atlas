@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// The settings a training-first user reaches for most — display units and
-/// the rest timer's fallback length — surfaced near the top of Profile
-/// instead of at the bottom of the general Settings card.
+/// The settings a training-first user reaches for most — display units,
+/// the rest timer's fallback length and auto-progression — surfaced near
+/// the top of Profile instead of at the bottom of the general Settings card.
 struct TrainingSettingsSection: View {
     @Environment(DataStore.self) private var dataStore
 
@@ -24,6 +24,15 @@ struct TrainingSettingsSection: View {
                 Divider().overlay(AppColor.glassBorder)
 
                 RestTimerRow(selection: restTimerBinding)
+
+                Divider().overlay(AppColor.glassBorder)
+
+                SettingsToggleRow(
+                    icon: "arrow.up.right",
+                    title: "Auto-progression",
+                    subtitle: "Start each exercise at the weight and reps to beat",
+                    isOn: autoProgressionBinding
+                )
             }
         }
     }
@@ -37,6 +46,17 @@ struct TrainingSettingsSection: View {
             set: { seconds in
                 var updated = preferences
                 updated.restTimerDefault = seconds
+                dataStore.updateTrainingPreferences(updated)
+            }
+        )
+    }
+
+    private var autoProgressionBinding: Binding<Bool> {
+        Binding(
+            get: { preferences.autoProgression },
+            set: { enabled in
+                var updated = preferences
+                updated.autoProgression = enabled
                 dataStore.updateTrainingPreferences(updated)
             }
         )

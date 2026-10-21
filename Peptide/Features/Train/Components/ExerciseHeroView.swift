@@ -1,74 +1,105 @@
 import SwiftUI
-import UIKit
 
+/// An exercise's visual: the Atlas body, front and back, with the muscles
+/// it trains marked — prime movers in the strong primary tint, assisting
+/// muscles a lighter secondary wash — over a one-line legend naming them.
+/// Catalog and custom exercises render the same way, from their muscles.
 struct ExerciseHeroView: View {
     let exercise: Exercise?
-    var compact = false
-    /// Share cards stay on the art or map: a stock photo is not the user's workout.
-    var showsPhotos = true
-
-    /// UIKit's asset cache avoids decoding again on timer ticks. A missing
-    /// catalog image falls through to the exercise's photos, then its map.
-    private var posterImage: UIImage? {
-        guard let exercise, let asset = ExerciseVisualAssets.poster(for: exercise.id) else { return nil }
-        return UIImage(named: asset)
-    }
+    /// Share canvases render through ImageRenderer: no tap targets, no legend.
+    var interactive = true
 
     var body: some View {
-        Group {
-            if let exercise, let posterImage {
-                Image(uiImage: posterImage)
-                    .resizable()
-                    .scaledToFit()
-                    .accessibilityLabel(Text("\(exercise.name) illustration"))
-            } else if let exercise, compact, showsPhotos, let start = ExercisePhotos.thumbnail(for: exercise.id) {
-                Image(uiImage: start)
-                    .resizable()
-                    .scaledToFill()
-                    .accessibilityLabel(Text("\(exercise.name) start position"))
-            } else if let exercise, showsPhotos, let photos = ExercisePhotos.pair(for: exercise.id) {
-                ExerciseMovementView(exercise: exercise, photos: photos)
-            } else if let exercise {
-                ExerciseMuscleMap(
-                    exercise: exercise,
-                    orientation: compact ? ExerciseMuscleMap.preferredOrientation(for: exercise) : .both
+        if let exercise {
+            let highlights = ExerciseAnatomyEngine.highlights(for: exercise)
+            VStack(spacing: Spacing.sm) {
+                MuscleMapView(
+                    highlights: highlights,
+                    primaryColor: AppColor.trainingPrimaryMuscle,
+                    secondaryColor: AppColor.trainingSecondaryMuscle,
+                    identifiesOnTap: interactive
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(Text("Muscle map for \(exercise.name). Primary: \(exercise.primaryMuscles.joined(separator: ", ")). Supporting: \(exercise.secondaryMuscles.joined(separator: ", "))."))
-            } else {
-                Image(systemName: "figure.strengthtraining.traditional")
-                    .font(AppFont.statValue)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .accessibilityLabel("Exercise illustration unavailable")
+                .accessibilityLabel(Text("Muscle map for \(exercise.name)"))
+                .accessibilityValue(Text(ExerciseMuscleLegend.summary(for: highlights)))
+                if interactive {
+                    ExerciseMuscleLegend(highlights: highlights)
+                }
             }
+            .frame(maxWidth: .infinity)
+        } else {
+            Image(systemName: "figure.strengthtraining.traditional")
+                .font(AppFont.statValue)
+                .foregroundStyle(AppColor.textSecondary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityLabel("Exercise illustration unavailable")
         }
-        .frame(maxWidth: .infinity)
-        .allowsHitTesting(false)
     }
 }
 
-/// The exercise's primary and supporting muscles on the anatomy figure.
-struct ExerciseMuscleMap: View {
-    let exercise: Exercise
-    let orientation: MuscleMapView.Orientation
+/// Primary and secondary muscle names under the figure, one line each tier.
+struct ExerciseMuscleLegend: View {
+    let highlights: [AnatomicalMuscle: MuscleHighlight]
 
     var body: some View {
-        MuscleMapView(
-            highlights: MuscleMapView.highlights(for: exercise),
-            orientation: orientation,
-            primaryColor: AppColor.trainingPrimaryMuscle,
-            secondaryColor: AppColor.trainingSecondaryMuscle,
-            silhouetteFill: AppColor.textSecondary.opacity(0.10),
-            silhouetteStroke: AppColor.textSecondary.opacity(0.30),
-            showsSkeleton: false,
-            muscleBaseline: AppColor.textSecondary.opacity(0.20),
-            tendonStroke: AppColor.textSecondary.opacity(0.25),
-            identifiesOnTap: false
-        )
+        HStack(spacing: Spacing.md) {
+            tier(.primary, color: AppColor.trainingPrimaryMuscle)
+            tier(.secondary, color: AppColor.trainingSecondaryMuscle)
+        }
+        .font(AppFont.caption)
+        .lineLimit(1)
+        .accessibilityHidden(true)
     }
 
-    static func preferredOrientation(for exercise: Exercise) -> MuscleMapView.Orientation {
-        let posterior: Set<String> = ["lats", "middle back", "lower back", "traps", "glutes", "hamstrings", "calves", "triceps"]
-        return exercise.primaryMuscles.contains(where: posterior.contains) ? .back : .front
+    @ViewBuilder
+    private func tier(_ tier: MuscleHighlight, color: Color) -> some View {
+        let names = ExerciseAnatomyEngine.names(in: highlights, tier: tier)
+        if !names.isEmpty {
+            HStack(spacing: Spacing.xs) {
+                Circle().fill(color).frame(width: 8, height: 8)
+                Text(names.joined(separator: ", "))
+                    .foregroundStyle(AppColor.textSecondary)
+                    .truncationMode(.tail)
+            }
+            .layoutPriority(tier == .primary ? 1 : 0)
+        }
+    }
+
+    static func summary(for highlights: [AnatomicalMuscle: MuscleHighlight]) -> String {
+        let primary = ExerciseAnatomyEngine.names(in: highlights, tier: .primary)
+        let secondary = ExerciseAnatomyEngine.names(in: highlights, tier: .secondary)
+        var parts: [String] = []
+        if !primary.isEmpty { parts.append("Primary: " + primary.joined(separator: ", ")) }
+        if !secondary.isEmpty { parts.append("Secondary: " + secondary.joined(separator: ", ")) }
+        return parts.isEmpty ? "No mapped muscles" : parts.joined(separator: ". ")
+    }
+}
+
+/// One side of the body zoomed to the band the exercise works — arms for a
+/// curl, legs for a squat — so the marking reads at list-tile size.
+struct ExerciseMuscleThumbnail: View {
+    let highlights: [AnatomicalMuscle: MuscleHighlight]
+
+    var body: some View {
+        GeometryReader { geo in
+            let side = ExerciseAnatomyEngine.preferredSide(for: highlights)
+            let focus = ExerciseAnatomyEngine.focusRect(
+                for: highlights, side: side,
+                aspect: geo.size.width / max(geo.size.height, 1)
+            )
+            let width = geo.size.width / focus.width
+            let height = geo.size.height / focus.height
+            MuscleMapView(
+                highlights: highlights,
+                orientation: side == .front ? .front : .back,
+                primaryColor: AppColor.trainingPrimaryMuscle,
+                secondaryColor: AppColor.trainingSecondaryMuscle,
+                identifiesOnTap: false
+            )
+            .frame(width: width, height: height)
+            .offset(x: -focus.minX * width, y: -focus.minY * height)
+        }
+        .clipped()
     }
 }

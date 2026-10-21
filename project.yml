@@ -282,7 +282,8 @@ targets:
       - path: PeptideTests/MuscleGainsEngineTests.swift
       - path: PeptideTests/WorkoutFocusTests.swift
       - path: PeptideTests/WorkoutRecapTests.swift
-      - path: PeptideTests/ExerciseVisualAssetsTests.swift
+      - path: PeptideTests/TrainingAnatomyTests.swift
+      - path: PeptideTests/ExerciseAnatomyEngineTests.swift
     dependencies:
       - target: Peptide
     settings:

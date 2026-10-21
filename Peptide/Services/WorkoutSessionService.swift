@@ -17,6 +17,13 @@ final class WorkoutSessionService {
     private(set) var activeSession: WorkoutSession?
     private(set) var lastFinishError: String?
     private var pendingFinish: WorkoutSession?
+    /// Set when `closeIfStale` closed a forgotten workout, so the Train
+    /// tab can say so once. Cleared by `acknowledgeStaleClosure`.
+    private(set) var staleClosure: StaleClosure?
+
+    enum StaleClosure: Equatable {
+        case discarded, finished
+    }
 
     /// How recently a session must have started for a second `startWorkout`
     /// to be treated as a duplicate tap rather than a fresh workout. Roughly
@@ -31,6 +38,9 @@ final class WorkoutSessionService {
         // whose workout is long gone — or lose one whose workout isn't.
         reconcileRest()
         WorkoutLiveActivityService.shared.reconcile(active: activeSession)
+        // Deferred: closing reaches DataStore, which reads `.shared` —
+        // still mid-initialisation here.
+        Task { [weak self] in self?.closeIfStale() }
     }
 
     // MARK: - Lifecycle
@@ -69,6 +79,7 @@ final class WorkoutSessionService {
             RoutineSeedEngine.sessionExercises(for: routine) { exerciseID in
                 lastCompletedSet(forExerciseID: exerciseID)
             }
+            .map { entry in progressed(entry, routine: routine) }
         } ?? []
 
         let session = WorkoutSession(
@@ -99,17 +110,18 @@ final class WorkoutSessionService {
     /// Mark the session complete. Returns the finished session for
     /// the finish-screen render path; the service drops its
     /// `activeSession` so the next `startWorkout` is unambiguous.
+    /// `end` is the recorded finish time — earlier than now only when a
+    /// forgotten workout is closed after the fact.
     @discardableResult
-    func finishWorkout(perceivedEffort: Int? = nil, note: String? = nil) -> FinishedWorkout? {
+    func finishWorkout(perceivedEffort: Int? = nil, note: String? = nil, at end: Date = Date()) -> FinishedWorkout? {
         guard var session = activeSession else { return nil }
         guard session.completedSetCount > 0 else {
             lastFinishError = "Complete at least one working set before finishing."
             return nil
         }
-        let now = Date()
-        session.focus?.resume(at: now)
+        session.focus?.resume(at: end)
         session.focus?.rest = nil
-        session.finishedAt = now
+        session.finishedAt = end
         session.perceivedEffort = perceivedEffort
         session.note = note
         if let pendingFinish, pendingFinish.id == session.id { session = pendingFinish }
@@ -156,6 +168,41 @@ final class WorkoutSessionService {
         AppLog.training.info("Workout discarded (id: \(session.id, privacy: .public))")
     }
 
+    /// Closes a workout left open for hours (see `WorkoutStalenessEngine`)
+    /// through the normal finish / discard paths, so HealthKit, PRs, the
+    /// Watch and widgets all hear about it. Runs on relaunch and whenever
+    /// the app returns to the foreground.
+    @discardableResult
+    func closeIfStale(now: Date = Date()) -> StaleClosure? {
+        guard let session = activeSession else { return nil }
+        let closure: StaleClosure
+        switch WorkoutStalenessEngine.verdict(for: session, now: now) {
+        case .keep:
+            return nil
+        case .discard:
+            discardWorkout()
+            closure = .discarded
+        case .finish(let end):
+            // A failed finish attempt's snapshot would override `end`.
+            cancelFinishAttempt()
+            guard finishWorkout(at: end) != nil else {
+                cancelFinishAttempt()
+                return nil
+            }
+            // Skip the Live Activity's summary beat: it celebrates a
+            // workout that ended hours ago.
+            WorkoutLiveActivityService.shared.endAll()
+            closure = .finished
+        }
+        staleClosure = closure
+        AppLog.training.info("Stale workout closed (id: \(session.id, privacy: .public), \(String(describing: closure), privacy: .public))")
+        return closure
+    }
+
+    func acknowledgeStaleClosure() {
+        staleClosure = nil
+    }
+
     // MARK: - Mutations
 
     func addExercise(_ exercise: Exercise) {
@@ -166,7 +213,7 @@ final class WorkoutSessionService {
         // placeholder every time (audit Train M4). Default to a
         // conservative 8 reps when no history exists.
         let seed = lastCompletedSet(forExerciseID: exercise.id)
-        let entry = WorkoutExerciseEntry(
+        let entry = progressed(WorkoutExerciseEntry(
             exerciseID: exercise.id,
             index: nextIndex,
             sets: [SetEntry(
@@ -175,7 +222,7 @@ final class WorkoutSessionService {
                 reps: seed?.reps ?? 8,
                 measurement: seed?.measurement
             )]
-        )
+        ), routine: nil)
         session.exercises.append(entry)
         if session.focus == nil { session.focus = WorkoutFocusState() }
         session.focus?.selectedEntryID = entry.id
@@ -189,6 +236,20 @@ final class WorkoutSessionService {
         for i in session.exercises.indices {
             session.exercises[i].index = i
         }
+        session.dissolveLoneSupersets()
+        persist(session)
+    }
+
+    /// Supersets `entryID` with the exercise below it.
+    func supersetWithNext(_ entryID: UUID) {
+        guard var session = activeSession else { return }
+        session.linkSupersetWithNext(entryID)
+        persist(session)
+    }
+
+    func removeFromSuperset(_ entryID: UUID) {
+        guard var session = activeSession else { return }
+        session.unlinkSuperset(entryID)
         persist(session)
     }
 
@@ -253,7 +314,10 @@ final class WorkoutSessionService {
             session.focus?.rest = nil
             let seconds = session.exercises[exIdx].restSeconds
                 ?? DataStore.current?.profile.trainingPreferences?.restTimerDefault ?? 90
-            if seconds > 0, let target = session.nextPendingSet(after: entryID) {
+            if let target = session.nextPendingSet(after: entryID),
+               session.continuesSuperset(from: entryID, to: target.entry) {
+                session.focus?.selectedEntryID = target.entry
+            } else if seconds > 0, let target = session.nextPendingSet(after: entryID) {
                 session.focus?.rest = WorkoutRestContext(
                     sourceEntryID: entryID, sourceSetID: updated.id,
                     targetEntryID: target.entry, targetSetID: target.set,
@@ -330,6 +394,59 @@ final class WorkoutSessionService {
             if !completed.isEmpty { return completed }
         }
         return []
+    }
+
+    // MARK: - Progression
+
+    /// The next step for an exercise in the active workout, read from the
+    /// last session that logged it. Nil without history or comparable load.
+    func progression(for entry: WorkoutExerciseEntry) -> ProgressionEngine.Suggestion? {
+        let routine = activeSession?.routineID.flatMap { id in
+            RoutineStore.shared.routines.first { $0.id == id }
+        }
+        return progression(for: entry.exerciseID, targetReps: targetReps(for: entry, in: routine))
+    }
+
+    /// Fills the exercise's unchecked working sets with its suggestion.
+    func applyProgression(toExerciseEntryID entryID: UUID) {
+        guard var session = activeSession,
+              let idx = session.exercises.firstIndex(where: { $0.id == entryID }),
+              let suggestion = progression(for: session.exercises[idx])
+        else { return }
+        session.exercises[idx].sets = ProgressionEngine.apply(suggestion, to: session.exercises[idx].sets)
+        persist(session)
+    }
+
+    /// The slot this entry was seeded from. Entries take their slot's
+    /// position, so a routine listing one exercise twice keeps each slot's
+    /// own target; an entry moved since falls back to the first match.
+    private func targetReps(for entry: WorkoutExerciseEntry, in routine: Routine?) -> Int? {
+        guard let slots = routine?.exercises.sorted(by: { $0.index < $1.index }) else { return nil }
+        if slots.indices.contains(entry.index), slots[entry.index].exerciseID == entry.exerciseID {
+            return slots[entry.index].targetReps
+        }
+        return slots.first(where: { $0.exerciseID == entry.exerciseID })?.targetReps
+    }
+
+    private func progression(for id: String, targetReps target: Int?) -> ProgressionEngine.Suggestion? {
+        let exercise = ExerciseLibrary.shared.lookup(id: id)
+        let unit = DataStore.current?.profile.bodyMetrics.unit ?? .metric
+        return ProgressionEngine.suggestion(
+            previous: previousSessionSets(forExerciseID: id),
+            repRange: ProgressionEngine.repRange(targetReps: target, mechanic: exercise?.mechanic),
+            incrementKg: ProgressionEngine.incrementKg(for: exercise?.equipmentKind ?? .other, unit: unit)
+        )
+    }
+
+    /// Seeds a new entry at its suggested load when auto-progression is on
+    /// (the default), so the workout opens at the weight to beat.
+    private func progressed(_ entry: WorkoutExerciseEntry, routine: Routine?) -> WorkoutExerciseEntry {
+        guard DataStore.current?.profile.trainingPreferences?.autoProgression ?? true,
+              let suggestion = progression(for: entry.exerciseID, targetReps: targetReps(for: entry, in: routine))
+        else { return entry }
+        var seeded = entry
+        seeded.sets = ProgressionEngine.apply(suggestion, to: entry.sets)
+        return seeded
     }
 
     // MARK: - Focus and session clocks
