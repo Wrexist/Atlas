@@ -263,12 +263,23 @@ struct PaywallView: View {
             Image(systemName: "lock.shield.fill")
                 .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.accentPrimary)
-            Text("Private by design — no ads, no tracking, cancel anytime")
+            Text(isOneTimePurchaseSelected
+                 ? "Private by design — no ads, no tracking"
+                 : "Private by design — no ads, no tracking, cancel anytime")
                 .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Private by design. No ads, no tracking. Cancel anytime.")
+        .accessibilityLabel(isOneTimePurchaseSelected
+                            ? "Private by design. No ads, no tracking."
+                            : "Private by design. No ads, no tracking. Cancel anytime.")
+    }
+
+    /// Lifetime is a one-time purchase: "cancel anytime" copy would
+    /// contradict the footer's "nothing to renew or cancel" disclosure.
+    private var isOneTimePurchaseSelected: Bool {
+        guard let product = selectedProduct else { return false }
+        return product.type != .autoRenewable
     }
 
     // MARK: - Trial timeline
@@ -396,7 +407,9 @@ struct PaywallView: View {
                 .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.positive)
                 .accessibilityHidden(true)
-            Text("Cancel anytime in Settings → Apple ID → Subscriptions. Your logs, workouts and photos stay yours either way.")
+            Text(isOneTimePurchaseSelected
+                 ? "One payment. Your logs, workouts and photos stay yours."
+                 : "Cancel anytime in Settings → Apple ID → Subscriptions. Your logs, workouts and photos stay yours either way.")
                 .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -414,8 +427,10 @@ struct PaywallView: View {
     @ViewBuilder
     private func noticeView(_ notice: PurchaseNotice) -> some View {
         switch notice {
-        case .failed(let message):
-            purchaseErrorBanner(message: message)
+        case .purchaseFailed(let message):
+            failureBanner(title: "Purchase didn't go through", message: message, isRestore: false)
+        case .restoreFailed(let message):
+            failureBanner(title: "Restore didn't go through", message: message, isRestore: true)
         case .pending:
             pendingApprovalBanner
         case .nothingToRestore:
@@ -463,8 +478,9 @@ struct PaywallView: View {
     /// that just dumped the StoreKit description on the user with no path
     /// forward. Surfaces a localized headline + the underlying detail in
     /// muted secondary text, plus an explicit Restore Purchases shortcut so
-    /// a transient StoreKit failure isn't a dead end.
-    private func purchaseErrorBanner(message: String) -> some View {
+    /// a transient StoreKit failure isn't a dead end. A failed restore
+    /// retries the restore — never a purchase the user didn't ask for.
+    private func failureBanner(title: LocalizedStringKey, message: String, isRestore: Bool) -> some View {
         VStack(spacing: Spacing.xs) {
             HStack(alignment: .top, spacing: Spacing.sm) {
                 Image(systemName: "exclamationmark.triangle.fill")
@@ -472,7 +488,7 @@ struct PaywallView: View {
                     .foregroundStyle(AppColor.destructive)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Purchase didn't go through")
+                    Text(title)
                         .font(AppFont.subheadline)
                         .fontWeight(.semibold)
                         .foregroundStyle(AppColor.textPrimary)
@@ -485,27 +501,38 @@ struct PaywallView: View {
             }
 
             HStack(spacing: Spacing.sm) {
-                if let product = selectedProduct {
-                    Button("Try again") {
+                if isRestore {
+                    Button {
                         notice = nil
-                        Task { await purchase(product) }
+                        restore()
+                    } label: {
+                        Text("Try again").minimumHitArea()
                     }
-                    .font(AppFont.caption)
-                    .fontWeight(.semibold)
                     .foregroundStyle(AppColor.accentLight)
-                }
+                } else {
+                    if let product = selectedProduct {
+                        Button {
+                            notice = nil
+                            Task { await purchase(product) }
+                        } label: {
+                            Text("Try again").minimumHitArea()
+                        }
+                        .foregroundStyle(AppColor.accentLight)
+                    }
 
-                Button("Restore purchases") {
-                    notice = nil
-                    restore()
+                    Button {
+                        notice = nil
+                        restore()
+                    } label: {
+                        Text("Restore purchases").minimumHitArea()
+                    }
+                    .foregroundStyle(AppColor.textSecondary)
                 }
-                .font(AppFont.caption)
-                .fontWeight(.semibold)
-                .foregroundStyle(AppColor.textSecondary)
 
                 Spacer(minLength: 0)
             }
-            .padding(.top, Spacing.xs)
+            .font(AppFont.caption)
+            .fontWeight(.semibold)
         }
         .padding(Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1035,7 +1062,7 @@ struct PaywallView: View {
     /// problem).
     @ViewBuilder
     private var autoRenewDisclosure: some View {
-        if let product = selectedProduct, product.type != .autoRenewable {
+        if isOneTimePurchaseSelected {
             Text("One-time purchase, charged to your Apple ID. No subscription — nothing to renew or cancel.")
                 .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textTertiary)
@@ -1172,7 +1199,7 @@ struct PaywallView: View {
                 break // no UI noise on explicit cancel
             }
         } catch {
-            notice = .failed("Purchase failed. Try again or restore.")
+            notice = .purchaseFailed("Purchase failed. Try again or restore.")
         }
     }
 
@@ -1192,7 +1219,7 @@ struct PaywallView: View {
                     notice = .nothingToRestore
                 }
             } catch {
-                notice = .failed("Restore failed. Check your internet connection and try again.")
+                notice = .restoreFailed("Restore failed. Check your internet connection and try again.")
             }
         }
     }
@@ -1217,7 +1244,8 @@ struct PaywallView: View {
 
 /// What the paywall footer reports after a purchase or restore attempt.
 private enum PurchaseNotice: Equatable {
-    case failed(String)
+    case purchaseFailed(String)
+    case restoreFailed(String)
     case pending
     case nothingToRestore
 }
