@@ -114,7 +114,7 @@ struct AboutSection: View {
             // (the tour fires on next launch only if the user
             // actually bumps to a newer version).
             WhatsNewTourSheet(
-                pages: WhatsNewPage.v21,
+                pages: WhatsNewPage.current,
                 onComplete: { showWhatsNewReplay = false }
             )
         }
