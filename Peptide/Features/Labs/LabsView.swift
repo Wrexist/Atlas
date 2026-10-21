@@ -133,7 +133,7 @@ struct LabsView: View {
     // MARK: - Sections
 
     private func introHeader(count: Int) -> some View {
-        Text("^[\(count) panel](inflect: true) tracked")
+        Text("^[\(count) marker](inflect: true) tracked")
             .font(AppFont.subheadline)
             .foregroundStyle(AppColor.textSecondary)
             .contentTransition(.numericText())

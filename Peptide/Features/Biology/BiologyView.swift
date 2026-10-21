@@ -241,7 +241,7 @@ struct BiologyView: View {
         let count = dataStore.latestLabSummaries.count
         return count == 0
             ? Text("Log blood work and track your results")
-            : Text("^[\(count) panel](inflect: true) tracked")
+            : Text("^[\(count) marker](inflect: true) tracked")
     }
 
     private func openLabs() {
