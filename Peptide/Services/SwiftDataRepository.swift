@@ -409,18 +409,21 @@ final class SwiftDataRepository {
     /// `deleteProtocol(id:)` calls at removal sites.
     func upsertProtocols(_ protocols: [PeptideProtocol]) {
         guard let context, !protocols.isEmpty else { return }
-        let inputIds = protocols.map(\.id)
-        let descriptor = FetchDescriptor<StoredProtocol>(
-            predicate: #Predicate { inputIds.contains($0.id) }
-        )
-        let existingById: [UUID: StoredProtocol]
+        var existing: [StoredProtocol] = []
         do {
-            let existing = try context.fetch(descriptor)
-            existingById = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+            for chunk in Self.predicateChunks(protocols.map(\.id)) {
+                existing += try context.fetch(FetchDescriptor<StoredProtocol>(
+                    predicate: #Predicate { chunk.contains($0.id) }
+                ))
+            }
         } catch {
+            // Inserting blind would duplicate every row that already
+            // exists; leave the batch dirty so the next save retries.
             AppLog.swiftData.error("Fetch (upsert) protocols failed: \(error.localizedDescription, privacy: .public)")
-            existingById = [:]
+            commitDidFail = true
+            return
         }
+        let existingById = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
         for proto in protocols {
             do {
                 if let stored = existingById[proto.id] {
@@ -518,19 +521,23 @@ final class SwiftDataRepository {
     /// removal sites.
     func upsertEntries(_ entries: [ProtocolEntry]) {
         guard let context, !entries.isEmpty else { return }
-        let inputIds = entries.map(\.id)
-        let descriptor = FetchDescriptor<StoredEntry>(
-            predicate: #Predicate { inputIds.contains($0.id) }
-        )
+        var existing: [StoredEntry] = []
+        do {
+            for chunk in Self.predicateChunks(entries.map(\.id)) {
+                existing += try context.fetch(FetchDescriptor<StoredEntry>(
+                    predicate: #Predicate { chunk.contains($0.id) }
+                ))
+            }
+        } catch {
+            // Inserting blind would duplicate every row that already
+            // exists; leave the batch dirty so the next save retries.
+            AppLog.swiftData.error("Fetch (upsert) entries failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
+            return
+        }
         // Grouped, not unique: two devices that generated the same
         // scheduled dose each synced a row with its id.
-        let existingById: [UUID: [StoredEntry]]
-        do {
-            existingById = try Dictionary(grouping: context.fetch(descriptor), by: \.id)
-        } catch {
-            AppLog.swiftData.error("Fetch (upsert) entries failed: \(error.localizedDescription, privacy: .public)")
-            existingById = [:]
-        }
+        let existingById = Dictionary(grouping: existing, by: \.id)
         for entry in entries {
             do {
                 if let rows = existingById[entry.id] {
@@ -895,6 +902,7 @@ final class SwiftDataRepository {
             commit()
         } catch {
             AppLog.swiftData.error("upsert workout session failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -1274,6 +1282,13 @@ final class SwiftDataRepository {
     #endif
 
     // MARK: - Private
+
+    /// Splits an id list so an `IN` predicate stays well under SQLite's
+    /// bound-variable limit on very large upserts.
+    private static func predicateChunks(_ ids: [UUID]) -> [[UUID]] {
+        let size = 500
+        return stride(from: 0, to: ids.count, by: size).map { Array(ids[$0..<min($0 + size, ids.count)]) }
+    }
 
     @discardableResult
     private func commit() -> Bool {

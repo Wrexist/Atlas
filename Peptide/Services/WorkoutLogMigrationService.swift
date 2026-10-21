@@ -47,6 +47,7 @@ enum WorkoutLogMigrationService {
             return 0
         }
 
+        repository.beginSaveBatch()
         var migrated = 0
         for entry in history {
             let finishedAt = entry.date.addingTimeInterval(
@@ -66,6 +67,13 @@ enum WorkoutLogMigrationService {
             )
             repository.upsertWorkoutSession(session)
             migrated += 1
+        }
+
+        // A failed write leaves the legacy log as the only copy; keep it
+        // and the marker unset so the next launch retries.
+        guard !repository.commitDidFail else {
+            AppLog.persistence.error("WorkoutLogMigrationService: write failed — keeping legacy entries for retry")
+            return 0
         }
 
         // Migration succeeded for every entry — clear the source so a
