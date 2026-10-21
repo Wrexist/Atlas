@@ -52,8 +52,13 @@ struct BioAgeTrendCard: View {
         }
         .onAppear { draw() }
         .onChange(of: range) { _, _ in
-            drawProgress = 0
-            draw()
+            // Commit the reset un-animated before drawing in again; set in
+            // the same update, SwiftUI coalesces 0 → 1 and the line never
+            // visibly redraws.
+            var reset = Transaction()
+            reset.disablesAnimations = true
+            withTransaction(reset) { drawProgress = 0 }
+            Task { draw() }
         }
     }
 
