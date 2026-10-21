@@ -22,6 +22,15 @@ private let sdDecoder: JSONDecoder = {
     return d
 }()
 
+/// Assigns only a value that differs. Every assignment marks the CloudKit
+/// field dirty and re-exports it on the next sync, so rewriting unchanged
+/// rows on each save would re-upload the whole table.
+private func assignIfChanged<Root: AnyObject, Value: Equatable>(
+    _ root: Root, _ keyPath: ReferenceWritableKeyPath<Root, Value>, _ value: Value
+) {
+    if root[keyPath: keyPath] != value { root[keyPath: keyPath] = value }
+}
+
 // MARK: - StoredProtocol
 
 @Model
@@ -85,17 +94,17 @@ final class StoredProtocol {
     }
 
     func update(from proto: PeptideProtocol) throws {
-        name = proto.name
-        cycleLengthWeeks = proto.cycleLengthWeeks
-        startDate = proto.startDate
-        statusRaw = proto.status.rawValue
-        notes = proto.notes
-        peptideData = try sdEncoder.encode(proto.peptides)
-        scheduleData = try sdEncoder.encode(EncodedSchedule(from: proto))
-        authorName = proto.authorName
-        authorHandle = proto.authorHandle
-        forkedFromStackIdString = proto.forkedFromStackId?.uuidString
-        createdAt = proto.createdAt
+        assignIfChanged(self, \.name, proto.name)
+        assignIfChanged(self, \.cycleLengthWeeks, proto.cycleLengthWeeks)
+        assignIfChanged(self, \.startDate, proto.startDate)
+        assignIfChanged(self, \.statusRaw, proto.status.rawValue)
+        assignIfChanged(self, \.notes, proto.notes)
+        try assignIfChanged(self, \.peptideData, sdEncoder.encode(proto.peptides))
+        try assignIfChanged(self, \.scheduleData, sdEncoder.encode(EncodedSchedule(from: proto)))
+        assignIfChanged(self, \.authorName, proto.authorName)
+        assignIfChanged(self, \.authorHandle, proto.authorHandle)
+        assignIfChanged(self, \.forkedFromStackIdString, proto.forkedFromStackId?.uuidString)
+        assignIfChanged(self, \.createdAt, Optional(proto.createdAt))
     }
 
     func toPeptideProtocol() throws -> PeptideProtocol {
@@ -221,13 +230,13 @@ final class StoredEntry {
     }
 
     func update(from entry: ProtocolEntry) throws {
-        completed = entry.completed
-        actualDose = entry.actualDose
-        actualTime = entry.actualTime
-        injectionSite = entry.injectionSite
-        notes = entry.notes
-        dose = entry.dose
-        peptideData = try sdEncoder.encode(entry.peptide)
+        assignIfChanged(self, \.completed, entry.completed)
+        assignIfChanged(self, \.actualDose, entry.actualDose)
+        assignIfChanged(self, \.actualTime, entry.actualTime)
+        assignIfChanged(self, \.injectionSite, entry.injectionSite)
+        assignIfChanged(self, \.notes, entry.notes)
+        assignIfChanged(self, \.dose, entry.dose)
+        try assignIfChanged(self, \.peptideData, sdEncoder.encode(entry.peptide))
     }
 
     func toProtocolEntry() throws -> ProtocolEntry {
