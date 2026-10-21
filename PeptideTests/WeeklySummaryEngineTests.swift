@@ -356,4 +356,17 @@ final class WeeklySummaryEngineTests: XCTestCase {
         let headline = WeeklySummaryEngine.changeHeadline(current: current, previous: previous)
         XCTAssertEqual(headline, "Your streak grew by 3 days this week")
     }
+
+    // MARK: - Week start parsing
+
+    func test_weekStartDate_westOfUTC_parsesToLocalMidnightSameDay() throws {
+        var losAngeles = Calendar(identifier: .gregorian)
+        losAngeles.timeZone = try XCTUnwrap(TimeZone(identifier: "America/Los_Angeles"))
+        let date = try XCTUnwrap(WeeklySummaryEngine.weekStartDate(from: "2026-10-19", calendar: losAngeles))
+        let parts = losAngeles.dateComponents([.year, .month, .day, .hour], from: date)
+        XCTAssertEqual(parts.year, 2026)
+        XCTAssertEqual(parts.month, 10)
+        XCTAssertEqual(parts.day, 19)
+        XCTAssertEqual(parts.hour, 0)
+    }
 }

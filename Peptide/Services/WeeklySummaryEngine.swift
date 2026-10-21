@@ -318,10 +318,21 @@ enum WeeklySummaryEngine {
     /// payload (audit Biology H8). Caller passes the same calendar
     /// used to compute `weekRange` so the keys stay consistent.
     private static func isoDateString(_ date: Date, calendar: Calendar = .current) -> String {
+        isoDateFormatter(timeZone: calendar.timeZone).string(from: date)
+    }
+
+    /// Parses a summary's `weekStart` key back to the user's local
+    /// midnight. The key is written in local time (`isoDateString`), so
+    /// parsing it as UTC showed the previous day west of UTC.
+    static func weekStartDate(from isoWeekStart: String, calendar: Calendar = .current) -> Date? {
+        isoDateFormatter(timeZone: calendar.timeZone).date(from: isoWeekStart)
+    }
+
+    private static func isoDateFormatter(timeZone: TimeZone) -> ISO8601DateFormatter {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withFullDate]
-        formatter.timeZone = calendar.timeZone
-        return formatter.string(from: date)
+        formatter.timeZone = timeZone
+        return formatter
     }
 
     /// Mirrors `LifestyleDataLogic.consumptionKey(for:)` (which is
