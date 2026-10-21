@@ -182,17 +182,42 @@ struct WorkoutSessionDetailView: View {
         }
     }
 
-    private var statsRow: some View {
-        HStack(spacing: Spacing.md) {
-            stat(value: "\(session.exercises.count)", label: "Exercises")
-            stat(value: "\(session.completedSetCount)", label: "Sets")
-            if session.totalVolumeKg > 0 {
-                stat(value: unit.weightLabel(session.totalVolumeKg), label: "Volume")
-            }
-            if let durationLabel {
-                stat(value: durationLabel, label: "Duration")
-            }
+    private struct Stat: Hashable {
+        let value: String
+        let label: String
+    }
+
+    private var stats: [Stat] {
+        var result = [
+            Stat(value: "\(session.exercises.count)", label: "Exercises"),
+            Stat(value: "\(session.completedSetCount)", label: "Sets"),
+        ]
+        if session.totalVolumeKg > 0 {
+            result.append(Stat(value: unit.weightLabel(session.totalVolumeKg), label: "Volume"))
         }
+        if let durationLabel {
+            result.append(Stat(value: durationLabel, label: "Duration"))
+        }
+        return result
+    }
+
+    /// One row when every value fits at full size, then two per row, then
+    /// one per row, so large text never shrinks or truncates a value.
+    private var statsRow: some View {
+        let items = stats
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: Spacing.md) { statTiles(items) }
+            Grid(horizontalSpacing: Spacing.md, verticalSpacing: Spacing.md) {
+                ForEach(Array(stride(from: 0, to: items.count, by: 2)), id: \.self) { start in
+                    GridRow { statTiles(Array(items[start..<min(start + 2, items.count)])) }
+                }
+            }
+            VStack(spacing: Spacing.md) { statTiles(items) }
+        }
+    }
+
+    private func statTiles(_ stats: [Stat]) -> some View {
+        ForEach(stats, id: \.label) { stat(value: $0.value, label: $0.label) }
     }
 
     private func stat(value: String, label: String) -> some View {
