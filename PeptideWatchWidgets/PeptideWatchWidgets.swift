@@ -192,6 +192,9 @@ struct WatchNextDoseWidget: Widget {
 
 struct WatchMomentumEntry: TimelineEntry {
     let date: Date
+    /// False until the phone has written `watch_data.json`, so the zeros
+    /// below aren't shown as the user's real score and habits.
+    var synced = true
     let score: Int
     let level: Int
     let tier: String
@@ -202,11 +205,13 @@ struct WatchMomentumEntry: TimelineEntry {
     let trainingDone: Int
     let trainingTotal: Int
 
-    static let empty = WatchMomentumEntry(
-        date: .now, score: 0, level: 1, tier: "bronze", progress: 0,
-        todayEarned: 0, healthDone: 0, healthTotal: 0,
-        trainingDone: 0, trainingTotal: 0
-    )
+    static func unsynced(at date: Date) -> WatchMomentumEntry {
+        WatchMomentumEntry(
+            date: date, synced: false, score: 0, level: 1, tier: "bronze", progress: 0,
+            todayEarned: 0, healthDone: 0, healthTotal: 0,
+            trainingDone: 0, trainingTotal: 0
+        )
+    }
 
     static let placeholder = WatchMomentumEntry(
         date: .now, score: 142, level: 4, tier: "gold", progress: 0.6,
@@ -247,7 +252,7 @@ struct WatchMomentumProvider: TimelineProvider {
                 .appendingPathComponent("watch_data.json"),
               let data = try? Data(contentsOf: url),
               let wd = try? Self.decoder.decode(WatchData.self, from: data).forDisplay(at: date)
-        else { return .empty }
+        else { return .unsynced(at: date) }
 
         return WatchMomentumEntry(
             date: date,
@@ -271,23 +276,29 @@ struct WatchAtlasCircularView: View {
     var body: some View {
         ZStack {
             AccessoryWidgetBackground()
-            Circle()
-                .trim(from: 0, to: max(0.001, min(1, entry.progress)))
-                .stroke(WatchPalette.tier(entry.tier),
-                        style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-                .padding(3)
-            VStack(spacing: -2) {
-                Text("\(entry.score)")
-                    .font(.title3.weight(.bold))
-                    .widgetAccentable()
-                Text("Lv\(entry.level)")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
+            if entry.synced {
+                Circle()
+                    .trim(from: 0, to: max(0.001, min(1, entry.progress)))
+                    .stroke(WatchPalette.tier(entry.tier),
+                            style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .padding(3)
+                VStack(spacing: -2) {
+                    Text("\(entry.score)")
+                        .font(.title3.weight(.bold))
+                        .widgetAccentable()
+                    Text("Lv\(entry.level)")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Image(systemName: "bolt.fill")
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(localized: "Atlas Score \(entry.score), level \(entry.level)"))
+        .accessibilityLabel(entry.synced
+                            ? String(localized: "Atlas Score \(entry.score), level \(entry.level)")
+                            : String(localized: "Open Atlas on iPhone"))
         .containerBackground(for: .widget) { Color.clear }
     }
 }
@@ -296,23 +307,30 @@ struct WatchAtlasRectangularView: View {
     let entry: WatchMomentumEntry
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Label("Atlas · \(WatchFormat.tierName(entry.tier))", systemImage: "bolt.fill")
+            Label(entry.synced ? String(localized: "Atlas · \(WatchFormat.tierName(entry.tier))") : String(localized: "Atlas"),
+                  systemImage: "bolt.fill")
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(WatchPalette.tier(entry.tier))
                 .labelStyle(.titleAndIcon)
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text("Lv \(entry.level)")
+            if entry.synced {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text("Lv \(entry.level)")
+                        .font(.headline)
+                        .widgetAccentable()
+                    Spacer(minLength: 0)
+                    Text(entry.todayEarned > 0
+                         ? "\(entry.score) · +\(entry.todayEarned)"
+                         : "\(entry.score) pts")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                ProgressView(value: max(0, min(1, entry.progress)))
+                    .tint(WatchPalette.tier(entry.tier))
+            } else {
+                Text("Open Atlas on iPhone")
                     .font(.headline)
-                    .widgetAccentable()
-                Spacer(minLength: 0)
-                Text(entry.todayEarned > 0
-                     ? "\(entry.score) · +\(entry.todayEarned)"
-                     : "\(entry.score) pts")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
             }
-            ProgressView(value: max(0, min(1, entry.progress)))
-                .tint(WatchPalette.tier(entry.tier))
         }
         .containerBackground(for: .widget) { Color.clear }
     }
@@ -321,7 +339,9 @@ struct WatchAtlasRectangularView: View {
 struct WatchAtlasInlineView: View {
     let entry: WatchMomentumEntry
     var body: some View {
-        Text("Atlas Lv \(entry.level) · \(entry.score) pts")
+        Text(entry.synced
+             ? String(localized: "Atlas Lv \(entry.level) · \(entry.score) pts")
+             : String(localized: "Atlas —"))
     }
 }
 
@@ -385,6 +405,7 @@ struct WatchHabitRectangularView: View {
     let title: String
     let icon: String
     let tint: Color
+    let synced: Bool
     let done: Int
     let total: Int
     private var progress: Double { total > 0 ? min(1, Double(done) / Double(total)) : 0 }
@@ -394,7 +415,11 @@ struct WatchHabitRectangularView: View {
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(tint)
                 .labelStyle(.titleAndIcon)
-            if total > 0 {
+            if !synced {
+                Text("Open Atlas on iPhone")
+                    .font(.headline)
+                    .lineLimit(2)
+            } else if total > 0 {
                 Text("\(done)/\(total) done")
                     .font(.headline)
                     .widgetAccentable()
@@ -421,10 +446,12 @@ struct WatchHealthEntryView: View {
             WatchHabitCircularView(icon: "heart.fill", tint: WatchPalette.health,
                                    done: entry.healthDone, total: entry.healthTotal)
         case .accessoryInline:
-            Text("Health \(entry.healthDone)/\(entry.healthTotal)")
+            Text(entry.healthTotal > 0
+                 ? String(localized: "Health \(entry.healthDone)/\(entry.healthTotal)")
+                 : String(localized: "Health —"))
         default:
             WatchHabitRectangularView(title: "Health", icon: "heart.fill",
-                                      tint: WatchPalette.health,
+                                      tint: WatchPalette.health, synced: entry.synced,
                                       done: entry.healthDone, total: entry.healthTotal)
         }
     }
@@ -439,10 +466,12 @@ struct WatchTrainingEntryView: View {
             WatchHabitCircularView(icon: "figure.run", tint: WatchPalette.training,
                                    done: entry.trainingDone, total: entry.trainingTotal)
         case .accessoryInline:
-            Text("Training \(entry.trainingDone)/\(entry.trainingTotal)")
+            Text(entry.trainingTotal > 0
+                 ? String(localized: "Training \(entry.trainingDone)/\(entry.trainingTotal)")
+                 : String(localized: "Training —"))
         default:
             WatchHabitRectangularView(title: "Training", icon: "figure.run",
-                                      tint: WatchPalette.training,
+                                      tint: WatchPalette.training, synced: entry.synced,
                                       done: entry.trainingDone, total: entry.trainingTotal)
         }
     }
