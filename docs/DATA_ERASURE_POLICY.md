@@ -15,6 +15,9 @@ future storage surface must be added to.
 | Widget snapshot (`widget-data.json`) | App Group container | `PersistenceService.clearAll()` |
 | Progress photos | Documents/ProgressPhotos | `ProgressPhotoStorage.deleteAll()` |
 | Apple ID linkage (keychain email/name/identifier) | Keychain | `signOut()` |
+| Pending and delivered reminders | Notification Center | `NotificationService.cancelAll()` |
+| Recently scanned products | Caches | `BarcodeProductCache.clear()` |
+| Custom foods and recipes in system search | CoreSpotlight index | `FoodSpotlightService.removeAll()` |
 
 ## Retained deliberately
 
