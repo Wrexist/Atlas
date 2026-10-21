@@ -497,8 +497,18 @@ final class DataStore {
         if becoming {
             DoseLiveActivityService.shared.markCompleted(entryId)
         } else {
-            DoseLiveActivityService.shared.reconcile(entries: entries)
+            reconcileDoseLiveActivities()
         }
+    }
+
+    /// Starts and ends lock-screen dose activities for active protocols
+    /// only — the same set `todayEntries` shows — so a paused or
+    /// completed protocol's dose never raises a "Time for X" activity.
+    func reconcileDoseLiveActivities() {
+        let activeIds = Set(activeProtocols.map(\.id))
+        DoseLiveActivityService.shared.reconcile(
+            entries: entries.filter { activeIds.contains($0.protocolId) }
+        )
     }
 
     /// Idempotent completion setters for externally delivered commands
@@ -563,7 +573,7 @@ final class DataStore {
         )
         save()
         Haptics.warning()
-        DoseLiveActivityService.shared.reconcile(entries: entries)
+        reconcileDoseLiveActivities()
     }
 
     func protocolsContaining(peptideId: UUID) -> [PeptideProtocol] {

@@ -50,7 +50,7 @@ enum PendingDoseLogProcessor {
                     // possible during onboarding).
                     guard let store = DataStore.current else { return }
                     PendingDoseLogProcessor.drain(into: store)
-                    DoseLiveActivityService.shared.reconcile(entries: store.entries)
+                    store.reconcileDoseLiveActivities()
                 }
             },
             CrossProcessNotification.pendingDoseLogQueued as CFString,

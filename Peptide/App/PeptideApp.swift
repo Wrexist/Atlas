@@ -264,7 +264,7 @@ struct PeptideApp: App {
                 // active window so the lock-screen Live Activities
                 // start / end without needing the user to open the
                 // app to a specific tab.
-                DoseLiveActivityService.shared.reconcile(entries: dataStore.entries)
+                dataStore.reconcileDoseLiveActivities()
                 // Re-reconcile the Sunday weekly-recap notification
                 // on every active transition — handles "user toggled
                 // opt-out elsewhere", "user upgraded to Pro", and
