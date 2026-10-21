@@ -25,6 +25,8 @@ struct HomeMealsSection: View {
 
     @State private var showMealScan = false
     @State private var showBarcodeScan = false
+    @State private var showTableScan = false
+    @State private var openTable: TableRoute?
     @State private var showFoodLibrary = false
     @State private var showTargetsEditor = false
     @State private var editingMealEntry: MealEntry?
@@ -42,6 +44,10 @@ struct HomeMealsSection: View {
     @State private var dayOffset = 0
     /// Most recent water quick-add, kept briefly so it can be undone.
     @State private var lastWaterLog: WaterLog?
+
+    private struct TableRoute: Identifiable {
+        let id: UUID
+    }
 
     private enum PendingLibraryHandoff {
         case barcode
@@ -78,9 +84,17 @@ struct HomeMealsSection: View {
 
             LogMealEntryPicker(
                 onScanBarcode: { showBarcodeScan = true },
-                onSnapPhoto: { showMealScan = true }
+                onSnapPhoto: { showMealScan = true },
+                onScanTable: { showTableScan = true }
             )
             .sectionAppear(index: 3)
+
+            if let table = latestTable {
+                LatestTableCard(moment: table.moment, dishes: table.dishes) {
+                    openTable = TableRoute(id: table.moment.id)
+                }
+                .scrollReveal()
+            }
 
             if dataStore.profile.nutritionTargets == nil {
                 targetsPrompt
@@ -149,6 +163,18 @@ struct HomeMealsSection: View {
         }
         .sheet(isPresented: $showMealScan) {
             MealScanFlow(onClose: { showMealScan = false }, logDay: selectedDay)
+                .environment(dataStore)
+        }
+        .sheet(isPresented: $showTableScan) {
+            TableScanFlow(
+                logDay: selectedDay,
+                onKeep: keepTable,
+                onClose: { showTableScan = false }
+            )
+            .environment(dataStore)
+        }
+        .fullScreenCover(item: $openTable) { route in
+            PlateTableView(momentID: route.id, onClose: { openTable = nil })
                 .environment(dataStore)
         }
         .sheet(isPresented: $showBarcodeScan) {
@@ -249,6 +275,24 @@ struct HomeMealsSection: View {
                 showMealScan = true
             }
         }
+    }
+
+    /// The newest table on the viewed day that still has a dish in the
+    /// diary.
+    private var latestTable: (moment: TableMoment, dishes: [TableDish])? {
+        let logged = Set(dataStore.mealEntries(for: selectedDay).map(\.id))
+        for moment in TableMomentStore.shared.moments(on: selectedDay).reversed() {
+            let dishes = moment.dishes.filter { logged.contains($0.id) }
+            if !dishes.isEmpty { return (moment, dishes) }
+        }
+        return nil
+    }
+
+    /// Closes the scan sheet and writes the table behind it, so the
+    /// "Adding 2 of 4 dishes…" pill plays on the Meals screen.
+    private func keepTable(_ draft: TableMomentStore.Draft) {
+        showTableScan = false
+        Task { await TableMomentStore.shared.keep(draft, in: dataStore) }
     }
 
     /// Logs water onto the viewed day and opens the Undo window.

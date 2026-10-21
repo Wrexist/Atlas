@@ -29,6 +29,11 @@ enum AppAnimation {
     static let ambient = Animation.easeInOut(duration: 1.2)
     /// One top-to-bottom sweep of the muscle map's scan beam.
     static let muscleScan = Animation.easeInOut(duration: 0.9)
+    /// A cut-out dish flying from the table photo to its slot in the
+    /// review grid. Long enough to follow which plate went where.
+    static let liftFly = Animation.spring(response: 0.6, dampingFraction: 0.78)
+    /// Gap between consecutive dishes leaving the photo.
+    static let liftStagger: Double = 0.08
 
     static let staggerDelay: Double = 0.05
     static let sectionDelay: Double = 0.15
