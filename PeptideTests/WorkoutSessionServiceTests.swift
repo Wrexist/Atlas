@@ -287,6 +287,28 @@ final class WorkoutSessionServiceTests: XCTestCase {
         XCTAssertNil(service.activeSession?.exercises.first?.sets.first?.completedAt)
     }
 
+    /// A weight committed on focus loss right after the check is tapped
+    /// must start from the live set, not the row's pre-tap copy.
+    func test_currentSet_weightCommitAfterCheckOff_keepsSetCompleted() {
+        _ = service.startWorkout()
+        service.addExercise(bench())
+        guard let entryID = service.activeSession?.exercises.first?.id,
+              var set = service.activeSession?.exercises.first?.sets.first
+        else { return XCTFail() }
+
+        set.completed = true
+        service.updateSet(set, inExerciseEntryID: entryID)
+        guard var live = service.currentSet(id: set.id, inExerciseEntryID: entryID)
+        else { return XCTFail() }
+        live.weightKg = 61.25
+        service.updateSet(live, inExerciseEntryID: entryID)
+
+        let stored = service.activeSession?.exercises.first?.sets.first
+        XCTAssertEqual(stored?.completed, true)
+        XCTAssertNotNil(stored?.completedAt)
+        XCTAssertEqual(stored?.weightKg, 61.25)
+    }
+
     func test_removeExercise_reindexesRemainingPositions() {
         _ = service.startWorkout()
         service.addExercise(bench())

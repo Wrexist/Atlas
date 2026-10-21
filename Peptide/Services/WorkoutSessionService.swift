@@ -289,6 +289,14 @@ final class WorkoutSessionService {
         persist(session)
     }
 
+    /// The set as the session holds it now. Row bindings read through
+    /// this rather than a render-time copy: a weight committed on focus
+    /// loss right after the check is tapped would otherwise write back
+    /// the copy's stale `completed == false`.
+    func currentSet(id setID: UUID, inExerciseEntryID entryID: UUID) -> SetEntry? {
+        activeSession?.exercises.first { $0.id == entryID }?.sets.first { $0.id == setID }
+    }
+
     /// Update a single set in place. Used by the inline weight / rep
     /// pickers and by the "complete set" toggle.
     func updateSet(_ set: SetEntry, inExerciseEntryID entryID: UUID, now: Date = Date()) {

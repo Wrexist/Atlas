@@ -358,6 +358,9 @@ struct ActiveWorkoutView: View {
                         canSupersetWithNext: session.entryBelow(entry.id).map {
                             $0.supersetGroup == nil || $0.supersetGroup != entry.supersetGroup
                         } ?? false,
+                        currentSet: { setID in
+                            sessionService.currentSet(id: setID, inExerciseEntryID: entry.id)
+                        },
                         onSetUpdate: { updated in
                             sessionService.updateSet(updated, inExerciseEntryID: entry.id)
                         },

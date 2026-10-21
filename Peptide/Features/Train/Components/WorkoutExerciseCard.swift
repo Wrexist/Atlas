@@ -20,6 +20,9 @@ struct WorkoutExerciseCard: View {
     let supersetLetter: String?
     /// False for the last exercise, or when it's already in the superset below.
     let canSupersetWithNext: Bool
+    /// The live copy of a set, so a row's writes never start from the
+    /// render-time snapshot (see `WorkoutSessionService.currentSet`).
+    let currentSet: (UUID) -> SetEntry?
     let onSetUpdate: (SetEntry) -> Void
     let onAddSet: () -> Void
     let onRemoveSet: (UUID) -> Void
@@ -169,7 +172,7 @@ struct WorkoutExerciseCard: View {
             ForEach(entry.sets) { setSnapshot in
                 SetEditorRow(
                     set: Binding(
-                        get: { setSnapshot },
+                        get: { currentSet(setSnapshot.id) ?? setSnapshot },
                         set: { onSetUpdate($0) }
                     ),
                     previousSet: hints[setSnapshot.id],

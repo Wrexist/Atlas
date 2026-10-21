@@ -162,7 +162,10 @@ struct WorkoutFocusView: View {
             VStack(spacing: 0) {
                 ForEach(entry.sets) { set in
                     SetEditorRow(
-                        set: Binding(get: { set }, set: { service.updateSet($0, inExerciseEntryID: entry.id) }),
+                        set: Binding(
+                            get: { service.currentSet(id: set.id, inExerciseEntryID: entry.id) ?? set },
+                            set: { service.updateSet($0, inExerciseEntryID: entry.id) }
+                        ),
                         previousSet: hints[set.id], unit: unit,
                         onDelete: { service.removeSet(setID: set.id, fromExerciseEntryID: entry.id) },
                         focusStyle: true, isCurrent: entry.sets.first(where: { !$0.completed })?.id == set.id,
