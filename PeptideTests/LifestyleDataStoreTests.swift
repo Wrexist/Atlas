@@ -175,4 +175,25 @@ final class LifestyleDataStoreTests: XCTestCase {
         XCTAssertEqual(prior.count, 1)
         XCTAssertEqual(prior.minutes, 50)
     }
+
+    // MARK: - Habits
+
+    /// Deleting a habit must take its logged history with it — the
+    /// dialog says it can't be undone, so nothing may linger in sync.
+    func test_deleteHabit_removesHabitAndItsEntries() {
+        let store = makeStore()
+        let kept = Habit(name: "Read", iconSymbol: "book.fill", tintHex: 0x6B8AFF)
+        let deleted = Habit(name: "Stretch", iconSymbol: "figure.flexibility", tintHex: 0x6B8AFF)
+        store.addHabit(kept)
+        store.addHabit(deleted)
+        store.toggleHabitEntry(habitId: kept.id)
+        store.toggleHabitEntry(habitId: deleted.id)
+
+        store.deleteHabit(id: deleted.id)
+
+        XCTAssertFalse(store.profile.habits.contains { $0.id == deleted.id })
+        XCTAssertFalse(store.profile.habitEntries.contains { $0.habitId == deleted.id })
+        XCTAssertTrue(store.profile.habits.contains { $0.id == kept.id })
+        XCTAssertTrue(store.profile.habitEntries.contains { $0.habitId == kept.id })
+    }
 }

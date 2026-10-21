@@ -155,7 +155,7 @@ struct HabitsView: View {
                 Button("Delete", role: .destructive) {
                     Haptics.warning()
                     AppAnimation.with(AppAnimation.springSnappy) {
-                        dataStore.archiveHabit(id: habit.id)
+                        dataStore.deleteHabit(id: habit.id)
                     }
                 }
                 Button("Cancel", role: .cancel) {}
@@ -173,7 +173,7 @@ struct HabitsView: View {
                         HabitEditSheet(editing: habit) { updated in
                             dataStore.updateHabit(updated)
                         } onDelete: { id in
-                            dataStore.archiveHabit(id: id)
+                            dataStore.deleteHabit(id: id)
                         }
                     }
                 }

@@ -1875,12 +1875,12 @@ final class DataStore {
         rescheduleHabitReminders()
     }
 
-    /// Soft-delete via the `archived` flag so the history isn't
-    /// thrown away the moment the user removes a habit. Hard delete
-    /// is `purgeArchivedHabits()` from settings if we ever expose it.
-    func archiveHabit(id: UUID) {
-        guard let idx = profile.habits.firstIndex(where: { $0.id == id }) else { return }
-        profile.habits[idx].archived = true
+    /// Removes the habit and every entry logged against it. The delete
+    /// dialog promises exactly that, and a habit deleted for privacy
+    /// shouldn't leave its history syncing through CloudKit.
+    func deleteHabit(id: UUID) {
+        profile.habits.removeAll { $0.id == id }
+        profile.habitEntries.removeAll { $0.habitId == id }
         save()
         rescheduleHabitReminders()
     }
