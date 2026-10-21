@@ -283,7 +283,7 @@ struct WeeklySummaryHeroCard: View {
             if let composite = stats.avgCheckInScore {
                 StatTile(
                     label: "Check-in",
-                    value: String(format: "%.1f", composite),
+                    value: composite.formatted(.number.precision(.fractionLength(1))),
                     tint: AppColor.metricHRV
                 )
             }

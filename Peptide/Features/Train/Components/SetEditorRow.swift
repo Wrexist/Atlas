@@ -123,13 +123,13 @@ struct SetEditorRow: View {
             Button {
                 fill(from: prev)
             } label: {
-                Text("\(formatted(prev.weightKg)) × \(prev.reps)")
+                Text("\(unit.weightValue(prev.weightKg, fractionDigits: 0...1)) × \(prev.reps)")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textTertiary)
                     .minimumHitArea()
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text("Previous: \(formatted(prev.weightKg)) \(unit.weightSpokenUnit) for \(prev.reps) reps"))
+            .accessibilityLabel(Text("Previous: \(unit.weightValue(prev.weightKg, fractionDigits: 0...1)) \(unit.weightSpokenUnit) for \(prev.reps) reps"))
             .accessibilityHint(Text("Fills this set with the same weight and reps"))
         } else {
             Text("—")
@@ -175,7 +175,7 @@ struct SetEditorRow: View {
                             lineWidth: weightFocused ? 1 : 0.5)
             )
             .accessibilityLabel(Text("Weight for set \(set.index)"))
-            .accessibilityValue(Text("\(formatted(set.weightKg)) \(unit.weightSpokenUnit)"))
+            .accessibilityValue(Text("\(unit.weightValue(set.weightKg, fractionDigits: 0...1)) \(unit.weightSpokenUnit)"))
     }
 
     private var repsField: some View {
@@ -251,13 +251,5 @@ struct SetEditorRow: View {
         var toggled = set
         toggled.isWarmup.toggle()
         set = toggled
-    }
-
-    private func formatted(_ kg: Double) -> String {
-        let value = unit.weightForDisplay(kg)
-        if value.rounded() == value {
-            return String(Int(value))
-        }
-        return String(format: "%.1f", value)
     }
 }

@@ -41,7 +41,7 @@ struct ProgressionHint: View {
 
     private var target: String {
         suggestion.weightKg > 0
-            ? "\(formatted(suggestion.weightKg)) \(unit.weightSuffix) × \(suggestion.reps)"
+            ? "\(unit.weightValue(suggestion.weightKg, fractionDigits: 0...1)) \(unit.weightSuffix) × \(suggestion.reps)"
             : "\(suggestion.reps) reps"
     }
 
@@ -59,11 +59,5 @@ struct ProgressionHint: View {
         case .addRep: return String(localized: "Same weight, one more rep than last time.")
         case .repeatLoad: return String(localized: "Repeat last time's weight until every set hits its reps.")
         }
-    }
-
-    private func formatted(_ kg: Double) -> String {
-        let value = unit.weightForDisplay(kg)
-        if abs(value - value.rounded()) < 0.05 { return String(Int(value.rounded())) }
-        return String(format: "%.1f", value)
     }
 }

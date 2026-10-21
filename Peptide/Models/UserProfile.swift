@@ -106,10 +106,16 @@ extension MeasurementUnit {
         self == .metric ? value : value / Self.poundsPerKilogram
     }
 
+    /// Display number without its suffix, with the locale's decimal
+    /// separator ("72,5" in Sweden) so it matches the editors' FormatStyle.
+    func weightValue(_ kilograms: Double, fractionDigits: ClosedRange<Int>) -> String {
+        weightForDisplay(kilograms)
+            .formatted(.number.precision(.fractionLength(fractionDigits)).grouping(.never))
+    }
+
     /// Rounded display value plus its suffix — the common case.
     func weightLabel(_ kilograms: Double, fractionDigits: Int = 0) -> String {
-        let value = weightForDisplay(kilograms)
-        return "\(String(format: "%.\(fractionDigits)f", value)) \(weightSuffix)"
+        "\(weightValue(kilograms, fractionDigits: fractionDigits...fractionDigits)) \(weightSuffix)"
     }
 
     // MARK: - Volume
@@ -137,7 +143,7 @@ extension MeasurementUnit {
         guard self == .metric else { return "\(fluidOunces) oz" }
         let millilitres = Int((Double(fluidOunces) * Self.millilitresPerFluidOunce).rounded())
         guard millilitres >= 1_000 else { return "\(millilitres) mL" }
-        return String(format: "%.1f L", Double(millilitres) / 1_000)
+        return "\((Double(millilitres) / 1_000).formatted(.number.precision(.fractionLength(1)))) L"
     }
 
     /// Bare number, for a value shown next to a separate unit suffix.

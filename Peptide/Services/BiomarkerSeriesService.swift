@@ -163,7 +163,7 @@ enum BiomarkerSeriesService {
         // sparse-on-purpose; a real lab-trend chart belongs in
         // BiomarkerDetailSheet (commit 8), not the row.
         let unit = lab.panel.canonicalUnit
-        let valueStr = String(format: "%.2f", lab.value)
+        let valueStr = LabValueFormat.string(lab.value)
         return BiomarkerSnapshot(
             biomarker: .latestLabPanel,
             latest: lab.value,
@@ -252,13 +252,11 @@ enum BiomarkerSeriesService {
     static func formatValue(_ value: Double, for biomarker: Biomarker) -> String {
         switch biomarker {
         case .weight, .sleepBaseline, .bodyTemperature, .bodyFat:
-            return String(format: "%.1f", value)
-        case .hrvBaseline, .rhrBaseline, .stepsBaseline, .waist:
-            return String(format: "%.0f", value.rounded())
-        case .bloodPressure:
-            return String(format: "%.0f", value.rounded())
+            return value.formatted(.number.precision(.fractionLength(1)))
+        case .hrvBaseline, .rhrBaseline, .stepsBaseline, .waist, .bloodPressure:
+            return value.formatted(.number.precision(.fractionLength(0)))
         case .latestLabPanel:
-            return String(format: "%.2f", value)
+            return LabValueFormat.string(value)
         }
     }
 }
