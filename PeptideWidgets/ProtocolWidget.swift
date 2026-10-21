@@ -12,9 +12,15 @@ struct DoseEntry: TimelineEntry {
     let total: Int
     let compliance: Double
     let upcoming: [WidgetDoseSlot]
+    /// The payload was written on an earlier day. Its doses and progress
+    /// are yesterday's, and today's schedule isn't known until the app
+    /// writes it, so the views show a neutral prompt instead.
+    var isOutdated = false
 
     var hasProtocol: Bool { total > 0 }
     var allDone: Bool { hasProtocol && dose.isEmpty }
+    /// The next dose's time has passed without it being logged.
+    var isOverdue: Bool { nextDoseDate.map { date >= $0 } ?? false }
 
     static let empty = DoseEntry(
         date: .now, peptideName: "", dose: "", nextDoseDate: nil,
@@ -49,20 +55,29 @@ struct DoseTimelineProvider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<DoseEntry>) -> Void) {
-        let entry = currentEntry()
-        var next = WidgetStore.nextRefresh(after: .now)
-        // An imminent dose: refresh a minute after it's due, so the
-        // widget moves on to the one after it.
-        if let due = entry.nextDoseDate, due > .now, due < next {
-            next = due.addingTimeInterval(60)
+        let now = Date.now
+        let next = WidgetStore.nextRefresh(after: now)
+        var entries = [currentEntry(at: now)]
+        // An imminent dose: add an entry at its time, so the widget
+        // flags it overdue if it passes unlogged. Logging it reloads the
+        // timeline from the app.
+        if let due = entries[0].nextDoseDate, due > now, due < next {
+            entries.append(currentEntry(at: due))
         }
-        completion(Timeline(entries: [entry], policy: .after(next)))
+        completion(Timeline(entries: entries, policy: .after(next)))
     }
 
-    private func currentEntry() -> DoseEntry {
+    private func currentEntry(at date: Date = .now) -> DoseEntry {
         guard let data = WidgetStore.load() else { return .empty }
+        guard Calendar.current.isDate(data.lastUpdated, inSameDayAs: date) else {
+            return DoseEntry(
+                date: date, peptideName: "", dose: "", nextDoseDate: nil,
+                completed: 0, total: 0, compliance: 0, upcoming: [],
+                isOutdated: true
+            )
+        }
         return DoseEntry(
-            date: .now,
+            date: date,
             peptideName: data.nextPeptideName,
             dose: data.nextDose,
             nextDoseDate: data.nextDoseTime,
@@ -114,6 +129,15 @@ private struct AllDoneLabel: View {
     }
 }
 
+private struct OutdatedLabel: View {
+    var body: some View {
+        Text("Open Atlas to load today's doses.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
 /// Deliberately not a "+" glyph: the widget opens Today, not the
 /// protocol editor, so it shouldn't look like a button.
 private struct NoProtocolLabel: View {
@@ -150,15 +174,17 @@ private struct SmallProtocolView: View {
 
     @ViewBuilder
     private var content: some View {
-        if !entry.hasProtocol {
+        if entry.isOutdated {
+            OutdatedLabel()
+        } else if !entry.hasProtocol {
             NoProtocolLabel()
         } else if entry.allDone {
             AllDoneLabel()
         } else {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Next")
+                Text(entry.isOverdue ? "Overdue" : "Next")
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(entry.isOverdue ? AnyShapeStyle(WidgetPalette.over) : AnyShapeStyle(.secondary))
                 Text(entry.peptideName)
                     .font(.headline)
                     .lineLimit(1)
@@ -172,7 +198,7 @@ private struct SmallProtocolView: View {
                 if let due = entry.nextDoseDate {
                     Text(due, style: .time)
                         .font(.caption.weight(.semibold).monospacedDigit())
-                        .foregroundStyle(protocolTint)
+                        .foregroundStyle(entry.isOverdue ? WidgetPalette.over : protocolTint)
                 }
             }
         }
@@ -201,7 +227,9 @@ private struct MediumProtocolView: View {
                     tint: protocolTint,
                     trailing: entry.hasProtocol ? "\(entry.completed)/\(entry.total)" : nil
                 )
-                if !entry.hasProtocol {
+                if entry.isOutdated {
+                    OutdatedLabel()
+                } else if !entry.hasProtocol {
                     NoProtocolLabel()
                 } else if entry.allDone || entry.upcoming.isEmpty {
                     AllDoneLabel()
@@ -281,7 +309,10 @@ private struct RectangularProtocolView: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .widgetAccentable()
-            if !entry.hasProtocol {
+            if entry.isOutdated {
+                Text("Open Atlas to update")
+                    .font(.headline)
+            } else if !entry.hasProtocol {
                 Text("No protocol yet")
                     .font(.headline)
             } else if entry.allDone {
@@ -306,7 +337,9 @@ private struct InlineProtocolView: View {
     let entry: DoseEntry
 
     var body: some View {
-        if !entry.hasProtocol {
+        if entry.isOutdated {
+            Label("Open Atlas to update", systemImage: "checklist")
+        } else if !entry.hasProtocol {
             Label("No protocol yet", systemImage: "checklist")
         } else if entry.allDone {
             Label("All done today", systemImage: "checklist")
