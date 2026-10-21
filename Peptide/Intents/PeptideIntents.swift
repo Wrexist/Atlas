@@ -75,12 +75,12 @@ struct NextDoseIntent: AppIntent {
     }
 }
 
-// MARK: - Compliance
+// MARK: - Adherence
 
 struct ComplianceIntent: AppIntent {
-    static let title: LocalizedStringResource = "Show compliance"
+    static let title: LocalizedStringResource = "Show adherence"
     static let description = IntentDescription(
-        "Reads back your 7-day peptide compliance.",
+        "Reads back your 7-day protocol adherence.",
         categoryName: "Doses"
     )
     static let openAppWhenRun: Bool = false
@@ -105,8 +105,8 @@ struct ComplianceIntent: AppIntent {
         }
         return .result(value: snapshot.percent, dialog: IntentDialog(
             LocalizedStringResource(
-                "Your 7-day compliance is \(snapshot.percent) percent. Keep it up.",
-                comment: "Siri readout — weekly compliance percentage."
+                "Your 7-day adherence is \(snapshot.percent) percent. Keep it up.",
+                comment: "Siri readout — weekly adherence percentage."
             )
         ))
     }
@@ -276,11 +276,11 @@ struct PeptideShortcuts: AppShortcutsProvider {
         AppShortcut(
             intent: ComplianceIntent(),
             phrases: [
-                "How's my compliance in \(.applicationName)",
-                "Check my \(.applicationName) compliance",
+                "How's my adherence in \(.applicationName)",
+                "Check my \(.applicationName) adherence",
                 "Show \(.applicationName) stats",
             ],
-            shortTitle: "Compliance",
+            shortTitle: "Adherence",
             systemImageName: "chart.bar.fill"
         )
         AppShortcut(
