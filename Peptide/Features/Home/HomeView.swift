@@ -46,6 +46,10 @@ struct HomeView: View {
     /// already dismissed past the threshold. Cleared via the four
     /// onResolve callbacks (mark / extend / new / dismiss).
     @State private var completionPrompt: CompletionPromptItem?
+    /// Set by the three resolving actions so the sheet's disappear
+    /// handler can count every other exit — "Decide later" or a
+    /// swipe-down — as a dismissal toward auto-completion.
+    @State private var completionPromptResolved = false
     /// Tracks which jump-bar section is currently nearest the top of
     /// the viewport so the corresponding chip highlights. Driven by
     /// per-section preference reads in `.onScrollGeometryChange` —
@@ -576,7 +580,6 @@ struct HomeView: View {
                     proto: item.proto,
                     milestone: item.milestone,
                     onShare: {
-                        CycleMilestoneService.shared.markShown(item.milestone, for: item.proto)
                         let proto = item.proto
                         milestonePrompt = nil
                         // Defer one runloop tick so the prompt sheet has
@@ -587,12 +590,14 @@ struct HomeView: View {
                             milestoneShareProtocol = proto
                         }
                     },
-                    onDismiss: {
-                        CycleMilestoneService.shared.markShown(item.milestone, for: item.proto)
-                        milestonePrompt = nil
-                    }
+                    onDismiss: { milestonePrompt = nil }
                 )
                 .liquidGlassPresentation(detents: [.medium])
+                // Every exit — share, dismiss or swipe-down — marks the
+                // milestone shown so it doesn't re-fire on the next appear.
+                .onDisappear {
+                    CycleMilestoneService.shared.markShown(item.milestone, for: item.proto)
+                }
             }
             .sheet(item: $completionPrompt) { item in
                 CycleCompletionPromptSheet(
@@ -601,6 +606,7 @@ struct HomeView: View {
                     onMarkComplete: {
                         dataStore.updateProtocolStatus(id: item.proto.id, to: .completed)
                         CycleCompletionService.shared.markAutoCompleted(item.proto)
+                        completionPromptResolved = true
                         completionPrompt = nil
                     },
                     onExtend: {
@@ -617,6 +623,7 @@ struct HomeView: View {
                         // instead so subsequent dismissals on the
                         // extended cycle start from zero.
                         dataStore.extendProtocol(id: item.proto.id, byWeeks: 2)
+                        completionPromptResolved = true
                         completionPrompt = nil
                     },
                     onStartNewCycle: {
@@ -625,14 +632,18 @@ struct HomeView: View {
                         // (the cycle that actually ended).
                         CycleCompletionService.shared.markAutoCompleted(item.proto)
                         dataStore.restartProtocol(id: item.proto.id)
+                        completionPromptResolved = true
                         completionPrompt = nil
                     },
-                    onDismiss: {
-                        CycleCompletionService.shared.recordDismissal(for: item.proto)
-                        completionPrompt = nil
-                    }
+                    onDismiss: { completionPrompt = nil }
                 )
                 .liquidGlassPresentation(detents: [.medium, .large])
+                .onDisappear {
+                    if !completionPromptResolved {
+                        CycleCompletionService.shared.recordDismissal(for: item.proto)
+                    }
+                    completionPromptResolved = false
+                }
             }
             .sheet(item: $milestoneShareProtocol) { proto in
                 ShareCardSheet(subject: .singleProtocol(proto))
