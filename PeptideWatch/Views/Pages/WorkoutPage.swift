@@ -98,6 +98,7 @@ private struct WorkoutClockRow: View {
 /// log it with the button; the values sent are the ones on screen.
 private struct SetLogger: View {
     @EnvironmentObject private var store: WatchStore
+    @Environment(\.watchPageIsActive) private var isActive
     let exercise: WatchWorkoutSnapshot.Exercise
     let set: WatchWorkoutSnapshot.SetRow
     let unit: WatchWeightUnit
@@ -161,6 +162,14 @@ private struct SetLogger: View {
         .entrance(0)
         .onChange(of: set.weightKg) { weightKg = set.weightKg }
         .onChange(of: set.reps) { reps = Double(set.reps) }
+        // Leaving the page hands the Crown back to the pager.
+        .onChange(of: isActive) { if !isActive { focus = nil } }
+    }
+
+    /// A tap puts a tile on the Crown; a second tap on the same tile hands
+    /// the Crown back to scrolling and paging.
+    private func toggleFocus(_ field: Field) {
+        focus = focus == field ? nil : field
     }
 
     private var weightBinding: Binding<Double> {
@@ -173,6 +182,7 @@ private struct SetLogger: View {
     private var weightTile: some View {
         ValueTile(value: unit.format(weightKg), label: unit.symbol, isFocused: focus == .weight)
             .focusable()
+            .focusEffectDisabled()
             .focused($focus, equals: .weight)
             .digitalCrownRotation(
                 weightBinding,
@@ -183,7 +193,7 @@ private struct SetLogger: View {
                 isContinuous: false,
                 isHapticFeedbackEnabled: true
             )
-            .onTapGesture { focus = .weight }
+            .onTapGesture { toggleFocus(.weight) }
             .accessibilityLabel("Weight")
             .accessibilityValue("\(unit.format(weightKg)) \(unit.symbol)")
             .accessibilityAdjustableAction { direction in
@@ -195,6 +205,7 @@ private struct SetLogger: View {
     private var repsTile: some View {
         ValueTile(value: "\(Int(reps.rounded()))", label: String(localized: "reps"), isFocused: focus == .reps)
             .focusable()
+            .focusEffectDisabled()
             .focused($focus, equals: .reps)
             .digitalCrownRotation(
                 $reps,
@@ -205,7 +216,7 @@ private struct SetLogger: View {
                 isContinuous: false,
                 isHapticFeedbackEnabled: true
             )
-            .onTapGesture { focus = .reps }
+            .onTapGesture { toggleFocus(.reps) }
             .accessibilityLabel("Reps")
             .accessibilityValue("\(Int(reps.rounded()))")
             .accessibilityAdjustableAction { direction in
