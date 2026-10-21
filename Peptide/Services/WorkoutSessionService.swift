@@ -381,29 +381,29 @@ final class WorkoutSessionService {
     /// that logged this exercise — the source of each row's "previous"
     /// hint (see `PreviousSetEngine`). Empty when there is no history.
     ///
-    /// Memoized per exercise: an uncached lookup deserializes every stored
-    /// workout, and the exercise stack asks on every re-render. The active
-    /// session is excluded from the lookup, so editing its sets can't
-    /// change the answer — only a start, finish or discard can, and those
-    /// clear the cache.
+    /// Read from a memo of every exercise built in one history pass: a
+    /// lookup deserializes the stored workouts, and seeding a routine plus
+    /// the exercise stack's re-renders ask once per exercise. The active
+    /// session is excluded, so editing its sets can't change the answer —
+    /// only a start, finish or discard can, and those clear the memo.
     func previousSessionSets(forExerciseID id: String) -> [SetEntry] {
-        if let cached = previousSetCache[id] { return cached }
-        let resolved = resolvePreviousSessionSets(forExerciseID: id)
-        previousSetCache[id] = resolved
-        return resolved
+        previousSetsByExercise()[id] ?? []
     }
 
-    private func resolvePreviousSessionSets(forExerciseID id: String) -> [SetEntry] {
+    private func previousSetsByExercise() -> [String: [SetEntry]] {
+        if let cached = previousSetCache { return cached }
+        var byExercise: [String: [SetEntry]] = [:]
+        // Newest first, so each exercise keeps its most recent session.
         let sessions = SwiftDataRepository.shared.loadWorkoutSessions()
-        // Walk newest-first, skip the in-flight session.
-        for session in sessions.sorted(by: { $0.startedAt > $1.startedAt }) {
-            if session.id == activeSession?.id { continue }
-            guard let exerciseEntry = session.exercises.first(where: { $0.exerciseID == id })
-            else { continue }
-            let completed = exerciseEntry.sets.filter { $0.completed && $0.supportsRepLogging }
-            if !completed.isEmpty { return completed }
+            .sorted { $0.startedAt > $1.startedAt }
+        for session in sessions where session.id != activeSession?.id {
+            for entry in session.exercises where byExercise[entry.exerciseID] == nil {
+                let completed = entry.sets.filter { $0.completed && $0.supportsRepLogging }
+                if !completed.isEmpty { byExercise[entry.exerciseID] = completed }
+            }
         }
-        return []
+        previousSetCache = byExercise
+        return byExercise
     }
 
     // MARK: - Progression
@@ -577,14 +577,14 @@ final class WorkoutSessionService {
 
     // MARK: - Internals
 
-    /// `[exerciseID: previous session's completed sets]`. An empty array is
-    /// a cached "no history" answer, distinct from a miss. Ignored by
-    /// observation: it's filled from inside view bodies, and a tracked
-    /// write there would re-render the reader for no visible change.
-    @ObservationIgnored private var previousSetCache: [String: [SetEntry]] = [:]
+    /// `[exerciseID: previous session's completed sets]`; nil until first
+    /// read. Ignored by observation: it's filled from inside view bodies,
+    /// and a tracked write there would re-render the reader for no visible
+    /// change.
+    @ObservationIgnored private var previousSetCache: [String: [SetEntry]]?
 
     private func invalidatePreviousSetCache() {
-        previousSetCache.removeAll(keepingCapacity: true)
+        previousSetCache = nil
     }
 
     private func persist(_ value: WorkoutSession) {
