@@ -17,11 +17,36 @@ permissions:
   contents: read
 
 jobs:
+  gate:
+    # TestFlight reaches testers, so it only builds a main commit that
+    # PR Checks (unit tests, Release build, lint, store metadata, proxy
+    # tests) has already passed. Without this a dispatch could ship an
+    # unreviewed branch or a red main.
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      actions: read
+    steps:
+      - name: Require main with green PR Checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$GITHUB_REF" != refs/heads/main ]; then
+            echo "::error::TestFlight builds only from main (got $GITHUB_REF)."
+            exit 1
+          fi
+          PASSED=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/pr-checks.yml/runs?head_sha=$GITHUB_SHA&status=success" -q '.total_count')
+          if [ "$PASSED" = "0" ]; then
+            echo "::error::PR Checks has not passed on $GITHUB_SHA. Wait for the main run to go green, then dispatch again."
+            exit 1
+          fi
+
   build:
-    # Pin to macos-15 (Xcode 16) so TestFlight builds use the same
-    # toolchain as pr-checks. `macos-latest` drifts whenever GitHub
-    # rotates the default image and produces builds that diverge from
-    # the PR checks that passed on the same SHA.
+    needs: gate
+    # Pin to macos-15 so TestFlight builds use the same runner image as
+    # pr-checks. `macos-latest` drifts whenever GitHub rotates the
+    # default image. Xcode itself is `latest-stable` in both workflows,
+    # so the two follow the image together rather than being pinned.
     runs-on: macos-15
     timeout-minutes: 45
     steps:
