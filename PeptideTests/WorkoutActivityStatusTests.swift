@@ -146,5 +146,26 @@ final class WorkoutActivityStatusTests: XCTestCase {
         XCTAssertEqual(mapped.restTotalSeconds, 0)
         XCTAssertEqual(mapped.displayName, "Workout")
     }
+
+    // MARK: - Stale date
+
+    @MainActor
+    func test_staleDate_whileResting_isTheEndOfTheRest() {
+        let endsAt = now.addingTimeInterval(90)
+        let stale = WorkoutLiveActivityService.staleDate(
+            for: state(restEndsAt: endsAt, restTotalSeconds: 120),
+            now: now
+        )
+        XCTAssertEqual(stale, endsAt)
+    }
+
+    @MainActor
+    func test_staleDate_restAlreadyOver_isTwoHoursOut() {
+        let stale = WorkoutLiveActivityService.staleDate(
+            for: state(restEndsAt: now.addingTimeInterval(-5), restTotalSeconds: 120),
+            now: now
+        )
+        XCTAssertEqual(stale, now.addingTimeInterval(2 * 3600))
+    }
 }
 #endif
