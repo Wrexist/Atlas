@@ -17,7 +17,7 @@ struct WorkoutFinishView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(session: WorkoutSession, detectedPRs: [PRDetectionEngine.DetectedPR],
-         unit: MeasurementUnit, weeklySessionCount: Int? = nil, celebratesSave: Bool = true,
+         unit: MeasurementUnit, celebratesSave: Bool = true,
          onClose: @escaping () -> Void) {
         self.unit = unit
         self.onClose = onClose

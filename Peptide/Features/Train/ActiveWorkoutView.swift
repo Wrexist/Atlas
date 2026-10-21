@@ -54,7 +54,6 @@ struct ActiveWorkoutView: View {
                         session: finished,
                         detectedPRs: finishedPRs,
                         unit: unit,
-                        weeklySessionCount: weeklySessionCount(asOf: finished),
                         onClose: { dismiss() }
                     )
                     .task { await requestReviewIfEarned() }
@@ -69,7 +68,6 @@ struct ActiveWorkoutView: View {
             .appAnimation(AppAnimation.springSmooth, value: saving)
             .appAnimation(AppAnimation.springSmooth, value: finishedSession?.id)
         }
-        .interactiveDismissDisabled(saving || saveError != nil)
         // Keep the presenter alive when finishing replaces the active content
         // with the summary. A sheet attached to content(for:) vanished with
         // that branch and its dismiss action could close the workout cover.
@@ -173,18 +171,6 @@ struct ActiveWorkoutView: View {
         // name when the user isn't actively typing in the field.
         guard !nameFieldFocused else { return }
         workoutName = sessionService.activeSession?.name ?? ""
-    }
-
-    /// Sessions in the trailing 7 days ending on `session`'s day,
-    /// itself included — same window `WeeklyMuscleHeatmap` uses for the
-    /// Train tab's heatmap, reused here so `WorkoutFinishView`'s
-    /// consistency callout and the heatmap always agree on "this week."
-    private func weeklySessionCount(asOf session: WorkoutSession) -> Int {
-        let calendar = Calendar.current
-        let dayStart = calendar.startOfDay(for: session.startedAt)
-        let windowStart = calendar.date(byAdding: .day, value: -6, to: dayStart) ?? dayStart
-        let windowEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
-        return SwiftDataRepository.shared.loadWorkoutSessions(startedBetween: windowStart..<windowEnd).count
     }
 
     // MARK: - Content
