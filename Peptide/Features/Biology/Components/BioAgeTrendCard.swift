@@ -67,6 +67,7 @@ struct BioAgeTrendCard: View {
     private var chartContent: some View {
         let shown = visiblePoints
         let change = (shown.last?.biologicalAge ?? 0) - (shown.first?.biologicalAge ?? 0)
+        let days = spanDays(shown)
         return VStack(alignment: .leading, spacing: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(BioAgeFormat.years(change))
@@ -75,13 +76,13 @@ struct BioAgeTrendCard: View {
                     .monospacedDigit()
                     .contentTransition(.numericText(value: change))
                     .animation(reduceMotion ? nil : AppAnimation.springSmooth, value: change)
-                Text(changeCaption(change))
+                Text(changeCaption(change, days: days))
                     .font(AppFont.scaled(13))
                     .foregroundStyle(AppColor.textSecondary)
             }
 
             TrendPlot(
-                values: shown.map(\.biologicalAge),
+                points: shown,
                 baseline: Double(chronologicalAge),
                 tint: tint(for: change),
                 drawProgress: drawProgress
@@ -102,7 +103,7 @@ struct BioAgeTrendCard: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("Biological age trend"))
-        .accessibilityValue(Text(accessibilitySummary(shown, change: change)))
+        .accessibilityValue(Text(accessibilitySummary(shown, days: days)))
     }
 
     private var emptyContent: some View {
@@ -120,19 +121,26 @@ struct BioAgeTrendCard: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func changeCaption(_ change: Double) -> String {
-        if abs(change) < 0.05 {
-            return String(localized: "Steady over \(range.rawValue) days")
-        }
-        return change < 0
-            ? String(localized: "Younger over \(range.rawValue) days")
-            : String(localized: "Older over \(range.rawValue) days")
+    /// Days the shown points actually cover. A new user's history can be
+    /// far shorter than the selected window.
+    private func spanDays(_ shown: [PerformanceAgeEngine.TrendPoint]) -> Int {
+        guard let first = shown.first?.date, let last = shown.last?.date else { return 0 }
+        return Calendar.current.dateComponents([.day], from: first, to: last).day ?? 0
     }
 
-    private func accessibilitySummary(_ shown: [PerformanceAgeEngine.TrendPoint], change: Double) -> String {
+    private func changeCaption(_ change: Double, days: Int) -> String {
+        if abs(change) < 0.05 {
+            return String(localized: "Steady over \(days) days")
+        }
+        return change < 0
+            ? String(localized: "Younger over \(days) days")
+            : String(localized: "Older over \(days) days")
+    }
+
+    private func accessibilitySummary(_ shown: [PerformanceAgeEngine.TrendPoint], days: Int) -> String {
         let start = BioAgeFormat.age(shown.first?.biologicalAge ?? 0)
         let end = BioAgeFormat.age(shown.last?.biologicalAge ?? 0)
-        return String(localized: "From \(start) to \(end) years over \(range.rawValue) days")
+        return String(localized: "From \(start) to \(end) years over \(days) days")
     }
 
     private func tint(for change: Double) -> Color {
@@ -157,9 +165,10 @@ struct BioAgeTrendCard: View {
 
 /// The plot itself: a padded value range so small movements are visible
 /// without exaggerating them, a dashed chronological-age baseline, and a
-/// line that draws in via `trim`.
+/// line that draws in via `trim`. Points sit at their dates, so a week the
+/// engine couldn't estimate shows as a gap rather than closing up.
 private struct TrendPlot: View {
-    let values: [Double]
+    let points: [PerformanceAgeEngine.TrendPoint]
     let baseline: Double
     let tint: Color
     let drawProgress: CGFloat
@@ -171,7 +180,7 @@ private struct TrendPlot: View {
     var body: some View {
         GeometryReader { geo in
             let bounds = valueBounds
-            let points = plotPoints(in: geo.size, bounds: bounds)
+            let positions = plotPoints(in: geo.size, bounds: bounds)
             ZStack(alignment: .topLeading) {
                 if bounds.contains(baseline) {
                     Path { path in
@@ -182,18 +191,18 @@ private struct TrendPlot: View {
                     .stroke(AppColor.textTertiary, style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
                 }
 
-                linePath(points)
+                linePath(positions)
                     .trim(from: 0, to: drawProgress)
                     .stroke(tint, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
 
-                ForEach(Array(points.enumerated()), id: \.offset) { index, point in
+                ForEach(Array(positions.enumerated()), id: \.offset) { index, point in
                     Circle()
-                        .fill(index == points.count - 1 ? tint : AppColor.background)
+                        .fill(index == positions.count - 1 ? tint : AppColor.background)
                         .overlay { Circle().strokeBorder(tint, lineWidth: 1.5) }
-                        .frame(width: index == points.count - 1 ? 10 : 6,
-                               height: index == points.count - 1 ? 10 : 6)
+                        .frame(width: index == positions.count - 1 ? 10 : 6,
+                               height: index == positions.count - 1 ? 10 : 6)
                         .position(point)
-                        .opacity(drawProgress >= CGFloat(index) / CGFloat(max(1, points.count - 1)) ? 1 : 0)
+                        .opacity(drawProgress >= CGFloat(index) / CGFloat(max(1, positions.count - 1)) ? 1 : 0)
                 }
             }
         }
@@ -201,7 +210,7 @@ private struct TrendPlot: View {
     }
 
     private var valueBounds: ClosedRange<Double> {
-        let all = values + [baseline]
+        let all = points.map(\.biologicalAge) + [baseline]
         let low = all.min() ?? baseline
         let high = all.max() ?? baseline
         let mid = (low + high) / 2
@@ -217,13 +226,14 @@ private struct TrendPlot: View {
     }
 
     private func plotPoints(in size: CGSize, bounds: ClosedRange<Double>) -> [CGPoint] {
-        guard values.count >= 2 else { return [] }
+        guard points.count >= 2, let first = points.first?.date, let last = points.last?.date else { return [] }
         let inset: CGFloat = 6
         let width = max(0, size.width - inset * 2)
-        let step = width / CGFloat(values.count - 1)
-        return values.enumerated().map { index, value in
-            CGPoint(x: inset + CGFloat(index) * step,
-                    y: yPosition(value, in: size, bounds: bounds))
+        let span = last.timeIntervalSince(first)
+        return points.map { point in
+            let fraction = span > 0 ? point.date.timeIntervalSince(first) / span : 0
+            return CGPoint(x: inset + width * CGFloat(fraction),
+                           y: yPosition(point.biologicalAge, in: size, bounds: bounds))
         }
     }
 
