@@ -68,11 +68,10 @@ struct MetricRing<Center: View>: View {
 
     var body: some View {
         ZStack {
-            // Track — the unfilled portion of the ring. Slightly
-            // brighter than pure black so the progress arc reads even
-            // at low values.
+            // Track — the unfilled portion of the ring, so a low value
+            // still reads as part of a whole in both schemes.
             Circle()
-                .stroke(AppColor.surfaceElevated.opacity(0.7), lineWidth: strokeWidth)
+                .stroke(AppColor.track, lineWidth: strokeWidth)
 
             // Hatched capacity band (optional). Drawn on top of the
             // track but underneath the progress arc.

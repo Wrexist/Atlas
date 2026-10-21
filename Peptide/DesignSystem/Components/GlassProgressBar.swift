@@ -24,7 +24,7 @@ struct GlassProgressBar: View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: height / 2, style: .continuous)
-                    .fill(AppColor.surfaceElevated)
+                    .fill(AppColor.track)
 
                 RoundedRectangle(cornerRadius: height / 2, style: .continuous)
                     .fill(

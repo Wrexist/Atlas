@@ -126,6 +126,14 @@ enum AppColor {
         dark: Color.white.opacity(0.04)
     )
 
+    /// The unfilled part of a ring or progress bar. A neutral overlay rather
+    /// than a surface colour: `surfaceElevated` is near-identical to the
+    /// light cards it sits on, so the track vanished in light mode.
+    static let track = Color.adaptive(
+        light: Color.black.opacity(0.08),
+        dark: Color.white.opacity(0.08)
+    )
+
     // MARK: - Directional feedback
     //
     // "This moved the right way" / "this moved the wrong way". Distinct from
