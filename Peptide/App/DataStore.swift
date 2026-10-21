@@ -1081,30 +1081,6 @@ final class DataStore {
         Task { await HealthKitService.shared.deleteBodyMass(onDayOf: deleted.date) }
     }
 
-    func logMeal(calories: Int, proteinG: Int, carbsG: Int, fatG: Int, date: Date = Date()) {
-        LifestyleDataLogic.logMeal(
-            into: &profile,
-            calories: calories,
-            proteinG: proteinG,
-            carbsG: carbsG,
-            fatG: fatG,
-            date: date
-        )
-        save()
-    }
-
-    func unlogMeal(calories: Int, proteinG: Int, carbsG: Int, fatG: Int, date: Date = Date()) {
-        LifestyleDataLogic.unlogMeal(
-            from: &profile,
-            calories: calories,
-            proteinG: proteinG,
-            carbsG: carbsG,
-            fatG: fatG,
-            date: date
-        )
-        save()
-    }
-
     func logWater(oz: Int, date: Date = Date()) {
         LifestyleDataLogic.logWater(into: &profile, oz: oz, date: date)
         save()
