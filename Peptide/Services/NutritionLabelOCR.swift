@@ -21,11 +21,10 @@ import UIKit
 /// - English-language labels only. Spanish/Swedish/etc. labels are
 ///   detected as text but the parser's keyword list doesn't match,
 ///   so a non-English label will return `.couldNotParse`.
-/// - Per-serving values are returned as-is (treated as per-100g by
-///   the downstream `ScannedProduct` shape). The Edit-before-log
-///   sheet on the review card lets the user fix the math if they
-///   ate a different portion than one serving. Future: parse
-///   "Serving size: 30 g" + the per-100g column when both are present.
+/// - A per-serving panel is scaled to per-100g using the printed
+///   serving grams, so one serving logs the printed numbers. When the
+///   grams are unknown the values stay as printed and the review card
+///   preselects 100 g, which again logs the printed numbers.
 enum NutritionLabelOCR {
 
     enum OCRError: Error, LocalizedError, Equatable {
@@ -65,7 +64,7 @@ enum NutritionLabelOCR {
             servingSizeText: parsed.servingSizeText,
             servingGrams: parsed.servingGrams,
             packageGrams: nil,
-            per100g: parsed.nutriments,
+            per100g: parsed.per100g,
             nutriScore: nil,
             novaGroup: nil,
             fetchedAt: Date()
@@ -118,7 +117,25 @@ enum NutritionLabelParser {
         var productName: String?
         var servingSizeText: String?
         var servingGrams: Double?
+        /// The values exactly as printed on the label.
         var nutriments: ScannedProduct.Nutriments
+        /// True when the panel states its values per 100 g / 100 ml.
+        var isPer100gPanel: Bool
+
+        /// `nutriments` normalised to per-100g. A US-style panel prints
+        /// per-serving values, which are scaled by the serving's grams.
+        var per100g: ScannedProduct.Nutriments {
+            guard !isPer100gPanel, let grams = servingGrams, grams > 0 else { return nutriments }
+            let factor = 100 / grams
+            return ScannedProduct.Nutriments(
+                calories: nutriments.calories * factor,
+                proteinG: nutriments.proteinG * factor,
+                carbsG:   nutriments.carbsG * factor,
+                fatG:     nutriments.fatG * factor,
+                fiberG:   nutriments.fiberG.map { $0 * factor },
+                sugarsG:  nutriments.sugarsG.map { $0 * factor }
+            )
+        }
     }
 
     /// Returns nil if the label looks like it's not a nutrition facts
@@ -161,8 +178,20 @@ enum NutritionLabelParser {
                 fiberG:   parseMacro(keyword: "fiber", in: normalized)
                        ?? parseMacro(keyword: "fibre", in: normalized),
                 sugarsG:  parseMacro(keyword: "sugar", in: normalized)
-            )
+            ),
+            isPer100gPanel: normalized.contains(where: isPer100gHeader)
         )
+    }
+
+    private static let per100gRegex = try? NSRegularExpression(
+        pattern: #"per\s*100|\b100\s*(?:g|ml)\b"#
+    )
+
+    /// "Per 100 g", "100ml", "Nutrition per 100g" — the EU-style column
+    /// header that means the values are already per 100.
+    private static func isPer100gHeader(_ line: String) -> Bool {
+        guard let regex = Self.per100gRegex else { return false }
+        return regex.firstMatch(in: line, range: NSRange(location: 0, length: (line as NSString).length)) != nil
     }
 
     // MARK: - Macro extractors
