@@ -71,7 +71,7 @@ struct ExerciseMuscleLegend: View {
         let secondary = ExerciseAnatomyEngine.names(in: highlights, tier: .secondary)
         var parts: [String] = []
         if !primary.isEmpty { parts.append("Primary: " + primary.joined(separator: ", ")) }
-        if !secondary.isEmpty { parts.append("Secondary: " + secondary.joined(separator: ", ")) }
+        if !secondary.isEmpty { parts.append("Supporting: " + secondary.joined(separator: ", ")) }
         return parts.isEmpty ? "No mapped muscles" : parts.joined(separator: ". ")
     }
 }

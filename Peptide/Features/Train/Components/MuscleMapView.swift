@@ -190,7 +190,7 @@ struct MuscleMapView: View {
             guard let highlight = highlights[muscle], muscle.isBack == (facing == .back) else { return nil }
             switch highlight {
             case .primary:           return "\(muscle.regionName), primary"
-            case .secondary:         return "\(muscle.regionName), secondary"
+            case .secondary:         return "\(muscle.regionName), supporting"
             case .intensity(let v):  return "\(muscle.regionName), relative training score \(Int(max(0, min(1, v)) * 100)) out of 100"
             }
         }
