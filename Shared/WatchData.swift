@@ -29,8 +29,9 @@ struct WatchNutritionSnapshot: Codable, Hashable, Sendable {
     let proteinToday: Int
     let proteinTarget: Int
     let mealLoggingStreak: Int
-    /// Number of meal entries logged today — drives the
-    /// "3 meals logged" subtitle on the Watch view.
+    /// Number of meal entries logged today. No watch surface shows it,
+    /// but it stays on the wire: older watch builds require the key and
+    /// would fail to decode the whole payload without it.
     let mealEntriesToday: Int
 
     var calorieProgress: Double {
