@@ -704,7 +704,7 @@ struct OnboardingView: View {
             // Nutrition targets derived from body metrics persist here,
             // alongside the user seeing them on the same screen as the
             // projection (merged from a now-deleted dedicated step).
-            if let targets = NutritionMath.dailyTargets(for: bodyMetrics) {
+            if let targets = NutritionMath.recommendedTargets(for: bodyMetrics, goalRaw: primaryGoal.rawValue) {
                 dataStore.updateNutritionTargets(targets)
             }
         case Page.disclaimer:
@@ -1648,7 +1648,7 @@ struct OnboardingView: View {
                         icon: primaryGoal.icon,
                         tint: primaryGoal.tint
                     )
-                    if let targets = NutritionMath.dailyTargets(for: bodyMetrics) {
+                    if let targets = NutritionMath.recommendedTargets(for: bodyMetrics, goalRaw: primaryGoal.rawValue) {
                         // Daily nutrition targets folded in here so the
                         // user sees the derived plan inline rather than
                         // on a separate "Nutrition" step. Hidden when

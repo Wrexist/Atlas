@@ -1,21 +1,11 @@
 import Foundation
 
 /// Pure functions that translate body metrics into a daily calorie/macro
-/// reference using Mifflin-St Jeor for BMR, a fixed moderate-activity
-/// multiplier (1.55) for TDEE, and a balanced 1.8 g/kg-protein /
-/// 25%-fat / fill-with-carbs split. These numbers are reference
+/// reference using Mifflin-St Jeor for BMR, the user's activity level for
+/// TDEE, the primary goal's calorie strategy, and a goal-adjusted
+/// g/kg-protein / 25%-fat / fill-with-carbs split. These numbers are reference
 /// targets — not medical advice — and are surfaced behind a disclaimer.
 enum NutritionMath {
-
-    /// Fallback activity multiplier when the user hasn't picked an
-    /// `ActivityLevel`. Equivalent to `.moderate` — the value that
-    /// used to be hard-coded for everyone (audit Meals L12).
-    /// Live callers should read `BodyMetrics.activityLevel
-    /// .tdeeMultiplier` to honor the user's pick.
-    static let activityMultiplier: Double = 1.55
-
-    /// Protein recommendation in grams per kilogram of bodyweight.
-    static let proteinPerKg: Double = 1.8
 
     /// Fraction of TDEE allocated to fat before splitting the remainder
     /// into protein and carbohydrate calories.
@@ -28,57 +18,6 @@ enum NutritionMath {
     private static let kcalPerGramProtein: Double = 4
     private static let kcalPerGramCarbs: Double = 4
     private static let kcalPerGramFat: Double = 9
-
-    /// Returns nil when any input the formula needs is missing or the values
-    /// are out of a sane range. Callers should treat nil as "show
-    /// placeholder, don't compute".
-    static func dailyTargets(for metrics: BodyMetrics) -> NutritionTargets? {
-        guard
-            let weightKg = metrics.weightKg, weightKg > 0,
-            let heightCm = metrics.heightCm, heightCm > 0,
-            let age = metrics.age, age > 0
-        else {
-            return nil
-        }
-
-        let bmr = mifflinStJeor(weightKg: weightKg, heightCm: heightCm, age: age, sex: metrics.sex)
-        let tdee = bmr * metrics.activityLevel.tdeeMultiplier
-
-        // Round the macros first, then derive calories from the
-        // rounded values. Otherwise the displayed `calories` value
-        // (Int(tdee.rounded())) wouldn't equal `proteinG*4 + carbsG*4
-        // + fatG*9` once each macro got individually rounded — the
-        // "your macros sum to 2,051 but your target is 2,054" mismatch
-        // confuses users who notice the numbers don't add up
-        // (audit Meals L11).
-        let fatCalories = tdee * fatCalorieFraction
-        let fatGRaw = fatCalories / kcalPerGramFat
-        // Clamp protein so it can never exceed 40% of TDEE. For a
-        // heavy, sedentary user `weightKg * proteinPerKg` could push
-        // protein calories past `tdee - fatCalories`, flooring carbs
-        // at 0 and leaving a protein-only target that badly undershoots
-        // TDEE. The cap keeps the macro split realistic.
-        let proteinCalorieCeiling = tdee * 0.40
-        let proteinCalories = min(weightKg * proteinPerKg * kcalPerGramProtein, proteinCalorieCeiling)
-        let proteinGRaw = proteinCalories / kcalPerGramProtein
-        let carbCalories = max(0, tdee - proteinCalories - fatCalories)
-        let carbsGRaw = carbCalories / kcalPerGramCarbs
-
-        let proteinG = Int(proteinGRaw.rounded())
-        let fatG = Int(fatGRaw.rounded())
-        let carbsG = Int(carbsGRaw.rounded())
-        let derivedCalories = proteinG * Int(kcalPerGramProtein)
-            + carbsG * Int(kcalPerGramCarbs)
-            + fatG * Int(kcalPerGramFat)
-
-        return NutritionTargets(
-            calories: derivedCalories,
-            proteinG: proteinG,
-            carbsG: carbsG,
-            fatG: fatG,
-            fiberG: fiberDefaultG
-        )
-    }
 
     /// Calorie strategy implied by the user's primary goal. Build /
     /// strength goals lean into a lean surplus, fat loss into a moderate
