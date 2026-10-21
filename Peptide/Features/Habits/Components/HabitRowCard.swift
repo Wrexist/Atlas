@@ -48,8 +48,6 @@ struct HabitRowCard: View {
         .onChange(of: summary.isCompletedToday) { _, completed in
             guard completed else { return }
             completionTrigger &+= 1
-            // The habit's payoff, not every tap of a multi-count habit.
-            Haptics.success()
         }
     }
 
@@ -92,7 +90,10 @@ struct HabitRowCard: View {
 
     private var todayButton: some View {
         Button {
-            Haptics.impact(.soft)
+            // The completing tap gets DataStore's success haptic instead.
+            if summary.isCompletedToday || summary.todayValue + 1 < (habit.targetValue ?? 1) {
+                Haptics.impact(.soft)
+            }
             withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { onToggleToday() }
         } label: {
             ZStack {

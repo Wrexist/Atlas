@@ -265,7 +265,6 @@ struct CommunityStackDetailView: View {
         }
         let proto = CommunityStackService.shared.forkToProtocol(stack)
         dataStore.addProtocol(proto)
-        Haptics.success()
         didFork = true
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(600))

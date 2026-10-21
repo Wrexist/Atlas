@@ -760,7 +760,6 @@ struct ProtocolBuilderView: View {
         )
 
         dataStore.addProtocol(newProtocol)
-        Haptics.success()
         dismiss()
     }
 
