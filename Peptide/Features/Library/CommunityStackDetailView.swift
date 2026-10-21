@@ -115,13 +115,13 @@ struct CommunityStackDetailView: View {
         VStack(spacing: Spacing.sm) {
             CycleCardView(model: CycleCardModel.forProtocol(previewProtocol, in: dataStore))
                 .frame(
-                    width: ShareCardRenderer.canvasSize.width,
-                    height: ShareCardRenderer.canvasSize.height
+                    width: ShareFormat.story.pixelSize.width,
+                    height: ShareFormat.story.pixelSize.height
                 )
                 .scaleEffect(0.32, anchor: .topLeading)
                 .frame(
-                    width: ShareCardRenderer.canvasSize.width * 0.32,
-                    height: ShareCardRenderer.canvasSize.height * 0.32
+                    width: ShareFormat.story.pixelSize.width * 0.32,
+                    height: ShareFormat.story.pixelSize.height * 0.32
                 )
                 .clipShape(RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous))
                 .overlay(
