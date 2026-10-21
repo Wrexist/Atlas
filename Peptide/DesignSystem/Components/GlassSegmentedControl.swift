@@ -59,10 +59,12 @@ struct GlassSegmentedControl<T: Hashable>: View {
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.85)
+                    .minimumScaleFactor(0.75)
             }
             .foregroundStyle(foreground(isSelected: isSelected))
-            .padding(.horizontal, style == .prominent ? Spacing.lg : Spacing.md)
+            // Tight sides on the track so four labels like "Favorites"
+            // fit a phone's width without truncating.
+            .padding(.horizontal, style == .prominent ? Spacing.lg : Spacing.xs)
             .padding(.vertical, Spacing.sm)
             .frame(maxWidth: style == .prominent ? nil : CGFloat.infinity)
             .frame(minHeight: Spacing.minimumHitTarget)

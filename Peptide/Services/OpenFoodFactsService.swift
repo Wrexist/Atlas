@@ -36,6 +36,7 @@ final class OpenFoodFactsService: Sendable {
         "serving_size",
         "serving_quantity",
         "product_quantity",
+        "quantity",
         "nutriments",
         "nutriscore_grade",
         "nova_group",
@@ -172,7 +173,10 @@ final class OpenFoodFactsService: Sendable {
         let normalized = try Self.normalize(barcode: barcode)
 
         if let cached = await cache.read(barcode: normalized) {
-            if Self.isStale(cached) {
+            // Entries cached before the printed `quantity` was read have
+            // no package weight; refresh those too so the Package tab
+            // shows up on the next scan.
+            if Self.isStale(cached) || cached.packageGrams == nil {
                 // No [weak self] — the service is a long-lived shared
                 // instance, so a strong capture for the refresh task
                 // is correct and avoids silently dropping work if a
@@ -373,6 +377,31 @@ final class OpenFoodFactsService: Sendable {
         Date().timeIntervalSince(product.fetchedAt) > staleAfter
     }
 
+    /// Net weight in grams from OFF's free-text `quantity`: "130 g",
+    /// "0,5 kg", "33 cl", "6 x 33 cl". Liquids count a millilitre as a
+    /// gram, close enough for drinks.
+    static func packageGrams(fromQuantity text: String) -> Double? {
+        guard let pattern = try? NSRegularExpression(
+            pattern: #"(?:(\d+)\s*[x×*]\s*)?(\d+(?:[.,]\d+)?)\s*(mg|kg|gr|g|ml|cl|dl|l)\b"#,
+            options: [.caseInsensitive]
+        ), let match = pattern.firstMatch(
+            in: text, range: NSRange(text.startIndex..., in: text)
+        ) else { return nil }
+        func group(_ index: Int) -> String? {
+            Range(match.range(at: index), in: text).map { String(text[$0]) }
+        }
+        let count = group(1).flatMap(Double.init) ?? 1
+        guard let amount = group(2).flatMap({ Double($0.replacingOccurrences(of: ",", with: ".")) }),
+              let unit = group(3)?.lowercased(),
+              let gramsPerUnit = gramsPerUnit[unit] else { return nil }
+        return (count * amount * gramsPerUnit).positiveOrNil
+    }
+
+    private static let gramsPerUnit: [String: Double] = [
+        "mg": 0.001, "g": 1, "gr": 1, "kg": 1000,
+        "ml": 1, "cl": 10, "dl": 100, "l": 1000,
+    ]
+
     private func refreshInBackground(barcode: String) async throws {
         let fresh = try await fetchFromNetwork(barcode: barcode)
         await cache.write(fresh)
@@ -572,6 +601,9 @@ private extension OpenFoodFactsService {
         let servingSize: String?
         let servingQuantity: FlexibleDouble?
         let productQuantity: FlexibleDouble?
+        /// The printed net weight, e.g. "130 g" or "6 x 33 cl". Many
+        /// entries carry only this and no `product_quantity`.
+        let quantity: String?
         let nutriments: RawNutriments?
         let nutriscoreGrade: String?
         let novaGroup: FlexibleInt?
@@ -585,6 +617,7 @@ private extension OpenFoodFactsService {
             case servingSize        = "serving_size"
             case servingQuantity    = "serving_quantity"
             case productQuantity    = "product_quantity"
+            case quantity           = "quantity"
             case nutriments         = "nutriments"
             case nutriscoreGrade    = "nutriscore_grade"
             case novaGroup          = "nova_group"
@@ -643,7 +676,8 @@ private extension OpenFoodFactsService {
                 // collapse to nil so `defaultPortion` correctly skips
                 // the .servings branch and the "Add" button stays live.
                 servingGrams: servingQuantity?.value.positiveOrNil,
-                packageGrams: productQuantity?.value.positiveOrNil,
+                packageGrams: productQuantity?.value.positiveOrNil
+                    ?? quantity.flatMap(OpenFoodFactsService.packageGrams(fromQuantity:)),
                 per100g: per100,
                 nutriScore: nutriscoreGrade?.trimmingCharacters(in: .whitespacesAndNewlines)
                     .nilIfEmpty,
