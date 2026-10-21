@@ -113,6 +113,7 @@ struct ScheduleEditor: View {
                     Text(selectedDays.count == 7 ? "Weekdays" : "Every day")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.accentPrimary)
+                        .minimumHitArea()
                 }
                 .buttonStyle(.plain)
             }
