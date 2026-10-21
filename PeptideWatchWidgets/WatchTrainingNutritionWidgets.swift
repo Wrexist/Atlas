@@ -233,6 +233,7 @@ struct WatchWorkoutWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: WatchWorkoutProvider()) { entry in
             WatchWorkoutEntryView(entry: entry)
+                .widgetURL(WatchPage.workout.url)
         }
         .configurationDisplayName("Workout")
         .description("Your workout in progress, or this week's training.")
@@ -393,6 +394,7 @@ struct WatchNutritionWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: WatchNutritionProvider()) { entry in
             WatchNutritionEntryView(entry: entry)
+                .widgetURL(WatchPage.nutrition.url)
         }
         .configurationDisplayName("Calories & Protein")
         .description("Today's calories and protein against your targets.")

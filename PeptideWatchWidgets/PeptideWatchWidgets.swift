@@ -180,6 +180,7 @@ struct WatchNextDoseWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: WatchDoseProvider()) { entry in
             WatchNextDoseEntryView(entry: entry)
+                .widgetURL(WatchPage.protocols.url)
         }
         .configurationDisplayName("Next Dose")
         .description("Shows your next peptide dose at a glance.")
@@ -339,6 +340,7 @@ struct WatchAtlasScoreWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: WatchMomentumProvider()) { entry in
             WatchAtlasEntryView(entry: entry)
+                .widgetURL(WatchPage.today.url)
         }
         .configurationDisplayName("Atlas Score")
         .description("Your Atlas Score, level and tier at a glance.")
@@ -449,6 +451,7 @@ struct WatchHealthHabitsWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: WatchMomentumProvider()) { entry in
             WatchHealthEntryView(entry: entry)
+                .widgetURL(WatchPage.today.url)
         }
         .configurationDisplayName("Health Habits")
         .description("Today's health-habit progress.")
@@ -461,6 +464,7 @@ struct WatchTrainingHabitsWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: WatchMomentumProvider()) { entry in
             WatchTrainingEntryView(entry: entry)
+                .widgetURL(WatchPage.today.url)
         }
         .configurationDisplayName("Training Habits")
         .description("Today's training-habit progress.")

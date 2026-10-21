@@ -136,6 +136,7 @@ struct WatchRecoveryWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: WatchVitalsProvider()) { entry in
             WatchRecoveryEntryView(entry: entry)
+                .widgetURL(WatchPage.recovery.url)
         }
         .configurationDisplayName("Recovery")
         .description("Your Recovery score, resting heart rate and HRV.")
@@ -217,6 +218,7 @@ struct WatchSleepWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: WatchVitalsProvider()) { entry in
             WatchSleepEntryView(entry: entry)
+                .widgetURL(WatchPage.sleep.url)
         }
         .configurationDisplayName("Sleep Score")
         .description("Last night's Sleep Score and time asleep.")
