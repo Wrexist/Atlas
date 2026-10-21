@@ -18,6 +18,7 @@ struct ProfileCustomizationSheet: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
 
+    private static let nameCharacterLimit = 40
     private static let bioCharacterLimit = 280
 
     private static let availableGoals = [
@@ -440,6 +441,11 @@ struct ProfileCustomizationSheet: View {
                     placeholder: "What should we call you?",
                     text: $name
                 )
+                .onChange(of: name) { _, newValue in
+                    if newValue.count > Self.nameCharacterLimit {
+                        name = String(newValue.prefix(Self.nameCharacterLimit))
+                    }
+                }
 
                 Divider().overlay(AppColor.glassBorder)
 
