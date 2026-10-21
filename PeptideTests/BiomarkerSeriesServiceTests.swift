@@ -8,6 +8,12 @@ import XCTest
 @MainActor
 final class BiomarkerSeriesServiceTests: XCTestCase {
 
+    private var utc: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        return calendar
+    }
+
     // MARK: - median
 
     func test_median_emptySeries_returnsNil() {
@@ -124,7 +130,11 @@ final class BiomarkerSeriesServiceTests: XCTestCase {
                 kg: 70.0 + Double(i) * 0.3
             )
         }
-        let snapshot = BiomarkerSeriesService.weightSnapshot(weightHistory: history)
+        let snapshot = BiomarkerSeriesService.weightSnapshot(
+            weightHistory: history,
+            now: base.addingTimeInterval(7 * 86_400),
+            calendar: utc
+        )
         XCTAssertEqual(snapshot.latest ?? .nan, 72.1, accuracy: 0.01)
         XCTAssertEqual(snapshot.trend, .up)
         XCTAssertEqual(snapshot.sparkline.count, 8)
@@ -143,8 +153,52 @@ final class BiomarkerSeriesServiceTests: XCTestCase {
             WeightEntry(date: base.addingTimeInterval(7 * 86_400), kg: 73.0),
             WeightEntry(date: base.addingTimeInterval(5 * 86_400), kg: 72.5),
         ]
-        let snapshot = BiomarkerSeriesService.weightSnapshot(weightHistory: history)
+        let snapshot = BiomarkerSeriesService.weightSnapshot(
+            weightHistory: history,
+            now: base.addingTimeInterval(7 * 86_400),
+            calendar: utc
+        )
         XCTAssertEqual(snapshot.latest, 73.0)
+    }
+
+    func test_weightSnapshot_onlyStaleWeighIns_returnsEmpty() {
+        let base = Date(timeIntervalSince1970: 1_700_000_000)
+        let history = (0..<8).map { i in
+            WeightEntry(date: base.addingTimeInterval(TimeInterval(i * 86_400)), kg: 82.0)
+        }
+        let snapshot = BiomarkerSeriesService.weightSnapshot(
+            weightHistory: history,
+            now: base.addingTimeInterval(120 * 86_400),
+            calendar: utc
+        )
+        XCTAssertNil(snapshot.latest)
+        XCTAssertEqual(snapshot.trend, .insufficient)
+    }
+
+    func test_weightSnapshot_severalWeighInsOneDay_keepsLatestOnly() {
+        let base = Date(timeIntervalSince1970: 1_700_000_000)
+        let history = [
+            WeightEntry(date: base, kg: 70.0),
+            WeightEntry(date: base.addingTimeInterval(3_600), kg: 71.0),
+            WeightEntry(date: base.addingTimeInterval(86_400), kg: 71.5),
+        ]
+        let snapshot = BiomarkerSeriesService.weightSnapshot(
+            weightHistory: history,
+            now: base.addingTimeInterval(86_400),
+            calendar: utc
+        )
+        XCTAssertEqual(snapshot.samples.map(\.value), [71.0, 71.5])
+    }
+
+    // MARK: - completedDays
+
+    func test_completedDays_partialTodayBucket_isDropped() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let today = utc.startOfDay(for: now)
+        let yesterday = today.addingTimeInterval(-86_400)
+        let series = [(date: yesterday, value: 9_000.0), (date: today, value: 812.0)]
+        let completed = BiomarkerSeriesService.completedDays(series, now: now, calendar: utc)
+        XCTAssertEqual(completed.map(\.value), [9_000])
     }
 
     // MARK: - seriesSnapshot

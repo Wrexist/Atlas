@@ -95,7 +95,7 @@ enum BiomarkerSeriesService {
             return seriesSnapshot(.sleepBaseline, series: series, unit: unit)
         case .stepsBaseline:
             let series = await HealthKitService.shared.dailySteps(days: days)
-            return seriesSnapshot(.stepsBaseline, series: series, unit: unit)
+            return seriesSnapshot(.stepsBaseline, series: completedDays(series), unit: unit)
         case .bodyTemperature, .bodyFat, .waist, .bloodPressure:
             // Manual-entry biomarkers — Pro-gated, persistence
             // surface lands in a follow-up commit. Tile renders
@@ -108,19 +108,31 @@ enum BiomarkerSeriesService {
 
     // MARK: - Per-source builders
 
-    /// Pulls the most recent WeightEntry samples within the
-    /// requested window (kilograms is the canonical storage unit
-    /// on UserProfile). Trend math runs over the actual sequence,
-    /// not just first vs last — a single outlier shouldn't flip
-    /// the direction.
+    /// Pulls the WeightEntry samples from the last `days` calendar
+    /// days, one per day (the latest weigh-in that day), so a log
+    /// that stopped months ago doesn't read as a current trend
+    /// (kilograms is the canonical storage unit on UserProfile).
+    /// Trend math runs over the actual sequence, not just first vs
+    /// last — a single outlier shouldn't flip the direction.
     static func weightSnapshot(
         weightHistory: [WeightEntry],
         days: Int = windowDays,
-        unit: MeasurementUnit = .metric
+        unit: MeasurementUnit = .metric,
+        now: Date = Date(),
+        calendar: Calendar = .current
     ) -> BiomarkerSnapshot {
-        let recent = weightHistory
+        let startOfToday = calendar.startOfDay(for: now)
+        guard let windowStart = calendar.date(byAdding: .day, value: 1 - days, to: startOfToday) else {
+            return .empty(.weight)
+        }
+        var latestPerDay: [Date: WeightEntry] = [:]
+        for entry in weightHistory where entry.date >= windowStart {
+            let day = calendar.startOfDay(for: entry.date)
+            if let kept = latestPerDay[day], kept.date >= entry.date { continue }
+            latestPerDay[day] = entry
+        }
+        let recent = latestPerDay.values
             .sorted { $0.date < $1.date }
-            .suffix(days)
             .map { BiomarkerSnapshot.Sample(date: $0.date, value: $0.kg) }
         guard let latest = recent.last?.value else { return .empty(.weight) }
         let trend = inferTrend(samples: recent.map(\.value))
@@ -128,7 +140,7 @@ enum BiomarkerSeriesService {
             biomarker: .weight,
             latest: latest,
             trend: trend,
-            samples: recent.count >= sparklineMinSamples ? Array(recent) : [],
+            samples: recent.count >= sparklineMinSamples ? recent : [],
             changeText: changeText(for: .weight, trend: trend, latest: latest, unit: unit)
         )
     }
@@ -153,6 +165,18 @@ enum BiomarkerSeriesService {
                 : [],
             changeText: changeText(for: biomarker, trend: trend, latest: latest, unit: unit)
         )
+    }
+
+    /// Drops today's bucket from a cumulative series. Steps add up
+    /// through the day, so a morning's 812 as `latest` read as
+    /// "Less active" and dragged the trend down every day.
+    static func completedDays(
+        _ series: [(date: Date, value: Double)],
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> [(date: Date, value: Double)] {
+        let startOfToday = calendar.startOfDay(for: now)
+        return series.filter { $0.date < startOfToday }
     }
 
     static func labSnapshot(latestLab: LabValue?) -> BiomarkerSnapshot {
