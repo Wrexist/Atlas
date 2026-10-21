@@ -318,6 +318,12 @@ struct BiologyView: View {
     // MARK: - Detail sheet routing
 
     private func openDetail(for biomarker: Biomarker, seed: BiomarkerSnapshot? = nil) {
+        // Lab results have no daily series to chart — their history
+        // lives in Labs.
+        guard biomarker != .latestLabPanel else {
+            openLabs()
+            return
+        }
         Haptics.impact(.light)
         // Present the sheet immediately with the row's 14-day snapshot
         // (empty when opened from the hero menu), then let it fill in
