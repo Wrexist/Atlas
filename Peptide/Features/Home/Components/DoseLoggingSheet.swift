@@ -4,7 +4,6 @@ struct DoseLoggingSheet: View {
     let entry: ProtocolEntry
     let onLog: (String?, Date?, String?, String) -> Void
     @Environment(\.dismiss) private var dismiss
-    @Environment(DataStore.self) private var dataStore
 
     @State private var actualDose: String
     @State private var actualTime: Date
