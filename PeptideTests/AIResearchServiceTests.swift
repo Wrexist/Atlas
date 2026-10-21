@@ -266,6 +266,22 @@ final class AIResearchServiceTests: XCTestCase {
         }
     }
 
+    /// The chat view reads `replyStream`, so it must surface the same
+    /// typed errors as `reply` rather than a bare status code.
+    func test_replyStream_rateLimited_throwsRateLimited() async {
+        MockURLProtocol.handler = { request in
+            (Self.response(for: request, status: 429), Data())
+        }
+        do {
+            for try await _ in service.replyStream(history: [], newUserPrompt: "hi", in: []) {}
+            XCTFail("Expected .rateLimited but the stream finished")
+        } catch {
+            guard case .rateLimited = error as? AIResearchService.ChatError else {
+                return XCTFail("Expected .rateLimited, got \(error)")
+            }
+        }
+    }
+
     func test_reply_throwsUnauthorisedOn401() async {
         MockURLProtocol.handler = { request in
             (Self.response(for: request, status: 401), Data())

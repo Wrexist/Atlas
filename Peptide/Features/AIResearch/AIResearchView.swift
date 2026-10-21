@@ -278,9 +278,8 @@ struct AIResearchView: View {
         let priorHistory = Array(transcript.dropLast()) // exclude the user turn we just appended
         let database = dataStore.peptideDatabase
 
-        // Empty assistant turn — chunks land into this turn's content
-        // as the SSE stream arrives, so the bubble animates token-by-
-        // token instead of popping in fully formed.
+        // Empty assistant turn — the reply lands in this turn's content,
+        // and until then the bubble shows the typing indicator.
         let assistantTurn = AIResearchService.Turn(role: .assistant, content: "")
         transcript.append(assistantTurn)
 
@@ -425,7 +424,7 @@ private struct TurnBubble: View {
 
     /// Claude answers in Markdown; render inline emphasis, code and links
     /// rather than printing the `**` and `[](…)` syntax. Falls back to the
-    /// raw text if a half-streamed chunk doesn't parse.
+    /// raw text if it doesn't parse.
     private var renderedContent: AttributedString {
         let options = AttributedString.MarkdownParsingOptions(
             interpretedSyntax: .inlineOnlyPreservingWhitespace

@@ -99,12 +99,10 @@ final class AIResearchService: Sendable {
         }
     }
 
-    /// Streaming companion to `reply` — emits partial text chunks as
-    /// they arrive from the proxy's SSE stream. The client appends
-    /// each chunk to the in-progress assistant turn so the user sees
-    /// tokens land in real time (audit AI Research P2). When the
-    /// proxy hasn't been upgraded to SSE the buffered response is
-    /// yielded as a single chunk, so the call site degrades cleanly.
+    /// `reply` as a stream for the chat view, which reads it with
+    /// `for try await` so Stop or a newer question cancels the request.
+    /// The proxy answers with one buffered JSON reply, so the whole text
+    /// arrives as a single chunk.
     func replyStream(
         history: [Turn],
         newUserPrompt prompt: String,
@@ -113,108 +111,14 @@ final class AIResearchService: Sendable {
         AsyncThrowingStream { continuation in
             let task = Task { [self] in
                 do {
-                    try await streamReply(
-                        history: history,
-                        prompt: prompt,
-                        database: database,
-                        continuation: continuation
-                    )
+                    let text = try await reply(history: history, newUserPrompt: prompt, in: database)
+                    if !text.isEmpty { continuation.yield(text) }
                     continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)
                 }
             }
             continuation.onTermination = { _ in task.cancel() }
-        }
-    }
-
-    private func streamReply(
-        history: [Turn],
-        prompt: String,
-        database: [Peptide],
-        continuation: AsyncThrowingStream<String, Error>.Continuation
-    ) async throws {
-        guard let endpoint, let proxySecret, !proxySecret.isEmpty else {
-            throw ChatError.proxyNotConfigured
-        }
-        let context = ragContext(for: prompt, history: history, in: database)
-        var body = payload(history: history, newPrompt: prompt, ragContext: context)
-        body["stream"] = true
-
-        var request = URLRequest(url: endpoint)
-        request.httpMethod = "POST"
-        request.timeoutInterval = 60
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
-        request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
-        // App Attest assertion — see AppAttestService; absence falls
-        // back to secret-only auth.
-        if let attestHeaders = await AppAttestService.shared.assertionHeaders() {
-            for (field, value) in attestHeaders {
-                request.setValue(value, forHTTPHeaderField: field)
-            }
-        }
-        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
-
-        let bytes: URLSession.AsyncBytes
-        let response: URLResponse
-        do {
-            (bytes, response) = try await session.bytes(for: request)
-        } catch {
-            throw mapTransport(error)
-        }
-        guard let http = response as? HTTPURLResponse else { throw ChatError.invalidResponse }
-        guard (200..<300).contains(http.statusCode) else {
-            if http.statusCode == 401 { throw ChatError.unauthorised }
-            throw ChatError.requestFailed("AI research returned HTTP \(http.statusCode).")
-        }
-
-        let contentType = (http.value(forHTTPHeaderField: "Content-Type") ?? "").lowercased()
-        if !contentType.contains("text/event-stream") {
-            // Proxy didn't honor stream:true (older deploy). Buffer the body
-            // and yield the full text as a single chunk so the caller still
-            // sees the reply land — just without per-token animation.
-            var buffer = Data()
-            for try await byte in bytes { buffer.append(byte) }
-            let text = try parseAssistantText(from: buffer)
-            if !text.isEmpty { continuation.yield(text) }
-            return
-        }
-
-        // Anthropic SSE: each event is "event: <name>\n" plus "data: <json>\n\n".
-        // We only consume `data:` lines and parse the `content_block_delta`
-        // events whose `delta.text` carries the streamed tokens.
-        for try await line in bytes.lines {
-            try Task.checkCancellation()
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            guard trimmed.hasPrefix("data:") else { continue }
-            let payloadString = String(trimmed.dropFirst("data:".count))
-                .trimmingCharacters(in: .whitespaces)
-            if payloadString.isEmpty || payloadString == "[DONE]" { continue }
-            guard let data = payloadString.data(using: .utf8),
-                  let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                continue
-            }
-            let type = dict["type"] as? String
-            if type == "content_block_delta",
-               let delta = dict["delta"] as? [String: Any],
-               let text = delta["text"] as? String,
-               !text.isEmpty {
-                continuation.yield(text)
-            } else if type == "message_stop" {
-                return
-            } else if type == "error" {
-                // Surface even when the upstream `error` event omits a
-                // `message` string — otherwise the stream ends silently
-                // and the view's empty-bubble cleanup leaves the user
-                // staring at no answer + no error (audit AI Research
-                // P2 follow-up).
-                let err = dict["error"] as? [String: Any]
-                let message = (err?["message"] as? String).map { $0.isEmpty ? nil : $0 } ?? nil
-                throw ChatError.requestFailed(
-                    message ?? "The research assistant returned an unspecified error."
-                )
-            }
         }
     }
 
