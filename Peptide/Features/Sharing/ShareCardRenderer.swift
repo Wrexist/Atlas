@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// Renders a `CycleCardView` to a 1080×1920 PNG file in the temporary
+/// Renders a `CycleCardView` to a 1080×1920 PNG file in the export
 /// directory. The watermark is part of the same view tree, so a single
 /// `ImageRenderer` pass produces one composited image — there is no
 /// detachable layer for the brand mark.
@@ -25,7 +25,7 @@ enum ShareCardRenderer {
     /// caller uses so previews and exports share one tuning.
     static let canvasSize = CGSize(width: 1080, height: 1920)
 
-    /// Renders `model` as a 1080×1920 PNG and writes it to a temporary file.
+    /// Renders `model` as a 1080×1920 PNG and writes it to the export directory.
     /// Returns the file URL for use with `UIActivityViewController`.
     /// `maskCompoundNames` swaps real peptide names for "Compound A/B/C"
     /// so a user can share without publishing their exact stack.
@@ -33,10 +33,15 @@ enum ShareCardRenderer {
         let image = try renderImage(for: model, maskCompoundNames: maskCompoundNames)
         guard let data = image.pngData() else { throw Failure.encoding }
 
-        let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent(filename(for: model))
+        // Shares go in the export folder so "Delete All Data" and the next
+        // export or share sweep them; the card can carry compound names
+        // and health figures.
+        ExportService.shared.clearExports()
+        let directory = ExportService.exportDirectory
+        let url = directory.appendingPathComponent(filename(for: model))
         do {
-            try data.write(to: url, options: .atomic)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try data.write(to: url, options: [.atomic, .completeFileProtectionUnlessOpen])
         } catch {
             throw Failure.write(error)
         }
