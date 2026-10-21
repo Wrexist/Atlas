@@ -1695,6 +1695,9 @@ final class DataStore {
         if repo.commitDidFail {
             lastError = Self.saveFailureMessage
         } else {
+            if HealthSyncSettings.isEnabled {
+                Task { await HealthKitService.shared.writeWorkout(session) }
+            }
             updateWidgetData()
             updateWatchData()
         }
