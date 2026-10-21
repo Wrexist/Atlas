@@ -908,16 +908,23 @@ final class MealScannerService: Sendable {
 // MARK: - Helpers
 
 extension UIImage {
-    /// Aspect-preserving resize so the longest edge equals `maxEdge`.
-    /// Returns nil when the input is already smaller than the limit so
-    /// callers can fall through to the original.
+    /// Aspect-preserving resize so the longest edge equals `maxEdge`
+    /// pixels. Returns nil when the input is already smaller than the
+    /// limit so callers can fall through to the original.
+    ///
+    /// Renders at scale 1: the default format uses the screen scale, which
+    /// tripled every edge and made the "resized" photo bigger than the
+    /// camera original.
     func resizedTo(maxEdge: CGFloat) -> UIImage? {
-        let longest = max(size.width, size.height)
+        let pixelWidth = size.width * scale
+        let pixelHeight = size.height * scale
+        let longest = max(pixelWidth, pixelHeight)
         guard longest > maxEdge else { return nil }
-        let scale = maxEdge / longest
-        let target = CGSize(width: size.width * scale, height: size.height * scale)
-        let renderer = UIGraphicsImageRenderer(size: target)
-        return renderer.image { _ in
+        let ratio = maxEdge / longest
+        let target = CGSize(width: (pixelWidth * ratio).rounded(), height: (pixelHeight * ratio).rounded())
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: target, format: format).image { _ in
             draw(in: CGRect(origin: .zero, size: target))
         }
     }

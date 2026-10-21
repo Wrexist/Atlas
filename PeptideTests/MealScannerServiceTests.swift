@@ -230,6 +230,20 @@ final class MealScannerServiceTests: XCTestCase {
         XCTAssertNil(MealScannerService.stringSetting(forKey: "DEFINITELY_NOT_SET_KEY_\(UUID().uuidString)"))
     }
 
+    // MARK: - Resize
+
+    func test_resizedTo_cameraPhotoAtScaleOne_outputPixelsCappedAtMaxEdge() throws {
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        let photo = UIGraphicsImageRenderer(size: CGSize(width: 4032, height: 3024), format: format).image { _ in }
+
+        let resized = try XCTUnwrap(photo.resizedTo(maxEdge: 1568))
+        let cgImage = try XCTUnwrap(resized.cgImage)
+
+        XCTAssertEqual(cgImage.width, 1568)
+        XCTAssertEqual(cgImage.height, 1176)
+    }
+
     // MARK: - Helpers
 
     private static func ok(for request: URLRequest) -> HTTPURLResponse {
