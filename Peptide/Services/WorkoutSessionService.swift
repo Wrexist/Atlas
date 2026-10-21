@@ -36,11 +36,13 @@ final class WorkoutSessionService {
         activeSession = SwiftDataRepository.shared.loadActiveWorkoutSession()
         // An activity outlives the process, so a relaunch can inherit one
         // whose workout is long gone — or lose one whose workout isn't.
-        reconcileRest()
         WorkoutLiveActivityService.shared.reconcile(active: activeSession)
-        // Deferred: closing reaches DataStore, which reads `.shared` —
-        // still mid-initialisation here.
-        Task { [weak self] in self?.closeIfStale() }
+        // Deferred: clearing an expired rest and closing both reach
+        // DataStore, which reads `.shared` — still mid-initialisation here.
+        Task { [weak self] in
+            self?.reconcileRest()
+            self?.closeIfStale()
+        }
     }
 
     // MARK: - Lifecycle
