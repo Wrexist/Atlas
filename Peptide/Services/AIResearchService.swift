@@ -48,6 +48,7 @@ final class AIResearchService: Sendable {
         case unauthorised
         case offline
         case rateLimited
+        case dailyLimitReached
         case serviceUnavailable
         case requestFailed(String)
         case invalidResponse
@@ -58,6 +59,7 @@ final class AIResearchService: Sendable {
             case .unauthorised:         "Couldn't sign in to the research assistant. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build."
             case .offline:              "You're offline — the research assistant needs an internet connection. Reconnect and try again."
             case .rateLimited:          "You're sending questions faster than the assistant can answer. Wait a minute and try again."
+            case .dailyLimitReached:    "You've reached today's research limit. It resets tomorrow."
             case .serviceUnavailable:   "The research assistant is temporarily offline. Try again in a few minutes."
             case .requestFailed(let m): m
             case .invalidResponse:      "The assistant returned an unexpected response."
@@ -277,7 +279,10 @@ final class AIResearchService: Sendable {
             // status code.
             switch http.statusCode {
             case 401:                throw ChatError.unauthorised
-            case 429:                throw ChatError.rateLimited
+            case 429:
+                throw Self.proxyErrorCode(in: data) == "daily_quota"
+                    ? ChatError.dailyLimitReached
+                    : ChatError.rateLimited
             case 502, 503, 504:      throw ChatError.serviceUnavailable
             default:                 throw ChatError.requestFailed("AI research returned HTTP \(http.statusCode).")
             }
@@ -404,6 +409,16 @@ final class AIResearchService: Sendable {
             lines.append(ragContext)
         }
         return lines.joined(separator: "\n")
+    }
+
+    /// The proxy's stable refusal code (`error.code`), which tells a
+    /// per-minute throttle apart from the daily quota.
+    private static func proxyErrorCode(in data: Data) -> String? {
+        struct Envelope: Decodable {
+            struct Body: Decodable { let code: String? }
+            let error: Body
+        }
+        return (try? JSONDecoder().decode(Envelope.self, from: data))?.error.code
     }
 
     private func parseAssistantText(from data: Data) throws -> String {
