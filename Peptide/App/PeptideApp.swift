@@ -151,7 +151,10 @@ struct PeptideApp: App {
                 // the widget / Live Activity / notification link
                 // vocabulary is one tested mapping instead of an
                 // inline switch per entry point.
-                DeepLinkRouter.route(url, appState: appState, isPro: StoreService.shared.isProUser)
+                Task { @MainActor in
+                    let isPro = await StoreService.shared.resolvedProStatus()
+                    DeepLinkRouter.route(url, appState: appState, isPro: isPro)
+                }
             }
             .onContinueUserActivity(CSSearchableItemActionType) { activity in
                 // Spotlight tapped a food index entry. Parse the
@@ -227,14 +230,6 @@ struct PeptideApp: App {
                 ReviewPromptService.shared.recordLaunch()
                 UpsellScheduler.recordActiveDay()
                 dataStore.handleAppActivation()
-                // Re-check StoreKit entitlements so a subscription
-                // that lapsed while the app was suspended flips
-                // `isProUser` off. The `Transaction.updates` stream
-                // only fires for incoming transactions; an expiry
-                // produces no transaction, so the cached
-                // entitlement would otherwise stay true until the
-                // user manually purchased again.
-                Task { await StoreService.shared.checkProAccess() }
                 // Re-check notification authorization. If the user
                 // revoked permission in iOS Settings while the app
                 // was suspended, the local `doseRemindersEnabled`
@@ -265,11 +260,17 @@ struct PeptideApp: App {
                 // start / end without needing the user to open the
                 // app to a specific tab.
                 dataStore.reconcileDoseLiveActivities()
-                // Re-reconcile the Sunday weekly-recap notification
-                // on every active transition — handles "user toggled
-                // opt-out elsewhere", "user upgraded to Pro", and
-                // "permission status changed in Settings".
+                // Re-check StoreKit entitlements so a subscription
+                // that lapsed while the app was suspended flips
+                // `isProUser` off — an expiry produces no transaction
+                // on `Transaction.updates`. Then re-reconcile the Sunday
+                // weekly recap against the fresh answer: it handles
+                // "user toggled opt-out elsewhere", "user upgraded to
+                // Pro" and "permission status changed in Settings", and
+                // reading `isProUser` before the scan finished cancelled
+                // every Pro user's recap on a cold launch.
                 Task { @MainActor in
+                    await StoreService.shared.checkProAccess()
                     await WeeklySummaryNotificationScheduler.reconcile(
                         profile: dataStore.profile,
                         isPro: StoreService.shared.isProUser
@@ -326,8 +327,9 @@ struct PeptideApp: App {
             let store = StoreService.shared
             if store.products.isEmpty { await store.loadProducts() }
             try? await Task.sleep(for: .seconds(1))
+            let isPro = await store.resolvedProStatus()
             let isTrialEligible = store.isEligibleForMonthlyTrial || store.isEligibleForAnnualTrial
-            guard UpsellScheduler.isWinBackDue(isPro: store.isProUser, isTrialEligible: isTrialEligible),
+            guard UpsellScheduler.isWinBackDue(isPro: isPro, isTrialEligible: isTrialEligible),
                   canPresentRootModal
             else { return }
             UpsellScheduler.markWinBackShown()

@@ -123,7 +123,7 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
            let url = URL(string: deeplink) {
             Task { @MainActor [appState] in
                 defer { completionHandler() }
-                DeepLinkRouter.route(url, appState: appState, isPro: StoreService.shared.isProUser)
+                DeepLinkRouter.route(url, appState: appState, isPro: await StoreService.shared.resolvedProStatus())
             }
             return
         }
