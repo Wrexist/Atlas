@@ -343,6 +343,7 @@ final class AuthService {
         SwiftDataRepository.shared.deleteAll()
         PersistenceService.shared.clearAll()
         ProgressPhotoStorage.deleteAll()
+        TableMomentStore.shared.deleteAll()
         BackupSnapshotService.deleteAll()
         ExportService.shared.clearExports()
         // Records kept outside the main stores: pending reminders carry
