@@ -123,6 +123,27 @@ extension DoseWindowAttributes.ContentState {
     /// scheduled time hits.
     static let dueNowToleranceMinutes: Int = 5
 
+    /// How long after `doseTime` the window stays open. Past it an
+    /// unlogged dose reads as missed and the app ends the activity.
+    static let windowCloseMinutes: Int = 90
+
+    /// When the activity's content goes stale: just past the due-now
+    /// tolerance. A Live Activity only redraws on a push or at its
+    /// stale date, and status is read from the clock at draw time, so
+    /// this redraw is what moves a suspended app's activity into
+    /// `.late`.
+    var lateBoundary: Date {
+        doseTime.addingTimeInterval(Double((Self.dueNowToleranceMinutes + 1) * 60))
+    }
+
+    /// The window closed with the dose unlogged. `isStale` comes from
+    /// the activity context; it is set from `lateBoundary`, so the
+    /// clock decides whether the window has actually closed.
+    func isMissed(isStale: Bool, at now: Date = Date()) -> Bool {
+        guard isStale, !completed else { return false }
+        return now >= doseTime.addingTimeInterval(Double(Self.windowCloseMinutes * 60))
+    }
+
     /// Resolves the current status against `now`. Pure — same input
     /// always yields the same output so the widget renders are
     /// deterministic and unit-testable.

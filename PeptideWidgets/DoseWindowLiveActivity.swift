@@ -153,8 +153,8 @@ private func statusShortLabel(
 private struct DoseWindowLockView: View {
     let attributes: DoseWindowAttributes
     let state: DoseWindowAttributes.ContentState
-    /// Past the activity's `staleDate` (dose + 90 min). Nothing will
-    /// update it again, so the live countdown would be a lie.
+    /// Past the activity's `staleDate`. Once the window has also
+    /// closed (`isMissed`), the live countdown would be a lie.
     let isStale: Bool
 
     private var tint: Color { Color(hex: attributes.tintHex) }
@@ -176,7 +176,7 @@ private struct DoseWindowLockView: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            if isStale && !state.completed {
+            if state.isMissed(isStale: isStale) {
                 missedWindow
                     .padding(14)
             } else {

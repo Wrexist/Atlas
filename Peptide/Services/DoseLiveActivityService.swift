@@ -24,8 +24,8 @@ final class DoseLiveActivityService {
     /// Latest the activity stays alive after the scheduled time
     /// before being auto-dismissed. 90 minutes covers "took it but
     /// didn't open the app" without leaving stale activities for
-    /// hours.
-    private static let stalenessMinutes: Int = 90
+    /// hours. Shared with the widget, which reads it as "missed".
+    private static let stalenessMinutes = DoseWindowAttributes.ContentState.windowCloseMinutes
     /// How long the "Logged" badge stays up before the activity
     /// dismisses itself.
     private static let loggedSeconds: TimeInterval = 4
@@ -128,12 +128,10 @@ final class DoseLiveActivityService {
             windowStart: windowStart,
             completed: entry.completed
         )
-        let stale = Calendar.current.date(byAdding: .minute, value: Self.stalenessMinutes, to: entry.date)
-
         do {
             _ = try Activity<DoseWindowAttributes>.request(
                 attributes: attributes,
-                content: ActivityContent(state: initialState, staleDate: stale),
+                content: ActivityContent(state: initialState, staleDate: initialState.lateBoundary),
                 pushType: nil
             )
         } catch {
