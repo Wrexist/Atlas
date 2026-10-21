@@ -90,7 +90,7 @@ struct ProtocolCard: View {
         parts.append(protocol_.peptides.count == 1 ? "1 peptide" : "\(protocol_.peptides.count) peptides")
         if protocol_.status == .active {
             parts.append("week \(protocol_.weekNumber) of \(protocol_.cycleLengthWeeks)")
-            parts.append("\(protocol_.daysRemaining) days left")
+            parts.append(protocol_.daysRemaining == 1 ? "1 day left" : "\(protocol_.daysRemaining) days left")
         }
         return parts.joined(separator: ", ")
     }

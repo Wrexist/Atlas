@@ -202,7 +202,7 @@ struct ProfileStacksCard: View {
         }
         if stack.status == .active {
             parts.append("Week \(stack.weekNumber) of \(stack.cycleLengthWeeks)")
-            parts.append("\(stack.daysRemaining) days remaining")
+            parts.append(stack.daysRemaining == 1 ? "1 day remaining" : "\(stack.daysRemaining) days remaining")
         }
         return parts.joined(separator: ". ")
     }
@@ -224,7 +224,7 @@ struct ProfileStacksCard: View {
             HStack {
                 Text("Week \(stack.weekNumber) of \(stack.cycleLengthWeeks)")
                 Spacer()
-                Text("\(stack.daysRemaining) days left")
+                Text("^[\(stack.daysRemaining) day](inflect: true) left")
             }
             .font(AppFont.caption)
             .foregroundStyle(AppColor.textTertiary)

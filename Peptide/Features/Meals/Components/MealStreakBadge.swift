@@ -120,7 +120,13 @@ struct MealStreakBadge: View {
     }
 
     private var voiceOverLabel: String {
-        if currentStreak == 0 && bestStreak > 0 {
+        if currentStreak == 0 && bestStreak == 1 {
+            return String(
+                localized: "Meal-logging streak paused. Best streak 1 day.",
+                comment: "VoiceOver readout when the streak has lapsed and the personal best is a single day."
+            )
+        }
+        if currentStreak == 0 && bestStreak > 1 {
             return String(
                 localized: "Meal-logging streak paused. Best streak \(bestStreak) days.",
                 comment: "VoiceOver readout when the streak has lapsed but a personal best exists."
