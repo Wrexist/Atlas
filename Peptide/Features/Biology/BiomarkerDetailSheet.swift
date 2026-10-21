@@ -133,10 +133,12 @@ struct BiomarkerDetailSheet: View {
 
     private var explainer: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text("WHAT THIS TRACKS")
+            Text("What this tracks")
+                .textCase(.uppercase)
                 .font(AppFont.eyebrow)
                 .tracking(1.0)
                 .foregroundStyle(AppColor.textSecondary)
+                .accessibilityAddTraits(.isHeader)
             Text(explainerBody)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
@@ -175,10 +177,12 @@ struct BiomarkerDetailSheet: View {
     private var chartBlock: some View {
         if snapshot.samples.count >= 4 {
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text("RECENT TREND")
+                Text("Recent trend")
+                    .textCase(.uppercase)
                     .font(AppFont.eyebrow)
                     .tracking(1.0)
                     .foregroundStyle(AppColor.textSecondary)
+                    .accessibilityAddTraits(.isHeader)
 
                 trendChart
             }
@@ -247,8 +251,7 @@ struct BiomarkerDetailSheet: View {
 
     private func selectionCallout(for sample: BiomarkerSnapshot.Sample) -> some View {
         VStack(spacing: Spacing.xxs) {
-            Text(BiomarkerSeriesService.formatValue(biomarker.displayValue(sample.value, for: unit), for: biomarker)
-                 + (biomarker.displayUnit(for: unit).map { " \($0)" } ?? ""))
+            Text(formattedWithUnit(biomarker.displayValue(sample.value, for: unit)))
                 .font(AppFont.scaled(13, weight: .bold, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
@@ -259,6 +262,12 @@ struct BiomarkerDetailSheet: View {
         .padding(.horizontal, Spacing.sm)
         .padding(.vertical, Spacing.xs)
         .glassSurface(cornerRadius: Spacing.chipCornerRadius)
+    }
+
+    /// A display-unit value with its unit, e.g. "72.0 kg".
+    private func formattedWithUnit(_ displayValue: Double) -> String {
+        BiomarkerSeriesService.formatValue(displayValue, for: biomarker)
+            + (biomarker.displayUnit(for: unit).map { " \($0)" } ?? "")
     }
 
     @ChartContentBuilder
@@ -273,6 +282,8 @@ struct BiomarkerDetailSheet: View {
         .interpolationMethod(.monotone)
         .lineStyle(.init(lineWidth: 2, lineCap: .round, lineJoin: .round))
         .foregroundStyle(AppColor.accentPrimary)
+        .accessibilityLabel(dayLabel(for: sample.date))
+        .accessibilityValue(formattedWithUnit(displayValue))
 
         AreaMark(
             x: .value("Date", sample.date, unit: .day),
@@ -289,6 +300,8 @@ struct BiomarkerDetailSheet: View {
                 endPoint: .bottom
             )
         )
+        // Same reading as the line — VoiceOver would announce it twice.
+        .accessibilityHidden(true)
     }
 
     /// "Today", else the calendar date ("12 Mar"), so ticks read in the
@@ -331,10 +344,12 @@ struct BiomarkerDetailSheet: View {
 
     private var deltaBlock: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text("VS RECENT AVERAGE")
+            Text("Vs recent average")
+                .textCase(.uppercase)
                 .font(AppFont.eyebrow)
                 .tracking(1.0)
                 .foregroundStyle(AppColor.textSecondary)
+                .accessibilityAddTraits(.isHeader)
             Text(deltaLine)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textPrimary)
