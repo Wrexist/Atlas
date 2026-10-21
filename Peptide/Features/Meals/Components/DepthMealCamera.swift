@@ -38,6 +38,8 @@ final class DepthCameraController: UIViewController, AVCapturePhotoCaptureDelega
     private let preview = AVCaptureVideoPreviewLayer()
     private let sessionQueue = DispatchQueue(label: "com.peptidesai.app.depth-camera")
     private var fieldOfView: Double?
+    /// Keeps the photo and viewfinder upright however the phone is held.
+    private var rotation: AVCaptureDevice.RotationCoordinator?
     private let shutter = UIButton(type: .custom)
 
     override func viewDidLoad() {
@@ -53,6 +55,10 @@ final class DepthCameraController: UIViewController, AVCapturePhotoCaptureDelega
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         preview.frame = view.bounds
+        if let rotation, let connection = preview.connection,
+           connection.isVideoRotationAngleSupported(rotation.videoRotationAngleForHorizonLevelPreview) {
+            connection.videoRotationAngle = rotation.videoRotationAngleForHorizonLevelPreview
+        }
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -75,10 +81,8 @@ final class DepthCameraController: UIViewController, AVCapturePhotoCaptureDelega
         if session.canAddInput(input) { session.addInput(input) }
         if session.canAddOutput(output) { session.addOutput(output) }
         output.isDepthDataDeliveryEnabled = output.isDepthDataDeliverySupported
-        // Portrait, like the system camera the rest of the flow expects.
-        output.connection(with: .video)?.videoRotationAngle = 90
         session.commitConfiguration()
-        preview.connection?.videoRotationAngle = 90
+        rotation = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: preview)
         fieldOfView = Double(device.activeFormat.videoFieldOfView)
     }
 
@@ -134,6 +138,10 @@ final class DepthCameraController: UIViewController, AVCapturePhotoCaptureDelega
         shutter.isEnabled = false
         let settings = AVCapturePhotoSettings()
         settings.isDepthDataDeliveryEnabled = output.isDepthDataDeliveryEnabled
+        if let rotation, let connection = output.connection(with: .video),
+           connection.isVideoRotationAngleSupported(rotation.videoRotationAngleForHorizonLevelCapture) {
+            connection.videoRotationAngle = rotation.videoRotationAngleForHorizonLevelCapture
+        }
         output.capturePhoto(with: settings, delegate: self)
     }
 

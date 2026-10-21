@@ -158,7 +158,7 @@ struct TableScanFlow: View {
             AppColor.surfaceSecondary
             switch cameraState {
             case .live:
-                TableCameraPreview(session: camera.session)
+                TableCameraPreview(camera: camera)
                 if showsGrid { thirdsGrid }
             case .starting:
                 ProgressView()
