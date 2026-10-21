@@ -320,9 +320,8 @@ private struct LockRing: View {
 
     private var progress: Double {
         switch state.status() {
-        case .resting:  return state.restProgress()
         case .finished: return 1
-        case .lifting, .paused: return state.setProgress
+        case .resting, .lifting, .paused: return state.setProgress
         }
     }
 
@@ -330,13 +329,31 @@ private struct LockRing: View {
         ZStack {
             Circle()
                 .stroke(accent.opacity(0.20), lineWidth: 5)
+            ring
+            Image(systemName: WorkoutActivityStyle.glyph(for: state))
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(accent)
+        }
+    }
+
+    /// A Live Activity only redraws on a push, so a rest arc drawn from
+    /// `Date()` would freeze between pushes; the system timer view keeps
+    /// filling on its own, as the dose activity's window ring does.
+    @ViewBuilder
+    private var ring: some View {
+        if case .resting = state.status(), let restInterval = state.restInterval {
+            ProgressView(timerInterval: restInterval, countsDown: false) {
+                EmptyView()
+            } currentValueLabel: {
+                EmptyView()
+            }
+            .progressViewStyle(.circular)
+            .tint(accent)
+        } else {
             Circle()
                 .trim(from: 0, to: max(0.001, min(1, progress)))
                 .stroke(accent, style: StrokeStyle(lineWidth: 5, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-            Image(systemName: WorkoutActivityStyle.glyph(for: state))
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(accent)
         }
     }
 }

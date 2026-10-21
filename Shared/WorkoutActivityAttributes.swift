@@ -133,12 +133,11 @@ extension WorkoutActivityAttributes.ContentState {
         return now.timeIntervalSince(restEndsAt) >= Self.idleInterval
     }
 
-    /// 0…1 through the current rest. Zero when not resting, so the ring
-    /// has nothing to draw rather than a stale arc.
-    func restProgress(at now: Date = Date()) -> Double {
-        guard restTotalSeconds > 0, let restEndsAt, restEndsAt > now else { return 0 }
-        let elapsed = restTotalSeconds - restEndsAt.timeIntervalSince(now)
-        return min(max(elapsed / restTotalSeconds, 0), 1)
+    /// The current rest as a date range, for a ring the system fills on
+    /// its own between pushes. Nil when no rest is set.
+    var restInterval: ClosedRange<Date>? {
+        guard let restEndsAt else { return nil }
+        return restEndsAt.addingTimeInterval(-max(0, restTotalSeconds))...restEndsAt
     }
 
     /// 0…1 through the planned sets. Clamped so an extra set logged

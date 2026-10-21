@@ -63,26 +63,23 @@ final class WorkoutActivityStatusTests: XCTestCase {
         XCTAssertEqual(s.status(at: now), .finished)
     }
 
-    // MARK: - Rest progress
+    // MARK: - Rest interval
 
-    func test_restProgress_tracksElapsedFractionOfTheRest() {
-        let s = state(restEndsAt: now.addingTimeInterval(30), restTotalSeconds: 120)
-        XCTAssertEqual(s.restProgress(at: now), 0.75, accuracy: 0.0001)
+    func test_restInterval_spansTheRestEndingAtItsTarget() {
+        let endsAt = now.addingTimeInterval(30)
+        let s = state(restEndsAt: endsAt, restTotalSeconds: 120)
+        XCTAssertEqual(s.restInterval, endsAt.addingTimeInterval(-120)...endsAt)
     }
 
-    func test_restProgress_isZeroWhenNotResting() {
-        XCTAssertEqual(state().restProgress(at: now), 0)
-        XCTAssertEqual(
-            state(restEndsAt: now.addingTimeInterval(-10), restTotalSeconds: 60).restProgress(at: now),
-            0
-        )
+    func test_restInterval_isNilWithNoRest() {
+        XCTAssertNil(state().restInterval)
     }
 
-    func test_restProgress_clampsWhenTheUserAddsTimeBeyondTheOriginalRest() {
-        // +15s on a 30s rest leaves more remaining than the total; the
-        // ring must not run backwards past empty.
-        let s = state(restEndsAt: now.addingTimeInterval(45), restTotalSeconds: 30)
-        XCTAssertEqual(s.restProgress(at: now), 0)
+    func test_restInterval_negativeTotal_doesNotInvertTheRange() {
+        // `ProgressView(timerInterval:)` traps on an inverted range.
+        let endsAt = now.addingTimeInterval(30)
+        let s = state(restEndsAt: endsAt, restTotalSeconds: -10)
+        XCTAssertEqual(s.restInterval, endsAt...endsAt)
     }
 
     // MARK: - Set progress
