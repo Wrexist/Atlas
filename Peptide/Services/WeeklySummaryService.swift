@@ -104,10 +104,9 @@ final class WeeklySummaryService {
         // stored fingerprint still matches what the week's entries,
         // meals, check-ins and labs produce today. A mismatch (dose
         // un-logged, meal deleted, lab added) regenerates.
-        let fingerprint = Self.sourceFingerprint(of: aggregate)
         if !forceRefresh,
            let cached = profile.weeklySummaries[aggregate.weekStart],
-           cached.sourceFingerprint == fingerprint {
+           Self.isFresh(cached, for: aggregate, now: Date()) {
             return cached
         }
 
@@ -152,9 +151,21 @@ final class WeeklySummaryService {
             referenceDate: referenceDate
         ) else { return nil }
         guard let cached = profile.weeklySummaries[aggregate.weekStart],
-              cached.sourceFingerprint == Self.sourceFingerprint(of: aggregate)
+              Self.isFresh(cached, for: aggregate, now: Date())
         else { return nil }
         return cached
+    }
+
+    /// How long an offline fallback is served before the next load
+    /// retries the proxy. Without it one network blip or 429 pinned
+    /// the template text until the user edited data or tapped refresh.
+    static let offlineRetryInterval: TimeInterval = 60 * 60
+
+    /// A cached summary is served only while its source data is
+    /// unchanged and, for an offline fallback, for `offlineRetryInterval`.
+    static func isFresh(_ cached: WeeklySummary, for aggregate: WeeklyAggregate, now: Date) -> Bool {
+        guard cached.sourceFingerprint == sourceFingerprint(of: aggregate) else { return false }
+        return cached.kind == .ai || now.timeIntervalSince(cached.generatedAt) < offlineRetryInterval
     }
 
     /// Deterministic hash of the user-editable inputs of an aggregate.
