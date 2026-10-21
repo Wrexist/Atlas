@@ -8,16 +8,23 @@ struct WorkoutSocialCanvas: View {
     let unit: MeasurementUnit
     let options: WorkoutShareOptions
 
-    private var compact: Bool { options.format == .post }
+    private var layout: ShareLayout { options.format.layout }
+    private var compact: Bool { layout != .tall }
 
     var body: some View {
-        ViewThatFits(in: .vertical) {
-            content(showsMap: true)
-            content(showsMap: false)
+        Group {
+            if layout == .wide {
+                wideContent
+            } else {
+                ViewThatFits(in: .vertical) {
+                    content(showsMap: true)
+                    content(showsMap: false)
+                }
+            }
         }
         .padding(.horizontal, compact ? 24 : 28)
-        .padding(.top, compact ? 24 : 48)
-        .padding(.bottom, compact ? 24 : 64)
+        .padding(.top, layout == .tall ? 48 : 24)
+        .padding(.bottom, layout == .tall ? 64 : 24)
         .frame(width: options.format.logicalSize.width, height: options.format.logicalSize.height)
         .foregroundStyle(AppColor.recapText)
         .background(AppColor.recapBackground)
@@ -27,53 +34,88 @@ struct WorkoutSocialCanvas: View {
 
     private func content(showsMap: Bool) -> some View {
         VStack(spacing: compact ? 8 : 12) {
-            HStack(spacing: 8) {
-                Image("AtlasLogo").resizable().scaledToFit().frame(width: 22, height: 22)
-                Text("ATLAS").font(.subheadline.weight(.semibold)).tracking(3)
-                Spacer()
-                Image(systemName: "checkmark.circle.fill").foregroundStyle(AppColor.recapSuccess)
-            }
-            VStack(alignment: .leading, spacing: 4) {
-                Text(options.includeName ? summary.name : "Workout")
-                    .font(.title2.weight(.bold)).lineLimit(2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                if options.includeDate, let date = summary.session.finishedAt {
-                    Text(date.formatted(date: .abbreviated, time: .omitted))
-                        .font(.caption).foregroundStyle(AppColor.recapSecondary)
-                }
-            }
-            HStack(alignment: .top, spacing: 12) {
-                metric(summary.duration.label, label: "Duration")
-                metric(summary.workingSetLabel, label: "Working sets")
-                if options.includeVolume, let volume = summary.volumeKg {
-                    metric(RecapFormat.volume(volume, unit: unit), label: "Recorded volume")
-                }
-            }
-            .padding(12)
-            .background(AppColor.recapCard, in: RoundedRectangle(cornerRadius: 16))
-
+            header
+            titleBlock
+            metricsCard
             if showsMap {
-              RecapAnatomy(muscles: summary.muscles)
-                .frame(height: compact ? 96 : 168)
-                .frame(maxWidth: .infinity)
-                .accessibilityHidden(true)
+                anatomy
+                    .frame(height: compact ? 96 : 168)
             }
-
-            VStack(alignment: .leading, spacing: 5) {
-                muscleLine(role: .primary, color: AppColor.trainingPrimaryMuscle)
-                muscleLine(role: .supporting, color: AppColor.trainingSecondaryMuscle)
-                if summary.muscles.isEmpty {
-                    Text("Muscle mapping unavailable").font(.caption)
-                }
-                if summary.missingMappings > 0 {
-                    Text("Some exercises have no muscle mapping").font(.caption2)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            muscleLines
             // Method notes live behind the recap's info buttons, not in the
             // exported image.
         }
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// Landscape: the anatomy map is the hero on the left, the same text
+    /// blocks stack on the right.
+    private var wideContent: some View {
+        HStack(alignment: .center, spacing: 20) {
+            anatomy
+                .frame(width: 148)
+                .frame(maxHeight: .infinity)
+            VStack(spacing: 8) {
+                header
+                titleBlock
+                metricsCard
+                muscleLines
+            }
+            .frame(maxHeight: .infinity, alignment: .top)
+        }
+    }
+
+    private var header: some View {
+        HStack(spacing: 8) {
+            Image("AtlasLogo").resizable().scaledToFit().frame(width: 22, height: 22)
+            Text("ATLAS").font(.subheadline.weight(.semibold)).tracking(3)
+            Spacer()
+            Image(systemName: "checkmark.circle.fill").foregroundStyle(AppColor.recapSuccess)
+        }
+    }
+
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(options.includeName ? summary.name : "Workout")
+                .font(.title2.weight(.bold)).lineLimit(layout == .wide ? 1 : 2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            if options.includeDate, let date = summary.session.finishedAt {
+                Text(date.formatted(date: .abbreviated, time: .omitted))
+                    .font(.caption).foregroundStyle(AppColor.recapSecondary)
+            }
+        }
+    }
+
+    private var metricsCard: some View {
+        HStack(alignment: .top, spacing: 12) {
+            metric(summary.duration.label, label: "Duration")
+            metric(summary.workingSetLabel, label: "Working sets")
+            if options.includeVolume, let volume = summary.volumeKg {
+                metric(RecapFormat.volume(volume, unit: unit), label: "Recorded volume")
+            }
+        }
+        .padding(12)
+        .background(AppColor.recapCard, in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    private var anatomy: some View {
+        RecapAnatomy(muscles: summary.muscles)
+            .frame(maxWidth: .infinity)
+            .accessibilityHidden(true)
+    }
+
+    private var muscleLines: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            muscleLine(role: .primary, color: AppColor.trainingPrimaryMuscle)
+            muscleLine(role: .supporting, color: AppColor.trainingSecondaryMuscle)
+            if summary.muscles.isEmpty {
+                Text("Muscle mapping unavailable").font(.caption)
+            }
+            if summary.missingMappings > 0 {
+                Text("Some exercises have no muscle mapping").font(.caption2)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func metric(_ value: String, label: String) -> some View {
@@ -107,7 +149,7 @@ enum WorkoutSocialRenderer {
                 WorkoutSocialCanvas(summary: summary, unit: unit, options: options)
             }
         })
-        renderer.scale = 3
+        renderer.scale = options.format.renderScale
         renderer.isOpaque = true
         guard let image = renderer.uiImage else { throw WorkoutMediaError.render }
         return image

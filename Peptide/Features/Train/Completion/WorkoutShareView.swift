@@ -8,7 +8,10 @@ struct WorkoutShareView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var options = WorkoutShareOptions()
+    /// Opens on the format the user last shared in.
+    @State private var options = WorkoutShareOptions(
+        format: ShareFormatMemory.load(ShareFormatMemory.workoutKey, default: .story)
+    )
     @State private var model = WorkoutShareController()
     @State private var previewImage: UIImage?
     @State private var previewError: String?
@@ -20,9 +23,8 @@ struct WorkoutShareView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
-                    Picker("Format", selection: $options.format) {
-                        ForEach(WorkoutShareFormat.allCases) { format in Text(format.title).tag(format) }
-                    }.pickerStyle(.segmented).disabled(model.busy).accessibilityIdentifier("workout-share-format")
+                    ShareFormatPicker(options: WorkoutShareFormat.allCases, selection: $options.format)
+                        .disabled(model.busy)
                     Picker("Card style", selection: $options.style) {
                         ForEach(WorkoutShareStyle.allCases) { style in Text(style.title).tag(style) }
                     }.pickerStyle(.segmented).disabled(model.busy).accessibilityIdentifier("workout-share-style")
@@ -53,6 +55,9 @@ struct WorkoutShareView: View {
             }
             .interactiveDismissDisabled(model.busy)
             .onChange(of: renderKey) { _, _ in model.optionsChanged() }
+            .onChange(of: options.format) { _, newValue in
+                ShareFormatMemory.save(newValue, ShareFormatMemory.workoutKey)
+            }
             // The previous card stays up until the new one is ready, then
             // cross-fades — clearing it first flashed a blank frame on
             // every option change.
