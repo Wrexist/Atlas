@@ -30,6 +30,13 @@ final class PeptideProtocolCycleTests: XCTestCase {
         Calendar.current.date(byAdding: .weekOfYear, value: -weeks, to: Date()) ?? Date()
     }
 
+    // MARK: - daysRemaining
+
+    func test_daysRemaining_startedToday_countsWholeCalendarDays() {
+        let proto = makeProtocol(startDate: Date(), cycleLengthWeeks: 1, washoutWeeks: 0)
+        XCTAssertEqual(proto.daysRemaining, 7)
+    }
+
     // MARK: - cycleNumber
 
     func test_cycleNumber_isOne_atStart() {

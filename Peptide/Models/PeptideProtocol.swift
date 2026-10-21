@@ -312,8 +312,12 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
         return min(max(elapsed / total, 0), 1)
     }
 
+    /// Whole calendar days to `endDate`. Measured from today's start of
+    /// day like `cycleProgress`: from `Date()` the partial day truncated
+    /// and read one short for most of every day.
     var daysRemaining: Int {
-        let days = Calendar.current.dateComponents([.day], from: Date(), to: endDate).day ?? 0
+        let cal = Calendar.current
+        let days = cal.dateComponents([.day], from: cal.startOfDay(for: Date()), to: endDate).day ?? 0
         return max(days, 0)
     }
 
