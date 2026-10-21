@@ -309,17 +309,14 @@ struct WeeklySummaryHeroCard: View {
 
     // MARK: - Helpers
 
-    /// Hoisted out of `weekTitle` — it allocated both formatters on every
+    /// Hoisted out of `weekTitle` — it allocated the parser on every
     /// ready-card render. Plain statics are MainActor-safe inside a View.
+    /// Parses in the local zone, matching how `WeeklySummaryService`
+    /// writes the key; the GMT default put US users a day early.
     private static let weekStartParser: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withFullDate]
-        return f
-    }()
-    private static let weekDisplayFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "MMM d"
-        f.locale = .current
+        f.timeZone = .current
         return f
     }()
 
@@ -330,7 +327,7 @@ struct WeeklySummaryHeroCard: View {
         guard let date = Self.weekStartParser.date(from: isoWeekStart) else {
             return String(localized: "This week")
         }
-        return String(format: String(localized: "Week of %@"), Self.weekDisplayFormatter.string(from: date))
+        return String(format: String(localized: "Week of %@"), date.formatted(.dateTime.month(.abbreviated).day()))
     }
 
     /// Truncates the AI paragraph for the card preview. Splits on
