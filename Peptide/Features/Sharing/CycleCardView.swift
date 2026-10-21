@@ -179,9 +179,13 @@ struct CycleCardView: View {
     }
 
     /// "Day 0 of 84" read as a broken counter for a protocol that
-    /// hasn't begun; name the start date instead.
+    /// hasn't begun, and "Day 120 of 84" for one past its length; name
+    /// the start date or the completed cycle instead.
     private var cycleProgressLine: String {
         guard model.cycleDay > 0 else { return "Starts \(activeSinceFormatted)" }
+        guard model.cycleDay <= model.cycleTotalDays else {
+            return "Cycle complete · \(model.cycleTotalDays) days"
+        }
         return "Day \(model.cycleDay) of \(model.cycleTotalDays) cycle"
     }
 
