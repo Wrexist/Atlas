@@ -34,6 +34,9 @@ struct NutritionTargetsEditor: View {
     @State private var carbs: String = ""
     @State private var fat: String = ""
     @State private var fiber: String = ""
+    /// The fields as the editor opened, so only real edits ask before
+    /// being discarded.
+    @State private var openedFields: [String] = []
     @FocusState private var focusedField: Field?
 
     private enum Field: Hashable { case calories, protein, carbs, fat, fiber }
@@ -85,7 +88,7 @@ struct NutritionTargetsEditor: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", action: onCancel)
+                    DiscardChangesCancelButton(hasChanges: hasChanges, onCancel: onCancel)
                         .foregroundStyle(AppColor.textSecondary)
                 }
                 ToolbarItem(placement: .confirmationAction) {
@@ -100,7 +103,11 @@ struct NutritionTargetsEditor: View {
                 }
             }
         }
-        .onAppear(perform: hydrate)
+        .interactiveDismissDisabled(hasChanges)
+        .onAppear {
+            hydrate()
+            openedFields = fields
+        }
     }
 
     // MARK: - Live summary
@@ -456,6 +463,10 @@ struct NutritionTargetsEditor: View {
         let range = field == .calories ? 800...10_000 : 0...1_000
         return Int(trimmed).flatMap { range.contains($0) ? $0 : nil }
     }
+
+    private var fields: [String] { [calories, protein, carbs, fat, fiber] }
+
+    private var hasChanges: Bool { fields != openedFields }
 
     private var isValid: Bool {
         [Field.calories, .protein, .carbs, .fat, .fiber].allSatisfy { value(for: $0) != nil }

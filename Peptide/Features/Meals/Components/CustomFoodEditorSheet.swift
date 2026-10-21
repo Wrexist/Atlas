@@ -51,6 +51,9 @@ struct CustomFoodEditorSheet: View {
     @State private var pendingFill: PendingFill?
     @State private var showScanLimitPaywall = false
     @State private var storeService = StoreService.shared
+    /// The fields as the editor opened, so only real edits ask before
+    /// being discarded.
+    @State private var openedFields: [String] = []
 
     private enum PendingFill {
         case text(String)
@@ -82,6 +85,12 @@ struct CustomFoodEditorSheet: View {
         return nil
     }
     private var isEditing: Bool { onDelete != nil }
+
+    private var fields: [String] {
+        [name, brand, calories, protein, carbs, fat, fiber, sugars, servingGrams, servingLabel]
+    }
+
+    private var hasChanges: Bool { fields != openedFields || pricePer100g != initial.pricePer100g }
 
     /// Locale-aware decimal parser. `Double("1,5")` returns nil on
     /// devices set to a comma-decimal locale (fr_FR, de_DE, es_ES,
@@ -195,7 +204,7 @@ struct CustomFoodEditorSheet: View {
             .glassFormStyle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", action: onCancel)
+                    DiscardChangesCancelButton(hasChanges: hasChanges, onCancel: onCancel)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: commit)
@@ -222,8 +231,10 @@ struct CustomFoodEditorSheet: View {
         // `.onAppear` fires once per presentation, where `.task` would
         // re-run on every observation cycle and clobber the user's
         // in-progress edits when DataStore publishes a change.
+        .interactiveDismissDisabled(hasChanges)
         .onAppear {
             hydrate(from: initial, showZeros: isEditing)
+            openedFields = fields
             if let autoFillQuery {
                 aiQuery = autoFillQuery
                 Task { await fill(fromText: autoFillQuery) }

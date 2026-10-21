@@ -152,7 +152,7 @@ struct MealEntryEditorSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", action: onCancel)
+                    DiscardChangesCancelButton(hasChanges: hasChanges, onCancel: onCancel)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: commit)
@@ -184,6 +184,7 @@ struct MealEntryEditorSheet: View {
                 }
             }
         }
+        .interactiveDismissDisabled(hasChanges)
     }
 
     private var summaryCard: some View {

@@ -35,6 +35,10 @@ struct RecipeEditorSheet: View {
 
     private var isEditing: Bool { onDelete != nil }
 
+    private var hasChanges: Bool {
+        name != initial.name || note != (initial.note ?? "") || components != initial.components
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -56,7 +60,7 @@ struct RecipeEditorSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", action: onCancel)
+                    DiscardChangesCancelButton(hasChanges: hasChanges, onCancel: onCancel)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: commit)
@@ -102,6 +106,7 @@ struct RecipeEditorSheet: View {
                 Text("Past meal logs aren't affected — only the recipe disappears from your library.")
             }
         }
+        .interactiveDismissDisabled(hasChanges)
         .onAppear { hydrate() }
     }
 
