@@ -19,6 +19,10 @@ import SwiftUI
 struct BioAgeHeroSection: View {
     let state: BioAgeState?
     let chronologicalAge: Int
+    /// Health is connected but returned no heart or sleep data at all —
+    /// read access denied, or no Watch. Waiting won't help, so the
+    /// building state says so instead of counting days.
+    var noHealthData = false
     /// Metrics offered in the header pill's menu alongside Biological Age.
     /// Selecting one opens its history; the host owns that routing.
     var metricShortcuts: [Biomarker] = []
@@ -163,7 +167,7 @@ struct BioAgeHeroSection: View {
             Image(systemName: "hourglass")
                 .font(AppFont.scaled(28, weight: .light, relativeTo: .title1))
                 .foregroundStyle(AppColor.textSecondary)
-                .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion)
+                .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion && !noHealthData)
                 .accessibilityHidden(true)
             GlassProgressBar(progress: progress)
                 .frame(width: 140)
@@ -249,7 +253,20 @@ struct BioAgeHeroSection: View {
             .padding(.horizontal, Spacing.xl)
     }
 
+    @ViewBuilder
     private func buildingLabel(progress: Double) -> some View {
+        if noHealthData {
+            Text("Atlas can't see any heart or sleep data. Check that Atlas has read access in the Health app, and wear Apple Watch overnight.")
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Spacing.xl)
+        } else {
+            buildingProgressLabel(progress: progress)
+        }
+    }
+
+    private func buildingProgressLabel(progress: Double) -> some View {
         // `progress` is `dataDays / minBaselineDays` — a fraction of the
         // 7-day baseline window. Render the day count it represents.
         let total = BioAgeStateResolver.minBaselineDays

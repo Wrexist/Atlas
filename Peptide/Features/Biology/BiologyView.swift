@@ -41,6 +41,8 @@ struct BiologyView: View {
                         state: resolved?.state,
                         chronologicalAge: resolved?.chronologicalAge
                             ?? BioAgeStateResolver.chronologicalAgeFallback,
+                        noHealthData: dataStore.profile.healthConnected
+                            && resolved?.inputs?.healthDataDays == 0,
                         metricShortcuts: visibleBiomarkers,
                         onSelectMetric: { openDetail(for: $0) },
                         onExplainTapped: { showBioAgeExplainer = true }
