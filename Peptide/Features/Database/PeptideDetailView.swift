@@ -22,9 +22,10 @@ struct PeptideDetailView: View {
     private var visibleSections: [Section] {
         var ids: [Section] = [.hero]
         if !memberProtocols.isEmpty { ids.append(.yourStacks) }
-        ids.append(.about)
+        if !peptide.description.isEmpty { ids.append(.about) }
         if !peptide.mechanism.isEmpty { ids.append(.mechanism) }
-        ids.append(contentsOf: [.benefits, .dosage])
+        if !peptide.benefits.isEmpty { ids.append(.benefits) }
+        ids.append(.dosage)
         if !peptide.sideEffects.isEmpty { ids.append(.sideEffects) }
         if !peptide.contraindications.isEmpty { ids.append(.contraindications) }
         if !peptide.commonStacks.isEmpty { ids.append(.stacks) }
@@ -100,22 +101,24 @@ struct PeptideDetailView: View {
                 }
 
                 // Description
-                GlassCard {
-                    VStack(alignment: .leading, spacing: Spacing.md) {
-                        HStack(spacing: Spacing.sm) {
-                            Image(systemName: "info.circle.fill")
-                                .foregroundStyle(peptide.category.color)
-                                .accessibilityHidden(true)
-                            Text("About")
-                                .font(AppFont.headline)
-                                .foregroundStyle(AppColor.textPrimary)
-                        }
+                if !peptide.description.isEmpty {
+                    GlassCard {
+                        VStack(alignment: .leading, spacing: Spacing.md) {
+                            HStack(spacing: Spacing.sm) {
+                                Image(systemName: "info.circle.fill")
+                                    .foregroundStyle(peptide.category.color)
+                                    .accessibilityHidden(true)
+                                Text("About")
+                                    .font(AppFont.headline)
+                                    .foregroundStyle(AppColor.textPrimary)
+                            }
 
-                        ExpandableText(text: peptide.description, accentColor: peptide.category.color)
+                            ExpandableText(text: peptide.description, accentColor: peptide.category.color)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .sectionAppear(index: staggerIndex(.about))
                 }
-                .sectionAppear(index: staggerIndex(.about))
 
                 // Mechanism of Action
                 if !peptide.mechanism.isEmpty {
@@ -138,25 +141,27 @@ struct PeptideDetailView: View {
                 }
 
                 // Benefits
-                GlassCard {
-                    VStack(alignment: .leading, spacing: Spacing.md) {
-                        HStack(spacing: Spacing.sm) {
-                            Image(systemName: "star.fill")
-                                .foregroundStyle(peptide.category.color)
-                                .accessibilityHidden(true)
-                            Text("Benefits")
-                                .font(AppFont.headline)
-                                .foregroundStyle(AppColor.textPrimary)
-                        }
+                if !peptide.benefits.isEmpty {
+                    GlassCard {
+                        VStack(alignment: .leading, spacing: Spacing.md) {
+                            HStack(spacing: Spacing.sm) {
+                                Image(systemName: "star.fill")
+                                    .foregroundStyle(peptide.category.color)
+                                    .accessibilityHidden(true)
+                                Text("Benefits")
+                                    .font(AppFont.headline)
+                                    .foregroundStyle(AppColor.textPrimary)
+                            }
 
-                        BenefitTagFlow(
-                            benefits: peptide.benefits,
-                            color: peptide.category.color
-                        )
+                            BenefitTagFlow(
+                                benefits: peptide.benefits,
+                                color: peptide.category.color
+                            )
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .sectionAppear(index: staggerIndex(.benefits))
                 }
-                .sectionAppear(index: staggerIndex(.benefits))
 
                 // Dosage Info
                 DosageInfoSection(peptide: peptide) {
