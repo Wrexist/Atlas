@@ -22,26 +22,23 @@ struct LabPanelDetailView: View {
     /// The date the user is scrubbing on the chart.
     @State private var selectedDate: Date?
 
-    private var entries: [LabValue] {
-        dataStore.labEntries(for: panel)
-    }
-
-    private var latest: LabValue? { entries.last }
-
     /// The reference-range overlay is sex-specific for hormone /
     /// hematology panels — read the user's sex so women don't see
     /// male bands.
     private var userSex: BiologicalSex { dataStore.profile.bodyMetrics.sex }
 
     var body: some View {
+        // Filtered and sorted once per update, not once per reader —
+        // chart scrubbing re-evaluates the body on every selection change.
+        let entries = dataStore.labEntries(for: panel)
         ScrollView {
             VStack(spacing: Spacing.lg) {
-                if entries.isEmpty {
-                    emptyShim
+                if let latest = entries.last {
+                    headlineCard(latest: latest, entries: entries)
+                    chartCard(entries)
+                    historyCard(entries)
                 } else {
-                    headlineCard
-                    chartCard
-                    historyCard
+                    emptyShim
                 }
             }
             .padding(.horizontal, Spacing.screenPadding)
@@ -122,7 +119,7 @@ struct LabPanelDetailView: View {
 
     // MARK: - Headline
 
-    private var headlineCard: some View {
+    private func headlineCard(latest: LabValue, entries: [LabValue]) -> some View {
         GlassCard(padding: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 HStack(alignment: .firstTextBaseline) {
@@ -132,31 +129,29 @@ struct LabPanelDetailView: View {
                             .tracking(0.6)
                             .textCase(.uppercase)
                             .foregroundStyle(AppColor.textSecondary)
-                        if let latest {
-                            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                                Text(LabValueFormat.string(latest.value))
-                                    .font(AppFont.scaled(34, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
-                                    .monospacedDigit()
-                                    .foregroundStyle(AppColor.textPrimary)
-                                    .contentTransition(.numericText())
-                                Text(panel.canonicalUnit)
-                                    .font(AppFont.scaled(13, weight: .semibold))
-                                    .foregroundStyle(AppColor.textSecondary)
-                            }
-                            Text(Self.dateFormatter.string(from: latest.date))
-                                .font(AppFont.scaled(11))
-                                .foregroundStyle(AppColor.textTertiary)
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Text(LabValueFormat.string(latest.value))
+                                .font(AppFont.scaled(34, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                                 .monospacedDigit()
-                            if let change = changeSincePrevious {
-                                Text(change)
-                                    .font(AppFont.scaled(13, weight: .semibold))
-                                    .foregroundStyle(AppColor.textSecondary)
-                                    .monospacedDigit()
-                            }
+                                .foregroundStyle(AppColor.textPrimary)
+                                .contentTransition(.numericText())
+                            Text(panel.canonicalUnit)
+                                .font(AppFont.scaled(13, weight: .semibold))
+                                .foregroundStyle(AppColor.textSecondary)
+                        }
+                        Text(Self.dateFormatter.string(from: latest.date))
+                            .font(AppFont.scaled(11))
+                            .foregroundStyle(AppColor.textTertiary)
+                            .monospacedDigit()
+                        if let change = changeSincePrevious(entries) {
+                            Text(change)
+                                .font(AppFont.scaled(13, weight: .semibold))
+                                .foregroundStyle(AppColor.textSecondary)
+                                .monospacedDigit()
                         }
                     }
                     Spacer(minLength: 0)
-                    if let latest, let status = LabRangeStatus(value: latest.value, panel: panel, sex: userSex) {
+                    if let status = LabRangeStatus(value: latest.value, panel: panel, sex: userSex) {
                         rangePill(status)
                     }
                 }
@@ -165,8 +160,8 @@ struct LabPanelDetailView: View {
     }
 
     /// "↑ 12% since 3 Mar", against the draw before the latest.
-    private var changeSincePrevious: String? {
-        guard entries.count >= 2, let latest else { return nil }
+    private func changeSincePrevious(_ entries: [LabValue]) -> String? {
+        guard entries.count >= 2, let latest = entries.last else { return nil }
         let previous = entries[entries.count - 2]
         guard previous.value != 0 else { return nil }
         let fraction = (latest.value - previous.value) / abs(previous.value)
@@ -189,7 +184,7 @@ struct LabPanelDetailView: View {
 
     // MARK: - Chart
 
-    private var chartCard: some View {
+    private func chartCard(_ entries: [LabValue]) -> some View {
         GlassCard(padding: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text("Trend")
@@ -197,13 +192,15 @@ struct LabPanelDetailView: View {
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.textTertiary)
-                chart
+                chart(entries)
             }
         }
     }
 
-    private var chart: some View {
-        Chart {
+    private func chart(_ entries: [LabValue]) -> some View {
+        let selected = selectedEntry(in: entries)
+        let xStride = chartXStride(entries)
+        return Chart {
             if let range = panel.typicalRange(for: userSex) {
                 // A RectangleMark with only y bounds spans the whole
                 // plot width, so the band needs no x-axis bounds.
@@ -236,7 +233,7 @@ struct LabPanelDetailView: View {
                 .symbolSize(60)
             }
 
-            if let selected = selectedEntry {
+            if let selected {
                 RuleMark(x: .value("Date", selected.date))
                     .foregroundStyle(AppColor.textTertiary)
                     .lineStyle(.init(lineWidth: 1))
@@ -246,10 +243,10 @@ struct LabPanelDetailView: View {
             }
         }
         .chartXSelection(value: $selectedDate)
-        .sensoryFeedback(.selection, trigger: selectedEntry?.id)
+        .sensoryFeedback(.selection, trigger: selected?.id)
         .frame(height: 200)
         .chartXAxis {
-            AxisMarks(values: .stride(by: chartXStride.component, count: chartXStride.count)) { _ in
+            AxisMarks(values: .stride(by: xStride.component, count: xStride.count)) { _ in
                 AxisGridLine().foregroundStyle(AppColor.glassBorder)
                 AxisTick().foregroundStyle(AppColor.glassBorder)
                 AxisValueLabel(format: .dateTime.month(.abbreviated).day())
@@ -272,7 +269,7 @@ struct LabPanelDetailView: View {
     }
 
     /// The draw nearest the scrubbed date.
-    private var selectedEntry: LabValue? {
+    private func selectedEntry(in entries: [LabValue]) -> LabValue? {
         guard let selectedDate else { return nil }
         return entries.min {
             abs($0.date.timeIntervalSince(selectedDate)) < abs($1.date.timeIntervalSince(selectedDate))
@@ -297,7 +294,7 @@ struct LabPanelDetailView: View {
     /// Picks an x-axis stride from the date span so the axis never
     /// becomes a wall of labels: weekly under 45 days, monthly up to
     /// six months, quarterly beyond.
-    private var chartXStride: (component: Calendar.Component, count: Int) {
+    private func chartXStride(_ entries: [LabValue]) -> (component: Calendar.Component, count: Int) {
         guard let first = entries.first, let last = entries.last else { return (.month, 1) }
         let days = Calendar.current.dateComponents([.day], from: first.date, to: last.date).day ?? 0
         if days < 45 { return (.weekOfYear, 1) }
@@ -307,7 +304,7 @@ struct LabPanelDetailView: View {
 
     // MARK: - History list
 
-    private var historyCard: some View {
+    private func historyCard(_ entries: [LabValue]) -> some View {
         GlassCard(padding: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text("History")
