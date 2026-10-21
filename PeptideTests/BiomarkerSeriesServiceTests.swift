@@ -156,10 +156,24 @@ final class BiomarkerSeriesServiceTests: XCTestCase {
     }
 
     func test_seriesSnapshot_8DayUpwardHrv_returnsUpTrend() {
-        let series: [Double] = [40, 42, 44, 46, 48, 50, 52, 55]
+        let base = Date(timeIntervalSince1970: 1_700_000_000)
+        let values: [Double] = [40, 42, 44, 46, 48, 50, 52, 55]
+        let series = values.enumerated().map { (date: base.addingTimeInterval(Double($0.offset) * 86_400), value: $0.element) }
         let snapshot = BiomarkerSeriesService.seriesSnapshot(.hrvBaseline, series: series)
         XCTAssertEqual(snapshot.latest, 55)
         XCTAssertEqual(snapshot.trend, .up)
         XCTAssertTrue(snapshot.changeText.contains("Trending up"))
+    }
+
+    /// HealthKit drops empty days, so each sample must keep its own
+    /// date rather than being placed by index.
+    func test_seriesSnapshot_gappySeries_keepsRealDates() {
+        let base = Date(timeIntervalSince1970: 1_700_000_000)
+        let series = [
+            (date: base, value: 50.0),
+            (date: base.addingTimeInterval(5 * 86_400), value: 52.0),
+        ]
+        let snapshot = BiomarkerSeriesService.seriesSnapshot(.hrvBaseline, series: series)
+        XCTAssertEqual(snapshot.samples.map(\.date), series.map(\.date))
     }
 }

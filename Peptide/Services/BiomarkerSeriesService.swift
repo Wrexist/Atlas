@@ -86,16 +86,16 @@ enum BiomarkerSeriesService {
             return weightSnapshot(weightHistory: weightHistory, days: days, unit: unit)
         case .hrvBaseline:
             let series = await HealthKitService.shared.dailyHRV(days: days)
-            return seriesSnapshot(.hrvBaseline, series: series.map(\.value), unit: unit)
+            return seriesSnapshot(.hrvBaseline, series: series, unit: unit)
         case .rhrBaseline:
             let series = await HealthKitService.shared.dailyRestingHeartRate(days: days)
-            return seriesSnapshot(.rhrBaseline, series: series.map(\.value), unit: unit)
+            return seriesSnapshot(.rhrBaseline, series: series, unit: unit)
         case .sleepBaseline:
             let series = await HealthKitService.shared.dailySleepHours(days: days)
-            return seriesSnapshot(.sleepBaseline, series: series.map(\.value), unit: unit)
+            return seriesSnapshot(.sleepBaseline, series: series, unit: unit)
         case .stepsBaseline:
             let series = await HealthKitService.shared.dailySteps(days: days)
-            return seriesSnapshot(.stepsBaseline, series: series.map(\.value), unit: unit)
+            return seriesSnapshot(.stepsBaseline, series: series, unit: unit)
         case .bodyTemperature, .bodyFat, .waist, .bloodPressure:
             // Manual-entry biomarkers — Pro-gated, persistence
             // surface lands in a follow-up commit. Tile renders
@@ -121,14 +121,14 @@ enum BiomarkerSeriesService {
         let recent = weightHistory
             .sorted { $0.date < $1.date }
             .suffix(days)
-            .map(\.kg)
-        guard let latest = recent.last else { return .empty(.weight) }
-        let trend = inferTrend(samples: recent)
+            .map { BiomarkerSnapshot.Sample(date: $0.date, value: $0.kg) }
+        guard let latest = recent.last?.value else { return .empty(.weight) }
+        let trend = inferTrend(samples: recent.map(\.value))
         return BiomarkerSnapshot(
             biomarker: .weight,
             latest: latest,
             trend: trend,
-            sparkline: recent.count >= sparklineMinSamples ? recent : [],
+            samples: recent.count >= sparklineMinSamples ? Array(recent) : [],
             changeText: changeText(for: .weight, trend: trend, latest: latest, unit: unit)
         )
     }
@@ -137,14 +137,20 @@ enum BiomarkerSeriesService {
     /// biomarkers (HRV / RHR / sleep). All three follow the same
     /// shape: 14 daily values, latest is the most recent, trend
     /// reads from the whole series.
-    static func seriesSnapshot(_ biomarker: Biomarker, series: [Double], unit: MeasurementUnit = .metric) -> BiomarkerSnapshot {
-        guard let latest = series.last else { return .empty(biomarker) }
-        let trend = inferTrend(samples: series)
+    static func seriesSnapshot(
+        _ biomarker: Biomarker,
+        series: [(date: Date, value: Double)],
+        unit: MeasurementUnit = .metric
+    ) -> BiomarkerSnapshot {
+        guard let latest = series.last?.value else { return .empty(biomarker) }
+        let trend = inferTrend(samples: series.map(\.value))
         return BiomarkerSnapshot(
             biomarker: biomarker,
             latest: latest,
             trend: trend,
-            sparkline: series.count >= sparklineMinSamples ? series : [],
+            samples: series.count >= sparklineMinSamples
+                ? series.map { BiomarkerSnapshot.Sample(date: $0.date, value: $0.value) }
+                : [],
             changeText: changeText(for: biomarker, trend: trend, latest: latest, unit: unit)
         )
     }
@@ -162,7 +168,7 @@ enum BiomarkerSeriesService {
             biomarker: .latestLabPanel,
             latest: lab.value,
             trend: .insufficient,
-            sparkline: [],
+            samples: [],
             changeText: "\(lab.panel.displayName) · \(valueStr) \(unit)"
         )
     }

@@ -177,15 +177,24 @@ struct BiomarkerSnapshot: Equatable, Sendable, Identifiable {
     /// reading exists yet — the UI degrades to "No data".
     let latest: Double?
     let trend: Trend
-    /// 14 daily samples, oldest → newest. Empty when the data
-    /// source doesn't support a series (e.g. blood pressure
-    /// without manual log history) — the row hides its sparkline
-    /// in that case.
-    let sparkline: [Double]
+    /// Dated readings, oldest → newest. Days without a reading are
+    /// absent (HealthKit drops empty days), so charts must plot by
+    /// `date`, never by index. Empty when the data source doesn't
+    /// support a series (e.g. blood pressure without manual log
+    /// history) — the row hides its sparkline in that case.
+    let samples: [Sample]
     /// Pre-formatted "verb + value" line for the row subtitle,
     /// e.g. "Increasing · 72.0 kg". Localized in this layer so
     /// the view doesn't redo the formatting.
     let changeText: String
+
+    struct Sample: Equatable, Sendable {
+        let date: Date
+        let value: Double
+    }
+
+    /// Sample values alone, for the row sparkline and trend math.
+    var sparkline: [Double] { samples.map(\.value) }
 
     enum Trend: String, Equatable, Sendable {
         case up           // value rising over the window
@@ -201,7 +210,7 @@ struct BiomarkerSnapshot: Equatable, Sendable, Identifiable {
             biomarker: biomarker,
             latest: nil,
             trend: .insufficient,
-            sparkline: [],
+            samples: [],
             changeText: String(localized: "No data")
         )
     }
