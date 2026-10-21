@@ -249,6 +249,20 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
 
+      - name: Build app (Release)
+        # Debug alone never sees a symbol referenced outside its
+        # `#if DEBUG` guard or an optimizer-only failure. Those would
+        # otherwise surface first in the TestFlight lane.
+        run: |
+          xcodebuild build \
+            -project Peptide.xcodeproj \
+            -scheme Peptide \
+            -destination 'generic/platform=iOS' \
+            -configuration Release \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
       - name: Install SwiftLint
         run: |
           if brew list swiftlint &>/dev/null 2>&1; then
