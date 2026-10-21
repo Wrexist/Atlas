@@ -1587,35 +1587,6 @@ struct OnboardingView: View {
         )
     }
 
-    // MARK: - Program name (used only on the Ready summary now;
-    // the dedicated "Your starter plan" step was removed in the
-    // polish pass as redundant with the projection reveal).
-
-    private var recommendedProgramName: String {
-        // Switch on the goal first, then refine by days inside each
-        // arm where the choice depends on volume. Avoids the
-        // partial-range-inside-tuple-pattern Swift 6 parser ambiguity
-        // (the older `case (.buildMuscle, 5...)` form looked like it
-        // worked but the audit flagged it as unreliable across
-        // compiler versions). Every PrimaryGoal case must be covered —
-        // the v3 expansion added five wellness-track goals that need
-        // explicit program names so the Program Preview screen
-        // doesn't crash on a non-exhaustive switch.
-        switch primaryGoal {
-        case .getStronger:    return "5/3/1 Strength"
-        case .buildMuscle:    return daysPerWeek >= 5 ? "Push Pull Legs" : "Upper / Lower"
-        case .loseFat:        return "Full Body Hypertrophy"
-        case .athletic:       return "Athletic Conditioning"
-        case .recomp:         return "Hybrid Recomp"
-        case .stayConsistent: return "Consistency Builder"
-        case .betterSleep:    return "Recovery & Sleep Hygiene"
-        case .recovery:       return "Active Recovery Plan"
-        case .antiAging:      return "Healthy Aging Plan"
-        case .skinHair:       return "Look & Feel Plan"
-        case .energy:         return "Energy & Vitality Plan"
-        }
-    }
-
     // MARK: - Projection (personalised plan reveal)
 
     /// Cal-AI-style projection moment. Numbers are illustrative — the
@@ -2116,8 +2087,6 @@ struct OnboardingView: View {
                     .staggeredAppear(index: 1)
                     summaryRow(label: "Schedule", value: "\(daysPerWeek)× per week, \(timeOfDay.displayName.lowercased())")
                         .staggeredAppear(index: 2)
-                    summaryRow(label: "Program", value: recommendedProgramName)
-                        .staggeredAppear(index: 3)
                     if let attribution = creatorAttribution {
                         // Attribution only — no percentage; the checkout
                         // applies no discount (see CreatorCodeService).
@@ -2125,7 +2094,7 @@ struct OnboardingView: View {
                             label: "Referral",
                             value: "via \(attribution.creatorName)"
                         )
-                        .staggeredAppear(index: 4)
+                        .staggeredAppear(index: 3)
                     }
                 }
                 .id(page == Page.ready)
