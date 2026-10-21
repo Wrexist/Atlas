@@ -44,6 +44,7 @@ struct DoseWindowLiveActivity: Widget {
         context: ActivityViewContext<DoseWindowAttributes>
     ) -> DynamicIsland {
         let tint = Color(hex: context.attributes.tintHex)
+        let missed = context.state.isMissed(isStale: context.isStale)
         return DynamicIsland {
             DynamicIslandExpandedRegion(.leading) {
                 IslandLeadingBadge(
@@ -54,7 +55,8 @@ struct DoseWindowLiveActivity: Widget {
             DynamicIslandExpandedRegion(.trailing) {
                 IslandTrailingTimer(
                     state: context.state,
-                    accent: statusAccent(for: context.state, tint: tint)
+                    accent: statusAccent(for: context.state, tint: tint),
+                    missed: missed
                 )
             }
             DynamicIslandExpandedRegion(.center) {
@@ -74,7 +76,8 @@ struct DoseWindowLiveActivity: Widget {
                 IslandBottomBar(
                     entryId: context.attributes.entryId,
                     state: context.state,
-                    tint: tint
+                    tint: tint,
+                    missed: missed
                 )
             }
         } compactLeading: {
@@ -85,7 +88,8 @@ struct DoseWindowLiveActivity: Widget {
         } compactTrailing: {
             CompactTrailing(
                 state: context.state,
-                accent: statusAccent(for: context.state, tint: tint)
+                accent: statusAccent(for: context.state, tint: tint),
+                missed: missed
             )
         } minimal: {
             MinimalGlyph(
@@ -443,8 +447,21 @@ private struct CompactLeading: View {
 private struct CompactTrailing: View {
     let state: DoseWindowAttributes.ContentState
     let accent: Color
+    let missed: Bool
 
     var body: some View {
+        if missed {
+            Text("Missed")
+                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                .foregroundStyle(.white.opacity(0.55))
+                .padding(.trailing, 2)
+        } else {
+            statusText
+        }
+    }
+
+    @ViewBuilder
+    private var statusText: some View {
         switch state.status() {
         case .completed:
             Image(systemName: "checkmark")
@@ -520,14 +537,15 @@ private struct IslandLeadingBadge: View {
 private struct IslandTrailingTimer: View {
     let state: DoseWindowAttributes.ContentState
     let accent: Color
+    let missed: Bool
 
     var body: some View {
         VStack(alignment: .trailing, spacing: 0) {
             primaryText
                 .font(.system(size: 17, weight: .heavy, design: .rounded))
                 .monospacedDigit()
-                .foregroundStyle(accent)
-            Text(statusShortLabel(for: state))
+                .foregroundStyle(missed ? .white.opacity(0.55) : accent)
+            Text(missed ? "Tap to log" : statusShortLabel(for: state))
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.55))
                 .textCase(.uppercase)
@@ -538,6 +556,15 @@ private struct IslandTrailingTimer: View {
 
     @ViewBuilder
     private var primaryText: some View {
+        if missed {
+            Text("Missed")
+        } else {
+            statusText
+        }
+    }
+
+    @ViewBuilder
+    private var statusText: some View {
         switch state.status() {
         case .completed:
             Text("✓")
@@ -556,6 +583,7 @@ private struct IslandBottomBar: View {
     let entryId: UUID
     let state: DoseWindowAttributes.ContentState
     let tint: Color
+    let missed: Bool
 
     var body: some View {
         HStack(spacing: 10) {
@@ -578,6 +606,16 @@ private struct IslandBottomBar: View {
                     .font(.system(size: 13, weight: .heavy))
             }
             .foregroundStyle(Color(red: 0.36, green: 0.78, blue: 0.55))
+        } else if missed {
+            // Matches the lock screen's missed layout: the window has
+            // closed, and a tap on the island still opens the dose row.
+            HStack(spacing: 5) {
+                Image(systemName: "clock.badge.xmark")
+                    .font(.system(size: 13, weight: .heavy))
+                Text("Missed window")
+                    .font(.system(size: 13, weight: .heavy))
+            }
+            .foregroundStyle(.white.opacity(0.55))
         } else {
             Button(intent: LogDoseLiveActivityIntent(entryId: entryId)) {
                 HStack(spacing: 6) {
