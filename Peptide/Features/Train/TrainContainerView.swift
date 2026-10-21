@@ -174,7 +174,7 @@ struct TrainContainerView: View {
                                 Text(WorkoutClock.label(active.elapsedSeconds(now: context.date)))
                             }
                             Text("·")
-                            Text("\(active.completedSetCount) sets logged")
+                            Text("^[\(active.completedSetCount) set](inflect: true) logged")
                                 .contentTransition(.numericText())
                         }
                         .font(AppFont.caption)
