@@ -58,7 +58,7 @@ enum ScreenshotSeedData {
         return [
             PeptideProtocol(
                 id: UUID(),
-                name: "Recovery Stack",
+                name: "Recovery Protocol",
                 peptides: [MockPeptides.bpc157, MockPeptides.tb500],
                 schedule: ProtocolSchedule(
                     daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
