@@ -165,6 +165,11 @@ struct HomeMealsSection: View {
             MealScanFlow(onClose: { showMealScan = false }, logDay: selectedDay)
                 .environment(dataStore)
         }
+        #if DEBUG
+        .task {
+            if TableScanFixture.isRequested { await TableScanFixture.seedTable(in: dataStore) }
+        }
+        #endif
         .sheet(isPresented: $showTableScan) {
             TableScanFlow(
                 logDay: selectedDay,

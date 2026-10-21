@@ -54,6 +54,7 @@ struct LatestTableCard: View {
         .accessibilityLabel(Text("\(PlateTableView.title(for: moment)), \(summary)"))
         .accessibilityHint("Opens the table.")
         .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("latest-table-card")
     }
 
     private var summary: String {

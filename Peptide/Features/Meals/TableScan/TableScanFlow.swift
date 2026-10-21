@@ -494,6 +494,12 @@ struct TableScanFlow: View {
     // MARK: - Camera
 
     private func startCamera() async {
+        #if DEBUG
+        if TableScanFixture.isRequested {
+            await playFixture()
+            return
+        }
+        #endif
         guard TableCamera.isAvailable else {
             cameraState = .unavailable
             return
@@ -578,6 +584,20 @@ struct TableScanFlow: View {
             Haptics.error()
         }
     }
+
+    #if DEBUG
+    /// Screenshot runs: the lifting card, then the cut-outs flying to
+    /// their cards, with drawn plates standing in for Vision.
+    private func playFixture() async {
+        photo = TableScanFixture.photo
+        phase = .lifting
+        try? await Task.sleep(for: .seconds(3))
+        dishes = TableScanFixture.reviewDishes()
+        phase = .review
+        try? await Task.sleep(for: .milliseconds(350))
+        land()
+    }
+    #endif
 
     /// Sends every cut-out to its card, one after another, as the photo
     /// breaks up behind them.

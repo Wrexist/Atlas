@@ -65,6 +65,58 @@ final class ScreenshotTests: XCTestCase {
         XCTAssertTrue(app.buttons["meal-scan-log"].waitForExistence(timeout: 10))
     }
 
+    func test_captureTableScan() {
+        captureTableScan(appearance: "dark")
+    }
+
+    func test_captureTableScan_lightMode() {
+        captureTableScan(appearance: "light")
+    }
+
+    /// The whole-table scan end to end on drawn plates: the Latest table
+    /// card, lifting, the review grid, the table at rest and in play, and
+    /// one dish opened.
+    private func captureTableScan(appearance: String) {
+        launch(appearance: appearance, extraArguments: ["--table-scan-fixture"])
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
+        dismissOverlaysIfNeeded()
+        let mealsTab = app.tabBars.buttons["Meals"]
+        XCTAssertTrue(mealsTab.waitForExistence(timeout: 10))
+        mealsTab.tap()
+
+        let card = app.buttons["latest-table-card"]
+        for _ in 0..<6 where !(card.exists && card.isHittable) { app.swipeUp() }
+        capture(named: "table-\(appearance)-01-latest-card")
+
+        let scan = app.buttons["Scan the whole table"].firstMatch
+        for _ in 0..<6 where !(scan.exists && scan.isHittable) { app.swipeDown() }
+        scan.tap()
+        XCTAssertTrue(app.staticTexts["Lifting your dishes…"].waitForExistence(timeout: 10))
+        capture(named: "table-\(appearance)-02-lifting")
+        XCTAssertTrue(app.staticTexts["Nice table."].waitForExistence(timeout: 10))
+        sleep(2)
+        capture(named: "table-\(appearance)-03-review")
+        app.buttons["Close"].firstMatch.tap()
+
+        for _ in 0..<6 where !(card.exists && card.isHittable) { app.swipeUp() }
+        card.tap()
+        XCTAssertTrue(app.buttons["Play"].waitForExistence(timeout: 10))
+        sleep(2)
+        capture(named: "table-\(appearance)-04-table")
+        app.buttons["Play"].tap()
+        sleep(2)
+        capture(named: "table-\(appearance)-05-play")
+        app.buttons["Play"].tap()
+        sleep(1)
+
+        let ramen = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Tonkotsu'")).firstMatch
+        if ramen.waitForExistence(timeout: 5) {
+            ramen.tap()
+            sleep(1)
+            capture(named: "table-\(appearance)-06-dish")
+        }
+    }
+
     func test_captureWorkoutSocialSharing() {
         openCompletedFixture(appearance: "dark")
         app.buttons["Share workout"].tap()
