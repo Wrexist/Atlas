@@ -70,6 +70,9 @@ struct DoseWindowLiveActivity: Widget {
                         .foregroundStyle(.white.opacity(0.65))
                         .lineLimit(1)
                 }
+                // Redacted on a locked device, as the home and lock
+                // screen widgets redact the same names and doses.
+                .privacySensitive()
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             DynamicIslandExpandedRegion(.bottom) {
@@ -209,6 +212,7 @@ private struct DoseWindowLockView: View {
                     .font(.system(size: 17, weight: .bold, design: .rounded))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
+                    .privacySensitive()
                 Text("Missed window · Tap to log")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.secondary)
@@ -233,6 +237,7 @@ private struct DoseWindowLockView: View {
                     .font(.system(size: 17, weight: .bold, design: .rounded))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
+                    .privacySensitive()
                 HStack(spacing: 6) {
                     Text(attributes.doseDisplay)
                         .font(.system(size: 13, weight: .medium))
@@ -244,6 +249,7 @@ private struct DoseWindowLockView: View {
                         .foregroundStyle(accent)
                 }
                 .lineLimit(1)
+                .privacySensitive()
             }
 
             Spacer(minLength: 0)
