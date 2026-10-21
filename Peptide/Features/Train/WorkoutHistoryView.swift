@@ -64,7 +64,7 @@ struct WorkoutHistoryView: View {
                             }
                         }
                     } header: {
-                        sectionHeader(group.month)
+                        sectionHeader(group.month.formatted(.dateTime.month(.wide).year()))
                     }
                 }
             }
@@ -127,22 +127,17 @@ struct WorkoutHistoryView: View {
     // MARK: - Grouping
 
     private struct MonthGroup: Hashable {
-        let month: String
+        /// Start of the calendar month.
+        let month: Date
         var sessions: [WorkoutSession]
     }
 
-    private static let monthFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
-        return formatter
-    }()
-
     /// Newest month first, newest session first within each month.
-    private static func group(_ sessions: [WorkoutSession]) -> [MonthGroup] {
+    private static func group(_ sessions: [WorkoutSession], calendar: Calendar = .current) -> [MonthGroup] {
         let sorted = sessions.sorted { $0.historyDate > $1.historyDate }
         var groups: [MonthGroup] = []
         for session in sorted {
-            let month = monthFormatter.string(from: session.historyDate)
+            let month = calendar.dateInterval(of: .month, for: session.historyDate)?.start ?? session.historyDate
             if groups.last?.month == month {
                 groups[groups.count - 1].sessions.append(session)
             } else {
@@ -160,20 +155,12 @@ struct WorkoutHistoryView: View {
     }
 }
 
-private enum WorkoutHistoryFormat {
-    static let rowDate: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEE, MMM d"
-        return formatter
-    }()
-}
-
 private extension WorkoutSession {
     var historyDate: Date { finishedAt ?? startedAt }
 
-    /// "Mon, Aug 12" — local-relative date label for the row header.
+    /// "Mon, Aug 12" in the user's locale — the row header.
     var displayDate: String {
-        WorkoutHistoryFormat.rowDate.string(from: historyDate)
+        historyDate.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())
     }
 
     /// "42m" / "1h 12m" — nil for sessions without a finishedAt
