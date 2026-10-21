@@ -566,7 +566,7 @@ struct MealScanFlow: View {
                 MealCategoryPicker(selection: $category)
                 DatePicker("Log meal on", selection: Binding(
                     get: { logDate }, set: { chosenLogDate = $0 }
-                ), displayedComponents: [.date, .hourAndMinute])
+                ), in: ...Date(), displayedComponents: [.date, .hourAndMinute])
                 Text("Photo estimates can miss ingredients and portions. Review each item’s calories and amounts before logging.")
                     .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
             }
