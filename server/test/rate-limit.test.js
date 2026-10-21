@@ -7,7 +7,7 @@ import {
   costForBody,
   costForBytes,
   dailyBudgetLimit,
-  requestCost,
+  refundSpend,
   withinDailyBudget,
   withinDeviceQuota,
 } from '../api/_lib/rate-limit.js';
@@ -168,11 +168,7 @@ test('cost: a large body costs more than a small one', () => {
   assert.equal(costForBytes(256 * 1024), 1);
   assert.equal(costForBytes(256 * 1024 + 1), 2);
   assert.equal(costForBytes(7 * 1024 * 1024), 28);
-  // A client that omits content-length reads as one unit from the
-  // header alone — which is why the proxy re-charges on the parsed
-  // body rather than trusting this number.
-  assert.equal(requestCost({ headers: {} }), 1);
-  assert.equal(requestCost({ headers: { 'content-length': 'not-a-number' } }), 1);
+  assert.equal(costForBytes('not-a-number'), 1);
 });
 
 // ---------------------------------------------------------------------------
@@ -182,13 +178,6 @@ test('cost: a large body costs more than a small one', () => {
 // secret can (a) run the bill up and (b) take the service down for everyone
 // else. Each test states the abuse it's preventing.
 // ---------------------------------------------------------------------------
-
-test('requestCost scales with payload so an image costs more than a text turn', () => {
-  assert.equal(requestCost({ headers: {} }), 1);
-  assert.equal(requestCost({ headers: { 'content-length': '1000' } }), 1);
-  // A ~5 MB meal-scan JPEG shouldn't spend the same budget as a chat turn.
-  assert.equal(requestCost({ headers: { 'content-length': String(5 * 1024 * 1024) } }), 20);
-});
 
 test('device quota bounds one principal without touching another', async (t) => {
   setEnv(t, { ...NO_REDIS, DEVICE_DAILY_QUOTA: '3' });
@@ -330,4 +319,70 @@ test('an explicit zero budget still disables the cap, and previews default to no
   process.env.VERCEL_ENV = 'preview';
   delete process.env.ANTHROPIC_DAILY_REQUEST_BUDGET;
   assert.equal(dailyBudgetLimit(), 0);
+});
+
+test('an image costs its high-resolution token estimate', () => {
+  const body = { max_tokens: 800, messages: [{ role: 'user', content: [{ type: 'image' }] }] };
+  assert.equal(costForBody(body, 100), 1); // 3 800 tokens
+  body.messages[0].content.push({ type: 'image' });
+  assert.equal(costForBody(body, 100), 2); // 6 800 tokens
+});
+
+test('Opus output is weighted by its price over the Sonnet baseline', () => {
+  const body = { max_tokens: 6000, messages: [{ role: 'user', content: 'hi' }] };
+  assert.equal(costForBody(body, 100), 2);
+  assert.equal(costForBody({ ...body, model: 'claude-opus-5-5' }, 100), 3);
+});
+
+test('memory cleanup by a per-minute check keeps live daily buckets', async (t) => {
+  setEnv(t, { ...NO_REDIS, DEVICE_DAILY_QUOTA: '2' });
+  t.mock.timers.enable({ apis: ['Date'], now: 20 * 86_400_000 });
+  const principal = 'k:cleanup-daily';
+  assert.equal(await withinDeviceQuota({ principal, cost: 2 }), true);
+
+  for (let i = 0; i < 10_001; i += 1) {
+    await allowRate({ name: 'cleanup-minute', key: `k:${i}`, limit: 5, windowSeconds: 60 });
+  }
+  t.mock.timers.tick(61_000);
+  // Past 10 000 entries in a fresh minute window: this call prunes.
+  await allowRate({ name: 'cleanup-minute', key: 'k:last', limit: 5, windowSeconds: 60 });
+
+  assert.equal(await withinDeviceQuota({ principal, cost: 1 }), false, 'daily quota survived the prune');
+});
+
+test('a shared IPv4 principal gets scaled limits; IPv6 and attested keys do not', async (t) => {
+  setEnv(t, { ...NO_REDIS, DEVICE_DAILY_QUOTA: '2', SHARED_IP_LIMIT_SCALE: '10' });
+  assert.equal(await withinDeviceQuota({ principal: 'ip:100.64.0.1', cost: 20 }), true);
+  assert.equal(await withinDeviceQuota({ principal: 'ip:2001:db8::1', cost: 3 }), false);
+  assert.equal(await withinDeviceQuota({ principal: 'k:shared-ip-key', cost: 3 }), false);
+});
+
+test('a shared IPv4 principal is never abuse-blocked', async (t) => {
+  setEnv(t, { ...NO_REDIS, ABUSE_STRIKES: '1', ABUSE_BLOCK_SECONDS: '900' });
+  const principal = 'ip:100.64.0.2';
+  assert.equal(await recordLimitStrike({ principal }), false);
+  assert.equal(await recordLimitStrike({ principal }), false);
+  assert.equal(await isBlocked({ principal }), false);
+});
+
+test('the abuse block holds in memory when redis is not configured', async (t) => {
+  setEnv(t, { ...NO_REDIS, ABUSE_STRIKES: '1', ABUSE_BLOCK_SECONDS: '900' });
+  t.mock.timers.enable({ apis: ['Date'], now: 30 * 86_400_000 });
+  const principal = 'k:memory-block';
+  assert.equal(await recordLimitStrike({ principal }), false);
+  assert.equal(await recordLimitStrike({ principal }), true);
+  assert.equal(await isBlocked({ principal }), true);
+  t.mock.timers.tick(900_001);
+  assert.equal(await isBlocked({ principal }), false);
+});
+
+test('refundSpend returns units to the device quota and the budget', async (t) => {
+  setEnv(t, { ...NO_REDIS, DEVICE_DAILY_QUOTA: '3', ANTHROPIC_DAILY_REQUEST_BUDGET: '3' });
+  t.mock.timers.enable({ apis: ['Date'], now: 31 * 86_400_000 });
+  const principal = 'k:refund';
+  assert.equal(await withinDeviceQuota({ principal, cost: 3 }), true);
+  assert.equal(await withinDailyBudget({ cost: 3 }), true);
+  await refundSpend({ principal, cost: 3 });
+  assert.equal(await withinDeviceQuota({ principal, cost: 3 }), true);
+  assert.equal(await withinDailyBudget({ cost: 3 }), true);
 });

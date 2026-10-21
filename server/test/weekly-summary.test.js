@@ -26,6 +26,8 @@ const BASE_ENV = {
   KV_REST_API_TOKEN: undefined,
   ANTHROPIC_DAILY_REQUEST_BUDGET: undefined,
   WEEKLY_RPM: undefined,
+  DEVICE_DAILY_QUOTA: undefined,
+  SHARED_IP_LIMIT_SCALE: '1',
   APP_ATTEST_MODE: 'off',
   APP_ATTEST_APP_ID: undefined,
 };
@@ -68,6 +70,10 @@ function makeRes() {
   return {
     statusCode: null,
     body: null,
+    headers: {},
+    setHeader(name, value) {
+      this.headers[name] = value;
+    },
     status(code) {
       this.statusCode = code;
       return this;
@@ -111,4 +117,39 @@ test('oversized parsed body is rejected 413 regardless of content-length', async
 
   assert.equal(res.statusCode, 413);
   assert.equal(upstream.length, 0);
+});
+
+function promptAggregate(call) {
+  const prompt = JSON.parse(call[1].body).messages[0].content;
+  return JSON.parse(prompt.slice(prompt.indexOf('{'), prompt.lastIndexOf('}') + 1));
+}
+
+test('sections with nothing to report never reach the model', async (t) => {
+  setEnv(t, BASE_ENV);
+  const upstream = stubUpstream(t);
+  const res = makeRes();
+  await handler(makeReq('10.1.0.3', {
+    aggregate: {
+      weekStart: '2026-06-01',
+      compliance: { completed: 0, total: 0, pct: 0 },
+      streak: { current: 0, best: 0 },
+      labs: { newPanelsLogged: 0 },
+      nutrition: { avgCalories: 2100, mealLoggingDays: 5 },
+    },
+  }), res);
+
+  assert.equal(res.statusCode, 200);
+  const sent = promptAggregate(upstream[0]);
+  assert.equal(sent.compliance, undefined);
+  assert.equal(sent.streak, undefined);
+  assert.equal(sent.labs, undefined);
+  assert.equal(sent.nutrition.avgCalories, 2100);
+});
+
+test('an aggregate without compliance is accepted', async (t) => {
+  setEnv(t, BASE_ENV);
+  stubUpstream(t);
+  const res = makeRes();
+  await handler(makeReq('10.1.0.4', { aggregate: { weekStart: '2026-06-01' } }), res);
+  assert.equal(res.statusCode, 200);
 });
