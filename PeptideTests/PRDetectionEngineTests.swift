@@ -6,33 +6,15 @@ import XCTest
 /// all-zero-weight bodyweight reps used to produce no PRs because
 /// `bestE1RM > 0` and `bestAbs > 0` both failed for weightKg == 0).
 ///
-/// The engine writes through `SwiftDataRepository.shared`, which is
-/// a singleton with potentially live state. These tests scrub the
-/// records for the test-only exerciseIDs they use, in both setUp
-/// and tearDown, so they don't poison the user's real records when
-/// run on a developer machine.
+/// The engine writes through `SwiftDataRepository.shared`, so every
+/// test runs against a fresh in-memory container instead of the
+/// on-disk (and CloudKit-mirrored) store.
 @MainActor
 final class PRDetectionEngineTests: XCTestCase {
 
-    private let testExerciseIDs: Set<String> = [
-        "test_pushups", "test_bench", "test_squat",
-    ]
-
     override func setUp() {
         super.setUp()
-        scrubTestRecords()
-    }
-
-    override func tearDown() {
-        scrubTestRecords()
-        super.tearDown()
-    }
-
-    private func scrubTestRecords() {
-        let repo = SwiftDataRepository.shared
-        for id in testExerciseIDs {
-            repo.deletePersonalRecord(exerciseID: id)
-        }
+        SwiftDataRepository.shared.configureForTesting()
     }
 
     // MARK: - Helpers
