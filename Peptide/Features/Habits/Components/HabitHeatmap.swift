@@ -23,39 +23,36 @@ struct HabitHeatmap: View {
     private let cellSpacing: CGFloat = 3
     private let cornerRadius: CGFloat = 2.5
 
-    var body: some View {
-        // GeometryReader-derived cell size feeds both the label row
-        // widths and the grid height so the labels stay column-
-        // aligned and the grid is never vertically clipped (audit
-        // M5 + M6 — previously the labels used a hard-coded 14pt
-        // and the grid frame was clamped to 95pt regardless).
-        GeometryReader { proxy in
-            let cellSize = max(4, (proxy.size.width - CGFloat(columns.count - 1) * cellSpacing) / CGFloat(max(1, columns.count)))
-            let perColumnWidth = cellSize + cellSpacing
-            VStack(alignment: .leading, spacing: 4) {
-                if showsMonthLabels {
-                    monthRow(perColumnWidth: perColumnWidth)
-                        .foregroundStyle(AppColor.textTertiary)
-                        .font(AppFont.badgeSmall)
-                }
+    /// Measured width of the heatmap. Cell size derives from it, and the
+    /// view's height follows from the content — month row plus a grid of
+    /// exactly `7 · cell + 6 · spacing` — so nothing overflows the card.
+    @State private var availableWidth: CGFloat = 0
 
-                HStack(spacing: cellSpacing) {
-                    ForEach(Array(columns.enumerated()), id: \.offset) { _, column in
-                        VStack(spacing: cellSpacing) {
-                            ForEach(0..<7, id: \.self) { row in
-                                cell(for: row < column.count ? column[row] : nil, size: cellSize)
-                            }
+    private var cellSize: CGFloat {
+        let count = CGFloat(max(1, columns.count))
+        return max(4, (availableWidth - (count - 1) * cellSpacing) / count)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if showsMonthLabels {
+                monthRow(perColumnWidth: cellSize + cellSpacing)
+                    .foregroundStyle(AppColor.textTertiary)
+                    .font(AppFont.badgeSmall)
+            }
+
+            HStack(spacing: cellSpacing) {
+                ForEach(Array(columns.enumerated()), id: \.offset) { _, column in
+                    VStack(spacing: cellSpacing) {
+                        ForEach(0..<7, id: \.self) { row in
+                            cell(for: row < column.count ? column[row] : nil, size: cellSize)
                         }
                     }
                 }
             }
         }
-        // Grid sizes vertically off whatever 1/N of the available
-        // width works out to. The fixed minimum keeps a freshly-
-        // mounted card from collapsing to zero height before layout
-        // settles.
-        .aspectRatio(CGFloat(max(1, columns.count)) / 7.0, contentMode: .fit)
-        .frame(minHeight: 80)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { availableWidth = $0 }
         .accessibilityElement()
         .accessibilityLabel(accessibilityLabel)
     }
@@ -80,7 +77,7 @@ struct HabitHeatmap: View {
 
     /// Pre-computes month labels and the column-widths each one
     /// spans, given the actual per-column width computed from the
-    /// parent GeometryReader. Previously used a hard-coded 14pt
+    /// measured width. Previously used a hard-coded 14pt
     /// which drifted from the real cell layout on narrow screens
     /// and iPad split-screen (audit M5).
     /// Hoisted out of `monthLabels` — it runs on every render of the
