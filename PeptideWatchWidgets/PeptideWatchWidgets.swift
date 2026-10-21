@@ -42,22 +42,14 @@ struct WatchDoseProvider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<WatchDoseEntry>) -> Void) {
-        let current = entry(at: .now)
+        // Nothing shown changes with the clock before midnight; new data
+        // reloads the timeline from `WatchStore.apply`. The midnight entry
+        // empties the day even when the refresh runs late.
         let calendar = Calendar.current
-        // Refresh at the next dose time, otherwise every 15 minutes, otherwise
-        // at midnight. The midnight entry empties the day even when the
-        // refresh runs late.
         let midnight = calendar.startOfDay(
             for: calendar.date(byAdding: .day, value: 1, to: .now) ?? .now
         )
-        let fifteenMin = calendar.date(byAdding: .minute, value: 15, to: .now) ?? .now
-        let nextUpdate: Date
-        if let doseDate = current.nextDoseTime, doseDate > .now, doseDate <= fifteenMin {
-            nextUpdate = min(doseDate.addingTimeInterval(60), midnight)
-        } else {
-            nextUpdate = min(fifteenMin, midnight)
-        }
-        completion(Timeline(entries: [current, entry(at: midnight)], policy: .after(nextUpdate)))
+        completion(Timeline(entries: [entry(at: .now), entry(at: midnight)], policy: .after(midnight)))
     }
 
     /// Reads the same `watch_data.json` the watch app already syncs to via
@@ -231,14 +223,14 @@ struct WatchMomentumProvider: TimelineProvider {
     }
 
     /// Ends on a midnight entry that clears the day's "+N today" and habit
-    /// counts, even when the refresh runs late.
+    /// counts, even when the refresh runs late. New data reloads the
+    /// timeline from `WatchStore.apply`, so there is no polling before then.
     func getTimeline(in context: Context, completion: @escaping (Timeline<WatchMomentumEntry>) -> Void) {
         let calendar = Calendar.current
         let midnight = calendar.startOfDay(
             for: calendar.date(byAdding: .day, value: 1, to: .now) ?? .now
         )
-        let next = min(calendar.date(byAdding: .minute, value: 30, to: .now) ?? .now, midnight)
-        completion(Timeline(entries: [entry(at: .now), entry(at: midnight)], policy: .after(next)))
+        completion(Timeline(entries: [entry(at: .now), entry(at: midnight)], policy: .after(midnight)))
     }
 
     private func entry(at date: Date) -> WatchMomentumEntry {
