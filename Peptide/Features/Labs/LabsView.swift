@@ -150,7 +150,7 @@ struct LabsView: View {
                 .tracking(0.8)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.textTertiary)
-                .padding(.horizontal, 4)
+                .padding(.horizontal, Spacing.xs)
 
             VStack(spacing: Spacing.xs) {
                 ForEach(rows) { summary in

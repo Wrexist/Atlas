@@ -122,7 +122,7 @@ struct EditBiomarkersSheet: View {
             }
             .frame(width: 32, height: 32)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 HStack(spacing: Spacing.xs) {
                     Text(biomarker.displayName)
                         .font(AppFont.subheadline)

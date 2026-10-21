@@ -129,7 +129,7 @@ struct LabPanelDetailView: View {
                             .tracking(0.6)
                             .textCase(.uppercase)
                             .foregroundStyle(AppColor.textSecondary)
-                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                             Text(LabValueFormat.string(latest.value))
                                 .font(AppFont.scaled(34, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                                 .monospacedDigit()
@@ -326,7 +326,7 @@ struct LabPanelDetailView: View {
             editingEntry = entry
         } label: {
             HStack(spacing: Spacing.sm) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(Self.dateFormatter.string(from: entry.date))
                         .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
@@ -344,7 +344,7 @@ struct LabPanelDetailView: View {
                     }
                 }
                 Spacer(minLength: 0)
-                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                HStack(alignment: .firstTextBaseline, spacing: Spacing.xxs) {
                     Text(LabValueFormat.string(entry.value))
                         .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                         .monospacedDigit()
