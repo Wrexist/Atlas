@@ -54,4 +54,16 @@ final class HealthSyncEngineTests: XCTestCase {
 
         XCTAssertTrue(imported.isEmpty)
     }
+
+    func test_adoptSyncedNutritionFlag_takesTheSyncedValueOnlyOnce() {
+        let key = HealthSyncSettings.nutritionEnabledKey
+        let saved = UserDefaults.standard.object(forKey: key)
+        defer { UserDefaults.standard.set(saved, forKey: key) }
+        UserDefaults.standard.removeObject(forKey: key)
+
+        HealthSyncSettings.adoptSyncedNutritionFlag(true)
+        HealthSyncSettings.adoptSyncedNutritionFlag(false)
+
+        XCTAssertTrue(HealthSyncSettings.isNutritionEnabled)
+    }
 }

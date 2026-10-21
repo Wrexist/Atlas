@@ -10,6 +10,20 @@ enum HealthSyncSettings {
     static var isEnabled: Bool {
         UserDefaults.standard.bool(forKey: enabledKey)
     }
+
+    /// "Write meals to Apple Health". Device-local for the same reason.
+    static let nutritionEnabledKey = "atlas.healthSync.nutrition.v1"
+
+    static var isNutritionEnabled: Bool {
+        UserDefaults.standard.bool(forKey: nutritionEnabledKey)
+    }
+
+    /// Earlier builds kept the meal toggle in the synced profile. Takes
+    /// that value once, so the device that opted in stays opted in.
+    static func adoptSyncedNutritionFlag(_ synced: Bool) {
+        guard UserDefaults.standard.object(forKey: nutritionEnabledKey) == nil else { return }
+        UserDefaults.standard.set(synced, forKey: nutritionEnabledKey)
+    }
 }
 
 /// Decides which weigh-ins from Apple Health (smart scales, other apps)

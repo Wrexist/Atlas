@@ -220,7 +220,6 @@ enum ScreenshotSeedData {
             bio: "Optimising what compounds.",
             primaryGoal: "Recovery",
             mealHistory: buildMealHistory(referenceDate: referenceDate),
-            healthKitNutritionEnabled: true,
             outcomeHistory: buildOutcomes(referenceDate: referenceDate),
             labHistory: buildLabs(referenceDate: referenceDate),
             weeklySummaryEnabled: true,

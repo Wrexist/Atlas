@@ -180,6 +180,9 @@ final class DataStore {
             self.entries   = savedEntries
             self.profile   = savedProfile ?? .fresh
             self.persistedProfile = savedProfile
+            if let savedProfile {
+                HealthSyncSettings.adoptSyncedNutritionFlag(savedProfile.healthKitNutritionEnabled)
+            }
             // Everything above came off disk and is already persisted.
             // A synthesised `.fresh` profile is the exception: there's no
             // row for it yet, so it stays dirty until the first save
@@ -1140,7 +1143,7 @@ final class DataStore {
     /// undo, category breakdowns, and a stable identifier you can
     /// hold onto for HealthKit sample mapping.
     ///
-    /// When `healthKitNutritionEnabled` is on, fires a background
+    /// When the meal Health toggle is on, fires a background
     /// HealthKit write tagged with the entry's UUID. The HK write is
     /// fire-and-forget — failures log and disappear because they
     /// shouldn't block the in-app log. Undo removes the matching
@@ -1148,7 +1151,7 @@ final class DataStore {
     func logMealEntry(_ entry: MealEntry) {
         LifestyleDataLogic.logMealEntry(into: &profile, entry: entry)
         save()
-        if profile.healthKitNutritionEnabled {
+        if HealthSyncSettings.isNutritionEnabled {
             Task { await HealthKitService.shared.writeMealEntry(entry) }
         }
     }
@@ -1205,7 +1208,7 @@ final class DataStore {
         // Keep the established projection/achievement save path. It may save
         // other pending changes; the meals above already have durable storage.
         save()
-        if profile.healthKitNutritionEnabled && !isEphemeral {
+        if HealthSyncSettings.isNutritionEnabled && !isEphemeral {
             let previous = mealHealthWriteTask
             mealHealthWriteTask = Task {
                 await previous?.value
@@ -1232,7 +1235,7 @@ final class DataStore {
         guard profile.mealHistory.contains(where: { $0.id == updated.id }) else { return }
         LifestyleDataLogic.applyMealEntryEdit(into: &profile, updated: updated)
         save()
-        if profile.healthKitNutritionEnabled {
+        if HealthSyncSettings.isNutritionEnabled {
             Task {
                 await HealthKitService.shared.deleteSamples(forEntryID: updated.id)
                 await HealthKitService.shared.writeMealEntry(updated)
@@ -1244,11 +1247,10 @@ final class DataStore {
     /// the day's aggregate. Used by every review screen's Undo button
     /// once it switches to the new logging path.
     func unlogMealEntry(id: UUID) {
-        let mirroredToHealthKit = profile.healthKitNutritionEnabled
         LifestyleDataLogic.unlogMealEntry(from: &profile, id: id)
         save()
         TableMomentStore.shared.removeDish(id: id)
-        if mirroredToHealthKit {
+        if HealthSyncSettings.isNutritionEnabled {
             Task { await HealthKitService.shared.deleteSamples(forEntryID: id) }
         }
     }
@@ -1269,13 +1271,11 @@ final class DataStore {
         if enabled {
             let granted = await HealthKitService.shared.requestNutritionWriteAuthorization()
             guard granted else {
-                profile.healthKitNutritionEnabled = false
-                save()
+                UserDefaults.standard.set(false, forKey: HealthSyncSettings.nutritionEnabledKey)
                 return false
             }
         }
-        profile.healthKitNutritionEnabled = enabled
-        save()
+        UserDefaults.standard.set(enabled, forKey: HealthSyncSettings.nutritionEnabledKey)
         return true
     }
 

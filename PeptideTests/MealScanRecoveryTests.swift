@@ -65,7 +65,7 @@ final class MealScanRecoveryTests: XCTestCase {
             try? FileManager.default.removeItem(at: folder)
         }
         var store: DataStore? = DataStore(seedSampleData: false)
-        store?.profile.healthKitNutritionEnabled = false
+        UserDefaults.standard.set(false, forKey: HealthSyncSettings.nutritionEnabledKey)
         store?.flushPendingSave()
         let date = Date()
         let entry = MealEntry(date: date, category: .breakfast, name: "Oats", calories: 200,
