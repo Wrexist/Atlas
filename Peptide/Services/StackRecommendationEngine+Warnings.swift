@@ -109,7 +109,7 @@ extension StackRecommendationEngine {
                     severity: .caution,
                     title: "Redundant GHS-R agonists",
                     detail: "\(names.joined(separator: " & ")) target the same ghrelin receptor. Risk of desensitization.",
-                    suggestion: "Keep one GHS-R agonist and pair with a GHRH analog (e.g., CJC-1295) for synergistic GH release.",
+                    suggestion: "Research usually pairs one GHS-R agonist with one GHRH analog (e.g., CJC-1295). Discuss changes with a qualified clinician.",
                     peptides: names,
                     icon: "arrow.triangle.2.circlepath"
                 ))
@@ -118,7 +118,7 @@ extension StackRecommendationEngine {
                     severity: .caution,
                     title: "Multiple GHRH analogs",
                     detail: "\(peptides.count) GHRH pathway peptides may over-stimulate growth hormone release.",
-                    suggestion: "Consider cycling rather than stacking. One GHRH analog + one GHS-R agonist is the proven synergy pattern.",
+                    suggestion: "Research usually pairs one GHRH analog with one GHS-R agonist rather than combining analogs. Discuss changes with a qualified clinician.",
                     peptides: names,
                     icon: "arrow.triangle.2.circlepath"
                 ))
@@ -127,7 +127,7 @@ extension StackRecommendationEngine {
                     severity: .caution,
                     title: "Multiple appetite regulators",
                     detail: "\(names.joined(separator: " & ")) both affect appetite/satiety pathways.",
-                    suggestion: "Stacking GLP-1 agonists can amplify GI side effects. Consider using one at a time.",
+                    suggestion: "Combining GLP-1 agonists can amplify GI side effects. Discuss using one at a time with a qualified clinician.",
                     peptides: names,
                     icon: "fork.knife"
                 ))

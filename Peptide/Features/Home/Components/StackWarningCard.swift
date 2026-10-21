@@ -128,7 +128,7 @@ struct StackWarningCard: View {
                     severity: .caution,
                     title: "Redundant GHS-R agonists",
                     detail: "Ipamorelin & GHRP-6 target the same ghrelin receptor. Risk of desensitization.",
-                    suggestion: "Keep one GHS-R agonist and pair with a GHRH analog for synergistic GH release.",
+                    suggestion: "Research usually pairs one GHS-R agonist with one GHRH analog. Discuss changes with a qualified clinician.",
                     peptides: ["Ipamorelin", "GHRP-6"],
                     icon: "arrow.triangle.2.circlepath"
                 ),
