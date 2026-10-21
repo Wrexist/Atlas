@@ -703,6 +703,16 @@ struct NextDoseAccessoryView: View {
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.xs)
         .appAnimation(AppAnimation.springSnappy, value: allDone)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    /// One VoiceOver stop with the full name, instead of the icon,
+    /// the abbreviated line with its bullet glyph, and the time.
+    private var accessibilityLabel: Text {
+        guard let next = dataStore.nextDose else { return Text("All doses completed for today") }
+        let time = next.date.formatted(.dateTime.hour().minute())
+        return Text("Next dose: \(next.peptide.name), \(next.dose) at \(time)")
     }
 }
 
