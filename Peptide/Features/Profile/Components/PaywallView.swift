@@ -307,11 +307,15 @@ struct PaywallView: View {
                         title: "Today",
                         detail: "Everything unlocks. You pay \(zeroPrice(for: product))."
                     )
-                    timelineRow(
-                        icon: "gearshape.fill",
-                        title: "Day \(max(days - 1, 1))",
-                        detail: "Still not for you? Cancel anytime in Settings → Apple ID → Subscriptions and keep the rest of the trial."
-                    )
+                    // A cancel day only reads as distinct from Today and the
+                    // charge day when the trial leaves room for one.
+                    if days >= 3 {
+                        timelineRow(
+                            icon: "gearshape.fill",
+                            title: "Day \(days - 1)",
+                            detail: "Still not for you? Cancel anytime in Settings → Apple ID → Subscriptions and keep the rest of the trial."
+                        )
+                    }
                     timelineRow(
                         icon: "checkmark.seal.fill",
                         title: "Day \(days)",
