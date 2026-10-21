@@ -5,6 +5,8 @@ import SwiftUI
 ///   • `.locked` — free tier: shows the dial outline + scale + particle
 ///     cluster where the marker would go, plus a quiet "Included with
 ///     Atlas Pro" caption. The host's promo card carries the one CTA.
+///   • `.needsAge` — Pro tier with no age (or under 18) in Profile: asks
+///     for it instead of estimating against a made-up age.
 ///   • `.building(progress:)` — Pro tier without enough data: shows
 ///     a progress bar and the day count.
 ///   • `.unlocked(estimate:)` — Pro tier + sufficient data: the arc sweeps
@@ -25,6 +27,7 @@ struct BioAgeHeroSection: View {
 
     enum BioAgeState: Equatable, Sendable {
         case locked
+        case needsAge
         case building(progress: Double)               // 0…1, share of 7-day baseline collected
         case unlocked(estimate: PerformanceAgeEngine.Estimate)
     }
@@ -126,6 +129,12 @@ struct BioAgeHeroSection: View {
         case .locked?:
             BioAgeParticleCluster(size: 200)
                 .transition(Self.stateTransition)
+        case .needsAge?:
+            Image(systemName: "person.crop.circle.badge.questionmark")
+                .font(AppFont.scaled(32, weight: .light, relativeTo: .title1))
+                .foregroundStyle(AppColor.textSecondary)
+                .accessibilityHidden(true)
+                .transition(Self.stateTransition)
         case .building(let progress)?:
             buildingCentre(progress: progress)
                 .transition(Self.stateTransition)
@@ -204,6 +213,9 @@ struct BioAgeHeroSection: View {
         case .locked?:
             proCaption
                 .transition(Self.stateTransition)
+        case .needsAge?:
+            needsAgeLabel
+                .transition(Self.stateTransition)
         case .building(let progress)?:
             buildingLabel(progress: progress)
                 .transition(Self.stateTransition)
@@ -219,6 +231,17 @@ struct BioAgeHeroSection: View {
         Label("Included with Atlas Pro", systemImage: "lock.fill")
             .font(AppFont.scaled(13, weight: .semibold))
             .foregroundStyle(AppColor.textSecondary)
+    }
+
+    private var needsAgeLabel: some View {
+        let isUnderage = (1..<BioAgeStateResolver.minimumAge).contains(chronologicalAge)
+        return Text(isUnderage
+            ? String(localized: "Biological Age is available for users 18+.")
+            : String(localized: "Add your age in Profile to see your Biological Age."))
+            .font(AppFont.scaled(13, weight: .semibold))
+            .foregroundStyle(AppColor.textSecondary)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, Spacing.xl)
     }
 
     private func buildingLabel(progress: Double) -> some View {

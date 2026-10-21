@@ -15,10 +15,13 @@ enum BioAgeStateResolver {
 
     /// Default chronological age fallback when the user hasn't entered
     /// their age yet. Picks the midpoint of the typical cohort so the
-    /// locked dial's scale labels (±5 years) read as recognisable numbers
-    /// before onboarding completes. Once the user fills in their age in
-    /// Profile, the live value takes over.
+    /// dial's scale labels (±5 years) read as recognisable numbers. Only
+    /// ever anchors the scale — it is never fed to the engine.
     static let chronologicalAgeFallback: Int = 35
+
+    /// The estimate's reference curves are adult norms, so it is never
+    /// computed below this age.
+    static let minimumAge: Int = 18
 
     /// How far back HealthKit is read: the 90-day trend plus the 30-day
     /// window its oldest point looks back over.
@@ -28,8 +31,9 @@ enum BioAgeStateResolver {
     /// check + HealthKit reads happen inside; callers pass only what lives
     /// in the profile.
     ///
-    /// - Parameter chronologicalAge: User's age in years. `nil` falls back
-    ///   to `chronologicalAgeFallback` so the dial's scale still renders.
+    /// - Parameter chronologicalAge: User's age in years. `nil` or under
+    ///   `minimumAge` resolves Pro users to `.needsAge` rather than an
+    ///   estimate; the dial's scale falls back to `chronologicalAgeFallback`.
     /// - Parameter sex: Picks the VO2 max reference curve.
     /// - Parameter bodyMassIndex: From profile height and latest weight.
     /// - Parameter weightHistory: The in-app weight log.
@@ -42,9 +46,12 @@ enum BioAgeStateResolver {
         weightHistory: [WeightEntry] = [],
         isPro: Bool
     ) async -> Resolved {
-        let age = chronologicalAge ?? chronologicalAgeFallback
+        let scaleAge = chronologicalAge ?? chronologicalAgeFallback
         guard isPro else {
-            return Resolved(state: .locked, chronologicalAge: age)
+            return Resolved(state: .locked, chronologicalAge: scaleAge)
+        }
+        guard let age = chronologicalAge, age >= minimumAge else {
+            return Resolved(state: .needsAge, chronologicalAge: scaleAge)
         }
 
         let series = await readSeries(weightHistory: weightHistory)
@@ -135,7 +142,7 @@ enum BioAgeStateResolver {
 extension BioAgeHeroSection.BioAgeState {
     public static func == (lhs: Self, rhs: Self) -> Bool {
         switch (lhs, rhs) {
-        case (.locked, .locked):
+        case (.locked, .locked), (.needsAge, .needsAge):
             return true
         case (.building(let a), .building(let b)):
             return a == b
