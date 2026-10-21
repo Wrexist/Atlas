@@ -136,7 +136,15 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping @Sendable (UNNotificationPresentationOptions) -> Void
     ) {
-        completionHandler([.banner, .sound])
+        let isRestEnd = notification.request.identifier.hasPrefix(
+            NotificationService.adHocIDPrefix + WorkoutSessionService.restNotificationPrefix
+        )
+        Task { @MainActor [appState] in
+            // The workout screen marks rest end with a haptic and an
+            // announcement; a banner over it on top of that is noise.
+            let workoutOnScreen = isRestEnd && appState.selectedTab == .train
+            completionHandler(workoutOnScreen ? [] : [.banner, .sound])
+        }
     }
 
     /// Every incomplete dose a combined reminder covers: the newest day in

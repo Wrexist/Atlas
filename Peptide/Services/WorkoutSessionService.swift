@@ -550,8 +550,13 @@ final class WorkoutSessionService {
         }
     }
 
+    /// Rest-end request IDs, under `NotificationService.adHocIDPrefix`.
+    /// `NotificationDelegate` reads it to keep the system banner off the
+    /// workout screen, which already signals rest end itself.
+    nonisolated static let restNotificationPrefix = "atlas.workout.rest."
+
     private func restNotificationID(for sessionID: UUID) -> String {
-        "atlas.workout.rest.\(sessionID.uuidString)"
+        "\(Self.restNotificationPrefix)\(sessionID.uuidString)"
     }
 
     private func syncRestNotification(for session: WorkoutSession) {
