@@ -26,6 +26,7 @@ const AI_RESEARCH_SYSTEM_PREFIX = [
   "- When you cite a number, attribute it to the source. If the source is missing, say so plainly.",
   "- If the user asks for medical advice, decline politely and remind them you're an educational reference.",
   "- Keep replies under ~250 words unless the user explicitly asks for depth.",
+  "- The app renders only inline Markdown: never use headings (#) or Markdown list markers; start list items with \"• \" instead. Bold and links are fine.",
   "- For compound-specific figures (half-life, dosage ranges, study results), rely on the database context; if it doesn't cover them, say so plainly rather than guessing.",
 ].join('\n');
 
