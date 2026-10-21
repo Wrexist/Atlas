@@ -12,18 +12,27 @@ import SwiftUI
 /// food taps land here: the router switches to `.meals` and the
 /// section opens the food library on the pending deep-link.
 ///
-/// The fasting tracker lives only here, not on the Today instance of
-/// the section — it is a nutrition tool, and Today stays curated.
+/// The fasting tracker, "Plan my day" and the diet coach live only
+/// here, not on the Today instance of the section — they are nutrition
+/// tools, and Today stays curated.
 ///
 /// Progress photos are body-tracking, not nutrition, so they live
 /// on the Your Progress screen (`AtlasProgressView`) rather than here.
 struct MealsContainerView: View {
+    @Environment(DataStore.self) private var dataStore
+    @Environment(AppState.self) private var appState
+    @State private var storeService = StoreService.shared
+    @State private var showMealPlan = false
+    @State private var showCoach = false
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
                     HomeMealsSection()
                     FastingCard()
+                        .scrollReveal()
+                    planningTools
                         .scrollReveal()
                 }
                 .padding(.horizontal, Spacing.screenPadding)
@@ -42,7 +51,53 @@ struct MealsContainerView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) { ProfileToolbarButton() }
             }
+            .sheet(isPresented: $showMealPlan) {
+                MealPlanSheet()
+                    .environment(dataStore)
+                    .liquidGlassPresentation()
+            }
+            .sheet(isPresented: $showCoach) {
+                AIResearchView(coachBrief: coachBrief)
+                    .environment(dataStore)
+                    .liquidGlassPresentation()
+            }
         }
+    }
+
+    private var planningTools: some View {
+        VStack(spacing: Spacing.sm) {
+            GlassEntryRow(
+                icon: "wand.and.stars",
+                title: "Plan my day",
+                subtitle: Text("Meals from foods you already eat, sized to your targets"),
+                action: { showMealPlan = true }
+            )
+            GlassEntryRow(
+                icon: "sparkles",
+                title: "Ask the diet coach",
+                subtitle: Text("Review your last 7 days of eating with AI"),
+                badge: storeService.canAccessAIFeatures ? nil : Badge("Pro"),
+                action: openCoach
+            )
+        }
+    }
+
+    /// Same Pro gate as the research chat it reuses: free users get the
+    /// AI paywall from the root instead of the sheet.
+    private func openCoach() {
+        if storeService.canAccessAIFeatures {
+            showCoach = true
+        } else {
+            appState.presentedPaywall = .aiResearch
+        }
+    }
+
+    private var coachBrief: String {
+        let profile = dataStore.profile
+        return NutritionCoachEngine.brief(
+            NutritionCoachEngine.summary(of: profile),
+            unit: profile.bodyMetrics.unit
+        )
     }
 }
 

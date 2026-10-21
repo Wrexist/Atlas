@@ -108,7 +108,8 @@ final class AIResearchService: Sendable {
     func replyStream(
         history: [Turn],
         newUserPrompt prompt: String,
-        in database: [Peptide]
+        in database: [Peptide],
+        coachBrief: String? = nil
     ) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             let task = Task { [self] in
@@ -117,6 +118,7 @@ final class AIResearchService: Sendable {
                         history: history,
                         prompt: prompt,
                         database: database,
+                        coachBrief: coachBrief,
                         continuation: continuation
                     )
                     continuation.finish()
@@ -132,13 +134,14 @@ final class AIResearchService: Sendable {
         history: [Turn],
         prompt: String,
         database: [Peptide],
+        coachBrief: String?,
         continuation: AsyncThrowingStream<String, Error>.Continuation
     ) async throws {
         guard let endpoint, let proxySecret, !proxySecret.isEmpty else {
             throw ChatError.proxyNotConfigured
         }
         let context = ragContext(for: prompt, history: history, in: database)
-        var body = payload(history: history, newPrompt: prompt, ragContext: context)
+        var body = payload(history: history, newPrompt: prompt, ragContext: context, coachBrief: coachBrief)
         body["stream"] = true
 
         var request = URLRequest(url: endpoint)
@@ -224,7 +227,8 @@ final class AIResearchService: Sendable {
     func reply(
         history: [Turn],
         newUserPrompt prompt: String,
-        in database: [Peptide]
+        in database: [Peptide],
+        coachBrief: String? = nil
     ) async throws -> String {
         guard let endpoint, let proxySecret, !proxySecret.isEmpty else {
             // Mirror MealScannerService: keep the public error generic but
@@ -251,7 +255,7 @@ final class AIResearchService: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
         request.httpBody = try JSONSerialization.data(
-            withJSONObject: payload(history: history, newPrompt: prompt, ragContext: context),
+            withJSONObject: payload(history: history, newPrompt: prompt, ragContext: context, coachBrief: coachBrief),
             options: []
         )
 
@@ -381,7 +385,8 @@ final class AIResearchService: Sendable {
     private func payload(
         history: [Turn],
         newPrompt: String,
-        ragContext: String?
+        ragContext: String?,
+        coachBrief: String?
     ) -> [String: Any] {
         // Drop the oldest turns once the conversation grows past the
         // server's per-request message cap. Without this trim, sessions
@@ -402,15 +407,15 @@ final class AIResearchService: Sendable {
         let body: [String: Any] = [
             "model": model,
             "max_tokens": 800,
-            "system": systemPrompt(ragContext: ragContext),
+            "system": systemPrompt(ragContext: ragContext, coachBrief: coachBrief),
             "messages": messages,
         ]
         return body
     }
 
-    private func systemPrompt(ragContext: String?) -> String {
+    private func systemPrompt(ragContext: String?, coachBrief: String?) -> String {
         var lines: [String] = [
-            "You are Atlas's research assistant — a careful, citation-friendly explainer of peptide science.",
+            "You are Atlas's research assistant — a careful, citation-friendly explainer of training, nutrition, recovery and supplement/peptide science.",
             "",
             "Rules:",
             "• Never recommend, prescribe, or calculate doses. Refer the user to a qualified clinician for any dose decision.",
@@ -423,6 +428,13 @@ final class AIResearchService: Sendable {
             lines.append("")
             lines.append("Database context for the compounds the user mentioned:")
             lines.append(ragContext)
+        }
+        if let coachBrief, !coachBrief.isEmpty {
+            lines.append("")
+            lines.append(contentsOf: Self.coachRules)
+            lines.append("")
+            lines.append("The user's last 7 days, from their Atlas log:")
+            lines.append(coachBrief)
         }
         return lines.joined(separator: "\n")
     }
@@ -450,6 +462,15 @@ final class AIResearchService: Sendable {
         }
         return (try? JSONDecoder().decode(Envelope.self, from: data))?.error.code
     }
+
+    /// Nutrition-coach mode, opened from the Meals tab with a 7-day
+    /// summary attached (`NutritionCoachEngine.brief`).
+    private static let coachRules: [String] = [
+        "Nutrition coach mode: the user opened this chat from their food log to review their week.",
+        "• Read the summary below, say plainly how the week went against their targets, and suggest one or two concrete, food-based changes.",
+        "• Keep guidance general. Don't diagnose, don't prescribe diets for medical conditions, and point to a registered dietitian or clinician for anything medical.",
+        "• If the summary is thin (few logged days), say so and encourage consistent logging before drawing conclusions.",
+    ]
 
     private func parseAssistantText(from data: Data) throws -> String {
         let envelopeObject: Any

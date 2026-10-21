@@ -152,6 +152,31 @@ final class AIResearchServiceTests: XCTestCase {
         XCTAssertTrue(system.contains("Never recommend"))  // the dose-advice guardrail
     }
 
+    func test_reply_withCoachBrief_appendsSummaryToSystemPrompt() async throws {
+        let captured = SendableBox<URLRequest?>(nil)
+        MockURLProtocol.handler = { request in
+            captured.set(request)
+            return (Self.ok(for: request), Data(Fixtures.helloReply.utf8))
+        }
+        let brief = "Days with food logged: 5 of 7."
+        _ = try await service.reply(history: [], newUserPrompt: "How was my week?", in: [], coachBrief: brief)
+        let system = try Self.decodeBody(captured.value)["system"] as? String ?? ""
+        XCTAssertTrue(system.contains("Nutrition coach mode"))
+        XCTAssertTrue(system.contains(brief))
+        XCTAssertTrue(system.contains("Never recommend"), "Coach mode keeps the base guardrails")
+    }
+
+    func test_reply_withoutCoachBrief_staysInResearchMode() async throws {
+        let captured = SendableBox<URLRequest?>(nil)
+        MockURLProtocol.handler = { request in
+            captured.set(request)
+            return (Self.ok(for: request), Data(Fixtures.helloReply.utf8))
+        }
+        _ = try await service.reply(history: [], newUserPrompt: "hi", in: [])
+        let system = try Self.decodeBody(captured.value)["system"] as? String ?? ""
+        XCTAssertFalse(system.contains("Nutrition coach mode"))
+    }
+
     // MARK: - RAG
 
     func test_reply_injectsRagContext_whenPromptMentionsKnownPeptide() async throws {

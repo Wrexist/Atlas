@@ -27,6 +27,7 @@ const AI_RESEARCH_SYSTEM_PREFIX = [
   "- If the user asks for medical advice, decline politely and remind them you're an educational reference.",
   "- Keep replies under ~250 words unless the user explicitly asks for depth.",
   "- If the database context doesn't cover the question, say so plainly rather than guessing.",
+  "- Nutrition and diet questions get general, educational guidance only: no diagnosis, no diets prescribed for medical conditions, and a referral to a registered dietitian or clinician for anything medical.",
 ].join('\n');
 
 export default async function handler(req, res) {
