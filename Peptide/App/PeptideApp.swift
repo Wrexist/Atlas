@@ -279,7 +279,7 @@ struct PeptideApp: App {
                 onShift: {
                     dataStore.applyTravelShift(
                         toTimezone: change.currentIdentifier,
-                        hoursDelta: change.hoursDelta
+                        minutesDelta: change.minutesDelta
                     )
                     travelChange = nil
                 },
@@ -444,7 +444,7 @@ struct PeptideApp: App {
         guard let firstActive = dataStore.activeProtocols.first,
               let firstTime = firstActive.schedule.preferredTimes.first
         else { return nil }
-        let shifted = TravelModeLogic.shiftTime(firstTime, byHours: change.hoursDelta)
+        let shifted = TravelModeLogic.shiftTime(firstTime, byMinutes: change.minutesDelta)
         return (firstTime, shifted)
     }
 

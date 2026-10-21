@@ -1368,7 +1368,7 @@ final class DataStore {
 
     // MARK: - Travel mode
 
-    /// Shifts every active protocol's preferred dose times by the
+    /// Shifts every non-completed protocol's preferred dose times by the
     /// timezone delta. Use when the user opts to translate their
     /// schedule to local clock after a flight. Also acknowledges
     /// the new timezone so the prompt won't re-fire on the next
@@ -1376,8 +1376,8 @@ final class DataStore {
     /// the new times reflect immediately on the Home + Lifestyle
     /// tabs, and re-schedules notifications via the standard save
     /// path.
-    func applyTravelShift(toTimezone identifier: String, hoursDelta: Int) {
-        TravelModeLogic.shiftProtocolTimes(in: &protocols, byHours: hoursDelta)
+    func applyTravelShift(toTimezone identifier: String, minutesDelta: Int) {
+        TravelModeLogic.shiftProtocolTimes(in: &protocols, byMinutes: minutesDelta)
         TravelModeLogic.acknowledgeTimezoneChange(in: &profile, to: identifier)
         regenerateTodayEntries()
         save()

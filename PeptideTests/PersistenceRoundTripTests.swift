@@ -848,14 +848,14 @@ final class PersistenceRoundTripTests: XCTestCase {
 
     func test_travelModeLogic_shiftsPreferredTimes() {
         let original = "8:00 AM"
-        let shifted = TravelModeLogic.shiftTime(original, byHours: 3)
+        let shifted = TravelModeLogic.shiftTime(original, byMinutes: 180)
         XCTAssertEqual(shifted, "11:00 AM")
 
-        let crossNoon = TravelModeLogic.shiftTime("11:00 AM", byHours: 5)
+        let crossNoon = TravelModeLogic.shiftTime("11:00 AM", byMinutes: 300)
         XCTAssertEqual(crossNoon, "4:00 PM")
 
         // Negative shift (travelled west, clock moves back).
-        XCTAssertEqual(TravelModeLogic.shiftTime("11:00 AM", byHours: -3), "8:00 AM")
+        XCTAssertEqual(TravelModeLogic.shiftTime("11:00 AM", byMinutes: -180), "8:00 AM")
     }
 
     func test_travelShift_withCustomDose_keepsDoseAndInterval() {
@@ -869,13 +869,47 @@ final class PersistenceRoundTripTests: XCTestCase {
             intervalAnchor: anchor
         )
 
-        let shifted = TravelModeLogic.shiftSchedule(schedule, byHours: 3)
+        let shifted = TravelModeLogic.shiftSchedule(schedule, byMinutes: 180)
 
         XCTAssertEqual(shifted.preferredTimes, ["11:00 AM"])
         XCTAssertEqual(shifted.customDose, "300 mcg")
         XCTAssertEqual(shifted.intervalDays, 2)
         XCTAssertEqual(shifted.intervalAnchor, anchor)
         XCTAssertEqual(shifted.daysOfWeek, [1, 3, 5])
+    }
+
+    func test_travelShift_acrossMidnight_movesDaysWithTheDose() {
+        let schedule = ProtocolSchedule(daysOfWeek: [1, 7], timesPerDay: 1, preferredTimes: ["11:00 PM"])
+
+        let east = TravelModeLogic.shiftSchedule(schedule, byMinutes: 180)
+        XCTAssertEqual(east.preferredTimes, ["2:00 AM"])
+        XCTAssertEqual(east.daysOfWeek, [1, 2])
+
+        let west = TravelModeLogic.shiftSchedule(
+            ProtocolSchedule(daysOfWeek: [1], timesPerDay: 1, preferredTimes: ["1:00 AM"]),
+            byMinutes: -180
+        )
+        XCTAssertEqual(west.preferredTimes, ["10:00 PM"])
+        XCTAssertEqual(west.daysOfWeek, [7])
+    }
+
+    func test_travelShift_halfHourZone_keepsTheMinutes() {
+        XCTAssertEqual(TravelModeLogic.shiftTime("8:00 AM", byMinutes: 330), "1:30 PM")
+    }
+
+    func test_travelShift_pausedProtocol_isShiftedButCompletedIsNot() {
+        let schedule = ProtocolSchedule(daysOfWeek: [1], timesPerDay: 1, preferredTimes: ["8:00 AM"])
+        var protocols = [ProtocolStatus.paused, .completed].map {
+            PeptideProtocol(
+                id: UUID(), name: "Test", peptides: [], schedule: schedule,
+                cycleLengthWeeks: 8, startDate: Date(), status: $0, notes: ""
+            )
+        }
+
+        TravelModeLogic.shiftProtocolTimes(in: &protocols, byMinutes: 180)
+
+        XCTAssertEqual(protocols[0].schedule.preferredTimes, ["11:00 AM"])
+        XCTAssertEqual(protocols[1].schedule.preferredTimes, ["8:00 AM"])
     }
 
     func test_streakFreeze_isLimitedToOnePerMonth() {
