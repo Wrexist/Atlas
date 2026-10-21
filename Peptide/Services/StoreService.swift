@@ -36,6 +36,10 @@ final class StoreService {
     /// `resolvedProStatus()` anywhere a wrong `false` would act on a
     /// paying user.
     @ObservationIgnored private var hasResolvedEntitlements = false
+    /// StoreKit's signed transaction (JWS) for the Pro entitlement that
+    /// runs longest, sent with metered AI scans so the proxy can verify
+    /// Pro against Apple's signature instead of trusting the app.
+    @ObservationIgnored private(set) var proEntitlementJWS: String?
 
     static let monthlyID = "com.peptidesai.app.pro.monthly"
     static let annualID = "com.peptidesai.app.pro.annual"
@@ -260,6 +264,13 @@ final class StoreService {
         return isProUser
     }
 
+    /// `proEntitlementJWS` once entitlements are known, so a Pro user's
+    /// scan right after launch isn't counted as a free one.
+    func resolvedProEntitlementJWS() async -> String? {
+        _ = await resolvedProStatus()
+        return proEntitlementJWS
+    }
+
     /// True when Pro came from the non-consumable lifetime IAP rather than a
     /// subscription. Nothing renews for these users, so any copy about
     /// renewal, cancellation, or a billing period is wrong for them —
@@ -303,7 +314,9 @@ final class StoreService {
     }
 
     private func updatePurchasedProducts() async {
+        let proIDs: Set<String> = [Self.monthlyID, Self.annualID, Self.lifetimeID]
         var purchased: Set<String> = []
+        var proJWS: (expiry: Date, jws: String)?
         for await result in Transaction.currentEntitlements {
             do {
                 let transaction = try checkVerified(result)
@@ -327,14 +340,19 @@ final class StoreService {
                           await isInGracePeriod(groupID: groupID) else { continue }
                 }
                 purchased.insert(transaction.productID)
+                // Lifetime never expires, so it always wins.
+                let expiry = transaction.expirationDate ?? .distantFuture
+                if proIDs.contains(transaction.productID), expiry > (proJWS?.expiry ?? .distantPast) {
+                    proJWS = (expiry, result.jwsRepresentation)
+                }
             } catch {
                 AppLog.storeKit.error("Entitlement verification failed: \(error.localizedDescription, privacy: .public)")
             }
         }
-        let proIDs: Set<String> = [Self.monthlyID, Self.annualID, Self.lifetimeID]
         purchasedProductIDs = purchased
         isProUser = !purchased.isDisjoint(with: proIDs)
         hasResolvedEntitlements = true
+        proEntitlementJWS = proJWS?.jws
         await refreshTrialEligibility()
         await refreshBillingRetryState()
     }

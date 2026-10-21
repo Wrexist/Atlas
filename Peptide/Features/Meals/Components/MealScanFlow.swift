@@ -280,6 +280,17 @@ struct MealScanFlow: View {
         }
     }
 
+    /// The proxy is the authority on free scans: its count survives a
+    /// reinstall that emptied the local one. Agree with it, then offer Pro
+    /// the same way the local gate does.
+    private func allowanceSpentOnServer() {
+        MealScanQuota.recordAllowanceExhausted()
+        refreshScansRemaining()
+        errorText = MealScannerService.ScanError.scanAllowanceSpent.localizedDescription
+        phase = .error
+        showScanLimitPaywall = !storeService.isProUser
+    }
+
     private func refreshScansRemaining() {
         scansRemaining = MealScanQuota.remainingThisWeek(isPro: storeService.isProUser)
     }
@@ -898,13 +909,14 @@ struct MealScanFlow: View {
     private func runAnalysis(on image: UIImage) async {
         await analyse(photo: image) {
             try await MealScannerService.shared.smartScan(
-                image: image, hint: photoScale?.hint, corrections: ScanCorrectionMemory.shared.recent)
+                image: image, hint: photoScale?.hint, corrections: ScanCorrectionMemory.shared.recent, metered: true)
         }
     }
 
     private func runAnalysis(describing text: String) async {
         await analyse(photo: nil) {
-            try await MealScannerService.shared.describeMeal(text, corrections: ScanCorrectionMemory.shared.recent)
+            try await MealScannerService.shared.describeMeal(
+                text, corrections: ScanCorrectionMemory.shared.recent, metered: true)
         }
     }
 
@@ -949,6 +961,9 @@ struct MealScanFlow: View {
                 _ = persistDraft()
                 Haptics.success()
             }
+        } catch MealScannerService.ScanError.scanAllowanceSpent {
+            guard !Task.isCancelled else { return }
+            await MainActor.run { allowanceSpentOnServer() }
         } catch {
             guard !Task.isCancelled else { return }
             await MainActor.run {

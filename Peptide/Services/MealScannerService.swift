@@ -64,6 +64,9 @@ final class MealScannerService: Sendable {
         case unauthorised
         case rateLimited
         case serviceUnavailable
+        /// The proxy's verdict that this install's free AI scans for the
+        /// week are spent — authoritative over the local count.
+        case scanAllowanceSpent
         case offline
         case imageTooLarge
         case requestFailed(status: Int)
@@ -82,6 +85,7 @@ final class MealScannerService: Sendable {
             case .unauthorised:         "Couldn't sign in to the meal scanner. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build."
             case .rateLimited:          "You've scanned a lot of meals recently. Wait a minute and try again — if you've hit today's limit, scanning resets tomorrow."
             case .serviceUnavailable:   "Scanning is temporarily unavailable — try again later."
+            case .scanAllowanceSpent:   "You've used this week's free AI scans. Pro makes them unlimited — barcode scans are always free."
             case .offline:              "You're offline — meal scanning needs an internet connection. Reconnect and try again."
             case .imageTooLarge:        "Photo is too large to upload. Try a smaller image."
             case .requestFailed:        "The meal scanner hit a problem. Try again in a moment."
@@ -261,14 +265,19 @@ final class MealScannerService: Sendable {
     ///
     /// Falls back to the legacy route when the deployment predates
     /// `food-scan`, so a new build against an old proxy still scans.
-    func smartScan(image: UIImage, hint: String? = nil, corrections: [ScanCorrection] = []) async throws -> SmartScan {
+    ///
+    /// `metered` marks a scan that spends the free weekly allowance
+    /// (`MealScanQuota`); the proxy counts those per install.
+    func smartScan(
+        image: UIImage, hint: String? = nil, corrections: [ScanCorrection] = [], metered: Bool = false
+    ) async throws -> SmartScan {
         let bytes = try compress(image)
         var payload = Self.fields(corrections)
         payload["mode"] = "photo"
         payload["image"] = bytes.base64EncodedString()
         if let hint = hint?.nilIfEmpty { payload["hint"] = hint }
         do {
-            let scan = try parseSmartScan(from: try await post(payload, to: foodScanEndpoint))
+            let scan = try parseSmartScan(from: try await post(payload, to: foodScanEndpoint, metered: metered))
             guard scan.insight.kind != .notFood, !scan.items.isEmpty else { throw ScanError.noFoodDetected }
             return scan
         } catch ScanError.routeMissing {
@@ -283,11 +292,11 @@ final class MealScannerService: Sendable {
 
     /// A meal in the user's own words, typed or dictated ("two eggs and
     /// a cheese sandwich") → the same itemised scan a photo gives.
-    func describeMeal(_ text: String, corrections: [ScanCorrection] = []) async throws -> SmartScan {
+    func describeMeal(_ text: String, corrections: [ScanCorrection] = [], metered: Bool = false) async throws -> SmartScan {
         var payload = Self.fields(corrections)
         payload["mode"] = "meal"
         payload["text"] = text
-        let scan = try parseSmartScan(from: try await post(payload, to: foodScanEndpoint))
+        let scan = try parseSmartScan(from: try await post(payload, to: foodScanEndpoint, metered: metered))
         guard scan.insight.kind != .notFood, !scan.items.isEmpty else { throw ScanError.noFoodDetected }
         return scan
     }
@@ -357,7 +366,7 @@ final class MealScannerService: Sendable {
 
     /// Posts a JSON payload to the proxy with the shared secret, validates
     /// the HTTP status, and returns the body.
-    private func post(_ payload: [String: Any], to url: URL?) async throws -> Data {
+    private func post(_ payload: [String: Any], to url: URL?, metered: Bool = false) async throws -> Data {
         guard let url, let proxySecret, !proxySecret.isEmpty else {
             // The user-facing error stays generic so the public surface
             // doesn't leak which side is misconfigured, but the log call
@@ -386,6 +395,11 @@ final class MealScannerService: Sendable {
         request.timeoutInterval = 60
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
+        if metered {
+            for (field, value) in await Self.meteredScanHeaders() {
+                request.setValue(value, forHTTPHeaderField: field)
+            }
+        }
         request.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [])
 
         let (data, http) = try await sendWithRetry(request)
@@ -400,8 +414,10 @@ final class MealScannerService: Sendable {
             switch http.statusCode {
             case 401: throw ScanError.unauthorised
             // The proxy throttles per device and caps a daily quota, so
-            // 429 is a state the user can act on.
-            case 429: throw ScanError.rateLimited
+            // 429 is a state the user can act on — and on a metered scan
+            // it can be the free weekly allowance running out.
+            case 429:
+                throw MealScanQuota.isAllowanceRefusal(data) ? ScanError.scanAllowanceSpent : ScanError.rateLimited
             // The proxy is out of today's budget or not configured (it
             // doesn't mark this retryable), so a bare status code helps nobody.
             case 503: throw ScanError.serviceUnavailable
@@ -419,6 +435,17 @@ final class MealScannerService: Sendable {
         }
 
         return data
+    }
+
+    /// Install ID, local week and — for Pro — the StoreKit signed
+    /// transaction, so the proxy can count free scans across reinstalls.
+    private static func meteredScanHeaders() async -> [String: String] {
+        let entitlementJWS = await StoreService.shared.resolvedProEntitlementJWS()
+        return MealScanQuota.serverHeaders(
+            installID: InstallIdentifier.current,
+            weekID: MealScanQuota.weekID(for: Date(), calendar: .current),
+            entitlementJWS: entitlementJWS
+        )
     }
 
     /// Sends the request, retrying once on a transient transport
