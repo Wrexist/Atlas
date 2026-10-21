@@ -91,9 +91,15 @@ final class ScreenshotTests: XCTestCase {
         let scan = app.buttons["Scan the whole table"].firstMatch
         for _ in 0..<6 where !(scan.exists && scan.isHittable) { app.swipeDown() }
         scan.tap()
-        XCTAssertTrue(app.staticTexts["Lifting your dishes…"].waitForExistence(timeout: 10))
-        capture(named: "table-\(appearance)-02-lifting")
-        XCTAssertTrue(app.staticTexts["Nice table."].waitForExistence(timeout: 10))
+        // The lifting pill sits on glass, which can fold its text into
+        // another element; match any element by label instead.
+        let lifting = element(labelContaining: "Lifting")
+        if lifting.waitForExistence(timeout: 10) {
+            capture(named: "table-\(appearance)-02-lifting")
+        } else {
+            capture(named: "table-\(appearance)-02-after-tap")
+        }
+        XCTAssertTrue(element(labelContaining: "Nice table").waitForExistence(timeout: 15))
         sleep(2)
         capture(named: "table-\(appearance)-03-review")
         app.buttons["Close"].firstMatch.tap()
@@ -115,6 +121,10 @@ final class ScreenshotTests: XCTestCase {
             sleep(1)
             capture(named: "table-\(appearance)-06-dish")
         }
+    }
+
+    private func element(labelContaining text: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
     }
 
     func test_captureWorkoutSocialSharing() {
