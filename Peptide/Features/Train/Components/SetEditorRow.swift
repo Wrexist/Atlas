@@ -150,7 +150,7 @@ struct SetEditorRow: View {
                         get: { unit.weightForDisplay(set.weightKg) },
                         set: { set.weightKg = SetEntryLimits.clampWeightKg(unit.kilograms(fromDisplayed: $0)) }
                       ),
-                      format: .number.precision(.fractionLength(0...1)))
+                      format: .number.precision(.fractionLength(0...2)))
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.center)
                 .font(AppFont.callout.weight(.semibold))
@@ -253,11 +253,8 @@ struct SetEditorRow: View {
         set = toggled
     }
 
+    /// Two places, so a 1.25 kg change plate (61.25) isn't shown as 61.3.
     private func formatted(_ kg: Double) -> String {
-        let value = unit.weightForDisplay(kg)
-        if value.rounded() == value {
-            return String(Int(value))
-        }
-        return String(format: "%.1f", value)
+        unit.weightForDisplay(kg).formatted(.number.precision(.fractionLength(0...2)))
     }
 }

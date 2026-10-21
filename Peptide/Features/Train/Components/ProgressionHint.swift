@@ -61,9 +61,8 @@ struct ProgressionHint: View {
         }
     }
 
+    /// Two places, so a 1.25 kg change plate (61.25) isn't shown as 61.3.
     private func formatted(_ kg: Double) -> String {
-        let value = unit.weightForDisplay(kg)
-        if abs(value - value.rounded()) < 0.05 { return String(Int(value.rounded())) }
-        return String(format: "%.1f", value)
+        unit.weightForDisplay(kg).formatted(.number.precision(.fractionLength(0...2)))
     }
 }
