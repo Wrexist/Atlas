@@ -143,6 +143,23 @@ final class TrainingStorageTests: XCTestCase {
         XCTAssertEqual(loaded.map(\.id), [later.id, earlier.id])
     }
 
+    func test_loadWorkoutRecapWeek_undecodableRow_skipsOnlyThatRow() throws {
+        let session = makeSession()
+        repo.upsertWorkoutSession(session)
+        let context = try XCTUnwrap(repo.contextForTesting)
+        context.insert(StoredWorkoutSession(
+            id: UUID(), name: nil, routineID: nil, programID: nil,
+            startedAt: session.startedAt.addingTimeInterval(60), finishedAt: nil,
+            note: nil, perceivedEffort: nil, exercisesData: Data("not json".utf8),
+            totalVolumeKg: 0, completedSetCount: 0
+        ))
+        try context.save()
+
+        let week = session.startedAt.addingTimeInterval(-3600)..<session.startedAt.addingTimeInterval(3600)
+        let loaded = try repo.loadWorkoutRecapWeek(in: week)
+        XCTAssertEqual(loaded.map(\.id), [session.id])
+    }
+
     // MARK: - Custom exercise round-trip
 
     func test_customExercise_roundTrips() {

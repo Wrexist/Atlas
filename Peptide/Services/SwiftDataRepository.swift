@@ -968,7 +968,8 @@ final class SwiftDataRepository {
         }
     }
 
-    /// Recap needs to distinguish an empty week from a failed history read.
+    /// Recap needs to distinguish an empty week from a failed history read,
+    /// so only the fetch throws; one undecodable row is skipped, not fatal.
     func loadWorkoutRecapWeek(in range: Range<Date>) throws -> [WorkoutSession] {
         guard let context else { throw WorkoutSaveError.unavailable }
         let start = range.lowerBound
@@ -976,7 +977,14 @@ final class SwiftDataRepository {
         let descriptor = FetchDescriptor<StoredWorkoutSession>(
             predicate: #Predicate { $0.startedAt >= start && $0.startedAt < end },
             sortBy: [SortDescriptor(\.startedAt)])
-        return try context.fetch(descriptor).map { try $0.toWorkoutSession() }
+        return try context.fetch(descriptor).compactMap {
+            do {
+                return try $0.toWorkoutSession()
+            } catch {
+                AppLog.swiftData.error("Decode StoredWorkoutSession (recap) failed: \(error.localizedDescription, privacy: .public)")
+                return nil
+            }
+        }
     }
 
     /// Uncapped full-history fetch, oldest first. Exists for correctness
@@ -1050,22 +1058,34 @@ final class SwiftDataRepository {
         }
     }
 
-    /// Fetches the single in-progress session if one exists.
+    /// Fetches the newest in-progress session if one exists.
     /// `WorkoutSessionService` invariant: at most one session has
     /// `finishedAt == nil` at any time.
     func loadActiveWorkoutSession() -> WorkoutSession? {
-        guard let context else { return nil }
+        loadUnfinishedWorkoutSessions().first
+    }
+
+    /// Every in-progress session, newest first. More than one means the
+    /// one-active invariant broke — a crash, or a workout synced in from
+    /// another device — and `WorkoutSessionService` closes the extras.
+    func loadUnfinishedWorkoutSessions() -> [WorkoutSession] {
+        guard let context else { return [] }
         let descriptor = FetchDescriptor<StoredWorkoutSession>(
             predicate: #Predicate { $0.finishedAt == nil },
             sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
         )
         do {
-            return try context.fetch(descriptor).first.flatMap {
-                try? $0.toWorkoutSession()
+            return try context.fetch(descriptor).compactMap {
+                do {
+                    return try $0.toWorkoutSession()
+                } catch {
+                    AppLog.swiftData.error("Decode StoredWorkoutSession (unfinished) failed: \(error.localizedDescription, privacy: .public)")
+                    return nil
+                }
             }
         } catch {
-            AppLog.swiftData.error("Load active workout failed: \(error.localizedDescription, privacy: .public)")
-            return nil
+            AppLog.swiftData.error("Load unfinished workouts failed: \(error.localizedDescription, privacy: .public)")
+            return []
         }
     }
 

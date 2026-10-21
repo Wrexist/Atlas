@@ -187,6 +187,41 @@ final class WorkoutSessionServiceTests: XCTestCase {
         XCTAssertNil(service.staleClosure)
     }
 
+    func test_closeStaleOrphans_staleExtraUnfinishedRows_areClosed() throws {
+        let active = service.startWorkout()
+        let start = Date().addingTimeInterval(-30 * 3600)
+        let lastSet = start.addingTimeInterval(1800)
+        let emptyOrphan = WorkoutSession(startedAt: start, finishedAt: nil, exercises: [])
+        let loggedOrphan = WorkoutSession(startedAt: start, finishedAt: nil, exercises: [
+            WorkoutExerciseEntry(exerciseID: "Incline_Dumbbell_Press", index: 0, sets: [
+                SetEntry(index: 1, weightKg: 25, reps: 10, completed: true, completedAt: lastSet)
+            ])
+        ])
+        repo.upsertWorkoutSession(emptyOrphan)
+        repo.upsertWorkoutSession(loggedOrphan)
+
+        service.closeStaleOrphans()
+
+        XCTAssertEqual(repo.loadUnfinishedWorkoutSessions().map(\.id), [active.id])
+        XCTAssertTrue(repo.loadWorkoutSessions().filter { $0.id == emptyOrphan.id }.isEmpty)
+        let finished = try XCTUnwrap(repo.loadWorkoutSessions().first { $0.id == loggedOrphan.id })
+        XCTAssertEqual(
+            try XCTUnwrap(finished.finishedAt).timeIntervalSince1970,
+            lastSet.addingTimeInterval(WorkoutStalenessEngine.finishBuffer).timeIntervalSince1970,
+            accuracy: 0.001
+        )
+    }
+
+    func test_closeStaleOrphans_recentOrphan_isLeftOpen() {
+        let active = service.startWorkout()
+        let orphan = WorkoutSession(startedAt: Date().addingTimeInterval(-60), finishedAt: nil, exercises: [])
+        repo.upsertWorkoutSession(orphan)
+
+        service.closeStaleOrphans()
+
+        XCTAssertEqual(Set(repo.loadUnfinishedWorkoutSessions().map(\.id)), [active.id, orphan.id])
+    }
+
     // MARK: - Mutations
 
     private func bench() -> Exercise {
