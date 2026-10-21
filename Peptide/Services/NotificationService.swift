@@ -81,9 +81,10 @@ final class NotificationService {
     nonisolated static let habitIDPrefix = "habit-"
 
     /// Prefix for one-shot local notifications scheduled outside the dose
-    /// and habit calendar schedulers — currently just the workout rest
-    /// timer's "Rest's up" buzz. Before this, that call site talked to
-    /// `UNUserNotificationCenter` directly, invisible to every other
+    /// and habit calendar schedulers — the workout rest timer's "Rest's
+    /// up" buzz and the fasting tracker's end-of-fast reminder. Before
+    /// this, the rest timer talked to `UNUserNotificationCenter`
+    /// directly, invisible to every other
     /// notification-coordination concern this service owns (retention
     /// audit: notifications, Phase 13 — "the rest-timer notification
     /// bypasses NotificationService entirely").

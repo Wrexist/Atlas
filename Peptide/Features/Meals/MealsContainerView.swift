@@ -12,6 +12,9 @@ import SwiftUI
 /// food taps land here: the router switches to `.meals` and the
 /// section opens the food library on the pending deep-link.
 ///
+/// The fasting tracker lives only here, not on the Today instance of
+/// the section — it is a nutrition tool, and Today stays curated.
+///
 /// Progress photos are body-tracking, not nutrition, so they live
 /// on the Your Progress screen (`AtlasProgressView`) rather than here.
 struct MealsContainerView: View {
@@ -20,6 +23,8 @@ struct MealsContainerView: View {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
                     HomeMealsSection()
+                    FastingCard()
+                        .scrollReveal()
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.top, Spacing.lg)
