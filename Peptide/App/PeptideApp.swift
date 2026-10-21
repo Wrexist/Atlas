@@ -30,12 +30,16 @@ struct PeptideApp: App {
         // analytics stay accurate without changing what actually
         // charges the user. Must run before any StoreKit product or
         // purchase call, so it's the first thing App.init() does.
-        Purchases.logLevel = .warn
-        Purchases.configure(
-            with: Configuration.Builder(withAPIKey: "appl_PnJfoICofSeTSftseVMMMnonafC")
-                .with(purchasesAreCompletedBy: .myApp, storeKitVersion: .storeKit2)
-                .build()
-        )
+        // Skipped under unit tests so StoreServiceTests' sandbox purchases
+        // never reach the live RevenueCat project.
+        if !ProcessInfo.processInfo.isRunningUnitTests {
+            Purchases.logLevel = .warn
+            Purchases.configure(
+                with: Configuration.Builder(withAPIKey: "appl_PnJfoICofSeTSftseVMMMnonafC")
+                    .with(purchasesAreCompletedBy: .myApp, storeKitVersion: .storeKit2)
+                    .build()
+            )
+        }
 
         // SwiftUI's `AsyncImage` reads through `URLCache.shared`. The
         // default cap is ~5 MB memory / 20 MB disk, which gets evicted
@@ -88,138 +92,17 @@ struct PeptideApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                if !hasCompletedOnboarding {
-                    OnboardingView()
-                        .environment(dataStore)
-                        .preferredColorScheme(themeManager.displayMode.preferredScheme)
-                        .tint(AppColor.accentPrimary)
-                } else {
-                    // Stays mounted while locked — the lock covers it from
-                    // its own window — so open sheets, navigation and
-                    // in-progress flows survive a trip to the background.
-                    mainContent
-                }
-            }
-            .environment(localization)
-            .environment(\.locale, localization.effectiveLocale)
-            .environment(\.layoutDirection, localization.layoutDirection)
-            .id(localization.selectedCode ?? "system")
-            .onChange(of: privacyCover, initial: true) { _, cover in
-                syncPrivacyCover(cover)
-            }
-            .task {
-                // Decode the bundled peptide catalog off the main
-                // thread, after the first frame. Every consumer
-                // (Library, protocol builder, AI research) reads it
-                // synchronously, so warming it here means none of them
-                // is the one that pays — and launch doesn't either.
-                await PeptideDatabase.warmUp()
-            }
-            .task {
-                // One-shot Spotlight reindex on app start. Custom foods
-                // and favorites stay in sync via DataStore mutation
-                // hooks, but a fresh install or a CloudKit pull on a
-                // second device needs this to seed the index — without
-                // it, the user wouldn't see their library in Spotlight
-                // until they next edited a food.
-                dataStore.reindexFoodSpotlight()
-            }
-            .task {
-                // Subscribe to MetricKit so crash + hang + disk-write
-                // payloads delivered the day after a problem occurs
-                // are captured locally. Apple's TestFlight dashboard
-                // already gets these on the server side; the local
-                // copy is the foundation for a future
-                // Diagnostics-in-Profile screen and eventual backend
-                // upload. Idempotent — subscribing on every launch
-                // is the documented usage.
-                DiagnosticsService.shared.startCollecting()
-            }
-            .task {
-                // Drain any completed onboarding funnel snapshot to the
-                // analytics endpoint configured via Info.plist. No-op
-                // unless the endpoint is configured, the user opted in
-                // via the Profile diagnostics toggle, AND onboarding
-                // finished — partial in-flight runs stay local.
-                await OnboardingFunnelTracker.drainIfReady()
-            }
-            .task {
-                // Drain any local affiliate application to the creator-
-                // program intake endpoint. Same opt-in shape as the
-                // funnel drain — gated on AffiliateIntakeEndpoint in
-                // Info.plist, no-op otherwise. The local copy stays
-                // on disk regardless so the user can re-edit.
-                await AffiliateIntakeService.drainIfReady(
-                    dataStore.profile.affiliateApplication
-                )
-            }
-            .onOpenURL { url in
-                // All `peptidex://` routing lives in DeepLinkRouter so
-                // the widget / Live Activity / notification link
-                // vocabulary is one tested mapping instead of an
-                // inline switch per entry point.
-                Task { @MainActor in
-                    let isPro = await StoreService.shared.resolvedProStatus()
-                    DeepLinkRouter.route(url, appState: appState, isPro: isPro)
-                }
-            }
-            .onContinueUserActivity(CSSearchableItemActionType) { activity in
-                // Spotlight tapped a food index entry. Parse the
-                // namespaced identifier (`peptidex-food/custom/<uuid>`
-                // for user-defined foods, `peptidex-food/off/<barcode>`
-                // for OFF favorites), stash the result on AppState,
-                // and switch to the Today tab so the meals section
-                // (HomeMealsSection) picks it up. Unknown formats
-                // are dropped silently — better to no-op than to
-                // surface a confusing error to a user who tapped a
-                // Spotlight tile expecting their food to open.
-                guard let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String,
-                      let deepLink = FoodLogDeepLink(spotlightIdentifier: identifier)
-                else { return }
-                // Phase D: food handoff now lands on the dedicated
-                // Meals tab so the receiver of `pendingFoodLogID`
-                // (the meals section's `.onChange`) doesn't race the
-                // mirror mount still on Today.
-                appState.selectedTab = .meals
-                appState.pendingFoodLogID = deepLink
-            }
-            .sheet(item: $travelChange) { change in
-                TravelModePromptSheet(
-                    change: change,
-                    exampleShift: travelExampleShift(for: change),
-                    onShift: {
-                        dataStore.applyTravelShift(
-                            toTimezone: change.currentIdentifier,
-                            hoursDelta: change.hoursDelta
-                        )
-                        travelChange = nil
-                    },
-                    onKeep: {
-                        dataStore.acknowledgeTimezone(change.currentIdentifier)
-                        travelChange = nil
-                    }
-                )
-            }
-            .sheet(isPresented: $showWhatsNewTour) {
-                // Full-screen, drag-to-dismiss disabled — the tour
-                // is a deliberate one-time read, not an
-                // afterthought sheet. Swipe-down would otherwise
-                // dismiss before the user reaches the "Get
-                // started" button on the last page, and the
-                // version stamp wouldn't land — they'd see it
-                // again on the next launch.
-                WhatsNewTourSheet(
-                    pages: WhatsNewPage.v30Training,
-                    onComplete: {
-                        WhatsNewService.shared.markCurrentTourSeen()
-                        showWhatsNewTour = false
-                    }
-                )
-                .interactiveDismissDisabled()
+            if ProcessInfo.processInfo.isRunningUnitTests {
+                // Unit tests are hosted in the app. A bare window keeps
+                // them clear of `appRoot`'s launch tasks — network drains,
+                // MetricKit, Spotlight and notification prompts.
+                Color.clear
+            } else {
+                appRoot
             }
         }
         .onChange(of: scenePhase) { _, phase in
+            guard !ProcessInfo.processInfo.isRunningUnitTests else { return }
             if phase == .background {
                 if dataStore.profile.biometricLockEnabled {
                     isUnlocked = false
@@ -289,6 +172,139 @@ struct PeptideApp: App {
                 maybePresentWhatsNewTour()
                 maybePresentWinBack()
             }
+        }
+    }
+
+    private var appRoot: some View {
+        Group {
+            if !hasCompletedOnboarding {
+                OnboardingView()
+                    .environment(dataStore)
+                    .preferredColorScheme(themeManager.displayMode.preferredScheme)
+                    .tint(AppColor.accentPrimary)
+            } else {
+                // Stays mounted while locked — the lock covers it from
+                // its own window — so open sheets, navigation and
+                // in-progress flows survive a trip to the background.
+                mainContent
+            }
+        }
+        .environment(localization)
+        .environment(\.locale, localization.effectiveLocale)
+        .environment(\.layoutDirection, localization.layoutDirection)
+        .id(localization.selectedCode ?? "system")
+        .onChange(of: privacyCover, initial: true) { _, cover in
+            syncPrivacyCover(cover)
+        }
+        .task {
+            // Decode the bundled peptide catalog off the main
+            // thread, after the first frame. Every consumer
+            // (Library, protocol builder, AI research) reads it
+            // synchronously, so warming it here means none of them
+            // is the one that pays — and launch doesn't either.
+            await PeptideDatabase.warmUp()
+        }
+        .task {
+            // One-shot Spotlight reindex on app start. Custom foods
+            // and favorites stay in sync via DataStore mutation
+            // hooks, but a fresh install or a CloudKit pull on a
+            // second device needs this to seed the index — without
+            // it, the user wouldn't see their library in Spotlight
+            // until they next edited a food.
+            dataStore.reindexFoodSpotlight()
+        }
+        .task {
+            // Subscribe to MetricKit so crash + hang + disk-write
+            // payloads delivered the day after a problem occurs
+            // are captured locally. Apple's TestFlight dashboard
+            // already gets these on the server side; the local
+            // copy is the foundation for a future
+            // Diagnostics-in-Profile screen and eventual backend
+            // upload. Idempotent — subscribing on every launch
+            // is the documented usage.
+            DiagnosticsService.shared.startCollecting()
+        }
+        .task {
+            // Drain any completed onboarding funnel snapshot to the
+            // analytics endpoint configured via Info.plist. No-op
+            // unless the endpoint is configured, the user opted in
+            // via the Profile diagnostics toggle, AND onboarding
+            // finished — partial in-flight runs stay local.
+            await OnboardingFunnelTracker.drainIfReady()
+        }
+        .task {
+            // Drain any local affiliate application to the creator-
+            // program intake endpoint. Same opt-in shape as the
+            // funnel drain — gated on AffiliateIntakeEndpoint in
+            // Info.plist, no-op otherwise. The local copy stays
+            // on disk regardless so the user can re-edit.
+            await AffiliateIntakeService.drainIfReady(
+                dataStore.profile.affiliateApplication
+            )
+        }
+        .onOpenURL { url in
+            // All `peptidex://` routing lives in DeepLinkRouter so
+            // the widget / Live Activity / notification link
+            // vocabulary is one tested mapping instead of an
+            // inline switch per entry point.
+            Task { @MainActor in
+                let isPro = await StoreService.shared.resolvedProStatus()
+                DeepLinkRouter.route(url, appState: appState, isPro: isPro)
+            }
+        }
+        .onContinueUserActivity(CSSearchableItemActionType) { activity in
+            // Spotlight tapped a food index entry. Parse the
+            // namespaced identifier (`peptidex-food/custom/<uuid>`
+            // for user-defined foods, `peptidex-food/off/<barcode>`
+            // for OFF favorites), stash the result on AppState,
+            // and switch to the Today tab so the meals section
+            // (HomeMealsSection) picks it up. Unknown formats
+            // are dropped silently — better to no-op than to
+            // surface a confusing error to a user who tapped a
+            // Spotlight tile expecting their food to open.
+            guard let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String,
+                  let deepLink = FoodLogDeepLink(spotlightIdentifier: identifier)
+            else { return }
+            // Phase D: food handoff now lands on the dedicated
+            // Meals tab so the receiver of `pendingFoodLogID`
+            // (the meals section's `.onChange`) doesn't race the
+            // mirror mount still on Today.
+            appState.selectedTab = .meals
+            appState.pendingFoodLogID = deepLink
+        }
+        .sheet(item: $travelChange) { change in
+            TravelModePromptSheet(
+                change: change,
+                exampleShift: travelExampleShift(for: change),
+                onShift: {
+                    dataStore.applyTravelShift(
+                        toTimezone: change.currentIdentifier,
+                        hoursDelta: change.hoursDelta
+                    )
+                    travelChange = nil
+                },
+                onKeep: {
+                    dataStore.acknowledgeTimezone(change.currentIdentifier)
+                    travelChange = nil
+                }
+            )
+        }
+        .sheet(isPresented: $showWhatsNewTour) {
+            // Full-screen, drag-to-dismiss disabled — the tour
+            // is a deliberate one-time read, not an
+            // afterthought sheet. Swipe-down would otherwise
+            // dismiss before the user reaches the "Get
+            // started" button on the last page, and the
+            // version stamp wouldn't land — they'd see it
+            // again on the next launch.
+            WhatsNewTourSheet(
+                pages: WhatsNewPage.v30Training,
+                onComplete: {
+                    WhatsNewService.shared.markCurrentTourSeen()
+                    showWhatsNewTour = false
+                }
+            )
+            .interactiveDismissDisabled()
         }
     }
 
