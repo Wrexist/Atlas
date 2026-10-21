@@ -17,6 +17,8 @@ struct SettingsView: View {
 
                 WeeklySummaryToggleRow()
 
+                OnDeviceSummaryToggleRow()
+
                 AppearanceSettings()
 
                 ExportSection()

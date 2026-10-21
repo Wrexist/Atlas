@@ -167,6 +167,7 @@ struct WorkoutMuscleContributionsView: View {
 struct WorkoutWeeklyProgressView: View {
     let store: WorkoutRecapStore
     let unit: MeasurementUnit
+    @State private var summaryService = OnDeviceSummaryService.shared
     var body: some View {
         ScrollView {
             if let week = store.week {
@@ -189,6 +190,9 @@ struct WorkoutWeeklyProgressView: View {
                     RecapInfoButton(title: "How workouts are counted", showsTitle: false) {
                         Text("Workouts are grouped by their start date in your current calendar and time zone. Finished workouts with working sets and saved manual workouts count. Warm-up-only and unfinished sessions are excluded.")
                     }
+                }
+                if let facts = OnDeviceSummaryEngine.week(week, unit: unit), let text = summaryService.text(for: facts) {
+                    RecapSummaryLine(text: text)
                 }
                 RecapCard {
                     VStack(alignment: .leading, spacing: Spacing.lg) {
@@ -220,6 +224,9 @@ struct WorkoutWeeklyProgressView: View {
                 }
                 if week.count == 0 { Text("No completed workouts this week yet.").font(AppFont.body) }
             }.padding(Spacing.screenPadding)
+                .task(id: OnDeviceSummaryEngine.week(week, unit: unit)) {
+                    if let facts = OnDeviceSummaryEngine.week(week, unit: unit) { await summaryService.prepare(facts) }
+                }
     }
 }
 

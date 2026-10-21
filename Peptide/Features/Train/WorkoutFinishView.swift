@@ -9,6 +9,7 @@ struct WorkoutFinishView: View {
     /// stored records, so these could name a set the user just corrected.
     @State private var detectedPRs: [PRDetectionEngine.DetectedPR]
     @State private var store: WorkoutRecapStore
+    @State private var summaryService = OnDeviceSummaryService.shared
     @State private var editing = false
     @State private var sharing = false
     @State private var announced = false
@@ -32,6 +33,9 @@ struct WorkoutFinishView: View {
                 VStack(alignment: .leading, spacing: Spacing.lg) {
                     header(summary)
                         .sectionAppear(index: 0)
+                    if let facts = recapFacts(summary), let text = summaryService.text(for: facts) {
+                        RecapSummaryLine(text: text)
+                    }
                     NavigationLink {
                         WorkoutWeeklyProgressView(store: store, unit: unit)
                     } label: {
@@ -92,6 +96,9 @@ struct WorkoutFinishView: View {
                         Button("Retry exercise metadata") { Task { await store.load() } }.frame(minHeight: Spacing.minimumHitTarget)
                     }
                 }.padding(Spacing.screenPadding)
+                    .task(id: recapFacts(summary)) {
+                        if let facts = recapFacts(summary) { await summaryService.prepare(facts) }
+                    }
             } else { ProgressView("Loading workout…").padding(Spacing.xxl) }
         }
         .background(AppColor.recapBackground.ignoresSafeArea())
@@ -142,6 +149,10 @@ struct WorkoutFinishView: View {
 
     /// A fresh save celebrates; reopening an old session from history
     /// leads with when it happened instead of "Workout saved".
+    private func recapFacts(_ summary: WorkoutRecapEngine.Summary) -> OnDeviceSummaryEngine.Facts? {
+        OnDeviceSummaryEngine.workout(summary, newPRCount: detectedPRs.count, weekCount: store.week?.count, unit: unit)
+    }
+
     private func header(_ summary: WorkoutRecapEngine.Summary) -> some View {
         VStack(spacing: Spacing.sm) {
             if celebratesSave {
