@@ -398,7 +398,6 @@ final class ScreenshotTests: XCTestCase {
     }
 
     func test_captureExerciseRollout() {
-        test_captureWorkoutFocus()
         for appearance in ["light", "dark"] {
             launch(appearance: appearance)
             dismissOverlaysIfNeeded()
