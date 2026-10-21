@@ -288,10 +288,20 @@ final class AIResearchService: Sendable {
 
     // MARK: - RAG
 
+    /// The proxy keeps only the first 4000 UTF-16 units of the client
+    /// `system` (`raw.system.slice(0, 4000)` in anthropic-proxy.js), so
+    /// anything past this is silently cut.
+    static let systemCharacterBudget = 4000
+
+    /// Per-field cap on the long prose fields, so one verbose entry can't
+    /// crowd the other mentioned compounds out of the budget.
+    private static let snippetFieldLimit = 400
+
+    private static let ragContextHeader = "Database context for the compounds the user mentioned:"
+
     /// Picks up to 4 peptides whose name or abbreviation appears in the
-    /// recent transcript (case-insensitive substring match). Caps the
-    /// injected context at 4 so the system prompt stays well under
-    /// Claude's input limits even with verbose entries.
+    /// recent transcript (case-insensitive substring match), then keeps
+    /// whole entries only while they fit the proxy's system budget.
     private func ragContext(
         for prompt: String,
         history: [Turn],
@@ -332,12 +342,12 @@ final class AIResearchService: Sendable {
                 "Name: \(p.name) (\(p.abbreviation))",
                 "Category: \(p.category.rawValue)",
             ]
-            if !p.description.isEmpty { fields.append("Summary: \(p.description)") }
+            if !p.description.isEmpty { fields.append("Summary: \(Self.clipped(p.description, to: Self.snippetFieldLimit))") }
             if !p.dosageRange.isEmpty { fields.append("Dosage range: \(p.dosageRange)") }
             if !p.frequency.isEmpty   { fields.append("Frequency: \(p.frequency)") }
             if !p.halfLife.isEmpty    { fields.append("Half-life: \(p.halfLife)") }
             if !p.adminRoute.isEmpty  { fields.append("Admin route: \(p.adminRoute)") }
-            if !p.mechanism.isEmpty   { fields.append("Mechanism: \(p.mechanism)") }
+            if !p.mechanism.isEmpty   { fields.append("Mechanism: \(Self.clipped(p.mechanism, to: Self.snippetFieldLimit))") }
             if !p.contraindications.isEmpty {
                 fields.append("Contraindications: \(p.contraindications.joined(separator: "; "))")
             }
@@ -347,7 +357,30 @@ final class AIResearchService: Sendable {
             }
             return fields.joined(separator: "\n")
         }
-        return snippets.joined(separator: "\n\n---\n\n")
+
+        let budget = Self.systemCharacterBudget - Self.ragContextHeader.utf16.count - 1
+        var context = ""
+        for snippet in snippets {
+            let candidate = context.isEmpty ? snippet : context + "\n\n---\n\n" + snippet
+            if candidate.utf16.count > budget { break }
+            context = candidate
+        }
+        return context.isEmpty ? Self.clipped(snippets[0], to: budget) : context
+    }
+
+    /// `text` cut to at most `limit` UTF-16 units (the unit the proxy's
+    /// slice counts), ending in an ellipsis when cut.
+    private static func clipped(_ text: String, to limit: Int) -> String {
+        guard text.utf16.count > limit else { return text }
+        var result = ""
+        var used = 0
+        for character in text {
+            let width = character.utf16.count
+            if used + width > limit - 1 { break }
+            used += width
+            result.append(character)
+        }
+        return result + "…"
     }
 
     /// Server-side cap (`MAX_MESSAGES` in anthropic-proxy.js). The
@@ -378,32 +411,17 @@ final class AIResearchService: Sendable {
             "content": newPrompt,
         ] as [String: Any])
 
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "model": model,
             "max_tokens": 800,
-            "system": systemPrompt(ragContext: ragContext),
             "messages": messages,
         ]
-        return body
-    }
-
-    private func systemPrompt(ragContext: String?) -> String {
-        var lines: [String] = [
-            "You are Atlas's research assistant — a careful, citation-friendly explainer of peptide science.",
-            "",
-            "Rules:",
-            "• Never recommend, prescribe, or calculate doses. Refer the user to a qualified clinician for any dose decision.",
-            "• When you cite a number from the references below, attribute it (e.g. 'per the Smith 2021 study').",
-            "• If the user asks for medical advice, decline politely and remind them you're an educational reference.",
-            "• Keep replies under ~250 words unless the user explicitly asks for depth.",
-            "• If the database context doesn't cover the question, say so plainly rather than guessing.",
-        ]
-        if let ragContext, !ragContext.isEmpty {
-            lines.append("")
-            lines.append("Database context for the compounds the user mentioned:")
-            lines.append(ragContext)
+        // The proxy prepends the authoritative persona and safety rules,
+        // so the client sends only the grounding context.
+        if let ragContext {
+            body["system"] = Self.ragContextHeader + "\n" + ragContext
         }
-        return lines.joined(separator: "\n")
+        return body
     }
 
     private func parseAssistantText(from data: Data) throws -> String {
