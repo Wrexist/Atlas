@@ -1,8 +1,7 @@
 /**
  * Vercel proxy route for Atlas's AI weekly summary. Bypasses
  * the shared `forwardToAnthropic` helper because this endpoint owns
- * the system prompt and applies Anthropic prompt caching to the
- * cacheable prefix — 90 %+ cost reduction once the cache warms.
+ * the whole prompt: the client sends only an aggregate, never text.
  *
  * iOS env vars (Info.plist or scheme env):
  *   WEEKLY_SUMMARY_ENDPOINT = https://<deploy>/api/weekly-summary
@@ -29,8 +28,10 @@ import {
   withinDeviceQuota,
 } from './_lib/rate-limit.js';
 
-const MODEL = 'claude-sonnet-4-6';
-const MAX_TOKENS = 360; // ~280 words; 150 ideal, 200 hard ceiling
+const MODEL = 'claude-sonnet-5';
+// ~400 words: the ~150-word target with room to finish a sentence.
+// A reply that still hits the cap is refused, never cached half-done.
+const MAX_TOKENS = 500;
 // The aggregate is tiny; nothing larger is legitimate. Checked on the
 // parsed body like `_lib/anthropic-proxy.js` does.
 const MAX_BODY_BYTES = 64 * 1024;
@@ -44,12 +45,12 @@ const SYSTEM_PROMPT = [
   "• Never make medical claims. Avoid: \"should\", \"must\", \"proven\", \"treat\", \"cure\", \"diagnose\", \"prescribe\".",
   "• Don't speculate on causation. Say \"trended with\" or \"alongside\", never \"caused\" or \"because of\".",
   "• If a stat or section is missing or marked null, don't mention it — never invent data. The aggregate leaves out anything the user doesn't track.",
-  "• No peptide names, dosages, or protocol specifics — the aggregate doesn't carry them, and you must not guess.",
-  "• Use the numbers provided verbatim. If compliance was 86 %, say 86 %, not \"strong\" or \"most\".",
+  "• No compound names, dosages, or Protocol specifics — the aggregate doesn't carry them, and you must not guess.",
+  "• Use the numbers provided verbatim. Percentages arrive as whole numbers: if pctPercent is 86, say 86 %, not \"strong\" or \"most\".",
   "",
   "Structure:",
   "1. One sentence opener: how the week went overall.",
-  "2. 2-3 specific observations grounded in the numbers present (for example compliance pct, streak length, check-in averages, HRV delta).",
+  "2. 2-3 specific observations grounded in the numbers present. Lead with nutrition, sleep, HRV and resting heart rate, and check-in averages; mention Protocol adherence and streak only when they're present.",
   "3. One forward-looking line for next week — encouraging, not prescriptive.",
   "",
   "Output: plain text, no markdown, no bullet points, no headings. The iOS card renders the paragraphs as-is."
@@ -87,6 +88,15 @@ function asInt(v) {
   return n === undefined ? undefined : Math.trunc(n);
 }
 
+// The client sends 0–1 fractions; the prompt quotes whole percentages.
+function asPercent(v) {
+  return Math.round(Math.min(Math.max(asNum(v) ?? 0, 0), 1) * 100);
+}
+
+// The only values the app sends (see `HomeView`); anything else would
+// be a free-text channel into the prompt.
+const INSIGHT_CATEGORIES = new Set(['positive', 'warning', 'neutral']);
+
 function sanitiseAggregate(agg) {
   if (!agg || typeof agg !== 'object') return null;
   // Strict ISO-date (no time component). The iOS encoder emits
@@ -106,10 +116,10 @@ function sanitiseAggregate(agg) {
     if (total < 0 || total > 200) return null; // a week can't exceed this; reject blatant noise
     if (total > 0) {
       clean.compliance = {
-        completed,
+        completed: Math.min(Math.max(completed, 0), total),
         total,
-        pct: asNum(c.pct) ?? 0,
-        bestDayPct: asNum(c.bestDayPct) ?? 0,
+        pctPercent: asPercent(c.pct),
+        bestDayPercent: asPercent(c.bestDayPct),
         activeDaysCount: asInt(c.activeDaysCount) ?? 0,
       };
     }
@@ -160,10 +170,8 @@ function sanitiseAggregate(agg) {
     clean.labs = { newPanelsLogged: asInt(l.newPanelsLogged) };
   }
 
-  if (typeof agg.topInsightCategory === 'string') {
-    // Stable category codes are short; cap hard so this can never be
-    // a free-text injection vector.
-    clean.topInsightCategory = agg.topInsightCategory.slice(0, 64);
+  if (INSIGHT_CATEGORIES.has(agg.topInsightCategory)) {
+    clean.topInsightCategory = agg.topInsightCategory;
   }
 
   return clean;
@@ -257,20 +265,13 @@ export default async function handler(req, res) {
     return;
   }
 
-  // System content blocks with cache_control on the static prompt
-  // → first call warms the cache, every subsequent call hits a 90 %
-  // discount on those tokens. The aggregate goes in the user
-  // message, never the system block.
+  // The aggregate goes in the user message, never the system prompt.
+  // No prompt caching: the prompt is far below the minimum cacheable
+  // length, so `cache_control` would be a no-op.
   const body = {
     model: MODEL,
     max_tokens: MAX_TOKENS,
-    system: [
-      {
-        type: 'text',
-        text: SYSTEM_PROMPT,
-        cache_control: { type: 'ephemeral' }
-      }
-    ],
+    system: SYSTEM_PROMPT,
     messages: [
       {
         role: 'user',
@@ -287,11 +288,7 @@ export default async function handler(req, res) {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        // Prompt-caching beta header — required for cache_control
-        // blocks to apply. Pin the date so a future beta cycle that
-        // changes semantics doesn't silently break.
-        'anthropic-beta': 'prompt-caching-2024-07-31'
+        'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify(body),
       signal: controller.signal
@@ -318,23 +315,27 @@ export default async function handler(req, res) {
           .trim()
       : '';
 
+    // A summary cut off at the token cap would be cached for the whole
+    // week; a 502 sends the client to its offline formatter instead.
+    if (data.stop_reason === 'max_tokens') {
+      console.error('[weekly-summary] reply hit max_tokens');
+      res.status(502).json({ error: { message: 'Truncated response from model' } });
+      return;
+    }
+
     if (!text) {
       console.error('[weekly-summary] empty text in response');
       res.status(502).json({ error: { message: 'Empty response from model' } });
       return;
     }
 
-    // Optional cache-hit telemetry — Anthropic returns
-    // `usage.cache_read_input_tokens` and
-    // `usage.cache_creation_input_tokens`. Log only the counts.
+    // Token-usage telemetry. Log only the counts.
     if (data?.usage) {
       console.log(
         '[weekly-summary] usage',
         JSON.stringify({
           input: data.usage.input_tokens ?? 0,
-          output: data.usage.output_tokens ?? 0,
-          cacheRead: data.usage.cache_read_input_tokens ?? 0,
-          cacheCreation: data.usage.cache_creation_input_tokens ?? 0
+          output: data.usage.output_tokens ?? 0
         })
       );
     }
