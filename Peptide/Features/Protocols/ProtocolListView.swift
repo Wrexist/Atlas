@@ -79,6 +79,20 @@ struct ProtocolListView: View {
                                 .sectionAppear(index: 2)
                             }
 
+                            // Self-silencing: the engine returns nil
+                            // until both dosing and off days have
+                            // enough check-ins and a real delta.
+                            if let headline = OutcomeCorrelationEngine.headline(
+                                outcomes: dataStore.profile.outcomeHistory,
+                                entries: dataStore.entries
+                            ) {
+                                OutcomeCorrelationCard(
+                                    headline: headline,
+                                    sampleSize: dataStore.profile.outcomeHistory.count
+                                )
+                                .sectionAppear(index: 3)
+                            }
+
                             // Stack health + Discover sections moved
                             // here from HomeView in Phase 34. They
                             // live between Active and Paused so the
