@@ -97,8 +97,8 @@ final class DataStoreTests: XCTestCase {
 
     func test_todayEntries_areSortedByDate() {
         let today = store.todayEntries
-        for i in 1..<today.count {
-            XCTAssertLessThanOrEqual(today[i - 1].date, today[i].date)
+        for (earlier, later) in zip(today, today.dropFirst()) {
+            XCTAssertLessThanOrEqual(earlier.date, later.date)
         }
     }
 
@@ -112,8 +112,8 @@ final class DataStoreTests: XCTestCase {
     func test_entriesFor_sortedByDateDescending() {
         guard let proto = store.protocols.first else { return }
         let entries = store.entriesFor(protocolId: proto.id, days: 30)
-        for i in 1..<entries.count {
-            XCTAssertGreaterThanOrEqual(entries[i - 1].date, entries[i].date)
+        for (newer, older) in zip(entries, entries.dropFirst()) {
+            XCTAssertGreaterThanOrEqual(newer.date, older.date)
         }
     }
 
