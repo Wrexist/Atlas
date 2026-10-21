@@ -15,8 +15,9 @@ import PhotosUI
 /// snap instead of copying a nutrition panel by hand.
 ///
 /// Validates inline: the Save button stays disabled until the name is
-/// non-empty and the calorie value is greater than zero. Everything
-/// else can stay zero.
+/// non-empty and calories are filled in. Zero is a real value (black
+/// coffee, water), but nothing passes 900 kcal or 100 g of macros per
+/// 100 g.
 struct CustomFoodEditorSheet: View {
     @Environment(DataStore.self) private var dataStore
     let initial: CustomFood
@@ -65,8 +66,21 @@ struct CustomFoodEditorSheet: View {
         name.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var caloriesValue: Double { Self.parseDecimal(calories) ?? 0 }
-    private var canSave: Bool { !trimmedName.isEmpty && caloriesValue > 0 }
+    private var caloriesValue: Double? { Self.parseDecimal(calories) }
+    private var canSave: Bool { !trimmedName.isEmpty && caloriesValue != nil && rangeProblem == nil }
+
+    /// Pure fat is about 900 kcal per 100 g, and 100 g of food can't hold
+    /// more than 100 g of protein, carbs and fat.
+    private var rangeProblem: LocalizedStringKey? {
+        if (caloriesValue ?? 0) > 900 {
+            return "Calories can't be more than 900 kcal per 100 g."
+        }
+        let macros = [protein, carbs, fat].compactMap { Self.parseDecimal($0) }.reduce(0, +)
+        if macros > 100 {
+            return "Protein, carbs and fat can't add up to more than 100 g per 100 g."
+        }
+        return nil
+    }
     private var isEditing: Bool { onDelete != nil }
 
     /// Locale-aware decimal parser. `Double("1,5")` returns nil on
@@ -126,7 +140,13 @@ struct CustomFoodEditorSheet: View {
                 } header: {
                     Text("Per 100 g")
                 } footer: {
-                    Text("Enter the nutrition values per 100 grams of this food. Portion math at log time scales these up or down automatically.")
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        Text("Enter the nutrition values per 100 grams of this food. Portion math at log time scales these up or down automatically.")
+                        if let rangeProblem {
+                            Text(rangeProblem)
+                                .foregroundStyle(AppColor.warning)
+                        }
+                    }
                 }
 
                 Section {
@@ -420,7 +440,7 @@ struct CustomFoodEditorSheet: View {
 
     private func commit() {
         let nutrients = ScannedProduct.Nutriments(
-            calories: caloriesValue,
+            calories: caloriesValue ?? 0,
             proteinG: Self.parseDecimal(protein) ?? 0,
             carbsG: Self.parseDecimal(carbs) ?? 0,
             fatG: Self.parseDecimal(fat) ?? 0,
