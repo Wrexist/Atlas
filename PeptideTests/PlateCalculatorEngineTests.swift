@@ -124,6 +124,20 @@ final class PlateCalculatorEngineTests: XCTestCase {
         XCTAssertEqual(result?.isExact, true)
     }
 
+    func test_oddPlateSet_exactLoadGreedyWouldMiss_isFound() {
+        // Only 25s and 20s: greedy takes a 25 and strands 15, but 20 + 20 fits.
+        let result = loadout(100, plates: [25, 20])
+        XCTAssertEqual(result?.platesPerSide, [20, 20])
+        XCTAssertEqual(result?.isExact, true)
+    }
+
+    func test_oddPlateSet_unloadableTarget_picksTheTrulyNearestLoad() {
+        // 85.1 kg with 25s and 20s: 70 is 15.1 under, 100 is 14.9 over.
+        let result = loadout(85.1, plates: [25, 20])
+        XCTAssertEqual(result?.platesPerSide, [20, 20])
+        XCTAssertEqual(result?.loadedTotal, 100)
+    }
+
     func test_otherBars_useTheirOwnEmptyWeight() {
         XCTAssertEqual(loadout(30, bar: BarKind.ezBar.standardWeight(for: .metric))?.platesPerSide, [10])
         XCTAssertEqual(loadout(65, bar: BarKind.trapBar.standardWeight(for: .metric))?.platesPerSide, [20])
