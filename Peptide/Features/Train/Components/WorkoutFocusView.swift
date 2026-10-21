@@ -114,7 +114,7 @@ struct WorkoutFocusView: View {
             .appAnimation(AppAnimation.springSnappy, value: selected)
         }
         .buttonStyle(ScalePressStyle())
-        .accessibilityLabel(Text(exercise?.name ?? item.exerciseID))
+        .accessibilityLabel(Text(library.displayName(for: item.exerciseID)))
         .accessibilityValue(complete ? "Complete" : "In progress")
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
@@ -216,7 +216,7 @@ struct WorkoutFocusView: View {
     /// "Superset A · with Incline Dumbbell Press".
     private func supersetCaption(letter: String, entryID: UUID) -> String {
         let partners = session.supersetPartners(of: entryID)
-            .map { library.lookup(id: $0.exerciseID)?.name ?? $0.exerciseID }
+            .map { library.displayName(for: $0.exerciseID) }
             .formatted(.list(type: .and))
         return String(localized: "Superset \(letter) · with \(partners)")
     }
@@ -271,7 +271,7 @@ struct WorkoutFocusView: View {
         guard let target = session.exercises.first(where: { $0.id == rest.targetEntryID }),
               let set = target.sets.first(where: { $0.id == rest.targetSetID }) else { return "Rest" }
         if target.id == entry?.id { return "Rest before set \(set.index)" }
-        let name = library.lookup(id: target.exerciseID)?.name ?? target.exerciseID
+        let name = library.displayName(for: target.exerciseID)
         return "Up next: \(name) · Set \(set.index)"
     }
 }

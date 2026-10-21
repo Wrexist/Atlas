@@ -97,6 +97,10 @@ final class ExerciseLibraryTests: XCTestCase {
         XCTAssertEqual(hit?.primaryMuscles, ["biceps"])
     }
 
+    func test_displayName_unknownID_readsUnknownExerciseNotTheRawID() {
+        XCTAssertEqual(library.displayName(for: "custom_deleted_123"), "Unknown exercise")
+    }
+
     // MARK: - Filter
 
     func test_filter_byMuscleGroup_returnsOnlyMatches() {

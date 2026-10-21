@@ -187,6 +187,6 @@ final class WorkoutLiveActivityService {
     /// so a finished-but-not-sealed workout doesn't blank the label.
     private static func currentExerciseName(in session: WorkoutSession) -> String {
         guard let entry = session.selectedExercise else { return "" }
-        return ExerciseLibrary.shared.lookup(id: entry.exerciseID)?.name ?? entry.exerciseID
+        return ExerciseLibrary.shared.displayName(for: entry.exerciseID)
     }
 }

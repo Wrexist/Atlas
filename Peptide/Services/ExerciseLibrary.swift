@@ -102,6 +102,12 @@ final class ExerciseLibrary {
         return nil
     }
 
+    /// The name to show for an exercise id. A deleted or not-yet-loaded
+    /// exercise reads as "Unknown exercise", never as its raw slug or UUID.
+    func displayName(for id: String) -> String {
+        lookup(id: id)?.name ?? String(localized: "Unknown exercise")
+    }
+
     // MARK: - Filtering & search
 
     /// Full filterable view used by the exercise picker. All

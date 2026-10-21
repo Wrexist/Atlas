@@ -72,8 +72,7 @@ struct WorkoutRecapExerciseDetail: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.lg) {
                 if let entry = store.session.exercises.first(where: { $0.id == entryID }) {
-                    let exercise = ExerciseLibrary.shared.lookup(id: entry.exerciseID)
-                    Text(exercise?.name ?? entry.exerciseID).font(AppFont.title2)
+                    Text(ExerciseLibrary.shared.displayName(for: entry.exerciseID)).font(AppFont.title2)
                     Text("All logged sets").font(AppFont.headline)
                     Text("Warm-ups and unfinished sets are excluded from completion totals.")
                         .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)

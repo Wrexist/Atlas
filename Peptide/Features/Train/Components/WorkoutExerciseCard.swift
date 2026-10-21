@@ -37,7 +37,7 @@ struct WorkoutExerciseCard: View {
 
     private var completedSetCount: Int { entry.sets.filter(\.completed).count }
 
-    private var displayName: String { exercise?.name ?? entry.exerciseID }
+    private var displayName: String { exercise?.name ?? String(localized: "Unknown exercise") }
 
     /// The bar to show plates for. Only when a set's weight is the whole
     /// bar — a per-side or per-hand entry isn't what goes on the scale.
