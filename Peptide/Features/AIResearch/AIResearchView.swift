@@ -180,7 +180,7 @@ struct AIResearchView: View {
             Text("Ask about training, nutrition, recovery, or a compound you track.")
                 .font(AppFont.title2)
                 .foregroundStyle(AppColor.textPrimary)
-            Text("Mention a compound by name and the assistant will pull half-life, dosage range, mechanism, and citations from your bundled database before answering.")
+            Text("Mention a compound by name and the assistant will pull half-life, dosage range, mechanism, and citations from Atlas's compound library before answering.")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
 
