@@ -100,14 +100,20 @@ struct DailyPlanCard: View {
                     countBadge(
                         icon: "link",
                         count: plan.combinationCount,
-                        color: AppColor.accentPrimary
+                        color: AppColor.accentPrimary,
+                        accessibilityLabel: plan.combinationCount == 1
+                            ? "1 co-injection pairing"
+                            : "\(plan.combinationCount) co-injection pairings"
                     )
                 }
                 if plan.conflictCount > 0 {
                     countBadge(
                         icon: "exclamationmark.triangle.fill",
                         count: plan.conflictCount,
-                        color: AppColor.warning
+                        color: AppColor.warning,
+                        accessibilityLabel: plan.conflictCount == 1
+                            ? "1 timing conflict"
+                            : "\(plan.conflictCount) timing conflicts"
                     )
                 }
             }
@@ -118,7 +124,7 @@ struct DailyPlanCard: View {
         }
     }
 
-    private func countBadge(icon: String, count: Int, color: Color) -> some View {
+    private func countBadge(icon: String, count: Int, color: Color, accessibilityLabel: String) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
                 .font(AppFont.badgeSmall)
@@ -129,6 +135,8 @@ struct DailyPlanCard: View {
         .padding(.horizontal, Spacing.sm)
         .padding(.vertical, 3)
         .background { Capsule().fill(color.opacity(0.15)) }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
     }
 
     // MARK: - Empty state
@@ -197,6 +205,7 @@ struct DailyPlanCard: View {
                 .padding(.horizontal, Spacing.sm)
                 .padding(.vertical, 2)
                 .background { Capsule().fill(AppColor.surfaceElevated) }
+                .accessibilityLabel(count == 1 ? "1 dose" : "\(count) doses")
         }
     }
 }
