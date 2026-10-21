@@ -89,6 +89,9 @@ struct AIResearchView: View {
                     }
                 }
                 Button("Dismiss", role: .cancel) {
+                    // The unanswered question left the transcript; hand it
+                    // back to the composer rather than losing it.
+                    if let prompt = lastFailedPrompt { input = prompt }
                     lastFailedPrompt = nil
                 }
             } message: {
@@ -301,34 +304,48 @@ struct AIResearchView: View {
                         transcript[idx].content.append(chunk)
                     }
                 }
+                // A cancelled stream ends the loop without throwing, so
+                // Stop must be told apart from an empty reply here.
+                if Task.isCancelled {
+                    removeIfUnanswered(userTurn, assistantTurn)
+                    return
+                }
                 // Empty stream (proxy returned 200 but nothing parseable)
                 // — surface a friendly error instead of leaving a blank
                 // bubble sitting in the transcript.
-                if let idx = transcript.lastIndex(where: { $0.id == assistantTurn.id }),
-                   transcript[idx].content.isEmpty {
-                    transcript.remove(at: idx)
+                if removeIfUnanswered(userTurn, assistantTurn) {
                     errorText = AIResearchService.ChatError.invalidResponse.errorDescription
                     lastFailedPrompt = prompt
                 }
             } catch is CancellationError {
-                // User fired a new question or closed the sheet — drop
-                // the partially-streamed placeholder silently, no alert.
-                if let idx = transcript.lastIndex(where: { $0.id == assistantTurn.id }),
-                   transcript[idx].content.isEmpty {
-                    transcript.remove(at: idx)
-                }
+                // User stopped, fired a new question or closed the sheet
+                // — drop the unanswered exchange silently, no alert.
+                removeIfUnanswered(userTurn, assistantTurn)
             } catch {
-                // Drop the empty placeholder before showing the alert so
-                // the user doesn't see a half-rendered assistant bubble.
-                if let idx = transcript.lastIndex(where: { $0.id == assistantTurn.id }),
-                   transcript[idx].content.isEmpty {
-                    transcript.remove(at: idx)
-                }
+                // Drop the unanswered exchange before showing the alert so
+                // the user doesn't see a half-rendered assistant bubble,
+                // and Retry doesn't stack a second copy of the question.
+                removeIfUnanswered(userTurn, assistantTurn)
                 errorText = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
                 lastFailedPrompt = prompt
                 Haptics.error()
             }
         }
+    }
+
+    /// Removes the question and its reply placeholder when no reply text
+    /// arrived, so no unanswered user turn lingers in the transcript or
+    /// in the history sent with the next question. Returns true if removed.
+    @discardableResult
+    private func removeIfUnanswered(
+        _ userTurn: AIResearchService.Turn,
+        _ assistantTurn: AIResearchService.Turn
+    ) -> Bool {
+        guard let idx = transcript.lastIndex(where: { $0.id == assistantTurn.id }),
+              transcript[idx].content.isEmpty
+        else { return false }
+        transcript.removeAll { $0.id == assistantTurn.id || $0.id == userTurn.id }
+        return true
     }
 
     private func sendIfConsented() {
