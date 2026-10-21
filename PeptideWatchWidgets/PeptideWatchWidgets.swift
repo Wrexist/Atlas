@@ -286,7 +286,7 @@ struct WatchAtlasRectangularView: View {
     let entry: WatchMomentumEntry
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Label("Atlas · \(entry.tier.capitalized)", systemImage: "bolt.fill")
+            Label("Atlas · \(WatchFormat.tierName(entry.tier))", systemImage: "bolt.fill")
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(WatchPalette.tier(entry.tier))
                 .labelStyle(.titleAndIcon)

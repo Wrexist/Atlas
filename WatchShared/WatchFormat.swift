@@ -8,6 +8,18 @@ enum WatchFormat {
             .formatted(.units(allowed: [.hours, .minutes], width: .narrow))
     }
 
+    /// Mirrors `MomentumEngine.Tier.name` for the raw tier the phone
+    /// sends; anything unknown reads as the entry tier, like its colour.
+    static func tierName(_ raw: String?) -> String {
+        switch raw {
+        case "silver": return String(localized: "Silver")
+        case "gold": return String(localized: "Gold")
+        case "platinum": return String(localized: "Platinum")
+        case "diamond": return String(localized: "Diamond")
+        default: return String(localized: "Bronze")
+        }
+    }
+
     /// Clock pattern for an elapsed workout: hours appear once there are any.
     static func elapsedPattern(seconds: Int) -> Duration.TimeFormatStyle.Pattern {
         seconds >= 3600 ? .hourMinuteSecond : .minuteSecond
