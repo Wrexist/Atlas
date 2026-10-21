@@ -221,8 +221,16 @@ struct TodayMacrosIntent: AppIntent {
         }
 
         let dialog: IntentDialog
-        if snapshot.calorieTarget > 0 {
-            let remaining = max(0, snapshot.calorieTarget - snapshot.calories)
+        if snapshot.calorieTarget > 0, snapshot.calories > snapshot.calorieTarget {
+            let over = snapshot.calories - snapshot.calorieTarget
+            dialog = IntentDialog(
+                LocalizedStringResource(
+                    "\(snapshot.calories) of \(snapshot.calorieTarget) calories. \(over) over your target. \(snapshot.protein) grams protein, \(snapshot.carbs) grams carbs, \(snapshot.fat) grams fat.",
+                    comment: "Siri readout — calorie totals past the target plus macro line."
+                )
+            )
+        } else if snapshot.calorieTarget > 0 {
+            let remaining = snapshot.calorieTarget - snapshot.calories
             dialog = IntentDialog(
                 LocalizedStringResource(
                     "\(snapshot.calories) of \(snapshot.calorieTarget) calories. \(remaining) remaining. \(snapshot.protein) grams protein, \(snapshot.carbs) grams carbs, \(snapshot.fat) grams fat.",
