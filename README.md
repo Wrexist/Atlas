@@ -35,9 +35,10 @@ PeptideWidgets/          iOS widgets (next dose, compliance ring,
                          nutrition, training) + Live Activities
 PeptideWatchWidgets/     watchOS complications (next dose, Atlas Score,
                          habits, Recovery, Sleep Score)
-WatchShared/             Watch palette + sleep-stage ring, compiled into
-                         both watch targets only
-Shared/                  WatchData, WidgetData, DoseWindowAttributes
+WatchShared/             Sleep-stage ring + watch formatting, compiled
+                         into both watch targets only
+Shared/                  WatchData, WidgetData, DoseWindowAttributes,
+                         WatchPalette (compiled into every target)
 server/                  Vercel proxy (Anthropic key holder)
 scripts/peptide-dataset/ Python pipeline that generates peptide JSON
 fastlane/                Beta lane → TestFlight

@@ -6,7 +6,7 @@
    so one source renders natively at every App Store Connect size
    (Ultra 3 422×514, Ultra 410×502, Series 11/10 416×496, Series 6
    368×448) without resampling.
-   Colours are WatchShared/WatchPalette.swift.
+   Colours are Shared/WatchPalette.swift.
    ============================================================ */
 :root{
   --pt: calc(100vw / 208);
