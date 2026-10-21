@@ -17,6 +17,7 @@ enum PaywallSource: String, CaseIterable, Identifiable, Sendable {
     case communityStack
     case profile
     case mealScanLimit
+    case labScan
     case deepLink
     case winBack
     case generic
@@ -34,6 +35,7 @@ enum PaywallSource: String, CaseIterable, Identifiable, Sendable {
         case .aiResearch:     return "Ask the AI research assistant"
         case .communityStack: return "Use this as your protocol"
         case .mealScanLimit:  return "Unlimited AI meal scans"
+        case .labScan:        return "Scan your lab reports"
         case .winBack:        return "Welcome back to Atlas Pro"
         case .profile, .deepLink, .generic: return nil
         }
@@ -50,6 +52,7 @@ enum PaywallSource: String, CaseIterable, Identifiable, Sendable {
         case .aiResearch:     return "Questions answered with cited research."
         case .communityStack: return "Add it to your protocols and track it like your own."
         case .mealScanLimit:  return "Log every meal from a photo or barcode."
+        case .labScan:        return "Photograph a blood test and review every marker before it's saved."
         case .winBack:        return "Pick up where you left off."
         case .profile, .deepLink, .generic: return nil
         }

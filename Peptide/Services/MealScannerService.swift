@@ -337,6 +337,19 @@ final class MealScannerService: Sendable {
         return endpoint?.deletingLastPathComponent().appendingPathComponent("food-scan")
     }
 
+    /// Posts to another route on the same proxy deployment (`lab-scan`),
+    /// with this service's secret, App Attest headers, retry and status
+    /// mapping, so a new vision route doesn't grow a second transport.
+    func post(_ payload: [String: Any], toSiblingRoute route: String) async throws -> Data {
+        try await post(payload, to: endpoint?.deletingLastPathComponent().appendingPathComponent(route))
+    }
+
+    /// The JPEG this service would upload for `image`: same edge, quality
+    /// ladder and byte budget as a meal photo.
+    func uploadJPEG(_ image: UIImage) throws -> Data {
+        try compress(image)
+    }
+
     /// Language and currency, so names come back in the user's language
     /// and prices in their money, plus the user's past corrections.
     private static func fields(_ corrections: [ScanCorrection]) -> [String: Any] {
