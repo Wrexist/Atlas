@@ -8,9 +8,11 @@ final class PeptideUITests: XCTestCase {
         super.setUp()
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-hasCompletedOnboarding", "YES"]
+        app.launchArguments = XCUIApplication.returningUserArguments
         app.launch()
     }
+
+    private static let tabs = ["Today", "Train", "Meals", "Biology", "Habits"]
 
     override func tearDown() {
         app = nil
@@ -22,8 +24,7 @@ final class PeptideUITests: XCTestCase {
     }
 
     func test_allTabsAreReachable() {
-        let tabs = ["Today", "Train", "Meals", "Biology", "Habits"]
-        for tab in tabs {
+        for tab in Self.tabs {
             app.tabBars.buttons[tab].tap()
             XCTAssertTrue(app.tabBars.buttons[tab].isSelected, "\(tab) tab should be selected")
         }
