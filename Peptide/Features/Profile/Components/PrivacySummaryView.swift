@@ -160,6 +160,11 @@ struct PrivacySummaryView: View {
             detail: "Atlas runs no server that stores your logs. AI features you invoke send only what they need — a meal photo, weekly averages — to answer your request."
         ),
         .init(
+            icon: "creditcard.fill",
+            title: "Subscriptions run through Apple.",
+            detail: "Apple handles payment. RevenueCat receives your purchase history under an anonymous ID — never your name, email, or health data — to keep Pro status in sync."
+        ),
+        .init(
             icon: "key.fill",
             title: "Sign in with Apple is optional.",
             detail: "If you sign in, your Apple-issued identifier and the name and email Apple shares are stored only on this device, in the iOS Keychain."
