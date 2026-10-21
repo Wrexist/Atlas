@@ -19,8 +19,6 @@ struct PrimaryCTAButton: View {
     var shape: Shape = .capsule
     var action: () -> Void
 
-    @Environment(\.isEnabled) private var isEnabled
-
     enum Shape {
         case capsule
         case rounded
@@ -39,6 +37,28 @@ struct PrimaryCTAButton: View {
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .primaryCTAChrome(shape: shape)
+        }
+        .buttonStyle(ScalePressStyle(pressedScale: 0.97))
+    }
+}
+
+extension View {
+    /// The painted fill, glow, hit target and disabled state of
+    /// `PrimaryCTAButton`, for a CTA whose label it can't express (the
+    /// paywall's two-line price button). Apply it to the button's label.
+    func primaryCTAChrome(shape: PrimaryCTAButton.Shape = .capsule) -> some View {
+        modifier(PrimaryCTAChrome(shape: shape))
+    }
+}
+
+private struct PrimaryCTAChrome: ViewModifier {
+    let shape: PrimaryCTAButton.Shape
+
+    @Environment(\.isEnabled) private var isEnabled
+
+    func body(content: Content) -> some View {
+        content
             .foregroundStyle(AppColor.onAccent)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, Spacing.md)
@@ -49,8 +69,6 @@ struct PrimaryCTAButton: View {
             // glyph — the elevation idiom the accent medallions use.
             .shadow(color: AppColor.accentGlow, radius: 14, y: 6)
             .opacity(isEnabled ? 1 : 0.4)
-        }
-        .buttonStyle(ScalePressStyle(pressedScale: 0.97))
     }
 
     @ViewBuilder

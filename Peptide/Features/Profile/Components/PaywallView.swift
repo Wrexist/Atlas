@@ -942,27 +942,12 @@ struct PaywallView: View {
                     }
                 }
             }
-            .foregroundStyle(AppColor.onAccent)
-            .frame(maxWidth: .infinity, minHeight: 40)
-            .padding(.vertical, Spacing.md)
-            .background {
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                AppColor.ctaGradientStart,
-                                AppColor.ctaGradientEnd,
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-            }
-            .shadow(color: AppColor.accentGlow, radius: 14, y: 6)
+            .primaryCTAChrome()
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.97))
-        .disabled(selectedProduct == nil || isPurchasing)
-        .opacity(selectedProduct == nil ? 0.5 : 1)
+        // Not disabled while purchasing: the action's guard already blocks a
+        // second tap, and the disabled dim would fade the spinner.
+        .disabled(selectedProduct == nil)
         .accessibilityLabel(ctaAccessibilityLabel)
     }
 
