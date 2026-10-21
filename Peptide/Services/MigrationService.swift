@@ -58,10 +58,13 @@ final class MigrationService {
             return
         }
 
-        // Decode succeeded for everything we expected. Now import.
+        // Decode succeeded for everything we expected. Now import —
+        // upserts only: rows another device's CloudKit import lands
+        // after the `hasAnyData` check must survive, and a bulk-replace
+        // save would delete them on every device.
         repo.beginSaveBatch()
-        if let protocols { repo.saveProtocols(protocols) }
-        if let entries   { repo.saveEntries(entries)     }
+        if let protocols { repo.upsertProtocols(protocols) }
+        if let entries   { repo.upsertEntries(entries)     }
         if let profile   { repo.saveProfile(profile)     }
 
         // Verify the import by reading it back — counts and identities,
@@ -92,6 +95,7 @@ final class MigrationService {
     /// Read-back verification of an import that just ran. Returns a
     /// diagnostic string on the first mismatch, nil when everything the
     /// source files carried is present in SwiftData with matching IDs.
+    /// Extra stored rows are fine: CloudKit may have synced them in.
     /// Internal (not private) so the mismatch branches are unit-testable
     /// without forcing a real partial import.
     func verificationFailure(
@@ -103,14 +107,14 @@ final class MigrationService {
         if let protocols {
             let stored = Set(repo.loadProtocols().map(\.id))
             let expected = Set(protocols.map(\.id))
-            if stored != expected {
+            if !expected.isSubset(of: stored) {
                 return "protocol IDs mismatch (\(stored.count)/\(expected.count))"
             }
         }
         if let entries {
             let stored = Set(repo.loadEntries().map(\.id))
             let expected = Set(entries.map(\.id))
-            if stored != expected {
+            if !expected.isSubset(of: stored) {
                 return "entry IDs mismatch (\(stored.count)/\(expected.count))"
             }
         }
