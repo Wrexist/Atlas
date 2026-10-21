@@ -56,7 +56,7 @@ struct WatchVitalsProvider: TimelineProvider {
                 .containerURL(forSecurityApplicationGroupIdentifier: AppGroup.identifier)?
                 .appendingPathComponent("watch_data.json"),
               let data = try? Data(contentsOf: url),
-              let watchData = try? Self.decoder.decode(WatchData.self, from: data)
+              let watchData = try? Self.decoder.decode(WatchData.self, from: data).forDisplay(at: .now)
         else { return WatchVitalsEntry(date: .now, vitals: nil) }
         return WatchVitalsEntry(date: .now, vitals: watchData.vitals)
     }

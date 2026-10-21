@@ -73,6 +73,14 @@ struct WatchVitalsSnapshot: Codable, Hashable, Sendable {
     let sleep: WatchSleepSnapshot?
     /// When the phone ran the HealthKit queries this snapshot came from.
     let measuredAt: Date
+
+    /// The same snapshot without its night, for one too old to pass as
+    /// last night's.
+    var withoutSleep: WatchVitalsSnapshot {
+        WatchVitalsSnapshot(recoveryScore: recoveryScore, restingHeartRate: restingHeartRate,
+                            restingHeartRateBaseline: restingHeartRateBaseline, hrv: hrv,
+                            hrvBaseline: hrvBaseline, sleep: nil, measuredAt: measuredAt)
+    }
 }
 
 /// Last night, split by stage. Sources that only record "asleep" (most
@@ -169,7 +177,7 @@ struct WatchData: Codable, Sendable {
     let measurementUnit: String?
     /// Recovery + sleep. Nil when Apple Health isn't connected on the
     /// phone; the Watch hides the Recovery and Sleep pages in that case.
-    let vitals: WatchVitalsSnapshot?
+    private(set) var vitals: WatchVitalsSnapshot?
     /// The workout in progress on the phone, or nil. Drives the Watch's
     /// Workout page and the live state of the Training complication.
     private(set) var workout: WatchWorkoutSnapshot?
@@ -284,14 +292,22 @@ struct WatchData: Codable, Sendable {
     /// push reaching the Watch, so it no longer counts as running.
     static let workoutStaleAfter: TimeInterval = 6 * 3600
 
+    /// A night that ended this long ago is no longer last night: the phone
+    /// only refreshes vitals when its app is opened.
+    static let sleepStaleAfter: TimeInterval = 30 * 3600
+
     /// The snapshot as it reads at `now`. One sent on an earlier day keeps
     /// its totals and targets but none of that day's progress, so the
     /// Watch never shows yesterday's doses (or lets them be tapped) after
-    /// midnight. A workout the phone stopped pushing hours ago is dropped.
+    /// midnight. A workout the phone stopped pushing hours ago is dropped,
+    /// and so is a night too old to show as last night.
     func forDisplay(at now: Date) -> WatchData {
         var copy = self
         if now.timeIntervalSince(lastUpdated) > Self.workoutStaleAfter {
             copy.workout = nil
+        }
+        if let sleep = vitals?.sleep, now.timeIntervalSince(sleep.end) > Self.sleepStaleAfter {
+            copy.vitals = vitals?.withoutSleep
         }
         guard !Calendar.current.isDate(lastUpdated, inSameDayAs: now) else { return copy }
         copy.todayEntries = []

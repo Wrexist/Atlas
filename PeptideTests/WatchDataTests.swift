@@ -142,6 +142,17 @@ final class WatchDataTests: XCTestCase {
         XCTAssertNil(data.forDisplay(at: now.addingTimeInterval(WatchData.workoutStaleAfter + 1)).workout)
     }
 
+    /// The phone refreshes vitals only when its app is opened, so a night
+    /// days old must not be shown as last night. Recovery stays.
+    func test_forDisplay_sleepEndedOverThirtyHoursAgo_dropsOnlyTheSleep() {
+        let data = fullDay()
+        XCTAssertNotNil(data.forDisplay(at: now.addingTimeInterval(WatchData.sleepStaleAfter - 60)).vitals?.sleep)
+        let shown = data.forDisplay(at: now.addingTimeInterval(WatchData.sleepStaleAfter + 60))
+        XCTAssertNil(shown.vitals?.sleep)
+        XCTAssertEqual(shown.vitals?.recoveryScore, 82)
+        XCTAssertEqual(shown.vitals?.measuredAt, now)
+    }
+
     /// The phone stamps each workout push so the Watch can tell it from an
     /// older one; the Watch's optimistic copy keeps the push's date.
     func test_replacingWorkout_stampsOnlyWhenGivenADate() {
