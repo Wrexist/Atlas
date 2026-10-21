@@ -9,10 +9,12 @@ struct MetricReadout: View {
     let tint: Color
     let accessibilityText: String
 
+    @ScaledMetric(relativeTo: .largeTitle) private var size = 44
+
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 3) {
             RollingNumber(value: value)
-                .font(.system(size: 44, weight: .semibold, design: .rounded))
+                .font(.system(size: size, weight: .semibold, design: .rounded))
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
             Text(unit)

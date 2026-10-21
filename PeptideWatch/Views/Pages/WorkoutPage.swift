@@ -80,6 +80,7 @@ private struct WorkoutClockRow: View {
             .foregroundStyle(workout.isPaused ? Color.secondary : Color.primary)
             Spacer(minLength: 4)
             Text("\(workout.completedSets)/\(workout.totalSets) sets")
+                .accessibilityLabel("\(workout.completedSets) of \(workout.totalSets) sets")
                 .font(.system(.footnote, design: .rounded, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(WatchPalette.training)
@@ -194,6 +195,7 @@ private struct SetLogger: View {
                 isHapticFeedbackEnabled: true
             )
             .onTapGesture { toggleFocus(.weight) }
+            .accessibilityElement(children: .ignore)
             .accessibilityLabel("Weight")
             .accessibilityValue("\(unit.format(weightKg)) \(unit.symbol)")
             .accessibilityAdjustableAction { direction in
@@ -217,6 +219,7 @@ private struct SetLogger: View {
                 isHapticFeedbackEnabled: true
             )
             .onTapGesture { toggleFocus(.reps) }
+            .accessibilityElement(children: .ignore)
             .accessibilityLabel("Reps")
             .accessibilityValue("\(Int(reps.rounded()))")
             .accessibilityAdjustableAction { direction in
@@ -277,6 +280,8 @@ private struct RestCard: View {
     let upNext: (exercise: WatchWorkoutSnapshot.Exercise, set: WatchWorkoutSnapshot.SetRow)?
     let unit: WatchWeightUnit
 
+    @ScaledMetric(relativeTo: .largeTitle) private var countdownSize = 40
+
     private var interval: ClosedRange<Date> {
         rest.endsAt.addingTimeInterval(-max(rest.totalSeconds, 1))...rest.endsAt
     }
@@ -289,8 +294,10 @@ private struct RestCard: View {
                     .tracking(0.8)
                     .foregroundStyle(WatchPalette.training)
                 Text(timerInterval: interval, countsDown: true)
-                    .font(.system(size: 40, weight: .semibold, design: .rounded))
+                    .font(.system(size: countdownSize, weight: .semibold, design: .rounded))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
                     .multilineTextAlignment(.center)
                 ProgressView(timerInterval: interval, countsDown: true) {
                     EmptyView()
@@ -403,6 +410,7 @@ struct WorkoutExerciseList: View {
                                 .font(.system(.body, design: .rounded))
                                 .lineLimit(2)
                             Text("\(exercise.completedWorkingSets)/\(exercise.workingSets.count) sets")
+                                .accessibilityLabel("\(exercise.completedWorkingSets) of \(exercise.workingSets.count) sets")
                                 .font(.caption2)
                                 .monospacedDigit()
                                 .foregroundStyle(.secondary)

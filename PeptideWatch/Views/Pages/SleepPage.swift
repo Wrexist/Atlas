@@ -10,6 +10,7 @@ struct SleepPage: View {
 
     @Environment(\.watchPageIsActive) private var isActive
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .largeTitle) private var scoreSize = 34
 
     private var nightDates: String {
         (sleep.start..<max(sleep.end, sleep.start))
@@ -65,9 +66,11 @@ struct SleepPage: View {
                 Image(systemName: "moon.stars.fill")
                     .font(.caption2)
                     .foregroundStyle(WatchPalette.sleepAccent)
-                    .symbolEffect(.pulse, options: .repeating.speed(0.3))
+                    .symbolEffect(.pulse, options: .repeating.speed(0.3), isActive: isActive && !reduceMotion)
                 RollingNumber(value: sleep.score)
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .font(.system(size: scoreSize, weight: .bold, design: .rounded))
+                    .minimumScaleFactor(0.6)
+                    .lineLimit(1)
             }
         }
         .frame(width: 104, height: 104)

@@ -5,6 +5,8 @@ import SwiftUI
 /// in the user's tier colour.
 struct TodayPage: View {
     @EnvironmentObject private var store: WatchStore
+    @Environment(\.watchPageIsActive) private var isActive
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private struct Ring: Identifiable {
         let id: String
@@ -75,7 +77,7 @@ struct TodayPage: View {
             let tint = WatchPalette.tier(data.atlasTier)
             HStack(spacing: 5) {
                 Image(systemName: "sparkles")
-                    .symbolEffect(.pulse, options: .repeating.speed(0.4))
+                    .symbolEffect(.pulse, options: .repeating.speed(0.4), isActive: isActive && !reduceMotion)
                 RollingNumber(value: score)
                 if let level = data.atlasLevel {
                     Text("Lv \(level)")
@@ -93,8 +95,16 @@ struct TodayPage: View {
             .padding(.vertical, 5)
             .background(Capsule().fill(tint.opacity(0.16)))
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Atlas Score \(score)")
+            .accessibilityLabel(spokenScore(score, level: data.atlasLevel, earned: data.atlasTodayEarned))
         }
+    }
+
+    /// Everything the capsule shows, not just the score.
+    private func spokenScore(_ score: Int, level: Int?, earned: Int?) -> String {
+        var parts = [String(localized: "Atlas Score \(score)")]
+        if let level { parts.append(String(localized: "level \(level)")) }
+        if let earned, earned > 0 { parts.append(String(localized: "\(earned) points today")) }
+        return parts.joined(separator: ", ")
     }
 
     private var emptyState: some View {
