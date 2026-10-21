@@ -18,7 +18,7 @@ struct NutritionPage: View {
 
     /// `spoken` is carried rather than derived: the metric amounts are
     /// the nearest whole ounce to a round millilitre figure, so deriving
-    /// it from `oz` would announce "237 millilitres" for "+250mL".
+    /// it from `oz` would announce "237 milliliters" for "+250mL".
     private struct WaterOption: Identifiable {
         let label: String
         let spoken: String
@@ -28,9 +28,9 @@ struct NutritionPage: View {
 
     private var waterOptions: [WaterOption] {
         isMetric
-            ? [.init(label: "+250mL", spoken: String(localized: "Log 250 millilitres of water"), oz: 8),
-               .init(label: "+500mL", spoken: String(localized: "Log 500 millilitres of water"), oz: 17),
-               .init(label: "+1L", spoken: String(localized: "Log 1 litre of water"), oz: 34)]
+            ? [.init(label: "+250mL", spoken: String(localized: "Log 250 milliliters of water"), oz: 8),
+               .init(label: "+500mL", spoken: String(localized: "Log 500 milliliters of water"), oz: 17),
+               .init(label: "+1L", spoken: String(localized: "Log 1 liter of water"), oz: 34)]
             : [.init(label: "+8oz", spoken: String(localized: "Log 8 ounces of water"), oz: 8),
                .init(label: "+16oz", spoken: String(localized: "Log 16 ounces of water"), oz: 16),
                .init(label: "+32oz", spoken: String(localized: "Log 32 ounces of water"), oz: 32)]

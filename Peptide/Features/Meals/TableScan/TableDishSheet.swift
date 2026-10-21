@@ -80,7 +80,7 @@ struct TableDishSheet: View {
                             .symbolEffect(.bounce, value: draft.isFavorite)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Favourite")
+                    .accessibilityLabel("Favorite")
                     .accessibilityAddTraits(draft.isFavorite ? .isSelected : [])
                 }
 

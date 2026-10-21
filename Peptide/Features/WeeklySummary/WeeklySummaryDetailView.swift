@@ -177,7 +177,7 @@ struct WeeklySummaryDetailView: View {
 
     private var metadataText: String {
         let kindLabel = summary.kind == .ai
-            ? String(localized: "Personalised by AI")
+            ? String(localized: "Personalized by AI")
             : String(localized: "Offline summary — try refreshing")
         let generated = summary.generatedAt.formatted(date: .abbreviated, time: .shortened)
         return "\(kindLabel) · \(generated)"

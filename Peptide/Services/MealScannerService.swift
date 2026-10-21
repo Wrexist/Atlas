@@ -87,7 +87,7 @@ final class MealScannerService: Sendable {
             case .parseFailure:         "Couldn't read the meal estimate from the scanner."
             case .implausibleResult:    "The scanner returned values outside a realistic range — try a clearer photo."
             case .noFoodDetected:       "No food found in that photo — point the camera at your meal and try again."
-            case .declined:             "The scanner couldn't analyse this one. Try a different photo or angle."
+            case .declined:             "The scanner couldn't analyze this one. Try a different photo or angle."
             case .routeMissing:         "Meal scanner returned HTTP 404."
             }
         }

@@ -169,8 +169,8 @@ struct HabitEditSheet: View {
                 .appAnimation(AppAnimation.springSnappy, value: iconSymbol)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Icon and colour")
-        .accessibilityHint("Opens the icon and colour pickers")
+        .accessibilityLabel("Icon and color")
+        .accessibilityHint("Opens the icon and color pickers")
     }
 
     private var nameField: some View {

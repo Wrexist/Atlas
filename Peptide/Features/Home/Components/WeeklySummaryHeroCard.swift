@@ -249,7 +249,7 @@ struct WeeklySummaryHeroCard: View {
                     HStack(spacing: 4) {
                         Image(systemName: "sparkles")
                             .font(AppFont.scaled(8, weight: .heavy))
-                        Text("Personalised by AI")
+                        Text("Personalized by AI")
                             .font(AppFont.scaled(11, weight: .semibold))
                     }
                     .foregroundStyle(accent.opacity(0.95))

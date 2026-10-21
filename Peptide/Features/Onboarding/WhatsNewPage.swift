@@ -252,7 +252,7 @@ extension WhatsNewPage {
             id: "v2_1_outro",
             eyebrow: "And more",
             title: "Plus everything from 2.0",
-            body: "All of the food library, Siri, Action Button, Spotlight, and Watch features from the 2.0 release are still here — just better organised.",
+            body: "All of the food library, Siri, Action Button, Spotlight, and Watch features from the 2.0 release are still here — just better organized.",
             icon: "checkmark.seal.fill",
             gradient: [
                 Color(red: 0.48, green: 0.50, blue: 0.92),

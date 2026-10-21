@@ -32,7 +32,7 @@ struct MealDescriptionSheet: View {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Analyse") { onAnalyse(String(trimmed.prefix(500))) }
+                    Button("Analyze") { onAnalyse(String(trimmed.prefix(500))) }
                         .disabled(trimmed.count < 2)
                 }
             }
