@@ -325,6 +325,9 @@ struct PeptideApp: App {
         Task { @MainActor in
             let store = StoreService.shared
             if store.products.isEmpty { await store.loadProducts() }
+            // `isProUser` may still be the cached launch value; resolve
+            // it before offering a trial to someone who already pays.
+            await store.checkProAccess()
             try? await Task.sleep(for: .seconds(1))
             let isTrialEligible = store.isEligibleForMonthlyTrial || store.isEligibleForAnnualTrial
             guard UpsellScheduler.isWinBackDue(isPro: store.isProUser, isTrialEligible: isTrialEligible),

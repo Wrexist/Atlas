@@ -36,10 +36,17 @@ final class StoreService {
     static let annualID = "com.peptidesai.app.pro.annual"
     static let lifetimeID = "com.peptidesai.app.pro.lifetime"
 
+    /// The last entitlement StoreKit resolved, so a subscriber launches as
+    /// Pro instead of seeing free gates and Pro deep links bounce to the
+    /// paywall until the async entitlement walk finishes. StoreKit still
+    /// corrects it on every walk.
+    static let lastKnownProKey = "storeService.lastKnownPro"
+
     @ObservationIgnored private var updateTask: Task<Void, Never>?
     @ObservationIgnored private var productsTask: Task<Void, Never>?
 
     private init() {
+        isProUser = UserDefaults.standard.bool(forKey: Self.lastKnownProKey)
         updateTask = Task { [weak self] in
             await self?.listenForTransactions()
         }
@@ -322,6 +329,7 @@ final class StoreService {
         let proIDs: Set<String> = [Self.monthlyID, Self.annualID, Self.lifetimeID]
         purchasedProductIDs = purchased
         isProUser = !purchased.isDisjoint(with: proIDs)
+        UserDefaults.standard.set(isProUser, forKey: Self.lastKnownProKey)
         await refreshTrialEligibility()
         await refreshBillingRetryState()
     }
