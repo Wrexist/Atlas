@@ -40,6 +40,9 @@ export default async function handler(req, res) {
     // size on a text route just lets a tampered client burn upstream
     // tokens.
     maxBodyBytes: 256 * 1024,
+    // The research chat never sends a photo; an image part here is a
+    // tampered client spending vision tokens on the text route.
+    shape: { maxImages: 0 },
   });
 }
 
