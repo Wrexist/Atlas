@@ -1103,6 +1103,7 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
     var replacementServingLabel: String?
     var replacedName: String?
     var replacedQuantityLabel: String?
+    var replacedBrand: String?
     var grams: Double
     /// The model's original portion estimate, offered as a one-tap
     /// "Serving" preset so the user can snap back to it.
@@ -1184,9 +1185,11 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
         originalPer100g = per100g
     }
 
+    /// The scanner priced its own guess, so a replacement food has none.
+    private var scanPrice: FoodPriceEstimate? { replacementSourceID == nil ? aiPrice : nil }
     /// The estimate rescaled to the amount currently dialled in.
-    var price: FoodPriceEstimate? { aiPrice?.scaled(by: grams / aiGrams) }
-    var pricePer100g: FoodPriceEstimate? { aiPrice?.scaled(by: 100 / aiGrams) }
+    var price: FoodPriceEstimate? { scanPrice?.scaled(by: grams / aiGrams) }
+    var pricePer100g: FoodPriceEstimate? { scanPrice?.scaled(by: 100 / aiGrams) }
 
     func withFreshIdentity() -> EditableFoodItem {
         var copy = self
@@ -1239,17 +1242,22 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
         replacementSourceID = nil
         replacementServingGrams = nil
         replacementServingLabel = nil
-        if let replacedName { name = replacedName }
+        if let replacedName {
+            name = replacedName
+            brand = replacedBrand
+        }
         if let replacedQuantityLabel { quantityLabel = replacedQuantityLabel }
         replacedName = nil
         replacedQuantityLabel = nil
+        replacedBrand = nil
         nutritionEdited = false
         savedToLibrary = false
     }
 
     mutating func replace(with product: ScannedProduct) {
-        if replacedName == nil { replacedName = name; replacedQuantityLabel = quantityLabel }
+        if replacedName == nil { replacedName = name; replacedQuantityLabel = quantityLabel; replacedBrand = brand }
         name = product.name
+        brand = product.brand
         per100g = product.per100g
         replacementSourceID = product.barcode
         replacementServingGrams = product.servingGrams
