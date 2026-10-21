@@ -58,6 +58,7 @@ struct GoalsSectionCard: View {
                                             )
                                     }
                             }
+                            .minimumHitArea()
                             .appAnimation(AppAnimation.springSnappy, value: isSelected)
                         }
                         .buttonStyle(ScalePressStyle(pressedScale: 0.95))
