@@ -25,7 +25,9 @@ struct SubscriptionSection: View {
                     Label("Subscription", systemImage: "crown.fill")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
-                    ProBadge()
+                    if storeService.isProUser {
+                        ProBadge()
+                    }
                     Spacer(minLength: 0)
                 }
 
@@ -147,11 +149,16 @@ struct SubscriptionSection: View {
 
     /// Lifetime buyers have nothing to renew, so they get a different line —
     /// showing them a renewal date they don't have was the App Store 3.1.2(a)
-    /// wording problem flagged in the audit.
+    /// wording problem flagged in the audit. Past the grace period, billing
+    /// retry has already removed Pro, so the caption says it is paused.
     private var planCaption: LocalizedStringKey {
-        storeService.hasLifetimeAccess
-            ? "You own Atlas Pro for life. Nothing renews and there's nothing to cancel."
-            : "Change plan, or cancel any time. Cancelling keeps Pro active until the end of the period you've paid for."
+        if storeService.hasLifetimeAccess {
+            return "You own Atlas Pro for life. Nothing renews and there's nothing to cancel."
+        }
+        if !storeService.isProUser {
+            return "Atlas Pro is paused until your payment goes through."
+        }
+        return "Change plan, or cancel any time. Cancelling keeps Pro active until the end of the period you've paid for."
     }
 }
 
