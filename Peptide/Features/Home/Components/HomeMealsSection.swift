@@ -280,9 +280,9 @@ struct HomeMealsSection: View {
     /// The newest table on the viewed day that still has a dish in the
     /// diary.
     private var latestTable: (moment: TableMoment, dishes: [TableDish])? {
-        let logged = Set(dataStore.mealEntries(for: selectedDay).map(\.id))
+        let entries = dataStore.mealEntries(for: selectedDay)
         for moment in TableMomentStore.shared.moments(on: selectedDay).reversed() {
-            let dishes = moment.dishes.filter { logged.contains($0.id) }
+            let dishes = moment.logged(in: entries)
             if !dishes.isEmpty { return (moment, dishes) }
         }
         return nil

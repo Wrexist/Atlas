@@ -36,11 +36,8 @@ struct PlateTableView: View {
         .overlay { TableSaveToast() }
     }
 
-    /// Dishes whose diary entry still exists. Deleting a meal from the
-    /// diary takes its plate off the table too.
     private func loggedDishes(of moment: TableMoment) -> [TableDish] {
-        let logged = Set(dataStore.mealEntries(for: moment.date).map(\.id))
-        return moment.dishes.filter { logged.contains($0.id) }
+        moment.logged(in: dataStore.mealEntries(for: moment.date))
     }
 
     private func content(_ moment: TableMoment, dishes: [TableDish]) -> some View {

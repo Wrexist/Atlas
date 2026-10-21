@@ -24,6 +24,20 @@ struct TableMoment: Codable, Hashable, Identifiable, Sendable {
 
     var calories: Int { dishes.reduce(0) { $0 + $1.calories } }
     var proteinG: Int { dishes.reduce(0) { $0 + $1.proteinG } }
+
+    /// The dishes still in the diary, carrying the diary's current name
+    /// and numbers: an edit in the meal log is what the table shows.
+    func logged(in entries: [MealEntry]) -> [TableDish] {
+        let byID = Dictionary(entries.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        return dishes.compactMap { dish in
+            guard let entry = byID[dish.id] else { return nil }
+            var current = dish
+            current.name = entry.name
+            current.calories = entry.calories
+            current.proteinG = entry.proteinG
+            return current
+        }
+    }
 }
 
 struct TableDish: Codable, Hashable, Identifiable, Sendable {

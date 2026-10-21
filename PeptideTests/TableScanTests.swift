@@ -197,6 +197,35 @@ final class TableScanTests: XCTestCase {
         XCTAssertTrue(TableMomentStore(directory: directory).moments.isEmpty)
     }
 
+    func test_logged_dropsDeletedDishes_andShowsDiaryEdits() {
+        let kept = UUID(), deleted = UUID()
+        let moment = TableMoment(date: Date(), category: .lunch, dishes: [
+            TableDish(id: kept, name: "Ramen", kind: .food, calories: 500, proteinG: 20),
+            TableDish(id: deleted, name: "Gyoza", kind: .food, calories: 300, proteinG: 12),
+        ])
+        let edited = MealEntry(id: kept, date: Date(), category: .lunch, name: "Tonkotsu ramen",
+                               calories: 650, proteinG: 30, carbsG: 70, fatG: 25, source: .photo)
+
+        let dishes = moment.logged(in: [edited])
+
+        XCTAssertEqual(dishes.map(\.id), [kept])
+        XCTAssertEqual(dishes.first?.name, "Tonkotsu ramen")
+        XCTAssertEqual(dishes.first?.calories, 650)
+        XCTAssertEqual(dishes.first?.proteinG, 30)
+    }
+
+    func test_removeDish_findsItsTable_andDropsTheEmptyTable() async throws {
+        let dataStore = DataStore(seedSampleData: false)
+        let store = TableMomentStore(directory: directory)
+        let date = Date()
+        let only = dish("Soup", date: date)
+        await store.keep(.init(date: date, category: .dinner, dishes: [only]), in: dataStore)
+
+        store.removeDish(id: only.entry.id)
+
+        XCTAssertTrue(store.moments.isEmpty)
+    }
+
     // MARK: - Fixtures
 
     private func insight(kind: FoodKind, title: String) -> ScanInsight {

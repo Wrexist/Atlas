@@ -1222,6 +1222,7 @@ final class DataStore {
         let mirroredToHealthKit = profile.healthKitNutritionEnabled
         LifestyleDataLogic.unlogMealEntry(from: &profile, id: id)
         save()
+        TableMomentStore.shared.removeDish(id: id)
         if mirroredToHealthKit {
             Task { await HealthKitService.shared.deleteSamples(forEntryID: id) }
         }

@@ -129,6 +129,13 @@ final class TableMomentStore {
         persist()
     }
 
+    /// Drops the plate whose diary entry was deleted, wherever it sits,
+    /// so its cut-out doesn't outlive the meal.
+    func removeDish(id: UUID) {
+        guard let moment = moments.first(where: { $0.dishes.contains { $0.id == id } }) else { return }
+        remove(dishID: id, from: moment.id)
+    }
+
     /// "Delete All Data" — cut-outs are photos of the user's meals and
     /// must not survive an erase.
     func deleteAll() {
