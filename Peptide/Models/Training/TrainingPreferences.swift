@@ -16,10 +16,19 @@ struct TrainingPreferences: Codable, Hashable, Sendable {
     /// exercise specifies one. 90s lines up with the literature
     /// midpoint for hypertrophy work.
     var restTimerDefault: Int
-    /// Plates the user owns (or has access to), in kilograms. Drives
-    /// the plate calculator's breakdown. Stored in kg even when the
-    /// user's display unit is lb — UI converts on read/write.
+    /// Kilo plates the user has access to. Drives the plate calculator
+    /// and the smallest barbell jump in `ProgressionEngine`. Read through
+    /// `plates(for:)`, which picks this or the pound set by display unit.
     var plateInventoryKg: [Double]
+    /// Pound plates, nil until edited (reads as the standard pound set).
+    /// A separate set rather than a conversion: a 45 lb plate is not a
+    /// round number of kilos, and gyms stock one system or the other.
+    var plateInventoryLb: [Double]?
+    /// Empty-bar weights the user changed, by `BarKind` raw value. One
+    /// map per unit for the same reason as the plates; an absent bar
+    /// reads as `BarKind.standardWeight(for:)`.
+    var barWeightsKg: [String: Double]?
+    var barWeightsLb: [String: Double]?
     /// When true, sessions that hit the routine's target reps on every
     /// set auto-bump the recommended working weight on the next
     /// occurrence of the exercise.
@@ -49,8 +58,31 @@ struct TrainingPreferences: Codable, Hashable, Sendable {
     }
 
     /// Plates that ship pre-selected for a typical commercial gym (kg).
-    /// The user can edit in Profile → Training preferences.
-    static let defaultPlatesKg: [Double] = [25, 20, 15, 10, 5, 2.5, 1.25]
+    /// The user can edit them in Profile → Training.
+    static let defaultPlatesKg: [Double] = PlateCalculatorEngine.kilogramPlates
+
+    /// Plates available in `unit`, in that unit.
+    func plates(for unit: MeasurementUnit) -> [Double] {
+        unit == .metric ? plateInventoryKg : (plateInventoryLb ?? PlateCalculatorEngine.poundPlates)
+    }
+
+    mutating func setPlates(_ plates: [Double], for unit: MeasurementUnit) {
+        if unit == .metric { plateInventoryKg = plates } else { plateInventoryLb = plates }
+    }
+
+    /// Empty weight of `bar`, in `unit`.
+    func barWeight(_ bar: BarKind, unit: MeasurementUnit) -> Double {
+        let custom = unit == .metric ? barWeightsKg : barWeightsLb
+        return custom?[bar.rawValue] ?? bar.standardWeight(for: unit)
+    }
+
+    mutating func setBarWeight(_ weight: Double, for bar: BarKind, unit: MeasurementUnit) {
+        if unit == .metric {
+            barWeightsKg = (barWeightsKg ?? [:]).merging([bar.rawValue: weight]) { _, new in new }
+        } else {
+            barWeightsLb = (barWeightsLb ?? [:]).merging([bar.rawValue: weight]) { _, new in new }
+        }
+    }
 }
 
 enum Weekday: String, Codable, CaseIterable, Identifiable, Sendable {

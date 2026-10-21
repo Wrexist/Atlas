@@ -430,11 +430,13 @@ final class WorkoutSessionService {
 
     private func progression(for id: String, targetReps target: Int?) -> ProgressionEngine.Suggestion? {
         let exercise = ExerciseLibrary.shared.lookup(id: id)
-        let unit = DataStore.current?.profile.bodyMetrics.unit ?? .metric
+        let profile = DataStore.current?.profile
+        let unit = profile?.bodyMetrics.unit ?? .metric
+        let plates = (profile?.trainingPreferences ?? TrainingPreferences()).plates(for: unit)
         return ProgressionEngine.suggestion(
             previous: previousSessionSets(forExerciseID: id),
             repRange: ProgressionEngine.repRange(targetReps: target, mechanic: exercise?.mechanic),
-            incrementKg: ProgressionEngine.incrementKg(for: exercise?.equipmentKind ?? .other, unit: unit)
+            incrementKg: ProgressionEngine.incrementKg(for: exercise?.equipmentKind ?? .other, unit: unit, plates: plates)
         )
     }
 

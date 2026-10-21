@@ -1412,18 +1412,18 @@ struct OnboardingView: View {
             ScrollView {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())],
                           spacing: Spacing.sm) {
-                    ForEach(EquipmentKind.allCases.filter { $0 != .other }) { equipmentCard($0) }
+                    ForEach(EquipmentKind.accessChoices) { equipmentCard($0) }
                 }
                 .padding(.horizontal, Spacing.lg)
                 .padding(.bottom, Spacing.xxxxl)
             }
         }
         .onAppear {
-            // `.other` has no card in the grid — if a re-hydrated
-            // profile carries it in the set, it can't be deselected
+            // `.other` and `.plate` have no card in the grid — if a
+            // re-hydrated profile carries one, it can't be deselected
             // and skews the "keep at least one selected" count. Strip
-            // it so the step only ever holds card-backed kinds.
-            equipment.remove(.other)
+            // them so the step only ever holds card-backed kinds.
+            equipment.formIntersection(EquipmentKind.accessChoices)
         }
     }
 
@@ -1456,8 +1456,7 @@ struct OnboardingView: View {
                 // so letting each icon set its own height made every card
                 // in the grid a different size — Barbell taller than
                 // Dumbbell beside it, and so on down the two columns.
-                Image(systemName: kind.symbolName)
-                    .font(AppFont.scaled(24, weight: .semibold))
+                GlyphImage(glyph: kind.glyph, size: 24)
                     .foregroundStyle(selected ? AppColor.accentPrimary : AppColor.textSecondary)
                     .symbolEffect(.bounce, value: selected)
                     .frame(height: 32)

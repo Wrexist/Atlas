@@ -16,7 +16,7 @@ enum GlassChipStyle {
 /// "selected" trait, so every chip row behaves the same.
 struct GlassChip: View {
     private let title: LocalizedStringKey
-    private let icon: String?
+    private let glyph: AppGlyph?
     private let tint: Color
     private let style: GlassChipStyle
     private let isSelected: Bool
@@ -31,7 +31,24 @@ struct GlassChip: View {
         action: @escaping () -> Void
     ) {
         self.title = title
-        self.icon = icon
+        self.glyph = icon.map(AppGlyph.system)
+        self.tint = tint
+        self.style = style
+        self.isSelected = isSelected
+        self.action = action
+    }
+
+    /// For an icon that may be one of the app's own asset glyphs.
+    init(
+        _ title: LocalizedStringKey,
+        glyph: AppGlyph,
+        tint: Color = AppColor.accentPrimary,
+        style: GlassChipStyle = .glass,
+        isSelected: Bool,
+        action: @escaping () -> Void
+    ) {
+        self.title = title
+        self.glyph = glyph
         self.tint = tint
         self.style = style
         self.isSelected = isSelected
@@ -44,9 +61,8 @@ struct GlassChip: View {
             action()
         } label: {
             HStack(spacing: Spacing.xs) {
-                if let icon {
-                    Image(systemName: icon)
-                        .font(AppFont.scaled(11, weight: .semibold))
+                if let glyph {
+                    GlyphImage(glyph: glyph)
                         .accessibilityHidden(true)
                 }
                 Text(title)

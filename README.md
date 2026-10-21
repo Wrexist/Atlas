@@ -81,6 +81,11 @@ there being exactly one primitive to reach for:
   for a size the ramp doesn't cover. `Font.system(size:)` ignores the
   content-size category outright, so anything set that way is invisible to
   Dynamic Type. Sizes above 24pt are display glyphs and stay fixed.
+- **Icons** — SF Symbols first. Where none reads right (gym equipment), draw
+  a template SVG on a 24pt grid with a 2pt round stroke into
+  `Assets.xcassets/Equipment` and refer to it as `AppGlyph.asset`;
+  `GlyphImage` sizes either kind of glyph like `AppFont.scaled` would, so
+  both tint and scale the same.
 - **Glass** — `glassSurface(cornerRadius:tinted:)` for cards,
   `glassControl(_:tint:border:)` for controls. Both render the real iOS 26
   material *or* the legacy translucent recipe, never both stacked. Keep

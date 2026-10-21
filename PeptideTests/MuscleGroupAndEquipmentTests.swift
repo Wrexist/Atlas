@@ -116,9 +116,26 @@ final class MuscleGroupAndEquipmentTests: XCTestCase {
 
     // MARK: - EquipmentKind.fromRaw
 
-    func test_equipmentKind_fromRaw_mapsBarbellSynonyms() {
-        XCTAssertEqual(EquipmentKind.fromRaw("barbell"),     .barbell)
-        XCTAssertEqual(EquipmentKind.fromRaw("e-z curl bar"), .barbell)
+    func test_equipmentKind_fromRaw_mapsDatasetStrings() {
+        XCTAssertEqual(EquipmentKind.fromRaw("barbell"),       .barbell)
+        XCTAssertEqual(EquipmentKind.fromRaw("e-z curl bar"),  .ezBar)
+        XCTAssertEqual(EquipmentKind.fromRaw("kettlebells"),   .kettlebell)
+        XCTAssertEqual(EquipmentKind.fromRaw("foam roll"),     .foamRoller)
+        XCTAssertEqual(EquipmentKind.fromRaw("medicine ball"), .medicineBall)
+        XCTAssertEqual(EquipmentKind.fromRaw("exercise ball"), .swissBall)
+    }
+
+    func test_equipmentKind_fromRaw_roundTripsEveryRawValue() {
+        // Custom exercises store `rawValue`; it has to read back as itself.
+        for kind in EquipmentKind.allCases {
+            XCTAssertEqual(EquipmentKind.fromRaw(kind.rawValue), kind, "\(kind)")
+        }
+    }
+
+    func test_equipmentKind_rawValues_ofPersistedCasesAreStable() {
+        let persisted: [EquipmentKind] = [.barbell, .dumbbell, .kettlebell, .cable, .machine, .smith, .band, .bodyweight, .other]
+        XCTAssertEqual(persisted.map(\.rawValue),
+                       ["barbell", "dumbbell", "kettlebell", "cable", "machine", "smith", "band", "bodyweight", "other"])
     }
 
     func test_equipmentKind_fromRaw_mapsBodyweightSynonyms() {
@@ -129,8 +146,8 @@ final class MuscleGroupAndEquipmentTests: XCTestCase {
     }
 
     func test_equipmentKind_fromRaw_unknownIsOther() {
-        XCTAssertEqual(EquipmentKind.fromRaw("foam roll"),     .other)
-        XCTAssertEqual(EquipmentKind.fromRaw("medicine ball"), .other)
+        XCTAssertEqual(EquipmentKind.fromRaw("other"),     .other)
+        XCTAssertEqual(EquipmentKind.fromRaw("tire"),      .other)
     }
 
     func test_equipmentKind_fromRaw_isCaseInsensitive() {

@@ -106,6 +106,13 @@ struct SetEntry: Codable, Hashable, Identifiable, Sendable {
         measurement == nil || measurement?.kind == .repetitions || measurement?.kind == .bodyweight
     }
 
+    /// True when `weightKg` is everything on the bar, so the plate
+    /// calculator can split it — not a per-side or per-hand figure.
+    var isWholeBarLoad: Bool {
+        guard let measurement else { return true }
+        return measurement.kind == .repetitions && (measurement.load == .recorded || measurement.load == .total)
+    }
+
     var externalVolumeKg: Double? {
         guard completed, !isWarmup, weightKg.isFinite, weightKg > 0, reps > 0,
               measurement == nil || measurement?.kind == .repetitions || measurement?.kind == .bodyweight

@@ -61,6 +61,12 @@ struct WorkoutExerciseEntry: Codable, Hashable, Identifiable, Sendable {
     var topEstimatedOneRepMaxKg: Double? {
         sets.compactMap(\.estimatedOneRepMaxKg).max()
     }
+
+    /// The set the lifter loads the bar for next: the first unchecked
+    /// one, or the last set once all are done.
+    var setToLoad: SetEntry? {
+        sets.first { !$0.completed } ?? sets.last
+    }
 }
 
 /// One workout — the canonical unit of training. Created when the user

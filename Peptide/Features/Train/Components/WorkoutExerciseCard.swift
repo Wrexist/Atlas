@@ -36,6 +36,19 @@ struct WorkoutExerciseCard: View {
 
     private var displayName: String { exercise?.name ?? entry.exerciseID }
 
+    /// The bar to show plates for. Only when a set's weight is the whole
+    /// bar — a per-side or per-hand entry isn't what goes on the scale.
+    private var plateLoadedBar: BarKind? {
+        guard entry.setToLoad?.isWholeBarLoad ?? false else { return nil }
+        return exercise?.equipmentKind.bar
+    }
+
+    /// The next set's weight in the display unit, to open the calculator on.
+    private var calculatorTarget: Double? {
+        guard plateLoadedBar != nil, let weightKg = entry.setToLoad?.weightKg, weightKg > 0 else { return nil }
+        return (unit.weightForDisplay(weightKg) * 100).rounded() / 100
+    }
+
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -49,6 +62,9 @@ struct WorkoutExerciseCard: View {
                     )
                 }
                 setsList
+                if let bar = plateLoadedBar, let set = entry.setToLoad {
+                    PlateLoadStrip(weightKg: set.weightKg, unit: unit, bar: bar)
+                }
                 addSetButton
             }
         }
@@ -109,7 +125,10 @@ struct WorkoutExerciseCard: View {
             .accessibilityLabel("Exercise options")
         }
         .sheet(isPresented: $showingPlateCalculator) {
-            PlateCalculatorSheet()
+            PlateCalculatorSheet(
+                initialTarget: calculatorTarget,
+                bar: exercise?.equipmentKind.bar ?? .olympic
+            )
         }
         .confirmationDialog(
             "Remove \(displayName)?",

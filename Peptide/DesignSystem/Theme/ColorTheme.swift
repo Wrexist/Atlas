@@ -53,6 +53,19 @@ enum AppColor {
     static let trainingPrimaryMuscle = Color(light: 0xB84813, dark: 0xFFAC73)
     static let trainingSecondaryMuscle = Color(light: 0x2465DF, dark: 0x80ADFF)
 
+    // MARK: - Bar plates
+
+    // Competition plate bands (25 red, 20 blue, 15 yellow, 10 green,
+    // 5 white, change plates grey), muted a step so a loaded bar sits on
+    // the training panels without shouting. "White" stays a light grey in
+    // light mode so it still reads against the panel.
+    static let plateRed = Color(light: 0xC2413B, dark: 0xE0605A)
+    static let plateBlue = Color(light: 0x2F63C0, dark: 0x5B8FE6)
+    static let plateYellow = Color(light: 0xC99A12, dark: 0xE8C04A)
+    static let plateGreen = Color(light: 0x2F8A4E, dark: 0x5CBF7C)
+    static let plateWhite = Color(light: 0xC9CED6, dark: 0xE4E7EC)
+    static let plateGrey = Color(light: 0x7D848E, dark: 0x8A919B)
+
     // MARK: - Brand accents
 
     static var accentPrimary: Color { ThemeManager.shared.theme.primary }

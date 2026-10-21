@@ -24,9 +24,9 @@ final class PlateCalculatorEngineTests: XCTestCase {
 
     // MARK: - Defaults
 
-    func test_defaultBarWeight_isTwentyKilosOrFortyFivePounds() {
-        XCTAssertEqual(PlateCalculatorEngine.defaultBarWeight(for: .metric), 20)
-        XCTAssertEqual(PlateCalculatorEngine.defaultBarWeight(for: .imperial), 45)
+    func test_olympicBar_isTwentyKilosOrFortyFivePounds() {
+        XCTAssertEqual(BarKind.olympic.standardWeight(for: .metric), 20)
+        XCTAssertEqual(BarKind.olympic.standardWeight(for: .imperial), 45)
     }
 
     func test_defaultPlates_matchUnit() {
@@ -85,8 +85,8 @@ final class PlateCalculatorEngineTests: XCTestCase {
 
     // MARK: - Remainders
 
-    func test_unloadableTarget_reportsRemainderAndNeverOvershoots() {
-        // 101 kg: 40.5 per side → 25 + 15 = 40, leaving 0.5 per side.
+    func test_unloadableTarget_nearerLoadUnder_reportsPositiveRemainder() {
+        // 101 kg: 100 is 1 under, the next load up (102.5) is 1.5 over.
         let result = loadout(101)
         XCTAssertEqual(result?.platesPerSide, [25, 15])
         XCTAssertEqual(result?.loadedTotal, 100)
@@ -94,11 +94,60 @@ final class PlateCalculatorEngineTests: XCTestCase {
         XCTAssertEqual(result?.isExact, false)
     }
 
-    func test_remainderBelowSmallestPlatePair_leavesBarOnly() {
+    func test_unloadableTarget_nearerLoadOver_roundsUpWithNegativeRemainder() {
+        // 22 kg: the empty bar is 2 under, a pair of 1.25s is 0.5 over.
         let result = loadout(22)
-        XCTAssertEqual(result?.platesPerSide, [])
+        XCTAssertEqual(result?.platesPerSide, [1.25])
+        XCTAssertEqual(result?.loadedTotal, 22.5)
+        XCTAssertEqual(result?.remainder, -0.5)
+        XCTAssertEqual(result?.isExact, false)
+    }
+
+    func test_unloadableTarget_tie_prefersTheLighterLoad() {
+        // 21.25 kg: 20 and 22.5 are both 1.25 away.
+        let result = loadout(21.25)
         XCTAssertEqual(result?.loadedTotal, 20)
+    }
+
+    func test_pounds_unloadableTarget_picksNearestFivePoundStep() {
+        // 137 lb: 135 is 2 under, 140 is 3 over.
+        let result = loadout(137, bar: 45, plates: PlateCalculatorEngine.poundPlates)
+        XCTAssertEqual(result?.platesPerSide, [45])
+        XCTAssertEqual(result?.loadedTotal, 135)
         XCTAssertEqual(result?.remainder, 2)
+    }
+
+    func test_limitedPlates_loadsOnlyThoseTheUserHas() {
+        // No 25s or 15s: 100 kg is 2 × 20 a side.
+        let result = loadout(100, plates: [20, 10, 5, 2.5])
+        XCTAssertEqual(result?.platesPerSide, [20, 20])
+        XCTAssertEqual(result?.isExact, true)
+    }
+
+    func test_oddPlateSet_exactLoadGreedyWouldMiss_isFound() {
+        // Only 25s and 20s: greedy takes a 25 and strands 15, but 20 + 20 fits.
+        let result = loadout(100, plates: [25, 20])
+        XCTAssertEqual(result?.platesPerSide, [20, 20])
+        XCTAssertEqual(result?.isExact, true)
+    }
+
+    func test_oddPlateSet_unloadableTarget_picksTheTrulyNearestLoad() {
+        // 85.1 kg with 25s and 20s: 70 is 15.1 under, 100 is 14.9 over.
+        let result = loadout(85.1, plates: [25, 20])
+        XCTAssertEqual(result?.platesPerSide, [20, 20])
+        XCTAssertEqual(result?.loadedTotal, 100)
+    }
+
+    func test_otherBars_useTheirOwnEmptyWeight() {
+        XCTAssertEqual(loadout(30, bar: BarKind.ezBar.standardWeight(for: .metric))?.platesPerSide, [10])
+        XCTAssertEqual(loadout(65, bar: BarKind.trapBar.standardWeight(for: .metric))?.platesPerSide, [20])
+        XCTAssertEqual(loadout(45, bar: BarKind.smith.standardWeight(for: .metric))?.platesPerSide, [15])
+    }
+
+    func test_counterbalancedBar_weighingZero_isLoadable() {
+        let result = loadout(50, bar: 0)
+        XCTAssertEqual(result?.platesPerSide, [25])
+        XCTAssertEqual(result?.isExact, true)
     }
 
     func test_oddHundredthSplit_roundsPerSideDown() {
@@ -140,7 +189,7 @@ final class PlateCalculatorEngineTests: XCTestCase {
         XCTAssertEqual(PlateCalculatorEngine.calculate(target: 0, barWeight: 20, plates: plates), .invalid)
         XCTAssertEqual(PlateCalculatorEngine.calculate(target: -60, barWeight: 20, plates: plates), .invalid)
         XCTAssertEqual(PlateCalculatorEngine.calculate(target: .nan, barWeight: 20, plates: plates), .invalid)
-        XCTAssertEqual(PlateCalculatorEngine.calculate(target: 60, barWeight: 0, plates: plates), .invalid)
+        XCTAssertEqual(PlateCalculatorEngine.calculate(target: 60, barWeight: -5, plates: plates), .invalid)
         XCTAssertEqual(PlateCalculatorEngine.calculate(target: 60, barWeight: .infinity, plates: plates), .invalid)
     }
 
@@ -149,6 +198,32 @@ final class PlateCalculatorEngineTests: XCTestCase {
             PlateCalculatorEngine.calculate(target: 1e300, barWeight: 20, plates: PlateCalculatorEngine.kilogramPlates),
             .invalid
         )
+    }
+
+    // MARK: - Smallest jump
+
+    func test_smallestJump_isAPairOfTheLightestPlate() {
+        XCTAssertEqual(PlateCalculatorEngine.smallestJump(plates: PlateCalculatorEngine.kilogramPlates), 2.5)
+        XCTAssertEqual(PlateCalculatorEngine.smallestJump(plates: [25, 20, 5]), 10)
+        XCTAssertEqual(PlateCalculatorEngine.smallestJump(plates: PlateCalculatorEngine.poundPlates), 5)
+    }
+
+    func test_smallestJump_withNoPlates_isNil() {
+        XCTAssertNil(PlateCalculatorEngine.smallestJump(plates: []))
+        XCTAssertNil(PlateCalculatorEngine.smallestJump(plates: [0, -5]))
+    }
+
+    // MARK: - Plate colours
+
+    func test_kiloPlates_takeCompetitionColours() {
+        let tones = PlateCalculatorEngine.kilogramPlates.map { PlateCalculatorEngine.tone(forPlate: $0, unit: .metric) }
+        XCTAssertEqual(tones, [.red, .blue, .yellow, .green, .white, .grey, .grey])
+    }
+
+    func test_poundPlates_takeTheirNearestKiloColour() {
+        let tones = PlateCalculatorEngine.poundPlates.map { PlateCalculatorEngine.tone(forPlate: $0, unit: .imperial) }
+        XCTAssertEqual(tones, [.blue, .yellow, .green, .white, .grey, .grey])
+        XCTAssertEqual(PlateCalculatorEngine.tone(forPlate: 55, unit: .imperial), .red)
     }
 
     func test_largeButPlausibleTarget_countsPlatesWithoutLooping() {

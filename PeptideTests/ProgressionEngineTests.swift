@@ -94,6 +94,27 @@ final class ProgressionEngineTests: XCTestCase {
         XCTAssertNil(ProgressionEngine.incrementKg(for: .band, unit: .metric))
     }
 
+    func test_barbellIncrement_withPlates_isAPairOfTheLightestPlate() {
+        XCTAssertEqual(ProgressionEngine.incrementKg(for: .barbell, unit: .metric, plates: [25, 20, 10, 5, 1.25]), 2.5)
+        XCTAssertEqual(ProgressionEngine.incrementKg(for: .smith, unit: .metric, plates: [25, 20, 10, 5]), 10)
+        XCTAssertEqual(ProgressionEngine.incrementKg(for: .trapBar, unit: .metric, plates: [20, 2.5]), 5)
+    }
+
+    func test_imperialBarbellIncrement_withPlates_convertsThePairToKilos() throws {
+        let increment = try XCTUnwrap(ProgressionEngine.incrementKg(for: .ezBar, unit: .imperial, plates: [45, 10, 5]))
+        XCTAssertEqual(MeasurementUnit.imperial.weightForDisplay(increment), 10, accuracy: 0.001)
+    }
+
+    func test_barbellIncrement_withNoPlates_fallsBackToTheStandardJump() {
+        XCTAssertEqual(ProgressionEngine.incrementKg(for: .barbell, unit: .metric, plates: []), 2.5)
+    }
+
+    func test_nonBarIncrement_ignoresPlates() {
+        XCTAssertEqual(ProgressionEngine.incrementKg(for: .machine, unit: .metric, plates: [25, 5]), 2.5)
+        XCTAssertEqual(ProgressionEngine.incrementKg(for: .dumbbell, unit: .metric, plates: [25, 5]), 2)
+        XCTAssertNil(ProgressionEngine.incrementKg(for: .medicineBall, unit: .metric, plates: [25, 5]))
+    }
+
     // MARK: - Apply
 
     func test_apply_fillsOnlyPendingWorkingSets() {

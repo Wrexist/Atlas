@@ -163,16 +163,17 @@ final class ExerciseLibrary {
         if let equipment = exercise.equipment, equipment.lowercased().contains(needle) {
             return true
         }
-        return false
+        return exercise.equipmentKind.displayName.lowercased().contains(needle)
     }
 
-    /// Returns exercises whose `equipmentKind` is in the user's
-    /// configured equipment access set. Used by the program
+    /// Returns exercises the user's configured equipment access covers
+    /// (`EquipmentKind.isAvailable(with:)` — a barbell covers EZ-bar
+    /// work, a machine gym covers the Smith machine). Used by the program
     /// recommendation engine and by the routine editor's "only show
     /// what I can actually do" toggle.
     func availableForEquipment(_ access: Set<EquipmentKind>) -> [Exercise] {
         guard !access.isEmpty else { return bundled + custom.map { $0.asExercise() } }
         return (bundled + custom.map { $0.asExercise() })
-            .filter { access.contains($0.equipmentKind) }
+            .filter { $0.equipmentKind.isAvailable(with: access) }
     }
 }
