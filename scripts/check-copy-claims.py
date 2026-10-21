@@ -141,6 +141,28 @@ def check_exercise_fixtures() -> list[str]:
     return failures
 
 
+# Copy the user reads verbatim from the compatibility knowledge base. The
+# noun for a combination is Protocol, never Stack, and "gold standard" is a
+# clinical claim the app cannot back.
+BANNED_COMPATIBILITY_WORDING = r"\bstack(?:s|ed|ing)?\b|\bgold standard\b"
+
+
+def check_compatibility_wording() -> list[str]:
+    path = REPO / "Peptide" / "Data" / "PeptideCompatibilityData.swift"
+    failures = []
+    for number, line in enumerate(path.read_text().splitlines(), start=1):
+        if line.lstrip().startswith("//"):
+            continue
+        for literal in re.findall(r'"((?:[^"\\]|\\.)*)"', line):
+            hit = re.search(BANNED_COMPATIBILITY_WORDING, literal, re.I)
+            if hit:
+                print(f"  FAIL {path.name}:{number}: user-facing copy says {hit.group(0)!r}")
+                failures.append(f"compatibility-wording:{number}")
+    if not failures:
+        print(f"  ok   {path.name} copy avoids 'stack' and 'gold standard'")
+    return failures
+
+
 def tier_for_level(level: int) -> str:
     """Mirror of MomentumEngine.Tier.forLevel, parsed from the source so it
     cannot drift from it."""
@@ -292,6 +314,7 @@ def main() -> int:
         print("  ok   Live Activities: declared and used")
 
     failures += check_exercise_fixtures()
+    failures += check_compatibility_wording()
 
     if failures:
         print(f"\n{len(failures)} copy claim(s) no longer match the source")
