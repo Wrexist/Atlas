@@ -231,7 +231,7 @@ struct PaywallView: View {
     private var headlineHero: String {
         guard let product = selectedProduct else { return String(localized: "Atlas Pro") }
         if let days = storeService.redeemableTrialDays(for: product) {
-            return String(localized: "\(days) days free")
+            return days == 1 ? String(localized: "1 day free") : String(localized: "\(days) days free")
         }
         return product.displayPrice
     }

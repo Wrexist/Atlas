@@ -107,7 +107,7 @@ struct AppearanceSettings: View {
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.warning)
             } else {
-                Text("\(notificationService.scheduledCount) reminders scheduled")
+                Text("^[\(notificationService.scheduledCount) reminder](inflect: true) scheduled")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textTertiary)
             }
