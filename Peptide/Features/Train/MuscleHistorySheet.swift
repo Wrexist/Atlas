@@ -79,8 +79,9 @@ struct MuscleHistorySheet: View {
         GlassCard {
             VStack(spacing: Spacing.sm) {
                 Image(systemName: "dumbbell")
-                    .font(.title2)
+                    .font(AppFont.title2)
                     .foregroundStyle(AppColor.textSecondary)
+                    .accessibilityHidden(true)
                 Text("No logged work for \(muscle.displayName.lowercased()) for this period.")
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)

@@ -32,8 +32,9 @@ struct ExerciseRow: View {
 
             if showsChevron {
                 Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary.opacity(0.6))
+                    .accessibilityHidden(true)
             }
         }
         .padding(.vertical, Spacing.xs)
