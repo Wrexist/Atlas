@@ -94,7 +94,7 @@ enum WorkoutRecapEngine {
             let primary = Array(Set(exercise?.primaryMuscles.map { $0.lowercased() } ?? [])).sorted()
             let supporting = Array(Set(exercise?.secondaryMuscles.map { $0.lowercased() } ?? [])
                 .subtracting(primary)).sorted()
-            let name = exercise?.name ?? entry.exerciseID.replacingOccurrences(of: "_", with: " ")
+            let name = exercise?.name ?? fallbackName(for: entry.exerciseID)
             let volumes = sets.compactMap { set -> Double? in
                 // Older cardio/stretching records have no timed/distance schema;
                 // retain the record but do not reinterpret reps as external work.
@@ -122,6 +122,15 @@ enum WorkoutRecapEngine {
                        workingSetCount: seenSets.count,
                        volumeKg: volumes.isEmpty ? nil : volumes.reduce(0, +),
                        excludedVolumeSets: excluded, missingMappings: missing, hasLegacyLoad: legacy)
+    }
+
+    /// Name for an exercise missing from the catalog. A bundled slug reads
+    /// fine with its underscores spaced out; a deleted custom exercise's id
+    /// is a UUID, so it gets a generic label instead.
+    private static func fallbackName(for exerciseID: String) -> String {
+        exerciseID.hasPrefix(CustomExercise.idPrefix)
+            ? String(localized: "Custom exercise")
+            : exerciseID.replacingOccurrences(of: "_", with: " ")
     }
 
     static func duration(of session: WorkoutSession) -> Duration {

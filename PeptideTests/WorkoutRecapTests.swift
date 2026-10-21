@@ -110,6 +110,13 @@ final class WorkoutRecapTests: XCTestCase {
         XCTAssertTrue(summary.muscles.isEmpty)
     }
 
+    func test_deletedCustomExercise_readsAsCustomExerciseNotItsID() {
+        let set = SetEntry(index: 1, weightKg: 20, reps: 10, completed: true)
+        let entry = WorkoutExerciseEntry(exerciseID: CustomExercise.idPrefix + UUID().uuidString, index: 0, sets: [set])
+        let summary = WorkoutRecapEngine.derive(WorkoutSession(finishedAt: Date(), exercises: [entry]), catalog: [:])
+        XCTAssertEqual(summary.entries.first?.name, "Custom exercise")
+    }
+
     func test_warmupOnlyUnfinishedAndTimedHaveNoInventedVolume() {
         var session = WorkoutRecapFixture.push()
         for e in session.exercises.indices {
