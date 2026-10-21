@@ -129,7 +129,7 @@ enum WidgetSnapshotBuilder {
             workoutsThisWeek: thisWeek.count,
             weeklySetCount: thisWeek.reduce(0) { $0 + $1.completedSetCount },
             weeklyVolumeKg: thisWeek.reduce(0) { $0 + $1.totalVolumeKg },
-            trainingDays: Set(thisWeek.map { calendar.startOfDay(for: $0.finishedAt ?? $0.startedAt) })
+            trainingDays: Set(thisWeek.map { midday(of: $0.finishedAt ?? $0.startedAt, in: calendar) })
                 .sorted()
         )
     }
@@ -141,8 +141,15 @@ enum WidgetSnapshotBuilder {
         var workoutsThisWeek: Int
         var weeklySetCount: Int
         var weeklyVolumeKg: Double
-        /// Start of each day this week with a finished session, oldest first.
+        /// Midday of each day this week with a finished session, oldest first.
         var trainingDays: [Date]
+    }
+
+    /// The widget matches training days by calendar day in whatever time
+    /// zone it is in. Midnight would slide to the previous evening after
+    /// a trip west; midday stays on its day for any offset up to 12 hours.
+    private static func midday(of date: Date, in calendar: Calendar) -> Date {
+        calendar.startOfDay(for: date).addingTimeInterval(12 * 60 * 60)
     }
 
     private static func summary(of session: WorkoutSession) -> WidgetWorkoutSummary {

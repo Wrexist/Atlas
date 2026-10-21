@@ -106,7 +106,16 @@ final class WidgetSnapshotTrainingTests: XCTestCase {
             session(startedAt: now.addingTimeInterval(-600), finishedAt: nil),
         ])
 
-        XCTAssertEqual(result.trainingDays, [monday, calendar.startOfDay(for: now)])
+        XCTAssertEqual(result.trainingDays, [monday, calendar.startOfDay(for: now)].map { $0.addingTimeInterval(12 * 3600) })
+    }
+
+    func test_trainingDays_readInATimeZoneWest_stayOnTheirDay() throws {
+        let result = snapshot([session(startedAt: now.addingTimeInterval(-3_600), finishedAt: now)])
+        var newYork = calendar
+        newYork.timeZone = try XCTUnwrap(TimeZone(secondsFromGMT: -5 * 3600))
+
+        let day = try XCTUnwrap(result.trainingDays.first)
+        XCTAssertEqual(newYork.component(.day, from: day), calendar.component(.day, from: now))
     }
 
     // MARK: - Last workout
@@ -326,7 +335,7 @@ final class WidgetSnapshotTrainingTests: XCTestCase {
         XCTAssertEqual(decoded?.lastWorkout?.volumeKg ?? 0, 500, accuracy: 0.001)
         XCTAssertEqual(decoded?.workoutsThisWeek, 1)
         XCTAssertEqual(decoded?.weightSuffix, "lb")
-        XCTAssertEqual(decoded?.trainingDaysThisWeek, [calendar.startOfDay(for: now)])
+        XCTAssertEqual(decoded?.trainingDaysThisWeek, [calendar.startOfDay(for: now).addingTimeInterval(12 * 3600)])
     }
 
     // MARK: - Nutrition targets
