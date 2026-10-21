@@ -100,8 +100,9 @@ struct ExerciseHistorySection: View {
         }
     }
 
+    /// Keeps the current visits on screen while refreshing; only the first
+    /// load shows the spinner.
     private func reload() {
-        loading = true
         failed = false
         let now = Date()
         guard let start = Calendar.current.date(byAdding: .day, value: -90, to: now) else {
