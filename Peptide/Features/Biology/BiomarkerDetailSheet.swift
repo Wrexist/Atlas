@@ -368,18 +368,13 @@ struct BiomarkerDetailSheet: View {
         // the temperature offset (°C→°F adds 32) cancels — the delta is a
         // true difference, not an inflated one.
         let delta = biomarker.displayValue(latest, for: unit) - biomarker.displayValue(avg, for: unit)
-        let absDelta = BiomarkerSeriesService.formatValue(abs(delta), for: biomarker)
-        let unitString = biomarker.displayUnit(for: unit) ?? ""
         if abs(delta) < 0.01 {
             return String(localized: "Right at your recent average.")
         }
-        let direction = delta > 0
-            ? String(localized: "above")
-            : String(localized: "below")
-        return String(
-            format: String(localized: "%@ %@ %@ your recent average."),
-            absDelta, unitString, direction
-        )
+        let amount = formattedWithUnit(abs(delta))
+        return delta > 0
+            ? String(localized: "\(amount) above your recent average.")
+            : String(localized: "\(amount) below your recent average.")
     }
 
     // MARK: - Footnote
