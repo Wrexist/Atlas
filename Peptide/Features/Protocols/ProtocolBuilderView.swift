@@ -41,11 +41,54 @@ struct ProtocolBuilderView: View {
     /// Fixed "now" for the preview so its identity (and the task keyed on
     /// it) doesn't change on every body pass.
     @State private var previewDate = Date()
+    /// The form as it stood after hydration, so Cancel and the swipe-down
+    /// only cost the user a prompt once they've actually entered something.
+    @State private var initialForm: FormSnapshot?
+    @State private var isConfirmingDiscard = false
 
     private let dayNames = ScheduleEditor.isoWeekdayNames
     private let totalSteps = 2
 
     private var isEditing: Bool { editingProtocol != nil }
+
+    private struct FormSnapshot: Equatable {
+        let name: String
+        let selectedPeptides: Set<UUID>
+        let cycleLengthWeeks: Int
+        let washoutWeeks: Int
+        let timesPerDay: Int
+        let notes: String
+        let selectedDays: Set<Int>
+        let cadenceMode: ScheduleCadenceMode
+        let intervalDays: Int
+        let intervalAnchor: Date
+        let preferredTimes: [String]
+        let peptideOverrides: [UUID: ProtocolSchedule]
+        let appendTargetProtocolId: UUID?
+    }
+
+    private var currentForm: FormSnapshot {
+        FormSnapshot(
+            name: name,
+            selectedPeptides: selectedPeptides,
+            cycleLengthWeeks: cycleLengthWeeks,
+            washoutWeeks: washoutWeeks,
+            timesPerDay: timesPerDay,
+            notes: notes,
+            selectedDays: selectedDays,
+            cadenceMode: cadenceMode,
+            intervalDays: intervalDays,
+            intervalAnchor: intervalAnchor,
+            preferredTimes: preferredTimes,
+            peptideOverrides: peptideOverrides,
+            appendTargetProtocolId: appendTargetProtocolId
+        )
+    }
+
+    private var hasUnsavedChanges: Bool {
+        guard let initialForm else { return false }
+        return currentForm != initialForm
+    }
 
     private var builderTitle: String {
         if isEditing { return "Edit Protocol" }
@@ -198,8 +241,14 @@ struct ProtocolBuilderView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     if currentStep == 0 {
-                        Button("Cancel") { dismiss() }
-                            .foregroundStyle(AppColor.textSecondary)
+                        Button("Cancel") {
+                            if hasUnsavedChanges {
+                                isConfirmingDiscard = true
+                            } else {
+                                dismiss()
+                            }
+                        }
+                        .foregroundStyle(AppColor.textSecondary)
                     } else {
                         Button {
                             Haptics.impact(.light)
@@ -247,6 +296,18 @@ struct ProtocolBuilderView: View {
                 if let proto = editingProtocol {
                     hydrate(from: proto)
                 }
+                initialForm = currentForm
+            }
+            .interactiveDismissDisabled(hasUnsavedChanges)
+            .confirmationDialog(
+                "Discard changes?",
+                isPresented: $isConfirmingDiscard,
+                titleVisibility: .visible
+            ) {
+                Button("Discard", role: .destructive) { dismiss() }
+                Button("Keep Editing", role: .cancel) {}
+            } message: {
+                Text("What you've entered for this protocol will be lost.")
             }
             .onChange(of: selectedPeptides) { _, newValue in
                 // Drop overrides for peptides that have been deselected.
