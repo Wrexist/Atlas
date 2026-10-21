@@ -64,8 +64,9 @@ final class PRDetectionEngine {
     }
 
     private static func loadRecordsByExercise() -> [String: PersonalRecord] {
-        Dictionary(uniqueKeysWithValues:
-            SwiftDataRepository.shared.loadPersonalRecords().map { ($0.exerciseID, $0) }
+        Dictionary(
+            SwiftDataRepository.shared.loadPersonalRecords().map { ($0.exerciseID, $0) },
+            uniquingKeysWith: { $0.merged(with: $1) }
         )
     }
 
