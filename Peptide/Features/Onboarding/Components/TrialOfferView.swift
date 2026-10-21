@@ -209,7 +209,7 @@ struct TrialOfferView: View {
     }
 
     private var headlineHero: String {
-        if let days = trialDays { return "\(days) Days Free" }
+        if let days = trialDays { return "\(days) days free" }
         guard arePricesLoaded else { return "Atlas Pro" }
         return selectedTier == .annual ? annualPrice : monthlyPrice
     }

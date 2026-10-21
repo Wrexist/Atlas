@@ -245,9 +245,9 @@ struct PaywallView: View {
         }
         let price = "\(product.displayPrice)\(periodSuffix(for: product))"
         if storeService.redeemableTrialDays(for: product) != nil {
-            return String(localized: "Then \(price). Cancel any time before it starts.")
+            return String(localized: "Then \(price). Cancel anytime before it starts.")
         }
-        return String(localized: "\(price) — cancel any time.")
+        return String(localized: "\(price) — cancel anytime.")
     }
 
     // MARK: - Trust line
@@ -983,7 +983,7 @@ struct PaywallView: View {
         if storeService.redeemableTrialDays(for: product) != nil {
             return String(localized: "\(zeroPrice(for: product)) today, then \(price)")
         }
-        return String(localized: "\(price) · cancel any time")
+        return String(localized: "\(price) · cancel anytime")
     }
 
     private var ctaAccessibilityLabel: String {

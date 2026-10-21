@@ -161,7 +161,7 @@ struct SubscriptionSection: View {
         if !storeService.isProUser {
             return "Atlas Pro is paused until your payment goes through."
         }
-        return "Change plan, or cancel any time. Cancelling keeps Pro active until the end of the period you've paid for."
+        return "Change plan, or cancel anytime. Cancelling keeps Pro active until the end of the period you've paid for."
     }
 }
 
