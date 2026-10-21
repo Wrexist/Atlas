@@ -126,7 +126,11 @@ struct HomeView: View {
     }
 
     private enum QuickLogAction: Identifiable {
-        case meal, dose
+        case meal
+        /// The next dose as it was when the menu row was tapped. Read
+        /// live, a store change while the sheet is open could swap the
+        /// sheet's entry and log the user's input against another dose.
+        case dose(ProtocolEntry?)
         var id: Int {
             switch self { case .meal: 0; case .dose: 1 }
         }
@@ -808,7 +812,7 @@ struct HomeView: View {
                 LogMealSheet(
                     nextDose: dataStore.nextDose,
                     onSnapMeal: { startQuickLog(.meal) },
-                    onLogNextDose: { startQuickLog(.dose) }
+                    onLogNextDose: { startQuickLog(.dose(dataStore.nextDose)) }
                 )
             }
             }   // closes ScrollViewReader
@@ -1044,8 +1048,8 @@ struct HomeView: View {
             MealScanFlow(onClose: { quickLogAction = nil })
                 .environment(dataStore)
                 .liquidGlassPresentation()
-        case .dose:
-            if let next = dataStore.nextDose {
+        case .dose(let next):
+            if let next {
                 DoseLoggingSheet(entry: next) { actualDose, actualTime, site, notes in
                     dataStore.logDose(
                         entryId: next.id,
@@ -1058,9 +1062,9 @@ struct HomeView: View {
                 }
                 .liquidGlassPresentation()
             } else {
-                // `nextDose` can go nil between the menu tap and the
-                // sheet mounting (e.g. logged on the Watch). Show a
-                // real "nothing to log" state, not a blank modal.
+                // `nextDose` was nil at the menu tap (e.g. just
+                // logged on the Watch). Show a real "nothing to log"
+                // state, not a blank modal.
                 EmptyStateView(
                     icon: "checkmark.circle",
                     title: "Nothing to log",
