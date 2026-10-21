@@ -32,12 +32,30 @@ enum PendingWorkoutActionStore {
         )
     }
 
-    /// Every queued tap, oldest first; clears the inbox.
+    /// A Complete set this soon after the last one on the same workout
+    /// is a double tap on a button that hadn't caught up yet.
+    static let doubleTapWindow: TimeInterval = 1.5
+
+    /// Every queued tap, oldest first, minus double-tapped Complete
+    /// sets; clears the inbox.
     static func drain(defaults: UserDefaults? = nil) -> [Pending] {
         let store = defaults ?? sharedDefaults
         let pending = read(store)
         if !pending.isEmpty { store.removeObject(forKey: inboxKey) }
-        return pending.sorted { $0.tappedAt < $1.tappedAt }
+        return withoutDoubleTaps(pending.sorted { $0.tappedAt < $1.tappedAt })
+    }
+
+    private static func withoutDoubleTaps(_ taps: [Pending]) -> [Pending] {
+        var kept: [Pending] = []
+        for tap in taps {
+            let previous = kept.last { $0.sessionId == tap.sessionId && $0.action == .completeSet }
+            if tap.action == .completeSet, let previous,
+               tap.tappedAt.timeIntervalSince(previous.tappedAt) < doubleTapWindow {
+                continue
+            }
+            kept.append(tap)
+        }
+        return kept
     }
 
     private static var sharedDefaults: UserDefaults {
@@ -55,9 +73,9 @@ import ActivityKit
 import AppIntents
 
 /// The "Skip rest" / "Complete set" button on the workout Live
-/// Activity. Queues the tap for the app, and ends a skipped rest on the
-/// activity straight away so the countdown doesn't linger until the app
-/// catches up.
+/// Activity. Queues the tap for the app, and applies it to the activity
+/// straight away so the countdown or the set count doesn't lag until
+/// the app catches up.
 @available(iOS 17.0, *)
 struct WorkoutActivityActionIntent: LiveActivityIntent {
     static let title: LocalizedStringResource = "Workout action"
@@ -84,13 +102,17 @@ struct WorkoutActivityActionIntent: LiveActivityIntent {
         }
         PendingWorkoutActionStore.enqueue(.init(sessionId: sessionId, action: action, tappedAt: Date()))
 
-        if action == .skipRest,
-           let activity = Activity<WorkoutActivityAttributes>.activities.first(where: {
-               $0.attributes.sessionId == sessionId
-           }) {
+        if let activity = Activity<WorkoutActivityAttributes>.activities.first(where: {
+            $0.attributes.sessionId == sessionId
+        }) {
             var state = activity.content.state
-            state.restEndsAt = nil
-            state.restTotalSeconds = 0
+            switch action {
+            case .skipRest:
+                state.restEndsAt = nil
+                state.restTotalSeconds = 0
+            case .completeSet:
+                state.completedSets += 1
+            }
             await activity.update(ActivityContent(state: state, staleDate: activity.content.staleDate))
         }
         return .result()
