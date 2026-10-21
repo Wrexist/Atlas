@@ -85,6 +85,12 @@ final class DataStore {
     @ObservationIgnored private var entriesNeedSave = false
     @ObservationIgnored private var profileNeedsSave = false
 
+    /// The profile as this device last read it from, or wrote it to, the
+    /// store. Saves pass it as the baseline so a column this device
+    /// didn't edit keeps whatever another device synced into it, rather
+    /// than being reverted by in-memory state that predates the import.
+    @ObservationIgnored private var persistedProfile: UserProfile?
+
     @ObservationIgnored private var _todayEntries: (version: Int, value: [ProtocolEntry])?
     @ObservationIgnored private var _currentStreak: (version: Int, value: Int)?
     @ObservationIgnored private var _totalDaysLogged: (version: Int, value: Int)?
@@ -173,6 +179,7 @@ final class DataStore {
             self.protocols = savedProtocols
             self.entries   = savedEntries
             self.profile   = savedProfile ?? .fresh
+            self.persistedProfile = savedProfile
             // Everything above came off disk and is already persisted.
             // A synthesised `.fresh` profile is the exception: there's no
             // row for it yet, so it stays dirty until the first save
@@ -197,6 +204,7 @@ final class DataStore {
             _ = WorkoutLogMigrationService.migrateIfNeeded(profile: &profile, repository: repo)
             if markerWasFalse && profile.workoutLegacyMigrationCompleted {
                 repo.saveProfile(profile)
+                persistedProfile = profile
             }
         } else if seedSampleData {
             // Tests/previews: seed mock data
@@ -690,9 +698,7 @@ final class DataStore {
             entry.protocolId == id && Calendar.current.isDateInToday(entry.date)
         }
         let toRemove = entries.filter(isToday)
-        let completedToday = toRemove.filter { entry in
-            entry.completed || entry.actualDose != nil || !entry.notes.isEmpty
-        }
+        let completedToday = toRemove.filter(\.isLogged)
         let preservedIds = Set(completedToday.map(\.id))
         pendingEntryDeletions.formUnion(toRemove.filter { !preservedIds.contains($0.id) }.map(\.id))
         // A preserved entry is being kept in `entries`; it must never be
@@ -1065,6 +1071,7 @@ final class DataStore {
 
     func deleteWeight(id: UUID) {
         let deleted = profile.weightHistory.first { $0.id == id }
+        repo.dismissHealthWeight(id: id)
         LifestyleDataLogic.deleteWeight(from: &profile, id: id)
         save()
         guard let deleted, HealthSyncSettings.isEnabled else { return }
@@ -1190,7 +1197,10 @@ final class DataStore {
             }
             changed.append(meal)
         }
-        if !isEphemeral { try repo.saveMealProfileDurably(candidate) }
+        if !isEphemeral {
+            try repo.saveMealProfileDurably(candidate, since: persistedProfile)
+            persistedProfile = candidate
+        }
         profile = candidate
         // Keep the established projection/achievement save path. It may save
         // other pending changes; the meals above already have durable storage.
@@ -1286,11 +1296,17 @@ final class DataStore {
 
     /// Takes in weigh-ins from a smart scale or another app for days
     /// Atlas has no weight, so the trend and checklist see them too.
+    /// They're kept on this device only — never synced to iCloud.
     func importHealthWeights() async {
         guard HealthSyncSettings.isEnabled else { return }
         let external = await HealthKitService.shared.externalWeights(days: HealthSyncEngine.importWindowDays)
-        let additions = HealthSyncEngine.weightsToImport(external, existing: profile.weightHistory)
+        let additions = HealthSyncEngine.weightsToImport(
+            external,
+            existing: profile.weightHistory,
+            dismissed: repo.dismissedHealthWeightIDs
+        )
         guard !additions.isEmpty else { return }
+        repo.recordHealthWeightImports(additions)
         profile.weightHistory = (profile.weightHistory + additions).sorted { $0.date < $1.date }
         save()
     }
@@ -2242,7 +2258,9 @@ final class DataStore {
             let older = self.repo.loadEntries(before: cutoff)
             guard !older.isEmpty, !Task.isCancelled, !self.isEphemeral else { return }
             let known = Set(self.entries.map(\.id))
-            let missing = older.filter { !known.contains($0.id) }
+            let missing = older.filter {
+                !known.contains($0.id) && !self.pendingProtocolDeletions.contains($0.protocolId)
+            }
             guard !missing.isEmpty else { return }
             // Append-only merge: the backfill by construction holds only
             // rows outside the in-memory window, so nothing the user
@@ -2292,11 +2310,25 @@ final class DataStore {
         if entriesNeedSave { repo.upsertEntries(entries) }
         for id in pendingProtocolDeletions {
             repo.deleteProtocol(id: id)
+            // Includes rows outside the in-memory window or synced in
+            // since the last load, which the explicit ids miss.
+            repo.deleteEntries(protocolId: id)
         }
         if !pendingEntryDeletions.isEmpty {
-            repo.deleteEntries(ids: pendingEntryDeletions)
+            // A regenerated dose reuses its slot's id; a row still in
+            // memory is never deleted.
+            let liveIDs = Set(entries.map(\.id))
+            repo.deleteEntries(ids: pendingEntryDeletions.subtracting(liveIDs))
         }
-        if profileNeedsSave { repo.saveProfile(profile) }
+        if profileNeedsSave {
+            if persistedProfile == nil, let stored = repo.loadProfile() {
+                // Launch found no profile row, but CloudKit has imported
+                // the account's since: merge this device's fresh profile
+                // into it instead of overwriting the user's history.
+                profile = ProfileMergeEngine.reconcile(profile, with: stored)
+            }
+            repo.saveProfile(profile, since: persistedProfile)
+        }
 
         // Surface a banner if any commit in this batch failed — a
         // disk-full / locked-store save would otherwise drop the
@@ -2319,6 +2351,7 @@ final class DataStore {
         protocolsNeedSave = false
         entriesNeedSave = false
         profileNeedsSave = false
+        persistedProfile = profile
         pendingProtocolDeletions.removeAll()
         pendingEntryDeletions.removeAll()
 
@@ -2659,7 +2692,9 @@ final class DataStore {
         if repo.entryCount() > entries.count {
             scheduleEntryBackfill(before: entryWindowStart)
         }
-        if let saved = repo.loadProfile() {
+        let saved = repo.loadProfile()
+        persistedProfile = saved
+        if let saved {
             profile = saved
             // Only clear the profile flag when a row actually replaced
             // it — otherwise an unsaved in-memory profile edit would be
@@ -2758,6 +2793,7 @@ final class DataStore {
         }
 
         repo.saveProfile(newProfile)
+        persistedProfile = newProfile
 
         // v2 training + custom-peptide payload. `nil` = the backup
         // predates these sections; leave the live stores untouched.
@@ -2858,7 +2894,9 @@ final class DataStore {
                     .addingTimeInterval(TimeInterval(hour * 3600 + minute * 60))
             }
             return ProtocolEntry(
-                id: UUID(),
+                id: ProtocolEntry.scheduledID(
+                    protocolId: proto.id, peptideId: peptide.id, date: entryDate, calendar: calendar
+                ),
                 protocolId: proto.id,
                 peptide: peptide,
                 date: entryDate,

@@ -369,7 +369,12 @@ final class StoredProfile {
         return stored
     }
 
-    func update(from profile: UserProfile) throws {
+    /// Writes `profile` into this row. `baseline` is the row as this
+    /// device last read or wrote it: a column whose new value still
+    /// matches it wasn't edited here, so it keeps whatever another
+    /// device synced into it meanwhile instead of being reverted by
+    /// stale in-memory state. Without a baseline every column is written.
+    func update(from profile: UserProfile, since baseline: StoredProfile? = nil) throws {
         // Assign only what actually changed. Every property assignment
         // marks its CloudKit record field dirty and ships it on the next
         // sync — and an untouched field is exactly what lets CloudKit
@@ -379,6 +384,7 @@ final class StoredProfile {
             _ keyPath: ReferenceWritableKeyPath<StoredProfile, T>, _ value: T
         ) {
             guard self[keyPath: keyPath] != value else { return }
+            if let baseline, baseline[keyPath: keyPath] == value { return }
             self[keyPath: keyPath] = value
             contentChanged = true
         }
@@ -393,7 +399,10 @@ final class StoredProfile {
         assign(\.avatarImageData, profile.avatarImageData)
         assign(\.bio, profile.bio.isEmpty ? nil : profile.bio)
         assign(\.primaryGoal, profile.primaryGoal)
-        assign(\.extensionData, try sdEncoder.encode(ProfileExtension.residual(of: profile)))
+        let residual = try sdEncoder.encode(ProfileExtension.residual(of: profile))
+        if !holdsUnreadable(ProfileExtension.self, at: \.extensionData, replacingWith: residual) {
+            assign(\.extensionData, residual)
+        }
         try writeSlices(from: profile, assign: { keyPath, value in
             assign(keyPath, value)
         })
@@ -401,37 +410,62 @@ final class StoredProfile {
         if contentChanged { updatedAt = Date() }
     }
 
-    /// Encodes each split feature area into its own column.
+    /// Encodes each split feature area into its own column. On the
+    /// update path a column this build can't read is left untouched.
     private func writeSlices(
         from profile: UserProfile,
         assign: ((ReferenceWritableKeyPath<StoredProfile, Data?>, Data?) -> Void)? = nil
     ) throws {
         let set: (ReferenceWritableKeyPath<StoredProfile, Data?>, Data?) -> Void =
             assign ?? { self[keyPath: $0] = $1 }
-        set(\.mealsData, try sdEncoder.encode(MealsSlice(
+        func write<T: Codable>(_ keyPath: ReferenceWritableKeyPath<StoredProfile, Data?>, _ slice: T) throws {
+            let data = try sdEncoder.encode(slice)
+            if assign != nil, holdsUnreadable(T.self, at: keyPath, replacingWith: data) { return }
+            set(keyPath, data)
+        }
+        try write(\.mealsData, MealsSlice(
             mealHistory: profile.mealHistory,
             dailyConsumption: profile.dailyConsumption
-        )))
-        set(\.habitsData, try sdEncoder.encode(HabitsSlice(
+        ))
+        try write(\.habitsData, HabitsSlice(
             habits: profile.habits,
             habitEntries: profile.habitEntries
-        )))
-        set(\.momentumData, try sdEncoder.encode(MomentumSlice(
+        ))
+        try write(\.momentumData, MomentumSlice(
             atlasScore: profile.atlasScore,
             atlasLevel: profile.atlasLevel,
             momentumAwardedToday: profile.momentumAwardedToday,
             lastMomentumAwardDay: profile.lastMomentumAwardDay,
             momentumHistory: profile.momentumHistory
-        )))
-        set(\.weightHistoryData, try sdEncoder.encode(profile.weightHistory))
-        set(\.labsData, try sdEncoder.encode(profile.labHistory))
-        set(\.outcomesData, try sdEncoder.encode(profile.outcomeHistory))
-        set(\.foodLibraryData, try sdEncoder.encode(FoodLibrarySlice(
+        ))
+        try write(\.weightHistoryData, profile.weightHistory)
+        try write(\.labsData, profile.labHistory)
+        try write(\.outcomesData, profile.outcomeHistory)
+        try write(\.foodLibraryData, FoodLibrarySlice(
             customFoods: profile.customFoods,
             favoriteFoodIDs: Array(profile.favoriteFoodIDs).sorted()
-        )))
+        ))
         // Never synced — see `summariesData`.
         set(\.summariesData, nil)
+    }
+
+    /// True when the column holds bytes this build can't decode as `T` —
+    /// corrupt, or written by a newer build with a case this one doesn't
+    /// know. Reads fall back to empty for such a column, so writing that
+    /// empty value back would wipe the data on every device; the column
+    /// stays as it is until a build that can read it saves.
+    private func holdsUnreadable<T: Decodable>(
+        _ type: T.Type,
+        at keyPath: KeyPath<StoredProfile, Data?>,
+        replacingWith data: Data
+    ) -> Bool {
+        guard let stored = self[keyPath: keyPath], stored != data,
+              (try? sdDecoder.decode(T.self, from: stored)) == nil
+        else { return false }
+        AppLog.swiftData.error(
+            "Profile column \(String(describing: T.self), privacy: .public) is unreadable by this build; leaving it untouched"
+        )
+        return true
     }
 
     /// Decodes an optional slice column, falling back to the legacy

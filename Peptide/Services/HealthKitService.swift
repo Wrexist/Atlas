@@ -379,7 +379,10 @@ final class HealthKitService {
             let ownBundleID = Bundle.main.bundleIdentifier
             return try await descriptor.result(for: store)
                 .filter { $0.sourceRevision.source.bundleIdentifier != ownBundleID }
-                .map { WeightEntry(date: $0.startDate, kg: $0.quantity.doubleValue(for: .gramUnit(with: .kilo))) }
+                .map {
+                    // The sample's own id, so a deleted import stays dismissed.
+                    WeightEntry(id: $0.uuid, date: $0.startDate, kg: $0.quantity.doubleValue(for: .gramUnit(with: .kilo)))
+                }
         } catch {
             AppLog.healthKit.error("externalWeights failed: \(error.localizedDescription, privacy: .private)")
             return []

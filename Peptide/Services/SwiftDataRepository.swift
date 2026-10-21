@@ -48,10 +48,14 @@ final class SwiftDataRepository {
     /// the CloudKit-mirrored store (Guideline 5.1.3(ii); see
     /// `WeeklySummaryLocalStore`).
     private var summaryStore: WeeklySummaryLocalStore
+    /// Device-local home of weigh-ins imported from Apple Health — also
+    /// kept out of the mirrored store (see `HealthWeightLocalStore`).
+    private var healthWeightStore: HealthWeightLocalStore
     private var mealDraftStore = MealScanDraftStore.shared
 
     private init() {
         summaryStore = .shared
+        healthWeightStore = .shared
         #if DEBUG
         if WorkoutRecapFixture.isRequested {
             // Explicit UI-test launch only. Never opens or resets user storage.
@@ -164,6 +168,7 @@ final class SwiftDataRepository {
         container = nil
         isUsingFallbackStore = false
         summaryStore.deleteAll()
+        healthWeightStore.deleteAll()
         mealDraftStore.resetForAccountChange()
         let cloudFailureState: CloudSyncState = current != nil ? .unavailable : .noAccount
         cloudSyncState = cloudFailureState
@@ -308,6 +313,10 @@ final class SwiftDataRepository {
                 .appending(path: "WeeklySummaries-\(UUID().uuidString)", directoryHint: .isDirectory)
                 .appending(path: "summaries.json", directoryHint: .notDirectory)
         )
+        healthWeightStore = HealthWeightLocalStore(
+            fileURL: FileManager.default.temporaryDirectory
+                .appending(path: "HealthWeights-\(UUID().uuidString).json", directoryHint: .notDirectory)
+        )
         // Tests set `weeklySummaryEnabled` deliberately; the one-time
         // upgrade reset must not flip it depending on test order.
         WeeklySummaryOptInMigration.markCompleted()
@@ -336,6 +345,7 @@ final class SwiftDataRepository {
             try context.delete(model: StoredPersonalRecord.self)
             try context.save()
             summaryStore.deleteAll()
+            healthWeightStore.deleteAll()
             mealDraftStore.resetForAccountChange()
         } catch {
             AppLog.swiftData.error("deleteAll failed: \(error.localizedDescription, privacy: .public)")
@@ -471,7 +481,7 @@ final class SwiftDataRepository {
             AppLog.swiftData.error("Fetch entries failed: \(error.localizedDescription, privacy: .public)")
             existing = []
         }
-        let existingById = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+        let existingById = Dictionary(grouping: existing, by: \.id)
         let inputIds = Set(entries.map(\.id))
 
         for stored in existing where !inputIds.contains(stored.id) {
@@ -479,9 +489,9 @@ final class SwiftDataRepository {
         }
 
         for entry in entries {
-            if let stored = existingById[entry.id] {
+            if let rows = existingById[entry.id] {
                 do {
-                    try stored.update(from: entry)
+                    for stored in rows { try stored.update(from: entry) }
                 } catch {
                     AppLog.swiftData.error("Update StoredEntry failed: \(error.localizedDescription, privacy: .public)")
                 }
@@ -507,18 +517,19 @@ final class SwiftDataRepository {
         let descriptor = FetchDescriptor<StoredEntry>(
             predicate: #Predicate { inputIds.contains($0.id) }
         )
-        let existingById: [UUID: StoredEntry]
+        // Grouped, not unique: two devices that generated the same
+        // scheduled dose each synced a row with its id.
+        let existingById: [UUID: [StoredEntry]]
         do {
-            let existing = try context.fetch(descriptor)
-            existingById = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+            existingById = try Dictionary(grouping: context.fetch(descriptor), by: \.id)
         } catch {
             AppLog.swiftData.error("Fetch (upsert) entries failed: \(error.localizedDescription, privacy: .public)")
             existingById = [:]
         }
         for entry in entries {
             do {
-                if let stored = existingById[entry.id] {
-                    try stored.update(from: entry)
+                if let rows = existingById[entry.id] {
+                    for stored in rows { try stored.update(from: entry) }
                 } else {
                     context.insert(try StoredEntry.make(from: entry))
                 }
@@ -542,6 +553,23 @@ final class SwiftDataRepository {
             commit()
         } catch {
             AppLog.swiftData.error("Delete StoredEntries failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Every row of a deleted protocol, including ones outside the
+    /// in-memory window or synced in since the last load.
+    func deleteEntries(protocolId: UUID) {
+        guard let context else { return }
+        let descriptor = FetchDescriptor<StoredEntry>(
+            predicate: #Predicate { $0.protocolId == protocolId }
+        )
+        do {
+            for stored in try context.fetch(descriptor) {
+                context.delete(stored)
+            }
+            commit()
+        } catch {
+            AppLog.swiftData.error("Delete protocol entries failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -605,14 +633,30 @@ final class SwiftDataRepository {
             AppLog.swiftData.error("Load entries failed: \(error.localizedDescription, privacy: .public)")
             return []
         }
-        return stored.compactMap {
+        return Self.collapsingDuplicateIDs(stored.compactMap {
             do {
                 return try $0.toProtocolEntry()
             } catch {
                 AppLog.swiftData.error("Decode StoredEntry failed: \(error.localizedDescription, privacy: .public)")
                 return nil
             }
+        })
+    }
+
+    /// One entry per id. Two devices that generated the same scheduled
+    /// dose each sync a row for it; the one carrying the user's log wins.
+    static func collapsingDuplicateIDs(_ entries: [ProtocolEntry]) -> [ProtocolEntry] {
+        var indexByID: [UUID: Int] = [:]
+        var unique: [ProtocolEntry] = []
+        for entry in entries {
+            if let index = indexByID[entry.id] {
+                if !unique[index].isLogged && entry.isLogged { unique[index] = entry }
+            } else {
+                indexByID[entry.id] = unique.count
+                unique.append(entry)
+            }
         }
+        return unique
     }
 
     // MARK: - Profile
@@ -621,10 +665,12 @@ final class SwiftDataRepository {
     /// Two devices that each ran the "no row yet → insert" branch before
     /// CloudKit converged leave two rows behind, and an unsorted
     /// `.first` fetch then flip-flops between them across launches.
-    /// Reconciliation is deterministic: newest `updatedAt` wins; any
-    /// split-area column the winner is missing is adopted from a loser
-    /// (fills gaps only, never overwrites the winner's data); losers
-    /// are deleted so every device converges on one row.
+    /// Reconciliation is deterministic: the newest `updatedAt` row
+    /// survives, every other row is merged into it by
+    /// `ProfileMergeEngine.reconcile` (records unioned by id, so a fresh
+    /// onboarding row can't erase the account's history), and the
+    /// others are deleted only once the merge is written, so every
+    /// device converges on one row.
     private func canonicalProfileRow(in context: ModelContext) throws -> StoredProfile? {
         var rows = try context.fetch(FetchDescriptor<StoredProfile>(
             sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
@@ -632,27 +678,32 @@ final class SwiftDataRepository {
         guard rows.count > 1 else { return rows.first }
         AppLog.swiftData.warning("Reconciling \(rows.count, privacy: .public) StoredProfile rows to the newest")
         let winner = rows.removeFirst()
-        for loser in rows {
-            if winner.extensionData == nil { winner.extensionData = loser.extensionData }
-            if winner.bodyMetricsData == nil { winner.bodyMetricsData = loser.bodyMetricsData }
-            if winner.avatarImageData == nil { winner.avatarImageData = loser.avatarImageData }
-            if winner.mealsData == nil { winner.mealsData = loser.mealsData }
-            if winner.habitsData == nil { winner.habitsData = loser.habitsData }
-            if winner.momentumData == nil { winner.momentumData = loser.momentumData }
-            if winner.weightHistoryData == nil { winner.weightHistoryData = loser.weightHistoryData }
-            if winner.labsData == nil { winner.labsData = loser.labsData }
-            if winner.outcomesData == nil { winner.outcomesData = loser.outcomesData }
-            if winner.foodLibraryData == nil { winner.foodLibraryData = loser.foodLibraryData }
-            if winner.summariesData == nil { winner.summariesData = loser.summariesData }
-            context.delete(loser)
+        do {
+            var merged = try winner.toUserProfile()
+            for loser in rows {
+                merged = ProfileMergeEngine.reconcile(merged, with: try loser.toUserProfile())
+            }
+            try winner.update(from: merged)
+        } catch {
+            AppLog.swiftData.error("Profile reconciliation failed; keeping every row: \(error.localizedDescription, privacy: .public)")
+            return winner
         }
+        for loser in rows { context.delete(loser) }
         commit()
         return winner
     }
 
-    func saveProfile(_ profile: UserProfile) {
+    /// Writes `profile` over the stored row. `baseline` is the profile as
+    /// the caller last loaded or saved it: columns the caller didn't
+    /// change keep what another device synced in meanwhile, and meal
+    /// edits are replayed onto a diary another device also changed. Nil
+    /// writes every column (imports, migrations).
+    func saveProfile(_ profile: UserProfile, since baseline: UserProfile? = nil) {
         guard let context else { return }
         summaryStore.save(profile.weeklySummaries)
+        healthWeightStore.retain(only: Set(profile.weightHistory.map(\.id)))
+        let synced = syncable(profile)
+        let syncedBaseline = baseline.map { syncable($0) }
         let existing: StoredProfile?
         do {
             existing = try canonicalProfileRow(in: context)
@@ -663,19 +714,52 @@ final class SwiftDataRepository {
 
         if let existing {
             do {
-                try existing.update(from: profile)
+                try write(synced, into: existing, since: syncedBaseline)
             } catch {
                 AppLog.swiftData.error("Update StoredProfile failed: \(error.localizedDescription, privacy: .public)")
             }
         } else {
             do {
-                let stored = try StoredProfile.make(from: profile)
+                let stored = try StoredProfile.make(from: synced)
                 context.insert(stored)
             } catch {
                 AppLog.swiftData.error("Insert StoredProfile failed: \(error.localizedDescription, privacy: .public)")
             }
         }
         commit()
+    }
+
+    /// `profile` as it may be written to the CloudKit-mirrored store:
+    /// weigh-ins imported from Apple Health stay on this device. Callers
+    /// first `retain` only the imports the profile still holds, so one
+    /// replaced by a weight logged in Atlas is forgotten.
+    private func syncable(_ profile: UserProfile) -> UserProfile {
+        let imported = Set(healthWeightStore.entries.map(\.id))
+        var stripped = profile
+        stripped.weightHistory.removeAll { imported.contains($0.id) }
+        return stripped
+    }
+
+    /// Apple Health samples the user deleted from the diary.
+    var dismissedHealthWeightIDs: Set<UUID> { healthWeightStore.dismissedIDs }
+
+    func recordHealthWeightImports(_ entries: [WeightEntry]) {
+        healthWeightStore.record(entries)
+    }
+
+    /// Keeps a deleted imported weigh-in from coming back on the next
+    /// import pass. A no-op for a weight logged in Atlas.
+    func dismissHealthWeight(id: UUID) {
+        healthWeightStore.dismiss(id: id)
+    }
+
+    private func write(_ profile: UserProfile, into row: StoredProfile, since baseline: UserProfile?) throws {
+        guard let baseline else { return try row.update(from: profile) }
+        var rebased = profile
+        if ProfileMergeEngine.mealsChanged(from: baseline, to: profile) {
+            rebased = ProfileMergeEngine.rebasingMeals(local: profile, baseline: baseline, remote: try row.toUserProfile())
+        }
+        try row.update(from: rebased, since: StoredProfile.make(from: baseline))
     }
 
     func loadProfile() -> UserProfile? {
@@ -700,6 +784,10 @@ final class SwiftDataRepository {
             AppLog.swiftData.error("Decode StoredProfile failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
+        let syncedWeightIDs = Set(profile.weightHistory.map(\.id))
+        profile.weightHistory = (profile.weightHistory + healthWeightStore.entries.filter {
+            !syncedWeightIDs.contains($0.id)
+        }).sorted { $0.date < $1.date }
         // Weekly summaries come from the device-local file. Whatever the
         // synced row still carries (written before summaries moved off
         // CloudKit, or by an older build on another device) seeds the
@@ -730,15 +818,18 @@ final class SwiftDataRepository {
     /// mutation on failure; unrelated objects in the shared context stay intact.
     enum MealSaveError: Error { case unavailable }
 
-    func saveMealProfileDurably(_ profile: UserProfile) throws {
+    func saveMealProfileDurably(_ profile: UserProfile, since baseline: UserProfile?) throws {
         guard let context, !isUsingFallbackStore, !isInoperable else { throw MealSaveError.unavailable }
+        healthWeightStore.retain(only: Set(profile.weightHistory.map(\.id)))
+        let synced = syncable(profile)
+        let syncedBaseline = baseline.map { syncable($0) }
         let existing = try canonicalProfileRow(in: context)
         let previous = try existing?.toUserProfile()
         var inserted: StoredProfile?
         do {
-            if let existing { try existing.update(from: profile) }
+            if let existing { try write(synced, into: existing, since: syncedBaseline) }
             else {
-                let row = try StoredProfile.make(from: profile)
+                let row = try StoredProfile.make(from: synced)
                 context.insert(row)
                 inserted = row
             }

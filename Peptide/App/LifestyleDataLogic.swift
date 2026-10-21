@@ -117,19 +117,11 @@ enum LifestyleDataLogic {
     static func logWater(into profile: inout UserProfile, fluidOunces: Double, date: Date) {
         let key = consumptionKey(for: date)
         var bucket = profile.dailyConsumption[key] ?? DailyConsumption.empty(on: date)
-        let exact = max(0, bucket.waterFluidOunces + fluidOunces)
-        let whole = exact.rounded()
-        let remainder = exact - whole
-        bucket.waterOz = Int(whole)
-        bucket.waterOzRemainder = abs(remainder) < waterRemainderEpsilon ? nil : remainder
+        bucket.addWater(fluidOunces: fluidOunces)
         profile.dailyConsumption[key] = bucket
     }
 
     static let millilitresPerFluidOunce = 29.5735
-
-    /// Below this a remainder is floating-point noise from add/undo
-    /// round trips, not water.
-    private static let waterRemainderEpsilon = 1e-6
 
     static func fluidOunces(millilitres: Double) -> Double {
         millilitres / millilitresPerFluidOunce
@@ -572,7 +564,7 @@ enum LifestyleDataLogic {
     /// Must match the user's local day, NOT the UTC day — a meal logged
     /// at 11:00 PM in Auckland would otherwise key under tomorrow's
     /// date and silently disappear from today's rings.
-    fileprivate static func consumptionKey(for date: Date) -> String {
+    static func consumptionKey(for date: Date) -> String {
         let day = Calendar.current.startOfDay(for: date)
         // Per-call formatter allocation. The previous shared
         // `nonisolated(unsafe)` instance was only safe while every
@@ -648,5 +640,19 @@ extension DailyConsumption {
     /// the remainder metric logs carry.
     var waterFluidOunces: Double {
         Double(waterOz) + (waterOzRemainder ?? 0)
+    }
+
+    /// Below this a remainder is floating-point noise from add/undo
+    /// round trips, not water.
+    private static let waterRemainderEpsilon = 1e-6
+
+    /// Adds (or, negative, removes) an exact amount of water, clamping
+    /// the day at zero.
+    mutating func addWater(fluidOunces: Double) {
+        let exact = max(0, waterFluidOunces + fluidOunces)
+        let whole = exact.rounded()
+        let remainder = exact - whole
+        waterOz = Int(whole)
+        waterOzRemainder = abs(remainder) < Self.waterRemainderEpsilon ? nil : remainder
     }
 }

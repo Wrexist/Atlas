@@ -44,4 +44,14 @@ final class HealthSyncEngineTests: XCTestCase {
 
         XCTAssertTrue(HealthSyncEngine.weightsToImport(external, existing: first, calendar: calendar).isEmpty)
     }
+
+    func test_readingTheUserDeleted_isNotImportedAgain() {
+        let wrongReading = WeightEntry(date: october(17, 7), kg: 120)
+
+        let imported = HealthSyncEngine.weightsToImport(
+            [wrongReading], existing: [], dismissed: [wrongReading.id], calendar: calendar
+        )
+
+        XCTAssertTrue(imported.isEmpty)
+    }
 }
