@@ -65,30 +65,30 @@ final class MealScannerService: Sendable {
         case rateLimited
         case offline
         case imageTooLarge
-        case requestFailed(String)
+        case requestFailed(status: Int)
         case invalidResponse
         case parseFailure
         case implausibleResult
         case noFoodDetected
         case declined
-        /// The deployment has no `food-scan` route yet. Never shown —
-        /// `smartScan` catches it and falls back to the legacy route.
+        /// The deployment has no `food-scan` route yet. `smartScan` falls
+        /// back to the legacy route; the text-only routes have none.
         case routeMissing
 
         var errorDescription: String? {
             switch self {
-            case .proxyNotConfigured:   "Meal scanner isn't configured for this build. Set MEAL_SCANNER_ENDPOINT and MEAL_SCANNER_SECRET in Secrets.xcconfig and rebuild."
+            case .proxyNotConfigured:   "Meal scanning isn't available in this build. Update Atlas from the App Store or TestFlight."
             case .unauthorised:         "Couldn't sign in to the meal scanner. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build."
             case .rateLimited:          "You've scanned a lot of meals recently. Wait a minute and try again — if you've hit today's limit, scanning resets tomorrow."
             case .offline:              "You're offline — meal scanning needs an internet connection. Reconnect and try again."
             case .imageTooLarge:        "Photo is too large to upload. Try a smaller image."
-            case .requestFailed(let m): m
+            case .requestFailed:        "The meal scanner hit a problem. Try again in a moment."
             case .invalidResponse:      "The scanner returned an unexpected response."
             case .parseFailure:         "Couldn't read the meal estimate from the scanner."
             case .implausibleResult:    "The scanner returned values outside a realistic range — try a clearer photo."
             case .noFoodDetected:       "No food found in that photo — point the camera at your meal and try again."
             case .declined:             "The scanner couldn't analyse this one. Try a different photo or angle."
-            case .routeMissing:         "Meal scanner returned HTTP 404."
+            case .routeMissing:         "Meal scanner is temporarily unavailable. Try again later."
             }
         }
 
@@ -396,9 +396,13 @@ final class MealScannerService: Sendable {
             case 429: throw ScanError.rateLimited
             // Vercel answers 404 for a route this deployment doesn't have.
             case 404: throw ScanError.routeMissing
+            // The proxy's body cap; the photo is already compressed to fit.
+            case 413: throw ScanError.imageTooLarge
             // food-scan's answer when Claude declined the image.
             case 422: throw ScanError.declined
-            default: throw ScanError.requestFailed("Meal scanner returned HTTP \(http.statusCode).")
+            default:
+                AppLog.persistence.error("Meal scanner returned HTTP \(http.statusCode, privacy: .public)")
+                throw ScanError.requestFailed(status: http.statusCode)
             }
         }
 

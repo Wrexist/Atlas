@@ -169,8 +169,10 @@ final class MealScannerServiceTests: XCTestCase {
             (Self.response(for: request, status: 500), Data())
         }
         await XCTAssertThrowsErrorAsync(try await service.analyze(image: tinyImage())) { error in
-            if case .requestFailed(let message) = error as? MealScannerService.ScanError {
-                XCTAssertTrue(message.contains("500"))
+            if case .requestFailed(let status) = error as? MealScannerService.ScanError {
+                XCTAssertEqual(status, 500)
+                // The status is for the log, not the user.
+                XCTAssertFalse(error.localizedDescription.contains("500"))
             } else {
                 XCTFail("Expected .requestFailed, got \(error)")
             }
