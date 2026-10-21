@@ -49,4 +49,26 @@ final class PeptideUITests: XCTestCase {
         app.tabBars.buttons["Biology"].tap()
         XCTAssertTrue(app.tabBars.buttons["Biology"].isSelected)
     }
+
+    func test_accessibilityAudit_allTabs() throws {
+        try auditAllTabs()
+    }
+
+    func test_accessibilityAudit_allTabs_atLargestDynamicType() throws {
+        app.terminate()
+        app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        try auditAllTabs()
+    }
+
+    private func auditAllTabs() throws {
+        for tab in Self.tabs {
+            let button = app.tabBars.buttons[tab]
+            XCTAssertTrue(button.waitForExistence(timeout: 5), "\(tab) tab missing")
+            button.tap()
+            try app.performAccessibilityAudit(
+                for: [.dynamicType, .contrast, .hitRegion, .sufficientElementDescription, .textClipped]
+            )
+        }
+    }
 }
