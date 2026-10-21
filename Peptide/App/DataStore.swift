@@ -1368,15 +1368,19 @@ final class DataStore {
     /// timezone delta. Use when the user opts to translate their
     /// schedule to local clock after a flight. Also acknowledges
     /// the new timezone so the prompt won't re-fire on the next
-    /// launch in the same zone. Regenerates today's entries so
-    /// the new times reflect immediately on the Home + Lifestyle
-    /// tabs, and re-schedules notifications via the standard save
-    /// path.
+    /// launch in the same zone. Regenerates today's entries (keeping
+    /// any already logged) so the new times reflect immediately on the
+    /// Home + Lifestyle tabs, then moves the pending reminders and Live
+    /// Activities to them.
     func applyTravelShift(toTimezone identifier: String, hoursDelta: Int) {
         TravelModeLogic.shiftProtocolTimes(in: &protocols, byHours: hoursDelta)
         TravelModeLogic.acknowledgeTimezoneChange(in: &profile, to: identifier)
-        regenerateTodayEntries()
+        for proto in activeProtocols {
+            regenerateTodayEntriesPreservingLogs(for: proto)
+        }
         save()
+        rescheduleNotificationsIfEnabled()
+        DoseLiveActivityService.shared.reconcile(entries: entries)
     }
 
     /// User declined the schedule shift but acknowledged the
