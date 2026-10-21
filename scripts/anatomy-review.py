@@ -10,6 +10,8 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+# TrainingAnatomy.mirrorAxis: the sculpt's midline in artwork pixels.
+MIRROR_AXIS = 509
 
 
 def cross(a, b, c):
@@ -23,7 +25,7 @@ def validate(regions):
     for name, points in regions.items():
         assert len(points) >= 3, f"{name}: too few vertices"
         assert len(set(map(tuple, points))) == len(points), f"{name}: duplicate vertices"
-        assert all(len(p) == 2 and 0 <= p[0] < 512 and 0 <= p[1] <= 1536 for p in points), name
+        assert all(len(p) == 2 and 0 <= p[0] < MIRROR_AXIS and 0 <= p[1] <= 1536 for p in points), name
         n = len(points)
         for i in range(n):
             a, b = points[i], points[(i + 1) % n]
@@ -41,7 +43,7 @@ def validate(regions):
 def path_data(points):
     paths = []
     for mirrored in (False, True):
-        p = [(1024 - x if mirrored else x, y) for x, y in points]
+        p = [(2 * MIRROR_AXIS - x if mirrored else x, y) for x, y in points]
         mid = lambda a, b: ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
         start = mid(p[-1], p[0])
         parts = [f"M {start[0]} {start[1]}"]
@@ -78,7 +80,7 @@ def check_alpha(regions, back):
                     if (ay > y) != (by > y) and x < (bx-ax)*(y-ay)/(by-ay)+ax:
                         inside = not inside
                 if inside:
-                    for px in (x, 1024-x):
+                    for px in (x, 2 * MIRROR_AXIS - x):
                         total += 1
                         outside += image.getpixel((px, y))[3] < 240
         ratio = outside / max(total, 1)

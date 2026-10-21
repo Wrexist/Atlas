@@ -188,7 +188,30 @@ enum AnatomicalMuscle: String, CaseIterable, Codable, Hashable, Sendable {
         case "hamstrings":
             return [.hamstringLateral: 1.0, .hamstringMedial: 1.0]
 
-        case "abdominals":   return [.abdominals: 1.0]
+        case "abdominals":
+            if has("twist", "russian", "side bend", "oblique", "woodchop", "wood chop", "side plank", "windmill") {
+                return [.obliques: 1.0, .abdominals: 0.60]
+            }
+            // Bracing and flexion recruit the obliques alongside the rectus.
+            return [.abdominals: 1.0, .obliques: 0.45]
+
+        // Custom exercises store the editor's collapsed `MuscleGroup` raw
+        // values rather than dataset strings, so each group lights its heads.
+        case "back":
+            return [.lats: 1.0, .rhomboids: 0.90, .trapsLower: 0.80, .trapsUpper: 0.50, .lowerBack: 0.50]
+        case "arms":
+            return [.biceps: 0.90, .tricepsLong: 0.90, .tricepsLateral: 0.90,
+                    .forearmFront: 0.50, .forearmBack: 0.50]
+        case "legs":
+            return [.quadRectus: 1.0, .quadLateralis: 1.0, .quadMedialis: 1.0,
+                    .hamstringLateral: 0.80, .hamstringMedial: 0.80, .glutes: 0.70,
+                    .adductors: 0.50, .gastrocnemius: 0.50]
+        case "core":
+            return [.abdominals: 1.0, .obliques: 0.80, .lowerBack: 0.40]
+        case "fullbody", "full body":
+            return [.pecSternal: 0.80, .deltAnterior: 0.80, .lats: 0.80, .quadRectus: 0.80,
+                    .quadLateralis: 0.80, .quadMedialis: 0.80, .glutes: 0.80,
+                    .hamstringLateral: 0.80, .hamstringMedial: 0.80, .abdominals: 0.80]
         case "obliques":     return [.obliques: 1.0]
         case "neck":         return [.neck: 1.0]
         case "biceps":       return [.biceps: 1.0]

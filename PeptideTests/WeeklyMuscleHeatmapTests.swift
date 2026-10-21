@@ -49,7 +49,7 @@ final class WeeklyMuscleHeatmapTests: XCTestCase {
     func test_regions_singleMuscle_resolvesToExpectedHeads() {
         XCTAssertEqual(AnatomicalMuscle.regions(forRawMuscle: "chest"),
                        [.pecSternal, .pecClavicular])
-        XCTAssertEqual(AnatomicalMuscle.regions(forRawMuscle: "abdominals"), [.abdominals])
+        XCTAssertEqual(AnatomicalMuscle.regions(forRawMuscle: "abdominals"), [.abdominals, .obliques])
         XCTAssertEqual(AnatomicalMuscle.regions(forRawMuscle: "lats"), [.lats])
     }
 
