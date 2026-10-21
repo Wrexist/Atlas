@@ -159,7 +159,7 @@ struct BiomarkerDetailSheet: View {
         case .stepsBaseline:
             return String(localized: "Daily step count. Loosely correlates with total activity volume.")
         case .bodyTemperature:
-            return String(localized: "Wrist temperature deviation. Spikes can signal poor recovery or illness.")
+            return String(localized: "Your body temperature. Spikes above your usual reading can signal poor recovery or illness.")
         case .bodyFat:
             return String(localized: "Body fat percentage. Manual log; correlate with weight trend for body-comp context.")
         case .waist:
