@@ -131,7 +131,7 @@ struct WorkoutMuscleDetailsView: View {
                             .foregroundStyle(muscle.role == .primary ? AppColor.trainingPrimaryMuscle : AppColor.trainingSecondaryMuscle)
                             .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: Spacing.xs) {
-                            Text(muscle.name.capitalized).font(AppFont.headline)
+                            Text(muscle.displayName).font(AppFont.headline)
                             Text("\(muscle.role.rawValue) · ^[\(muscle.setCount) contributing set](inflect: true)")
                                 .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
                         }
@@ -161,7 +161,7 @@ struct WorkoutMuscleContributionsView: View {
                     }
                 }
             }.padding(Spacing.screenPadding)
-        }.recapScreen(title: muscle.name.capitalized)
+        }.recapScreen(title: muscle.displayName)
     }
 }
 

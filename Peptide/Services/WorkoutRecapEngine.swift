@@ -31,6 +31,17 @@ enum WorkoutRecapEngine {
         let contributions: [Contribution]
         var role: Role { contributions.contains { $0.role == .primary } ? .primary : .supporting }
         var setCount: Int { Set(contributions.flatMap { $0.sets.map(\.id) }).count }
+        /// `name` is a raw dataset muscle or, for custom exercises, a
+        /// `MuscleGroup` raw value; this reads the way exercise detail does.
+        var displayName: String {
+            if let group = MuscleGroup(rawValue: name) { return group.displayName }
+            switch name.lowercased() {
+            case "quadriceps": return "Quads"
+            case "abdominals": return "Abs"
+            case "middle back": return "Mid back"
+            default: return name.prefix(1).uppercased() + name.dropFirst()
+            }
+        }
     }
     struct Entry: Identifiable, Sendable {
         let id: UUID
