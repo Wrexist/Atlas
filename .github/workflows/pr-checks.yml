@@ -219,16 +219,12 @@ jobs:
           python3 -c "import json; json.load(open('Peptide/Resources/Products.storekit'))"
 
       - name: Build app
-        # Gates the PR on the iOS app compiling. Uses `build` (not
-        # `build-for-testing`) so the test targets — which carry a
-        # pre-existing backlog of compile errors unrelated to app
-        # correctness — are not in the gating path: the plain `build`
-        # action only builds run-context targets, not testing-only
-        # ones. `-scheme` + `-destination` (not `-target -sdk`) is
-        # required so the embedded watchOS app builds against the
-        # watch SDK rather than having iphonesimulator forced on it.
-        # Restore `build-for-testing` here once the test target
-        # compiles again.
+        # Gates the PR on the iOS app compiling, so an app build error
+        # is reported on its own before the Unit Tests step compiles and
+        # runs the test targets. `-scheme` + `-destination` (not
+        # `-target -sdk`) is required so the embedded watchOS app builds
+        # against the watch SDK rather than having iphonesimulator
+        # forced on it.
         run: |
           # `generic/platform=iOS Simulator` compiles without requiring any
           # particular simulator to exist. Naming iPhone 16 made this step
@@ -389,18 +385,11 @@ jobs:
           done || true
 
       - name: UI Tests
-        # Cost gate: opt-in via the `run-ui-tests` label. UI tests add
-        # ~3–5 min of macOS time to every run for a suite that today
-        # only verifies tab-bar reachability. Expand the suite, then
-        # consider making this gating again. Label the PR with
-        # `run-ui-tests` to exercise them on the next push.
-        #
-        # NOTE: this step uses `xcodebuild test` (not
-        # test-without-building) because build-for-testing above only
-        # builds PeptideTests (via -only-testing has no effect at
-        # build-time, but the xcodebuild scheme settings determine
-        # what's compiled). For safety against scheme drift, we let
-        # this opt-in path do its own incremental build.
+        # Cost gate: opt-in via the `run-ui-tests` label, because UI
+        # tests add ~3–5 min of macOS time to every run. Label the PR
+        # with `run-ui-tests` to exercise them on the next push. Uses
+        # `xcodebuild test`, so this path does its own incremental build
+        # of whatever the UI test target needs.
         if: contains(github.event.pull_request.labels.*.name, 'run-ui-tests')
         run: |
           DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; ids=[x['udid'] for r in d.values() for x in r if 'iPhone' in x.get('name','')]; print(ids[0] if ids else '')")
@@ -551,7 +540,7 @@ jobs:
 
       - name: Run proxy test suite
         # The auth / rate-limit / App Attest / sanitisation logic guarding
-        # the Anthropic key has a full node:test suite (50 tests) that
+        # the Anthropic key has a full node:test suite that
         # until now only ran locally via scripts/check.sh. Zero deps —
         # node --test discovers server/test/ on the stock runner.
         working-directory: server

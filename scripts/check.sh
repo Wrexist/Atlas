@@ -76,7 +76,7 @@ PY
 
 # ------------------------------------------------------------------ Proxy side
 # The only part of this codebase whose tests actually execute here — Node,
-# no Xcode required. 48 of them, covering the rate limiter, the per-device
+# no Xcode required. They cover the routes, the rate limiter, the per-device
 # quota, App Attest and the CBOR decoder.
 if [ -d server ] && command -v node >/dev/null 2>&1; then
   run "Proxy tests (server/)" bash -c "cd server && node --test >/dev/null 2>&1"

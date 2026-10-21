@@ -8,9 +8,7 @@ name: Screenshots
 # workflow_dispatch only — never gates a PR, so it can't block merges.
 #
 # Uses the `PeptideUICapture` scheme, which builds the app and the UI tests
-# and nothing else. The main `Peptide` scheme's test action also compiles
-# `PeptideTests`, which currently doesn't build — that would gate the one job
-# whose purpose is to let a human look at the app behind an unrelated backlog.
+# and nothing else, so a capture run doesn't also compile the unit suite.
 #
 # Captures three passes per tab: dark, light, and Accessibility XXXL. Light
 # and XXXL exist because the trait-resolving colour tokens and the six-step
