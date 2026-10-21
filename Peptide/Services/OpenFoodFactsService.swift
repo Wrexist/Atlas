@@ -172,7 +172,7 @@ final class OpenFoodFactsService: Sendable {
     func fetch(barcode: String) async throws -> ScannedProduct {
         let normalized = try Self.normalize(barcode: barcode)
 
-        if let cached = await cache.read(barcode: normalized) {
+        if let cached = await cache.read(barcode: normalized, markingUsed: true) {
             // Entries cached before the printed `quantity` was read have
             // no package weight; refresh those too so the Package tab
             // shows up on the next scan.
