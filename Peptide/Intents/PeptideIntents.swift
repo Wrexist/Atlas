@@ -91,7 +91,7 @@ struct ComplianceIntent: AppIntent {
             let fraction = EntryAnalytics.weeklyComplianceFraction(in: store.entries)
             return ComplianceReadout(
                 percent: Int((fraction * 100).rounded()),
-                hasData: !store.entries.isEmpty
+                hasData: !EntryAnalytics.weeklyWindow(in: store.entries).isEmpty
             )
         }
 
@@ -99,7 +99,15 @@ struct ComplianceIntent: AppIntent {
             return .result(value: 0, dialog: IntentDialog(
                 LocalizedStringResource(
                     "No recent data. Start logging doses in Atlas.",
-                    comment: "Siri response when there are no entries yet."
+                    comment: "Siri response when no doses were scheduled in the last 7 days."
+                )
+            ))
+        }
+        guard snapshot.percent >= 50 else {
+            return .result(value: snapshot.percent, dialog: IntentDialog(
+                LocalizedStringResource(
+                    "Your 7-day adherence is \(snapshot.percent) percent.",
+                    comment: "Siri readout — weekly adherence percentage, below half."
                 )
             ))
         }

@@ -16,10 +16,20 @@ enum EntryAnalytics {
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> Double {
-        let cutoff = calendar.date(byAdding: .day, value: -7, to: now) ?? now
-        let window = entries.filter { $0.date >= cutoff }
+        let window = weeklyWindow(in: entries, now: now, calendar: calendar)
         guard !window.isEmpty else { return 0 }
         return Double(window.filter(\.completed).count) / Double(window.count)
+    }
+
+    /// The entries `weeklyComplianceFraction` is measured over, so a
+    /// caller can tell "0%" from "nothing scheduled this week".
+    static func weeklyWindow(
+        in entries: [ProtocolEntry],
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> [ProtocolEntry] {
+        let cutoff = calendar.date(byAdding: .day, value: -7, to: now) ?? now
+        return entries.filter { $0.date >= cutoff }
     }
 
     /// Lifetime completed-entry count. Light enough to recompute on every
