@@ -256,6 +256,15 @@ struct ActiveWorkoutView: View {
                         Button("Done") { commitWorkoutName(); showOverview = false }
                             .accessibilityIdentifier("workout-overview-done")
                     }
+                    // The set rows' decimal and number pads have no return key.
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("Done") {
+                            if nameFieldFocused { commitWorkoutName() }
+                            dismissKeyboard()
+                        }
+                        .fontWeight(.semibold)
+                    }
                 }
             }
             // Its own presenter: the workout-level picker can't open while
