@@ -39,18 +39,23 @@ final class PRDetectionEngine {
     func recompute(exerciseIDs: Set<String>) {
         guard !exerciseIDs.isEmpty else { return }
         let repo = SwiftDataRepository.shared
-        for exerciseID in exerciseIDs {
-            repo.deletePersonalRecord(exerciseID: exerciseID)
-        }
-        // Records are loaded once and threaded through every session —
-        // reloading them per session made this O(sessions × PRs).
-        var records = Self.loadRecordsByExercise()
+        // Bests are rebuilt in memory and each surviving record written
+        // once at the end — upserting per session committed the store
+        // once per exercise per workout across the whole history.
+        var records: [String: PersonalRecord] = [:]
         // Full history, oldest first, so "achieved at" lands on the
         // earliest session that set each surviving best.
         for session in repo.loadAllWorkoutSessions() where session.finishedAt != nil {
             guard session.exercises.contains(where: { exerciseIDs.contains($0.exerciseID) })
             else { continue }
             apply(session: session, restrictTo: exerciseIDs, records: &records)
+        }
+        for exerciseID in exerciseIDs {
+            if let record = records[exerciseID] {
+                repo.upsertPersonalRecord(record)
+            } else {
+                repo.deletePersonalRecord(exerciseID: exerciseID)
+            }
         }
     }
 
@@ -60,9 +65,14 @@ final class PRDetectionEngine {
     /// first value ever logged for a kind is stored as a silent
     /// baseline: a PR has to beat something.
     @discardableResult
-    func ingest(session: WorkoutSession, restrictTo: Set<String>? = nil) -> [DetectedPR] {
-        var records = Self.loadRecordsByExercise()
-        return apply(session: session, restrictTo: restrictTo, records: &records)
+    func ingest(session: WorkoutSession) -> [DetectedPR] {
+        let stored = Self.loadRecordsByExercise()
+        var records = stored
+        let detected = apply(session: session, restrictTo: nil, records: &records)
+        for (exerciseID, record) in records where stored[exerciseID] != record {
+            SwiftDataRepository.shared.upsertPersonalRecord(record)
+        }
+        return detected
     }
 
     private static func loadRecordsByExercise() -> [String: PersonalRecord] {
@@ -72,9 +82,8 @@ final class PRDetectionEngine {
         )
     }
 
-    /// Compares the session against `records`, upserting and writing
-    /// back any new maxes so a caller ingesting several sessions sees
-    /// the same state a fresh load would return.
+    /// Compares the session against `records` and writes any new maxes
+    /// back into it. Persisting is left to the caller.
     @discardableResult
     private func apply(
         session: WorkoutSession,
@@ -82,7 +91,6 @@ final class PRDetectionEngine {
         records: inout [String: PersonalRecord]
     ) -> [DetectedPR] {
         guard session.finishedAt != nil else { return [] }
-        let repo = SwiftDataRepository.shared
         var detected: [DetectedPR] = []
 
         // Group session exercises by exerciseID — a routine could
@@ -156,7 +164,6 @@ final class PRDetectionEngine {
             }
 
             if dirty {
-                repo.upsertPersonalRecord(record)
                 records[exerciseID] = record
             }
         }
