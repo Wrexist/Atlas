@@ -154,8 +154,12 @@ struct MealScanFlow: View {
         }
         .interactiveDismissDisabled(phase == .review || phase == .saving || phase == .logged || phase == .saveError)
         .task { loadDraft() }
-        .onChange(of: draftSnapshot) { _, _ in
-            if phase == .review { _ = persistDraft() }
+        // Debounced: every keystroke and stepper tap changes the draft, and
+        // each save JSON-encodes the photo on the main actor. Close, the
+        // scene going inactive and disappearing still save at once.
+        .task(id: draftSnapshot) {
+            guard (try? await Task.sleep(for: .milliseconds(500))) != nil, phase == .review else { return }
+            persistDraft()
         }
         .onChange(of: scenePhase) { _, value in
             if value != .active && phase == .review { _ = persistDraft() }
