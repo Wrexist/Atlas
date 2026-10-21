@@ -61,6 +61,7 @@ struct BarcodeScanFlow: View {
     @State private var insight: MealScannerService.SmartScan?
     @State private var isLoadingInsight = false
     @State private var insightTask: Task<Void, Never>?
+    @State private var lookupTask: Task<Void, Never>?
     /// True when `product` came from a package photo rather than the
     /// food database — changes the source badge and the logged source.
     @State private var productReadByAI = false
@@ -142,6 +143,13 @@ struct BarcodeScanFlow: View {
         }
         .task { await preflightCheck() }
         .task { await loadRecentlyScanned() }
+        // Closing mid-lookup must not go on to spend a paid AI insight
+        // call for a sheet that is gone.
+        .onDisappear {
+            lookupTask?.cancel()
+            insightTask?.cancel()
+            identifyTask?.cancel()
+        }
         .confirmationDialog(
             "Already logged this recently",
             isPresented: Binding(
@@ -992,7 +1000,8 @@ struct BarcodeScanFlow: View {
         }
 
         phase = .lookingUp
-        Task { await lookupProduct(candidates: candidates) }
+        lookupTask?.cancel()
+        lookupTask = Task { await lookupProduct(candidates: candidates) }
     }
 
     /// OCR fallback: load the picked image, run on-device text
@@ -1106,6 +1115,7 @@ struct BarcodeScanFlow: View {
         // is async (actor read), so it happens here before we hop to
         // main.
         let remembered = await BarcodeScanHistory.shared.lastPortion(for: result.barcode)
+        try Task.checkCancellation()
         await MainActor.run {
             product = result
             portion = remembered ?? result.defaultPortion
