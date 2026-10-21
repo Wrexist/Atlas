@@ -53,6 +53,24 @@ struct ProtocolSchedule: Hashable, Codable, Sendable {
         return daysOfWeek.contains(isoDay)
     }
 
+    /// `isActive(on:)`, except an interval schedule with no stored anchor
+    /// (library imports) counts from the protocol's start instead of
+    /// matching every day.
+    func isActive(on date: Date, protocolStart: Date, calendar: Calendar = .current) -> Bool {
+        guard isInterval, intervalAnchor == nil else {
+            return isActive(on: date, calendar: calendar)
+        }
+        let anchored = ProtocolSchedule(
+            daysOfWeek: daysOfWeek,
+            timesPerDay: timesPerDay,
+            preferredTimes: preferredTimes,
+            customDose: customDose,
+            intervalDays: intervalDays,
+            intervalAnchor: protocolStart
+        )
+        return anchored.isActive(on: date, calendar: calendar)
+    }
+
     var daysDescription: String {
         if isInterval, let n = intervalDays {
             return n == 1 ? "Every day" : "Every \(n) days"
@@ -183,6 +201,55 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
 
     func hasCustomSchedule(for peptideId: UUID) -> Bool {
         peptideSchedules[peptideId] != nil
+    }
+
+    /// Completed doses ÷ doses due over the last `days` calendar days,
+    /// today included. Entries are only generated on days the app is
+    /// opened, so past days take their due count from the schedule — a
+    /// day the app never saw counts as missed rather than vanishing.
+    /// Today only counts doses already due or already taken. Nil when
+    /// nothing was due in the window.
+    func adherence(
+        entries: [ProtocolEntry],
+        days: Int,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Double? {
+        let today = calendar.startOfDay(for: now)
+        guard let windowStart = calendar.date(byAdding: .day, value: -(days - 1), to: today) else { return nil }
+        let firstDay = max(windowStart, calendar.startOfDay(for: startDate))
+        let windowEntries = entries.filter { $0.protocolId == id && $0.date >= firstDay }
+
+        var due = 0
+        var completed = 0
+        var day = firstDay
+        while day < today {
+            let dayEntries = windowEntries.filter { calendar.isDate($0.date, inSameDayAs: day) }
+            let scheduled = status == .active ? scheduledDoseCount(on: day, calendar: calendar) : 0
+            due += max(scheduled, dayEntries.count)
+            completed += dayEntries.filter(\.completed).count
+            guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
+            day = next
+        }
+
+        let todayEntries = windowEntries.filter {
+            calendar.isDate($0.date, inSameDayAs: today) && ($0.completed || $0.date <= now)
+        }
+        due += todayEntries.count
+        completed += todayEntries.filter(\.completed).count
+
+        guard due > 0 else { return nil }
+        return Double(completed) / Double(due)
+    }
+
+    /// Doses the schedule puts on `day`, one per preferred time per
+    /// peptide — the same shape the app generates entries in.
+    private func scheduledDoseCount(on day: Date, calendar: Calendar) -> Int {
+        peptides.reduce(0) { total, peptide in
+            let peptideSchedule = schedule(for: peptide.id)
+            guard peptideSchedule.isActive(on: day, protocolStart: startDate, calendar: calendar) else { return total }
+            return total + peptideSchedule.preferredTimes.count
+        }
     }
 
     /// Cycle-end is defined once on `cycleEndDay`; `endDate` is an

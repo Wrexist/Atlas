@@ -19,19 +19,13 @@ struct ProtocolDetailView: View {
         Array(dataStore.entriesFor(protocolId: protocol_.id).prefix(10))
     }
 
-    /// All logged entries (past 14 days) for this protocol — used for adherence stats.
-    /// `entriesFor` uses `startOfDay(of: today - days)` as the cutoff, so passing 13
-    /// gives an inclusive 14-day window (13 prior days + today).
-    private var allRecentEntries: [ProtocolEntry] {
-        dataStore.entriesFor(protocolId: protocol_.id, days: 13)
-    }
-
-    /// Adherence: completed entries / total entries (rounded percent). Returns nil if no entries.
+    /// Adherence over the last 14 days (rounded percent). `entriesFor`
+    /// uses `startOfDay(of: today - days)` as the cutoff, so passing 13
+    /// covers the same inclusive window (13 prior days + today).
     private var adherencePercent: Int? {
-        let entries = allRecentEntries
-        guard !entries.isEmpty else { return nil }
-        let completed = entries.filter(\.completed).count
-        return Int((Double(completed) / Double(entries.count) * 100).rounded())
+        let entries = dataStore.entriesFor(protocolId: protocol_.id, days: 13)
+        guard let ratio = liveProtocol.adherence(entries: entries, days: 14) else { return nil }
+        return Int((ratio * 100).rounded())
     }
 
     private var customScheduleCount: Int {

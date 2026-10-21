@@ -94,7 +94,7 @@ enum DoseDayMap {
                 guard isDayInCycle(day, protocol: proto, calendar: cal) else { continue }
                 for peptide in proto.peptides {
                     let schedule = proto.schedule(for: peptide.id)
-                    guard isScheduled(schedule, on: day, protocolStart: proto.startDate, calendar: cal)
+                    guard schedule.isActive(on: day, protocolStart: proto.startDate, calendar: cal)
                     else { continue }
                     // Suppress when *any* mark for this compound on this
                     // day already exists — covers both the "logged
@@ -144,29 +144,6 @@ enum DoseDayMap {
         let weeks = proto.safeCycleLengthWeeks
         guard let end = calendar.date(byAdding: .day, value: weeks * 7, to: start) else { return true }
         return day < end
-    }
-
-    /// `ProtocolSchedule.isActive(on:)`, except an interval schedule with
-    /// no stored anchor (library imports) counts from the protocol's start
-    /// instead of matching every day.
-    private static func isScheduled(
-        _ schedule: ProtocolSchedule,
-        on day: Date,
-        protocolStart: Date,
-        calendar: Calendar
-    ) -> Bool {
-        guard schedule.isInterval, schedule.intervalAnchor == nil else {
-            return schedule.isActive(on: day, calendar: calendar)
-        }
-        let anchored = ProtocolSchedule(
-            daysOfWeek: schedule.daysOfWeek,
-            timesPerDay: schedule.timesPerDay,
-            preferredTimes: schedule.preferredTimes,
-            customDose: schedule.customDose,
-            intervalDays: schedule.intervalDays,
-            intervalAnchor: protocolStart
-        )
-        return anchored.isActive(on: day, calendar: calendar)
     }
 
     private static func timeString(for date: Date, calendar: Calendar) -> String {
