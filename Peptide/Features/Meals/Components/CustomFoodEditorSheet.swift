@@ -72,23 +72,35 @@ struct CustomFoodEditorSheet: View {
     /// Locale-aware decimal parser. `Double("1,5")` returns nil on
     /// devices set to a comma-decimal locale (fr_FR, de_DE, es_ES,
     /// etc.), so the editor would silently log 0 calories for a user
-    /// who typed "1,5". Try the locale formatter first, fall back to
-    /// the C parse so a pasted "1.5" still works regardless of locale.
-    private static func parseDecimal(_ input: String) -> Double? {
+    /// who typed "1,5".
+    ///
+    /// The decimal pad never types a grouping separator, so a string
+    /// holding one is a pasted C-style decimal: in de_DE the formatter
+    /// would read "1.5" as 15. Those skip the formatter.
+    static func parseDecimal(_ input: String, locale: Locale = .current) -> Double? {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
-        if let n = decimalFormatter.number(from: trimmed) {
-            return n.doubleValue
+        let formatter = decimalFormatter(locale)
+        if let grouping = formatter.groupingSeparator, !grouping.isEmpty, trimmed.contains(grouping) {
+            return Double(trimmed.replacingOccurrences(of: ",", with: "."))
         }
-        return Double(trimmed)
+        return formatter.number(from: trimmed)?.doubleValue ?? Double(trimmed)
     }
 
-    private static let decimalFormatter: NumberFormatter = {
+    /// Renders with the same locale `parseDecimal` reads with, so opening
+    /// and re-saving a food never changes its values.
+    static func formatDecimal(_ value: Double, locale: Locale = .current) -> String {
+        decimalFormatter(locale).string(from: NSNumber(value: value)) ?? String(value)
+    }
+
+    private static func decimalFormatter(_ locale: Locale) -> NumberFormatter {
         let f = NumberFormatter()
         f.numberStyle = .decimal
-        f.locale = .current
+        f.locale = locale
+        f.usesGroupingSeparator = false
+        f.maximumFractionDigits = 2
         return f
-    }()
+    }
 
     var body: some View {
         NavigationStack {
@@ -403,10 +415,7 @@ struct CustomFoodEditorSheet: View {
     /// zero-macro field on an existing food reads as the actual value
     /// instead of a misleading empty placeholder.
     private func formatRequired(_ value: Double) -> String {
-        if value.truncatingRemainder(dividingBy: 1) == 0 {
-            return String(Int(value))
-        }
-        return String(value)
+        Self.formatDecimal(value)
     }
 
     private func commit() {
@@ -433,12 +442,7 @@ struct CustomFoodEditorSheet: View {
 
     private func formatOrEmpty(_ value: Double) -> String {
         guard value > 0 else { return "" }
-        // Trim trailing .0 for whole numbers so the field doesn't read
-        // "200.0" when the user entered "200".
-        if value.truncatingRemainder(dividingBy: 1) == 0 {
-            return String(Int(value))
-        }
-        return String(value)
+        return Self.formatDecimal(value)
     }
 
     private func formatOrEmptyOptional(_ value: Double?) -> String {
