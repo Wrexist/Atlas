@@ -398,7 +398,7 @@ final class MealScannerService: Sendable {
     }
 
     /// Sends the request, retrying once on a transient transport
-    /// failure or a 502/503/504 response. A genuine offline condition
+    /// failure, a 502/503/504 response, or an App Attest rejection. A genuine offline condition
     /// is classified into `ScanError.offline` so the UI can show
     /// actionable copy instead of the raw `URLError` description.
     private func sendWithRetry(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
@@ -423,6 +423,13 @@ final class MealScannerService: Sendable {
                 }
                 if Self.retryableStatuses.contains(http.statusCode), attempt < maxAttempts {
                     try await Task.sleep(for: .seconds(1.5))
+                    continue
+                }
+                if http.statusCode == 401, attempt < maxAttempts,
+                   AppAttestService.isAttestRejection(data) {
+                    // The proxy lost this install's key; the next
+                    // attempt's assertion re-registers a fresh one.
+                    await AppAttestService.shared.invalidateRegistration()
                     continue
                 }
                 return (data, http)

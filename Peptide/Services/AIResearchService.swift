@@ -145,19 +145,12 @@ final class AIResearchService: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
         request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
-        // App Attest assertion — see AppAttestService; absence falls
-        // back to secret-only auth.
-        if let attestHeaders = await AppAttestService.shared.assertionHeaders() {
-            for (field, value) in attestHeaders {
-                request.setValue(value, forHTTPHeaderField: field)
-            }
-        }
         request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
 
         let bytes: URLSession.AsyncBytes
         let response: URLResponse
         do {
-            (bytes, response) = try await session.bytes(for: request)
+            (bytes, response) = try await streamAttested(request)
         } catch {
             throw mapTransport(error)
         }
@@ -249,13 +242,6 @@ final class AIResearchService: Sendable {
         request.timeoutInterval = 60
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
-        // App Attest assertion — see AppAttestService; absence falls
-        // back to secret-only auth.
-        if let attestHeaders = await AppAttestService.shared.assertionHeaders() {
-            for (field, value) in attestHeaders {
-                request.setValue(value, forHTTPHeaderField: field)
-            }
-        }
         request.httpBody = try JSONSerialization.data(
             withJSONObject: payload(history: history, newPrompt: prompt, ragContext: context),
             options: []
@@ -264,7 +250,7 @@ final class AIResearchService: Sendable {
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await session.data(for: request)
+            (data, response) = try await sendAttested(request)
         } catch {
             throw mapTransport(error)
         }
@@ -284,6 +270,43 @@ final class AIResearchService: Sendable {
         }
 
         return try parseAssistantText(from: data)
+    }
+
+    // MARK: - App Attest
+
+    /// `request` with a fresh App Attest assertion — see
+    /// AppAttestService; absence falls back to secret-only auth.
+    private func attested(_ request: URLRequest) async -> URLRequest {
+        var request = request
+        if let attestHeaders = await AppAttestService.shared.assertionHeaders() {
+            for (field, value) in attestHeaders {
+                request.setValue(value, forHTTPHeaderField: field)
+            }
+        }
+        return request
+    }
+
+    /// Sends with a fresh assertion. When the proxy has lost this
+    /// install's key (401 `attest_required`), re-registers and sends
+    /// once more instead of failing until the next reinstall.
+    private func sendAttested(_ request: URLRequest) async throws -> (Data, URLResponse) {
+        let first = try await session.data(for: attested(request))
+        guard (first.1 as? HTTPURLResponse)?.statusCode == 401,
+              AppAttestService.isAttestRejection(first.0) else { return first }
+        await AppAttestService.shared.invalidateRegistration()
+        return try await session.data(for: attested(request))
+    }
+
+    /// Streaming counterpart of `sendAttested`. A 401's body is read
+    /// to classify it; the caller only needs that response's status.
+    private func streamAttested(_ request: URLRequest) async throws -> (URLSession.AsyncBytes, URLResponse) {
+        let first = try await session.bytes(for: attested(request))
+        guard (first.1 as? HTTPURLResponse)?.statusCode == 401 else { return first }
+        var body = Data()
+        for try await byte in first.0 { body.append(byte) }
+        guard AppAttestService.isAttestRejection(body) else { return first }
+        await AppAttestService.shared.invalidateRegistration()
+        return try await session.bytes(for: attested(request))
     }
 
     // MARK: - RAG

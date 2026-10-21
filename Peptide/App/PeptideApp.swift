@@ -242,6 +242,11 @@ struct PeptideApp: App {
                 dataStore.profile.affiliateApplication
             )
         }
+        .task(priority: .background) {
+            // Register the App Attest key now, so the first research
+            // question or meal scan doesn't wait on it.
+            await AppAttestService.shared.warmUp()
+        }
         .onOpenURL { url in
             // All `peptidex://` routing lives in DeepLinkRouter so
             // the widget / Live Activity / notification link

@@ -23,9 +23,10 @@ actor AppAttestService {
     private let keyIdDefaultsKey = "appattest.keyId.v1"
     private let registeredDefaultsKey = "appattest.registered.v1"
 
-    /// One registration attempt per launch so a failing backend
-    /// can't add a round trip to every AI call.
-    private var registrationAttemptedThisLaunch = false
+    /// The launch's one registration attempt, shared by every caller
+    /// so concurrent AI requests join it instead of racing it, and a
+    /// failing backend can't add a round trip to every AI call.
+    private var registration: Task<String?, Never>?
 
     private init() {}
 
@@ -37,13 +38,24 @@ actor AppAttestService {
         MealScannerService.stringSetting(forKey: "APP_ATTEST_SECRET")
     }
 
+    private var isAvailable: Bool {
+        endpoint != nil && secret != nil && DCAppAttestService.shared.isSupported
+    }
+
+    /// Starts registration at launch, off the request path, so the
+    /// first research question or meal scan doesn't wait on two
+    /// network round trips and a Secure Enclave attestation.
+    func warmUp() {
+        guard isAvailable, storedRegisteredKeyId == nil else { return }
+        _ = startRegistrationIfNeeded()
+    }
+
     /// Assertion headers for a proxied AI request, or nil whenever
     /// App Attest can't contribute (simulator, no config, key not
     /// yet registered, Apple/Secure Enclave failure). Callers attach
     /// what they get and always proceed.
     func assertionHeaders() async -> [String: String]? {
-        guard endpoint != nil, secret != nil,
-              DCAppAttestService.shared.isSupported else { return nil }
+        guard isAvailable else { return nil }
         guard let keyId = await registeredKeyId() else { return nil }
 
         // 16 random bytes + big-endian millisecond timestamp. The
@@ -66,11 +78,10 @@ actor AppAttestService {
             ]
         } catch let error as DCError where error.code == .invalidKey {
             // The key lost Apple's trust (e.g. restore onto a new
-            // device). Forget it; clearStoredKey resets the
-            // attempt guard so the next assertionHeaders() call
+            // device). Forget it so the next assertionHeaders() call
             // re-registers without waiting for a relaunch.
             AppLog.auth.warning("app-attest key invalid; clearing for re-registration")
-            clearStoredKey()
+            invalidateRegistration()
             return nil
         } catch {
             AppLog.auth.warning("app-attest assertion failed: \(error.localizedDescription, privacy: .private)")
@@ -80,18 +91,42 @@ actor AppAttestService {
 
     // MARK: - Registration
 
-    private func registeredKeyId() async -> String? {
-        let defaults = UserDefaults.standard
-        if defaults.bool(forKey: registeredDefaultsKey),
-           let keyId = defaults.string(forKey: keyIdDefaultsKey) {
-            return keyId
+    /// True when a 401 body is the proxy's `attest_required` answer:
+    /// it no longer knows this install's key (a store flush, a moved
+    /// database), so the caller should invalidate and retry once.
+    nonisolated static func isAttestRejection(_ body: Data) -> Bool {
+        struct Envelope: Decodable {
+            struct Detail: Decodable { let code: String? }
+            let error: Detail
         }
-        guard !registrationAttemptedThisLaunch else { return nil }
-        // Set before the first await: actor reentrancy would
-        // otherwise let a second AI call start a parallel
-        // registration against the same key.
-        registrationAttemptedThisLaunch = true
-        return await register()
+        return (try? JSONDecoder().decode(Envelope.self, from: body))?.error.code == "attest_required"
+    }
+
+    /// Forgets the key and its registration, so the next
+    /// assertionHeaders() call registers a fresh key. A key Apple has
+    /// already attested can't be attested again, hence a new one.
+    func invalidateRegistration() {
+        UserDefaults.standard.removeObject(forKey: keyIdDefaultsKey)
+        UserDefaults.standard.removeObject(forKey: registeredDefaultsKey)
+        registration = nil
+    }
+
+    private var storedRegisteredKeyId: String? {
+        let defaults = UserDefaults.standard
+        guard defaults.bool(forKey: registeredDefaultsKey) else { return nil }
+        return defaults.string(forKey: keyIdDefaultsKey)
+    }
+
+    private func registeredKeyId() async -> String? {
+        if let keyId = storedRegisteredKeyId { return keyId }
+        return await startRegistrationIfNeeded().value
+    }
+
+    private func startRegistrationIfNeeded() -> Task<String?, Never> {
+        if let registration { return registration }
+        let task = Task { await self.register() }
+        registration = task
+        return task
     }
 
     private struct ChallengeResponse: Decodable {
@@ -148,20 +183,11 @@ actor AppAttestService {
             AppLog.auth.info("app-attest key registered")
             return keyId
         } catch let error as DCError where error.code == .invalidKey {
-            clearStoredKey()
+            invalidateRegistration()
             return nil
         } catch {
             AppLog.auth.warning("app-attest registration failed: \(error.localizedDescription, privacy: .private)")
             return nil
         }
-    }
-
-    private func clearStoredKey() {
-        UserDefaults.standard.removeObject(forKey: keyIdDefaultsKey)
-        UserDefaults.standard.removeObject(forKey: registeredDefaultsKey)
-        // Reset the per-launch guard too — otherwise a key invalidated
-        // mid-session would never re-register until the next cold
-        // launch, silently dropping App Attest for the rest of the run.
-        registrationAttemptedThisLaunch = false
     }
 }
