@@ -113,8 +113,16 @@ struct PeptideApp: App {
                 dataStore.flushPendingSave()
                 // Leaving the app is the moment a just-logged meal, weigh-
                 // in or workout should cancel today's matching reminder.
+                // Held open as a background task: reconcile removes stale
+                // reminders before adding their replacements, and a
+                // suspension in between would leave none until next open.
+                let backgroundTask = UIApplication.shared.beginBackgroundTask(
+                    withName: "Reminder reconcile",
+                    expirationHandler: nil
+                )
                 Task { @MainActor in
                     await DailyReminderScheduler.reconcile(dataStore: dataStore)
+                    UIApplication.shared.endBackgroundTask(backgroundTask)
                 }
             }
             if phase == .active {
