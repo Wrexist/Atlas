@@ -38,4 +38,18 @@ enum InjectionSite: String, CaseIterable, Codable {
     case rightThigh = "Right Thigh"
     case leftGlute = "Left Glute"
     case rightGlute = "Right Glute"
+
+    /// Localized label for display; `rawValue` is the persisted value.
+    var displayName: LocalizedStringResource {
+        switch self {
+        case .leftDeltoid: return "Left Deltoid"
+        case .rightDeltoid: return "Right Deltoid"
+        case .leftAbdomen: return "Left Abdomen"
+        case .rightAbdomen: return "Right Abdomen"
+        case .leftThigh: return "Left Thigh"
+        case .rightThigh: return "Right Thigh"
+        case .leftGlute: return "Left Glute"
+        case .rightGlute: return "Right Glute"
+        }
+    }
 }

@@ -103,7 +103,7 @@ struct DoseLoggingSheet: View {
                                             }
                                             Haptics.selection()
                                         } label: {
-                                            Text(site.rawValue)
+                                            Text(site.displayName)
                                                 .font(AppFont.caption)
                                                 .fontWeight(.semibold)
                                                 .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
@@ -116,6 +116,7 @@ struct DoseLoggingSheet: View {
                                                 )
                                         }
                                         .buttonStyle(ScalePressStyle())
+                                        .accessibilityAddTraits(isSelected ? .isSelected : [])
                                     }
                                 }
                             }
@@ -153,7 +154,8 @@ struct DoseLoggingSheet: View {
             // Pinned so the primary action is reachable without
             // scrolling past every field first.
             .pinnedFooter {
-                GlassButton(title: "Log dose", icon: "checkmark.circle.fill", style: .primary, isFullWidth: true) {
+                // Re-opening a taken dose edits it rather than logging a second one.
+                GlassButton(title: entry.completed ? "Save changes" : "Log dose", icon: "checkmark.circle.fill", style: .primary, isFullWidth: true) {
                     Haptics.success()
                     onLog(actualDose, actualTime, selectedSite, notes)
                     dismiss()
@@ -164,7 +166,7 @@ struct DoseLoggingSheet: View {
             }
             .dismissKeyboardOnTap()
             .background(AppColor.background)
-            .navigationTitle("Log dose")
+            .navigationTitle(entry.completed ? "Edit dose" : "Log dose")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
