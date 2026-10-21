@@ -297,10 +297,10 @@ struct PlateTableView: View {
         let calories = dishes.reduce(0) { $0 + $1.calories }
         let protein = dishes.reduce(0) { $0 + $1.proteinG }
         return HStack(spacing: Spacing.sm) {
-            StatTile(icon: "clock", value: moment.date.formatted(date: .omitted, time: .shortened), unit: String(localized: "time"))
-            StatTile(icon: "fork.knife", value: "\(dishes.count)", unit: dishes.count == 1 ? String(localized: "dish") : String(localized: "dishes"))
-            StatTile(icon: "flame.fill", value: "\(calories)", unit: String(localized: "kcal"))
-            StatTile(icon: "bolt.fill", value: "\(protein) g", unit: String(localized: "protein"))
+            TableStatTile(icon: "clock", value: moment.date.formatted(date: .omitted, time: .shortened), unit: String(localized: "time"))
+            TableStatTile(icon: "fork.knife", value: "\(dishes.count)", unit: dishes.count == 1 ? String(localized: "dish") : String(localized: "dishes"))
+            TableStatTile(icon: "flame.fill", value: "\(calories)", unit: String(localized: "kcal"))
+            TableStatTile(icon: "bolt.fill", value: "\(protein) g", unit: String(localized: "protein"))
         }
         .appAnimation(AppAnimation.settle, value: [dishes.count, calories, protein])
     }
@@ -375,7 +375,7 @@ struct PlateTableView: View {
 }
 
 /// One figure under the table: a tinted glyph, the value, and its unit.
-private struct StatTile: View {
+private struct TableStatTile: View {
     let icon: String
     let value: String
     let unit: String
