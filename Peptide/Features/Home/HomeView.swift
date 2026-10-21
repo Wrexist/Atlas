@@ -445,8 +445,8 @@ struct HomeView: View {
                     // Momentum — goal countdown for users who committed
                     // to a target date, and the earned Atlas Score
                     // (level / tier / progress). Guarded so the header
-                    // never sits alone when no goal date is set.
-                    if dataStore.profile.goalDate != nil {
+                    // never sits alone when the card has nothing to show.
+                    if GoalCountdownCard.isShown(goalDate: dataStore.profile.goalDate) {
                         VStack(spacing: Spacing.sm) {
                             HomeSectionHeader(eyebrow: "Momentum", title: "Your goal")
 

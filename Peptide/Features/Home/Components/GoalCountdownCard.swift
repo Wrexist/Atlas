@@ -23,6 +23,22 @@ struct GoalCountdownCard: View {
         return min(1, max(0, Date().timeIntervalSince(startDate) / total))
     }
 
+    /// Days the "Goal reached" state stays on Today before the card
+    /// retires. Nothing on Today can set a new goal date, so a passed
+    /// goal would otherwise hold the Momentum section indefinitely.
+    static let reachedGraceDays = 7
+
+    /// Whether Today should show the card for `goalDate` at `now`:
+    /// through the countdown and for `reachedGraceDays` after it.
+    static func isShown(goalDate: Date?, now: Date = Date(), calendar: Calendar = .current) -> Bool {
+        guard let goalDate else { return false }
+        let goalDay = calendar.startOfDay(for: goalDate)
+        guard let retireDay = calendar.date(byAdding: .day, value: reachedGraceDays, to: goalDay) else {
+            return true
+        }
+        return calendar.startOfDay(for: now) < retireDay
+    }
+
     /// True once the target date has arrived (or passed).
     private var isReached: Bool {
         guard let goalDate else { return false }
@@ -64,8 +80,9 @@ struct GoalCountdownCard: View {
         // countdown tick down without having to navigate away and
         // back (audit code-review #17). .everyMinute is conservative
         // enough that the cost is negligible.
-        TimelineView(.everyMinute) { _ in
-            if let goalDate, let weeks = weeksRemaining, let days = daysRemaining {
+        TimelineView(.everyMinute) { context in
+            if let goalDate, Self.isShown(goalDate: goalDate, now: context.date),
+               let weeks = weeksRemaining, let days = daysRemaining {
                 GlassCard(tinted: true) {
                     VStack(alignment: .leading, spacing: Spacing.md) {
                         header
