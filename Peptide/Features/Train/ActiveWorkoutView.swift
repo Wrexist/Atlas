@@ -304,7 +304,7 @@ struct ActiveWorkoutView: View {
                     TimelineView(.periodic(from: session.startedAt, by: 1)) { context in
                         StatTile(
                             label: "Elapsed",
-                            value: elapsedFormatted(session, now: context.date),
+                            value: WorkoutClock.label(session.elapsedSeconds(now: context.date)),
                             size: .large,
                             surface: .plain
                         )
@@ -324,17 +324,6 @@ struct ActiveWorkoutView: View {
                 }
             }
         }
-    }
-
-    private func elapsedFormatted(_ session: WorkoutSession, now: Date) -> String {
-        let seconds = session.elapsedSeconds(now: now)
-        let hours = seconds / 3600
-        let mins = (seconds % 3600) / 60
-        let secs = seconds % 60
-        if hours > 0 {
-            return String(format: "%d:%02d:%02d", hours, mins, secs)
-        }
-        return String(format: "%d:%02d", mins, secs)
     }
 
     // MARK: - Exercise stack
