@@ -283,18 +283,24 @@ private struct WorkoutFocusRestHeader: View {
     let onAdjust: (TimeInterval) -> Void
     let onUndo: () -> Void
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             let seconds = Int(ceil(rest.remaining(at: context.date)))
             let remaining = WorkoutClock.label(seconds)
+            let isAccessibilitySize = dynamicTypeSize.isAccessibilitySize
+            let headerLayout = isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.sm))
+                : AnyLayout(HStackLayout(spacing: Spacing.lg))
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                HStack(spacing: Spacing.lg) {
+                headerLayout {
                     RestCountdownRing(rest: rest)
                         .frame(width: 64, height: 64)
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text(target)
                             .font(AppFont.callout).foregroundStyle(AppColor.textSecondary)
-                            .lineLimit(2)
+                            .lineLimit(isAccessibilitySize ? nil : 2)
                         Text(remaining)
                             .font(AppFont.statValueSmall).monospacedDigit()
                             .contentTransition(.numericText(countsDown: true))
