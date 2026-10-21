@@ -94,11 +94,11 @@ extension PerformanceAgeEngine.Driver.Kind {
     /// "48 ms", "8,412 steps", "+1.2 kg" — the user's reading.
     func formattedValue(_ value: Double, unit: MeasurementUnit) -> String {
         switch self {
-        case .vo2Max:        value.formatted(.number.precision(.fractionLength(1)))
+        case .vo2Max:        String(localized: "\(value.formatted(.number.precision(.fractionLength(1)))) ml/kg/min")
         case .hrv:           String(localized: "\(Int(value.rounded())) ms")
         case .rhr:           String(localized: "\(Int(value.rounded())) bpm")
         case .sleep:         String(localized: "\(value.formatted(.number.precision(.fractionLength(1)))) h")
-        case .steps:         value.formatted(.number.precision(.fractionLength(0)))
+        case .steps:         String(localized: "\(value.formatted(.number.precision(.fractionLength(0)))) steps")
         case .bodyMassIndex: value.formatted(.number.precision(.fractionLength(1)))
         case .weight:        signedWeight(value, unit: unit)
         }
@@ -108,7 +108,7 @@ extension PerformanceAgeEngine.Driver.Kind {
     func formattedReference(_ reference: Double, unit: MeasurementUnit) -> String {
         switch self {
         case .vo2Max:
-            String(localized: "Typical for your age: \(reference.formatted(.number.precision(.fractionLength(1))))")
+            String(localized: "Typical for your age: \(reference.formatted(.number.precision(.fractionLength(1)))) ml/kg/min")
         case .hrv:
             String(localized: "Typical for your age: \(Int(reference.rounded())) ms")
         case .rhr:
@@ -116,7 +116,7 @@ extension PerformanceAgeEngine.Driver.Kind {
         case .sleep:
             String(localized: "Target: \(reference.formatted(.number.precision(.fractionLength(1)))) h")
         case .steps:
-            String(localized: "Neutral at \(reference.formatted(.number.precision(.fractionLength(0))))")
+            String(localized: "Neutral at \(reference.formatted(.number.precision(.fractionLength(0)))) steps")
         case .bodyMassIndex:
             String(localized: "Neutral up to \(reference.formatted(.number.precision(.fractionLength(0))))")
         case .weight:
