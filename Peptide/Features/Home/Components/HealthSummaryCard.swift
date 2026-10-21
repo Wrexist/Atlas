@@ -96,7 +96,7 @@ struct HealthSummaryCard: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
-                .font(AppFont.scaled(8))
+                .font(AppFont.scaled(11, relativeTo: .caption1))
                 .foregroundStyle(AppColor.textTertiary)
         }
         .frame(maxWidth: .infinity)
