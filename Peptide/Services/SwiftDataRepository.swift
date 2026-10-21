@@ -249,9 +249,14 @@ final class SwiftDataRepository {
 
     private static func makeLocalContainer() -> ModelContainer? {
         do {
+            // Explicitly `.none`: the default `.automatic` mirrors to the
+            // entitlement's CloudKit container, so the "local" fallback
+            // would still sync.
+            let config = ModelConfiguration(cloudKitDatabase: .none)
             return try ModelContainer(
                 for: versionedSchema,
-                migrationPlan: PeptideAtlasMigrationPlan.self
+                migrationPlan: PeptideAtlasMigrationPlan.self,
+                configurations: config
             )
         } catch {
             AppLog.swiftData.error("Failed to create persistent ModelContainer: \(error.localizedDescription, privacy: .public)")
