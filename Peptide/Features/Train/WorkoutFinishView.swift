@@ -5,7 +5,9 @@ struct WorkoutFinishView: View {
     let unit: MeasurementUnit
     let onClose: () -> Void
     let celebratesSave: Bool
-    let detectedPRs: [PRDetectionEngine.DetectedPR]
+    /// Records this save set. Cleared after an edit: the edit re-derives
+    /// stored records, so these could name a set the user just corrected.
+    @State private var detectedPRs: [PRDetectionEngine.DetectedPR]
     @State private var store: WorkoutRecapStore
     @State private var editing = false
     @State private var sharing = false
@@ -20,7 +22,7 @@ struct WorkoutFinishView: View {
         self.unit = unit
         self.onClose = onClose
         self.celebratesSave = celebratesSave
-        self.detectedPRs = detectedPRs
+        _detectedPRs = State(initialValue: detectedPRs)
         _store = State(initialValue: WorkoutRecapStore(session: session))
     }
 
@@ -113,7 +115,7 @@ struct WorkoutFinishView: View {
         .sheet(isPresented: $editing) {
             WorkoutSavedEditor(session: store.session, unit: unit) { edited in
                 try store.saveEdits(edited)
-                Task { await store.load() }
+                detectedPRs = []
             }
         }
         .sheet(isPresented: $sharing) {
