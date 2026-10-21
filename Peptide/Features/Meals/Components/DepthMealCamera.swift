@@ -57,7 +57,10 @@ final class DepthCameraController: UIViewController, AVCapturePhotoCaptureDelega
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        sessionQueue.async { [session] in session.startRunning() }
+        sessionQueue.async { [weak self, session] in
+            session.startRunning()
+            Task { @MainActor in self?.refreshShutter() }
+        }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -81,6 +84,7 @@ final class DepthCameraController: UIViewController, AVCapturePhotoCaptureDelega
 
     private func addControls() {
         shutter.translatesAutoresizingMaskIntoConstraints = false
+        shutter.isEnabled = false
         shutter.backgroundColor = .white
         shutter.layer.cornerRadius = 36
         shutter.layer.borderWidth = 4
@@ -109,7 +113,24 @@ final class DepthCameraController: UIViewController, AVCapturePhotoCaptureDelega
         ])
     }
 
+    /// `capturePhoto` raises an exception without an active video
+    /// connection: before the session starts, while it is interrupted, or
+    /// when the LiDAR input couldn't be added at all.
+    private var canCapture: Bool {
+        guard session.isRunning, !session.isInterrupted,
+              let connection = output.connection(with: .video) else { return false }
+        return connection.isActive && connection.isEnabled
+    }
+
+    private func refreshShutter() {
+        shutter.isEnabled = canCapture
+    }
+
     @objc private func capture() {
+        guard canCapture else {
+            refreshShutter()
+            return
+        }
         shutter.isEnabled = false
         let settings = AVCapturePhotoSettings()
         settings.isDepthDataDeliveryEnabled = output.isDepthDataDeliveryEnabled
@@ -125,7 +146,7 @@ final class DepthCameraController: UIViewController, AVCapturePhotoCaptureDelega
         let distance = photo.depthData.flatMap(Self.centreDistance(of:))
         Task { @MainActor in
             guard let image else {
-                self.shutter.isEnabled = true
+                self.refreshShutter()
                 return
             }
             var scale: PhotoScale?
