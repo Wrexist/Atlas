@@ -1701,7 +1701,7 @@ struct OnboardingView: View {
     private var projectionSubtitle: String {
         switch primaryGoal {
         case .buildMuscle, .recomp:
-            return "Based on \(daysPerWeek) sessions per week and your starting weight."
+            return "Based on your training experience and \(daysPerWeek) sessions per week."
         case .loseFat:
             return "From a moderate deficit at \(daysPerWeek) sessions per week."
         case .getStronger, .athletic:
@@ -1739,13 +1739,20 @@ struct OnboardingView: View {
         }
     }
 
-    // The realistic-range clamps are expressed in kilograms because the
-    // underlying model is; the label converts afterwards so an imperial
-    // user reads "9 lb", not "4 kg". Both estimates are per 12-week
-    // block and scale with the chosen span, so "8 weeks" and "26 weeks"
-    // no longer promise the same number.
+    // Estimates are in kilograms because the underlying model is; the
+    // label converts afterwards so an imperial user reads lb, not kg.
+    // Both scale with the chosen span, so "8 weeks" and "26 weeks"
+    // don't promise the same number.
+
+    /// A range rather than a single number, from half the typical rate
+    /// for the user's experience up to it — a personal projection shown
+    /// before the paywall shouldn't promise more than training delivers.
     private var projectedMuscleGain: String {
-        bodyMetrics.unit.weightLabel(min(6, max(1, (estimatedMuscleGainKg * goalSpanFactor).rounded())))
+        let months = Double(goalWeeks) * 12 / 52
+        let upperKg = monthlyLeanGainKg * months
+        let unit = bodyMetrics.unit
+        let lower = String(format: "%.1f", unit.weightForDisplay(upperKg / 2))
+        return "\(lower)–\(unit.weightLabel(upperKg, fractionDigits: 1))"
     }
 
     private var projectedFatLoss: String {
@@ -1756,8 +1763,14 @@ struct OnboardingView: View {
         Double(goalWeeks) / 12
     }
 
-    private var estimatedMuscleGainKg: Double {
-        Double(daysPerWeek) * 0.6 + 1.5
+    /// Typical lean-mass gain per month on a good program, which falls
+    /// steeply with training age.
+    private var monthlyLeanGainKg: Double {
+        switch Experience(rawValue: experienceLevel) ?? .beginner {
+        case .beginner:     return 0.75
+        case .intermediate: return 0.4
+        case .advanced:     return 0.2
+        }
     }
 
     private var estimatedFatLossKg: Double {
