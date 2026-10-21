@@ -15,6 +15,9 @@ struct ActiveWorkoutView: View {
     @State private var showExercisePicker = false
     @State private var showFinishSheet = false
     @State private var showDiscardConfirm = false
+    /// Keeps the "No workout in progress" fallback from flashing while
+    /// the cover slides away after a discard.
+    @State private var discarding = false
     @State private var finishedSession: WorkoutSession?
     @State private var finishedPRs: [PRDetectionEngine.DetectedPR] = []
     /// Set at finish when this workout earns a review prompt (a new PR or
@@ -56,6 +59,8 @@ struct ActiveWorkoutView: View {
                     )
                     .task { await requestReviewIfEarned() }
                     .transition(Self.phaseTransition)
+                } else if discarding {
+                    AppColor.background.ignoresSafeArea()
                 } else {
                     noActiveSession
                         .transition(Self.phaseTransition)
@@ -282,6 +287,7 @@ struct ActiveWorkoutView: View {
         }
         .alert("Discard this workout?", isPresented: $showDiscardConfirm) {
             Button("Discard", role: .destructive) {
+                discarding = true
                 sessionService.discardWorkout()
                 dismiss()
             }
