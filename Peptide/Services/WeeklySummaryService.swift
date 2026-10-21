@@ -153,6 +153,16 @@ final class WeeklySummaryService {
         return cached
     }
 
+    /// How long a stale summary (its source data changed) stays on Today
+    /// before it is regenerated. A weekly recap doesn't need a new AI
+    /// request for every dose, meal or check-in logged that day.
+    static let staleRegenerationInterval: TimeInterval = 6 * 60 * 60
+
+    /// True when a stale summary is old enough to regenerate.
+    static func isDueForRegeneration(_ summary: WeeklySummary, now: Date = Date()) -> Bool {
+        now.timeIntervalSince(summary.generatedAt) >= staleRegenerationInterval
+    }
+
     /// Deterministic hash of the user-editable inputs of an aggregate.
     /// Deliberately excludes `biometrics` (HealthKit series arrive
     /// passively and would re-fire the API on every new sample) and

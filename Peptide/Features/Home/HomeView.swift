@@ -1114,7 +1114,19 @@ struct HomeView: View {
             return
         }
 
-        weeklySummaryState = .loading
+        // The week's data changed since the recap was generated. Keep the
+        // stale recap on screen and regenerate it in the background, at
+        // most every few hours, instead of a shimmer plus an AI request
+        // on every Today appear after each log.
+        var isRefreshingStale = false
+        if !forceRefresh,
+           let stale = WeeklySummaryService.shared.cached(in: dataStore.profile, for: Date()) {
+            weeklySummaryState = .ready(stale)
+            guard WeeklySummaryService.isDueForRegeneration(stale) else { return }
+            isRefreshingStale = true
+        }
+
+        if !isRefreshingStale { weeklySummaryState = .loading }
         do {
             // Pull a fresh HRV series each refresh — cheaper than
             // caching it on the @State, and the user is unlikely to
@@ -1147,7 +1159,7 @@ struct HomeView: View {
         } catch WeeklySummaryService.GenerationError.insufficientData {
             weeklySummaryState = .empty
         } catch {
-            weeklySummaryState = .failed
+            if !isRefreshingStale { weeklySummaryState = .failed }
         }
     }
 
