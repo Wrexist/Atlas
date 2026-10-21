@@ -16,4 +16,25 @@ final class LabValueTests: XCTestCase {
         let data = try JSONEncoder().encode(original)
         XCTAssertEqual(try JSONDecoder().decode(LabValue.self, from: data), original)
     }
+
+    func test_canonicalValue_hba1cMmolPerMol_convertsToPercent() {
+        XCTAssertEqual(LabPanel.hba1c.canonicalValue(fromSI: 38), 5.627, accuracy: 0.01)
+    }
+
+    func test_canonicalValue_glucoseMmolPerL_convertsToMgPerDL() {
+        XCTAssertEqual(LabPanel.fastingGlucose.canonicalValue(fromSI: 5.0), 90.08, accuracy: 0.1)
+    }
+
+    func test_canonicalValue_cholesterolMmolPerL_convertsToMgPerDL() {
+        XCTAssertEqual(LabPanel.totalCholesterol.canonicalValue(fromSI: 5.2), 201.1, accuracy: 0.1)
+    }
+
+    func test_canonicalValue_testosteroneNmolPerL_convertsToNgPerDL() {
+        XCTAssertEqual(LabPanel.totalTestosterone.canonicalValue(fromSI: 20), 576.8, accuracy: 0.1)
+    }
+
+    func test_panelWithoutSIAlternative_hasNoSIUnitAndPassesValueThrough() {
+        XCTAssertNil(LabPanel.alt.siUnit)
+        XCTAssertEqual(LabPanel.alt.canonicalValue(fromSI: 30), 30)
+    }
 }

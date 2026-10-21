@@ -20,10 +20,9 @@ struct LabValue: Codable, Hashable, Identifiable, Sendable {
     /// Which marker this entry tracks. Drives display name + units
     /// + reference range.
     var panel: LabPanel
-    /// The reported value. Stored in `panel.canonicalUnit` — the
-    /// editor converts on input if the user reported in an
-    /// alternative unit, so the timeline math doesn't have to
-    /// branch.
+    /// The reported value, always in `panel.canonicalUnit` so the
+    /// timeline math doesn't have to branch. The editor converts on
+    /// save when the user entered the lab's SI unit.
     var value: Double
     /// Optional source — "Quest", "Marek Health", "Inside Tracker".
     /// Useful when a user runs labs at multiple places and wants
@@ -222,6 +221,38 @@ enum LabPanel: String, Codable, CaseIterable, Identifiable, Sendable {
         case .hematocrit:         "%"
         case .cortisolMorning:    "μg/dL"
         case .other:              ""
+        }
+    }
+
+    /// The SI unit many labs (most of Europe) report this panel in,
+    /// or nil when labs report it in `canonicalUnit` (or an
+    /// equal-magnitude unit) everywhere.
+    var siUnit: String? {
+        switch self {
+        case .totalTestosterone, .vitaminD:
+            "nmol/L"
+        case .fastingGlucose, .totalCholesterol, .hdl, .ldl, .triglycerides:
+            "mmol/L"
+        case .hba1c:
+            "mmol/mol"
+        case .creatinine:
+            "μmol/L"
+        default:
+            nil
+        }
+    }
+
+    /// Converts a value reported in `siUnit` to `canonicalUnit`.
+    func canonicalValue(fromSI value: Double) -> Double {
+        switch self {
+        case .totalTestosterone:                 value * 28.84
+        case .vitaminD:                          value / 2.496
+        case .fastingGlucose:                    value * 18.016
+        case .totalCholesterol, .hdl, .ldl:      value * 38.67
+        case .triglycerides:                     value * 88.57
+        case .hba1c:                             value * 0.0915 + 2.15
+        case .creatinine:                        value / 88.4
+        default:                                 value
         }
     }
 

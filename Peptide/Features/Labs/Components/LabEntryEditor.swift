@@ -20,6 +20,9 @@ struct LabEntryEditor: View {
     @State private var drawDate: Date
     @State private var source: String
     @State private var note: String
+    /// The user typed the value in the panel's SI unit; `commit()`
+    /// converts it to the canonical unit.
+    @State private var reportedInSI = false
     @State private var showDeleteConfirm: Bool = false
     /// Out-of-range warning, shown only once typing pauses so "1" on the
     /// way to "1000" doesn't flash an error.
@@ -51,7 +54,15 @@ struct LabEntryEditor: View {
         _note = State(initialValue: initial?.note ?? "")
     }
 
+    private var usesSI: Bool { reportedInSI && panel.siUnit != nil }
+
     private var parsedValue: Double? { Self.parseDecimal(valueText) }
+
+    /// The typed value converted to `panel.canonicalUnit`.
+    private var canonicalValue: Double? {
+        guard let value = parsedValue else { return nil }
+        return usesSI ? panel.canonicalValue(fromSI: value) : value
+    }
 
     private static let decimalParser: NumberFormatter = {
         let f = NumberFormatter()
@@ -79,7 +90,7 @@ struct LabEntryEditor: View {
     /// motivates users to track in the first place (audit Biology
     /// MED 12).
     private var rangeWarning: String? {
-        guard let value = parsedValue, let range = panel.typicalRange(for: sex) else { return nil }
+        guard let value = canonicalValue, let range = panel.typicalRange(for: sex) else { return nil }
         let low = LabValueFormat.string(range.lowerBound)
         let high = LabValueFormat.string(range.upperBound)
         let unit = panel.canonicalUnit
@@ -114,9 +125,18 @@ struct LabEntryEditor: View {
                             .keyboardType(.decimalPad)
                             .monospacedDigit()
                             .focused($valueFocused)
-                        Text(panel.canonicalUnit)
-                            .font(AppFont.caption)
-                            .foregroundStyle(AppColor.textSecondary)
+                        if let siUnit = panel.siUnit {
+                            Picker("Unit", selection: $reportedInSI) {
+                                Text(panel.canonicalUnit).tag(false)
+                                Text(siUnit).tag(true)
+                            }
+                            .pickerStyle(.segmented)
+                            .fixedSize()
+                        } else {
+                            Text(panel.canonicalUnit)
+                                .font(AppFont.caption)
+                                .foregroundStyle(AppColor.textSecondary)
+                        }
                     }
                     if showRangeWarning, let rangeWarning {
                         HStack(spacing: Spacing.xs) {
@@ -137,10 +157,13 @@ struct LabEntryEditor: View {
                 } header: {
                     Text("Result")
                 } footer: {
-                    if let range = panel.typicalRange(for: sex) {
-                        Text(rangeFooter(range: range))
-                    } else {
-                        Text("Reported in \(panel.canonicalUnit). Convert from your lab's unit before entering.")
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        if let range = panel.typicalRange(for: sex) {
+                            Text(rangeFooter(range: range))
+                        }
+                        if panel.siUnit == nil {
+                            Text("Reported in \(panel.canonicalUnit). Convert from your lab's unit before entering.")
+                        }
                     }
                 }
 
@@ -173,6 +196,9 @@ struct LabEntryEditor: View {
                 try? await Task.sleep(for: .milliseconds(500))
                 guard !Task.isCancelled else { return }
                 showRangeWarning = rangeWarning != nil
+            }
+            .onChange(of: reportedInSI) { _, _ in
+                showRangeWarning = rangeWarning != nil && !valueText.isEmpty
             }
             .onChange(of: panel) { _, _ in
                 showRangeWarning = rangeWarning != nil && !valueText.isEmpty
@@ -244,7 +270,7 @@ struct LabEntryEditor: View {
     }
 
     private func commit() {
-        guard let value = parsedValue else { return }
+        guard let value = canonicalValue else { return }
         Haptics.success()
         let trimmedSource = source.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
