@@ -207,19 +207,16 @@ jobs:
           EOF
 
       - name: Validate resource files
-        continue-on-error: true
         run: |
-          # Fail fast on malformed property lists. plutil -lint exits non-zero
-          # if any of these can't be parsed. continue-on-error so a tooling
-          # quirk on a specific file extension can't block the PR.
-          plutil -lint Peptide/Resources/Info.plist
-          plutil -lint PeptideWidgets/Info.plist
-          plutil -lint Peptide/Resources/PrivacyInfo.xcprivacy
-          plutil -lint Peptide/Peptide.entitlements
-          plutil -lint PeptideWidgets/PeptideWidgets.entitlements
-          # String catalogs are JSON; validate via python rather than plutil
-          # (plutil's auto-detection on the .xcstrings extension is unreliable).
+          # A malformed Info.plist, entitlements file or privacy manifest is
+          # an App Store rejection, so every tracked one is linted, across
+          # all four targets. plutil -lint exits non-zero on a parse error.
+          git ls-files -z '*.plist' '*.entitlements' '*.xcprivacy' | xargs -0 -n1 plutil -lint
+          # String catalogs and the StoreKit config are JSON; validate via
+          # python rather than plutil (plutil's auto-detection on these
+          # extensions is unreliable).
           python3 -c "import json; json.load(open('Peptide/Resources/Localizable.xcstrings'))"
+          python3 -c "import json; json.load(open('Peptide/Resources/Products.storekit'))"
 
       - name: Build app
         # Gates the PR on the iOS app compiling. Uses `build` (not
