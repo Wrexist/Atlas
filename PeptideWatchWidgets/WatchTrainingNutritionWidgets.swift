@@ -155,7 +155,7 @@ struct WatchWorkoutEntryView: View {
                     .lineLimit(1)
                 Group {
                     if let paused = workout.pausedElapsedSeconds {
-                        Text("Paused · \(Duration.seconds(paused).formatted(.time(pattern: .minuteSecond)))")
+                        Text("Paused · \(Duration.seconds(paused).formatted(.time(pattern: WatchFormat.elapsedPattern(seconds: paused))))")
                     } else if let restInterval {
                         Text("Rest \(Text(timerInterval: restInterval, countsDown: true))")
                     } else {

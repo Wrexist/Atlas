@@ -70,7 +70,7 @@ private struct WorkoutClockRow: View {
         HStack {
             Group {
                 if let paused = workout.pausedElapsedSeconds {
-                    Text(Duration.seconds(paused).formatted(.time(pattern: Self.pattern(for: paused))))
+                    Text(Duration.seconds(paused).formatted(.time(pattern: WatchFormat.elapsedPattern(seconds: paused))))
                 } else {
                     Text(workout.timerStartedAt, style: .timer)
                 }
@@ -88,10 +88,6 @@ private struct WorkoutClockRow: View {
                 .animation(WatchMotion.update, value: workout.completedSets)
         }
         .accessibilityElement(children: .combine)
-    }
-
-    private static func pattern(for seconds: Int) -> Duration.TimeFormatStyle.Pattern {
-        seconds >= 3600 ? .hourMinuteSecond : .minuteSecond
     }
 }
 

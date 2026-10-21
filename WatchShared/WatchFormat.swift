@@ -7,6 +7,11 @@ enum WatchFormat {
         Duration.seconds(minutes * 60)
             .formatted(.units(allowed: [.hours, .minutes], width: .narrow))
     }
+
+    /// Clock pattern for an elapsed workout: hours appear once there are any.
+    static func elapsedPattern(seconds: Int) -> Duration.TimeFormatStyle.Pattern {
+        seconds >= 3600 ? .hourMinuteSecond : .minuteSecond
+    }
 }
 
 /// Weight on the wrist: canonical kilograms in, the phone's unit out.
