@@ -52,7 +52,7 @@ struct PeptideApp: App {
         URLCache.shared = URLCache(
             memoryCapacity: 50 * 1024 * 1024,    // 50 MB resident
             diskCapacity:   200 * 1024 * 1024,   // 200 MB on disk
-            diskPath:       "peptidex-imagecache"
+            directory:      URL.cachesDirectory.appending(path: "peptidex-imagecache")
         )
 
         // App.init() may be nonisolated in strict Swift 6 mode; assumeIsolated
