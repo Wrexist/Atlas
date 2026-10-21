@@ -691,7 +691,7 @@ final class ScreenshotTests: XCTestCase {
     /// Two different first-launch overlays can appear at any point in
     /// this sequence, neither gated on a specific screen:
     ///
-    /// - The system notification-permission alert.
+    /// - A system permission alert (notifications, HealthKit, camera).
     /// - `HomeView`'s `CycleMilestonePromptSheet` ("Share your week 1
     ///   snapshot?"), triggered by `CycleMilestoneService` once the demo
     ///   protocol's seeded start date crosses the day-7 mark. It's a
@@ -729,7 +729,9 @@ final class ScreenshotTests: XCTestCase {
     /// clearing before every capture. Cheap to call speculatively: each
     /// wait only costs real time when that overlay is actually present.
     private func dismissOverlaysIfNeeded() {
-        let alert = app.alerts.firstMatch
+        // Permission prompts are owned by SpringBoard, not the app, so
+        // `app.alerts` never sees them.
+        let alert = XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.firstMatch
         if alert.waitForExistence(timeout: 0.5) {
             if alert.buttons["Allow"].exists {
                 alert.buttons["Allow"].tap()
