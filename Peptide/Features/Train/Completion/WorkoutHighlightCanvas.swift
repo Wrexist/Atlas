@@ -30,12 +30,12 @@ struct WorkoutHighlightCanvas: View {
             }
 
             HStack(alignment: .top, spacing: 8) {
-                ExerciseHeroView(exercise: entry.flatMap { ExerciseLibrary.shared.lookup(id: $0.exerciseID) }, showsPhotos: false)
+                ExerciseHeroView(exercise: entry.flatMap { ExerciseLibrary.shared.lookup(id: $0.exerciseID) }, interactive: false)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 if !compact && summary.entries.count > 1 {
                     VStack(spacing: 8) {
                         ForEach(Array(summary.entries.prefix(4))) { item in
-                            ExerciseImageView(exercise: ExerciseLibrary.shared.lookup(id: item.exerciseID), showsPhotos: false)
+                            ExerciseImageView(exercise: ExerciseLibrary.shared.lookup(id: item.exerciseID))
                                 .frame(width: 34, height: 34)
                                 .clipShape(Circle())
                                 .overlay(Circle().stroke(item.id == entry?.id ? AppColor.trainingSelection : .clear, lineWidth: 2))

@@ -212,17 +212,21 @@ def head_weights(raw, name=""):
 
 def highlights(exercise):
     """Twin of ExerciseAnatomyEngine.highlights(for:)."""
-    lit = {}
+    lit, primary_weights = {}, {}
     for raw in exercise["secondaryMuscles"]:
         for muscle, weight in head_weights(raw, exercise["name"]).items():
             if weight >= 0.5:
                 lit[muscle] = "secondary"
     for raw in exercise["primaryMuscles"]:
         for muscle, weight in head_weights(raw, exercise["name"]).items():
+            primary_weights[muscle] = max(primary_weights.get(muscle, 0), weight)
             if weight >= 0.75:
                 lit[muscle] = "primary"
             elif weight >= 0.4 and muscle not in lit:
                 lit[muscle] = "secondary"
+    if "primary" not in lit.values() and primary_weights:
+        strongest = max(primary_weights.values())
+        lit.update({m: "primary" for m, w in primary_weights.items() if w >= strongest})
     return lit
 
 
