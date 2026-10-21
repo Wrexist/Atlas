@@ -31,7 +31,9 @@ struct AboutSection: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
 
-                VStack(spacing: Spacing.md) {
+                // Rows carry their own 44pt height; tighter spacing keeps
+                // the card's density.
+                VStack(spacing: Spacing.xs) {
                     AboutRow(title: "Version", value: "\(Self.appVersion) (\(Self.buildNumber))")
                     Divider().overlay(AppColor.glassBorder)
                     NavigationLink {
@@ -47,6 +49,7 @@ struct AboutSection: View {
                                 .foregroundStyle(AppColor.textTertiary)
                                 .accessibilityHidden(true)
                         }
+                        .aboutRowHitTarget()
                     }
                     .buttonStyle(.plain)
                     Divider().overlay(AppColor.glassBorder)
@@ -61,6 +64,7 @@ struct AboutSection: View {
                                 .foregroundStyle(AppColor.textTertiary)
                                 .accessibilityHidden(true)
                         }
+                        .aboutRowHitTarget()
                     }
                     .buttonStyle(.plain)
                     Divider().overlay(AppColor.glassBorder)
@@ -83,6 +87,7 @@ struct AboutSection: View {
                                 .foregroundStyle(AppColor.textTertiary)
                                 .accessibilityHidden(true)
                         }
+                        .aboutRowHitTarget()
                     }
                     .buttonStyle(.plain)
                 }
@@ -173,6 +178,7 @@ private struct AboutLinkRow: View {
                     .foregroundStyle(AppColor.textTertiary)
                     .accessibilityHidden(true)
             }
+            .aboutRowHitTarget()
         }
         .buttonStyle(.plain)
     }
@@ -192,6 +198,15 @@ private struct AboutRow: View {
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textPrimary)
         }
+        .frame(minHeight: Spacing.minimumHitTarget)
+    }
+}
+
+private extension View {
+    /// A full-width 44pt tap target: the bare text line was about 20pt
+    /// and only the glyphs themselves were hittable.
+    func aboutRowHitTarget() -> some View {
+        frame(minHeight: Spacing.minimumHitTarget).contentShape(Rectangle())
     }
 }
 
