@@ -99,6 +99,32 @@ final class WorkoutActivityStatusTests: XCTestCase {
         XCTAssertEqual(state(completedSets: 14, totalSets: 12).setProgress, 1)
     }
 
+    // MARK: - Idle
+
+    func test_isIdle_notStale_isFalse() {
+        XCTAssertFalse(state().isIdle(isStale: false, at: now))
+    }
+
+    func test_isIdle_staleWithNoRest_isTrue() {
+        XCTAssertTrue(state().isIdle(isStale: true, at: now))
+    }
+
+    func test_isIdle_staleAtTheEndOfARest_isFalse() {
+        // The rest's end is the stale date; that redraw is the countdown
+        // finishing, not the workout being forgotten.
+        let s = state(restEndsAt: now.addingTimeInterval(-5), restTotalSeconds: 90)
+        XCTAssertFalse(s.isIdle(isStale: true, at: now))
+    }
+
+    func test_isIdle_staleLongAfterTheLastRest_isTrue() {
+        let s = state(restEndsAt: now.addingTimeInterval(-3 * 3600), restTotalSeconds: 90)
+        XCTAssertTrue(s.isIdle(isStale: true, at: now))
+    }
+
+    func test_isIdle_finished_isFalse() {
+        XCTAssertFalse(state(finishedAt: now).isIdle(isStale: true, at: now))
+    }
+
     // MARK: - Display name
 
     func test_displayName_fallsBackForAnUnnamedWorkout() {

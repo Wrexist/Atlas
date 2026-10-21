@@ -20,8 +20,12 @@ import WidgetKit
 struct WorkoutLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: WorkoutActivityAttributes.self) { context in
-            WorkoutLockView(attributes: context.attributes, state: context.state)
-                .widgetURL(WorkoutActivityStyle.deepLink)
+            WorkoutLockView(
+                attributes: context.attributes,
+                state: context.state,
+                isIdle: context.state.isIdle(isStale: context.isStale)
+            )
+            .widgetURL(WorkoutActivityStyle.deepLink)
         } dynamicIsland: { context in
             buildDynamicIsland(context: context)
         }
@@ -31,17 +35,24 @@ struct WorkoutLiveActivity: Widget {
     private func buildDynamicIsland(
         context: ActivityViewContext<WorkoutActivityAttributes>
     ) -> DynamicIsland {
-        let accent = WorkoutActivityStyle.accent(for: context.state)
+        let idle = context.state.isIdle(isStale: context.isStale)
+        let accent = WorkoutActivityStyle.accent(for: context.state, idle: idle)
         return DynamicIsland {
             DynamicIslandExpandedRegion(.leading) {
                 IslandGlyph(state: context.state, accent: accent)
             }
             DynamicIslandExpandedRegion(.trailing) {
-                IslandTimer(
-                    attributes: context.attributes,
-                    state: context.state,
-                    accent: accent
-                )
+                if idle {
+                    Text("Idle")
+                        .font(.system(size: 17, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.6))
+                } else {
+                    IslandTimer(
+                        attributes: context.attributes,
+                        state: context.state,
+                        accent: accent
+                    )
+                }
             }
             DynamicIslandExpandedRegion(.center) {
                 VStack(alignment: .leading, spacing: 1) {
@@ -49,7 +60,7 @@ struct WorkoutLiveActivity: Widget {
                         .font(.system(size: 14, weight: .heavy, design: .rounded))
                         .foregroundStyle(.white)
                         .lineLimit(1)
-                    Text(WorkoutActivityStyle.subtitle(for: context.state))
+                    Text(idle ? WorkoutActivityStyle.idleSubtitle : WorkoutActivityStyle.subtitle(for: context.state))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(.white.opacity(0.65))
                         .lineLimit(1)
@@ -59,7 +70,9 @@ struct WorkoutLiveActivity: Widget {
             DynamicIslandExpandedRegion(.bottom) {
                 VStack(spacing: 8) {
                     SetProgressBar(state: context.state, accent: accent)
-                    WorkoutActionButton(sessionId: context.attributes.sessionId, state: context.state, accent: accent)
+                    if !idle {
+                        WorkoutActionButton(sessionId: context.attributes.sessionId, state: context.state, accent: accent)
+                    }
                 }
             }
         } compactLeading: {
@@ -67,11 +80,17 @@ struct WorkoutLiveActivity: Widget {
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(accent)
         } compactTrailing: {
-            CompactTiming(
-                attributes: context.attributes,
-                state: context.state,
-                accent: accent
-            )
+            if idle {
+                Text("Idle")
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.55))
+            } else {
+                CompactTiming(
+                    attributes: context.attributes,
+                    state: context.state,
+                    accent: accent
+                )
+            }
         } minimal: {
             Image(systemName: WorkoutActivityStyle.glyph(for: context.state))
                 .font(.system(size: 13, weight: .bold))
@@ -104,7 +123,8 @@ private enum WorkoutActivityStyle {
     /// Brand blue for training; amber while resting so a glance
     /// separates "move" from "wait"; green on the finish beat. Matched
     /// to the values `DoseWindowLiveActivity` uses for the same beats.
-    static func accent(for state: WorkoutActivityAttributes.ContentState) -> Color {
+    static func accent(for state: WorkoutActivityAttributes.ContentState, idle: Bool) -> Color {
+        if idle { return Color.gray }
         switch state.status() {
         case .paused:   return Color.gray
         case .lifting:  return Color(red: 0.216, green: 0.541, blue: 0.867)
@@ -126,6 +146,10 @@ private enum WorkoutActivityStyle {
         case .finished: return "checkmark.circle.fill"
         }
     }
+
+    /// Replaces the subtitle once the activity has gone stale with
+    /// nobody touching the workout.
+    static let idleSubtitle = String(localized: "Workout idle · Tap to resume")
 
     /// The line under the workout name. Falls back to the set count
     /// when there's no exercise to name yet.
@@ -150,8 +174,11 @@ private enum WorkoutActivityStyle {
 private struct WorkoutLockView: View {
     let attributes: WorkoutActivityAttributes
     let state: WorkoutActivityAttributes.ContentState
+    /// Stale and untouched: the clock and the action button would
+    /// describe a workout nobody is doing.
+    let isIdle: Bool
 
-    private var accent: Color { WorkoutActivityStyle.accent(for: state) }
+    private var accent: Color { WorkoutActivityStyle.accent(for: state, idle: isIdle) }
 
     var body: some View {
         ZStack {
@@ -160,15 +187,44 @@ private struct WorkoutLockView: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            VStack(spacing: 12) {
-                topRow
-                SetProgressBar(state: state, accent: accent)
-                WorkoutActionButton(sessionId: attributes.sessionId, state: state, accent: accent)
+            if isIdle {
+                idleRow
+                    .padding(14)
+            } else {
+                VStack(spacing: 12) {
+                    topRow
+                    SetProgressBar(state: state, accent: accent)
+                    WorkoutActionButton(sessionId: attributes.sessionId, state: state, accent: accent)
+                }
+                .padding(14)
             }
-            .padding(14)
         }
         .activityBackgroundTint(Color.black.opacity(0.05))
         .activitySystemActionForegroundColor(.white)
+    }
+
+    /// Neutral layout for a forgotten workout. The whole view still
+    /// deep-links to the Train tab, so tapping resumes it.
+    private var idleRow: some View {
+        HStack(alignment: .center, spacing: 14) {
+            Image(systemName: "zzz")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 56, height: 56)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(state.displayName)
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                Text(WorkoutActivityStyle.idleSubtitle)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     private var topRow: some View {

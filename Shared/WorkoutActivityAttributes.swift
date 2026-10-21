@@ -119,6 +119,20 @@ extension WorkoutActivityAttributes.ContentState {
         return .resting(secondsRemaining: Int(restEndsAt.timeIntervalSince(now).rounded(.up)))
     }
 
+    /// Silence after which a workout nobody has touched reads as idle.
+    /// `WorkoutLiveActivityService` sets the stale date this far out.
+    static let idleInterval: TimeInterval = 2 * 60 * 60
+
+    /// Past the stale date with nothing pushed for `idleInterval`, so a
+    /// ticking clock and a "Complete set" button would describe a
+    /// workout nobody is doing. A rest's own stale date (its end) only
+    /// redraws the activity out of the countdown, so it doesn't count.
+    func isIdle(isStale: Bool, at now: Date = Date()) -> Bool {
+        guard isStale, finishedAt == nil else { return false }
+        guard let restEndsAt else { return true }
+        return now.timeIntervalSince(restEndsAt) >= Self.idleInterval
+    }
+
     /// 0…1 through the current rest. Zero when not resting, so the ring
     /// has nothing to draw rather than a stale arc.
     func restProgress(at now: Date = Date()) -> Double {

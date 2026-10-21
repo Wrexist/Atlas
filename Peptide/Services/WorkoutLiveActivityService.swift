@@ -19,11 +19,6 @@ final class WorkoutLiveActivityService {
     /// enough that it isn't litter on the lock screen.
     private static let summarySeconds: TimeInterval = 4
 
-    /// After this much silence the system greys the activity out. A
-    /// workout nobody has touched in two hours is over in practice,
-    /// whatever the app forgot to do.
-    private static let stalenessHours: Int = 2
-
     private init() {}
 
     // MARK: - Public surface
@@ -133,14 +128,15 @@ final class WorkoutLiveActivityService {
     /// While resting, the end of the rest: the activity is only drawn
     /// on a push or at its stale date, and with the app suspended
     /// nothing else would redraw it out of the finished countdown.
-    /// Otherwise two hours out.
+    /// Otherwise the idle interval out: a workout nobody has touched in
+    /// two hours is over in practice, and the widget greys it out.
     @available(iOS 16.1, *)
     static func staleDate(
         for state: WorkoutActivityAttributes.ContentState,
         now: Date = Date()
     ) -> Date? {
         if let restEndsAt = state.restEndsAt, restEndsAt > now { return restEndsAt }
-        return Calendar.current.date(byAdding: .hour, value: stalenessHours, to: now)
+        return now.addingTimeInterval(WorkoutActivityAttributes.ContentState.idleInterval)
     }
 
     /// Pure mapping from a session to what the activity renders.
