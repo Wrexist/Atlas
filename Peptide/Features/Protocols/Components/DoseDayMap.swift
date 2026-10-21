@@ -62,12 +62,14 @@ enum DoseDayMap {
             uniqueKeysWithValues: protocols.map { ($0.id, $0.status) }
         )
 
-        // Logged — group entries that fall inside the visible window by day.
+        // Real entries inside the visible window, grouped by day. Only a
+        // completed entry counts as logged; a pending or missed one is
+        // still just scheduled.
         for entry in entries {
             let day = cal.startOfDay(for: entry.date)
             guard day >= monthStart && day <= monthEnd else { continue }
             let mark = CalendarDoseMark(
-                kind: .logged,
+                kind: entry.completed ? .logged : .scheduled,
                 day: day,
                 peptideID: entry.peptide.id,
                 peptideName: entry.peptide.name,
