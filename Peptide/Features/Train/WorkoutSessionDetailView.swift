@@ -293,6 +293,7 @@ struct WorkoutSessionDetailView: View {
                         .monospacedDigit()
                         .frame(width: 20, alignment: .leading)
                         .foregroundStyle(AppColor.textTertiary)
+                        .accessibilityLabel("Set \(set.index)")
                     if set.measurement != nil {
                         Text(RecapFormat.set(set, unit: unit))
                             .font(AppFont.callout).foregroundStyle(AppColor.textPrimary)
@@ -318,17 +319,21 @@ struct WorkoutSessionDetailView: View {
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
                             .background(Capsule().fill(AppColor.surfaceElevated))
+                            .accessibilityLabel("Warm-up")
                     } else if set.completed {
                         Image(systemName: "checkmark.circle.fill")
                             .font(AppFont.scaled(13))
                             .foregroundStyle(AppColor.accentPrimary)
+                            .accessibilityLabel("Completed")
                     } else {
                         Image(systemName: "circle")
                             .font(AppFont.scaled(13))
                             .foregroundStyle(AppColor.textTertiary)
+                            .accessibilityLabel("Not completed")
                     }
                 }
                 .padding(.vertical, 2)
+                .accessibilityElement(children: .combine)
             }
         }
         .padding(Spacing.md)
