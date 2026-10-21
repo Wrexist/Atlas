@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct AccountSection: View {
-    @Environment(\.colorScheme) private var colorScheme
     @State private var authService = AuthService.shared
     @State private var isConfirmingDeletion = false
     @State private var isConfirmingDataErase = false
@@ -155,15 +154,12 @@ struct AccountSection: View {
     private var signedOutContent: some View {
         VStack(alignment: .leading, spacing: Spacing.lg) {
             ZStack {
-                AppleSignInButton(cornerRadius: Spacing.smallCornerRadius) {
+                AppleSignInButton {
                     authService.signIn()
                 }
                 .frame(height: 50)
                 .opacity(authService.isSigningIn ? 0.5 : 1)
                 .allowsHitTesting(!authService.isSigningIn)
-                // The button's style is baked in at init; re-identify it so
-                // SwiftUI rebuilds the UIView when the scheme flips.
-                .id(colorScheme)
 
                 if authService.isSigningIn {
                     // The in-flight label sits on top of the Apple button,
