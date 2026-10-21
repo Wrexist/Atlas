@@ -13,8 +13,9 @@ import UIKit
 /// appearance without a second palette.
 ///
 /// **Whitelisted domain colours** (intentionally literal, do NOT tokenize):
-/// the macro-ring colours (`macro*`), HealthKit metric colours (`metric*`),
-/// `streak` / `achievement`, the anatomy primary/secondary tints in
+/// the macro-ring colours (`macro*`), meal categories (`meal*`), HealthKit
+/// metric colours (`metric*`), `streak` / `achievement`, the anatomy
+/// primary/secondary tints in
 /// `MuscleMapView`, the notes mood-rating scale in `ProtocolNotesTimeline`,
 /// the multi-colour onboarding showcase in `WhatsNewPage`, and the
 /// deliberately-distinct Screenshot-mode dev row. These encode a real-world
@@ -188,6 +189,14 @@ enum AppColor {
     /// clear 4.5:1 on all three surfaces.
     static let macroCarbs = Color(light: 0x2A6F55, dark: 0x5FD3A0)
     static let macroFat = Color(light: 0x9E4055, dark: 0xE8899F)
+
+    /// Meal categories, warm to cool through the day: sunrise orange,
+    /// midday yellow, dusk indigo, leafy snack green. Darkened in light
+    /// mode — the midday yellow is unreadable as an icon on a white card.
+    static let mealBreakfast = Color(light: 0xB85A12, dark: 0xFF9E4D)
+    static let mealLunch = Color(light: 0x9C7714, dark: 0xFAC733)
+    static let mealDinner = Color(light: 0x5A5FCF, dark: 0x7A80EB)
+    static let mealSnack = Color(light: 0x2A7A47, dark: 0x5CC78C)
 
     /// HealthKit metric category colors. Each represents a physiological
     /// signal, not the brand — they intentionally stay constant across themes,
