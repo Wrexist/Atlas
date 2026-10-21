@@ -111,6 +111,9 @@ struct BioAgeHeroSection: View {
                 size: 280
             )
             centreContent
+                // The dial is a fixed 280pt; past AX2 the number, unit and
+                // info button outgrow its interior and overlap the arc.
+                .dynamicTypeSize(...DynamicTypeSize.accessibility2)
         }
         .frame(height: 280)
     }
@@ -176,6 +179,8 @@ struct BioAgeHeroSection: View {
                 .font(AppFont.scaled(56, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                 .foregroundStyle(tint(for: estimate))
                 .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
                 .contentTransition(.numericText(value: shown))
                 .animation(reduceMotion ? nil : AppAnimation.springSmooth, value: shown)
                 // A neutral drop, not a tinted halo. Legibility over the
