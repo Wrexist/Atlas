@@ -79,7 +79,7 @@ struct GlassButton: View {
 
     private var foregroundColor: Color {
         switch style {
-        case .primary: AppColor.accentLight
+        case .primary: AppColor.accentInkOnWash
         case .secondary: AppColor.textPrimary
         case .ghost: AppColor.accentPrimary
         case .destructive: AppColor.destructive

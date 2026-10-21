@@ -82,6 +82,10 @@ enum AppColor {
     /// background and elevated surfaces. The previous value sat at ~3:1.
     static let textTertiary = Color(light: 0x6E6E76, dark: 0x888888)
     static var textHighlight: Color { ThemeManager.shared.theme.highlight }
+    /// Ink for text on the accent's own translucent wash (`.tinted` badges,
+    /// `.primary` glass buttons), where `accentLight` falls below AA in light
+    /// mode.
+    static var accentInkOnWash: Color { ThemeManager.shared.theme.washInk }
 
     /// Ink for content painted **on top of** an accent-filled or photographic
     /// surface (filled buttons, vial glyphs, gradient hero cards). Constant

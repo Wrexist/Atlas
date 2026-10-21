@@ -147,6 +147,16 @@ def main() -> int:
                     rows.append((scheme, f"{ramp}.{stop}", "on", surface,
                                  ratio, AA_TEXT, ratio >= AA_TEXT))
 
+    # washInk is the ink on the accent's own wash: `.tinted` Badge fills at
+    # 0.2, `.primary` GlassButton at 0.18. Test the heavier one.
+    for scheme_index, scheme in enumerate(("light", "dark")):
+        for ramp, stops in ramps.items():
+            for surface in SURFACES:
+                wash = blend(stops["primary"][scheme_index], tokens[surface][scheme_index], 0.2)
+                ratio = contrast(stops["washInk"][scheme_index], wash)
+                rows.append((scheme, f"{ramp}.washInk", "on", f"{surface}+wash",
+                             ratio, AA_TEXT, ratio >= AA_TEXT))
+
     # PeptideCategory colours set 13pt badge text on their own 0.15 wash. The
     # light values are held to running-text AA there; the dark values are the
     # original domain hues and get the 3:1 domain-colour bar.

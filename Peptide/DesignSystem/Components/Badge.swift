@@ -54,7 +54,7 @@ struct Badge: View {
 
     private var ink: Color {
         switch style {
-        case .tinted: tint ?? AppColor.accentLight
+        case .tinted: tint ?? AppColor.accentInkOnWash
         case .solid: AppColor.onAccent
         }
     }
