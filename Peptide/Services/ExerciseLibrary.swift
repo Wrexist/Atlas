@@ -128,10 +128,11 @@ final class ExerciseLibrary {
     /// identity. Bundled and custom records are unioned; results are
     /// sorted by `name` for a stable list order.
     ///
-    /// `query` is matched case-insensitively against the exercise
-    /// name, raw muscle strings, and the equipment string — covers
-    /// the obvious "bench press", "lat", "kettlebell" queries without
-    /// dragging in a full-text index.
+    /// `query` is split into words and every word must appear in the
+    /// exercise name, a raw muscle string or the equipment string, so
+    /// "dumbbell press" and "press dumbbell" both find "Dumbbell Bench
+    /// Press". Case, diacritics and hyphens are ignored ("pull-up",
+    /// "pull up" and "pullup" all match).
     func filter(
         query: String? = nil,
         muscleGroup: MuscleGroup? = nil,
@@ -139,14 +140,14 @@ final class ExerciseLibrary {
         category: Exercise.Category? = nil,
         level: Exercise.Level? = nil
     ) -> [Exercise] {
-        let needle = query?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+        let tokens = CatalogEntry.searchKey(query ?? "").split(whereSeparator: \.isWhitespace)
 
         return catalog.filter { entry in
             if let muscleGroup, entry.muscleGroup != muscleGroup { return false }
             if let equipment, entry.equipmentKind != equipment { return false }
             if let category, entry.exercise.category != category { return false }
             if let level, entry.exercise.level != level { return false }
-            return needle.isEmpty || entry.searchFields.contains { $0.contains(needle) }
+            return tokens.allSatisfy { token in entry.searchFields.contains { $0.contains(token) } }
         }
         .map(\.exercise)
     }
@@ -164,8 +165,8 @@ final class ExerciseLibrary {
 }
 
 /// One catalog row with the keys `filter` matches on. `searchFields` are
-/// the lowercased name, raw muscle strings, raw equipment string and the
-/// classified equipment name.
+/// the normalised name (also with its spaces removed), raw muscle
+/// strings, raw equipment string and the classified equipment name.
 private struct CatalogEntry {
     let exercise: Exercise
     let muscleGroup: MuscleGroup
@@ -180,6 +181,14 @@ private struct CatalogEntry {
         var fields = [exercise.name] + exercise.primaryMuscles + exercise.secondaryMuscles
         if let equipment = exercise.equipment { fields.append(equipment) }
         fields.append(kind.displayName)
-        searchFields = fields.map { $0.lowercased() }
+        let keys = fields.map(Self.searchKey)
+        searchFields = keys + [keys[0].replacingOccurrences(of: " ", with: "")]
+    }
+
+    /// Folds case and diacritics and reads hyphens as spaces, so query
+    /// and fields compare on the same terms.
+    static func searchKey(_ text: String) -> String {
+        text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+            .replacingOccurrences(of: "-", with: " ")
     }
 }

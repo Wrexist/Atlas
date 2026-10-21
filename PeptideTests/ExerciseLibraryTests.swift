@@ -177,6 +177,22 @@ final class ExerciseLibraryTests: XCTestCase {
                        "Query matching should be case-insensitive")
     }
 
+    func test_filter_multiWordQueryInAnyOrder_matchesEveryWord() {
+        let ordered = library.filter(query: "dumbbell bench press").map(\.id)
+        let shuffled = library.filter(query: "bench press dumbbell").map(\.id)
+        XCTAssertTrue(ordered.contains("Dumbbell_Bench_Press"))
+        XCTAssertEqual(ordered, shuffled)
+    }
+
+    func test_filter_hyphenSpaceAndJoinedSpellings_matchSameExercise() {
+        for query in ["pull-up", "pull up", "pullup"] {
+            XCTAssertTrue(
+                library.filter(query: query).contains { $0.id == "Band_Assisted_Pull-Up" },
+                "Query '\(query)' should match Band Assisted Pull-Up"
+            )
+        }
+    }
+
     func test_filter_combined_appliesAllPredicates() {
         let pushups = library.filter(query: "push", equipment: .bodyweight)
         XCTAssertFalse(pushups.isEmpty)
