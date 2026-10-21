@@ -150,7 +150,7 @@ SLOT 4 — BIOLOGY TAB: BIOLOGICAL AGE  [PRO]
       in 11px #505060 centred
   Overlay:
     Headline: "See your biological age."
-    Sub-caption: "HRV · Sleep · Resting HR · Performance Age"
+    Sub-caption: "HRV · Sleep · Resting HR · Biological Age"
     Pro badge: YES — "Atlas Pro — subscription required"
 
 SLOT 5 — NUTRITION TARGETS EDITOR
@@ -211,7 +211,7 @@ SLOT 7 — PROTOCOLS: DOSE LOG
     • Footnote chip: "⚠ Atlas does not recommend or prescribe doses" 11px
   Overlay:
     Headline: "Track every protocol. Down to the dose."
-    Sub-caption: "208 compounds · Dose log · Reminders · Community stacks"
+    Sub-caption: "208 compounds · Dose log · Reminders · Community protocols"
     No Pro badge.
 
 SLOT 8 — PAYWALL

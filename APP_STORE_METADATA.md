@@ -598,7 +598,7 @@ the free tier working without a Pro badge.
 
 **Overlay copy**
 - Headline: `Track every protocol. Down to the dose.`
-- Sub-caption: `208 compounds · Dose log · Reminders · Community stacks`
+- Sub-caption: `208 compounds · Dose log · Reminders · Community protocols`
 - Pro badge: **none** (up to 3 protocols is free)
 
 **Composition note**
