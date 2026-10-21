@@ -108,6 +108,7 @@ struct DoseLoggingSheet: View {
                                                 .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
                                                 .frame(maxWidth: .infinity)
                                                 .padding(.vertical, Spacing.sm)
+                                                .frame(minHeight: Spacing.minimumHitTarget)
                                                 .glassControl(
                                                     .rect(cornerRadius: Spacing.chipCornerRadius),
                                                     tint: isSelected ? AppColor.accentPrimary.opacity(0.25) : AppColor.surfaceElevated,
