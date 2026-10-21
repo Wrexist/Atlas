@@ -162,7 +162,7 @@ struct PrivacySummaryView: View {
         .init(
             icon: "key.fill",
             title: "Sign in with Apple is optional.",
-            detail: "If you sign in, only your Apple-issued identifier is stored — locally, in the iOS Keychain."
+            detail: "If you sign in, your Apple-issued identifier and the name and email Apple shares are stored only on this device, in the iOS Keychain."
         ),
         .init(
             icon: "icloud.fill",
