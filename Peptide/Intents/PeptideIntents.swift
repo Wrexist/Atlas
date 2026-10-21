@@ -145,14 +145,7 @@ struct LogDoseIntent: AppIntent {
         let chosenName = peptide.displayName
 
         let resolution: ToggleResolution = await MainActor.run {
-            let store = IntentDataStore.resolve()
-            let candidate = store.todayEntries
-                .sorted { $0.date < $1.date }
-                .first { !$0.completed && $0.peptide.id.uuidString == chosenID }
-            guard let entry = candidate else { return .nothingToLog }
-            store.toggleEntry(entry.id)
-            store.flushPendingSave()
-            return .logged(at: entry.date, dose: entry.dose)
+            Self.logEarliestDose(of: chosenID, in: IntentDataStore.resolve())
         }
 
         switch resolution {
@@ -174,7 +167,21 @@ struct LogDoseIntent: AppIntent {
         }
     }
 
-    private enum ToggleResolution {
+    /// Completes today's earliest incomplete dose of the peptide and
+    /// flushes the save, so the write survives the app being killed
+    /// right after a cold-launched intent returns.
+    @MainActor
+    static func logEarliestDose(of peptideID: String, in store: DataStore) -> ToggleResolution {
+        let candidate = store.todayEntries
+            .sorted { $0.date < $1.date }
+            .first { !$0.completed && $0.peptide.id.uuidString == peptideID }
+        guard let entry = candidate else { return .nothingToLog }
+        store.toggleEntry(entry.id)
+        store.flushPendingSave()
+        return .logged(at: entry.date, dose: entry.dose)
+    }
+
+    enum ToggleResolution: Equatable {
         case logged(at: Date, dose: String)
         case nothingToLog
     }
