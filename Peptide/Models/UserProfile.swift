@@ -162,10 +162,63 @@ extension MeasurementUnit {
 struct BodyMetrics: Codable, Hashable, Sendable {
     var weightKg: Double?
     var heightCm: Double?
-    var age: Int?
+    /// The age as entered, true on `ageRecordedAt`. Read `age` instead.
+    private var enteredAge: Int?
+    /// When `enteredAge` was entered. Nil on metrics saved before it
+    /// existed until `UserProfile` backfills it from `memberSince`.
+    private(set) var ageRecordedAt: Date?
     var sex: BiologicalSex
     var activityLevel: ActivityLevel
     var unit: MeasurementUnit
+
+    private enum CodingKeys: String, CodingKey {
+        case weightKg, heightCm, enteredAge = "age", ageRecordedAt, sex, activityLevel, unit
+    }
+
+    init(
+        weightKg: Double?,
+        heightCm: Double?,
+        age: Int?,
+        sex: BiologicalSex,
+        activityLevel: ActivityLevel,
+        unit: MeasurementUnit,
+        ageRecordedAt: Date = Date()
+    ) {
+        self.weightKg = weightKg
+        self.heightCm = heightCm
+        self.enteredAge = age
+        self.ageRecordedAt = age == nil ? nil : ageRecordedAt
+        self.sex = sex
+        self.activityLevel = activityLevel
+        self.unit = unit
+    }
+
+    /// Today's age: the entered age plus the whole years since it was
+    /// entered, so Biological Age and calorie targets don't go a year
+    /// stale after each birthday.
+    var age: Int? {
+        get { ageAsOf(Date()) }
+        set {
+            enteredAge = newValue
+            ageRecordedAt = newValue == nil ? nil : Date()
+        }
+    }
+
+    func ageAsOf(_ date: Date, calendar: Calendar = .current) -> Int? {
+        guard let enteredAge else { return nil }
+        guard let ageRecordedAt else { return enteredAge }
+        let years = calendar.dateComponents([.year], from: ageRecordedAt, to: date).year ?? 0
+        return enteredAge + max(0, years)
+    }
+
+    /// Stamps metrics saved before `ageRecordedAt` existed with the
+    /// date the age was most likely entered.
+    func backfillingAgeRecordedAt(_ date: Date) -> BodyMetrics {
+        guard enteredAge != nil, ageRecordedAt == nil else { return self }
+        var copy = self
+        copy.ageRecordedAt = date
+        return copy
+    }
 
     static var unspecified: BodyMetrics {
         BodyMetrics(
@@ -612,7 +665,7 @@ struct UserProfile: Codable, Sendable {
         self.hapticFeedbackEnabled = hapticFeedbackEnabled
         self.doseRemindersEnabled = doseRemindersEnabled
         self.biometricLockEnabled = biometricLockEnabled
-        self.bodyMetrics = bodyMetrics
+        self.bodyMetrics = bodyMetrics.backfillingAgeRecordedAt(memberSince)
         self.nutritionTargets = nutritionTargets
         self.creatorAttribution = creatorAttribution
         self.affiliateApplication = affiliateApplication
@@ -658,7 +711,8 @@ struct UserProfile: Codable, Sendable {
         hapticFeedbackEnabled = try container.decodeIfPresent(Bool.self, forKey: .hapticFeedbackEnabled) ?? true
         doseRemindersEnabled = try container.decodeIfPresent(Bool.self, forKey: .doseRemindersEnabled) ?? false
         biometricLockEnabled = try container.decodeIfPresent(Bool.self, forKey: .biometricLockEnabled) ?? false
-        bodyMetrics = try container.decodeIfPresent(BodyMetrics.self, forKey: .bodyMetrics) ?? .unspecified
+        bodyMetrics = (try container.decodeIfPresent(BodyMetrics.self, forKey: .bodyMetrics) ?? .unspecified)
+            .backfillingAgeRecordedAt(memberSince)
         nutritionTargets = try container.decodeIfPresent(NutritionTargets.self, forKey: .nutritionTargets)
         creatorAttribution = try container.decodeIfPresent(CreatorAttribution.self, forKey: .creatorAttribution)
         affiliateApplication = try container.decodeIfPresent(AffiliateApplication.self, forKey: .affiliateApplication)

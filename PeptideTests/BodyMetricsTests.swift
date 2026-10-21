@@ -40,11 +40,47 @@ final class BodyMetricsTests: XCTestCase {
             age: 34,
             sex: .female,
             activityLevel: .athlete,
-            unit: .imperial
+            unit: .imperial,
+            ageRecordedAt: Date(timeIntervalSince1970: 0)
         )
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(BodyMetrics.self, from: data)
         XCTAssertEqual(decoded, original)
+    }
+
+    // MARK: - Age
+
+    func test_age_afterABirthdayYear_advancesByOne() {
+        let entered = Date(timeIntervalSince1970: 1_700_000_000)
+        let metrics = BodyMetrics(
+            weightKg: nil, heightCm: nil, age: 34,
+            sex: .female, activityLevel: .moderate, unit: .metric,
+            ageRecordedAt: entered
+        )
+        XCTAssertEqual(metrics.ageAsOf(entered.addingTimeInterval(200 * 86_400)), 34)
+        XCTAssertEqual(metrics.ageAsOf(entered.addingTimeInterval(400 * 86_400)), 35)
+    }
+
+    func test_userProfile_legacyAgeWithoutRecordedDate_advancesFromMemberSince() throws {
+        let legacyJSON = """
+        {
+            "name": "Alex",
+            "goals": [],
+            "memberSince": "2023-01-01T00:00:00Z",
+            "healthConnected": false,
+            "bodyMetrics": {
+                "age": 30,
+                "sex": "unspecified",
+                "activityLevel": "moderate",
+                "unit": "metric"
+            }
+        }
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let profile = try decoder.decode(UserProfile.self, from: legacyJSON)
+        let twoYearsOn = try XCTUnwrap(ISO8601DateFormatter().date(from: "2025-01-02T00:00:00Z"))
+        XCTAssertEqual(profile.bodyMetrics.ageAsOf(twoYearsOn), 32)
     }
 
     // MARK: - UserProfile backward compatibility
