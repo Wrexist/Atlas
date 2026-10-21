@@ -40,31 +40,32 @@ struct NextDoseIntent: AppIntent {
             ))
         case .upcoming(let name, let dose, let date):
             let time = date.formatted(date: .omitted, time: .shortened)
-            let relative = Self.relativePhrase(for: date)
+            let interval = date.timeIntervalSinceNow
+            if interval <= -60 {
+                return .result(dialog: IntentDialog(
+                    LocalizedStringResource(
+                        "\(name) \(dose) was due at \(time) and isn't logged yet.",
+                        comment: "Siri readout when the next dose is overdue."
+                    )
+                ))
+            }
+            let relative = interval < 60
+                ? String(localized: "now")
+                : Self.relativeFormatter.localizedString(for: date, relativeTo: Date())
             return .result(dialog: IntentDialog(
                 LocalizedStringResource(
-                    "Next up: \(name), \(dose), at \(time). \(relative).",
+                    "Next up: \(name), \(dose), at \(time), \(relative).",
                     comment: "Siri readout of the next scheduled dose."
                 )
             ))
         }
     }
 
-    private static func relativePhrase(for date: Date) -> String {
-        let interval = date.timeIntervalSinceNow
-        if abs(interval) < 60 {
-            return String(localized: "Now")
-        }
-        if interval < 0 {
-            return String(localized: "Earlier today")
-        }
-        return relativeFormatter.localizedString(for: date, relativeTo: Date())
-    }
-
     nonisolated(unsafe) private static let relativeFormatter: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()
         formatter.dateTimeStyle = .named
         formatter.unitsStyle = .full
+        formatter.formattingContext = .middleOfSentence
         return formatter
     }()
 
