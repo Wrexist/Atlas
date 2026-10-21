@@ -147,7 +147,9 @@ struct ProtocolDetailView: View {
 
                             scheduleDetailRow(
                                 label: "Preferred",
-                                value: liveProtocol.schedule.preferredTimes.joined(separator: ", ")
+                                value: liveProtocol.schedule.preferredTimes
+                                    .map(ProtocolSchedule.displayTime)
+                                    .joined(separator: ", ")
                             )
                         }
 

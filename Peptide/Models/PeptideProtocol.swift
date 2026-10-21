@@ -71,6 +71,21 @@ struct ProtocolSchedule: Hashable, Codable, Sendable {
         return anchored.isActive(on: date, calendar: calendar)
     }
 
+    /// `preferredTimes` are stored as en_US_POSIX "h:mm a" keys; this
+    /// renders one in the user's own clock format ("08:00" on a 24-hour
+    /// device). Unparseable keys pass through unchanged.
+    static func displayTime(_ storageKey: String) -> String {
+        guard let date = storageTimeParser.date(from: storageKey) else { return storageKey }
+        return date.formatted(date: .omitted, time: .shortened)
+    }
+
+    private static let storageTimeParser: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "h:mm a"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
+
     var daysDescription: String {
         if isInterval, let n = intervalDays {
             return n == 1 ? "Every day" : "Every \(n) days"
