@@ -18,7 +18,7 @@ final class AIResearchService: Sendable {
     static let shared = AIResearchService()
 
     private let session: URLSession
-    private let model = "claude-sonnet-4-6"
+    private let model = "claude-sonnet-5"
     private let endpointOverride: URL?
     private let proxySecretOverride: String?
 

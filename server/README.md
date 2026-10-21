@@ -46,9 +46,10 @@ same auth, App Attest gate and limiter.
      - `ALLOWED_MODELS` — comma-separated Anthropic model IDs.
        Defaults to `claude-sonnet-5,claude-sonnet-4-6`.
        **If you set this, list every model the app sends.** The meal
-       scanner asks for `claude-sonnet-5`; ai-research and
-       weekly-summary ask for `claude-sonnet-4-6`. A model that isn't
-       on the list is rewritten to the first entry rather than
+       scanner and ai-research ask for `claude-sonnet-5`; older app
+       builds' ai-research still asks for `claude-sonnet-4-6`.
+       (weekly-summary picks its own model server-side.) A model that
+       isn't on the list is rewritten to the first entry rather than
        rejected, so an incomplete list looks like it works and just
        quietly serves the wrong model. Existing deployments pinned to
        `claude-sonnet-4-6` keep scanning on 4.6 until this is updated.

@@ -73,11 +73,11 @@ import {
   withinDeviceQuota,
 } from './rate-limit.js';
 
-// Meal scanning runs on Sonnet 5 (vision quality is the product);
-// ai-research and weekly-summary are still on 4.6, so both have to be
-// allowed or the sanitiser would silently rewrite one of them. Index 0
-// is also the fallback for an unrecognised model, which is why the
-// stronger one leads.
+// The app sends Sonnet 5 on every route. 4.6 stays allowed for older
+// app builds whose ai-research still asks for it; without it the
+// sanitiser would silently rewrite their model. Index 0 is also the
+// fallback for an unrecognised model, which is why the stronger one
+// leads.
 const DEFAULT_ALLOWED_MODELS = ['claude-sonnet-5', 'claude-sonnet-4-6'];
 const MAX_TOKENS_HARDCAP = 800;
 // Cap large enough for the AI research multi-turn chat flow (history +
