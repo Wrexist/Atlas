@@ -379,6 +379,7 @@ struct HomeView: View {
 
                             DailyPlanCard(
                                 plan: plan,
+                                hasActiveProtocols: !dataStore.activeProtocols.isEmpty,
                                 onTapDose: { entry in selectedEntry = entry },
                                 onToggleDose: toggleDose,
                                 onAddProtocol: {

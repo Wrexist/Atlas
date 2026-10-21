@@ -7,6 +7,9 @@ import SwiftUI
 /// rest of the row opens the full logging sheet.
 struct DailyPlanCard: View {
     let plan: DailyScheduleEngine.DailyPlan
+    /// False when every protocol is paused or completed — only then does
+    /// the empty state ask the user to add one.
+    let hasActiveProtocols: Bool
     var onTapDose: ((ProtocolEntry) -> Void)?
     /// Marks a dose taken (or not). Nil hides the check, e.g. in previews.
     var onToggleDose: ((ProtocolEntry) -> Void)?
@@ -70,15 +73,16 @@ struct DailyPlanCard: View {
                     .rotationEffect(.degrees(isExpanded ? 180 : 0))
                 Text(isExpanded
                      ? "Show less"
-                     : "Show \(hiddenSlotCount) more time slot\(hiddenSlotCount == 1 ? "" : "s")")
+                     : "Show ^[\(hiddenSlotCount) more time slot](inflect: true)")
                     .font(AppFont.caption)
                     .fontWeight(.semibold)
             }
             .foregroundStyle(AppColor.accentLight)
             .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.vertical, Spacing.xs)
+            .minimumHitArea()
         }
         .buttonStyle(ScalePressStyle())
+        .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
     }
 
     // MARK: - Header
@@ -136,14 +140,24 @@ struct DailyPlanCard: View {
                                      perform: onAddProtocol)
     }
 
+    @ViewBuilder
     private var emptyState: some View {
-        EmptyStateView(
-            icon: "calendar.badge.exclamationmark",
-            title: "No doses today",
-            message: "Add a protocol to see your organized plan.",
-            action: addProtocolAction,
-            style: .compact
-        )
+        if hasActiveProtocols {
+            EmptyStateView(
+                icon: "calendar",
+                title: "Nothing scheduled today",
+                message: "Rest day — no doses are due today.",
+                style: .compact
+            )
+        } else {
+            EmptyStateView(
+                icon: "calendar.badge.exclamationmark",
+                title: "No doses today",
+                message: "Add a protocol to see your organized plan.",
+                action: addProtocolAction,
+                style: .compact
+            )
+        }
     }
 
     // MARK: - Slot section
@@ -223,7 +237,11 @@ private struct DailyPlanDoseRow: View {
                 .minimumHitArea()
         }
         .buttonStyle(ScalePressStyle())
-        .accessibilityLabel(dose.entry.completed ? "Mark dose incomplete" : "Mark dose complete")
+        .accessibilityLabel(
+            dose.entry.completed
+                ? Text("Mark \(dose.entry.peptide.abbreviation) not taken")
+                : Text("Mark \(dose.entry.peptide.abbreviation) taken")
+        )
     }
 
     private var detailsButton: some View {
@@ -374,7 +392,7 @@ private struct DailyPlanDoseRow: View {
 #Preview {
     ZStack {
         AppColor.background.ignoresSafeArea()
-        DailyPlanCard(plan: DailyPlanCardPreviewSamples.populated)
+        DailyPlanCard(plan: DailyPlanCardPreviewSamples.populated, hasActiveProtocols: true)
             .padding(Spacing.screenPadding)
     }
     .preferredColorScheme(.dark)
