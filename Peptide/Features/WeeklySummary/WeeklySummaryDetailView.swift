@@ -185,18 +185,7 @@ struct WeeklySummaryDetailView: View {
 
     // MARK: - Date helper
 
-    /// Static so `body` doesn't allocate a formatter on every render.
-    private static let weekStartParser: ISO8601DateFormatter = {
-        let parser = ISO8601DateFormatter()
-        parser.formatOptions = [.withFullDate]
-        return parser
-    }()
-
     private func weekTitle(for isoWeekStart: String) -> String {
-        guard let date = Self.weekStartParser.date(from: isoWeekStart) else {
-            return String(localized: "Week recap")
-        }
-        let display = date.formatted(.dateTime.month(.wide).day())
-        return String(format: String(localized: "Week of %@"), display)
+        WeeklySummary.weekTitle(for: isoWeekStart) ?? String(localized: "Week recap")
     }
 }

@@ -166,3 +166,22 @@ extension WeeklySummary {
         )
     }
 }
+
+extension WeeklySummary {
+    /// Parses in the local zone, matching how `WeeklySummaryService`
+    /// writes the key; the GMT default put US users a day early.
+    @MainActor private static let weekStartParser: ISO8601DateFormatter = {
+        let parser = ISO8601DateFormatter()
+        parser.formatOptions = [.withFullDate]
+        parser.timeZone = .current
+        return parser
+    }()
+
+    /// "Week of Oct 19" for an ISO yyyy-MM-dd `weekStart`, shared by the
+    /// Today card and the detail view so both show the same title. Nil
+    /// when the key doesn't parse, leaving the fallback to the caller.
+    @MainActor static func weekTitle(for isoWeekStart: String) -> String? {
+        guard let date = weekStartParser.date(from: isoWeekStart) else { return nil }
+        return String(localized: "Week of \(date.formatted(.dateTime.month(.abbreviated).day()))")
+    }
+}
