@@ -57,7 +57,7 @@ struct GlassChip: View {
 
     var body: some View {
         Button {
-            Haptics.selection()
+            if !isSelected { Haptics.selection() }
             action()
         } label: {
             HStack(spacing: Spacing.xs) {
