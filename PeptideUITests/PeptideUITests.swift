@@ -8,9 +8,11 @@ final class PeptideUITests: XCTestCase {
         super.setUp()
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-hasCompletedOnboarding", "YES"]
+        app.launchArguments = XCUIApplication.returningUserArguments
         app.launch()
     }
+
+    private static let tabs = ["Today", "Train", "Meals", "Biology", "Habits"]
 
     override func tearDown() {
         app = nil
@@ -22,8 +24,7 @@ final class PeptideUITests: XCTestCase {
     }
 
     func test_allTabsAreReachable() {
-        let tabs = ["Today", "Train", "Meals", "Biology", "Habits"]
-        for tab in tabs {
+        for tab in Self.tabs {
             app.tabBars.buttons[tab].tap()
             XCTAssertTrue(app.tabBars.buttons[tab].isSelected, "\(tab) tab should be selected")
         }
@@ -47,5 +48,27 @@ final class PeptideUITests: XCTestCase {
     func test_biologyTab_loads() {
         app.tabBars.buttons["Biology"].tap()
         XCTAssertTrue(app.tabBars.buttons["Biology"].isSelected)
+    }
+
+    func test_accessibilityAudit_allTabs() throws {
+        try auditAllTabs()
+    }
+
+    func test_accessibilityAudit_allTabs_atLargestDynamicType() throws {
+        app.terminate()
+        app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        try auditAllTabs()
+    }
+
+    private func auditAllTabs() throws {
+        for tab in Self.tabs {
+            let button = app.tabBars.buttons[tab]
+            XCTAssertTrue(button.waitForExistence(timeout: 5), "\(tab) tab missing")
+            button.tap()
+            try app.performAccessibilityAudit(
+                for: [.dynamicType, .contrast, .hitRegion, .sufficientElementDescription, .textClipped]
+            )
+        }
     }
 }

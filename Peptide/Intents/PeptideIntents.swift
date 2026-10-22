@@ -86,16 +86,12 @@ struct ComplianceIntent: AppIntent {
     static let openAppWhenRun: Bool = false
 
     func perform() async throws -> some IntentResult & ProvidesDialog & ReturnsValue<Int> {
-        let snapshot: ComplianceReadout = await MainActor.run {
-            let store = IntentDataStore.resolve()
-            let fraction = EntryAnalytics.weeklyComplianceFraction(in: store.entries)
-            return ComplianceReadout(
-                percent: Int((fraction * 100).rounded()),
-                hasData: !EntryAnalytics.weeklyWindow(in: store.entries).isEmpty
-            )
+        let percent: Int? = await MainActor.run {
+            EntryAnalytics.weeklyComplianceFraction(in: IntentDataStore.resolve().entries)
+                .map { Int(($0 * 100).rounded()) }
         }
 
-        guard snapshot.hasData else {
+        guard let percent else {
             return .result(value: 0, dialog: IntentDialog(
                 LocalizedStringResource(
                     "No recent data. Start logging doses in Atlas.",
@@ -103,25 +99,20 @@ struct ComplianceIntent: AppIntent {
                 )
             ))
         }
-        guard snapshot.percent >= 50 else {
-            return .result(value: snapshot.percent, dialog: IntentDialog(
+        guard percent >= 50 else {
+            return .result(value: percent, dialog: IntentDialog(
                 LocalizedStringResource(
-                    "Your 7-day adherence is \(snapshot.percent) percent.",
+                    "Your 7-day adherence is \(percent) percent.",
                     comment: "Siri readout — weekly adherence percentage, below half."
                 )
             ))
         }
-        return .result(value: snapshot.percent, dialog: IntentDialog(
+        return .result(value: percent, dialog: IntentDialog(
             LocalizedStringResource(
-                "Your 7-day adherence is \(snapshot.percent) percent. Keep it up.",
+                "Your 7-day adherence is \(percent) percent. Keep it up.",
                 comment: "Siri readout — weekly adherence percentage."
             )
         ))
-    }
-
-    private struct ComplianceReadout {
-        let percent: Int
-        let hasData: Bool
     }
 }
 

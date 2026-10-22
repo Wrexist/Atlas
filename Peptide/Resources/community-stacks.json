@@ -1,7 +1,7 @@
 [
   {
     "id": "1A6E51B8-0001-4000-A000-000000000001",
-    "name": "Wolverine Stack",
+    "name": "Wolverine Protocol",
     "authorName": "Atlas Editorial",
     "authorHandle": null,
     "authorTitle": "Research summary, not a recommendation",
@@ -16,7 +16,7 @@
   },
   {
     "id": "1A6E51B8-0002-4000-A000-000000000002",
-    "name": "GH Pulse Stack",
+    "name": "GH Pulse Protocol",
     "authorName": "Atlas Editorial",
     "authorHandle": null,
     "authorTitle": "Research summary, not a recommendation",
@@ -91,7 +91,7 @@
   },
   {
     "id": "1A6E51B8-0007-4000-A000-000000000007",
-    "name": "Performance Stack",
+    "name": "Performance Protocol",
     "authorName": "Atlas Editorial",
     "authorHandle": null,
     "authorTitle": "Research summary, not a recommendation",

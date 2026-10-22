@@ -16,6 +16,8 @@ import StoreKitTest
 ///   the `purchasedProductIDs` set
 /// - Lifetime non-consumable purchase also flips `isProUser`
 /// - Restore from a clean session produces no entitlement
+/// - Refunded and expired purchases drop Pro; Ask-to-Buy and
+///   interrupted purchases never grant it
 /// - `requiresPro` gating logic vs the active-protocol count
 /// - `canAccessAIFeatures` mirrors `isProUser`
 ///
@@ -47,6 +49,8 @@ final class StoreServiceTests: XCTestCase {
     }
 
     override func tearDown() async throws {
+        session.askToBuyEnabled = false
+        session.interruptedPurchasesEnabled = false
         session.clearTransactions()
         session = nil
         // Re-read entitlements so the next test sees a non-Pro user.
@@ -241,5 +245,68 @@ final class StoreServiceTests: XCTestCase {
         try await service.restorePurchases()
         XCTAssertTrue(service.isProUser, "Restore must surface the existing lifetime purchase")
         XCTAssertTrue(service.purchasedProductIDs.contains(StoreService.lifetimeID))
+    }
+
+    // MARK: - Revocation, expiry, deferred purchases
+
+    /// SKTestSession refunds and expiries reach `currentEntitlements`
+    /// asynchronously, so re-read until the change lands or time runs out.
+    private func awaitProAccess(_ expected: Bool, timeout: Duration = .seconds(10)) async {
+        let clock = ContinuousClock()
+        let deadline = clock.now + timeout
+        await service.checkProAccess()
+        while service.isProUser != expected, clock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(200))
+            await service.checkProAccess()
+        }
+    }
+
+    func test_refundedLifetime_revokesPro() async throws {
+        await service.loadProducts()
+        let lifetime = try XCTUnwrap(service.lifetimeProduct, "lifetime missing")
+        _ = try await service.purchase(lifetime)
+        XCTAssertTrue(service.isProUser)
+
+        let transaction = try XCTUnwrap(
+            session.allTransactions().first { $0.productIdentifier == StoreService.lifetimeID }
+        )
+        try session.refundTransaction(identifier: transaction.identifier)
+        await awaitProAccess(false)
+
+        XCTAssertFalse(service.isProUser, "A refunded lifetime purchase must not keep Pro")
+    }
+
+    func test_expiredMonthly_revokesPro() async throws {
+        await service.loadProducts()
+        let monthly = try XCTUnwrap(service.monthlyProduct, "monthly missing")
+        _ = try await service.purchase(monthly)
+        XCTAssertTrue(service.isProUser)
+
+        try session.expireSubscription(productIdentifier: StoreService.monthlyID)
+        await awaitProAccess(false)
+
+        XCTAssertFalse(service.isProUser, "An expired subscription outside grace must not keep Pro")
+    }
+
+    func test_askToBuy_returnsPending() async throws {
+        session.askToBuyEnabled = true
+        await service.loadProducts()
+        let monthly = try XCTUnwrap(service.monthlyProduct, "monthly missing")
+
+        let outcome = try await service.purchaseWithOutcome(monthly)
+
+        XCTAssertEqual(outcome, .pending)
+        XCTAssertFalse(service.isProUser, "A purchase awaiting parental approval must not grant Pro")
+    }
+
+    func test_interruptedPurchase_doesNotGrantPro() async throws {
+        session.interruptedPurchasesEnabled = true
+        await service.loadProducts()
+        let monthly = try XCTUnwrap(service.monthlyProduct, "monthly missing")
+
+        let outcome = try? await service.purchaseWithOutcome(monthly)
+
+        XCTAssertNotEqual(outcome, StoreService.PurchaseOutcome.success)
+        XCTAssertFalse(service.isProUser)
     }
 }

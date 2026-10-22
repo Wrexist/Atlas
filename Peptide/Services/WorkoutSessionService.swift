@@ -42,6 +42,7 @@ final class WorkoutSessionService {
         Task { [weak self] in
             self?.reconcileRest()
             self?.closeIfStale()
+            self?.closeStaleOrphans()
         }
     }
 
@@ -202,6 +203,41 @@ final class WorkoutSessionService {
         staleClosure = closure
         AppLog.training.info("Stale workout closed (id: \(session.id, privacy: .public), \(String(describing: closure), privacy: .public))")
         return closure
+    }
+
+    /// Closes in-progress rows other than `activeSession` — left by a crash
+    /// or synced in from another device — with the same verdicts as
+    /// `closeIfStale`. A fresh one may be live on the other device, so it
+    /// stays until it idles out. No HealthKit write: the device that ran
+    /// the workout owns that.
+    func closeStaleOrphans(now: Date = Date()) {
+        let repo = SwiftDataRepository.shared
+        let orphans = repo.loadUnfinishedWorkoutSessions().filter { $0.id != activeSession?.id }
+        var changed = false
+        for var orphan in orphans {
+            switch WorkoutStalenessEngine.verdict(for: orphan, now: now) {
+            case .keep:
+                continue
+            case .discard:
+                repo.deleteWorkoutSession(id: orphan.id)
+            case .finish(let end):
+                orphan.focus?.resume(at: end)
+                orphan.focus?.rest = nil
+                orphan.finishedAt = end
+                repo.upsertWorkoutSession(orphan)
+                PRDetectionEngine.shared.ingest(session: orphan)
+            }
+            changed = true
+            AppLog.training.info("Orphaned workout closed (id: \(orphan.id, privacy: .public))")
+        }
+        if changed { DataStore.current?.refreshTrainingGlanceables() }
+    }
+
+    /// Re-reads the in-progress session after an iCloud account switch,
+    /// so the previous account's workout doesn't stay on screen.
+    func reloadActiveSession() {
+        activeSession = SwiftDataRepository.shared.loadActiveWorkoutSession()
+        WorkoutLiveActivityService.shared.reconcile(active: activeSession)
     }
 
     func acknowledgeStaleClosure() {

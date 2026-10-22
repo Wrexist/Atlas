@@ -6,30 +6,21 @@ import Foundation
 /// definitions without going through `@MainActor DataStore`.
 enum EntryAnalytics {
 
-    /// 7-day completed-vs-scheduled ratio over the user's full log.
-    /// Returns 0 when nothing was scheduled in the window (rather than
-    /// NaN) so the watch ring doesn't render an undefined fraction.
-    /// The window is computed against `now` so the value drifts as the
-    /// calendar day rolls over without needing an explicit cache bust.
+    /// 7-day completed-vs-scheduled ratio over doses due in the week up
+    /// to `now`. A dose scheduled later today is not missed yet, so it
+    /// stays out of the window. Returns nil when nothing was due, so
+    /// callers can tell "no recent data" from "0%". The window is
+    /// computed against `now` so the value drifts as the calendar day
+    /// rolls over without needing an explicit cache bust.
     static func weeklyComplianceFraction(
         in entries: [ProtocolEntry],
         now: Date = Date(),
         calendar: Calendar = .current
-    ) -> Double {
-        let window = weeklyWindow(in: entries, now: now, calendar: calendar)
-        guard !window.isEmpty else { return 0 }
-        return Double(window.filter(\.completed).count) / Double(window.count)
-    }
-
-    /// The entries `weeklyComplianceFraction` is measured over, so a
-    /// caller can tell "0%" from "nothing scheduled this week".
-    static func weeklyWindow(
-        in entries: [ProtocolEntry],
-        now: Date = Date(),
-        calendar: Calendar = .current
-    ) -> [ProtocolEntry] {
+    ) -> Double? {
         let cutoff = calendar.date(byAdding: .day, value: -7, to: now) ?? now
-        return entries.filter { $0.date >= cutoff }
+        let window = entries.filter { $0.date >= cutoff && $0.date <= now }
+        guard !window.isEmpty else { return nil }
+        return Double(window.filter(\.completed).count) / Double(window.count)
     }
 
     /// Lifetime completed-entry count. Light enough to recompute on every
