@@ -348,7 +348,7 @@ struct CycleCardView: View {
 
     private var qrTile: some View {
         Group {
-            if let qr = Self.qrCode(from: AppConstants.appStoreURL.absoluteString) {
+            if let qr = Self.appStoreQR {
                 Image(uiImage: qr)
                     .interpolation(.none)
                     .resizable()
@@ -396,6 +396,10 @@ struct CycleCardView: View {
     /// thread-safe, so we don't rebuild it on every render. `nonisolated(unsafe)`
     /// because `qrCode` runs under ImageRenderer off the main actor.
     nonisolated(unsafe) private static let ciContext = CIContext()
+
+    /// The App Store link never changes, so the QR is generated once rather
+    /// than on every preview render.
+    private static let appStoreQR = qrCode(from: AppConstants.appStoreURL.absoluteString)
 
     /// Static so `ImageRenderer` doesn't trip over view-instance-bound state
     /// while it walks the tree to capture pixels.

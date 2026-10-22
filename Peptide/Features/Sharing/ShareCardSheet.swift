@@ -21,6 +21,7 @@ struct ShareCardSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(DataStore.self) private var dataStore
+    @Environment(\.displayScale) private var displayScale
 
     @State private var includeHealth = false
     /// When true, the rendered card uses "Compound A / B / C…" in
@@ -188,9 +189,12 @@ struct ShareCardSheet: View {
             await Task.yield()
             guard previewToken == token else { return }
             do {
+                // Render only the pixels the preview frame shows, not the
+                // full 1080×1920 export, so each toggle stays cheap.
                 let image = try ShareCardRenderer.renderImage(
                     for: modelForRender,
-                    maskCompoundNames: maskCompoundNames
+                    maskCompoundNames: maskCompoundNames,
+                    scale: Self.previewWidth * displayScale / ShareCardRenderer.canvasSize.width
                 )
                 guard previewToken == token else { return }
                 previewImage = image

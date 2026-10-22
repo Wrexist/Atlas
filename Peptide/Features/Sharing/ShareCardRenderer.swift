@@ -50,16 +50,21 @@ enum ShareCardRenderer {
 
     /// Renders `model` as an in-memory UIImage. Useful for unit tests and
     /// for any code path that needs the image without writing to disk.
-    static func renderImage(for model: CycleCardModel, maskCompoundNames: Bool = false) throws -> UIImage {
+    /// `scale` below 1 renders a smaller bitmap for an on-screen preview.
+    static func renderImage(
+        for model: CycleCardModel,
+        maskCompoundNames: Bool = false,
+        scale: CGFloat = 1
+    ) throws -> UIImage {
         let view = CycleCardView(model: model, maskCompoundNames: maskCompoundNames)
             .frame(width: canvasSize.width, height: canvasSize.height)
 
         let renderer = ImageRenderer(content: view)
         renderer.proposedSize = ProposedViewSize(width: canvasSize.width, height: canvasSize.height)
-        // The view is authored at exact target pixel dimensions, so we render
-        // at scale 1.0. Bumping the scale would explode memory and produce a
+        // The view is authored at exact target pixel dimensions, so exports
+        // render at scale 1. Bumping it would explode memory and produce a
         // 3240×5760 image that no Stories surface expects.
-        renderer.scale = 1.0
+        renderer.scale = scale
         renderer.isOpaque = true
 
         guard let image = renderer.uiImage else { throw Failure.render }
