@@ -1,27 +1,15 @@
 import SwiftUI
 
-/// "Meals" block of the merged Today scroll. Phase 33 (Today
-/// recompose) pulled this content out of the now-deleted
-/// `LifestyleView` so the user lands on a single curated scroll
-/// instead of a Home/Lifestyle pill split.
+/// Content of the Meals tab, mounted by `MealsContainerView`.
 ///
 /// Owns every meal-related sheet (food library, barcode, photo,
 /// targets editor, meal entry edit) because each one is paired
-/// to its own state. Mounting these sheets on the section view
-/// keeps Home's body tight — SwiftUI bubbles `.sheet(...)` up
-/// through the view hierarchy so attaching them here works
-/// identically to attaching them on Home's NavigationStack.
+/// to its own state. SwiftUI bubbles `.sheet(...)` up through the
+/// view hierarchy, so attaching them here works identically to
+/// attaching them on the container's NavigationStack.
 struct HomeMealsSection: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
-
-    /// True when this instance is the canonical destination for
-    /// Spotlight food deep-links. The section is mounted both on
-    /// the Today scroll and on the Meals tab; only the Meals-tab
-    /// instance should react to `appState.pendingFoodLogID`,
-    /// otherwise both instances clear the flag on the same runloop
-    /// tick and the active-tab instance loses the race.
-    var consumesDeepLink: Bool = false
 
     @State private var showMealScan = false
     @State private var showBarcodeScan = false
@@ -89,7 +77,8 @@ struct HomeMealsSection: View {
             )
             .sectionAppear(index: 3)
 
-            if let table = latestTable {
+            let dayEntries = dataStore.mealEntries(for: selectedDay)
+            if let table = latestTable(in: dayEntries) {
                 LatestTableCard(moment: table.moment, dishes: table.dishes) {
                     openTable = TableRoute(id: table.moment.id)
                 }
@@ -143,7 +132,6 @@ struct HomeMealsSection: View {
             )
             .scrollReveal()
 
-            let dayEntries = dataStore.mealEntries(for: selectedDay)
             if !dayEntries.isEmpty {
                 DailyMealNutrientsCard(entries: dayEntries)
                     .scrollReveal()
@@ -154,16 +142,18 @@ struct HomeMealsSection: View {
                     dayTitle: dayOffset == 0 ? nil : MealDaySwitcher.title(for: selectedDay)
                 )
                     .scrollReveal()
-
-                TodaysMealsCard(
-                    entries: dayEntries,
-                    dayTitle: dayOffset == 0 ? nil : MealDaySwitcher.title(for: selectedDay),
-                    onEdit: { entry in editingMealEntry = entry },
-                    onLogAgain: logAgain,
-                    onDelete: { id in dataStore.unlogMealEntry(id: id) }
-                )
-                .scrollReveal()
             }
+
+            // Always shown: its empty state is the "nothing logged" answer
+            // when the user steps back to an empty day.
+            TodaysMealsCard(
+                entries: dayEntries,
+                dayTitle: dayOffset == 0 ? nil : MealDaySwitcher.title(for: selectedDay),
+                onEdit: { entry in editingMealEntry = entry },
+                onLogAgain: logAgain,
+                onDelete: { id in dataStore.unlogMealEntry(id: id) }
+            )
+            .scrollReveal()
         }
         .sheet(isPresented: $showMealScan) {
             MealScanFlow(onClose: { showMealScan = false }, logDay: selectedDay)
@@ -252,9 +242,8 @@ struct HomeMealsSection: View {
             lastWaterLog = nil
         }
         .onChange(of: appState.pendingFoodLogID) { _, deepLink in
-            // Spotlight tapped a food index entry. Only the Meals-tab
-            // instance consumes — see `consumesDeepLink` above.
-            guard consumesDeepLink, let deepLink else { return }
+            // Spotlight tapped a food index entry.
+            guard let deepLink else { return }
             pendingFoodLogID = deepLink
             appState.pendingFoodLogID = nil
             showFoodLibrary = true
@@ -290,8 +279,7 @@ struct HomeMealsSection: View {
 
     /// The newest table on the viewed day that still has a dish in the
     /// diary.
-    private var latestTable: (moment: TableMoment, dishes: [TableDish])? {
-        let entries = dataStore.mealEntries(for: selectedDay)
+    private func latestTable(in entries: [MealEntry]) -> (moment: TableMoment, dishes: [TableDish])? {
         for moment in TableMomentStore.shared.moments(on: selectedDay).reversed() {
             let dishes = moment.logged(in: entries)
             if !dishes.isEmpty { return (moment, dishes) }
@@ -353,7 +341,7 @@ struct HomeMealsSection: View {
                 .foregroundStyle(AppColor.accentLight)
                 .frame(width: 36, height: 36)
                 .background {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                         .fill(AppColor.accentPrimary.opacity(0.18))
                 }
 
@@ -361,14 +349,15 @@ struct HomeMealsSection: View {
                 Text("Set your daily targets first")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
-                Text("Add height, weight, age, and gender on Profile to compute calorie and macro targets, or tap Edit to set them manually.")
+                Text("Add height, weight, age, and gender on Profile to compute calorie and macro targets, or tap Edit targets to set them manually.")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Button("Edit targets") { showTargetsEditor = true }
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
-                    .foregroundStyle(AppColor.textSecondary)
+                    .foregroundStyle(AppColor.accentLight)
+                    .minimumHitArea()
                     .padding(.top, Spacing.xs)
             }
         }
