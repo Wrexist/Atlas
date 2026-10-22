@@ -1296,13 +1296,40 @@ final class DataStore {
     /// as a grace day — the streak doesn't reset just because the
     /// user hasn't logged yet this morning.
     var mealLoggingStreak: Int {
-        LifestyleDataLogic.mealLoggingStreak(in: profile)
+        mealStreaks.current
     }
 
     /// All-time best meal-logging streak. Surfaced on the Lifestyle
     /// tab when the user is below their personal record.
     var bestMealLoggingStreak: Int {
-        LifestyleDataLogic.bestMealLoggingStreak(in: profile)
+        mealStreaks.best
+    }
+
+    private struct MealStreakCache {
+        let history: [MealEntry]
+        let freezeDays: Set<String>
+        let day: Date
+        let current: Int
+        let best: Int
+    }
+
+    @ObservationIgnored private var mealStreakCache: MealStreakCache?
+
+    /// Both streaks walk the whole meal history, and the Meals screen
+    /// re-reads them on every profile change — each water tap included.
+    /// Reused until the history, the freezes or the day change; an
+    /// untouched array compares equal by identity, so the check is cheap.
+    private var mealStreaks: (current: Int, best: Int) {
+        let day = Calendar.current.startOfDay(for: Date())
+        if let cached = mealStreakCache, cached.day == day,
+           cached.history == profile.mealHistory, cached.freezeDays == profile.streakFreezeDays {
+            return (cached.current, cached.best)
+        }
+        let current = LifestyleDataLogic.mealLoggingStreak(in: profile)
+        let best = LifestyleDataLogic.bestMealLoggingStreak(in: profile)
+        mealStreakCache = MealStreakCache(history: profile.mealHistory, freezeDays: profile.streakFreezeDays,
+                                          day: day, current: current, best: best)
+        return (current, best)
     }
 
     // MARK: - Outcome check-ins
