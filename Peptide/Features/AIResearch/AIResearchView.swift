@@ -298,7 +298,7 @@ struct AIResearchView: View {
             )
             do {
                 for try await chunk in stream {
-                    guard !Task.isCancelled else { return }
+                    guard !Task.isCancelled else { break }
                     if let idx = transcript.lastIndex(where: { $0.id == assistantTurn.id }) {
                         transcript[idx].content.append(chunk)
                     }
