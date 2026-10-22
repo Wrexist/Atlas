@@ -38,6 +38,19 @@ extension View {
     }
 }
 
+/// The legacy recipe's base fill. Opaque under Reduce Transparency, which
+/// iOS 26's material honours on its own but a hand-painted 60% fill doesn't:
+/// without this, the backdrop, photos or camera feed show through for users
+/// who asked for solid surfaces.
+private struct LegacyGlassFill<S: Shape>: View {
+    let shape: S
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    var body: some View {
+        shape.fill(AppColor.surfaceSecondary.opacity(reduceTransparency ? 1 : 0.6))
+    }
+}
+
 extension View {
     /// The app's standard rounded-rect glass surface.
     ///
@@ -60,8 +73,7 @@ extension View {
         } else {
             self
                 .background {
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .fill(AppColor.surfaceSecondary.opacity(0.6))
+                    LegacyGlassFill(shape: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                         .overlay {
                             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                                 .fill(tinted ? AppColor.glassTint : AppColor.cardOverlay)
@@ -128,10 +140,13 @@ extension View {
             let wash = legacyTint ?? tint ?? AppColor.cardOverlay
             self
                 .background {
-                    shape
-                        .fill(AppColor.surfaceSecondary.opacity(0.6))
+                    LegacyGlassFill(shape: shape)
                         .overlay { shape.fill(wash) }
-                        .overlay { shape.stroke(border, lineWidth: 0.5) }
+                        // 1pt centred on the edge, half of it clipped away
+                        // below: the same 0.5pt inside hairline that
+                        // `strokeBorder` draws on `glassSurface`. `AnyShape`
+                        // isn't insettable, so it can't use `strokeBorder`.
+                        .overlay { shape.stroke(border, lineWidth: 1) }
                 }
                 .clipShape(shape)
         }
@@ -148,8 +163,7 @@ extension View {
         } else {
             self
                 .background {
-                    Capsule()
-                        .fill(AppColor.surfaceSecondary.opacity(0.6))
+                    LegacyGlassFill(shape: Capsule())
                         .overlay {
                             Capsule().fill(tinted ? AppColor.glassTint : AppColor.cardOverlay)
                         }
