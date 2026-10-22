@@ -100,15 +100,6 @@ enum LifestyleDataLogic {
         profile.dailyConsumption[key] = bucket
     }
 
-    /// Adds whole ounces of water to the day's bucket. Siri, the Watch
-    /// and the widget deep-link log in ounces, so they stay on this path.
-    static func logWater(into profile: inout UserProfile, oz: Int, date: Date) {
-        let key = consumptionKey(for: date)
-        var bucket = profile.dailyConsumption[key] ?? DailyConsumption.empty(on: date)
-        bucket.waterOz += oz
-        profile.dailyConsumption[key] = bucket
-    }
-
     /// Adds (or, negative, removes) an exact amount of water. `waterOz`
     /// stays the rounded whole-ounce total and `waterOzRemainder` keeps
     /// the fraction, so a metric +1 L reads back as exactly 1000 mL
@@ -514,6 +505,9 @@ enum LifestyleDataLogic {
                 older.append(entry)
             }
         }
+        // Back-filled and re-dated entries break append order, so trim
+        // by date or a newer meal could go before an older one.
+        older.sort { $0.date < $1.date }
         let trimmedOlder = older.suffix(max(0, maxMealHistoryEntries - todays.count))
         profile.mealHistory = Array(trimmedOlder) + todays
     }

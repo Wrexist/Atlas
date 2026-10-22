@@ -141,4 +141,20 @@ final class MealScanRecoveryTests: XCTestCase {
         XCTAssertEqual(item.calories, 150)
         XCTAssertNil(item.replacementSourceID)
     }
+
+    func test_replacedFood_dropsScanBrandAndPriceUntilReset() {
+        let price = FoodPriceEstimate(low: 10, high: 15, currency: "SEK", basis: .store)
+        var item = EditableFoodItem(from: .init(name: "Cola", quantityLabel: "1 can", grams: 330, calories: 140,
+                                                proteinG: 0, carbsG: 35, fatG: 0, confidence: 0.8,
+                                                brand: "Coca-Cola", price: price))
+        let source = CustomFood(name: "Pepsi Max", per100g: .init(calories: 0, proteinG: 0, carbsG: 0,
+            fatG: 0, fiberG: nil, sugarsG: nil)).toScannedProduct()
+        item.replace(with: source)
+        XCTAssertNil(item.brand)
+        XCTAssertNil(item.price)
+        XCTAssertNil(item.pricePer100g)
+        item.resetNutrition()
+        XCTAssertEqual(item.brand, "Coca-Cola")
+        XCTAssertEqual(item.price, price)
+    }
 }

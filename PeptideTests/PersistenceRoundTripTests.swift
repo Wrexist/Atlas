@@ -340,6 +340,26 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertEqual(today.proteinG, 0)
     }
 
+    func test_pruneMealHistory_backfilledEntry_dropsOldestByDateNotPosition() {
+        var profile = UserProfile.fresh
+        let day: TimeInterval = 86_400
+        let start = Date().addingTimeInterval(-30 * day)
+        func meal(_ name: String, _ date: Date) -> MealEntry {
+            MealEntry(date: date, category: .lunch, name: name, calories: 100,
+                      proteinG: 0, carbsG: 0, fatG: 0, source: .photo)
+        }
+        let newest = meal("Newest", start.addingTimeInterval(day))
+        let oldest = meal("Oldest", start.addingTimeInterval(-day))
+        profile.mealHistory = [newest]
+            + (1..<LifestyleDataLogic.maxMealHistoryEntries).map { _ in meal("Filler", start) }
+
+        LifestyleDataLogic.logMealEntry(into: &profile, entry: oldest)
+
+        XCTAssertEqual(profile.mealHistory.count, LifestyleDataLogic.maxMealHistoryEntries)
+        XCTAssertTrue(profile.mealHistory.contains { $0.id == newest.id })
+        XCTAssertFalse(profile.mealHistory.contains { $0.id == oldest.id })
+    }
+
     func test_mealsByCategory_bucketsEntriesAndCapturesLegacyAggregateAsOther() throws {
         var profile = UserProfile.fresh
         let now = Date()
@@ -1143,6 +1163,17 @@ final class PersistenceRoundTripTests: XCTestCase {
         } else {
             XCTFail("Expected fourth call to be denied")
         }
+    }
+
+    func test_offRateLimiter_leavingFree_deniesBackgroundCallerBeforeUserBudget() async {
+        let limiter = OFFRateLimiter(maxRequests: 3, windowSeconds: 60)
+        let now = Date()
+        let background = await limiter.requestSlot(now: now, leavingFree: 2)
+        let backgroundAgain = await limiter.requestSlot(now: now.addingTimeInterval(1), leavingFree: 2)
+        let user = await limiter.requestSlot(now: now.addingTimeInterval(2))
+        XCTAssertEqual(background, .allowed)
+        XCTAssertNotEqual(backgroundAgain, .allowed)
+        XCTAssertEqual(user, .allowed)
     }
 
     func test_offRateLimiter_releasesSlotAfterWindowExpires() async {

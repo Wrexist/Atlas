@@ -38,6 +38,9 @@ final class TableCamera: NSObject, AVCapturePhotoCaptureDelegate {
     private let output = AVCapturePhotoOutput()
     private let queue = DispatchQueue(label: "com.peptidesai.app.table-camera")
     private var device: AVCaptureDevice?
+    /// Keeps the photo upright however the phone is held — a long table
+    /// is often shot in landscape.
+    private var rotation: AVCaptureDevice.RotationCoordinator?
     private var pending: CheckedContinuation<UIImage?, Never>?
 
     func start() {
@@ -51,6 +54,11 @@ final class TableCamera: NSObject, AVCapturePhotoCaptureDelegate {
         queue.async { [session] in
             if session.isRunning { session.stopRunning() }
         }
+    }
+
+    /// Turns a viewfinder layer upright for the way the screen is held.
+    func previewRotation(for layer: AVCaptureVideoPreviewLayer) -> AVCaptureDevice.RotationCoordinator? {
+        device.map { AVCaptureDevice.RotationCoordinator(device: $0, previewLayer: layer) }
     }
 
     /// The ultra-wide is zoom factor 1 on a virtual device; the main lens
@@ -76,6 +84,10 @@ final class TableCamera: NSObject, AVCapturePhotoCaptureDelegate {
         guard pending == nil, session.isRunning else { return nil }
         return await withCheckedContinuation { continuation in
             pending = continuation
+            if let rotation, let connection = output.connection(with: .video),
+               connection.isVideoRotationAngleSupported(rotation.videoRotationAngleForHorizonLevelCapture) {
+                connection.videoRotationAngle = rotation.videoRotationAngleForHorizonLevelCapture
+            }
             output.capturePhoto(with: AVCapturePhotoSettings(), delegate: self)
         }
     }
@@ -87,9 +99,8 @@ final class TableCamera: NSObject, AVCapturePhotoCaptureDelegate {
         session.sessionPreset = .photo
         if session.canAddInput(input) { session.addInput(input) }
         if session.canAddOutput(output) { session.addOutput(output) }
-        // Portrait, like every other photo the meal flows hand around.
-        output.connection(with: .video)?.videoRotationAngle = 90
         session.commitConfiguration()
+        rotation = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: nil)
         frame(.table)
     }
 
@@ -104,23 +115,33 @@ final class TableCamera: NSObject, AVCapturePhotoCaptureDelegate {
 
 /// The viewfinder layer for a `TableCamera` session.
 struct TableCameraPreview: UIViewRepresentable {
-    let session: AVCaptureSession
+    let camera: TableCamera
 
     final class PreviewView: UIView {
         override class var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
         var previewLayer: AVCaptureVideoPreviewLayer? { layer as? AVCaptureVideoPreviewLayer }
+        var rotation: AVCaptureDevice.RotationCoordinator?
+
+        /// Turning the phone re-lays the view out, so the viewfinder is
+        /// turned upright here.
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            guard let rotation, let connection = previewLayer?.connection,
+                  connection.isVideoRotationAngleSupported(rotation.videoRotationAngleForHorizonLevelPreview) else { return }
+            connection.videoRotationAngle = rotation.videoRotationAngleForHorizonLevelPreview
+        }
     }
 
     func makeUIView(context: Context) -> PreviewView {
         let view = PreviewView()
         view.backgroundColor = .black
-        view.previewLayer?.session = session
+        view.previewLayer?.session = camera.session
         view.previewLayer?.videoGravity = .resizeAspectFill
-        view.previewLayer?.connection?.videoRotationAngle = 90
+        if let layer = view.previewLayer { view.rotation = camera.previewRotation(for: layer) }
         return view
     }
 
     func updateUIView(_ view: PreviewView, context: Context) {
-        view.previewLayer?.connection?.videoRotationAngle = 90
+        view.setNeedsLayout()
     }
 }

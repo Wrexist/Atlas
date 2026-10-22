@@ -1140,14 +1140,9 @@ final class DataStore {
         repo.dismissHealthWeights(ids: Set(sameDay.map(\.id)))
     }
 
-    func logWater(oz: Int, date: Date = Date()) {
-        LifestyleDataLogic.logWater(into: &profile, oz: oz, date: date)
-        save()
-        mirrorWaterToHealth(fluidOunces: Double(oz), date: date)
-    }
-
-    /// Exact-amount water log used by the Meals tab quick-adds. A
-    /// negative amount is the Undo path; the day clamps at zero.
+    /// Exact-amount water log behind every entry point (quick-adds,
+    /// Siri, the Watch, the widget). A negative amount is the Undo
+    /// path; the day clamps at zero.
     func logWater(fluidOunces: Double, date: Date = Date()) {
         LifestyleDataLogic.logWater(into: &profile, fluidOunces: fluidOunces, date: date)
         save()
@@ -1361,13 +1356,40 @@ final class DataStore {
     /// as a grace day — the streak doesn't reset just because the
     /// user hasn't logged yet this morning.
     var mealLoggingStreak: Int {
-        LifestyleDataLogic.mealLoggingStreak(in: profile)
+        mealStreaks.current
     }
 
     /// All-time best meal-logging streak. Surfaced on the Lifestyle
     /// tab when the user is below their personal record.
     var bestMealLoggingStreak: Int {
-        LifestyleDataLogic.bestMealLoggingStreak(in: profile)
+        mealStreaks.best
+    }
+
+    private struct MealStreakCache {
+        let history: [MealEntry]
+        let freezeDays: Set<String>
+        let day: Date
+        let current: Int
+        let best: Int
+    }
+
+    @ObservationIgnored private var mealStreakCache: MealStreakCache?
+
+    /// Both streaks walk the whole meal history, and the Meals screen
+    /// re-reads them on every profile change — each water tap included.
+    /// Reused until the history, the freezes or the day change; an
+    /// untouched array compares equal by identity, so the check is cheap.
+    private var mealStreaks: (current: Int, best: Int) {
+        let day = Calendar.current.startOfDay(for: Date())
+        if let cached = mealStreakCache, cached.day == day,
+           cached.history == profile.mealHistory, cached.freezeDays == profile.streakFreezeDays {
+            return (cached.current, cached.best)
+        }
+        let current = LifestyleDataLogic.mealLoggingStreak(in: profile)
+        let best = LifestyleDataLogic.bestMealLoggingStreak(in: profile)
+        mealStreakCache = MealStreakCache(history: profile.mealHistory, freezeDays: profile.streakFreezeDays,
+                                          day: day, current: current, best: best)
+        return (current, best)
     }
 
     // MARK: - Outcome check-ins
@@ -1564,7 +1586,7 @@ final class DataStore {
         guard let totals = RecipeDataLogic.review(
             for: recipe,
             customFoods: profile.customFoods
-        ).totals, totals.calories > 0 else { return nil }
+        ).totals else { return nil }
         let chosenCategory = category ?? MealCategory.auto(for: date)
         let entry = MealEntry(
             loggable: totals,
@@ -2616,6 +2638,7 @@ final class DataStore {
             trainingHabitsDone: trainingDue.filter(isDone).count,
             trainingHabitsTotal: trainingDue.count,
             measurementUnit: profile.bodyMetrics.unit.rawValue,
+            healthConnected: profile.healthConnected,
             vitals: watchVitals,
             workout: watchWorkout,
             training: WatchWorkoutSnapshotBuilder.training(from: repo.loadWorkoutSessions(limit: 30)),

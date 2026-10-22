@@ -39,6 +39,7 @@ final class FoodLibraryLogicTests: XCTestCase {
         let newer = MealEntry(loggable: try XCTUnwrap(product.loggable(for: .grams(120))), name: product.name,
                               category: .breakfast, source: .custom, sourceID: product.barcode, date: Date(timeIntervalSince1970: 200))
         XCTAssertEqual(FoodLibraryLogic.previousGrams(for: product, history: [newer, old]), 120)
+        XCTAssertEqual(FoodLibraryLogic.previousGrams(for: product, history: [old, newer]), 120)
         XCTAssertNil(FoodLibraryLogic.previousGrams(for: food("Rice").toScannedProduct(), history: [newer]))
         XCTAssertNil(FoodLibraryLogic.previousGrams(for: product, history: []))
     }
@@ -69,5 +70,27 @@ final class FoodLibraryLogicTests: XCTestCase {
         store.profile.customFoods = []
         XCTAssertNil(store.logRecipe(recipe))
         XCTAssertEqual(store.profile.mealHistory.count, before + 1)
+    }
+
+    @MainActor
+    func test_logRecipe_zeroCalorieRecipe_logs() throws {
+        let repo = SwiftDataRepository.shared
+        repo.configureForTesting()
+        let store = DataStore(seedSampleData: false)
+        defer {
+            store.flushPendingSave()
+            DataStore.current = nil
+            repo.configureForTesting()
+        }
+        store.profile.healthKitNutritionEnabled = false
+        let coffee = CustomFood(name: "Black coffee", per100g: .init(calories: 0, proteinG: 0,
+            carbsG: 0, fatG: 0, fiberG: nil, sugarsG: nil))
+        store.profile.customFoods = [coffee]
+        store.flushPendingSave()
+        let recipe = Recipe(name: "Coffee", components: [.init(foodID: coffee.foodID, cachedName: "Black coffee",
+                                                               portion: .grams(250))])
+        let entry = try XCTUnwrap(store.logRecipe(recipe))
+        XCTAssertEqual(entry.calories, 0)
+        XCTAssertTrue(store.profile.mealHistory.contains { $0.id == entry.id })
     }
 }

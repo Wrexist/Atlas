@@ -45,7 +45,7 @@ struct FoodEntityQuery: EntityQuery {
             let store = IntentDataStore.resolve()
             return Self.allEntities(in: store)
         }
-        let lookup = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
+        let lookup = Dictionary(all.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         return identifiers.compactMap { lookup[$0] }
     }
 
@@ -57,18 +57,19 @@ struct FoodEntityQuery: EntityQuery {
     }
 
     /// Siri NL pipeline calls this with the spoken term ("oatmeal").
-    /// We match against display name + subtitle, lowercased, so
-    /// brand-prefixed queries ("Trader Joe's oat") still find their
-    /// match even when the user only said part of the name.
+    /// We match against display name + subtitle, case- and
+    /// diacritic-folded, so brand-prefixed queries ("Trader Joe's oat")
+    /// and unaccented speech ("kottbullar") still find their match.
     func entities(matching string: String) async throws -> [FoodEntity] {
-        let needle = string.lowercased()
+        let needle = FoodLibraryLogic.normalized(string)
+        guard !needle.isEmpty else { return [] }
         let all = await MainActor.run {
             let store = IntentDataStore.resolve()
             return Self.allEntities(in: store)
         }
         return all.filter { entity in
-            entity.displayName.lowercased().contains(needle)
-                || (entity.subtitle?.lowercased().contains(needle) ?? false)
+            FoodLibraryLogic.normalized(entity.displayName).contains(needle)
+                || FoodLibraryLogic.normalized(entity.subtitle ?? "").contains(needle)
         }
     }
 

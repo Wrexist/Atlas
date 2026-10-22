@@ -118,6 +118,15 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         XCTAssertEqual(product.per100g.calories, 239, accuracy: 0.5)
     }
 
+    func test_fetch_energyUnitKcal_stillConvertsNormalisedKilojoules() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.kilojoulesTypedAsKcal.utf8))
+        }
+        let product = try await service.fetch(barcode: "6666666666666")
+        // energy_100g is kJ even when the contributor typed kcal.
+        XCTAssertEqual(product.per100g.calories, 239, accuracy: 0.5)
+    }
+
     func test_fetch_treatsZeroServingQuantityAsMissing() async throws {
         MockURLProtocol.handler = { request in
             (Self.ok(for: request), Data(Fixtures.zeroServingQuantity.utf8))
@@ -138,6 +147,22 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         XCTAssertEqual(product.per100g.proteinG, 0)
         XCTAssertEqual(product.per100g.carbsG, 0)
         XCTAssertEqual(product.per100g.fatG, 0)
+    }
+
+    func test_fetch_allZeroNutriments_countsAsHavingNutrition() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.water.utf8))
+        }
+        let product = try await service.fetch(barcode: "7777777777777")
+        XCTAssertTrue(product.hasNutrition)
+    }
+
+    func test_fetch_noNutriments_hasNoNutrition() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.noNutriments.utf8))
+        }
+        let product = try await service.fetch(barcode: "8888888888888")
+        XCTAssertFalse(product.hasNutrition)
     }
 
     func test_fetch_addsUserAgentHeader() async throws {
@@ -235,6 +260,26 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         }
         let product = try await service.fetch(barcode: "5449000000996")
         XCTAssertEqual(product.name, "Coca-Cola")
+    }
+
+    func test_search_timeout_retriesAndReportsServiceUnavailable() async {
+        // A slow OFF isn't the user being offline.
+        let counter = AttemptCounter()
+        MockURLProtocol.handler = { _ in
+            counter.bump()
+            throw URLError(.timedOut)
+        }
+        await XCTAssertThrowsErrorAsync(try await service.search(query: "oats")) { error in
+            XCTAssertEqual(error as? OpenFoodFactsService.LookupError, .serviceUnavailable)
+        }
+        XCTAssertGreaterThanOrEqual(counter.value, 2)
+    }
+
+    func test_search_noConnection_reportsNetworkUnavailable() async {
+        MockURLProtocol.handler = { _ in throw URLError(.notConnectedToInternet) }
+        await XCTAssertThrowsErrorAsync(try await service.search(query: "oats")) { error in
+            XCTAssertEqual(error as? OpenFoodFactsService.LookupError, .networkUnavailable)
+        }
     }
 
     func test_fetch_throwsInvalidBarcode_whenBarcodeIsGarbage() async {
@@ -494,6 +539,23 @@ private enum Fixtures {
     }
     """
 
+    static let kilojoulesTypedAsKcal = """
+    {
+      "status": 1,
+      "code": "6666666666666",
+      "product": {
+        "product_name": "Typed as kcal",
+        "nutriments": {
+          "energy_100g": 1000,
+          "energy_unit": "kcal",
+          "proteins_100g": 10,
+          "carbohydrates_100g": 20,
+          "fat_100g": 5
+        }
+      }
+    }
+    """
+
     static let zeroServingQuantity = """
     {
       "status": 1,
@@ -521,6 +583,33 @@ private enum Fixtures {
         "nutriments": {
           "energy-kcal_100g": 100
         }
+      }
+    }
+    """
+
+    static let water = """
+    {
+      "status": 1,
+      "code": "7777777777777",
+      "product": {
+        "product_name": "Still water",
+        "nutriments": {
+          "energy-kcal_100g": 0,
+          "proteins_100g": 0,
+          "carbohydrates_100g": 0,
+          "fat_100g": 0
+        }
+      }
+    }
+    """
+
+    static let noNutriments = """
+    {
+      "status": 1,
+      "code": "8888888888888",
+      "product": {
+        "product_name": "Unlabelled",
+        "nutriments": {}
       }
     }
     """
@@ -565,7 +654,7 @@ final class MockURLProtocol: URLProtocol {
 /// Thread-safe attempt counter used by retry tests. MockURLProtocol's
 /// handler is `@Sendable` and called synchronously from a background
 /// loader queue, so plain Int captures aren't safe.
-private final class AttemptCounter: @unchecked Sendable {
+final class AttemptCounter: @unchecked Sendable {
     private let lock = NSLock()
     private var count = 0
     /// Returns the 0-indexed attempt number before incrementing.

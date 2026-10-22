@@ -66,38 +66,43 @@ final class MealScannerService: Sendable {
         case serviceUnavailable
         case offline
         case imageTooLarge
-        case requestFailed(String)
+        case requestFailed(status: Int)
         case invalidResponse
         case parseFailure
         case implausibleResult
         case noFoodDetected
         case declined
-        /// The deployment has no `food-scan` route yet. Never shown —
-        /// `smartScan` catches it and falls back to the legacy route.
+        /// The deployment has no `food-scan` route yet. `smartScan` falls
+        /// back to the legacy route; the text-only routes have none.
         case routeMissing
 
         var errorDescription: String? {
             switch self {
-            case .proxyNotConfigured:   "Meal scanner isn't configured for this build. Set MEAL_SCANNER_ENDPOINT and MEAL_SCANNER_SECRET in Secrets.xcconfig and rebuild."
+            case .proxyNotConfigured:   "Meal scanning isn't available in this build. Update Atlas from the App Store or TestFlight."
             case .unauthorised:         "Couldn't sign in to the meal scanner. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build."
             case .rateLimited:          "You've scanned a lot of meals recently. Wait a minute and try again — if you've hit today's limit, scanning resets tomorrow."
             case .serviceUnavailable:   "Scanning is temporarily unavailable — try again later."
             case .offline:              "You're offline — meal scanning needs an internet connection. Reconnect and try again."
             case .imageTooLarge:        "Photo is too large to upload. Try a smaller image."
-            case .requestFailed(let m): m
+            case .requestFailed:        "The meal scanner hit a problem. Try again in a moment."
             case .invalidResponse:      "The scanner returned an unexpected response."
             case .parseFailure:         "Couldn't read the meal estimate from the scanner."
             case .implausibleResult:    "The scanner returned values outside a realistic range — try a clearer photo."
             case .noFoodDetected:       "No food found in that photo — point the camera at your meal and try again."
             case .declined:             "The scanner couldn't analyse this one. Try a different photo or angle."
-            case .routeMissing:         "Meal scanner returned HTTP 404."
+            case .routeMissing:         "Meal scanner is temporarily unavailable. Try again later."
+            }
+        }
+
+        /// Sending the same photo again can't change the answer.
+        var needsDifferentPhoto: Bool {
+            switch self {
+            case .imageTooLarge, .implausibleResult, .noFoodDetected, .declined: true
+            default: false
             }
         }
     }
 
-    /// 5xx statuses worth one retry — a transient proxy / upstream
-    /// hiccup rather than a client error.
-    private static let retryableStatuses: Set<Int> = [502, 503, 504]
     /// URLError codes that mean "no usable connection" — surfaced as a
     /// dedicated `.offline` so the UI shows actionable copy.
     private static let offlineCodes: Set<URLError.Code> = [
@@ -335,10 +340,19 @@ final class MealScannerService: Sendable {
     /// Language and currency, so names come back in the user's language
     /// and prices in their money, plus the user's past corrections.
     private static func fields(_ corrections: [ScanCorrection]) -> [String: Any] {
-        var fields: [String: Any] = ["locale": Locale.current.identifier,
+        var fields: [String: Any] = ["locale": localeIdentifier,
                                      "currency": Locale.current.currency?.identifier ?? "USD"]
         if !corrections.isEmpty { fields["corrections"] = corrections.map(\.payload) }
         return fields
+    }
+
+    /// Language plus region, e.g. "sv_SE". `Locale.current.identifier` can
+    /// carry keywords ("en_US@rg=sezzzz") whose region override the proxy
+    /// would drop along with the rest of the keyword.
+    private static var localeIdentifier: String {
+        [Locale.current.language.languageCode?.identifier, Locale.current.region?.identifier]
+            .compactMap { $0 }
+            .joined(separator: "_")
     }
 
     /// Posts a JSON payload to the proxy with the shared secret, validates
@@ -388,16 +402,19 @@ final class MealScannerService: Sendable {
             // The proxy throttles per device and caps a daily quota, so
             // 429 is a state the user can act on.
             case 429: throw ScanError.rateLimited
-            // Still 503 after the retry: the proxy is out of today's
-            // budget or not configured, so a bare status code helps nobody.
+            // The proxy is out of today's budget or not configured (it
+            // doesn't mark this retryable), so a bare status code helps nobody.
             case 503: throw ScanError.serviceUnavailable
-            // The platform refuses bodies over its 4.5 MB limit.
+            // The proxy's body cap, or the platform's 4.5 MB limit; the
+            // photo is already compressed to fit.
             case 413: throw ScanError.imageTooLarge
             // Vercel answers 404 for a route this deployment doesn't have.
             case 404: throw ScanError.routeMissing
             // food-scan's answer when Claude declined the image.
             case 422: throw ScanError.declined
-            default: throw ScanError.requestFailed("Meal scanner returned HTTP \(http.statusCode).")
+            default:
+                AppLog.persistence.error("Meal scanner returned HTTP \(http.statusCode, privacy: .public)")
+                throw ScanError.requestFailed(status: http.statusCode)
             }
         }
 
@@ -405,9 +422,10 @@ final class MealScannerService: Sendable {
     }
 
     /// Sends the request, retrying once on a transient transport
-    /// failure, a 502/503/504 response, or an App Attest rejection. A genuine offline condition
-    /// is classified into `ScanError.offline` so the UI can show
-    /// actionable copy instead of the raw `URLError` description.
+    /// failure, a response the proxy marks retryable, or an App Attest
+    /// rejection. A genuine offline condition is classified into
+    /// `ScanError.offline` so the UI can show actionable copy instead of
+    /// the raw `URLError` description.
     private func sendWithRetry(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         let maxAttempts = 2
         var attempt = 0
@@ -429,7 +447,7 @@ final class MealScannerService: Sendable {
                 guard let http = response as? HTTPURLResponse else {
                     throw ScanError.invalidResponse
                 }
-                if Self.retryableStatuses.contains(http.statusCode), attempt < maxAttempts {
+                if !(200..<300).contains(http.statusCode), Self.isRetryable(data), attempt < maxAttempts {
                     try await Task.sleep(for: .seconds(1.5))
                     continue
                 }
@@ -453,6 +471,18 @@ final class MealScannerService: Sendable {
                 throw error
             }
         }
+    }
+
+    /// The proxy marks the failures a second try can fix: an overloaded
+    /// or unreachable upstream. A truncated or unparseable answer, a spent
+    /// budget or a timeout would fail the same way again, and every try
+    /// is a paid vision call.
+    static func isRetryable(_ body: Data) -> Bool {
+        struct Envelope: Decodable {
+            struct Failure: Decodable { let retryable: Bool? }
+            let error: Failure?
+        }
+        return (try? JSONDecoder().decode(Envelope.self, from: body))?.error?.retryable == true
     }
 
     // MARK: - Internals
@@ -555,8 +585,9 @@ final class MealScannerService: Sendable {
         [
             "model": model,
             // Headroom for the multi-item JSON array; the single-estimate
-            // path never approaches this.
-            "max_tokens": 1024,
+            // path never approaches this. Matches the meal-scan route's
+            // own cap, which clamps anything larger.
+            "max_tokens": 1200,
             "messages": [
                 [
                     "role": "user",
@@ -929,16 +960,23 @@ final class MealScannerService: Sendable {
 // MARK: - Helpers
 
 extension UIImage {
-    /// Aspect-preserving resize so the longest edge equals `maxEdge`.
-    /// Returns nil when the input is already smaller than the limit so
-    /// callers can fall through to the original.
+    /// Aspect-preserving resize so the longest edge equals `maxEdge`
+    /// pixels. Returns nil when the input is already smaller than the
+    /// limit so callers can fall through to the original.
+    ///
+    /// Renders at scale 1: the default format uses the screen scale, which
+    /// tripled every edge and made the "resized" photo bigger than the
+    /// camera original.
     func resizedTo(maxEdge: CGFloat) -> UIImage? {
-        let longest = max(size.width, size.height)
+        let pixelWidth = size.width * scale
+        let pixelHeight = size.height * scale
+        let longest = max(pixelWidth, pixelHeight)
         guard longest > maxEdge else { return nil }
-        let scale = maxEdge / longest
-        let target = CGSize(width: size.width * scale, height: size.height * scale)
-        let renderer = UIGraphicsImageRenderer(size: target)
-        return renderer.image { _ in
+        let ratio = maxEdge / longest
+        let target = CGSize(width: (pixelWidth * ratio).rounded(), height: (pixelHeight * ratio).rounded())
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: target, format: format).image { _ in
             draw(in: CGRect(origin: .zero, size: target))
         }
     }
