@@ -188,7 +188,13 @@ targets:
       - path: PeptideWatch
         excludes:
           - "**/.DS_Store"
-      - path: Shared
+      # Only the payload types the watch reads. The rest of Shared holds
+      # iPhone-only App Intents and pending-log stores that nothing on the
+      # watch drains, so a Shortcuts run there would be silently lost.
+      - path: Shared/AppGroup.swift
+      - path: Shared/WatchData.swift
+      - path: Shared/WatchWorkout.swift
+      - path: Shared/WidgetWorkoutSummary.swift
       - path: WatchShared
     dependencies:
       - target: PeptideWatchWidgets
@@ -223,7 +229,10 @@ targets:
         excludes:
           - "**/.DS_Store"
           - Info.plist
-      - path: Shared
+      - path: Shared/AppGroup.swift
+      - path: Shared/WatchData.swift
+      - path: Shared/WatchWorkout.swift
+      - path: Shared/WidgetWorkoutSummary.swift
       - path: WatchShared
     info:
       path: PeptideWatchWidgets/Info.plist
@@ -320,6 +329,11 @@ schemes:
     test:
       config: Debug
       storeKitConfiguration: Peptide/Resources/Products.storekit
+      # Feeds the Coverage report step in pr-checks.yml; XcodeGen
+      # defaults this to false, which left that step reading nothing.
+      gatherCoverageData: true
+      coverageTargets:
+        - Peptide
       targets:
         - PeptideTests
         - PeptideUITests
@@ -328,11 +342,9 @@ schemes:
 
   # UI-capture-only scheme.
   #
-  # The `Peptide` scheme's test action builds `PeptideTests`, which currently
-  # doesn't compile — so the screenshot job, whose whole purpose is to let a
-  # human *look at the app*, was gated behind an unrelated unit-test backlog.
+  # The `Peptide` scheme's test action also builds and runs `PeptideTests`.
   # This scheme builds the app and the UI tests and nothing else, so the
-  # visual loop stays available while that backlog is worked through.
+  # screenshot job doesn't spend time compiling the unit suite.
   PeptideUICapture:
     build:
       targets:

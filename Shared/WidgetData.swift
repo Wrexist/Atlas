@@ -1,9 +1,5 @@
 import Foundation
 
-enum AppGroup {
-    static let identifier = "group.com.peptidesai.app"
-}
-
 /// One row in the Medium widget's "today" list. Three of these are
 /// surfaced — enough to fill the widget without truncation under default
 /// Dynamic Type, per `docs/SCREENSHOT_SEED_DATA_AND_FIXES.md` slot 7.
@@ -23,20 +19,6 @@ struct WidgetMealSlot: Codable, Hashable, Sendable {
     let category: String        // "Breakfast" / "Lunch" / "Dinner" / "Snack"
     let calories: Int
     let entryCount: Int
-}
-
-/// The most recently finished workout, flattened to what a training
-/// widget renders. Volume stays in canonical kilograms — the same
-/// contract `SetEntry` and session totals keep in-app — and is
-/// converted for display against `WidgetData.measurementUnit`.
-struct WidgetWorkoutSummary: Codable, Hashable, Sendable {
-    /// Session name, or "" for an unnamed workout (the widget falls
-    /// back to a date label rather than printing an empty line).
-    let name: String
-    let finishedAt: Date
-    let setCount: Int
-    let volumeKg: Double
-    let durationMinutes: Int
 }
 
 struct WidgetData: Codable, Equatable, Sendable {
