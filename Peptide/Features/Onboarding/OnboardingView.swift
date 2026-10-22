@@ -2247,6 +2247,7 @@ struct OnboardingView: View {
             .textInputAutocapitalization(.characters)
             .autocorrectionDisabled()
             .submitLabel(.done)
+            .onSubmit { if hasCreatorCodeToApply { applyCreatorCode() } }
 
             if let error = creatorError {
                 HStack(spacing: Spacing.xs) {
