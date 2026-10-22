@@ -84,10 +84,9 @@ struct ExercisePickerSheet: View {
             .sheet(isPresented: $creatingCustomExercise) {
                 CustomExerciseEditorSheet { custom in
                     SwiftDataRepository.shared.upsertCustomExercise(custom)
-                    // Reload picks up the new custom lift; await so
-                    // the auto-select below sees the freshly-loaded
-                    // library rather than racing the load.
-                    Task { await library.load() }
+                    // Attach before committing so the workout resolves the
+                    // new lift's id instead of showing "Unknown exercise".
+                    library.attachCustomExercises(SwiftDataRepository.shared.loadCustomExercises())
                     // Add the newly created exercise (after anything
                     // already picked) so the user goes straight back
                     // into their workout with the new lift added.
