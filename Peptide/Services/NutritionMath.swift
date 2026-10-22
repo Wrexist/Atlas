@@ -132,10 +132,10 @@ enum NutritionMath {
 
         var shortLabel: String {
             switch self {
-            case .surplus:     return "lean gain"
-            case .deficit:     return "fat loss"
-            case .recomp:      return "recomposition"
-            case .maintenance: return "maintenance"
+            case .surplus:     return String(localized: "lean gain")
+            case .deficit:     return String(localized: "fat loss")
+            case .recomp:      return String(localized: "recomposition")
+            case .maintenance: return String(localized: "maintenance")
             }
         }
     }
@@ -208,9 +208,9 @@ enum NutritionMath {
 
         var title: String {
             switch self {
-            case .loseFat:     return "Lose fat"
-            case .maintain:    return "Maintain"
-            case .buildMuscle: return "Build muscle"
+            case .loseFat:     return String(localized: "Lose fat")
+            case .maintain:    return String(localized: "Maintain")
+            case .buildMuscle: return String(localized: "Build muscle")
             }
         }
 

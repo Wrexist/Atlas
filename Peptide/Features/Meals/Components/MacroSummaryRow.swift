@@ -330,9 +330,11 @@ struct MacroSummaryRow: View {
     }
 
     private var accessibilitySummary: String {
-        let calorieLine = "Calories \(consumed.caloriesKcal) of \(targets.calories)"
-        let proteinLine = "Protein \(consumed.proteinG) of \(targets.proteinG) grams"
-        let waterLine = "Water \(LifestyleDataLogic.displayedWater(consumed, unit: unit)) of \(unit.volumeValue(Self.waterTargetOz)) \(unit.volumeSpokenUnit)"
-        return "\(calorieLine). \(proteinLine). \(waterLine)."
+        let water = LifestyleDataLogic.displayedWater(consumed, unit: unit)
+        let waterTarget = unit.volumeValue(Self.waterTargetOz)
+        return String(
+            localized: "Calories \(consumed.caloriesKcal) of \(targets.calories). Protein \(consumed.proteinG) of \(targets.proteinG) grams. Water \(water) of \(waterTarget) \(unit.volumeSpokenUnit).",
+            comment: "VoiceOver summary of the day's calories, protein and water against targets."
+        )
     }
 }
