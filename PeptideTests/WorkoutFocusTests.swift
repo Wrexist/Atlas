@@ -326,6 +326,28 @@ final class PendingWorkoutActionStoreTests: XCTestCase {
         XCTAssertEqual(PendingWorkoutActionStore.drain(defaults: defaults).count, 3)
     }
 
+    func test_isDoubleTap_completeSetRightAfterAQueuedOne_isTrue() {
+        let session = UUID()
+        enqueue(.completeSet, session: session, after: 0)
+        let tap = PendingWorkoutActionStore.Pending(
+            sessionId: session, action: .completeSet, tappedAt: tappedAt.addingTimeInterval(0.4)
+        )
+        XCTAssertTrue(PendingWorkoutActionStore.isDoubleTap(tap, defaults: defaults))
+    }
+
+    func test_isDoubleTap_completeSetAfterTheWindowOrOnAnotherWorkout_isFalse() {
+        let session = UUID()
+        enqueue(.completeSet, session: session, after: 0)
+        let later = PendingWorkoutActionStore.Pending(
+            sessionId: session, action: .completeSet, tappedAt: tappedAt.addingTimeInterval(5)
+        )
+        let elsewhere = PendingWorkoutActionStore.Pending(
+            sessionId: UUID(), action: .completeSet, tappedAt: tappedAt.addingTimeInterval(0.4)
+        )
+        XCTAssertFalse(PendingWorkoutActionStore.isDoubleTap(later, defaults: defaults))
+        XCTAssertFalse(PendingWorkoutActionStore.isDoubleTap(elsewhere, defaults: defaults))
+    }
+
     func test_drain_clearsTheInbox() {
         enqueue(.skipRest, session: UUID(), after: 0)
         _ = PendingWorkoutActionStore.drain(defaults: defaults)

@@ -48,14 +48,24 @@ enum PendingWorkoutActionStore {
         return withoutDoubleTaps(pending.sorted { $0.tappedAt < $1.tappedAt })
     }
 
+    /// Whether `tap` doubles a Complete set already waiting in the
+    /// inbox. The button checks before queuing, so a double tap neither
+    /// logs nor shows a second set; `drain` repeats the check as a
+    /// backstop.
+    static func isDoubleTap(_ tap: Pending, defaults: UserDefaults? = nil) -> Bool {
+        isDoubleTap(tap, after: read(defaults ?? sharedDefaults))
+    }
+
+    private static func isDoubleTap(_ tap: Pending, after earlier: [Pending]) -> Bool {
+        guard tap.action == .completeSet,
+              let previous = earlier.last(where: { $0.sessionId == tap.sessionId && $0.action == .completeSet })
+        else { return false }
+        return tap.tappedAt.timeIntervalSince(previous.tappedAt) < doubleTapWindow
+    }
+
     private static func withoutDoubleTaps(_ taps: [Pending]) -> [Pending] {
         var kept: [Pending] = []
-        for tap in taps {
-            let previous = kept.last { $0.sessionId == tap.sessionId && $0.action == .completeSet }
-            if tap.action == .completeSet, let previous,
-               tap.tappedAt.timeIntervalSince(previous.tappedAt) < doubleTapWindow {
-                continue
-            }
+        for tap in taps where !isDoubleTap(tap, after: kept) {
             kept.append(tap)
         }
         return kept
@@ -124,7 +134,9 @@ struct WorkoutActivityActionIntent: LiveActivityIntent {
               let action = WorkoutActivityAction(rawValue: actionRawValue) else {
             return .result()
         }
-        PendingWorkoutActionStore.enqueue(.init(sessionId: sessionId, action: action, tappedAt: Date()))
+        let tap = PendingWorkoutActionStore.Pending(sessionId: sessionId, action: action, tappedAt: Date())
+        guard !PendingWorkoutActionStore.isDoubleTap(tap) else { return .result() }
+        PendingWorkoutActionStore.enqueue(tap)
 
         if let activity = Activity<WorkoutActivityAttributes>.activities.first(where: {
             $0.attributes.sessionId == sessionId
