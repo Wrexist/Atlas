@@ -272,15 +272,28 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
         }
     }
 
-    /// Cycle-end is defined once on `cycleEndDay`; `endDate` is an
-    /// alias so the two can never drift (they previously used
-    /// `.weekOfYear`-add on the raw start date vs `.day`-add on the
-    /// start-of-day, disagreeing by an hour across DST and by the
-    /// time-of-day component always).
-    var endDate: Date { cycleEndDay }
+    /// End of the cycle the user is in now. Matches `cycleEndDay` for
+    /// the first cycle; a wash-out protocol in a later cycle ends that
+    /// cycle instead, so the card's "days left" and progress agree with
+    /// its "Week N" (which wraps per cycle).
+    var endDate: Date {
+        let cal = Calendar.current
+        return cal.date(byAdding: .day, value: safeCycleLengthWeeks * 7, to: currentCycleStartDay)
+            ?? currentCycleStartDay
+    }
 
-    /// Canonical "cycle is over" boundary used by `CycleCompletionService`
-    /// and `daysRemaining`. Normalised to `startOfDay(of: startDate)`
+    /// Start of day of the current on-phase. Only wash-out protocols
+    /// repeat; a single-cycle protocol always measures from `startDate`.
+    private var currentCycleStartDay: Date {
+        let cal = Calendar.current
+        let dayStart = cal.startOfDay(for: startDate)
+        guard washoutWeeks > 0 else { return dayStart }
+        let cycleDays = (safeCycleLengthWeeks + washoutWeeks) * 7
+        return cal.date(byAdding: .day, value: (cycleNumber - 1) * cycleDays, to: dayStart) ?? dayStart
+    }
+
+    /// Canonical "cycle is over" boundary used by `CycleCompletionService`:
+    /// the end of the first cycle. Normalised to `startOfDay(of: startDate)`
     /// so a protocol created at 11 PM doesn't drift its end-of-cycle
     /// across midnight relative to `endDate`. Uses `safeCycleLengthWeeks`
     /// to floor at 1 week.
@@ -305,12 +318,12 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
     }
 
     var cycleProgress: Double {
-        // Normalize to start-of-day on both ends: `endDate` (cycleEndDay)
-        // is already day-aligned, so measuring elapsed/total from the raw
+        // Normalize to start-of-day on both ends: `endDate` is already
+        // day-aligned, so measuring elapsed/total from the raw
         // startDate + current time made a protocol started at 11pm read
         // ~95% on its final day until midnight.
         let cal = Calendar.current
-        let start = cal.startOfDay(for: startDate)
+        let start = currentCycleStartDay
         let total = endDate.timeIntervalSince(start)
         let elapsed = cal.startOfDay(for: Date()).timeIntervalSince(start)
         guard total > 0 else { return 0 }
