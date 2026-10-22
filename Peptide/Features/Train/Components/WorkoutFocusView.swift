@@ -322,8 +322,7 @@ private struct WorkoutFocusRestHeader: View {
                             .contentTransition(.numericText(countsDown: true))
                             .appAnimation(AppAnimation.quick, value: remaining)
                             .accessibilityLabel("Rest remaining")
-                            .accessibilityValue(Duration.seconds(max(0, seconds))
-                                .formatted(.units(allowed: [.hours, .minutes, .seconds], width: .wide)))
+                            .accessibilityValue(WorkoutClock.spoken(seconds))
                     }
                     Spacer(minLength: Spacing.xs)
                     GlassButton(title: "Skip", icon: "forward.end.fill", style: .secondary, action: onSkip)
@@ -391,14 +390,17 @@ private struct WorkoutFocusMetrics: View {
         .frame(maxWidth: .infinity)
     }
 
+    private var volume: String { Int(unit.weightForDisplay(session.totalVolumeKg).rounded()).formatted() }
+
     @ViewBuilder private var metrics: some View {
         Label(session.completedSetCount == 1 ? "1 set" : "\(session.completedSetCount) sets", systemImage: "checkmark.circle")
-        Label("\(Int(unit.weightForDisplay(session.totalVolumeKg).rounded())) \(unit.weightSuffix)", systemImage: "scalemass")
-            .accessibilityLabel(Text("Volume: \(Int(unit.weightForDisplay(session.totalVolumeKg).rounded())) \(unit.weightSuffix)"))
+        Label("\(volume) \(unit.weightSuffix)", systemImage: "scalemass")
+            .accessibilityLabel(Text("Volume: \(volume) \(unit.weightSuffix)"))
         TimelineView(.animation(minimumInterval: 1, paused: session.isPaused)) { context in
             Label(WorkoutClock.label(session.elapsedSeconds(now: context.date)), systemImage: "clock")
                 .monospacedDigit()
-                .accessibilityLabel(Text("Active duration \(WorkoutClock.label(session.elapsedSeconds(now: context.date)))"))
+                .accessibilityLabel("Active duration")
+                .accessibilityValue(WorkoutClock.spoken(session.elapsedSeconds(now: context.date)))
         }
     }
 }
@@ -408,5 +410,11 @@ enum WorkoutClock {
         let value = max(0, seconds)
         if value >= 3600 { return String(format: "%d:%02d:%02d", value / 3600, value / 60 % 60, value % 60) }
         return String(format: "%d:%02d", value / 60, value % 60)
+    }
+
+    /// "12 minutes, 34 seconds" — VoiceOver reads the `label` form as a
+    /// time of day.
+    static func spoken(_ seconds: Int) -> String {
+        Duration.seconds(max(0, seconds)).formatted(.units(allowed: [.hours, .minutes, .seconds], width: .wide))
     }
 }

@@ -308,11 +308,13 @@ struct ActiveWorkoutView: View {
                     // autoconnected Timer.publish re-rendered the whole
                     // body at 1Hz for as long as the view value existed.
                     TimelineView(.periodic(from: session.startedAt, by: 1)) { context in
+                        let elapsed = session.elapsedSeconds(now: context.date)
                         StatTile(
                             label: "Elapsed",
-                            value: WorkoutClock.label(session.elapsedSeconds(now: context.date)),
+                            value: WorkoutClock.label(elapsed),
                             size: .large,
-                            surface: .plain
+                            surface: .plain,
+                            accessibilityLabel: String(localized: "Elapsed: \(WorkoutClock.spoken(elapsed))")
                         )
                     }
                     StatTile(
@@ -323,7 +325,7 @@ struct ActiveWorkoutView: View {
                     )
                     StatTile(
                         label: "Volume (\(unit.weightSuffix))",
-                        value: "\(Int(unit.weightForDisplay(session.totalVolumeKg).rounded()))",
+                        value: Int(unit.weightForDisplay(session.totalVolumeKg).rounded()).formatted(),
                         size: .large,
                         surface: .plain
                     )
