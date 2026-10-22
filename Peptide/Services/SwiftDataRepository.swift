@@ -1170,6 +1170,37 @@ final class SwiftDataRepository {
         }
     }
 
+    /// Writes a whole reordered library in one commit, so a drag-reorder
+    /// is one save and one CloudKit export rather than one per routine.
+    func upsertRoutines(_ routines: [Routine]) {
+        guard let context, !routines.isEmpty else { return }
+        var existing: [StoredRoutine] = []
+        do {
+            for chunk in Self.predicateChunks(routines.map(\.id)) {
+                existing += try context.fetch(FetchDescriptor<StoredRoutine>(
+                    predicate: #Predicate { chunk.contains($0.id) }
+                ))
+            }
+        } catch {
+            // Inserting blind would duplicate every routine that exists.
+            AppLog.swiftData.error("Fetch (upsert) routines failed: \(error.localizedDescription, privacy: .public)")
+            return
+        }
+        let existingByID = Dictionary(grouping: existing, by: \.id)
+        for routine in routines {
+            do {
+                if let rows = existingByID[routine.id] {
+                    for stored in rows { try stored.update(from: routine) }
+                } else {
+                    context.insert(try StoredRoutine.make(from: routine))
+                }
+            } catch {
+                AppLog.swiftData.error("upsert routine failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+        commit()
+    }
+
     func deleteRoutine(id: UUID) {
         guard let context else { return }
         let targetID = id
