@@ -372,7 +372,7 @@ struct ProtocolDetailView: View {
                             .fontWeight(.semibold)
                             .foregroundStyle(isCustom ? AppColor.accentLight : AppColor.textPrimary)
                             .lineLimit(1)
-                        Text("\(schedule.timesPerDay)x daily")
+                        Text(schedule.isInterval ? "\(schedule.timesPerDay)x per dose day" : "\(schedule.timesPerDay)x daily")
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.textTertiary)
                     }
