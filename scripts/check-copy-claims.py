@@ -141,25 +141,47 @@ def check_exercise_fixtures() -> list[str]:
     return failures
 
 
-# Copy the user reads verbatim from the compatibility knowledge base. The
-# noun for a combination is Protocol, never Stack, and "gold standard" is a
-# clinical claim the app cannot back.
+# Copy the user reads verbatim from the bundled data: the Swift tables in
+# Peptide/Data and the JSON in Peptide/Resources. The noun for a combination
+# is Protocol, never Stack, and "gold standard" is a clinical claim the app
+# cannot back. exercises.json is skipped: its "weight stack" is gym kit.
 BANNED_COMPATIBILITY_WORDING = r"\bstack(?:s|ed|ing)?\b|\bgold standard\b"
+WORDING_EXEMPT_RESOURCES = {"exercises.json"}
+
+
+def json_strings(value):
+    if isinstance(value, dict):
+        for item in value.values():
+            yield from json_strings(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from json_strings(item)
+    elif isinstance(value, str):
+        yield value
 
 
 def check_compatibility_wording() -> list[str]:
-    path = REPO / "Peptide" / "Data" / "PeptideCompatibilityData.swift"
     failures = []
-    for number, line in enumerate(path.read_text().splitlines(), start=1):
-        if line.lstrip().startswith("//"):
+
+    def flag(where: str, text: str) -> None:
+        hit = re.search(BANNED_COMPATIBILITY_WORDING, text, re.I)
+        if hit:
+            print(f"  FAIL {where}: user-facing copy says {hit.group(0)!r}")
+            failures.append(f"compatibility-wording:{where}")
+
+    for path in sorted((REPO / "Peptide" / "Data").glob("*.swift")):
+        for number, line in enumerate(path.read_text().splitlines(), start=1):
+            if line.lstrip().startswith("//"):
+                continue
+            for literal in re.findall(r'"((?:[^"\\]|\\.)*)"', line):
+                flag(f"{path.name}:{number}", literal)
+    for path in sorted((REPO / "Peptide" / "Resources").glob("*.json")):
+        if path.name in WORDING_EXEMPT_RESOURCES:
             continue
-        for literal in re.findall(r'"((?:[^"\\]|\\.)*)"', line):
-            hit = re.search(BANNED_COMPATIBILITY_WORDING, literal, re.I)
-            if hit:
-                print(f"  FAIL {path.name}:{number}: user-facing copy says {hit.group(0)!r}")
-                failures.append(f"compatibility-wording:{number}")
+        for text in json_strings(json.loads(path.read_text())):
+            flag(path.name, text)
     if not failures:
-        print(f"  ok   {path.name} copy avoids 'stack' and 'gold standard'")
+        print("  ok   bundled data copy avoids 'stack' and 'gold standard'")
     return failures
 
 

@@ -88,7 +88,7 @@ struct CommunityStackCard: View {
         AppColor.background.ignoresSafeArea()
         CommunityStackCard(stack: CommunityStack(
             id: UUID(),
-            name: "Wolverine Stack",
+            name: "Wolverine Protocol",
             authorName: "Dr. M. Reyes",
             authorHandle: "@reyes.recovery",
             authorTitle: "MD",
