@@ -10,7 +10,7 @@
  * deployment, `food-scan` in place of `meal-scan`) and falls back to
  * the old route when this one is missing.
  */
-import { forwardToAnthropic, sharedConfig } from './_lib/anthropic-proxy.js';
+import { forwardToAnthropic } from './_lib/anthropic-proxy.js';
 import { buildFoodScanRequest, readFoodScanResult, FOOD_SCAN_BETAS } from './_lib/food-scan.js';
 
 export default async function handler(req, res) {
@@ -24,5 +24,3 @@ export default async function handler(req, res) {
     timeoutMs: 50_000,
   });
 }
-
-export const config = sharedConfig;

@@ -223,7 +223,7 @@ struct ProtocolDetailView: View {
                                         if entry.completed {
                                             dataStore.unlogDose(entryId: entry.id)
                                         } else {
-                                            dataStore.markEntryComplete(entry.id)
+                                            dataStore.markEntryComplete(entry.id, at: Date())
                                         }
                                     }
                                 } label: {

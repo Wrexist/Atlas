@@ -33,7 +33,7 @@ struct MuscleHistorySheet: View {
                                                 WorkoutSessionDetailView(session: session)
                                             } label: {
                                                 VStack(alignment: .leading, spacing: 4) {
-                                                    Text(session.name ?? "Workout")
+                                                    Text(session.displayName)
                                                     Text(session.startedAt.formatted(date: .abbreviated, time: .shortened))
                                                         .font(AppFont.caption)
                                                         .foregroundStyle(AppColor.textSecondary)
@@ -68,19 +68,24 @@ struct MuscleHistorySheet: View {
     }
 
     private var subtitle: some View {
-        Text(history.isEmpty
-             ? periodLabel
-             : "\(totalSets) \(totalSets == 1 ? "set" : "sets") - \(periodLabel.lowercased())")
-            .font(AppFont.subheadline)
-            .foregroundStyle(AppColor.textSecondary)
+        Group {
+            if history.isEmpty {
+                Text(periodLabel)
+            } else {
+                Text("^[\(totalSets) set](inflect: true) · \(periodLabel.lowercased())")
+            }
+        }
+        .font(AppFont.subheadline)
+        .foregroundStyle(AppColor.textSecondary)
     }
 
     private var emptyState: some View {
         GlassCard {
             VStack(spacing: Spacing.sm) {
                 Image(systemName: "dumbbell")
-                    .font(.title2)
+                    .font(AppFont.title2)
                     .foregroundStyle(AppColor.textSecondary)
+                    .accessibilityHidden(true)
                 Text("No logged work for \(muscle.displayName.lowercased()) for this period.")
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)

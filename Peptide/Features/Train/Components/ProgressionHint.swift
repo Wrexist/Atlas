@@ -14,7 +14,7 @@ struct ProgressionHint: View {
             Image(systemName: symbolName)
                 .foregroundStyle(AppColor.accentPrimary)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text("Today: \(target)")
                     .font(AppFont.callout.weight(.semibold))
                     .foregroundStyle(AppColor.textPrimary)
@@ -48,7 +48,7 @@ struct ProgressionHint: View {
     private var symbolName: String {
         switch suggestion.reason {
         case .addWeight: return "arrow.up.circle.fill"
-        case .addRep: return "plus.circle.fill"
+        case .addRep, .reachRange: return "plus.circle.fill"
         case .repeatLoad: return "equal.circle.fill"
         }
     }
@@ -57,13 +57,13 @@ struct ProgressionHint: View {
         switch suggestion.reason {
         case .addWeight: return String(localized: "Every set hit its reps last time, so add weight.")
         case .addRep: return String(localized: "Same weight, one more rep than last time.")
+        case .reachRange: return String(localized: "Same weight, aim for the bottom of the rep range.")
         case .repeatLoad: return String(localized: "Repeat last time's weight until every set hits its reps.")
         }
     }
 
+    /// Two places, so a 1.25 kg change plate (61.25) isn't shown as 61.3.
     private func formatted(_ kg: Double) -> String {
-        let value = unit.weightForDisplay(kg)
-        if abs(value - value.rounded()) < 0.05 { return String(Int(value.rounded())) }
-        return String(format: "%.1f", value)
+        unit.weightForDisplay(kg).formatted(.number.precision(.fractionLength(0...2)))
     }
 }

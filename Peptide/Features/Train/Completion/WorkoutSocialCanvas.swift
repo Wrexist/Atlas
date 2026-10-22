@@ -84,7 +84,7 @@ struct WorkoutSocialCanvas: View {
     }
 
     private func muscleLine(role: WorkoutRecapEngine.Role, color: Color) -> some View {
-        let names = summary.muscles.filter { $0.role == role }.map { $0.name.capitalized }
+        let names = summary.muscles.filter { $0.role == role }.map { $0.displayName }
         return Group {
             if !names.isEmpty {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {

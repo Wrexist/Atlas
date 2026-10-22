@@ -40,4 +40,9 @@ final class DrainEndpointTests: XCTestCase {
         XCTAssertNil(DrainEndpoint.validated(""))
         XCTAssertNil(DrainEndpoint.validated("not a url"))
     }
+
+    func test_encoder_writesDatesAsISO8601Strings() throws {
+        let data = try DrainEndpoint.encoder.encode(["at": Date(timeIntervalSince1970: 0)])
+        XCTAssertEqual(String(decoding: data, as: UTF8.self), #"{"at":"1970-01-01T00:00:00Z"}"#)
+    }
 }

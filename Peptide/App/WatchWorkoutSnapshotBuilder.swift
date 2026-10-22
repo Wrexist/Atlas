@@ -45,7 +45,7 @@ enum WatchWorkoutSnapshotBuilder {
     private static func exercise(_ entry: WorkoutExerciseEntry, defaultRestSeconds: Int) -> WatchWorkoutSnapshot.Exercise {
         WatchWorkoutSnapshot.Exercise(
             id: entry.id,
-            name: ExerciseLibrary.shared.lookup(id: entry.exerciseID)?.name ?? entry.exerciseID,
+            name: ExerciseLibrary.shared.displayName(for: entry.exerciseID),
             restSeconds: entry.restSeconds ?? defaultRestSeconds,
             sets: entry.sets.sorted { $0.index < $1.index }.map { set in
                 WatchWorkoutSnapshot.SetRow(

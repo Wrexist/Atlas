@@ -36,11 +36,13 @@ final class WorkoutSessionService {
         activeSession = SwiftDataRepository.shared.loadActiveWorkoutSession()
         // An activity outlives the process, so a relaunch can inherit one
         // whose workout is long gone — or lose one whose workout isn't.
-        reconcileRest()
         WorkoutLiveActivityService.shared.reconcile(active: activeSession)
-        // Deferred: closing reaches DataStore, which reads `.shared` —
-        // still mid-initialisation here.
-        Task { [weak self] in self?.closeIfStale() }
+        // Deferred: clearing an expired rest and closing both reach
+        // DataStore, which reads `.shared` — still mid-initialisation here.
+        Task { [weak self] in
+            self?.reconcileRest()
+            self?.closeIfStale()
+        }
     }
 
     // MARK: - Lifecycle
@@ -54,10 +56,14 @@ final class WorkoutSessionService {
     /// workout to start a new one" path is reserved for the explicit
     /// UI alert that confirms the action.
     ///
+    /// `linksRoutine` is false when `routine` is only a template built for
+    /// the occasion (repeating an ad-hoc workout), so the session doesn't
+    /// point at a routine that isn't in the library.
+    ///
     /// `now` is the start instant, injectable so the duplicate window can
     /// be tested without waiting it out.
     @discardableResult
-    func startWorkout(routine: Routine? = nil, now: Date = Date()) -> WorkoutSession {
+    func startWorkout(routine: Routine? = nil, linksRoutine: Bool = true, now: Date = Date()) -> WorkoutSession {
         if let existing = activeSession {
             if existing.startedAt.timeIntervalSince(now) > -Self.duplicateStartWindow {
                 // Recently-started session — collapse the duplicate
@@ -66,8 +72,7 @@ final class WorkoutSessionService {
                 // discarding the user's data.
                 return existing
             }
-            NotificationService.cancelOneShot(id: restNotificationID(for: existing.id))
-            SwiftDataRepository.shared.deleteWorkoutSession(id: existing.id)
+            discardWorkout()
         }
         // Cleared before seeding so the seed — and every "previous" hint for
         // the rest of this workout — reads history as it stands right now.
@@ -84,7 +89,7 @@ final class WorkoutSessionService {
 
         let session = WorkoutSession(
             name: routine?.name,
-            routineID: routine?.id,
+            routineID: linksRoutine ? routine?.id : nil,
             startedAt: now,
             exercises: exercises,
             focus: WorkoutFocusState(selectedEntryID: exercises.first?.id)
@@ -287,6 +292,14 @@ final class WorkoutSessionService {
         persist(session)
     }
 
+    /// The set as the session holds it now. Row bindings read through
+    /// this rather than a render-time copy: a weight committed on focus
+    /// loss right after the check is tapped would otherwise write back
+    /// the copy's stale `completed == false`.
+    func currentSet(id setID: UUID, inExerciseEntryID entryID: UUID) -> SetEntry? {
+        activeSession?.exercises.first { $0.id == entryID }?.sets.first { $0.id == setID }
+    }
+
     /// Update a single set in place. Used by the inline weight / rep
     /// pickers and by the "complete set" toggle.
     func updateSet(_ set: SetEntry, inExerciseEntryID entryID: UUID, now: Date = Date()) {
@@ -371,29 +384,36 @@ final class WorkoutSessionService {
     /// that logged this exercise — the source of each row's "previous"
     /// hint (see `PreviousSetEngine`). Empty when there is no history.
     ///
-    /// Memoized per exercise: an uncached lookup deserializes every stored
-    /// workout, and the exercise stack asks on every re-render. The active
-    /// session is excluded from the lookup, so editing its sets can't
-    /// change the answer — only a start, finish or discard can, and those
-    /// clear the cache.
+    /// Read from a memo of every exercise built in one history pass: a
+    /// lookup deserializes the stored workouts, and seeding a routine plus
+    /// the exercise stack's re-renders ask once per exercise. The active
+    /// session is excluded, so editing its sets can't change the answer —
+    /// only a start, finish, discard or a history edit can, and those
+    /// clear the memo. An exercise logged twice in one session contributes
+    /// both entries' sets, in entry order.
     func previousSessionSets(forExerciseID id: String) -> [SetEntry] {
-        if let cached = previousSetCache[id] { return cached }
-        let resolved = resolvePreviousSessionSets(forExerciseID: id)
-        previousSetCache[id] = resolved
-        return resolved
+        previousSetsByExercise()[id] ?? []
     }
 
-    private func resolvePreviousSessionSets(forExerciseID id: String) -> [SetEntry] {
+    private func previousSetsByExercise() -> [String: [SetEntry]] {
+        if let cached = previousSetCache { return cached }
+        var byExercise: [String: [SetEntry]] = [:]
+        // Newest first, so each exercise keeps its most recent session.
         let sessions = SwiftDataRepository.shared.loadWorkoutSessions()
-        // Walk newest-first, skip the in-flight session.
-        for session in sessions.sorted(by: { $0.startedAt > $1.startedAt }) {
-            if session.id == activeSession?.id { continue }
-            guard let exerciseEntry = session.exercises.first(where: { $0.exerciseID == id })
-            else { continue }
-            let completed = exerciseEntry.sets.filter { $0.completed && $0.supportsRepLogging }
-            if !completed.isEmpty { return completed }
+            .sorted { $0.startedAt > $1.startedAt }
+        for session in sessions where session.id != activeSession?.id {
+            var sessionSets: [String: [SetEntry]] = [:]
+            for entry in session.exercises.sorted(by: { $0.index < $1.index })
+            where byExercise[entry.exerciseID] == nil {
+                sessionSets[entry.exerciseID, default: []]
+                    += entry.sets.filter { $0.completed && $0.supportsRepLogging }
+            }
+            for (exerciseID, completed) in sessionSets where !completed.isEmpty {
+                byExercise[exerciseID] = completed
+            }
         }
-        return []
+        previousSetCache = byExercise
+        return byExercise
     }
 
     // MARK: - Progression
@@ -537,21 +557,28 @@ final class WorkoutSessionService {
             set.completed = true
             updateSet(set, inExerciseEntryID: entryID, now: tappedAt)
         case .skipRest:
+            guard session.restWasRunning(at: tappedAt) else { return }
             skipRest()
         case let .extendRest(seconds):
-            adjustRest(by: TimeInterval(seconds), now: now)
+            guard session.restWasRunning(at: tappedAt) else { return }
+            adjustRest(by: TimeInterval(seconds), now: tappedAt)
         case let .selectExercise(entryID):
             selectExercise(entryID)
         case let .addSet(entryID, setID):
             addSet(toExerciseID: entryID, id: setID)
             selectExercise(entryID)
         case let .setPaused(paused):
-            if session.isPaused != paused { togglePause(now: now) }
+            if session.isPaused != paused { togglePause(now: tappedAt) }
         }
     }
 
+    /// Rest-end request IDs, under `NotificationService.adHocIDPrefix`.
+    /// `NotificationDelegate` reads it to keep the system banner off the
+    /// workout screen, which already signals rest end itself.
+    nonisolated static let restNotificationPrefix = "atlas.workout.rest."
+
     private func restNotificationID(for sessionID: UUID) -> String {
-        "atlas.workout.rest.\(sessionID.uuidString)"
+        "\(Self.restNotificationPrefix)\(sessionID.uuidString)"
     }
 
     private func syncRestNotification(for session: WorkoutSession) {
@@ -560,21 +587,23 @@ final class WorkoutSessionService {
         guard !session.isPaused, let rest = session.focus?.rest,
               rest.remaining(at: Date()) > 0 else { return }
         NotificationService.scheduleOneShot(
-            id: id, title: "Time to lift", body: "Rest is over. Your next set is ready.",
+            id: id, title: String(localized: "Time to lift"),
+            body: String(localized: "Rest is over. Your next set is ready."),
             after: rest.remaining(at: Date())
         )
     }
 
     // MARK: - Internals
 
-    /// `[exerciseID: previous session's completed sets]`. An empty array is
-    /// a cached "no history" answer, distinct from a miss. Ignored by
-    /// observation: it's filled from inside view bodies, and a tracked
-    /// write there would re-render the reader for no visible change.
-    @ObservationIgnored private var previousSetCache: [String: [SetEntry]] = [:]
+    /// `[exerciseID: previous session's completed sets]`; nil until first
+    /// read. Ignored by observation: it's filled from inside view bodies,
+    /// and a tracked write there would re-render the reader for no visible
+    /// change.
+    @ObservationIgnored private var previousSetCache: [String: [SetEntry]]?
 
-    private func invalidatePreviousSetCache() {
-        previousSetCache.removeAll(keepingCapacity: true)
+    /// Called whenever stored history changes under an active workout.
+    func invalidatePreviousSetCache() {
+        previousSetCache = nil
     }
 
     private func persist(_ value: WorkoutSession) {
@@ -629,8 +658,9 @@ enum RestTimeOptions {
 
     /// "30 sec", "1 min", "1:30 min".
     static func label(for seconds: Int) -> String {
-        if seconds < 60 { return "\(seconds) sec" }
-        if seconds % 60 == 0 { return "\(seconds / 60) min" }
-        return String(format: "%d:%02d min", seconds / 60, seconds % 60)
+        if seconds < 60 { return String(localized: "\(seconds) sec") }
+        if seconds % 60 == 0 { return String(localized: "\(seconds / 60) min") }
+        let minutesSeconds = Duration.seconds(seconds).formatted(.time(pattern: .minuteSecond))
+        return String(localized: "\(minutesSeconds) min")
     }
 }

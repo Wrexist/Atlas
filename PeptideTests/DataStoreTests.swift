@@ -371,13 +371,13 @@ final class DataStoreTests: XCTestCase {
             XCTFail("No incomplete entries in seed data")
             return
         }
-        store.markEntryComplete(entry.id)
+        store.markEntryComplete(entry.id, at: Date())
         XCTAssertEqual(store.entries.first { $0.id == entry.id }?.completed, true)
 
         // WCSession can deliver the same action twice (sendMessage error
         // fallback re-sends via transferUserInfo). The duplicate must not
         // flip the entry back to incomplete.
-        store.markEntryComplete(entry.id)
+        store.markEntryComplete(entry.id, at: Date())
         XCTAssertEqual(store.entries.first { $0.id == entry.id }?.completed, true)
     }
 
@@ -386,12 +386,45 @@ final class DataStoreTests: XCTestCase {
             XCTFail("No incomplete entries in seed data")
             return
         }
-        store.markEntryComplete(entry.id)
+        store.markEntryComplete(entry.id, at: Date())
         store.markEntryIncomplete(entry.id)
         XCTAssertEqual(store.entries.first { $0.id == entry.id }?.completed, false)
 
         store.markEntryIncomplete(entry.id)
         XCTAssertEqual(store.entries.first { $0.id == entry.id }?.completed, false)
+    }
+
+    func test_watchMarkComplete_recordsTapTimeAndUndoClearsIt() {
+        guard let entry = store.entries.first(where: { !$0.completed }) else {
+            XCTFail("No incomplete entries in seed data")
+            return
+        }
+        let tappedAt = Date().addingTimeInterval(-3 * 3600)
+        store.markEntryComplete(entry.id, at: tappedAt)
+        XCTAssertEqual(store.entries.first { $0.id == entry.id }?.actualTime, tappedAt)
+
+        // A duplicate delivery must not overwrite the original tap time.
+        store.markEntryComplete(entry.id, at: Date())
+        XCTAssertEqual(store.entries.first { $0.id == entry.id }?.actualTime, tappedAt)
+
+        store.markEntryIncomplete(entry.id)
+        XCTAssertNil(store.entries.first { $0.id == entry.id }?.actualTime)
+    }
+
+    func test_phoneUndoOfWatchTappedDose_clearsTapTime() {
+        guard let entry = store.entries.first(where: { !$0.completed }) else {
+            XCTFail("No incomplete entries in seed data")
+            return
+        }
+        store.markEntryComplete(entry.id, at: Date().addingTimeInterval(-3600))
+
+        // Undo from Home / Protocol detail / intents goes through the plain
+        // toggle; a stale tap time would show as the untaken dose's time.
+        store.toggleEntry(entry.id)
+
+        let undone = store.entries.first { $0.id == entry.id }
+        XCTAssertEqual(undone?.completed, false)
+        XCTAssertNil(undone?.actualTime)
     }
 
     // MARK: - Dirty tracking

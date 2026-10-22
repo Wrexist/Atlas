@@ -7,13 +7,19 @@
  *
  * The challenge is single-use (GETDEL) with a 5-minute TTL, so a
  * captured attestation can't be re-registered. Both verbs sit behind
- * the same shared-secret auth and per-IP rate limit as the AI
- * routes; a successful POST stores the credential public key in
- * Redis for `checkAppAttest` to verify per-request assertions
- * against.
+ * the same shared-secret auth as the AI routes; a successful POST
+ * stores the credential public key in Redis for `checkAppAttest` to
+ * verify per-request assertions against.
+ *
+ * Each verb has its own per-IP limit. Carrier NAT and campus Wi-Fi
+ * put many fresh installs behind one address, and the app tries to
+ * register once per launch, so a tight shared limit pushed most of
+ * them onto the shared-IP principal. The single-use challenge and the
+ * attestation check are the real gate.
  *
  * Env vars: APP_ATTEST_APP_ID (required), Redis pair (required —
- * key records must survive cold starts), ATTEST_RPM (default 5).
+ * key records must survive cold starts), ATTEST_CHALLENGE_RPM (GET,
+ * default 60), ATTEST_RPM (POST, default 30).
  */
 import { randomBytes } from 'node:crypto';
 import { clientKey } from './_lib/anthropic-proxy.js';
@@ -27,8 +33,10 @@ const MAX_BODY_BYTES = 32 * 1024; // a real attestation is ~5.5 KB
 const challengeSlot = (id) => `attest:challenge:${id}`;
 
 function checkRateLimit(req) {
-  const limit = parseInt(process.env.ATTEST_RPM || '5', 10);
-  return allowRate({ name: 'attest-register', key: clientKey(req), limit, windowSeconds: 60 });
+  const [name, limit] = req.method === 'GET'
+    ? ['attest-challenge', parseInt(process.env.ATTEST_CHALLENGE_RPM || '60', 10)]
+    : ['attest-register', parseInt(process.env.ATTEST_RPM || '30', 10)];
+  return allowRate({ name, key: clientKey(req), limit, windowSeconds: 60 });
 }
 
 async function issueChallenge(res) {
@@ -126,11 +134,3 @@ export default async function handler(req, res) {
   if (req.method === 'GET') await issueChallenge(res);
   else await register(req, res);
 }
-
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '32kb',
-    },
-  },
-};

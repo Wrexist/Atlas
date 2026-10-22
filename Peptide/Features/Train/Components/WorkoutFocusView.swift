@@ -114,7 +114,7 @@ struct WorkoutFocusView: View {
             .appAnimation(AppAnimation.springSnappy, value: selected)
         }
         .buttonStyle(ScalePressStyle())
-        .accessibilityLabel(Text(exercise?.name ?? item.exerciseID))
+        .accessibilityLabel(Text(library.displayName(for: item.exerciseID)))
         .accessibilityValue(complete ? "Complete" : "In progress")
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
@@ -162,7 +162,10 @@ struct WorkoutFocusView: View {
             VStack(spacing: 0) {
                 ForEach(entry.sets) { set in
                     SetEditorRow(
-                        set: Binding(get: { set }, set: { service.updateSet($0, inExerciseEntryID: entry.id) }),
+                        set: Binding(
+                            get: { service.currentSet(id: set.id, inExerciseEntryID: entry.id) ?? set },
+                            set: { service.updateSet($0, inExerciseEntryID: entry.id) }
+                        ),
                         previousSet: hints[set.id], unit: unit,
                         onDelete: { service.removeSet(setID: set.id, fromExerciseEntryID: entry.id) },
                         focusStyle: true, isCurrent: entry.sets.first(where: { !$0.completed })?.id == set.id,
@@ -180,7 +183,7 @@ struct WorkoutFocusView: View {
                     Label("Add set", systemImage: "plus").minimumHitArea()
                 }
                 Spacer()
-                RestTimeMenu(current: entry.restSeconds ?? defaultRestSeconds) { seconds in
+                RestTimeMenu(overrideSeconds: entry.restSeconds, defaultSeconds: defaultRestSeconds) { seconds in
                     service.setRestSeconds(seconds, forExerciseEntryID: entry.id)
                 }
                 .minimumHitArea()
@@ -192,15 +195,20 @@ struct WorkoutFocusView: View {
                         GlassButton(title: "Next exercise", icon: "arrow.right", isFullWidth: true) {
                             service.selectExercise(next.entry)
                         }
-                    } else {
+                    } else if session.completedSetCount > 0 {
                         GlassButton(title: "Finish workout", icon: "checkmark", isFullWidth: true, action: onFinish)
+                    } else {
+                        Text("Log a working set to finish")
+                            .font(AppFont.callout).foregroundStyle(AppColor.textSecondary)
+                            .frame(maxWidth: .infinity)
                     }
                 }
             }
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .appAnimation(AppAnimation.springSnappy, value: exerciseDone(entry))
-            .onChange(of: exerciseDone(entry)) { _, done in
-                if done { Haptics.success() }
+            .onChange(of: DoneState(entryID: entry.id, done: exerciseDone(entry))) { old, new in
+                // Selecting an already-finished exercise isn't a completion.
+                if old.entryID == new.entryID, !old.done, new.done { Haptics.success() }
             }
             Divider()
             WorkoutFocusMetrics(session: session, unit: unit)
@@ -213,7 +221,7 @@ struct WorkoutFocusView: View {
     /// "Superset A · with Incline Dumbbell Press".
     private func supersetCaption(letter: String, entryID: UUID) -> String {
         let partners = session.supersetPartners(of: entryID)
-            .map { library.lookup(id: $0.exerciseID)?.name ?? $0.exerciseID }
+            .map { library.displayName(for: $0.exerciseID) }
             .formatted(.list(type: .and))
         return String(localized: "Superset \(letter) · with \(partners)")
     }
@@ -259,18 +267,29 @@ struct WorkoutFocusView: View {
         !entry.sets.isEmpty && entry.sets.allSatisfy(\.completed)
     }
 
+    /// Numbers working sets only, matching the Live Activity's totals.
     private func progressTitle(_ entry: WorkoutExerciseEntry) -> String {
-        if let next = entry.sets.first(where: { !$0.completed }) { return "Set \(next.index) of \(entry.sets.count)" }
-        return entry.sets.isEmpty ? "Add your first set" : "Exercise complete"
+        guard let next = entry.sets.first(where: { !$0.completed }) else {
+            return entry.sets.isEmpty ? String(localized: "Add your first set") : String(localized: "Exercise complete")
+        }
+        if next.isWarmup { return String(localized: "Warm-up") }
+        let working = entry.sets.filter { !$0.isWarmup }
+        let position = (working.firstIndex { $0.id == next.id } ?? 0) + 1
+        return String(localized: "Set \(position) of \(working.count)")
     }
 
     private func restTitle(_ rest: WorkoutRestContext) -> String {
         guard let target = session.exercises.first(where: { $0.id == rest.targetEntryID }),
               let set = target.sets.first(where: { $0.id == rest.targetSetID }) else { return "Rest" }
         if target.id == entry?.id { return "Rest before set \(set.index)" }
-        let name = library.lookup(id: target.exerciseID)?.name ?? target.exerciseID
+        let name = library.displayName(for: target.exerciseID)
         return "Up next: \(name) · Set \(set.index)"
     }
+}
+
+private struct DoneState: Equatable {
+    let entryID: UUID
+    let done: Bool
 }
 
 private struct WorkoutFocusRestHeader: View {
@@ -280,25 +299,30 @@ private struct WorkoutFocusRestHeader: View {
     let onAdjust: (TimeInterval) -> Void
     let onUndo: () -> Void
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
+        TimelineView(.animation(minimumInterval: 1, paused: rest.frozenSeconds != nil)) { context in
             let seconds = Int(ceil(rest.remaining(at: context.date)))
             let remaining = WorkoutClock.label(seconds)
+            let isAccessibilitySize = dynamicTypeSize.isAccessibilitySize
+            let headerLayout = isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.sm))
+                : AnyLayout(HStackLayout(spacing: Spacing.lg))
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                HStack(spacing: Spacing.lg) {
+                headerLayout {
                     RestCountdownRing(rest: rest)
                         .frame(width: 64, height: 64)
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text(target)
                             .font(AppFont.callout).foregroundStyle(AppColor.textSecondary)
-                            .lineLimit(2)
+                            .lineLimit(isAccessibilitySize ? nil : 2)
                         Text(remaining)
                             .font(AppFont.statValueSmall).monospacedDigit()
                             .contentTransition(.numericText(countsDown: true))
                             .appAnimation(AppAnimation.quick, value: remaining)
                             .accessibilityLabel("Rest remaining")
-                            .accessibilityValue(Duration.seconds(max(0, seconds))
-                                .formatted(.units(allowed: [.hours, .minutes, .seconds], width: .wide)))
+                            .accessibilityValue(WorkoutClock.spoken(seconds))
                     }
                     Spacer(minLength: Spacing.xs)
                     GlassButton(title: "Skip", icon: "forward.end.fill", style: .secondary, action: onSkip)
@@ -366,14 +390,17 @@ private struct WorkoutFocusMetrics: View {
         .frame(maxWidth: .infinity)
     }
 
+    private var volume: String { Int(unit.weightForDisplay(session.totalVolumeKg).rounded()).formatted() }
+
     @ViewBuilder private var metrics: some View {
         Label(session.completedSetCount == 1 ? "1 set" : "\(session.completedSetCount) sets", systemImage: "checkmark.circle")
-        Label("\(Int(unit.weightForDisplay(session.totalVolumeKg).rounded())) \(unit.weightSuffix)", systemImage: "scalemass")
-            .accessibilityLabel(Text("Volume: \(Int(unit.weightForDisplay(session.totalVolumeKg).rounded())) \(unit.weightSuffix)"))
-        TimelineView(.periodic(from: .now, by: 1)) { context in
+        Label("\(volume) \(unit.weightSuffix)", systemImage: "scalemass")
+            .accessibilityLabel(Text("Volume: \(volume) \(unit.weightSuffix)"))
+        TimelineView(.animation(minimumInterval: 1, paused: session.isPaused)) { context in
             Label(WorkoutClock.label(session.elapsedSeconds(now: context.date)), systemImage: "clock")
                 .monospacedDigit()
-                .accessibilityLabel(Text("Active duration \(WorkoutClock.label(session.elapsedSeconds(now: context.date)))"))
+                .accessibilityLabel("Active duration")
+                .accessibilityValue(WorkoutClock.spoken(session.elapsedSeconds(now: context.date)))
         }
     }
 }
@@ -383,5 +410,11 @@ enum WorkoutClock {
         let value = max(0, seconds)
         if value >= 3600 { return String(format: "%d:%02d:%02d", value / 3600, value / 60 % 60, value % 60) }
         return String(format: "%d:%02d", value / 60, value % 60)
+    }
+
+    /// "12 minutes, 34 seconds" — VoiceOver reads the `label` form as a
+    /// time of day.
+    static func spoken(_ seconds: Int) -> String {
+        Duration.seconds(max(0, seconds)).formatted(.units(allowed: [.hours, .minutes, .seconds], width: .wide))
     }
 }

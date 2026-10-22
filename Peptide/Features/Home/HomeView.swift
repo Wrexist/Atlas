@@ -891,7 +891,7 @@ struct HomeView: View {
                 return WorkoutEntry(
                     id: session.id,
                     date: session.startedAt,
-                    name: session.name ?? "Workout",
+                    name: session.displayName,
                     sets: sets.count,
                     reps: avgReps,
                     durationMinutes: duration

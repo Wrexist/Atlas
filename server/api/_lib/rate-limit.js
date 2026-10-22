@@ -12,9 +12,13 @@
  *   RATE_LIMIT_RPM
  *       — per-principal requests per minute per route. Default 20.
  *   DEVICE_DAILY_QUOTA
- *       — per-principal upstream requests per UTC day. Default 300.
+ *       — per-principal upstream cost units per UTC day. Default 300.
  *         This is the control that stops one abusive client from
  *         draining the shared budget; 0 disables it.
+ *   SHARED_IP_LIMIT_SCALE
+ *       — multiplier on the per-minute and daily limits for an IPv4
+ *         principal, which carrier NAT shares across many installs.
+ *         Default 10. See `sharesIp`.
  *   ANTHROPIC_DAILY_REQUEST_BUDGET
  *       — hard cap on upstream Anthropic cost units per UTC day
  *         across ALL routes combined. Unset means 20 000 on a Vercel
@@ -26,7 +30,8 @@
  *   ABUSE_STRIKES / ABUSE_BLOCK_SECONDS
  *       — a principal that trips the per-minute limit this many times
  *         in an hour is blocked outright for the cooldown.
- *         Defaults: 20 strikes, 900s. 0 disables.
+ *         Defaults: 20 strikes, 900s. 0 disables. Never applied to a
+ *         shared IPv4 principal.
  *
  * **Fail-open vs fail-closed.** Per-principal limits degrade to the
  * in-memory fallback on a Redis outage — losing them briefly is
@@ -40,6 +45,10 @@
 import { redisConfigured, redisPipeline } from './redis.js';
 
 const memory = new Map();
+// Abuse-block expiry per principal, used only when Redis can't hold the
+// block — otherwise the cooldown silently did nothing without Upstash.
+const memoryBlocks = new Map();
+const DAY_SECONDS = 86_400;
 
 // INCRBY + EXPIRE in one pipeline round trip. The key embeds the
 // window index, so refreshing the TTL on every hit is harmless — the
@@ -57,19 +66,29 @@ async function redisCount(key, ttlSeconds, cost = 1) {
 // Window-indexed exactly like the Redis path, so both agree on where a
 // window starts. Keying on first-hit wall-clock instead would let each
 // lambda instance run its own floating "day", which for the spend budget
-// means the reset point drifts per instance.
+// means the reset point drifts per instance. The window size is part of
+// the key because minute, hour and day windows share this one Map.
+function memoryBucket(key, windowMs) {
+  return `${key}:${windowMs}:${Math.floor(Date.now() / windowMs)}`;
+}
+
+// Drops buckets whose own window has ended. Comparing against the
+// caller's window index instead wiped every live daily quota and budget
+// bucket whenever a per-minute check ran the cleanup.
+function pruneExpiredBuckets() {
+  const now = Date.now();
+  for (const existing of memory.keys()) {
+    const [windowMs, windowIndex] = existing.split(':').slice(-2).map(Number);
+    if (windowIndex < Math.floor(now / windowMs)) memory.delete(existing);
+  }
+}
+
 function memoryAllow(key, limit, windowMs, cost) {
-  const windowIndex = Math.floor(Date.now() / windowMs);
-  const bucketKey = `${key}:${windowIndex}`;
+  const bucketKey = memoryBucket(key, windowMs);
   const count = (memory.get(bucketKey) ?? 0) + cost;
   memory.set(bucketKey, count);
-  // The map would otherwise grow without bound across windows. Anything
-  // from an older window can never be read again, so drop it.
-  if (memory.size > 10_000) {
-    for (const existing of memory.keys()) {
-      if (!existing.endsWith(`:${windowIndex}`)) memory.delete(existing);
-    }
-  }
+  // The map would otherwise grow without bound across windows.
+  if (memory.size > 10_000) pruneExpiredBuckets();
   return count <= limit;
 }
 
@@ -79,7 +98,7 @@ function memoryAllow(key, limit, windowMs, cost) {
  * non-finite or non-positive `limit` disables the check.
  *
  * `cost` lets one request consume more than one unit — see
- * `requestCost`.
+ * `costForBody`.
  */
 export async function allowRate({ name, key, limit, windowSeconds, cost = 1 }) {
   if (!Number.isFinite(limit) || limit <= 0) return true;
@@ -90,11 +109,48 @@ export async function allowRate({ name, key, limit, windowSeconds, cost = 1 }) {
   return memoryAllow(`${name}:${key}`, limit, windowMs, cost);
 }
 
-/** Undo a `memoryAllow` charge that was rejected. See `withinDailyBudget`. */
 function memoryRefund(key, windowMs, cost) {
-  const bucketKey = `${key}:${Math.floor(Date.now() / windowMs)}`;
+  const bucketKey = memoryBucket(key, windowMs);
   const current = memory.get(bucketKey);
   if (current !== undefined) memory.set(bucketKey, Math.max(0, current - cost));
+}
+
+/**
+ * Gives back units an `allowRate` call charged, on whichever store took
+ * them. The EXPIRE matters when the charge landed in memory during a
+ * Redis blip: DECRBY then creates a negative key, which must not
+ * outlive its window and keep raising the ceiling.
+ */
+async function refundRate({ name, key, windowSeconds, cost }) {
+  const windowMs = windowSeconds * 1000;
+  const windowIndex = Math.floor(Date.now() / windowMs);
+  const redisKey = `rl:${name}:${key}:${windowIndex}`;
+  const results = await redisPipeline([
+    ['DECRBY', redisKey, String(cost)],
+    ['EXPIRE', redisKey, String(windowSeconds * 2)],
+  ]);
+  if (!results) memoryRefund(`${name}:${key}`, windowMs, cost);
+}
+
+/** Seconds until the current window of `windowSeconds` ends. */
+export function secondsUntilWindowEnd(windowSeconds) {
+  const windowMs = windowSeconds * 1000;
+  return Math.ceil((windowMs - (Date.now() % windowMs)) / 1000);
+}
+
+/**
+ * True for an IPv4 fallback principal. Mobile carriers put thousands
+ * of installs behind one CGNAT IPv4 address, so a per-device limit on
+ * it throttles every unattested user on that carrier together. IPv6
+ * addresses are effectively per device and keep the per-device limits.
+ */
+export function sharesIp(principal) {
+  return principal.startsWith('ip:') && principal.includes('.');
+}
+
+/** `limit` for one install, scaled up when the principal is a shared IP. */
+export function principalLimit(principal, limit) {
+  return sharesIp(principal) ? limit * intEnv('SHARED_IP_LIMIT_SCALE', 10) : limit;
 }
 
 // Production gets a ceiling even when nobody set one: unset used to
@@ -117,25 +173,23 @@ function intEnv(name, fallback) {
 }
 
 /**
- * Cost units a request consumes against the daily budget and the
- * per-device quota.
- *
- * A meal scan carrying a multi-megabyte JPEG costs Anthropic far more
- * than a text turn, so counting both as "one request" makes the spend
- * ceiling a poor proxy for spend. One unit per 256 KB of payload,
- * minimum one, keeps the budget roughly proportional to tokens
- * without needing the upstream usage numbers (which arrive too late
- * to gate on).
+ * Byte cost of a payload: one unit per 256 KB, minimum one. The floor
+ * under `costForBody`, so a large photo never costs less than its size.
  */
 export function costForBytes(bytes) {
   return Math.max(1, Math.ceil((Number(bytes) || 0) / (256 * 1024)));
 }
 
 // Rough token estimate for a sanitised body: ~4 characters per text
-// token, a flat ~1 600 tokens per image, plus the requested output.
+// token, a flat ~3 000 tokens per image (the app sends 1568 px photos,
+// which high-resolution models read as ~2 500+ tokens), plus the
+// requested output.
 const CHARS_PER_TOKEN = 4;
-const TOKENS_PER_IMAGE = 1600;
+const TOKENS_PER_IMAGE = 3000;
 const TOKENS_PER_UNIT = 4000;
+// Price relative to Sonnet 4.6 ($3 / $15 per MTok), the model the
+// budget's units are calibrated against. Unlisted models count as 1.
+const MODEL_COST_WEIGHT = { 'claude-opus-5-5': 4 / 3 };
 
 function estimatedTokens(body) {
   let tokens = Number(body?.max_tokens) || 0;
@@ -160,12 +214,9 @@ function estimatedTokens(body) {
  * calls were ~40x under-billed next to photos.
  */
 export function costForBody(body, bytes) {
-  const tokenCost = Math.ceil(estimatedTokens(body) / TOKENS_PER_UNIT);
+  const weight = MODEL_COST_WEIGHT[body?.model] ?? 1;
+  const tokenCost = Math.ceil((estimatedTokens(body) * weight) / TOKENS_PER_UNIT);
   return Math.max(costForBytes(bytes), tokenCost);
-}
-
-export function requestCost(req) {
-  return costForBytes(req?.headers?.['content-length']);
 }
 
 /**
@@ -180,10 +231,25 @@ export async function withinDeviceQuota({ principal, cost = 1 }) {
   return allowRate({
     name: 'quota:device',
     key: principal,
-    limit: quota,
-    windowSeconds: 86_400,
+    limit: principalLimit(principal, quota),
+    windowSeconds: DAY_SECONDS,
     cost,
   });
+}
+
+/**
+ * Returns a request's charge to the device quota and the global
+ * budget when it never produced upstream tokens — otherwise client
+ * retries during an Anthropic outage drain both without a single
+ * token spent.
+ */
+export async function refundSpend({ principal, cost, budget = true }) {
+  if (intEnv('DEVICE_DAILY_QUOTA', 300) > 0) {
+    await refundRate({ name: 'quota:device', key: principal, windowSeconds: DAY_SECONDS, cost });
+  }
+  if (budget && dailyBudgetLimit() > 0) {
+    await refundRate({ name: 'budget:anthropic', key: 'global', windowSeconds: DAY_SECONDS, cost });
+  }
 }
 
 /**
@@ -199,10 +265,9 @@ export async function withinDailyBudget({ cost = 1 } = {}) {
   const budget = dailyBudgetLimit();
   if (budget <= 0) return true;
 
-  const windowSeconds = 86_400;
-  const windowIndex = Math.floor(Date.now() / (windowSeconds * 1000));
+  const windowIndex = Math.floor(Date.now() / (DAY_SECONDS * 1000));
   const key = `rl:budget:anthropic:global:${windowIndex}`;
-  const count = await redisCount(key, windowSeconds * 2, cost);
+  const count = await redisCount(key, DAY_SECONDS * 2, cost);
   if (count !== null) {
     if (count <= budget) return true;
     // Give the units back. The counter is shared by everyone, and a
@@ -221,8 +286,8 @@ export async function withinDailyBudget({ cost = 1 } = {}) {
   // is an outage, and an uncapped spend ceiling is worse than a brief
   // 503.
   if (redisConfigured() && process.env.BUDGET_FAIL_OPEN !== '1') return false;
-  const allowed = memoryAllow('budget:anthropic:global', budget, windowSeconds * 1000, cost);
-  if (!allowed) memoryRefund('budget:anthropic:global', windowSeconds * 1000, cost);
+  const allowed = memoryAllow('budget:anthropic:global', budget, DAY_SECONDS * 1000, cost);
+  if (!allowed) memoryRefund('budget:anthropic:global', DAY_SECONDS * 1000, cost);
   return allowed;
 }
 
@@ -238,7 +303,9 @@ export async function withinDailyBudget({ cost = 1 } = {}) {
  */
 export async function recordLimitStrike({ principal }) {
   const strikes = intEnv('ABUSE_STRIKES', 20);
-  if (strikes <= 0) return false;
+  // A shared IPv4 address is many installs; blocking it would lock out
+  // every innocent user behind the same carrier NAT.
+  if (strikes <= 0 || sharesIp(principal)) return false;
   const overStrikeBudget = !(await allowRate({
     name: 'abuse:strikes',
     key: principal,
@@ -246,16 +313,26 @@ export async function recordLimitStrike({ principal }) {
     windowSeconds: 3_600,
   }));
   if (!overStrikeBudget) return false;
-  const blockSeconds = intEnv('ABUSE_BLOCK_SECONDS', 900);
+  const blockSeconds = abuseBlockSeconds();
   if (blockSeconds > 0) {
-    await redisPipeline([['SET', `block:${principal}`, '1', 'EX', String(blockSeconds)]]);
+    const stored = await redisPipeline([['SET', `block:${principal}`, '1', 'EX', String(blockSeconds)]]);
+    if (!stored) memoryBlocks.set(principal, Date.now() + blockSeconds * 1000);
   }
   return true;
 }
 
+export function abuseBlockSeconds() {
+  return intEnv('ABUSE_BLOCK_SECONDS', 900);
+}
+
 /** True when a principal is inside an active abuse cooldown. */
 export async function isBlocked({ principal }) {
-  if (intEnv('ABUSE_BLOCK_SECONDS', 900) <= 0) return false;
+  if (abuseBlockSeconds() <= 0) return false;
   const results = await redisPipeline([['GET', `block:${principal}`]]);
-  return results?.[0]?.result != null;
+  if (results) return results[0]?.result != null;
+  const until = memoryBlocks.get(principal);
+  if (until === undefined) return false;
+  if (until > Date.now()) return true;
+  memoryBlocks.delete(principal);
+  return false;
 }
