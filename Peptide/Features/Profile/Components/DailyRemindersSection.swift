@@ -29,7 +29,7 @@ struct DailyRemindersSection: View {
 
                 ForEach(Array(DailyReminderKind.allCases.enumerated()), id: \.element) { index, kind in
                     if index > 0 {
-                        Divider().foregroundStyle(AppColor.glassBorder)
+                        Divider().overlay(AppColor.glassBorder)
                     }
                     DailyReminderRow(
                         kind: kind,

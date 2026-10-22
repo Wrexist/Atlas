@@ -441,7 +441,7 @@ struct ProfileCustomizationSheet: View {
                     text: $name
                 )
 
-                Divider().foregroundStyle(AppColor.glassBorder)
+                Divider().overlay(AppColor.glassBorder)
 
                 bioField
             }
@@ -758,7 +758,7 @@ struct ProfileCustomizationSheet: View {
                     dataStore.persistProfile()
                 }
 
-                Divider().foregroundStyle(AppColor.glassBorder)
+                Divider().overlay(AppColor.glassBorder)
 
                 preferenceToggle(
                     icon: "bell.fill",

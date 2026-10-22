@@ -40,7 +40,7 @@ struct ProfileStacksCard: View {
                         ForEach(stacks) { stack in
                             stackRow(stack)
                             if stack.id != stacks.last?.id {
-                                Divider().foregroundStyle(AppColor.glassBorder)
+                                Divider().overlay(AppColor.glassBorder)
                             }
                         }
                     }

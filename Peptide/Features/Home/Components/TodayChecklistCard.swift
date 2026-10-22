@@ -25,7 +25,7 @@ struct TodayChecklistCard: View {
                     ForEach(Array(TodayChecklistEngine.Item.allCases.enumerated()), id: \.element) { index, item in
                         if index > 0 {
                             Divider()
-                                .foregroundStyle(AppColor.glassBorder)
+                                .overlay(AppColor.glassBorder)
                                 .padding(.leading, Spacing.minimumHitTarget + Spacing.md)
                         }
                         row(item)
