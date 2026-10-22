@@ -18,7 +18,6 @@ struct TrainingSettingsSection: View {
 
                 MeasurementUnitRow(selection: $store.profile.bodyMetrics.unit)
                     .onChange(of: dataStore.profile.bodyMetrics.unit) { _, _ in
-                        Haptics.selection()
                         dataStore.persistProfile()
                     }
 
@@ -112,12 +111,11 @@ private struct MeasurementUnitRow: View {
             title: "Units",
             subtitle: selection == .metric ? "kg · cm · °C" : "lb · in · °F"
         ) {
-            Picker("Units", selection: $selection) {
-                Text("Metric").tag(MeasurementUnit.metric)
-                Text("Imperial").tag(MeasurementUnit.imperial)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            GlassSegmentedControl(
+                options: [MeasurementUnit.metric, .imperial],
+                selected: $selection,
+                label: { $0 == .metric ? "Metric" : "Imperial" }
+            )
         }
     }
 }
@@ -138,19 +136,20 @@ private struct RestTimerRow: View {
             // Six segments fit a phone at default sizes; at large Dynamic
             // Type or on a narrow screen they'd truncate, so fall back to a menu.
             ViewThatFits(in: .horizontal) {
-                picker.pickerStyle(.segmented)
-                picker.pickerStyle(.menu)
+                GlassSegmentedControl(
+                    options: Self.choices,
+                    selected: $selection,
+                    label: { LocalizedStringKey(Self.label(for: $0)) }
+                )
+                Picker("Default rest timer", selection: $selection) {
+                    ForEach(Self.choices, id: \.self) { seconds in
+                        Text(Self.label(for: seconds)).tag(seconds)
+                    }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
             }
         }
-    }
-
-    private var picker: some View {
-        Picker("Default rest timer", selection: $selection) {
-            ForEach(Self.choices, id: \.self) { seconds in
-                Text(Self.label(for: seconds)).tag(seconds)
-            }
-        }
-        .labelsHidden()
     }
 
     /// "0:30", "1:30", "4:00" — the same m:ss shape the rest timer counts

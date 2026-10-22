@@ -252,13 +252,11 @@ private struct DisplayModeRow: View {
             title: "Appearance",
             subtitle: LocalizedStringKey(selection.displayName)
         ) {
-            Picker("Appearance", selection: $selection) {
-                ForEach(DisplayMode.allCases) { mode in
-                    Text(mode.displayName).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            GlassSegmentedControl(
+                options: DisplayMode.allCases,
+                selected: $selection,
+                label: { LocalizedStringKey($0.displayName) }
+            )
         }
     }
 }
