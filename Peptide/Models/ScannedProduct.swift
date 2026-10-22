@@ -117,6 +117,12 @@ extension ScannedProduct {
         return .grams(100)
     }
 
+    /// False when the record has no energy and no macros at all. Crowd
+    /// Open Food Facts entries often lack them, and the missing fields
+    /// collapse to 0 — logging one would add a silent 0 kcal row.
+    var hasNutrition: Bool {
+        [per100g.calories, per100g.proteinG, per100g.carbsG, per100g.fatG].contains { $0 > 0 }
+    }
 
     private func roundedNonNegative(_ value: Double) -> Int {
         guard value.isFinite, value > 0 else { return 0 }

@@ -65,6 +65,7 @@ struct BarcodeScanFlow: View {
     /// True when `product` came from a package photo rather than the
     /// food database — changes the source badge and the logged source.
     @State private var productReadByAI = false
+    @State private var nutritionEstimatedByAI = false
     @State private var savedToMyFoods = false
     @State private var isShowingPackageCamera = false
     @State private var packagePickerItem: PhotosPickerItem?
@@ -407,7 +408,7 @@ struct BarcodeScanFlow: View {
 
     private func sourceBadge(for product: ScannedProduct) -> some View {
         HStack(spacing: Spacing.xs) {
-            Image(systemName: productReadByAI ? "sparkles" : "globe")
+            Image(systemName: productReadByAI || nutritionEstimatedByAI ? "sparkles" : "globe")
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
             Text(sourceLabel(for: product))
@@ -430,7 +431,9 @@ struct BarcodeScanFlow: View {
     }
 
     private func sourceLabel(for product: ScannedProduct) -> LocalizedStringKey {
-        productReadByAI ? "Read from the package by Atlas AI" : "Open Food Facts · \(Self.relativeAge(product.fetchedAt))"
+        if productReadByAI { return "Read from the package by Atlas AI" }
+        if nutritionEstimatedByAI { return "Nutrition estimated by Atlas AI" }
+        return "Open Food Facts · \(Self.relativeAge(product.fetchedAt))"
     }
 
     private var overrideNotice: some View {
@@ -525,7 +528,20 @@ struct BarcodeScanFlow: View {
             .buttonStyle(.plain)
             .disabled(!canEdit)
             .accessibilityLabel("Edit nutrition manually")
+            if manualOverride == nil && !product.hasNutrition {
+                Text("No nutrition data for this product. Edit nutrition with the values from its label.")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.warning)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
+    }
+
+    /// An all-zero Open Food Facts record stays unloggable until the user
+    /// enters the label values — logging it would add a silent 0 kcal row.
+    private func canLog(_ product: ScannedProduct?) -> Bool {
+        guard let product, currentMacros(for: product) != nil else { return false }
+        return manualOverride != nil || product.hasNutrition
     }
 
     private var actionButtons: some View {
@@ -537,7 +553,7 @@ struct BarcodeScanFlow: View {
             GlassButton(title: addButtonTitle, style: .primary, isFullWidth: true) {
                 confirm()
             }
-            .disabled(currentMacros(for: product) == nil)
+            .disabled(!canLog(product))
         }
     }
 
@@ -1144,7 +1160,9 @@ struct BarcodeScanFlow: View {
                 isLoadingInsight = false
                 guard let scan, product?.barcode == result.barcode else { return }
                 insight = scan
-                product = SmartFoodLogic.product(result, fillingFrom: scan)
+                let filled = SmartFoodLogic.product(result, fillingFrom: scan)
+                nutritionEstimatedByAI = !result.hasNutrition && filled.hasNutrition
+                product = filled
             }
         }
     }
@@ -1245,6 +1263,7 @@ struct BarcodeScanFlow: View {
         insight = nil
         isLoadingInsight = false
         productReadByAI = false
+        nutritionEstimatedByAI = false
         savedToMyFoods = false
         identity = nil
         isIdentifying = false
@@ -1257,6 +1276,7 @@ struct BarcodeScanFlow: View {
         // shortcut intent) from logging twice while only being able
         // to undo once.
         guard phase == .review,
+              canLog(product),
               let product,
               let meal = currentMacros(for: product) else { return }
         // Duplicate-scan guard (audit Meals MED 7): if the same
