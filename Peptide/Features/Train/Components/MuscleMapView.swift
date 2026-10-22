@@ -100,10 +100,10 @@ struct MuscleMapView: View {
                 .font(AppFont.caption.weight(.semibold))
                 .foregroundStyle(AppColor.textPrimary)
                 .padding(.horizontal, Spacing.md)
-                .padding(.vertical, 5)
+                .padding(.vertical, Spacing.xs)
                 .background(Capsule().fill(AppColor.surfaceElevated))
-                .overlay(Capsule().stroke(Color.white.opacity(0.12)))
-                .padding(.top, 6)
+                .overlay(Capsule().stroke(AppColor.glassBorder))
+                .padding(.top, Spacing.xs)
                 .transition(.opacity.combined(with: .scale(scale: 0.9)))
         }
     }
