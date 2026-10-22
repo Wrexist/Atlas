@@ -40,13 +40,15 @@ struct SubscriptionSection: View {
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                GlassButton(
-                    title: "Manage subscription",
-                    icon: "creditcard",
-                    style: .secondary,
-                    isFullWidth: true
-                ) {
-                    showManageSubscriptions = true
+                if !storeService.hasLifetimeAccess {
+                    GlassButton(
+                        title: "Manage subscription",
+                        icon: "creditcard",
+                        style: .secondary,
+                        isFullWidth: true
+                    ) {
+                        showManageSubscriptions = true
+                    }
                 }
 
                 restoreControl
