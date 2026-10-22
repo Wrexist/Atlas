@@ -42,7 +42,7 @@ struct ProgressionHint: View {
     private var target: String {
         suggestion.weightKg > 0
             ? "\(formatted(suggestion.weightKg)) \(unit.weightSuffix) × \(suggestion.reps)"
-            : "\(suggestion.reps) reps"
+            : String(localized: "\(suggestion.reps) reps")
     }
 
     private var symbolName: String {

@@ -151,33 +151,33 @@ enum LabPanel: String, Codable, CaseIterable, Identifiable, Sendable {
     /// full name shrunken to 8pt.
     var shortName: String {
         switch self {
-        case .totalTestosterone: "Total T"
-        case .freeTestosterone:  "Free T"
+        case .totalTestosterone: String(localized: "Total T")
+        case .freeTestosterone:  String(localized: "Free T")
         case .estradiol:         "E2"
-        case .shbg:              "SHBG"
+        case .shbg:              String(localized: "SHBG")
         case .lh:                "LH"
-        case .fsh:               "FSH"
-        case .prolactin:         "Prolactin"
+        case .fsh:               String(localized: "FSH")
+        case .prolactin:         String(localized: "Prolactin")
         case .igf1:              "IGF-1"
-        case .tsh:               "TSH"
-        case .freeT3:            "Free T3"
-        case .freeT4:            "Free T4"
-        case .fastingGlucose:    "Glucose"
-        case .fastingInsulin:    "Insulin"
+        case .tsh:               String(localized: "TSH")
+        case .freeT3:            String(localized: "Free T3")
+        case .freeT4:            String(localized: "Free T4")
+        case .fastingGlucose:    String(localized: "Glucose")
+        case .fastingInsulin:    String(localized: "Insulin")
         case .hba1c:             "HbA1c"
-        case .totalCholesterol:  "Chol"
-        case .hdl:               "HDL"
-        case .ldl:               "LDL"
-        case .triglycerides:     "Trigs"
-        case .alt:               "ALT"
-        case .ast:               "AST"
-        case .creatinine:        "Cr"
+        case .totalCholesterol:  String(localized: "Chol")
+        case .hdl:               String(localized: "HDL")
+        case .ldl:               String(localized: "LDL")
+        case .triglycerides:     String(localized: "Trigs")
+        case .alt:               String(localized: "ALT")
+        case .ast:               String(localized: "AST")
+        case .creatinine:        String(localized: "Cr")
         case .crp:               "hs-CRP"
-        case .vitaminD:          "Vit D"
-        case .ferritin:          "Ferritin"
-        case .hematocrit:        "Hct"
-        case .cortisolMorning:   "Cortisol"
-        case .other:             "Other"
+        case .vitaminD:          String(localized: "Vit D")
+        case .ferritin:          String(localized: "Ferritin")
+        case .hematocrit:        String(localized: "Hct")
+        case .cortisolMorning:   String(localized: "Cortisol")
+        case .other:             String(localized: "Other")
         }
     }
 

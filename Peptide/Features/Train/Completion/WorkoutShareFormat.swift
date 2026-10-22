@@ -5,16 +5,16 @@ enum WorkoutShareFormat: String, CaseIterable, Identifiable, Sendable {
     case story, post, reel
     var id: String { rawValue }
     var title: String {
-        switch self { case .story: "Story"; case .post: "Post"; case .reel: "Reel" }
+        switch self { case .story: String(localized: "Story"); case .post: String(localized: "Post"); case .reel: String(localized: "Reel") }
     }
     var logicalSize: CGSize { CGSize(width: 360, height: self == .post ? 450 : 640) }
     var pixelSize: CGSize { CGSize(width: 1080, height: self == .post ? 1350 : 1920) }
     var isVideo: Bool { self == .reel }
     var detail: String {
         switch self {
-        case .story: "9:16 image · 1080 × 1920"
-        case .post: "4:5 image · 1080 × 1350"
-        case .reel: "9:16 video · 6 seconds · no audio"
+        case .story: String(localized: "9:16 image · 1080 × 1920")
+        case .post: String(localized: "4:5 image · 1080 × 1350")
+        case .reel: String(localized: "9:16 video · 6 seconds · no audio")
         }
     }
 }
@@ -22,7 +22,7 @@ enum WorkoutShareFormat: String, CaseIterable, Identifiable, Sendable {
 enum WorkoutShareStyle: String, CaseIterable, Identifiable, Sendable {
     case summary, highlight
     var id: String { rawValue }
-    var title: String { self == .summary ? "Dark summary" : "Exercise highlight" }
+    var title: String { self == .summary ? String(localized: "Dark summary") : String(localized: "Exercise highlight") }
 }
 
 struct WorkoutShareOptions: Equatable, Hashable, Sendable {

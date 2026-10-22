@@ -19,15 +19,15 @@ enum MuscleGroup: String, CaseIterable, Codable, Identifiable, Sendable {
 
     var displayName: String {
         switch self {
-        case .chest:          return "Chest"
-        case .back:           return "Back"
-        case .shoulders:      return "Shoulders"
-        case .arms:           return "Arms"
-        case .legs:           return "Legs"
-        case .glutes:         return "Glutes"
-        case .core:           return "Core"
-        case .fullBody:       return "Full Body"
-        case .cardioMobility: return "Cardio & Mobility"
+        case .chest:          return String(localized: "Chest")
+        case .back:           return String(localized: "Back")
+        case .shoulders:      return String(localized: "Shoulders")
+        case .arms:           return String(localized: "Arms")
+        case .legs:           return String(localized: "Legs")
+        case .glutes:         return String(localized: "Glutes")
+        case .core:           return String(localized: "Core")
+        case .fullBody:       return String(localized: "Full Body")
+        case .cardioMobility: return String(localized: "Cardio & Mobility")
         }
     }
 

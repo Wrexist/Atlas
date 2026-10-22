@@ -159,7 +159,7 @@ struct GoalCountdownCard: View {
                 Text(weeks == 1 ? "week" : "weeks")
                     .font(AppFont.subheadline.weight(.semibold))
                     .foregroundStyle(AppColor.textSecondary)
-                Text("\(days) day\(days == 1 ? "" : "s") remaining")
+                Text("\(days) days remaining")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textTertiary)
             }

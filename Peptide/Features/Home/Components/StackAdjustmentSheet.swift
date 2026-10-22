@@ -153,7 +153,7 @@ struct StackAdjustmentSheet: View {
     }
 
     private var stackPickerCard: some View {
-        sectionCard(icon: "rectangle.stack.fill", title: "Protocol to adjust", tint: AppColor.accentPrimary) {
+        sectionCard(icon: "rectangle.stack.fill", title: String(localized: "Protocol to adjust"), tint: AppColor.accentPrimary) {
             VStack(spacing: Spacing.xs) {
                 ForEach(candidateProtocols, id: \.id) { proto in
                     Button {
@@ -202,7 +202,7 @@ struct StackAdjustmentSheet: View {
     }
 
     private var diffCard: some View {
-        sectionCard(icon: "arrow.triangle.swap", title: "Protocol changes", tint: AppColor.accentPrimary) {
+        sectionCard(icon: "arrow.triangle.swap", title: String(localized: "Protocol changes"), tint: AppColor.accentPrimary) {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 Text(diff.summary)
                     .font(AppFont.footnote)
@@ -215,10 +215,10 @@ struct StackAdjustmentSheet: View {
                         .padding(.vertical, Spacing.xs)
                 } else {
                     if !diff.added.isEmpty {
-                        diffRow(symbol: "plus", color: AppColor.success, label: "Adding", peptides: diff.added)
+                        diffRow(symbol: "plus", color: AppColor.success, label: String(localized: "Adding"), peptides: diff.added)
                     }
                     if !diff.removed.isEmpty {
-                        diffRow(symbol: "minus", color: AppColor.destructive, label: "Removing", peptides: diff.removed)
+                        diffRow(symbol: "minus", color: AppColor.destructive, label: String(localized: "Removing"), peptides: diff.removed)
                     }
                 }
             }
@@ -275,7 +275,7 @@ struct StackAdjustmentSheet: View {
     }
 
     private var editorCard: some View {
-        sectionCard(icon: "pills.fill", title: "Edit peptides", tint: AppColor.accentPrimary) {
+        sectionCard(icon: "pills.fill", title: String(localized: "Edit peptides"), tint: AppColor.accentPrimary) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text("Tap to remove. Use \"Add peptide\" to swap one in.")
                     .font(AppFont.caption)
@@ -356,7 +356,7 @@ struct StackAdjustmentSheet: View {
     }
 
     private var relocationCard: some View {
-        sectionCard(icon: "arrow.right.circle.fill", title: "Where should removed peptides go?", tint: AppColor.warning) {
+        sectionCard(icon: "arrow.right.circle.fill", title: String(localized: "Where should removed peptides go?"), tint: AppColor.warning) {
             VStack(spacing: Spacing.md) {
                 ForEach(relocations) { relocation in
                     relocationRow(relocation)

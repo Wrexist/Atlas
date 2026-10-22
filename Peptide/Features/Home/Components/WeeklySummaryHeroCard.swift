@@ -68,7 +68,7 @@ struct WeeklySummaryHeroCard: View {
         GlassCard(tinted: true) {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 eyebrowRow(badge: nil)
-                heroRow(title: "Reading your week…", aiBadge: false)
+                heroRow(title: String(localized: "Reading your week…"), aiBadge: false)
 
                 VStack(alignment: .leading, spacing: 8) {
                     // Widths trail off like a paragraph without
@@ -131,7 +131,7 @@ struct WeeklySummaryHeroCard: View {
 
     private var emptyCard: some View {
         messageCard(
-            title: "Your weekly recap will appear here",
+            title: String(localized: "Your weekly recap will appear here"),
             message: "Log workouts, meals or a check-in on a few more days and your recap appears here."
         )
     }
@@ -140,7 +140,7 @@ struct WeeklySummaryHeroCard: View {
 
     private var failedCard: some View {
         messageCard(
-            title: "Couldn't reach the recap service",
+            title: String(localized: "Couldn't reach the recap service"),
             message: "Your data is safe. Check your connection and try again."
         )
     }
@@ -277,7 +277,7 @@ struct WeeklySummaryHeroCard: View {
             }
             StatTile(
                 label: "Streak",
-                value: stats.currentStreak == 1 ? "1 day" : "\(stats.currentStreak) days",
+                value: stats.currentStreak == 1 ? String(localized: "1 day") : String(localized: "\(stats.currentStreak) days"),
                 tint: AppColor.streak
             )
             if let composite = stats.avgCheckInScore {

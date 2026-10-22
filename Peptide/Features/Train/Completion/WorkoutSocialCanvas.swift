@@ -43,10 +43,10 @@ struct WorkoutSocialCanvas: View {
                 }
             }
             HStack(alignment: .top, spacing: 12) {
-                metric(summary.duration.label, label: "Duration")
-                metric(summary.workingSetLabel, label: "Working sets")
+                metric(summary.duration.label, label: String(localized: "Duration"))
+                metric(summary.workingSetLabel, label: String(localized: "Working sets"))
                 if options.includeVolume, let volume = summary.volumeKg {
-                    metric(RecapFormat.volume(volume, unit: unit), label: "Recorded volume")
+                    metric(RecapFormat.volume(volume, unit: unit), label: String(localized: "Recorded volume"))
                 }
             }
             .padding(12)

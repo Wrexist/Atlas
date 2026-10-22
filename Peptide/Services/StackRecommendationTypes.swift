@@ -37,20 +37,20 @@ extension StackRecommendationEngine {
             case .commonStack(let names):
                 let display = names.count <= 3
                     ? names.joined(separator: ", ")
-                    : names.prefix(2).joined(separator: ", ") + " +\(names.count - 2) more"
-                return "Pairs well with \(display)"
+                    : names.prefix(2).joined(separator: ", ") + String(localized: " +\(names.count - 2) more")
+                return String(localized: "Pairs well with \(display)")
             case .goalMatch(let goal):
-                return "Matches your \"\(goal)\" goal"
+                return String(localized: "Matches your \"\(goal)\" goal")
             case .categorySynergy(let desc):
                 return desc
             case .sharedBenefits(let count):
-                return "Shares \(count) benefits with your protocol"
+                return String(localized: "Shares \(count) benefits with your protocol")
             case .validatedStack(let name, _):
-                return "Part of \(name) — research-backed combination"
+                return String(localized: "Part of \(name) — research-backed combination")
             case .timingComplement(let desc):
                 return desc
             case .complianceBoost(let category):
-                return "You're highly compliant with \(category) peptides"
+                return String(localized: "You're highly compliant with \(category) peptides")
             case .routeDiversity(let route):
                 return route
             case .halfLifeComplement(let desc):
@@ -66,8 +66,8 @@ extension StackRecommendationEngine {
 
         var label: String {
             switch self {
-            case .low: return "Exploratory"
-            case .medium: return "Suggested"
+            case .low: return String(localized: "Exploratory")
+            case .medium: return String(localized: "Suggested")
             case .high: return "Research-backed"
             }
         }

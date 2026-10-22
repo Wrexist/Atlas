@@ -173,7 +173,7 @@ struct HabitHeatmap: View {
             case .notDue: return false
             }
         }.count
-        return "Habit heatmap. \(completed) of \(total) days completed."
+        return String(localized: "Habit heatmap. \(completed) of \(total) days completed.")
     }
 }
 

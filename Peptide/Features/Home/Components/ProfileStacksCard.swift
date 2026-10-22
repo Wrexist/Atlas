@@ -201,8 +201,8 @@ struct ProfileStacksCard: View {
             parts.append(abbreviations)
         }
         if stack.status == .active {
-            parts.append("Week \(stack.weekNumber) of \(stack.cycleLengthWeeks)")
-            parts.append("\(stack.daysRemaining) days remaining")
+            parts.append(String(localized: "Week \(stack.weekNumber) of \(stack.cycleLengthWeeks)"))
+            parts.append(String(localized: "\(stack.daysRemaining) days remaining"))
         }
         return parts.joined(separator: ". ")
     }
@@ -235,7 +235,7 @@ struct ProfileStacksCard: View {
     private func subtitle(for stack: PeptideProtocol) -> String {
         let abbreviations = stack.peptides.prefix(3).map(\.abbreviation).joined(separator: " · ")
         let extras = stack.peptides.count > 3 ? " +\(stack.peptides.count - 3)" : ""
-        let body = abbreviations.isEmpty ? "Empty protocol" : abbreviations + extras
+        let body = abbreviations.isEmpty ? String(localized: "Empty protocol") : abbreviations + extras
         return "\(body) — \(stack.schedule.summary)"
     }
 

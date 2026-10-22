@@ -421,9 +421,9 @@ struct HeroMetricDetailSheet: View {
 
         var label: LocalizedStringKey {
             switch self {
-            case .hrv:   "HRV vs baseline"
-            case .sleep: "Sleep vs 8h target"
-            case .rhr:   "Resting HR vs baseline"
+            case .hrv:   String(localized: "HRV vs baseline")
+            case .sleep: String(localized: "Sleep vs 8h target")
+            case .rhr:   String(localized: "Resting HR vs baseline")
             }
         }
 

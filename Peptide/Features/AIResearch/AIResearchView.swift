@@ -345,9 +345,9 @@ struct AIResearchView: View {
     }
 
     private static let suggestedPrompts: [String] = [
-        "How does sleep affect HRV recovery?",
-        "How much protein do I need for hypertrophy?",
-        "What does the research say about BPC-157 half-life?",
+        String(localized: "How does sleep affect HRV recovery?"),
+        String(localized: "How much protein do I need for hypertrophy?"),
+        String(localized: "What does the research say about BPC-157 half-life?"),
     ]
 }
 
@@ -401,7 +401,7 @@ private struct TurnBubble: View {
     }
 
     private var accessibilityLabel: String {
-        let speaker = turn.role == .user ? "You" : "Assistant"
+        let speaker = turn.role == .user ? String(localized: "You") : String(localized: "Assistant")
         let body = isStreaming && turn.content.isEmpty ? "typing" : turn.content
         return "\(speaker): \(body)"
     }

@@ -49,7 +49,7 @@ struct MuscleActivationMap: View {
 
     private var focusCaption: some View {
         Text(focused.map { "\($0.name) · \($0.role.rawValue.lowercased()) mover" }
-             ?? (rows.isEmpty ? "No muscle mapping for this exercise" : "Tap a muscle to focus it"))
+             ?? (rows.isEmpty ? String(localized: "No muscle mapping for this exercise") : String(localized: "Tap a muscle to focus it")))
             .font(AppFont.footnote.weight(.semibold))
             .foregroundStyle(focused == nil ? AppColor.textTertiary : AppColor.textPrimary)
             .frame(maxWidth: .infinity)

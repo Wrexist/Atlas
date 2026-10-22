@@ -87,7 +87,7 @@ struct ExportSection: View {
     /// believed the export had succeeded.
     private func share(_ url: URL?) {
         guard let url else {
-            exportError = "Couldn't write the export file. Check your available storage and try again."
+            exportError = String(localized: "Couldn't write the export file. Check your available storage and try again.")
             return
         }
         exportURL = url
@@ -192,7 +192,7 @@ struct ExportSection: View {
             personalRecords: dataStore.personalRecordsForBackup(),
             customPeptides: dataStore.customPeptides
         ) else {
-            exportError = "Couldn't prepare the backup. Please try again."
+            exportError = String(localized: "Couldn't prepare the backup. Please try again.")
             return
         }
         share(ExportService.shared.writeJSON(data, filename: "atlas-backup-\(dateStamp).json"))
@@ -209,7 +209,7 @@ struct ExportSection: View {
                 exportURL = url
                 showShareSheet = true
             } else {
-                exportError = "Couldn't write the PDF to disk."
+                exportError = String(localized: "Couldn't write the PDF to disk.")
             }
         } catch {
             exportError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription

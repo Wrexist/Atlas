@@ -87,10 +87,10 @@ struct ProtocolCard: View {
 
     private var accessibilitySummary: String {
         var parts = [protocol_.name, protocol_.status.displayName]
-        parts.append(protocol_.peptides.count == 1 ? "1 peptide" : "\(protocol_.peptides.count) peptides")
+        parts.append(protocol_.peptides.count == 1 ? String(localized: "1 peptide") : String(localized: "\(protocol_.peptides.count) peptides"))
         if protocol_.status == .active {
-            parts.append("week \(protocol_.weekNumber) of \(protocol_.cycleLengthWeeks)")
-            parts.append("\(protocol_.daysRemaining) days left")
+            parts.append(String(localized: "week \(protocol_.weekNumber) of \(protocol_.cycleLengthWeeks)"))
+            parts.append(String(localized: "\(protocol_.daysRemaining) days left"))
         }
         return parts.joined(separator: ", ")
     }

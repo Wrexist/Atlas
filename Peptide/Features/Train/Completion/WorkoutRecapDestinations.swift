@@ -39,7 +39,7 @@ struct WorkoutRecapExercisesView: View {
                 }
             }.padding(Spacing.screenPadding)
         }
-        .recapScreen(title: "Exercises")
+        .recapScreen(title: String(localized: "Exercises"))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) { Button("Edit") { editing = true }.minimumHitArea() }
         }
@@ -82,7 +82,7 @@ struct WorkoutRecapExerciseDetail: View {
                     if let note = entry.note, !note.isEmpty { Text(note).font(AppFont.body) }
                 }
             }.padding(Spacing.screenPadding)
-        }.recapScreen(title: "Exercise details")
+        }.recapScreen(title: String(localized: "Exercise details"))
     }
 }
 
@@ -106,7 +106,7 @@ struct WorkoutMuscleDetailsView: View {
                 RecapMissingMapping(count: summary.missingMappings)
                 if summary.muscles.isEmpty { Text("No muscle mapping is available for these logged exercises.") }
             }.padding(Spacing.screenPadding)
-        }.recapScreen(title: "Muscle details")
+        }.recapScreen(title: String(localized: "Muscle details"))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 RecapInfoButton(title: "About muscle mapping", showsTitle: false) {

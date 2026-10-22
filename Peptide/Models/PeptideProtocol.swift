@@ -55,21 +55,21 @@ struct ProtocolSchedule: Hashable, Codable, Sendable {
 
     var daysDescription: String {
         if isInterval, let n = intervalDays {
-            return n == 1 ? "Every day" : "Every \(n) days"
+            return n == 1 ? String(localized: "Every day") : String(localized: "Every \(n) days")
         }
-        let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        let dayNames = [String(localized: "Mon"), String(localized: "Tue"), String(localized: "Wed"), String(localized: "Thu"), String(localized: "Fri"), String(localized: "Sat"), String(localized: "Sun")]
         let validDays = daysOfWeek.filter { (1...7).contains($0) }
-        if validDays.count == 7 { return "Every day" }
+        if validDays.count == 7 { return String(localized: "Every day") }
         return validDays.sorted().map { dayNames[$0 - 1] }.joined(separator: ", ")
     }
 
     var compactDaysDescription: String {
         if isInterval, let n = intervalDays {
-            return n == 1 ? "Daily" : "Every \(n)d"
+            return n == 1 ? String(localized: "Daily") : String(localized: "Every \(n)d")
         }
-        let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        let dayNames = [String(localized: "Mon"), String(localized: "Tue"), String(localized: "Wed"), String(localized: "Thu"), String(localized: "Fri"), String(localized: "Sat"), String(localized: "Sun")]
         let validDays = daysOfWeek.filter { (1...7).contains($0) }.sorted()
-        if validDays.count == 7 { return "Daily" }
+        if validDays.count == 7 { return String(localized: "Daily") }
         return validDays.map { dayNames[$0 - 1] }.joined(separator: ", ")
     }
 

@@ -46,9 +46,9 @@ struct WorkoutCard: View {
 
     private var subtitle: String {
         if exerciseCountToday == 0 {
-            return "Log today's training"
+            return String(localized: "Log today's training")
         }
-        let exerciseLabel = exerciseCountToday == 1 ? "1 exercise" : "\(exerciseCountToday) exercises"
+        let exerciseLabel = exerciseCountToday == 1 ? String(localized: "1 exercise") : String(localized: "\(exerciseCountToday) exercises")
         if durationMinutesToday <= 0 {
             return exerciseLabel
         }

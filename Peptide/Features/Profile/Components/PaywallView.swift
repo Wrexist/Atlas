@@ -1172,7 +1172,7 @@ struct PaywallView: View {
                 break // no UI noise on explicit cancel
             }
         } catch {
-            notice = .failed("Purchase failed. Try again or restore.")
+            notice = .failed(String(localized: "Purchase failed. Try again or restore."))
         }
     }
 
@@ -1192,7 +1192,7 @@ struct PaywallView: View {
                     notice = .nothingToRestore
                 }
             } catch {
-                notice = .failed("Restore failed. Check your internet connection and try again.")
+                notice = .failed(String(localized: "Restore failed. Check your internet connection and try again."))
             }
         }
     }

@@ -214,60 +214,60 @@ final class AchievementService {
     }
 
     static let defaultAchievements: [Achievement] = [
-        Achievement(id: "first_dose", title: "First Step", description: "Log your first dose", icon: "1.circle.fill"),
-        Achievement(id: "ten_doses", title: "Getting Started", description: "Log 10 doses", icon: "10.circle.fill"),
-        Achievement(id: "fifty_doses", title: "Committed", description: "Log 50 doses", icon: "star.fill"),
-        Achievement(id: "hundred_doses", title: "Centurion", description: "Log 100 doses", icon: "star.circle.fill"),
-        Achievement(id: "five_hundred_doses", title: "Legendary", description: "Log 500 doses", icon: "crown.fill"),
-        Achievement(id: "streak_3", title: "Warming Up", description: "3-day streak", icon: "flame"),
-        Achievement(id: "streak_7", title: "On Fire", description: "7-day streak", icon: "flame.fill"),
-        Achievement(id: "streak_14", title: "Unstoppable", description: "14-day streak", icon: "bolt.fill"),
-        Achievement(id: "streak_30", title: "Iron Will", description: "30-day streak", icon: "shield.fill"),
-        Achievement(id: "streak_90", title: "Master", description: "90-day streak", icon: "trophy.fill"),
-        Achievement(id: "first_protocol", title: "Protocol Creator", description: "Create your first protocol", icon: "list.clipboard.fill"),
-        Achievement(id: "three_protocols", title: "Multi-Tasker", description: "Run 3 protocols", icon: "square.stack.3d.up.fill"),
-        Achievement(id: "week_logged", title: "Week Warrior", description: "Log doses for 7 days", icon: "calendar"),
-        Achievement(id: "month_logged", title: "Monthly Master", description: "Log doses for 30 days", icon: "calendar.badge.checkmark"),
+        Achievement(id: "first_dose", title: String(localized: "First Step"), description: String(localized: "Log your first dose"), icon: "1.circle.fill"),
+        Achievement(id: "ten_doses", title: String(localized: "Getting Started"), description: String(localized: "Log 10 doses"), icon: "10.circle.fill"),
+        Achievement(id: "fifty_doses", title: String(localized: "Committed"), description: String(localized: "Log 50 doses"), icon: "star.fill"),
+        Achievement(id: "hundred_doses", title: String(localized: "Centurion"), description: String(localized: "Log 100 doses"), icon: "star.circle.fill"),
+        Achievement(id: "five_hundred_doses", title: String(localized: "Legendary"), description: String(localized: "Log 500 doses"), icon: "crown.fill"),
+        Achievement(id: "streak_3", title: String(localized: "Warming Up"), description: String(localized: "3-day streak"), icon: "flame"),
+        Achievement(id: "streak_7", title: String(localized: "On Fire"), description: String(localized: "7-day streak"), icon: "flame.fill"),
+        Achievement(id: "streak_14", title: String(localized: "Unstoppable"), description: String(localized: "14-day streak"), icon: "bolt.fill"),
+        Achievement(id: "streak_30", title: String(localized: "Iron Will"), description: String(localized: "30-day streak"), icon: "shield.fill"),
+        Achievement(id: "streak_90", title: String(localized: "Master"), description: String(localized: "90-day streak"), icon: "trophy.fill"),
+        Achievement(id: "first_protocol", title: String(localized: "Protocol Creator"), description: String(localized: "Create your first protocol"), icon: "list.clipboard.fill"),
+        Achievement(id: "three_protocols", title: String(localized: "Multi-Tasker"), description: String(localized: "Run 3 protocols"), icon: "square.stack.3d.up.fill"),
+        Achievement(id: "week_logged", title: String(localized: "Week Warrior"), description: String(localized: "Log doses for 7 days"), icon: "calendar"),
+        Achievement(id: "month_logged", title: String(localized: "Monthly Master"), description: String(localized: "Log doses for 30 days"), icon: "calendar.badge.checkmark"),
 
         // Lifestyle achievements — surface as users build the
         // companion-data side of their tracking habit.
-        Achievement(id: "first_meal", title: "First Bite", description: "Log your first meal", icon: "fork.knife"),
-        Achievement(id: "fifty_meals", title: "Fed", description: "Log 50 meals", icon: "fork.knife.circle"),
-        Achievement(id: "five_hundred_meals", title: "Chef's Choice", description: "Log 500 meals", icon: "fork.knife.circle.fill"),
+        Achievement(id: "first_meal", title: String(localized: "First Bite"), description: String(localized: "Log your first meal"), icon: "fork.knife"),
+        Achievement(id: "fifty_meals", title: String(localized: "Fed"), description: String(localized: "Log 50 meals"), icon: "fork.knife.circle"),
+        Achievement(id: "five_hundred_meals", title: String(localized: "Chef's Choice"), description: String(localized: "Log 500 meals"), icon: "fork.knife.circle.fill"),
 
-        Achievement(id: "meal_streak_7", title: "Mindful Eater", description: "7-day meal-logging streak", icon: "leaf.fill"),
-        Achievement(id: "meal_streak_30", title: "Tracker", description: "30-day meal-logging streak", icon: "leaf.circle.fill"),
-        Achievement(id: "meal_streak_90", title: "Habit Locked", description: "90-day meal-logging streak", icon: "checkmark.seal.fill"),
+        Achievement(id: "meal_streak_7", title: String(localized: "Mindful Eater"), description: String(localized: "7-day meal-logging streak"), icon: "leaf.fill"),
+        Achievement(id: "meal_streak_30", title: String(localized: "Tracker"), description: String(localized: "30-day meal-logging streak"), icon: "leaf.circle.fill"),
+        Achievement(id: "meal_streak_90", title: String(localized: "Habit Locked"), description: String(localized: "90-day meal-logging streak"), icon: "checkmark.seal.fill"),
 
-        Achievement(id: "first_lab", title: "Data Driven", description: "Log your first lab value", icon: "testtube.2"),
-        Achievement(id: "lab_panels_5", title: "Biomarker Hunter", description: "Track 5 different lab panels", icon: "chart.line.uptrend.xyaxis"),
-        Achievement(id: "lab_panels_10", title: "Optimizer", description: "Track 10 different lab panels", icon: "chart.bar.xaxis.ascending"),
+        Achievement(id: "first_lab", title: String(localized: "Data Driven"), description: String(localized: "Log your first lab value"), icon: "testtube.2"),
+        Achievement(id: "lab_panels_5", title: String(localized: "Biomarker Hunter"), description: String(localized: "Track 5 different lab panels"), icon: "chart.line.uptrend.xyaxis"),
+        Achievement(id: "lab_panels_10", title: String(localized: "Optimizer"), description: String(localized: "Track 10 different lab panels"), icon: "chart.bar.xaxis.ascending"),
 
-        Achievement(id: "first_recipe", title: "Recipe Builder", description: "Save your first recipe", icon: "list.bullet.rectangle"),
-        Achievement(id: "five_recipes", title: "Recipe Library", description: "Save 5 recipes", icon: "list.bullet.rectangle.fill"),
+        Achievement(id: "first_recipe", title: String(localized: "Recipe Builder"), description: String(localized: "Save your first recipe"), icon: "list.bullet.rectangle"),
+        Achievement(id: "five_recipes", title: String(localized: "Recipe Library"), description: String(localized: "Save 5 recipes"), icon: "list.bullet.rectangle.fill"),
 
-        Achievement(id: "first_checkin", title: "Tuning In", description: "Complete your first daily check-in", icon: "heart.text.square"),
-        Achievement(id: "checkin_streak_14", title: "Self-Aware", description: "14 daily check-ins logged", icon: "heart.text.square.fill"),
-        Achievement(id: "checkin_streak_60", title: "Insight Engine", description: "60 daily check-ins logged", icon: "sparkles"),
+        Achievement(id: "first_checkin", title: String(localized: "Tuning In"), description: String(localized: "Complete your first daily check-in"), icon: "heart.text.square"),
+        Achievement(id: "checkin_streak_14", title: String(localized: "Self-Aware"), description: String(localized: "14 daily check-ins logged"), icon: "heart.text.square.fill"),
+        Achievement(id: "checkin_streak_60", title: String(localized: "Insight Engine"), description: String(localized: "60 daily check-ins logged"), icon: "sparkles"),
 
         // Habit achievements — the daily-consistency engine the app now
         // leads with. Streaks reward sticking with a habit; "days" reward
         // breadth of completion; Perfect Day rewards clearing everything
         // due in a single day.
-        Achievement(id: "first_habit", title: "First Habit", description: "Create your first habit", icon: "checkmark.seal.fill"),
-        Achievement(id: "habit_streak_7", title: "Habit Spark", description: "7-day habit streak", icon: "flame.fill"),
-        Achievement(id: "habit_streak_30", title: "Habit Forged", description: "30-day habit streak", icon: "bolt.fill"),
-        Achievement(id: "habit_streak_90", title: "Habit Mastery", description: "90-day habit streak", icon: "trophy.fill"),
-        Achievement(id: "habit_days_50", title: "Fifty Strong", description: "Complete 50 habits", icon: "checkmark.circle.fill"),
-        Achievement(id: "habit_days_250", title: "Relentless", description: "Complete 250 habits", icon: "star.circle.fill"),
-        Achievement(id: "perfect_day", title: "Perfect Day", description: "Complete every habit due in a day", icon: "sparkles"),
-        Achievement(id: "perfect_week", title: "Perfect Week", description: "Complete every habit, every day, for a week", icon: "crown.fill"),
+        Achievement(id: "first_habit", title: String(localized: "First Habit"), description: String(localized: "Create your first habit"), icon: "checkmark.seal.fill"),
+        Achievement(id: "habit_streak_7", title: String(localized: "Habit Spark"), description: String(localized: "7-day habit streak"), icon: "flame.fill"),
+        Achievement(id: "habit_streak_30", title: String(localized: "Habit Forged"), description: String(localized: "30-day habit streak"), icon: "bolt.fill"),
+        Achievement(id: "habit_streak_90", title: String(localized: "Habit Mastery"), description: String(localized: "90-day habit streak"), icon: "trophy.fill"),
+        Achievement(id: "habit_days_50", title: String(localized: "Fifty Strong"), description: String(localized: "Complete 50 habits"), icon: "checkmark.circle.fill"),
+        Achievement(id: "habit_days_250", title: String(localized: "Relentless"), description: String(localized: "Complete 250 habits"), icon: "star.circle.fill"),
+        Achievement(id: "perfect_day", title: String(localized: "Perfect Day"), description: String(localized: "Complete every habit due in a day"), icon: "sparkles"),
+        Achievement(id: "perfect_week", title: String(localized: "Perfect Week"), description: String(localized: "Complete every habit, every day, for a week"), icon: "crown.fill"),
 
         // Training achievements — workouts now feed the rewards layer.
-        Achievement(id: "first_workout", title: "First Workout", description: "Finish your first workout", icon: "figure.strengthtraining.traditional"),
-        Achievement(id: "ten_workouts", title: "Getting Stronger", description: "Finish 10 workouts", icon: "dumbbell.fill"),
-        Achievement(id: "fifty_workouts", title: "Seasoned Lifter", description: "Finish 50 workouts", icon: "figure.run"),
-        Achievement(id: "hundred_workouts", title: "Iron Discipline", description: "Finish 100 workouts", icon: "trophy.fill"),
-        Achievement(id: "first_pr", title: "Personal Best", description: "Set your first personal record", icon: "medal.fill"),
+        Achievement(id: "first_workout", title: String(localized: "First Workout"), description: String(localized: "Finish your first workout"), icon: "figure.strengthtraining.traditional"),
+        Achievement(id: "ten_workouts", title: String(localized: "Getting Stronger"), description: String(localized: "Finish 10 workouts"), icon: "dumbbell.fill"),
+        Achievement(id: "fifty_workouts", title: String(localized: "Seasoned Lifter"), description: String(localized: "Finish 50 workouts"), icon: "figure.run"),
+        Achievement(id: "hundred_workouts", title: String(localized: "Iron Discipline"), description: String(localized: "Finish 100 workouts"), icon: "trophy.fill"),
+        Achievement(id: "first_pr", title: String(localized: "Personal Best"), description: String(localized: "Set your first personal record"), icon: "medal.fill"),
     ]
 }

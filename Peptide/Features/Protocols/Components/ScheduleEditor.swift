@@ -152,7 +152,7 @@ struct ScheduleEditor: View {
                     label: "Dose interval",
                     value: binding,
                     range: 1...30,
-                    formatter: { $0 == 1 ? "1 day" : "\($0) days" },
+                    formatter: { $0 == 1 ? String(localized: "1 day") : String(localized: "\($0) days") },
                     width: 88
                 )
             }
@@ -265,7 +265,7 @@ struct ScheduleEditor: View {
                 label: "Cycle length",
                 value: binding,
                 range: 1...24,
-                formatter: { "\($0) wk" },
+                formatter: { String(localized: "\($0) wk") },
                 width: 64
             )
         }

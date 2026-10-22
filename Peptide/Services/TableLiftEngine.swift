@@ -32,8 +32,8 @@ enum TableLiftEngine {
 
         var errorDescription: String? {
             switch self {
-            case .unreadablePhoto: "Couldn't read that photo. Try another one."
-            case .nothingFound:    "Couldn't find any dishes. Shoot straight down with the whole table in frame, or cut them out yourself."
+            case .unreadablePhoto: String(localized: "Couldn't read that photo. Try another one.")
+            case .nothingFound:    String(localized: "Couldn't find any dishes. Shoot straight down with the whole table in frame, or cut them out yourself.")
             }
         }
     }

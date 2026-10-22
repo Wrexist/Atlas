@@ -443,14 +443,14 @@ struct MolecularInfoSection: View {
 
                 VStack(spacing: Spacing.md) {
                     if showsFormula {
-                        MolecularRow(label: "Formula", value: molecular.formula, icon: "textformat.abc")
+                        MolecularRow(label: String(localized: "Formula"), value: molecular.formula, icon: "textformat.abc")
                     }
 
                     if !molecular.weight.isEmpty {
                         if showsFormula {
                             Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
                         }
-                        MolecularRow(label: "Molecular Weight", value: molecular.weight, icon: "scalemass.fill")
+                        MolecularRow(label: String(localized: "Molecular Weight"), value: molecular.weight, icon: "scalemass.fill")
                     }
 
                     if let cid = molecular.cid, cid > 0, !molecular.pubchemURL.isEmpty {

@@ -56,7 +56,7 @@ struct AffiliateApplySheet: View {
               scheme == "http" || scheme == "https",
               let host = components.host, !host.isEmpty
         else {
-            return "Use a full https:// link."
+            return String(localized: "Use a full https:// link.")
         }
         return nil
     }
@@ -148,14 +148,14 @@ struct AffiliateApplySheet: View {
     /// audit requires (2.3); without an endpoint the data stays
     /// local, so the copy must not claim otherwise.
     private var prefillDisclosure: some View {
-        let nameLine = userName.isEmpty ? nil : "Name: \(userName)"
-        let emailLine = userEmail.map { "Email: \($0)" }
+        let nameLine = userName.isEmpty ? nil : String(localized: "Name: \(userName)")
+        let emailLine = userEmail.map { String(localized: "Email: \($0)") }
         let hasPrefill = nameLine != nil || emailLine != nil
         let lead = AffiliateIntakeService.drainConfigured
             ? (hasPrefill
-                ? "Submitting sends your application to Atlas for review, including:"
-                : "Submitting sends your application to Atlas for review.")
-            : "We'll include:"
+                ? String(localized: "Submitting sends your application to Atlas for review, including:")
+                : String(localized: "Submitting sends your application to Atlas for review."))
+            : String(localized: "We'll include:")
         return Group {
             // With a live intake endpoint the disclosure must always
             // render — the handle/channel/notes transmit even when
@@ -195,7 +195,7 @@ struct AffiliateApplySheet: View {
 
     private var formCard: some View {
         VStack(spacing: Spacing.md) {
-            field(label: "Handle / name") {
+            field(label: String(localized: "Handle / name")) {
                 TextField("@yourhandle", text: $handle)
                     .focused($handleFocused)
                     .textInputAutocapitalization(.never)
@@ -203,7 +203,7 @@ struct AffiliateApplySheet: View {
                     .accessibilityLabel("Handle or name")
             }
 
-            field(label: "Main channel") {
+            field(label: String(localized: "Main channel")) {
                 Picker("Main channel", selection: $channel) {
                     ForEach(AffiliateApplication.Channel.allCases) { c in
                         Text(c.displayName).tag(c)
@@ -215,7 +215,7 @@ struct AffiliateApplySheet: View {
                 .accessibilityLabel("Main channel")
             }
 
-            field(label: "Audience size") {
+            field(label: String(localized: "Audience size")) {
                 Picker("Audience size", selection: $audienceBand) {
                     ForEach(AffiliateApplication.AudienceBand.allCases) { band in
                         Text(band.displayName).tag(band)
@@ -227,7 +227,7 @@ struct AffiliateApplySheet: View {
                 .accessibilityLabel("Audience size")
             }
 
-            field(label: "Channel URL (optional)") {
+            field(label: String(localized: "Channel URL (optional)")) {
                 TextField("https://…", text: $channelURL)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -245,7 +245,7 @@ struct AffiliateApplySheet: View {
                 }
             }
 
-            field(label: "Anything else? (optional)") {
+            field(label: String(localized: "Anything else? (optional)")) {
                 TextField("Audience demographics, post cadence, etc.", text: $notes, axis: .vertical)
                     .lineLimit(2...4)
                     .accessibilityLabel("Additional notes")
@@ -279,10 +279,10 @@ struct AffiliateApplySheet: View {
 
     private var perks: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            perkRow(icon: "ticket.fill",        text: "Personal referral code")
-            perkRow(icon: "creditcard.fill",    text: "Revenue share on every Pro signup you drive")
-            perkRow(icon: "chart.line.uptrend.xyaxis", text: "Creator dashboard with installs + conversions")
-            perkRow(icon: "envelope.fill",      text: "Direct line to the Atlas team")
+            perkRow(icon: "ticket.fill",        text: String(localized: "Personal referral code"))
+            perkRow(icon: "creditcard.fill",    text: String(localized: "Revenue share on every Pro signup you drive"))
+            perkRow(icon: "chart.line.uptrend.xyaxis", text: String(localized: "Creator dashboard with installs + conversions"))
+            perkRow(icon: "envelope.fill",      text: String(localized: "Direct line to the Atlas team"))
             Divider()
                 .background(AppColor.glassBorder)
                 .padding(.vertical, 2)
@@ -332,7 +332,7 @@ struct AffiliateApplySheet: View {
         let cleanURL = scrub(channelURL, allowingNewlines: false)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard validateURL(cleanURL) == nil else {
-            urlError = "Use a full https:// link."
+            urlError = String(localized: "Use a full https:// link.")
             return
         }
         let cleanNotes = scrub(notes, allowingNewlines: true)

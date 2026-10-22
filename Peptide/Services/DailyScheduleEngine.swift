@@ -24,13 +24,13 @@ enum DailyScheduleEngine {
 
         var title: String {
             switch self {
-            case .morningFasted:    return "Morning · Fasted"
-            case .morningWithFood:  return "Morning · With Food"
-            case .midday:           return "Midday"
+            case .morningFasted:    return String(localized: "Morning · Fasted")
+            case .morningWithFood:  return String(localized: "Morning · With Food")
+            case .midday:           return String(localized: "Midday")
             case .preWorkout:       return "Pre-Workout"
             case .postWorkout:      return "Post-Workout"
-            case .evening:          return "Evening"
-            case .preBed:           return "Before Bed"
+            case .evening:          return String(localized: "Evening")
+            case .preBed:           return String(localized: "Before Bed")
             }
         }
 
@@ -48,13 +48,13 @@ enum DailyScheduleEngine {
 
         var caption: String {
             switch self {
-            case .morningFasted:    return "On waking, empty stomach"
-            case .morningWithFood:  return "After breakfast"
+            case .morningFasted:    return String(localized: "On waking, empty stomach")
+            case .morningWithFood:  return String(localized: "After breakfast")
             case .midday:           return "Mid-day"
-            case .preWorkout:       return "30–45 min before training"
-            case .postWorkout:      return "Within 30 min of training"
-            case .evening:          return "Late afternoon / evening"
-            case .preBed:           return "30–60 min before sleep"
+            case .preWorkout:       return String(localized: "30–45 min before training")
+            case .postWorkout:      return String(localized: "Within 30 min of training")
+            case .evening:          return String(localized: "Late afternoon / evening")
+            case .preBed:           return String(localized: "30–60 min before sleep")
             }
         }
 
@@ -194,31 +194,31 @@ enum DailyScheduleEngine {
         /// Short, user-facing summary used as the card subtitle.
         /// Phrased to highlight the first action the user should take.
         var headline: String {
-            guard let first = slots.first?.doses.first else { return "Nothing scheduled today" }
+            guard let first = slots.first?.doses.first else { return String(localized: "Nothing scheduled today") }
             let abbrev = first.entry.peptide.abbreviation
             switch first.slot {
             case .morningFasted:
-                return "Start with \(abbrev) — fasted, on waking"
+                return String(localized: "Start with \(abbrev) — fasted, on waking")
             case .preBed:
-                return "End the day with \(abbrev) before bed"
+                return String(localized: "End the day with \(abbrev) before bed")
             case .postWorkout:
-                return "Take \(abbrev) right after training"
+                return String(localized: "Take \(abbrev) right after training")
             case .preWorkout:
-                return "Take \(abbrev) before training"
+                return String(localized: "Take \(abbrev) before training")
             default:
-                return "Begin with \(abbrev) at \(Self.shortTime(first.entry.date))"
+                return String(localized: "Begin with \(abbrev) at \(Self.shortTime(first.entry.date))")
             }
         }
 
         var summary: String {
             let slotCount = slots.count
             var parts: [String] = []
-            parts.append("\(totalDoses) \(totalDoses == 1 ? "dose" : "doses") across \(slotCount) \(slotCount == 1 ? "window" : "windows")")
+            parts.append(String(localized: "\(totalDoses) doses across \(slotCount) windows"))
             if combinationCount > 0 {
-                parts.append("\(combinationCount) co-inject \(combinationCount == 1 ? "match" : "matches")")
+                parts.append(String(localized: "\(combinationCount) co-inject matches"))
             }
             if conflictCount > 0 {
-                parts.append("\(conflictCount) timing \(conflictCount == 1 ? "note" : "notes")")
+                parts.append(String(localized: "\(conflictCount) timing notes"))
             }
             return parts.joined(separator: " · ")
         }
@@ -403,8 +403,8 @@ enum DailyScheduleEngine {
             for partner in avoid where companions.contains(partner) {
                 hints.append(ConflictHint(
                     severity: .caution,
-                    title: "Separate from \(partner) by 15+ min",
-                    detail: "Both are intranasal — back-to-back administration reduces absorption of the second peptide.",
+                    title: String(localized: "Separate from \(partner) by 15+ min"),
+                    detail: String(localized: "Both are intranasal — back-to-back administration reduces absorption of the second peptide."),
                     counterpart: partner
                 ))
             }
@@ -419,7 +419,7 @@ enum DailyScheduleEngine {
                     interaction.severity.rawValue == "danger" ? .danger : .caution
                 hints.append(ConflictHint(
                     severity: mapped,
-                    title: "Avoid same-day with \(partner)",
+                    title: String(localized: "Avoid same-day with \(partner)"),
                     detail: interaction.reason,
                     counterpart: partner
                 ))
@@ -436,7 +436,7 @@ enum DailyScheduleEngine {
                 if alreadyKnown { continue }
                 hints.append(ConflictHint(
                     severity: .caution,
-                    title: "Same pathway as \(partner)",
+                    title: String(localized: "Same pathway as \(partner)"),
                     detail: "\(group.pathway) — \(group.warningText)",
                     counterpart: partner
                 ))
@@ -446,13 +446,13 @@ enum DailyScheduleEngine {
         // Fasted reminder if at least one other dose lands in the same slot,
         // so the user knows not to break the fast for the second injection.
         if fastedRequired && !companions.isEmpty {
-            let fastedNote = "Stay fasted — don't eat for 30 min after injection. Other doses in this window can be taken back-to-back without breaking the fast."
+            let fastedNote = String(localized: "Stay fasted — don't eat for 30 min after injection. Other doses in this window can be taken back-to-back without breaking the fast.")
             // Only add if this is the first fasted-required peptide we see;
             // otherwise the note becomes redundant noise.
             if !hints.contains(where: { $0.title.hasPrefix("Stay fasted") }) {
                 hints.append(ConflictHint(
                     severity: .info,
-                    title: "Stay fasted",
+                    title: String(localized: "Stay fasted"),
                     detail: fastedNote,
                     counterpart: nil
                 ))

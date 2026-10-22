@@ -102,9 +102,9 @@ struct BiometricCard: View {
 
     private func statusLabel(for sample: HealthRangeService.Sample) -> String {
         switch sample.status {
-        case .lower:  return "Lower"
-        case .normal: return "Normal"
-        case .higher: return "Higher"
+        case .lower:  return String(localized: "Lower")
+        case .normal: return String(localized: "Normal")
+        case .higher: return String(localized: "Higher")
         }
     }
 

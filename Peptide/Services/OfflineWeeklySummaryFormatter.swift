@@ -37,28 +37,27 @@ enum OfflineWeeklySummaryFormatter {
         let total = aggregate.compliance.total
 
         if pct >= 90 {
-            return "Strong week — \(completed) of \(total) doses logged (\(pct)% compliance)."
+            return String(localized: "Strong week — \(completed) of \(total) doses logged (\(pct)% compliance).")
         }
         if pct >= 70 {
-            return "Solid week — \(completed) of \(total) doses logged (\(pct)% compliance)."
+            return String(localized: "Solid week — \(completed) of \(total) doses logged (\(pct)% compliance).")
         }
         if pct >= 40 {
-            return "Mixed week — \(completed) of \(total) doses logged (\(pct)%)."
+            return String(localized: "Mixed week — \(completed) of \(total) doses logged (\(pct)%).")
         }
-        return "Quiet week — \(completed) of \(total) doses logged (\(pct)%)."
+        return String(localized: "Quiet week — \(completed) of \(total) doses logged (\(pct)%).")
     }
 
     /// For a week with nothing scheduled — a training- or nutrition-only
     /// user — so the summary never leads with "0 of 0 doses".
     private static func dosesFreeOpener(for aggregate: WeeklyAggregate) -> String {
         if let outcomes = aggregate.outcomes, outcomes.checkInsCount > 0 {
-            let checkInWord = outcomes.checkInsCount == 1 ? "check-in" : "check-ins"
-            return "Your week in review — \(outcomes.checkInsCount) daily \(checkInWord) logged."
+                return String(localized: "Your week in review — \(outcomes.checkInsCount) daily check-ins logged.")
         }
         if let nutrition = aggregate.nutrition, nutrition.mealLoggingDays > 0 {
-            return "Your week in review — meals logged on \(nutrition.mealLoggingDays) of 7 days."
+            return String(localized: "Your week in review — meals logged on \(nutrition.mealLoggingDays) of 7 days.")
         }
-        return "Your week in review."
+        return String(localized: "Your week in review.")
     }
 
     // MARK: - Observations
@@ -68,10 +67,10 @@ enum OfflineWeeklySummaryFormatter {
 
         if aggregate.streak.current >= 7 {
             observations.append(
-                "You're on a \(aggregate.streak.current)-day streak — your best is \(aggregate.streak.best)."
+                String(localized: "You're on a \(aggregate.streak.current)-day streak — your best is \(aggregate.streak.best).")
             )
         } else if aggregate.streak.current >= 3 {
-            observations.append("Current streak: \(aggregate.streak.current) days.")
+            observations.append(String(localized: "Current streak: \(aggregate.streak.current) days."))
         }
 
         if let outcomes = aggregate.outcomes {
@@ -82,14 +81,14 @@ enum OfflineWeeklySummaryFormatter {
             let compStr = String(format: "%.1f", composite)
             if outcomes.compositeDelta > 0.2 {
                 observations.append(
-                    "Daily check-ins averaged \(compStr) of 5 — up from last week."
+                    String(localized: "Daily check-ins averaged \(compStr) of 5 — up from last week.")
                 )
             } else if outcomes.compositeDelta < -0.2 {
                 observations.append(
-                    "Daily check-ins averaged \(compStr) of 5 — down from last week."
+                    String(localized: "Daily check-ins averaged \(compStr) of 5 — down from last week.")
                 )
             } else {
-                observations.append("Daily check-ins averaged \(compStr) of 5.")
+                observations.append(String(localized: "Daily check-ins averaged \(compStr) of 5."))
             }
         }
 
@@ -97,31 +96,30 @@ enum OfflineWeeklySummaryFormatter {
             let onTarget = abs(nutrition.avgCalories - nutrition.targetCalories) <= 150
             if onTarget {
                 observations.append(
-                    "Nutrition stayed on target — \(nutrition.avgCalories) kcal average across \(nutrition.mealLoggingDays) days."
+                    String(localized: "Nutrition stayed on target — \(nutrition.avgCalories) kcal average across \(nutrition.mealLoggingDays) days.")
                 )
             } else if nutrition.avgCalories < nutrition.targetCalories {
                 observations.append(
-                    "Nutrition trended under target at \(nutrition.avgCalories) kcal/day."
+                    String(localized: "Nutrition trended under target at \(nutrition.avgCalories) kcal/day.")
                 )
             } else {
                 observations.append(
-                    "Nutrition trended over target at \(nutrition.avgCalories) kcal/day."
+                    String(localized: "Nutrition trended over target at \(nutrition.avgCalories) kcal/day.")
                 )
             }
         }
 
         if let bio = aggregate.biometrics, let delta = bio.hrvDelta, abs(delta) >= 3 {
             if delta > 0 {
-                observations.append("HRV moved up \(delta) ms vs last week.")
+                observations.append(String(localized: "HRV moved up \(delta) ms vs last week."))
             } else {
-                observations.append("HRV moved down \(abs(delta)) ms vs last week.")
+                observations.append(String(localized: "HRV moved down \(abs(delta)) ms vs last week."))
             }
         }
 
         if aggregate.labs.newPanelsLogged > 0 {
             let panels = aggregate.labs.newPanelsLogged
-            let panelWord = panels == 1 ? "panel" : "panels"
-            observations.append("Logged \(panels) new lab \(panelWord) this week.")
+            observations.append(String(localized: "Logged \(panels) new lab panels this week."))
         }
 
         return observations
@@ -131,19 +129,19 @@ enum OfflineWeeklySummaryFormatter {
 
     private static func closer(for aggregate: WeeklyAggregate) -> String {
         guard aggregate.compliance.total > 0 else {
-            return "Keep logging next week — every day of data sharpens the picture."
+            return String(localized: "Keep logging next week — every day of data sharpens the picture.")
         }
         let pct = aggregate.compliance.pct
 
         if pct >= 0.9 {
-            return "Keep the cadence steady next week — consistency at this level compounds."
+            return String(localized: "Keep the cadence steady next week — consistency at this level compounds.")
         }
         if pct >= 0.7 {
-            return "Aim to tighten one missed dose next week — small gains add up."
+            return String(localized: "Aim to tighten one missed dose next week — small gains add up.")
         }
         if pct >= 0.4 {
-            return "Pick one consistent time block next week and protect it."
+            return String(localized: "Pick one consistent time block next week and protect it.")
         }
-        return "Start with one dose tomorrow. Streaks rebuild faster than they look."
+        return String(localized: "Start with one dose tomorrow. Streaks rebuild faster than they look.")
     }
 }

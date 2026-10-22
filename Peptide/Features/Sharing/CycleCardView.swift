@@ -136,7 +136,7 @@ struct CycleCardView: View {
                     ? String(Character(UnicodeScalar(65 + index)!))
                     : peptide.abbreviation
                 let displayName: String = maskCompoundNames
-                    ? "Compound \(label)"
+                    ? String(localized: "Compound \(label)")
                     : peptide.name
                 CompoundVial(
                     compoundName: displayName,
@@ -181,12 +181,12 @@ struct CycleCardView: View {
     /// "Day 0 of 84" read as a broken counter for a protocol that
     /// hasn't begun; name the start date instead.
     private var cycleProgressLine: String {
-        guard model.cycleDay > 0 else { return "Starts \(activeSinceFormatted)" }
-        return "Day \(model.cycleDay) of \(model.cycleTotalDays) cycle"
+        guard model.cycleDay > 0 else { return String(localized: "Starts \(activeSinceFormatted)") }
+        return String(localized: "Day \(model.cycleDay) of \(model.cycleTotalDays) cycle")
     }
 
     private var streakLabel: String {
-        model.currentStreakDays == 1 ? "1 day" : "\(model.currentStreakDays) days"
+        model.currentStreakDays == 1 ? String(localized: "1 day") : String(localized: "\(model.currentStreakDays) days")
     }
 
     private func atlasMark(size: CGFloat) -> some View {
@@ -204,15 +204,15 @@ struct CycleCardView: View {
         HStack(spacing: 18) {
             statCard(
                 value: "\(model.dosesLogged)",
-                label: "Doses logged"
+                label: String(localized: "Doses logged")
             )
             statCard(
                 value: "\(model.adherencePercent)%",
-                label: "Adherence"
+                label: String(localized: "Adherence")
             )
             statCard(
                 value: streakLabel,
-                label: "Streak",
+                label: String(localized: "Streak"),
                 trailingGlyph: "🔥"
             )
         }
@@ -268,21 +268,21 @@ struct CycleCardView: View {
                     healthCard(
                         icon: kg >= 0 ? "arrow.up" : "arrow.down",
                         value: String(format: "%@%.1f %@", kg >= 0 ? "+" : "", unit.weightForDisplay(kg), unit.weightSuffix),
-                        label: "Weight"
+                        label: String(localized: "Weight")
                     )
                 }
                 if let hours = summary.avgSleepHours {
                     healthCard(
                         icon: "moon.fill",
                         value: String(format: "%.1f h", hours),
-                        label: "Avg sleep"
+                        label: String(localized: "Avg sleep")
                     )
                 }
                 if let trend = summary.hrvTrendDescription {
                     healthCard(
                         icon: "waveform.path.ecg",
                         value: trend,
-                        label: "HRV"
+                        label: String(localized: "HRV")
                     )
                 }
             }
@@ -374,16 +374,16 @@ struct CycleCardView: View {
             names = model.peptides
                 .enumerated()
                 .map { idx, _ in
-                    "Compound " + String(Character(UnicodeScalar(65 + idx)!))
+                    String(localized: "Compound ") + String(Character(UnicodeScalar(65 + idx)!))
                 }
                 .joined(separator: ", ")
         } else {
             names = model.peptides.map(\.abbreviation).joined(separator: ", ")
         }
-        return "\(model.subjectTitle) cycle card. \(cycleProgressLine). " +
-               "Peptides: \(names). " +
-               "Doses logged: \(model.dosesLogged). Adherence: \(model.adherencePercent) percent. " +
-               "Streak: \(streakLabel). Watermark: Atlas."
+        return String(localized: "\(model.subjectTitle) cycle card. \(cycleProgressLine). ") +
+               String(localized: "Peptides: \(names). ") +
+               String(localized: "Doses logged: \(model.dosesLogged). Adherence: \(model.adherencePercent) percent. ") +
+               String(localized: "Streak: \(streakLabel). Watermark: Atlas.")
     }
 
     // MARK: - QR generation

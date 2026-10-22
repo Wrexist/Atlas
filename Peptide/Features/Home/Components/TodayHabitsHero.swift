@@ -217,10 +217,10 @@ struct TodayHabitsHero: View {
 
     private var summaryAccessibilityLabel: String {
         let progress = snapshot.dueCount > 0
-            ? "\(snapshot.doneCount) of \(snapshot.dueCount) habits done today"
-            : "No habits due today"
+            ? String(localized: "\(snapshot.doneCount) of \(snapshot.dueCount) habits done today")
+            : String(localized: "No habits due today")
         let streak = snapshot.bestCurrentStreak > 0
-            ? ", \(snapshot.bestCurrentStreak) day streak"
+            ? String(localized: ", \(snapshot.bestCurrentStreak) day streak")
             : ""
         return progress + streak
     }

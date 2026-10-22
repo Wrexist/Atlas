@@ -96,7 +96,7 @@ struct AppendStackPickerSheet: View {
     private func subtitle(for proto: PeptideProtocol) -> String {
         let abbreviations = proto.peptides.prefix(3).map(\.abbreviation).joined(separator: " · ")
         let extras = proto.peptides.count > 3 ? " +\(proto.peptides.count - 3)" : ""
-        let body = abbreviations.isEmpty ? "Empty protocol" : abbreviations + extras
+        let body = abbreviations.isEmpty ? String(localized: "Empty protocol") : abbreviations + extras
         return "\(body) — \(proto.schedule.summary)"
     }
 }

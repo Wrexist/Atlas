@@ -312,12 +312,12 @@ struct HeroMetricValue: Equatable, Sendable {
     func accessibilityLabel(for kind: HeroMetricKind) -> String {
         let name: String
         switch kind {
-        case .adherence: name = "Adherence"
-        case .recovery:  name = "Recovery"
-        case .sleep:     name = "Sleep"
+        case .adherence: name = String(localized: "Adherence")
+        case .recovery:  name = String(localized: "Recovery")
+        case .sleep:     name = String(localized: "Sleep")
         }
-        guard isAvailable else { return "\(name), no data" }
-        return "\(name), \(displayPercent) percent"
+        guard isAvailable else { return String(localized: "\(name), no data") }
+        return String(localized: "\(name), \(displayPercent) percent")
     }
 }
 

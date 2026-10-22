@@ -373,17 +373,17 @@ enum WeeklySummaryEngine {
         let complianceDeltaPoints = (current.keyStats.compliancePct - previous.keyStats.compliancePct) * 100
         if abs(complianceDeltaPoints) >= meaningfulCompliancePercentPoints {
             let direction = complianceDeltaPoints > 0 ? "up" : "down"
-            return "Compliance \(direction) \(Int(abs(complianceDeltaPoints).rounded()))% from last week"
+            return String(localized: "Compliance \(direction) \(Int(abs(complianceDeltaPoints).rounded()))% from last week")
         }
 
         let streakDelta = current.keyStats.currentStreak - previous.keyStats.currentStreak
         if streakDelta >= meaningfulStreakDays {
-            return "Your streak grew by \(streakDelta) days this week"
+            return String(localized: "Your streak grew by \(streakDelta) days this week")
         }
 
         if let hrvDelta = current.keyStats.hrvDelta, abs(hrvDelta) >= meaningfulHRVDeltaMs {
             let direction = hrvDelta > 0 ? "up" : "down"
-            return "HRV \(direction) \(abs(hrvDelta)) ms versus last week"
+            return String(localized: "HRV \(direction) \(abs(hrvDelta)) ms versus last week")
         }
 
         return nil

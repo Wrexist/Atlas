@@ -91,7 +91,7 @@ struct ReplaceScannedFoodSheet: View {
         } catch {
             guard !Task.isCancelled else { return }
             loading = false
-            errorText = "Couldn't search the food database. Retry, or choose one of your saved foods."
+            errorText = String(localized: "Couldn't search the food database. Retry, or choose one of your saved foods.")
         }
     }
 }

@@ -47,9 +47,9 @@ struct ProtocolBuilderView: View {
     private var isEditing: Bool { editingProtocol != nil }
 
     private var builderTitle: String {
-        if isEditing { return "Edit Protocol" }
-        if isAppending, let target = appendTargetProtocol { return "Add to \(target.name)" }
-        return "New Protocol"
+        if isEditing { return String(localized: "Edit Protocol") }
+        if isAppending, let target = appendTargetProtocol { return String(localized: "Add to \(target.name)") }
+        return String(localized: "New Protocol")
     }
 
     private func appendToExistingStack() {
@@ -110,7 +110,7 @@ struct ProtocolBuilderView: View {
     private var previewProtocol: PeptideProtocol {
         PeptideProtocol(
             id: editingProtocol?.id ?? previewID,
-            name: name.trimmingCharacters(in: .whitespaces).isEmpty ? "New Protocol" : name,
+            name: name.trimmingCharacters(in: .whitespaces).isEmpty ? String(localized: "New Protocol") : name,
             peptides: orderedSelectedPeptides,
             schedule: defaultSchedule,
             peptideSchedules: peptideOverrides,

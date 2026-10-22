@@ -136,7 +136,7 @@ struct SubscriptionSection: View {
             try await storeService.restorePurchases()
         } catch {
             restoreState = .idle
-            restoreError = "Couldn't reach the App Store. Check your connection and try again."
+            restoreError = String(localized: "Couldn't reach the App Store. Check your connection and try again.")
             return
         }
         Haptics.success()

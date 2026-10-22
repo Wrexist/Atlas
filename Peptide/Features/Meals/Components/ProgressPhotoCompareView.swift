@@ -101,7 +101,7 @@ struct ProgressPhotoCompareView: View {
     }
 
     private var olderLabel: String {
-        guard let compare = resolvedCompare else { return "Before" }
+        guard let compare = resolvedCompare else { return String(localized: "Before") }
         return ProgressPhotoMetadata.displayDate(forFilename: compare)
     }
 

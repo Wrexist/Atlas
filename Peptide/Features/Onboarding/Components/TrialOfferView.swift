@@ -36,8 +36,8 @@ struct TrialOfferView: View {
         var id: String { rawValue }
         var displayName: String {
             switch self {
-            case .annual:  return "Yearly"
-            case .monthly: return "Monthly"
+            case .annual:  return String(localized: "Yearly")
+            case .monthly: return String(localized: "Monthly")
             }
         }
     }
@@ -191,38 +191,38 @@ struct TrialOfferView: View {
     /// at rest. A paywall you have to scroll to find the price on converts
     /// worse, and one that shows the *wrong* price converts worse still.
     private var headlineEyebrow: String {
-        guard let days = trialDays else { return "YOUR WELCOME OFFER" }
-        return "YOUR \(days)-DAY FREE TRIAL"
+        guard let days = trialDays else { return String(localized: "YOUR WELCOME OFFER") }
+        return String(localized: "YOUR \(days)-DAY FREE TRIAL")
     }
 
     private var headlineHero: String {
         guard let days = trialDays else {
             return selectedTier == .annual ? annualPrice : monthlyPrice
         }
-        return "\(days) Days Free"
+        return String(localized: "\(days) Days Free")
     }
 
     private var headlinePlan: String {
         switch selectedTier {
-        case .annual:  return "Atlas Pro Yearly"
-        case .monthly: return "Atlas Pro Monthly"
+        case .annual:  return String(localized: "Atlas Pro Yearly")
+        case .monthly: return String(localized: "Atlas Pro Monthly")
         }
     }
 
     private var headlineSupport: String {
-        guard arePricesLoaded else { return "Loading plans…" }
+        guard arePricesLoaded else { return String(localized: "Loading plans…") }
         // "Then …" only reads correctly when something comes first. Once the
         // trial is spent it's just the price, so the lead-in has to go.
-        let lead = trialDays == nil ? "" : "Then "
+        let lead = trialDays == nil ? "" : String(localized: "Then ")
         switch selectedTier {
         case .annual:
             // Guideline 3.1.2(c): the billed amount leads; the per-month
             // equivalent is the secondary figure.
-            let billed = "\(lead)\(annualPrice)/year · \(annualPerMonthPrice)/mo"
+            let billed = String(localized: "\(lead)\(annualPrice)/year · \(annualPerMonthPrice)/mo")
             guard let saved = annualSavingsPercent else { return billed }
-            return "\(billed) — save \(saved)%"
+            return String(localized: "\(billed) — save \(saved)%")
         case .monthly:
-            return "\(lead)\(monthlyPrice)/month — cancel anytime"
+            return String(localized: "\(lead)\(monthlyPrice)/month — cancel anytime")
         }
     }
 
@@ -301,8 +301,8 @@ struct TrialOfferView: View {
         // "Free trial" only while this Apple ID can still redeem one —
         // same eligibility gate as the headline and the CTA.
         let caption = trialDays != nil
-            ? "Best value — start with a free trial"
-            : "Best value — full access, cancel anytime"
+            ? String(localized: "Best value — start with a free trial")
+            : String(localized: "Best value — full access, cancel anytime")
         return HStack(spacing: Spacing.xs) {
             Image(systemName: "bolt.fill")
                 .font(AppFont.scaled(13, weight: .bold))
@@ -410,7 +410,7 @@ struct TrialOfferView: View {
                             // when the A/B order put yearly second. "Best
                             // value" is what the savings maths supports;
                             // "most popular" was an unverified claim.
-                            Text(annualSavingsPercent.map { "BEST VALUE · SAVE \($0)%" } ?? "BEST VALUE")
+                            Text(annualSavingsPercent.map { String(localized: "BEST VALUE · SAVE \($0)%") } ?? String(localized: "BEST VALUE"))
                                 .font(AppFont.badge)
                                 .tracking(0.6)
                                 .foregroundStyle(AppColor.onAccent)
@@ -478,12 +478,12 @@ struct TrialOfferView: View {
         switch tier {
         case .annual:
             let perMonth = "\(annualPerMonthPrice)/mo"
-            guard let days else { return "Just \(perMonth)" }
-            return "\(days) days free · \(perMonth)"
+            guard let days else { return String(localized: "Just \(perMonth)") }
+            return String(localized: "\(days) days free · \(perMonth)")
         case .monthly:
             let billed = "\(monthlyPrice)/mo"
-            guard let days else { return "Billed \(billed)" }
-            return "\(days) days free, then \(billed)"
+            guard let days else { return String(localized: "Billed \(billed)") }
+            return String(localized: "\(days) days free, then \(billed)")
         }
     }
 
@@ -594,9 +594,9 @@ struct TrialOfferView: View {
     /// Top line of the CTA: what the tap gets you, never "Continue".
     private var ctaTitle: String {
         guard let days = trialDays else {
-            return selectedTier == .annual ? "Get Atlas Pro Yearly" : "Get Atlas Pro Monthly"
+            return selectedTier == .annual ? String(localized: "Get Atlas Pro Yearly") : String(localized: "Get Atlas Pro Monthly")
         }
-        return "Start My \(days)-Day Free Trial"
+        return String(localized: "Start My \(days)-Day Free Trial")
     }
 
     /// Second line of the CTA: the charge, in the user's own currency. A
@@ -604,12 +604,12 @@ struct TrialOfferView: View {
     /// user to guess whether tapping it bills them, and the ones who guess
     /// wrong cancel within the hour.
     private var ctaDetail: String {
-        guard arePricesLoaded else { return "Loading plans…" }
+        guard arePricesLoaded else { return String(localized: "Loading plans…") }
         let price = selectedTier == .annual
             ? "\(annualPrice)/yr"
             : "\(monthlyPrice)/mo"
-        guard trialDays != nil else { return "\(price) · cancel anytime" }
-        return "\(zeroPriceToday) today, then \(price)"
+        guard trialDays != nil else { return String(localized: "\(price) · cancel anytime") }
+        return String(localized: "\(zeroPriceToday) today, then \(price)")
     }
 
     /// A localised zero in the selected plan's currency — "$0.00", "0,00 kr".
@@ -622,18 +622,18 @@ struct TrialOfferView: View {
     /// not on the tier: "no charge today" is a promise about this Apple ID,
     /// and it stops being true the moment the shared intro offer is spent.
     private var reassuranceCopy: String {
-        guard trialDays != nil else { return "Cancel anytime · Secured by the App Store" }
-        return "No charge today · Cancel anytime"
+        guard trialDays != nil else { return String(localized: "Cancel anytime · Secured by the App Store") }
+        return String(localized: "No charge today · Cancel anytime")
     }
 
     private var legalCopy: String {
-        guard arePricesLoaded else { return "Subscription terms appear once plans load." }
+        guard arePricesLoaded else { return String(localized: "Subscription terms appear once plans load.") }
         let plan = selectedTier == .annual
-            ? "\(annualPrice) per year for the Atlas Pro Yearly subscription"
-            : "\(monthlyPrice) per month for the Atlas Pro Monthly subscription"
-        let renewal = "Auto-renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → Apple ID → Subscriptions."
-        guard let days = trialDays else { return "Billed \(plan). \(renewal)" }
-        return "No charge for \(days) days. Then \(plan). \(renewal)"
+            ? String(localized: "\(annualPrice) per year for the Atlas Pro Yearly subscription")
+            : String(localized: "\(monthlyPrice) per month for the Atlas Pro Monthly subscription")
+        let renewal = String(localized: "Auto-renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → Apple ID → Subscriptions.")
+        guard let days = trialDays else { return String(localized: "Billed \(plan). \(renewal)") }
+        return String(localized: "No charge for \(days) days. Then \(plan). \(renewal)")
     }
 
     // MARK: - Actions
@@ -643,7 +643,7 @@ struct TrialOfferView: View {
         Haptics.impact(.medium)
         errorMessage = nil
         guard let product = productForSelectedTier else {
-            AppAnimation.with(AppAnimation.fadeIn) { errorMessage = "Plan still loading. Try again in a moment." }
+            AppAnimation.with(AppAnimation.fadeIn) { errorMessage = String(localized: "Plan still loading. Try again in a moment.") }
             return
         }
         isPurchasing = true
@@ -663,13 +663,13 @@ struct TrialOfferView: View {
                     onAccept()
                 case .pending:
                     AppAnimation.with(AppAnimation.fadeIn) {
-                        errorMessage = "Purchase pending approval. We'll unlock Pro as soon as it's approved."
+                        errorMessage = String(localized: "Purchase pending approval. We'll unlock Pro as soon as it's approved.")
                     }
                 case .userCancelled:
                     break // no UI noise on explicit cancel
                 }
             } catch {
-                AppAnimation.with(AppAnimation.fadeIn) { errorMessage = "Couldn't complete the purchase. Please try again." }
+                AppAnimation.with(AppAnimation.fadeIn) { errorMessage = String(localized: "Couldn't complete the purchase. Please try again.") }
             }
         }
     }
@@ -688,10 +688,10 @@ struct TrialOfferView: View {
                     Haptics.success()
                     onAccept()
                 } else {
-                    AppAnimation.with(AppAnimation.fadeIn) { errorMessage = "No previous purchase found to restore." }
+                    AppAnimation.with(AppAnimation.fadeIn) { errorMessage = String(localized: "No previous purchase found to restore.") }
                 }
             } catch {
-                AppAnimation.with(AppAnimation.fadeIn) { errorMessage = "Restore failed. Check your internet connection and try again." }
+                AppAnimation.with(AppAnimation.fadeIn) { errorMessage = String(localized: "Restore failed. Check your internet connection and try again.") }
             }
         }
     }

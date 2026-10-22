@@ -82,10 +82,10 @@ struct CommunityStackDetailView: View {
                 }
 
                 HStack(spacing: Spacing.xl) {
-                    miniStat(value: "\(stack.peptideAbbreviations.count)", label: "Peptides")
-                    miniStat(value: "\(stack.cycleLengthWeeks)w", label: "Cycle")
-                    miniStat(value: "\(stack.scheduleTimesPerDay)x", label: "Per day")
-                    miniStat(value: "\(stack.scheduleDaysOfWeek.count)d", label: "Per week")
+                    miniStat(value: "\(stack.peptideAbbreviations.count)", label: String(localized: "Peptides"))
+                    miniStat(value: "\(stack.cycleLengthWeeks)w", label: String(localized: "Cycle"))
+                    miniStat(value: "\(stack.scheduleTimesPerDay)x", label: String(localized: "Per day"))
+                    miniStat(value: "\(stack.scheduleDaysOfWeek.count)d", label: String(localized: "Per week"))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

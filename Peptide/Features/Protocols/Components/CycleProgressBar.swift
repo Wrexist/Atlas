@@ -37,6 +37,6 @@ struct CycleProgressBar: View {
     private var accessibilityValue: String {
         let start = protocol_.startDate.formatted(.dateTime.month(.wide).day())
         let end = protocol_.endDate.formatted(.dateTime.month(.wide).day())
-        return "\(Int(protocol_.cycleProgress * 100)) percent, \(start) to \(end)"
+        return String(localized: "\(Int(protocol_.cycleProgress * 100)) percent, \(start) to \(end)")
     }
 }

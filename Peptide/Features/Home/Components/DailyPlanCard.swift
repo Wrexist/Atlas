@@ -70,7 +70,7 @@ struct DailyPlanCard: View {
                     .rotationEffect(.degrees(isExpanded ? 180 : 0))
                 Text(isExpanded
                      ? "Show less"
-                     : "Show \(hiddenSlotCount) more time slot\(hiddenSlotCount == 1 ? "" : "s")")
+                     : "Show \(hiddenSlotCount) more time slots")
                     .font(AppFont.caption)
                     .fontWeight(.semibold)
             }

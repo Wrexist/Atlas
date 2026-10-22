@@ -126,9 +126,9 @@ enum CoachingMessageEngine {
     private static func welcomeMessage() -> CoachingMessage {
         CoachingMessage(
             icon: "sparkles",
-            eyebrow: "WELCOME",
-            title: "Set up your first protocol",
-            body: "Atlas builds your schedule, tracks every dose, and learns your patterns.",
+            eyebrow: String(localized: "WELCOME"),
+            title: String(localized: "Set up your first protocol"),
+            body: String(localized: "Atlas builds your schedule, tracks every dose, and learns your patterns."),
             tone: .welcome
         )
     }
@@ -136,9 +136,9 @@ enum CoachingMessageEngine {
     private static func connectHealthMessage() -> CoachingMessage {
         CoachingMessage(
             icon: "heart.text.square.fill",
-            eyebrow: "GET STARTED",
-            title: "Connect Apple Health",
-            body: "Unlock Recovery and Sleep scores plus per-protocol HRV correlations.",
+            eyebrow: String(localized: "GET STARTED"),
+            title: String(localized: "Connect Apple Health"),
+            body: String(localized: "Unlock Recovery and Sleep scores plus per-protocol HRV correlations."),
             tone: .neutral
         )
     }
@@ -146,14 +146,14 @@ enum CoachingMessageEngine {
     private static func strongRecoveryMessage(context: Context, recovery: Int) -> CoachingMessage {
         let body: String
         if let dose = context.nextDoseAbbreviation, let time = context.nextDoseTimeDisplay {
-            body = "Recovery is up — good day to nail your \(dose) dose at \(time)."
+            body = String(localized: "Recovery is up — good day to nail your \(dose) dose at \(time).")
         } else {
-            body = "Recovery is up. Good day to push and stay consistent."
+            body = String(localized: "Recovery is up. Good day to push and stay consistent.")
         }
         return CoachingMessage(
             icon: "bolt.heart.fill",
-            eyebrow: "COACHING",
-            title: "Excellent recovery — \(recovery)%",
+            eyebrow: String(localized: "COACHING"),
+            title: String(localized: "Excellent recovery — \(recovery)%"),
             body: body,
             tone: .positive
         )
@@ -162,9 +162,9 @@ enum CoachingMessageEngine {
     private static func weakRecoveryMessage(context: Context, recovery: Int) -> CoachingMessage {
         CoachingMessage(
             icon: "moon.zzz.fill",
-            eyebrow: "COACHING",
-            title: "Lower recovery — \(recovery)%",
-            body: "Consider an easier day. Hydrate, prioritize sleep, and don't skip rest doses.",
+            eyebrow: String(localized: "COACHING"),
+            title: String(localized: "Lower recovery — \(recovery)%"),
+            body: String(localized: "Consider an easier day. Hydrate, prioritize sleep, and don't skip rest doses."),
             tone: .cautionary
         )
     }
@@ -173,20 +173,19 @@ enum CoachingMessageEngine {
         let display = String(format: "%.1f", sleepHours)
         return CoachingMessage(
             icon: "bed.double.fill",
-            eyebrow: "COACHING",
-            title: "Short sleep — \(display) h",
-            body: "Cap intensity today. A long nap or an earlier wind-down will pay back tomorrow.",
+            eyebrow: String(localized: "COACHING"),
+            title: String(localized: "Short sleep — \(display) h"),
+            body: String(localized: "Cap intensity today. A long nap or an earlier wind-down will pay back tomorrow."),
             tone: .cautionary
         )
     }
 
     private static func catchUpMessage(pending: Int) -> CoachingMessage {
-        let plural = pending == 1 ? "dose" : "doses"
         return CoachingMessage(
             icon: "clock.badge.exclamationmark.fill",
-            eyebrow: "COACHING",
-            title: "\(pending) \(plural) left today",
-            body: "Tap a dose card below — Atlas logs the actual time, not the scheduled one.",
+            eyebrow: String(localized: "COACHING"),
+            title: String(localized: "\(pending) doses left today"),
+            body: String(localized: "Tap a dose card below — Atlas logs the actual time, not the scheduled one."),
             tone: .cautionary
         )
     }
@@ -195,17 +194,17 @@ enum CoachingMessageEngine {
         if let dose = context.nextDoseAbbreviation, let time = context.nextDoseTimeDisplay {
             return CoachingMessage(
                 icon: "checkmark.circle.fill",
-                eyebrow: "ON TRACK",
-                title: "You're on track",
-                body: "Next: \(dose) at \(time). Keep it steady.",
+                eyebrow: String(localized: "ON TRACK"),
+                title: String(localized: "You're on track"),
+                body: String(localized: "Next: \(dose) at \(time). Keep it steady."),
                 tone: .positive
             )
         }
         return CoachingMessage(
             icon: "checkmark.circle.fill",
-            eyebrow: "ON TRACK",
-            title: "You're on track",
-            body: "No pending doses right now — enjoy the gap.",
+            eyebrow: String(localized: "ON TRACK"),
+            title: String(localized: "You're on track"),
+            body: String(localized: "No pending doses right now — enjoy the gap."),
             tone: .positive
         )
     }

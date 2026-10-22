@@ -104,7 +104,7 @@ struct WorkoutFinishView: View {
         }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: Spacing.xs) {
-                RecapAction(title: "Done", action: onClose).accessibilityIdentifier("recap-done")
+                RecapAction(title: String(localized: "Done"), action: onClose).accessibilityIdentifier("recap-done")
                 Button { sharing = true } label: {
                     Label("Share workout", systemImage: "square.and.arrow.up")
                         .font(AppFont.subheadline).frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
@@ -127,7 +127,7 @@ struct WorkoutFinishView: View {
                 announced = true
                 celebrated = true
                 Haptics.success()
-                AccessibilityNotification.Announcement("Workout saved").post()
+                AccessibilityNotification.Announcement(String(localized: "Workout saved")).post()
                 await celebratePRs()
             }
         }

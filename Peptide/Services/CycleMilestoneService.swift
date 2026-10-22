@@ -24,9 +24,9 @@ final class CycleMilestoneService {
         /// Type setting.
         var prompt: String {
             switch self {
-            case .day7:      "Share your week 1 snapshot?"
-            case .day30:     "Share your 30-day protocol card?"
-            case .completed: "You finished a cycle! Share your results?"
+            case .day7:      String(localized: "Share your week 1 snapshot?")
+            case .day30:     String(localized: "Share your 30-day protocol card?")
+            case .completed: String(localized: "You finished a cycle! Share your results?")
             }
         }
     }

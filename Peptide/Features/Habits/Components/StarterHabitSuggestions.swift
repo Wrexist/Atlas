@@ -27,12 +27,12 @@ struct HabitTemplate: Identifiable {
     }
 
     static let starters: [HabitTemplate] = [
-        HabitTemplate(name: "Drink water", iconSymbol: "drop.fill", tintHex: 0x6B8AFF, targetValue: 8, category: .health),
-        HabitTemplate(name: "10-min walk", iconSymbol: "shoeprints.fill", tintHex: 0x5BC489, targetValue: nil, category: .fitness),
-        HabitTemplate(name: "Read", iconSymbol: "book.fill", tintHex: 0xC59FFF, targetValue: nil, category: .learning),
-        HabitTemplate(name: "Stretch", iconSymbol: "figure.cooldown", tintHex: 0x4CB8C4, targetValue: nil, category: .fitness),
-        HabitTemplate(name: "Meditate", iconSymbol: "leaf.fill", tintHex: 0x9B72CF, targetValue: nil, category: .mindfulness),
-        HabitTemplate(name: "Vitamins", iconSymbol: "pills.fill", tintHex: 0xD4A844, targetValue: nil, category: .health),
+        HabitTemplate(name: String(localized: "Drink water"), iconSymbol: "drop.fill", tintHex: 0x6B8AFF, targetValue: 8, category: .health),
+        HabitTemplate(name: String(localized: "10-min walk"), iconSymbol: "shoeprints.fill", tintHex: 0x5BC489, targetValue: nil, category: .fitness),
+        HabitTemplate(name: String(localized: "Read"), iconSymbol: "book.fill", tintHex: 0xC59FFF, targetValue: nil, category: .learning),
+        HabitTemplate(name: String(localized: "Stretch"), iconSymbol: "figure.cooldown", tintHex: 0x4CB8C4, targetValue: nil, category: .fitness),
+        HabitTemplate(name: String(localized: "Meditate"), iconSymbol: "leaf.fill", tintHex: 0x9B72CF, targetValue: nil, category: .mindfulness),
+        HabitTemplate(name: String(localized: "Vitamins"), iconSymbol: "pills.fill", tintHex: 0xD4A844, targetValue: nil, category: .health),
     ]
 }
 

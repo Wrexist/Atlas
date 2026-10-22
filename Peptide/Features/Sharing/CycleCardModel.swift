@@ -100,7 +100,7 @@ extension CycleCardModel {
         let raw = Calendar.current.dateComponents([.day], from: earliestStart, to: Date()).day ?? 0
         let cycleDay = max(1, raw + 1)
         return CycleCardModel(
-            subjectTitle: "My Protocol",
+            subjectTitle: String(localized: "My Protocol"),
             peptides: dataStore.stackPeptides,
             activeSinceDate: earliestStart,
             cycleDay: cycleDay,

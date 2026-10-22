@@ -95,7 +95,7 @@ struct ActiveWorkoutView: View {
                sessionService.activeSession?.focus?.rest?.endsAt == end {
                 // Strong enough to feel with the phone face-down on a bench.
                 Haptics.success()
-                AccessibilityNotification.Announcement("Rest finished. Your next set is ready.").post()
+                AccessibilityNotification.Announcement(String(localized: "Rest finished. Your next set is ready.")).post()
             }
             sessionService.reconcileRest()
         }
@@ -171,8 +171,8 @@ struct ActiveWorkoutView: View {
                     detectedPRCount: finished.detectedPRs.count,
                     completedWorkoutCount: SwiftDataRepository.shared.workoutSessionCount())
             } else {
-                saveError = sessionService.lastFinishError ?? "Could not save workout. Return to your workout and try again."
-                AccessibilityNotification.Announcement("Could not save workout").post()
+                saveError = sessionService.lastFinishError ?? String(localized: "Could not save workout. Return to your workout and try again.")
+                AccessibilityNotification.Announcement(String(localized: "Could not save workout")).post()
             }
             saving = false
         }
@@ -434,7 +434,7 @@ private struct FinishWorkoutSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     /// `WorkoutSession.perceivedEffort` is a 1–5 rating; label n names n.
-    private static let effortLabels = ["Easy", "Moderate", "Hard", "Very hard", "Max"]
+    private static let effortLabels = [String(localized: "Easy"), String(localized: "Moderate"), String(localized: "Hard"), String(localized: "Very hard"), String(localized: "Max")]
     private static let noteLimit = 500
 
     var body: some View {

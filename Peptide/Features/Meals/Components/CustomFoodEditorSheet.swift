@@ -84,7 +84,7 @@ struct CustomFoodEditorSheet: View {
         }
         let macros = [protein, carbs, fat].compactMap { Self.parseDecimal($0) }.reduce(0, +)
         if macros > 100 {
-            return "Protein, carbs and fat can't add up to more than 100 g per 100 g."
+            return String(localized: "Protein, carbs and fat can't add up to more than 100 g per 100 g.")
         }
         return nil
     }

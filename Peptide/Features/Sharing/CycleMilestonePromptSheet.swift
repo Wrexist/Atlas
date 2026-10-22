@@ -76,11 +76,11 @@ struct CycleMilestonePromptSheet: View {
     private var subtitle: String {
         switch milestone {
         case .day7:
-            return "A week of consistency on \(proto.name) — show off the streak."
+            return String(localized: "A week of consistency on \(proto.name) — show off the streak.")
         case .day30:
-            return "30 days in on \(proto.name). Share your progress."
+            return String(localized: "30 days in on \(proto.name). Share your progress.")
         case .completed:
-            return "\(proto.name) is complete. Drop the wrap-up into a story."
+            return String(localized: "\(proto.name) is complete. Drop the wrap-up into a story.")
         }
     }
 }

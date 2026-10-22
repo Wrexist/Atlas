@@ -80,12 +80,12 @@ struct ProtocolDetailView: View {
                             let weekLabel: String = liveProtocol.cycleNumber > 1
                                 ? String(localized: "C\(liveProtocol.cycleNumber) · W\(liveProtocol.weekNumber)", comment: "Protocol detail — abbreviation for 'Cycle N · Week M' when the user is on their second or later cycle")
                                 : String(localized: "Week \(liveProtocol.weekNumber)", comment: "Protocol detail — first-cycle week label")
-                            MiniStat(value: weekLabel, label: "Current")
-                            MiniStat(value: "\(liveProtocol.daysRemaining)", label: "Days Left")
+                            MiniStat(value: weekLabel, label: String(localized: "Current"))
+                            MiniStat(value: "\(liveProtocol.daysRemaining)", label: String(localized: "Days Left"))
                             if let adherencePercent {
-                                MiniStat(value: "\(adherencePercent)%", label: "Adherence")
+                                MiniStat(value: "\(adherencePercent)%", label: String(localized: "Adherence"))
                             } else {
-                                MiniStat(value: "\(liveProtocol.peptides.count)", label: "Peptides")
+                                MiniStat(value: "\(liveProtocol.peptides.count)", label: String(localized: "Peptides"))
                             }
                         }
                     }
@@ -137,7 +137,7 @@ struct ProtocolDetailView: View {
                             .foregroundStyle(AppColor.textPrimary)
 
                         scheduleDetailRow(
-                            label: liveProtocol.schedule.isInterval ? "Cadence" : "Days",
+                            label: liveProtocol.schedule.isInterval ? String(localized: "Cadence") : String(localized: "Days"),
                             value: liveProtocol.schedule.daysDescription
                         )
 
@@ -151,7 +151,7 @@ struct ProtocolDetailView: View {
                             Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
 
                             scheduleDetailRow(
-                                label: "Preferred",
+                                label: String(localized: "Preferred"),
                                 value: liveProtocol.schedule.preferredTimes.joined(separator: ", ")
                             )
                         }
@@ -159,7 +159,7 @@ struct ProtocolDetailView: View {
                         Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
 
                         scheduleDetailRow(
-                            label: "Cycle",
+                            label: String(localized: "Cycle"),
                             value: "\(formattedDate(liveProtocol.startDate)) – \(formattedDate(liveProtocol.endDate))"
                         )
                     }

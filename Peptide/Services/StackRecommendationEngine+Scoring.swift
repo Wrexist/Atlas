@@ -27,7 +27,7 @@ extension StackRecommendationEngine {
             window != .anyTime && (windowCounts[window] ?? 0) <= 1
         }) {
             return (1, .timingComplement(
-                description: "Fills a \(underservedWindow.rawValue) dosing gap in your schedule"
+                description: String(localized: "Fills a \(underservedWindow.rawValue) dosing gap in your schedule")
             ))
         }
         return (0, nil)
@@ -85,7 +85,7 @@ extension StackRecommendationEngine {
             routeLabel = primaryRoute
         }
 
-        return (1, .routeDiversity(route: "Available as \(routeLabel) — reduces injection burden"))
+        return (1, .routeDiversity(route: String(localized: "Available as \(routeLabel) — reduces injection burden")))
     }
 
     // MARK: Signal 9: Half-Life Complementarity
@@ -103,10 +103,10 @@ extension StackRecommendationEngine {
 
         // If stack average is short (<4h) and candidate is long (>12h), or vice versa
         if avgHL < 4 && candidateHL > 12 {
-            return (1, .halfLifeComplement(description: "Long-acting — extends coverage beyond your short-acting protocol"))
+            return (1, .halfLifeComplement(description: String(localized: "Long-acting — extends coverage beyond your short-acting protocol")))
         }
         if avgHL > 12 && candidateHL < 4 {
-            return (1, .halfLifeComplement(description: "Short-acting — adds acute pulses to your long-acting protocol"))
+            return (1, .halfLifeComplement(description: String(localized: "Short-acting — adds acute pulses to your long-acting protocol")))
         }
         return (0, nil)
     }
@@ -162,7 +162,7 @@ extension StackRecommendationEngine {
             default: season = "fall"
             }
             return (1, .seasonalRelevance(
-                description: "\(candidate.category.displayName) peptides are especially relevant in \(season)"
+                description: String(localized: "\(candidate.category.displayName) peptides are especially relevant in \(season)")
             ))
         }
         return (0, nil)

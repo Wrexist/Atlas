@@ -54,17 +54,17 @@ enum BackupImportService {
         var errorDescription: String? {
             switch self {
             case .fileTooLarge(let bytes):
-                return "This backup is unusually large (\(bytes / 1024 / 1024) MB) and was rejected to avoid accidentally importing a different app's export."
+                return String(localized: "This backup is unusually large (\(bytes / 1024 / 1024) MB) and was rejected to avoid accidentally importing a different app's export.")
             case .invalidJSON(let detail):
-                return "Couldn't read the backup file: \(detail)"
+                return String(localized: "Couldn't read the backup file: \(detail)")
             case .unsupportedVersion(let v):
-                return "This backup was created by a version of Atlas that this build can't read (\(v)). Update the app and try again."
+                return String(localized: "This backup was created by a version of Atlas that this build can't read (\(v)). Update the app and try again.")
             case .decodeFailure(let detail):
-                return "The backup decoded partially but a field was malformed: \(detail)"
+                return String(localized: "The backup decoded partially but a field was malformed: \(detail)")
             case .bounds(let detail):
-                return "The backup contents look implausible: \(detail)"
+                return String(localized: "The backup contents look implausible: \(detail)")
             case .applyFailed(let detail):
-                return "Backup validated but couldn't be applied: \(detail)"
+                return String(localized: "Backup validated but couldn't be applied: \(detail)")
             }
         }
     }

@@ -44,12 +44,12 @@ private struct DayCircle: View {
 
     private var statusVoiceOverLabel: String {
         switch day.status {
-        case .completed:  return "all doses completed"
-        case .partial:    return "partially completed"
+        case .completed:  return String(localized: "all doses completed")
+        case .partial:    return String(localized: "partially completed")
         case .missed:     return "missed"
-        case .today:      return "today, in progress"
+        case .today:      return String(localized: "today, in progress")
         case .future:     return "upcoming"
-        case .noSchedule: return "no doses scheduled"
+        case .noSchedule: return String(localized: "no doses scheduled")
         }
     }
 

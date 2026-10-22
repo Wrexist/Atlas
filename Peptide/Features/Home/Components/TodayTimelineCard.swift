@@ -151,7 +151,7 @@ struct TodayTimelineEvent: Identifiable, Equatable, Sendable {
                 icon: meal.category.icon,
                 tint: .meal,
                 title: meal.name,
-                subtitle: "\(meal.calories) kcal · \(meal.proteinG)g protein"
+                subtitle: String(localized: "\(meal.calories) kcal · \(meal.proteinG)g protein")
             ))
         }
 
@@ -162,8 +162,8 @@ struct TodayTimelineEvent: Identifiable, Equatable, Sendable {
                 date: checkIn.date,
                 icon: "heart.text.square.fill",
                 tint: .checkIn,
-                title: "Daily check-in",
-                subtitle: String(format: "%.1f / 5 across energy, sleep, recovery, mood, focus", avg)
+                title: String(localized: "Daily check-in"),
+                subtitle: String(format: String(localized: "%.1f / 5 across energy, sleep, recovery, mood, focus"), avg)
             ))
         }
 
@@ -183,11 +183,11 @@ struct TodayTimelineEvent: Identifiable, Equatable, Sendable {
 
     private static func workoutSubtitle(_ workout: WorkoutEntry) -> String {
         var parts: [String] = []
-        if workout.durationMinutes > 0 { parts.append("\(workout.durationMinutes) min") }
+        if workout.durationMinutes > 0 { parts.append(String(localized: "\(workout.durationMinutes) min")) }
         if workout.sets > 0, workout.reps > 0 {
             parts.append("\(workout.sets)×\(workout.reps)")
         }
-        return parts.isEmpty ? "Logged" : parts.joined(separator: " · ")
+        return parts.isEmpty ? String(localized: "Logged") : parts.joined(separator: " · ")
     }
 }
 

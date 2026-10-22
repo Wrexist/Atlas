@@ -189,12 +189,12 @@ struct MuscleMapView: View {
         let lit = AnatomicalMuscle.allCases.compactMap { muscle -> String? in
             guard let highlight = highlights[muscle], muscle.isBack == (facing == .back) else { return nil }
             switch highlight {
-            case .primary:           return "\(muscle.regionName), primary"
-            case .secondary:         return "\(muscle.regionName), supporting"
-            case .intensity(let v):  return "\(muscle.regionName), relative training score \(Int(max(0, min(1, v)) * 100)) out of 100"
+            case .primary:           return String(localized: "\(muscle.regionName), primary")
+            case .secondary:         return String(localized: "\(muscle.regionName), supporting")
+            case .intensity(let v):  return String(localized: "\(muscle.regionName), relative training score \(Int(max(0, min(1, v)) * 100)) out of 100")
             }
         }
-        let view = facing == .front ? "Front view" : "Back view"
+        let view = facing == .front ? String(localized: "Front view") : String(localized: "Back view")
         if lit.isEmpty {
             return Text("\(view), no muscles highlighted")
         } else {
@@ -290,8 +290,8 @@ extension MuscleMapView {
 /// figure: a green → yellow → orange → red → purple capsule between
 /// two extreme labels.
 struct MuscleHeatLegend: View {
-    var lowLabel: String = "Less"
-    var highLabel: String = "Most"
+    var lowLabel: String = String(localized: "Less")
+    var highLabel: String = String(localized: "Most")
 
     var body: some View {
         HStack(spacing: Spacing.sm) {

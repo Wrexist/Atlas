@@ -7,7 +7,7 @@ enum AppConstants {
     /// region for redirects).
     static let appStoreURL = URL(string: appStoreURLString) ?? URL.staticHTTPS("https://apps.apple.com")
     static let marketingHost = "peptidex.site"
-    static let watermarkText = "Made with Atlas"
+    static let watermarkText = String(localized: "Made with Atlas")
 
     private static let appStoreURLString = "https://apps.apple.com/se/app/peptidex/id6762042210"
 }

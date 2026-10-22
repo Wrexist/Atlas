@@ -75,26 +75,26 @@ enum RecapFormat {
         let m = set.measurement
         switch m?.kind {
         case .timed:
-            guard let seconds = m?.seconds, seconds.isFinite, seconds > 0 else { return "Time unavailable" }
+            guard let seconds = m?.seconds, seconds.isFinite, seconds > 0 else { return String(localized: "Time unavailable") }
             let formatter = DateComponentsFormatter()
             formatter.allowedUnits = [.hour, .minute, .second]
             formatter.unitsStyle = .abbreviated
-            return formatter.string(from: seconds) ?? "Time unavailable"
+            return formatter.string(from: seconds) ?? String(localized: "Time unavailable")
         case .distance:
-            guard let meters = m?.meters, meters.isFinite, meters > 0 else { return "Distance unavailable" }
+            guard let meters = m?.meters, meters.isFinite, meters > 0 else { return String(localized: "Distance unavailable") }
             let distance = unit == .imperial ? meters / 0.3048 : meters
             return distance.formatted(.number.precision(.fractionLength(0...1))) + (unit == .imperial ? " ft" : " m")
         default:
             let reps = set.reps.formatted() + " reps"
-            guard set.reps >= 0 else { return "Repetitions unavailable" }
-            guard set.weightKg.isFinite, set.weightKg >= 0 else { return "Load unavailable · " + reps }
-            guard set.weightKg > 0 else { return m?.kind == .bodyweight ? "Bodyweight × " + reps : reps }
+            guard set.reps >= 0 else { return String(localized: "Repetitions unavailable") }
+            guard set.weightKg.isFinite, set.weightKg >= 0 else { return String(localized: "Load unavailable · ") + reps }
+            guard set.weightKg > 0 else { return m?.kind == .bodyweight ? String(localized: "Bodyweight × ") + reps : reps }
             let load = unit.weightForDisplay(set.weightKg).formatted(.number.precision(.fractionLength(0...1)))
             let convention: String
             switch m?.load {
-            case .eachPair: convention = " each · both counted"
+            case .eachPair: convention = String(localized: " each · both counted")
             case .total: convention = " total"
-            case .perSide: convention = " per side · recorded side"
+            case .perSide: convention = String(localized: " per side · recorded side")
             default: convention = ""
             }
             let role = m?.kind == .assisted ? " assistance" : (m?.kind == .bodyweight ? " added" : "")
@@ -119,11 +119,11 @@ struct RecapMetrics: View {
         }
     }
     @ViewBuilder private func metrics(horizontal: Bool) -> some View {
-        metric("Duration", value: summary.duration.label, icon: "clock")
+        metric(String(localized: "Duration"), value: summary.duration.label, icon: "clock")
         if horizontal { Divider().frame(height: 64) }
-        metric("Working sets", value: summary.workingSetLabel, icon: "square.stack")
+        metric(String(localized: "Working sets"), value: summary.workingSetLabel, icon: "square.stack")
         if horizontal { Divider().frame(height: 64) }
-        metric("Volume", value: RecapFormat.volume(summary.volumeKg, unit: unit), icon: "dumbbell")
+        metric(String(localized: "Volume"), value: RecapFormat.volume(summary.volumeKg, unit: unit), icon: "dumbbell")
     }
     private func metric(_ title: String, value: String, icon: String) -> some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {

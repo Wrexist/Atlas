@@ -78,19 +78,19 @@ final class MealScannerService: Sendable {
 
         var errorDescription: String? {
             switch self {
-            case .proxyNotConfigured:   "Meal scanning isn't available in this build. Update Atlas from the App Store or TestFlight."
-            case .unauthorised:         "Couldn't sign in to the meal scanner. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build."
-            case .rateLimited:          "You've scanned a lot of meals recently. Wait a minute and try again — if you've hit today's limit, scanning resets tomorrow."
-            case .serviceUnavailable:   "Scanning is temporarily unavailable — try again later."
-            case .offline:              "You're offline — meal scanning needs an internet connection. Reconnect and try again."
-            case .imageTooLarge:        "Photo is too large to upload. Try a smaller image."
-            case .requestFailed:        "The meal scanner hit a problem. Try again in a moment."
-            case .invalidResponse:      "The scanner returned an unexpected response."
-            case .parseFailure:         "Couldn't read the meal estimate from the scanner."
-            case .implausibleResult:    "The scanner returned values outside a realistic range — try a clearer photo."
-            case .noFoodDetected:       "No food found in that photo — point the camera at your meal and try again."
-            case .declined:             "The scanner couldn't analyse this one. Try a different photo or angle."
-            case .routeMissing:         "Meal scanner is temporarily unavailable. Try again later."
+            case .proxyNotConfigured:   String(localized: "Meal scanning isn't available in this build. Update Atlas from the App Store or TestFlight.")
+            case .unauthorised:         String(localized: "Couldn't sign in to the meal scanner. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build.")
+            case .rateLimited:          String(localized: "You've scanned a lot of meals recently. Wait a minute and try again — if you've hit today's limit, scanning resets tomorrow.")
+            case .serviceUnavailable:   String(localized: "Scanning is temporarily unavailable — try again later.")
+            case .offline:              String(localized: "You're offline — meal scanning needs an internet connection. Reconnect and try again.")
+            case .imageTooLarge:        String(localized: "Photo is too large to upload. Try a smaller image.")
+            case .requestFailed:        String(localized: "The meal scanner hit a problem. Try again in a moment.")
+            case .invalidResponse:      String(localized: "The scanner returned an unexpected response.")
+            case .parseFailure:         String(localized: "Couldn't read the meal estimate from the scanner.")
+            case .implausibleResult:    String(localized: "The scanner returned values outside a realistic range — try a clearer photo.")
+            case .noFoodDetected:       String(localized: "No food found in that photo — point the camera at your meal and try again.")
+            case .declined:             String(localized: "The scanner couldn't analyse this one. Try a different photo or angle.")
+            case .routeMissing:         String(localized: "Meal scanner is temporarily unavailable. Try again later.")
             }
         }
 

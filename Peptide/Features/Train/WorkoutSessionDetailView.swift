@@ -189,14 +189,14 @@ struct WorkoutSessionDetailView: View {
 
     private var stats: [Stat] {
         var result = [
-            Stat(value: "\(session.exercises.count)", label: "Exercises"),
-            Stat(value: "\(session.completedSetCount)", label: "Sets"),
+            Stat(value: "\(session.exercises.count)", label: String(localized: "Exercises")),
+            Stat(value: "\(session.completedSetCount)", label: String(localized: "Sets")),
         ]
         if session.totalVolumeKg > 0 {
-            result.append(Stat(value: unit.weightLabel(session.totalVolumeKg), label: "Volume"))
+            result.append(Stat(value: unit.weightLabel(session.totalVolumeKg), label: String(localized: "Volume")))
         }
         if let durationLabel {
-            result.append(Stat(value: durationLabel, label: "Duration"))
+            result.append(Stat(value: durationLabel, label: String(localized: "Duration")))
         }
         return result
     }
