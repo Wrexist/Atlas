@@ -100,7 +100,9 @@ struct NutritionPage: View {
                     : "\(nutrition.proteinToday)g",
                 label: String(localized: "Protein"),
                 color: WatchPalette.protein,
-                spoken: String(localized: "Protein \(nutrition.proteinToday) grams")
+                spoken: nutrition.proteinTarget > 0
+                    ? String(localized: "Protein \(nutrition.proteinToday) of \(nutrition.proteinTarget) grams")
+                    : String(localized: "Protein \(nutrition.proteinToday) grams")
             )
             StatColumn(
                 value: String(localized: "\(nutrition.mealLoggingStreak)d"),
