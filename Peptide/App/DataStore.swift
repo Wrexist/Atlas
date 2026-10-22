@@ -524,10 +524,18 @@ final class DataStore {
 
     /// A dose just became taken. Pushes that into any open lock-screen
     /// activity so the countdown stops and the "Logged" badge appears
-    /// before auto-dismiss, and withdraws the reminder's snoozes and its
-    /// copy in Notification Center so neither nags about a logged dose.
+    /// before auto-dismiss. One reminder covers every peptide a protocol
+    /// doses at that minute, so its snoozes and its copy in Notification
+    /// Center are withdrawn only once the whole slot is logged.
     private func doseWasTaken(_ entry: ProtocolEntry) {
         DoseLiveActivityService.shared.markCompleted(entry.id)
+        let slotLogged = entries
+            .filter {
+                $0.protocolId == entry.protocolId
+                    && Calendar.current.isDate($0.date, equalTo: entry.date, toGranularity: .minute)
+            }
+            .allSatisfy(\.completed)
+        guard slotLogged else { return }
         Task { await NotificationService.shared.clearReminders(for: entry) }
     }
 
