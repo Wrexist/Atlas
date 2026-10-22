@@ -498,6 +498,9 @@ struct PeptideApp: App {
                 HabitsView()
             }
         }
+        // A tab bar on iPhone; on iPad, a top tab bar that expands into a
+        // sidebar, so the wide screen isn't framed by a phone-style bar.
+        .tabViewStyle(.sidebarAdaptable)
         .onChange(of: appState.selectedTab) { _, _ in
             Haptics.selection()
         }
