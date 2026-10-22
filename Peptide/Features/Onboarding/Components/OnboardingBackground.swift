@@ -8,9 +8,10 @@ import SwiftUI
 struct OnboardingBackground: View {
     let step: Int
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var phase: CGFloat = 0
+    @State private var drifting = false
     @State private var appeared = false
+
+    private var phase: CGFloat { drifting ? .pi * 2 : 0 }
 
     var body: some View {
         ZStack {
@@ -48,13 +49,8 @@ struct OnboardingBackground: View {
             )
         }
         .ignoresSafeArea()
-        .onAppear {
-            appeared = true
-            guard !reduceMotion else { return }
-            withAnimation(.linear(duration: 32).repeatForever(autoreverses: false)) {
-                phase = .pi * 2
-            }
-        }
+        .onAppear { appeared = true }
+        .motionAwareLoop(AppAnimation.ambientDrift, autoreverses: false, isRunning: $drifting)
     }
 
     private func orb(color: Color, size: CGFloat) -> some View {

@@ -98,7 +98,9 @@ there being exactly one primitive to reach for:
   `quick`, `toast`, `settle`, …); add a named token to
   `AnimationConstants.swift` rather than tuning a spring inline. Animate
   with `AppAnimation.with(_:)` and `.appAnimation(_:value:)`, which skip the
-  movement under Reduce Motion so no call site has to remember. A number
+  movement under Reduce Motion so no call site has to remember. Loops use
+  `.motionAwareLoop(_:autoreverses:isRunning:)` with a loop token
+  (`breathe`, `ripple`, `loadingSweep`, `ambientDrift`). A number
   with `.contentTransition(.numericText())` only rolls if the state that
   feeds it changes inside one of those. Loading placeholders are
   `SkeletonBlock`; button press feedback is `ScalePressStyle`.

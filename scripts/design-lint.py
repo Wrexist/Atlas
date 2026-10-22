@@ -365,11 +365,9 @@ def rule_curve_literal(path, source, code) -> list[Finding]:
     the opposite drift: a hand-tuned `.spring(response: 0.42, …)` that is
     *almost* `AppAnimation.step`. Sixty of those made every screen move at a
     slightly different speed. Curves are named once in
-    `AnimationConstants.swift`; everywhere else uses the name.
-
-    Looping ambient and loading motion (`repeatForever`) is exempt: its
-    duration is the effect's own period, and `rule_motion` /
-    `rule_unguarded_loop` already govern it.
+    `AnimationConstants.swift`; everywhere else uses the name. Loops are no
+    exception: their periods are the `AppAnimation` loop tokens, run through
+    `motionAwareLoop`.
     """
     if path.name == "AnimationConstants.swift" or path.name in PENDING_MOTION_MIGRATION:
         return []
@@ -379,9 +377,6 @@ def rule_curve_literal(path, source, code) -> list[Finding]:
     for m in re.finditer(pattern, code):
         args = balanced_args(code, m.end() - 1)
         if args is None or not args.strip():
-            continue
-        after = code[m.end() + len(args):m.end() + len(args) + 80]
-        if re.match(r"\)(?:\s*\.delay\([^)]*\))?\s*\.repeatForever", after):
             continue
         out.append(Finding(path, line_of(code, m.start()), "curve-literal",
                            "hand-tuned animation curve; use (or add) an AppAnimation "
@@ -751,8 +746,9 @@ def rule_motion(path, source, code) -> list[Finding]:
     exceptions, so only *short* repeating animations are flagged: those are
     attention-grabbing, not ambient.
     """
-    # The shimmer *is* the loading indicator; looping is the whole point.
-    if path.name == "ShimmerModifier.swift":
+    # `motionAwareLoop` repeats its caller's token; the token's period is
+    # reviewed where it is defined.
+    if path.name == "AnimationConstants.swift":
         return []
     out = []
     for m in re.finditer(r"repeatForever", code):

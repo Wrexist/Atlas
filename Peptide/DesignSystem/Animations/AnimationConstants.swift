@@ -35,6 +35,19 @@ enum AppAnimation {
     /// Gap between consecutive dishes leaving the photo.
     static let liftStagger: Double = 0.08
 
+    // MARK: Loops — one period each, run through `motionAwareLoop`
+
+    /// "This is live / working": an opacity, scale or beam that swings back
+    /// and forth. Slow enough to read as ambient rather than urgent.
+    static let breathe = Animation.easeInOut(duration: 1.4)
+    /// A status dot's ring expanding outward and fading, then restarting.
+    static let ripple = Animation.easeOut(duration: 1.4)
+    /// One skeleton shimmer sweep — the beat Health and the App Store use,
+    /// slow enough to read as "still working" without feeling stalled.
+    static let loadingSweep = Animation.linear(duration: 1.4)
+    /// One cycle of the onboarding backdrop's orb drift.
+    static let ambientDrift = Animation.linear(duration: 32)
+
     static let staggerDelay: Double = 0.05
     static let sectionDelay: Double = 0.15
 
@@ -114,9 +127,42 @@ private struct ReduceMotionAwareAnimation<Value: Equatable>: ViewModifier {
     }
 }
 
+/// Starts the loop on appear and follows Reduce Motion while on screen:
+/// turning it on mid-session snaps the state back without animation, and
+/// turning it off restarts the loop.
+private struct MotionAwareLoop: ViewModifier {
+    let animation: Animation
+    @Binding var isRunning: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear { sync() }
+            .onChange(of: reduceMotion) { sync() }
+    }
+
+    private func sync() {
+        if reduceMotion {
+            withTransaction(Transaction(animation: nil)) { isRunning = false }
+        } else {
+            withAnimation(animation) { isRunning = true }
+        }
+    }
+}
+
 extension View {
     /// `.animation(_:value:)` that is skipped under Reduce Motion.
     func appAnimation<Value: Equatable>(_ animation: Animation, value: Value) -> some View {
         modifier(ReduceMotionAwareAnimation(animation: animation, value: value))
+    }
+
+    /// Repeats one of the `AppAnimation` loop tokens by flipping `isRunning`
+    /// to true. A loop that never ends is the motion WCAG 2.2.2 is about, so
+    /// under Reduce Motion `isRunning` stays false.
+    func motionAwareLoop(_ animation: Animation, autoreverses: Bool, isRunning: Binding<Bool>) -> some View {
+        modifier(MotionAwareLoop(
+            animation: animation.repeatForever(autoreverses: autoreverses),
+            isRunning: isRunning
+        ))
     }
 }

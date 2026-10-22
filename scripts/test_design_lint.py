@@ -98,7 +98,7 @@ CASES = [
 
     ("rule_curve_literal", "Foo.swift",
      'Text("a").animation(.spring(response: 0.42, dampingFraction: 0.78), value: step)',
-     'Circle().onAppear { withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) { on = true } }'),
+     'Circle().motionAwareLoop(AppAnimation.breathe, autoreverses: true, isRunning: $on)'),
 
     ("rule_placeholder_as_label", "Foo.swift",
      'HStack {\n  Text("Sets")\n  TextField("0", text: $sets)\n    .keyboardType(.numberPad)\n}',

@@ -323,12 +323,7 @@ struct TableScanFlow: View {
         .background(AppColor.background.opacity(0.12))
         .allowsHitTesting(false)
         .accessibilityHidden(true)
-        .onAppear {
-            guard !reduceMotion else { return }
-            withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
-                isSweeping = true
-            }
-        }
+        .motionAwareLoop(AppAnimation.breathe, autoreverses: true, isRunning: $isSweeping)
         .onDisappear { isSweeping = false }
     }
 

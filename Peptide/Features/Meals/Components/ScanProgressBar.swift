@@ -46,19 +46,10 @@ struct ScanProgressBar: View {
                         .opacity(reduceMotion ? 0.55 : 1)
                 }
                 .clipShape(Capsule(style: .continuous))
-                .onAppear {
-                    guard !reduceMotion else { return }
-                    // 1.3s, not the 0.8s that first felt right. A fast sweep
-                    // reads as urgency and pulls the eye; at this pace it
-                    // reads as steady work, which is what a wait should feel
-                    // like. It also clears the design-lint threshold for a
-                    // loop being decorative rather than ambient.
-                    withAnimation(
-                        .easeInOut(duration: 1.3).repeatForever(autoreverses: true)
-                    ) {
-                        isSweeping = true
-                    }
-                }
+                // `breathe`, not a sub-second sweep: a fast sweep reads as
+                // urgency and pulls the eye; at this pace it reads as steady
+                // work, which is what a wait should feel like.
+                .motionAwareLoop(AppAnimation.breathe, autoreverses: true, isRunning: $isSweeping)
         }
         .frame(height: height)
         .accessibilityHidden(true)
