@@ -165,8 +165,14 @@ final class AIResearchService: Sendable {
         }
         guard let http = response as? HTTPURLResponse else { throw ChatError.invalidResponse }
         guard (200..<300).contains(http.statusCode) else {
-            if http.statusCode == 401 { throw ChatError.unauthorised }
-            throw ChatError.requestFailed("AI research returned HTTP \(http.statusCode).")
+            // Bounded: the error envelope is small, and a misbehaving
+            // proxy must not be able to stream an unbounded body here.
+            var errorBody = Data()
+            for try await byte in bytes {
+                errorBody.append(byte)
+                if errorBody.count >= 4096 { break }
+            }
+            throw Self.chatError(status: http.statusCode, body: errorBody)
         }
 
         let contentType = (http.value(forHTTPHeaderField: "Content-Type") ?? "").lowercased()
@@ -272,20 +278,7 @@ final class AIResearchService: Sendable {
         }
         guard let http = response as? HTTPURLResponse else { throw ChatError.invalidResponse }
         guard (200..<300).contains(http.statusCode) else {
-            // Don't echo upstream body — Anthropic auth-failure responses
-            // include masked-key fingerprints that the user shouldn't see.
-            // 401 is broken out from the generic requestFailed envelope so
-            // the user sees an actionable message rather than a bare HTTP
-            // status code.
-            switch http.statusCode {
-            case 401:                throw ChatError.unauthorised
-            case 429:
-                throw Self.proxyErrorCode(in: data) == "daily_quota"
-                    ? ChatError.dailyLimitReached
-                    : ChatError.rateLimited
-            case 502, 503, 504:      throw ChatError.serviceUnavailable
-            default:                 throw ChatError.requestFailed("AI research returned HTTP \(http.statusCode).")
-            }
+            throw Self.chatError(status: http.statusCode, body: data)
         }
 
         return try parseAssistantText(from: data)
@@ -409,6 +402,20 @@ final class AIResearchService: Sendable {
             lines.append(ragContext)
         }
         return lines.joined(separator: "\n")
+    }
+
+    /// Maps a non-2xx proxy status to the error the chat shows. Don't
+    /// echo the upstream body — Anthropic auth-failure responses include
+    /// masked-key fingerprints that the user shouldn't see. 401 is broken
+    /// out so the user sees an actionable message rather than a bare HTTP
+    /// status code.
+    private static func chatError(status: Int, body: Data) -> ChatError {
+        switch status {
+        case 401:           return .unauthorised
+        case 429:           return proxyErrorCode(in: body) == "daily_quota" ? .dailyLimitReached : .rateLimited
+        case 502, 503, 504: return .serviceUnavailable
+        default:            return .requestFailed("AI research returned HTTP \(status).")
+        }
     }
 
     /// The proxy's stable refusal code (`error.code`), which tells a
