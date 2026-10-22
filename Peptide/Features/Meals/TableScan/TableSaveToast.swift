@@ -63,7 +63,7 @@ struct TableSaveToast: View {
         .padding(.vertical, Spacing.sm)
         .frame(maxWidth: .infinity)
         .glassControl(.rect(cornerRadius: Spacing.cardCornerRadius), interactive: false)
-        .shadow(color: .black.opacity(0.2), radius: 12, y: 4)
+        .appShadow(AppShadow.toast)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.updatesFrequently)
     }

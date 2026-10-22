@@ -35,7 +35,7 @@ struct SyncToast: View {
                     border: AppColor.success.opacity(0.35),
                     interactive: false
                 )
-                .appShadow(AppShadow.glassSubtle)
+                .appShadow(AppShadow.toast)
                 .transition(.move(edge: .top).combined(with: .opacity))
                 .onAppear {
                     // Gone before VoiceOver focus could reach it, so say it.

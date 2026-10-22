@@ -139,7 +139,7 @@ struct PlateTableView: View {
             Image(uiImage: sticker)
                 .resizable()
                 .scaledToFit()
-                .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
+                .appShadow(AppShadow.glassSubtle)
         } else {
             Circle()
                 .fill(AppColor.background)
@@ -148,7 +148,7 @@ struct PlateTableView: View {
                         .font(AppFont.scaled(24, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                 }
-                .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
+                .appShadow(AppShadow.glassSubtle)
         }
     }
 
@@ -447,7 +447,7 @@ struct TableShareCard: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: cell.width, height: cell.height)
-                        .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
+                        .appShadow(AppShadow.glassSubtle)
                         .position(x: cell.midX, y: cell.midY)
                 }
             }

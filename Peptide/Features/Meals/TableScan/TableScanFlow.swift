@@ -362,7 +362,7 @@ struct TableScanFlow: View {
                         .scaledToFit()
                         .frame(width: rect.width, height: rect.height)
                         .matchedGeometryEffect(id: dish.id, in: lift)
-                        .shadow(color: .black.opacity(0.25), radius: 10, y: 6)
+                        .appShadow(AppShadow.glassElevated)
                         .position(x: rect.midX, y: rect.midY)
                 }
             }
