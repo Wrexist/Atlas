@@ -158,7 +158,9 @@ actor BarcodeProductCache {
     private static func defaultDirectory(using fileManager: FileManager) -> URL {
         let base = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSTemporaryDirectory())
-        return base.appendingPathComponent("PeptideBarcode", isDirectory: true)
+        // v2: entries written before `nutritionMissing` existed can't tell
+        // a blank Open Food Facts record from real zeros, so they're left behind.
+        return base.appendingPathComponent("PeptideBarcode-v2", isDirectory: true)
     }
 
     // Non-Sendable but thread-safe for read-only use after config.

@@ -55,24 +55,6 @@ struct ScannedProduct: Codable, Hashable, Sendable {
 
 extension ScannedProduct {
 
-    /// Decodes `nutritionMissing` only when present, so products cached
-    /// before the field existed still load.
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        barcode = try container.decode(String.self, forKey: .barcode)
-        name = try container.decode(String.self, forKey: .name)
-        brand = try container.decodeIfPresent(String.self, forKey: .brand)
-        imageURL = try container.decodeIfPresent(URL.self, forKey: .imageURL)
-        servingSizeText = try container.decodeIfPresent(String.self, forKey: .servingSizeText)
-        servingGrams = try container.decodeIfPresent(Double.self, forKey: .servingGrams)
-        packageGrams = try container.decodeIfPresent(Double.self, forKey: .packageGrams)
-        per100g = try container.decode(Nutriments.self, forKey: .per100g)
-        nutriScore = try container.decodeIfPresent(String.self, forKey: .nutriScore)
-        novaGroup = try container.decodeIfPresent(Int.self, forKey: .novaGroup)
-        fetchedAt = try container.decode(Date.self, forKey: .fetchedAt)
-        nutritionMissing = try container.decodeIfPresent(Bool.self, forKey: .nutritionMissing) ?? false
-    }
-
     struct Nutriments: Codable, Hashable, Sendable {
         let calories: Double
         let proteinG: Double
