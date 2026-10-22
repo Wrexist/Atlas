@@ -40,7 +40,7 @@ struct SubscriptionSection: View {
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                if !storeService.hasLifetimeAccess {
+                if hasSubscriptionToManage {
                     GlassButton(
                         title: "Manage subscription",
                         icon: "creditcard",
@@ -152,13 +152,26 @@ struct SubscriptionSection: View {
         restoreState = .idle
     }
 
+    /// A lifetime owner who bought while a monthly or annual plan was live
+    /// still has that plan renewing, and Manage subscription is the only
+    /// in-app route to cancel it.
+    private var hasLiveSubscription: Bool {
+        !storeService.purchasedProductIDs.isDisjoint(with: [StoreService.monthlyID, StoreService.annualID])
+    }
+
+    private var hasSubscriptionToManage: Bool {
+        !storeService.hasLifetimeAccess || hasLiveSubscription
+    }
+
     /// Lifetime buyers have nothing to renew, so they get a different line —
     /// showing them a renewal date they don't have was the App Store 3.1.2(a)
     /// wording problem flagged in the audit. Past the grace period, billing
     /// retry has already removed Pro, so the caption says it is paused.
     private var planCaption: LocalizedStringKey {
         if storeService.hasLifetimeAccess {
-            return "You own Atlas Pro for life. Nothing renews and there's nothing to cancel."
+            return hasLiveSubscription
+                ? "You own Atlas Pro for life. Your subscription still renews, so cancel it to stop being charged."
+                : "You own Atlas Pro for life. Nothing renews and there's nothing to cancel."
         }
         if !storeService.isProUser {
             return "Atlas Pro is paused until your payment goes through."
