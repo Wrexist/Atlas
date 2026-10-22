@@ -68,8 +68,7 @@ final class WorkoutSessionService {
                 // discarding the user's data.
                 return existing
             }
-            NotificationService.cancelOneShot(id: restNotificationID(for: existing.id))
-            SwiftDataRepository.shared.deleteWorkoutSession(id: existing.id)
+            discardWorkout()
         }
         // Cleared before seeding so the seed — and every "previous" hint for
         // the rest of this workout — reads history as it stands right now.
