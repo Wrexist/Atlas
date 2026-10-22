@@ -5,20 +5,30 @@ import Foundation
 /// same key through `@AppStorage`.
 enum AdaptiveTDEESettings {
     static let enabledKey = "atlas.adaptiveTDEE.enabled.v1"
-    static let followedCaloriesKey = "atlas.adaptiveTDEE.followedCalories.v1"
+    /// v2 holds the full accepted targets. The v1 key held calories only;
+    /// it is deliberately not read, so upgraded installs stop auto-updating
+    /// until the user re-accepts a recommendation rather than risk
+    /// overwriting macros edited on another device.
+    static let followedTargetsKey = "atlas.adaptiveTDEE.followedTargets.v2"
 
     /// Defaults to on: an unset key reads as enabled.
     static var isEnabled: Bool {
         UserDefaults.standard.object(forKey: enabledKey) as? Bool ?? true
     }
 
-    /// Calorie target the user last accepted from the recommendation. When
-    /// the saved target still equals it, the user hasn't hand-edited since,
-    /// so Atlas may move the target as the adaptive estimate moves. Nil
-    /// once the user saves custom numbers.
-    static var followedCalories: Int? {
-        get { UserDefaults.standard.object(forKey: followedCaloriesKey) as? Int }
-        set { UserDefaults.standard.set(newValue, forKey: followedCaloriesKey) }
+    /// Targets the user last accepted from the recommendation. When the
+    /// saved targets still equal them in every field, nobody has hand-edited
+    /// since (on this device or a synced one), so Atlas may move them as the
+    /// adaptive estimate moves. Nil once the user saves custom numbers.
+    static var followedTargets: NutritionTargets? {
+        get {
+            UserDefaults.standard.data(forKey: followedTargetsKey)
+                .flatMap { try? JSONDecoder().decode(NutritionTargets.self, from: $0) }
+        }
+        set {
+            let data = newValue.flatMap { try? JSONEncoder().encode($0) }
+            UserDefaults.standard.set(data, forKey: followedTargetsKey)
+        }
     }
 }
 
@@ -123,15 +133,15 @@ enum AdaptiveTDEEEngine {
         )
     }
 
-    /// True when the saved targets are still the ones the user accepted from
-    /// the recommendation and the new recommendation has moved far enough to
-    /// be worth applying.
+    /// True when the saved targets are still exactly the ones the user
+    /// accepted from the recommendation — every macro, not just calories —
+    /// and the new recommendation has moved far enough to be worth applying.
     static func shouldFollow(
         current: NutritionTargets,
-        followedCalories: Int?,
+        followed: NutritionTargets?,
         next: NutritionTargets
     ) -> Bool {
-        followedCalories == current.calories
+        followed == current
             && abs(next.calories - current.calories) >= minTargetUpdateKcal
     }
 

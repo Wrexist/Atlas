@@ -1107,11 +1107,11 @@ final class DataStore {
             ),
             AdaptiveTDEEEngine.shouldFollow(
                 current: current,
-                followedCalories: AdaptiveTDEESettings.followedCalories,
+                followed: AdaptiveTDEESettings.followedTargets,
                 next: next
             )
         else { return }
-        AdaptiveTDEESettings.followedCalories = next.calories
+        AdaptiveTDEESettings.followedTargets = next
         updateNutritionTargets(next)
     }
 

@@ -258,16 +258,25 @@ final class AdaptiveTDEEEngineTests: XCTestCase {
     }
 
     func test_shouldFollow_acceptedRecommendationMovedEnough_isTrue() {
-        XCTAssertTrue(AdaptiveTDEEEngine.shouldFollow(current: targets(2_000), followedCalories: 2_000, next: targets(2_100)))
+        XCTAssertTrue(AdaptiveTDEEEngine.shouldFollow(current: targets(2_000), followed: targets(2_000), next: targets(2_100)))
     }
 
     func test_shouldFollow_customTargets_isFalse() {
-        XCTAssertFalse(AdaptiveTDEEEngine.shouldFollow(current: targets(2_000), followedCalories: nil, next: targets(2_300)))
-        XCTAssertFalse(AdaptiveTDEEEngine.shouldFollow(current: targets(2_000), followedCalories: 1_900, next: targets(2_300)))
+        XCTAssertFalse(AdaptiveTDEEEngine.shouldFollow(current: targets(2_000), followed: nil, next: targets(2_300)))
+        XCTAssertFalse(AdaptiveTDEEEngine.shouldFollow(current: targets(2_000), followed: targets(1_900), next: targets(2_300)))
+    }
+
+    func test_shouldFollow_macroEditedWithSameCalories_isFalse() {
+        var edited = targets(2_000)
+        edited.proteinG = 180
+        XCTAssertFalse(AdaptiveTDEEEngine.shouldFollow(current: edited, followed: targets(2_000), next: targets(2_300)))
+        edited = targets(2_000)
+        edited.fiberG = 40
+        XCTAssertFalse(AdaptiveTDEEEngine.shouldFollow(current: edited, followed: targets(2_000), next: targets(2_300)))
     }
 
     func test_shouldFollow_smallMove_isFalse() {
-        XCTAssertFalse(AdaptiveTDEEEngine.shouldFollow(current: targets(2_000), followedCalories: 2_000, next: targets(2_040)))
+        XCTAssertFalse(AdaptiveTDEEEngine.shouldFollow(current: targets(2_000), followed: targets(2_000), next: targets(2_040)))
     }
 
     // MARK: - NutritionMath integration

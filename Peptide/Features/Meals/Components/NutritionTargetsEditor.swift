@@ -555,14 +555,9 @@ struct NutritionTargetsEditor: View {
         else { return }
         // Remember an accepted recommendation so `refreshAdaptiveTargets`
         // may move it later; custom numbers opt out of auto-updates.
-        AdaptiveTDEESettings.followedCalories = matchesDraft(recommended) ? kcal : nil
-        onSave(NutritionTargets(
-            calories: kcal,
-            proteinG: p,
-            carbsG: c,
-            fatG: f,
-            fiberG: fib
-        ))
+        let targets = NutritionTargets(calories: kcal, proteinG: p, carbsG: c, fatG: f, fiberG: fib)
+        AdaptiveTDEESettings.followedTargets = matchesDraft(recommended) ? targets : nil
+        onSave(targets)
     }
 }
 
