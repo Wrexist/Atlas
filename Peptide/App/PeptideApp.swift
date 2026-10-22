@@ -193,7 +193,9 @@ struct PeptideApp: App {
                 // Stays mounted while locked — the lock covers it from
                 // its own window — so open sheets, navigation and
                 // in-progress flows survive a trip to the background.
+                // Hidden from assistive tech while covered.
                 mainContent
+                    .accessibilityHidden(privacyCover != nil)
             }
         }
         .environment(localization)

@@ -29,6 +29,9 @@ final class PrivacyLockWindow {
         let window = window ?? UIWindow(windowScene: scene)
         window.windowLevel = UIWindow.Level(rawValue: UIWindow.Level.alert.rawValue + 1)
         window.rootViewController = UIHostingController(rootView: content)
+        // The app stays mounted underneath; modal keeps VoiceOver, Switch
+        // Control and keyboard focus from reaching it through the cover.
+        window.accessibilityViewIsModal = true
         // Visible but never key, so the app's own window keeps key status
         // and its presentation checks keep working after unlock.
         window.isHidden = false
