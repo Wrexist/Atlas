@@ -624,7 +624,7 @@ private extension OpenFoodFactsService {
             let resolvedName = [productName, brands]
                 .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .first(where: { !$0.isEmpty })
-                ?? "Unknown product"
+                ?? String(localized: "Unknown product")
 
             let n = nutriments
             // Energy resolution path (audit Meals MED 5):

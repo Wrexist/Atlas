@@ -53,9 +53,9 @@ struct BarcodeIdentity: Equatable, Sendable {
         /// it into a human's day would be worse than not logging at all.
         var reasonNotLoggable: String {
             switch self {
-            case .products: "That's a general product, not a food, so there's nothing to add to your diary."
-            case .beauty:   "That's a cosmetic or personal-care product, so there's nothing to add to your diary."
-            case .petFood:  "That's pet food — its nutrition is for an animal, not for your diary."
+            case .products: String(localized: "That's a general product, not a food, so there's nothing to add to your diary.")
+            case .beauty:   String(localized: "That's a cosmetic or personal-care product, so there's nothing to add to your diary.")
+            case .petFood:  String(localized: "That's pet food — its nutrition is for an animal, not for your diary.")
             }
         }
     }

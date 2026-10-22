@@ -35,9 +35,9 @@ enum NutritionLabelOCR {
 
         var errorDescription: String? {
             switch self {
-            case .visionUnavailable:    "Text recognition isn't available on this device."
-            case .noTextFound:          "No text found in the photo. Try a clearer shot of the label."
-            case .couldNotParse:        "We saw the label but couldn't read the calorie / macro values. Try a closer shot or use Edit on the next screen."
+            case .visionUnavailable:    String(localized: "Text recognition isn't available on this device.")
+            case .noTextFound:          String(localized: "No text found in the photo. Try a clearer shot of the label.")
+            case .couldNotParse:        String(localized: "We saw the label but couldn't read the calorie / macro values. Try a closer shot or use Edit on the next screen.")
             }
         }
     }
@@ -60,7 +60,7 @@ enum NutritionLabelOCR {
 
         return ScannedProduct(
             barcode: "ocr:\(UUID().uuidString)",
-            name: parsed.productName ?? "Scanned label",
+            name: parsed.productName ?? String(localized: "Scanned label"),
             brand: nil,
             imageURL: nil,
             servingSizeText: parsed.servingSizeText,
