@@ -127,13 +127,13 @@ struct SetEditorRow: View {
             Button {
                 fill(from: prev)
             } label: {
-                Text("\(formatted(prev.weightKg)) × \(prev.reps)")
+                Text("\(unit.weightValue(prev.weightKg, fractionDigits: 0...2)) × \(prev.reps)")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textTertiary)
                     .minimumHitArea()
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text("Previous: \(formatted(prev.weightKg)) \(unit.weightSpokenUnit) for \(prev.reps) reps"))
+            .accessibilityLabel(Text("Previous: \(unit.weightValue(prev.weightKg, fractionDigits: 0...2)) \(unit.weightSpokenUnit) for \(prev.reps) reps"))
             .accessibilityHint(Text("Fills this set with the same weight and reps"))
         } else {
             Text("—")
@@ -163,7 +163,7 @@ struct SetEditorRow: View {
                 .focused($weightFocused)
                 .accessibilityIdentifier("workout-weight-\(set.index)")
                 .accessibilityLabel(Text("Weight for set \(set.index)"))
-                .accessibilityValue(Text("\(formatted(set.weightKg)) \(unit.weightSpokenUnit)"))
+                .accessibilityValue(Text("\(unit.weightValue(set.weightKg, fractionDigits: 0...2)) \(unit.weightSpokenUnit)"))
             if focusStyle {
                 Text(unit.weightSuffix).font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
                     .accessibilityHidden(true)
@@ -256,10 +256,5 @@ struct SetEditorRow: View {
         var toggled = set
         toggled.isWarmup.toggle()
         set = toggled
-    }
-
-    /// Two places, so a 1.25 kg change plate (61.25) isn't shown as 61.3.
-    private func formatted(_ kg: Double) -> String {
-        unit.weightForDisplay(kg).formatted(.number.precision(.fractionLength(0...2)))
     }
 }

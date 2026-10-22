@@ -30,7 +30,7 @@ struct RecommendedPeptidesCard: View {
                             .buttonStyle(ScalePressStyle(pressedOpacity: 0.8))
 
                             if rec.id != recommendations.last?.id {
-                                Divider().foregroundStyle(AppColor.glassBorder)
+                                Divider().overlay(AppColor.glassBorder)
                             }
                         }
                     }

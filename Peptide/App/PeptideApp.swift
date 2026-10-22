@@ -66,8 +66,8 @@ struct PeptideApp: App {
             WatchSyncService.shared.onMarkIncomplete = { entryId, _ in
                 store.markEntryIncomplete(entryId)
             }
-            WatchSyncService.shared.onLogWater = { oz, date in
-                store.logWater(oz: oz, date: date)
+            WatchSyncService.shared.onLogWater = { fluidOunces, date in
+                store.logWater(fluidOunces: fluidOunces, date: date)
             }
             // Resolve haptics against the live profile so the global
             // "Haptic feedback" toggle is honoured everywhere without
@@ -170,7 +170,7 @@ struct PeptideApp: App {
                 Task { @MainActor in
                     await StoreService.shared.checkProAccess()
                     await WeeklySummaryNotificationScheduler.reconcile(
-                        profile: dataStore.profile,
+                        dataStore: dataStore,
                         isPro: StoreService.shared.isProUser
                     )
                     await DailyReminderScheduler.reconcile(dataStore: dataStore)
@@ -292,6 +292,17 @@ struct PeptideApp: App {
             // mirror mount still on Today.
             appState.selectedTab = .meals
             appState.pendingFoodLogID = deepLink
+        }
+        .onReceive(NotificationCenter.default.publisher(
+            for: UIApplication.significantTimeChangeNotification
+        )) { _ in
+            // Midnight, a timezone change or a DST jump while the app
+            // stays open: Today would otherwise keep yesterday's doses
+            // until the next activation.
+            guard scenePhase == .active else { return }
+            dataStore.handleAppActivation()
+            dataStore.reconcileDoseLiveActivities()
+            detectTimezoneChange()
         }
         .sheet(item: $travelChange) { change in
             TravelModePromptSheet(
@@ -701,7 +712,9 @@ struct NextDoseAccessoryView: View {
                 .contentTransition(.symbolEffect(.replace))
 
             if let next = dataStore.nextDose {
-                Text("Next: \(next.peptide.abbreviation) \u{2022} \(next.dose)")
+                Text(next.dose.isEmpty
+                     ? "Next: \(next.peptide.abbreviation)"
+                     : "Next: \(next.peptide.abbreviation) \u{2022} \(next.dose)")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                 Spacer()

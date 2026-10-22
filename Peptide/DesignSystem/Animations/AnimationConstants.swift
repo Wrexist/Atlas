@@ -55,6 +55,10 @@ enum AppAnimation {
     /// is too short.
     static let sheetDismissDelay: Duration = .milliseconds(350)
 
+    /// How long an "Added" confirmation stays on screen before its sheet
+    /// dismisses. Skipped under Reduce Motion.
+    static let confirmationHold: Duration = .milliseconds(600)
+
     // MARK: - Food library timings
 
     /// "Logged ✓" overlay duration on the food library's quick-log

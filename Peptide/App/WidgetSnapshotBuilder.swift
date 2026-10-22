@@ -32,10 +32,15 @@ enum WidgetSnapshotBuilder {
     ) -> WidgetData {
         let completed = today.filter(\.completed).count
 
-        // Surface the next 3 doses (chronological) for the Medium widget's
-        // today list — see slot 7 in docs/APP_STORE_SCREENSHOTS_GUIDE_1.md.
-        let upcoming = today
-            .sorted { $0.date < $1.date }
+        // Surface 3 doses for the Medium widget's today list — see slot 7
+        // in docs/APP_STORE_SCREENSHOTS_GUIDE_1.md. Pending doses come
+        // first so a morning of logged doses can't crowd out the ones
+        // still due, soonest first; logged doses fill any spare rows
+        // most recent first, so the dose just taken is the one shown.
+        let chronological = today.sorted { $0.date < $1.date }
+        let pending = chronological.filter { !$0.completed }
+        let logged = chronological.filter(\.completed).reversed()
+        let upcoming = (pending + logged)
             .prefix(3)
             .map { entry in
                 WidgetDoseSlot(
@@ -127,7 +132,7 @@ enum WidgetSnapshotBuilder {
             workoutsThisWeek: thisWeek.count,
             weeklySetCount: thisWeek.reduce(0) { $0 + $1.completedSetCount },
             weeklyVolumeKg: thisWeek.reduce(0) { $0 + $1.totalVolumeKg },
-            trainingDays: Set(thisWeek.map { calendar.startOfDay(for: $0.finishedAt ?? $0.startedAt) })
+            trainingDays: Set(thisWeek.map { midday(of: $0.finishedAt ?? $0.startedAt, in: calendar) })
                 .sorted()
         )
     }
@@ -139,8 +144,15 @@ enum WidgetSnapshotBuilder {
         var workoutsThisWeek: Int
         var weeklySetCount: Int
         var weeklyVolumeKg: Double
-        /// Start of each day this week with a finished session, oldest first.
+        /// Midday of each day this week with a finished session, oldest first.
         var trainingDays: [Date]
+    }
+
+    /// The widget matches training days by calendar day in whatever time
+    /// zone it is in. Midnight would slide to the previous evening after
+    /// a trip west; midday stays on its day for any offset up to 12 hours.
+    private static func midday(of date: Date, in calendar: Calendar) -> Date {
+        calendar.startOfDay(for: date).addingTimeInterval(12 * 60 * 60)
     }
 
     private static func summary(of session: WorkoutSession) -> WidgetWorkoutSummary {

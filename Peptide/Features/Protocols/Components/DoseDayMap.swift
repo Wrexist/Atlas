@@ -62,18 +62,20 @@ enum DoseDayMap {
             uniqueKeysWithValues: protocols.map { ($0.id, $0.status) }
         )
 
-        // Logged — group entries that fall inside the visible window by day.
+        // Real entries inside the visible window, grouped by day. Only a
+        // completed entry counts as logged; a pending or missed one is
+        // still just scheduled.
         for entry in entries {
             let day = cal.startOfDay(for: entry.date)
             guard day >= monthStart && day <= monthEnd else { continue }
             let mark = CalendarDoseMark(
-                kind: .logged,
+                kind: entry.completed ? .logged : .scheduled,
                 day: day,
                 peptideID: entry.peptide.id,
                 peptideName: entry.peptide.name,
                 peptideAbbreviation: entry.peptide.abbreviation,
-                dose: entry.dose,
-                time: timeString(for: entry.date, calendar: cal),
+                dose: entry.dose.isEmpty ? String(localized: "Dose not set") : entry.dose,
+                time: timeString(for: entry.actualTime ?? entry.date, calendar: cal),
                 injectionSite: entry.injectionSite,
                 entryID: entry.id,
                 protocolStatus: protocolStatusByID[entry.protocolId] ?? .active
@@ -89,10 +91,10 @@ enum DoseDayMap {
         // dot row doesn't show two of the same colour.
         for day in grid {
             for proto in protocols where proto.status == .active {
-                guard isDayInCycle(day, protocol: proto, calendar: cal) else { continue }
+                guard CyclePhaseEngine.isOnCycle(day, protocol: proto, calendar: cal) else { continue }
                 for peptide in proto.peptides {
                     let schedule = proto.schedule(for: peptide.id)
-                    guard isScheduled(schedule, on: day, protocolStart: proto.startDate, calendar: cal)
+                    guard schedule.isActive(on: day, protocolStart: proto.startDate, calendar: cal)
                     else { continue }
                     // Suppress when *any* mark for this compound on this
                     // day already exists — covers both the "logged
@@ -128,43 +130,6 @@ enum DoseDayMap {
         }
 
         return result
-    }
-
-    // MARK: - Predicates
-
-    private static func isDayInCycle(
-        _ day: Date,
-        protocol proto: PeptideProtocol,
-        calendar: Calendar
-    ) -> Bool {
-        let start = calendar.startOfDay(for: proto.startDate)
-        guard day >= start else { return false }
-        let weeks = proto.safeCycleLengthWeeks
-        guard let end = calendar.date(byAdding: .day, value: weeks * 7, to: start) else { return true }
-        return day < end
-    }
-
-    /// `ProtocolSchedule.isActive(on:)`, except an interval schedule with
-    /// no stored anchor (library imports) counts from the protocol's start
-    /// instead of matching every day.
-    private static func isScheduled(
-        _ schedule: ProtocolSchedule,
-        on day: Date,
-        protocolStart: Date,
-        calendar: Calendar
-    ) -> Bool {
-        guard schedule.isInterval, schedule.intervalAnchor == nil else {
-            return schedule.isActive(on: day, calendar: calendar)
-        }
-        let anchored = ProtocolSchedule(
-            daysOfWeek: schedule.daysOfWeek,
-            timesPerDay: schedule.timesPerDay,
-            preferredTimes: schedule.preferredTimes,
-            customDose: schedule.customDose,
-            intervalDays: schedule.intervalDays,
-            intervalAnchor: protocolStart
-        )
-        return anchored.isActive(on: day, calendar: calendar)
     }
 
     private static func timeString(for date: Date, calendar: Calendar) -> String {

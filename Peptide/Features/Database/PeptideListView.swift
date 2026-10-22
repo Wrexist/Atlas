@@ -22,7 +22,7 @@ struct PeptideListView: View {
     /// should always offer whichever escape actually applies.
     private var noResultsAction: EmptyStateView.Action {
         if viewModel.searchText.isEmpty {
-            return EmptyStateView.Action(title: "Add custom peptide",
+            return EmptyStateView.Action(title: "Add your own compound",
                                          icon: "plus.circle.fill") {
                 showCustomForm = true
             }
@@ -76,6 +76,11 @@ struct PeptideListView: View {
         .onAppear {
             refreshPeptides()
             consumePendingProtocolList()
+        }
+        // Custom compounds can be added from the Protocol builder, deleted,
+        // or arrive by CloudKit sync while Library stays on screen.
+        .onChange(of: dataStore.customPeptides) { _, _ in
+            refreshPeptides()
         }
         .onChange(of: appState.pendingProtocolList) { _, newValue in
             if newValue { consumePendingProtocolList() }
@@ -131,6 +136,9 @@ struct PeptideListView: View {
                         .navigationDestination(for: Peptide.self) { peptide in
                             PeptideDetailView(peptide: peptide)
                         }
+                        .navigationDestination(for: PeptideProtocol.self) { proto in
+                            ProtocolDetailView(protocol_: proto)
+                        }
                 } else {
                     EmptyStateView(
                         icon: "flask",
@@ -156,6 +164,9 @@ struct PeptideListView: View {
                 .navigationDestination(for: Peptide.self) { peptide in
                     PeptideDetailView(peptide: peptide)
                         .navigationTransition(.zoom(sourceID: peptide.id, in: zoom))
+                }
+                .navigationDestination(for: PeptideProtocol.self) { proto in
+                    ProtocolDetailView(protocol_: proto)
                 }
         }
     }

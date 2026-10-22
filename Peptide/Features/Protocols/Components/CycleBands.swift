@@ -29,8 +29,9 @@ struct CycleBand: Identifiable, Hashable {
 
 /// Computes per-week-row cycle bands from a list of protocols + the
 /// 42-cell calendar grid. A protocol contributes a band to a week row
-/// when any day in that row falls inside the protocol's
-/// `[startDate, startDate + cycleLengthWeeks * 7)` window. The first
+/// when any day in that row falls in one of the protocol's on-cycle
+/// phases (`CyclePhaseEngine.isOnCycle`), so wash-out weeks stay
+/// unpainted and repeat cycles light up again. The first
 /// peptide's `VialPalette` colour drives the band so the bands match
 /// the dot colours used in schedule mode.
 enum CycleBands {
@@ -54,11 +55,10 @@ enum CycleBands {
         let active = protocols.filter { $0.status == .active }
 
         return (0..<6).map { row in
-            let weekStart = grid[row * 7]
-            let weekEnd = calendar.date(byAdding: .day, value: 7, to: weekStart) ?? weekStart
+            let week = grid[(row * 7)..<(row * 7 + 7)]
 
             return active.compactMap { proto -> CycleBand? in
-                guard isProtocolActive(in: weekStart..<weekEnd, protocol: proto, calendar: calendar) else {
+                guard week.contains(where: { CyclePhaseEngine.isOnCycle($0, protocol: proto, calendar: calendar) }) else {
                     return nil
                 }
                 let primaryName = proto.peptides.first?.name ?? proto.name
@@ -66,19 +66,5 @@ enum CycleBands {
                 return CycleBand(id: proto.id, name: proto.name, color: palette.fill)
             }
         }
-    }
-
-    private static func isProtocolActive(
-        in week: Range<Date>,
-        protocol proto: PeptideProtocol,
-        calendar: Calendar
-    ) -> Bool {
-        let start = calendar.startOfDay(for: proto.startDate)
-        let weeks = proto.safeCycleLengthWeeks
-        let end = calendar.date(byAdding: .day, value: weeks * 7, to: start) ?? start
-        // The protocol is "active" in a week row if its [start, end)
-        // window overlaps the row's [weekStart, weekEnd) window. The
-        // standard half-open interval overlap test reads cleanly here.
-        return start < week.upperBound && end > week.lowerBound
     }
 }

@@ -41,6 +41,8 @@ struct BiologyView: View {
                         state: resolved?.state,
                         chronologicalAge: resolved?.chronologicalAge
                             ?? BioAgeStateResolver.chronologicalAgeFallback,
+                        noHealthData: dataStore.profile.healthConnected
+                            && resolved?.inputs?.healthDataDays == 0,
                         metricShortcuts: visibleBiomarkers,
                         onSelectMetric: { openDetail(for: $0) },
                         onExplainTapped: { showBioAgeExplainer = true }
@@ -143,7 +145,7 @@ struct BiologyView: View {
         // leave `resolved` reflecting stale inputs.
         .task(id: RefreshKey(isPro: storeService.isProUser,
                              metrics: dataStore.profile.bodyMetrics,
-                             weighIns: dataStore.profile.weightHistory.count,
+                             weightHistory: dataStore.profile.weightHistory,
                              healthConnected: dataStore.profile.healthConnected)) {
             await refreshState()
         }
@@ -216,7 +218,7 @@ struct BiologyView: View {
     private struct RefreshKey: Equatable {
         let isPro: Bool
         let metrics: BodyMetrics
-        let weighIns: Int
+        let weightHistory: [WeightEntry]
         let healthConnected: Bool
     }
 
@@ -239,7 +241,7 @@ struct BiologyView: View {
         let count = dataStore.latestLabSummaries.count
         return count == 0
             ? Text("Log blood work and track your results")
-            : Text("^[\(count) panel](inflect: true) tracked")
+            : Text("^[\(count) marker](inflect: true) tracked")
     }
 
     private func openLabs() {
@@ -316,6 +318,12 @@ struct BiologyView: View {
     // MARK: - Detail sheet routing
 
     private func openDetail(for biomarker: Biomarker, seed: BiomarkerSnapshot? = nil) {
+        // Lab results have no daily series to chart — their history
+        // lives in Labs.
+        guard biomarker != .latestLabPanel else {
+            openLabs()
+            return
+        }
         Haptics.impact(.light)
         // Present the sheet immediately with the row's 14-day snapshot
         // (empty when opened from the hero menu), then let it fill in

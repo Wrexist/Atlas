@@ -77,7 +77,7 @@ struct TodayOverviewCard: View {
         StatTile(
             label: "Calories",
             value: snapshot.caloriesToday > 0 || snapshot.calorieTarget != nil
-                ? "\(snapshot.caloriesToday)"
+                ? snapshot.caloriesToday.formatted()
                 : "—",
             icon: "fork.knife",
             tint: AppColor.macroProtein,
@@ -118,7 +118,7 @@ struct TodayOverviewCard: View {
     private var checkInTile: some View {
         StatTile(
             label: "Check-in",
-            value: snapshot.checkInScore.map { String(format: "%.1f", $0) } ?? "—",
+            value: snapshot.checkInScore.map { $0.formatted(.number.precision(.fractionLength(1))) } ?? "—",
             icon: "heart.text.square.fill",
             tint: AppColor.metricHRV,
             footnote: snapshot.checkInScore != nil

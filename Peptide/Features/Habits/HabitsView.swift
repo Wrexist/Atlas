@@ -2,15 +2,9 @@ import SwiftUI
 
 /// Full-screen habits list — one HabitRowCard per active habit, with
 /// an "Add habit" toolbar action and a per-row context menu to
-/// edit/delete.
-/// Opens from the Today habits hero's "View all" button as a sheet, or
-/// can be navigated to as a destination.
+/// edit/delete. Hosted as the Habits tab root.
 struct HabitsView: View {
     @Environment(DataStore.self) private var dataStore
-    @Environment(\.dismiss) private var dismiss
-    /// True when presented as a sheet (shows a Done button). False when
-    /// hosted as the Habits tab root, where there's nothing to dismiss.
-    var presentedModally = false
     @State private var editing: HabitEditTarget?
     /// Memoized per-row payload. Rebuilt only when the habit list or
     /// entry list changes — without this, every body invalidation
@@ -133,11 +127,6 @@ struct HabitsView: View {
                     }
                     .accessibilityLabel("Add habit")
                 }
-                if presentedModally {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button("Done") { dismiss() }
-                    }
-                }
             }
             .sheet(isPresented: $showProgress) {
                 AtlasProgressView()
@@ -155,7 +144,7 @@ struct HabitsView: View {
                 Button("Delete", role: .destructive) {
                     Haptics.warning()
                     AppAnimation.with(AppAnimation.springSnappy) {
-                        dataStore.archiveHabit(id: habit.id)
+                        dataStore.deleteHabit(id: habit.id)
                     }
                 }
                 Button("Cancel", role: .cancel) {}
@@ -173,7 +162,7 @@ struct HabitsView: View {
                         HabitEditSheet(editing: habit) { updated in
                             dataStore.updateHabit(updated)
                         } onDelete: { id in
-                            dataStore.archiveHabit(id: id)
+                            dataStore.deleteHabit(id: id)
                         }
                     }
                 }
@@ -252,7 +241,7 @@ struct HabitsView: View {
                     Image(systemName: "bolt.fill")
                         .font(AppFont.scaled(11, weight: .bold))
                         .foregroundStyle(AppColor.accentLight)
-                    Text("Level \(momentum.level) · \(momentum.score) pts")
+                    Text("Level \(momentum.level) · ^[\(momentum.score) point](inflect: true)")
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
                 }

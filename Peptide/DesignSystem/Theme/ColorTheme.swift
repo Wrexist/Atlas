@@ -13,8 +13,10 @@ import UIKit
 /// appearance without a second palette.
 ///
 /// **Whitelisted domain colours** (intentionally literal, do NOT tokenize):
-/// the macro-ring colours (`macro*`), HealthKit metric colours (`metric*`),
-/// `streak` / `achievement`, the anatomy primary/secondary tints in
+/// the macro-ring colours (`macro*`), meal categories (`meal*`), lab panel
+/// sections (`lab*`), check-in dimensions (`outcome*`), HealthKit
+/// metric colours (`metric*`), `streak` / `achievement`, the anatomy
+/// primary/secondary tints in
 /// `MuscleMapView`, the notes mood-rating scale in `ProtocolNotesTimeline`,
 /// the multi-colour onboarding showcase in `WhatsNewPage`, and the
 /// deliberately-distinct Screenshot-mode dev row. These encode a real-world
@@ -138,6 +140,19 @@ enum AppColor {
     /// Below-range lab value — cool counterpart to `negative`.
     static let belowRange = Color(light: 0x2F6E96, dark: 0x8CC7EB)
 
+    // MARK: - Lab panel categories
+    //
+    // One hue per lab category. Each variant keeps ≥ 4.5:1 for the
+    // 11pt short-name label drawn in the tint on a 20% tint tile.
+
+    static let labSexHormones = Color(light: 0xA02A50, dark: 0xF080AA)
+    static let labGrowth = Color(light: 0x186A3B, dark: 0x66C78C)
+    static let labThyroid = Color(light: 0x4A4FC4, dark: 0x9AA0F4)
+    static let labMetabolic = Color(light: 0x874705, dark: 0xF2A64C)
+    static let labLipids = Color(light: 0xA32A2A, dark: 0xF07C7C)
+    static let labOrganHealth = Color(light: 0x1A5F85, dark: 0x8CC7EB)
+    static let labOther = Color(light: 0x5D5D78, dark: 0xBFBFD9)
+
     // MARK: - Feature accents
 
     /// Indigo that identifies the weekly-recap surfaces (hero card, detail
@@ -188,6 +203,22 @@ enum AppColor {
     /// clear 4.5:1 on all three surfaces.
     static let macroCarbs = Color(light: 0x2A6F55, dark: 0x5FD3A0)
     static let macroFat = Color(light: 0x9E4055, dark: 0xE8899F)
+
+    /// Meal categories, warm to cool through the day: sunrise orange,
+    /// midday yellow, dusk indigo, leafy snack green. Darkened in light
+    /// mode — the midday yellow is unreadable as an icon on a white card.
+    static let mealBreakfast = Color(light: 0xB85A12, dark: 0xFF9E4D)
+    static let mealLunch = Color(light: 0x9C7714, dark: 0xFAC733)
+    static let mealDinner = Color(light: 0x5A5FCF, dark: 0x7A80EB)
+    static let mealSnack = Color(light: 0x2A7A47, dark: 0x5CC78C)
+
+    /// Daily check-in dimensions, shared by the sliders, timeline rows and
+    /// correlation card. Darkened in light mode like the meal categories.
+    static let outcomeEnergy = Color(light: 0x9C7714, dark: 0xFFC733)
+    static let outcomeSleepQuality = Color(light: 0x5A5FCF, dark: 0x7A80EB)
+    static let outcomeRecovery = Color(light: 0x2A7A47, dark: 0x5CC78C)
+    static let outcomeMood = Color(light: 0xB04452, dark: 0xF2808C)
+    static let outcomeFocus = Color(light: 0x1F6FA8, dark: 0x66BDEB)
 
     /// HealthKit metric category colors. Each represents a physiological
     /// signal, not the brand — they intentionally stay constant across themes,

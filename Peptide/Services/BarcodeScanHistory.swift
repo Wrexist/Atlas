@@ -177,12 +177,6 @@ actor BarcodeScanHistory {
         save(store)
     }
 
-    /// Wipe everything. Used by tests + a future "clear history"
-    /// settings affordance.
-    func clear() {
-        defaults.removeObject(forKey: Self.storeKey)
-    }
-
     // MARK: - Internals
 
     private func load() -> [String: Entry] {
@@ -204,7 +198,7 @@ actor BarcodeScanHistory {
         }
     }
 
-    /// Delete All Data: forgets every scanned barcode and portion.
+    /// Delete All Data (and tests): forgets every scanned barcode and portion.
     func removeAll() {
         defaults.removeObject(forKey: Self.storeKey)
     }

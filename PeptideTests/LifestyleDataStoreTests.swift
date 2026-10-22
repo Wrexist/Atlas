@@ -106,10 +106,12 @@ final class LifestyleDataStoreTests: XCTestCase {
         XCTAssertEqual(bucket.waterOz, 0)
     }
 
-    func test_logMeal_accumulatesIntoTodaysBucket() {
+    func test_logMealEntry_accumulatesIntoTodaysBucket() {
         let store = makeStore()
-        store.logMeal(calories: 500, proteinG: 30, carbsG: 50, fatG: 20)
-        store.logMeal(calories: 700, proteinG: 50, carbsG: 60, fatG: 25)
+        store.logMealEntry(MealEntry(date: Date(), category: .lunch, name: "Bowl",
+                                     calories: 500, proteinG: 30, carbsG: 50, fatG: 20, source: .manual))
+        store.logMealEntry(MealEntry(date: Date(), category: .dinner, name: "Steak",
+                                     calories: 700, proteinG: 50, carbsG: 60, fatG: 25, source: .manual))
         let bucket = store.consumption(for: Date())
         XCTAssertEqual(bucket.caloriesKcal, 1200)
         XCTAssertEqual(bucket.proteinG, 80)
@@ -119,8 +121,8 @@ final class LifestyleDataStoreTests: XCTestCase {
 
     func test_logWater_accumulatesIntoTodaysBucket() {
         let store = makeStore()
-        store.logWater(oz: 8)
-        store.logWater(oz: 17)
+        store.logWater(fluidOunces: 8)
+        store.logWater(fluidOunces: 17)
         XCTAssertEqual(store.consumption(for: Date()).waterOz, 25)
     }
 
@@ -174,5 +176,37 @@ final class LifestyleDataStoreTests: XCTestCase {
         let prior = store.workoutSummary(for: yesterday)
         XCTAssertEqual(prior.count, 1)
         XCTAssertEqual(prior.minutes, 50)
+    }
+
+    // MARK: - Habits
+
+    /// Deleting a habit must take its logged history with it — the
+    /// dialog says it can't be undone, so nothing may linger in sync.
+    func test_deleteHabit_removesHabitAndItsEntries() {
+        let store = makeStore()
+        let kept = Habit(name: "Read", iconSymbol: "book.fill", tintHex: 0x6B8AFF)
+        let deleted = Habit(name: "Stretch", iconSymbol: "figure.flexibility", tintHex: 0x6B8AFF)
+        store.addHabit(kept)
+        store.addHabit(deleted)
+        store.toggleHabitEntry(habitId: kept.id)
+        store.toggleHabitEntry(habitId: deleted.id)
+
+        store.deleteHabit(id: deleted.id)
+
+        XCTAssertFalse(store.profile.habits.contains { $0.id == deleted.id })
+        XCTAssertFalse(store.profile.habitEntries.contains { $0.habitId == deleted.id })
+        XCTAssertTrue(store.profile.habits.contains { $0.id == kept.id })
+        XCTAssertTrue(store.profile.habitEntries.contains { $0.habitId == kept.id })
+    }
+
+    /// Starting a workout must not tick Today's "Workout logged" row
+    /// before the session is finished.
+    func test_workoutSummary_activeSession_isNotCounted() {
+        let store = makeStore()
+        SwiftDataRepository.shared.upsertWorkoutSession(WorkoutSession(name: "Push", startedAt: Date()))
+
+        let summary = store.workoutSummary()
+        XCTAssertEqual(summary.count, 0)
+        XCTAssertEqual(summary.minutes, 0)
     }
 }

@@ -38,7 +38,15 @@ final class DepthCameraController: UIViewController, AVCapturePhotoCaptureDelega
     private let preview = AVCaptureVideoPreviewLayer()
     private let sessionQueue = DispatchQueue(label: "com.peptidesai.app.depth-camera")
     private var fieldOfView: Double?
+    /// Keeps the photo and viewfinder upright however the phone is held.
+    private var rotation: AVCaptureDevice.RotationCoordinator?
     private let shutter = UIButton(type: .custom)
+    /// Removed in `deinit`, which can't be main-actor isolated.
+    nonisolated(unsafe) private var sessionObservers: [NSObjectProtocol] = []
+
+    deinit {
+        for observer in sessionObservers { NotificationCenter.default.removeObserver(observer) }
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -48,16 +56,41 @@ final class DepthCameraController: UIViewController, AVCapturePhotoCaptureDelega
         view.layer.addSublayer(preview)
         configureSession()
         addControls()
+        observeSession()
+    }
+
+    /// Keeps the shutter in step with the session, so it comes back on
+    /// when an interruption (a call, Split View, another camera app) ends.
+    private func observeSession() {
+        let names: [Notification.Name] = [
+            .AVCaptureSessionDidStartRunning,
+            .AVCaptureSessionDidStopRunning,
+            .AVCaptureSessionWasInterrupted,
+            .AVCaptureSessionInterruptionEnded,
+        ]
+        sessionObservers = names.map { name in
+            NotificationCenter.default.addObserver(forName: name, object: session, queue: .main) { [weak self] _ in
+                guard let self else { return }
+                MainActor.assumeIsolated { self.refreshShutter() }
+            }
+        }
     }
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         preview.frame = view.bounds
+        if let rotation, let connection = preview.connection,
+           connection.isVideoRotationAngleSupported(rotation.videoRotationAngleForHorizonLevelPreview) {
+            connection.videoRotationAngle = rotation.videoRotationAngleForHorizonLevelPreview
+        }
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        sessionQueue.async { [session] in session.startRunning() }
+        sessionQueue.async { [weak self, session] in
+            session.startRunning()
+            Task { @MainActor in self?.refreshShutter() }
+        }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -66,21 +99,24 @@ final class DepthCameraController: UIViewController, AVCapturePhotoCaptureDelega
     }
 
     private func configureSession() {
-        guard let device = Self.lidarDevice, let input = try? AVCaptureDeviceInput(device: device) else { return }
+        guard let device = Self.lidarDevice, let input = try? AVCaptureDeviceInput(device: device) else {
+            // Close rather than leave a shutter that can never enable.
+            Task { [weak self] in self?.onCancel?() }
+            return
+        }
         session.beginConfiguration()
         session.sessionPreset = .photo
         if session.canAddInput(input) { session.addInput(input) }
         if session.canAddOutput(output) { session.addOutput(output) }
         output.isDepthDataDeliveryEnabled = output.isDepthDataDeliverySupported
-        // Portrait, like the system camera the rest of the flow expects.
-        output.connection(with: .video)?.videoRotationAngle = 90
         session.commitConfiguration()
-        preview.connection?.videoRotationAngle = 90
+        rotation = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: preview)
         fieldOfView = Double(device.activeFormat.videoFieldOfView)
     }
 
     private func addControls() {
         shutter.translatesAutoresizingMaskIntoConstraints = false
+        shutter.isEnabled = false
         shutter.backgroundColor = .white
         shutter.layer.cornerRadius = 36
         shutter.layer.borderWidth = 4
@@ -109,10 +145,31 @@ final class DepthCameraController: UIViewController, AVCapturePhotoCaptureDelega
         ])
     }
 
+    /// `capturePhoto` raises an exception without an active video
+    /// connection: before the session starts, while it is interrupted, or
+    /// when the LiDAR input couldn't be added at all.
+    private var canCapture: Bool {
+        guard session.isRunning, !session.isInterrupted,
+              let connection = output.connection(with: .video) else { return false }
+        return connection.isActive && connection.isEnabled
+    }
+
+    private func refreshShutter() {
+        shutter.isEnabled = canCapture
+    }
+
     @objc private func capture() {
+        guard canCapture else {
+            refreshShutter()
+            return
+        }
         shutter.isEnabled = false
         let settings = AVCapturePhotoSettings()
         settings.isDepthDataDeliveryEnabled = output.isDepthDataDeliveryEnabled
+        if let rotation, let connection = output.connection(with: .video),
+           connection.isVideoRotationAngleSupported(rotation.videoRotationAngleForHorizonLevelCapture) {
+            connection.videoRotationAngle = rotation.videoRotationAngleForHorizonLevelCapture
+        }
         output.capturePhoto(with: settings, delegate: self)
     }
 
@@ -125,7 +182,7 @@ final class DepthCameraController: UIViewController, AVCapturePhotoCaptureDelega
         let distance = photo.depthData.flatMap(Self.centreDistance(of:))
         Task { @MainActor in
             guard let image else {
-                self.shutter.isEnabled = true
+                self.refreshShutter()
                 return
             }
             var scale: PhotoScale?

@@ -40,31 +40,48 @@ struct NextDoseIntent: AppIntent {
             ))
         case .upcoming(let name, let dose, let date):
             let time = date.formatted(date: .omitted, time: .shortened)
-            let relative = Self.relativePhrase(for: date)
+            let interval = date.timeIntervalSinceNow
+            if interval <= -60 {
+                if dose.isEmpty {
+                    return .result(dialog: IntentDialog(
+                        LocalizedStringResource(
+                            "\(name) was due at \(time) and isn't logged yet.",
+                            comment: "Siri readout when the next dose is overdue and has no set amount."
+                        )
+                    ))
+                }
+                return .result(dialog: IntentDialog(
+                    LocalizedStringResource(
+                        "\(name) \(dose) was due at \(time) and isn't logged yet.",
+                        comment: "Siri readout when the next dose is overdue."
+                    )
+                ))
+            }
+            let relative = interval < 60
+                ? String(localized: "now")
+                : Self.relativeFormatter.localizedString(for: date, relativeTo: Date())
+            if dose.isEmpty {
+                return .result(dialog: IntentDialog(
+                    LocalizedStringResource(
+                        "Next up: \(name) at \(time), \(relative).",
+                        comment: "Siri readout of the next scheduled dose when it has no set amount."
+                    )
+                ))
+            }
             return .result(dialog: IntentDialog(
                 LocalizedStringResource(
-                    "Next up: \(name), \(dose), at \(time). \(relative).",
+                    "Next up: \(name), \(dose), at \(time), \(relative).",
                     comment: "Siri readout of the next scheduled dose."
                 )
             ))
         }
     }
 
-    private static func relativePhrase(for date: Date) -> String {
-        let interval = date.timeIntervalSinceNow
-        if abs(interval) < 60 {
-            return String(localized: "Now")
-        }
-        if interval < 0 {
-            return String(localized: "Earlier today")
-        }
-        return relativeFormatter.localizedString(for: date, relativeTo: Date())
-    }
-
     nonisolated(unsafe) private static let relativeFormatter: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()
         formatter.dateTimeStyle = .named
         formatter.unitsStyle = .full
+        formatter.formattingContext = .middleOfSentence
         return formatter
     }()
 
@@ -74,45 +91,44 @@ struct NextDoseIntent: AppIntent {
     }
 }
 
-// MARK: - Compliance
+// MARK: - Adherence
 
 struct ComplianceIntent: AppIntent {
-    static let title: LocalizedStringResource = "Show compliance"
+    static let title: LocalizedStringResource = "Show adherence"
     static let description = IntentDescription(
-        "Reads back your 7-day peptide compliance.",
+        "Reads back your 7-day protocol adherence.",
         categoryName: "Doses"
     )
     static let openAppWhenRun: Bool = false
 
     func perform() async throws -> some IntentResult & ProvidesDialog & ReturnsValue<Int> {
-        let snapshot: ComplianceReadout = await MainActor.run {
-            let store = IntentDataStore.resolve()
-            let fraction = EntryAnalytics.weeklyComplianceFraction(in: store.entries)
-            return ComplianceReadout(
-                percent: Int((fraction * 100).rounded()),
-                hasData: !store.entries.isEmpty
-            )
+        let percent: Int? = await MainActor.run {
+            EntryAnalytics.weeklyComplianceFraction(in: IntentDataStore.resolve().entries)
+                .map { Int(($0 * 100).rounded()) }
         }
 
-        guard snapshot.hasData else {
+        guard let percent else {
             return .result(value: 0, dialog: IntentDialog(
                 LocalizedStringResource(
                     "No recent data. Start logging doses in Atlas.",
-                    comment: "Siri response when there are no entries yet."
+                    comment: "Siri response when no doses were scheduled in the last 7 days."
                 )
             ))
         }
-        return .result(value: snapshot.percent, dialog: IntentDialog(
+        guard percent >= 50 else {
+            return .result(value: percent, dialog: IntentDialog(
+                LocalizedStringResource(
+                    "Your 7-day adherence is \(percent) percent.",
+                    comment: "Siri readout — weekly adherence percentage, below half."
+                )
+            ))
+        }
+        return .result(value: percent, dialog: IntentDialog(
             LocalizedStringResource(
-                "Your 7-day compliance is \(snapshot.percent) percent. Keep it up.",
-                comment: "Siri readout — weekly compliance percentage."
+                "Your 7-day adherence is \(percent) percent. Keep it up.",
+                comment: "Siri readout — weekly adherence percentage."
             )
         ))
-    }
-
-    private struct ComplianceReadout {
-        let percent: Int
-        let hasData: Bool
     }
 }
 
@@ -145,14 +161,7 @@ struct LogDoseIntent: AppIntent {
         let chosenName = peptide.displayName
 
         let resolution: ToggleResolution = await MainActor.run {
-            let store = IntentDataStore.resolve()
-            let candidate = store.todayEntries
-                .sorted { $0.date < $1.date }
-                .first { !$0.completed && $0.peptide.id.uuidString == chosenID }
-            guard let entry = candidate else { return .nothingToLog }
-            store.toggleEntry(entry.id)
-            store.flushPendingSave()
-            return .logged(at: entry.date, dose: entry.dose)
+            Self.logEarliestDose(of: chosenID, in: IntentDataStore.resolve())
         }
 
         switch resolution {
@@ -165,6 +174,14 @@ struct LogDoseIntent: AppIntent {
             ))
         case .logged(let date, let dose):
             let time = date.formatted(date: .omitted, time: .shortened)
+            if dose.isEmpty {
+                return .result(dialog: IntentDialog(
+                    LocalizedStringResource(
+                        "Logged \(chosenName) at \(time).",
+                        comment: "Siri confirmation after marking a dose with no set amount complete."
+                    )
+                ))
+            }
             return .result(dialog: IntentDialog(
                 LocalizedStringResource(
                     "Logged \(chosenName) \(dose) at \(time).",
@@ -174,7 +191,21 @@ struct LogDoseIntent: AppIntent {
         }
     }
 
-    private enum ToggleResolution {
+    /// Completes today's earliest incomplete dose of the peptide and
+    /// flushes the save, so the write survives the app being killed
+    /// right after a cold-launched intent returns.
+    @MainActor
+    static func logEarliestDose(of peptideID: String, in store: DataStore) -> ToggleResolution {
+        let candidate = store.todayEntries
+            .sorted { $0.date < $1.date }
+            .first { !$0.completed && $0.peptide.id.uuidString == peptideID }
+        guard let entry = candidate else { return .nothingToLog }
+        store.toggleEntry(entry.id)
+        store.flushPendingSave()
+        return .logged(at: entry.date, dose: entry.dose)
+    }
+
+    enum ToggleResolution: Equatable {
         case logged(at: Date, dose: String)
         case nothingToLog
     }
@@ -205,8 +236,16 @@ struct TodayMacrosIntent: AppIntent {
         }
 
         let dialog: IntentDialog
-        if snapshot.calorieTarget > 0 {
-            let remaining = max(0, snapshot.calorieTarget - snapshot.calories)
+        if snapshot.calorieTarget > 0, snapshot.calories > snapshot.calorieTarget {
+            let over = snapshot.calories - snapshot.calorieTarget
+            dialog = IntentDialog(
+                LocalizedStringResource(
+                    "\(snapshot.calories) of \(snapshot.calorieTarget) calories. \(over) over your target. \(snapshot.protein) grams protein, \(snapshot.carbs) grams carbs, \(snapshot.fat) grams fat.",
+                    comment: "Siri readout — calorie totals past the target plus macro line."
+                )
+            )
+        } else if snapshot.calorieTarget > 0 {
+            let remaining = snapshot.calorieTarget - snapshot.calories
             dialog = IntentDialog(
                 LocalizedStringResource(
                     "\(snapshot.calories) of \(snapshot.calorieTarget) calories. \(remaining) remaining. \(snapshot.protein) grams protein, \(snapshot.carbs) grams carbs, \(snapshot.fat) grams fat.",
@@ -246,45 +285,6 @@ struct PeptideShortcuts: AppShortcutsProvider {
 
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
-            intent: LogDoseIntent(),
-            phrases: [
-                "Log a \(.applicationName) dose",
-                "Log my dose in \(.applicationName)",
-                "Mark my peptide complete in \(.applicationName)",
-            ],
-            shortTitle: "Log Dose",
-            systemImageName: "syringe.fill"
-        )
-        AppShortcut(
-            intent: NextDoseIntent(),
-            phrases: [
-                "What's my next \(.applicationName) dose",
-                "Next dose in \(.applicationName)",
-                "When is my next peptide in \(.applicationName)",
-            ],
-            shortTitle: "Next Dose",
-            systemImageName: "clock.badge.fill"
-        )
-        AppShortcut(
-            intent: ComplianceIntent(),
-            phrases: [
-                "How's my compliance in \(.applicationName)",
-                "Check my \(.applicationName) compliance",
-                "Show \(.applicationName) stats",
-            ],
-            shortTitle: "Compliance",
-            systemImageName: "chart.bar.fill"
-        )
-        AppShortcut(
-            intent: ShowStreakIntent(),
-            phrases: [
-                "Show my \(.applicationName) streak",
-                "What's my streak in \(.applicationName)",
-            ],
-            shortTitle: "Streaks",
-            systemImageName: "flame.fill"
-        )
-        AppShortcut(
             intent: LogWaterIntent(),
             phrases: [
                 "Log water in \(.applicationName)",
@@ -316,11 +316,50 @@ struct PeptideShortcuts: AppShortcutsProvider {
         AppShortcut(
             intent: LogRecipeIntent(),
             phrases: [
-                "Log a \(.applicationName) recipe",
+                "Log a recipe in \(.applicationName)",
                 "Log my recipe in \(.applicationName)",
             ],
             shortTitle: "Log Recipe",
             systemImageName: "list.bullet.rectangle.fill"
+        )
+        AppShortcut(
+            intent: LogDoseIntent(),
+            phrases: [
+                "Log a dose in \(.applicationName)",
+                "Log my dose in \(.applicationName)",
+                "Mark my peptide complete in \(.applicationName)",
+            ],
+            shortTitle: "Log Dose",
+            systemImageName: "syringe.fill"
+        )
+        AppShortcut(
+            intent: NextDoseIntent(),
+            phrases: [
+                "What's my next \(.applicationName) dose",
+                "Next dose in \(.applicationName)",
+                "When is my next peptide in \(.applicationName)",
+            ],
+            shortTitle: "Next Dose",
+            systemImageName: "clock.badge.fill"
+        )
+        AppShortcut(
+            intent: ComplianceIntent(),
+            phrases: [
+                "How's my adherence in \(.applicationName)",
+                "Check my \(.applicationName) adherence",
+                "Show \(.applicationName) stats",
+            ],
+            shortTitle: "Adherence",
+            systemImageName: "chart.bar.fill"
+        )
+        AppShortcut(
+            intent: ShowStreakIntent(),
+            phrases: [
+                "Show my \(.applicationName) streak",
+                "What's my streak in \(.applicationName)",
+            ],
+            shortTitle: "Streaks",
+            systemImageName: "flame.fill"
         )
     }
 }

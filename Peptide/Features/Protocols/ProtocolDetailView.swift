@@ -8,6 +8,7 @@ struct ProtocolDetailView: View {
     @State private var showCompleteConfirmation = false
     @State private var showEditSheet = false
     @State private var showShareCard = false
+    @State private var showPaywall = false
     @State private var schedulingPeptide: Peptide?
 
     private var liveProtocol: PeptideProtocol {
@@ -18,19 +19,13 @@ struct ProtocolDetailView: View {
         Array(dataStore.entriesFor(protocolId: protocol_.id).prefix(10))
     }
 
-    /// All logged entries (past 14 days) for this protocol — used for adherence stats.
-    /// `entriesFor` uses `startOfDay(of: today - days)` as the cutoff, so passing 13
-    /// gives an inclusive 14-day window (13 prior days + today).
-    private var allRecentEntries: [ProtocolEntry] {
-        dataStore.entriesFor(protocolId: protocol_.id, days: 13)
-    }
-
-    /// Adherence: completed entries / total entries (rounded percent). Returns nil if no entries.
+    /// Adherence over the last 14 days (rounded percent). `entriesFor`
+    /// uses `startOfDay(of: today - days)` as the cutoff, so passing 13
+    /// covers the same inclusive window (13 prior days + today).
     private var adherencePercent: Int? {
-        let entries = allRecentEntries
-        guard !entries.isEmpty else { return nil }
-        let completed = entries.filter(\.completed).count
-        return Int((Double(completed) / Double(entries.count) * 100).rounded())
+        let entries = dataStore.entriesFor(protocolId: protocol_.id, days: 13)
+        guard let ratio = liveProtocol.adherence(entries: entries, days: 14) else { return nil }
+        return Int((ratio * 100).rounded())
     }
 
     private var customScheduleCount: Int {
@@ -152,7 +147,9 @@ struct ProtocolDetailView: View {
 
                             scheduleDetailRow(
                                 label: "Preferred",
-                                value: liveProtocol.schedule.preferredTimes.joined(separator: ", ")
+                                value: liveProtocol.schedule.preferredTimes
+                                    .map(ProtocolSchedule.displayTime)
+                                    .joined(separator: ", ")
                             )
                         }
 
@@ -160,7 +157,7 @@ struct ProtocolDetailView: View {
 
                         scheduleDetailRow(
                             label: "Cycle",
-                            value: "\(formattedDate(liveProtocol.startDate)) – \(formattedDate(liveProtocol.endDate))"
+                            value: "\(formattedDate(liveProtocol.currentCycleStartDay)) – \(formattedDate(liveProtocol.endDate))"
                         )
                     }
                 }
@@ -222,9 +219,12 @@ struct ProtocolDetailView: View {
                         } else {
                             ForEach(Array(recentEntries.enumerated()), id: \.element.id) { index, entry in
                                 Button {
-                                    Haptics.selection()
                                     AppAnimation.with(AppAnimation.springSnappy) {
-                                        dataStore.toggleEntry(entry.id)
+                                        if entry.completed {
+                                            dataStore.unlogDose(entryId: entry.id)
+                                        } else {
+                                            dataStore.markEntryComplete(entry.id, at: Date())
+                                        }
                                     }
                                 } label: {
                                     DoseLogRow(entry: entry)
@@ -293,6 +293,10 @@ struct ProtocolDetailView: View {
         }
         .sheet(isPresented: $showShareCard) {
             ShareCardSheet(subject: .singleProtocol(liveProtocol))
+                .liquidGlassPresentation()
+        }
+        .sheet(isPresented: $showPaywall) {
+            PaywallView(source: .protocolLimit)
                 .liquidGlassPresentation()
         }
         .sheet(item: $schedulingPeptide) { peptide in
@@ -368,7 +372,7 @@ struct ProtocolDetailView: View {
                             .fontWeight(.semibold)
                             .foregroundStyle(isCustom ? AppColor.accentLight : AppColor.textPrimary)
                             .lineLimit(1)
-                        Text("\(schedule.timesPerDay)x daily")
+                        Text(schedule.isInterval ? "\(schedule.timesPerDay)x per dose day" : "\(schedule.timesPerDay)x daily")
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.textTertiary)
                     }
@@ -427,19 +431,33 @@ struct ProtocolDetailView: View {
             }
         case .completed:
             GlassButton(title: "Restart", icon: "arrow.counterclockwise", style: .primary) {
-                setStatus(.active)
+                // A finished cycle needs a fresh start date, not just a
+                // status flip — otherwise it reads 100% done and
+                // auto-completes again on the next launch.
+                applyStatusChange(.active) {
+                    dataStore.restartProtocol(id: protocol_.id)
+                }
             }
         }
     }
 
     private func setStatus(_ status: ProtocolStatus) {
+        applyStatusChange(status) {
+            dataStore.updateProtocolStatus(id: protocol_.id, to: status)
+        }
+    }
+
+    /// Runs `change` and plays its haptic, or presents the paywall when
+    /// the free-tier cap blocked an activation.
+    private func applyStatusChange(_ status: ProtocolStatus, _ change: () -> Bool) {
+        guard AppAnimation.with(AppAnimation.springSnappy, change) else {
+            if status == .active { showPaywall = true }
+            return
+        }
         if status == .completed {
             Haptics.success()
         } else {
             Haptics.impact(.light)
-        }
-        AppAnimation.with(AppAnimation.springSnappy) {
-            dataStore.updateProtocolStatus(id: protocol_.id, to: status)
         }
     }
 }

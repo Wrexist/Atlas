@@ -63,7 +63,8 @@ enum LabDataLogic {
 
     /// Direction between the two most-recent values for a panel.
     /// Returns `.stable` when only one entry exists (no comparison
-    /// possible) or when the delta is below the 5%-of-value noise
+    /// possible), when the value didn't move (0 → 0 has a zero noise
+    /// floor), or when the delta is below the 5%-of-value noise
     /// floor — saves the user from over-reading single-point drift.
     static func computeTrend(entries: [LabValue]) -> LabTrend {
         guard entries.count >= 2 else { return .stable }
@@ -73,7 +74,7 @@ enum LabDataLogic {
         else { return .stable }
         let delta = latest.value - previous.value
         let threshold = abs(previous.value) * 0.05
-        if abs(delta) < threshold {
+        if delta == 0 || abs(delta) < threshold {
             return .stable
         }
         return delta > 0 ? .rising(delta: delta) : .falling(delta: delta)

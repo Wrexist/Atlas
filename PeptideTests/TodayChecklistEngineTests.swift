@@ -21,7 +21,8 @@ final class TodayChecklistEngineTests: XCTestCase {
     private func state(
         profile: UserProfile = .fresh,
         waterOz: Int = 0,
-        trainedToday: Bool = false
+        trainedToday: Bool = false,
+        hour: Int = 12
     ) -> TodayChecklistEngine.State {
         TodayChecklistEngine.state(
             profile: profile,
@@ -31,13 +32,13 @@ final class TodayChecklistEngineTests: XCTestCase {
                 return day
             }(),
             trainedToday: trainedToday,
-            now: monday(12),
+            now: monday(hour),
             calendar: calendar
         )
     }
 
     func test_freshProfile_nothingDone_breakfastNext() {
-        let s = state()
+        let s = state(hour: 8)
         XCTAssertEqual(s.completedCount, 0)
         XCTAssertEqual(s.nextMeal, .breakfast)
         XCTAssertTrue(s.isTrainingDay, "No preferred days means every day is a training day")
@@ -57,6 +58,22 @@ final class TodayChecklistEngineTests: XCTestCase {
 
         profile.mealHistory.append(meal(.dinner, at: monday(11)))
         XCTAssertTrue(state(profile: profile).isDone(.meals))
+    }
+
+    func test_missedBreakfastAtNoon_lunchIsNext() {
+        XCTAssertEqual(state(hour: 12).nextMeal, .lunch)
+    }
+
+    func test_missedBreakfastInTheEvening_noNextMealButNotDone() {
+        var profile = UserProfile.fresh
+        profile.mealHistory = [
+            meal(.lunch, at: monday(12)),
+            meal(.dinner, at: monday(19)),
+        ]
+        let s = state(profile: profile, hour: 21)
+        XCTAssertNil(s.nextMeal)
+        XCTAssertFalse(s.isDone(.meals))
+        XCTAssertEqual(s.loggedMainMealCount, 2)
     }
 
     func test_restDay_countsAsDone() {

@@ -313,7 +313,7 @@ struct PaywallView: View {
                         timelineRow(
                             icon: "gearshape.fill",
                             title: "Day \(days - 1)",
-                            detail: "Still not for you? Cancel anytime in Settings → Apple ID → Subscriptions and keep the rest of the trial."
+                            detail: "Still not for you? Cancel anytime in Settings → your name → Subscriptions and keep the rest of the trial."
                         )
                     }
                     timelineRow(
@@ -413,7 +413,7 @@ struct PaywallView: View {
                 .accessibilityHidden(true)
             Text(isOneTimePurchaseSelected
                  ? "One payment. Your logs, workouts and photos stay yours."
-                 : "Cancel anytime in Settings → Apple ID → Subscriptions. Your logs, workouts and photos stay yours either way.")
+                 : "Cancel anytime in Settings → your name → Subscriptions. Your logs, workouts and photos stay yours either way.")
                 .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -1109,7 +1109,7 @@ struct PaywallView: View {
                         .font(AppFont.title2)
                         .foregroundStyle(AppColor.textPrimary)
 
-                    Text("Payment is charged to your Apple ID. Subscription auto-renews at the same price unless cancelled at least 24 hours before the end of the current period. You can manage or cancel your subscription in Settings → Apple ID → Subscriptions.")
+                    Text("Payment is charged to your Apple ID. Subscription auto-renews at the same price unless cancelled at least 24 hours before the end of the current period. You can manage or cancel your subscription in Settings → your name → Subscriptions.")
                         .font(AppFont.body)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)

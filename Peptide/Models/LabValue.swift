@@ -20,10 +20,9 @@ struct LabValue: Codable, Hashable, Identifiable, Sendable {
     /// Which marker this entry tracks. Drives display name + units
     /// + reference range.
     var panel: LabPanel
-    /// The reported value. Stored in `panel.canonicalUnit` — the
-    /// editor converts on input if the user reported in an
-    /// alternative unit, so the timeline math doesn't have to
-    /// branch.
+    /// The reported value, always in `panel.canonicalUnit` so the
+    /// timeline math doesn't have to branch. The editor converts on
+    /// save when the user entered the lab's SI unit.
     var value: Double
     /// Optional source — "Quest", "Marek Health", "Inside Tracker".
     /// Useful when a user runs labs at multiple places and wants
@@ -113,6 +112,16 @@ enum LabPanel: String, Codable, CaseIterable, Identifiable, Sendable {
     case other
 
     var id: String { rawValue }
+
+    /// A panel added in a newer build decodes as `.other` instead of
+    /// throwing — a throw here would fail the whole lab history (and
+    /// the profile blob carrying it) on an older build. Stopgap: the
+    /// next save writes it back as "other", so the newer build loses
+    /// that panel name once an older device edits the profile.
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = LabPanel(rawValue: raw) ?? .other
+    }
 
     var displayName: String {
         switch self {
@@ -214,6 +223,38 @@ enum LabPanel: String, Codable, CaseIterable, Identifiable, Sendable {
         case .hematocrit:         "%"
         case .cortisolMorning:    "μg/dL"
         case .other:              ""
+        }
+    }
+
+    /// The SI unit many labs (most of Europe) report this panel in,
+    /// or nil when labs report it in `canonicalUnit` (or an
+    /// equal-magnitude unit) everywhere.
+    var siUnit: String? {
+        switch self {
+        case .totalTestosterone, .vitaminD:
+            "nmol/L"
+        case .fastingGlucose, .totalCholesterol, .hdl, .ldl, .triglycerides:
+            "mmol/L"
+        case .hba1c:
+            "mmol/mol"
+        case .creatinine:
+            "μmol/L"
+        default:
+            nil
+        }
+    }
+
+    /// Converts a value reported in `siUnit` to `canonicalUnit`.
+    func canonicalValue(fromSI value: Double) -> Double {
+        switch self {
+        case .totalTestosterone:                 value * 28.84
+        case .vitaminD:                          value / 2.496
+        case .fastingGlucose:                    value * 18.016
+        case .totalCholesterol, .hdl, .ldl:      value * 38.67
+        case .triglycerides:                     value * 88.57
+        case .hba1c:                             value * 0.0915 + 2.15
+        case .creatinine:                        value / 88.4
+        default:                                 value
         }
     }
 
@@ -341,13 +382,13 @@ enum LabPanel: String, Codable, CaseIterable, Identifiable, Sendable {
     /// "thyroid" page reads as one design idiom end to end.
     var tint: Color {
         switch category {
-        case .sexHormones: Color(red: 0.92, green: 0.45, blue: 0.62)
-        case .growth:      Color(red: 0.40, green: 0.78, blue: 0.55)
-        case .thyroid:     Color(red: 0.48, green: 0.50, blue: 0.92)
-        case .metabolic:   Color(red: 0.95, green: 0.65, blue: 0.30)
-        case .lipids:      Color(red: 0.92, green: 0.38, blue: 0.38)
-        case .organHealth: Color(red: 0.55, green: 0.78, blue: 0.92)
-        case .other:       Color(red: 0.75, green: 0.75, blue: 0.85)
+        case .sexHormones: AppColor.labSexHormones
+        case .growth:      AppColor.labGrowth
+        case .thyroid:     AppColor.labThyroid
+        case .metabolic:   AppColor.labMetabolic
+        case .lipids:      AppColor.labLipids
+        case .organHealth: AppColor.labOrganHealth
+        case .other:       AppColor.labOther
         }
     }
 

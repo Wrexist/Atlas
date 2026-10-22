@@ -125,7 +125,7 @@ struct AffiliateApplySheet: View {
                     .fill(AppColor.accentPrimary.opacity(0.18))
                     .frame(width: 72, height: 72)
                 Image(systemName: "megaphone.fill")
-                    .font(.system(size: 30, weight: .semibold))
+                    .font(AppFont.scaled(30, weight: .semibold, relativeTo: .title1))
                     .foregroundStyle(AppColor.accentPrimary)
             }
             Text("Earn for every Pro signup")
@@ -286,7 +286,7 @@ struct AffiliateApplySheet: View {
             Divider()
                 .background(AppColor.glassBorder)
                 .padding(.vertical, 2)
-            Text("We'll review and reply within 5 business days.")
+            Text("We'll review and reach out on the channel you listed within 5 business days.")
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textTertiary)
         }

@@ -9,7 +9,7 @@ struct ShowStreakIntent: AppIntent {
 
     static let description = IntentDescription(
         "Reads back your current dose-logging and meal-logging streaks.",
-        categoryName: "Doses"
+        categoryName: "Progress"
     )
 
     static let openAppWhenRun: Bool = false

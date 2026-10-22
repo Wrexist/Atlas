@@ -55,14 +55,16 @@ final class AIResearchService: Sendable {
 
         var errorDescription: String? {
             switch self {
-            case .proxyNotConfigured:   "AI research isn't configured for this build. Set AI_RESEARCH_ENDPOINT and AI_RESEARCH_SECRET in Secrets.xcconfig and rebuild."
-            case .unauthorised:         "Couldn't sign in to the research assistant. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build."
-            case .offline:              "You're offline — the research assistant needs an internet connection. Reconnect and try again."
-            case .rateLimited:          "You're sending questions faster than the assistant can answer. Wait a minute and try again."
-            case .dailyLimitReached:    "You've reached today's research limit. It resets tomorrow."
-            case .serviceUnavailable:   "The research assistant is temporarily offline. Try again in a few minutes."
+            // Build-config detail belongs in the log, not in front of
+            // customers; they only need to know the assistant is down.
+            case .proxyNotConfigured:   String(localized: "The research assistant isn't available right now. Update Atlas or try again later.")
+            case .unauthorised:         String(localized: "Couldn't sign in to the research assistant. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build.")
+            case .offline:              String(localized: "You're offline — the research assistant needs an internet connection. Reconnect and try again.")
+            case .rateLimited:          String(localized: "You're sending questions faster than the assistant can answer. Wait a minute and try again.")
+            case .dailyLimitReached:    String(localized: "You've reached today's research limit. It resets tomorrow.")
+            case .serviceUnavailable:   String(localized: "The research assistant is temporarily offline. Try again in a few minutes.")
             case .requestFailed(let m): m
-            case .invalidResponse:      "The assistant returned an unexpected response."
+            case .invalidResponse:      String(localized: "The assistant returned an unexpected response.")
             }
         }
     }
@@ -99,12 +101,10 @@ final class AIResearchService: Sendable {
         }
     }
 
-    /// Streaming companion to `reply` — emits partial text chunks as
-    /// they arrive from the proxy's SSE stream. The client appends
-    /// each chunk to the in-progress assistant turn so the user sees
-    /// tokens land in real time (audit AI Research P2). When the
-    /// proxy hasn't been upgraded to SSE the buffered response is
-    /// yielded as a single chunk, so the call site degrades cleanly.
+    /// `reply` as a stream for the chat view, which reads it with
+    /// `for try await` so Stop or a newer question cancels the request.
+    /// The proxy answers with one buffered JSON reply, so the whole text
+    /// arrives as a single chunk.
     func replyStream(
         history: [Turn],
         newUserPrompt prompt: String,
@@ -113,107 +113,14 @@ final class AIResearchService: Sendable {
         AsyncThrowingStream { continuation in
             let task = Task { [self] in
                 do {
-                    try await streamReply(
-                        history: history,
-                        prompt: prompt,
-                        database: database,
-                        continuation: continuation
-                    )
+                    let text = try await reply(history: history, newUserPrompt: prompt, in: database)
+                    if !text.isEmpty { continuation.yield(text) }
                     continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)
                 }
             }
             continuation.onTermination = { _ in task.cancel() }
-        }
-    }
-
-    private func streamReply(
-        history: [Turn],
-        prompt: String,
-        database: [Peptide],
-        continuation: AsyncThrowingStream<String, Error>.Continuation
-    ) async throws {
-        guard let endpoint, let proxySecret, !proxySecret.isEmpty else {
-            throw ChatError.proxyNotConfigured
-        }
-        let context = ragContext(for: prompt, history: history, in: database)
-        var body = payload(history: history, newPrompt: prompt, ragContext: context)
-        body["stream"] = true
-
-        var request = URLRequest(url: endpoint)
-        request.httpMethod = "POST"
-        request.timeoutInterval = 60
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
-        request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
-        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
-
-        let bytes: URLSession.AsyncBytes
-        let response: URLResponse
-        do {
-            (bytes, response) = try await streamAttested(request)
-        } catch {
-            throw mapTransport(error)
-        }
-        guard let http = response as? HTTPURLResponse else { throw ChatError.invalidResponse }
-        guard (200..<300).contains(http.statusCode) else {
-            // Bounded: the error envelope is small, and a misbehaving
-            // proxy must not be able to stream an unbounded body here.
-            var errorBody = Data()
-            for try await byte in bytes {
-                errorBody.append(byte)
-                if errorBody.count >= 4096 { break }
-            }
-            throw Self.chatError(status: http.statusCode, body: errorBody)
-        }
-
-        let contentType = (http.value(forHTTPHeaderField: "Content-Type") ?? "").lowercased()
-        if !contentType.contains("text/event-stream") {
-            // Proxy didn't honor stream:true (older deploy). Buffer the body
-            // and yield the full text as a single chunk so the caller still
-            // sees the reply land — just without per-token animation.
-            var buffer = Data()
-            for try await byte in bytes { buffer.append(byte) }
-            let text = try parseAssistantText(from: buffer)
-            if !text.isEmpty { continuation.yield(text) }
-            return
-        }
-
-        // Anthropic SSE: each event is "event: <name>\n" plus "data: <json>\n\n".
-        // We only consume `data:` lines and parse the `content_block_delta`
-        // events whose `delta.text` carries the streamed tokens.
-        for try await line in bytes.lines {
-            try Task.checkCancellation()
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            guard trimmed.hasPrefix("data:") else { continue }
-            let payloadString = String(trimmed.dropFirst("data:".count))
-                .trimmingCharacters(in: .whitespaces)
-            if payloadString.isEmpty || payloadString == "[DONE]" { continue }
-            guard let data = payloadString.data(using: .utf8),
-                  let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                continue
-            }
-            let type = dict["type"] as? String
-            if type == "content_block_delta",
-               let delta = dict["delta"] as? [String: Any],
-               let text = delta["text"] as? String,
-               !text.isEmpty {
-                continuation.yield(text)
-            } else if type == "message_stop" {
-                return
-            } else if type == "error" {
-                // Surface even when the upstream `error` event omits a
-                // `message` string — otherwise the stream ends silently
-                // and the view's empty-bubble cleanup leaves the user
-                // staring at no answer + no error (audit AI Research
-                // P2 follow-up).
-                let err = dict["error"] as? [String: Any]
-                let message = (err?["message"] as? String).map { $0.isEmpty ? nil : $0 } ?? nil
-                throw ChatError.requestFailed(
-                    message ?? "The research assistant returned an unspecified error."
-                )
-            }
         }
     }
 
@@ -231,12 +138,12 @@ final class AIResearchService: Sendable {
             // log which side is missing so misconfigurations are
             // diagnosable from Console.app on a TestFlight device.
             if endpoint == nil {
-                AppLog.persistence.error(
+                AppLog.ai.error(
                     "AI research not configured: AI_RESEARCH_ENDPOINT is empty in Info.plist + env."
                 )
             }
             if proxySecret == nil || proxySecret?.isEmpty == true {
-                AppLog.persistence.error(
+                AppLog.ai.error(
                     "AI research not configured: AI_RESEARCH_SECRET is empty in Info.plist + env."
                 )
             }
@@ -295,24 +202,22 @@ final class AIResearchService: Sendable {
         return try await session.data(for: attested(request, waitForRegistration: true))
     }
 
-    /// Streaming counterpart of `sendAttested`. A 401's body is read
-    /// to classify it; the caller only needs that response's status.
-    private func streamAttested(_ request: URLRequest) async throws -> (URLSession.AsyncBytes, URLResponse) {
-        let first = try await session.bytes(for: attested(request))
-        guard (first.1 as? HTTPURLResponse)?.statusCode == 401 else { return first }
-        var body = Data()
-        for try await byte in first.0 { body.append(byte) }
-        guard AppAttestService.isAttestRejection(body) else { return first }
-        await AppAttestService.shared.invalidateRegistration()
-        return try await session.bytes(for: attested(request, waitForRegistration: true))
-    }
-
     // MARK: - RAG
 
+    /// The proxy keeps only the first `maxClientSystemChars` UTF-16 units
+    /// of the client `system` on this route (12 000 in ai-research.js),
+    /// so anything past this is silently cut.
+    static let systemCharacterBudget = 12_000
+
+    /// Per-field cap on the long prose fields, so one verbose entry can't
+    /// crowd the other mentioned compounds out of the budget.
+    private static let snippetFieldLimit = 400
+
+    private static let ragContextHeader = "Database context for the compounds the user mentioned:"
+
     /// Picks up to 4 peptides whose name or abbreviation appears in the
-    /// recent transcript (case-insensitive substring match). Caps the
-    /// injected context at 4 so the system prompt stays well under
-    /// Claude's input limits even with verbose entries.
+    /// recent transcript (case-insensitive substring match), then keeps
+    /// whole entries only while they fit the proxy's system budget.
     private func ragContext(
         for prompt: String,
         history: [Turn],
@@ -353,12 +258,12 @@ final class AIResearchService: Sendable {
                 "Name: \(p.name) (\(p.abbreviation))",
                 "Category: \(p.category.rawValue)",
             ]
-            if !p.description.isEmpty { fields.append("Summary: \(p.description)") }
+            if !p.description.isEmpty { fields.append("Summary: \(Self.clipped(p.description, to: Self.snippetFieldLimit))") }
             if !p.dosageRange.isEmpty { fields.append("Dosage range: \(p.dosageRange)") }
             if !p.frequency.isEmpty   { fields.append("Frequency: \(p.frequency)") }
             if !p.halfLife.isEmpty    { fields.append("Half-life: \(p.halfLife)") }
             if !p.adminRoute.isEmpty  { fields.append("Admin route: \(p.adminRoute)") }
-            if !p.mechanism.isEmpty   { fields.append("Mechanism: \(p.mechanism)") }
+            if !p.mechanism.isEmpty   { fields.append("Mechanism: \(Self.clipped(p.mechanism, to: Self.snippetFieldLimit))") }
             if !p.contraindications.isEmpty {
                 fields.append("Contraindications: \(p.contraindications.joined(separator: "; "))")
             }
@@ -368,7 +273,30 @@ final class AIResearchService: Sendable {
             }
             return fields.joined(separator: "\n")
         }
-        return snippets.joined(separator: "\n\n---\n\n")
+
+        let budget = Self.systemCharacterBudget - Self.ragContextHeader.utf16.count - 1
+        var context = ""
+        for snippet in snippets {
+            let candidate = context.isEmpty ? snippet : context + "\n\n---\n\n" + snippet
+            if candidate.utf16.count > budget { break }
+            context = candidate
+        }
+        return context.isEmpty ? Self.clipped(snippets[0], to: budget) : context
+    }
+
+    /// `text` cut to at most `limit` UTF-16 units (the unit the proxy's
+    /// slice counts), ending in an ellipsis when cut.
+    private static func clipped(_ text: String, to limit: Int) -> String {
+        guard text.utf16.count > limit else { return text }
+        var result = ""
+        var used = 0
+        for character in text {
+            let width = character.utf16.count
+            if used + width > limit - 1 { break }
+            used += width
+            result.append(character)
+        }
+        return result + "…"
     }
 
     /// Server-side cap (`MAX_MESSAGES` in anthropic-proxy.js). The
@@ -387,7 +315,13 @@ final class AIResearchService: Sendable {
         // server's per-request message cap. Without this trim, sessions
         // longer than ~20 user/assistant exchanges silently fail with
         // an opaque "Malformed request body" from the proxy.
-        let trimmed = history.suffix(Self.maxHistoryTurns)
+        // The Messages API needs the conversation to open on a user
+        // turn, and an even-length suffix of an alternating history
+        // starts on an assistant one.
+        let trimmed = history
+            .filter { !$0.content.isEmpty }
+            .suffix(Self.maxHistoryTurns)
+            .drop(while: { $0.role == .assistant })
         var messages: [[String: Any]] = trimmed.map { turn in
             [
                 "role": turn.role.rawValue,
@@ -399,32 +333,17 @@ final class AIResearchService: Sendable {
             "content": newPrompt,
         ] as [String: Any])
 
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "model": model,
             "max_tokens": 800,
-            "system": systemPrompt(ragContext: ragContext),
             "messages": messages,
         ]
-        return body
-    }
-
-    private func systemPrompt(ragContext: String?) -> String {
-        var lines: [String] = [
-            "You are Atlas's research assistant — a careful, citation-friendly explainer of peptide science.",
-            "",
-            "Rules:",
-            "• Never recommend, prescribe, or calculate doses. Refer the user to a qualified clinician for any dose decision.",
-            "• When you cite a number from the references below, attribute it (e.g. 'per the Smith 2021 study').",
-            "• If the user asks for medical advice, decline politely and remind them you're an educational reference.",
-            "• Keep replies under ~250 words unless the user explicitly asks for depth.",
-            "• If the database context doesn't cover the question, say so plainly rather than guessing.",
-        ]
-        if let ragContext, !ragContext.isEmpty {
-            lines.append("")
-            lines.append("Database context for the compounds the user mentioned:")
-            lines.append(ragContext)
+        // The proxy prepends the authoritative persona and safety rules,
+        // so the client sends only the grounding context.
+        if let ragContext {
+            body["system"] = Self.ragContextHeader + "\n" + ragContext
         }
-        return lines.joined(separator: "\n")
+        return body
     }
 
     /// Maps a non-2xx proxy status to the error the chat shows. Don't
@@ -458,7 +377,7 @@ final class AIResearchService: Sendable {
         } catch {
             // Log before collapsing to a generic error so a server-side
             // response-shape regression is diagnosable from a device.
-            AppLog.persistence.error(
+            AppLog.ai.error(
                 "AI research envelope decode failed: \(error.localizedDescription, privacy: .private)"
             )
             throw ChatError.invalidResponse

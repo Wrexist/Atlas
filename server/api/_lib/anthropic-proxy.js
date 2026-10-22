@@ -219,10 +219,11 @@ function sanitiseBody(raw, options) {
     ? raw.model
     : allowedModels[0];
 
+  const cap = options?.maxTokens ?? MAX_TOKENS_HARDCAP;
   const maxTokensRaw = Number(raw.max_tokens);
   const max_tokens = Number.isFinite(maxTokensRaw) && maxTokensRaw > 0
-    ? Math.min(Math.floor(maxTokensRaw), MAX_TOKENS_HARDCAP)
-    : MAX_TOKENS_HARDCAP;
+    ? Math.min(Math.floor(maxTokensRaw), cap)
+    : cap;
 
   if (!Array.isArray(raw.messages) || raw.messages.length === 0) return null;
   if (raw.messages.length > (options?.shape?.maxMessages ?? MAX_MESSAGES)) return null;
@@ -262,6 +263,7 @@ export async function forwardToAnthropic(req, res, {
   maxClientSystemChars,
   maxBodyBytes,
   shape,
+  maxTokens,
   buildBody,
   readResponse,
   betas,
@@ -348,7 +350,7 @@ export async function forwardToAnthropic(req, res, {
   // sanitised pass-through of the Messages shape the app sends.
   const clean = buildBody
     ? buildBody(req.body)
-    : sanitiseBody(req.body, { systemPrefix, allowClientSystem, maxClientSystemChars, shape });
+    : sanitiseBody(req.body, { systemPrefix, allowClientSystem, maxClientSystemChars, shape, maxTokens });
   if (!clean) {
     res.status(400).json({ error: { message: 'Malformed request body' } });
     return;
@@ -399,10 +401,13 @@ export async function forwardToAnthropic(req, res, {
       // carry org IDs / model hints, and the exact status (401/429/
       // 529) leaks server-side key state useful for reconnaissance.
       // Collapse every upstream failure into a generic 502; the real
-      // status is logged server-side only.
+      // status is logged server-side only. Only an overloaded or
+      // rate-limited upstream is marked worth the app paying for a
+      // second try; anything else fails the same way again.
       console.error(`[${logLabel}] upstream non-2xx`, upstream.status);
+      const retryable = upstream.status === 429 || upstream.status >= 500;
       await refundSpend({ principal, cost });
-      res.status(502).json({ error: { message: 'Upstream error' } });
+      res.status(502).json({ error: { message: 'Upstream error', ...(retryable && { retryable: true }) } });
       return;
     }
 
@@ -426,7 +431,7 @@ export async function forwardToAnthropic(req, res, {
     }
     console.error(`[${logLabel}] fetch failure`, err);
     await refundSpend({ principal, cost });
-    res.status(502).json({ error: { message: 'Proxy failure' } });
+    res.status(502).json({ error: { message: 'Proxy failure', retryable: true } });
   } finally {
     clearTimeout(timeout);
   }

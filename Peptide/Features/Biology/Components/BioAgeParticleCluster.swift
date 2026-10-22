@@ -21,9 +21,12 @@ struct BioAgeParticleCluster: View {
     var tint: Color = AppColor.textPrimary
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Off-screen drift is wasted GPU, so the clock stops while the
+    /// cluster is scrolled out of view.
+    @State private var isOnScreen = true
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: reduceMotion ? .infinity : 1.0 / 30)) { context in
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion || !isOnScreen)) { context in
             Canvas { ctx, canvasSize in
                 drawParticles(
                     context: ctx,
@@ -34,6 +37,7 @@ struct BioAgeParticleCluster: View {
         }
         .frame(width: size, height: size)
         .blur(radius: 1.6)
+        .onScrollVisibilityChange { isOnScreen = $0 }
         .accessibilityHidden(true)
     }
 

@@ -50,6 +50,24 @@ final class WorkoutLogMigrationServiceTests: XCTestCase {
                        "A second invocation must be a no-op even if history were repopulated externally")
     }
 
+    func test_migrateIfNeeded_failedCommit_keepsLegacyLogAndMarker() {
+        var profile = UserProfile.fresh
+        profile.workoutHistory = [
+            WorkoutEntry(date: Date(), name: "Push", sets: 4, reps: 8, durationMinutes: 45)
+        ]
+        repo.forceCommitFailureForTesting = true
+        defer { repo.forceCommitFailureForTesting = false }
+
+        let migrated = WorkoutLogMigrationService.migrateIfNeeded(
+            profile: &profile, repository: repo
+        )
+
+        XCTAssertEqual(migrated, 0)
+        XCTAssertEqual(profile.workoutHistory.count, 1,
+                       "The legacy log is the only copy until a write succeeds")
+        XCTAssertFalse(profile.workoutLegacyMigrationCompleted)
+    }
+
     // MARK: - Field mapping
 
     func test_migrateIfNeeded_mappingPreservesData() {

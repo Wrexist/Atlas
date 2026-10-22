@@ -107,11 +107,11 @@ enum OutcomeDimension: String, CaseIterable, Identifiable, Sendable {
     /// drift apart.
     var tint: Color {
         switch self {
-        case .energy:       Color(red: 1.00, green: 0.78, blue: 0.20)
-        case .sleepQuality: Color(red: 0.48, green: 0.50, blue: 0.92)
-        case .recovery:     Color(red: 0.36, green: 0.78, blue: 0.55)
-        case .mood:         Color(red: 0.95, green: 0.50, blue: 0.55)
-        case .focus:        Color(red: 0.40, green: 0.74, blue: 0.92)
+        case .energy:       AppColor.outcomeEnergy
+        case .sleepQuality: AppColor.outcomeSleepQuality
+        case .recovery:     AppColor.outcomeRecovery
+        case .mood:         AppColor.outcomeMood
+        case .focus:        AppColor.outcomeFocus
         }
     }
 

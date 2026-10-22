@@ -44,24 +44,26 @@ enum SmartFoodLogic {
     }
 
     /// A database product with the gaps the scanner could fill: many
-    /// Open Food Facts records lack a serving or a net weight, which hides
-    /// the Serving and Whole-pack shortcuts. Known values are never
-    /// overwritten — the database's label data beats an estimate.
+    /// Open Food Facts records lack a serving, a net weight or any
+    /// nutrition at all, which hides the Serving and Whole-pack shortcuts
+    /// or would log 0 kcal. Known values are never overwritten — the
+    /// database's label data beats an estimate.
     static func product(_ product: ScannedProduct, fillingFrom scan: MealScannerService.SmartScan) -> ScannedProduct {
-        guard let package = scan.package else { return product }
-        let servingGrams = product.servingGrams ?? package.servingGrams
+        let package = scan.package
+        let nutriments = product.hasNutrition ? product.per100g : scan.items.first.map(Self.per100g(of:)) ?? product.per100g
         return ScannedProduct(
             barcode: product.barcode,
             name: product.name,
             brand: product.brand,
             imageURL: product.imageURL,
-            servingSizeText: product.servingGrams == nil ? (package.servingLabel ?? product.servingSizeText) : product.servingSizeText,
-            servingGrams: servingGrams,
-            packageGrams: product.packageGrams ?? package.totalGrams,
-            per100g: product.per100g,
+            servingSizeText: product.servingGrams == nil ? (package?.servingLabel ?? product.servingSizeText) : product.servingSizeText,
+            servingGrams: product.servingGrams ?? package?.servingGrams,
+            packageGrams: product.packageGrams ?? package?.totalGrams,
+            per100g: nutriments,
             nutriScore: product.nutriScore,
             novaGroup: product.novaGroup,
-            fetchedAt: product.fetchedAt
+            fetchedAt: product.fetchedAt,
+            nutritionMissing: !product.hasNutrition && scan.items.isEmpty
         )
     }
 

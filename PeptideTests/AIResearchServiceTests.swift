@@ -139,7 +139,25 @@ final class AIResearchServiceTests: XCTestCase {
         XCTAssertEqual(messages.last?["content"] as? String, "Second message")
     }
 
-    func test_reply_includesSystemPrompt() async throws {
+    func test_reply_evenLengthHistoryPastCap_firstMessageIsUser() async throws {
+        let captured = SendableBox<URLRequest?>(nil)
+        MockURLProtocol.handler = { request in
+            captured.set(request)
+            return (Self.ok(for: request), Data(Fixtures.helloReply.utf8))
+        }
+        let history = (0..<40).map { i in
+            AIResearchService.Turn(role: i.isMultiple(of: 2) ? .user : .assistant, content: "Turn \(i)")
+        }
+        _ = try await service.reply(history: history, newUserPrompt: "Next question", in: [])
+        let body = try Self.decodeBody(captured.value)
+        let messages = body["messages"] as? [[String: Any]] ?? []
+        XCTAssertEqual(messages.first?["role"] as? String, "user")
+        XCTAssertLessThanOrEqual(messages.count, 40)
+    }
+
+    /// The proxy prepends the persona and safety rules; repeating them
+    /// client-side only spent the route's system budget.
+    func test_reply_noMentionedCompound_sendsNoSystem() async throws {
         let captured = SendableBox<URLRequest?>(nil)
         MockURLProtocol.handler = { request in
             captured.set(request)
@@ -147,9 +165,7 @@ final class AIResearchServiceTests: XCTestCase {
         }
         _ = try await service.reply(history: [], newUserPrompt: "hi", in: [])
         let body = try Self.decodeBody(captured.value)
-        let system = body["system"] as? String ?? ""
-        XCTAssertTrue(system.contains("research assistant"))
-        XCTAssertTrue(system.contains("Never recommend"))  // the dose-advice guardrail
+        XCTAssertNil(body["system"])
     }
 
     // MARK: - RAG
@@ -200,6 +216,39 @@ final class AIResearchServiceTests: XCTestCase {
         XCTAssertFalse(system.contains("T4"), "RAG should only include the first 4 matched peptides")
     }
 
+    func test_reply_verboseEntries_systemStaysWithinProxyCap() async throws {
+        let captured = SendableBox<URLRequest?>(nil)
+        MockURLProtocol.handler = { request in
+            captured.set(request)
+            return (Self.ok(for: request), Data(Fixtures.helloReply.utf8))
+        }
+        let verbose = String(repeating: "Long research prose. ", count: 150)
+        let peptides = (0..<4).map { i in
+            Peptide(
+                id: UUID(),
+                name: "Verbose\(i)",
+                abbreviation: "VB\(i)",
+                category: .recovery,
+                description: verbose,
+                benefits: [],
+                dosageRange: "200–500 mcg/day",
+                frequency: "Daily",
+                halfLife: "≈ 4 hours",
+                adminRoute: "Subcutaneous",
+                researchLinks: [],
+                imageSystemName: "pills.fill",
+                mechanism: verbose,
+                contraindications: ["Active malignancy"]
+            )
+        }
+        _ = try await service.reply(history: [], newUserPrompt: "Compare VB0 VB1 VB2 VB3", in: peptides)
+        let body = try Self.decodeBody(captured.value)
+        let system = body["system"] as? String ?? ""
+        XCTAssertLessThanOrEqual(system.utf16.count, AIResearchService.systemCharacterBudget)
+        XCTAssertTrue(system.contains("Verbose1"), "Clipped fields should leave room for a second compound")
+        XCTAssertTrue(system.hasSuffix("Active malignancy"), "Entries are kept whole or not at all")
+    }
+
     // MARK: - HTTP failures
 
     /// 500 rather than 502. The gateway codes were broken out of the generic
@@ -229,6 +278,22 @@ final class AIResearchServiceTests: XCTestCase {
                 guard case .serviceUnavailable = error as? AIResearchService.ChatError else {
                     return XCTFail("Expected .serviceUnavailable for HTTP \(status), got \(error)")
                 }
+            }
+        }
+    }
+
+    /// The chat view reads `replyStream`, so it must surface the same
+    /// typed errors as `reply` rather than a bare status code.
+    func test_replyStream_rateLimited_throwsRateLimited() async {
+        MockURLProtocol.handler = { request in
+            (Self.response(for: request, status: 429), Data())
+        }
+        do {
+            for try await _ in service.replyStream(history: [], newUserPrompt: "hi", in: []) {}
+            XCTFail("Expected .rateLimited but the stream finished")
+        } catch {
+            guard case .rateLimited = error as? AIResearchService.ChatError else {
+                return XCTFail("Expected .rateLimited, got \(error)")
             }
         }
     }

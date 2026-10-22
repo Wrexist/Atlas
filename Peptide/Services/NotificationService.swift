@@ -412,6 +412,34 @@ final class NotificationService {
         return scheduled
     }
 
+    /// Withdraws what still nags about a dose the user just logged: any
+    /// snooze of its reminder, and the reminder already sitting in
+    /// Notification Center. The repeating reminder for later days stays.
+    func clearReminders(for entry: ProtocolEntry) async {
+        let calendar = Calendar.current
+        let protocolId = entry.protocolId.uuidString
+        let hour = calendar.component(.hour, from: entry.date)
+        let minute = calendar.component(.minute, from: entry.date)
+        func isForDose(_ content: UNNotificationContent) -> Bool {
+            content.userInfo["protocolId"] as? String == protocolId
+                && content.userInfo["hour"] as? Int == hour
+                && content.userInfo["minute"] as? Int == minute
+        }
+        let snoozes = await center.pendingNotificationRequests()
+            .filter { $0.identifier.hasPrefix(Self.snoozeIDPrefix) && isForDose($0.content) }
+            .map(\.identifier)
+        if !snoozes.isEmpty {
+            center.removePendingNotificationRequests(withIdentifiers: snoozes)
+            currentIDs.subtract(snoozes)
+        }
+        let delivered = await center.deliveredNotifications()
+            .filter { isForDose($0.request.content) }
+            .map(\.request.identifier)
+        if !delivered.isEmpty {
+            center.removeDeliveredNotifications(withIdentifiers: delivered)
+        }
+    }
+
     /// Tracks a snooze identifier the delegate just submitted to UNUserNotificationCenter
     /// so subsequent scheduleNotifications calls can preserve it across set-diff.
     /// The actual UN add happens in the delegate's nonisolated callback because
@@ -593,8 +621,8 @@ final class NotificationService {
                 localized: "Time for \(peptide.abbreviation)",
                 comment: "Dose reminder title — value is the compound's abbreviation."
             )
-            let dose = proto.schedule(for: peptide.id).resolvedDose(for: peptide)
-            content.body = "\(peptide.name) \u{2022} \(dose)"
+            let dose = proto.schedule(for: peptide.id).resolvedDose
+            content.body = dose.isEmpty ? peptide.name : "\(peptide.name) \u{2022} \(dose)"
         } else {
             let names = peptides.map(\.abbreviation).joined(separator: ", ")
             content.title = proto.name

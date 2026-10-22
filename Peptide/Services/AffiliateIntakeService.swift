@@ -39,7 +39,7 @@ enum AffiliateIntakeService {
         if alreadyDrained(application) { return }
 
         guard let body = try? DrainEndpoint.encoder.encode(application) else {
-            AppLog.persistence.warning("affiliate intake: encode failed")
+            AppLog.affiliate.warning("affiliate intake: encode failed")
             return
         }
 
@@ -56,13 +56,13 @@ enum AffiliateIntakeService {
             let (_, response) = try await URLSession.shared.data(for: request)
             guard let http = response as? HTTPURLResponse,
                   (200...299).contains(http.statusCode) else {
-                AppLog.persistence.warning("affiliate intake rejected by server")
+                AppLog.affiliate.warning("affiliate intake rejected by server")
                 return
             }
             UserDefaults.standard.set(application.submittedAt, forKey: lastDrainedAtKey)
-            AppLog.persistence.info("affiliate intake drained")
+            AppLog.affiliate.info("affiliate intake drained")
         } catch {
-            AppLog.persistence.warning(
+            AppLog.affiliate.warning(
                 "affiliate intake POST failed: \(error.localizedDescription, privacy: .private)"
             )
         }

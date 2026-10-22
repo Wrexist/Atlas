@@ -53,7 +53,7 @@ struct BenefitTagFlow: View {
     }
 }
 
-/// A flow of "Commonly Stacked With" tags. Tags whose label resolves to a
+/// A flow of "Often Paired With" tags. Tags whose label resolves to a
 /// known peptide become NavigationLinks, so the user can jump directly to the
 /// stacked peptide's detail view. Tags that don't match any peptide
 /// (e.g. supplements like "Alpha-GPC") render as plain badges.

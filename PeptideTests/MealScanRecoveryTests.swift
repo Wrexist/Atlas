@@ -65,8 +65,10 @@ final class MealScanRecoveryTests: XCTestCase {
             try? FileManager.default.removeItem(at: folder)
         }
         var store: DataStore? = DataStore(seedSampleData: false)
-        store?.profile.healthKitNutritionEnabled = false
-        store?.flushPendingSave()
+        UserDefaults.standard.set(false, forKey: HealthSyncSettings.nutritionEnabledKey)
+        // A clean-slate store writes no profile row until the profile
+        // changes; the failed-commit check below reads that row back.
+        repo.saveProfile(store!.profile)
         let date = Date()
         let entry = MealEntry(date: date, category: .breakfast, name: "Oats", calories: 200,
                               proteinG: 10, carbsG: 30, fatG: 4, source: .photo, components: [food().component])
@@ -138,5 +140,21 @@ final class MealScanRecoveryTests: XCTestCase {
         XCTAssertEqual(item.grams, 150)
         XCTAssertEqual(item.calories, 150)
         XCTAssertNil(item.replacementSourceID)
+    }
+
+    func test_replacedFood_dropsScanBrandAndPriceUntilReset() {
+        let price = FoodPriceEstimate(low: 10, high: 15, currency: "SEK", basis: .store)
+        var item = EditableFoodItem(from: .init(name: "Cola", quantityLabel: "1 can", grams: 330, calories: 140,
+                                                proteinG: 0, carbsG: 35, fatG: 0, confidence: 0.8,
+                                                brand: "Coca-Cola", price: price))
+        let source = CustomFood(name: "Pepsi Max", per100g: .init(calories: 0, proteinG: 0, carbsG: 0,
+            fatG: 0, fiberG: nil, sugarsG: nil)).toScannedProduct()
+        item.replace(with: source)
+        XCTAssertNil(item.brand)
+        XCTAssertNil(item.price)
+        XCTAssertNil(item.pricePer100g)
+        item.resetNutrition()
+        XCTAssertEqual(item.brand, "Coca-Cola")
+        XCTAssertEqual(item.price, price)
     }
 }

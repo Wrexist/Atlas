@@ -86,8 +86,7 @@ struct BodyMetricsCard: View {
     }
 
     private func formatNumber(_ value: Double) -> String {
-        if value == value.rounded() { return String(Int(value.rounded())) }
-        return String(format: "%.1f", value)
+        value.formatted(.number.precision(.fractionLength(0...1)).grouping(.never))
     }
 
     private func metricStat(label: LocalizedStringKey, value: String) -> some View {

@@ -12,9 +12,9 @@ import AppIntents
 /// activity's host process** — usually the widget extension — for
 /// sub-second latency. Two side effects fire on each tap:
 ///
-///   1. Flip the activity's `ContentState` to `completed = true` so
-///      the user sees an instant "Logged" badge without waiting on
-///      the main app to wake up.
+///   1. End the activity on its `completed = true` state so the user
+///      sees an instant "Logged" badge that dismisses itself, without
+///      waiting on the main app to wake up.
 ///   2. Drop a `PendingDoseLogStore.PendingLog` marker in the App
 ///      Group inbox. The main app drains it on next foreground via
 ///      `PendingDoseLogProcessor` and toggles the real
@@ -60,12 +60,11 @@ struct LogDoseLiveActivityIntent: LiveActivityIntent {
             )
         )
 
-        // 2) Flip the live activity to its completed state for
-        //    instant visual feedback. The app's
-        //    `DoseLiveActivityService.markCompleted` will run the
-        //    same flip (idempotent) when the marker is drained;
-        //    doing it here too means the user sees the "Logged"
-        //    badge in <100 ms even before the app wakes up.
+        // 2) End the live activity on its completed state for
+        //    instant visual feedback. Ending it here, rather than
+        //    leaving that to `DoseLiveActivityService.markCompleted`,
+        //    means the badge clears even when nothing drains the
+        //    marker until the user next opens the app.
         let matching = Activity<DoseWindowAttributes>.activities.first {
             $0.attributes.entryId == entryId
         }
@@ -76,7 +75,11 @@ struct LogDoseLiveActivityIntent: LiveActivityIntent {
                 completed: true,
                 loggedAt: Date()
             )
-            await activity.update(ActivityContent(state: updated, staleDate: nil))
+            let dismissAt = Date().addingTimeInterval(DoseWindowAttributes.ContentState.loggedBadgeSeconds)
+            await activity.end(
+                ActivityContent(state: updated, staleDate: nil),
+                dismissalPolicy: .after(dismissAt)
+            )
         }
         return .result()
     }

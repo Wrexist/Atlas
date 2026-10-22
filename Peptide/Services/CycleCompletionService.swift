@@ -24,6 +24,9 @@ import Foundation
 /// data, never cancels logged entries, and never changes the
 /// `startDate` — so the user can manually flip back to `.active` if
 /// the auto-completion was premature.
+///
+/// Wash-out protocols (`washoutWeeks > 0`) repeat on/off indefinitely,
+/// so they have no end to prompt about and are never auto-completed.
 @MainActor
 final class CycleCompletionService {
     static let shared = CycleCompletionService()
@@ -97,6 +100,15 @@ final class CycleCompletionService {
         persistDismissCounts(map)
     }
 
+    /// Forgets this cycle's dismissals. Extending keeps the same
+    /// id + startDate key, so without this the extended cycle would
+    /// inherit the old count and auto-complete early.
+    func resetDismissals(for proto: PeptideProtocol) {
+        var map = dismissCounts
+        map[key(for: proto)] = nil
+        persistDismissCounts(map)
+    }
+
     /// Records that the user (or the auto-completion sweep) marked
     /// the protocol completed. Prevents the prompt from re-firing.
     func markAutoCompleted(_ proto: PeptideProtocol) {
@@ -113,15 +125,16 @@ final class CycleCompletionService {
 
     // MARK: - Predicates
 
-    /// True when "now" is past the cycle's end. Reads the single
-    /// source of truth (`PeptideProtocol.cycleEndDay`) so the
+    /// True when "now" is past the end of a single-cycle protocol.
+    /// Wash-out protocols repeat, so their cycle never ends. Reads the
+    /// single source of truth (`PeptideProtocol.cycleEndDay`) so the
     /// completion service and `daysRemaining` never drift —
     /// previously the local math here computed startOfDay+days, the
     /// model's `endDate` did `weekOfYear`-add on the raw startDate,
     /// and the two diverged for protocols created at non-midnight
     /// timestamps.
     private func hasCycleEnded(_ proto: PeptideProtocol) -> Bool {
-        calendar.startOfDay(for: Date()) >= proto.cycleEndDay
+        proto.washoutWeeks <= 0 && calendar.startOfDay(for: Date()) >= proto.cycleEndDay
     }
 
     private func daysPastCycleEnd(of proto: PeptideProtocol) -> Int {
