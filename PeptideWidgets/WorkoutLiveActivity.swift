@@ -123,9 +123,9 @@ private enum WorkoutActivityStyle {
         if idle { return Color.gray }
         switch state.status() {
         case .paused:   return Color.gray
-        case .lifting:  return Color(red: 0.216, green: 0.541, blue: 0.867)
-        case .resting:  return Color(red: 1.00, green: 0.70, blue: 0.20)
-        case .finished: return Color(red: 0.36, green: 0.78, blue: 0.55)
+        case .lifting:  return WidgetPalette.training
+        case .resting:  return WidgetPalette.over
+        case .finished: return WidgetPalette.done
         }
     }
 

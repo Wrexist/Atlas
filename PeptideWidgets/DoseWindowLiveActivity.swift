@@ -123,8 +123,8 @@ private func statusAccent(
     switch state.status() {
     case .upcoming:  return tint
     case .dueNow:    return tint
-    case .late:      return Color(red: 1.00, green: 0.70, blue: 0.20) // amber
-    case .completed: return Color(red: 0.36, green: 0.78, blue: 0.55) // green
+    case .late:      return WidgetPalette.over
+    case .completed: return WidgetPalette.done
     }
 }
 
@@ -619,7 +619,7 @@ private struct IslandBottomBar: View {
                 Text("Logged")
                     .font(.system(size: 13, weight: .heavy))
             }
-            .foregroundStyle(Color(red: 0.36, green: 0.78, blue: 0.55))
+            .foregroundStyle(WidgetPalette.done)
         } else if missed {
             // Matches the lock screen's missed layout: the window has
             // closed, and a tap on the island still opens the dose row.
