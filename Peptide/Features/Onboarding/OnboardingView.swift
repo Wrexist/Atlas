@@ -492,8 +492,8 @@ struct OnboardingView: View {
         if name.isEmpty { name = profile.name }
         if bodyMetrics == .unspecified { bodyMetrics = profile.bodyMetrics }
         if let prefs = profile.trainingPreferences {
-            daysPerWeek = prefs.daysPerWeek
             preferredDays = prefs.preferredDays
+            setDaysPerWeek(min(max(prefs.daysPerWeek, Self.daysPerWeekRange.lowerBound), Self.daysPerWeekRange.upperBound))
             timeOfDay = prefs.timeOfDay
             if !prefs.equipmentAccess.isEmpty { equipment = prefs.equipmentAccess }
         }
@@ -1318,15 +1318,34 @@ struct OnboardingView: View {
         }
     }
 
+    private static let daysPerWeekRange = 2...6
+
+    /// Keeps the preferred days within the weekly count, dropping the
+    /// latest days of the week first.
+    private func setDaysPerWeek(_ count: Int) {
+        daysPerWeek = count
+        if preferredDays.count > count {
+            preferredDays = Set(Weekday.allCases.filter(preferredDays.contains).prefix(count))
+        }
+    }
+
+    /// Picking more preferred days than the weekly count raises the count.
+    private func togglePreferredDay(_ day: Weekday) {
+        if preferredDays.remove(day) == nil {
+            preferredDays.insert(day)
+            daysPerWeek = max(daysPerWeek, preferredDays.count)
+        }
+    }
+
     private var daysStepper: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             sectionEyebrow("Days per week")
             HStack(spacing: Spacing.xs) {
-                ForEach(2...6, id: \.self) { count in
+                ForEach(Self.daysPerWeekRange, id: \.self) { count in
                     let isSelected = daysPerWeek == count
                     Button {
                         Haptics.selection()
-                        AppAnimation.with(AppAnimation.springSnappy) { daysPerWeek = count }
+                        AppAnimation.with(AppAnimation.springSnappy) { setDaysPerWeek(count) }
                     } label: {
                         Text("\(count)")
                             .font(AppFont.headline.weight(.bold))
@@ -1349,23 +1368,20 @@ struct OnboardingView: View {
             HStack(spacing: Spacing.xs) {
                 ForEach(Weekday.allCases) { day in
                     let isSelected = preferredDays.contains(day)
+                    let isFull = !isSelected && preferredDays.count >= Self.daysPerWeekRange.upperBound
                     Button {
                         Haptics.selection()
-                        AppAnimation.with(AppAnimation.springSnappy) {
-                            if isSelected {
-                                _ = preferredDays.remove(day)
-                            } else {
-                                _ = preferredDays.insert(day)
-                            }
-                        }
+                        AppAnimation.with(AppAnimation.springSnappy) { togglePreferredDay(day) }
                     } label: {
                         Text(day.shortName.prefix(1).uppercased())
                             .font(AppFont.footnote.weight(.bold))
                             .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textPrimary)
                             .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
                             .onboardingFilledChoice(isSelected: isSelected, .capsule)
+                            .opacity(isFull ? 0.4 : 1)
                     }
                     .buttonStyle(ScalePressStyle())
+                    .disabled(isFull)
                     // "T" and "S" are ambiguous spoken; say the day.
                     .accessibilityLabel(day.rawValue.capitalized)
                     .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
