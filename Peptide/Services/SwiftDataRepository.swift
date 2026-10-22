@@ -713,7 +713,7 @@ final class SwiftDataRepository {
     /// CloudKit converged leave two rows behind, and an unsorted
     /// `.first` fetch then flip-flops between them across launches.
     /// Reconciliation is deterministic: the newest `updatedAt` row
-    /// survives, every other row is merged into it by
+    /// survives, every other row it can absorb is merged into it by
     /// `ProfileMergeEngine.reconcile` (records unioned by id, so a fresh
     /// onboarding row can't erase the account's history), and the
     /// others are deleted only once the merge is written, so every
@@ -723,11 +723,17 @@ final class SwiftDataRepository {
             sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
         ))
         guard rows.count > 1 else { return rows.first }
-        AppLog.swiftData.warning("Reconciling \(rows.count, privacy: .public) StoredProfile rows to the newest")
         let winner = rows.removeFirst()
+        // A loser holding a column this build can't read, where the
+        // winner has data, stays until a build that reads it reconciles.
+        // It's merged at most on the pass that first keeps it: merging it
+        // on every load would bring back records deleted since.
+        let mergeable = rows.filter { winner.canAdoptUnreadableColumns(of: $0) }
+        guard !mergeable.isEmpty else { return winner }
+        AppLog.swiftData.warning("Reconciling \(mergeable.count + 1, privacy: .public) StoredProfile rows to the newest")
         do {
             var merged = try winner.toUserProfile()
-            for loser in rows {
+            for loser in mergeable {
                 merged = ProfileMergeEngine.reconcile(merged, with: try loser.toUserProfile())
             }
             try winner.update(from: merged)
@@ -735,7 +741,7 @@ final class SwiftDataRepository {
             AppLog.swiftData.error("Profile reconciliation failed; keeping every row: \(error.localizedDescription, privacy: .public)")
             return winner
         }
-        for loser in rows {
+        for loser in mergeable {
             if winner.adoptUnreadableColumns(of: loser) {
                 context.delete(loser)
             } else {

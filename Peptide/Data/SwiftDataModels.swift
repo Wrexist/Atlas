@@ -481,6 +481,16 @@ final class StoredProfile {
     /// device. False when a column can't move because this row holds
     /// data there too; the caller then keeps `other`.
     func adoptUnreadableColumns(of other: StoredProfile) -> Bool {
+        visitUnreadableColumns(of: other, adopting: true)
+    }
+
+    /// Whether `adoptUnreadableColumns(of:)` would succeed, without
+    /// moving anything.
+    func canAdoptUnreadableColumns(of other: StoredProfile) -> Bool {
+        visitUnreadableColumns(of: other, adopting: false)
+    }
+
+    private func visitUnreadableColumns(of other: StoredProfile, adopting: Bool) -> Bool {
         var adoptedAll = true
         func adopt<T: Decodable & Equatable>(_ keyPath: ReferenceWritableKeyPath<StoredProfile, Data?>, empty: T) {
             guard let theirs = other[keyPath: keyPath],
@@ -488,7 +498,7 @@ final class StoredProfile {
             else { return }
             let mine = self[keyPath: keyPath]
             if mine == nil || mine.flatMap({ try? sdDecoder.decode(T.self, from: $0) }) == empty {
-                self[keyPath: keyPath] = theirs
+                if adopting { self[keyPath: keyPath] = theirs }
             } else {
                 adoptedAll = false
             }

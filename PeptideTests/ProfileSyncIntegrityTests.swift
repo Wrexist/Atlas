@@ -267,6 +267,22 @@ final class ProfileSyncIntegrityTests: XCTestCase {
         XCTAssertEqual(try fetchAllRows().count, 2)
     }
 
+    func test_keptDuplicateRow_isNotMergedAgain_soADeletedHabitStaysDeleted() throws {
+        let olderRow = try StoredProfile.make(from: baseProfile())
+        olderRow.mealsData = Data("written by a newer build".utf8)
+        olderRow.updatedAt = day
+        let newerRow = try StoredProfile.make(from: baseProfile())
+        newerRow.updatedAt = day.addingTimeInterval(3600)
+        try insertRows([olderRow, newerRow])
+
+        var loaded = try XCTUnwrap(repo.loadProfile())
+        loaded.habits = []
+        repo.saveProfile(loaded)
+
+        XCTAssertEqual(try XCTUnwrap(repo.loadProfile()).habits, [])
+        XCTAssertEqual(try fetchAllRows().count, 2)
+    }
+
     func test_reconcile_mealOnBothRows_isCountedOnce() {
         var shared = UserProfile.fresh
         LifestyleDataLogic.logMealEntry(into: &shared, entry: meal("Shared"))
