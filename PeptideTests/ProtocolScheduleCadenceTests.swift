@@ -135,6 +135,12 @@ final class ProtocolScheduleCadenceTests: XCTestCase {
         XCTAssertEqual(weekly.daysDescription, "Mon, Wed, Fri")
     }
 
+    func test_daysDescription_isoSunday_listsLastInLocalisedNames() {
+        let weekend = ProtocolSchedule(daysOfWeek: [7, 1], timesPerDay: 1, preferredTimes: ["8:00 AM"])
+        let symbols = Calendar.current.shortWeekdaySymbols
+        XCTAssertEqual(weekend.compactDaysDescription, "\(symbols[1]), \(symbols[0])")
+    }
+
     func test_summary_includesCadence() {
         let interval = ProtocolSchedule(
             daysOfWeek: [], timesPerDay: 2, preferredTimes: ["8:00 AM", "8:00 PM"],

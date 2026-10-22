@@ -88,22 +88,27 @@ struct ProtocolSchedule: Hashable, Codable, Sendable {
 
     var daysDescription: String {
         if isInterval, let n = intervalDays {
-            return n == 1 ? "Every day" : "Every \(n) days"
+            return n == 1 ? String(localized: "Every day") : String(localized: "Every \(n) days")
         }
-        let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
         let validDays = daysOfWeek.filter { (1...7).contains($0) }
-        if validDays.count == 7 { return "Every day" }
-        return validDays.sorted().map { dayNames[$0 - 1] }.joined(separator: ", ")
+        if validDays.count == 7 { return String(localized: "Every day") }
+        return Self.dayNames(validDays)
     }
 
     var compactDaysDescription: String {
         if isInterval, let n = intervalDays {
-            return n == 1 ? "Daily" : "Every \(n)d"
+            return n == 1 ? String(localized: "Daily") : String(localized: "Every \(n)d")
         }
-        let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        let validDays = daysOfWeek.filter { (1...7).contains($0) }.sorted()
-        if validDays.count == 7 { return "Daily" }
-        return validDays.map { dayNames[$0 - 1] }.joined(separator: ", ")
+        let validDays = daysOfWeek.filter { (1...7).contains($0) }
+        if validDays.count == 7 { return String(localized: "Daily") }
+        return Self.dayNames(validDays)
+    }
+
+    /// Localised short names for ISO weekdays (1 = Mon … 7 = Sun), in
+    /// Monday-first order. `shortWeekdaySymbols` starts at Sunday.
+    private static func dayNames(_ isoDays: [Int], calendar: Calendar = .current) -> String {
+        let symbols = calendar.shortWeekdaySymbols
+        return isoDays.sorted().map { symbols[$0 % 7] }.joined(separator: ", ")
     }
 
     var summary: String {
