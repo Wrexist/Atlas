@@ -72,11 +72,6 @@ enum AppAnimation {
 
     // MARK: - Food library timings
 
-    /// "Logged ✓" overlay duration on the food library's quick-log
-    /// rows. 1.5 s is long enough to read the confirmation badge
-    /// without lingering past the user's next intent.
-    static let quickLogConfirmationDuration: Duration = .milliseconds(1500)
-
     /// Debounce window between keystrokes in the food library search
     /// bar. Trades responsiveness for OFF rate-limit headroom — at
     /// 500 ms a typist of 240 wpm fires roughly one search per pause,
