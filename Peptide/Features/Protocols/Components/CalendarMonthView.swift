@@ -153,7 +153,7 @@ struct CalendarMonthView: View {
             }
             if marks.count > Self.maxDots {
                 Text("+\(marks.count - Self.maxDots)")
-                    .font(AppFont.scaled(8, weight: .bold))
+                    .font(AppFont.badge)
                     .foregroundStyle(isSelected ? AppColor.onAccent.opacity(0.8) : AppColor.textTertiary)
                     .monospacedDigit()
             }
