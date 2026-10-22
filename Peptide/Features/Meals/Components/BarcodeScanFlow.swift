@@ -671,7 +671,7 @@ struct BarcodeScanFlow: View {
             }
             .padding(.top, Spacing.sm)
         }
-        .animation(AppAnimation.springSnappy, value: identity)
+        .appAnimation(AppAnimation.springSnappy, value: identity)
         .onChange(of: packagePickerItem) { _, newValue in
             guard let newValue else { return }
             Task {
@@ -966,11 +966,11 @@ struct BarcodeScanFlow: View {
     private var isLoggingToday: Bool { Calendar.current.isDateInToday(logDay) }
 
     private var addButtonTitle: LocalizedStringKey {
-        isLoggingToday ? "Add to today" : "Add to \(MealDaySwitcher.title(for: logDay))"
+        isLoggingToday ? "Add to today" : "Add to \(MealDaySwitcher.inlineTitle(for: logDay))"
     }
 
     private var addedTitle: LocalizedStringKey {
-        isLoggingToday ? "Added to today" : "Added to \(MealDaySwitcher.title(for: logDay))"
+        isLoggingToday ? "Added to today" : "Added to \(MealDaySwitcher.inlineTitle(for: logDay))"
     }
 
     // MARK: - Actions

@@ -34,17 +34,16 @@ struct FoodArtwork: Equatable {
     private struct Entry {
         let emoji: String
         let tint: Color
-        /// "|"-separated, so the catalog stays one flat literal the
-        /// compiler can type-check quickly.
-        let keywordList: String
+        let keywords: [String]
 
+        /// `keywords` is "|"-separated, so the catalog stays one flat
+        /// literal the compiler can type-check quickly. Split once here;
+        /// `catalog` is a static let, so this runs once per entry.
         init(emoji: String, tint: Color, keywords: String) {
             self.emoji = emoji
             self.tint = tint
-            keywordList = keywords
+            self.keywords = keywords.split(separator: "|").map(String.init)
         }
-
-        var keywords: [String] { keywordList.split(separator: "|").map(String.init) }
     }
 
     /// Most specific first: "chocolate milk" is chocolate, "fish burger"
