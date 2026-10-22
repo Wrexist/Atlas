@@ -110,14 +110,7 @@ struct TodayHabitsHero: View {
             viewAllButton
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .stroke(AppColor.glassBorder, lineWidth: 0.5)
-        )
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 
     private var summaryRow: some View {
@@ -269,14 +262,7 @@ struct TodayHabitsHero: View {
             StarterHabitSuggestions(onPick: addStarter)
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .stroke(AppColor.glassBorder, lineWidth: 0.5)
-        )
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 
     private func addStarter(_ template: HabitTemplate) {

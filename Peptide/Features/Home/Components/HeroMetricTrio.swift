@@ -76,14 +76,7 @@ struct HeroMetricTrio: View {
             }
         }
         .padding(Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Today's metrics")
     }

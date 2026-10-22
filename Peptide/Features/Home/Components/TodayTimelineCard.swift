@@ -28,14 +28,7 @@ struct TodayTimelineCard: View {
                 }
                 .padding(.vertical, Spacing.sm)
                 .padding(.horizontal, Spacing.md)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .fill(AppColor.surfaceSecondary.opacity(0.55))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                                .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                        }
-                }
+                .glassSurface(cornerRadius: Spacing.cardCornerRadius)
             }
         }
     }
