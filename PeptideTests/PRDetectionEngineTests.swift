@@ -6,21 +6,21 @@ import XCTest
 /// all-zero-weight bodyweight reps used to produce no PRs because
 /// `bestE1RM > 0` and `bestAbs > 0` both failed for weightKg == 0).
 ///
-/// The engine writes through `SwiftDataRepository.shared`, which is
-/// a singleton with potentially live state. These tests scrub the
-/// records for the test-only exerciseIDs they use, in both setUp
-/// and tearDown, so they don't poison the user's real records when
-/// run on a developer machine.
+/// The engine writes through `SwiftDataRepository.shared`, so setUp
+/// points it at an in-memory store and loads the exercise library the
+/// engine reads equipment from. Records for the exercises used here are
+/// scrubbed in both setUp and tearDown so tests don't see each other's.
 @MainActor
 final class PRDetectionEngineTests: XCTestCase {
 
     private let testExerciseIDs: Set<String> = [
-        "test_pushups", "test_bench", "test_squat", PRDetectionEngineTests.barbellBenchID,
+        "Pushups", "Barbell_Bench_Press_-_Medium_Grip", "Barbell_Squat",
     ]
-    private static let barbellBenchID = "Barbell_Bench_Press_-_Medium_Grip"
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
+        SwiftDataRepository.shared.configureForTesting()
+        await ExerciseLibrary.shared.load()
         scrubTestRecords()
     }
 
@@ -71,11 +71,11 @@ final class PRDetectionEngineTests: XCTestCase {
 
     func test_bodyweightPushUps_recordRepsPR_evenAtWeightZero() {
         _ = PRDetectionEngine.shared.ingest(session: session(
-            exerciseID: "test_pushups",
+            exerciseID: "Pushups",
             sets: [completedSet(weightKg: 0, reps: 20)]
         ))
         let pushUps25 = completedSet(weightKg: 0, reps: 25)
-        let s = session(exerciseID: "test_pushups", sets: [pushUps25])
+        let s = session(exerciseID: "Pushups", sets: [pushUps25])
 
         let detections = PRDetectionEngine.shared.ingest(session: s)
 
@@ -87,24 +87,24 @@ final class PRDetectionEngineTests: XCTestCase {
 
     func test_firstEverLog_storesBaselineWithoutDetectingPRs() {
         let detections = PRDetectionEngine.shared.ingest(session: session(
-            exerciseID: "test_bench",
+            exerciseID: "Barbell_Bench_Press_-_Medium_Grip",
             sets: [completedSet(weightKg: 60, reps: 8)]
         ))
         XCTAssertTrue(detections.isEmpty, "Nothing to beat yet; got \(detections)")
         let record = SwiftDataRepository.shared.loadPersonalRecords()
-            .first { $0.exerciseID == "test_bench" }
+            .first { $0.exerciseID == "Barbell_Bench_Press_-_Medium_Grip" }
         XCTAssertEqual(record?.bestAbsoluteWeightKg, 60)
     }
 
     func test_bodyweightPushUps_betterSecondSession_firesAgain() {
         // 25 reps today
         _ = PRDetectionEngine.shared.ingest(session: session(
-            exerciseID: "test_pushups",
+            exerciseID: "Pushups",
             sets: [completedSet(weightKg: 0, reps: 25)]
         ))
         // 30 reps next session
         let detections = PRDetectionEngine.shared.ingest(session: session(
-            exerciseID: "test_pushups",
+            exerciseID: "Pushups",
             sets: [completedSet(weightKg: 0, reps: 30)]
         ))
         XCTAssertTrue(
@@ -115,11 +115,11 @@ final class PRDetectionEngineTests: XCTestCase {
 
     func test_bodyweightPushUps_sameReps_doesNotFireAgain() {
         _ = PRDetectionEngine.shared.ingest(session: session(
-            exerciseID: "test_pushups",
+            exerciseID: "Pushups",
             sets: [completedSet(weightKg: 0, reps: 25)]
         ))
         let detections = PRDetectionEngine.shared.ingest(session: session(
-            exerciseID: "test_pushups",
+            exerciseID: "Pushups",
             sets: [completedSet(weightKg: 0, reps: 25)]
         ))
         XCTAssertFalse(
@@ -128,14 +128,13 @@ final class PRDetectionEngineTests: XCTestCase {
         )
     }
 
-    func test_loadedLiftAtZeroKg_doesNotRecordRepsPR() async {
-        await ExerciseLibrary.shared.load()
+    func test_loadedLiftAtZeroKg_doesNotRecordRepsPR() {
         _ = PRDetectionEngine.shared.ingest(session: session(
-            exerciseID: Self.barbellBenchID,
+            exerciseID: "Barbell_Bench_Press_-_Medium_Grip",
             sets: [completedSet(weightKg: 0, reps: 3)]
         ))
         let detections = PRDetectionEngine.shared.ingest(session: session(
-            exerciseID: Self.barbellBenchID,
+            exerciseID: "Barbell_Bench_Press_-_Medium_Grip",
             sets: [completedSet(weightKg: 0, reps: 8)]
         ))
         XCTAssertFalse(
@@ -148,12 +147,12 @@ final class PRDetectionEngineTests: XCTestCase {
 
     func test_weightedSquat_recordsAllThreeWeightedKinds() {
         _ = PRDetectionEngine.shared.ingest(session: session(
-            exerciseID: "test_squat",
+            exerciseID: "Barbell_Squat",
             sets: [completedSet(weightKg: 90, reps: 5)]
         ))
         let topSet = completedSet(weightKg: 100, reps: 5)
         let detections = PRDetectionEngine.shared.ingest(session: session(
-            exerciseID: "test_squat",
+            exerciseID: "Barbell_Squat",
             sets: [topSet]
         ))
         let kinds = Set(detections.map(\.kind))
@@ -175,7 +174,7 @@ final class PRDetectionEngineTests: XCTestCase {
             isWarmup: true
         )
         let detections = PRDetectionEngine.shared.ingest(session: session(
-            exerciseID: "test_pushups",
+            exerciseID: "Pushups",
             sets: [warmup]
         ))
         XCTAssertTrue(detections.isEmpty, "Warm-up sets must be ignored by PR detection")
@@ -189,7 +188,7 @@ final class PRDetectionEngineTests: XCTestCase {
             completed: false
         )
         let detections = PRDetectionEngine.shared.ingest(session: session(
-            exerciseID: "test_pushups",
+            exerciseID: "Pushups",
             sets: [incomplete]
         ))
         XCTAssertTrue(detections.isEmpty, "Incomplete sets must be ignored by PR detection")
