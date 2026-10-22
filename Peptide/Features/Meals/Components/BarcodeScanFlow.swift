@@ -65,6 +65,8 @@ struct BarcodeScanFlow: View {
     /// True when `product` came from a package photo rather than the
     /// food database — changes the source badge and the logged source.
     @State private var productReadByAI = false
+    /// Grows with the Nutri-Score letter so it never clips its circle.
+    @ScaledMetric(relativeTo: .body) private var nutriScoreDiameter: CGFloat = 28
     @State private var nutritionEstimatedByAI = false
     @State private var savedToMyFoods = false
     @State private var isShowingPackageCamera = false
@@ -85,7 +87,7 @@ struct BarcodeScanFlow: View {
         case lookingUp       // OFF network round-trip
         case ocrProcessing   // VisionKit text recognition on a label photo
         case review          // product + portion + macros
-        case logged          // success screen with Undo + auto-close
+        case logged          // success screen with Undo
         case notFound        // barcode looked up cleanly but no product
         case unsupportedCode // read fine, but it isn't a product code at all
         case error           // any other terminal failure
@@ -172,8 +174,7 @@ struct BarcodeScanFlow: View {
                 pendingDuplicateConfirm = nil
             }
         } message: { ctx in
-            let mins = Int(Date().timeIntervalSince(ctx.lastLoggedAt) / 60)
-            Text("You logged \(ctx.product.name) \(mins) minute\(mins == 1 ? "" : "s") ago. Log it again?")
+            Text("You logged \(ctx.product.name) \(ctx.lastLoggedAt.formatted(.relative(presentation: .numeric, unitsStyle: .wide))). Log it again?")
         }
         .sheet(isPresented: $showEditSheet) {
             if let product {
@@ -938,7 +939,7 @@ struct BarcodeScanFlow: View {
         return Text(score.uppercased())
             .font(AppFont.scaled(13, weight: .heavy))
             .foregroundStyle(palette.ink)
-            .frame(width: 28, height: 28)
+            .frame(width: nutriScoreDiameter, height: nutriScoreDiameter)
             .background {
                 Circle().fill(palette.fill)
             }
@@ -1355,7 +1356,7 @@ struct BarcodeScanFlow: View {
                 )
             }
         }
-        phase = .logged                                  // .task(id: phase) above starts the 5-s auto-close
+        phase = .logged
     }
 
     private func undoLastLog() {
@@ -1363,9 +1364,6 @@ struct BarcodeScanFlow: View {
             onClose()
             return
         }
-        // Cancel the auto-close timer before it fires onClose a second
-        // time — moving phase out of `.logged` triggers the
-        // `.task(id: phase)` modifier to drop the in-flight sleep.
         phase = .review
         dataStore.unlogMealEntry(id: snapshot.entryID)
         // Roll back the scan-history record too so an undone scan
