@@ -292,7 +292,9 @@ private struct RectangularProtocolView: View {
                     .font(.headline)
                     .privacySensitive()
                 if let due = entry.nextDoseDate {
-                    Text("\(entry.dose) · \(Text(due, style: .time))")
+                    (entry.dose.isEmpty
+                        ? Text(due, style: .time)
+                        : Text("\(entry.dose) · \(Text(due, style: .time))"))
                         .font(.caption)
                         .privacySensitive()
                 }

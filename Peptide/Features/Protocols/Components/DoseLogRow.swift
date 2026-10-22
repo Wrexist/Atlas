@@ -49,6 +49,7 @@ struct DoseLogRow: View {
 
     private var accessibilityLabel: String {
         let status = entry.completed ? "completed" : "pending"
-        return "\(entry.peptide.name), \(entry.dose) at \(time), \(status)"
+        let dose = entry.dose.isEmpty ? time : "\(entry.dose) at \(time)"
+        return "\(entry.peptide.name), \(dose), \(status)"
     }
 }

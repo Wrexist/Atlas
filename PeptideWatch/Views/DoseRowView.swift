@@ -9,7 +9,9 @@ struct DoseRowView: View {
         let state = entry.completed
             ? String(localized: "taken")
             : String(localized: "not taken")
-        return "\(entry.peptideName), \(entry.dose), \(time), \(state)"
+        return [entry.peptideName, entry.dose, time, state]
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
     }
 
     var body: some View {

@@ -364,6 +364,11 @@ struct HeroMetricDetailSheet: View {
         }
     }
 
+    private static func doseLine(_ entry: ProtocolEntry) -> String {
+        let time = timeFormatter.string(from: entry.date)
+        return entry.dose.isEmpty ? time : "\(entry.dose) · \(time)"
+    }
+
     private func doseRow(_ entry: ProtocolEntry) -> some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: entry.completed ? "checkmark.circle.fill" : "circle")
@@ -373,7 +378,7 @@ struct HeroMetricDetailSheet: View {
                 Text(entry.peptide.name)
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textPrimary)
-                Text("\(entry.dose) · \(Self.timeFormatter.string(from: entry.date))")
+                Text(Self.doseLine(entry))
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
             }
