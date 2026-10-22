@@ -338,10 +338,19 @@ final class MealScannerService: Sendable {
     /// Language and currency, so names come back in the user's language
     /// and prices in their money, plus the user's past corrections.
     private static func fields(_ corrections: [ScanCorrection]) -> [String: Any] {
-        var fields: [String: Any] = ["locale": Locale.current.identifier,
+        var fields: [String: Any] = ["locale": localeIdentifier,
                                      "currency": Locale.current.currency?.identifier ?? "USD"]
         if !corrections.isEmpty { fields["corrections"] = corrections.map(\.payload) }
         return fields
+    }
+
+    /// Language plus region, e.g. "sv_SE". `Locale.current.identifier` can
+    /// carry keywords ("en_US@rg=sezzzz") whose region override the proxy
+    /// would drop along with the rest of the keyword.
+    private static var localeIdentifier: String {
+        [Locale.current.language.languageCode?.identifier, Locale.current.region?.identifier]
+            .compactMap { $0 }
+            .joined(separator: "_")
     }
 
     /// Posts a JSON payload to the proxy with the shared secret, validates
