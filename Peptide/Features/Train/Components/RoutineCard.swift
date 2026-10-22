@@ -137,11 +137,11 @@ struct RoutineCard: View {
     }
 
     private var metaLine: String {
-        guard !routine.exercises.isEmpty else { return "No exercises yet" }
+        guard !routine.exercises.isEmpty else { return String(localized: "No exercises yet") }
         let count = routine.exercises.count
-        let exercises = count == 1 ? "1 exercise" : "\(count) exercises"
-        let sets = summary.totalSets == 1 ? "1 set" : "\(summary.totalSets) sets"
-        return "\(exercises) · \(sets) · ~\(summary.estimatedMinutes) min"
+        let exercises = count == 1 ? String(localized: "1 exercise") : String(localized: "\(count) exercises")
+        let sets = summary.totalSets == 1 ? String(localized: "1 set") : String(localized: "\(summary.totalSets) sets")
+        return String(localized: "\(exercises) · \(sets) · ~\(summary.estimatedMinutes) min")
     }
 
     private var exerciseLine: String {

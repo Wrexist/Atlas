@@ -147,8 +147,8 @@ struct WorkoutExerciseCard: View {
 
     private var removalMessage: String {
         completedSetCount == 1
-            ? "Your completed set will be deleted."
-            : "Your \(completedSetCount) completed sets will be deleted."
+            ? String(localized: "Your completed set will be deleted.")
+            : String(localized: "Your \(completedSetCount) completed sets will be deleted.")
     }
 
     private var restMenu: some View {

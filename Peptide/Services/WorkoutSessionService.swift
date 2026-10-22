@@ -570,7 +570,8 @@ final class WorkoutSessionService {
         guard !session.isPaused, let rest = session.focus?.rest,
               rest.remaining(at: Date()) > 0 else { return }
         NotificationService.scheduleOneShot(
-            id: id, title: "Time to lift", body: "Rest is over. Your next set is ready.",
+            id: id, title: String(localized: "Time to lift"),
+            body: String(localized: "Rest is over. Your next set is ready."),
             after: rest.remaining(at: Date())
         )
     }
@@ -639,8 +640,9 @@ enum RestTimeOptions {
 
     /// "30 sec", "1 min", "1:30 min".
     static func label(for seconds: Int) -> String {
-        if seconds < 60 { return "\(seconds) sec" }
-        if seconds % 60 == 0 { return "\(seconds / 60) min" }
-        return String(format: "%d:%02d min", seconds / 60, seconds % 60)
+        if seconds < 60 { return String(localized: "\(seconds) sec") }
+        if seconds % 60 == 0 { return String(localized: "\(seconds / 60) min") }
+        let minutesSeconds = Duration.seconds(seconds).formatted(.time(pattern: .minuteSecond))
+        return String(localized: "\(minutesSeconds) min")
     }
 }

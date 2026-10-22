@@ -129,8 +129,12 @@ struct WorkoutHistoryView: View {
     }
 
     private func summaryLine(for session: WorkoutSession) -> String {
-        let exercises = session.exercises.count == 1 ? "1 exercise" : "\(session.exercises.count) exercises"
-        let sets = session.completedSetCount == 1 ? "1 set" : "\(session.completedSetCount) sets"
+        let exercises = session.exercises.count == 1
+            ? String(localized: "1 exercise")
+            : String(localized: "\(session.exercises.count) exercises")
+        let sets = session.completedSetCount == 1
+            ? String(localized: "1 set")
+            : String(localized: "\(session.completedSetCount) sets")
         guard session.totalVolumeKg > 0 else { return "\(exercises) · \(sets)" }
         return "\(exercises) · \(sets) · \(unit.weightLabel(session.totalVolumeKg))"
     }

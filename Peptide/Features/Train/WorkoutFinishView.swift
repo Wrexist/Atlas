@@ -247,7 +247,7 @@ struct RecapNewPRs: View {
     private func valueLabel(_ pr: PRDetectionEngine.DetectedPR) -> String {
         if pr.kind == .bodyweightReps {
             let reps = Int(pr.value)
-            return reps.formatted() + (reps == 1 ? " rep" : " reps")
+            return reps == 1 ? String(localized: "1 rep") : String(localized: "\(reps) reps")
         }
         let load = unit.weightForDisplay(pr.value).formatted(.number.precision(.fractionLength(0...1)))
         return load + " " + unit.weightSuffix
