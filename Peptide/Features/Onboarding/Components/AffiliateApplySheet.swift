@@ -286,7 +286,7 @@ struct AffiliateApplySheet: View {
             Divider()
                 .background(AppColor.glassBorder)
                 .padding(.vertical, 2)
-            Text("We'll review and reply within 5 business days.")
+            Text("We'll review and reach out on the channel you listed within 5 business days.")
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textTertiary)
         }
