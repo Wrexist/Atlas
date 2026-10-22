@@ -1,5 +1,4 @@
 import SwiftUI
-@preconcurrency import AVFoundation
 import PhotosUI
 
 /// End-to-end barcode-scan sheet: opens the camera, resolves the
@@ -977,23 +976,14 @@ struct BarcodeScanFlow: View {
     // MARK: - Actions
 
     private func preflightCheck() async {
-        let status = await BarcodeCameraAuthorization.request()
-        await MainActor.run {
-            switch status {
-            case .authorized:
-                phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
-            case .denied, .restricted:
-                cameraDenied = status == .denied
-                errorText = "Camera access is off. Enable it in Settings to scan barcodes, or type a code below."
-                phase = .manualEntry
-            case .notDetermined:
-                // Shouldn't happen — request() resolves notDetermined —
-                // but if it somehow does, falling back to manual entry
-                // is still a working path.
-                phase = .manualEntry
-            @unknown default:
-                phase = .manualEntry
-            }
+        let outcome = await CameraAuthorization.resolve()
+        switch outcome {
+        case .granted:
+            phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
+        case .denied, .restricted:
+            cameraDenied = outcome == .denied
+            errorText = "Camera access is off. Enable it in Settings to scan barcodes, or type a code below."
+            phase = .manualEntry
         }
     }
 
