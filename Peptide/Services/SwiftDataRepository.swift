@@ -339,8 +339,8 @@ final class SwiftDataRepository {
     /// Deletes exactly the rows a failed legacy migration wrote, so rows
     /// another device's CloudKit import landed meanwhile survive the
     /// rollback (a bulk delete would also propagate their deletion).
-    /// The profile has no id; the import is its only writer while the
-    /// store was empty, so its rows go too and the next launch retries.
+    /// The profile has no id, so the caller passes `includingProfile`
+    /// only when the import created the row; the next launch retries.
     func rollBackMigrationImport(protocolIDs: [UUID], entryIDs: [UUID], includingProfile: Bool) {
         guard let context else { return }
         do {
@@ -1345,6 +1345,19 @@ final class SwiftDataRepository {
     }
 
     // MARK: - State
+
+    /// Whether a profile row exists, without decoding or reconciling it.
+    /// A failed count reports true, so the migration rollback never
+    /// deletes a row it can't prove it created.
+    var hasProfileRow: Bool {
+        guard let context else { return false }
+        do {
+            return try context.fetchCount(FetchDescriptor<StoredProfile>()) > 0
+        } catch {
+            AppLog.swiftData.error("hasProfileRow fetchCount failed: \(error.localizedDescription, privacy: .public)")
+            return true
+        }
+    }
 
     var hasAnyData: Bool {
         guard let context else { return false }

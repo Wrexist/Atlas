@@ -62,6 +62,9 @@ final class MigrationService {
         // upserts only: rows another device's CloudKit import lands
         // after the `hasAnyData` check must survive, and a bulk-replace
         // save would delete them on every device.
+        // CloudKit may deliver the account's real profile in the same
+        // window; the rollback must leave that row alone.
+        let hadProfileRow = repo.hasProfileRow
         repo.beginSaveBatch()
         if let protocols { repo.upsertProtocols(protocols) }
         if let entries   { repo.upsertEntries(entries)     }
@@ -87,7 +90,7 @@ final class MigrationService {
             repo.rollBackMigrationImport(
                 protocolIDs: protocols?.map(\.id) ?? [],
                 entryIDs: entries?.map(\.id) ?? [],
-                includingProfile: profile != nil
+                includingProfile: profile != nil && !hadProfileRow
             )
             return
         }
