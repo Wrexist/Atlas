@@ -194,7 +194,7 @@ struct RecapMuscleNames: View {
         }
     }
     @ViewBuilder private func names(_ role: WorkoutRecapEngine.Role) -> some View {
-        let names = muscles.filter { $0.role == role }.map { $0.name.capitalized }
+        let names = muscles.filter { $0.role == role }.map { $0.displayName }
         if !names.isEmpty {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Label(role.rawValue, systemImage: role == .primary ? "circle.fill" : "circle.lefthalf.filled")

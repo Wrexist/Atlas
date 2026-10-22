@@ -18,7 +18,7 @@ final class AIResearchService: Sendable {
     static let shared = AIResearchService()
 
     private let session: URLSession
-    private let model = "claude-sonnet-4-6"
+    private let model = "claude-sonnet-5"
     private let endpointOverride: URL?
     private let proxySecretOverride: String?
 
@@ -48,6 +48,7 @@ final class AIResearchService: Sendable {
         case unauthorised
         case offline
         case rateLimited
+        case dailyLimitReached
         case serviceUnavailable
         case requestFailed(String)
         case invalidResponse
@@ -58,6 +59,7 @@ final class AIResearchService: Sendable {
             case .unauthorised:         "Couldn't sign in to the research assistant. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build."
             case .offline:              "You're offline — the research assistant needs an internet connection. Reconnect and try again."
             case .rateLimited:          "You're sending questions faster than the assistant can answer. Wait a minute and try again."
+            case .dailyLimitReached:    "You've reached today's research limit. It resets tomorrow."
             case .serviceUnavailable:   "The research assistant is temporarily offline. Try again in a few minutes."
             case .requestFailed(let m): m
             case .invalidResponse:      "The assistant returned an unexpected response."
@@ -145,26 +147,25 @@ final class AIResearchService: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
         request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
-        // App Attest assertion — see AppAttestService; absence falls
-        // back to secret-only auth.
-        if let attestHeaders = await AppAttestService.shared.assertionHeaders() {
-            for (field, value) in attestHeaders {
-                request.setValue(value, forHTTPHeaderField: field)
-            }
-        }
         request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
 
         let bytes: URLSession.AsyncBytes
         let response: URLResponse
         do {
-            (bytes, response) = try await session.bytes(for: request)
+            (bytes, response) = try await streamAttested(request)
         } catch {
             throw mapTransport(error)
         }
         guard let http = response as? HTTPURLResponse else { throw ChatError.invalidResponse }
         guard (200..<300).contains(http.statusCode) else {
-            if http.statusCode == 401 { throw ChatError.unauthorised }
-            throw ChatError.requestFailed("AI research returned HTTP \(http.statusCode).")
+            // Bounded: the error envelope is small, and a misbehaving
+            // proxy must not be able to stream an unbounded body here.
+            var errorBody = Data()
+            for try await byte in bytes {
+                errorBody.append(byte)
+                if errorBody.count >= 4096 { break }
+            }
+            throw Self.chatError(status: http.statusCode, body: errorBody)
         }
 
         let contentType = (http.value(forHTTPHeaderField: "Content-Type") ?? "").lowercased()
@@ -249,13 +250,6 @@ final class AIResearchService: Sendable {
         request.timeoutInterval = 60
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
-        // App Attest assertion — see AppAttestService; absence falls
-        // back to secret-only auth.
-        if let attestHeaders = await AppAttestService.shared.assertionHeaders() {
-            for (field, value) in attestHeaders {
-                request.setValue(value, forHTTPHeaderField: field)
-            }
-        }
         request.httpBody = try JSONSerialization.data(
             withJSONObject: payload(history: history, newPrompt: prompt, ragContext: context),
             options: []
@@ -264,26 +258,53 @@ final class AIResearchService: Sendable {
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await session.data(for: request)
+            (data, response) = try await sendAttested(request)
         } catch {
             throw mapTransport(error)
         }
         guard let http = response as? HTTPURLResponse else { throw ChatError.invalidResponse }
         guard (200..<300).contains(http.statusCode) else {
-            // Don't echo upstream body — Anthropic auth-failure responses
-            // include masked-key fingerprints that the user shouldn't see.
-            // 401 is broken out from the generic requestFailed envelope so
-            // the user sees an actionable message rather than a bare HTTP
-            // status code.
-            switch http.statusCode {
-            case 401:                throw ChatError.unauthorised
-            case 429:                throw ChatError.rateLimited
-            case 502, 503, 504:      throw ChatError.serviceUnavailable
-            default:                 throw ChatError.requestFailed("AI research returned HTTP \(http.statusCode).")
-            }
+            throw Self.chatError(status: http.statusCode, body: data)
         }
 
         return try parseAssistantText(from: data)
+    }
+
+    // MARK: - App Attest
+
+    /// `request` with a fresh App Attest assertion — see
+    /// AppAttestService; absence falls back to secret-only auth.
+    private func attested(_ request: URLRequest, waitForRegistration: Bool = false) async -> URLRequest {
+        var request = request
+        if let attestHeaders = await AppAttestService.shared.assertionHeaders(waitForRegistration: waitForRegistration) {
+            for (field, value) in attestHeaders {
+                request.setValue(value, forHTTPHeaderField: field)
+            }
+        }
+        return request
+    }
+
+    /// Sends with a fresh assertion. When the proxy has lost this
+    /// install's key (401 `attest_required`), re-registers and sends
+    /// once more instead of failing until the next reinstall.
+    private func sendAttested(_ request: URLRequest) async throws -> (Data, URLResponse) {
+        let first = try await session.data(for: attested(request))
+        guard (first.1 as? HTTPURLResponse)?.statusCode == 401,
+              AppAttestService.isAttestRejection(first.0) else { return first }
+        await AppAttestService.shared.invalidateRegistration()
+        return try await session.data(for: attested(request, waitForRegistration: true))
+    }
+
+    /// Streaming counterpart of `sendAttested`. A 401's body is read
+    /// to classify it; the caller only needs that response's status.
+    private func streamAttested(_ request: URLRequest) async throws -> (URLSession.AsyncBytes, URLResponse) {
+        let first = try await session.bytes(for: attested(request))
+        guard (first.1 as? HTTPURLResponse)?.statusCode == 401 else { return first }
+        var body = Data()
+        for try await byte in first.0 { body.append(byte) }
+        guard AppAttestService.isAttestRejection(body) else { return first }
+        await AppAttestService.shared.invalidateRegistration()
+        return try await session.bytes(for: attested(request, waitForRegistration: true))
     }
 
     // MARK: - RAG
@@ -404,6 +425,30 @@ final class AIResearchService: Sendable {
             lines.append(ragContext)
         }
         return lines.joined(separator: "\n")
+    }
+
+    /// Maps a non-2xx proxy status to the error the chat shows. Don't
+    /// echo the upstream body — Anthropic auth-failure responses include
+    /// masked-key fingerprints that the user shouldn't see. 401 is broken
+    /// out so the user sees an actionable message rather than a bare HTTP
+    /// status code.
+    private static func chatError(status: Int, body: Data) -> ChatError {
+        switch status {
+        case 401:           return .unauthorised
+        case 429:           return proxyErrorCode(in: body) == "daily_quota" ? .dailyLimitReached : .rateLimited
+        case 502, 503, 504: return .serviceUnavailable
+        default:            return .requestFailed("AI research returned HTTP \(status).")
+        }
+    }
+
+    /// The proxy's stable refusal code (`error.code`), which tells a
+    /// per-minute throttle apart from the daily quota.
+    private static func proxyErrorCode(in data: Data) -> String? {
+        struct Envelope: Decodable {
+            struct Body: Decodable { let code: String? }
+            let error: Body
+        }
+        return (try? JSONDecoder().decode(Envelope.self, from: data))?.error.code
     }
 
     private func parseAssistantText(from data: Data) throws -> String {

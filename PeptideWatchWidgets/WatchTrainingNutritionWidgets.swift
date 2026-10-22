@@ -67,7 +67,7 @@ struct WatchWorkoutProvider: TimelineProvider {
     }
 
     private func entry(at date: Date) -> WatchWorkoutEntry {
-        let data = WatchSnapshotFile.read()
+        let data = WatchSnapshotFile.read()?.forDisplay(at: date)
         return WatchWorkoutEntry(date: date, workout: data?.workout, training: data?.training)
     }
 }
@@ -155,7 +155,7 @@ struct WatchWorkoutEntryView: View {
                     .lineLimit(1)
                 Group {
                     if let paused = workout.pausedElapsedSeconds {
-                        Text("Paused · \(Duration.seconds(paused).formatted(.time(pattern: .minuteSecond)))")
+                        Text("Paused · \(Duration.seconds(paused).formatted(.time(pattern: WatchFormat.elapsedPattern(seconds: paused))))")
                     } else if let restInterval {
                         Text("Rest \(Text(timerInterval: restInterval, countsDown: true))")
                     } else {
@@ -233,6 +233,7 @@ struct WatchWorkoutWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: WatchWorkoutProvider()) { entry in
             WatchWorkoutEntryView(entry: entry)
+                .widgetURL(WatchPage.workout.url)
         }
         .configurationDisplayName("Workout")
         .description("Your workout in progress, or this week's training.")
@@ -270,23 +271,12 @@ struct WatchNutritionProvider: TimelineProvider {
         let calendar = Calendar.current
         let current = currentEntry()
         let midnight = calendar.startOfDay(for: calendar.date(byAdding: .day, value: 1, to: .now) ?? .now)
-        let reset = WatchNutritionEntry(date: midnight, nutrition: current.nutrition.map(Self.emptied))
+        let reset = WatchNutritionEntry(date: midnight, nutrition: current.nutrition?.emptied)
         completion(Timeline(entries: [current, reset], policy: .atEnd))
     }
 
     private func currentEntry() -> WatchNutritionEntry {
-        guard let data = WatchSnapshotFile.read() else { return WatchNutritionEntry(date: .now, nutrition: nil) }
-        let isToday = Calendar.current.isDateInToday(data.lastUpdated)
-        return WatchNutritionEntry(date: .now, nutrition: data.nutrition.map { isToday ? $0 : Self.emptied($0) })
-    }
-
-    /// Same targets, nothing eaten yet.
-    private static func emptied(_ snapshot: WatchNutritionSnapshot) -> WatchNutritionSnapshot {
-        WatchNutritionSnapshot(
-            caloriesToday: 0, calorieTarget: snapshot.calorieTarget,
-            proteinToday: 0, proteinTarget: snapshot.proteinTarget,
-            mealLoggingStreak: snapshot.mealLoggingStreak, mealEntriesToday: 0
-        )
+        WatchNutritionEntry(date: .now, nutrition: WatchSnapshotFile.read()?.forDisplay(at: .now).nutrition)
     }
 }
 
@@ -404,6 +394,7 @@ struct WatchNutritionWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: WatchNutritionProvider()) { entry in
             WatchNutritionEntryView(entry: entry)
+                .widgetURL(WatchPage.nutrition.url)
         }
         .configurationDisplayName("Calories & Protein")
         .description("Today's calories and protein against your targets.")

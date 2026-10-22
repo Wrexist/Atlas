@@ -7,8 +7,13 @@ final class WorkoutRecapStore {
     private(set) var week: WorkoutRecapEngine.Week?
     private(set) var metadataUnavailable = false
     private(set) var historyUnavailable = false
+    /// A recap reopened from history charts the workout's own week, not today's.
+    private let anchorsWeekOnSession: Bool
 
-    init(session: WorkoutSession) { self.session = session }
+    init(session: WorkoutSession, anchorsWeekOnSession: Bool = false) {
+        self.session = session
+        self.anchorsWeekOnSession = anchorsWeekOnSession
+    }
 
     func load(now: Date = Date(), calendar: Calendar = .current) async {
         let library = ExerciseLibrary.shared
@@ -23,7 +28,8 @@ final class WorkoutRecapStore {
         if let saved = repo.loadWorkoutSession(id: session.id) { session = saved }
         var history: [WorkoutSession] = []
         historyUnavailable = false
-        if let interval = calendar.dateInterval(of: .weekOfYear, for: now) {
+        let anchor = anchorsWeekOnSession ? session.startedAt : now
+        if let interval = calendar.dateInterval(of: .weekOfYear, for: anchor) {
             do { history = try repo.loadWorkoutRecapWeek(in: interval.start..<interval.end) }
             catch { historyUnavailable = true }
         } else { historyUnavailable = true }
@@ -33,7 +39,8 @@ final class WorkoutRecapStore {
         }
         metadataUnavailable = !library.isLoaded
         summary = WorkoutRecapEngine.derive(session, catalog: catalog)
-        week = historyUnavailable ? nil : WorkoutRecapEngine.week(sessions: history, catalog: catalog, now: now, calendar: calendar)
+        week = historyUnavailable ? nil : WorkoutRecapEngine.week(
+            sessions: history, catalog: catalog, anchor: anchor, now: now, calendar: calendar)
     }
 
     func saveEdits(_ edited: WorkoutSession) throws {

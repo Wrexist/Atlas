@@ -6,7 +6,7 @@ import Foundation
 /// WidgetCenter reload) stay isolated on DataStore.
 ///
 /// The widget target consumes the resulting `WidgetData` verbatim via
-/// `PersistenceService.shared.loadWidgetData()`, so any drift in this
+/// `WidgetStore.load()`, so any drift in this
 /// transformation surfaces immediately on the next render — there's
 /// no schema migration between phone and widget.
 enum WidgetSnapshotBuilder {

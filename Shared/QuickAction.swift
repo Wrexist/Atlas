@@ -91,11 +91,18 @@ struct LogWaterGlassIntent: AppIntent {
 /// uses (`PendingDoseLogStore`), since the widget process can't reach
 /// SwiftData.
 enum PendingWaterLogStore {
-    private static let inboxKey = "com.peptidesai.app.pendingWaterGlasses"
+    /// One key per tap (prefix + UUID) so the widget enqueuing and the
+    /// app draining never read-modify-write a shared array — a tap
+    /// written between the app's read and its removal would be erased.
+    private static let inboxKeyPrefix = "com.peptidesai.app.pendingWaterGlass."
+
+    /// The single-array inbox earlier builds wrote; drained once so
+    /// glasses queued before an update still land.
+    private static let legacyInboxKey = "com.peptidesai.app.pendingWaterGlasses"
 
     static func enqueue(_ loggedAt: Date, defaults: UserDefaults? = nil) {
         let store = defaults ?? sharedDefaults
-        store.set(read(store) + [loggedAt], forKey: inboxKey)
+        store.set(loggedAt, forKey: inboxKeyPrefix + UUID().uuidString)
         CFNotificationCenterPostNotification(
             CFNotificationCenterGetDarwinNotifyCenter(),
             CFNotificationName(CrossProcessNotification.pendingWaterLogQueued as CFString),
@@ -105,27 +112,23 @@ enum PendingWaterLogStore {
         )
     }
 
-    /// Every queued tap time, oldest first; clears what it returns. A
-    /// glass queued after the first read is the tail of the second one,
-    /// so it stays for the next drain.
+    /// Every queued tap time, oldest first; removes only the keys it read.
     static func drain(defaults: UserDefaults? = nil) -> [Date] {
         let store = defaults ?? sharedDefaults
-        let pending = read(store)
-        guard !pending.isEmpty else { return [] }
-        let remainder = Array(read(store).dropFirst(pending.count))
-        if remainder.isEmpty {
-            store.removeObject(forKey: inboxKey)
-        } else {
-            store.set(remainder, forKey: inboxKey)
+        var pending: [Date] = []
+        for (key, value) in store.dictionaryRepresentation()
+        where key.hasPrefix(inboxKeyPrefix) || key == legacyInboxKey {
+            if let date = value as? Date {
+                pending.append(date)
+            } else if let legacy = value as? [Date] {
+                pending += legacy
+            }
+            store.removeObject(forKey: key)
         }
         return pending.sorted()
     }
 
     private static var sharedDefaults: UserDefaults {
         UserDefaults(suiteName: AppGroup.identifier) ?? .standard
-    }
-
-    private static func read(_ defaults: UserDefaults) -> [Date] {
-        defaults.array(forKey: inboxKey) as? [Date] ?? []
     }
 }

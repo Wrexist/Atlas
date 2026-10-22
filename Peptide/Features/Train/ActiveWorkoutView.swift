@@ -9,12 +9,16 @@ struct ActiveWorkoutView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @Environment(DataStore.self) private var dataStore
+    @Environment(AppState.self) private var appState
     @Environment(\.requestReview) private var requestReview
     @State private var sessionService = WorkoutSessionService.shared
     @State private var library = ExerciseLibrary.shared
     @State private var showExercisePicker = false
     @State private var showFinishSheet = false
     @State private var showDiscardConfirm = false
+    /// Keeps the "No workout in progress" fallback from flashing while
+    /// the cover slides away after a discard.
+    @State private var discarding = false
     @State private var finishedSession: WorkoutSession?
     @State private var finishedPRs: [PRDetectionEngine.DetectedPR] = []
     /// Set at finish when this workout earns a review prompt (a new PR or
@@ -51,11 +55,12 @@ struct ActiveWorkoutView: View {
                         session: finished,
                         detectedPRs: finishedPRs,
                         unit: unit,
-                        weeklySessionCount: weeklySessionCount(asOf: finished),
                         onClose: { dismiss() }
                     )
                     .task { await requestReviewIfEarned() }
                     .transition(Self.phaseTransition)
+                } else if discarding {
+                    AppColor.background.ignoresSafeArea()
                 } else {
                     noActiveSession
                         .transition(Self.phaseTransition)
@@ -64,7 +69,6 @@ struct ActiveWorkoutView: View {
             .appAnimation(AppAnimation.springSmooth, value: saving)
             .appAnimation(AppAnimation.springSmooth, value: finishedSession?.id)
         }
-        .interactiveDismissDisabled(saving || saveError != nil)
         // Keep the presenter alive when finishing replaces the active content
         // with the summary. A sheet attached to content(for:) vanished with
         // that branch and its dismiss action could close the workout cover.
@@ -73,7 +77,12 @@ struct ActiveWorkoutView: View {
                 finish(perceivedEffort: effort, note: note)
             }
         }
-        .onAppear { syncNameFromSession(); sessionService.reconcileRest() }
+        .onAppear {
+            appState.isActiveWorkoutVisible = true
+            syncNameFromSession()
+            sessionService.reconcileRest()
+        }
+        .onDisappear { appState.isActiveWorkoutVisible = false }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { sessionService.reconcileRest() }
         }
@@ -137,6 +146,12 @@ struct ActiveWorkoutView: View {
 
     private func finish(perceivedEffort: Int?, note: String?) {
         guard !saving else { return }
+        // Warm-ups alone can't be saved, and Retry on the save-failure
+        // screen would fail the same way — keep the user in the workout.
+        guard (sessionService.activeSession?.completedSetCount ?? 0) > 0 else {
+            showFinishSheet = false
+            return
+        }
         // Persist the latest workout-name edit FIRST — the .onSubmit-only
         // binding meant a user who typed "Push Day A" then tapped Finish
         // without hitting Return saved the session with a nil name (audit
@@ -168,18 +183,6 @@ struct ActiveWorkoutView: View {
         // name when the user isn't actively typing in the field.
         guard !nameFieldFocused else { return }
         workoutName = sessionService.activeSession?.name ?? ""
-    }
-
-    /// Sessions in the trailing 7 days ending on `session`'s day,
-    /// itself included — same window `WeeklyMuscleHeatmap` uses for the
-    /// Train tab's heatmap, reused here so `WorkoutFinishView`'s
-    /// consistency callout and the heatmap always agree on "this week."
-    private func weeklySessionCount(asOf session: WorkoutSession) -> Int {
-        let calendar = Calendar.current
-        let dayStart = calendar.startOfDay(for: session.startedAt)
-        let windowStart = calendar.date(byAdding: .day, value: -6, to: dayStart) ?? dayStart
-        let windowEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
-        return SwiftDataRepository.shared.loadWorkoutSessions(startedBetween: windowStart..<windowEnd).count
     }
 
     // MARK: - Content
@@ -256,6 +259,15 @@ struct ActiveWorkoutView: View {
                         Button("Done") { commitWorkoutName(); showOverview = false }
                             .accessibilityIdentifier("workout-overview-done")
                     }
+                    // The set rows' decimal and number pads have no return key.
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("Done") {
+                            if nameFieldFocused { commitWorkoutName() }
+                            dismissKeyboard()
+                        }
+                        .fontWeight(.semibold)
+                    }
                 }
             }
             // Its own presenter: the workout-level picker can't open while
@@ -273,6 +285,7 @@ struct ActiveWorkoutView: View {
         }
         .alert("Discard this workout?", isPresented: $showDiscardConfirm) {
             Button("Discard", role: .destructive) {
+                discarding = true
                 sessionService.discardWorkout()
                 dismiss()
             }
@@ -301,11 +314,13 @@ struct ActiveWorkoutView: View {
                     // autoconnected Timer.publish re-rendered the whole
                     // body at 1Hz for as long as the view value existed.
                     TimelineView(.periodic(from: session.startedAt, by: 1)) { context in
+                        let elapsed = session.elapsedSeconds(now: context.date)
                         StatTile(
                             label: "Elapsed",
-                            value: elapsedFormatted(session, now: context.date),
+                            value: WorkoutClock.label(elapsed),
                             size: .large,
-                            surface: .plain
+                            surface: .plain,
+                            accessibilityLabel: String(localized: "Elapsed: \(WorkoutClock.spoken(elapsed))")
                         )
                     }
                     StatTile(
@@ -316,24 +331,13 @@ struct ActiveWorkoutView: View {
                     )
                     StatTile(
                         label: "Volume (\(unit.weightSuffix))",
-                        value: "\(Int(unit.weightForDisplay(session.totalVolumeKg).rounded()))",
+                        value: Int(unit.weightForDisplay(session.totalVolumeKg).rounded()).formatted(),
                         size: .large,
                         surface: .plain
                     )
                 }
             }
         }
-    }
-
-    private func elapsedFormatted(_ session: WorkoutSession, now: Date) -> String {
-        let seconds = session.elapsedSeconds(now: now)
-        let hours = seconds / 3600
-        let mins = (seconds % 3600) / 60
-        let secs = seconds % 60
-        if hours > 0 {
-            return String(format: "%d:%02d:%02d", hours, mins, secs)
-        }
-        return String(format: "%d:%02d", mins, secs)
     }
 
     // MARK: - Exercise stack
@@ -353,11 +357,14 @@ struct ActiveWorkoutView: View {
                             sessionService.previousSessionSets(forExerciseID: entry.exerciseID)
                         },
                         progression: sessionService.progression(for: entry),
-                        effectiveRestSeconds: entry.restSeconds ?? defaultRestSeconds,
+                        defaultRestSeconds: defaultRestSeconds,
                         supersetLetter: session.supersetLetter(for: entry.id),
                         canSupersetWithNext: session.entryBelow(entry.id).map {
                             $0.supersetGroup == nil || $0.supersetGroup != entry.supersetGroup
                         } ?? false,
+                        currentSet: { setID in
+                            sessionService.currentSet(id: setID, inExerciseEntryID: entry.id)
+                        },
                         onSetUpdate: { updated in
                             sessionService.updateSet(updated, inExerciseEntryID: entry.id)
                         },
@@ -474,7 +481,8 @@ private struct FinishWorkoutSheet: View {
     private var effortSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             sectionTitle("How hard was it?")
-            // A fixed 1–5 scale: five adaptive word chips wrapped 3 + 2.
+            // A fixed 1–5 scale: five numbered chips in one row; the caption
+            // below names the selected level.
             HStack(spacing: Spacing.sm) {
                 ForEach(Self.effortLabels.indices, id: \.self) { index in
                     effortChip(value: index + 1, label: Self.effortLabels[index])

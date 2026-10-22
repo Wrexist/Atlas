@@ -8,12 +8,15 @@ struct ExerciseRow: View {
     let exercise: Exercise
     var showsChevron: Bool = true
 
+    /// Image tile edge; list dividers inset by it to line up with the name.
+    static let tileSize: CGFloat = 56
+
     var body: some View {
         HStack(spacing: Spacing.md) {
             ExerciseImageView(
                 exercise: exercise
             )
-            .frame(width: 56, height: 56)
+            .frame(width: Self.tileSize, height: Self.tileSize)
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(exercise.name)
@@ -32,8 +35,9 @@ struct ExerciseRow: View {
 
             if showsChevron {
                 Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(AppColor.textSecondary.opacity(0.6))
+                    .font(AppFont.scaled(13, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityHidden(true)
             }
         }
         .padding(.vertical, Spacing.xs)
@@ -48,7 +52,7 @@ struct ExerciseRow: View {
             .font(AppFont.chipText)
             .foregroundStyle(AppColor.textPrimary)
             .padding(.horizontal, Spacing.sm)
-            .padding(.vertical, 3)
+            .padding(.vertical, Spacing.xxs)
             .background(
                 Capsule().fill(AppColor.surfaceSecondary.opacity(0.6))
             )
@@ -57,14 +61,14 @@ struct ExerciseRow: View {
     @ViewBuilder
     private var equipmentPill: some View {
         if exercise.equipmentKind != .bodyweight {
-            HStack(spacing: 3) {
+            HStack(spacing: Spacing.xxs) {
                 GlyphImage(glyph: exercise.equipmentKind.glyph)
                 Text(exercise.equipmentKind.displayName)
                     .font(AppFont.chipText)
             }
             .foregroundStyle(AppColor.textSecondary)
             .padding(.horizontal, Spacing.sm)
-            .padding(.vertical, 3)
+            .padding(.vertical, Spacing.xxs)
             .background(
                 Capsule().stroke(AppColor.glassBorder, lineWidth: 0.5)
             )
@@ -81,7 +85,7 @@ struct ExerciseRowSkeletonList: View {
         VStack(spacing: 0) {
             ForEach(0..<rowCount, id: \.self) { _ in
                 HStack(spacing: Spacing.md) {
-                    SkeletonBlock(width: 56, height: 56, cornerRadius: Spacing.smallCornerRadius)
+                    SkeletonBlock(width: ExerciseRow.tileSize, height: ExerciseRow.tileSize, cornerRadius: Spacing.smallCornerRadius)
                     VStack(alignment: .leading, spacing: Spacing.sm) {
                         SkeletonBlock(width: 180, height: 14)
                         SkeletonBlock(width: 90, height: 12)

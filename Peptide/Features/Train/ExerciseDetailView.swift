@@ -80,10 +80,12 @@ struct ExerciseDetailView: View {
             ForEach(EquipmentAccessory.allCases.filter { exercise.equipmentAccessories.contains($0) }) { accessory in
                 metadataPill(glyph: accessory.glyph, label: accessory.displayName)
             }
-            metadataPill(
-                glyph: .system("figure.run"),
-                label: levelLabel(exercise.level)
-            )
+            if !exercise.isCustom {
+                metadataPill(
+                    glyph: .system("figure.run"),
+                    label: levelLabel(exercise.level)
+                )
+            }
             if let mechanic = exercise.mechanic {
                 metadataPill(
                     glyph: .system("gearshape.fill"),
@@ -108,7 +110,7 @@ struct ExerciseDetailView: View {
         }
         .foregroundStyle(AppColor.textPrimary)
         .padding(.horizontal, Spacing.sm)
-        .padding(.vertical, 5)
+        .padding(.vertical, Spacing.xs)
         .background(
             Capsule().fill(AppColor.surfaceSecondary.opacity(0.6))
         )
@@ -183,12 +185,13 @@ struct ExerciseDetailView: View {
         .padding(.top, Spacing.xxxxl)
     }
 
-    /// Shaped like the artwork, title, pills and first card, so the page
-    /// doesn't jump when the library lands.
+    /// Shaped like the title, muscle card, pills and history card, so the
+    /// page doesn't jump when the library lands.
     private var loadingState: some View {
         VStack(alignment: .leading, spacing: Spacing.lg) {
-            SkeletonBlock(height: 240, cornerRadius: Spacing.cardCornerRadius)
             SkeletonBlock(width: 220, height: 24)
+                .padding(.top, Spacing.sm)
+            SkeletonBlock(height: 340, cornerRadius: Spacing.cardCornerRadius)
             HStack(spacing: Spacing.sm) {
                 SkeletonBlock(width: 80, height: 28, cornerRadius: Spacing.smallCornerRadius)
                 SkeletonBlock(width: 96, height: 28, cornerRadius: Spacing.smallCornerRadius)

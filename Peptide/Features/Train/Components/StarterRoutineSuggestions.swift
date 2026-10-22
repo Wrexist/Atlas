@@ -10,10 +10,12 @@ struct StarterRoutineSuggestions: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text("QUICK START")
-                .font(AppFont.scaled(11, weight: .heavy))
+            Text("Quick start")
+                .font(AppFont.eyebrow)
+                .textCase(.uppercase)
                 .tracking(1.2)
                 .foregroundStyle(AppColor.textTertiary)
+                .accessibilityAddTraits(.isHeader)
 
             VStack(spacing: Spacing.sm) {
                 ForEach(templates) { template in
@@ -42,7 +44,7 @@ struct StarterRoutineSuggestions: View {
                     Text("\(template.summary) · \(template.slots.count) exercises")
                         .font(AppFont.scaled(11))
                         .foregroundStyle(AppColor.textSecondary)
-                        .lineLimit(1)
+                        .lineLimit(2)
                 }
 
                 Spacer(minLength: 0)
