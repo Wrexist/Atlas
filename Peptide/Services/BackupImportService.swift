@@ -210,7 +210,7 @@ enum BackupImportService {
         try rejectDuplicateIDs(in: backup.personalRecords ?? [], label: "personal records", id: \.exerciseID)
     }
 
-    private static func rejectDuplicateIDs<T, ID: Hashable>(
+    private nonisolated static func rejectDuplicateIDs<T, ID: Hashable>(
         in items: [T],
         label: String,
         id: (T) -> ID
