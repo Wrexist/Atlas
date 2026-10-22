@@ -266,10 +266,6 @@ enum NutritionMath {
         recommendedTargets(for: metrics, goalRaw: preset.goalRaw) ?? preset.fallback
     }
 
-    /// Mifflin-St Jeor BMR in kilocalories. The `.other` and `.unspecified`
-    /// cases use the average of the male/female constants (-78) so a
-    /// non-binary user still gets a reasonable estimate without forcing
-    /// them into a sex they don't identify with.
     /// Lowest daily intake a recommendation may suggest without medical
     /// supervision: 1,500 kcal for men, 1,200 kcal otherwise.
     static func minimumDailyCalories(for sex: BiologicalSex) -> Double {
@@ -281,6 +277,10 @@ enum NutritionMath {
         }
     }
 
+    /// Mifflin-St Jeor BMR in kilocalories. The `.other` and `.unspecified`
+    /// cases use the average of the male/female constants (-78) so a
+    /// non-binary user still gets a reasonable estimate without forcing
+    /// them into a sex they don't identify with.
     static func mifflinStJeor(
         weightKg: Double,
         heightCm: Double,
