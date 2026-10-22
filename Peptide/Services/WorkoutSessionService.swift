@@ -230,6 +230,13 @@ final class WorkoutSessionService {
         if changed { DataStore.current?.refreshTrainingGlanceables() }
     }
 
+    /// Re-reads the in-progress session after an iCloud account switch,
+    /// so the previous account's workout doesn't stay on screen.
+    func reloadActiveSession() {
+        activeSession = SwiftDataRepository.shared.loadActiveWorkoutSession()
+        WorkoutLiveActivityService.shared.reconcile(active: activeSession)
+    }
+
     func acknowledgeStaleClosure() {
         staleClosure = nil
     }

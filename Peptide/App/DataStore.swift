@@ -335,6 +335,7 @@ final class DataStore {
         protocols = []
         entries = []
         profile = .fresh
+        WorkoutSessionService.shared.reloadActiveSession()
         // SwiftDataRepository's identity handler swaps the container
         // BEFORE posting the notification, so loadProtocols / etc.
         // here read from the new identity's store. If the new
@@ -2730,6 +2731,9 @@ final class DataStore {
         protocolsNeedSave = false
         entriesNeedSave = false
         regenerateTodayEntries()
+        // Routines from another device (or the new iCloud account) would
+        // otherwise show only once the routine list is next opened.
+        RoutineStore.shared.load()
         // CloudKit-driven pulls land here; without these the lock-
         // screen widget and the Watch tab would stay stale until the
         // next user mutation or the widget's 15-min auto-timer.
@@ -2845,6 +2849,7 @@ final class DataStore {
 
             customPeptides = training.customPeptides
             PersistenceService.shared.saveCustomPeptides(training.customPeptides)
+            RoutineStore.shared.load()
 
             // Training rows bypass the `protocols`/`entries`/`profile`
             // didSet bumps, same as recordWorkoutFinished — bump so
