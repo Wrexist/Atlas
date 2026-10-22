@@ -849,9 +849,6 @@ struct PaywallView: View {
         Decimal.zero.formatted(product.priceFormatStyle)
     }
 
-    /// "/yr", "/mo" — read from the product's own renewal period rather
-    /// than its identifier, so a future weekly plan can't render as a
-    /// yearly one.
     /// "1 month", "1 year" — the subscription length, localised.
     private func periodLength(for product: Product) -> String {
         guard let period = product.subscription?.subscriptionPeriod else { return "" }
@@ -868,6 +865,9 @@ struct PaywallView: View {
         return formatter.string(from: components) ?? ""
     }
 
+    /// "/yr", "/mo" — read from the product's own renewal period rather
+    /// than its identifier, so a future weekly plan can't render as a
+    /// yearly one.
     private func periodSuffix(for product: Product) -> String {
         guard let period = product.subscription?.subscriptionPeriod else { return "" }
         switch period.unit {
