@@ -52,7 +52,9 @@ jobs:
         # Through a PR, not a push to main, so the bump goes through the
         # same checks as every other change. A PR opened with
         # GITHUB_TOKEN does not trigger workflows, so close and reopen
-        # it to start PR Checks.
+        # it to start PR Checks. Creating the PR needs the repository
+        # setting "Allow GitHub Actions to create and approve pull
+        # requests"; without it the step warns and leaves the branch.
         env:
           VERSION: ${{ steps.version.outputs.VERSION }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -66,7 +68,11 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git switch -c "$BRANCH"
           git commit -am "Bump marketing version to ${VERSION}"
-          git push origin "$BRANCH"
+          # The checkout has no remote-tracking ref for this bot-owned
+          # branch, so --force-with-lease would refuse; plain --force lets
+          # a re-run replace a branch an earlier failed run left behind.
+          git push --force origin "$BRANCH"
           gh pr create --base main --head "$BRANCH" \
             --title "Bump marketing version to ${VERSION}" \
-            --body "Sets MARKETING_VERSION in project.yml to match tag v${VERSION}. Close and reopen this PR to run PR Checks."
+            --body "Sets MARKETING_VERSION in project.yml to match tag v${VERSION}. Close and reopen this PR to run PR Checks." \
+            || echo "::warning::Open a PR from $BRANCH manually (Actions may not create PRs in this repo)."
