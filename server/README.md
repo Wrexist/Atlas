@@ -172,7 +172,7 @@ endpoint.
   to the first allowed model — caps your spend per call.
 - **`max_tokens` hard cap** at 800 on the pass-through routes;
   food-scan builds its own request with 6 000 (thinking + JSON), and
-  weekly-summary uses 360.
+  weekly-summary uses 500.
 - **`messages` length cap** at 40 (covers the multi-turn chat
   history without giving an attacker unbounded prompts).
 - **Body-size cap** at 4.4 MB, under the 4.5 MB request payload limit
