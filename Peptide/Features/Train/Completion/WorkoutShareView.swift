@@ -111,6 +111,15 @@ struct WorkoutShareView: View {
         .background(AppColor.recapBackground)
     }
 
+    private var previewAccessibilityLabel: String {
+        let sets = summary.session.exercises.isEmpty
+            ? String(localized: "Sets not logged")
+            : summary.workingSetCount == 1
+                ? String(localized: "1 working set")
+                : String(localized: "\(summary.workingSetCount) working sets")
+        return String(localized: "Workout card preview. \(sets). Duration \(summary.duration.label).")
+    }
+
     private var preview: some View {
         ZStack {
             if options.format.isVideo, let player = model.player {
@@ -120,7 +129,7 @@ struct WorkoutShareView: View {
                 Image(uiImage: previewImage).resizable().scaledToFit()
                     .id(previewKey)
                     .transition(.opacity)
-                    .accessibilityLabel("Workout card preview. \(summary.workingSetLabel) working sets. Duration \(summary.duration.label).")
+                    .accessibilityLabel(previewAccessibilityLabel)
                     .accessibilityIdentifier("workout-share-rendered-\(options.style.rawValue)-\(options.format.rawValue)")
             } else {
                 AppColor.recapCard

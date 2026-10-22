@@ -13,18 +13,21 @@ struct WorkoutExerciseCard: View {
     let previousSetsLookup: () -> [SetEntry]
     /// Today's target from `ProgressionEngine`; nil without history.
     let progression: ProgressionEngine.Suggestion?
-    /// Rest the timer will use after a set here — the entry's own
-    /// override or the user's default — so the menu can tick it.
-    let effectiveRestSeconds: Int
+    /// The user's training-preferences rest, used when the entry has no
+    /// override of its own.
+    let defaultRestSeconds: Int
     /// "A", "B"… when this exercise is in a superset.
     let supersetLetter: String?
     /// False for the last exercise, or when it's already in the superset below.
     let canSupersetWithNext: Bool
+    /// The live copy of a set, so a row's writes never start from the
+    /// render-time snapshot (see `WorkoutSessionService.currentSet`).
+    let currentSet: (UUID) -> SetEntry?
     let onSetUpdate: (SetEntry) -> Void
     let onAddSet: () -> Void
     let onRemoveSet: (UUID) -> Void
     let onRemoveExercise: () -> Void
-    let onSetRestSeconds: (Int) -> Void
+    let onSetRestSeconds: (Int?) -> Void
     let onApplyProgression: () -> Void
     let onSupersetWithNext: () -> Void
     let onRemoveFromSuperset: () -> Void
@@ -34,7 +37,7 @@ struct WorkoutExerciseCard: View {
 
     private var completedSetCount: Int { entry.sets.filter(\.completed).count }
 
-    private var displayName: String { exercise?.name ?? entry.exerciseID }
+    private var displayName: String { exercise?.name ?? String(localized: "Unknown exercise") }
 
     /// The bar to show plates for. Only when a set's weight is the whole
     /// bar — a per-side or per-hand entry isn't what goes on the scale.
@@ -77,7 +80,7 @@ struct WorkoutExerciseCard: View {
             )
             .frame(width: 44, height: 44)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(displayName)
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
@@ -107,10 +110,12 @@ struct WorkoutExerciseCard: View {
                         Label("Remove from superset", systemImage: "xmark.circle")
                     }
                 }
-                Button {
-                    showingPlateCalculator = true
-                } label: {
-                    Label("Plate calculator", systemImage: "scalemass")
+                if exercise?.equipmentKind.bar != nil {
+                    Button {
+                        showingPlateCalculator = true
+                    } label: {
+                        Label("Plate calculator", systemImage: "scalemass")
+                    }
                 }
                 Button(role: .destructive, action: requestRemoval) {
                     Label("Remove exercise", systemImage: "trash")
@@ -144,12 +149,12 @@ struct WorkoutExerciseCard: View {
 
     private var removalMessage: String {
         completedSetCount == 1
-            ? "Your completed set will be deleted."
-            : "Your \(completedSetCount) completed sets will be deleted."
+            ? String(localized: "Your completed set will be deleted.")
+            : String(localized: "Your \(completedSetCount) completed sets will be deleted.")
     }
 
     private var restMenu: some View {
-        RestTimeMenu(current: effectiveRestSeconds, onSelect: onSetRestSeconds)
+        RestTimeMenu(overrideSeconds: entry.restSeconds, defaultSeconds: defaultRestSeconds, onSelect: onSetRestSeconds)
     }
 
     /// Logged work is only lost behind a confirmation; an exercise with
@@ -169,7 +174,7 @@ struct WorkoutExerciseCard: View {
             ForEach(entry.sets) { setSnapshot in
                 SetEditorRow(
                     set: Binding(
-                        get: { setSnapshot },
+                        get: { currentSet(setSnapshot.id) ?? setSnapshot },
                         set: { onSetUpdate($0) }
                     ),
                     previousSet: hints[setSnapshot.id],
@@ -187,7 +192,7 @@ struct WorkoutExerciseCard: View {
 
     private var addSetButton: some View {
         Button(action: onAddSet) {
-            HStack(spacing: 6) {
+            HStack(spacing: Spacing.xs) {
                 Image(systemName: "plus.circle.fill")
                 Text("Add set")
             }
@@ -206,27 +211,36 @@ struct WorkoutExerciseCard: View {
 
 /// The one rest-time picker for an exercise in a workout — the overview
 /// card and the focus screen both use it, so both show the current value
-/// and tick the same haptic.
+/// and tick the same haptic. "Default" clears the override so the exercise
+/// follows the training-preferences rest again.
 struct RestTimeMenu: View {
-    let current: Int
-    let onSelect: (Int) -> Void
+    let overrideSeconds: Int?
+    let defaultSeconds: Int
+    let onSelect: (Int?) -> Void
+
+    private var current: Int { overrideSeconds ?? defaultSeconds }
 
     var body: some View {
         Menu {
-            ForEach(RestTimeOptions.choices(including: current), id: \.self) { seconds in
-                Button {
-                    Haptics.selection()
-                    onSelect(seconds)
-                } label: {
-                    if seconds == current {
-                        Label(RestTimeOptions.label(for: seconds), systemImage: "checkmark")
-                    } else {
-                        Text(RestTimeOptions.label(for: seconds))
-                    }
-                }
+            option(String(localized: "Default (\(RestTimeOptions.label(for: defaultSeconds)))"), seconds: nil)
+            ForEach(RestTimeOptions.choices(including: overrideSeconds), id: \.self) { seconds in
+                option(RestTimeOptions.label(for: seconds), seconds: seconds)
             }
         } label: {
             Label("Rest time · \(RestTimeOptions.label(for: current))", systemImage: "timer")
+        }
+    }
+
+    private func option(_ title: String, seconds: Int?) -> some View {
+        Button {
+            Haptics.selection()
+            onSelect(seconds)
+        } label: {
+            if seconds == overrideSeconds {
+                Label(title, systemImage: "checkmark")
+            } else {
+                Text(title)
+            }
         }
     }
 }

@@ -72,8 +72,7 @@ struct WorkoutRecapExerciseDetail: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.lg) {
                 if let entry = store.session.exercises.first(where: { $0.id == entryID }) {
-                    let exercise = ExerciseLibrary.shared.lookup(id: entry.exerciseID)
-                    Text(exercise?.name ?? entry.exerciseID).font(AppFont.title2)
+                    Text(ExerciseLibrary.shared.displayName(for: entry.exerciseID)).font(AppFont.title2)
                     Text("All logged sets").font(AppFont.headline)
                     Text("Warm-ups and unfinished sets are excluded from completion totals.")
                         .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
@@ -132,7 +131,7 @@ struct WorkoutMuscleDetailsView: View {
                             .foregroundStyle(muscle.role == .primary ? AppColor.trainingPrimaryMuscle : AppColor.trainingSecondaryMuscle)
                             .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: Spacing.xs) {
-                            Text(muscle.name.capitalized).font(AppFont.headline)
+                            Text(muscle.displayName).font(AppFont.headline)
                             Text("\(muscle.role.rawValue) · ^[\(muscle.setCount) contributing set](inflect: true)")
                                 .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
                         }
@@ -162,7 +161,7 @@ struct WorkoutMuscleContributionsView: View {
                     }
                 }
             }.padding(Spacing.screenPadding)
-        }.recapScreen(title: muscle.name.capitalized)
+        }.recapScreen(title: muscle.displayName)
     }
 }
 
@@ -179,14 +178,14 @@ struct WorkoutWeeklyProgressView: View {
                     Button("Retry") { Task { await store.load() } }.minimumHitArea()
                 }.padding(Spacing.screenPadding)
             } else { ProgressView("Loading weekly progress…").padding(Spacing.screenPadding) }
-        }.recapScreen(title: "This week")
+        }.recapScreen(title: store.week?.title ?? String(localized: "This week"))
             .refreshWorkoutRecap(store)
     }
 
     private func weeklyContent(_ week: WorkoutRecapEngine.Week) -> some View {
             VStack(alignment: .leading, spacing: Spacing.lg) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text("^[\(week.count) workout](inflect: true) this week").font(AppFont.title2)
+                    Text("^[\(week.count) workout](inflect: true) \(week.phrase)").font(AppFont.title2)
                     Spacer(minLength: Spacing.sm)
                     RecapInfoButton(title: "How workouts are counted", showsTitle: false) {
                         Text("Workouts are grouped by their start date in your current calendar and time zone. Finished workouts with working sets and saved manual workouts count. Warm-up-only and unfinished sessions are excluded.")
@@ -213,7 +212,7 @@ struct WorkoutWeeklyProgressView: View {
                 if let volume = week.volumeKg {
                     RecapCard {
                         VStack(alignment: .leading, spacing: Spacing.sm) {
-                            Text("Recorded volume this week").font(AppFont.headline)
+                            Text("Recorded volume \(week.phrase)").font(AppFont.headline)
                             Text(RecapFormat.volume(volume, unit: unit)).font(AppFont.title2).monospacedDigit()
                             Text("Supported external-load sets only. More logged volume is not a direct measure of strength.")
                                 .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)

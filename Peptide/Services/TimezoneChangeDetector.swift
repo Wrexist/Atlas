@@ -27,6 +27,10 @@ enum TimezoneChangeDetector {
         /// the prompt can show "+9 hours 30 minutes" honestly.
         let minutesRemainder: Int
 
+        /// The full offset change in minutes — what the schedule
+        /// shift applies, so a ±x:30 zone isn't rounded to the hour.
+        var minutesDelta: Int { hoursDelta * 60 + minutesRemainder }
+
         var id: String { currentIdentifier }
 
         /// Cleaned-up display name for a zone. `TimeZone.localizedName`

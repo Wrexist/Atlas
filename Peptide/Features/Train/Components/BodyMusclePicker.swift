@@ -85,26 +85,31 @@ struct BodyMusclePicker: View {
     }
 
     private var caption: some View {
-        Text(picked.map { muscle -> LocalizedStringKey in "\(muscle.displayName) · ^[\(exerciseCount) exercise](inflect: true)" } ?? "Tap a muscle to see what trains it")
+        captionText
             .font(AppFont.headline)
             .foregroundStyle(picked == nil ? AppColor.textSecondary : AppColor.textPrimary)
             .contentTransition(.numericText())
             .animation(reduceMotion ? nil : AppAnimation.springSnappy, value: picked)
     }
 
+    private var captionText: Text {
+        guard let picked else { return Text("Tap a muscle to see what trains it") }
+        return Text("\(picked.displayName) · ^[\(exerciseCount) exercise](inflect: true)")
+    }
+
+    private var confirmTitle: LocalizedStringKey {
+        if picked == nil { return "Choose a muscle" }
+        if exerciseCount == 0 { return "No exercises with this equipment" }
+        return "Show ^[\(exerciseCount) exercise](inflect: true)"
+    }
+
     private var confirmButton: some View {
-        Button {
+        PrimaryCTAButton(title: confirmTitle, shape: .rounded) {
             selection = picked
             Haptics.impact()
             dismiss()
-        } label: {
-            Text(picked == nil ? "Choose a muscle" : "Show ^[\(exerciseCount) exercise](inflect: true)")
-                .font(AppFont.headline)
-                .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
         }
-        .buttonStyle(.borderedProminent)
-        .tint(AppColor.accentPrimary)
-        .disabled(picked == nil)
+        .disabled(picked == nil || exerciseCount == 0)
         .accessibilityIdentifier("body-picker-confirm")
     }
 

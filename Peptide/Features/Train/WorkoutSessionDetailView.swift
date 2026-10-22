@@ -62,7 +62,7 @@ struct WorkoutSessionDetailView: View {
                 dataStore.workoutWasEdited(exerciseIDs: affected)
             }
         }
-        .navigationTitle(session.name ?? "Workout")
+        .navigationTitle(session.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if !session.isActive {
@@ -158,11 +158,11 @@ struct WorkoutSessionDetailView: View {
         }
         let template = Routine(
             replaying: session,
-            name: session.name ?? String(localized: "Workout"),
+            name: session.displayName,
             id: session.routineID ?? UUID()
         )
         Haptics.impact(.medium)
-        sessionService.startWorkout(routine: template)
+        sessionService.startWorkout(routine: template, linksRoutine: session.routineID != nil)
         dismiss()
     }
 
@@ -171,32 +171,57 @@ struct WorkoutSessionDetailView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             Text(dateLabel)
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
                 .textCase(.uppercase)
-            Text(session.name ?? "Workout")
+            Text(session.displayName)
                 .font(AppFont.statHeader)
                 .foregroundStyle(AppColor.textPrimary)
         }
     }
 
+    private struct Stat: Hashable {
+        let value: String
+        let label: String
+    }
+
+    private var stats: [Stat] {
+        var result = [
+            Stat(value: "\(session.exercises.count)", label: "Exercises"),
+            Stat(value: "\(session.completedSetCount)", label: "Sets"),
+        ]
+        if session.totalVolumeKg > 0 {
+            result.append(Stat(value: unit.weightLabel(session.totalVolumeKg), label: "Volume"))
+        }
+        if let durationLabel {
+            result.append(Stat(value: durationLabel, label: "Duration"))
+        }
+        return result
+    }
+
+    /// One row when every value fits at full size, then two per row, then
+    /// one per row, so large text never shrinks or truncates a value.
     private var statsRow: some View {
-        HStack(spacing: Spacing.md) {
-            stat(value: "\(session.exercises.count)", label: "Exercises")
-            stat(value: "\(session.completedSetCount)", label: "Sets")
-            if session.totalVolumeKg > 0 {
-                stat(value: unit.weightLabel(session.totalVolumeKg), label: "Volume")
+        let items = stats
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: Spacing.md) { statTiles(items) }
+            Grid(horizontalSpacing: Spacing.md, verticalSpacing: Spacing.md) {
+                ForEach(Array(stride(from: 0, to: items.count, by: 2)), id: \.self) { start in
+                    GridRow { statTiles(Array(items[start..<min(start + 2, items.count)])) }
+                }
             }
-            if let durationLabel {
-                stat(value: durationLabel, label: "Duration")
-            }
+            VStack(spacing: Spacing.md) { statTiles(items) }
         }
     }
 
+    private func statTiles(_ stats: [Stat]) -> some View {
+        ForEach(stats, id: \.label) { stat(value: $0.value, label: $0.label) }
+    }
+
     private func stat(value: String, label: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
             Text(value)
                 .font(AppFont.scaled(20, weight: .bold, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
@@ -229,7 +254,7 @@ struct WorkoutSessionDetailView: View {
     }
 
     private func noteCard(_ note: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             Text("Note")
                 .font(AppFont.eyebrow)
                 .tracking(1.2)
@@ -268,20 +293,12 @@ struct WorkoutSessionDetailView: View {
                         .monospacedDigit()
                         .frame(width: 20, alignment: .leading)
                         .foregroundStyle(AppColor.textTertiary)
-                    if set.measurement != nil {
-                        Text(RecapFormat.set(set, unit: unit))
-                            .font(AppFont.callout).foregroundStyle(AppColor.textPrimary)
-                    } else if set.weightKg > 0 {
-                        Text("\(unit.weightLabel(set.weightKg, fractionDigits: 1)) × \(set.reps)")
-                            .font(AppFont.callout)
-                            .foregroundStyle(AppColor.textPrimary)
-                    } else {
-                        Text("^[\(set.reps) rep](inflect: true)")
-                            .font(AppFont.callout)
-                            .foregroundStyle(AppColor.textPrimary)
-                    }
+                        .accessibilityLabel("Set \(set.index)")
+                    Text(RecapFormat.set(set, unit: unit))
+                        .font(AppFont.callout)
+                        .foregroundStyle(AppColor.textPrimary)
                     if let rpe = set.rpe {
-                        Text("RPE \(rpe, specifier: "%.1f")")
+                        Text("RPE \(rpe.formatted(.number.precision(.fractionLength(0...1))))")
                             .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                     }
@@ -290,20 +307,24 @@ struct WorkoutSessionDetailView: View {
                         Text("W")
                             .font(AppFont.scaled(11, weight: .bold))
                             .foregroundStyle(AppColor.textTertiary)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
+                            .padding(.horizontal, Spacing.xs)
+                            .padding(.vertical, Spacing.xxs)
                             .background(Capsule().fill(AppColor.surfaceElevated))
+                            .accessibilityLabel("Warm-up")
                     } else if set.completed {
                         Image(systemName: "checkmark.circle.fill")
                             .font(AppFont.scaled(13))
                             .foregroundStyle(AppColor.accentPrimary)
+                            .accessibilityLabel("Completed")
                     } else {
                         Image(systemName: "circle")
                             .font(AppFont.scaled(13))
                             .foregroundStyle(AppColor.textTertiary)
+                            .accessibilityLabel("Not completed")
                     }
                 }
-                .padding(.vertical, 2)
+                .padding(.vertical, Spacing.xxs)
+                .accessibilityElement(children: .combine)
             }
         }
         .padding(Spacing.md)
@@ -323,7 +344,7 @@ struct WorkoutSessionDetailView: View {
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.leading)
             Spacer()
-            Text("^[\(entry.sets.filter(\.completed).count) set](inflect: true)")
+            Text("^[\(entry.completedWorkingSets.count) working set](inflect: true)")
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
             if exercise != nil {

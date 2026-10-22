@@ -20,9 +20,9 @@ import Foundation
 enum PendingDoseLogProcessor {
 
     /// Token returned by `startObserving` that owns the Darwin
-    /// notification subscription. Keep this alive on the host
-    /// (PeptideApp) for the duration of the scene — when the
-    /// token deallocates the observer is removed.
+    /// notification subscription. The app delegate keeps it alive for
+    /// the process lifetime — when the token deallocates the observer
+    /// is removed.
     final class ObservationToken {
         deinit {
             CFNotificationCenterRemoveEveryObserver(
@@ -36,7 +36,7 @@ enum PendingDoseLogProcessor {
     /// notification. The callback hops back onto the main actor
     /// before draining so all DataStore mutations stay
     /// MainActor-isolated. Caller retains the returned token.
-    static func startObserving(_ dataStore: DataStore) -> ObservationToken {
+    static func startObserving() -> ObservationToken {
         let token = ObservationToken()
         let observer = Unmanaged.passUnretained(token).toOpaque()
         CFNotificationCenterAddObserver(
@@ -44,13 +44,12 @@ enum PendingDoseLogProcessor {
             observer,
             { _, _, _, _, _ in
                 Task { @MainActor in
-                    // Resolve through `DataStore.current` so the
-                    // observer doesn't capture a stale reference if
-                    // the app rebuilt its store (unlikely but
-                    // possible during onboarding).
-                    guard let store = DataStore.current else { return }
+                    // Resolved per tap: on a background launch for the
+                    // intent, no scene has built and the store may not
+                    // exist yet.
+                    let store = IntentDataStore.resolve()
                     PendingDoseLogProcessor.drain(into: store)
-                    DoseLiveActivityService.shared.reconcile(entries: store.entries)
+                    store.reconcileDoseLiveActivities()
                 }
             },
             CrossProcessNotification.pendingDoseLogQueued as CFString,
@@ -72,14 +71,17 @@ enum PendingDoseLogProcessor {
 
         var applied = 0
         for log in pending {
-            guard let entry = dataStore.entries.first(where: { $0.id == log.entryId }),
-                  !entry.completed
+            guard let index = dataStore.entries.firstIndex(where: { $0.id == log.entryId }),
+                  !dataStore.entries[index].completed
             else { continue }
+            // Stamp the tap, not the drain — the user may only open
+            // Atlas hours after logging from the lock screen.
+            dataStore.entries[index].actualTime = log.loggedAt
             // Use the in-app toggle path so every downstream
             // listener (achievements, streak math, widget reload,
             // live activity reconcile, watch sync) fires exactly
             // as if the user had tapped the row in the UI.
-            dataStore.toggleEntry(entry.id)
+            dataStore.toggleEntry(log.entryId)
             applied += 1
         }
         if applied > 0 {

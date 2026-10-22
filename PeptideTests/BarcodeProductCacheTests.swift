@@ -37,7 +37,7 @@ final class BarcodeProductCacheTests: XCTestCase {
         )
     }
 
-    /// Backdates a cache entry's modification date — the cache's only
+    /// Backdates a cache entry's modification date — the cache's
     /// notion of recency — so ordering tests need no sleeps.
     private func setModified(_ barcode: String, secondsAgo: TimeInterval) throws {
         let url = tempDir.appendingPathComponent("\(barcode).json")
@@ -158,6 +158,20 @@ final class BarcodeProductCacheTests: XCTestCase {
 
         let recent = await cache.recent(limit: 5)
         XCTAssertEqual(recent.map(\.barcode), ["3333333333333", "2222222222222", "1111111111111"])
+    }
+
+    func test_recent_usedRead_movesProductToFront() async throws {
+        let cache = makeCache()
+        await cache.write(sample(barcode: "1111111111111"))
+        await cache.write(sample(barcode: "2222222222222"))
+        try setModified("1111111111111", secondsAgo: 30)
+        try setModified("2222222222222", secondsAgo: 20)
+
+        _ = await cache.read(barcode: "1111111111111", markingUsed: true)
+        _ = await cache.read(barcode: "2222222222222")
+
+        let recent = await cache.recent(limit: 5)
+        XCTAssertEqual(recent.map(\.barcode), ["1111111111111", "2222222222222"])
     }
 
     func test_recent_capsAtLimit() async {

@@ -318,8 +318,7 @@ struct WeeklySummaryHeroCard: View {
     }()
     private static let weekDisplayFormatter: DateFormatter = {
         let f = DateFormatter()
-        f.dateFormat = "MMM d"
-        f.locale = .current
+        f.setLocalizedDateFormatFromTemplate("MMMd")
         return f
     }()
 

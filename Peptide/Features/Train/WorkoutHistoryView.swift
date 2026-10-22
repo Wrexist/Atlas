@@ -7,6 +7,10 @@ import SwiftUI
 struct WorkoutHistoryView: View {
     @State private var groupedSessions: [MonthGroup] = []
     @State private var hasLoaded: Bool = false
+    /// Grows a page at a time so long-time users can reach older months
+    /// without the first open decoding years of sessions.
+    @State private var fetchLimit = SwiftDataRepository.workoutHistoryFetchLimit
+    @State private var hasOlderSessions = false
     @State private var sessionService = WorkoutSessionService.shared
     @Environment(DataStore.self) private var dataStore
 
@@ -64,8 +68,15 @@ struct WorkoutHistoryView: View {
                             }
                         }
                     } header: {
-                        sectionHeader(group.month)
+                        sectionHeader(group.month.formatted(.dateTime.month(.wide).year()))
                     }
+                }
+                if hasOlderSessions {
+                    GlassButton(title: "Load older workouts", icon: "clock.arrow.circlepath", style: .secondary) {
+                        fetchLimit += SwiftDataRepository.workoutHistoryFetchLimit
+                        reload()
+                    }
+                    .frame(maxWidth: .infinity)
                 }
             }
             .padding(.horizontal, Spacing.screenPadding)
@@ -92,7 +103,7 @@ struct WorkoutHistoryView: View {
                 Text(session.displayDate)
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
-                Text(session.name ?? "Workout")
+                Text(session.displayName)
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
                 Text(summaryLine(for: session))
@@ -118,8 +129,12 @@ struct WorkoutHistoryView: View {
     }
 
     private func summaryLine(for session: WorkoutSession) -> String {
-        let exercises = session.exercises.count == 1 ? "1 exercise" : "\(session.exercises.count) exercises"
-        let sets = session.completedSetCount == 1 ? "1 set" : "\(session.completedSetCount) sets"
+        let exercises = session.exercises.count == 1
+            ? String(localized: "1 exercise")
+            : String(localized: "\(session.exercises.count) exercises")
+        let sets = session.completedSetCount == 1
+            ? String(localized: "1 set")
+            : String(localized: "\(session.completedSetCount) sets")
         guard session.totalVolumeKg > 0 else { return "\(exercises) · \(sets)" }
         return "\(exercises) · \(sets) · \(unit.weightLabel(session.totalVolumeKg))"
     }
@@ -127,22 +142,17 @@ struct WorkoutHistoryView: View {
     // MARK: - Grouping
 
     private struct MonthGroup: Hashable {
-        let month: String
+        /// Start of the calendar month.
+        let month: Date
         var sessions: [WorkoutSession]
     }
 
-    private static let monthFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
-        return formatter
-    }()
-
     /// Newest month first, newest session first within each month.
-    private static func group(_ sessions: [WorkoutSession]) -> [MonthGroup] {
+    private static func group(_ sessions: [WorkoutSession], calendar: Calendar = .current) -> [MonthGroup] {
         let sorted = sessions.sorted { $0.historyDate > $1.historyDate }
         var groups: [MonthGroup] = []
         for session in sorted {
-            let month = monthFormatter.string(from: session.historyDate)
+            let month = calendar.dateInterval(of: .month, for: session.historyDate)?.start ?? session.historyDate
             if groups.last?.month == month {
                 groups[groups.count - 1].sessions.append(session)
             } else {
@@ -153,40 +163,26 @@ struct WorkoutHistoryView: View {
     }
 
     private func reload() {
-        let finished = SwiftDataRepository.shared.loadWorkoutSessions()
-            .filter { $0.finishedAt != nil }
-        groupedSessions = Self.group(finished)
+        let loaded = SwiftDataRepository.shared.loadWorkoutSessions(limit: fetchLimit)
+        hasOlderSessions = loaded.count >= fetchLimit
+        groupedSessions = Self.group(loaded.filter { $0.finishedAt != nil })
         hasLoaded = true
     }
-}
-
-private enum WorkoutHistoryFormat {
-    static let rowDate: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEE, MMM d"
-        return formatter
-    }()
 }
 
 private extension WorkoutSession {
     var historyDate: Date { finishedAt ?? startedAt }
 
-    /// "Mon, Aug 12" — local-relative date label for the row header.
+    /// "Mon, Aug 12" in the user's locale — the row header.
     var displayDate: String {
-        WorkoutHistoryFormat.rowDate.string(from: historyDate)
+        historyDate.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())
     }
 
-    /// "42m" / "1h 12m" — nil for sessions without a finishedAt
-    /// (shouldn't happen for entries in this view since we filter,
-    /// but defensive).
+    /// The recap's duration, so history, detail and recap agree. Nil when
+    /// the workout's time wasn't tracked or can't be trusted.
     var durationLabel: String? {
-        guard finishedAt != nil else { return nil }
-        let interval = elapsedSeconds()
-        guard interval > 0 else { return nil }
-        let totalMinutes = Int(interval / 60)
-        if totalMinutes < 60 { return "\(totalMinutes)m" }
-        let hours = totalMinutes / 60
-        let minutes = totalMinutes % 60
-        return minutes == 0 ? "\(hours)h" : "\(hours)h \(minutes)m"
+        let duration = WorkoutRecapEngine.duration(of: self)
+        guard case .tracked = duration else { return nil }
+        return duration.label
     }
 }

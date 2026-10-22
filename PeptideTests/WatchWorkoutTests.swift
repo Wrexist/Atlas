@@ -217,6 +217,49 @@ final class WatchWorkoutServiceTests: XCTestCase {
         XCTAssertEqual(session.focus?.rest?.endsAt, tap.addingTimeInterval(90))
     }
 
+    func test_queuedSkipRest_fromBeforeANewerRest_isDropped() throws {
+        let entry = start().exercises[0]
+        let now = Date()
+        service.apply(try request(.completeSet(exerciseID: entry.id, setID: entry.sets[0].id, weightKg: 30, reps: 10),
+                                  at: now.addingTimeInterval(-60)))
+        service.apply(try request(.completeSet(exerciseID: entry.id, setID: entry.sets[1].id, weightKg: 30, reps: 10),
+                                  at: now.addingTimeInterval(-10)))
+
+        service.apply(try request(.skipRest, at: now.addingTimeInterval(-50)))
+
+        XCTAssertEqual(service.activeSession?.focus?.rest?.sourceSetID, entry.sets[1].id)
+    }
+
+    func test_watchSkipRest_slightlyBeforeAPhoneCompletedSet_stillSkips() throws {
+        let entry = start().exercises[0]
+        let completedAt = Date().addingTimeInterval(-5)
+        var set = entry.sets[0]
+        set.completed = true
+        service.updateSet(set, inExerciseEntryID: entry.id, now: completedAt)
+        XCTAssertNotNil(service.activeSession?.focus?.rest)
+
+        service.apply(try request(.skipRest, at: completedAt.addingTimeInterval(-1)))
+
+        XCTAssertNil(service.activeSession?.focus?.rest)
+    }
+
+    func test_queuedExtendRest_extendsTheRestTheTapSaw() throws {
+        let entry = start().exercises[0]
+        let completedAt = Date().addingTimeInterval(-30)
+        service.apply(try request(.completeSet(exerciseID: entry.id, setID: entry.sets[0].id, weightKg: 30, reps: 10),
+                                  at: completedAt))
+
+        service.apply(try request(.extendRest(seconds: 30), at: completedAt.addingTimeInterval(10)))
+
+        XCTAssertEqual(service.activeSession?.focus?.rest?.endsAt, completedAt.addingTimeInterval(120))
+    }
+
+    func test_queuedPause_freezesTheClockAtTheTap() throws {
+        let tap = start().startedAt
+        service.apply(try request(.setPaused(true), at: tap))
+        XCTAssertEqual(service.activeSession?.focus?.pausedAt, tap)
+    }
+
     func test_watchRequestForAnotherWorkout_isDropped() throws {
         let entry = start().exercises[0]
         service.apply(try request(.completeSet(exerciseID: entry.id, setID: entry.sets[0].id, weightKg: 30, reps: 10), session: UUID()))

@@ -110,6 +110,22 @@ final class WorkoutRecapTests: XCTestCase {
         XCTAssertTrue(summary.muscles.isEmpty)
     }
 
+    func test_deletedCustomExercise_readsAsCustomExerciseNotItsID() {
+        let set = SetEntry(index: 1, weightKg: 20, reps: 10, completed: true)
+        let entry = WorkoutExerciseEntry(exerciseID: CustomExercise.idPrefix + UUID().uuidString, index: 0, sets: [set])
+        let summary = WorkoutRecapEngine.derive(WorkoutSession(finishedAt: Date(), exercises: [entry]), catalog: [:])
+        XCTAssertEqual(summary.entries.first?.name, "Custom exercise")
+    }
+
+    func test_customExerciseCamelCaseGroup_readsAsGroupDisplayName() {
+        let custom = CustomExercise(name: "Complex", primaryMuscles: ["fullBody"]).asExercise()
+        let set = SetEntry(index: 1, weightKg: 20, reps: 10, completed: true)
+        let entry = WorkoutExerciseEntry(exerciseID: custom.id, index: 0, sets: [set])
+        let summary = WorkoutRecapEngine.derive(WorkoutSession(finishedAt: Date(), exercises: [entry]),
+                                                catalog: [custom.id: custom])
+        XCTAssertEqual(summary.muscles.map(\.displayName), ["Full Body"])
+    }
+
     func test_warmupOnlyUnfinishedAndTimedHaveNoInventedVolume() {
         var session = WorkoutRecapFixture.push()
         for e in session.exercises.indices {
@@ -145,6 +161,21 @@ final class WorkoutRecapTests: XCTestCase {
         let week = WorkoutRecapEngine.week(sessions: [previous, first, second, next, first], catalog: [:], now: now, calendar: calendar)
         XCTAssertEqual(week.count, 2)
         XCTAssertEqual(week.days.map(\.count), [2, 0, 0, 0, 0, 0, 0])
+    }
+
+    func test_weekAnchoredOnPastWorkout_countsThatWeekNotToday() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "Europe/Stockholm"))
+        calendar.firstWeekday = 2
+        let march = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 3, day: 4, hour: 18)))
+        let now = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 10, day: 7, hour: 12)))
+        let past = WorkoutRecapFixture.push(finishedAt: march)
+        let week = WorkoutRecapEngine.week(sessions: [past], catalog: [:], anchor: past.startedAt,
+                                           now: now, calendar: calendar)
+        XCTAssertEqual(week.count, 1)
+        XCTAssertFalse(week.isCurrent)
+        XCTAssertEqual(week.days.first.map { calendar.component(.day, from: $0.date) }, 2)
+        XCTAssertTrue(WorkoutRecapEngine.week(sessions: [past], catalog: [:], now: now, calendar: calendar).isCurrent)
     }
 
     func test_weekAcrossDaylightSavingUsesSevenLocalDays() throws {

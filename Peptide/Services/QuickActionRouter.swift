@@ -54,8 +54,8 @@ enum QuickActionRouter {
         dataStore.flushPendingSave()
     }
 
-    /// Drains the water inbox the moment a tap is queued while the app is
-    /// running. Caller retains the token for the scene's lifetime.
+    /// Drains the water inbox the moment a tap is queued while the app
+    /// process is alive. Caller retains the token for the process lifetime.
     static func observePendingWater() -> PendingDoseLogProcessor.ObservationToken {
         let token = PendingDoseLogProcessor.ObservationToken()
         CFNotificationCenterAddObserver(
@@ -63,8 +63,7 @@ enum QuickActionRouter {
             Unmanaged.passUnretained(token).toOpaque(),
             { _, _, _, _, _ in
                 Task { @MainActor in
-                    guard let store = DataStore.current else { return }
-                    QuickActionRouter.drainPendingWater(into: store)
+                    QuickActionRouter.drainPendingWater(into: IntentDataStore.resolve())
                 }
             },
             CrossProcessNotification.pendingWaterLogQueued as CFString,
@@ -91,20 +90,28 @@ enum QuickActionSheet: String, Identifiable {
 /// SwiftUI has no hook for home-screen quick actions, so a minimal app
 /// delegate installs a scene delegate that forwards them to
 /// `QuickActionInbox`, which `PeptideApp` watches. It also listens for
-/// the workout Live Activity's button.
+/// the Live Activity, widget and Control Center buttons.
 final class AtlasAppDelegate: NSObject, UIApplicationDelegate {
     private var workoutActionToken: PendingDoseLogProcessor.ObservationToken?
+    private var doseLogToken: PendingDoseLogProcessor.ObservationToken?
+    private var waterToken: PendingDoseLogProcessor.ObservationToken?
 
     /// Registered here rather than in a view because iOS may launch the
-    /// app in the background just to run a Live Activity button's
-    /// intent, and no scene builds on that launch.
+    /// app in the background just to run a Live Activity, widget or
+    /// control intent, and no scene builds on that launch.
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         MainActor.assumeIsolated {
             workoutActionToken = WorkoutActivityActionProcessor.startObserving()
+            doseLogToken = PendingDoseLogProcessor.startObserving()
+            waterToken = QuickActionRouter.observePendingWater()
             WorkoutActivityActionProcessor.drain()
+            let store = IntentDataStore.resolve()
+            PendingDoseLogProcessor.drain(into: store)
+            QuickActionRouter.drainPendingWater(into: store)
+            store.reconcileDoseLiveActivities()
         }
         return true
     }

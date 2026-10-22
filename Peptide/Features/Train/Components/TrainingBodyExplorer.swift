@@ -39,6 +39,13 @@ struct TrainingBodyExplorer: View {
         selected = muscle
     }
 
+    /// Only a user's pick plays the haptic; `select` and the Dynamic Type
+    /// fallback also change the side, and must stay silent.
+    private func pickSide(_ newSide: Side) {
+        if newSide != side { Haptics.selection() }
+        side = newSide
+    }
+
     var body: some View {
         content
             .appAnimation(AppAnimation.springSnappy, value: selected)
@@ -48,7 +55,7 @@ struct TrainingBodyExplorer: View {
         VStack(spacing: Spacing.md) {
             GlassSegmentedControl(
                 options: Side.allCases,
-                selected: $side,
+                selected: Binding(get: { side }, set: { pickSide($0) }),
                 label: { LocalizedStringKey($0.rawValue) }
             )
             .accessibilityIdentifier("training-body-side")
@@ -150,7 +157,6 @@ struct TrainingBodyExplorer: View {
             if size.isAccessibilitySize && side == .both { side = .front }
         }
         .onChange(of: side) { _, side in
-            Haptics.selection()
             if let selected, side != .both, selected.isBack != (side == .back) {
                 self.selected = nil
             }
