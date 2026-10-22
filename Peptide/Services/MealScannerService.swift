@@ -63,6 +63,7 @@ final class MealScannerService: Sendable {
         case proxyNotConfigured
         case unauthorised
         case rateLimited
+        case serviceUnavailable
         case offline
         case imageTooLarge
         case requestFailed(String)
@@ -80,6 +81,7 @@ final class MealScannerService: Sendable {
             case .proxyNotConfigured:   "Meal scanner isn't configured for this build. Set MEAL_SCANNER_ENDPOINT and MEAL_SCANNER_SECRET in Secrets.xcconfig and rebuild."
             case .unauthorised:         "Couldn't sign in to the meal scanner. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build."
             case .rateLimited:          "You've scanned a lot of meals recently. Wait a minute and try again — if you've hit today's limit, scanning resets tomorrow."
+            case .serviceUnavailable:   "Scanning is temporarily unavailable — try again later."
             case .offline:              "You're offline — meal scanning needs an internet connection. Reconnect and try again."
             case .imageTooLarge:        "Photo is too large to upload. Try a smaller image."
             case .requestFailed(let m): m
@@ -386,6 +388,11 @@ final class MealScannerService: Sendable {
             // The proxy throttles per device and caps a daily quota, so
             // 429 is a state the user can act on.
             case 429: throw ScanError.rateLimited
+            // Still 503 after the retry: the proxy is out of today's
+            // budget or not configured, so a bare status code helps nobody.
+            case 503: throw ScanError.serviceUnavailable
+            // The platform refuses bodies over its 4.5 MB limit.
+            case 413: throw ScanError.imageTooLarge
             // Vercel answers 404 for a route this deployment doesn't have.
             case 404: throw ScanError.routeMissing
             // food-scan's answer when Claude declined the image.
@@ -501,13 +508,18 @@ final class MealScannerService: Sendable {
     /// Still 25% more linear detail than the 1024 px this replaced.
     private static let fallbackImageEdge: CGFloat = 1280
 
+    /// Hard ceiling for the encoded JPEG. Base64 grows it by a third, and
+    /// the proxy's host refuses request bodies over 4.5 MB, so 3 MB raw
+    /// (~4 MB encoded) is the most that can still arrive.
+    private static let maxUploadBytes = 3 * 1024 * 1024
+
     /// Encodes at the best quality that fits the byte budget, stepping
     /// down only as far as it has to.
     ///
     /// Ordinary photos take the first rung and never pay for the rest.
     /// Throws when encoding fails outright or the result is still over
-    /// Anthropic's hard limit — better a clear error than a request that
-    /// hangs and times out.
+    /// what the proxy accepts — better a clear error than a request that
+    /// fails on upload.
     private func compress(_ image: UIImage) throws -> Data {
         let resized = image.resizedTo(maxEdge: Self.maxImageEdge) ?? image
 
@@ -526,7 +538,7 @@ final class MealScannerService: Sendable {
         }
 
         guard let data = smallest else { throw ScanError.imageTooLarge }
-        guard data.count <= 5 * 1024 * 1024 else { throw ScanError.imageTooLarge }
+        guard data.count <= Self.maxUploadBytes else { throw ScanError.imageTooLarge }
         return data
     }
 

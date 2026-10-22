@@ -25,6 +25,8 @@ import { allowRate } from './_lib/rate-limit.js';
 
 const APPLE_AUTH = 'https://appleid.apple.com';
 const MAX_CODE_LENGTH = 1024;
+// Each Apple call gets 8 s so both fit inside the app's 20 s wait.
+const APPLE_TIMEOUT_MS = 8000;
 
 function appleConfig() {
   const teamId = process.env.APPLE_TEAM_ID;
@@ -61,6 +63,7 @@ async function postForm(path, fields) {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams(fields).toString(),
+    signal: AbortSignal.timeout(APPLE_TIMEOUT_MS),
   });
 }
 
@@ -107,6 +110,11 @@ export default async function handler(req, res) {
     }
     const tokens = await exchange.json();
     const token = tokens.refresh_token ?? tokens.access_token;
+    if (!token) {
+      console.warn('[apple-revoke] code exchange returned no token');
+      res.status(502).json({ error: { message: 'Revocation failed' } });
+      return;
+    }
     const hint = tokens.refresh_token ? 'refresh_token' : 'access_token';
     const revoke = await postForm('/auth/revoke', {
       client_id: config.clientId,

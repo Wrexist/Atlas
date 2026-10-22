@@ -1,8 +1,8 @@
 # Atlas Vercel proxy
 
 Vercel serverless function(s) that hold the Anthropic API key
-server-side so the iOS app's `MealScannerService` and `AIResearchService`
-never embed it in the shipping binary. The client authenticates with a
+server-side so the iOS app's `MealScannerService`, `AIResearchService`
+and `WeeklySummaryService` never embed it in the shipping binary. The client authenticates with a
 shared secret (`X-Peptide-Proxy` header).
 
 ## Why
@@ -28,9 +28,11 @@ real Anthropic API is reached one hop away.
 (the bundle ID); without them it answers 503 and the app tells the user to
 remove Atlas under Settings → Apple ID → Sign in with Apple.
 
-The AI routes share `_lib/anthropic-proxy.js` — auth, per-IP rate
-limit, App Attest gate, body sanitisation, model allowlist, and the
-forward to `api.anthropic.com/v1/messages` live there.
+meal-scan, food-scan and ai-research share `_lib/anthropic-proxy.js` —
+auth, App Attest gate, per-principal limits, body sanitisation, model
+allowlist, and the forward to `api.anthropic.com/v1/messages` live
+there. weekly-summary owns its prompt and upstream call but uses the
+same auth, App Attest gate and limiter.
 
 ## Deploy
 
@@ -44,9 +46,10 @@ forward to `api.anthropic.com/v1/messages` live there.
      - `ALLOWED_MODELS` — comma-separated Anthropic model IDs.
        Defaults to `claude-sonnet-5,claude-sonnet-4-6`.
        **If you set this, list every model the app sends.** The meal
-       scanner asks for `claude-sonnet-5`; ai-research and
-       weekly-summary ask for `claude-sonnet-4-6`. A model that isn't
-       on the list is rewritten to the first entry rather than
+       scanner and ai-research ask for `claude-sonnet-5`; older app
+       builds' ai-research still asks for `claude-sonnet-4-6`.
+       (weekly-summary picks its own model server-side.) A model that
+       isn't on the list is rewritten to the first entry rather than
        rejected, so an incomplete list looks like it works and just
        quietly serves the wrong model. Existing deployments pinned to
        `claude-sonnet-4-6` keep scanning on 4.6 until this is updated.
@@ -55,8 +58,13 @@ forward to `api.anthropic.com/v1/messages` live there.
        never names a model on this route, the server picks it.
        `claude-sonnet-5-5` roughly halves the cost per scan.
      - `FOOD_SCAN_EFFORT` — `low` (default), `medium` or `high`.
-     - `RATE_LIMIT_RPM` — per-IP request cap per minute per route.
-       Default 20 (`WEEKLY_RPM`, default 6, for weekly-summary).
+     - `RATE_LIMIT_RPM` — per-principal request cap per minute per
+       route. Default 20 (`WEEKLY_RPM`, default 6, for weekly-summary).
+     - `DEVICE_DAILY_QUOTA` — per-principal cost units per UTC day.
+       Default 300.
+     - `SHARED_IP_LIMIT_SCALE` — multiplier on both limits above for an
+       IPv4 principal, which carrier NAT shares across many installs.
+       Default 10.
      - `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` — add the
        Upstash Redis integration from the Vercel Marketplace and these
        are injected automatically; rate limits and the daily budget
@@ -64,10 +72,11 @@ forward to `api.anthropic.com/v1/messages` live there.
        The legacy `KV_REST_API_URL` / `KV_REST_API_TOKEN` names work
        too. Unset → per-instance in-memory limiting (the old behavior).
      - `ANTHROPIC_DAILY_REQUEST_BUDGET` — hard cap on upstream
-       Anthropic requests per UTC day across **all** routes combined.
-       Once spent, routes return 503 until midnight UTC. Unset → no
-       budget. Size it from real traffic, e.g. DAU × expected
-       calls/user × safety factor.
+       Anthropic cost units per UTC day across **all** routes combined.
+       Once spent, routes return 503 until midnight UTC. Unset → 20 000
+       on a Vercel production deployment and no budget elsewhere; `0`
+       disables it. Size it from real traffic, e.g. DAU × expected
+       units/user × safety factor.
      - `PROXY_SHARED_SECRET_NEXT` — staged secret for zero-downtime
        rotation: set it, ship client builds carrying it, then promote
        it to `PROXY_SHARED_SECRET` and clear this slot.
@@ -76,7 +85,9 @@ forward to `api.anthropic.com/v1/messages` live there.
        `report`) — App Attest assertion gate; requires Redis. See
        the rollout section below before touching `enforce`.
        `APP_ATTEST_ALLOW_DEVELOPMENT=1` admits Xcode-run builds in
-       enforce mode; `ATTEST_RPM` caps registrations (default 5/min).
+       enforce mode. `ATTEST_CHALLENGE_RPM` (default 60) and
+       `ATTEST_RPM` (default 30) cap registration challenges and
+       submissions per IP per minute.
 4. Note the deploy URL (e.g. `https://peptidex-proxy.vercel.app`).
 
 ## Wire the iOS app
@@ -96,7 +107,25 @@ Info.plist:
 <string>https://peptidex-proxy.vercel.app/api/ai-research</string>
 <key>AI_RESEARCH_SECRET</key>
 <string>$(PROXY_SHARED_SECRET)</string>
+
+<key>WEEKLY_SUMMARY_ENDPOINT</key>
+<string>https://peptidex-proxy.vercel.app/api/weekly-summary</string>
+<key>WEEKLY_SUMMARY_SECRET</key>
+<string>$(PROXY_SHARED_SECRET)</string>
+
+<key>APP_ATTEST_ENDPOINT</key>
+<string>https://peptidex-proxy.vercel.app/api/attest-register</string>
+<key>APP_ATTEST_SECRET</key>
+<string>$(PROXY_SHARED_SECRET)</string>
+
+<key>APPLE_REVOKE_ENDPOINT</key>
+<string>https://peptidex-proxy.vercel.app/api/apple-revoke</string>
+<key>APPLE_REVOKE_SECRET</key>
+<string>$(PROXY_SHARED_SECRET)</string>
 ```
+
+`food-scan` needs no key of its own: the app derives it from
+`MEAL_SCANNER_ENDPOINT` (`FOOD_SCAN_ENDPOINT` overrides it).
 
 The iOS services throw `proxyNotConfigured` if either side is missing —
 no silent fallback that could send the photo to a half-configured
@@ -108,36 +137,47 @@ endpoint.
   the env var is unset; dual-slot (`_NEXT`) rotation.
 - **App Attest** (`_lib/app-attest.js`): per-install Secure Enclave
   key attested against Apple's pinned root; per-request assertions
-  with a strictly-increasing counter. In enforce mode an extracted
+  whose counter is single-use (so concurrent requests may arrive out
+  of order) inside a 5-minute freshness window. In enforce mode an extracted
   shared secret is no longer sufficient to relay to Anthropic.
-- **Per-principal rate limit**, 20 req/min default per route
+- **Per-principal rate limit**, 20 requests/min default per route
   (`RATE_LIMIT_RPM`), backed by Upstash Redis when configured (global
   across instances); falls back to in-memory per warm instance.
-- **Per-principal daily quota** (`DEVICE_DAILY_QUOTA`, default 300).
-  The control that keeps one abuser from taking everyone down: without
-  it, a single scripted client can spend the whole shared budget and
-  every paying user gets 503s for the rest of the day.
+- **Per-principal daily quota** (`DEVICE_DAILY_QUOTA`, default 300
+  cost units). The control that keeps one abuser from taking everyone
+  down: without it, a single scripted client can spend the whole
+  shared budget and every paying user gets 503s for the rest of the day.
 - **Abuse cooldown** (`ABUSE_STRIKES` / `ABUSE_BLOCK_SECONDS`,
   defaults 20 per hour / 900s). A limited client that keeps retrying
   is still making 28,800 requests a day; after enough refusals the
   principal is blocked outright. Well-behaved clients never
-  accumulate strikes.
+  accumulate strikes, and a shared IPv4 principal is never blocked.
+  Held in memory when Redis isn't configured.
 - **Daily spend budget** (`ANTHROPIC_DAILY_REQUEST_BUDGET`) across all
-  routes — 503 once spent. Counts **cost units**, not requests: one
-  unit per 256 KB of payload, so a 5 MB meal-scan image costs ~20× a
-  chat turn, which is roughly how Anthropic bills it.
+  routes — 503 once spent. Counts **cost units**, not requests: the
+  larger of one unit per 256 KB of body and one per ~4 000 estimated
+  tokens (text, ~3 000 per image, plus `max_tokens`, weighted for
+  Opus pricing). Charged only for well-formed requests and refunded,
+  with the daily quota, when the upstream call fails.
   **Fails closed** when Redis is configured but unreachable — a spend
   ceiling that silently stops applying during an outage isn't a
   ceiling. `BUDGET_FAIL_OPEN=1` opts out.
+- **Stable refusal codes**: limit and availability refusals carry
+  `error.code` — `rate_limited`, `blocked` and `daily_quota` (429,
+  with `Retry-After`) or `unavailable` (503).
 - **Body sanitisation**: only `model`, `max_tokens`, `messages`, and
   optional `system` are forwarded; everything else is stripped so a
   compromised client can't smuggle alternate prompts or `tools`.
 - **Model allowlist**: anything outside `ALLOWED_MODELS` is rewritten
   to the first allowed model — caps your spend per call.
-- **`max_tokens` hard cap** at 800.
+- **`max_tokens` hard cap** at 800 on the pass-through routes;
+  food-scan builds its own request with 6 000 (thinking + JSON), and
+  weekly-summary uses 500.
 - **`messages` length cap** at 40 (covers the multi-turn chat
   history without giving an attacker unbounded prompts).
-- **Body-size cap** at 7 MB, plus a 5 MB iOS-side guard.
+- **Body-size cap** at 4.4 MB, under the 4.5 MB request payload limit
+  Vercel enforces before the handler runs, plus a 3 MB raw-JPEG
+  iOS-side guard (~4 MB once base64-encoded).
 
 ## App Attest rollout
 
@@ -165,7 +205,10 @@ no assertion headers and report mode just logs their absence.
 ### What counts as a "principal"
 
 Every limit above is counted per principal: **the verified App Attest
-key ID when one is present, otherwise the client IP**.
+key ID when one is present, otherwise the client IP**. An IPv4 address
+is often a carrier NAT shared by many installs, so its per-minute and
+daily limits are scaled by `SHARED_IP_LIMIT_SCALE` and it is never
+abuse-blocked; IPv6 addresses are effectively per device.
 
 This is why enforcing App Attest matters beyond authentication. A
 client IP is not an identity — mobile carriers rotate it per request
@@ -183,8 +226,8 @@ as strong as the identity underneath it.
 
 - **CORS / Origin** allowlist as defense in depth.
 - **Per-principal spend attribution** from Anthropic's `usage` in the
-  response, rather than the payload-size proxy `requestCost` uses.
-  Would let the quota track real tokens instead of bytes.
+  response, rather than the up-front estimate `costForBody` makes.
+  Would let the quota track real tokens instead of an estimate.
 
 ## Tests
 
