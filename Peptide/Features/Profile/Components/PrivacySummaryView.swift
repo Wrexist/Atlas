@@ -107,7 +107,7 @@ struct PrivacySummaryView: View {
         dataStore.persistProfile()
         Task { @MainActor in
             await WeeklySummaryNotificationScheduler.reconcile(
-                profile: dataStore.profile,
+                dataStore: dataStore,
                 isPro: StoreService.shared.isProUser
             )
         }
