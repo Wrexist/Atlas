@@ -118,6 +118,15 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         XCTAssertEqual(product.per100g.calories, 239, accuracy: 0.5)
     }
 
+    func test_fetch_energyUnitKcal_stillConvertsNormalisedKilojoules() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.kilojoulesTypedAsKcal.utf8))
+        }
+        let product = try await service.fetch(barcode: "6666666666666")
+        // energy_100g is kJ even when the contributor typed kcal.
+        XCTAssertEqual(product.per100g.calories, 239, accuracy: 0.5)
+    }
+
     func test_fetch_treatsZeroServingQuantityAsMissing() async throws {
         MockURLProtocol.handler = { request in
             (Self.ok(for: request), Data(Fixtures.zeroServingQuantity.utf8))
@@ -501,6 +510,23 @@ private enum Fixtures {
         "product_name": "kJ-only product",
         "nutriments": {
           "energy_100g": 1000,
+          "proteins_100g": 10,
+          "carbohydrates_100g": 20,
+          "fat_100g": 5
+        }
+      }
+    }
+    """
+
+    static let kilojoulesTypedAsKcal = """
+    {
+      "status": 1,
+      "code": "6666666666666",
+      "product": {
+        "product_name": "Typed as kcal",
+        "nutriments": {
+          "energy_100g": 1000,
+          "energy_unit": "kcal",
           "proteins_100g": 10,
           "carbohydrates_100g": 20,
           "fat_100g": 5
