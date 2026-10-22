@@ -153,7 +153,6 @@ struct WorkoutActivityActionIntent: LiveActivityIntent {
         }
         let tap = PendingWorkoutActionStore.Pending(sessionId: sessionId, action: action, tappedAt: Date())
         guard !PendingWorkoutActionStore.isDoubleTap(tap) else { return .result() }
-        PendingWorkoutActionStore.enqueue(tap)
 
         if let activity = Activity<WorkoutActivityAttributes>.activities.first(where: {
             $0.attributes.sessionId == sessionId
@@ -168,6 +167,9 @@ struct WorkoutActivityActionIntent: LiveActivityIntent {
             }
             await activity.update(ActivityContent(state: state, staleDate: state.staleDate()))
         }
+        // Queued after the update: the app's push of the real count
+        // must land on top of this one, not be read back and bumped.
+        PendingWorkoutActionStore.enqueue(tap)
         return .result()
     }
 }
