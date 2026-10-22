@@ -403,7 +403,9 @@ final class DataStore {
     @discardableResult
     func updateProtocolStatus(id: UUID, to status: ProtocolStatus) -> Bool {
         guard let index = protocols.firstIndex(where: { $0.id == id }) else { return false }
-        if status == .active, activationExceedsFreeCap(id: id) { return false }
+        if status == .active, protocols[index].status != .active, activationExceedsFreeCap(id: id) {
+            return false
+        }
         protocols[index].status = status
         if status == .active {
             appendTodayEntries(for: protocols[index])
@@ -431,12 +433,12 @@ final class DataStore {
     /// cycle" action. CycleMilestoneService keys on `startDate` so
     /// Day-7 / Day-30 / Complete prompts fire fresh for the new
     /// cycle without manual reset. Returns false, changing nothing, when
-    /// activating would exceed the free-tier cap — callers surface the
-    /// paywall, as with `updateProtocolStatus`.
+    /// re-activating an inactive protocol would exceed the free-tier cap
+    /// — callers surface the paywall, as with `updateProtocolStatus`.
     @discardableResult
     func restartProtocol(id: UUID) -> Bool {
         guard let index = protocols.firstIndex(where: { $0.id == id }),
-              !activationExceedsFreeCap(id: id)
+              protocols[index].status == .active || !activationExceedsFreeCap(id: id)
         else { return false }
         protocols[index].startDate = Calendar.current.startOfDay(for: Date())
         protocols[index].status = .active
