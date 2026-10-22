@@ -234,10 +234,10 @@ struct PlateCalculatorSheet: View {
         targetText = Self.format(initialTarget ?? barWeight)
     }
 
-    /// Reads the locale's decimal separator, falling back to "." so a
-    /// pasted "62.5" still works on a comma-decimal device.
+    /// Tries "." first so a pasted "62.5" isn't read as 625 where "." is
+    /// the grouping separator, then the locale's own decimal separator.
     private static func parse(_ text: String) -> Double {
-        (try? Double(text, format: FloatingPointFormatStyle<Double>())) ?? Double(text) ?? 0
+        Double(text) ?? (try? Double(text, format: FloatingPointFormatStyle<Double>())) ?? 0
     }
 
     private static func format(_ weight: Double) -> String {
