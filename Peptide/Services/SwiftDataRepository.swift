@@ -167,7 +167,10 @@ final class SwiftDataRepository {
         isInoperable = true
         container = nil
         isUsingFallbackStore = false
-        summaryStore.deleteAll()
+        // Weekly recaps are device-local and never synced, so a first
+        // sign-in (no previous token) keeps them: only a sign-out or a
+        // switch to another account hands them to someone else.
+        if prev != nil { summaryStore.deleteAll() }
         healthWeightStore.deleteAll()
         mealDraftStore.resetForAccountChange()
         let cloudFailureState: CloudSyncState = current != nil ? .unavailable : .noAccount
@@ -299,7 +302,6 @@ final class SwiftDataRepository {
         forceCommitFailureForTesting = false
         failNextCompletionForTesting = false
     }
-    #endif
 
     /// Replaces the container with an in-memory store. Call in test setUp only.
     func configureForTesting() {
@@ -309,10 +311,8 @@ final class SwiftDataRepository {
         isUsingFallbackStore = false
         isInoperable = container == nil
         commitDidFail = false
-        #if DEBUG
         forceCommitFailureForTesting = false
         failNextCompletionForTesting = false
-        #endif
         summaryStore = WeeklySummaryLocalStore(
             fileURL: FileManager.default.temporaryDirectory
                 .appending(path: "WeeklySummaries-\(UUID().uuidString)", directoryHint: .isDirectory)
@@ -326,15 +326,49 @@ final class SwiftDataRepository {
         // upgrade reset must not flip it depending on test order.
         WeeklySummaryOptInMigration.markCompleted()
     }
+    #endif
 
     /// Discards uncommitted changes pending on the context. The
-    /// migration rollback path needs this before `deleteAll()`: after a
-    /// failed commit the imported objects are still *pending* inserts,
-    /// which a bulk delete (store-level) doesn't touch — the cleanup's
-    /// own save would then persist exactly the partial import the
-    /// rollback exists to remove.
+    /// migration rollback path needs this before
+    /// `rollBackMigrationImport`: after a failed commit the imported
+    /// objects are still *pending* inserts, and the rollback's own save
+    /// would otherwise persist exactly the partial import it exists to
+    /// remove.
     func discardPendingChanges() {
         context?.rollback()
+    }
+
+    /// Deletes exactly the rows a failed legacy migration wrote, so rows
+    /// another device's CloudKit import landed meanwhile survive the
+    /// rollback (a bulk delete would also propagate their deletion).
+    /// The profile has no id; the import is its only writer while the
+    /// store was empty, so its rows go too and the next launch retries.
+    func rollBackMigrationImport(protocolIDs: [UUID], entryIDs: [UUID], includingProfile: Bool) {
+        guard let context else { return }
+        do {
+            for chunk in Self.predicateChunks(protocolIDs) {
+                for stored in try context.fetch(FetchDescriptor<StoredProtocol>(
+                    predicate: #Predicate { chunk.contains($0.id) }
+                )) {
+                    context.delete(stored)
+                }
+            }
+            for chunk in Self.predicateChunks(entryIDs) {
+                for stored in try context.fetch(FetchDescriptor<StoredEntry>(
+                    predicate: #Predicate { chunk.contains($0.id) }
+                )) {
+                    context.delete(stored)
+                }
+            }
+            if includingProfile {
+                for stored in try context.fetch(FetchDescriptor<StoredProfile>()) {
+                    context.delete(stored)
+                }
+            }
+            commit()
+        } catch {
+            AppLog.swiftData.error("Migration rollback failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     /// Removes all records. Call in test tearDown only.
@@ -1305,6 +1339,7 @@ final class SwiftDataRepository {
             { try context.fetchCount(FetchDescriptor<StoredWorkoutSession>()) },
             { try context.fetchCount(FetchDescriptor<StoredCustomExercise>()) },
             { try context.fetchCount(FetchDescriptor<StoredRoutine>()) },
+            { try context.fetchCount(FetchDescriptor<StoredPersonalRecord>()) },
         ]
         for descriptor in descriptors {
             do {

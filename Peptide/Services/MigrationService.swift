@@ -78,14 +78,17 @@ final class MigrationService {
             AppLog.persistence.error(
                 "Migration verification failed (\(failure, privacy: .public)) — rolling back partial import, leaving JSON files in place for retry"
             )
-            // Return to the empty pre-migration state (`hasAnyData` was
-            // false on entry, so nothing but this import is deleted) so
-            // the next launch retries instead of orphaning the JSON.
-            // Pending (uncommitted) inserts are discarded first — the
-            // bulk delete only reaches the store, and deleteAll's save
-            // would otherwise persist the very rows being rolled back.
+            // Remove only what this import wrote so the next launch
+            // retries instead of orphaning the JSON; rows CloudKit
+            // synced in since the `hasAnyData` check are kept. Pending
+            // (uncommitted) inserts are discarded first, or the
+            // rollback's own save would persist them.
             repo.discardPendingChanges()
-            repo.deleteAll()
+            repo.rollBackMigrationImport(
+                protocolIDs: protocols?.map(\.id) ?? [],
+                entryIDs: entries?.map(\.id) ?? [],
+                includingProfile: profile != nil
+            )
             return
         }
 

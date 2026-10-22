@@ -203,6 +203,25 @@ final class SwiftDataRepositoryTests: XCTestCase {
         XCTAssertTrue(repo.hasAnyData)
     }
 
+    func test_hasAnyData_isTrue_whenOnlyPersonalRecordsExist() {
+        repo.upsertPersonalRecord(PersonalRecord(exerciseID: "Barbell_Squat", bestAbsoluteWeightKg: 100))
+        XCTAssertTrue(repo.hasAnyData)
+    }
+
+    // MARK: - Migration rollback
+
+    func test_rollBackMigrationImport_keepsRowsOutsideTheImport() {
+        let imported = MockProtocols.recoveryStack
+        let synced = MockProtocols.all.filter { $0.id != imported.id }
+        repo.upsertProtocols(MockProtocols.all)
+        repo.saveProfile(MockProfile.current)
+
+        repo.rollBackMigrationImport(protocolIDs: [imported.id], entryIDs: [], includingProfile: true)
+
+        XCTAssertEqual(Set(repo.loadProtocols().map(\.id)), Set(synced.map(\.id)))
+        XCTAssertNil(repo.loadProfile())
+    }
+
     func test_hasAnyData_isFalse_afterDeleteAll() {
         repo.saveProtocols(MockProtocols.all)
         repo.saveEntries(sampleEntries())
