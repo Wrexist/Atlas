@@ -69,7 +69,11 @@ struct DoseTimelineProvider: TimelineProvider {
 
     private func currentEntry(at date: Date = .now) -> DoseEntry {
         guard let data = WidgetStore.load() else { return .empty }
-        guard Calendar.current.isDate(data.lastUpdated, inSameDayAs: date) else {
+        // Only a payload that carried a protocol can be out of date; one
+        // without falls through to the no-protocol state rather than
+        // nagging a user who has nothing to load.
+        let carriedProtocol = data.totalToday > 0 || data.nextDoseTime != nil
+        guard !carriedProtocol || Calendar.current.isDate(data.lastUpdated, inSameDayAs: date) else {
             return DoseEntry(
                 date: date, peptideName: "", dose: "", nextDoseDate: nil,
                 completed: 0, total: 0, compliance: 0, upcoming: [],
