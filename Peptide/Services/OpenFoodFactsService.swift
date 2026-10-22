@@ -225,7 +225,11 @@ final class OpenFoodFactsService: Sendable {
     ///
     /// Throws `LookupError.notFound` on empty results so the caller can
     /// branch the empty state the same way it does for a missed barcode.
-    func search(query: String, pageSize: Int = 20) async throws -> [ScannedProduct] {
+    ///
+    /// `leavingFree` keeps that many rate-limit slots for someone else:
+    /// background callers pass it so they never spend the budget a
+    /// user's next typed search needs.
+    func search(query: String, pageSize: Int = 20, leavingFree: Int = 0) async throws -> [ScannedProduct] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= Self.minimumSearchQueryLength else { return [] }
 
@@ -239,7 +243,7 @@ final class OpenFoodFactsService: Sendable {
         // `.rateLimited` further down — these are distinct failure
         // modes so the UI copy can differ.
         let requestedAt = Date()
-        switch await Self.searchRateLimiter.requestSlot(now: requestedAt) {
+        switch await Self.searchRateLimiter.requestSlot(now: requestedAt, leavingFree: leavingFree) {
         case .allowed:
             break
         case .denied(let secondsToRetry):
@@ -853,22 +857,25 @@ actor OFFRateLimiter {
         self.windowSeconds = max(0.001, windowSeconds)
     }
 
-    func requestSlot(now: Date = Date()) -> Verdict {
+    /// `leavingFree` denies the request unless that many slots would
+    /// still be open after it.
+    func requestSlot(now: Date = Date(), leavingFree: Int = 0) -> Verdict {
         // Prune anything outside the sliding window first so the
         // count below is the live in-window total.
         let cutoff = now.addingTimeInterval(-windowSeconds)
         while let first = timestamps.first, first < cutoff {
             timestamps.removeFirst()
         }
-        if timestamps.count < maxRequests {
+        if timestamps.count < maxRequests - leavingFree {
             timestamps.append(now)
             return .allowed
         }
         // Caller has to wait until the oldest in-window timestamp
         // ages out. Ceil so the UI shows "try again in 1s" rather
         // than "0s" right at the edge.
+        let oldest = timestamps.first ?? now
         let secondsToRetry = max(1, Int(
-            (timestamps[0].addingTimeInterval(windowSeconds).timeIntervalSince(now))
+            (oldest.addingTimeInterval(windowSeconds).timeIntervalSince(now))
                 .rounded(.up)
         ))
         return .denied(secondsToRetry: secondsToRetry)

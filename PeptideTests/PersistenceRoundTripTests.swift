@@ -1111,6 +1111,17 @@ final class PersistenceRoundTripTests: XCTestCase {
         }
     }
 
+    func test_offRateLimiter_leavingFree_deniesBackgroundCallerBeforeUserBudget() async {
+        let limiter = OFFRateLimiter(maxRequests: 3, windowSeconds: 60)
+        let now = Date()
+        let background = await limiter.requestSlot(now: now, leavingFree: 2)
+        let backgroundAgain = await limiter.requestSlot(now: now.addingTimeInterval(1), leavingFree: 2)
+        let user = await limiter.requestSlot(now: now.addingTimeInterval(2))
+        XCTAssertEqual(background, .allowed)
+        XCTAssertNotEqual(backgroundAgain, .allowed)
+        XCTAssertEqual(user, .allowed)
+    }
+
     func test_offRateLimiter_releasesSlotAfterWindowExpires() async {
         let limiter = OFFRateLimiter(maxRequests: 2, windowSeconds: 30)
         let t0 = Date()
