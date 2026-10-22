@@ -117,7 +117,7 @@ struct WeeklySummaryDetailView: View {
             if let composite = summary.keyStats.avgCheckInScore {
                 StatTile(
                     label: "Check-in",
-                    value: String(format: "%.1f", composite),
+                    value: composite.formatted(.number.precision(.fractionLength(1))),
                     tint: AppColor.metricHRV,
                     footnote: "of 5.0",
                     size: .large
