@@ -31,6 +31,43 @@ final class BodyMetricsTests: XCTestCase {
         XCTAssertTrue(m.isComplete)
     }
 
+    func test_filledWithDefaults_untouchedWheels_storeDisplayedDefaults() {
+        let filled = BodyMetricsRanges.filledWithDefaults(.unspecified)
+        XCTAssertEqual(filled.heightCm, Double(BodyMetricsRanges.defaultHeightCm))
+        XCTAssertEqual(filled.weightKg, Double(BodyMetricsRanges.defaultWeightKg))
+        XCTAssertEqual(filled.age, BodyMetricsRanges.defaultAge)
+        XCTAssertTrue(filled.isComplete)
+    }
+
+    func test_filledWithDefaults_keepsUserValues() {
+        var m = BodyMetrics.unspecified
+        m.weightKg = 92
+        let filled = BodyMetricsRanges.filledWithDefaults(m)
+        XCTAssertEqual(filled.weightKg, 92)
+        XCTAssertEqual(filled.heightCm, Double(BodyMetricsRanges.defaultHeightCm))
+    }
+
+    func test_feetAndInches_everyWheelHeight_roundTripsToTheSamePick() {
+        for totalInches in 36...95 {
+            let stored = Double(totalInches) * 2.54
+            let read = BodyMetricsRanges.feetAndInches(fromCm: stored)
+            XCTAssertEqual(read.feet * 12 + read.inches, totalInches, "\(totalInches) in snapped back")
+        }
+    }
+
+    func test_feetAndInches_metricHeight_roundsToNearestInch() {
+        let read = BodyMetricsRanges.feetAndInches(fromCm: 175)
+        XCTAssertEqual(read.feet, 5)
+        XCTAssertEqual(read.inches, 9)
+    }
+
+    func test_feetAndInches_outOfRangeHeight_clampsToTheWheels() {
+        XCTAssertEqual(BodyMetricsRanges.feetAndInches(fromCm: 50).feet, 3)
+        XCTAssertEqual(BodyMetricsRanges.feetAndInches(fromCm: 50).inches, 0)
+        XCTAssertEqual(BodyMetricsRanges.feetAndInches(fromCm: 260).feet, 7)
+        XCTAssertEqual(BodyMetricsRanges.feetAndInches(fromCm: 260).inches, 11)
+    }
+
     // MARK: - Codable round-trip
 
     func test_bodyMetrics_codableRoundTrip() throws {

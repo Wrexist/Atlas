@@ -168,7 +168,7 @@ final class WatchSyncService: NSObject {
             // so it doesn't waste user quota / inflate restore time.
             PersistenceService.excludeFromBackup(url)
         } catch {
-            AppLog.persistence.error("WatchSyncService: failed to write WatchData: \(error.localizedDescription, privacy: .public)")
+            AppLog.watch.error("WatchSyncService: failed to write WatchData: \(error.localizedDescription, privacy: .public)")
         }
 
         sendWatchDataIfReachable(data)
@@ -195,7 +195,7 @@ final class WatchSyncService: NSObject {
             // snapshot."
             try WCSession.default.updateApplicationContext(["watchData": dict])
         } catch {
-            AppLog.persistence.error("WatchSyncService: WCSession send failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.watch.error("WatchSyncService: WCSession send failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 }

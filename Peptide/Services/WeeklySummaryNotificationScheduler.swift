@@ -130,7 +130,7 @@ enum WeeklySummaryNotificationScheduler {
         do {
             try await center.add(request)
         } catch {
-            AppLog.persistence.error(
+            AppLog.notifications.error(
                 "Weekly summary notification add failed: \(error.localizedDescription, privacy: .public)"
             )
         }

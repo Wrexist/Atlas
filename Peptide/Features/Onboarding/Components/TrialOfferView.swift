@@ -631,7 +631,7 @@ struct TrialOfferView: View {
         let plan = selectedTier == .annual
             ? "\(annualPrice) per year for the Atlas Pro Yearly subscription"
             : "\(monthlyPrice) per month for the Atlas Pro Monthly subscription"
-        let renewal = "Auto-renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → Apple ID → Subscriptions."
+        let renewal = "Auto-renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → your name → Subscriptions."
         guard let days = trialDays else { return "Billed \(plan). \(renewal)" }
         return "No charge for \(days) days. Then \(plan). \(renewal)"
     }

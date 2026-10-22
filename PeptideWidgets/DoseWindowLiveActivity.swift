@@ -65,10 +65,12 @@ struct DoseWindowLiveActivity: Widget {
                         .font(.system(size: 14, weight: .heavy, design: .rounded))
                         .foregroundStyle(.white)
                         .lineLimit(1)
-                    Text(context.attributes.doseDisplay)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.65))
-                        .lineLimit(1)
+                    if !context.attributes.doseDisplay.isEmpty {
+                        Text(context.attributes.doseDisplay)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.65))
+                            .lineLimit(1)
+                    }
                 }
                 // Redacted on a locked device, as the home and lock
                 // screen widgets redact the same names and doses.
@@ -205,11 +207,13 @@ private struct DoseWindowLockView: View {
                     .lineLimit(1)
                     .privacySensitive()
                 HStack(spacing: 6) {
-                    Text(attributes.doseDisplay)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.secondary)
-                    Text("·")
-                        .foregroundStyle(.secondary)
+                    if !attributes.doseDisplay.isEmpty {
+                        Text(attributes.doseDisplay)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.secondary)
+                        Text("·")
+                            .foregroundStyle(.secondary)
+                    }
                     Text(attributes.peptideAbbreviation)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(accent)

@@ -15,6 +15,8 @@ struct HabitRowCard: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var completionTrigger = 0
 
+    private static let todayButtonSize: CGFloat = 28
+
     var body: some View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -37,6 +39,17 @@ struct HabitRowCard: View {
             )
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        // A sibling of the card's Button rather than nested in its label,
+        // so its taps don't route through the card. Drawn over the
+        // header's reserved slot.
+        .overlayPreferenceValue(TodayButtonSlotKey.self) { slot in
+            GeometryReader { proxy in
+                if let slot {
+                    let rect = proxy[slot]
+                    todayButton.position(x: rect.midX, y: rect.midY)
+                }
+            }
+        }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(habit.name). \(todayStatus). \(summary.currentStreak) day streak, \(totalDaysLabel) total.")
         .accessibilityAddTraits(.isButton)
@@ -48,8 +61,6 @@ struct HabitRowCard: View {
         .onChange(of: summary.isCompletedToday) { _, completed in
             guard completed else { return }
             completionTrigger &+= 1
-            // The habit's payoff, not every tap of a multi-count habit.
-            Haptics.success()
         }
     }
 
@@ -69,7 +80,9 @@ struct HabitRowCard: View {
                 .lineLimit(1)
             Spacer(minLength: Spacing.sm)
             scheduleBadge
-            todayButton
+            Color.clear
+                .frame(width: Self.todayButtonSize, height: Self.todayButtonSize)
+                .anchorPreference(key: TodayButtonSlotKey.self, value: .bounds) { $0 }
         }
     }
 
@@ -96,7 +109,10 @@ struct HabitRowCard: View {
 
     private var todayButton: some View {
         Button {
-            Haptics.impact(.soft)
+            // The completing tap gets DataStore's success haptic instead.
+            if summary.isCompletedToday || summary.todayValue + 1 < (habit.targetValue ?? 1) {
+                Haptics.impact(.soft)
+            }
             withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { onToggleToday() }
         } label: {
             ZStack {
@@ -105,7 +121,7 @@ struct HabitRowCard: View {
                         summary.isCompletedToday ? habit.tint : AppColor.glassBorderActive,
                         lineWidth: 1.5
                     )
-                    .frame(width: 28, height: 28)
+                    .frame(width: Self.todayButtonSize, height: Self.todayButtonSize)
                 if summary.isCompletedToday {
                     Circle()
                         .fill(habit.tint)
@@ -125,7 +141,7 @@ struct HabitRowCard: View {
                 }
             }
             // Grow the hit area to 44pt without growing the header row.
-            .contentShape(Circle().inset(by: -(Spacing.minimumHitTarget - 28) / 2))
+            .contentShape(Circle().inset(by: -(Spacing.minimumHitTarget - Self.todayButtonSize) / 2))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(summary.isCompletedToday ? "Completed today" : "Mark complete for today")
@@ -135,7 +151,7 @@ struct HabitRowCard: View {
         HStack(spacing: Spacing.md) {
             statChip(icon: "flame.fill",       value: "\(summary.currentStreak)", label: "streak", tint: AppColor.streak)
             statChip(icon: "trophy.fill",      value: "\(summary.bestStreak)",    label: "best",   tint: AppColor.achievement)
-            statChip(icon: "checkmark.circle", value: "\(summary.totalCompletedDays)", label: "days", tint: AppColor.positive)
+            statChip(icon: "checkmark.circle", value: "\(summary.totalCompletedDays)", label: summary.totalCompletedDays == 1 ? "day" : "days", tint: AppColor.positive)
             Spacer(minLength: 0)
         }
     }
@@ -154,5 +170,14 @@ struct HabitRowCard: View {
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
         }
+    }
+}
+
+/// Bounds of the header slot `todayButton` is drawn over.
+private struct TodayButtonSlotKey: PreferenceKey {
+    static var defaultValue: Anchor<CGRect>? { nil }
+
+    static func reduce(value: inout Anchor<CGRect>?, nextValue: () -> Anchor<CGRect>?) {
+        value = value ?? nextValue()
     }
 }

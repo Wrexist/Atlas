@@ -430,16 +430,8 @@ final class DataStore {
     @discardableResult
     func updateProtocolStatus(id: UUID, to status: ProtocolStatus) -> Bool {
         guard let index = protocols.firstIndex(where: { $0.id == id }) else { return false }
-        if status == .active {
-            let currentActive = protocols.filter {
-                $0.status == .active && $0.id != id
-            }.count
-            if StoreService.shared.requiresPro(activeProtocolCount: currentActive) {
-                AppLog.storeKit.warning(
-                    "updateProtocolStatus(.active) blocked — would exceed free-tier cap (\(currentActive, privacy: .public) already active)"
-                )
-                return false
-            }
+        if status == .active, protocols[index].status != .active, activationExceedsFreeCap(id: id) {
+            return false
         }
         protocols[index].status = status
         if status == .active {
@@ -467,14 +459,31 @@ final class DataStore {
     /// to `.active`. Used by the cycle-completion prompt's "Start new
     /// cycle" action. CycleMilestoneService keys on `startDate` so
     /// Day-7 / Day-30 / Complete prompts fire fresh for the new
-    /// cycle without manual reset.
-    func restartProtocol(id: UUID) {
-        guard let index = protocols.firstIndex(where: { $0.id == id }) else { return }
+    /// cycle without manual reset. Returns false, changing nothing, when
+    /// re-activating an inactive protocol would exceed the free-tier cap
+    /// — callers surface the paywall, as with `updateProtocolStatus`.
+    @discardableResult
+    func restartProtocol(id: UUID) -> Bool {
+        guard let index = protocols.firstIndex(where: { $0.id == id }),
+              protocols[index].status == .active || !activationExceedsFreeCap(id: id)
+        else { return false }
         protocols[index].startDate = Calendar.current.startOfDay(for: Date())
         protocols[index].status = .active
         appendTodayEntries(for: protocols[index])
         save()
         rescheduleNotificationsIfEnabled()
+        return true
+    }
+
+    private func activationExceedsFreeCap(id: UUID) -> Bool {
+        let currentActive = protocols.filter {
+            $0.status == .active && $0.id != id
+        }.count
+        guard StoreService.shared.requiresPro(activeProtocolCount: currentActive) else { return false }
+        AppLog.storeKit.warning(
+            "Protocol activation blocked — would exceed free-tier cap (\(currentActive, privacy: .public) already active)"
+        )
+        return true
     }
 
     /// Sweep called from `handleAppActivation` so cycles past the
@@ -1965,12 +1974,12 @@ final class DataStore {
         rescheduleHabitReminders()
     }
 
-    /// Soft-delete via the `archived` flag so the history isn't
-    /// thrown away the moment the user removes a habit. Hard delete
-    /// is `purgeArchivedHabits()` from settings if we ever expose it.
-    func archiveHabit(id: UUID) {
-        guard let idx = profile.habits.firstIndex(where: { $0.id == id }) else { return }
-        profile.habits[idx].archived = true
+    /// Removes the habit and every entry logged against it. The delete
+    /// dialog promises exactly that, and a habit deleted for privacy
+    /// shouldn't leave its history syncing through CloudKit.
+    func deleteHabit(id: UUID) {
+        profile.habits.removeAll { $0.id == id }
+        profile.habitEntries.removeAll { $0.habitId == id }
         save()
         rescheduleHabitReminders()
     }
@@ -3004,7 +3013,7 @@ final class DataStore {
                 protocolId: proto.id,
                 peptide: peptide,
                 date: entryDate,
-                dose: schedule.resolvedDose(for: peptide),
+                dose: schedule.resolvedDose,
                 notes: "",
                 completed: false
             )

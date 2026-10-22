@@ -113,6 +113,7 @@ struct ScheduleEditor: View {
                     Text(selectedDays.count == 7 ? "Weekdays" : "Every day")
                         .font(AppFont.caption)
                         .foregroundStyle(AppColor.accentPrimary)
+                        .minimumHitArea()
                 }
                 .buttonStyle(.plain)
             }
@@ -423,12 +424,6 @@ private struct TimeSlotRow: View {
         return f
     }()
 
-    private static let displayFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.timeStyle = .short
-        return f
-    }()
-
     var body: some View {
         Button {
             pickerDate = Self.formatter.date(from: timeString) ?? Date()
@@ -453,7 +448,7 @@ private struct TimeSlotRow: View {
 
                 Spacer()
 
-                Text(displayString)
+                Text(ProtocolSchedule.displayTime(timeString))
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.textPrimary)
@@ -483,13 +478,6 @@ private struct TimeSlotRow: View {
             )
             .liquidGlassPresentation(detents: [.height(360)])
         }
-    }
-
-    private var displayString: String {
-        if let date = Self.formatter.date(from: timeString) {
-            return Self.displayFormatter.string(from: date)
-        }
-        return timeString
     }
 }
 

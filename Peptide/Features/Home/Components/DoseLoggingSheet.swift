@@ -19,6 +19,13 @@ struct DoseLoggingSheet: View {
         _notes = State(initialValue: entry.notes)
     }
 
+    private var scheduledLine: String {
+        let time = entry.date.formatted(.dateTime.hour().minute())
+        return entry.dose.isEmpty
+            ? String(localized: "Scheduled at \(time)")
+            : String(localized: "Scheduled: \(entry.dose) at \(time)")
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -40,7 +47,7 @@ struct DoseLoggingSheet: View {
                                 Text(entry.peptide.name)
                                     .font(AppFont.headline)
                                     .foregroundStyle(AppColor.textPrimary)
-                                Text("Scheduled: \(entry.dose) at \(entry.date.formatted(.dateTime.hour().minute()))")
+                                Text(scheduledLine)
                                     .font(AppFont.caption)
                                     .foregroundStyle(AppColor.textSecondary)
                             }

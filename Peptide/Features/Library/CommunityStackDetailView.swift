@@ -2,8 +2,12 @@ import SwiftUI
 
 struct CommunityStackDetailView: View {
     let stack: CommunityStack
+    /// Set when the protocol builder hosts this screen: the template then
+    /// pre-fills the builder instead of being saved as a protocol of its own.
+    let onUseTemplate: ((CommunityStack) -> Void)?
     @Environment(DataStore.self) private var dataStore
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var storeService = StoreService.shared
     @State private var didFork = false
     @State private var showingPaywall = false
@@ -14,9 +18,13 @@ struct CommunityStackDetailView: View {
     /// Built once so the share-card preview doesn't reconstruct the struct
     /// (and re-resolve every abbreviation) on every body evaluation.
     @State private var previewProtocol: PeptideProtocol
+    /// Built once in `.task` so DataStore changes don't re-model the
+    /// full canvas-size card on every body pass.
+    @State private var previewModel: CycleCardModel?
 
-    init(stack: CommunityStack) {
+    init(stack: CommunityStack, onUseTemplate: ((CommunityStack) -> Void)? = nil) {
         self.stack = stack
+        self.onUseTemplate = onUseTemplate
         let peptides = stack.peptideAbbreviations.compactMap { PeptideDatabase.peptide(matching: $0) }
         _resolvedPeptides = State(initialValue: peptides)
         _previewProtocol = State(initialValue: Self.makePreviewProtocol(for: stack, peptides: peptides))
@@ -82,10 +90,22 @@ struct CommunityStackDetailView: View {
                 }
 
                 HStack(spacing: Spacing.xl) {
-                    miniStat(value: "\(stack.peptideAbbreviations.count)", label: "Peptides")
-                    miniStat(value: "\(stack.cycleLengthWeeks)w", label: "Cycle")
-                    miniStat(value: "\(stack.scheduleTimesPerDay)x", label: "Per day")
-                    miniStat(value: "\(stack.scheduleDaysOfWeek.count)d", label: "Per week")
+                    miniStat(
+                        value: "\(stack.peptideAbbreviations.count)", label: "Peptides",
+                        spoken: Text("^[\(stack.peptideAbbreviations.count) peptide](inflect: true)")
+                    )
+                    miniStat(
+                        value: "\(stack.cycleLengthWeeks)w", label: "Cycle",
+                        spoken: Text("^[\(stack.cycleLengthWeeks) week](inflect: true) cycle")
+                    )
+                    miniStat(
+                        value: "\(stack.scheduleTimesPerDay)x", label: "Per day",
+                        spoken: Text("^[\(stack.scheduleTimesPerDay) time](inflect: true) per day")
+                    )
+                    miniStat(
+                        value: "\(stack.scheduleDaysOfWeek.count)d", label: "Per week",
+                        spoken: Text("^[\(stack.scheduleDaysOfWeek.count) day](inflect: true) per week")
+                    )
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -113,22 +133,31 @@ struct CommunityStackDetailView: View {
 
     private var cardPreview: some View {
         VStack(spacing: Spacing.sm) {
-            CycleCardView(model: CycleCardModel.forProtocol(previewProtocol, in: dataStore))
-                .frame(
-                    width: ShareCardRenderer.canvasSize.width,
-                    height: ShareCardRenderer.canvasSize.height
-                )
-                .scaleEffect(0.32, anchor: .topLeading)
-                .frame(
-                    width: ShareCardRenderer.canvasSize.width * 0.32,
-                    height: ShareCardRenderer.canvasSize.height * 0.32
-                )
-                .clipShape(RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                )
-                .frame(maxWidth: .infinity)
+            Group {
+                if let previewModel {
+                    CycleCardView(model: previewModel)
+                } else {
+                    Color.clear
+                }
+            }
+            .frame(
+                width: ShareCardRenderer.canvasSize.width,
+                height: ShareCardRenderer.canvasSize.height
+            )
+            .scaleEffect(0.32, anchor: .topLeading)
+            .frame(
+                width: ShareCardRenderer.canvasSize.width * 0.32,
+                height: ShareCardRenderer.canvasSize.height * 0.32
+            )
+            .clipShape(RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
+                    .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+            )
+            .frame(maxWidth: .infinity)
+            .task {
+                previewModel = CycleCardModel.forProtocol(previewProtocol, in: dataStore)
+            }
 
             Text("Preview")
                 .font(AppFont.caption)
@@ -231,7 +260,9 @@ struct CommunityStackDetailView: View {
         }
     }
 
-    private func miniStat(value: String, label: String) -> some View {
+    /// `value` is a compact abbreviation ("8w"), so VoiceOver reads
+    /// `spoken` with the words in full instead.
+    private func miniStat(value: String, label: String, spoken: Text) -> some View {
         VStack(spacing: 2) {
             Text(value)
                 .font(AppFont.headline)
@@ -241,11 +272,18 @@ struct CommunityStackDetailView: View {
                 .foregroundStyle(AppColor.textSecondary)
         }
         .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(spoken)
     }
 
     private func useThisStack() {
         guard !didFork else { return }
         guard !resolvedPeptides.isEmpty else { return }
+        if let onUseTemplate {
+            Haptics.selection()
+            onUseTemplate(stack)
+            return
+        }
         // Honor the free-tier 3-active-protocol cap. The Pro gate on
         // the FAB in ProtocolListView is the documented path; this
         // route used to bypass it (audit Library P0.3).
@@ -256,10 +294,11 @@ struct CommunityStackDetailView: View {
         }
         let proto = CommunityStackService.shared.forkToProtocol(stack)
         dataStore.addProtocol(proto)
-        Haptics.success()
         didFork = true
         Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(600))
+            if !reduceMotion {
+                try? await Task.sleep(for: AppAnimation.confirmationHold)
+            }
             dismiss()
         }
     }

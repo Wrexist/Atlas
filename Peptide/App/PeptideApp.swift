@@ -712,7 +712,9 @@ struct NextDoseAccessoryView: View {
                 .contentTransition(.symbolEffect(.replace))
 
             if let next = dataStore.nextDose {
-                Text("Next: \(next.peptide.abbreviation) \u{2022} \(next.dose)")
+                Text(next.dose.isEmpty
+                     ? "Next: \(next.peptide.abbreviation)"
+                     : "Next: \(next.peptide.abbreviation) \u{2022} \(next.dose)")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textSecondary)
                 Spacer()

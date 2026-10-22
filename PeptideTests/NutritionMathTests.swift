@@ -33,18 +33,18 @@ final class NutritionMathTests: XCTestCase {
         XCTAssertEqual(other, unspec, accuracy: 0.001)
     }
 
-    // MARK: - Daily targets pipeline
+    // MARK: - Maintenance targets pipeline
 
     /// 75 kg male → BMR 1730 → TDEE 1730·1.55 = 2681.5. After audit L11,
     /// macros round first and calories derive from `4·P + 4·C + 9·F` so
     /// the displayed total always equals the macro sum:
     ///   protein 135g · carbs 368g · fat 74g → 540 + 1472 + 666 = 2678 kcal.
-    func test_dailyTargets_male75kg_matchesSpec() {
+    func test_maintenanceTargets_male75kg_matchesSpec() {
         let metrics = BodyMetrics(
             weightKg: 75, heightCm: 180, age: 30,
             sex: .male, activityLevel: .moderate, unit: .metric
         )
-        let targets = NutritionMath.dailyTargets(for: metrics)
+        let targets = NutritionMath.recommendedTargets(for: metrics, goalRaw: nil)
         XCTAssertNotNil(targets)
         XCTAssertEqual(targets?.calories, 2678)
         XCTAssertEqual(targets?.proteinG, 135)
@@ -56,7 +56,7 @@ final class NutritionMathTests: XCTestCase {
     /// Audit Meals L11 — the displayed calorie target must equal
     /// `4·proteinG + 4·carbsG + 9·fatG` so the user never sees the
     /// number disagree with the macro breakdown.
-    func test_dailyTargets_caloriesEqualMacroSum() {
+    func test_maintenanceTargets_caloriesEqualMacroSum() {
         let cases: [BodyMetrics] = [
             BodyMetrics(weightKg: 60, heightCm: 165, age: 25, sex: .female, activityLevel: .light, unit: .metric),
             BodyMetrics(weightKg: 75, heightCm: 180, age: 30, sex: .male,   activityLevel: .moderate, unit: .metric),
@@ -64,7 +64,7 @@ final class NutritionMathTests: XCTestCase {
             BodyMetrics(weightKg: 55, heightCm: 160, age: 22, sex: .other,  activityLevel: .athlete,  unit: .metric),
         ]
         for metrics in cases {
-            guard let t = NutritionMath.dailyTargets(for: metrics) else {
+            guard let t = NutritionMath.recommendedTargets(for: metrics, goalRaw: nil) else {
                 XCTFail("Targets nil for \(metrics)"); continue
             }
             let sum = t.proteinG * 4 + t.carbsG * 4 + t.fatG * 9
@@ -77,12 +77,12 @@ final class NutritionMathTests: XCTestCase {
 
     /// Audit Meals L12 — activity level now drives TDEE. Bumping a
     /// sedentary user to active must raise the calorie target.
-    func test_dailyTargets_activityLevel_movesCalories() {
+    func test_maintenanceTargets_activityLevel_movesCalories() {
         func target(_ level: ActivityLevel) -> Int {
-            NutritionMath.dailyTargets(for: BodyMetrics(
+            NutritionMath.recommendedTargets(for: BodyMetrics(
                 weightKg: 75, heightCm: 180, age: 30,
                 sex: .male, activityLevel: level, unit: .metric
-            ))?.calories ?? 0
+            ), goalRaw: nil)?.calories ?? 0
         }
         XCTAssertLessThan(target(.sedentary), target(.light))
         XCTAssertLessThan(target(.light),     target(.moderate))
@@ -102,38 +102,52 @@ final class NutritionMathTests: XCTestCase {
 
     /// Returns nil when any input the formula needs is missing — callers
     /// rely on this to render a placeholder rather than zeros.
-    func test_dailyTargets_missingHeight_returnsNil() {
+    func test_maintenanceTargets_missingHeight_returnsNil() {
         let metrics = BodyMetrics(
             weightKg: 75, heightCm: nil, age: 30,
             sex: .male, activityLevel: .moderate, unit: .metric
         )
-        XCTAssertNil(NutritionMath.dailyTargets(for: metrics))
+        XCTAssertNil(NutritionMath.recommendedTargets(for: metrics, goalRaw: nil))
     }
 
-    func test_dailyTargets_missingAge_returnsNil() {
+    func test_maintenanceTargets_missingAge_returnsNil() {
         let metrics = BodyMetrics(
             weightKg: 75, heightCm: 180, age: nil,
             sex: .male, activityLevel: .moderate, unit: .metric
         )
-        XCTAssertNil(NutritionMath.dailyTargets(for: metrics))
+        XCTAssertNil(NutritionMath.recommendedTargets(for: metrics, goalRaw: nil))
     }
 
     /// Reducing weight by 10 kg should reduce both calories and protein —
     /// quick sanity check that the inputs flow through the pipeline.
-    func test_dailyTargets_lowerWeight_reducesCaloriesAndProtein() {
-        let heavier = NutritionMath.dailyTargets(for: BodyMetrics(
+    func test_maintenanceTargets_lowerWeight_reducesCaloriesAndProtein() {
+        let heavier = NutritionMath.recommendedTargets(for: BodyMetrics(
             weightKg: 80, heightCm: 180, age: 30,
             sex: .male, activityLevel: .moderate, unit: .metric
-        ))
-        let lighter = NutritionMath.dailyTargets(for: BodyMetrics(
+        ), goalRaw: nil)
+        let lighter = NutritionMath.recommendedTargets(for: BodyMetrics(
             weightKg: 70, heightCm: 180, age: 30,
             sex: .male, activityLevel: .moderate, unit: .metric
-        ))
+        ), goalRaw: nil)
 
         XCTAssertNotNil(heavier)
         XCTAssertNotNil(lighter)
         XCTAssertGreaterThan(heavier!.calories, lighter!.calories)
         XCTAssertGreaterThan(heavier!.proteinG, lighter!.proteinG)
+    }
+
+    /// Onboarding saves these targets, so a fat-loss goal must land below
+    /// maintenance and a muscle goal above it.
+    func test_recommendedTargets_goal_shiftsCaloriesFromMaintenance() {
+        let metrics = BodyMetrics(
+            weightKg: 75, heightCm: 180, age: 30,
+            sex: .male, activityLevel: .moderate, unit: .metric
+        )
+        let maintenance = NutritionMath.recommendedTargets(for: metrics, goalRaw: nil)?.calories ?? 0
+        let cut = NutritionMath.recommendedTargets(for: metrics, goalRaw: "loseFat")?.calories ?? 0
+        let bulk = NutritionMath.recommendedTargets(for: metrics, goalRaw: "buildMuscle")?.calories ?? 0
+        XCTAssertLessThan(cut, maintenance)
+        XCTAssertGreaterThan(bulk, maintenance)
     }
 
     // MARK: - Calorie safety floor

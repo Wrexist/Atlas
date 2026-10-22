@@ -18,7 +18,7 @@ struct DoseEntry: TimelineEntry {
     var isOutdated = false
 
     var hasProtocol: Bool { total > 0 }
-    var allDone: Bool { hasProtocol && dose.isEmpty }
+    var allDone: Bool { hasProtocol && peptideName.isEmpty }
     /// The next dose's time has passed without it being logged.
     var isOverdue: Bool { nextDoseDate.map { date >= $0 } ?? false }
 
@@ -194,11 +194,13 @@ private struct SmallProtocolView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                     .privacySensitive()
-                Text(entry.dose)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .privacySensitive()
+                if !entry.dose.isEmpty {
+                    Text(entry.dose)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .privacySensitive()
+                }
                 if let due = entry.nextDoseDate {
                     Text(due, style: .time)
                         .font(.caption.weight(.semibold).monospacedDigit())
@@ -290,10 +292,12 @@ private struct DoseRow: View {
                 .foregroundStyle(slot.completed ? .secondary : .primary)
                 .strikethrough(slot.completed, color: .secondary)
                 .privacySensitive()
-            Text(slot.dose)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .privacySensitive()
+            if !slot.dose.isEmpty {
+                Text(slot.dose)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .privacySensitive()
+            }
             Spacer(minLength: 4)
             Text(slot.time, style: .time)
                 .font(.caption2.monospacedDigit())
@@ -359,7 +363,9 @@ private struct RectangularProtocolView: View {
                     .font(.headline)
                     .privacySensitive()
                 if let due = entry.nextDoseDate {
-                    Text("\(entry.dose) · \(Text(due, style: .time))")
+                    (entry.dose.isEmpty
+                        ? Text(due, style: .time)
+                        : Text("\(entry.dose) · \(Text(due, style: .time))"))
                         .font(.caption)
                         .privacySensitive()
                 }

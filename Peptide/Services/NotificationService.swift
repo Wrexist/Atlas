@@ -611,8 +611,8 @@ final class NotificationService {
                 localized: "Time for \(peptide.abbreviation)",
                 comment: "Dose reminder title — value is the compound's abbreviation."
             )
-            let dose = proto.schedule(for: peptide.id).resolvedDose(for: peptide)
-            content.body = "\(peptide.name) \u{2022} \(dose)"
+            let dose = proto.schedule(for: peptide.id).resolvedDose
+            content.body = dose.isEmpty ? peptide.name : "\(peptide.name) \u{2022} \(dose)"
         } else {
             let names = peptides.map(\.abbreviation).joined(separator: ", ")
             content.title = proto.name

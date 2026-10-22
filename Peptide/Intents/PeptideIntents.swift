@@ -42,6 +42,14 @@ struct NextDoseIntent: AppIntent {
             let time = date.formatted(date: .omitted, time: .shortened)
             let interval = date.timeIntervalSinceNow
             if interval <= -60 {
+                if dose.isEmpty {
+                    return .result(dialog: IntentDialog(
+                        LocalizedStringResource(
+                            "\(name) was due at \(time) and isn't logged yet.",
+                            comment: "Siri readout when the next dose is overdue and has no set amount."
+                        )
+                    ))
+                }
                 return .result(dialog: IntentDialog(
                     LocalizedStringResource(
                         "\(name) \(dose) was due at \(time) and isn't logged yet.",
@@ -52,6 +60,14 @@ struct NextDoseIntent: AppIntent {
             let relative = interval < 60
                 ? String(localized: "now")
                 : Self.relativeFormatter.localizedString(for: date, relativeTo: Date())
+            if dose.isEmpty {
+                return .result(dialog: IntentDialog(
+                    LocalizedStringResource(
+                        "Next up: \(name) at \(time), \(relative).",
+                        comment: "Siri readout of the next scheduled dose when it has no set amount."
+                    )
+                ))
+            }
             return .result(dialog: IntentDialog(
                 LocalizedStringResource(
                     "Next up: \(name), \(dose), at \(time), \(relative).",
@@ -158,6 +174,14 @@ struct LogDoseIntent: AppIntent {
             ))
         case .logged(let date, let dose):
             let time = date.formatted(date: .omitted, time: .shortened)
+            if dose.isEmpty {
+                return .result(dialog: IntentDialog(
+                    LocalizedStringResource(
+                        "Logged \(chosenName) at \(time).",
+                        comment: "Siri confirmation after marking a dose with no set amount complete."
+                    )
+                ))
+            }
             return .result(dialog: IntentDialog(
                 LocalizedStringResource(
                     "Logged \(chosenName) \(dose) at \(time).",

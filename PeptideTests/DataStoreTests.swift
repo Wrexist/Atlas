@@ -73,6 +73,51 @@ final class DataStoreTests: XCTestCase {
         XCTAssertEqual(updated?.status, .paused)
     }
 
+    func test_restartProtocol_completedCycle_resetsStartDateAndActivates() {
+        for other in store.protocols {
+            store.updateProtocolStatus(id: other.id, to: .paused)
+        }
+        let finished = PeptideProtocol(
+            id: UUID(),
+            name: "Finished Protocol",
+            peptides: [],
+            schedule: ProtocolSchedule(daysOfWeek: [1, 3, 5], timesPerDay: 1, preferredTimes: ["8:00 AM"]),
+            cycleLengthWeeks: 4,
+            startDate: Calendar.current.date(byAdding: .weekOfYear, value: -12, to: Date())!,
+            status: .completed,
+            notes: ""
+        )
+        store.addProtocol(finished)
+
+        XCTAssertTrue(store.restartProtocol(id: finished.id))
+        let updated = store.protocols.first { $0.id == finished.id }
+        XCTAssertEqual(updated?.status, .active)
+        XCTAssertEqual(updated?.startDate, Calendar.current.startOfDay(for: Date()))
+    }
+
+    func test_restartProtocol_activeProtocolAtFreeCap_restartsCycle() throws {
+        try XCTSkipIf(StoreService.shared.isProUser, "Free-tier cap only applies without Pro")
+        let protos = (0..<4).map { index in
+            PeptideProtocol(
+                id: UUID(),
+                name: "Active \(index)",
+                peptides: [],
+                schedule: ProtocolSchedule(daysOfWeek: [1, 3, 5], timesPerDay: 1, preferredTimes: ["8:00 AM"]),
+                cycleLengthWeeks: 4,
+                startDate: Calendar.current.date(byAdding: .weekOfYear, value: -5, to: Date())!,
+                status: .active,
+                notes: ""
+            )
+        }
+        protos.forEach(store.addProtocol)
+        let ended = protos[0]
+
+        XCTAssertTrue(store.restartProtocol(id: ended.id),
+                      "Restarting an already-active protocol doesn't raise the active count")
+        let updated = store.protocols.first { $0.id == ended.id }
+        XCTAssertEqual(updated?.startDate, Calendar.current.startOfDay(for: Date()))
+    }
+
     // MARK: - Entry Management
 
     func test_toggleEntry_flipsCompletionState() {
