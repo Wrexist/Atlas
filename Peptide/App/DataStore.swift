@@ -2794,9 +2794,12 @@ final class DataStore {
         protocolsNeedSave = false
         entriesNeedSave = false
         regenerateTodayEntries()
-        // Routines from another device (or the new iCloud account) would
-        // otherwise show only once the routine list is next opened.
+        // Routines and fasts from another device (or the new iCloud
+        // account) would otherwise show only once their screen next
+        // appears — a fast started or ended elsewhere would leave the
+        // Meals card, and its end-of-fast reminder, stale.
         RoutineStore.shared.load()
+        FastingStore.shared.load()
         // CloudKit-driven pulls land here; without these the lock-
         // screen widget and the Watch tab would stay stale until the
         // next user mutation or the widget's 15-min auto-timer.
