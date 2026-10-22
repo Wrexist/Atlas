@@ -25,7 +25,7 @@ struct WorkoutLiveActivity: Widget {
                 state: context.state,
                 isIdle: context.state.isIdle(isStale: context.isStale)
             )
-            .widgetURL(WorkoutActivityStyle.deepLink)
+            .widgetURL(WidgetDeepLink.train)
         } dynamicIsland: { context in
             buildDynamicIsland(context: context)
         }
@@ -96,7 +96,7 @@ struct WorkoutLiveActivity: Widget {
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(accent)
         }
-        .widgetURL(WorkoutActivityStyle.deepLink)
+        .widgetURL(WidgetDeepLink.train)
         .keylineTint(accent)
     }
 }
@@ -107,10 +107,6 @@ struct WorkoutLiveActivity: Widget {
 /// can't be handled in four views and missed in a fifth.
 @available(iOS 16.1, *)
 private enum WorkoutActivityStyle {
-    /// The Train tab, where the active workout already lives. Routed by
-    /// `DeepLinkRouter`.
-    static let deepLink = URL(string: "peptidex://train")
-
     /// `Text(timerInterval:)` traps on a range whose bounds are
     /// inverted. `status()` samples the clock a hair before this does,
     /// so a rest expiring in that gap would otherwise crash the

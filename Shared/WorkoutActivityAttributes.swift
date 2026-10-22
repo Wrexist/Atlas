@@ -20,8 +20,6 @@ import ActivityKit
 /// mean a second source of truth for one countdown.
 @available(iOS 16.1, *)
 struct WorkoutActivityAttributes: ActivityAttributes {
-    public typealias WorkoutStatus = ContentState
-
     public struct ContentState: Codable, Hashable {
         /// Display name, or "" for an unnamed workout — the widget
         /// falls back to "Workout" rather than rendering a blank line.

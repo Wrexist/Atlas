@@ -16,8 +16,6 @@ import ActivityKit
 /// countdown and ring without the app having to push every second.
 @available(iOS 16.1, *)
 struct DoseWindowAttributes: ActivityAttributes {
-    public typealias DoseWindowStatus = ContentState
-
     public struct ContentState: Codable, Hashable {
         /// Wall-clock time the dose was scheduled for. The widget
         /// renders `Text(timerInterval:)` and the ring against this
