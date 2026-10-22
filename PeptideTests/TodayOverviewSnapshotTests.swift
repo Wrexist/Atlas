@@ -36,6 +36,27 @@ final class TodayOverviewSnapshotTests: XCTestCase {
         XCTAssertTrue(snapshot.hasAnySignal)
     }
 
+    // MARK: - Meal streak on a past day
+
+    func test_build_pastDay_mealStreakIgnoresLaterLogs() {
+        let store = DataStore(seedSampleData: false)
+        let calendar = Calendar.current
+        let now = Date()
+        let today = calendar.startOfDay(for: now)
+        for daysAgo in [0, 1, 2] {
+            let date = calendar.date(byAdding: .day, value: -daysAgo, to: today)!.addingTimeInterval(12 * 3600)
+            store.logMealEntry(
+                MealEntry(date: date, category: .lunch, name: "Lunch",
+                          calories: 400, proteinG: 30, carbsG: 40, fatG: 10,
+                          source: .custom)
+            )
+        }
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: now)!
+
+        XCTAssertEqual(TodayOverviewSnapshot.build(from: store, now: now).mealStreak, 3)
+        XCTAssertEqual(TodayOverviewSnapshot.build(from: store, now: yesterday).mealStreak, 2)
+    }
+
     // MARK: - Check-in
 
     func test_build_withTodayOutcome_populatesCompositeScore() throws {

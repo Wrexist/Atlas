@@ -151,4 +151,33 @@ final class TodayDayEngineTests: XCTestCase {
         XCTAssertEqual(onYesterday.dueCount, 1)
         XCTAssertEqual(onToday.doneCount, 0)
     }
+
+    func test_habitsSnapshot_pastMissedDay_breaksStreak() {
+        let habit = Habit(
+            id: UUID(),
+            name: "Walk",
+            iconSymbol: "figure.walk",
+            tintHex: 0x5BC489,
+            schedule: .daily,
+            targetValue: nil
+        )
+        let missedDay = calendar.startOfDay(for: wednesday(12))
+        let tuesday = calendar.date(byAdding: .day, value: -1, to: missedDay)!
+        let monday = calendar.date(byAdding: .day, value: -2, to: missedDay)!
+        let thursday = calendar.date(byAdding: .day, value: 1, to: missedDay)!
+        let entries = [
+            HabitEntry(habitId: habit.id, date: monday),
+            HabitEntry(habitId: habit.id, date: tuesday),
+        ]
+
+        let browsed = HabitsHeroSnapshot.build(
+            activeHabits: [habit], entries: entries, on: missedDay, now: thursday, calendar: calendar
+        )
+        let live = HabitsHeroSnapshot.build(
+            activeHabits: [habit], entries: entries, on: missedDay, now: wednesday(9), calendar: calendar
+        )
+
+        XCTAssertEqual(browsed.bestCurrentStreak, 0)
+        XCTAssertEqual(live.bestCurrentStreak, 2)
+    }
 }

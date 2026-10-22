@@ -128,8 +128,8 @@ extension TodayOverviewSnapshot {
     /// the bottom-insight selection on the spot so the card's
     /// render is just a flat layout pass.
     ///
-    /// `now` picks the day the calorie, water and check-in tiles
-    /// read, so a browsed past day shows its own totals. The insight
+    /// `now` picks the day the calorie, water, check-in and meal-streak
+    /// tiles read, so a browsed past day shows its own totals. The insight
     /// is about the present, so `includesInsight: false` drops it.
     @MainActor
     static func build(
@@ -141,11 +141,14 @@ extension TodayOverviewSnapshot {
         let targets = dataStore.profile.nutritionTargets
 
         let lab = latestLab(in: dataStore, now: now)
+        let mealStreak = Calendar.current.isDateInToday(now)
+            ? dataStore.mealLoggingStreak
+            : LifestyleDataLogic.mealLoggingStreak(in: dataStore.profile, asOf: now)
         let bottom = includesInsight
             ? pickBottomInsight(
                 engineInsight: dataStore.topInsight,
                 latestLab: lab,
-                mealStreak: dataStore.mealLoggingStreak,
+                mealStreak: mealStreak,
                 hasTarget: targets != nil
             )
             : nil
@@ -154,7 +157,7 @@ extension TodayOverviewSnapshot {
             caloriesToday: consumption.caloriesKcal,
             calorieTarget: targets?.calories,
             waterToday: consumption.waterOz,
-            mealStreak: dataStore.mealLoggingStreak,
+            mealStreak: mealStreak,
             checkInScore: dataStore.outcome(for: now)?.composite,
             latestLab: lab,
             bottomInsight: bottom

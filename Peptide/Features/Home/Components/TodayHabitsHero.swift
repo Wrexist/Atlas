@@ -29,13 +29,16 @@ struct HabitsHeroSnapshot: Equatable {
 
     /// `day` scopes completion, due-ness, streaks and the weekly count, so
     /// Today can show how a past day stood when the user browses back.
+    /// Only `now`'s day may still be missing without breaking a streak.
     static func build(
         activeHabits: [Habit],
         entries: [HabitEntry],
         frozenDayKeys: Set<String> = [],
         on day: Date = Date(),
+        now: Date = Date(),
         calendar: Calendar = .current
     ) -> HabitsHeroSnapshot {
+        let isLiveDay = calendar.isDate(day, inSameDayAs: now)
         var items: [Item] = []
         var due = 0
         var done = 0
@@ -46,6 +49,7 @@ struct HabitsHeroSnapshot: Equatable {
                 entries: entries,
                 frozenDayKeys: frozenDayKeys,
                 on: day,
+                allowsMissingDay: isLiveDay,
                 calendar: calendar
             )
             let weekly = HabitsService.weeklyProgress(for: habit, entries: entries, on: day, calendar: calendar)

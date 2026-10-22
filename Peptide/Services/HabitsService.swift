@@ -33,6 +33,7 @@ enum HabitsService {
         entries: [HabitEntry],
         frozenDayKeys: Set<String> = [],
         on date: Date = Date(),
+        allowsMissingDay: Bool = true,
         calendar: Calendar = .current
     ) -> Summary {
         let habitEntries = entries
@@ -56,7 +57,14 @@ enum HabitsService {
 
         return Summary(
             habitId: habit.id,
-            currentStreak: currentStreak(for: habit, entries: habitEntries, frozenDayKeys: frozenDayKeys, on: today, calendar: calendar),
+            currentStreak: currentStreak(
+                for: habit,
+                entries: habitEntries,
+                frozenDayKeys: frozenDayKeys,
+                on: today,
+                allowsMissingDay: allowsMissingDay,
+                calendar: calendar
+            ),
             bestStreak: bestStreak(for: habit, entries: habitEntries, frozenDayKeys: frozenDayKeys, calendar: calendar),
             totalCompletedDays: completedDays(habit: habit, entries: habitEntries).count,
             isDueToday: habit.schedule.isDue(on: today, calendar: calendar),
@@ -153,6 +161,7 @@ enum HabitsService {
         entries: [HabitEntry],
         frozenDayKeys: Set<String>,
         on today: Date,
+        allowsMissingDay: Bool,
         calendar: Calendar
     ) -> Int {
         let completedDays = Set(
@@ -182,10 +191,11 @@ enum HabitsService {
                     // A used streak-freeze shields this missed due day — it
                     // counts as covered, matching the dose-streak behavior.
                     streak += 1
-                } else if !calendar.isDate(cursor, inSameDayAs: today) {
+                } else if !allowsMissingDay || !calendar.isDate(cursor, inSameDayAs: today) {
                     // Today is allowed to be missing without breaking — a
                     // user opening the app at 09:00 hasn't necessarily
-                    // logged their daily habit yet.
+                    // logged their daily habit yet. A finished past day
+                    // gets no such grace.
                     break
                 }
             }
