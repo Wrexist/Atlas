@@ -157,7 +157,7 @@ struct ProtocolDetailView: View {
 
                         scheduleDetailRow(
                             label: "Cycle",
-                            value: "\(formattedDate(liveProtocol.startDate)) – \(formattedDate(liveProtocol.endDate))"
+                            value: "\(formattedDate(liveProtocol.currentCycleStartDay)) – \(formattedDate(liveProtocol.endDate))"
                         )
                     }
                 }

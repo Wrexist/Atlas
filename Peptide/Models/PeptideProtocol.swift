@@ -287,7 +287,7 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
 
     /// Start of day of the current on-phase. Only wash-out protocols
     /// repeat; a single-cycle protocol always measures from `startDate`.
-    private var currentCycleStartDay: Date {
+    var currentCycleStartDay: Date {
         let cal = Calendar.current
         let dayStart = cal.startOfDay(for: startDate)
         guard washoutWeeks > 0 else { return dayStart }
