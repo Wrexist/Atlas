@@ -286,11 +286,11 @@ final class AuthService {
             // Same watchdog as `signIn()`: Apple's auth daemon can hang, and
             // without it the deletion card waits on "Deleting…" forever. A
             // timeout reads as `.unavailable`, so the erase still runs and
-            // the user is told to revoke manually. `finish` resolves once,
-            // so a late callback (or this, after one) can't resume twice.
+            // the user is told to revoke manually. `cancel` also dismisses
+            // Apple's sheet so nobody finishes a sign-in that is ignored.
             Task { @MainActor in
                 try? await Task.sleep(for: Self.signInTimeout)
-                coordinator.finish(.failure(ASAuthorizationError(.failed)))
+                coordinator.cancel()
             }
         }
     }
@@ -560,7 +560,16 @@ private final class AppleSignInCoordinator: NSObject {
         controller.performRequests()
     }
 
-    fileprivate func finish(_ result: Result<ASAuthorization, Error>) {
+    /// Resolves as `.failed` and dismisses Apple's sheet. `finish` resolves
+    /// once, so the controller's own cancel callback afterwards is a no-op,
+    /// and so is this after a real callback.
+    func cancel() {
+        let controller = self.controller
+        finish(.failure(ASAuthorizationError(.failed)))
+        controller?.cancel()
+    }
+
+    private func finish(_ result: Result<ASAuthorization, Error>) {
         guard !hasFinished else { return }
         hasFinished = true
         controller = nil
