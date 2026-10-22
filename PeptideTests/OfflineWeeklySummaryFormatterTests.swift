@@ -5,6 +5,7 @@ final class OfflineWeeklySummaryFormatterTests: XCTestCase {
 
     private func aggregate(
         pct: Double = 0.8,
+        total: Int = 10,
         outcomes: WeeklyAggregate.Outcomes? = nil,
         nutrition: WeeklyAggregate.Nutrition? = nil,
         hrvDelta: Int? = nil,
@@ -13,8 +14,8 @@ final class OfflineWeeklySummaryFormatterTests: XCTestCase {
         WeeklyAggregate(
             weekStart: "2026-01-05",
             compliance: .init(
-                completed: Int((pct * 10).rounded()),
-                total: 10,
+                completed: Int((pct * Double(total)).rounded()),
+                total: total,
                 pct: pct,
                 bestDayPct: 1,
                 activeDaysCount: 5
@@ -60,6 +61,18 @@ final class OfflineWeeklySummaryFormatterTests: XCTestCase {
         let text = summary(aggregate(pct: 0.39))
         XCTAssertTrue(text.hasPrefix("Quiet week"))
         XCTAssertTrue(text.contains("Start with one dose tomorrow"))
+    }
+
+    func test_summary_noDosesScheduled_doesNotMentionDoses() {
+        let text = summary(aggregate(pct: 0, total: 0, nutrition: nutrition(avgCalories: 2000)))
+        XCTAssertFalse(text.lowercased().contains("dose"))
+        XCTAssertTrue(text.hasPrefix("Your week in review — meals logged on 5 of 7 days."))
+    }
+
+    func test_summary_noDosesAndNoSignals_usesNeutralOpener() {
+        let text = summary(aggregate(pct: 0, total: 0))
+        XCTAssertFalse(text.lowercased().contains("dose"))
+        XCTAssertTrue(text.hasPrefix("Your week in review."))
     }
 
     // MARK: - Observations
