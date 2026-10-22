@@ -10,8 +10,9 @@
  *
  * Assertion (per proxied request, via `checkAppAttest`):
  *   ECDSA signature over SHA256(authenticatorData ‖ clientDataHash)
- *   with the stored key, RP ID check, strictly-increasing counter
- *   (replay protection without a per-request server challenge).
+ *   with the stored key, RP ID check, and a counter that must be new
+ *   for this key (replay protection without a per-request server
+ *   challenge — see `claimCounter`).
  *   clientData is a client-generated blob carried in a header — the
  *   assertion authenticates the *caller*, not the request payload.
  *
@@ -197,7 +198,8 @@ export function verifyAttestation({
 
 /**
  * Verifies a per-request assertion against a stored public key.
- * Returns `{ counter }` (caller persists it) or throws.
+ * `previousCounter` is the floor recorded at registration. Returns
+ * `{ counter }` (caller claims it with `claimCounter`) or throws.
  */
 export function verifyAssertion({ assertion, publicKeyPem, clientDataHash, appId, previousCounter }) {
   const decoded = decodeCBOR(assertion);
@@ -237,18 +239,34 @@ export async function loadAttestKey(keyIdB64) {
   }
 }
 
-// Read-modify-write without a transaction: two truly concurrent
-// requests can both pass the counter check before either write
-// lands. The window is one in-flight request per key; counters still
-// only move forward, so a captured assertion stops replaying the
-// moment any newer one is seen. Accepted.
-async function persistCounter(keyIdB64, record, counter) {
-  await redisPipeline([['SET', keySlot(keyIdB64), JSON.stringify({ ...record, counter })]]);
-}
-
 // MARK: Per-request gate
 
 const CLIENT_DATA_MAX_AGE_MS = 5 * 60 * 1000;
+// Outlives any assertion's acceptance window: client data may be
+// stamped up to the max age either side of now, so an assertion stays
+// acceptable for at most twice that after it is first seen.
+const SEEN_COUNTER_TTL_SECONDS = (2 * CLIENT_DATA_MAX_AGE_MS) / 1000;
+
+/**
+ * Atomically marks `counter` as used for this key; false when it
+ * already was (a replay) or Redis couldn't record it.
+ *
+ * Apple's "strictly greater than the stored counter" rule assumes
+ * requests arrive in the order the device signed them. They don't: a
+ * food scan and the weekly summary in flight together send counters n
+ * and n+1 on separate connections, and if n+1 lands first, n was
+ * rejected — a 401 under enforce. Single use is what replay protection
+ * needs, and the signed client-data timestamp already refuses any
+ * assertion older than the max age, so a used counter only has to be
+ * remembered that long. SET NX makes the claim atomic, where the old
+ * read-modify-write could also roll the stored counter back.
+ */
+async function claimCounter(keyIdB64, counter) {
+  const results = await redisPipeline([
+    ['SET', `attest:seen:${keyIdB64}:${counter}`, '1', 'NX', 'EX', String(SEEN_COUNTER_TTL_SECONDS)],
+  ]);
+  return results?.[0]?.result === 'OK';
+}
 
 function attestMode() {
   const mode = (process.env.APP_ATTEST_MODE || 'report').toLowerCase();
@@ -300,8 +318,8 @@ export async function checkAppAttest(req, { logLabel }) {
 
   const clientData = Buffer.from(String(clientDataB64), 'base64');
   // clientData = 16 random bytes ‖ uint64BE millisecond timestamp.
-  // The staleness bound is a cheap sanity check; real replay
-  // protection is the strictly-increasing counter below.
+  // The staleness bound caps how long a captured assertion stays
+  // usable; `claimCounter` makes it single-use within that window.
   if (clientData.length !== 24) return deny('bad client data');
   const stampedAt = Number(clientData.readBigUInt64BE(16));
   if (Math.abs(Date.now() - stampedAt) > CLIENT_DATA_MAX_AGE_MS) return deny('stale client data');
@@ -320,7 +338,7 @@ export async function checkAppAttest(req, { logLabel }) {
       appId,
       previousCounter: record.counter ?? 0,
     });
-    await persistCounter(String(keyIdB64), record, counter);
+    if (!(await claimCounter(String(keyIdB64), counter))) return deny('assertion counter replayed');
     if (!enforce) console.log(`[${logLabel}] app-attest ok (counter ${counter})`);
     return { ok: true, keyId: String(keyIdB64) };
   } catch (err) {

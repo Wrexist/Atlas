@@ -59,6 +59,16 @@ final class PendingDoseLogStoreTests: XCTestCase {
         _ = PendingDoseLogStore.peek(defaults: defaults)
         XCTAssertEqual(PendingDoseLogStore.peek(defaults: defaults).count, 1)
     }
+
+    func test_drain_legacyArrayInbox_stillDeliversQueuedTaps() throws {
+        let legacy = PendingDoseLogStore.PendingLog(entryId: UUID(), loggedAt: Date(timeIntervalSince1970: 1000))
+        let current = PendingDoseLogStore.PendingLog(entryId: UUID(), loggedAt: Date(timeIntervalSince1970: 2000))
+        defaults.set(try JSONEncoder().encode([legacy]), forKey: "com.peptidesai.app.pendingDoseLogs")
+        PendingDoseLogStore.enqueue(current, defaults: defaults)
+
+        XCTAssertEqual(PendingDoseLogStore.drain(defaults: defaults), [legacy, current])
+        XCTAssertTrue(PendingDoseLogStore.drain(defaults: defaults).isEmpty)
+    }
 }
 
 @MainActor
@@ -85,7 +95,7 @@ final class PendingDoseLogProcessorTests: XCTestCase {
         XCTAssertEqual(applied, 0)
     }
 
-    func test_drain_togglesMatchingPendingEntry() {
+    func test_drain_matchingPendingEntry_completesAtTapTime() {
         let store = DataStore(seedSampleData: false)
         let entry = ProtocolEntry(
             id: UUID(),
@@ -97,14 +107,17 @@ final class PendingDoseLogProcessorTests: XCTestCase {
             completed: false
         )
         store.entries.append(entry)
+        let tappedAt = Date(timeIntervalSince1970: 1_800_000_000)
 
         PendingDoseLogStore.enqueue(
-            PendingDoseLogStore.PendingLog(entryId: entry.id, loggedAt: Date()),
+            PendingDoseLogStore.PendingLog(entryId: entry.id, loggedAt: tappedAt),
             defaults: defaults
         )
         let applied = PendingDoseLogProcessor.drain(into: store, defaults: defaults)
         XCTAssertEqual(applied, 1)
-        XCTAssertTrue(store.entries.first(where: { $0.id == entry.id })?.completed ?? false)
+        let logged = store.entries.first(where: { $0.id == entry.id })
+        XCTAssertTrue(logged?.completed ?? false)
+        XCTAssertEqual(logged?.actualTime, tappedAt)
     }
 
     func test_drain_skipsAlreadyCompletedEntries() {

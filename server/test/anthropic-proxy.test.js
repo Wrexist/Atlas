@@ -34,6 +34,10 @@ const BASE_ENV = {
   KV_REST_API_TOKEN: undefined,
   ANTHROPIC_DAILY_REQUEST_BUDGET: undefined,
   RATE_LIMIT_RPM: undefined,
+  DEVICE_DAILY_QUOTA: undefined,
+  // The test callers are IPv4 addresses; keep their limits per-device
+  // so each test states the limit it exercises.
+  SHARED_IP_LIMIT_SCALE: '1',
   APP_ATTEST_MODE: 'off',
   APP_ATTEST_APP_ID: undefined,
 };
@@ -182,13 +186,14 @@ test('a large payload spends more quota than a small one', async (t) => {
   setEnv(t, { ...BASE_ENV, DEVICE_DAILY_QUOTA: '5', RATE_LIMIT_RPM: '1000' });
   stubUpstream(t);
 
-  const big = makeReq('9.9.9.3');
-  big.headers['content-length'] = String(1024 * 1024); // 1 MB ⇒ 4 units
-  assert.equal((await forward(big, 'quota-cost-e2e')).statusCode, 200);
+  const photo = { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: 'A'.repeat(1024 * 1024) } };
+  // ~1 MB parsed body ⇒ 4 units, whatever content-length claims.
+  assert.equal((await forward(withContent('9.9.9.3', [photo]), 'quota-cost-e2e')).statusCode, 200);
   // 4 of 5 units spent; a second megabyte would be 8 and must be refused.
-  const second = makeReq('9.9.9.3');
-  second.headers['content-length'] = String(1024 * 1024);
-  assert.equal((await forward(second, 'quota-cost-e2e')).statusCode, 429);
+  const second = await forward(withContent('9.9.9.3', [photo]), 'quota-cost-e2e');
+  assert.equal(second.statusCode, 429);
+  assert.equal(second.body.error.code, 'daily_quota');
+  assert.ok(Number(second.headers['Retry-After']) > 0);
 });
 
 test('quota rejection never reaches Anthropic', async (t) => {
@@ -300,4 +305,52 @@ test('every api route exports a default handler', async () => {
     const mod = await import(`../api/${file}`);
     assert.equal(typeof mod.default, 'function', `${file} must export a default handler`);
   }
+});
+
+test('limit refusals carry a stable code and Retry-After', async (t) => {
+  setEnv(t, { ...BASE_ENV, RATE_LIMIT_RPM: '1' });
+  stubUpstream(t);
+  await forward(makeReq('10.0.10.1'), 'test-codes');
+  const limited = await forward(makeReq('10.0.10.1'), 'test-codes');
+  assert.equal(limited.statusCode, 429);
+  assert.equal(limited.body.error.code, 'rate_limited');
+  assert.equal(limited.headers['Retry-After'], '60');
+});
+
+test('a failed upstream call gives its quota back', async (t) => {
+  setEnv(t, { ...BASE_ENV, DEVICE_DAILY_QUOTA: '1', RATE_LIMIT_RPM: '1000' });
+  const real = globalThis.fetch;
+  let status = 529;
+  globalThis.fetch = async () => new Response('{}', { status });
+  t.after(() => {
+    globalThis.fetch = real;
+  });
+
+  assert.equal((await forward(makeReq('10.0.10.2'), 'test-refund')).statusCode, 502);
+  status = 200;
+  // The outage cost nothing, so the one-unit quota is still there.
+  assert.equal((await forward(makeReq('10.0.10.2'), 'test-refund')).statusCode, 200);
+});
+
+test('a malformed request does not spend the daily quota', async (t) => {
+  setEnv(t, { ...BASE_ENV, DEVICE_DAILY_QUOTA: '1', RATE_LIMIT_RPM: '1000' });
+  stubUpstream(t);
+  const bad = makeReq('10.0.10.3');
+  bad.body = { messages: [] };
+  assert.equal((await forward(bad, 'test-400-quota')).statusCode, 400);
+  assert.equal((await forward(makeReq('10.0.10.3'), 'test-400-quota')).statusCode, 200);
+});
+
+test('a route can allow a longer client system prompt than the default cut', async (t) => {
+  setEnv(t, BASE_ENV);
+  const upstream = stubUpstream(t);
+  const system = 'x'.repeat(10_000);
+
+  const req = makeReq('10.0.10.4');
+  req.body = { system, messages: [{ role: 'user', content: 'hi' }] };
+  await forwardToAnthropic(req, makeRes(), { logLabel: 'test-system', maxClientSystemChars: 12_000 });
+  assert.equal(JSON.parse(upstream[0][1].body).system.length, 10_000);
+
+  await forwardToAnthropic(req, makeRes(), { logLabel: 'test-system' });
+  assert.equal(JSON.parse(upstream[1][1].body).system.length, 4000);
 });

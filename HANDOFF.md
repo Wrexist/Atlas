@@ -60,6 +60,13 @@ Still owed, none of it possible without hardware:
 - **Dose round trip** with the phone reachable and unreachable (the phone
   now acks live messages, so taps should no longer fall back to
   `transferUserInfo`).
+- **Rest-end alert (A301), partly fixed:** the watch no longer buzzes
+  late when it resumes after the rest ended, but it only taps the wrist
+  at rest end while the app is open. With it suspended, the wrist gets
+  the phone's "Time to lift" notification only when the phone is locked.
+  The full fix is a watch-side local notification for `rest.endsAt`
+  (fixed identifier, replaced on skip, extend, pause and finish); check
+  on device that it doesn't double up with the phone's notification.
 - **Sleep Score weights** (duration 60, deep + REM 25, continuity 15) are
   a product call nobody has signed off on yet.
 - **Store screenshots** in `marketing/app-store/screenshots-watch-*` are

@@ -38,7 +38,7 @@ enum AffiliateIntakeService {
         guard let url = destinationURL else { return }
         if alreadyDrained(application) { return }
 
-        guard let body = try? JSONEncoder.iso8601.encode(application) else {
+        guard let body = try? DrainEndpoint.encoder.encode(application) else {
             AppLog.persistence.warning("affiliate intake: encode failed")
             return
         }
@@ -81,15 +81,4 @@ enum AffiliateIntakeService {
         // through the body. A 1s tolerance avoids false re-drains.
         return abs(application.submittedAt.timeIntervalSince(last)) < 1.0
     }
-}
-
-private extension JSONEncoder {
-    /// Shared encoder with ISO 8601 dates — matches the existing
-    /// onboarding-funnel drain so the backend can parse both
-    /// payloads with the same date strategy.
-    static let iso8601: JSONEncoder = {
-        let e = JSONEncoder()
-        e.dateEncodingStrategy = .iso8601
-        return e
-    }()
 }

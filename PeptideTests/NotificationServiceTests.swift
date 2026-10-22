@@ -115,6 +115,19 @@ final class NotificationServiceTests: XCTestCase {
 
     // MARK: - cancelAll
 
+    func test_isOwnedByAnotherScheduler_weeklyRecapAndRestTimer_arePreserved() {
+        XCTAssertTrue(NotificationService.isOwnedByAnotherScheduler(WeeklySummaryNotificationScheduler.identifier))
+        XCTAssertTrue(NotificationService.isOwnedByAnotherScheduler("\(NotificationService.adHocIDPrefix)atlas.workout.rest.x"))
+        XCTAssertTrue(NotificationService.isOwnedByAnotherScheduler(NotificationService.trialReminderID))
+        XCTAssertTrue(NotificationService.isOwnedByAnotherScheduler("\(NotificationService.snoozeIDPrefix)abc"))
+        XCTAssertTrue(NotificationService.isOwnedByAnotherScheduler("\(NotificationService.habitIDPrefix)abc-1"))
+        XCTAssertTrue(NotificationService.isOwnedByAnotherScheduler("\(NotificationService.dailyIDPrefix)meal"))
+    }
+
+    func test_isOwnedByAnotherScheduler_doseReminderID_isNotPreserved() {
+        XCTAssertFalse(NotificationService.isOwnedByAnotherScheduler("\(UUID())-1-8:00 AM"))
+    }
+
     func test_cancelAll_resetsCounters() {
         let proto = makeProtocol(times: ["8:00 AM"], days: [1])
         service.scheduleNotifications(for: [proto])

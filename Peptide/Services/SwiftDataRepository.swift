@@ -67,6 +67,12 @@ final class SwiftDataRepository {
             return
         }
         #endif
+        // Hosted unit tests never open the user's on-disk / CloudKit store.
+        if ProcessInfo.processInfo.isRunningUnitTests {
+            container = Self.makeInMemoryContainer()
+            isInoperable = container == nil
+            return
+        }
         let token = FileManager.default.ubiquityIdentityToken
         lastObservedIdentityToken = token
         let iCloudAvailable = token != nil
