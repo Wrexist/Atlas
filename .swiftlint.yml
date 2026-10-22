@@ -1,5 +1,14 @@
+# Every app-side target. Shared/ is compiled into four of them, so it is
+# the last place to skip. The test targets are not linted yet: they lean on
+# `x!` and `var app: XCUIApplication!`, which the error-level unwrap rules
+# would reject wholesale.
 included:
   - Peptide
+  - Shared
+  - WatchShared
+  - PeptideWatch
+  - PeptideWidgets
+  - PeptideWatchWidgets
 
 excluded:
   - Peptide/Resources

@@ -4,15 +4,12 @@ import XCTest
 @MainActor
 final class HealthKitServiceTests: XCTestCase {
 
-    // HealthKit is unavailable on the simulator, so every accessor must
-    // degrade to "no data" rather than throwing or hanging. These are the
-    // paths the app hits on a device where the user denied the grant, so
-    // the simulator run is real coverage, not a placeholder.
+    // With HealthKit unavailable every accessor must degrade to "no data"
+    // rather than throwing or hanging — the iPad-without-Health path. The
+    // simulator reports HealthKit available, so availability is forced off.
+    private var service: HealthKitService { HealthKitService(availability: { false }) }
 
     func test_accessors_whenHealthKitUnavailable_returnNoData() async {
-        let service = HealthKitService.shared
-        guard !service.isAvailable else { return }
-
         let hrv = await service.averageHRV(days: 7)
         let rhr = await service.averageRestingHeartRate(days: 7)
         let steps = await service.averageSteps(days: 7)
@@ -25,9 +22,6 @@ final class HealthKitServiceTests: XCTestCase {
     }
 
     func test_dailySeries_whenHealthKitUnavailable_areEmpty() async {
-        let service = HealthKitService.shared
-        guard !service.isAvailable else { return }
-
         let hrv = await service.dailyHRV(days: 30)
         let rhr = await service.dailyRestingHeartRate(days: 30)
         let sleep = await service.dailySleepHours(days: 30)
@@ -38,9 +32,6 @@ final class HealthKitServiceTests: XCTestCase {
     }
 
     func test_authorization_whenHealthKitUnavailable_isDenied() async {
-        let service = HealthKitService.shared
-        guard !service.isAvailable else { return }
-
         let read = await service.requestAuthorization()
         let write = await service.requestNutritionWriteAuthorization()
 

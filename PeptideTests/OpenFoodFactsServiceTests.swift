@@ -332,10 +332,15 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         let result = try await service.fetch(barcode: "5449000000996")
         XCTAssertEqual(result.name, "Stale Cola", "Foreground call must return the stale cached entry instantly")
 
-        // Wait for the background refresh task to flush.
-        try await Task.sleep(for: .milliseconds(800))
+        // Poll for the background refresh rather than sleeping a fixed
+        // time — a shared CI runner can blow well past any fixed budget.
+        let deadline = Date().addingTimeInterval(10)
+        var refreshed = await cache.read(barcode: "5449000000996")
+        while refreshed?.name != "Coca-Cola", Date() < deadline {
+            try await Task.sleep(for: .milliseconds(50))
+            refreshed = await cache.read(barcode: "5449000000996")
+        }
         XCTAssertEqual(callCount.value, 1, "Stale hit should trigger exactly one background refresh")
-        let refreshed = await cache.read(barcode: "5449000000996")
         XCTAssertEqual(refreshed?.name, "Coca-Cola", "Background refresh must overwrite the cached entry")
     }
 
