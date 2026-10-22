@@ -67,8 +67,8 @@ final class TodayOverviewSnapshotTests: XCTestCase {
     func test_build_pastDay_readsThatDaysWaterAndCheckIn() throws {
         let store = DataStore(seedSampleData: false)
         let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
-        store.logWater(oz: 24, date: yesterday)
-        store.logWater(oz: 40)
+        store.logWater(fluidOunces: 24, date: yesterday)
+        store.logWater(fluidOunces: 40)
         store.logOutcome(
             OutcomeEntry(date: yesterday, energy: 2, sleepQuality: 2, recovery: 2, mood: 2, focus: 2)
         )
