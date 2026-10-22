@@ -123,9 +123,38 @@ final class OnDeviceSummaryTests: XCTestCase {
     // MARK: - Validation
 
     func test_numbers_normalizesGroupingAndDecimals() {
-        XCTAssertEqual(OnDeviceSummaryEngine.numbers(in: "6,720 kg in 42 min, 5.2 h."), ["6720", "42", "52"])
+        XCTAssertEqual(OnDeviceSummaryEngine.numbers(in: "6,720 kg in 42 min, 5.2 h."), ["6720", "42", "5.2"])
         XCTAssertEqual(OnDeviceSummaryEngine.numbers(in: "Sets: 15, reps 10."), ["15", "10"])
         XCTAssertTrue(OnDeviceSummaryEngine.numbers(in: "No digits here").isEmpty)
+    }
+
+    func test_numbers_localeGroupingAndDecimalComma_keepValue() {
+        XCTAssertEqual(OnDeviceSummaryEngine.numbers(in: "12 400 kg"), ["12400"])
+        XCTAssertEqual(OnDeviceSummaryEngine.numbers(in: "12\u{00A0}400 kg"), ["12400"])
+        XCTAssertEqual(OnDeviceSummaryEngine.numbers(in: "12.400 kg"), ["12400"])
+        XCTAssertEqual(OnDeviceSummaryEngine.numbers(in: "1,234.5 kg"), ["1234.5"])
+        XCTAssertEqual(OnDeviceSummaryEngine.numbers(in: "5,2 h"), ["5.2"])
+        XCTAssertEqual(OnDeviceSummaryEngine.numbers(in: "5.0 h"), ["5"])
+        XCTAssertEqual(OnDeviceSummaryEngine.numbers(in: "3 sets of 10 reps"), ["3", "10"])
+    }
+
+    func test_decimalFact_summaryDroppingDecimal_isRejected() throws {
+        let facts = try coachingFacts()
+        XCTAssertNil(OnDeviceSummaryEngine.accept("You slept 52 hours, so keep today light.", for: facts))
+    }
+
+    func test_decimalFact_correctlyQuotedDecimal_isAccepted() throws {
+        let facts = try coachingFacts()
+        XCTAssertNotNil(OnDeviceSummaryEngine.accept("You slept 5.2 hours, so keep today light.", for: facts))
+        XCTAssertNotNil(OnDeviceSummaryEngine.accept("You slept 5,2 hours, so keep today light.", for: facts))
+    }
+
+    func test_groupedVolumeFact_summaryShiftingGrouping_isRejected() {
+        let facts = OnDeviceSummaryEngine.Facts(kind: .workout, day: "2026-1-1",
+                                                statements: ["Total volume lifted: 12,400 kg"], fallback: nil)
+        XCTAssertNotNil(OnDeviceSummaryEngine.accept("You moved 12 400 kg today.", for: facts))
+        XCTAssertNil(OnDeviceSummaryEngine.accept("You moved 12.4 kg today.", for: facts))
+        XCTAssertNil(OnDeviceSummaryEngine.accept("You moved 124 kg today.", for: facts))
     }
 
     func test_accept_restatedNumbers_isAccepted() throws {

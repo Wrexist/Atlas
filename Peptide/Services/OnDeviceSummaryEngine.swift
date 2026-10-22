@@ -123,31 +123,63 @@ enum OnDeviceSummaryEngine {
     static func accept(_ output: String, for facts: Facts) -> String? {
         let text = output.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, text.count <= maxLength else { return nil }
-        let allowed = numbers(in: facts.statements.joined(separator: " "))
+        let allowed = facts.statements.reduce(into: Set<String>()) { $0.formUnion(numbers(in: $1)) }
         guard numbers(in: text).isSubset(of: allowed) else { return nil }
         return text
     }
 
-    /// Each number in `text`, reduced to its digits so "6,720" and "6720"
-    /// compare equal. A `.` or `,` only joins digits on both sides.
+    /// Each number in `text` as a canonical value, so "12,400", "12 400" and
+    /// "12400" compare equal while "5.2" and "5,2" stay distinct from "52".
+    ///
+    /// Facts carry integers grouped by the locale's `formatted()` (",", "." or
+    /// a no-break space) and one-decimal values from `%.1f`. A separator
+    /// followed by exactly three digits is therefore grouping; any other
+    /// `.` or `,` is the decimal point. A space only ever groups.
     static func numbers(in text: String) -> Set<String> {
+        let characters = Array(text)
         var found = Set<String>()
-        var current = ""
-        var pendingSeparator = false
-        for character in text {
-            if character.isNumber {
-                current.append(character)
-                pendingSeparator = false
-            } else if (character == "." || character == ","), !current.isEmpty, !pendingSeparator {
-                pendingSeparator = true
-            } else {
-                if !current.isEmpty { found.insert(current) }
-                current = ""
-                pendingSeparator = false
+        var index = 0
+        while index < characters.count {
+            guard characters[index].isNumber else {
+                index += 1
+                continue
             }
+            var groups = [digitRun(in: characters, from: &index)]
+            var marks: [Character] = []
+            while index + 1 < characters.count, characters[index + 1].isNumber,
+                  decimalMarks.contains(characters[index]) || groupingSpaces.contains(characters[index]) {
+                let mark = characters[index]
+                var next = index + 1
+                let group = digitRun(in: characters, from: &next)
+                if groupingSpaces.contains(mark), group.count != 3 { break }
+                marks.append(mark)
+                groups.append(group)
+                index = next
+            }
+            found.insert(canonicalNumber(groups: groups, marks: marks))
         }
-        if !current.isEmpty { found.insert(current) }
         return found
+    }
+
+    private static let decimalMarks: Set<Character> = [".", ","]
+    private static let groupingSpaces: Set<Character> = [" ", "\u{00A0}", "\u{202F}"]
+
+    private static func digitRun(in characters: [Character], from index: inout Int) -> String {
+        var run = ""
+        while index < characters.count, characters[index].isNumber {
+            run.append(characters[index])
+            index += 1
+        }
+        return run
+    }
+
+    private static func canonicalNumber(groups: [String], marks: [Character]) -> String {
+        guard let last = marks.last, let fraction = groups.last, decimalMarks.contains(last),
+              fraction.count != 3 || marks.dropLast().contains(where: { decimalMarks.contains($0) && $0 != last })
+        else { return groups.joined() }
+        let integer = groups.dropLast().joined()
+        let trimmed = String(fraction.reversed().drop(while: { $0 == "0" }).reversed())
+        return trimmed.isEmpty ? integer : integer + "." + trimmed
     }
 
     static func dayKey(_ date: Date, _ calendar: Calendar) -> String {
