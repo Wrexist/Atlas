@@ -22,7 +22,7 @@ extension ProgramGeneratorEngine {
             ]
         case .hinge:
             return [
-                "Romanian_Deadlift", "Barbell_Deadlift", "Barbell_Hip_Thrust",
+                "Romanian_Deadlift", "Barbell_Deadlift", "Barbell_Hip_Thrust", "Trap_Bar_Deadlift",
                 "Stiff-Legged_Dumbbell_Deadlift", "One-Arm_Kettlebell_Swings",
                 "Kettlebell_One-Legged_Deadlift", "Cable_Deadlifts",
                 "Smith_Machine_Stiff-Legged_Deadlift", "Band_Good_Morning",
@@ -94,7 +94,7 @@ extension ProgramGeneratorEngine {
         case .hamstringIsolation:
             return [
                 "Lying_Leg_Curls", "Seated_Leg_Curl", "Standing_Leg_Curl",
-                "Natural_Glute_Ham_Raise",
+                "Ball_Leg_Curl", "Natural_Glute_Ham_Raise",
             ]
         case .calves:
             return [
@@ -103,7 +103,8 @@ extension ProgramGeneratorEngine {
             ]
         case .core:
             return [
-                "Hanging_Leg_Raise", "Cable_Crunch", "Dead_Bug", "Reverse_Crunch",
+                "Hanging_Leg_Raise", "Cable_Crunch", "One-Arm_Medicine_Ball_Slam",
+                "Exercise_Ball_Crunch", "Dead_Bug", "Reverse_Crunch",
                 "Flat_Bench_Lying_Leg_Raise", "Crunches",
             ]
         }

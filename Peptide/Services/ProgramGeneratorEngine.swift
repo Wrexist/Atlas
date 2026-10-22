@@ -282,7 +282,9 @@ enum ProgramGeneratorEngine {
     // MARK: - Eligibility
 
     /// The shortlist narrowed to what this lifter can do: equipment they
-    /// have (bodyweight always) and nothing above their experience level.
+    /// have (bodyweight always, plus what `EquipmentKind.isAvailable`
+    /// implies — an EZ bar with a barbell, a Smith with machines) and
+    /// nothing above their experience level.
     private struct Pool {
         let byID: [String: Exercise]
         let equipment: Set<EquipmentKind>
@@ -301,7 +303,7 @@ enum ProgramGeneratorEngine {
         func eligible(for pattern: MovementPattern) -> [String] {
             ProgramGeneratorEngine.candidates(for: pattern).filter { id in
                 guard let exercise = byID[id] else { return false }
-                return equipment.contains(exercise.equipmentKind)
+                return exercise.equipmentKind.isAvailable(with: equipment)
                     && ProgramGeneratorEngine.rank(exercise.level) <= maxLevel
             }
         }

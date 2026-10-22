@@ -20,6 +20,7 @@ final class ProgramGeneratorEngineTests: XCTestCase {
         [.kettlebell],
         [.barbell, .dumbbell],
         [.machine, .cable],
+        [.trapBar, .swissBall, .medicineBall],
         fullGym,
         Set(EquipmentKind.allCases),
     ]
@@ -111,7 +112,7 @@ final class ProgramGeneratorEngineTests: XCTestCase {
                 XCTFail("\(label) uses unknown id \(slot.exerciseID)")
                 continue
             }
-            XCTAssertTrue(allowed.contains(exercise.equipmentKind),
+            XCTAssertTrue(exercise.equipmentKind.isAvailable(with: allowed),
                           "\(label) needs \(exercise.equipmentKind) for \(exercise.id)")
             XCTAssertLessThanOrEqual(ProgramGeneratorEngine.rank(exercise.level),
                                      ProgramGeneratorEngine.rank(experience),
@@ -185,6 +186,22 @@ final class ProgramGeneratorEngineTests: XCTestCase {
             XCTAssertEqual(byID[slot.exerciseID]?.equipmentKind, .bodyweight, slot.exerciseID)
             XCTAssertGreaterThanOrEqual(slot.targetReps, ProgramGeneratorEngine.bodyweightMinimumReps)
         }
+    }
+
+    func test_newerEquipmentKinds_unlockTheirLifts() {
+        let trapBar = generate(days: 4, equipment: [.trapBar]).days.flatMap(\.routine.exercises).map(\.exerciseID)
+        XCTAssertTrue(trapBar.contains("Trap_Bar_Deadlift"), "\(trapBar)")
+
+        let swissBall = generate(days: 4, equipment: [.swissBall]).days.flatMap(\.routine.exercises).map(\.exerciseID)
+        XCTAssertTrue(swissBall.contains("Ball_Leg_Curl"), "\(swissBall)")
+    }
+
+    func test_barbell_impliesAnEZBar() {
+        let ids = generate(days: 2, minutes: 90, equipment: [.barbell])
+            .days.flatMap(\.routine.exercises).map(\.exerciseID)
+        let kinds = Set(ids.compactMap { byID[$0]?.equipmentKind })
+        XCTAssertTrue(kinds.isSubset(of: [.barbell, .ezBar, .bodyweight]), "\(kinds)")
+        XCTAssertTrue(kinds.contains(.ezBar), "barbell-only lifter never gets the EZ bar: \(ids)")
     }
 
     // MARK: - Schemes

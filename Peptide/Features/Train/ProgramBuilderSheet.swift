@@ -18,11 +18,12 @@ struct ProgramBuilderSheet: View {
     @State private var alternatives: [UUID: [String]] = [:]
     @State private var didPrefill = false
 
-    /// Equipment worth asking about. Bodyweight is always in, and the
-    /// dataset files nothing under Smith or Other that the generator uses.
-    private static let equipmentChoices: [EquipmentKind] = [
-        .barbell, .dumbbell, .kettlebell, .cable, .machine, .band,
-    ]
+    /// Onboarding's equipment vocabulary, so a prefilled answer can be
+    /// toggled off here. Bodyweight is always in, and a foam roller has
+    /// no lift in the shortlist to unlock.
+    private static let equipmentChoices = EquipmentKind.accessChoices.filter {
+        $0 != .bodyweight && $0 != .foamRoller
+    }
 
     var body: some View {
         NavigationStack {
@@ -104,7 +105,7 @@ struct ProgramBuilderSheet: View {
                         ForEach(Self.equipmentChoices) { kind in
                             GlassChip(
                                 LocalizedStringKey(kind.displayName),
-                                icon: kind.symbolName,
+                                glyph: kind.glyph,
                                 isSelected: request.equipment.contains(kind)
                             ) {
                                 toggle(kind)
