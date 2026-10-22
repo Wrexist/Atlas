@@ -127,7 +127,13 @@ private struct MeasurementUnitRow: View {
 private struct RestTimerRow: View {
     @Binding var selection: Int
 
-    private static let choices = [30, 60, 90, 120, 180, 240]
+    private static let presets = [30, 60, 90, 120, 180, 240]
+
+    /// A stored value outside the presets (an older build, a restored
+    /// backup) still gets a segment, so the picker never shows no selection.
+    private var choices: [Int] {
+        Self.presets.contains(selection) ? Self.presets : (Self.presets + [selection]).sorted()
+    }
 
     var body: some View {
         SettingsPickerRow(
@@ -146,7 +152,7 @@ private struct RestTimerRow: View {
 
     private var picker: some View {
         Picker("Default rest timer", selection: $selection) {
-            ForEach(Self.choices, id: \.self) { seconds in
+            ForEach(choices, id: \.self) { seconds in
                 Text(Self.label(for: seconds)).tag(seconds)
             }
         }
