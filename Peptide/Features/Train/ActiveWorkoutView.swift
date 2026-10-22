@@ -140,6 +140,12 @@ struct ActiveWorkoutView: View {
 
     private func finish(perceivedEffort: Int?, note: String?) {
         guard !saving else { return }
+        // Warm-ups alone can't be saved, and Retry on the save-failure
+        // screen would fail the same way — keep the user in the workout.
+        guard (sessionService.activeSession?.completedSetCount ?? 0) > 0 else {
+            showFinishSheet = false
+            return
+        }
         // Persist the latest workout-name edit FIRST — the .onSubmit-only
         // binding meant a user who typed "Push Day A" then tapped Finish
         // without hitting Return saved the session with a nil name (audit

@@ -195,8 +195,12 @@ struct WorkoutFocusView: View {
                         GlassButton(title: "Next exercise", icon: "arrow.right", isFullWidth: true) {
                             service.selectExercise(next.entry)
                         }
-                    } else {
+                    } else if session.completedSetCount > 0 {
                         GlassButton(title: "Finish workout", icon: "checkmark", isFullWidth: true, action: onFinish)
+                    } else {
+                        Text("Log a working set to finish")
+                            .font(AppFont.callout).foregroundStyle(AppColor.textSecondary)
+                            .frame(maxWidth: .infinity)
                     }
                 }
             }
