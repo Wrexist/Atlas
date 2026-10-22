@@ -119,8 +119,8 @@ final class LifestyleDataStoreTests: XCTestCase {
 
     func test_logWater_accumulatesIntoTodaysBucket() {
         let store = makeStore()
-        store.logWater(oz: 8)
-        store.logWater(oz: 17)
+        store.logWater(fluidOunces: 8)
+        store.logWater(fluidOunces: 17)
         XCTAssertEqual(store.consumption(for: Date()).waterOz, 25)
     }
 

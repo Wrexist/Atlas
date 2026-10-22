@@ -1080,14 +1080,9 @@ final class DataStore {
         save()
     }
 
-    func logWater(oz: Int, date: Date = Date()) {
-        LifestyleDataLogic.logWater(into: &profile, oz: oz, date: date)
-        save()
-        mirrorWaterToHealth(fluidOunces: Double(oz), date: date)
-    }
-
-    /// Exact-amount water log used by the Meals tab quick-adds. A
-    /// negative amount is the Undo path; the day clamps at zero.
+    /// Exact-amount water log behind every entry point (quick-adds,
+    /// Siri, the Watch, the widget). A negative amount is the Undo
+    /// path; the day clamps at zero.
     func logWater(fluidOunces: Double, date: Date = Date()) {
         LifestyleDataLogic.logWater(into: &profile, fluidOunces: fluidOunces, date: date)
         save()
