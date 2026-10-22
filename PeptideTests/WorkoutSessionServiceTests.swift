@@ -189,7 +189,9 @@ final class WorkoutSessionServiceTests: XCTestCase {
 
     func test_closeStaleOrphans_staleExtraUnfinishedRows_areClosed() throws {
         let active = service.startWorkout()
-        let start = Date().addingTimeInterval(-30 * 3600)
+        // Whole seconds: orphans are read back from the store, whose
+        // ISO 8601 exercise encoding drops sub-second precision.
+        let start = Date(timeIntervalSince1970: (Date().timeIntervalSince1970 - 30 * 3600).rounded(.down))
         let lastSet = start.addingTimeInterval(1800)
         let emptyOrphan = WorkoutSession(startedAt: start, finishedAt: nil, exercises: [])
         let loggedOrphan = WorkoutSession(startedAt: start, finishedAt: nil, exercises: [
