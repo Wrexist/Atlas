@@ -77,9 +77,7 @@ struct AIResearchView: View {
                 inflight = nil
             }
             .sheet(isPresented: $showConsent, onDismiss: sendIfConsented) {
-                AIConsentSheet(whatIsSent: isCoach
-                    ? "Your messages in this chat, plus a 7-day nutrition summary: your targets, average intake, protein days and weight trend."
-                    : "Your messages in this chat, including earlier ones in the conversation.")
+                consentSheet
                     .liquidGlassPresentation()
             }
             .alert(
@@ -183,6 +181,22 @@ struct AIResearchView: View {
 
     private var isCoach: Bool { coachBrief != nil }
 
+    private var hasConsent: Bool {
+        AIDataConsent.allowsSend(includesCoachSummary: isCoach)
+    }
+
+    @ViewBuilder
+    private var consentSheet: some View {
+        if isCoach {
+            AIConsentSheet(
+                whatIsSent: "Your messages in this chat, plus a 7-day nutrition summary: your targets, average intake, protein days and weight trend.",
+                grant: AIDataConsent.grantCoachSummary
+            )
+        } else {
+            AIConsentSheet(whatIsSent: "Your messages in this chat, including earlier ones in the conversation.")
+        }
+    }
+
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             Text(isCoach
@@ -271,9 +285,10 @@ struct AIResearchView: View {
         let prompt = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !prompt.isEmpty, !isStreaming else { return }
         // Nothing leaves the device until the user has agreed to share it
-        // with Anthropic. The prompt stays in `input` so it sends as soon
-        // as they tap Allow.
-        guard AIDataConsent.isGranted else {
+        // with Anthropic — and the coach summary needs its own consent even
+        // when the research chat was already allowed. The prompt stays in
+        // `input` so it sends as soon as they tap Allow.
+        guard hasConsent else {
             input = prompt
             showConsent = true
             return
@@ -289,7 +304,7 @@ struct AIResearchView: View {
 
         let priorHistory = Array(transcript.dropLast()) // exclude the user turn we just appended
         let database = dataStore.peptideDatabase
-        let brief = coachBrief
+        let brief = AIDataConsent.isCoachSummaryGranted ? coachBrief : nil
 
         // Empty assistant turn — chunks land into this turn's content
         // as the SSE stream arrives, so the bubble animates token-by-
@@ -349,7 +364,7 @@ struct AIResearchView: View {
     }
 
     private func sendIfConsented() {
-        if AIDataConsent.isGranted { send() }
+        if hasConsent { send() }
     }
 
     private func startNewChat() {
