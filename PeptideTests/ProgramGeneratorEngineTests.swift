@@ -65,7 +65,7 @@ final class ProgramGeneratorEngineTests: XCTestCase {
                 guard let exercise = byID[id] else { return false }
                 return exercise.equipmentKind == .bodyweight && exercise.level == .beginner
             }
-            XCTAssertTrue(fallback, "\(pattern) can't be filled for a beginner with no equipment")
+            XCTAssertTrue(fallback, "\(pattern) has no beginner bodyweight option (pull-ups still need a bar)")
         }
     }
 
@@ -209,6 +209,8 @@ final class ProgramGeneratorEngineTests: XCTestCase {
         let program = generate(days: 5, experience: .beginner, equipment: [])
 
         XCTAssertEqual(program.split, .fullBody)
+        XCTAssertEqual(ProgramGeneratorEngine.split(for: program.request, catalog: catalog), .fullBody)
+        XCTAssertEqual(ProgramGeneratorEngine.split(for: generate(days: 5).request, catalog: catalog), .pushPullLegs)
         XCTAssertEqual(program.days.map(\.routine.name),
                        ["Full body A", "Full body B", "Full body C", "Full body D", "Full body E"])
     }

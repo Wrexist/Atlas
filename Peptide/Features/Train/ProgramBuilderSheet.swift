@@ -85,7 +85,7 @@ struct ProgramBuilderSheet: View {
                         selected: $request.daysPerWeek,
                         label: { LocalizedStringKey("\($0)") }
                     )
-                    Text(TrainingSplit.forDays(request.daysPerWeek).displayName)
+                    Text(plannedSplit.displayName)
                         .font(AppFont.scaled(13))
                         .foregroundStyle(AppColor.textSecondary)
                 }
@@ -134,6 +134,14 @@ struct ProgramBuilderSheet: View {
                 .accessibilityAddTraits(.isHeader)
             content()
         }
+    }
+
+    /// The split the generator will build for these answers, so the hint
+    /// matches the preview. Falls back to the day-count split until the
+    /// library has loaded — an empty catalog can fill no day.
+    private var plannedSplit: TrainingSplit {
+        guard library.isLoaded else { return TrainingSplit.forDays(request.daysPerWeek) }
+        return ProgramGeneratorEngine.split(for: request, catalog: library.bundled)
     }
 
     // MARK: - Preview

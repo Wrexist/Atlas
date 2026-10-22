@@ -43,14 +43,7 @@ enum ProgramGeneratorEngine {
 
     static func generate(_ request: ProgramRequest, catalog: [Exercise]) -> GeneratedProgram {
         let pool = Pool(request: request, catalog: catalog)
-        let preferred = week(forDays: request.daysPerWeek)
-        // A split day the kit can't fill (a pull day with nothing to pull
-        // on) becomes a full-body rotation rather than a two-exercise day.
-        let fillable = preferred.allSatisfy { template in
-            pickExercises(for: template, from: pool, avoiding: []).count >= minimumExercises
-        }
-        let split = fillable ? TrainingSplit.forDays(request.daysPerWeek) : .fullBody
-        let templates = fillable ? preferred : fullBodyWeek(days: request.daysPerWeek)
+        let (split, templates) = plannedWeek(days: request.daysPerWeek, pool: pool)
         let titles = dayTitles(for: templates)
         var usedInProgram: Set<String> = []
         var days: [GeneratedDay] = []
@@ -66,6 +59,23 @@ enum ProgramGeneratorEngine {
             days.append(day)
         }
         return GeneratedProgram(request: request, split: split, days: days)
+    }
+
+    /// The split `generate` will use for this request — what the form
+    /// shows before the program is built.
+    static func split(for request: ProgramRequest, catalog: [Exercise]) -> TrainingSplit {
+        plannedWeek(days: request.daysPerWeek, pool: Pool(request: request, catalog: catalog)).split
+    }
+
+    /// The day-count split, unless one of its days can't be filled with the
+    /// user's kit (a pull day with nothing to pull on) — then a full-body
+    /// rotation rather than a two-exercise day.
+    private static func plannedWeek(days: Int, pool: Pool) -> (split: TrainingSplit, templates: [DayTemplate]) {
+        let preferred = week(forDays: days)
+        let fillable = preferred.allSatisfy { template in
+            pickExercises(for: template, from: pool, avoiding: []).count >= minimumExercises
+        }
+        return fillable ? (TrainingSplit.forDays(days), preferred) : (.fullBody, fullBodyWeek(days: days))
     }
 
     /// Other exercises that do the same job as the slot, and that the user
