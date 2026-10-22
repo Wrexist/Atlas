@@ -183,7 +183,7 @@ struct WorkoutFocusView: View {
                     Label("Add set", systemImage: "plus").minimumHitArea()
                 }
                 Spacer()
-                RestTimeMenu(current: entry.restSeconds ?? defaultRestSeconds) { seconds in
+                RestTimeMenu(overrideSeconds: entry.restSeconds, defaultSeconds: defaultRestSeconds) { seconds in
                     service.setRestSeconds(seconds, forExerciseEntryID: entry.id)
                 }
                 .minimumHitArea()

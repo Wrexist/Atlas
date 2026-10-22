@@ -13,9 +13,9 @@ struct WorkoutExerciseCard: View {
     let previousSetsLookup: () -> [SetEntry]
     /// Today's target from `ProgressionEngine`; nil without history.
     let progression: ProgressionEngine.Suggestion?
-    /// Rest the timer will use after a set here — the entry's own
-    /// override or the user's default — so the menu can tick it.
-    let effectiveRestSeconds: Int
+    /// The user's training-preferences rest, used when the entry has no
+    /// override of its own.
+    let defaultRestSeconds: Int
     /// "A", "B"… when this exercise is in a superset.
     let supersetLetter: String?
     /// False for the last exercise, or when it's already in the superset below.
@@ -27,7 +27,7 @@ struct WorkoutExerciseCard: View {
     let onAddSet: () -> Void
     let onRemoveSet: (UUID) -> Void
     let onRemoveExercise: () -> Void
-    let onSetRestSeconds: (Int) -> Void
+    let onSetRestSeconds: (Int?) -> Void
     let onApplyProgression: () -> Void
     let onSupersetWithNext: () -> Void
     let onRemoveFromSuperset: () -> Void
@@ -154,7 +154,7 @@ struct WorkoutExerciseCard: View {
     }
 
     private var restMenu: some View {
-        RestTimeMenu(current: effectiveRestSeconds, onSelect: onSetRestSeconds)
+        RestTimeMenu(overrideSeconds: entry.restSeconds, defaultSeconds: defaultRestSeconds, onSelect: onSetRestSeconds)
     }
 
     /// Logged work is only lost behind a confirmation; an exercise with
@@ -211,27 +211,36 @@ struct WorkoutExerciseCard: View {
 
 /// The one rest-time picker for an exercise in a workout — the overview
 /// card and the focus screen both use it, so both show the current value
-/// and tick the same haptic.
+/// and tick the same haptic. "Default" clears the override so the exercise
+/// follows the training-preferences rest again.
 struct RestTimeMenu: View {
-    let current: Int
-    let onSelect: (Int) -> Void
+    let overrideSeconds: Int?
+    let defaultSeconds: Int
+    let onSelect: (Int?) -> Void
+
+    private var current: Int { overrideSeconds ?? defaultSeconds }
 
     var body: some View {
         Menu {
-            ForEach(RestTimeOptions.choices(including: current), id: \.self) { seconds in
-                Button {
-                    Haptics.selection()
-                    onSelect(seconds)
-                } label: {
-                    if seconds == current {
-                        Label(RestTimeOptions.label(for: seconds), systemImage: "checkmark")
-                    } else {
-                        Text(RestTimeOptions.label(for: seconds))
-                    }
-                }
+            option(String(localized: "Default (\(RestTimeOptions.label(for: defaultSeconds)))"), seconds: nil)
+            ForEach(RestTimeOptions.choices(including: overrideSeconds), id: \.self) { seconds in
+                option(RestTimeOptions.label(for: seconds), seconds: seconds)
             }
         } label: {
             Label("Rest time · \(RestTimeOptions.label(for: current))", systemImage: "timer")
+        }
+    }
+
+    private func option(_ title: String, seconds: Int?) -> some View {
+        Button {
+            Haptics.selection()
+            onSelect(seconds)
+        } label: {
+            if seconds == overrideSeconds {
+                Label(title, systemImage: "checkmark")
+            } else {
+                Text(title)
+            }
         }
     }
 }

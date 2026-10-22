@@ -343,7 +343,7 @@ struct ActiveWorkoutView: View {
                             sessionService.previousSessionSets(forExerciseID: entry.exerciseID)
                         },
                         progression: sessionService.progression(for: entry),
-                        effectiveRestSeconds: entry.restSeconds ?? defaultRestSeconds,
+                        defaultRestSeconds: defaultRestSeconds,
                         supersetLetter: session.supersetLetter(for: entry.id),
                         canSupersetWithNext: session.entryBelow(entry.id).map {
                             $0.supersetGroup == nil || $0.supersetGroup != entry.supersetGroup
