@@ -53,10 +53,13 @@ actor AppAttestService {
     /// Assertion headers for a proxied AI request, or nil whenever
     /// App Attest can't contribute (simulator, no config, key not
     /// yet registered, Apple/Secure Enclave failure). Callers attach
-    /// what they get and always proceed.
-    func assertionHeaders() async -> [String: String]? {
+    /// what they get and always proceed. Without a registered key this
+    /// returns nil at once so the request goes out on the shared
+    /// secret; only the retry after an `attest_required` 401 passes
+    /// `waitForRegistration`, since enforce mode rejects it otherwise.
+    func assertionHeaders(waitForRegistration: Bool = false) async -> [String: String]? {
         guard isAvailable else { return nil }
-        guard let keyId = await registeredKeyId() else { return nil }
+        guard let keyId = await registeredKeyId(waiting: waitForRegistration) else { return nil }
 
         // 16 random bytes + big-endian millisecond timestamp. The
         // server bounds staleness; the assertion counter handles
@@ -117,9 +120,10 @@ actor AppAttestService {
         return defaults.string(forKey: keyIdDefaultsKey)
     }
 
-    private func registeredKeyId() async -> String? {
+    private func registeredKeyId(waiting: Bool) async -> String? {
         if let keyId = storedRegisteredKeyId { return keyId }
-        return await startRegistrationIfNeeded().value
+        let registration = startRegistrationIfNeeded()
+        return waiting ? await registration.value : nil
     }
 
     private func startRegistrationIfNeeded() -> Task<String?, Never> {

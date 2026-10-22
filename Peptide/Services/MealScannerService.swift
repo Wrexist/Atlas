@@ -404,6 +404,7 @@ final class MealScannerService: Sendable {
     private func sendWithRetry(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         let maxAttempts = 2
         var attempt = 0
+        var waitForRegistration = false
         while true {
             attempt += 1
             // Fresh App Attest assertion per attempt: the proxy rejects a
@@ -411,7 +412,7 @@ final class MealScannerService: Sendable {
             // once enforcement is on. Absence is fine — the shared secret
             // still authenticates this build (report mode today).
             var attemptRequest = request
-            if let attestHeaders = await AppAttestService.shared.assertionHeaders() {
+            if let attestHeaders = await AppAttestService.shared.assertionHeaders(waitForRegistration: waitForRegistration) {
                 for (field, value) in attestHeaders {
                     attemptRequest.setValue(value, forHTTPHeaderField: field)
                 }
@@ -428,8 +429,9 @@ final class MealScannerService: Sendable {
                 if http.statusCode == 401, attempt < maxAttempts,
                    AppAttestService.isAttestRejection(data) {
                     // The proxy lost this install's key; the next
-                    // attempt's assertion re-registers a fresh one.
+                    // attempt waits for a fresh one to register.
                     await AppAttestService.shared.invalidateRegistration()
+                    waitForRegistration = true
                     continue
                 }
                 return (data, http)

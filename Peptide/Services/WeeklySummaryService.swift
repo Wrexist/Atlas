@@ -238,7 +238,7 @@ final class WeeklySummaryService {
             // The proxy lost this install's key: register a fresh one
             // and send once more rather than stay on the offline recap.
             await AppAttestService.shared.invalidateRegistration()
-            (data, response) = try await session.data(for: attested(request))
+            (data, response) = try await session.data(for: attested(request, waitForRegistration: true))
         }
         guard let http = response as? HTTPURLResponse else {
             throw GenerationError.requestFailed("Invalid response")
@@ -260,9 +260,9 @@ final class WeeklySummaryService {
 
     /// `request` with a fresh App Attest assertion — see
     /// AppAttestService; absence falls back to secret-only auth.
-    private func attested(_ request: URLRequest) async -> URLRequest {
+    private func attested(_ request: URLRequest, waitForRegistration: Bool = false) async -> URLRequest {
         var request = request
-        if let attestHeaders = await AppAttestService.shared.assertionHeaders() {
+        if let attestHeaders = await AppAttestService.shared.assertionHeaders(waitForRegistration: waitForRegistration) {
             for (field, value) in attestHeaders {
                 request.setValue(value, forHTTPHeaderField: field)
             }

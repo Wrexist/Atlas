@@ -276,9 +276,9 @@ final class AIResearchService: Sendable {
 
     /// `request` with a fresh App Attest assertion — see
     /// AppAttestService; absence falls back to secret-only auth.
-    private func attested(_ request: URLRequest) async -> URLRequest {
+    private func attested(_ request: URLRequest, waitForRegistration: Bool = false) async -> URLRequest {
         var request = request
-        if let attestHeaders = await AppAttestService.shared.assertionHeaders() {
+        if let attestHeaders = await AppAttestService.shared.assertionHeaders(waitForRegistration: waitForRegistration) {
             for (field, value) in attestHeaders {
                 request.setValue(value, forHTTPHeaderField: field)
             }
@@ -294,7 +294,7 @@ final class AIResearchService: Sendable {
         guard (first.1 as? HTTPURLResponse)?.statusCode == 401,
               AppAttestService.isAttestRejection(first.0) else { return first }
         await AppAttestService.shared.invalidateRegistration()
-        return try await session.data(for: attested(request))
+        return try await session.data(for: attested(request, waitForRegistration: true))
     }
 
     /// Streaming counterpart of `sendAttested`. A 401's body is read
@@ -306,7 +306,7 @@ final class AIResearchService: Sendable {
         for try await byte in first.0 { body.append(byte) }
         guard AppAttestService.isAttestRejection(body) else { return first }
         await AppAttestService.shared.invalidateRegistration()
-        return try await session.bytes(for: attested(request))
+        return try await session.bytes(for: attested(request, waitForRegistration: true))
     }
 
     // MARK: - RAG
