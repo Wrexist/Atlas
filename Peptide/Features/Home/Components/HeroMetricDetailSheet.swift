@@ -221,7 +221,7 @@ struct HeroMetricDetailSheet: View {
             guard let hours = context.lastSleepHours, hours > 0 else {
                 return String(localized: "No sleep data yet for last night.")
             }
-            return String(format: String(localized: "%@ last night"), String(format: "%.1f h", hours))
+            return String(localized: "\(hours.formatted(.number.precision(.fractionLength(1)))) h last night")
         }
     }
 
@@ -231,8 +231,7 @@ struct HeroMetricDetailSheet: View {
     private var targetLine: String? {
         guard case .sleep = kind,
               let hours = context.lastSleepHours, hours > 0 else { return nil }
-        return String(format: String(localized: "Target %@"),
-                      String(format: "%.0f h", context.sleepTargetHours))
+        return String(localized: "Target \(context.sleepTargetHours.formatted(.number.precision(.fractionLength(0)))) h")
     }
 
     // MARK: - Explainer
@@ -576,12 +575,12 @@ struct HeroMetricDetailSheet: View {
                 sleepStat(
                     icon: "clock",
                     label: "Slept",
-                    value: context.lastSleepHours.map { String(format: "%.1f h", $0) } ?? "—"
+                    value: context.lastSleepHours.map { "\($0.formatted(.number.precision(.fractionLength(1)))) h" } ?? "—"
                 )
                 sleepStat(
                     icon: "target",
                     label: "Target",
-                    value: String(format: "%.0f h", context.sleepTargetHours)
+                    value: "\(context.sleepTargetHours.formatted(.number.precision(.fractionLength(0)))) h"
                 )
                 sleepStat(
                     icon: "star.fill",

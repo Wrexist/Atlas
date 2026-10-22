@@ -156,7 +156,7 @@ struct TodayTimelineEvent: Identifiable, Equatable, Sendable {
                 icon: "heart.text.square.fill",
                 tint: .checkIn,
                 title: "Daily check-in",
-                subtitle: String(format: "%.1f / 5 across energy, sleep, recovery, mood, focus", avg)
+                subtitle: String(localized: "\(avg.formatted(.number.precision(.fractionLength(1)))) / 5 across energy, sleep, recovery, mood, focus")
             ))
         }
 

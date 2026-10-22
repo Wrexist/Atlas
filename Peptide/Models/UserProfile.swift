@@ -109,7 +109,7 @@ extension MeasurementUnit {
     /// Rounded display value plus its suffix — the common case.
     func weightLabel(_ kilograms: Double, fractionDigits: Int = 0) -> String {
         let value = weightForDisplay(kilograms)
-        return "\(String(format: "%.\(fractionDigits)f", value)) \(weightSuffix)"
+        return "\(value.formatted(.number.grouping(.never).precision(.fractionLength(fractionDigits)))) \(weightSuffix)"
     }
 
     // MARK: - Volume
