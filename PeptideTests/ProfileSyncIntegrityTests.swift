@@ -213,6 +213,30 @@ final class ProfileSyncIntegrityTests: XCTestCase {
         XCTAssertEqual(try fetchAllRows().count, 1)
     }
 
+    func test_freshRowNewerThanTheRealRow_keepsTheAccountSettings() throws {
+        // A save after an identity change, before CloudKit's first import,
+        // writes the in-memory fresh profile as the newest row.
+        var real = baseProfile()
+        real.bodyMetrics = BodyMetrics(weightKg: 82, heightCm: 180, age: 38,
+                                       sex: .male, activityLevel: .active, unit: .metric)
+        real.biometricLockEnabled = true
+        real.lastKnownTimezoneIdentifier = "Europe/Stockholm"
+        let realRow = try StoredProfile.make(from: real)
+        realRow.updatedAt = day
+
+        let freshRow = try StoredProfile.make(from: .fresh)
+        freshRow.updatedAt = day.addingTimeInterval(3600)
+
+        try insertRows([realRow, freshRow])
+
+        let loaded = try XCTUnwrap(repo.loadProfile())
+        XCTAssertEqual(loaded.bodyMetrics, real.bodyMetrics)
+        XCTAssertTrue(loaded.biometricLockEnabled)
+        XCTAssertEqual(loaded.lastKnownTimezoneIdentifier, "Europe/Stockholm")
+        XCTAssertEqual(loaded.name, "Sync Tester")
+        XCTAssertEqual(try fetchAllRows().count, 1)
+    }
+
     func test_reconcile_mealOnBothRows_isCountedOnce() {
         var shared = UserProfile.fresh
         LifestyleDataLogic.logMealEntry(into: &shared, entry: meal("Shared"))

@@ -8,12 +8,14 @@ enum ProfileMergeEngine {
 
     /// Collapses two profile rows into one. `primary` is the newest row:
     /// its settings and its copy of any record both rows hold win, and it
-    /// takes the other row's value only where it has none. Every logged
-    /// record (meals, weigh-ins, labs, check-ins, habits) is unioned by
-    /// id, so a fresh row created by onboarding on a new device before
-    /// CloudKit's first import can't erase the account's history.
+    /// takes the other row's value only where it has none or still holds
+    /// a fresh install's default. Every logged record (meals, weigh-ins,
+    /// labs, check-ins, habits) is unioned by id, so a fresh row created
+    /// by onboarding on a new device before CloudKit's first import can't
+    /// erase the account's history or settings.
     static func reconcile(_ primary: UserProfile, with other: UserProfile) -> UserProfile {
         var merged = primary
+        adoptSettings(from: other, into: &merged)
         merged.memberSince = min(primary.memberSince, other.memberSince)
         if merged.name.isEmpty { merged.name = other.name }
         if merged.goals.isEmpty { merged.goals = other.goals }
@@ -48,6 +50,28 @@ enum ProfileMergeEngine {
 
         mergeMeals(from: other, into: &merged, primary: primary)
         return merged
+    }
+
+    /// The toggles are adopted together, and only while every one of them
+    /// is still a fresh install's: "off" alone can't tell a default from
+    /// a choice.
+    private static func adoptSettings(from other: UserProfile, into merged: inout UserProfile) {
+        let fresh = UserProfile.fresh
+        if merged.bodyMetrics == fresh.bodyMetrics { merged.bodyMetrics = other.bodyMetrics }
+        if merged.biologyConfig == fresh.biologyConfig { merged.biologyConfig = other.biologyConfig }
+        if merged.hapticFeedbackEnabled == fresh.hapticFeedbackEnabled,
+           merged.doseRemindersEnabled == fresh.doseRemindersEnabled,
+           merged.biometricLockEnabled == fresh.biometricLockEnabled,
+           merged.weeklySummaryEnabled == fresh.weeklySummaryEnabled {
+            merged.hapticFeedbackEnabled = other.hapticFeedbackEnabled
+            merged.doseRemindersEnabled = other.doseRemindersEnabled
+            merged.biometricLockEnabled = other.biometricLockEnabled
+            merged.weeklySummaryEnabled = other.weeklySummaryEnabled
+        }
+        merged.creatorAttribution = merged.creatorAttribution ?? other.creatorAttribution
+        merged.affiliateApplication = merged.affiliateApplication ?? other.affiliateApplication
+        merged.emailSubscription = merged.emailSubscription ?? other.emailSubscription
+        merged.lastKnownTimezoneIdentifier = merged.lastKnownTimezoneIdentifier ?? other.lastKnownTimezoneIdentifier
     }
 
     /// Meals the other row alone holds join the diary. A day only the
