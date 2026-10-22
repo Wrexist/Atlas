@@ -171,7 +171,7 @@ struct WorkoutSessionDetailView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             Text(dateLabel)
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textTertiary)
@@ -221,7 +221,7 @@ struct WorkoutSessionDetailView: View {
     }
 
     private func stat(value: String, label: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
             Text(value)
                 .font(AppFont.scaled(20, weight: .bold, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
@@ -254,7 +254,7 @@ struct WorkoutSessionDetailView: View {
     }
 
     private func noteCard(_ note: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             Text("Note")
                 .font(AppFont.eyebrow)
                 .tracking(1.2)
@@ -316,8 +316,8 @@ struct WorkoutSessionDetailView: View {
                         Text("W")
                             .font(AppFont.scaled(11, weight: .bold))
                             .foregroundStyle(AppColor.textTertiary)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
+                            .padding(.horizontal, Spacing.xs)
+                            .padding(.vertical, Spacing.xxs)
                             .background(Capsule().fill(AppColor.surfaceElevated))
                             .accessibilityLabel("Warm-up")
                     } else if set.completed {
@@ -332,7 +332,7 @@ struct WorkoutSessionDetailView: View {
                             .accessibilityLabel("Not completed")
                     }
                 }
-                .padding(.vertical, 2)
+                .padding(.vertical, Spacing.xxs)
                 .accessibilityElement(children: .combine)
             }
         }

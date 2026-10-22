@@ -52,7 +52,7 @@ struct ExerciseRow: View {
             .font(AppFont.chipText)
             .foregroundStyle(AppColor.textPrimary)
             .padding(.horizontal, Spacing.sm)
-            .padding(.vertical, 3)
+            .padding(.vertical, Spacing.xxs)
             .background(
                 Capsule().fill(AppColor.surfaceSecondary.opacity(0.6))
             )
@@ -61,14 +61,14 @@ struct ExerciseRow: View {
     @ViewBuilder
     private var equipmentPill: some View {
         if exercise.equipmentKind != .bodyweight {
-            HStack(spacing: 3) {
+            HStack(spacing: Spacing.xxs) {
                 GlyphImage(glyph: exercise.equipmentKind.glyph)
                 Text(exercise.equipmentKind.displayName)
                     .font(AppFont.chipText)
             }
             .foregroundStyle(AppColor.textSecondary)
             .padding(.horizontal, Spacing.sm)
-            .padding(.vertical, 3)
+            .padding(.vertical, Spacing.xxs)
             .background(
                 Capsule().stroke(AppColor.glassBorder, lineWidth: 0.5)
             )

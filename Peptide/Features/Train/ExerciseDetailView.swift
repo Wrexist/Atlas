@@ -110,7 +110,7 @@ struct ExerciseDetailView: View {
         }
         .foregroundStyle(AppColor.textPrimary)
         .padding(.horizontal, Spacing.sm)
-        .padding(.vertical, 5)
+        .padding(.vertical, Spacing.xs)
         .background(
             Capsule().fill(AppColor.surfaceSecondary.opacity(0.6))
         )
