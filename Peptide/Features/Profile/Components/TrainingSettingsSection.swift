@@ -192,8 +192,14 @@ private struct PlateInventoryRow: View {
         }
     }
 
+    /// The last plate can't be removed: with none left the calculator
+    /// can't load the bar and there's no barbell jump to progress by.
     private func toggle(_ plate: Double) {
         if available.contains(plate) {
+            guard available.count > 1 else {
+                Haptics.error()
+                return
+            }
             available.removeAll { $0 == plate }
         } else {
             available = (available + [plate]).sorted(by: >)
