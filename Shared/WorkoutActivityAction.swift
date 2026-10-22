@@ -137,7 +137,7 @@ struct WorkoutActivityActionIntent: LiveActivityIntent {
             case .completeSet:
                 state.completedSets += 1
             }
-            await activity.update(ActivityContent(state: state, staleDate: activity.content.staleDate))
+            await activity.update(ActivityContent(state: state, staleDate: state.staleDate()))
         }
         return .result()
     }

@@ -172,23 +172,25 @@ final class WorkoutActivityStatusTests: XCTestCase {
 
     // MARK: - Stale date
 
-    @MainActor
     func test_staleDate_whileResting_isTheEndOfTheRest() {
         let endsAt = now.addingTimeInterval(90)
-        let stale = WorkoutLiveActivityService.staleDate(
-            for: state(restEndsAt: endsAt, restTotalSeconds: 120),
-            now: now
-        )
+        let stale = state(restEndsAt: endsAt, restTotalSeconds: 120).staleDate(now: now)
         XCTAssertEqual(stale, endsAt)
     }
 
-    @MainActor
     func test_staleDate_restAlreadyOver_isTwoHoursOut() {
-        let stale = WorkoutLiveActivityService.staleDate(
-            for: state(restEndsAt: now.addingTimeInterval(-5), restTotalSeconds: 120),
-            now: now
-        )
+        let stale = state(restEndsAt: now.addingTimeInterval(-5), restTotalSeconds: 120).staleDate(now: now)
         XCTAssertEqual(stale, now.addingTimeInterval(2 * 3600))
+    }
+
+    func test_staleDate_afterSkippingARest_isTheIdleIntervalOut() {
+        // The Skip rest button clears the rest on the activity; keeping
+        // the rest's end as the stale date would grey a live workout
+        // out as idle the moment that end passed.
+        var skipped = state(restEndsAt: now.addingTimeInterval(90), restTotalSeconds: 120)
+        skipped.restEndsAt = nil
+        skipped.restTotalSeconds = 0
+        XCTAssertEqual(skipped.staleDate(now: now), now.addingTimeInterval(2 * 3600))
     }
 }
 #endif

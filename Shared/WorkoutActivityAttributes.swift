@@ -118,13 +118,30 @@ extension WorkoutActivityAttributes.ContentState {
     }
 
     /// Silence after which a workout nobody has touched reads as idle.
-    /// `WorkoutLiveActivityService` sets the stale date this far out.
+    /// `staleDate(now:)` sets the stale date this far out.
     static let idleInterval: TimeInterval = 2 * 60 * 60
+
+    /// When the system should next redraw this state on its own. While
+    /// resting, the end of the rest: the activity is only drawn on a
+    /// push or at its stale date, and with the app suspended nothing
+    /// else would redraw it out of the finished countdown. Otherwise the
+    /// idle interval out: a workout nobody has touched in two hours is
+    /// over in practice, and the widget greys it out.
+    ///
+    /// An activity gets one stale date, so a workout left during a rest
+    /// is redrawn at the rest's end and never again until the app
+    /// pushes: it stays in the lifting state rather than going idle.
+    func staleDate(now: Date = Date()) -> Date {
+        if let restEndsAt, restEndsAt > now { return restEndsAt }
+        return now.addingTimeInterval(Self.idleInterval)
+    }
 
     /// Past the stale date with nothing pushed for `idleInterval`, so a
     /// ticking clock and a "Complete set" button would describe a
     /// workout nobody is doing. A rest's own stale date (its end) only
-    /// redraws the activity out of the countdown, so it doesn't count.
+    /// redraws the activity out of the countdown, so it doesn't count;
+    /// a rest reads as idle only once a later app push has moved the
+    /// stale date past it (see `staleDate(now:)`).
     func isIdle(isStale: Bool, at now: Date = Date()) -> Bool {
         guard isStale, finishedAt == nil else { return false }
         guard let restEndsAt else { return true }

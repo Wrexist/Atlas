@@ -55,7 +55,7 @@ final class WorkoutLiveActivityService {
                     sessionId: session.id,
                     startedAt: session.startedAt
                 ),
-                content: ActivityContent(state: state, staleDate: Self.staleDate(for: state)),
+                content: ActivityContent(state: state, staleDate: state.staleDate()),
                 pushType: nil
             )
         } catch {
@@ -116,21 +116,8 @@ final class WorkoutLiveActivityService {
         _ state: WorkoutActivityAttributes.ContentState,
         to activity: Activity<WorkoutActivityAttributes>
     ) {
-        let content = ActivityContent(state: state, staleDate: Self.staleDate(for: state))
+        let content = ActivityContent(state: state, staleDate: state.staleDate())
         Task { await activity.update(content) }
-    }
-
-    /// While resting, the end of the rest: the activity is only drawn
-    /// on a push or at its stale date, and with the app suspended
-    /// nothing else would redraw it out of the finished countdown.
-    /// Otherwise the idle interval out: a workout nobody has touched in
-    /// two hours is over in practice, and the widget greys it out.
-    static func staleDate(
-        for state: WorkoutActivityAttributes.ContentState,
-        now: Date = Date()
-    ) -> Date? {
-        if let restEndsAt = state.restEndsAt, restEndsAt > now { return restEndsAt }
-        return now.addingTimeInterval(WorkoutActivityAttributes.ContentState.idleInterval)
     }
 
     /// Pure mapping from a session to what the activity renders.
