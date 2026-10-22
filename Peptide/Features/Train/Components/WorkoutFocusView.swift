@@ -267,9 +267,15 @@ struct WorkoutFocusView: View {
         !entry.sets.isEmpty && entry.sets.allSatisfy(\.completed)
     }
 
+    /// Numbers working sets only, matching the Live Activity's totals.
     private func progressTitle(_ entry: WorkoutExerciseEntry) -> String {
-        if let next = entry.sets.first(where: { !$0.completed }) { return "Set \(next.index) of \(entry.sets.count)" }
-        return entry.sets.isEmpty ? "Add your first set" : "Exercise complete"
+        guard let next = entry.sets.first(where: { !$0.completed }) else {
+            return entry.sets.isEmpty ? String(localized: "Add your first set") : String(localized: "Exercise complete")
+        }
+        if next.isWarmup { return String(localized: "Warm-up") }
+        let working = entry.sets.filter { !$0.isWarmup }
+        let position = (working.firstIndex { $0.id == next.id } ?? 0) + 1
+        return String(localized: "Set \(position) of \(working.count)")
     }
 
     private func restTitle(_ rest: WorkoutRestContext) -> String {
