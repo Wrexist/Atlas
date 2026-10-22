@@ -1211,9 +1211,8 @@ final class PersistenceRoundTripTests: XCTestCase {
         let decoded = try decoder.decode(UserProfile.self, from: data)
         XCTAssertTrue(decoded.healthKitNutritionEnabled)
 
-        // StoredProfile round-trip too — the SwiftData sidecar carries
-        // the same flag, so the toggle survives a relaunch + CloudKit
-        // pull on a second device.
+        // The StoredProfile keeps carrying the legacy flag so a device
+        // that upgrades later seeds its device-local toggle from it.
         let stored = try StoredProfile.make(from: opted)
         let roundTripped = try stored.toUserProfile()
         XCTAssertTrue(roundTripped.healthKitNutritionEnabled)

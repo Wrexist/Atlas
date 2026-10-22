@@ -43,10 +43,8 @@ struct PeptideEntity: AppEntity, Identifiable {
 struct PeptideEntityQuery: EntityQuery {
 
     func entities(for identifiers: [String]) async throws -> [PeptideEntity] {
-        // One hop, not two — both helpers are @MainActor so they can
-        // share a single run block. The prior double-hop made two
-        // serial waits on the main runloop for a piece of work that
-        // could complete in a single transition.
+        // One hop — both helpers are @MainActor, so they share a
+        // single run block instead of two serial waits on main.
         let all = await MainActor.run { Self.allEntities(in: IntentDataStore.resolve()) }
         let lookup = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
         return identifiers.compactMap { lookup[$0] }
@@ -62,8 +60,7 @@ struct PeptideEntityQuery: EntityQuery {
     /// hyphenation differences.
     func entities(matching string: String) async throws -> [PeptideEntity] {
         let needle = string.lowercased()
-        let store = await MainActor.run { IntentDataStore.resolve() }
-        let all = await MainActor.run { Self.allEntities(in: store) }
+        let all = await MainActor.run { Self.allEntities(in: IntentDataStore.resolve()) }
         return all.filter { entity in
             entity.displayName.lowercased().contains(needle)
                 || entity.abbreviation.lowercased().contains(needle)

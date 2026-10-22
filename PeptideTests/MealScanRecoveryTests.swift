@@ -65,8 +65,10 @@ final class MealScanRecoveryTests: XCTestCase {
             try? FileManager.default.removeItem(at: folder)
         }
         var store: DataStore? = DataStore(seedSampleData: false)
-        store?.profile.healthKitNutritionEnabled = false
-        store?.flushPendingSave()
+        UserDefaults.standard.set(false, forKey: HealthSyncSettings.nutritionEnabledKey)
+        // A clean-slate store writes no profile row until the profile
+        // changes; the failed-commit check below reads that row back.
+        repo.saveProfile(store!.profile)
         let date = Date()
         let entry = MealEntry(date: date, category: .breakfast, name: "Oats", calories: 200,
                               proteinG: 10, carbsG: 30, fatG: 4, source: .photo, components: [food().component])

@@ -10,6 +10,20 @@ enum HealthSyncSettings {
     static var isEnabled: Bool {
         UserDefaults.standard.bool(forKey: enabledKey)
     }
+
+    /// "Write meals to Apple Health". Device-local for the same reason.
+    static let nutritionEnabledKey = "atlas.healthSync.nutrition.v1"
+
+    static var isNutritionEnabled: Bool {
+        UserDefaults.standard.bool(forKey: nutritionEnabledKey)
+    }
+
+    /// Earlier builds kept the meal toggle in the synced profile. Takes
+    /// that value once, so the device that opted in stays opted in.
+    static func adoptSyncedNutritionFlag(_ synced: Bool) {
+        guard UserDefaults.standard.object(forKey: nutritionEnabledKey) == nil else { return }
+        UserDefaults.standard.set(synced, forKey: nutritionEnabledKey)
+    }
 }
 
 /// Decides which weigh-ins from Apple Health (smart scales, other apps)
@@ -21,15 +35,17 @@ enum HealthSyncEngine {
     /// One entry per day Atlas has no weight for, using the latest
     /// reading of that day. Days the user already logged in Atlas are
     /// left alone, so their own number always wins and repeated passes
-    /// add nothing new.
+    /// add nothing new. Readings the user deleted (`dismissed`, by
+    /// sample id) never come back.
     static func weightsToImport(
         _ external: [WeightEntry],
         existing: [WeightEntry],
+        dismissed: Set<UUID> = [],
         calendar: Calendar = .current
     ) -> [WeightEntry] {
         let loggedDays = Set(existing.map { calendar.startOfDay(for: $0.date) })
         var latestByDay: [Date: WeightEntry] = [:]
-        for entry in external {
+        for entry in external where !dismissed.contains(entry.id) {
             let day = calendar.startOfDay(for: entry.date)
             guard !loggedDays.contains(day) else { continue }
             if let current = latestByDay[day], current.date >= entry.date { continue }

@@ -85,7 +85,7 @@ extension ScannedProduct {
         case wholePackage
     }
 
-    /// Macros rounded to the integer shape `DataStore.logMeal(...)`
+    /// Macros rounded to the integer shape `MealEntry`
     /// expects. Returns nil when the requested portion mode needs a
     /// field the product doesn't have (e.g. `.servings` on a product
     /// with no per-serving weight).
@@ -152,7 +152,7 @@ extension ScannedProduct.Portion {
     }
 }
 
-/// Integer-rounded macros in the exact shape `DataStore.logMeal(...)`
+/// Integer-rounded macros in the exact shape `MealEntry`
 /// accepts. Decoupled from `MealScannerService.MealEstimate` because the
 /// barcode flow doesn't have a confidence score or model-generated name.
 struct LoggableMeal: Hashable, Sendable {

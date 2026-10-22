@@ -26,6 +26,9 @@ from dataclasses import dataclass
 REPO = pathlib.Path(__file__).resolve().parent.parent
 FEATURES = REPO / "Peptide" / "Features"
 DESIGN_SYSTEM = REPO / "Peptide" / "DesignSystem"
+# The widget and watch targets are deliberately out of scope: they do not
+# compile Peptide/DesignSystem, so AppFont and AppAnimation are unavailable.
+SCANNED_ROOTS = (REPO / "Peptide" / "App", FEATURES, DESIGN_SYSTEM)
 
 # Surfaces whose palette encodes a real-world concept rather than the brand,
 # or which are composited onto a permanently dark backdrop (share cards,
@@ -353,11 +356,6 @@ def rule_unnamed_motion(path, source, code) -> list[Finding]:
     return out
 
 
-# Rebuilt by the food scan PR (#190); their curves move onto tokens once that
-# lands rather than conflicting with it now.
-PENDING_MOTION_MIGRATION = {"FoodLibraryFlow.swift"}
-
-
 def rule_curve_literal(path, source, code) -> list[Finding]:
     """R3, third clause — one motion vocabulary.
 
@@ -371,7 +369,7 @@ def rule_curve_literal(path, source, code) -> list[Finding]:
     duration is the effect's own period, and `rule_motion` /
     `rule_unguarded_loop` already govern it.
     """
-    if path.name == "AnimationConstants.swift" or path.name in PENDING_MOTION_MIGRATION:
+    if path.name == "AnimationConstants.swift":
         return []
     out = []
     pattern = (r"(?<![\w.])(?:Animation)?\.(?:spring|easeOut|easeIn|easeInOut|linear|"
@@ -830,7 +828,7 @@ def main() -> int:
     args = parser.parse_args()
 
     findings: list[Finding] = []
-    for root in (FEATURES, DESIGN_SYSTEM):
+    for root in SCANNED_ROOTS:
         for path, source in swift_files(root):
             code = blank_previews(strip_comments(source))
             for rule in RULES:

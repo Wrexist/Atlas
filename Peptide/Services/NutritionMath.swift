@@ -1,18 +1,11 @@
 import Foundation
 
 /// Pure functions that translate body metrics into a daily calorie/macro
-/// reference using Mifflin-St Jeor for BMR, a fixed moderate-activity
-/// multiplier (1.55) for TDEE, and a balanced 1.8 g/kg-protein /
+/// reference using Mifflin-St Jeor for BMR, the user's activity-level
+/// multiplier for TDEE, and a balanced 1.8 g/kg-protein /
 /// 25%-fat / fill-with-carbs split. These numbers are reference
 /// targets — not medical advice — and are surfaced behind a disclaimer.
 enum NutritionMath {
-
-    /// Fallback activity multiplier when the user hasn't picked an
-    /// `ActivityLevel`. Equivalent to `.moderate` — the value that
-    /// used to be hard-coded for everyone (audit Meals L12).
-    /// Live callers should read `BodyMetrics.activityLevel
-    /// .tdeeMultiplier` to honor the user's pick.
-    static let activityMultiplier: Double = 1.55
 
     /// Protein recommendation in grams per kilogram of bodyweight.
     static let proteinPerKg: Double = 1.8

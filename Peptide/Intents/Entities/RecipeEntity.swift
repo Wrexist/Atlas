@@ -21,8 +21,15 @@ struct RecipeEntity: AppEntity, Identifiable {
     var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(
             title: "\(displayName)",
-            subtitle: "\(ingredientCount) ingredients · \(calorieSummary) kcal"
+            subtitle: "\(ingredientsLabel) · \(calorieSummary) kcal"
         )
+    }
+
+    /// "1 ingredient" / "3 ingredients". Inflected through
+    /// `AttributedString`, which resolves the agreement markdown that a
+    /// plain `LocalizedStringResource` would show raw.
+    private var ingredientsLabel: String {
+        String(AttributedString(localized: "^[\(ingredientCount) ingredient](inflect: true)").characters)
     }
 
     // Stateless query — `let` so Swift 6 strict concurrency
@@ -62,7 +69,10 @@ struct RecipeEntityQuery: EntityQuery {
 
     @MainActor
     private static func allEntities(in store: DataStore) -> [RecipeEntity] {
-        store.profile.recipes.map { recipe in
+        // A CloudKit merge or restore can duplicate a recipe; one entity
+        // per id keeps the id lookup in `entities(for:)` from trapping.
+        var seen: Set<UUID> = []
+        return store.profile.recipes.filter { seen.insert($0.id).inserted }.map { recipe in
             let totals = RecipeDataLogic.totals(
                 for: recipe,
                 customFoods: store.profile.customFoods

@@ -106,10 +106,12 @@ final class LifestyleDataStoreTests: XCTestCase {
         XCTAssertEqual(bucket.waterOz, 0)
     }
 
-    func test_logMeal_accumulatesIntoTodaysBucket() {
+    func test_logMealEntry_accumulatesIntoTodaysBucket() {
         let store = makeStore()
-        store.logMeal(calories: 500, proteinG: 30, carbsG: 50, fatG: 20)
-        store.logMeal(calories: 700, proteinG: 50, carbsG: 60, fatG: 25)
+        store.logMealEntry(MealEntry(date: Date(), category: .lunch, name: "Bowl",
+                                     calories: 500, proteinG: 30, carbsG: 50, fatG: 20, source: .manual))
+        store.logMealEntry(MealEntry(date: Date(), category: .dinner, name: "Steak",
+                                     calories: 700, proteinG: 50, carbsG: 60, fatG: 25, source: .manual))
         let bucket = store.consumption(for: Date())
         XCTAssertEqual(bucket.caloriesKcal, 1200)
         XCTAssertEqual(bucket.proteinG, 80)

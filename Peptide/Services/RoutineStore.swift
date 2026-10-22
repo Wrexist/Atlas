@@ -103,9 +103,7 @@ final class RoutineStore {
     /// order, rather than re-reading — a fetch would re-sort by the values
     /// we just wrote and cost a round-trip to show the same array.
     private func persist(_ ordered: [Routine]) {
-        for routine in ordered {
-            repository.upsertRoutine(routine)
-        }
+        repository.upsertRoutines(ordered)
         routines = ordered
     }
 }
