@@ -68,11 +68,15 @@ struct MuscleHistorySheet: View {
     }
 
     private var subtitle: some View {
-        Text(history.isEmpty
-             ? periodLabel
-             : "\(totalSets) \(totalSets == 1 ? "set" : "sets") - \(periodLabel.lowercased())")
-            .font(AppFont.subheadline)
-            .foregroundStyle(AppColor.textSecondary)
+        Group {
+            if history.isEmpty {
+                Text(periodLabel)
+            } else {
+                Text("^[\(totalSets) set](inflect: true) · \(periodLabel.lowercased())")
+            }
+        }
+        .font(AppFont.subheadline)
+        .foregroundStyle(AppColor.textSecondary)
     }
 
     private var emptyState: some View {
