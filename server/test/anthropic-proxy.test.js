@@ -270,6 +270,17 @@ test('a shaped route rejects multi-turn chat, extra images and long text', async
   assert.equal(upstream.length, 0);
 });
 
+test('a route-level maxTokens replaces the default cap', async (t) => {
+  setEnv(t, BASE_ENV);
+  const upstream = stubUpstream(t);
+  const req = withContent('10.0.9.5', [image, { type: 'text', text: 'Estimate macros.' }]);
+  req.body.max_tokens = 5000;
+  const res = makeRes();
+  await forwardToAnthropic(req, res, { logLabel: 'max-tokens', shape: MEAL_SHAPE, maxTokens: 1200 });
+  assert.equal(res.statusCode, 200);
+  assert.equal(JSON.parse(upstream[0][1].body).max_tokens, 1200);
+});
+
 // Upstream answers each call with the next status; null throws, as a
 // network failure does.
 function stubFailingUpstream(t, statuses) {

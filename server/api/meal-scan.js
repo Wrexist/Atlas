@@ -29,6 +29,9 @@ export default async function handler(req, res) {
     // prompt. Anything bigger is not the app, and was previously a
     // way to run 40 turns of free-form chat on the vision route.
     shape: { maxMessages: 1, maxImages: 1, maxTextChars: 4000 },
+    // A busy plate's multi-item JSON array outgrows the default 800-token
+    // cap and would come back truncated.
+    maxTokens: 1200,
   });
 }
 

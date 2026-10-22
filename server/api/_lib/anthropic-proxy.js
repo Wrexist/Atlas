@@ -181,10 +181,11 @@ function sanitiseBody(raw, options) {
     ? raw.model
     : allowedModels[0];
 
+  const cap = options?.maxTokens ?? MAX_TOKENS_HARDCAP;
   const maxTokensRaw = Number(raw.max_tokens);
   const max_tokens = Number.isFinite(maxTokensRaw) && maxTokensRaw > 0
-    ? Math.min(Math.floor(maxTokensRaw), MAX_TOKENS_HARDCAP)
-    : MAX_TOKENS_HARDCAP;
+    ? Math.min(Math.floor(maxTokensRaw), cap)
+    : cap;
 
   if (!Array.isArray(raw.messages) || raw.messages.length === 0) return null;
   if (raw.messages.length > (options?.shape?.maxMessages ?? MAX_MESSAGES)) return null;
@@ -223,6 +224,7 @@ export async function forwardToAnthropic(req, res, {
   allowClientSystem,
   maxBodyBytes,
   shape,
+  maxTokens,
   buildBody,
   readResponse,
   betas,
@@ -326,7 +328,7 @@ export async function forwardToAnthropic(req, res, {
   // sanitised pass-through of the Messages shape the app sends.
   const clean = buildBody
     ? buildBody(req.body)
-    : sanitiseBody(req.body, { systemPrefix, allowClientSystem, shape });
+    : sanitiseBody(req.body, { systemPrefix, allowClientSystem, shape, maxTokens });
   if (!clean) {
     res.status(400).json({ error: { message: 'Malformed request body' } });
     return;

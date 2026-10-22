@@ -565,8 +565,9 @@ final class MealScannerService: Sendable {
         [
             "model": model,
             // Headroom for the multi-item JSON array; the single-estimate
-            // path never approaches this.
-            "max_tokens": 1024,
+            // path never approaches this. Matches the meal-scan route's
+            // own cap, which clamps anything larger.
+            "max_tokens": 1200,
             "messages": [
                 [
                     "role": "user",
