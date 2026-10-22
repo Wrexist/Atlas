@@ -50,6 +50,7 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
             let protocolIdStr = userInfo["protocolId"] as? String
             let scheduledHour = userInfo["hour"] as? Int
             let scheduledMinute = userInfo["minute"] as? Int
+            let takenAt = Date()
 
             Task { @MainActor [dataStore] in
                 defer { completionHandler() }
@@ -66,7 +67,7 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
                     minute: minute
                 )
                 for entry in due {
-                    dataStore.markEntryComplete(entry.id)
+                    dataStore.markEntryComplete(entry.id, at: takenAt)
                 }
                 dataStore.flushPendingSave()
             }
