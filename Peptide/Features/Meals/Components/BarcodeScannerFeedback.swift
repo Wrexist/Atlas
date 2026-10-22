@@ -30,9 +30,9 @@ enum BarcodeHaptics {
 
     /// Meal was successfully written to today's bucket. A heavier
     /// impact than `detected()` so the user feels the "commit"
-    /// distinctly from the "scan" earlier in the flow.
+    /// distinctly from the "scan" earlier in the flow. One pulse only:
+    /// stacking it on a `.success` notification blurs both into mush.
     static func logCommitted() {
-        Haptics.success()
         Haptics.impact(.medium)
     }
 
