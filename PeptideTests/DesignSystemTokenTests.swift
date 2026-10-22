@@ -25,6 +25,22 @@ final class DesignSystemTokenTests: XCTestCase {
         XCTAssertEqual(Spacing.minimumHitTarget, 44)
     }
 
+    // MARK: - Progress clamping
+
+    /// A 0/0 score must draw an empty ring, not a full one — `min(1, .nan)`
+    /// is 1, which is the trap `unitClamped` exists to avoid.
+    func test_unitClamped_nonFiniteProgress_isZero() {
+        XCTAssertEqual(Double.nan.unitClamped, 0)
+        XCTAssertEqual(Double.infinity.unitClamped, 0)
+        XCTAssertEqual((-Double.infinity).unitClamped, 0)
+    }
+
+    func test_unitClamped_outOfRangeProgress_clampsToUnitInterval() {
+        XCTAssertEqual((-0.2).unitClamped, 0)
+        XCTAssertEqual(0.4.unitClamped, 0.4)
+        XCTAssertEqual(1.7.unitClamped, 1)
+    }
+
     // MARK: - DisplayMode
 
     /// `.system` means "let iOS decide", which `preferredColorScheme` spells

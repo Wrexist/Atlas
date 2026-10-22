@@ -17,7 +17,7 @@ struct GlassProgressBar: View {
     @State private var hasAppeared = false
 
     private var clampedProgress: Double {
-        min(max(progress, 0), 1)
+        progress.unitClamped
     }
 
     var body: some View {
@@ -50,9 +50,9 @@ struct GlassProgressBar: View {
                 }
             }
         }
-        .onChange(of: progress) { _, newValue in
+        .onChange(of: progress) {
             withAnimation(AppAnimation.motionAware(AppAnimation.springGentle, reduceMotion: reduceMotion)) {
-                animatedProgress = min(max(newValue, 0), 1)
+                animatedProgress = clampedProgress
             }
         }
     }
