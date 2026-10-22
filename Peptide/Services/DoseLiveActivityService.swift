@@ -47,7 +47,10 @@ final class DoseLiveActivityService {
         let inWindowByID = Dictionary(inWindow.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
 
         var openIDs = Set<UUID>()
-        for activity in Activity<DoseWindowAttributes>.activities {
+        // An ended activity still showing its Logged badge already has a
+        // system-owned dismissal; ending it again would cut the badge.
+        for activity in Activity<DoseWindowAttributes>.activities
+        where [.active, .stale].contains(activity.activityState) {
             guard let entry = inWindowByID[activity.attributes.entryId],
                   Self.attributesMatch(activity.attributes, entry) else {
                 Task { await activity.end(nil, dismissalPolicy: .immediate) }
