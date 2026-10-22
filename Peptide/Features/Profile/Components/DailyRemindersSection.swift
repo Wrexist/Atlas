@@ -78,6 +78,12 @@ struct DailyRemindersSection: View {
                 Task { @MainActor in
                     if turnedOn {
                         permissionDenied = !(await NotificationService.shared.requestAuthorization())
+                        // A denied permission means this reminder can't
+                        // fire, so the toggle shouldn't claim it's on.
+                        if permissionDenied {
+                            settings.slots[kind]?.isEnabled = false
+                            settings.save()
+                        }
                     }
                     await DailyReminderScheduler.reconcile(dataStore: dataStore)
                 }
