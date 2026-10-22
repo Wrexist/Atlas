@@ -69,7 +69,9 @@ struct HomeView: View {
     /// True until the first `refreshHeroSnapshot()` lands, so the trio
     /// shows a skeleton instead of flashing "—" rings before real values.
     @State private var isHeroLoading = true
-    /// Session-only dismissal of the reminder-limit banner.
+    /// Session-only dismissal of the reminder-limit banner. Cleared when
+    /// a reschedule drops a different set of protocols, so a new problem
+    /// isn't hidden behind the old dismissal.
     @State private var notificationBannerDismissed = false
     /// Health Monitor grid snapshot — HRV / RHR / Sleep with their
     /// personal-range envelopes. Same refresh cadence as the hero
@@ -771,6 +773,9 @@ struct HomeView: View {
                 Task { await loadWeeklySummary(forceRefresh: false) }
                 Task { await refreshHeroSnapshot() }
                 Task { await refreshHealthRange() }
+            }
+            .onChange(of: notificationService.lastReport.droppedProtocolIDs) { _, _ in
+                notificationBannerDismissed = false
             }
             .onChange(of: appState.pendingDoseLogEntryId) { _, _ in
                 consumePendingDoseDeepLink()
