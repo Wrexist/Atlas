@@ -140,6 +140,51 @@ final class WeeklySummaryServiceTests: XCTestCase {
         XCTAssertFalse(WeeklySummaryService.sourceFingerprint(of: a).isEmpty)
     }
 
+    func test_staleSummary_generatedRecently_isNotDueForRegeneration() throws {
+        var profile = UserProfile.fresh
+        let entries = [
+            entry(daysFromMonday: 0, completed: true),
+            entry(daysFromMonday: 1, completed: true),
+            entry(daysFromMonday: 2, completed: true),
+        ]
+        let summary = try makeCachedSummary(entries: entries, profile: &profile)
+
+        XCTAssertFalse(WeeklySummaryService.isDueForRegeneration(
+            summary,
+            now: summary.generatedAt.addingTimeInterval(60 * 60)
+        ))
+    }
+
+    func test_staleSummary_olderThanInterval_isDueForRegeneration() throws {
+        var profile = UserProfile.fresh
+        let entries = [
+            entry(daysFromMonday: 0, completed: true),
+            entry(daysFromMonday: 1, completed: true),
+            entry(daysFromMonday: 2, completed: true),
+        ]
+        let summary = try makeCachedSummary(entries: entries, profile: &profile)
+
+        XCTAssertTrue(WeeklySummaryService.isDueForRegeneration(
+            summary,
+            now: summary.generatedAt.addingTimeInterval(WeeklySummaryService.staleRegenerationInterval)
+        ))
+    }
+
+    func test_staleOfflineFallback_isDueForRegenerationAfterRetryInterval() throws {
+        var profile = UserProfile.fresh
+        let entries = [
+            entry(daysFromMonday: 0, completed: true),
+            entry(daysFromMonday: 1, completed: true),
+            entry(daysFromMonday: 2, completed: true),
+        ]
+        let summary = try makeCachedSummary(entries: entries, profile: &profile, kind: .offline)
+
+        XCTAssertTrue(WeeklySummaryService.isDueForRegeneration(
+            summary,
+            now: summary.generatedAt.addingTimeInterval(WeeklySummaryService.offlineRetryInterval)
+        ))
+    }
+
     func test_offlineFallback_olderThanRetryInterval_isTreatedAsStale() throws {
         var profile = UserProfile.fresh
         let entries = [

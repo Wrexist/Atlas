@@ -20,9 +20,10 @@ struct TodayOverviewSnapshot: Equatable, Sendable {
     /// Target calories — populated from `NutritionTargets`. `nil`
     /// flips the tile to the "set a goal" empty state.
     let calorieTarget: Int?
-    /// Water ounces logged today. Same zero-vs-nil semantics as
+    /// Exact fluid ounces logged today, so metric reads back the
+    /// millilitres the user added. Same zero-vs-nil semantics as
     /// `caloriesToday` — always populated.
-    let waterToday: Int
+    let waterToday: Double
 
     // MARK: - Lifestyle streak
 
@@ -143,7 +144,7 @@ extension TodayOverviewSnapshot {
         return TodayOverviewSnapshot(
             caloriesToday: consumption.caloriesKcal,
             calorieTarget: targets?.calories,
-            waterToday: consumption.waterOz,
+            waterToday: consumption.waterFluidOunces,
             mealStreak: dataStore.mealLoggingStreak,
             checkInScore: dataStore.outcome(for: now)?.composite,
             latestLab: lab,
@@ -203,9 +204,11 @@ extension TodayOverviewSnapshot {
             )
         }
         if let lab = latestLab, lab.daysAgo <= 60 {
-            let body = lab.daysAgo == 0
-                ? String(localized: "Logged today")
-                : String(format: String(localized: "Logged %d days ago"), lab.daysAgo)
+            let body = switch lab.daysAgo {
+            case 0: String(localized: "Logged today")
+            case 1: String(localized: "Logged yesterday")
+            default: String(localized: "Logged \(lab.daysAgo) days ago")
+            }
             return .latestLab(
                 title: "\(lab.panelShortName) — \(lab.valueDisplay)",
                 body: body,

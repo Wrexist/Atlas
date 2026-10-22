@@ -89,6 +89,18 @@ final class TodayOverviewSnapshotTests: XCTestCase {
         XCTAssertEqual(snapshot.latestLab?.valueDisplay, "2.4 μIU/mL")
     }
 
+    func test_build_labFromYesterday_bottomInsightSaysYesterday() {
+        let store = DataStore(seedSampleData: false)
+        let now = Date()
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: now)!
+        store.saveLabValue(LabValue(date: yesterday, panel: .totalTestosterone, value: 712))
+        let snapshot = TodayOverviewSnapshot.build(from: store, now: now)
+        guard case .latestLab(_, let body, _) = snapshot.bottomInsight else {
+            return XCTFail("Expected the lab insight, got \(String(describing: snapshot.bottomInsight))")
+        }
+        XCTAssertEqual(body, "Logged yesterday")
+    }
+
     // MARK: - Bottom insight selection
 
     func test_build_bottomInsight_prioritisesProtocolInsightOverLab() {

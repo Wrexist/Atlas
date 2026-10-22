@@ -38,7 +38,7 @@ struct HabitRowCard: View {
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(habit.name). \(todayStatus). \(summary.currentStreak) day streak, \(summary.totalCompletedDays) days total.")
+        .accessibilityLabel("\(habit.name). \(todayStatus). \(summary.currentStreak) day streak, \(totalDaysLabel) total.")
         .accessibilityAddTraits(.isButton)
         // The combined card swallows `todayButton`, so expose its toggle
         // as a custom action or VoiceOver can only open the editor.
@@ -77,6 +77,10 @@ struct HabitRowCard: View {
         summary.isCompletedToday
             ? String(localized: "Done today")
             : String(localized: "Not done today")
+    }
+
+    private var totalDaysLabel: String {
+        summary.totalCompletedDays == 1 ? "1 day" : "\(summary.totalCompletedDays) days"
     }
 
     private var scheduleBadge: some View {

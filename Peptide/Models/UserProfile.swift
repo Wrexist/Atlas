@@ -139,18 +139,19 @@ extension MeasurementUnit {
     /// Fluid ounces → the number to show, in the user's unit. Metric
     /// promotes to litres past 1000 mL so a 3 L target doesn't read as
     /// "2960 mL".
-    func volumeLabel(_ fluidOunces: Int) -> String {
-        guard self == .metric else { return "\(fluidOunces) oz" }
-        let millilitres = Int((Double(fluidOunces) * Self.millilitresPerFluidOunce).rounded())
-        guard millilitres >= 1_000 else { return "\(millilitres) mL" }
-        return "\((Double(millilitres) / 1_000).formatted(.number.precision(.fractionLength(1)))) L"
+    /// Takes the exact `Double` total so a 250 mL glass reads "250 mL",
+    /// not the 237 mL of its rounded 8 oz.
+    func volumeLabel(_ fluidOunces: Double) -> String {
+        let value = volumeValue(fluidOunces)
+        guard self == .metric else { return "\(value) oz" }
+        guard value >= 1_000 else { return "\(value) mL" }
+        return "\((Double(value) / 1_000).formatted(.number.precision(.fractionLength(1)))) L"
     }
 
     /// Bare number, for a value shown next to a separate unit suffix.
-    func volumeValue(_ fluidOunces: Int) -> Int {
-        self == .metric
-            ? Int((Double(fluidOunces) * Self.millilitresPerFluidOunce).rounded())
-            : fluidOunces
+    func volumeValue(_ fluidOunces: Double) -> Int {
+        let converted = self == .metric ? fluidOunces * Self.millilitresPerFluidOunce : fluidOunces
+        return Int(converted.rounded())
     }
 }
 

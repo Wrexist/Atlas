@@ -156,6 +156,18 @@ final class WeeklySummaryService {
         return cached
     }
 
+    /// How long a stale summary (its source data changed) stays on Today
+    /// before it is regenerated. A weekly recap doesn't need a new AI
+    /// request for every dose, meal or check-in logged that day.
+    static let staleRegenerationInterval: TimeInterval = 6 * 60 * 60
+
+    /// True when a stale summary is old enough to regenerate. An offline
+    /// fallback retries the proxy sooner, on `offlineRetryInterval`.
+    static func isDueForRegeneration(_ summary: WeeklySummary, now: Date = Date()) -> Bool {
+        let interval = summary.kind == .offline ? offlineRetryInterval : staleRegenerationInterval
+        return now.timeIntervalSince(summary.generatedAt) >= interval
+    }
+
     /// How long an offline fallback is served before the next load
     /// retries the proxy. Without it one network blip or 429 pinned
     /// the template text until the user edited data or tapped refresh.

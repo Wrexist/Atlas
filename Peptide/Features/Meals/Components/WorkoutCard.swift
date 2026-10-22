@@ -1,11 +1,8 @@
 import SwiftUI
 
-/// Single-row card linking out to the workout-tracker drill-in. The
-/// drill-in itself is a stub in this iteration — the card surface and
-/// affordance are spec'd, the in-depth gym-log experience is tracked
-/// as a separate work item.
+/// Single-row summary of today's training sessions; tapping opens Train.
 struct WorkoutCard: View {
-    let exerciseCountToday: Int
+    let sessionCountToday: Int
     let durationMinutesToday: Int
     let onTap: () -> Void
 
@@ -23,7 +20,7 @@ struct WorkoutCard: View {
                     .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Workout Tracker")
+                    Text("Today's training")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(subtitle)
@@ -42,16 +39,17 @@ struct WorkoutCard: View {
             .glassControl(.rect(cornerRadius: Spacing.cardCornerRadius))
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        .accessibilityHint("Opens Train")
     }
 
     private var subtitle: String {
-        if exerciseCountToday == 0 {
+        if sessionCountToday == 0 {
             return "Log today's training"
         }
-        let exerciseLabel = exerciseCountToday == 1 ? "1 exercise" : "\(exerciseCountToday) exercises"
+        let sessionLabel = sessionCountToday == 1 ? "1 workout" : "\(sessionCountToday) workouts"
         if durationMinutesToday <= 0 {
-            return exerciseLabel
+            return sessionLabel
         }
-        return "\(exerciseLabel) · \(durationMinutesToday) min"
+        return "\(sessionLabel) · \(durationMinutesToday) min"
     }
 }

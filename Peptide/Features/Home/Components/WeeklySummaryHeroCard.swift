@@ -132,7 +132,7 @@ struct WeeklySummaryHeroCard: View {
     private var emptyCard: some View {
         messageCard(
             title: "Your weekly recap will appear here",
-            message: "Log workouts, meals or a check-in on a few more days and your recap appears here."
+            message: "Log workouts, meals or a check-in on a few more days to unlock it."
         )
     }
 
@@ -241,7 +241,7 @@ struct WeeklySummaryHeroCard: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(AppFont.scaled(20, weight: .heavy, design: .rounded, relativeTo: .title3))
+                    .font(AppFont.scaled(AppFont.Scale.title, weight: .heavy, design: .rounded, relativeTo: .title3))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.leading)
                     .lineLimit(2)
@@ -309,14 +309,10 @@ struct WeeklySummaryHeroCard: View {
 
     // MARK: - Helpers
 
-    /// Renders "Week of Jan 5" given an ISO yyyy-MM-dd weekStart, with
-    /// the month/day order following the user's locale.
+    /// Renders "Week of Jan 5" given an ISO yyyy-MM-dd weekStart, in the
+    /// user's locale.
     private func weekTitle(for isoWeekStart: String) -> String {
-        guard let date = WeeklySummaryEngine.weekStartDate(from: isoWeekStart) else {
-            return String(localized: "This week")
-        }
-        let display = date.formatted(.dateTime.month(.abbreviated).day())
-        return String(format: String(localized: "Week of %@"), display)
+        WeeklySummary.weekTitle(for: isoWeekStart) ?? String(localized: "This week")
     }
 
     /// Truncates the AI paragraph for the card preview. Splits on

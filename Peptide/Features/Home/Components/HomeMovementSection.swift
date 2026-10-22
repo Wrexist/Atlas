@@ -22,7 +22,7 @@ struct HomeMovementSection: View {
             HomeSectionHeader(eyebrow: "Movement", title: "Training")
 
             WorkoutCard(
-                exerciseCountToday: summary.count,
+                sessionCountToday: summary.count,
                 durationMinutesToday: summary.minutes,
                 onTap: {
                     Haptics.selection()

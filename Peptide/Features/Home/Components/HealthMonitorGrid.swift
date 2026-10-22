@@ -19,6 +19,7 @@ struct HealthMonitorGrid: View {
         let label: LocalizedStringKey
         let value: String
         let unit: String
+        let spokenUnit: LocalizedStringKey
         let sample: HealthRangeService.Sample
     }
 
@@ -27,17 +28,17 @@ struct HealthMonitorGrid: View {
         if let hrv = snapshot.hrv {
             cells.append(Cell(id: "hrv", icon: "waveform.path.ecg", label: "HRV",
                               value: hrv.latest.formatted(.number.precision(.fractionLength(0))),
-                              unit: "ms", sample: hrv))
+                              unit: "ms", spokenUnit: "milliseconds", sample: hrv))
         }
         if let rhr = snapshot.rhr {
             cells.append(Cell(id: "rhr", icon: "heart.fill", label: "RHR",
                               value: rhr.latest.formatted(.number.precision(.fractionLength(0))),
-                              unit: "bpm", sample: rhr))
+                              unit: "bpm", spokenUnit: "beats per minute", sample: rhr))
         }
         if let sleep = snapshot.sleep {
             cells.append(Cell(id: "sleep", icon: "bed.double.fill", label: "Sleep",
                               value: sleep.latest.formatted(.number.precision(.fractionLength(1))),
-                              unit: "h", sample: sleep))
+                              unit: "h", spokenUnit: "hours", sample: sleep))
         }
         return cells
     }
@@ -61,6 +62,7 @@ struct HealthMonitorGrid: View {
                                 label: cell.label,
                                 value: cell.value,
                                 unit: cell.unit,
+                                spokenUnit: cell.spokenUnit,
                                 sample: cell.sample
                             )
                         }

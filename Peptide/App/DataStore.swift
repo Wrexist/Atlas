@@ -517,7 +517,6 @@ final class DataStore {
         entries[index].completed.toggle()
         if !becoming { entries[index].actualTime = nil }
         save()
-        Haptics.impact(becoming ? .light : .soft)
         if becoming {
             doseWasTaken(entries[index])
         } else {
@@ -591,10 +590,8 @@ final class DataStore {
             injectionSite: injectionSite
         )
         save()
-        if !wasCompleted {
-            Haptics.success()
-            doseWasTaken(entries[index])
-        }
+        // The view that logged the dose plays its own haptic.
+        if !wasCompleted { doseWasTaken(entries[index]) }
     }
 
     /// Removes a previously-logged dose — flips `completed` back to false
@@ -1862,8 +1859,8 @@ final class DataStore {
         return repo.loadWorkoutSessions(startedBetween: start..<now).map(\.startedAt)
     }
 
-    /// (count, totalMinutes) for workout sessions logged on `date`'s
-    /// calendar day.
+    /// (count, totalMinutes) for finished workout sessions on `date`'s
+    /// calendar day. A session still in progress isn't logged yet.
     func workoutSummary(for date: Date = Date()) -> (count: Int, minutes: Int) {
         // Reads from `StoredWorkoutSession` now (Plan C) — quick-log
         // entries and Train-tab sessions both land there. Uses the
@@ -1877,13 +1874,9 @@ final class DataStore {
             return (0, 0)
         }
         let sessions = repo.loadWorkoutSessions(startedBetween: dayStart..<dayEnd)
-        let count = sessions.count
-        let minutes = sessions.reduce(0) { acc, session in
-            guard session.finishedAt != nil else { return acc }
-            let secs = session.elapsedSeconds()
-            return acc + max(0, Int(secs / 60))
-        }
-        return (count, minutes)
+            .filter { !$0.isActive }
+        let minutes = sessions.reduce(0) { $0 + $1.elapsedSeconds() / 60 }
+        return (sessions.count, minutes)
     }
 
     func addProgressPhotoFilename(_ filename: String) {
@@ -2514,14 +2507,11 @@ final class DataStore {
             updateWatchData()
             return
         }
-        let vitals = await Self.buildWatchVitals(sleepTargetHours: Self.watchSleepTargetHours)
+        let vitals = await Self.buildWatchVitals(sleepTargetHours: RecoveryScoreEngine.defaultSleepTargetHours)
         guard profile.healthConnected else { return }
         watchVitals = vitals
         updateWatchData()
     }
-
-    /// Same target the Today hero's Recovery score assumes.
-    private static let watchSleepTargetHours = 8.0
 
     private static func buildWatchVitals(sleepTargetHours: Double) async -> WatchVitalsSnapshot? {
         let kit = HealthKitService.shared

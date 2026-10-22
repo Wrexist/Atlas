@@ -77,7 +77,7 @@ struct TodayOverviewCard: View {
         StatTile(
             label: "Calories",
             value: snapshot.caloriesToday > 0 || snapshot.calorieTarget != nil
-                ? "\(snapshot.caloriesToday)"
+                ? snapshot.caloriesToday.formatted()
                 : "—",
             icon: "fork.knife",
             tint: AppColor.macroProtein,

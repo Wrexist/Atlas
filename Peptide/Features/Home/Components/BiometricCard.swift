@@ -10,6 +10,8 @@ struct BiometricCard: View {
     let label: LocalizedStringKey
     let value: String
     let unit: String
+    /// The unit as VoiceOver should say it ("beats per minute", not "b p m").
+    let spokenUnit: LocalizedStringKey
     let sample: HealthRangeService.Sample?
     var onTap: (() -> Void)?
 
@@ -48,6 +50,7 @@ struct BiometricCard: View {
                     Text(unit)
                         .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textSecondary)
+                        .accessibilityLabel(spokenUnit)
                 }
 
                 statusPill
@@ -63,22 +66,17 @@ struct BiometricCard: View {
             Spacer(minLength: 0)
 
             if let sample {
+                // The status pill already speaks the range position.
                 PersonalRangeIndicator(
                     fraction: sample.positionInRange,
                     tint: tint(for: sample)
                 )
+                .accessibilityHidden(true)
             }
         }
         .padding(Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.55))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 
     // MARK: - Status pill
@@ -88,11 +86,14 @@ struct BiometricCard: View {
             if let sample {
                 Image(systemName: statusIcon(for: sample))
                     .font(AppFont.scaled(11, weight: .heavy))
+                    .accessibilityHidden(true)
                 Text(statusLabel(for: sample))
                     .font(AppFont.scaled(11, weight: .heavy))
+                    .accessibilityLabel(spokenStatus(for: sample))
             } else {
                 Image(systemName: "minus")
                     .font(AppFont.scaled(11, weight: .heavy))
+                    .accessibilityHidden(true)
                 Text("No data")
                     .font(AppFont.scaled(11, weight: .heavy))
             }
@@ -100,11 +101,19 @@ struct BiometricCard: View {
         .foregroundStyle(sample.map { tint(for: $0) } ?? AppColor.textSecondary)
     }
 
-    private func statusLabel(for sample: HealthRangeService.Sample) -> String {
+    private func statusLabel(for sample: HealthRangeService.Sample) -> LocalizedStringKey {
         switch sample.status {
         case .lower:  return "Lower"
         case .normal: return "Normal"
         case .higher: return "Higher"
+        }
+    }
+
+    private func spokenStatus(for sample: HealthRangeService.Sample) -> LocalizedStringKey {
+        switch sample.status {
+        case .lower:  return "Below your usual range"
+        case .normal: return "Within your usual range"
+        case .higher: return "Above your usual range"
         }
     }
 
@@ -149,15 +158,15 @@ struct BiometricCard: View {
         AppColor.background.ignoresSafeArea()
         VStack {
             HStack(spacing: Spacing.sm) {
-                BiometricCard(icon: "waveform.path.ecg", label: "HRV", value: "58", unit: "ms", sample: hrvSample)
-                BiometricCard(icon: "heart.fill", label: "RHR", value: "53", unit: "bpm", sample: rhrSample)
+                BiometricCard(icon: "waveform.path.ecg", label: "HRV", value: "58", unit: "ms", spokenUnit: "milliseconds", sample: hrvSample)
+                BiometricCard(icon: "heart.fill", label: "RHR", value: "53", unit: "bpm", spokenUnit: "beats per minute", sample: rhrSample)
             }
             HStack(spacing: Spacing.sm) {
-                BiometricCard(icon: "bed.double.fill", label: "Sleep", value: "7.2", unit: "h", sample: emergingSleepSample)
+                BiometricCard(icon: "bed.double.fill", label: "Sleep", value: "7.2", unit: "h", spokenUnit: "hours", sample: emergingSleepSample)
             }
             HStack(spacing: Spacing.sm) {
-                BiometricCard(icon: "bed.double.fill", label: "Sleep", value: "7.8", unit: "h", sample: nil)
-                BiometricCard(icon: "waveform.path.ecg", label: "HRV", value: "—", unit: "", sample: nil)
+                BiometricCard(icon: "bed.double.fill", label: "Sleep", value: "7.8", unit: "h", spokenUnit: "hours", sample: nil)
+                BiometricCard(icon: "waveform.path.ecg", label: "HRV", value: "—", unit: "", spokenUnit: "", sample: nil)
             }
         }
         .padding(Spacing.lg)

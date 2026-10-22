@@ -23,10 +23,17 @@ enum TodayChecklistEngine {
         var isTrainingDay: Bool
         var waterFluidOunces: Double
         var weightTodayKg: Double?
+        /// The meal whose time-of-day window `now` falls in; `.snack`
+        /// outside all three.
+        var currentMeal: MealCategory
 
-        /// The first main meal not yet logged, in day order.
+        /// The first unlogged main meal from the current window on. Nil
+        /// once every remaining window has passed, so a skipped
+        /// breakfast isn't pitched as "next" in the evening.
         var nextMeal: MealCategory? {
-            TodayChecklistEngine.mainMeals.first { !loggedMeals.contains($0) }
+            let mains = TodayChecklistEngine.mainMeals
+            guard let current = mains.firstIndex(of: currentMeal) else { return nil }
+            return mains[current...].first { !loggedMeals.contains($0) }
         }
 
         var loggedMainMealCount: Int {
@@ -39,7 +46,7 @@ enum TodayChecklistEngine {
 
         func isDone(_ item: Item) -> Bool {
             switch item {
-            case .meals:    nextMeal == nil
+            case .meals:    loggedMainMealCount == TodayChecklistEngine.mainMeals.count
             // A rest day is a planned outcome, so it counts as done.
             case .training: trainedToday || !isTrainingDay
             case .water:    waterProgress >= 1
@@ -71,7 +78,8 @@ enum TodayChecklistEngine {
             weightTodayKg: profile.weightHistory
                 .filter { calendar.isDate($0.date, inSameDayAs: now) }
                 .max { $0.date < $1.date }?
-                .kg
+                .kg,
+            currentMeal: MealCategory.auto(for: now, calendar: calendar)
         )
     }
 

@@ -1,10 +1,8 @@
 import SwiftUI
 
 /// Compact, low-key streak indicator for the Lifestyle tab's meal
-/// section. Mirrors the peptide-side `StreakCounterView` semantics
-/// (flame color escalating with streak length, milestone pulse on
-/// crossing a threshold) so habit feedback feels consistent across
-/// the two pillars of the app, but stays visually contained so it
+/// section. The flame color escalates with streak length and pulses
+/// on crossing a milestone, but stays visually contained so it
 /// doesn't compete with the macro rings for attention.
 ///
 /// Hidden entirely when both the active and best streak are zero —
@@ -120,7 +118,13 @@ struct MealStreakBadge: View {
     }
 
     private var voiceOverLabel: String {
-        if currentStreak == 0 && bestStreak > 0 {
+        if currentStreak == 0 && bestStreak == 1 {
+            return String(
+                localized: "Meal-logging streak paused. Best streak 1 day.",
+                comment: "VoiceOver readout when the streak has lapsed and the personal best is a single day."
+            )
+        }
+        if currentStreak == 0 && bestStreak > 1 {
             return String(
                 localized: "Meal-logging streak paused. Best streak \(bestStreak) days.",
                 comment: "VoiceOver readout when the streak has lapsed but a personal best exists."

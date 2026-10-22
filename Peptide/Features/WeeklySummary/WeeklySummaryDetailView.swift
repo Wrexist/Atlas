@@ -210,10 +210,6 @@ struct WeeklySummaryDetailView: View {
     // MARK: - Date helper
 
     private func weekTitle(for isoWeekStart: String) -> String {
-        guard let date = WeeklySummaryEngine.weekStartDate(from: isoWeekStart) else {
-            return String(localized: "Week recap")
-        }
-        let display = date.formatted(.dateTime.month(.wide).day())
-        return String(format: String(localized: "Week of %@"), display)
+        WeeklySummary.weekTitle(for: isoWeekStart) ?? String(localized: "Week recap")
     }
 }
