@@ -223,5 +223,6 @@ private struct PrivacyRow: View {
     NavigationStack {
         PrivacySummaryView()
     }
+    .environment(DataStore(seedSampleData: true))
     .preferredColorScheme(.dark)
 }
