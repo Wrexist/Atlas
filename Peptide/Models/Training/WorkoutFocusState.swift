@@ -52,6 +52,16 @@ struct WorkoutRestContext: Codable, Hashable, Sendable {
 }
 
 extension WorkoutSession {
+    /// True when the current rest had started and not yet run out at
+    /// `date` — so a queued watch tap from then was aimed at this rest,
+    /// not at one a later set started.
+    func restWasRunning(at date: Date) -> Bool {
+        guard let rest = focus?.rest, rest.remaining(at: date) > 0 else { return false }
+        let startedAt = exercises.first { $0.id == rest.sourceEntryID }?
+            .sets.first { $0.id == rest.sourceSetID }?.completedAt
+        return (startedAt ?? .distantPast) <= date
+    }
+
     var isPaused: Bool { focus?.pausedAt != nil }
 
     var selectedExercise: WorkoutExerciseEntry? {

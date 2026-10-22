@@ -550,16 +550,18 @@ final class WorkoutSessionService {
             set.completed = true
             updateSet(set, inExerciseEntryID: entryID, now: tappedAt)
         case .skipRest:
+            guard session.restWasRunning(at: tappedAt) else { return }
             skipRest()
         case let .extendRest(seconds):
-            adjustRest(by: TimeInterval(seconds), now: now)
+            guard session.restWasRunning(at: tappedAt) else { return }
+            adjustRest(by: TimeInterval(seconds), now: tappedAt)
         case let .selectExercise(entryID):
             selectExercise(entryID)
         case let .addSet(entryID, setID):
             addSet(toExerciseID: entryID, id: setID)
             selectExercise(entryID)
         case let .setPaused(paused):
-            if session.isPaused != paused { togglePause(now: now) }
+            if session.isPaused != paused { togglePause(now: tappedAt) }
         }
     }
 
