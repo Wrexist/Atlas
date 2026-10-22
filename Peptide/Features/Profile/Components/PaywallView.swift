@@ -927,7 +927,7 @@ struct PaywallView: View {
                         )
                     )
             }
-            .shadow(color: AppColor.accentGlow, radius: 14, y: 6)
+            .shadow(color: AppColor.ctaGlow, radius: 14, y: 6)
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.97))
         .disabled(selectedProduct == nil || isPurchasing)

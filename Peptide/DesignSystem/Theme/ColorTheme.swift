@@ -163,6 +163,9 @@ enum AppColor {
     /// single most important button in the app is always the same button.
     static let ctaGradientStart = Color(light: 0x4238C4, dark: 0x4F46E5)
     static let ctaGradientEnd = Color(light: 0x6620C0, dark: 0x7C3AED)
+    /// Drop shadow under the CTA gradient — violet like the fill, so a
+    /// theme-accent glow never sits under a fixed-violet button.
+    static let ctaGlow = ctaGradientEnd.opacity(0.3)
 
     /// Hero-ring identities. Adherence follows the brand accent; Recovery and
     /// Sleep get their own hues so the three rings stay tellable apart at a
