@@ -368,6 +368,23 @@ struct HeroMetricSnapshot: Equatable, Sendable {
         lastSleepHours: nil
     )
 
+    /// A copy with only the adherence ring changed, so a dose toggle
+    /// doesn't repeat the HealthKit reads behind Recovery and Sleep.
+    func withAdherence(_ ratio: Double?) -> HeroMetricSnapshot {
+        HeroMetricSnapshot(
+            adherence: Self.adherenceValue(ratio),
+            recovery: recovery,
+            sleep: sleep,
+            healthConnected: healthConnected,
+            recoveryComponents: recoveryComponents,
+            lastSleepHours: lastSleepHours
+        )
+    }
+
+    private static func adherenceValue(_ ratio: Double?) -> HeroMetricValue {
+        ratio.map(HeroMetricValue.percent) ?? .unavailable
+    }
+
     /// Builds the snapshot. Adherence is synchronous (uses the
     /// caller's already-computed ratio, `nil` on a day with no doses
     /// scheduled so the ring rests instead of reading 0%); Recovery
@@ -379,7 +396,7 @@ struct HeroMetricSnapshot: Equatable, Sendable {
         healthConnected: Bool,
         sleepTargetHours: Double = 8.0
     ) async -> HeroMetricSnapshot {
-        let adherence = adherenceRatio.map(HeroMetricValue.percent) ?? .unavailable
+        let adherence = adherenceValue(adherenceRatio)
         guard healthConnected else {
             return HeroMetricSnapshot(
                 adherence: adherence,

@@ -155,6 +155,13 @@ struct HomeView: View {
         return (entries, score, completed, total)
     }
 
+    /// Today's dose adherence for the trio — `nil` on a day with no doses
+    /// scheduled so the ring rests instead of reading 0%.
+    private var adherenceRatio: Double? {
+        let stats = todayStats
+        return stats.total > 0 ? stats.score : nil
+    }
+
     /// Recomputes the derived Today models. Cheap enough to run
     /// synchronously on the main actor — it's a handful of in-memory passes
     /// plus one week-scoped SwiftData fetch — but it must not run from `body`.
@@ -740,13 +747,15 @@ struct HomeView: View {
                 // the last being dropped.
                 if !isShowing { achievementService.acknowledgeLatestUnlock() }
             }
-            // Single handler for adherence-ratio changes: refresh the
-            // hero trio so the Adherence ring reflects a logged/unlogged
-            // dose immediately, and fire the review prompt when the day
-            // first hits 100%. Previously two separate `onChange(of:
-            // stats.score)` modifiers spawned two async tasks per toggle.
+            // Single handler for adherence-ratio changes: update only the
+            // trio's Adherence ring so a logged/unlogged dose shows
+            // immediately without re-reading HealthKit, and fire the
+            // review prompt when the day first hits 100%.
             .onChange(of: stats.score) { oldScore, newScore in
-                Task { await refreshHeroSnapshot() }
+                let ratio = adherenceRatio
+                AppAnimation.with(AppAnimation.springSmooth) {
+                    heroSnapshot = heroSnapshot.withAdherence(ratio)
+                }
                 if oldScore < 1.0, newScore >= 1.0, stats.total > 0 {
                     Task { @MainActor in
                         try? await Task.sleep(for: .seconds(1))
@@ -1032,9 +1041,8 @@ struct HomeView: View {
     /// to HealthKit. Cheap to call — the underlying queries are
     /// cached for short windows by HealthKit itself.
     private func refreshHeroSnapshot() async {
-        let stats = todayStats
         let snapshot = await HeroMetricSnapshot.build(
-            adherenceRatio: stats.total > 0 ? stats.score : nil,
+            adherenceRatio: adherenceRatio,
             healthConnected: dataStore.profile.healthConnected
         )
         AppAnimation.with(AppAnimation.springSmooth) {
