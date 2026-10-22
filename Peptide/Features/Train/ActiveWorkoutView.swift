@@ -9,6 +9,7 @@ struct ActiveWorkoutView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @Environment(DataStore.self) private var dataStore
+    @Environment(AppState.self) private var appState
     @Environment(\.requestReview) private var requestReview
     @State private var sessionService = WorkoutSessionService.shared
     @State private var library = ExerciseLibrary.shared
@@ -73,7 +74,12 @@ struct ActiveWorkoutView: View {
                 finish(perceivedEffort: effort, note: note)
             }
         }
-        .onAppear { syncNameFromSession(); sessionService.reconcileRest() }
+        .onAppear {
+            appState.isActiveWorkoutVisible = true
+            syncNameFromSession()
+            sessionService.reconcileRest()
+        }
+        .onDisappear { appState.isActiveWorkoutVisible = false }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { sessionService.reconcileRest() }
         }

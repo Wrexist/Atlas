@@ -142,7 +142,7 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         Task { @MainActor [appState] in
             // The workout screen marks rest end with a haptic and an
             // announcement; a banner over it on top of that is noise.
-            let workoutOnScreen = isRestEnd && appState.selectedTab == .train
+            let workoutOnScreen = isRestEnd && appState.isActiveWorkoutVisible
             completionHandler(workoutOnScreen ? [] : [.banner, .sound])
         }
     }
