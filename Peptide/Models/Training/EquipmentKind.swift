@@ -138,6 +138,15 @@ enum EquipmentAccessory: String, CaseIterable, Codable, Identifiable, Sendable {
 
     var id: String { rawValue }
 
+    /// What a set of equipment kinds vouches for. Machines, cables or a
+    /// Smith mean a gym, which has all four; a barbell is only usable with
+    /// a rack and a bench. Nothing else implies any — dumbbells at home,
+    /// or no kit at all, say nothing about a pull-up bar.
+    static func implied(by access: Set<EquipmentKind>) -> Set<EquipmentAccessory> {
+        if !access.isDisjoint(with: [.machine, .cable, .smith]) { return Set(allCases) }
+        return access.contains(.barbell) ? [.bench, .rack] : []
+    }
+
     var displayName: String {
         switch self {
         case .bench:     return "Bench"

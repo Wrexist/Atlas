@@ -43,8 +43,14 @@ enum ProgramGeneratorEngine {
 
     static func generate(_ request: ProgramRequest, catalog: [Exercise]) -> GeneratedProgram {
         let pool = Pool(request: request, catalog: catalog)
-        let split = TrainingSplit.forDays(request.daysPerWeek)
-        let templates = week(forDays: request.daysPerWeek)
+        let preferred = week(forDays: request.daysPerWeek)
+        // A split day the kit can't fill (a pull day with nothing to pull
+        // on) becomes a full-body rotation rather than a two-exercise day.
+        let fillable = preferred.allSatisfy { template in
+            pickExercises(for: template, from: pool, avoiding: []).count >= minimumExercises
+        }
+        let split = fillable ? TrainingSplit.forDays(request.daysPerWeek) : .fullBody
+        let templates = fillable ? preferred : fullBodyWeek(days: request.daysPerWeek)
         let titles = dayTitles(for: templates)
         var usedInProgram: Set<String> = []
         var days: [GeneratedDay] = []
@@ -283,16 +289,19 @@ enum ProgramGeneratorEngine {
 
     /// The shortlist narrowed to what this lifter can do: equipment they
     /// have (bodyweight always, plus what `EquipmentKind.isAvailable`
-    /// implies — an EZ bar with a barbell, a Smith with machines) and
+    /// implies — an EZ bar with a barbell, a Smith with machines), no
+    /// bench, rack, pull-up bar or box that kit doesn't vouch for, and
     /// nothing above their experience level.
     private struct Pool {
         let byID: [String: Exercise]
         let equipment: Set<EquipmentKind>
+        let accessories: Set<EquipmentAccessory>
         let maxLevel: Int
 
         init(request: ProgramRequest, catalog: [Exercise]) {
             byID = Dictionary(catalog.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
             equipment = request.equipment.union([.bodyweight])
+            accessories = EquipmentAccessory.implied(by: equipment)
             maxLevel = ProgramGeneratorEngine.rank(request.experience)
         }
 
@@ -304,6 +313,7 @@ enum ProgramGeneratorEngine {
             ProgramGeneratorEngine.candidates(for: pattern).filter { id in
                 guard let exercise = byID[id] else { return false }
                 return exercise.equipmentKind.isAvailable(with: equipment)
+                    && exercise.equipmentAccessories.isSubset(of: accessories)
                     && ProgramGeneratorEngine.rank(exercise.level) <= maxLevel
             }
         }

@@ -167,4 +167,11 @@ extension ProgramGeneratorEngine {
         default:   return [.push, .pull, .legs, .push, .pull, .legs]
         }
     }
+
+    /// Full-body days in rotation — the fallback for a week whose split
+    /// needs kit the user doesn't have.
+    static func fullBodyWeek(days: Int) -> [DayTemplate] {
+        let rotation: [DayTemplate] = [.fullBodyA, .fullBodyB, .fullBodyC]
+        return (0..<days).map { rotation[$0 % rotation.count] }
+    }
 }

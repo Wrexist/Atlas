@@ -114,6 +114,8 @@ final class ProgramGeneratorEngineTests: XCTestCase {
             }
             XCTAssertTrue(exercise.equipmentKind.isAvailable(with: allowed),
                           "\(label) needs \(exercise.equipmentKind) for \(exercise.id)")
+            XCTAssertTrue(exercise.equipmentAccessories.isSubset(of: EquipmentAccessory.implied(by: allowed)),
+                          "\(label) needs \(exercise.equipmentAccessories) for \(exercise.id)")
             XCTAssertLessThanOrEqual(ProgramGeneratorEngine.rank(exercise.level),
                                      ProgramGeneratorEngine.rank(experience),
                                      "\(label) is too advanced: \(exercise.id)")
@@ -186,6 +188,29 @@ final class ProgramGeneratorEngineTests: XCTestCase {
             XCTAssertEqual(byID[slot.exerciseID]?.equipmentKind, .bodyweight, slot.exerciseID)
             XCTAssertGreaterThanOrEqual(slot.targetReps, ProgramGeneratorEngine.bodyweightMinimumReps)
         }
+    }
+
+    func test_bodyweightOnly_neverNeedsAPullUpBar() {
+        for days in ProgramRequest.dayRange {
+            let program = generate(days: days, experience: .beginner, equipment: [])
+            for day in program.days {
+                for slot in day.routine.exercises {
+                    let needs = byID[slot.exerciseID]?.equipmentAccessories ?? []
+                    XCTAssertFalse(needs.contains(.pullUpBar), "\(days)d \(day.routine.name): \(slot.exerciseID)")
+                    let options = ProgramGeneratorEngine.alternatives(forSlot: slot.id, in: day,
+                                                                      request: program.request, catalog: catalog)
+                    XCTAssertFalse(options.contains { byID[$0]?.equipmentAccessories.isEmpty == false }, "\(options)")
+                }
+            }
+        }
+    }
+
+    func test_noPullingKit_fallsBackToAFullBodyWeek() {
+        let program = generate(days: 5, experience: .beginner, equipment: [])
+
+        XCTAssertEqual(program.split, .fullBody)
+        XCTAssertEqual(program.days.map(\.routine.name),
+                       ["Full body A", "Full body B", "Full body C", "Full body D", "Full body E"])
     }
 
     func test_newerEquipmentKinds_unlockTheirLifts() {

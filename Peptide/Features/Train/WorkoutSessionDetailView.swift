@@ -420,7 +420,8 @@ extension RoutineExercise {
             targetSets: Self.clamped(basis.count, to: RoutineEditEngine.targetSets),
             targetReps: Self.clamped(reps, to: RoutineEditEngine.targetReps),
             restSeconds: entry.restSeconds,
-            note: entry.note
+            note: entry.note,
+            supersetGroup: entry.supersetGroup
         )
     }
 
