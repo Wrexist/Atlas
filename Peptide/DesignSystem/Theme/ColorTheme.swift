@@ -138,6 +138,19 @@ enum AppColor {
     /// Below-range lab value — cool counterpart to `negative`.
     static let belowRange = Color(light: 0x2F6E96, dark: 0x8CC7EB)
 
+    // MARK: - Lab panel categories
+    //
+    // One hue per lab category. Each variant keeps ≥ 4.5:1 for the
+    // 11pt short-name label drawn in the tint on a 20% tint tile.
+
+    static let labSexHormones = Color(light: 0xA02A50, dark: 0xF080AA)
+    static let labGrowth = Color(light: 0x186A3B, dark: 0x66C78C)
+    static let labThyroid = Color(light: 0x4A4FC4, dark: 0x9AA0F4)
+    static let labMetabolic = Color(light: 0x874705, dark: 0xF2A64C)
+    static let labLipids = Color(light: 0xA32A2A, dark: 0xF07C7C)
+    static let labOrganHealth = Color(light: 0x1A5F85, dark: 0x8CC7EB)
+    static let labOther = Color(light: 0x5D5D78, dark: 0xBFBFD9)
+
     // MARK: - Feature accents
 
     /// Indigo that identifies the weekly-recap surfaces (hero card, detail
