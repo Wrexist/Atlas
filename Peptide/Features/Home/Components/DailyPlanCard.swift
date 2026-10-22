@@ -102,8 +102,8 @@ struct DailyPlanCard: View {
                         count: plan.combinationCount,
                         color: AppColor.accentPrimary,
                         accessibilityLabel: plan.combinationCount == 1
-                            ? "1 co-injection pairing"
-                            : "\(plan.combinationCount) co-injection pairings"
+                            ? "1 research pairing"
+                            : "\(plan.combinationCount) research pairings"
                     )
                 }
                 if plan.conflictCount > 0 {
