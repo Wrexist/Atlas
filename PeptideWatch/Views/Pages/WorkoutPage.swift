@@ -276,7 +276,7 @@ private struct RestCard: View {
     let upNext: (exercise: WatchWorkoutSnapshot.Exercise, set: WatchWorkoutSnapshot.SetRow)?
     let unit: WatchWeightUnit
 
-    @ScaledMetric(relativeTo: .largeTitle) private var countdownSize = 40
+    @ScaledMetric(relativeTo: .largeTitle) private var countdownSize: CGFloat = 40
 
     private var interval: ClosedRange<Date> {
         rest.endsAt.addingTimeInterval(-max(rest.totalSeconds, 1))...rest.endsAt

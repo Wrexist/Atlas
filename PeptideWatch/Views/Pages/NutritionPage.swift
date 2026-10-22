@@ -9,7 +9,7 @@ struct NutritionPage: View {
     /// Taps per water button, keyed by ounces, so only the tapped
     /// button's drop bounces.
     @State private var pours: [Int: Int] = [:]
-    @ScaledMetric(relativeTo: .largeTitle) private var calorieSize = 24
+    @ScaledMetric(relativeTo: .largeTitle) private var calorieSize: CGFloat = 24
 
     /// Water is stored in fluid ounces, so the labels follow the phone's
     /// unit setting or the two surfaces disagree about the same number.

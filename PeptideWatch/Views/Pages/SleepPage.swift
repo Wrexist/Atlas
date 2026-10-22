@@ -10,7 +10,7 @@ struct SleepPage: View {
 
     @Environment(\.watchPageIsActive) private var isActive
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @ScaledMetric(relativeTo: .largeTitle) private var scoreSize = 34
+    @ScaledMetric(relativeTo: .largeTitle) private var scoreSize: CGFloat = 34
 
     private var nightDates: String {
         (sleep.start..<max(sleep.end, sleep.start))
