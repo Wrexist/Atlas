@@ -210,14 +210,7 @@ private struct MediumProtocolView: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            WidgetRing(progress: entry.compliance, tint: protocolTint, lineWidth: 8)
-                .overlay {
-                    Text(entry.compliance.formatted(.percent.precision(.fractionLength(0))))
-                        .font(.system(.headline, design: .rounded, weight: .bold))
-                        .monospacedDigit()
-                        .contentTransition(.numericText(value: entry.compliance))
-                        .widgetAccentable()
-                }
+            dial
                 .frame(width: 76, height: 76)
 
             VStack(alignment: .leading, spacing: 8) {
@@ -246,6 +239,28 @@ private struct MediumProtocolView: View {
             }
         }
         .widgetBackdrop(protocolTint)
+    }
+
+    /// With nothing scheduled a "0%" ring would read as a failed day,
+    /// so the glyph stands in until there are doses to count.
+    @ViewBuilder
+    private var dial: some View {
+        if entry.hasProtocol {
+            WidgetRing(progress: entry.compliance, tint: protocolTint, lineWidth: 8)
+                .overlay {
+                    Text(entry.compliance.formatted(.percent.precision(.fractionLength(0))))
+                        .font(.system(.headline, design: .rounded, weight: .bold))
+                        .monospacedDigit()
+                        .contentTransition(.numericText(value: entry.compliance))
+                        .widgetAccentable()
+                }
+        } else {
+            Image(systemName: "checklist")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(protocolTint)
+                .widgetAccentable()
+                .accessibilityHidden(true)
+        }
     }
 
     /// Doses still to take come first, so a morning's struck-through
@@ -290,12 +305,20 @@ private struct CircularProtocolView: View {
     let entry: DoseEntry
 
     var body: some View {
-        Gauge(value: entry.compliance) {
-            Image(systemName: "checklist")
-        } currentValueLabel: {
-            Text("\(entry.completed)/\(entry.total)")
+        Group {
+            if entry.hasProtocol {
+                Gauge(value: entry.compliance) {
+                    Image(systemName: "checklist")
+                } currentValueLabel: {
+                    Text("\(entry.completed)/\(entry.total)")
+                }
+                .gaugeStyle(.accessoryCircular)
+            } else {
+                // "0/0" counts nothing; the glyph alone says "no doses".
+                Image(systemName: "checklist")
+                    .font(.title3.weight(.semibold))
+            }
         }
-        .gaugeStyle(.accessoryCircular)
         .widgetAccentable()
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityText)
@@ -303,9 +326,9 @@ private struct CircularProtocolView: View {
 
     /// "2/3" reads as "two slash three"; say what the gauge counts.
     private var accessibilityText: Text {
-        entry.isOutdated
-            ? Text("Open Atlas to update")
-            : Text("\(entry.completed) of \(entry.total) doses logged")
+        if entry.isOutdated { return Text("Open Atlas to update") }
+        if !entry.hasProtocol { return Text("No protocol yet") }
+        return Text("\(entry.completed) of \(entry.total) doses logged")
     }
 }
 
