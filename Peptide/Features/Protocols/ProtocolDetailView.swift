@@ -219,9 +219,12 @@ struct ProtocolDetailView: View {
                         } else {
                             ForEach(Array(recentEntries.enumerated()), id: \.element.id) { index, entry in
                                 Button {
-                                    Haptics.selection()
                                     AppAnimation.with(AppAnimation.springSnappy) {
-                                        dataStore.toggleEntry(entry.id)
+                                        if entry.completed {
+                                            dataStore.unlogDose(entryId: entry.id)
+                                        } else {
+                                            dataStore.markEntryComplete(entry.id)
+                                        }
                                     }
                                 } label: {
                                     DoseLogRow(entry: entry)
