@@ -111,6 +111,9 @@ struct HomeView: View {
         /// message that would be shown, so `CoachingCard` now renders
         /// `primaryReason?.message` instead.
         var primaryReason: PrimaryReasonEngine.Reason?
+        /// Habit progress for the habits hero, built once per revision and
+        /// shared with `primaryReason` so habits are walked a single time.
+        var habits: HabitsHeroSnapshot = .empty
         /// Finished sessions this calendar week — the trio's first ring
         /// for a user with no active protocol.
         var workoutsThisWeek = 0
@@ -152,18 +155,29 @@ struct HomeView: View {
         return (entries, score, completed, total)
     }
 
-    /// Recomputes the four derived Today models. Cheap enough to run
+    /// Recomputes the derived Today models. Cheap enough to run
     /// synchronously on the main actor — it's a handful of in-memory passes
-    /// plus one day-scoped SwiftData fetch — but it must not run from `body`.
+    /// plus one week-scoped SwiftData fetch — but it must not run from `body`.
     private func refreshDerived() {
         let plan = DailyScheduleEngine.plan(for: dataStore.todayEntries)
-        let workoutSummary = dataStore.workoutSummary(for: Date())
+        let habits = HabitsHeroSnapshot.build(
+            activeHabits: dataStore.activeHabits,
+            entries: dataStore.profile.habitEntries,
+            frozenDayKeys: dataStore.profile.streakFreezeDays
+        )
+        let weekSessions = finishedWorkoutSessionsThisWeek()
+        let todaySessions = weekSessions.filter { Calendar.current.isDateInToday($0.startedAt) }
+        let workoutSummary = (
+            count: todaySessions.count,
+            minutes: todaySessions.reduce(0) { $0 + $1.elapsedSeconds() / 60 }
+        )
         let next = DerivedToday(
             overview: TodayOverviewSnapshot.build(from: dataStore),
             plan: plan,
-            timeline: buildTimelineEvents(),
-            primaryReason: buildPrimaryReason(plan: plan),
-            workoutsThisWeek: countWorkoutsThisWeek(),
+            timeline: buildTimelineEvents(workoutSessions: todaySessions),
+            primaryReason: buildPrimaryReason(plan: plan, habits: habits),
+            habits: habits,
+            workoutsThisWeek: weekSessions.count,
             workoutSummary: workoutSummary,
             checklist: TodayChecklistEngine.state(
                 profile: dataStore.profile,
@@ -185,12 +199,13 @@ struct HomeView: View {
         Task { await refreshHealthRange() }
     }
 
-    private func countWorkoutsThisWeek() -> Int {
-        guard let week = Calendar.current.dateInterval(of: .weekOfYear, for: Date()) else { return 0 }
+    /// The week's finished sessions — one fetch that also covers today, so
+    /// the weekly count, Movement summary and timeline share it.
+    private func finishedWorkoutSessionsThisWeek() -> [WorkoutSession] {
+        guard let week = Calendar.current.dateInterval(of: .weekOfYear, for: Date()) else { return [] }
         return SwiftDataRepository.shared
             .loadWorkoutSessions(startedBetween: week.start..<week.end)
             .filter { !$0.isActive }
-            .count
     }
 
     /// Touches `notificationService.lastReport` so the View takes a SwiftUI
@@ -370,7 +385,7 @@ struct HomeView: View {
                     // completion ring, and the active streak. Per-habit
                     // summary work is snapshotted off-body inside the
                     // component (audit A6).
-                    TodayHabitsHero(day: displayedDay)
+                    TodayHabitsHero(snapshot: derived.habits)
                         .sectionAppear(index: 4)
 
                     // The day's logging loop in one card — every open
@@ -763,7 +778,7 @@ struct HomeView: View {
             // the first `refreshDerived()`).
             .onChange(of: heroSnapshot) { _, _ in
                 let plan = derived.plan ?? DailyScheduleEngine.plan(for: dataStore.todayEntries)
-                let reason = buildPrimaryReason(plan: plan)
+                let reason = buildPrimaryReason(plan: plan, habits: derived.habits)
                 AppAnimation.with(AppAnimation.springSmooth) { derived.primaryReason = reason }
             }
             .onAppear {
@@ -929,23 +944,16 @@ struct HomeView: View {
     }
 
     /// Today's chronological event feed for `TodayTimelineCard`.
-    /// Pulls meals + check-in + workouts and hands them
+    /// Pulls meals + check-in + today's finished workouts and hands them
     /// to the pure `TodayTimelineEvent.build` for sorting + row
-    /// construction. Recomputes cheaply on every body re-eval
-    /// (small lists, all in-memory).
-    private func buildTimelineEvents() -> [TodayTimelineEvent] {
-        let now = Date()
-        let cal = Calendar.current
+    /// construction.
+    private func buildTimelineEvents(workoutSessions: [WorkoutSession]) -> [TodayTimelineEvent] {
         // Plan C: workouts now live in StoredWorkoutSession; the
         // timeline still expects the legacy `WorkoutEntry` shape, so
         // adapt at this boundary. Empty-exercise quick-log sessions
         // still render — the timeline only needs name + date +
-        // duration. A session still in progress isn't "Logged" yet.
-        let dayStart = cal.startOfDay(for: now)
-        let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
-        let workoutsToday: [WorkoutEntry] = SwiftDataRepository.shared
-            .loadWorkoutSessions(startedBetween: dayStart..<dayEnd)
-            .filter { !$0.isActive }
+        // duration.
+        let workoutsToday: [WorkoutEntry] = workoutSessions
             .map { session in
                 let sets = session.exercises.flatMap(\.sets)
                 let reps = sets.reduce(0) { $0 + $1.reps }
@@ -996,12 +1004,10 @@ struct HomeView: View {
     /// changed weekly review into the one top-of-Today reason to act.
     /// `plan` is threaded in from `refreshDerived()` rather than recomputed
     /// so the two stay built from the same `dataStore.todayEntries` pass.
-    private func buildPrimaryReason(plan: DailyScheduleEngine.DailyPlan) -> PrimaryReasonEngine.Reason {
-        let habits = HabitsHeroSnapshot.build(
-            activeHabits: dataStore.activeHabits,
-            entries: dataStore.profile.habitEntries,
-            frozenDayKeys: dataStore.profile.streakFreezeDays
-        )
+    private func buildPrimaryReason(
+        plan: DailyScheduleEngine.DailyPlan,
+        habits: HabitsHeroSnapshot
+    ) -> PrimaryReasonEngine.Reason {
         let context = PrimaryReasonEngine.Context(
             coaching: buildCoachingContext(),
             dailyPlanHeadline: plan.hasAny ? plan.headline : nil,

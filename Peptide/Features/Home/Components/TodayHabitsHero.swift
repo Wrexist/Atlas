@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Immutable snapshot powering the Today habits hero. Built in a `.task` /
-/// `.onChange` (not in `body`) so HomeView never re-walks every habit's
+/// Immutable snapshot powering the Today habits hero. Built in HomeView's
+/// `refreshDerived()` (not in `body`) so HomeView never re-walks every habit's
 /// streak summary on a scroll frame (audit A6).
 struct HabitsHeroSnapshot: Equatable {
     struct Item: Equatable, Identifiable {
@@ -62,10 +62,8 @@ struct HabitsHeroSnapshot: Equatable {
 struct TodayHabitsHero: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
-    /// The calendar day Today is showing; a rollover re-evaluates which
-    /// habits are due and done.
-    let day: Date
-    @State private var snapshot: HabitsHeroSnapshot = .empty
+    /// Built by HomeView once per store revision and day rollover.
+    let snapshot: HabitsHeroSnapshot
     @State private var addingNew = false
     @ScaledMetric(relativeTo: .headline) private var emptyIconSize: CGFloat = 40
 
@@ -80,25 +78,12 @@ struct TodayHabitsHero: View {
             }
         }
         .appAnimation(AppAnimation.springSmooth, value: dataStore.activeHabits.isEmpty)
-        .task { rebuild() }
-        .onChange(of: dataStore.profile.habitEntries) { _, _ in rebuild() }
-        .onChange(of: dataStore.activeHabits) { _, _ in rebuild() }
-        .onChange(of: day) { _, _ in rebuild() }
         .sheet(isPresented: $addingNew) {
             HabitEditSheet(editing: nil) { habit in
                 dataStore.addHabit(habit)
             } onDelete: { _ in }
                 .liquidGlassPresentation()
         }
-    }
-
-    private func rebuild() {
-        let next = HabitsHeroSnapshot.build(
-            activeHabits: dataStore.activeHabits,
-            entries: dataStore.profile.habitEntries,
-            frozenDayKeys: dataStore.profile.streakFreezeDays
-        )
-        AppAnimation.with(AppAnimation.springSnappy) { snapshot = next }
     }
 
     // MARK: - Populated
