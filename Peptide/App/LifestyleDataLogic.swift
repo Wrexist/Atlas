@@ -519,6 +519,9 @@ enum LifestyleDataLogic {
                 older.append(entry)
             }
         }
+        // Back-filled and re-dated entries break append order, so trim
+        // by date or a newer meal could go before an older one.
+        older.sort { $0.date < $1.date }
         let trimmedOlder = older.suffix(max(0, maxMealHistoryEntries - todays.count))
         profile.mealHistory = Array(trimmedOlder) + todays
     }

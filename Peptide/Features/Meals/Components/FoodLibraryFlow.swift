@@ -1589,12 +1589,13 @@ struct FoodLibraryFlow: View {
         let customByID: [String: CustomFood] = Dictionary(
             uniqueKeysWithValues: profile.customFoods.map { ($0.foodID, $0) }
         )
-        // Walk mealHistory newest-first and pluck distinct custom IDs.
-        // Capped at 5 entries early so a long history doesn't slow
-        // the landing-page render.
+        // Walk custom logs newest-first by date (back-filled entries break
+        // append order) and pluck distinct IDs. Capped at 5 entries early
+        // so a long history doesn't slow the landing-page render.
         var seen: Set<String> = []
         var ranked: [CustomFood] = []
-        for entry in profile.mealHistory.reversed() where entry.source == .custom {
+        let customLogs = profile.mealHistory.filter { $0.source == .custom }.sorted { $0.date > $1.date }
+        for entry in customLogs {
             guard let id = entry.sourceID,
                   !seen.contains(id),
                   let food = customByID[id]
