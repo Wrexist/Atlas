@@ -70,10 +70,7 @@ enum WorkoutRecapEngine {
         var qualifiesForWeek: Bool {
             session.finishedAt != nil && (workingSetCount > 0 || session.exercises.isEmpty)
         }
-        var name: String {
-            let name = session.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            return name.isEmpty ? String(localized: "Workout") : name
-        }
+        var name: String { session.displayName }
     }
 
     static func derive(_ session: WorkoutSession, catalog: [String: Exercise]) -> Summary {

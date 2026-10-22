@@ -62,7 +62,7 @@ struct WorkoutSessionDetailView: View {
                 dataStore.workoutWasEdited(exerciseIDs: affected)
             }
         }
-        .navigationTitle(session.name ?? "Workout")
+        .navigationTitle(session.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if !session.isActive {
@@ -158,7 +158,7 @@ struct WorkoutSessionDetailView: View {
         }
         let template = Routine(
             replaying: session,
-            name: session.name ?? String(localized: "Workout"),
+            name: session.displayName,
             id: session.routineID ?? UUID()
         )
         Haptics.impact(.medium)
@@ -176,7 +176,7 @@ struct WorkoutSessionDetailView: View {
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textTertiary)
                 .textCase(.uppercase)
-            Text(session.name ?? "Workout")
+            Text(session.displayName)
                 .font(AppFont.statHeader)
                 .foregroundStyle(AppColor.textPrimary)
         }

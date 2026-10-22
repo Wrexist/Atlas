@@ -135,6 +135,13 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
     /// enforces the invariant on start.
     var isActive: Bool { finishedAt == nil }
 
+    /// The name to show, falling back to "Workout" when the user left
+    /// it nil, empty or whitespace.
+    var displayName: String {
+        let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? String(localized: "Workout") : trimmed
+    }
+
     /// Total elapsed seconds. Snapshots wall-clock against `Date()`
     /// while active so the UI can render a live duration without the
     /// service pumping a publisher.

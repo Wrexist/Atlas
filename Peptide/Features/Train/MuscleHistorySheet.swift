@@ -33,7 +33,7 @@ struct MuscleHistorySheet: View {
                                                 WorkoutSessionDetailView(session: session)
                                             } label: {
                                                 VStack(alignment: .leading, spacing: 4) {
-                                                    Text(session.name ?? "Workout")
+                                                    Text(session.displayName)
                                                     Text(session.startedAt.formatted(date: .abbreviated, time: .shortened))
                                                         .font(AppFont.caption)
                                                         .foregroundStyle(AppColor.textSecondary)

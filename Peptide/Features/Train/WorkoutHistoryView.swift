@@ -103,7 +103,7 @@ struct WorkoutHistoryView: View {
                 Text(session.displayDate)
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textTertiary)
-                Text(session.name ?? "Workout")
+                Text(session.displayName)
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
                 Text(summaryLine(for: session))
