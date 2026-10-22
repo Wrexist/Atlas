@@ -227,6 +227,7 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
     /// today included. Entries are only generated on days the app is
     /// opened, so past days take their due count from the schedule — a
     /// day the app never saw counts as missed rather than vanishing.
+    /// Wash-out days and days past the cycle's end have nothing due.
     /// Today only counts doses already due or already taken. Nil when
     /// nothing was due in the window.
     func adherence(
@@ -245,7 +246,9 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
         var day = firstDay
         while day < today {
             let dayEntries = windowEntries.filter { calendar.isDate($0.date, inSameDayAs: day) }
-            let scheduled = status == .active ? scheduledDoseCount(on: day, calendar: calendar) : 0
+            let scheduled = status == .active && CyclePhaseEngine.isOnCycle(day, protocol: self, calendar: calendar)
+                ? scheduledDoseCount(on: day, calendar: calendar)
+                : 0
             due += max(scheduled, dayEntries.count)
             completed += dayEntries.filter(\.completed).count
             guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
