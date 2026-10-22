@@ -172,8 +172,10 @@ struct TrainContainerView: View {
                             // paused, and pauses don't count.
                             TimelineView(.animation(minimumInterval: 1, paused: active.isPaused)) { context in
                                 Text(WorkoutClock.label(active.elapsedSeconds(now: context.date)))
+                                    .accessibilityLabel(WorkoutClock.spoken(active.elapsedSeconds(now: context.date)))
                             }
                             Text("·")
+                                .accessibilityHidden(true)
                             Text("^[\(active.completedSetCount) set](inflect: true) logged")
                                 .contentTransition(.numericText())
                         }
@@ -197,6 +199,7 @@ struct TrainContainerView: View {
             .padding(.bottom, Spacing.xs)
         }
         .buttonStyle(ScalePressStyle())
+        .accessibilityHint("Opens your workout")
     }
 
     private var sectionPicker: some View {
