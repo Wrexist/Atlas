@@ -475,6 +475,34 @@ final class StoredProfile {
         set(\.summariesData, nil)
     }
 
+    /// Takes each slice column of `other` that this build can't decode,
+    /// where this row holds nothing readable there. Reads treat such a
+    /// column as empty, so deleting `other` would destroy it on every
+    /// device. False when a column can't move because this row holds
+    /// data there too; the caller then keeps `other`.
+    func adoptUnreadableColumns(of other: StoredProfile) -> Bool {
+        var adoptedAll = true
+        func adopt<T: Decodable & Equatable>(_ keyPath: ReferenceWritableKeyPath<StoredProfile, Data?>, empty: T) {
+            guard let theirs = other[keyPath: keyPath],
+                  (try? sdDecoder.decode(T.self, from: theirs)) == nil
+            else { return }
+            let mine = self[keyPath: keyPath]
+            if mine == nil || mine.flatMap({ try? sdDecoder.decode(T.self, from: $0) }) == empty {
+                self[keyPath: keyPath] = theirs
+            } else {
+                adoptedAll = false
+            }
+        }
+        adopt(\.mealsData, empty: MealsSlice())
+        adopt(\.habitsData, empty: HabitsSlice())
+        adopt(\.momentumData, empty: MomentumSlice())
+        adopt(\.weightHistoryData, empty: [WeightEntry]())
+        adopt(\.labsData, empty: [LabValue]())
+        adopt(\.outcomesData, empty: [OutcomeEntry]())
+        adopt(\.foodLibraryData, empty: FoodLibrarySlice())
+        return adoptedAll
+    }
+
     /// True when the column holds bytes this build can't decode as `T` —
     /// corrupt, or written by a newer build with a case this one doesn't
     /// know. Reads fall back to empty for such a column, so writing that

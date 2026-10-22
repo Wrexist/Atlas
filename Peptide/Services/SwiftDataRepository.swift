@@ -740,7 +740,13 @@ final class SwiftDataRepository {
             AppLog.swiftData.error("Profile reconciliation failed; keeping every row: \(error.localizedDescription, privacy: .public)")
             return winner
         }
-        for loser in rows { context.delete(loser) }
+        for loser in rows {
+            if winner.adoptUnreadableColumns(of: loser) {
+                context.delete(loser)
+            } else {
+                AppLog.swiftData.error("Keeping a duplicate profile row whose columns this build can't read")
+            }
+        }
         commit()
         return winner
     }

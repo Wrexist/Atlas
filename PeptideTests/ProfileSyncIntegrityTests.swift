@@ -237,6 +237,36 @@ final class ProfileSyncIntegrityTests: XCTestCase {
         XCTAssertEqual(try fetchAllRows().count, 1)
     }
 
+    func test_duplicateRowWithUnreadableColumn_movesItToTheWinner() throws {
+        let unreadable = Data("written by a newer build".utf8)
+        let olderRow = try StoredProfile.make(from: .fresh)
+        olderRow.mealsData = unreadable
+        olderRow.updatedAt = day
+        let newerRow = try StoredProfile.make(from: .fresh)
+        newerRow.updatedAt = day.addingTimeInterval(3600)
+
+        try insertRows([olderRow, newerRow])
+        _ = repo.loadProfile()
+
+        let rows = try fetchAllRows()
+        XCTAssertEqual(rows.count, 1)
+        XCTAssertEqual(rows.first?.mealsData, unreadable)
+    }
+
+    func test_duplicateRowWithUnreadableColumn_isKeptWhenTheWinnerHasData() throws {
+        let olderRow = try StoredProfile.make(from: .fresh)
+        olderRow.mealsData = Data("written by a newer build".utf8)
+        olderRow.updatedAt = day
+        let newerRow = try StoredProfile.make(from: baseProfile())
+        newerRow.updatedAt = day.addingTimeInterval(3600)
+
+        try insertRows([olderRow, newerRow])
+        let loaded = try XCTUnwrap(repo.loadProfile())
+
+        XCTAssertEqual(loaded.mealHistory.map(\.name), ["Base meal"])
+        XCTAssertEqual(try fetchAllRows().count, 2)
+    }
+
     func test_reconcile_mealOnBothRows_isCountedOnce() {
         var shared = UserProfile.fresh
         LifestyleDataLogic.logMealEntry(into: &shared, entry: meal("Shared"))
