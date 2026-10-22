@@ -87,7 +87,8 @@ struct SetEditorRow: View {
         if focusStyle {
             Menu {
                 Button(action: toggleWarmup) {
-                    Label(set.isWarmup ? "Mark as working set" : "Mark as warm-up", systemImage: "flame")
+                    Label(set.isWarmup ? "Mark as working set" : "Mark as warm-up",
+                          systemImage: set.isWarmup ? "dumbbell" : "flame")
                 }
                 Button(role: .destructive, action: onDelete) {
                     Label("Delete set", systemImage: "trash")
@@ -119,7 +120,7 @@ struct SetEditorRow: View {
     @ViewBuilder
     private var previousReference: some View {
         if set.isWarmup {
-            Text("Warmup")
+            Text("Warm-up")
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.streak)
         } else if let prev = previousSet {
