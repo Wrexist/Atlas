@@ -7,7 +7,6 @@ struct AddToStackSheet: View {
 
     /// How long the "Added" state holds before the sheet closes, so the
     /// confirmation registers.
-    private static let addedConfirmationHold: Duration = .milliseconds(600)
 
     let peptide: Peptide
     var onCreateNew: () -> Void
@@ -119,7 +118,7 @@ struct AddToStackSheet: View {
                 }
                 Task { @MainActor in
                     if !reduceMotion {
-                        try? await Task.sleep(for: Self.addedConfirmationHold)
+                        try? await Task.sleep(for: AppAnimation.confirmationHold)
                     }
                     dismiss()
                 }

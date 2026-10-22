@@ -7,6 +7,7 @@ struct CommunityStackDetailView: View {
     let onUseTemplate: ((CommunityStack) -> Void)?
     @Environment(DataStore.self) private var dataStore
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var storeService = StoreService.shared
     @State private var didFork = false
     @State private var showingPaywall = false
@@ -17,6 +18,9 @@ struct CommunityStackDetailView: View {
     /// Built once so the share-card preview doesn't reconstruct the struct
     /// (and re-resolve every abbreviation) on every body evaluation.
     @State private var previewProtocol: PeptideProtocol
+    /// Built once in `.task` so DataStore changes don't re-model the
+    /// full canvas-size card on every body pass.
+    @State private var previewModel: CycleCardModel?
 
     init(stack: CommunityStack, onUseTemplate: ((CommunityStack) -> Void)? = nil) {
         self.stack = stack
@@ -129,22 +133,31 @@ struct CommunityStackDetailView: View {
 
     private var cardPreview: some View {
         VStack(spacing: Spacing.sm) {
-            CycleCardView(model: CycleCardModel.forProtocol(previewProtocol, in: dataStore))
-                .frame(
-                    width: ShareCardRenderer.canvasSize.width,
-                    height: ShareCardRenderer.canvasSize.height
-                )
-                .scaleEffect(0.32, anchor: .topLeading)
-                .frame(
-                    width: ShareCardRenderer.canvasSize.width * 0.32,
-                    height: ShareCardRenderer.canvasSize.height * 0.32
-                )
-                .clipShape(RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                )
-                .frame(maxWidth: .infinity)
+            Group {
+                if let previewModel {
+                    CycleCardView(model: previewModel)
+                } else {
+                    Color.clear
+                }
+            }
+            .frame(
+                width: ShareCardRenderer.canvasSize.width,
+                height: ShareCardRenderer.canvasSize.height
+            )
+            .scaleEffect(0.32, anchor: .topLeading)
+            .frame(
+                width: ShareCardRenderer.canvasSize.width * 0.32,
+                height: ShareCardRenderer.canvasSize.height * 0.32
+            )
+            .clipShape(RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
+                    .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+            )
+            .frame(maxWidth: .infinity)
+            .task {
+                previewModel = CycleCardModel.forProtocol(previewProtocol, in: dataStore)
+            }
 
             Text("Preview")
                 .font(AppFont.caption)
@@ -283,7 +296,9 @@ struct CommunityStackDetailView: View {
         dataStore.addProtocol(proto)
         didFork = true
         Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(600))
+            if !reduceMotion {
+                try? await Task.sleep(for: AppAnimation.confirmationHold)
+            }
             dismiss()
         }
     }
