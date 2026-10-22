@@ -12,6 +12,8 @@ enum ProgressionEngine {
             case addWeight
             /// Short of the ceiling: same load, one more rep.
             case addRep
+            /// Below the range's floor: same load, build up to the floor.
+            case reachRange
             /// Short of a fixed target, or the last sets were near failure.
             case repeatLoad
         }
@@ -81,7 +83,7 @@ enum ProgressionEngine {
             return Suggestion(weightKg: topWeight, reps: reps, reason: .repeatLoad)
         }
         let reps = min(max(fewestReps + 1, repRange.lowerBound), repRange.upperBound)
-        return Suggestion(weightKg: topWeight, reps: reps, reason: .addRep)
+        return Suggestion(weightKg: topWeight, reps: reps, reason: reps == fewestReps + 1 ? .addRep : .reachRange)
     }
 
     /// Writes the suggestion into every working set the user hasn't

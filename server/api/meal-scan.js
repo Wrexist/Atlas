@@ -7,7 +7,7 @@
  *   MEAL_SCANNER_ENDPOINT  = https://<deploy>/api/meal-scan
  *   MEAL_SCANNER_SECRET    = the PROXY_SHARED_SECRET value
  */
-import { forwardToAnthropic, sharedConfig } from './_lib/anthropic-proxy.js';
+import { forwardToAnthropic } from './_lib/anthropic-proxy.js';
 
 // Pinned safety prefix. The iOS meal scanner doesn't send `system`
 // today, so we drop any client-supplied system entirely — a tampered
@@ -34,5 +34,3 @@ export default async function handler(req, res) {
     maxTokens: 1200,
   });
 }
-
-export const config = sharedConfig;

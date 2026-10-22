@@ -9,6 +9,7 @@ struct NutritionPage: View {
     /// Taps per water button, keyed by option, so only the tapped
     /// button's drop bounces.
     @State private var pours: [String: Int] = [:]
+    @ScaledMetric(relativeTo: .largeTitle) private var calorieSize: CGFloat = 24
 
     /// Water is stored in fluid ounces, so the labels follow the phone's
     /// unit setting or the two surfaces disagree about the same number.
@@ -71,7 +72,7 @@ struct NutritionPage: View {
             ], lineWidth: ringWidth, spacing: ringGap)
             VStack(spacing: -1) {
                 RollingNumber(value: nutrition.caloriesToday)
-                    .font(.system(size: 24, weight: .semibold, design: .rounded))
+                    .font(.system(size: calorieSize, weight: .semibold, design: .rounded))
                     .minimumScaleFactor(0.5)
                     .lineLimit(1)
                 Text("KCAL")

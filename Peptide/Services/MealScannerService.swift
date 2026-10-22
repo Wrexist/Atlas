@@ -63,6 +63,7 @@ final class MealScannerService: Sendable {
         case proxyNotConfigured
         case unauthorised
         case rateLimited
+        case serviceUnavailable
         case offline
         case imageTooLarge
         case requestFailed(status: Int)
@@ -80,6 +81,7 @@ final class MealScannerService: Sendable {
             case .proxyNotConfigured:   "Meal scanning isn't available in this build. Update Atlas from the App Store or TestFlight."
             case .unauthorised:         "Couldn't sign in to the meal scanner. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build."
             case .rateLimited:          "You've scanned a lot of meals recently. Wait a minute and try again — if you've hit today's limit, scanning resets tomorrow."
+            case .serviceUnavailable:   "Scanning is temporarily unavailable — try again later."
             case .offline:              "You're offline — meal scanning needs an internet connection. Reconnect and try again."
             case .imageTooLarge:        "Photo is too large to upload. Try a smaller image."
             case .requestFailed:        "The meal scanner hit a problem. Try again in a moment."
@@ -400,10 +402,14 @@ final class MealScannerService: Sendable {
             // The proxy throttles per device and caps a daily quota, so
             // 429 is a state the user can act on.
             case 429: throw ScanError.rateLimited
+            // The proxy is out of today's budget or not configured (it
+            // doesn't mark this retryable), so a bare status code helps nobody.
+            case 503: throw ScanError.serviceUnavailable
+            // The proxy's body cap, or the platform's 4.5 MB limit; the
+            // photo is already compressed to fit.
+            case 413: throw ScanError.imageTooLarge
             // Vercel answers 404 for a route this deployment doesn't have.
             case 404: throw ScanError.routeMissing
-            // The proxy's body cap; the photo is already compressed to fit.
-            case 413: throw ScanError.imageTooLarge
             // food-scan's answer when Claude declined the image.
             case 422: throw ScanError.declined
             default:
@@ -416,13 +422,14 @@ final class MealScannerService: Sendable {
     }
 
     /// Sends the request, retrying once on a transient transport
-    /// failure or a response the proxy marks retryable. A genuine
-    /// offline condition is classified into `ScanError.offline` so the
-    /// UI can show actionable copy instead of the raw `URLError`
-    /// description.
+    /// failure, a response the proxy marks retryable, or an App Attest
+    /// rejection. A genuine offline condition is classified into
+    /// `ScanError.offline` so the UI can show actionable copy instead of
+    /// the raw `URLError` description.
     private func sendWithRetry(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         let maxAttempts = 2
         var attempt = 0
+        var waitForRegistration = false
         while true {
             attempt += 1
             // Fresh App Attest assertion per attempt: the proxy rejects a
@@ -430,7 +437,7 @@ final class MealScannerService: Sendable {
             // once enforcement is on. Absence is fine — the shared secret
             // still authenticates this build (report mode today).
             var attemptRequest = request
-            if let attestHeaders = await AppAttestService.shared.assertionHeaders() {
+            if let attestHeaders = await AppAttestService.shared.assertionHeaders(waitForRegistration: waitForRegistration) {
                 for (field, value) in attestHeaders {
                     attemptRequest.setValue(value, forHTTPHeaderField: field)
                 }
@@ -442,6 +449,14 @@ final class MealScannerService: Sendable {
                 }
                 if !(200..<300).contains(http.statusCode), Self.isRetryable(data), attempt < maxAttempts {
                     try await Task.sleep(for: .seconds(1.5))
+                    continue
+                }
+                if http.statusCode == 401, attempt < maxAttempts,
+                   AppAttestService.isAttestRejection(data) {
+                    // The proxy lost this install's key; the next
+                    // attempt waits for a fresh one to register.
+                    await AppAttestService.shared.invalidateRegistration()
+                    waitForRegistration = true
                     continue
                 }
                 return (data, http)
@@ -532,13 +547,18 @@ final class MealScannerService: Sendable {
     /// Still 25% more linear detail than the 1024 px this replaced.
     private static let fallbackImageEdge: CGFloat = 1280
 
+    /// Hard ceiling for the encoded JPEG. Base64 grows it by a third, and
+    /// the proxy's host refuses request bodies over 4.5 MB, so 3 MB raw
+    /// (~4 MB encoded) is the most that can still arrive.
+    private static let maxUploadBytes = 3 * 1024 * 1024
+
     /// Encodes at the best quality that fits the byte budget, stepping
     /// down only as far as it has to.
     ///
     /// Ordinary photos take the first rung and never pay for the rest.
     /// Throws when encoding fails outright or the result is still over
-    /// Anthropic's hard limit — better a clear error than a request that
-    /// hangs and times out.
+    /// what the proxy accepts — better a clear error than a request that
+    /// fails on upload.
     private func compress(_ image: UIImage) throws -> Data {
         let resized = image.resizedTo(maxEdge: Self.maxImageEdge) ?? image
 
@@ -557,7 +577,7 @@ final class MealScannerService: Sendable {
         }
 
         guard let data = smallest else { throw ScanError.imageTooLarge }
-        guard data.count <= 5 * 1024 * 1024 else { throw ScanError.imageTooLarge }
+        guard data.count <= Self.maxUploadBytes else { throw ScanError.imageTooLarge }
         return data
     }
 

@@ -7,13 +7,14 @@ import Foundation
 final class WatchSyncService: NSObject {
     static let shared = WatchSyncService()
 
-    var onMarkComplete: ((UUID, UUID) -> Void)?
+    /// Receives the entry, its protocol and when the user tapped.
+    var onMarkComplete: ((UUID, UUID, Date) -> Void)?
     var onMarkIncomplete: ((UUID, UUID) -> Void)?
     /// Callback fired when the watch logs water. Receives the exact
-    /// fluid-ounce amount; the phone-side handler routes through
-    /// `dataStore.logWater` so the widget reload + watch sync +
-    /// HK write all fire for free.
-    var onLogWater: ((Double) -> Void)?
+    /// fluid-ounce amount and when the user tapped; the phone-side
+    /// handler routes through `dataStore.logWater` so the widget reload
+    /// + watch sync + HK write all fire for free.
+    var onLogWater: ((Double, Date) -> Void)?
 
     private let encoder: JSONEncoder = {
         let e = JSONEncoder()
@@ -73,7 +74,8 @@ final class WatchSyncService: NSObject {
         healthConnected: Bool? = nil,
         vitals: WatchVitalsSnapshot? = nil,
         workout: WatchWorkoutSnapshot? = nil,
-        training: WatchTrainingSnapshot? = nil
+        training: WatchTrainingSnapshot? = nil,
+        hapticsEnabled: Bool? = nil
     ) {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
@@ -125,7 +127,8 @@ final class WatchSyncService: NSObject {
             healthConnected: healthConnected,
             vitals: vitals,
             workout: workout,
-            training: training
+            training: training,
+            hapticsEnabled: hapticsEnabled
         )
         publish(data)
     }
@@ -133,10 +136,22 @@ final class WatchSyncService: NSObject {
     /// Re-sends the last snapshot with a new workout state. Set edits
     /// arrive many times a minute mid-workout; rebuilding the whole
     /// snapshot for each would redo the dose, habit and score math.
+    /// Stamped with the push time so the Watch can tell it from an older
+    /// push; a snapshot from an earlier day drops that day's progress
+    /// first, so the new stamp doesn't pass yesterday's doses off as today's.
     func updateWorkout(_ workout: WatchWorkoutSnapshot?) {
         guard let last = lastPublished ?? Self.readLastWritten(),
               last.workout != workout else { return }
-        publish(last.replacingWorkout(workout))
+        let now = Date()
+        publish(last.forDisplay(at: now).replacingWorkout(workout, updatedAt: now))
+    }
+
+    /// Re-sends the latest snapshot. A push made before the session
+    /// finished activating, or before the Watch app was installed, was
+    /// dropped, and nothing else would send it again until the next edit.
+    private func resendLatest() {
+        guard let latest = lastPublished ?? Self.readLastWritten() else { return }
+        sendWatchDataIfReachable(latest)
     }
 
     /// The snapshot most recently written, so `updateWorkout` can carry
@@ -186,7 +201,16 @@ final class WatchSyncService: NSObject {
 }
 
 extension WatchSyncService: WCSessionDelegate {
-    nonisolated func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {}
+    nonisolated func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        guard activationState == .activated else { return }
+        Task { [weak self] in await self?.resendLatest() }
+    }
+
+    /// Fires when the Watch app is installed or removed (among other
+    /// pairing changes), so a newly installed app gets a snapshot at once.
+    nonisolated func sessionWatchStateDidChange(_ session: WCSession) {
+        Task { [weak self] in await self?.resendLatest() }
+    }
 
     nonisolated func sessionDidBecomeInactive(_ session: WCSession) {}
 
@@ -219,6 +243,8 @@ extension WatchSyncService: WCSessionDelegate {
 
     nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
         guard let action = message["action"] as? String else { return }
+        let messageID = message[WatchMessage.messageIdKey] as? String
+        let issuedAt = (message[WatchMessage.issuedAtKey] as? Double).map { Date(timeIntervalSince1970: $0) }
 
         // Workout and water commands are their own shapes, with no
         // entry/protocol IDs. Branch early so the dose-related guard
@@ -226,8 +252,8 @@ extension WatchSyncService: WCSessionDelegate {
         if action == WatchMessage.workout {
             guard let payload = message[WatchMessage.workoutRequestKey] as? Data,
                   let request = WatchWorkoutRequest.decode(payload) else { return }
-            Task { @MainActor in
-                WorkoutSessionService.shared.apply(request)
+            Task { [weak self] in
+                await self?.handleWorkoutRequest(request, messageID: messageID)
             }
             return
         }
@@ -237,7 +263,7 @@ extension WatchSyncService: WCSessionDelegate {
             guard let fluidOunces = message[WatchMessage.fluidOuncesKey] as? Double
                     ?? (message[WatchMessage.ozKey] as? Int).map(Double.init) else { return }
             Task { [weak self] in
-                await self?.handleWaterMessage(fluidOunces: fluidOunces)
+                await self?.handleWaterMessage(fluidOunces: fluidOunces, issuedAt: issuedAt, messageID: messageID)
             }
             return
         }
@@ -253,20 +279,52 @@ extension WatchSyncService: WCSessionDelegate {
         // reads happen on main — keeps Swift 6 strict-concurrency happy
         // and removes any race with a parent reassigning the callbacks.
         Task { [weak self] in
-            await self?.handleWatchMessage(action: action, entryId: entryId, protocolId: protocolId)
+            await self?.handleWatchMessage(
+                action: action, entryId: entryId, protocolId: protocolId, issuedAt: issuedAt, messageID: messageID
+            )
         }
     }
 }
 
 private extension WatchSyncService {
-    func handleWaterMessage(fluidOunces: Double) {
-        onLogWater?(fluidOunces)
+    static let handledMessageIDsKey = "watchSync.handledMessageIDs"
+    static let handledMessageIDsLimit = 50
+
+    /// Records a Watch command's id and reports whether this is its first
+    /// delivery. Kept across launches because the `transferUserInfo`
+    /// duplicate can land long after the live send. Commands from an older
+    /// Watch build carry no id and always pass.
+    func isFirstDelivery(_ messageID: String?) -> Bool {
+        guard let messageID else { return true }
+        let defaults = UserDefaults.standard
+        var handled = defaults.stringArray(forKey: Self.handledMessageIDsKey) ?? []
+        guard !handled.contains(messageID) else { return false }
+        handled.append(messageID)
+        defaults.set(Array(handled.suffix(Self.handledMessageIDsLimit)), forKey: Self.handledMessageIDsKey)
+        return true
     }
 
-    func handleWatchMessage(action: String, entryId: UUID, protocolId: UUID) {
+    func handleWorkoutRequest(_ request: WatchWorkoutRequest, messageID: String?) {
+        guard isFirstDelivery(messageID) else { return }
+        WorkoutSessionService.shared.apply(request)
+    }
+
+    /// Logged at the tap, never in the future: a water tap queued while the
+    /// phone was away still lands on the day it was made.
+    func handleWaterMessage(fluidOunces: Double, issuedAt: Date?, messageID: String?) {
+        guard isFirstDelivery(messageID) else { return }
+        let now = Date()
+        onLogWater?(fluidOunces, min(issuedAt ?? now, now))
+    }
+
+    /// A dose tapped while the phone was away is stamped with the tap
+    /// time, not the delivery time.
+    func handleWatchMessage(action: String, entryId: UUID, protocolId: UUID, issuedAt: Date?, messageID: String?) {
+        guard isFirstDelivery(messageID) else { return }
         switch action {
         case WatchMessage.markComplete:
-            onMarkComplete?(entryId, protocolId)
+            let now = Date()
+            onMarkComplete?(entryId, protocolId, min(issuedAt ?? now, now))
         case WatchMessage.markIncomplete:
             onMarkIncomplete?(entryId, protocolId)
         default:

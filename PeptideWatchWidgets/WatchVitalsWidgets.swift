@@ -5,6 +5,9 @@ import WidgetKit
 
 struct WatchVitalsEntry: TimelineEntry {
     let date: Date
+    /// False until the phone has written `watch_data.json`: no vitals yet
+    /// means "not synced", not "no Health data".
+    var synced = true
     let vitals: WatchVitalsSnapshot?
     var healthConnected = false
 
@@ -57,8 +60,8 @@ struct WatchVitalsProvider: TimelineProvider {
                 .containerURL(forSecurityApplicationGroupIdentifier: AppGroup.identifier)?
                 .appendingPathComponent("watch_data.json"),
               let data = try? Data(contentsOf: url),
-              let watchData = try? Self.decoder.decode(WatchData.self, from: data)
-        else { return WatchVitalsEntry(date: .now, vitals: nil) }
+              let watchData = try? Self.decoder.decode(WatchData.self, from: data).forDisplay(at: .now)
+        else { return WatchVitalsEntry(date: .now, synced: false, vitals: nil) }
         return WatchVitalsEntry(date: .now, vitals: watchData.vitals, healthConnected: watchData.healthConnected ?? false)
     }
 }
@@ -104,7 +107,11 @@ struct WatchRecoveryEntryView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             } else {
-                (entry.healthConnected ? Text("No recovery data yet") : Text("Connect Apple Health in Atlas"))
+                Text(!entry.synced
+                     ? String(localized: "Open Atlas on iPhone")
+                     : entry.healthConnected
+                     ? String(localized: "No recovery data yet")
+                     : String(localized: "Connect Apple Health in Atlas"))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -137,6 +144,7 @@ struct WatchRecoveryWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: WatchVitalsProvider()) { entry in
             WatchRecoveryEntryView(entry: entry)
+                .widgetURL(WatchPage.recovery.url)
         }
         .configurationDisplayName("Recovery")
         .description("Your Recovery score, resting heart rate and HRV.")
@@ -173,6 +181,11 @@ struct WatchSleepEntryView: View {
                 Image(systemName: "bed.double.fill")
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(sleep.map { String(localized: "Sleep Score \($0.score), \($0.band.label)") }
+                            ?? (entry.synced
+                                ? String(localized: "No sleep recorded last night")
+                                : String(localized: "Open Atlas on iPhone")))
         .containerBackground(for: .widget) { Color.clear }
     }
 
@@ -193,7 +206,9 @@ struct WatchSleepEntryView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             } else {
-                Text("No sleep recorded last night")
+                Text(entry.synced
+                     ? String(localized: "No sleep recorded last night")
+                     : String(localized: "Open Atlas on iPhone"))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -218,6 +233,7 @@ struct WatchSleepWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: WatchVitalsProvider()) { entry in
             WatchSleepEntryView(entry: entry)
+                .widgetURL(WatchPage.sleep.url)
         }
         .configurationDisplayName("Sleep Score")
         .description("Last night's Sleep Score and time asleep.")

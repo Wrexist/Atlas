@@ -5,8 +5,10 @@
  * `api.anthropic.com/v1/messages`. The iOS client never sees the
  * upstream Anthropic key.
  *
- * Routes (meal-scan, ai-research) thin-wrap `forwardToAnthropic` so
- * adding the next defense (App Attest) is a one-place change.
+ * Routes (meal-scan, food-scan, ai-research) thin-wrap
+ * `forwardToAnthropic`, so a new defense is a one-place change.
+ * weekly-summary shares the limiter and `refuse` but owns its upstream
+ * call.
  *
  * Env vars (set on the Vercel deployment):
  *   ANTHROPIC_API_KEY    — server-side Anthropic key.
@@ -20,8 +22,11 @@
  *                          first entry — silently, with no client error.
  *   RATE_LIMIT_RPM       — requests per minute per principal per
  *                          route. Default 20.
- *   DEVICE_DAILY_QUOTA   — upstream requests per principal per UTC
+ *   DEVICE_DAILY_QUOTA   — upstream cost units per principal per UTC
  *                          day. Default 300.
+ *   SHARED_IP_LIMIT_SCALE
+ *                        — multiplier on both for an IPv4 principal
+ *                          (carrier NAT). Default 10.
  *   ABUSE_STRIKES / ABUSE_BLOCK_SECONDS
  *                        — cooldown for a principal that keeps
  *                          tripping the limit. Defaults 20 / 900.
@@ -31,9 +36,10 @@
  *   ANTHROPIC_DAILY_REQUEST_BUDGET
  *                        — optional hard cap on upstream cost units
  *                          per UTC day across all routes; 503 once
- *                          spent. Fails closed if Redis is configured
- *                          but unreachable (BUDGET_FAIL_OPEN=1 opts
- *                          out).
+ *                          spent. Unset means 20 000 on a Vercel
+ *                          production deployment, no cap elsewhere.
+ *                          Fails closed if Redis is configured but
+ *                          unreachable (BUDGET_FAIL_OPEN=1 opts out).
  *
  * Limits are counted per *principal*: the verified App Attest key
  * when one is present, else the client IP. See `principalFor` — an
@@ -45,37 +51,46 @@
  *
  * iOS clients pull the proxy URL and the matching secret from
  * Info.plist (or scheme env): `MEAL_SCANNER_ENDPOINT` +
- * `MEAL_SCANNER_SECRET`, and `AI_RESEARCH_ENDPOINT` +
- * `AI_RESEARCH_SECRET`. The same `PROXY_SHARED_SECRET` server-side
- * value goes into both client secrets.
+ * `MEAL_SCANNER_SECRET`, `AI_RESEARCH_ENDPOINT` + `AI_RESEARCH_SECRET`,
+ * and `WEEKLY_SUMMARY_ENDPOINT` + `WEEKLY_SUMMARY_SECRET`. The same
+ * `PROXY_SHARED_SECRET` server-side value goes into every client secret.
+ *
+ * Refusals carry a stable `error.code` (see `refuse`) so the app can
+ * tell "slow down" from "come back tomorrow" from "we're down".
  */
 import { checkAppAttest } from './app-attest.js';
 import { authorize } from './auth.js';
 import {
+  abuseBlockSeconds,
   allowRate,
-  isBlocked,
-  recordLimitStrike,
-  requestCost,
   costForBody,
+  isBlocked,
+  principalLimit,
+  recordLimitStrike,
+  refundSpend,
+  secondsUntilWindowEnd,
   withinDailyBudget,
   withinDeviceQuota,
 } from './rate-limit.js';
 
-// Meal scanning runs on Sonnet 5 (vision quality is the product);
-// ai-research and weekly-summary are still on 4.6, so both have to be
-// allowed or the sanitiser would silently rewrite one of them. Index 0
-// is also the fallback for an unrecognised model, which is why the
-// stronger one leads.
+// The app sends Sonnet 5 on every route. 4.6 stays allowed for older
+// app builds whose ai-research still asks for it; without it the
+// sanitiser would silently rewrite their model. Index 0 is also the
+// fallback for an unrecognised model, which is why the stronger one
+// leads.
 const DEFAULT_ALLOWED_MODELS = ['claude-sonnet-5', 'claude-sonnet-4-6'];
 const MAX_TOKENS_HARDCAP = 800;
 // Cap large enough for the AI research multi-turn chat flow (history +
 // new turn). 4 was too small — the third user turn already produced 5
 // messages and the proxy rejected it.
 const MAX_MESSAGES = 40;
-// Absolute body-size ceiling. Each route can pass a tighter
-// `maxBodyBytes` to `forwardToAnthropic` — meal-scan needs ~5 MB for
-// a JPEG payload, ai-research is text-only and ~64 KB is plenty.
-const MAX_BODY_BYTES = 7 * 1024 * 1024;
+// Absolute body-size ceiling, just under the 4.5 MB request payload
+// limit Vercel functions enforce before the handler runs. Each route
+// can pass a tighter `maxBodyBytes` — ai-research is text-only.
+const MAX_BODY_BYTES = 4_400_000;
+// The client-supplied part of a route's system prompt is cut to this
+// unless the route allows more (`maxClientSystemChars`).
+const MAX_CLIENT_SYSTEM_CHARS = 4000;
 
 function getAllowedModels() {
   const raw = process.env.ALLOWED_MODELS;
@@ -111,17 +126,40 @@ export function clientKey(req) {
  * a speed bump rather than a cap. This is why attestation matters
  * beyond authentication: it's what makes per-user quotas possible.
  */
-function principalFor(req, attest) {
+export function principalFor(req, attest) {
   if (attest?.keyId) return `k:${attest.keyId}`;
   return `ip:${clientKey(req)}`;
 }
 
 // Scoped per route (logLabel) so a meal-scan burst can't starve
 // ai-research — the same isolation the old per-lambda Maps had by
-// accident of deployment topology.
-function checkRateLimit(principal, logLabel, cost) {
+// accident of deployment topology. Counts requests, not cost units:
+// spend is bounded by the daily quota and budget, and charging a photo
+// ~4 units here throttled a user after a handful of scans.
+function checkRateLimit(principal, logLabel) {
   const limit = parseInt(process.env.RATE_LIMIT_RPM || '20', 10);
-  return allowRate({ name: logLabel, key: principal, limit, windowSeconds: 60, cost });
+  return allowRate({ name: logLabel, key: principal, limit: principalLimit(principal, limit), windowSeconds: 60 });
+}
+
+const REFUSALS = {
+  rate_limited: { status: 429, message: 'Too many requests', retryAfter: () => 60 },
+  blocked: { status: 429, message: 'Too many requests', retryAfter: abuseBlockSeconds },
+  daily_quota: {
+    status: 429,
+    message: 'Daily limit reached; try again tomorrow',
+    retryAfter: () => secondsUntilWindowEnd(86_400),
+  },
+  unavailable: { status: 503, message: 'Service unavailable' },
+};
+
+/**
+ * Sends one of the limit / availability refusals with its stable
+ * `error.code` and, where the wait is known, a `Retry-After` header.
+ */
+export function refuse(res, code) {
+  const { status, message, retryAfter } = REFUSALS[code];
+  if (retryAfter) res.setHeader('Retry-After', String(retryAfter()));
+  res.status(status).json({ error: { message, code } });
 }
 
 // Anthropic accepts content parts of these typed shapes. Anything else
@@ -209,7 +247,7 @@ function sanitiseBody(raw, options) {
   const allowClientSystem = options?.allowClientSystem !== false;
   const pinnedPrefix = typeof options?.systemPrefix === 'string' ? options.systemPrefix : '';
   const clientSystem = allowClientSystem && typeof raw.system === 'string'
-    ? raw.system.slice(0, 4000)
+    ? raw.system.slice(0, options?.maxClientSystemChars ?? MAX_CLIENT_SYSTEM_CHARS)
     : '';
   const composed = pinnedPrefix && clientSystem
     ? `${pinnedPrefix}\n\n${clientSystem}`
@@ -222,6 +260,7 @@ export async function forwardToAnthropic(req, res, {
   logLabel,
   systemPrefix,
   allowClientSystem,
+  maxClientSystemChars,
   maxBodyBytes,
   shape,
   maxTokens,
@@ -256,30 +295,20 @@ export async function forwardToAnthropic(req, res, {
   }
 
   const principal = principalFor(req, attest);
-  let cost = requestCost(req);
 
   // A principal in an abuse cooldown is refused before any work.
   if (await isBlocked({ principal })) {
-    res.status(429).json({ error: { message: 'Too many requests' } });
+    refuse(res, 'blocked');
     return;
   }
 
-  if (!(await checkRateLimit(principal, logLabel, cost))) {
+  if (!(await checkRateLimit(principal, logLabel))) {
     // Persistent hammering earns a cooldown; a client that trips the
     // limit occasionally never accumulates enough strikes to notice.
     if (await recordLimitStrike({ principal })) {
       console.warn(`[${logLabel}] principal blocked for repeated limit strikes`);
     }
-    res.status(429).json({ error: { message: 'Too many requests' } });
-    return;
-  }
-
-  // Per-principal daily ceiling. Without this, one extracted secret
-  // can spend the whole shared budget and take every paying user down
-  // with it — the global cap alone protects the bill, not the service.
-  if (!(await withinDeviceQuota({ principal, cost }))) {
-    console.warn(`[${logLabel}] principal exceeded daily quota`);
-    res.status(429).json({ error: { message: 'Daily limit reached; try again tomorrow' } });
+    refuse(res, 'rate_limited');
     return;
   }
 
@@ -289,7 +318,7 @@ export async function forwardToAnthropic(req, res, {
     // client a generic "service unavailable" — leaking "proxy not
     // configured" advertises a half-deployed environment.
     console.error(`[${logLabel}] ANTHROPIC_API_KEY missing on this deployment`);
-    res.status(503).json({ error: { message: 'Service unavailable' } });
+    refuse(res, 'unavailable');
     return;
   }
 
@@ -307,7 +336,7 @@ export async function forwardToAnthropic(req, res, {
   // Enforce the cap on the actual parsed body too — a client can omit
   // or understate `content-length` (chunked transfer), which would
   // otherwise let a route-specific tighter cap be bypassed up to the
-  // global 7 MB bodyParser limit.
+  // platform's own body limit.
   const parsedBytes = Buffer.byteLength(JSON.stringify(req.body ?? ''), 'utf8');
   if (parsedBytes > bodyCap) {
     res.status(413).json({
@@ -316,33 +345,29 @@ export async function forwardToAnthropic(req, res, {
     return;
   }
 
-  // `cost` was derived from `content-length`, which a client can omit
-  // entirely (chunked transfer) or understate. That made a 7 MB meal
-  // scan cost the same single unit as a one-line text turn — the exact
-  // payloads the spend controls exist for were the ones that slipped
-  // past them. The parsed body is measured above, so charge on that
-  // instead, and bill the difference to the device quota, which was
-  // already charged the header's smaller figure before parsing.
   // Routes that own their prompt (food-scan) build the whole upstream
   // request server-side from a small app payload; everything else is a
   // sanitised pass-through of the Messages shape the app sends.
   const clean = buildBody
     ? buildBody(req.body)
-    : sanitiseBody(req.body, { systemPrefix, allowClientSystem, shape, maxTokens });
+    : sanitiseBody(req.body, { systemPrefix, allowClientSystem, maxClientSystemChars, shape, maxTokens });
   if (!clean) {
     res.status(400).json({ error: { message: 'Malformed request body' } });
     return;
   }
 
-  const actualCost = costForBody(clean, parsedBytes);
-  if (actualCost > cost) {
-    if (!(await withinDeviceQuota({ principal, cost: actualCost - cost }))) {
-      res.status(429).json({
-        error: { message: 'Daily limit reached; try again tomorrow' }
-      });
-      return;
-    }
-    cost = actualCost;
+  // Charged on the parsed body, never on `content-length`, which a
+  // client can omit or understate — and only once the request is known
+  // to be well-formed, so a 400 or 413 costs the caller nothing.
+  const cost = costForBody(clean, parsedBytes);
+
+  // Per-principal daily ceiling. Without this, one extracted secret
+  // can spend the whole shared budget and take every paying user down
+  // with it — the global cap alone protects the bill, not the service.
+  if (!(await withinDeviceQuota({ principal, cost }))) {
+    console.warn(`[${logLabel}] principal exceeded daily quota`);
+    refuse(res, 'daily_quota');
+    return;
   }
 
   // Hard spend ceiling, checked last so only requests that would
@@ -351,7 +376,8 @@ export async function forwardToAnthropic(req, res, {
   // both as "try later", and the reason stays server-side.
   if (!(await withinDailyBudget({ cost }))) {
     console.error(`[${logLabel}] daily Anthropic budget exhausted or unverifiable`);
-    res.status(503).json({ error: { message: 'Service unavailable' } });
+    await refundSpend({ principal, cost, budget: false });
+    refuse(res, 'unavailable');
     return;
   }
 
@@ -380,6 +406,7 @@ export async function forwardToAnthropic(req, res, {
       // second try; anything else fails the same way again.
       console.error(`[${logLabel}] upstream non-2xx`, upstream.status);
       const retryable = upstream.status === 429 || upstream.status >= 500;
+      await refundSpend({ principal, cost });
       res.status(502).json({ error: { message: 'Upstream error', ...(retryable && { retryable: true }) } });
       return;
     }
@@ -395,22 +422,17 @@ export async function forwardToAnthropic(req, res, {
     res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json');
     res.send(text);
   } catch (err) {
+    // No refund on a timeout: Anthropic may still finish, and bill,
+    // the generation we stopped waiting for.
     if (err && err.name === 'AbortError') {
       console.error(`[${logLabel}] upstream timeout`);
       res.status(504).json({ error: { message: 'Upstream timeout' } });
       return;
     }
     console.error(`[${logLabel}] fetch failure`, err);
+    await refundSpend({ principal, cost });
     res.status(502).json({ error: { message: 'Proxy failure', retryable: true } });
   } finally {
     clearTimeout(timeout);
   }
 }
-
-export const sharedConfig = {
-  api: {
-    bodyParser: {
-      sizeLimit: '7mb',
-    },
-  },
-};

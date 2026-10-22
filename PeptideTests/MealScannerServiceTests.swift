@@ -30,7 +30,7 @@ final class MealScannerServiceTests: XCTestCase {
 
     private func tinyImage() -> UIImage {
         // 4×4 px solid red image — easily JPEG-compresses to a few
-        // hundred bytes, well under the 5 MB cap so `compress` doesn't
+        // hundred bytes, well under the 3 MB cap so `compress` doesn't
         // throw mid-test.
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: 4, height: 4))
         return renderer.image { ctx in
@@ -179,13 +179,13 @@ final class MealScannerServiceTests: XCTestCase {
         }
     }
 
-    func test_analyze_payloadTooLarge_throwsImageTooLarge() async {
+    func test_analyze_503_throwsServiceUnavailable() async {
         MockURLProtocol.handler = { request in
-            (Self.response(for: request, status: 413), Data())
+            (Self.response(for: request, status: 503), Data())
         }
         await XCTAssertThrowsErrorAsync(try await service.analyze(image: tinyImage())) { error in
-            if case .imageTooLarge = error as? MealScannerService.ScanError {} else {
-                XCTFail("Expected .imageTooLarge, got \(error)")
+            guard case .serviceUnavailable = error as? MealScannerService.ScanError else {
+                return XCTFail("Expected .serviceUnavailable, got \(error)")
             }
         }
     }
@@ -212,6 +212,17 @@ final class MealScannerServiceTests: XCTestCase {
         XCTAssertEqual(attempts.value, 1)
     }
 
+    func test_analyze_413_throwsImageTooLarge() async {
+        MockURLProtocol.handler = { request in
+            (Self.response(for: request, status: 413), Data())
+        }
+        await XCTAssertThrowsErrorAsync(try await service.analyze(image: tinyImage())) { error in
+            guard case .imageTooLarge = error as? MealScannerService.ScanError else {
+                return XCTFail("Expected .imageTooLarge, got \(error)")
+            }
+        }
+    }
+
     func test_analyze_throwsUnauthorisedOn401() async {
         MockURLProtocol.handler = { request in
             (Self.response(for: request, status: 401), Data())
@@ -229,6 +240,30 @@ final class MealScannerServiceTests: XCTestCase {
             XCTAssertFalse(description.lowercased().contains("anthropic"))
             XCTAssertFalse(description.contains("401"))
         }
+    }
+
+    func test_analyze_attestRequired401_retriesOnceWithFreshRegistration() async {
+        let callCount = SendableBox<Int>(0)
+        MockURLProtocol.handler = { request in
+            callCount.set(callCount.value + 1)
+            let body = #"{"error":{"message":"Unauthorised","code":"attest_required"}}"#
+            return (Self.response(for: request, status: 401), Data(body.utf8))
+        }
+        await XCTAssertThrowsErrorAsync(try await service.analyze(image: tinyImage())) { error in
+            guard case .unauthorised = error as? MealScannerService.ScanError else {
+                XCTFail("Expected .unauthorised, got \(error)")
+                return
+            }
+        }
+        XCTAssertEqual(callCount.value, 2)
+    }
+
+    func test_isAttestRejection_readsOnlyTheAttestCode() {
+        XCTAssertTrue(AppAttestService.isAttestRejection(
+            Data(#"{"error":{"message":"Unauthorised","code":"attest_required"}}"#.utf8)
+        ))
+        XCTAssertFalse(AppAttestService.isAttestRejection(Data(#"{"error":{"message":"Unauthorised"}}"#.utf8)))
+        XCTAssertFalse(AppAttestService.isAttestRejection(Data()))
     }
 
     // MARK: - Malformed responses

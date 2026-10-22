@@ -100,10 +100,10 @@ struct MuscleMapView: View {
                 .font(AppFont.caption.weight(.semibold))
                 .foregroundStyle(AppColor.textPrimary)
                 .padding(.horizontal, Spacing.md)
-                .padding(.vertical, 5)
+                .padding(.vertical, Spacing.xs)
                 .background(Capsule().fill(AppColor.surfaceElevated))
-                .overlay(Capsule().stroke(Color.white.opacity(0.12)))
-                .padding(.top, 6)
+                .overlay(Capsule().stroke(AppColor.glassBorder))
+                .padding(.top, Spacing.xs)
                 .transition(.opacity.combined(with: .scale(scale: 0.9)))
         }
     }
@@ -190,7 +190,7 @@ struct MuscleMapView: View {
             guard let highlight = highlights[muscle], muscle.isBack == (facing == .back) else { return nil }
             switch highlight {
             case .primary:           return "\(muscle.regionName), primary"
-            case .secondary:         return "\(muscle.regionName), secondary"
+            case .secondary:         return "\(muscle.regionName), supporting"
             case .intensity(let v):  return "\(muscle.regionName), relative training score \(Int(max(0, min(1, v)) * 100)) out of 100"
             }
         }
@@ -247,24 +247,6 @@ extension MuscleMapView {
 // MARK: - Convenience builders
 
 extension MuscleMapView {
-    /// Build the highlight payload for an exercise's primary +
-    /// secondary muscle lists. Primary wins ties — if a muscle is
-    /// listed in both arrays (rare but possible) the primary tint
-    /// dominates.
-    static func highlights(
-        primaryRawMuscles: [String],
-        secondaryRawMuscles: [String]
-    ) -> [AnatomicalMuscle: MuscleHighlight] {
-        var map: [AnatomicalMuscle: MuscleHighlight] = [:]
-        for muscle in AnatomicalMuscle.regions(forRawMuscles: secondaryRawMuscles) {
-            map[muscle] = .secondary
-        }
-        for muscle in AnatomicalMuscle.regions(forRawMuscles: primaryRawMuscles) {
-            map[muscle] = .primary
-        }
-        return map
-    }
-
     /// Build the highlight payload for a single exercise — see
     /// `ExerciseAnatomyEngine.highlights(for:)`.
     static func highlights(for exercise: Exercise) -> [AnatomicalMuscle: MuscleHighlight] {
@@ -335,16 +317,6 @@ struct MuscleHeatLegend: View {
         .padding()
         .background(AppColor.background)
         .preferredColorScheme(.dark)
-}
-
-#Preview("Exercise detail (Bar Lateral Pulldown)") {
-    MuscleMapView(highlights: MuscleMapView.highlights(
-        primaryRawMuscles: ["lats"],
-        secondaryRawMuscles: ["biceps", "middle back", "shoulders"]
-    ))
-    .padding()
-    .background(AppColor.background)
-    .preferredColorScheme(.dark)
 }
 
 #Preview("Weekly heatmap") {

@@ -24,7 +24,7 @@ final class ReviewPromptService {
     private let minLaunches = 4
     private let minDaysBetweenPrompts = 90
     /// Marks the start of this app session — the singleton is first
-    /// touched by `recordLaunch()` on the first `.active` transition.
+    /// touched by `recordLaunch()` when the app first shows its UI.
     private let sessionStart = Date()
 
     private init() {

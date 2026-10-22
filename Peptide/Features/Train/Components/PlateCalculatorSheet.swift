@@ -16,8 +16,10 @@ struct PlateCalculatorSheet: View {
 
     @State private var unit: MeasurementUnit = .metric
     @State private var selectedBar: BarKind = .olympic
-    @State private var target: Double = 0
-    @State private var barWeight: Double = 0
+    /// The fields edit text drafts so the loadout follows every keystroke;
+    /// a value-bound TextField only commits on focus loss.
+    @State private var targetText = ""
+    @State private var barText = ""
     @State private var hasSeeded = false
     @FocusState private var focusedField: Field?
 
@@ -28,6 +30,8 @@ struct PlateCalculatorSheet: View {
     }
 
     private var plates: [Double] { preferences.plates(for: unit) }
+    private var target: Double { Self.parse(targetText) }
+    private var barWeight: Double { Self.parse(barText) }
 
     private var outcome: PlateCalculatorEngine.Outcome {
         PlateCalculatorEngine.calculate(target: target, barWeight: barWeight, plates: plates)
@@ -76,10 +80,10 @@ struct PlateCalculatorSheet: View {
     private var inputs: some View {
         GlassCard {
             VStack(spacing: Spacing.md) {
-                weightField("Target", value: $target, field: .target)
+                weightField("Target", text: $targetText, field: .target)
                 Divider().background(AppColor.glassBorder)
                 barPicker
-                weightField("Bar", value: $barWeight, field: .bar)
+                weightField("Bar", text: $barText, field: .bar)
             }
         }
     }
@@ -100,13 +104,13 @@ struct PlateCalculatorSheet: View {
         }
     }
 
-    private func weightField(_ label: LocalizedStringKey, value: Binding<Double>, field: Field) -> some View {
+    private func weightField(_ label: LocalizedStringKey, text: Binding<String>, field: Field) -> some View {
         HStack(spacing: Spacing.sm) {
             Text(label)
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.textPrimary)
             Spacer(minLength: 0)
-            TextField(label, value: value, format: .number.precision(.fractionLength(0...2)))
+            TextField(label, text: text)
                 .keyboardType(.decimalPad)
                 .focused($focusedField, equals: field)
                 .multilineTextAlignment(.trailing)
@@ -210,13 +214,13 @@ struct PlateCalculatorSheet: View {
         guard newUnit != unit else { return }
         let targetKg = unit.kilograms(fromDisplayed: target)
         unit = newUnit
-        target = (newUnit.weightForDisplay(targetKg) * 10).rounded() / 10
-        barWeight = preferences.barWeight(selectedBar, unit: newUnit)
+        targetText = Self.format((newUnit.weightForDisplay(targetKg) * 10).rounded() / 10)
+        barText = Self.format(preferences.barWeight(selectedBar, unit: newUnit))
     }
 
     private func selectBar(_ newBar: BarKind) {
         selectedBar = newBar
-        barWeight = preferences.barWeight(newBar, unit: unit)
+        barText = Self.format(preferences.barWeight(newBar, unit: unit))
     }
 
     private func seed() {
@@ -225,8 +229,19 @@ struct PlateCalculatorSheet: View {
         let profileUnit = dataStore.profile.bodyMetrics.unit
         unit = profileUnit
         selectedBar = bar
-        barWeight = preferences.barWeight(bar, unit: profileUnit)
-        target = initialTarget ?? barWeight
+        let barWeight = preferences.barWeight(bar, unit: profileUnit)
+        barText = Self.format(barWeight)
+        targetText = Self.format(initialTarget ?? barWeight)
+    }
+
+    /// Tries "." first so a pasted "62.5" isn't read as 625 where "." is
+    /// the grouping separator, then the locale's own decimal separator.
+    private static func parse(_ text: String) -> Double {
+        Double(text) ?? (try? Double(text, format: FloatingPointFormatStyle<Double>())) ?? 0
+    }
+
+    private static func format(_ weight: Double) -> String {
+        weight.formatted(.number.precision(.fractionLength(0...2)).grouping(.never))
     }
 
     private func plateColor(_ plate: Double) -> Color {
