@@ -28,14 +28,14 @@ struct SyncToast: View {
                         .foregroundStyle(AppColor.textPrimary)
                 }
                 .padding(.horizontal, Spacing.md)
-                .padding(.vertical, 8)
+                .padding(.vertical, Spacing.sm)
                 .glassControl(
                     .capsule,
                     tint: AppColor.success.opacity(0.10),
                     border: AppColor.success.opacity(0.35),
                     interactive: false
                 )
-                .shadow(color: .black.opacity(0.25), radius: 8, y: 2)
+                .appShadow(AppShadow.glassSubtle)
                 .transition(.move(edge: .top).combined(with: .opacity))
                 .onAppear {
                     // Gone before VoiceOver focus could reach it, so say it.

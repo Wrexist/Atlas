@@ -121,14 +121,7 @@ private struct StatTileSurface: ViewModifier {
         case .inset:
             content
                 .padding(Spacing.md)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .fill(AppColor.cardOverlay)
-                        .overlay {
-                            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                                .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                        }
-                }
+                .insetRowBackground(cornerRadius: Spacing.smallCornerRadius)
         case .glass:
             content
                 .padding(Spacing.md)
