@@ -46,13 +46,13 @@ struct WorkoutFinishView: View {
                         .sectionAppear(index: 1)
                     if !detectedPRs.isEmpty {
                         RecapNewPRs(prs: detectedPRs, entries: summary.entries, unit: unit)
-                            .sectionAppear(index: 1)
+                            .sectionAppear(index: 2)
                     }
                     VStack(alignment: .trailing, spacing: 0) {
                         RecapMetrics(summary: summary, unit: unit)
                         RecapCalculationNotes(summary: summary)
                     }
-                    .sectionAppear(index: 2)
+                    .sectionAppear(index: 3)
                     NavigationLink {
                         WorkoutRecapExercisesView(store: store, unit: unit)
                     } label: {
@@ -60,7 +60,7 @@ struct WorkoutFinishView: View {
                             Text("^[\(summary.entries.count) exercise](inflect: true) · View workout")
                         }
                     }.buttonStyle(ScalePressStyle()).accessibilityIdentifier("recap-exercises")
-                        .sectionAppear(index: 3)
+                        .sectionAppear(index: 4)
                     RecapCard {
                         VStack(alignment: .leading, spacing: Spacing.md) {
                             Text("Muscle focus").font(AppFont.headline)
@@ -86,7 +86,7 @@ struct WorkoutFinishView: View {
                             .accessibilityIdentifier("recap-muscles")
                         }
                     }
-                    .sectionAppear(index: 4)
+                    .sectionAppear(index: 5)
                     if store.metadataUnavailable {
                         Text("Exercise metadata is unavailable. Your saved sets are still shown.").font(AppFont.subheadline)
                         Button("Retry exercise metadata") { Task { await store.load() } }.frame(minHeight: Spacing.minimumHitTarget)
