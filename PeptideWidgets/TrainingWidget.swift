@@ -155,10 +155,6 @@ struct TrainingTimelineProvider: TimelineProvider {
 private let trainingTint = WidgetPalette.training
 private let trainingGlyph = "figure.strengthtraining.traditional"
 
-private func sessionsWord(_ count: Int) -> LocalizedStringKey {
-    count == 1 ? "session" : "sessions"
-}
-
 /// Monday to Sunday, a dot per day: filled where a session finished,
 /// ringed for today, faded for days still to come. The week's rhythm at
 /// a glance, which a count alone can't show.
@@ -245,18 +241,22 @@ private struct SessionCount: View {
     let count: Int
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 4) {
-            Text("\(count)")
-                .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                .monospacedDigit()
-                .foregroundStyle(trainingTint)
-                .contentTransition(.numericText(value: Double(count)))
-                .widgetAccentable()
-            Text(sessionsWord(count))
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+        Text(label)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .contentTransition(.numericText(value: Double(count)))
+            .lineLimit(1)
+    }
+
+    /// Inflected as one phrase so the noun agrees with the count in any
+    /// language, then the count itself set large in the training tint.
+    private var label: AttributedString {
+        var text = AttributedString(localized: "^[\(count) session](inflect: true)")
+        if let number = text.range(of: count.formatted()) {
+            text[number].font = .system(.largeTitle, design: .rounded, weight: .bold).monospacedDigit()
+            text[number].foregroundColor = trainingTint
         }
-        .lineLimit(1)
+        return text
     }
 }
 
