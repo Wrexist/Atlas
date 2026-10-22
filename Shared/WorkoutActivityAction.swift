@@ -19,10 +19,16 @@ enum PendingWorkoutActionStore {
     }
 
     private static let inboxKey = "com.peptidesai.app.pendingWorkoutActions"
+    /// The last Complete set queued. `drain` never clears it, so a
+    /// double tap still matches after the app has drained the first.
+    private static let lastCompleteSetKey = "com.peptidesai.app.lastWorkoutCompleteSet"
 
     static func enqueue(_ pending: Pending, defaults: UserDefaults? = nil) {
         let store = defaults ?? sharedDefaults
         write(read(store) + [pending], to: store)
+        if pending.action == .completeSet {
+            writeLastCompleteSet(pending, to: store)
+        }
         CFNotificationCenterPostNotification(
             CFNotificationCenterGetDarwinNotifyCenter(),
             CFNotificationName(CrossProcessNotification.pendingWorkoutActionQueued as CFString),
@@ -48,12 +54,13 @@ enum PendingWorkoutActionStore {
         return withoutDoubleTaps(pending.sorted { $0.tappedAt < $1.tappedAt })
     }
 
-    /// Whether `tap` doubles a Complete set already waiting in the
-    /// inbox. The button checks before queuing, so a double tap neither
-    /// logs nor shows a second set; `drain` repeats the check as a
-    /// backstop.
+    /// Whether `tap` doubles the last Complete set queued, drained or
+    /// not. The button checks before queuing, so a double tap neither
+    /// logs nor shows a second set; `drain` repeats the check within a
+    /// batch as a backstop.
     static func isDoubleTap(_ tap: Pending, defaults: UserDefaults? = nil) -> Bool {
-        isDoubleTap(tap, after: read(defaults ?? sharedDefaults))
+        let store = defaults ?? sharedDefaults
+        return isDoubleTap(tap, after: [readLastCompleteSet(store)].compactMap { $0 } + read(store))
     }
 
     private static func isDoubleTap(_ tap: Pending, after earlier: [Pending]) -> Bool {
@@ -87,6 +94,16 @@ enum PendingWorkoutActionStore {
             log.error("inbox decode failed; dropping queued taps: \(error.localizedDescription, privacy: .public)")
             return []
         }
+    }
+
+    private static func readLastCompleteSet(_ defaults: UserDefaults) -> Pending? {
+        guard let data = defaults.data(forKey: lastCompleteSetKey) else { return nil }
+        return try? JSONDecoder().decode(Pending.self, from: data)
+    }
+
+    private static func writeLastCompleteSet(_ tap: Pending, to defaults: UserDefaults) {
+        guard let data = try? JSONEncoder().encode(tap) else { return }
+        defaults.set(data, forKey: lastCompleteSetKey)
     }
 
     private static func write(_ taps: [Pending], to defaults: UserDefaults) {
