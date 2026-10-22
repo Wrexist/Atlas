@@ -217,8 +217,10 @@ final class ProfileSyncIntegrityTests: XCTestCase {
         // A save after an identity change, before CloudKit's first import,
         // writes the in-memory fresh profile as the newest row.
         var real = baseProfile()
+        // Stored dates round-trip at whole seconds, so pin ageRecordedAt.
         real.bodyMetrics = BodyMetrics(weightKg: 82, heightCm: 180, age: 38,
-                                       sex: .male, activityLevel: .active, unit: .metric)
+                                       sex: .male, activityLevel: .active, unit: .metric,
+                                       ageRecordedAt: day)
         real.biometricLockEnabled = true
         real.lastKnownTimezoneIdentifier = "Europe/Stockholm"
         let realRow = try StoredProfile.make(from: real)
