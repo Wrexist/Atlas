@@ -12,9 +12,9 @@ struct NutritionPage: View {
 
     /// Water is stored in fluid ounces, so the labels follow the phone's
     /// unit setting or the two surfaces disagree about the same number.
-    /// An older phone build that doesn't send the unit gets imperial,
-    /// which is what the Watch always showed.
-    private var isMetric: Bool { store.watchData.measurementUnit == "metric" }
+    /// Read through `WatchWeightUnit` so a missing unit means metric here
+    /// too, never oz water beside kg weights.
+    private var isMetric: Bool { !WatchWeightUnit(store.watchData.measurementUnit).isImperial }
 
     /// Metric amounts are sent as exact fractional ounces, so +250mL
     /// logs 250 mL on the phone rather than a rounded 8 oz (237 mL).

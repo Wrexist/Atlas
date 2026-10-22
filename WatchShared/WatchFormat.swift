@@ -11,7 +11,8 @@ enum WatchFormat {
 
 /// Weight on the wrist: canonical kilograms in, the phone's unit out.
 /// Built from `WatchData.measurementUnit`; an older phone that doesn't
-/// send it gets metric, the unit the weights are stored in.
+/// send it gets metric, the unit the weights are stored in. The one
+/// place the Watch reads that unit, so every page agrees on the default.
 struct WatchWeightUnit {
     let isImperial: Bool
 
