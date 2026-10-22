@@ -341,13 +341,13 @@ enum LabPanel: String, Codable, CaseIterable, Identifiable, Sendable {
     /// "thyroid" page reads as one design idiom end to end.
     var tint: Color {
         switch category {
-        case .sexHormones: Color(red: 0.92, green: 0.45, blue: 0.62)
-        case .growth:      Color(red: 0.40, green: 0.78, blue: 0.55)
-        case .thyroid:     Color(red: 0.48, green: 0.50, blue: 0.92)
-        case .metabolic:   Color(red: 0.95, green: 0.65, blue: 0.30)
-        case .lipids:      Color(red: 0.92, green: 0.38, blue: 0.38)
-        case .organHealth: Color(red: 0.55, green: 0.78, blue: 0.92)
-        case .other:       Color(red: 0.75, green: 0.75, blue: 0.85)
+        case .sexHormones: AppColor.labSexHormones
+        case .growth:      AppColor.labGrowth
+        case .thyroid:     AppColor.labThyroid
+        case .metabolic:   AppColor.labMetabolic
+        case .lipids:      AppColor.labLipids
+        case .organHealth: AppColor.labOrganHealth
+        case .other:       AppColor.labOther
         }
     }
 
