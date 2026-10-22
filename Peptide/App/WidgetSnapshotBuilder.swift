@@ -35,9 +35,12 @@ enum WidgetSnapshotBuilder {
         // Surface 3 doses for the Medium widget's today list — see slot 7
         // in docs/APP_STORE_SCREENSHOTS_GUIDE_1.md. Pending doses come
         // first so a morning of logged doses can't crowd out the ones
-        // still due; each half stays chronological.
+        // still due, soonest first; logged doses fill any spare rows
+        // most recent first, so the dose just taken is the one shown.
         let chronological = today.sorted { $0.date < $1.date }
-        let upcoming = (chronological.filter { !$0.completed } + chronological.filter(\.completed))
+        let pending = chronological.filter { !$0.completed }
+        let logged = chronological.filter(\.completed).reversed()
+        let upcoming = (pending + logged)
             .prefix(3)
             .map { entry in
                 WidgetDoseSlot(
