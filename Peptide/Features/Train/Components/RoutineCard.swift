@@ -140,7 +140,8 @@ struct RoutineCard: View {
         guard !routine.exercises.isEmpty else { return "No exercises yet" }
         let count = routine.exercises.count
         let exercises = count == 1 ? "1 exercise" : "\(count) exercises"
-        return "\(exercises) · \(summary.totalSets) sets · ~\(summary.estimatedMinutes) min"
+        let sets = summary.totalSets == 1 ? "1 set" : "\(summary.totalSets) sets"
+        return "\(exercises) · \(sets) · ~\(summary.estimatedMinutes) min"
     }
 
     private var exerciseLine: String {

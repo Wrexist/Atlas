@@ -302,7 +302,7 @@ struct WorkoutSessionDetailView: View {
                             .font(AppFont.callout)
                             .foregroundStyle(AppColor.textPrimary)
                     } else {
-                        Text("\(set.reps) reps")
+                        Text("^[\(set.reps) rep](inflect: true)")
                             .font(AppFont.callout)
                             .foregroundStyle(AppColor.textPrimary)
                     }

@@ -62,7 +62,7 @@ struct WorkoutHighlightCanvas: View {
                     Text("^[\(summary.entries.count) exercise](inflect: true)")
                 }
                 if options.includeVolume && summary.volumeKg != nil {
-                    Text("\(summary.workingSetLabel) sets")
+                    Text("^[\(summary.workingSetCount) set](inflect: true)")
                 }
             }
             .font(.caption).monospacedDigit()
