@@ -91,7 +91,7 @@ enum DoseDayMap {
         // dot row doesn't show two of the same colour.
         for day in grid {
             for proto in protocols where proto.status == .active {
-                guard isDayInCycle(day, protocol: proto, calendar: cal) else { continue }
+                guard CyclePhaseEngine.isOnCycle(day, protocol: proto, calendar: cal) else { continue }
                 for peptide in proto.peptides {
                     let schedule = proto.schedule(for: peptide.id)
                     guard schedule.isActive(on: day, protocolStart: proto.startDate, calendar: cal)
@@ -130,20 +130,6 @@ enum DoseDayMap {
         }
 
         return result
-    }
-
-    // MARK: - Predicates
-
-    private static func isDayInCycle(
-        _ day: Date,
-        protocol proto: PeptideProtocol,
-        calendar: Calendar
-    ) -> Bool {
-        let start = calendar.startOfDay(for: proto.startDate)
-        guard day >= start else { return false }
-        let weeks = proto.safeCycleLengthWeeks
-        guard let end = calendar.date(byAdding: .day, value: weeks * 7, to: start) else { return true }
-        return day < end
     }
 
     private static func timeString(for date: Date, calendar: Calendar) -> String {

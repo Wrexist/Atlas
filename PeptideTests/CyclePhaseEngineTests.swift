@@ -124,6 +124,32 @@ final class CyclePhaseEngineTests: XCTestCase {
         )
     }
 
+    // MARK: - isOnCycle (2 weeks on / 1 week wash-out)
+
+    func test_isOnCycle_washoutWeek_isOff() {
+        let proto = makeProtocol(startDate: anchor)
+        XCTAssertTrue(CyclePhaseEngine.isOnCycle(day(13), protocol: proto, calendar: calendar))
+        XCTAssertFalse(CyclePhaseEngine.isOnCycle(day(14), protocol: proto, calendar: calendar))
+        XCTAssertFalse(CyclePhaseEngine.isOnCycle(day(20), protocol: proto, calendar: calendar))
+    }
+
+    func test_isOnCycle_secondCycle_isOnAgain() {
+        let proto = makeProtocol(startDate: anchor)
+        XCTAssertTrue(CyclePhaseEngine.isOnCycle(day(21), protocol: proto, calendar: calendar))
+        XCTAssertTrue(CyclePhaseEngine.isOnCycle(day(34), protocol: proto, calendar: calendar))
+    }
+
+    func test_isOnCycle_noWashout_endsAfterFirstCycle() {
+        let proto = makeProtocol(startDate: anchor, washoutWeeks: 0)
+        XCTAssertTrue(CyclePhaseEngine.isOnCycle(day(13), protocol: proto, calendar: calendar))
+        XCTAssertFalse(CyclePhaseEngine.isOnCycle(day(21), protocol: proto, calendar: calendar))
+    }
+
+    func test_isOnCycle_beforeStart_isOff() {
+        let proto = makeProtocol(startDate: anchor)
+        XCTAssertFalse(CyclePhaseEngine.isOnCycle(day(-1), protocol: proto, calendar: calendar))
+    }
+
     // MARK: - Glyphs (pure switch; copy/colors are render concerns)
 
     func test_icon_isStablePerPhase() {
