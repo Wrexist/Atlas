@@ -158,6 +158,7 @@ private func statusShortLabel(
 private struct DoseWindowLockView: View {
     let attributes: DoseWindowAttributes
     let state: DoseWindowAttributes.ContentState
+    @Environment(\.colorScheme) private var colorScheme
 
     private var tint: Color { Color(hex: attributes.tintHex) }
     private var accent: Color { statusAccent(for: state, tint: tint) }
@@ -294,7 +295,7 @@ private struct DoseWindowLockView: View {
                     Text("Log")
                         .font(.system(size: 14, weight: .heavy))
                 }
-                .foregroundStyle(labelColor(on: accent))
+                .foregroundStyle(labelColor(on: accent, in: colorScheme))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .background {
@@ -539,6 +540,7 @@ private struct IslandBottomBar: View {
     let entryId: UUID
     let state: DoseWindowAttributes.ContentState
     let tint: Color
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         HStack(spacing: 10) {
@@ -569,7 +571,7 @@ private struct IslandBottomBar: View {
                     Text("Log dose")
                         .font(.system(size: 13, weight: .heavy))
                 }
-                .foregroundStyle(labelColor(on: tint))
+                .foregroundStyle(labelColor(on: tint, in: colorScheme))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 7)
                 .background {
@@ -615,10 +617,13 @@ private struct ProgressLabel: View {
 
 /// Black or white, whichever reads better on `fill`. Vial tints run from
 /// deep to pale, and the late amber is light, so a fixed white label
-/// fails contrast on some of the fills the Log button takes.
-private func labelColor(on fill: Color) -> Color {
+/// fails contrast on some of the fills the Log button takes. The late
+/// amber is a light/dark pair, so it is resolved against the scheme the
+/// view draws in, not whatever trait collection is current.
+private func labelColor(on fill: Color, in colorScheme: ColorScheme) -> Color {
+    let traits = UITraitCollection(userInterfaceStyle: colorScheme == .dark ? .dark : .light)
     var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-    guard UIColor(fill).getRed(&r, green: &g, blue: &b, alpha: &a) else { return .white }
+    guard UIColor(fill).resolvedColor(with: traits).getRed(&r, green: &g, blue: &b, alpha: &a) else { return .white }
     func linear(_ channel: CGFloat) -> Double {
         let c = Double(channel)
         return c <= 0.03928 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
