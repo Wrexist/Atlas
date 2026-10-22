@@ -362,7 +362,7 @@ final class MealScannerService: Sendable {
     /// Language plus region, e.g. "sv_SE". `Locale.current.identifier` can
     /// carry keywords ("en_US@rg=sezzzz") whose region override the proxy
     /// would drop along with the rest of the keyword.
-    private static var localeIdentifier: String {
+    static var localeIdentifier: String {
         [Locale.current.language.languageCode?.identifier, Locale.current.region?.identifier]
             .compactMap { $0 }
             .joined(separator: "_")
