@@ -6,6 +6,7 @@ import WidgetKit
 struct WatchVitalsEntry: TimelineEntry {
     let date: Date
     let vitals: WatchVitalsSnapshot?
+    var healthConnected = false
 
     static let placeholder = WatchVitalsEntry(
         date: .now,
@@ -58,7 +59,7 @@ struct WatchVitalsProvider: TimelineProvider {
               let data = try? Data(contentsOf: url),
               let watchData = try? Self.decoder.decode(WatchData.self, from: data)
         else { return WatchVitalsEntry(date: .now, vitals: nil) }
-        return WatchVitalsEntry(date: .now, vitals: watchData.vitals)
+        return WatchVitalsEntry(date: .now, vitals: watchData.vitals, healthConnected: watchData.healthConnected ?? false)
     }
 }
 
@@ -103,7 +104,7 @@ struct WatchRecoveryEntryView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             } else {
-                Text("Connect Apple Health in Atlas")
+                (entry.healthConnected ? Text("No recovery data yet") : Text("Connect Apple Health in Atlas"))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }

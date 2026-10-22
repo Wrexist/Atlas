@@ -2536,6 +2536,7 @@ final class DataStore {
             trainingHabitsDone: trainingDue.filter(isDone).count,
             trainingHabitsTotal: trainingDue.count,
             measurementUnit: profile.bodyMetrics.unit.rawValue,
+            healthConnected: profile.healthConnected,
             vitals: watchVitals,
             workout: watchWorkout,
             training: WatchWorkoutSnapshotBuilder.training(from: repo.loadWorkoutSessions(limit: 30))

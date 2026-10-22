@@ -62,6 +62,14 @@ final class WatchDataTests: XCTestCase {
         XCTAssertEqual(decoded.atlasScore, 142)
     }
 
+    func test_roundTrip_healthConnectedWithoutVitals_keepsConnectedFlag() throws {
+        let data = WatchData(todayEntries: [], completedToday: 0, totalToday: 0,
+                             lastUpdated: now, healthConnected: true)
+        let decoded = try decoder.decode(WatchData.self, from: encoder.encode(data))
+        XCTAssertEqual(decoded.healthConnected, true)
+        XCTAssertNil(decoded.vitals)
+    }
+
     // MARK: - Optimistic dose toggle
 
     func test_replacingEntries_recountsAndKeepsEveryOtherField() {

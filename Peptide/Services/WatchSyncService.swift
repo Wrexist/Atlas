@@ -70,6 +70,7 @@ final class WatchSyncService: NSObject {
         trainingHabitsDone: Int? = nil,
         trainingHabitsTotal: Int? = nil,
         measurementUnit: String? = nil,
+        healthConnected: Bool? = nil,
         vitals: WatchVitalsSnapshot? = nil,
         workout: WatchWorkoutSnapshot? = nil,
         training: WatchTrainingSnapshot? = nil
@@ -121,6 +122,7 @@ final class WatchSyncService: NSObject {
             trainingHabitsDone: trainingHabitsDone,
             trainingHabitsTotal: trainingHabitsTotal,
             measurementUnit: measurementUnit,
+            healthConnected: healthConnected,
             vitals: vitals,
             workout: workout,
             training: training
