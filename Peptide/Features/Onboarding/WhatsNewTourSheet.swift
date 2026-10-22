@@ -21,12 +21,14 @@ struct WhatsNewTourSheet: View {
 
     @State private var currentIndex: Int = 0
 
-    private var currentPage: WhatsNewPage {
-        pages.indices.contains(currentIndex) ? pages[currentIndex] : pages[0]
+    /// Nil only for an empty `pages`, which renders a bare sheet whose
+    /// CTA dismisses.
+    private var currentPage: WhatsNewPage? {
+        pages.indices.contains(currentIndex) ? pages[currentIndex] : nil
     }
 
     private var isLastPage: Bool {
-        currentIndex == pages.count - 1
+        currentIndex >= pages.count - 1
     }
 
     var body: some View {
@@ -59,9 +61,9 @@ struct WhatsNewTourSheet: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    currentPage.gradient.first?.opacity(0.30) ?? AppColor.background,
+                    currentPage?.gradient.first?.opacity(0.30) ?? AppColor.background,
                     AppColor.background,
-                    currentPage.gradient.last?.opacity(0.20) ?? AppColor.background,
+                    currentPage?.gradient.last?.opacity(0.20) ?? AppColor.background,
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -88,7 +90,7 @@ struct WhatsNewTourSheet: View {
         HStack {
             Spacer()
             Button {
-                completeAndDismiss()
+                onComplete()
             } label: {
                 Text("Skip")
                     .font(AppFont.scaled(16, weight: .semibold))
@@ -238,7 +240,7 @@ struct WhatsNewTourSheet: View {
             ForEach(0..<pages.count, id: \.self) { index in
                 let isActive = index == currentIndex
                 Capsule()
-                    .fill(isActive ? currentPage.accent : AppColor.textTertiary.opacity(0.4))
+                    .fill(isActive ? pages[index].accent : AppColor.textTertiary.opacity(0.4))
                     .frame(width: isActive ? 22 : 6, height: 6)
                     .appAnimation(AppAnimation.springSnappy, value: currentIndex)
             }
@@ -266,16 +268,12 @@ struct WhatsNewTourSheet: View {
 
     private func advance() {
         if isLastPage {
-            completeAndDismiss()
+            Haptics.success()
+            onComplete()
             return
         }
         AppAnimation.with(AppAnimation.springSmooth) {
             currentIndex += 1
         }
-    }
-
-    private func completeAndDismiss() {
-        Haptics.success()
-        onComplete()
     }
 }
