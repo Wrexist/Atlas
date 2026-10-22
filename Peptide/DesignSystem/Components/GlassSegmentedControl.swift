@@ -20,9 +20,11 @@ struct GlassSegmentedControl<T: Hashable>: View {
     var icon: ((T) -> String)?
 
     @Namespace private var pillNamespace
+    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         track
+            .opacity(isEnabled ? 1 : AppOpacity.disabled)
             // One container, so an identifier on the control lands on the
             // group rather than on every segment button.
             .accessibilityElement(children: .contain)
