@@ -89,7 +89,7 @@ final class FoodSpotlightService: Sendable {
             if Task.isCancelled { return }
             try await index.indexSearchableItems(items)
         } catch {
-            AppLog.persistence.error(
+            AppLog.spotlight.error(
                 "Spotlight reindex failed: \(error.localizedDescription, privacy: .public)"
             )
         }
@@ -104,7 +104,7 @@ final class FoodSpotlightService: Sendable {
         do {
             try await index.deleteSearchableItems(withIdentifiers: [Self.identifier(forCustomFoodID: id)])
         } catch {
-            AppLog.persistence.error(
+            AppLog.spotlight.error(
                 "Spotlight removeCustomFood failed: \(error.localizedDescription, privacy: .public)"
             )
         }

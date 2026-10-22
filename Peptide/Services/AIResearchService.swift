@@ -136,12 +136,12 @@ final class AIResearchService: Sendable {
             // log which side is missing so misconfigurations are
             // diagnosable from Console.app on a TestFlight device.
             if endpoint == nil {
-                AppLog.persistence.error(
+                AppLog.ai.error(
                     "AI research not configured: AI_RESEARCH_ENDPOINT is empty in Info.plist + env."
                 )
             }
             if proxySecret == nil || proxySecret?.isEmpty == true {
-                AppLog.persistence.error(
+                AppLog.ai.error(
                     "AI research not configured: AI_RESEARCH_SECRET is empty in Info.plist + env."
                 )
             }
@@ -343,7 +343,7 @@ final class AIResearchService: Sendable {
         } catch {
             // Log before collapsing to a generic error so a server-side
             // response-shape regression is diagnosable from a device.
-            AppLog.persistence.error(
+            AppLog.ai.error(
                 "AI research envelope decode failed: \(error.localizedDescription, privacy: .private)"
             )
             throw ChatError.invalidResponse
