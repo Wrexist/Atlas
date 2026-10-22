@@ -61,7 +61,7 @@ final class BodyMetricsTests: XCTestCase {
         XCTAssertEqual(metrics.ageAsOf(entered.addingTimeInterval(400 * 86_400)), 35)
     }
 
-    func test_userProfile_legacyAgeWithoutRecordedDate_advancesFromMemberSince() throws {
+    func test_userProfile_ageWithoutRecordedDate_advancesFromLoadDateNotMemberSince() throws {
         let legacyJSON = """
         {
             "name": "Alex",
@@ -78,9 +78,11 @@ final class BodyMetricsTests: XCTestCase {
         """.data(using: .utf8)!
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
+        let loadedAt = Date()
         let profile = try decoder.decode(UserProfile.self, from: legacyJSON)
-        let twoYearsOn = try XCTUnwrap(ISO8601DateFormatter().date(from: "2025-01-02T00:00:00Z"))
-        XCTAssertEqual(profile.bodyMetrics.ageAsOf(twoYearsOn), 32)
+        let recordedAt = try XCTUnwrap(profile.bodyMetrics.ageRecordedAt)
+        XCTAssertGreaterThanOrEqual(recordedAt, loadedAt)
+        XCTAssertEqual(profile.bodyMetrics.ageAsOf(loadedAt), 30)
     }
 
     // MARK: - UserProfile backward compatibility

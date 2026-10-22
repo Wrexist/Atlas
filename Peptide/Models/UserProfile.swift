@@ -165,7 +165,8 @@ struct BodyMetrics: Codable, Hashable, Sendable {
     /// The age as entered, true on `ageRecordedAt`. Read `age` instead.
     private var enteredAge: Int?
     /// When `enteredAge` was entered. Nil on metrics saved before it
-    /// existed until `UserProfile` backfills it from `memberSince`.
+    /// existed (or re-saved by such a build) until `UserProfile`
+    /// backfills it with the load date.
     private(set) var ageRecordedAt: Date?
     var sex: BiologicalSex
     var activityLevel: ActivityLevel
@@ -211,8 +212,10 @@ struct BodyMetrics: Codable, Hashable, Sendable {
         return enteredAge + max(0, years)
     }
 
-    /// Stamps metrics saved before `ageRecordedAt` existed with the
-    /// date the age was most likely entered.
+    /// Stamps metrics saved without `ageRecordedAt` with `date`. Pass
+    /// the load date, never an earlier guess such as `memberSince`: the
+    /// age may have been entered or corrected since, and an early stamp
+    /// would advance it too far.
     func backfillingAgeRecordedAt(_ date: Date) -> BodyMetrics {
         guard enteredAge != nil, ageRecordedAt == nil else { return self }
         var copy = self
@@ -670,7 +673,7 @@ struct UserProfile: Codable, Sendable {
         self.hapticFeedbackEnabled = hapticFeedbackEnabled
         self.doseRemindersEnabled = doseRemindersEnabled
         self.biometricLockEnabled = biometricLockEnabled
-        self.bodyMetrics = bodyMetrics.backfillingAgeRecordedAt(memberSince)
+        self.bodyMetrics = bodyMetrics.backfillingAgeRecordedAt(Date())
         self.nutritionTargets = nutritionTargets
         self.creatorAttribution = creatorAttribution
         self.affiliateApplication = affiliateApplication
@@ -718,7 +721,7 @@ struct UserProfile: Codable, Sendable {
         doseRemindersEnabled = try container.decodeIfPresent(Bool.self, forKey: .doseRemindersEnabled) ?? false
         biometricLockEnabled = try container.decodeIfPresent(Bool.self, forKey: .biometricLockEnabled) ?? false
         bodyMetrics = (try container.decodeIfPresent(BodyMetrics.self, forKey: .bodyMetrics) ?? .unspecified)
-            .backfillingAgeRecordedAt(memberSince)
+            .backfillingAgeRecordedAt(Date())
         nutritionTargets = try container.decodeIfPresent(NutritionTargets.self, forKey: .nutritionTargets)
         creatorAttribution = try container.decodeIfPresent(CreatorAttribution.self, forKey: .creatorAttribution)
         affiliateApplication = try container.decodeIfPresent(AffiliateApplication.self, forKey: .affiliateApplication)
