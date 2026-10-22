@@ -247,7 +247,7 @@ struct RoutineBuilderView: View {
     // MARK: - Library lookups
 
     private func name(of exerciseID: String) -> String {
-        library.lookup(id: exerciseID)?.name ?? "Unknown exercise"
+        library.displayName(for: exerciseID)
     }
 
     private func detail(of exerciseID: String) -> String {

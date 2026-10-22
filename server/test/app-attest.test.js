@@ -149,6 +149,42 @@ test('checkAppAttest gate: enforce accepts a valid assertion once and blocks its
   assert.equal(replay.keyId, undefined);
 });
 
+test('checkAppAttest gate: concurrent assertions arriving out of order both pass', async (t) => {
+  setEnv(t, {
+    ...REDIS_ENV,
+    APP_ATTEST_MODE: 'enforce',
+    APP_ATTEST_APP_ID: fixture.appId,
+    APP_ATTEST_ALLOW_DEVELOPMENT: undefined,
+  });
+  fakeUpstash(t);
+  const { publicKeyPem } = verifyAttestation({
+    attestation: fixture.attestation,
+    keyId: fixture.keyId,
+    challenge: fixture.challenge,
+    appId: fixture.appId,
+    rootCAPem: fixture.rootPem,
+  });
+  const keyIdB64 = fixture.keyId.toString('base64');
+  await storeAttestKey(keyIdB64, { publicKeyPem, counter: 0, environment: 'production' });
+
+  const requestWith = (counter) => {
+    const clientData = makeClientData();
+    const assertion = makeAssertion({ leafKeyPem: fixture.leafKeyPem, appId: fixture.appId, counter, clientData });
+    return {
+      headers: {
+        'x-attest-key-id': keyIdB64,
+        'x-attest-assertion': assertion.toString('base64'),
+        'x-attest-client-data': clientData.toString('base64'),
+      },
+    };
+  };
+
+  // Signed as 1 then 2, but the second request lands first.
+  assert.equal((await checkAppAttest(requestWith(2), { logLabel: 'test' })).ok, true);
+  assert.equal((await checkAppAttest(requestWith(1), { logLabel: 'test' })).ok, true);
+  assert.equal((await checkAppAttest(requestWith(2), { logLabel: 'test' })).ok, false, 'a used counter stays used');
+});
+
 test('checkAppAttest gate: header absence rejects only in enforce mode', async (t) => {
   setEnv(t, {
     ...REDIS_ENV,

@@ -309,6 +309,8 @@ struct WeeklySummaryHeroCard: View {
 
     // MARK: - Helpers
 
+    /// Renders "Week of Jan 5" given an ISO yyyy-MM-dd weekStart, in the
+    /// user's locale.
     private func weekTitle(for isoWeekStart: String) -> String {
         WeeklySummary.weekTitle(for: isoWeekStart) ?? String(localized: "This week")
     }

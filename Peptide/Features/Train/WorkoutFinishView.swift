@@ -5,7 +5,9 @@ struct WorkoutFinishView: View {
     let unit: MeasurementUnit
     let onClose: () -> Void
     let celebratesSave: Bool
-    let detectedPRs: [PRDetectionEngine.DetectedPR]
+    /// Records this save set. Cleared after an edit: the edit re-derives
+    /// stored records, so these could name a set the user just corrected.
+    @State private var detectedPRs: [PRDetectionEngine.DetectedPR]
     @State private var store: WorkoutRecapStore
     @State private var editing = false
     @State private var sharing = false
@@ -15,13 +17,13 @@ struct WorkoutFinishView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(session: WorkoutSession, detectedPRs: [PRDetectionEngine.DetectedPR],
-         unit: MeasurementUnit, weeklySessionCount: Int? = nil, celebratesSave: Bool = true,
+         unit: MeasurementUnit, celebratesSave: Bool = true,
          onClose: @escaping () -> Void) {
         self.unit = unit
         self.onClose = onClose
         self.celebratesSave = celebratesSave
-        self.detectedPRs = detectedPRs
-        _store = State(initialValue: WorkoutRecapStore(session: session))
+        _detectedPRs = State(initialValue: detectedPRs)
+        _store = State(initialValue: WorkoutRecapStore(session: session, anchorsWeekOnSession: !celebratesSave))
     }
 
     var body: some View {
@@ -35,7 +37,7 @@ struct WorkoutFinishView: View {
                     } label: {
                         RecapNavigationRow(icon: "chart.bar.fill") {
                             if let week = store.week {
-                                Text("^[\(week.count) workout](inflect: true) this week")
+                                Text("^[\(week.count) workout](inflect: true) \(week.phrase)")
                             } else {
                                 Text("Weekly progress unavailable")
                             }
@@ -44,13 +46,13 @@ struct WorkoutFinishView: View {
                         .sectionAppear(index: 1)
                     if !detectedPRs.isEmpty {
                         RecapNewPRs(prs: detectedPRs, entries: summary.entries, unit: unit)
-                            .sectionAppear(index: 1)
+                            .sectionAppear(index: 2)
                     }
                     VStack(alignment: .trailing, spacing: 0) {
                         RecapMetrics(summary: summary, unit: unit)
                         RecapCalculationNotes(summary: summary)
                     }
-                    .sectionAppear(index: 2)
+                    .sectionAppear(index: 3)
                     NavigationLink {
                         WorkoutRecapExercisesView(store: store, unit: unit)
                     } label: {
@@ -58,7 +60,7 @@ struct WorkoutFinishView: View {
                             Text("^[\(summary.entries.count) exercise](inflect: true) · View workout")
                         }
                     }.buttonStyle(ScalePressStyle()).accessibilityIdentifier("recap-exercises")
-                        .sectionAppear(index: 3)
+                        .sectionAppear(index: 4)
                     RecapCard {
                         VStack(alignment: .leading, spacing: Spacing.md) {
                             Text("Muscle focus").font(AppFont.headline)
@@ -84,10 +86,10 @@ struct WorkoutFinishView: View {
                             .accessibilityIdentifier("recap-muscles")
                         }
                     }
-                    .sectionAppear(index: 4)
+                    .sectionAppear(index: 5)
                     if store.metadataUnavailable {
                         Text("Exercise metadata is unavailable. Your saved sets are still shown.").font(AppFont.subheadline)
-                        Button("Retry exercise metadata") { Task { await store.load() } }.frame(minHeight: 44)
+                        Button("Retry exercise metadata") { Task { await store.load() } }.frame(minHeight: Spacing.minimumHitTarget)
                     }
                 }.padding(Spacing.screenPadding)
             } else { ProgressView("Loading workout…").padding(Spacing.xxl) }
@@ -97,7 +99,7 @@ struct WorkoutFinishView: View {
         .navigationTitle("Summary").navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Edit") { editing = true }.frame(minHeight: 44)
+                Button("Edit") { editing = true }.frame(minHeight: Spacing.minimumHitTarget)
             }
         }
         .safeAreaInset(edge: .bottom) {
@@ -105,7 +107,7 @@ struct WorkoutFinishView: View {
                 RecapAction(title: "Done", action: onClose).accessibilityIdentifier("recap-done")
                 Button { sharing = true } label: {
                     Label("Share workout", systemImage: "square.and.arrow.up")
-                        .font(AppFont.subheadline).frame(maxWidth: .infinity, minHeight: 44)
+                        .font(AppFont.subheadline).frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
                 }.disabled(store.summary == nil)
             }.padding(.horizontal, Spacing.screenPadding).padding(.top, Spacing.sm)
                 .background(AppColor.recapBackground)
@@ -113,7 +115,7 @@ struct WorkoutFinishView: View {
         .sheet(isPresented: $editing) {
             WorkoutSavedEditor(session: store.session, unit: unit) { edited in
                 try store.saveEdits(edited)
-                Task { await store.load() }
+                detectedPRs = []
             }
         }
         .sheet(isPresented: $sharing) {
@@ -245,7 +247,7 @@ struct RecapNewPRs: View {
     private func valueLabel(_ pr: PRDetectionEngine.DetectedPR) -> String {
         if pr.kind == .bodyweightReps {
             let reps = Int(pr.value)
-            return reps.formatted() + (reps == 1 ? " rep" : " reps")
+            return reps == 1 ? String(localized: "1 rep") : String(localized: "\(reps) reps")
         }
         let load = unit.weightForDisplay(pr.value).formatted(.number.precision(.fractionLength(0...1)))
         return load + " " + unit.weightSuffix

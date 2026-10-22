@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Lightweight create / edit form for a `CustomExercise`. Surfaces
+/// Lightweight create form for a `CustomExercise`. Surfaces
 /// the niche-lift path (landmine row, kettlebell halo, anything not
 /// in the bundled 800+ catalog) without dragging the user through a
 /// full SwiftData routine builder. Submits via
@@ -8,30 +8,18 @@ import SwiftUI
 /// `ExerciseLibrary.shared` so the new entry appears in the picker
 /// on dismiss (audit Train H1).
 struct CustomExerciseEditorSheet: View {
-    let editing: CustomExercise?
     let onSave: (CustomExercise) -> Void
 
     @Environment(\.dismiss) private var dismiss
 
-    @State private var name: String
-    @State private var primaryMuscle: MuscleGroup
-    @State private var secondaryMuscles: Set<MuscleGroup>
-    @State private var equipment: EquipmentKind
+    @State private var name = ""
+    @State private var primaryMuscle = MuscleGroup.chest
+    @State private var secondaryMuscles: Set<MuscleGroup> = []
+    @State private var equipment = EquipmentKind.bodyweight
     @FocusState private var nameFocused: Bool
 
-    init(editing: CustomExercise? = nil, onSave: @escaping (CustomExercise) -> Void) {
-        self.editing = editing
+    init(onSave: @escaping (CustomExercise) -> Void) {
         self.onSave = onSave
-        _name = State(initialValue: editing?.name ?? "")
-        let firstPrimary = editing?.primaryMuscles.first
-            .flatMap { MuscleGroup.fromRaw($0) } ?? .chest
-        _primaryMuscle = State(initialValue: firstPrimary)
-        let secondaries = Set((editing?.secondaryMuscles ?? []).compactMap { MuscleGroup.fromRaw($0) })
-        _secondaryMuscles = State(initialValue: secondaries)
-        // EquipmentKind.fromRaw takes Optional<String> and returns a
-        // non-optional value (with .bodyweight as the fallback for
-        // unknown / nil raws).
-        _equipment = State(initialValue: EquipmentKind.fromRaw(editing?.equipment))
     }
 
     private var canSave: Bool {
@@ -84,7 +72,7 @@ struct CustomExerciseEditorSheet: View {
                     }
                 }
             }
-            .navigationTitle(editing == nil ? "New exercise" : "Edit exercise")
+            .navigationTitle("New exercise")
             .navigationBarTitleDisplayMode(.inline)
             .glassFormStyle()
             .toolbar {
@@ -97,9 +85,7 @@ struct CustomExerciseEditorSheet: View {
                         .fontWeight(.semibold)
                 }
             }
-            .onAppear {
-                if editing == nil { nameFocused = true }
-            }
+            .onAppear { nameFocused = true }
         }
     }
 
@@ -107,15 +93,15 @@ struct CustomExerciseEditorSheet: View {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         let custom = CustomExercise(
-            id: editing?.id ?? "custom_\(UUID().uuidString)",
+            id: "\(CustomExercise.idPrefix)\(UUID().uuidString)",
             name: trimmed,
             primaryMuscles: [primaryMuscle.rawValue],
             secondaryMuscles: secondaryMuscles
                 .filter { $0 != primaryMuscle }
                 .map(\.rawValue),
             equipment: equipment.rawValue,
-            instructions: editing?.instructions ?? [],
-            createdAt: editing?.createdAt ?? Date()
+            instructions: [],
+            createdAt: Date()
         )
         onSave(custom)
         dismiss()

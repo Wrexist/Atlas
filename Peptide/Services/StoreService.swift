@@ -31,6 +31,11 @@ final class StoreService {
     /// guidance is to tell the user so they can fix the card before access
     /// lapses or the retry window closes.
     private(set) var isInBillingRetry = false
+    /// False until the first entitlement scan finishes. Before that,
+    /// `isProUser` is the launch default rather than an answer — read
+    /// `resolvedProStatus()` anywhere a wrong `false` would act on a
+    /// paying user.
+    @ObservationIgnored private var hasResolvedEntitlements = false
 
     static let monthlyID = "com.peptidesai.app.pro.monthly"
     static let annualID = "com.peptidesai.app.pro.annual"
@@ -248,6 +253,13 @@ final class StoreService {
         await updatePurchasedProducts()
     }
 
+    /// `isProUser`, after waiting out the first entitlement scan on a
+    /// cold launch so a Pro user is never treated as free.
+    func resolvedProStatus() async -> Bool {
+        if !hasResolvedEntitlements { await updatePurchasedProducts() }
+        return isProUser
+    }
+
     /// True when Pro came from the non-consumable lifetime IAP rather than a
     /// subscription. Nothing renews for these users, so any copy about
     /// renewal, cancellation, or a billing period is wrong for them —
@@ -322,6 +334,7 @@ final class StoreService {
         let proIDs: Set<String> = [Self.monthlyID, Self.annualID, Self.lifetimeID]
         purchasedProductIDs = purchased
         isProUser = !purchased.isDisjoint(with: proIDs)
+        hasResolvedEntitlements = true
         await refreshTrialEligibility()
         await refreshBillingRetryState()
     }

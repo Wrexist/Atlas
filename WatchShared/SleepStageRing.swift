@@ -11,13 +11,15 @@ struct SleepSlice: Identifiable {
 extension WatchSleepSnapshot {
     /// Awake → REM → Core → Deep, the order Apple's Sleep app stacks
     /// them. A source without stages shows one "Asleep" slice instead of
-    /// three empty ones.
+    /// three empty ones; on a staged night, time a source recorded without
+    /// a stage gets its own "Asleep" slice rather than counting as Core.
     var slices: [SleepSlice] {
         let asleep: [SleepSlice] = hasStages
             ? [
                 SleepSlice(label: String(localized: "REM"), minutes: remMinutes, color: WatchPalette.stageREM),
-                SleepSlice(label: String(localized: "Core"), minutes: coreMinutes + unspecifiedMinutes, color: WatchPalette.stageCore),
+                SleepSlice(label: String(localized: "Core"), minutes: coreMinutes, color: WatchPalette.stageCore),
                 SleepSlice(label: String(localized: "Deep"), minutes: deepMinutes, color: WatchPalette.stageDeep),
+                SleepSlice(label: String(localized: "Asleep"), minutes: unspecifiedMinutes, color: WatchPalette.sleepAccent),
             ]
             : [SleepSlice(label: String(localized: "Asleep"), minutes: asleepMinutes, color: WatchPalette.stageCore)]
         let awake = SleepSlice(label: String(localized: "Awake"), minutes: awakeMinutes, color: WatchPalette.stageAwake)

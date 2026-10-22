@@ -80,6 +80,16 @@ final class WorkoutSessionServiceTests: XCTestCase {
         XCTAssertEqual(session.exercises.first?.sets.first?.reps, 5)
     }
 
+    func test_startWorkout_unlinkedTemplate_leavesRoutineIDNil() {
+        let template = Routine(name: "Repeat", exercises: [
+            RoutineExercise(exerciseID: "Standing_Military_Press", index: 0,
+                            targetSets: 3, targetReps: 8),
+        ])
+        let session = service.startWorkout(routine: template, linksRoutine: false)
+        XCTAssertNil(session.routineID)
+        XCTAssertEqual(session.exercises.count, 1)
+    }
+
     /// Starting a routine should open at the weights the user actually
     /// lifts, not at 0 kg — otherwise every set on a saved routine costs a
     /// keyboard trip before the first rep.
@@ -287,6 +297,28 @@ final class WorkoutSessionServiceTests: XCTestCase {
         XCTAssertNil(service.activeSession?.exercises.first?.sets.first?.completedAt)
     }
 
+    /// A weight committed on focus loss right after the check is tapped
+    /// must start from the live set, not the row's pre-tap copy.
+    func test_currentSet_weightCommitAfterCheckOff_keepsSetCompleted() {
+        _ = service.startWorkout()
+        service.addExercise(bench())
+        guard let entryID = service.activeSession?.exercises.first?.id,
+              var set = service.activeSession?.exercises.first?.sets.first
+        else { return XCTFail() }
+
+        set.completed = true
+        service.updateSet(set, inExerciseEntryID: entryID)
+        guard var live = service.currentSet(id: set.id, inExerciseEntryID: entryID)
+        else { return XCTFail() }
+        live.weightKg = 61.25
+        service.updateSet(live, inExerciseEntryID: entryID)
+
+        let stored = service.activeSession?.exercises.first?.sets.first
+        XCTAssertEqual(stored?.completed, true)
+        XCTAssertNotNil(stored?.completedAt)
+        XCTAssertEqual(stored?.weightKg, 61.25)
+    }
+
     func test_removeExercise_reindexesRemainingPositions() {
         _ = service.startWorkout()
         service.addExercise(bench())
@@ -354,6 +386,24 @@ final class WorkoutSessionServiceTests: XCTestCase {
 
         XCTAssertEqual(service.previousSessionSets(forExerciseID: bench().id).map(\.weightKg), [90])
         XCTAssertEqual(service.lastCompletedSet(forExerciseID: bench().id)?.reps, 3)
+    }
+
+    func test_previousSessionSets_exerciseLoggedTwice_mergesBothEntriesInOrder() {
+        repo.upsertWorkoutSession(WorkoutSession(
+            startedAt: Date().addingTimeInterval(-7200),
+            finishedAt: Date().addingTimeInterval(-3600),
+            exercises: [
+                WorkoutExerciseEntry(exerciseID: bench().id, index: 0, sets: [
+                    SetEntry(index: 1, weightKg: 80, reps: 5, completed: true),
+                ]),
+                WorkoutExerciseEntry(exerciseID: bench().id, index: 1, sets: [
+                    SetEntry(index: 1, weightKg: 60, reps: 10, completed: true),
+                ]),
+            ]
+        ))
+        _ = service.startWorkout()
+
+        XCTAssertEqual(service.previousSessionSets(forExerciseID: bench().id).map(\.weightKg), [80, 60])
     }
 
     func test_startWorkout_fromRoutine_afterHittingTheTarget_seedsTheNextLoad() {
@@ -458,14 +508,14 @@ final class PRDetectionEngineIngestTests: XCTestCase {
         )
     }
 
-    func test_ingest_firstSession_recordsAllThreePRs() {
+    func test_ingest_firstSession_storesBaselineWithoutCelebrating() {
         let s = session(exerciseID: "Bench", sets: [
             SetEntry(index: 1, weightKg: 100, reps: 5, completed: true),
             SetEntry(index: 2, weightKg: 100, reps: 5, completed: true),
         ])
         let detected = PRDetectionEngine.shared.ingest(session: s)
-        XCTAssertEqual(detected.count, 3,
-                       "First session for an exercise should set e1RM + abs + volume PRs")
+        XCTAssertTrue(detected.isEmpty,
+                      "The first log of an exercise is a baseline, not a PR")
         let stored = repo.loadPersonalRecords()
         XCTAssertEqual(stored.count, 1)
         XCTAssertEqual(stored.first?.exerciseID, "Bench")

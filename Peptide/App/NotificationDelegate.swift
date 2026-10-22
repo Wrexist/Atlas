@@ -59,29 +59,16 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
                       let hour = scheduledHour,
                       let minute = scheduledMinute else { return }
 
-                // Search the last 24h, not just today, so a snooze that fires
-                // after midnight still toggles yesterday's scheduled dose.
-                let calendar = Calendar.current
-                let cutoff = Date().addingTimeInterval(-24 * 60 * 60)
-                // Toggle only the single most-recent matching dose. A
-                // (protocolId, hour, minute) match can hit more than one
-                // entry — yesterday's and today's dose at the same time, or
-                // two same-time slots — and toggling all of them marks doses
-                // the user didn't take. The notification is about the latest
-                // one, so pick that.
-                let match = dataStore.entries
-                    .filter { entry in
-                        guard entry.protocolId == protocolId,
-                              !entry.completed,
-                              entry.date >= cutoff else { return false }
-                        let entryHour = calendar.component(.hour, from: entry.date)
-                        let entryMinute = calendar.component(.minute, from: entry.date)
-                        return entryHour == hour && entryMinute == minute
-                    }
-                    .max { $0.date < $1.date }
-                if let match {
-                    dataStore.toggleEntry(match.id)
+                let due = Self.entriesDue(
+                    in: dataStore.entries,
+                    protocolId: protocolId,
+                    hour: hour,
+                    minute: minute
+                )
+                for entry in due {
+                    dataStore.markEntryComplete(entry.id)
                 }
+                dataStore.flushPendingSave()
             }
             return
 
@@ -93,6 +80,9 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
                 defer { completionHandler() }
                 guard let categoryRaw, let category = MealCategory(rawValue: categoryRaw) else { return }
                 dataStore.repeatMeals(category, from: firedAt)
+                // A background action: iOS may suspend the moment the
+                // completion handler runs, before the debounced save lands.
+                dataStore.flushPendingSave()
                 await DailyReminderScheduler.reconcile(dataStore: dataStore)
             }
             return
@@ -109,6 +99,7 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
                     return
                 }
                 dataStore.logWeight(kg: kilograms)
+                dataStore.flushPendingSave()
                 await DailyReminderScheduler.reconcile(dataStore: dataStore)
             }
             return
@@ -132,7 +123,7 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
            let url = URL(string: deeplink) {
             Task { @MainActor [appState] in
                 defer { completionHandler() }
-                DeepLinkRouter.route(url, appState: appState, isPro: StoreService.shared.isProUser)
+                DeepLinkRouter.route(url, appState: appState, isPro: await StoreService.shared.resolvedProStatus())
             }
             return
         }
@@ -145,6 +136,41 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping @Sendable (UNNotificationPresentationOptions) -> Void
     ) {
-        completionHandler([.banner, .sound])
+        let isRestEnd = notification.request.identifier.hasPrefix(
+            NotificationService.adHocIDPrefix + WorkoutSessionService.restNotificationPrefix
+        )
+        Task { @MainActor [appState] in
+            // The workout screen marks rest end with a haptic and an
+            // announcement; a banner over it on top of that is noise.
+            let workoutOnScreen = isRestEnd && appState.isActiveWorkoutVisible
+            completionHandler(workoutOnScreen ? [] : [.banner, .sound])
+        }
+    }
+
+    /// Every incomplete dose a combined reminder covers: the newest day in
+    /// the last 24 hours with an already-due entry at `hour:minute` for
+    /// `protocolId`, and all of that day's entries in the slot. The 24-hour window lets
+    /// a snooze that fires after midnight still reach yesterday's doses;
+    /// keeping to one day stops it from also marking an older dose at the
+    /// same time the user never took.
+    static func entriesDue(
+        in entries: [ProtocolEntry],
+        protocolId: UUID,
+        hour: Int,
+        minute: Int,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> [ProtocolEntry] {
+        let cutoff = now.addingTimeInterval(-24 * 60 * 60)
+        let inSlot = entries.filter { entry in
+            guard entry.protocolId == protocolId,
+                  !entry.completed,
+                  entry.date >= cutoff,
+                  entry.date <= now else { return false }
+            return calendar.component(.hour, from: entry.date) == hour
+                && calendar.component(.minute, from: entry.date) == minute
+        }
+        guard let newest = inSlot.map(\.date).max() else { return [] }
+        return inSlot.filter { calendar.isDate($0.date, inSameDayAs: newest) }
     }
 }
