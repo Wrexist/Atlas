@@ -35,7 +35,11 @@ jobs:
             echo "::error::TestFlight builds only from main (got $GITHUB_REF)."
             exit 1
           fi
-          PASSED=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/pr-checks.yml/runs?head_sha=$GITHUB_SHA&status=success" -q '.total_count')
+          # Only main's own push or nightly run counts: a pull_request run
+          # can pass with build-check skipped (draft or non-iOS scope),
+          # and a fast-forward merge gives main that PR's head SHA.
+          PASSED=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/pr-checks.yml/runs?head_sha=$GITHUB_SHA&status=success&branch=main" \
+            -q '[.workflow_runs[] | select(.event == "push" or .event == "schedule")] | length')
           if [ "$PASSED" = "0" ]; then
             echo "::error::PR Checks has not passed on $GITHUB_SHA. Wait for the main run to go green, then dispatch again."
             exit 1
