@@ -1,10 +1,8 @@
 import SwiftUI
 
 /// Compact, low-key streak indicator for the Lifestyle tab's meal
-/// section. Mirrors the peptide-side `StreakCounterView` semantics
-/// (flame color escalating with streak length, milestone pulse on
-/// crossing a threshold) so habit feedback feels consistent across
-/// the two pillars of the app, but stays visually contained so it
+/// section. The flame color escalates with streak length and pulses
+/// on crossing a milestone, but stays visually contained so it
 /// doesn't compete with the macro rings for attention.
 ///
 /// Hidden entirely when both the active and best streak are zero —
