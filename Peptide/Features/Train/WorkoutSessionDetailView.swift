@@ -162,7 +162,7 @@ struct WorkoutSessionDetailView: View {
             id: session.routineID ?? UUID()
         )
         Haptics.impact(.medium)
-        sessionService.startWorkout(routine: template)
+        sessionService.startWorkout(routine: template, linksRoutine: session.routineID != nil)
         dismiss()
     }
 

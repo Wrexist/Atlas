@@ -56,10 +56,14 @@ final class WorkoutSessionService {
     /// workout to start a new one" path is reserved for the explicit
     /// UI alert that confirms the action.
     ///
+    /// `linksRoutine` is false when `routine` is only a template built for
+    /// the occasion (repeating an ad-hoc workout), so the session doesn't
+    /// point at a routine that isn't in the library.
+    ///
     /// `now` is the start instant, injectable so the duplicate window can
     /// be tested without waiting it out.
     @discardableResult
-    func startWorkout(routine: Routine? = nil, now: Date = Date()) -> WorkoutSession {
+    func startWorkout(routine: Routine? = nil, linksRoutine: Bool = true, now: Date = Date()) -> WorkoutSession {
         if let existing = activeSession {
             if existing.startedAt.timeIntervalSince(now) > -Self.duplicateStartWindow {
                 // Recently-started session — collapse the duplicate
@@ -85,7 +89,7 @@ final class WorkoutSessionService {
 
         let session = WorkoutSession(
             name: routine?.name,
-            routineID: routine?.id,
+            routineID: linksRoutine ? routine?.id : nil,
             startedAt: now,
             exercises: exercises,
             focus: WorkoutFocusState(selectedEntryID: exercises.first?.id)

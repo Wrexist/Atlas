@@ -80,6 +80,16 @@ final class WorkoutSessionServiceTests: XCTestCase {
         XCTAssertEqual(session.exercises.first?.sets.first?.reps, 5)
     }
 
+    func test_startWorkout_unlinkedTemplate_leavesRoutineIDNil() {
+        let template = Routine(name: "Repeat", exercises: [
+            RoutineExercise(exerciseID: "Standing_Military_Press", index: 0,
+                            targetSets: 3, targetReps: 8),
+        ])
+        let session = service.startWorkout(routine: template, linksRoutine: false)
+        XCTAssertNil(session.routineID)
+        XCTAssertEqual(session.exercises.count, 1)
+    }
+
     /// Starting a routine should open at the weights the user actually
     /// lifts, not at 0 kg — otherwise every set on a saved routine costs a
     /// keyboard trip before the first rep.
