@@ -57,6 +57,9 @@ struct HomeView: View {
     /// effectively free since the scroll geometry callback is already
     /// firing for the sticky-header progress.
     @State private var activeJumpAnchor: TodayJumpBar.SectionAnchor?
+    /// The chip the user just tapped. Holds the highlight while the jump
+    /// scroll animates past other sections, until the user scrolls again.
+    @State private var pendingJumpAnchor: TodayJumpBar.SectionAnchor?
     /// Routes the chip-bar "+ Log" button. The sheet flag controls
     /// the picker; the action enum drives which sheet actually mounts.
     @State private var showQuickLogSheet = false
@@ -572,6 +575,9 @@ struct HomeView: View {
             } action: { _, newValue in
                 stickyProgress = newValue
             }
+            .onScrollPhaseChange { _, newPhase in
+                if newPhase == .interacting { pendingJumpAnchor = nil }
+            }
             // Scroll-tracked jump-bar active anchor. Each tagged
             // section publishes its frame via SectionAnchorFrameKey;
             // ActiveSectionPicker reduces the dictionary to the
@@ -581,6 +587,7 @@ struct HomeView: View {
             // rendering on every scroll tick.
             .coordinateSpace(name: "HomeScroll")
             .onPreferenceChange(SectionAnchorFrameKey.self) { frames in
+                guard pendingJumpAnchor == nil else { return }
                 let picked = ActiveSectionPicker.pick(from: frames)
                 if picked != activeJumpAnchor {
                     activeJumpAnchor = picked
@@ -870,6 +877,7 @@ struct HomeView: View {
         AppAnimation.with(AppAnimation.settle) {
             proxy.scrollTo(anchor, anchor: .top)
         }
+        pendingJumpAnchor = anchor
         activeJumpAnchor = anchor
     }
 
