@@ -925,9 +925,9 @@ struct HomeView: View {
     }
 
     /// The dose row's one-tap check. A success haptic marks the dose
-    /// taken; un-checking keeps the store's own soft tap.
+    /// taken; un-checking gets a soft tap.
     private func toggleDose(_ entry: ProtocolEntry) {
-        if !entry.completed { Haptics.success() }
+        if entry.completed { Haptics.impact(.soft) } else { Haptics.success() }
         AppAnimation.with(AppAnimation.springSnappy) { dataStore.toggleEntry(entry.id) }
     }
 

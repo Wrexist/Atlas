@@ -489,7 +489,6 @@ final class DataStore {
         let becoming = !entries[index].completed
         entries[index].completed.toggle()
         save()
-        Haptics.impact(becoming ? .light : .soft)
         // Live Activity reconciliation: when the user marks a dose
         // taken from the app (or undoes it), push the matching state
         // into any open lock-screen activity so the countdown stops
@@ -522,7 +521,6 @@ final class DataStore {
     func logDose(entryId: UUID, actualDose: String?, actualTime: Date?, injectionSite: String?, notes: String) {
         guard let index = entries.firstIndex(where: { $0.id == entryId }) else { return }
         let existing = entries[index]
-        let wasCompleted = existing.completed
         entries[index] = ProtocolEntry(
             id: existing.id,
             protocolId: existing.protocolId,
@@ -536,7 +534,6 @@ final class DataStore {
             injectionSite: injectionSite
         )
         save()
-        if !wasCompleted { Haptics.success() }
     }
 
     /// Removes a previously-logged dose — flips `completed` back to false

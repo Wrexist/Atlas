@@ -116,16 +116,6 @@ struct HeroMetricTrio: View {
                 ) {
                     ringCenter(kind: kind, value: value)
                 }
-                .onChange(of: value.progress) { oldValue, newValue in
-                    // Pair the celebration scale-pulse with a
-                    // success notification haptic the first time
-                    // the adherence ring crosses 100% in a day.
-                    // Suppressed for Recovery + Sleep — same
-                    // reason as celebrateAtCompletion above.
-                    guard kind == .adherence,
-                          oldValue < 1.0, newValue >= 1.0 else { return }
-                    Haptics.success()
-                }
 
                 Text(kind.label)
                     .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
