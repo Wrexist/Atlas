@@ -247,24 +247,6 @@ extension MuscleMapView {
 // MARK: - Convenience builders
 
 extension MuscleMapView {
-    /// Build the highlight payload for an exercise's primary +
-    /// secondary muscle lists. Primary wins ties — if a muscle is
-    /// listed in both arrays (rare but possible) the primary tint
-    /// dominates.
-    static func highlights(
-        primaryRawMuscles: [String],
-        secondaryRawMuscles: [String]
-    ) -> [AnatomicalMuscle: MuscleHighlight] {
-        var map: [AnatomicalMuscle: MuscleHighlight] = [:]
-        for muscle in AnatomicalMuscle.regions(forRawMuscles: secondaryRawMuscles) {
-            map[muscle] = .secondary
-        }
-        for muscle in AnatomicalMuscle.regions(forRawMuscles: primaryRawMuscles) {
-            map[muscle] = .primary
-        }
-        return map
-    }
-
     /// Build the highlight payload for a single exercise — see
     /// `ExerciseAnatomyEngine.highlights(for:)`.
     static func highlights(for exercise: Exercise) -> [AnatomicalMuscle: MuscleHighlight] {
@@ -335,16 +317,6 @@ struct MuscleHeatLegend: View {
         .padding()
         .background(AppColor.background)
         .preferredColorScheme(.dark)
-}
-
-#Preview("Exercise detail (Bar Lateral Pulldown)") {
-    MuscleMapView(highlights: MuscleMapView.highlights(
-        primaryRawMuscles: ["lats"],
-        secondaryRawMuscles: ["biceps", "middle back", "shoulders"]
-    ))
-    .padding()
-    .background(AppColor.background)
-    .preferredColorScheme(.dark)
 }
 
 #Preview("Weekly heatmap") {

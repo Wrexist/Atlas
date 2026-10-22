@@ -1,8 +1,8 @@
 import Foundation
 
 /// Best-ever record per exercise, computed from the user's workout
-/// history. Cached separately from session storage so the PR badges on
-/// the Train tab don't require a full history scan on every render.
+/// history. Cached separately from session storage so PR lookups
+/// don't require a full history scan on every render.
 /// Refreshed by `PRDetectionEngine` on workout finish.
 ///
 /// `exerciseID` is the natural primary key — exactly one record per

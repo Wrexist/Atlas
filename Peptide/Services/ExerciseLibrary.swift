@@ -151,17 +151,6 @@ final class ExerciseLibrary {
         }
         .map(\.exercise)
     }
-
-    /// Returns exercises the user's configured equipment access covers
-    /// (`EquipmentKind.isAvailable(with:)` — a barbell covers EZ-bar
-    /// work, a machine gym covers the Smith machine). Used by the program
-    /// recommendation engine and by the routine editor's "only show
-    /// what I can actually do" toggle.
-    func availableForEquipment(_ access: Set<EquipmentKind>) -> [Exercise] {
-        guard !access.isEmpty else { return bundled + custom.map { $0.asExercise() } }
-        return (bundled + custom.map { $0.asExercise() })
-            .filter { $0.equipmentKind.isAvailable(with: access) }
-    }
 }
 
 /// One catalog row with the keys `filter` matches on. `searchFields` are

@@ -87,8 +87,8 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
     /// Foreign key into the user's routine library when this session
     /// was started from a saved template. Nil for empty workouts.
     var routineID: UUID?
-    /// Foreign key into `Program` when the session is the next day of
-    /// an active program. Nil otherwise.
+    /// Reserved for structured programs, which don't exist yet; always
+    /// nil. Kept so the stored schema stays stable.
     var programID: UUID?
     /// Wall-clock start time. Drives the calendar dot and the in-app
     /// elapsed-timer fallback when scenePhase background-restoration

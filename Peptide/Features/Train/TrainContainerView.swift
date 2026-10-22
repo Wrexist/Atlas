@@ -3,7 +3,7 @@ import SwiftUI
 /// Train-tab root. Hosts a segmented switcher between the four
 /// surface modes — Overview (the muscle heatmap + recent workouts),
 /// Routines (saved templates, one tap to start), Exercises (the
-/// searchable library), and History (calendar + PRs).
+/// searchable library), and History (finished workouts by month).
 /// The single `NavigationStack` lets every sub-screen push the same
 /// destination types (`TrainNavigation`) without each tab re-creating
 /// its own stack.

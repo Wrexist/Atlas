@@ -107,11 +107,4 @@ extension Exercise {
     var equipmentAccessories: Set<EquipmentAccessory> {
         EquipmentClassificationEngine.accessories(for: self)
     }
-
-    /// Stable display force string for the detail screen. Returns the
-    /// raw force value capitalized, or "Static" / "—" fallbacks.
-    var forceDisplay: String {
-        guard let force = force else { return "—" }
-        return force.rawValue.prefix(1).uppercased() + force.rawValue.dropFirst()
-    }
 }

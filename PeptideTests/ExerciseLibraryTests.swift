@@ -210,28 +210,4 @@ final class ExerciseLibraryTests: XCTestCase {
         XCTAssertFalse(stretches.isEmpty)
         for s in stretches { XCTAssertEqual(s.category, .stretching) }
     }
-
-    // MARK: - Equipment-access scoping
-
-    func test_availableForEquipment_emptySetReturnsAll() {
-        let all = library.availableForEquipment([])
-        XCTAssertEqual(all.count, library.bundled.count + library.custom.count,
-                       "An empty access set should fall through to the full union of bundled + custom")
-    }
-
-    func test_availableForEquipment_filtersToSubset() {
-        let scoped = library.availableForEquipment([.barbell])
-        XCTAssertFalse(scoped.isEmpty)
-        // A barbell gym also has the EZ bar and loose plates.
-        let covered: Set<EquipmentKind> = [.barbell, .ezBar, .plate]
-        for exercise in scoped {
-            XCTAssertTrue(covered.contains(exercise.equipmentKind), exercise.name)
-        }
-    }
-
-    func test_availableForEquipment_machineAccess_coversTheSmithMachine() {
-        let scoped = library.availableForEquipment([.machine])
-        XCTAssertTrue(scoped.contains { $0.id == "Smith_Machine_Squat" })
-        XCTAssertFalse(scoped.contains { $0.id == "Trap_Bar_Deadlift" })
-    }
 }
