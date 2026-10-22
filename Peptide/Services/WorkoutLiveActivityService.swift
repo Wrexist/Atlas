@@ -4,9 +4,9 @@ import Foundation
 /// Live Activity controller for the in-progress workout — the training
 /// counterpart to `DoseLiveActivityService`, and deliberately the same
 /// shape: the app target owns it (`Activity.request` needs app
-/// authorisation), every entry point bails early when Live Activities
-/// are off or the OS is too old, and the finished summary is handed to
-/// the system to dismiss, so it clears even once the app is suspended.
+/// authorisation), nothing new starts while Live Activities are off,
+/// and the finished summary is handed to the system to dismiss, so it
+/// clears even once the app is suspended.
 ///
 /// One workout runs at a time — `WorkoutSessionService` enforces that —
 /// so this tracks a single activity rather than a dictionary.
@@ -25,10 +25,11 @@ final class WorkoutLiveActivityService {
 
     /// Brings open activities in line with `session`. Starts one for a
     /// workout that has none, ends any that belong to a workout that is
-    /// over. Called on launch, where a session restored from disk would
-    /// otherwise have lost its activity.
+    /// over — even with Live Activities switched off, so a card left up
+    /// when the user disabled them still clears. Called on launch, where
+    /// a session restored from disk would otherwise have lost its
+    /// activity.
     func reconcile(active session: WorkoutSession?) {
-        guard #available(iOS 16.1, *), areLiveActivitiesEnabled else { return }
         guard let session, session.isActive else {
             endAll()
             return
@@ -46,7 +47,7 @@ final class WorkoutLiveActivityService {
 
     /// Requests an activity for a freshly started workout.
     func start(_ session: WorkoutSession) {
-        guard #available(iOS 16.1, *), areLiveActivitiesEnabled else { return }
+        guard areLiveActivitiesEnabled else { return }
         let state = Self.state(for: session)
         do {
             _ = try Activity<WorkoutActivityAttributes>.request(
@@ -69,8 +70,7 @@ final class WorkoutLiveActivityService {
     /// countdown is carried over untouched — it isn't derived from the
     /// session, and a set being logged shouldn't reset it.
     func update(_ session: WorkoutSession) {
-        guard #available(iOS 16.1, *),
-              let activity = currentActivity(for: session.id) else { return }
+        guard let activity = currentActivity(for: session.id) else { return }
         push(Self.state(for: session), to: activity)
     }
 
@@ -78,8 +78,7 @@ final class WorkoutLiveActivityService {
     /// dismissal, so it happens even if the phone is locked straight
     /// after Finish and the app is suspended.
     func finish(_ session: WorkoutSession) {
-        guard #available(iOS 16.1, *),
-              let activity = currentActivity(for: session.id) else { return }
+        guard let activity = currentActivity(for: session.id) else { return }
         var finalState = Self.state(for: session)
         finalState.restEndsAt = nil
         finalState.restTotalSeconds = 0
@@ -96,7 +95,6 @@ final class WorkoutLiveActivityService {
     /// Ends every open workout activity immediately. Used on discard
     /// and on logout / data reset.
     func endAll() {
-        guard #available(iOS 16.1, *) else { return }
         for activity in Activity<WorkoutActivityAttributes>.activities {
             Task { await activity.end(nil, dismissalPolicy: .immediate) }
         }
@@ -104,19 +102,16 @@ final class WorkoutLiveActivityService {
 
     // MARK: - Internals
 
-    @available(iOS 16.1, *)
     private var areLiveActivitiesEnabled: Bool {
         ActivityAuthorizationInfo().areActivitiesEnabled
     }
 
-    @available(iOS 16.1, *)
     private func currentActivity(for sessionId: UUID? = nil) -> Activity<WorkoutActivityAttributes>? {
         let open = Activity<WorkoutActivityAttributes>.activities
         guard let sessionId else { return open.first }
         return open.first { $0.attributes.sessionId == sessionId }
     }
 
-    @available(iOS 16.1, *)
     private func push(
         _ state: WorkoutActivityAttributes.ContentState,
         to activity: Activity<WorkoutActivityAttributes>
@@ -130,7 +125,6 @@ final class WorkoutLiveActivityService {
     /// nothing else would redraw it out of the finished countdown.
     /// Otherwise the idle interval out: a workout nobody has touched in
     /// two hours is over in practice, and the widget greys it out.
-    @available(iOS 16.1, *)
     static func staleDate(
         for state: WorkoutActivityAttributes.ContentState,
         now: Date = Date()
@@ -141,7 +135,6 @@ final class WorkoutLiveActivityService {
 
     /// Pure mapping from a session to what the activity renders.
     /// Internal so the tests can pin it without ActivityKit running.
-    @available(iOS 16.1, *)
     static func state(for session: WorkoutSession) -> WorkoutActivityAttributes.ContentState {
         WorkoutActivityAttributes.ContentState(
             workoutName: session.name ?? "",
@@ -158,9 +151,10 @@ final class WorkoutLiveActivityService {
         )
     }
 
-    /// The exercise the user is working through: the first with an
-    /// unchecked working set, falling back to the last one they touched
-    /// so a finished-but-not-sealed workout doesn't blank the label.
+    /// The exercise the user is working through — the one selected in
+    /// the logger, else the first with an unchecked set, else the first
+    /// (see `selectedExercise`) — by its library name, or its raw id
+    /// when the library doesn't know it.
     private static func currentExerciseName(in session: WorkoutSession) -> String {
         guard let entry = session.selectedExercise else { return "" }
         return ExerciseLibrary.shared.lookup(id: entry.exerciseID)?.name ?? entry.exerciseID
