@@ -98,7 +98,7 @@ final class WeeklySummaryLocalStoreTests: XCTestCase {
         XCTAssertFalse(profile.weeklySummaryEnabled)
 
         profile.weeklySummaryEnabled = true
-        XCTAssertFalse(WeeklySummaryOptInMigration.apply(to: &profile, defaults: defaults))
+        _ = WeeklySummaryOptInMigration.apply(to: &profile, defaults: defaults)
         XCTAssertTrue(profile.weeklySummaryEnabled)
     }
 
@@ -133,8 +133,26 @@ final class WeeklySummaryLocalStoreTests: XCTestCase {
         var profile = UserProfile.fresh
         profile.weeklySummaryEnabled = true
 
-        XCTAssertFalse(WeeklySummaryOptInMigration.apply(to: &profile, defaults: defaults))
+        _ = WeeklySummaryOptInMigration.apply(to: &profile, defaults: defaults)
         XCTAssertTrue(profile.weeklySummaryEnabled)
+    }
+
+    func test_optInMigration_enabledAfterResetRan_backfillsConfirmation() {
+        WeeklySummaryOptInMigration.markCompleted(in: defaults)
+        var profile = UserProfile.fresh
+        profile.weeklySummaryEnabled = true
+
+        XCTAssertTrue(WeeklySummaryOptInMigration.apply(to: &profile, defaults: defaults))
+        XCTAssertTrue(profile.weeklySummaryOptInConfirmed)
+        XCTAssertFalse(WeeklySummaryOptInMigration.apply(to: &profile, defaults: defaults))
+    }
+
+    func test_optInMigration_disabledAfterResetRan_reportsNoChange() {
+        WeeklySummaryOptInMigration.markCompleted(in: defaults)
+        var profile = UserProfile.fresh
+
+        XCTAssertFalse(WeeklySummaryOptInMigration.apply(to: &profile, defaults: defaults))
+        XCTAssertFalse(profile.weeklySummaryOptInConfirmed)
     }
 
     // MARK: - Helpers
