@@ -3,8 +3,9 @@ import Foundation
 /// Builds `BiomarkerSnapshot`s for the Biology tab's biomarker
 /// list. The list view asks for `snapshots(for:)` with the user's
 /// chosen ordering; the service fans out to HealthKit (HRV / RHR
-/// / sleep / steps / body temperature) and DataStore (weight log,
-/// labs, manual body-composition entries) in parallel.
+/// / sleep / steps) and DataStore (weight log, labs) in parallel.
+/// Body temperature and the manual body-composition markers have
+/// no data source yet and render empty.
 ///
 /// Trend math lives in this file so the view layer stays
 /// presentation-only: "is this number going up or down" is a
