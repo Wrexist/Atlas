@@ -1631,6 +1631,7 @@ struct OnboardingView: View {
                     startWeightKg: bodyMetrics.weightKg,
                     weeks: goalWeeks,
                     targetDate: goalDate,
+                    spokenSummary: "\(projectionStatLabel), \(projectionStatValue)",
                     revealed: projectionRevealed
                 )
                 .padding(.top, Spacing.sm)
@@ -2369,6 +2370,7 @@ private struct ProjectionChart: View {
     let startWeightKg: Double?
     let weeks: Int
     let targetDate: Date
+    let spokenSummary: String
     let revealed: Bool
 
     @State private var drawAmount: CGFloat = 0
@@ -2427,7 +2429,7 @@ private struct ProjectionChart: View {
         .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(
-            "Projected \(goal.displayName.lowercased()) trend from today to \(targetDate.formatted(.dateTime.month(.wide).day()))"
+            "\(spokenSummary), by \(targetDate.formatted(.dateTime.month(.wide).day()))"
         )
         .onChange(of: revealed) { _, newValue in
             if newValue {
