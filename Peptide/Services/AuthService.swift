@@ -263,7 +263,12 @@ final class AuthService {
                 self?.coordinator = nil
                 switch result {
                 case .success(let authorization):
+                    // A different Apple ID (the device's account was switched)
+                    // would revoke the wrong token while the signed-in one stays
+                    // linked, so that reads as `.unavailable` and the user is
+                    // told to remove Atlas manually.
                     guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+                          credential.user == self?.userIdentifier,
                           let data = credential.authorizationCode,
                           let code = String(data: data, encoding: .utf8)
                     else {
