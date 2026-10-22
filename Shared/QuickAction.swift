@@ -105,11 +105,19 @@ enum PendingWaterLogStore {
         )
     }
 
-    /// Every queued tap time, oldest first; clears the inbox.
+    /// Every queued tap time, oldest first; clears what it returns. A
+    /// glass queued after the first read is the tail of the second one,
+    /// so it stays for the next drain.
     static func drain(defaults: UserDefaults? = nil) -> [Date] {
         let store = defaults ?? sharedDefaults
         let pending = read(store)
-        if !pending.isEmpty { store.removeObject(forKey: inboxKey) }
+        guard !pending.isEmpty else { return [] }
+        let remainder = Array(read(store).dropFirst(pending.count))
+        if remainder.isEmpty {
+            store.removeObject(forKey: inboxKey)
+        } else {
+            store.set(remainder, forKey: inboxKey)
+        }
         return pending.sorted()
     }
 

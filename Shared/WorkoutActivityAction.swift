@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 /// What the workout Live Activity's button can ask for: end the rest
 /// early, or tick off the set the user just did.
@@ -21,8 +22,7 @@ enum PendingWorkoutActionStore {
 
     static func enqueue(_ pending: Pending, defaults: UserDefaults? = nil) {
         let store = defaults ?? sharedDefaults
-        guard let data = try? JSONEncoder().encode(read(store) + [pending]) else { return }
-        store.set(data, forKey: inboxKey)
+        write(read(store) + [pending], to: store)
         CFNotificationCenterPostNotification(
             CFNotificationCenterGetDarwinNotifyCenter(),
             CFNotificationName(CrossProcessNotification.pendingWorkoutActionQueued as CFString),
@@ -37,11 +37,14 @@ enum PendingWorkoutActionStore {
     static let doubleTapWindow: TimeInterval = 1.5
 
     /// Every queued tap, oldest first, minus double-tapped Complete
-    /// sets; clears the inbox.
+    /// sets; clears what it returns. Taps only ever append, so a tap the
+    /// widget queued after the first read is the tail of the second one,
+    /// and stays for the next drain rather than being wiped unseen.
     static func drain(defaults: UserDefaults? = nil) -> [Pending] {
         let store = defaults ?? sharedDefaults
         let pending = read(store)
-        if !pending.isEmpty { store.removeObject(forKey: inboxKey) }
+        guard !pending.isEmpty else { return [] }
+        write(Array(read(store).dropFirst(pending.count)), to: store)
         return withoutDoubleTaps(pending.sorted { $0.tappedAt < $1.tappedAt })
     }
 
@@ -62,9 +65,30 @@ enum PendingWorkoutActionStore {
         UserDefaults(suiteName: AppGroup.identifier) ?? .standard
     }
 
+    /// Mirrors the app's subsystem directly, since `AppLog` isn't
+    /// compiled into the widget extension.
+    private static let log = Logger(subsystem: "com.peptidesai.app", category: "PendingWorkoutAction")
+
     private static func read(_ defaults: UserDefaults) -> [Pending] {
         guard let data = defaults.data(forKey: inboxKey) else { return [] }
-        return (try? JSONDecoder().decode([Pending].self, from: data)) ?? []
+        do {
+            return try JSONDecoder().decode([Pending].self, from: data)
+        } catch {
+            log.error("inbox decode failed; dropping queued taps: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
+    private static func write(_ taps: [Pending], to defaults: UserDefaults) {
+        guard !taps.isEmpty else {
+            defaults.removeObject(forKey: inboxKey)
+            return
+        }
+        do {
+            defaults.set(try JSONEncoder().encode(taps), forKey: inboxKey)
+        } catch {
+            log.error("inbox encode failed; tap not queued: \(error.localizedDescription, privacy: .public)")
+        }
     }
 }
 
