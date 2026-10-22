@@ -80,7 +80,7 @@ struct WorkoutExerciseCard: View {
             )
             .frame(width: 44, height: 44)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(displayName)
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
@@ -192,7 +192,7 @@ struct WorkoutExerciseCard: View {
 
     private var addSetButton: some View {
         Button(action: onAddSet) {
-            HStack(spacing: 6) {
+            HStack(spacing: Spacing.xs) {
                 Image(systemName: "plus.circle.fill")
                 Text("Add set")
             }

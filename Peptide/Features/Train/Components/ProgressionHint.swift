@@ -14,7 +14,7 @@ struct ProgressionHint: View {
             Image(systemName: symbolName)
                 .foregroundStyle(AppColor.accentPrimary)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text("Today: \(target)")
                     .font(AppFont.callout.weight(.semibold))
                     .foregroundStyle(AppColor.textPrimary)

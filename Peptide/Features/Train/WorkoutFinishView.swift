@@ -89,7 +89,7 @@ struct WorkoutFinishView: View {
                     .sectionAppear(index: 4)
                     if store.metadataUnavailable {
                         Text("Exercise metadata is unavailable. Your saved sets are still shown.").font(AppFont.subheadline)
-                        Button("Retry exercise metadata") { Task { await store.load() } }.frame(minHeight: 44)
+                        Button("Retry exercise metadata") { Task { await store.load() } }.frame(minHeight: Spacing.minimumHitTarget)
                     }
                 }.padding(Spacing.screenPadding)
             } else { ProgressView("Loading workout…").padding(Spacing.xxl) }
@@ -99,7 +99,7 @@ struct WorkoutFinishView: View {
         .navigationTitle("Summary").navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Edit") { editing = true }.frame(minHeight: 44)
+                Button("Edit") { editing = true }.frame(minHeight: Spacing.minimumHitTarget)
             }
         }
         .safeAreaInset(edge: .bottom) {
@@ -107,7 +107,7 @@ struct WorkoutFinishView: View {
                 RecapAction(title: "Done", action: onClose).accessibilityIdentifier("recap-done")
                 Button { sharing = true } label: {
                     Label("Share workout", systemImage: "square.and.arrow.up")
-                        .font(AppFont.subheadline).frame(maxWidth: .infinity, minHeight: 44)
+                        .font(AppFont.subheadline).frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
                 }.disabled(store.summary == nil)
             }.padding(.horizontal, Spacing.screenPadding).padding(.top, Spacing.sm)
                 .background(AppColor.recapBackground)

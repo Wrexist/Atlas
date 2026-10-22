@@ -120,9 +120,9 @@ struct ExercisePickerSheet: View {
                                 Image(systemName: "xmark.circle.fill").accessibilityHidden(true)
                             }
                             .padding(.horizontal, Spacing.sm)
-                            .frame(minHeight: 44)
+                            .frame(minHeight: Spacing.minimumHitTarget)
                             .frame(maxWidth: 240)
-                            .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: Spacing.sm))
+                            .background(AppColor.surfaceSecondary, in: RoundedRectangle(cornerRadius: Spacing.chipCornerRadius))
                         }
                         .buttonStyle(ScalePressStyle())
                         .accessibilityLabel("Remove \(exercise.name) from selection")
