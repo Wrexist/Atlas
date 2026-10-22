@@ -1,3 +1,4 @@
+import Photos
 import PhotosUI
 import SwiftUI
 
@@ -44,6 +45,7 @@ struct TableScanFlow: View {
     @State private var lens: TableCamera.Lens = .table
     @State private var showsGrid = false
     @AppStorage("tableScan.saveOriginal") private var saveOriginal = false
+    @State private var photosAccessDenied = false
     @State private var isShowingLibrary = false
     @State private var libraryItem: PhotosPickerItem?
     @State private var isCutting = false
@@ -91,6 +93,9 @@ struct TableScanFlow: View {
         .task { await startCamera() }
         .onDisappear(perform: finishOnDismiss)
         .onChange(of: lens) { _, lens in camera.frame(lens) }
+        .onChange(of: saveOriginal) { _, on in
+            if on { Task { _ = await confirmPhotosAccess() } }
+        }
         .onChange(of: libraryItem) { _, item in
             guard let item else { return }
             libraryItem = nil
@@ -113,6 +118,14 @@ struct TableScanFlow: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Your dishes won't be logged.")
+        }
+        .alert("Photos access is off", isPresented: $photosAccessDenied) {
+            Button("Open Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Allow Atlas to add photos in Settings to save your originals.")
         }
         .sheet(isPresented: $showScanLimitPaywall) {
             PaywallView(source: .mealScanLimit)
@@ -440,7 +453,7 @@ struct TableScanFlow: View {
                             .foregroundStyle(AppColor.textPrimary)
                             .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
                             .glassControl(.rect(cornerRadius: Spacing.smallCornerRadius))
-                        Text("Import media")
+                        Text("Import photo")
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.textSecondary)
                     }
@@ -558,9 +571,29 @@ struct TableScanFlow: View {
         work = Task {
             guard let image = await camera.capture() else { return }
             capturedAt = nil
-            if saveOriginal { UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil) }
+            if saveOriginal { Task { await saveToPhotos(image) } }
             await liftDishes(from: image)
         }
+    }
+
+    private func saveToPhotos(_ image: UIImage) async {
+        guard await confirmPhotosAccess() else { return }
+        try? await PHPhotoLibrary.shared().performChanges {
+            PHAssetChangeRequest.creationRequestForAsset(from: image)
+        }
+    }
+
+    /// Turns "Save original" back off and explains why when add-only
+    /// Photos access is denied, so the toggle never claims a save that
+    /// can't happen.
+    private func confirmPhotosAccess() async -> Bool {
+        let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+        guard status == .authorized || status == .limited else {
+            saveOriginal = false
+            photosAccessDenied = true
+            return false
+        }
+        return true
     }
 
     private func importPhoto(_ item: PhotosPickerItem) async {
