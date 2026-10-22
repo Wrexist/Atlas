@@ -481,13 +481,16 @@ private struct CompactTrailing: View {
                 .foregroundStyle(accent)
                 .padding(.trailing, 2)
         case .late:
-            HStack(spacing: 2) {
-                Text(state.doseTime, style: .relative)
-                    .font(.system(size: 11, weight: .heavy, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(accent)
-            }
-            .padding(.trailing, 2)
+            // A count-up timer stays "1:12:00" past the hour, where the
+            // relative style grows to "1 hr, 12 min" and spills the pill.
+            Text(state.doseTime, style: .timer)
+                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(accent)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(maxWidth: 44)
+                .padding(.trailing, 2)
         case .upcoming:
             Text(timerInterval: state.countdownInterval(), countsDown: true)
                 .font(.system(size: 11, weight: .heavy, design: .rounded))
@@ -574,9 +577,13 @@ private struct IslandTrailingTimer: View {
     private var statusText: some View {
         switch state.status() {
         case .completed:
-            Text("✓")
+            // The "Logged" caption underneath already speaks the state.
+            Image(systemName: "checkmark")
+                .accessibilityHidden(true)
         case .late:
-            Text(state.doseTime, style: .relative)
+            Text(state.doseTime, style: .timer)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
         case .dueNow:
             Text(state.doseTime, style: .time)
         case .upcoming:
