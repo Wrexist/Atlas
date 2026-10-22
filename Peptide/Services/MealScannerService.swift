@@ -405,12 +405,13 @@ final class MealScannerService: Sendable {
     }
 
     /// Sends the request, retrying once on a transient transport
-    /// failure or a 502/503/504 response. A genuine offline condition
+    /// failure, a 502/503/504 response, or an App Attest rejection. A genuine offline condition
     /// is classified into `ScanError.offline` so the UI can show
     /// actionable copy instead of the raw `URLError` description.
     private func sendWithRetry(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         let maxAttempts = 2
         var attempt = 0
+        var waitForRegistration = false
         while true {
             attempt += 1
             // Fresh App Attest assertion per attempt: the proxy rejects a
@@ -418,7 +419,7 @@ final class MealScannerService: Sendable {
             // once enforcement is on. Absence is fine — the shared secret
             // still authenticates this build (report mode today).
             var attemptRequest = request
-            if let attestHeaders = await AppAttestService.shared.assertionHeaders() {
+            if let attestHeaders = await AppAttestService.shared.assertionHeaders(waitForRegistration: waitForRegistration) {
                 for (field, value) in attestHeaders {
                     attemptRequest.setValue(value, forHTTPHeaderField: field)
                 }
@@ -430,6 +431,14 @@ final class MealScannerService: Sendable {
                 }
                 if Self.retryableStatuses.contains(http.statusCode), attempt < maxAttempts {
                     try await Task.sleep(for: .seconds(1.5))
+                    continue
+                }
+                if http.statusCode == 401, attempt < maxAttempts,
+                   AppAttestService.isAttestRejection(data) {
+                    // The proxy lost this install's key; the next
+                    // attempt waits for a fresh one to register.
+                    await AppAttestService.shared.invalidateRegistration()
+                    waitForRegistration = true
                     continue
                 }
                 return (data, http)

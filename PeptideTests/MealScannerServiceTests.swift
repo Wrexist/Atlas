@@ -218,6 +218,30 @@ final class MealScannerServiceTests: XCTestCase {
         }
     }
 
+    func test_analyze_attestRequired401_retriesOnceWithFreshRegistration() async {
+        let callCount = SendableBox<Int>(0)
+        MockURLProtocol.handler = { request in
+            callCount.set(callCount.value + 1)
+            let body = #"{"error":{"message":"Unauthorised","code":"attest_required"}}"#
+            return (Self.response(for: request, status: 401), Data(body.utf8))
+        }
+        await XCTAssertThrowsErrorAsync(try await service.analyze(image: tinyImage())) { error in
+            guard case .unauthorised = error as? MealScannerService.ScanError else {
+                XCTFail("Expected .unauthorised, got \(error)")
+                return
+            }
+        }
+        XCTAssertEqual(callCount.value, 2)
+    }
+
+    func test_isAttestRejection_readsOnlyTheAttestCode() {
+        XCTAssertTrue(AppAttestService.isAttestRejection(
+            Data(#"{"error":{"message":"Unauthorised","code":"attest_required"}}"#.utf8)
+        ))
+        XCTAssertFalse(AppAttestService.isAttestRejection(Data(#"{"error":{"message":"Unauthorised"}}"#.utf8)))
+        XCTAssertFalse(AppAttestService.isAttestRejection(Data()))
+    }
+
     // MARK: - Malformed responses
 
     func test_analyze_throwsInvalidResponseOnNonAnthropicEnvelope() async {
