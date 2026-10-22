@@ -2,6 +2,16 @@
 
 ## Current in-flight state
 
+### Design-system audit (branch `claude/audit-design-system`)
+
+Deliberately deferred: **A411**. The legacy (iOS 18–25) branches of
+`glassSurface`, `glassControl` and `glassSurfaceCapsule` still end in
+`.clipShape`, while iOS 26's `glassEffect` does not clip, so content
+that overflows a glass surface is cut off on older OSes and spills on
+26. Dropping the clip changes every legacy card that relies on it and
+needs a visual pass on an iOS 18 device; `glassControl`'s legacy
+hairline also depends on the clip (a 1pt stroke, half clipped away).
+
 ### Smart scan, barcode and library rebuild (branch `claude/smart-scan-library-s0p35l`)
 
 New server route `server/api/food-scan.js` owns the prompt and a JSON
