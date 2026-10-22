@@ -85,7 +85,7 @@ struct ProductInsightCard: View {
                     } label: {
                         Text(option.label)
                             .font(AppFont.scaled(11, weight: .semibold))
-                            .foregroundStyle(isActive ? .white : AppColor.textSecondary)
+                            .foregroundStyle(isActive ? AppColor.onAccent : AppColor.textSecondary)
                             .padding(.horizontal, Spacing.sm)
                             .padding(.vertical, Spacing.xs)
                             .background {
