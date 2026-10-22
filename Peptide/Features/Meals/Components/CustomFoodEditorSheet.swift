@@ -75,6 +75,10 @@ struct CustomFoodEditorSheet: View {
     /// Pure fat is about 900 kcal per 100 g, and 100 g of food can't hold
     /// more than 100 g of protein, carbs and fat.
     private var rangeProblem: LocalizedStringKey? {
+        let entered = [calories, protein, carbs, fat, fiber, sugars].compactMap { Self.parseDecimal($0) }
+        if entered.contains(where: { $0 < 0 }) {
+            return "Values can't be negative."
+        }
         if (caloriesValue ?? 0) > 900 {
             return "Calories can't be more than 900 kcal per 100 g."
         }
