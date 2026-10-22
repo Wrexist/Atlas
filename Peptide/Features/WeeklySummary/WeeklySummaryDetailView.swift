@@ -10,13 +10,15 @@ import SwiftUI
 /// Refresh hands the request back to `WeeklySummaryService` via
 /// the `onRefresh` closure, which performs the mutation against
 /// `dataStore.profile` and re-routes the new summary back into
-/// the view's `summary` binding. Nil hides refresh — the service
+/// the view's `summary` binding, returning the regenerated summary's
+/// kind (nil when generation failed). Nil hides refresh — the service
 /// only regenerates the current week, so an older recap can't be
 /// refreshed in place.
 struct WeeklySummaryDetailView: View {
     @Binding var summary: WeeklySummary
-    let onRefresh: (() async -> Void)?
+    let onRefresh: (() async -> WeeklySummary.Kind?)?
     @State private var isRefreshing = false
+    @State private var refreshFailed = false
 
     private var accent: Color {
         AppColor.recap
@@ -42,9 +44,14 @@ struct WeeklySummaryDetailView: View {
                     Button {
                         Task { @MainActor in
                             isRefreshing = true
-                            await onRefresh()
+                            let kind = await onRefresh()
                             isRefreshing = false
-                            Haptics.success()
+                            refreshFailed = kind != .ai
+                            if refreshFailed {
+                                Haptics.warning()
+                            } else {
+                                Haptics.success()
+                            }
                         }
                     } label: {
                         Image(systemName: "arrow.clockwise")
@@ -117,7 +124,7 @@ struct WeeklySummaryDetailView: View {
             if let composite = summary.keyStats.avgCheckInScore {
                 StatTile(
                     label: "Check-in",
-                    value: String(format: "%.1f", composite),
+                    value: composite.formatted(.number.precision(.fractionLength(1))),
                     tint: AppColor.metricHRV,
                     footnote: "of 5.0",
                     size: .large
@@ -135,16 +142,24 @@ struct WeeklySummaryDetailView: View {
             if let delta = summary.keyStats.hrvDelta {
                 let prefix = delta > 0 ? "+" : ""
                 StatTile(
-                    label: "HRV Δ",
+                    label: "HRV change",
                     value: "\(prefix)\(delta)",
                     tint: delta >= 0
                         ? AppColor.positive
                         : AppColor.negative,
                     footnote: "ms vs prior week",
-                    size: .large
+                    size: .large,
+                    accessibilityLabel: hrvChangeAccessibilityLabel(delta)
                 )
             }
         }
+    }
+
+    private func hrvChangeAccessibilityLabel(_ delta: Int) -> String {
+        let ms = abs(delta)
+        if delta > 0 { return String(localized: "HRV change, up \(ms) milliseconds versus prior week") }
+        if delta < 0 { return String(localized: "HRV change, down \(ms) milliseconds versus prior week") }
+        return String(localized: "HRV change, no change versus prior week")
     }
 
     // MARK: - Body
@@ -176,11 +191,20 @@ struct WeeklySummaryDetailView: View {
     }
 
     private var metadataText: String {
-        let kindLabel = summary.kind == .ai
-            ? String(localized: "Personalised by AI")
-            : String(localized: "Offline summary — try refreshing")
         let generated = summary.generatedAt.formatted(date: .abbreviated, time: .shortened)
         return "\(kindLabel) · \(generated)"
+    }
+
+    private var kindLabel: String {
+        if summary.kind == .ai {
+            return String(localized: "Personalised by AI")
+        }
+        if refreshFailed {
+            return String(localized: "Couldn't reach Atlas — showing the offline summary")
+        }
+        return onRefresh == nil
+            ? String(localized: "Offline summary")
+            : String(localized: "Offline summary — try refreshing")
     }
 
     // MARK: - Date helper

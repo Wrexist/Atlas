@@ -1056,11 +1056,13 @@ struct HomeView: View {
     /// the card entirely when the user isn't Pro + opted-in. Routes
     /// through `WeeklySummaryService` so the Pro gate, opt-out gate,
     /// network call, cache, and offline fallback all stay in one
-    /// place.
-    private func loadWeeklySummary(forceRefresh: Bool) async {
+    /// place. Returns the loaded summary's kind, or nil when none was
+    /// produced.
+    @discardableResult
+    private func loadWeeklySummary(forceRefresh: Bool) async -> WeeklySummary.Kind? {
         guard WeeklySummaryService.shared.isAvailable(profile: dataStore.profile) else {
             weeklySummaryState = nil
-            return
+            return nil
         }
 
         // Cached value short-circuits unless the caller asked for a
@@ -1076,7 +1078,7 @@ struct HomeView: View {
             workoutDates: dataStore.recentWorkoutDates()
         ) {
             weeklySummaryState = .ready(cached)
-            return
+            return cached.kind
         }
 
         weeklySummaryState = .loading
@@ -1110,10 +1112,13 @@ struct HomeView: View {
             WeeklySummaryService.shared.record(summary, in: &dataStore.profile)
             dataStore.persistProfile()
             weeklySummaryState = .ready(summary)
+            return summary.kind
         } catch WeeklySummaryService.GenerationError.insufficientData {
             weeklySummaryState = .empty
+            return nil
         } catch {
             weeklySummaryState = .failed
+            return nil
         }
     }
 
