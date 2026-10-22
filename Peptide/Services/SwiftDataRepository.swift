@@ -377,7 +377,9 @@ final class SwiftDataRepository {
             AppLog.swiftData.error("Fetch protocols failed: \(error.localizedDescription, privacy: .public)")
             existing = []
         }
-        let existingById = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+        // Grouped, not unique: CloudKit can't enforce a unique id, and
+        // the same backup restored on two devices syncs two rows each.
+        let existingById = Dictionary(grouping: existing, by: \.id)
         let inputIds = Set(protocols.map(\.id))
 
         for stored in existing where !inputIds.contains(stored.id) {
@@ -385,9 +387,9 @@ final class SwiftDataRepository {
         }
 
         for proto in protocols {
-            if let stored = existingById[proto.id] {
+            if let rows = existingById[proto.id] {
                 do {
-                    try stored.update(from: proto)
+                    for stored in rows { try stored.update(from: proto) }
                 } catch {
                     AppLog.swiftData.error("Update StoredProtocol failed: \(error.localizedDescription, privacy: .public)")
                 }
@@ -423,11 +425,12 @@ final class SwiftDataRepository {
             commitDidFail = true
             return
         }
-        let existingById = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+        // Grouped, not unique — see `saveProtocols`.
+        let existingById = Dictionary(grouping: existing, by: \.id)
         for proto in protocols {
             do {
-                if let stored = existingById[proto.id] {
-                    try stored.update(from: proto)
+                if let rows = existingById[proto.id] {
+                    for stored in rows { try stored.update(from: proto) }
                 } else {
                     context.insert(try StoredProtocol.make(from: proto))
                 }
