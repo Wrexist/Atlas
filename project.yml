@@ -193,6 +193,7 @@ targets:
       # watch drains, so a Shortcuts run there would be silently lost.
       - path: Shared/AppGroup.swift
       - path: Shared/WatchData.swift
+      - path: Shared/WatchPalette.swift
       - path: Shared/WatchWorkout.swift
       - path: Shared/WidgetWorkoutSummary.swift
       - path: WatchShared
@@ -231,6 +232,7 @@ targets:
           - Info.plist
       - path: Shared/AppGroup.swift
       - path: Shared/WatchData.swift
+      - path: Shared/WatchPalette.swift
       - path: Shared/WatchWorkout.swift
       - path: Shared/WidgetWorkoutSummary.swift
       - path: WatchShared
