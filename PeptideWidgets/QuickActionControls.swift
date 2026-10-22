@@ -14,6 +14,9 @@ struct LogWaterControl: ControlWidget {
                 } icon: {
                     Image(systemName: QuickAction.logWater.systemImage)
                 }
+                // The control has no state to flip, so the Action button
+                // hint is the only cue that a press adds a glass.
+                .controlWidgetActionHint("Add a glass")
             }
         }
         .displayName("Log water")

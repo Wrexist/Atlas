@@ -16,8 +16,6 @@ import ActivityKit
 /// countdown and ring without the app having to push every second.
 @available(iOS 16.1, *)
 struct DoseWindowAttributes: ActivityAttributes {
-    public typealias DoseWindowStatus = ContentState
-
     public struct ContentState: Codable, Hashable {
         /// Wall-clock time the dose was scheduled for. The widget
         /// renders `Text(timerInterval:)` and the ring against this
@@ -122,6 +120,24 @@ extension DoseWindowAttributes.ContentState {
     /// a moment" pause without showing a red badge the second the
     /// scheduled time hits.
     static let dueNowToleranceMinutes: Int = 5
+
+    /// How long after `doseTime` the window stays open. Past it the
+    /// app ends the activity for an unlogged dose.
+    static let windowCloseMinutes: Int = 90
+
+    /// How long the "Logged" badge stays up before the activity
+    /// dismisses itself, whichever process ends it.
+    static let loggedBadgeSeconds: TimeInterval = 4
+
+    /// When the activity's content goes stale: just past the due-now
+    /// tolerance. A Live Activity only redraws on a push or at its
+    /// stale date, and status is read from the clock at draw time, so
+    /// this redraw is what moves a suspended app's activity into
+    /// `.late`. It is the only redraw a suspended app gets, so an
+    /// unlogged dose stays on Late until the app ends the activity.
+    var lateBoundary: Date {
+        doseTime.addingTimeInterval(Double((Self.dueNowToleranceMinutes + 1) * 60))
+    }
 
     /// Resolves the current status against `now`. Pure — same input
     /// always yields the same output so the widget renders are

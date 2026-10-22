@@ -90,6 +90,10 @@ struct WatchRecoveryEntryView: View {
         }
         .gaugeStyle(.accessoryCircular)
         .tint(WatchPalette.heart)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            vitals?.recoveryScore.map { Text("Recovery score \($0)") } ?? Text("Recovery score unavailable")
+        )
         .containerBackground(for: .widget) { Color.clear }
     }
 

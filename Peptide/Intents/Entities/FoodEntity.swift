@@ -1,8 +1,8 @@
 import AppIntents
 
 /// App Intents projection of a loggable food. Surfaces every custom
-/// food the user has saved plus every favorited OFF product so
-/// "Log my overnight oats" / "Log Fage 0%" resolve via Siri.
+/// food the user has saved so "Log my overnight oats" resolves via
+/// Siri.
 ///
 /// Identifier uses the same `custom:<uuid>` / barcode scheme
 /// `MealEntry.sourceID` and `FoodSpotlightService` use, so a future
@@ -72,16 +72,16 @@ struct FoodEntityQuery: EntityQuery {
         }
     }
 
-    /// Walks profile.customFoods + cached favorites and projects into
-    /// `FoodEntity`. OFF favorites that have been evicted from the
-    /// barcode cache are dropped silently — there's nothing to read
-    /// back if we don't have the product details.
+    /// Walks profile.customFoods and projects each into `FoodEntity`.
     @MainActor
     private static func allEntities(in store: DataStore) -> [FoodEntity] {
         var out: [FoodEntity] = []
         out.reserveCapacity(store.profile.customFoods.count)
 
-        for food in store.profile.customFoods {
+        // A CloudKit merge or restore can duplicate a food; one entity
+        // per id keeps the id lookup in `entities(for:)` from trapping.
+        var seen: Set<String> = []
+        for food in store.profile.customFoods where seen.insert(food.foodID).inserted {
             out.append(FoodEntity(
                 id: food.foodID,
                 displayName: food.name,

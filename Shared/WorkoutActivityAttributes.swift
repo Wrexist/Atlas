@@ -20,8 +20,6 @@ import ActivityKit
 /// mean a second source of truth for one countdown.
 @available(iOS 16.1, *)
 struct WorkoutActivityAttributes: ActivityAttributes {
-    public typealias WorkoutStatus = ContentState
-
     public struct ContentState: Codable, Hashable {
         /// Display name, or "" for an unnamed workout — the widget
         /// falls back to "Workout" rather than rendering a blank line.
@@ -119,12 +117,42 @@ extension WorkoutActivityAttributes.ContentState {
         return .resting(secondsRemaining: Int(restEndsAt.timeIntervalSince(now).rounded(.up)))
     }
 
-    /// 0…1 through the current rest. Zero when not resting, so the ring
-    /// has nothing to draw rather than a stale arc.
-    func restProgress(at now: Date = Date()) -> Double {
-        guard restTotalSeconds > 0, let restEndsAt, restEndsAt > now else { return 0 }
-        let elapsed = restTotalSeconds - restEndsAt.timeIntervalSince(now)
-        return min(max(elapsed / restTotalSeconds, 0), 1)
+    /// Silence after which a workout nobody has touched reads as idle.
+    /// `staleDate(now:)` sets the stale date this far out.
+    static let idleInterval: TimeInterval = 2 * 60 * 60
+
+    /// When the system should next redraw this state on its own. While
+    /// resting, the end of the rest: the activity is only drawn on a
+    /// push or at its stale date, and with the app suspended nothing
+    /// else would redraw it out of the finished countdown. Otherwise the
+    /// idle interval out: a workout nobody has touched in two hours is
+    /// over in practice, and the widget greys it out.
+    ///
+    /// An activity gets one stale date, so a workout left during a rest
+    /// is redrawn at the rest's end and never again until the app
+    /// pushes: it stays in the lifting state rather than going idle.
+    func staleDate(now: Date = Date()) -> Date {
+        if let restEndsAt, restEndsAt > now { return restEndsAt }
+        return now.addingTimeInterval(Self.idleInterval)
+    }
+
+    /// Past the stale date with nothing pushed for `idleInterval`, so a
+    /// ticking clock and a "Complete set" button would describe a
+    /// workout nobody is doing. A rest's own stale date (its end) only
+    /// redraws the activity out of the countdown, so it doesn't count;
+    /// a rest reads as idle only once a later app push has moved the
+    /// stale date past it (see `staleDate(now:)`).
+    func isIdle(isStale: Bool, at now: Date = Date()) -> Bool {
+        guard isStale, finishedAt == nil else { return false }
+        guard let restEndsAt else { return true }
+        return now.timeIntervalSince(restEndsAt) >= Self.idleInterval
+    }
+
+    /// The current rest as a date range, for a ring the system fills on
+    /// its own between pushes. Nil when no rest is set.
+    var restInterval: ClosedRange<Date>? {
+        guard let restEndsAt else { return nil }
+        return restEndsAt.addingTimeInterval(-max(0, restTotalSeconds))...restEndsAt
     }
 
     /// 0…1 through the planned sets. Clamped so an extra set logged
@@ -137,7 +165,7 @@ extension WorkoutActivityAttributes.ContentState {
     /// What to print as the title. Kept here so the lock screen, the
     /// compact pill and the expanded island can't disagree.
     var displayName: String {
-        workoutName.isEmpty ? "Workout" : workoutName
+        workoutName.isEmpty ? String(localized: "Workout") : workoutName
     }
 }
 #endif

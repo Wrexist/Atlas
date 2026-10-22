@@ -149,6 +149,20 @@ struct WidgetData: Codable, Equatable, Sendable {
     /// to a live elapsed-time layout.
     var workoutInProgress: Bool { activeWorkoutStartedAt != nil }
 
+    /// How long the payload can go unwritten before a running workout
+    /// in it counts as abandoned. Mirrors
+    /// `WorkoutStalenessEngine.loggedIdleLimit`, which closes such a
+    /// session — but only once the app launches again.
+    static let abandonedWorkoutAge: TimeInterval = 6 * 3600
+
+    /// The running workout's start, or nil when none is running or the
+    /// app hasn't written in long enough that the session was left
+    /// open. Without the cut-off the widget's timer counts for days.
+    func activeWorkoutStart(at now: Date) -> Date? {
+        guard now.timeIntervalSince(lastUpdated) <= Self.abandonedWorkoutAge else { return nil }
+        return activeWorkoutStartedAt
+    }
+
     /// True when every field but `lastUpdated` matches — rewriting
     /// such a payload would only spend the widgets' reload budget.
     func hasSameContent(as other: WidgetData) -> Bool {
