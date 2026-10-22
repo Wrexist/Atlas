@@ -170,7 +170,7 @@ struct TrainContainerView: View {
                         HStack(spacing: Spacing.xs) {
                             // Active time, not wall clock: frozen while
                             // paused, and pauses don't count.
-                            TimelineView(.periodic(from: .now, by: 1)) { context in
+                            TimelineView(.animation(minimumInterval: 1, paused: active.isPaused)) { context in
                                 Text(WorkoutClock.label(active.elapsedSeconds(now: context.date)))
                             }
                             Text("·")

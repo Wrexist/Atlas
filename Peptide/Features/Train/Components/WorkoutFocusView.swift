@@ -302,7 +302,7 @@ private struct WorkoutFocusRestHeader: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
+        TimelineView(.animation(minimumInterval: 1, paused: rest.frozenSeconds != nil)) { context in
             let seconds = Int(ceil(rest.remaining(at: context.date)))
             let remaining = WorkoutClock.label(seconds)
             let isAccessibilitySize = dynamicTypeSize.isAccessibilitySize
@@ -395,7 +395,7 @@ private struct WorkoutFocusMetrics: View {
         Label(session.completedSetCount == 1 ? "1 set" : "\(session.completedSetCount) sets", systemImage: "checkmark.circle")
         Label("\(Int(unit.weightForDisplay(session.totalVolumeKg).rounded())) \(unit.weightSuffix)", systemImage: "scalemass")
             .accessibilityLabel(Text("Volume: \(Int(unit.weightForDisplay(session.totalVolumeKg).rounded())) \(unit.weightSuffix)"))
-        TimelineView(.periodic(from: .now, by: 1)) { context in
+        TimelineView(.animation(minimumInterval: 1, paused: session.isPaused)) { context in
             Label(WorkoutClock.label(session.elapsedSeconds(now: context.date)), systemImage: "clock")
                 .monospacedDigit()
                 .accessibilityLabel(Text("Active duration \(WorkoutClock.label(session.elapsedSeconds(now: context.date)))"))
