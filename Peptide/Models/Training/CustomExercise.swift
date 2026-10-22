@@ -10,8 +10,11 @@ import Foundation
 /// in `SwiftDataModels+Training.swift`); this value type is the
 /// in-memory shape passed around by services and views.
 struct CustomExercise: Codable, Hashable, Identifiable, Sendable {
-    /// Stable string id prefixed `custom_` so it never collides with
-    /// the bundled dataset's slug-style ids. Generated on create.
+    /// Prefix on every custom id so it never collides with the bundled
+    /// dataset's slug-style ids.
+    static let idPrefix = "custom_"
+
+    /// Stable string id starting with `idPrefix`. Generated on create.
     let id: String
     var name: String
     var primaryMuscles: [String]
@@ -23,7 +26,7 @@ struct CustomExercise: Codable, Hashable, Identifiable, Sendable {
     var createdAt: Date
 
     init(
-        id: String = "custom_\(UUID().uuidString)",
+        id: String = "\(CustomExercise.idPrefix)\(UUID().uuidString)",
         name: String,
         primaryMuscles: [String] = [],
         secondaryMuscles: [String] = [],
@@ -44,7 +47,8 @@ struct CustomExercise: Codable, Hashable, Identifiable, Sendable {
     /// exercise so the UI can render them interchangeably. Custom
     /// exercises have no images and no force/mechanic metadata in v1
     /// — the field is `nil` and the detail screen falls back to an SF
-    /// Symbol placeholder.
+    /// Symbol placeholder. `level` is a placeholder the user never set,
+    /// so screens check `Exercise.isCustom` before showing it.
     func asExercise() -> Exercise {
         Exercise(
             id: id,

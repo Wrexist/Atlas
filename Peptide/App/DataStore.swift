@@ -1700,6 +1700,7 @@ final class DataStore {
             Task { await HealthKitService.shared.deleteWorkout(id: id) }
         }
         PRDetectionEngine.shared.recompute(exerciseIDs: affectedExercises)
+        WorkoutSessionService.shared.invalidatePreviousSetCache()
         cacheVersion &+= 1
         // Same reason as `recordWorkoutFinished`: a repo-level write is
         // invisible to the property observers, so derived snapshots need
@@ -1769,6 +1770,7 @@ final class DataStore {
     /// Editing changes derived records and totals, but earns no second reward.
     func workoutWasEdited(exerciseIDs: Set<String>) {
         PRDetectionEngine.shared.recompute(exerciseIDs: exerciseIDs)
+        WorkoutSessionService.shared.invalidatePreviousSetCache()
         cacheVersion &+= 1
         revision &+= 1
         updateWidgetData()

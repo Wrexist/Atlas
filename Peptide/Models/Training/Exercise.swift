@@ -69,16 +69,17 @@ struct Exercise: Codable, Hashable, Identifiable, Sendable {
 extension Exercise {
     /// Collapsed muscle taxonomy used to drive the 9-chip filter row.
     /// Reads the first primary muscle when present, otherwise the first
-    /// secondary, otherwise `.fullBody`. An exercise tagged with four or
-    /// more distinct primary + secondary muscles is treated as full-body
-    /// regardless of its first tag (matches the planning doc).
+    /// secondary, otherwise `.fullBody`. A lift whose primary + secondary
+    /// muscles span `fullBodyGroupThreshold` collapsed groups (cleans,
+    /// snatches, stone loads) is full-body; counting raw muscles instead
+    /// filed squats and rows there too.
     var muscleGroup: MuscleGroup {
-        let distinct = Set(primaryMuscles + secondaryMuscles)
-        if distinct.count >= 4 && category == .strength {
-            return .fullBody
-        }
         if category != .strength && category != .powerlifting && category != .strongman && category != .olympicWeightlifting {
             return .cardioMobility
+        }
+        let groups = Set((primaryMuscles + secondaryMuscles).compactMap(MuscleGroup.fromRaw))
+        if groups.count >= Self.fullBodyGroupThreshold {
+            return .fullBody
         }
         if let primary = primaryMuscles.first,
            let group = MuscleGroup.fromRaw(primary) {
@@ -91,6 +92,11 @@ extension Exercise {
         return .fullBody
     }
 
+    static let fullBodyGroupThreshold = 5
+
+    /// A user-made exercise lifted by `CustomExercise.asExercise()`.
+    var isCustom: Bool { id.hasPrefix(CustomExercise.idPrefix) }
+
     /// The kit this exercise is done with, read from the raw equipment
     /// string and the name together — see `EquipmentClassificationEngine`.
     var equipmentKind: EquipmentKind {
@@ -100,12 +106,5 @@ extension Exercise {
     /// Bench, rack, pull-up bar or box the exercise also needs.
     var equipmentAccessories: Set<EquipmentAccessory> {
         EquipmentClassificationEngine.accessories(for: self)
-    }
-
-    /// Stable display force string for the detail screen. Returns the
-    /// raw force value capitalized, or "Static" / "—" fallbacks.
-    var forceDisplay: String {
-        guard let force = force else { return "—" }
-        return force.rawValue.prefix(1).uppercased() + force.rawValue.dropFirst()
     }
 }

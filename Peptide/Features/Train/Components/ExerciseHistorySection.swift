@@ -31,11 +31,13 @@ struct ExerciseHistorySection: View {
                         .font(AppFont.callout).foregroundStyle(AppColor.textSecondary)
                 } else {
                     if visits.count > 1 { activityChart }
-                    ForEach(Array(visits.prefix(expanded ? visits.count : 3))) { visit in
+                    let shown = Array(visits.prefix(expanded ? visits.count : 3))
+                    ForEach(shown) { visit in
+                        if visit.id != shown.first?.id { Divider() }
                         visitRow(visit)
                     }
                     if visits.count > 3 {
-                        Button(expanded ? "Show recent workouts" : "Show all \(visits.count) workouts") {
+                        Button(expanded ? "Show fewer" : "Show all \(visits.count) workouts") {
                             AppAnimation.with(AppAnimation.springSnappy) { expanded.toggle() }
                         }.minimumHitArea()
                     }
@@ -95,12 +97,12 @@ struct ExerciseHistorySection: View {
                     .font(AppFont.callout).monospacedDigit()
                     .foregroundStyle(AppColor.textSecondary)
             }
-            Divider()
         }
     }
 
+    /// Keeps the current visits on screen while refreshing; only the first
+    /// load shows the spinner.
     private func reload() {
-        loading = true
         failed = false
         let now = Date()
         guard let start = Calendar.current.date(byAdding: .day, value: -90, to: now) else {

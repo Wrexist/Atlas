@@ -44,6 +44,16 @@ final class WorkoutSessionTests: XCTestCase {
         XCTAssertNil(incomplete.estimatedOneRepMaxKg)
     }
 
+    func test_setEntry_estimatedOneRepMax_twelveReps_isEstimated() throws {
+        let set = SetEntry(index: 1, weightKg: 60, reps: 12, completed: true)
+        XCTAssertEqual(try XCTUnwrap(set.estimatedOneRepMaxKg), 84, accuracy: 0.0001)
+    }
+
+    func test_setEntry_estimatedOneRepMax_highRepSets_returnNil() {
+        XCTAssertNil(SetEntry(index: 1, weightKg: 60, reps: 13, completed: true).estimatedOneRepMaxKg)
+        XCTAssertNil(SetEntry(index: 1, weightKg: 60, reps: 40, completed: true).estimatedOneRepMaxKg)
+    }
+
     func test_setEntry_estimatedOneRepMax_nilForZeroReps() {
         let set = SetEntry(index: 1, weightKg: 100, reps: 0, completed: true)
         XCTAssertNil(set.estimatedOneRepMaxKg)

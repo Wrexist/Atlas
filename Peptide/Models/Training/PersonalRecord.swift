@@ -1,8 +1,8 @@
 import Foundation
 
 /// Best-ever record per exercise, computed from the user's workout
-/// history. Cached separately from session storage so the PR badges on
-/// the Train tab don't require a full history scan on every render.
+/// history. Cached separately from session storage so PR lookups
+/// don't require a full history scan on every render.
 /// Refreshed by `PRDetectionEngine` on workout finish.
 ///
 /// `exerciseID` is the natural primary key — exactly one record per
@@ -63,5 +63,38 @@ struct PersonalRecord: Codable, Hashable, Identifiable, Sendable {
         self.bestSessionVolumeAt = bestSessionVolumeAt
         self.bestRepsBodyweight = bestRepsBodyweight
         self.bestRepsBodyweightAt = bestRepsBodyweightAt
+    }
+
+    /// Field-wise best of two records for the same exercise. CloudKit
+    /// can't enforce a unique `exerciseID`, so two devices that each
+    /// logged an exercise first sync two rows; merging keeps every best.
+    func merged(with other: PersonalRecord) -> PersonalRecord {
+        var result = self
+        (result.bestEstimatedOneRepMaxKg, result.bestEstimatedOneRepMaxAt) = Self.better(
+            (bestEstimatedOneRepMaxKg, bestEstimatedOneRepMaxAt),
+            (other.bestEstimatedOneRepMaxKg, other.bestEstimatedOneRepMaxAt)
+        )
+        (result.bestAbsoluteWeightKg, result.bestAbsoluteWeightAt) = Self.better(
+            (bestAbsoluteWeightKg, bestAbsoluteWeightAt),
+            (other.bestAbsoluteWeightKg, other.bestAbsoluteWeightAt)
+        )
+        (result.bestSessionVolumeKg, result.bestSessionVolumeAt) = Self.better(
+            (bestSessionVolumeKg, bestSessionVolumeAt),
+            (other.bestSessionVolumeKg, other.bestSessionVolumeAt)
+        )
+        (result.bestRepsBodyweight, result.bestRepsBodyweightAt) = Self.better(
+            (bestRepsBodyweight, bestRepsBodyweightAt),
+            (other.bestRepsBodyweight, other.bestRepsBodyweightAt)
+        )
+        return result
+    }
+
+    private static func better<Value: Comparable>(
+        _ lhs: (Value?, Date?),
+        _ rhs: (Value?, Date?)
+    ) -> (Value?, Date?) {
+        guard let right = rhs.0 else { return lhs }
+        guard let left = lhs.0 else { return rhs }
+        return right > left ? rhs : lhs
     }
 }
