@@ -256,8 +256,9 @@ struct TodayHabitsHero: View {
                         .font(AppFont.scaled(24))
                         .foregroundStyle(AppColor.accentPrimary)
                 }
+                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
 
             StarterHabitSuggestions(onPick: addStarter)
         }
