@@ -110,10 +110,12 @@ struct WorkoutExerciseCard: View {
                         Label("Remove from superset", systemImage: "xmark.circle")
                     }
                 }
-                Button {
-                    showingPlateCalculator = true
-                } label: {
-                    Label("Plate calculator", systemImage: "scalemass")
+                if exercise?.equipmentKind.bar != nil {
+                    Button {
+                        showingPlateCalculator = true
+                    } label: {
+                        Label("Plate calculator", systemImage: "scalemass")
+                    }
                 }
                 Button(role: .destructive, action: requestRemoval) {
                     Label("Remove exercise", systemImage: "trash")
