@@ -144,7 +144,8 @@ final class TodayLayoutEngineTests: XCTestCase {
     func test_decode_layoutFromNewerBuild_keepsUnknownIdsOutOfSections() throws {
         let json = #"{"order":["futureSection","timeline"],"hidden":["futureSection"]}"#
         let layout = try JSONDecoder().decode(TodayLayout.self, from: Data(json.utf8))
-        XCTAssertEqual(layout.sections.first, .timeline)
+        XCTAssertEqual(layout.sections, TodayLayoutEngine.sections(storedOrder: ["timeline"]))
+        XCTAssertEqual(layout.visibleSections, layout.sections)
         XCTAssertFalse(layout.sections.map(\.rawValue).contains("futureSection"))
     }
 
