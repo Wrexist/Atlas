@@ -233,6 +233,10 @@ jobs:
           # with "Unable to find a device matching the provided destination
           # specifier" while build-check, on a different runner in the same
           # workflow, found one. A gating job must not be a coin flip.
+          #
+          # The log feeds the concurrency-warning count below; pipefail
+          # keeps a compile error failing this step through the tee.
+          set -o pipefail
           xcodebuild build \
             -project Peptide.xcodeproj \
             -scheme Peptide \
@@ -240,7 +244,28 @@ jobs:
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee build-output.log
+
+      - name: Count concurrency warnings
+        # Report-only, never gating. Swift 5 mode with targeted strict
+        # concurrency downgrades data-race diagnostics to warnings, so
+        # nothing else surfaces them. This tracks the count per PR as
+        # the first step toward a committed baseline (audit A553).
+        if: always()
+        continue-on-error: true
+        run: |
+          if [ ! -f build-output.log ]; then
+            echo "No build-output.log — Build app step did not run."
+            exit 0
+          fi
+          COUNT=$(grep -E 'warning: .*(Sendable|actor-isolated|data race|nonisolated)' build-output.log | sort -u | wc -l | tr -d ' ' || true)
+          echo "Swift concurrency warnings (unique): ${COUNT}"
+          {
+            echo "## Swift concurrency warnings"
+            echo ""
+            echo "Unique warnings mentioning Sendable, actor-isolated, data race or nonisolated in the Debug app build: **${COUNT}**"
+          } >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Build app (Release)
         # Debug alone never sees a symbol referenced outside its
