@@ -1522,7 +1522,7 @@ final class DataStore {
         guard let totals = RecipeDataLogic.review(
             for: recipe,
             customFoods: profile.customFoods
-        ).totals, totals.calories > 0 else { return nil }
+        ).totals else { return nil }
         let chosenCategory = category ?? MealCategory.auto(for: date)
         let entry = MealEntry(
             loggable: totals,
