@@ -753,13 +753,14 @@ struct HomeView: View {
             // Single handler for adherence-ratio changes: update only the
             // trio's Adherence ring so a logged/unlogged dose shows
             // immediately without re-reading HealthKit, and fire the
-            // review prompt when the day first hits 100%.
-            .onChange(of: stats.score) { oldScore, newScore in
-                let ratio = adherenceRatio
+            // review prompt when the day first hits 100%. Keyed on the
+            // optional ratio so going from no doses to N untaken (nil → 0)
+            // still reaches the ring.
+            .onChange(of: adherenceRatio) { oldRatio, newRatio in
                 AppAnimation.with(AppAnimation.springSmooth) {
-                    heroSnapshot = heroSnapshot.withAdherence(ratio)
+                    heroSnapshot = heroSnapshot.withAdherence(newRatio)
                 }
-                if oldScore < 1.0, newScore >= 1.0, stats.total > 0 {
+                if (oldRatio ?? 0) < 1.0, (newRatio ?? 0) >= 1.0 {
                     Task { @MainActor in
                         try? await Task.sleep(for: .seconds(1))
                         ReviewPromptService.shared.requestReviewIfEligible(using: requestReview)
