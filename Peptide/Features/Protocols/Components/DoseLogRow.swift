@@ -33,7 +33,7 @@ struct DoseLogRow: View {
 
             Spacer()
 
-            Text(entry.date.formatted(.dateTime.hour().minute()))
+            Text(time)
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.textSecondary)
         }
@@ -42,8 +42,12 @@ struct DoseLogRow: View {
         .accessibilityLabel(accessibilityLabel)
     }
 
+    /// When the dose was actually taken, falling back to its slot.
+    private var time: String {
+        (entry.actualTime ?? entry.date).formatted(.dateTime.hour().minute())
+    }
+
     private var accessibilityLabel: String {
-        let time = entry.date.formatted(.dateTime.hour().minute())
         let status = entry.completed ? "completed" : "pending"
         return "\(entry.peptide.name), \(entry.dose) at \(time), \(status)"
     }

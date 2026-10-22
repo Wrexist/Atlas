@@ -40,4 +40,11 @@ final class DoseDayMapTests: XCTestCase {
         XCTAssertEqual(result.map(\.kind), [.scheduled])
         XCTAssertEqual(result.first?.entryID, pending.id)
     }
+
+    func test_build_entryWithActualTime_showsActualTime() {
+        var logged = entry(completed: true)
+        let takenAt = referenceDay.addingTimeInterval(100 * 60)
+        logged.actualTime = takenAt
+        XCTAssertEqual(marks(for: [logged]).first?.time, takenAt.formatted(.dateTime.hour().minute()))
+    }
 }

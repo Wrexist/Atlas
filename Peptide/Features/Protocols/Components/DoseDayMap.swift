@@ -75,7 +75,7 @@ enum DoseDayMap {
                 peptideName: entry.peptide.name,
                 peptideAbbreviation: entry.peptide.abbreviation,
                 dose: entry.dose,
-                time: timeString(for: entry.date, calendar: cal),
+                time: timeString(for: entry.actualTime ?? entry.date, calendar: cal),
                 injectionSite: entry.injectionSite,
                 entryID: entry.id,
                 protocolStatus: protocolStatusByID[entry.protocolId] ?? .active
