@@ -96,11 +96,11 @@ struct AppearanceSettings: View {
 
             if overLimit {
                 Text("\(notificationService.scheduledCount) of \(notificationService.requestedCount) reminders active (iOS limit: \(limit))")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.warning)
             } else {
                 Text("\(notificationService.scheduledCount) reminders scheduled")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
             }
         }
@@ -167,7 +167,7 @@ struct SettingsToggleRow: View {
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(subtitle)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
             }
@@ -192,7 +192,7 @@ private struct ThemePickerRow: View {
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(selection.displayName)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
 
@@ -286,7 +286,7 @@ struct SettingsPickerRow<Control: View>: View {
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(subtitle)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
 

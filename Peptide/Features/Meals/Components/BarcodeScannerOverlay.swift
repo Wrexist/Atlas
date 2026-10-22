@@ -106,7 +106,7 @@ struct BarcodeLookupSkeleton: View {
             }
 
             Text("Looking up the product…")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
         }
     }

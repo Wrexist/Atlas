@@ -338,7 +338,7 @@ private struct BackupSummaryCard: View {
     private func row(_ label: LocalizedStringKey, _ value: Text) -> some View {
         HStack {
             Text(label)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
             Spacer()
             value
@@ -368,7 +368,7 @@ private struct StrategyCard: View {
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(detail)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

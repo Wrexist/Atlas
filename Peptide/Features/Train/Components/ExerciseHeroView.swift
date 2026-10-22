@@ -47,7 +47,7 @@ struct ExerciseMuscleLegend: View {
             tier(.primary, color: AppColor.trainingPrimaryMuscle)
             tier(.secondary, color: AppColor.trainingSecondaryMuscle)
         }
-        .font(AppFont.caption)
+        .font(AppFont.caption2)
         .lineLimit(1)
         .accessibilityHidden(true)
     }

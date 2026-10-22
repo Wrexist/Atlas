@@ -177,7 +177,7 @@ struct TrainContainerView: View {
                             Text("^[\(active.completedSetCount) set](inflect: true) logged")
                                 .contentTransition(.numericText())
                         }
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .monospacedDigit()
                     }
                 }

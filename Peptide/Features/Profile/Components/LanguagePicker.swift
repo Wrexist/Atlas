@@ -144,12 +144,12 @@ private struct LanguageRow: View {
 
                         if let englishName {
                             Text(englishName)
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                                 .foregroundStyle(AppColor.textTertiary)
                                 .lineLimit(1)
                         } else if isSystemDefault {
                             Text(systemLanguageDescription)
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                                 .foregroundStyle(AppColor.textTertiary)
                                 .lineLimit(1)
                         }

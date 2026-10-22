@@ -82,7 +82,7 @@ struct EditNutritionSheet: View {
                 .frame(maxWidth: 100)
                 .monospacedDigit()
             Text(unit)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(width: 32, alignment: .leading)
         }

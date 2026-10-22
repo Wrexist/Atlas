@@ -148,7 +148,7 @@ struct EmptyStateView: View {
                     .multilineTextAlignment(.center)
 
                 Text(message)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)

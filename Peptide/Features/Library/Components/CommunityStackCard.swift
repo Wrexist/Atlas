@@ -17,7 +17,7 @@ struct CommunityStackCard: View {
                                 .font(AppFont.scaled(11))
                                 .foregroundStyle(AppColor.textTertiary)
                             Text(stack.authorHandle ?? stack.authorName)
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                                 .foregroundStyle(AppColor.textSecondary)
                                 .lineLimit(1)
                         }
@@ -34,7 +34,7 @@ struct CommunityStackCard: View {
                 }
 
                 Text(stack.description)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)

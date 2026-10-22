@@ -235,7 +235,7 @@ struct BarcodeScanFlow: View {
         if !recentlyScanned.isEmpty {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text("Recently scanned")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .padding(.horizontal, Spacing.xs)
 
@@ -286,7 +286,7 @@ struct BarcodeScanFlow: View {
                 // tell the user why they landed on manual entry so they
                 // can re-enable in Settings or just type the code.
                 Text(errorText)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.warning)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, Spacing.lg)
@@ -337,7 +337,7 @@ struct BarcodeScanFlow: View {
         VStack(spacing: Spacing.lg) {
             BarcodeLookupSkeleton()
             Text("Reading the label…")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
         }
     }
@@ -387,7 +387,7 @@ struct BarcodeScanFlow: View {
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
             Text(sourceLabel(for: product))
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
             Spacer(minLength: 0)
             if manualOverride != nil {
@@ -419,7 +419,7 @@ struct BarcodeScanFlow: View {
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textPrimary)
                 Text("Portion picker is paused while edits are active.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
             Spacer(minLength: 0)
@@ -451,7 +451,7 @@ struct BarcodeScanFlow: View {
                     .lineLimit(2)
                 if let brand = product.brand, brand != product.name {
                     Text(brand)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }
@@ -705,7 +705,7 @@ struct BarcodeScanFlow: View {
             ProgressView()
                 .controlSize(.small)
             Text("Checking non-food catalogues…")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
         }
     }
@@ -735,7 +735,7 @@ struct BarcodeScanFlow: View {
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Text("Identified via \(identity.catalogue.displayName)")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -765,7 +765,7 @@ struct BarcodeScanFlow: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.lg)
             Text("Product barcodes are the striped ones with the digits printed underneath.")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.lg)

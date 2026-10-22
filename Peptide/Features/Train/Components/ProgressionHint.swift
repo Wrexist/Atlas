@@ -19,7 +19,7 @@ struct ProgressionHint: View {
                     .font(AppFont.callout.weight(.semibold))
                     .foregroundStyle(AppColor.textPrimary)
                 Text(reason)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

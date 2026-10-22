@@ -274,7 +274,7 @@ struct HabitEditSheet: View {
                         .font(AppFont.body)
                         .foregroundStyle(AppColor.textPrimary)
                     Text("Icon, color, target, reminder")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
                 Spacer(minLength: 0)

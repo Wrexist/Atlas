@@ -50,7 +50,7 @@ struct HabitCustomizeView: View {
                         }
                     }
                     Text(targetHint)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
             }

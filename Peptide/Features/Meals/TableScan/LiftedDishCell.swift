@@ -135,7 +135,7 @@ struct LiftedDishCell: View {
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(1)
                 }
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textPrimary)
                 .padding(.horizontal, Spacing.sm)
                 .padding(.vertical, Spacing.xs)
@@ -149,7 +149,7 @@ struct LiftedDishCell: View {
         case .failed:
             Button(action: onRetry) {
                 Label("Couldn't read · Retry", systemImage: "arrow.clockwise")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.warning)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .frame(minHeight: Spacing.minimumHitTarget)
@@ -175,7 +175,7 @@ struct DishKindPicker: View {
                     Haptics.selection()
                 } label: {
                     Text(kind.label)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .fontWeight(selection == kind ? .semibold : .regular)
                         .foregroundStyle(selection == kind ? AppColor.textPrimary : AppColor.textSecondary)
                         .lineLimit(1)

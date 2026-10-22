@@ -28,7 +28,7 @@ struct ProfileStacksCard: View {
                     Spacer()
                     if !stacks.isEmpty {
                         Text("\(activeCount) active · \(stacks.count) total")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textTertiary)
                     }
                 }
@@ -97,7 +97,7 @@ struct ProfileStacksCard: View {
                 .foregroundStyle(AppColor.textSecondary)
 
             Text("Create your first protocol from your Peptide Library to start tracking doses, streaks, and compliance.")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
@@ -158,7 +158,7 @@ struct ProfileStacksCard: View {
                             .lineLimit(1)
 
                         Text(subtitle(for: stack))
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textTertiary)
                             .lineLimit(1)
                     }
@@ -166,7 +166,7 @@ struct ProfileStacksCard: View {
                     Spacer(minLength: Spacing.sm)
 
                     Text(stack.status.displayName)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .fontWeight(.semibold)
                         .foregroundStyle(color(for: stack.status))
                         .padding(.horizontal, Spacing.sm)
@@ -226,7 +226,7 @@ struct ProfileStacksCard: View {
                 Spacer()
                 Text("\(stack.daysRemaining) days left")
             }
-            .font(AppFont.caption)
+            .font(AppFont.caption2)
             .foregroundStyle(AppColor.textTertiary)
             .monospacedDigit()
         }

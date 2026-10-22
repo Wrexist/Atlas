@@ -104,7 +104,7 @@ struct AIResearchView: View {
             Image(systemName: "info.circle")
                 .font(AppFont.scaled(11, weight: .semibold))
             Text("Educational only. Not medical advice.")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
             Spacer(minLength: 0)
         }
         .foregroundStyle(AppColor.textTertiary)

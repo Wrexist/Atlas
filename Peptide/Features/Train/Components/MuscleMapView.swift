@@ -97,7 +97,7 @@ struct MuscleMapView: View {
     private var identifyLabel: some View {
         if let identified {
             Text(identified.displayName)
-                .font(AppFont.caption.weight(.semibold))
+                .font(AppFont.caption2.weight(.semibold))
                 .foregroundStyle(AppColor.textPrimary)
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, 5)
@@ -314,7 +314,7 @@ struct MuscleHeatLegend: View {
     var body: some View {
         HStack(spacing: Spacing.sm) {
             Text(lowLabel)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
             Capsule()
                 .fill(LinearGradient(
@@ -324,7 +324,7 @@ struct MuscleHeatLegend: View {
                 ))
                 .frame(height: 6)
             Text(highLabel)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
         }
     }

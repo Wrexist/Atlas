@@ -152,7 +152,7 @@ struct ShareCardSheet: View {
                         .foregroundStyle(AppColor.textTertiary)
                         .accessibilityHidden(true)
                     Text("Couldn't render the card. Adjust an option to retry.")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, Spacing.md)
@@ -225,7 +225,7 @@ struct ShareCardSheet: View {
                         Text(dataStore.profile.healthConnected
                              ? "Adds weight delta, sleep, and HRV to the card."
                              : "Adds weight delta only. Connect Apple Health to include sleep + HRV.")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                     }
                 }
@@ -242,7 +242,7 @@ struct ShareCardSheet: View {
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
                         Text("Renders the protocol as Compound A · B · C.")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                     }
                 }
@@ -254,7 +254,7 @@ struct ShareCardSheet: View {
                 Image(systemName: "lock.fill")
                     .font(AppFont.scaled(11, weight: .semibold))
                 Text("Both off by default. Injection sites are never shared.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
             }
             .foregroundStyle(AppColor.textTertiary)
 
@@ -262,7 +262,7 @@ struct ShareCardSheet: View {
                 HStack(spacing: Spacing.xs) {
                     ProgressView().controlSize(.mini)
                     Text("Loading health data…")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
             }
@@ -285,7 +285,7 @@ struct ShareCardSheet: View {
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
             Text("Brand watermark and QR are baked into the image.")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
         }
     }

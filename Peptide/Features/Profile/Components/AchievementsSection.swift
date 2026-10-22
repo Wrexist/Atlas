@@ -17,7 +17,7 @@ struct AchievementsSection: View {
                     Spacer()
 
                     Text("\(unlocked.count)/\(achievements.count)")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .contentTransition(.numericText())
                         .appAnimation(AppAnimation.springSnappy, value: unlocked.count)
@@ -64,7 +64,7 @@ struct AchievementsSection: View {
                                 .font(AppFont.subheadline)
                                 .foregroundStyle(AppColor.textSecondary)
                             Text(next.description)
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                                 .foregroundStyle(AppColor.textTertiary)
                         }
                         Spacer()

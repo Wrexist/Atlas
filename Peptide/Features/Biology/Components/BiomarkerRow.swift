@@ -29,7 +29,7 @@ struct BiomarkerRow: View {
                         .lineLimit(1)
 
                     Text(snapshot.changeText)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(1)
                         .contentTransition(.numericText())

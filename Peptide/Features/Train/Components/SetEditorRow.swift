@@ -49,7 +49,7 @@ struct SetEditorRow: View {
             if let load = set.measurement?.load, load != .recorded {
                 Text(load == .eachPair ? "Load per hand · both counted" :
                     (load == .perSide ? "Load per side · entered reps counted once" : "Combined load"))
-                    .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
+                    .font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
             }
         }
         .padding(.vertical, Spacing.xs)
@@ -100,7 +100,7 @@ struct SetEditorRow: View {
 
     private var indexLabel: some View {
         Text("\(set.index)")
-            .font(AppFont.caption.weight(.semibold))
+            .font(AppFont.caption2.weight(.semibold))
             .monospacedDigit()
             .foregroundStyle(isCurrent ? AppColor.trainingSelection : AppColor.textPrimary)
             .frame(minWidth: 24, minHeight: 24)
@@ -117,14 +117,14 @@ struct SetEditorRow: View {
     private var previousReference: some View {
         if set.isWarmup {
             Text("Warmup")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.streak)
         } else if let prev = previousSet {
             Button {
                 fill(from: prev)
             } label: {
                 Text("\(formatted(prev.weightKg)) × \(prev.reps)")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .minimumHitArea()
             }
@@ -133,7 +133,7 @@ struct SetEditorRow: View {
             .accessibilityHint(Text("Fills this set with the same weight and reps"))
         } else {
             Text("—")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
         }
     }
@@ -159,7 +159,7 @@ struct SetEditorRow: View {
                 .focused($weightFocused)
                 .accessibilityIdentifier("workout-weight-\(set.index)")
             if focusStyle {
-                Text(unit.weightSuffix).font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
+                Text(unit.weightSuffix).font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
             }
         }
             .frame(width: focusStyle ? nil : 60, height: focusStyle ? inputHeight : Spacing.minimumHitTarget)

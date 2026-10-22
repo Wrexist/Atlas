@@ -48,7 +48,7 @@ struct GlassTextField: View {
 
                 if let characterLimit {
                     Text("\(text.count)/\(characterLimit)")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textTertiary)
                 }

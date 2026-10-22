@@ -62,7 +62,7 @@ struct SmartCyclePlannerCard: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.textPrimary)
                 Text(suggestion.rationale)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

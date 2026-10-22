@@ -24,7 +24,7 @@ struct PeptideRow: View {
                     .foregroundStyle(AppColor.textPrimary)
 
                 Text(peptide.name)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .lineLimit(1)
             }

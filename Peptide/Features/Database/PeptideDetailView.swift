@@ -380,7 +380,7 @@ struct PeptideDetailView: View {
                     .lineLimit(1)
 
                 Text(proto.schedule.daysDescription)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .lineLimit(1)
             }
@@ -390,7 +390,7 @@ struct PeptideDetailView: View {
             // The dot alone carried the status by colour; the word makes
             // it readable without colour and to VoiceOver.
             Text(proto.status.displayName)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
 
             Image(systemName: "chevron.right")
@@ -410,7 +410,7 @@ struct PeptideDetailView: View {
                 .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textTertiary)
             Text(PeptideDatabase.disclaimer)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
         }

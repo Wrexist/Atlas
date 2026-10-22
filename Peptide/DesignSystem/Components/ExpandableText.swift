@@ -60,7 +60,7 @@ struct ExpandableText: View {
                             .rotationEffect(.degrees(isExpanded ? 180 : 0))
                             .accessibilityHidden(true)
                     }
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.accentPrimary)
                     .minimumHitArea()

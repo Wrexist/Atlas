@@ -53,7 +53,7 @@ enum AppFont {
     static let callout     = Font.system(.callout,                       weight: .regular)
     static let subheadline = Font.system(.subheadline,                   weight: .regular)
     static let footnote    = Font.system(.footnote,                      weight: .regular)
-    static let caption     = Font.system(.caption2,                      weight: .regular)
+    static let caption2    = Font.system(.caption2,                      weight: .regular)
 
     // Hero stats. Computed so they re-read the content-size category on each
     // `body` pass; scaled along `.largeTitle`, whose ramp grows gently.

@@ -360,7 +360,7 @@ struct MealScanFlow: View {
             Text("\(remaining) of \(MealScanQuota.freeScansPerWeek) free AI scans left this week · Unlimited with Pro")
             Text("Barcode scans are always free")
         }
-        .font(AppFont.caption)
+        .font(AppFont.caption2)
         .foregroundStyle(AppColor.textTertiary)
         .multilineTextAlignment(.center)
         .padding(.horizontal, Spacing.lg)
@@ -393,7 +393,7 @@ struct MealScanFlow: View {
                             .font(AppFont.scaled(56, weight: .light))
                             .foregroundStyle(AppColor.accentLight)
                         Text("No photo selected")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                     }
                 }
@@ -501,7 +501,7 @@ struct MealScanFlow: View {
                 .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.warning)
             Text("Most of these are guesses. A photo taken straight on, in better light, usually sorts it — or rename the rows yourself.")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -530,7 +530,7 @@ struct MealScanFlow: View {
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
                     Text("\(includedItems.count) selected")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .monospacedDigit()
                         .contentTransition(.numericText())
@@ -540,7 +540,7 @@ struct MealScanFlow: View {
                     retakeSuggestion
                 } else {
                     Text("Tap a row to adjust the portion, untick anything that isn't yours, or save an item to your food library for next time.")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -568,7 +568,7 @@ struct MealScanFlow: View {
                     get: { logDate }, set: { chosenLogDate = $0 }
                 ), displayedComponents: [.date, .hourAndMinute])
                 Text("Photo estimates can miss ingredients and portions. Review each item’s calories and amounts before logging.")
-                    .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
+                    .font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
             }
             .appAnimation(AppAnimation.springSnappy, value: includedItems.count)
         }
@@ -579,10 +579,10 @@ struct MealScanFlow: View {
         .pinnedFooter {
             VStack(spacing: Spacing.sm) {
             if let draftError {
-                Text(draftError).font(AppFont.caption)
+                Text(draftError).font(AppFont.caption2)
                 Button("Retry saving draft") { _ = persistDraft() }.minimumHitArea()
             } else {
-                Text(dataStore.isEphemeral ? "Preview mode · Draft not saved" : "Draft saved on this device").font(AppFont.caption)
+                Text(dataStore.isEphemeral ? "Preview mode · Draft not saved" : "Draft saved on this device").font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
             GlassButton(title: addButtonTitle, style: .primary, isFullWidth: true) {
@@ -615,7 +615,7 @@ struct MealScanFlow: View {
                     Text(logAsOneMeal
                          ? "One diary entry with the combined macros."
                          : "\(includedItems.count) separate entries, one per item.")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }
@@ -998,11 +998,11 @@ struct MealScanFlow: View {
                 date: logDate
             )
             Text(dataStore.isEphemeral ? "Preview mode · No meal saved to storage." : "Saved on this device.")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
             if let draftError {
                 Text(draftError)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.warning)
             }
             VStack(spacing: Spacing.sm) {
@@ -1022,7 +1022,7 @@ struct MealScanFlow: View {
             Text(undoRequested ? "Couldn't undo the meal" : "Meal save needs attention").font(AppFont.title2)
             Text("Nothing was logged twice. Retry to finish.")
                 .font(AppFont.callout).multilineTextAlignment(.center)
-            if let draftError { Text(draftError).font(AppFont.caption) }
+            if let draftError { Text(draftError).font(AppFont.caption2) }
             GlassButton(title: "Retry", isFullWidth: true) { savePending() }
             if !undoRequested && !pendingEntries.contains(where: { meal in dataStore.profile.mealHistory.contains { $0.id == meal.id } }) {
                 Button("Return to review") {
@@ -1307,7 +1307,7 @@ private struct FoodItemEditCard: View {
                         macroSummary
                         if let price = item.price {
                             Text(price.formatted)
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                                 .foregroundStyle(AppColor.textTertiary)
                                 .monospacedDigit()
                                 .accessibilityLabel("Estimated cost \(price.formatted)")
@@ -1381,13 +1381,13 @@ private struct FoodItemEditCard: View {
                     .focused($nameFocused)
                 if !item.quantityLabel.isEmpty {
                     Text(item.quantityLabel)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                         .lineLimit(1)
                 }
                 if let verified = item.activeVerification {
                     Label(verified.displayName, systemImage: "checkmark.seal.fill")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.positive)
                         .lineLimit(1)
                 } else if item.isUncertain {
@@ -1406,7 +1406,7 @@ private struct FoodItemEditCard: View {
                     // stepper visibly drives this number.
                     .contentTransition(.numericText())
                 Text("kcal")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
         }
@@ -1427,7 +1427,7 @@ private struct FoodItemEditCard: View {
                 Image(systemName: "questionmark.circle.fill")
                     .font(AppFont.scaled(11))
                 Text("Not certain — check this food")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
             }
             .foregroundStyle(AppColor.warning)
         }
@@ -1440,7 +1440,7 @@ private struct FoodItemEditCard: View {
     private func questionRow(_ question: ScanQuestion) -> some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Label(question.question, systemImage: "sparkles")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
             HStack(spacing: Spacing.xs) {
                 ForEach(Array(question.answers.enumerated()), id: \.offset) { index, answer in
@@ -1502,7 +1502,7 @@ private struct FoodItemEditCard: View {
                         .monospacedDigit()
                         .contentTransition(.numericText(value: item.servings))
                     Text("≈ \(Int(item.grams.rounded())) g")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
                 .frame(minWidth: 80)
@@ -1514,7 +1514,7 @@ private struct FoodItemEditCard: View {
             // Name what one serving actually is, when the scan gave a label.
             if !item.quantityLabel.isEmpty {
                 Text("1 serving = \(item.quantityLabel)")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)

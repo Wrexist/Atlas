@@ -69,7 +69,7 @@ struct StackWarningCard: View {
                 }
 
                 Text(warning.detail)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .lineSpacing(2)
                     .multilineTextAlignment(.leading)
@@ -82,7 +82,7 @@ struct StackWarningCard: View {
                         .padding(.top, 2)
 
                     Text(warning.suggestion)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.accentLight)
                         .lineSpacing(2)
                         .multilineTextAlignment(.leading)
@@ -94,7 +94,7 @@ struct StackWarningCard: View {
                     ForEach(warning.peptides, id: \.self) { name in
                         let color = severityColor(warning.severity)
                         Text(name)
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .fontWeight(.semibold)
                             .foregroundStyle(color)
                             .padding(.horizontal, Spacing.sm)

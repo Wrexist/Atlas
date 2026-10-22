@@ -44,12 +44,12 @@ struct ProductInsightCard: View {
 
                 if isLoading {
                     Text("Estimating price and portions…")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 } else if let scan {
                     if !scan.insight.summary.isEmpty {
                         Text(scan.insight.summary)
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -62,7 +62,7 @@ struct ProductInsightCard: View {
                                 .font(AppFont.scaled(11))
                                 .foregroundStyle(AppColor.warning)
                             Text(tip)
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                                 .foregroundStyle(AppColor.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }

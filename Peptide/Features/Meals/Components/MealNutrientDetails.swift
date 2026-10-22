@@ -24,7 +24,7 @@ struct MealNutrientDetails: View {
             row("Fiber", value: MealFoodComponent.completeTotal(components.map(\.fiberG)))
             row("Total sugars", value: MealFoodComponent.completeTotal(components.map(\.sugarsG)))
             Text("Not available for every food.")
-                .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
+                .font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
         }
     }
     private func row(_ title: LocalizedStringKey, value: Double?) -> some View {
@@ -42,7 +42,7 @@ struct DailyMealNutrientsCard: View {
                 row("Fiber", coverage: .derive(entries: entries, nutrient: \.fiberG))
                 row("Total sugars", coverage: .derive(entries: entries, nutrient: \.sugarsG))
                 Text("From foods with label data.")
-                    .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
+                    .font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
             }
         }
     }
@@ -53,7 +53,7 @@ struct DailyMealNutrientsCard: View {
             } ?? "Unavailable")
             if coverage.missing > 0 {
                 Text("^[\(coverage.missing) item](inflect: true) without label data")
-                    .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
+                    .font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
             }
         }
     }

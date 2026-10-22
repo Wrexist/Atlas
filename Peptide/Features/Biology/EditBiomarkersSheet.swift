@@ -130,7 +130,7 @@ struct EditBiomarkersSheet: View {
                 }
                 if let unitString = biomarker.displayUnit(for: unit) {
                     Text(unitString)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }
@@ -180,7 +180,7 @@ struct EditBiomarkersSheet: View {
 
     private var emptyVisibleHint: some View {
         Text("You've hidden every biomarker. Turn one on below to bring it back.")
-            .font(AppFont.caption)
+            .font(AppFont.caption2)
             .foregroundStyle(AppColor.textSecondary)
             .padding(.vertical, Spacing.xs)
     }

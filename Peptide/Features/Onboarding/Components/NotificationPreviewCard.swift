@@ -23,7 +23,7 @@ struct NotificationPreviewCard: View {
                         .tracking(0.5)
                     Spacer(minLength: Spacing.sm)
                     Text(timestamp)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
 
@@ -33,7 +33,7 @@ struct NotificationPreviewCard: View {
                     .foregroundStyle(AppColor.textPrimary)
 
                 Text(subtitle)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
         }

@@ -136,7 +136,7 @@ struct MealEntryRow: View {
                     }
                     HStack(spacing: Spacing.xs) {
                         Image(systemName: entry.source.icon)
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                         Text(Self.timeFormatter.string(from: entry.date))
                             .font(AppFont.scaled(11))

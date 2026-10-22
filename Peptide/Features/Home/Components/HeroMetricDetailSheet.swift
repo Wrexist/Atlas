@@ -374,7 +374,7 @@ struct HeroMetricDetailSheet: View {
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textPrimary)
                 Text("\(entry.dose) · \(Self.timeFormatter.string(from: entry.date))")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
             Spacer()
@@ -469,7 +469,7 @@ struct HeroMetricDetailSheet: View {
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(value.map { "\(Int(($0 * 100).rounded()))%" } ?? "—")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .fontWeight(.semibold)
                         .foregroundStyle(driver.tint)
                         .monospacedDigit()
@@ -543,7 +543,7 @@ struct HeroMetricDetailSheet: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.textPrimary)
                 Text(tip)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -599,7 +599,7 @@ struct HeroMetricDetailSheet: View {
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
             Text(label)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
         }
         .padding(.vertical, Spacing.lg)

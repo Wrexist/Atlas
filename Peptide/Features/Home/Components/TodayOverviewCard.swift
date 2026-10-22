@@ -179,7 +179,7 @@ struct TodayOverviewCard: View {
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(1)
                 Text(insight.body)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .lineLimit(2)
             }

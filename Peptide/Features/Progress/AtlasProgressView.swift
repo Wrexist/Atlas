@@ -101,7 +101,7 @@ struct AtlasProgressView: View {
 
             if week > 0 {
                 Text("+\(week) points this week")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.streak)
             }
 
@@ -110,7 +110,7 @@ struct AtlasProgressView: View {
                     .padding(.top, Spacing.xs)
             } else {
                 Text("Keep logging — your score trend appears here as it grows.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .padding(.top, Spacing.xs)
             }
@@ -156,7 +156,7 @@ struct AtlasProgressView: View {
                 .contentTransition(.numericText())
                 .foregroundStyle(AppColor.textPrimary)
             Text(label)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
             Text("Best \(best)")
                 .font(AppFont.scaled(11, weight: .semibold))
@@ -196,7 +196,7 @@ struct AtlasProgressView: View {
                 }
             } else {
                 Text("Add a daily or weekday habit to track your consistency over time.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
             }
         }

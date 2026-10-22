@@ -19,7 +19,7 @@ struct ExerciseHistorySection: View {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 Text("Your history").font(AppFont.headline)
                 Text("Last 90 days · Completed working sets")
-                    .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
+                    .font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
                 if loading {
                     ProgressView("Loading history…")
                 } else if failed {
@@ -40,7 +40,7 @@ struct ExerciseHistorySection: View {
                         }.minimumHitArea()
                     }
                     Text("Warm-ups and unfinished sets are excluded. Set counts describe logged activity, not strength or muscle activation.")
-                        .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
+                        .font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -68,7 +68,7 @@ struct ExerciseHistorySection: View {
                 AppAnimation.with(AppAnimation.springSmooth) { barsShown = true }
             }
             Text("Oldest to newest. Exact dates and sets are listed below.")
-                .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
+                .font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
         }
     }
 
@@ -82,14 +82,14 @@ struct ExerciseHistorySection: View {
                         Text(visit.name)
                             .font(AppFont.subheadline.weight(.semibold))
                         Text(visit.date.formatted(date: .abbreviated, time: .shortened))
-                            .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
+                            .font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
                     }
                     Spacer(minLength: Spacing.sm)
                     Image(systemName: "chevron.right").accessibilityHidden(true)
                 }.frame(minHeight: 44)
             }
             .accessibilityHint("Opens the saved workout and editing options")
-            Text("^[\(visit.sets.count) working set](inflect: true)").font(AppFont.caption)
+            Text("^[\(visit.sets.count) working set](inflect: true)").font(AppFont.caption2)
             ForEach(visit.sets) { set in
                 Text(RecapFormat.set(set, unit: unit))
                     .font(AppFont.callout).monospacedDigit()

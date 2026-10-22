@@ -358,7 +358,7 @@ struct HomeMealsSection: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
                 Text("Add height, weight, age, and gender on Profile to compute calorie and macro targets, or tap Edit to set them manually.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Button("Edit targets") { showTargetsEditor = true }

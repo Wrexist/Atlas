@@ -111,7 +111,7 @@ struct PlateTableView: View {
                             .rotationEffect(.degrees(Self.restingTilt(index)))
                         if showsLabels {
                             Text(plateLabel(dish))
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                                 .fontWeight(.semibold)
                                 .foregroundStyle(AppColor.textPrimary)
                                 .lineLimit(1)
@@ -394,7 +394,7 @@ private struct TableStatTile: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(unit)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
                 .lineLimit(1)
         }
@@ -457,7 +457,7 @@ struct TableShareCard: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
                 Text("\(calories) kcal · Atlas")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
         }

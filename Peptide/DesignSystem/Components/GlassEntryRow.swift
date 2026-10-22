@@ -67,7 +67,7 @@ struct GlassEntryRowLabel: View {
                     .lineLimit(2)
                 if let subtitle {
                     subtitle
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(2)
                 }

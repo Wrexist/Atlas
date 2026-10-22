@@ -422,7 +422,7 @@ struct TrialOfferView: View {
                         }
                     }
                     Text(tierSubtitle(for: tier))
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .loadingPlaceholder(!arePricesLoaded)
                 }
@@ -432,7 +432,7 @@ struct TrialOfferView: View {
                         .font(AppFont.scaled(16, weight: .bold, design: .rounded))
                         .foregroundStyle(AppColor.textPrimary)
                     Text(tierPriceUnit(for: tier))
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
                 .loadingPlaceholder(!arePricesLoaded)
@@ -493,7 +493,7 @@ struct TrialOfferView: View {
         VStack(spacing: Spacing.sm) {
             if let errorMessage {
                 Text(errorMessage)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.destructive)
                     .multilineTextAlignment(.center)
                     .transition(.opacity)
@@ -546,7 +546,7 @@ struct TrialOfferView: View {
 
             Button(action: declineTrial) {
                 Text("Maybe later")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .padding(.vertical, Spacing.xs)
                     .minimumHitArea()

@@ -101,7 +101,7 @@ struct RecommendedPeptidesCard: View {
                             .foregroundStyle(AppColor.accentLight)
 
                         Text(reason.text)
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                             .lineLimit(1)
                     }

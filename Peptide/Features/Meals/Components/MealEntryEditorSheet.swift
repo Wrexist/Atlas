@@ -88,7 +88,7 @@ struct MealEntryEditorSheet: View {
                     summaryCard
                     GlassCard(padding: Spacing.md) {
                         VStack(alignment: .leading, spacing: Spacing.xs) {
-                            Text("Meal name").font(AppFont.caption)
+                            Text("Meal name").font(AppFont.caption2)
                                 .foregroundStyle(AppColor.textSecondary)
                             TextField("Meal name", text: $name)
                                 .textInputAutocapitalization(.words)
@@ -103,7 +103,7 @@ struct MealEntryEditorSheet: View {
                             VStack(alignment: .leading, spacing: Spacing.sm) {
                                 Text("Foods & portions").font(AppFont.headline)
                                 Text("Changing a portion recalculates all meal macros from these foods, replacing manual macro edits.")
-                                    .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
+                                    .font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
                                 ForEach(components) { component in
                                     Button { editingComponent = component } label: {
                                         HStack(spacing: Spacing.sm) {
@@ -204,7 +204,7 @@ struct MealEntryEditorSheet: View {
                             .font(AppFont.scaled(11))
                             .foregroundStyle(AppColor.textSecondary)
                         Text(Self.timeFormatter.string(from: initial.date))
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                         // `sourceID` may point to a custom food the
                         // user has since deleted, or an OFF barcode
@@ -224,7 +224,7 @@ struct MealEntryEditorSheet: View {
         GlassCard(tinted: true, padding: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text("Macros & time")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                 Divider().overlay(AppColor.glassBorder)
                 portionChips
@@ -322,7 +322,7 @@ struct MealEntryEditorSheet: View {
                 .frame(maxWidth: 100)
                 .frame(minHeight: Spacing.minimumHitTarget)
             Text(unit)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(width: 32, alignment: .leading)
         }

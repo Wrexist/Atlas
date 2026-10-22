@@ -143,7 +143,7 @@ private struct ProfileStat: View {
                 .contentTransition(.numericText())
                 .appAnimation(AppAnimation.springSnappy, value: value)
             Text(label)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
         }
         .accessibilityElement(children: .combine)

@@ -31,7 +31,7 @@ private struct DayCircle: View {
     var body: some View {
         VStack(spacing: Spacing.xs) {
             Text(day.dayLabel)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(isCurrentDay ? AppColor.textPrimary : AppColor.textTertiary)
                 .fontWeight(isCurrentDay ? .semibold : .regular)
 

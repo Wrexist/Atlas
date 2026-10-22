@@ -171,12 +171,12 @@ struct AffiliateApplySheet: View {
                             .foregroundStyle(AppColor.textSecondary)
                         if let nameLine {
                             Text(nameLine)
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                                 .foregroundStyle(AppColor.textTertiary)
                         }
                         if let emailLine {
                             Text(emailLine)
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                                 .foregroundStyle(AppColor.textTertiary)
                         }
                     }
@@ -238,7 +238,7 @@ struct AffiliateApplySheet: View {
                         Image(systemName: "exclamationmark.circle.fill")
                             .font(AppFont.scaled(11))
                         Text(urlError)
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                     }
                     .foregroundStyle(AppColor.destructive)
                     .transition(.opacity)
@@ -287,7 +287,7 @@ struct AffiliateApplySheet: View {
                 .background(AppColor.glassBorder)
                 .padding(.vertical, 2)
             Text("We'll review and reply within 5 business days.")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
         }
         .padding(Spacing.md)

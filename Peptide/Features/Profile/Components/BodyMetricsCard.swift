@@ -44,7 +44,7 @@ struct BodyMetricsCard: View {
                     }
                 } else {
                     Text("Optional. Add your weight, height, and age so Atlas can calculate your calorie and macro targets and your Biological Age.")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -98,7 +98,7 @@ struct BodyMetricsCard: View {
                 .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())
             Text(label)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -107,7 +107,7 @@ struct BodyMetricsCard: View {
 
     private func infoChip(_ text: LocalizedStringKey) -> some View {
         Text(text)
-            .font(AppFont.caption)
+            .font(AppFont.caption2)
             .foregroundStyle(AppColor.textSecondary)
             .padding(.horizontal, Spacing.sm)
             .padding(.vertical, Spacing.xs)

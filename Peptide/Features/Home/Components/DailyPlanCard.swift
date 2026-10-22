@@ -71,7 +71,7 @@ struct DailyPlanCard: View {
                 Text(isExpanded
                      ? "Show less"
                      : "Show \(hiddenSlotCount) more time slot\(hiddenSlotCount == 1 ? "" : "s")")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .fontWeight(.semibold)
             }
             .foregroundStyle(AppColor.accentLight)
@@ -109,7 +109,7 @@ struct DailyPlanCard: View {
             }
 
             Text(plan.summary)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
         }
     }
@@ -173,7 +173,7 @@ struct DailyPlanCard: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.textPrimary)
                 Text(slot.caption)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
             }
             Spacer()
@@ -234,7 +234,7 @@ private struct DailyPlanDoseRow: View {
                 topRow
                 if !dose.timingNote.isEmpty {
                     Text(dose.timingNote)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
@@ -285,14 +285,14 @@ private struct DailyPlanDoseRow: View {
                     }
                 }
                 Text(dose.entry.dose)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
             }
 
             Spacer()
 
             Text(dose.entry.date.formatted(.dateTime.hour().minute()))
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .fontWeight(.semibold)
                 .foregroundStyle(
                     dose.entry.completed ? AppColor.textTertiary : AppColor.accentLight
@@ -318,7 +318,7 @@ private struct DailyPlanDoseRow: View {
                 .frame(width: 14)
             VStack(alignment: .leading, spacing: 1) {
                 Text("Co-inject with \(combo.withAbbreviation) — \(combo.stackName)")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.accentLight)
                 Text(combo.synergy)
@@ -344,7 +344,7 @@ private struct DailyPlanDoseRow: View {
                 .frame(width: 14)
             VStack(alignment: .leading, spacing: 1) {
                 Text(conflict.title)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .fontWeight(.semibold)
                     .foregroundStyle(severityColor(conflict.severity))
                 Text(conflict.detail)

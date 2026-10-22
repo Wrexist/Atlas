@@ -70,7 +70,7 @@ struct TrainingBodyExplorer: View {
                 if side != .back { Text("Front").frame(maxWidth: .infinity) }
                 if side != .front { Text("Back").frame(maxWidth: .infinity) }
             }
-            .font(AppFont.caption)
+            .font(AppFont.caption2)
             .foregroundStyle(AppColor.textSecondary)
             .accessibilityHidden(true)
 
@@ -82,7 +82,7 @@ struct TrainingBodyExplorer: View {
                             .fixedSize(horizontal: true, vertical: false)
                         VStack(alignment: .leading, spacing: Spacing.sm) { roleLabels }
                     }
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                 case let .intensity(low, high):
                     MuscleHeatLegend(lowLabel: low, highLabel: high)
                 }
@@ -95,7 +95,7 @@ struct TrainingBodyExplorer: View {
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
                         Text(selectionDescription)
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                         HStack(spacing: Spacing.xs) {
                             Text("View muscle history")

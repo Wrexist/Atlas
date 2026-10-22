@@ -84,7 +84,7 @@ struct WeeklySummaryToggleRow: View {
                     }
                 }
                 subtitle(isPro: isPro)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)

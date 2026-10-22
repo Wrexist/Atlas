@@ -98,7 +98,7 @@ struct TodayTimelineCard: View {
                 }
                 if let subtitle = event.subtitle {
                     Text(subtitle)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(2)
                 }

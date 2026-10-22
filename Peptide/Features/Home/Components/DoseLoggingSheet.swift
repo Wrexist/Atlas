@@ -42,7 +42,7 @@ struct DoseLoggingSheet: View {
                                     .font(AppFont.headline)
                                     .foregroundStyle(AppColor.textPrimary)
                                 Text("Scheduled: \(entry.dose) at \(entry.date.formatted(.dateTime.hour().minute()))")
-                                    .font(AppFont.caption)
+                                    .font(AppFont.caption2)
                                     .foregroundStyle(AppColor.textSecondary)
                             }
                             Spacer()
@@ -104,7 +104,7 @@ struct DoseLoggingSheet: View {
                                             Haptics.selection()
                                         } label: {
                                             Text(site.rawValue)
-                                                .font(AppFont.caption)
+                                                .font(AppFont.caption2)
                                                 .fontWeight(.semibold)
                                                 .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
                                                 .frame(maxWidth: .infinity)

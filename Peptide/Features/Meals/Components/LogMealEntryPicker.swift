@@ -57,7 +57,7 @@ struct LogMealEntryPicker: View {
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text("One photo, every dish cut out")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }
                 Spacer(minLength: 0)
@@ -102,7 +102,7 @@ struct LogMealEntryPicker: View {
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(subtitle)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }
                 .fixedSize(horizontal: false, vertical: true)

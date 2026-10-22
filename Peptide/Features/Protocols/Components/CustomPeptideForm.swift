@@ -143,7 +143,7 @@ struct CustomPeptideForm: View {
 
     private func fieldLabel(_ text: LocalizedStringKey) -> some View {
         Text(text)
-            .font(AppFont.caption)
+            .font(AppFont.caption2)
             .foregroundStyle(AppColor.textTertiary)
     }
 

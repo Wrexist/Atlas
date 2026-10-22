@@ -55,12 +55,12 @@ struct StreakCounterView: View {
 
             if isNewBest && currentStreak > 1 {
                 Text("New personal best!")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.accentLight)
                     .transition(reduceMotion ? .opacity : .scale(scale: 0.95).combined(with: .opacity))
             } else if bestStreak > currentStreak && bestStreak > 0 {
                 Text("Best: \(bestStreak) days")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
             }
         }

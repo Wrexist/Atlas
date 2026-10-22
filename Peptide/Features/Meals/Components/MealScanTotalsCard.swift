@@ -74,7 +74,7 @@ struct MealScanTotalsCard: View {
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 .gridColumnAlignment(.trailing)
             Text(share.formatted(.percent.precision(.fractionLength(0))))
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .fontWeight(.semibold)
                 .foregroundStyle(tint)
                 .monospacedDigit()
@@ -104,7 +104,7 @@ struct MealScanTotalsCard: View {
                     .contentTransition(.numericText())
                     .animation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion), value: calories)
                 Text("kcal")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
             .padding(.horizontal, Spacing.md)

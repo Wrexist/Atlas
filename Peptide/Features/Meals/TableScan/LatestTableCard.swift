@@ -33,7 +33,7 @@ struct LatestTableCard: View {
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(summary)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }
 

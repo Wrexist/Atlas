@@ -536,7 +536,7 @@ private struct FinishWorkoutSheet: View {
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.textPrimary)
             Text("Optional")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
         }
     }

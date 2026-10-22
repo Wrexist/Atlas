@@ -96,7 +96,7 @@ struct PortionPicker: View {
             .tint(AppColor.accentPrimary)
             if let label = product.servingSizeText {
                 Text("1 serving = \(label)")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
         }
@@ -117,7 +117,7 @@ struct PortionPicker: View {
             .frame(minHeight: Spacing.minimumHitTarget)
             if let grams = product.packageGrams {
                 Text("1 package = \(Int(grams.rounded())) g")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .monospacedDigit()
             }
@@ -160,7 +160,7 @@ struct PortionPicker: View {
             AppAnimation.with(AppAnimation.quick) { portion = .grams(grams) }
         } label: {
             Text("\(Int(grams)) g")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .fontWeight(isActive ? .semibold : .regular)
                 .foregroundStyle(isActive ? AppColor.textPrimary : AppColor.textSecondary)
                 .padding(.horizontal, Spacing.sm)

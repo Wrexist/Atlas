@@ -247,7 +247,7 @@ struct TodayHabitsHero: View {
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
                         Text("Small wins, every day. Watch your streak — and your Atlas Score — climb.")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                             .lineLimit(2)
                     }

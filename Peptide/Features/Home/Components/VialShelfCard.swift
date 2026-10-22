@@ -62,7 +62,7 @@ struct VialShelfCard: View {
 
             if peptides.count > Self.maxVials {
                 Text("+\(peptides.count - Self.maxVials)")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
         }

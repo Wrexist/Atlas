@@ -111,7 +111,7 @@ struct ScheduleEditor: View {
                     }
                 } label: {
                     Text(selectedDays.count == 7 ? "Weekdays" : "Every day")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.accentPrimary)
                 }
                 .buttonStyle(.plain)
@@ -158,7 +158,7 @@ struct ScheduleEditor: View {
             }
 
             Text(intervalHint(for: binding.wrappedValue))
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
                 .id(binding.wrappedValue)
                 .transition(.opacity)
@@ -197,7 +197,7 @@ struct ScheduleEditor: View {
     private func preferredTimesEditor(binding: Binding<[String]>) -> some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("Dose Times")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
                 .textCase(.uppercase)
 
@@ -288,7 +288,7 @@ private struct DayChip: View {
     var body: some View {
         Button(action: onTap) {
             Text(label)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .fontWeight(.semibold)
                 .lineLimit(1)
                 .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textSecondary)
@@ -441,7 +441,7 @@ private struct TimeSlotRow: View {
                         .fill(AppColor.accentPrimary.opacity(0.18))
                         .frame(width: 28, height: 28)
                     Text("\(index + 1)")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .fontWeight(.semibold)
                         .foregroundStyle(AppColor.accentLight)
                         .monospacedDigit()

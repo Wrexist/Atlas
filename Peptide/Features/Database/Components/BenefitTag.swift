@@ -15,7 +15,7 @@ struct BenefitTag: View {
                     .font(AppFont.scaled(8, weight: .semibold))
             }
             Text(text)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .fontWeight(.semibold)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)

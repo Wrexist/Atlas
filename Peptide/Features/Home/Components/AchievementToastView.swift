@@ -15,7 +15,7 @@ struct AchievementToastView: View {
 
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text("Achievement unlocked")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.accentLight)
                         Text(achievement.title)
                             .font(AppFont.headline)

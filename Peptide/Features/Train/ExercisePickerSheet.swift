@@ -100,7 +100,7 @@ struct ExercisePickerSheet: View {
     private var selectionTray: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             HStack {
-                Text("Selected · In workout order").font(AppFont.caption)
+                Text("Selected · In workout order").font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                 Spacer(minLength: Spacing.sm)
                 Button("Clear") { picks.clear() }
@@ -154,7 +154,7 @@ struct ExercisePickerSheet: View {
             EquipmentChipRow(selection: $equipmentFilter)
             if !query.isEmpty || muscleFilter != nil || equipmentFilter != nil {
                 Button("Clear search and filters", action: clearFilters)
-                    .font(AppFont.caption).minimumHitArea()
+                    .font(AppFont.caption2).minimumHitArea()
                     .frame(maxWidth: .infinity, alignment: .trailing)
                     .padding(.horizontal, Spacing.screenPadding)
             }

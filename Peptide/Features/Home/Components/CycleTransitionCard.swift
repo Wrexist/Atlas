@@ -52,7 +52,7 @@ struct CycleTransitionCard: View {
                 }
 
                 Text(transition.reason)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .lineSpacing(2)
 
@@ -63,7 +63,7 @@ struct CycleTransitionCard: View {
                             .foregroundStyle(AppColor.accentLight)
 
                         Text("Switch to: \(transition.suggestedReplacements.joined(separator: " or "))")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.accentLight)
                     }
                 }

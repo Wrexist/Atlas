@@ -175,7 +175,7 @@ struct TableScanFlow: View {
                     Haptics.selection()
                 } label: {
                     Label("Grid", systemImage: "square.grid.3x3")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textPrimary)
                         .padding(.horizontal, Spacing.sm)
                         .padding(.vertical, Spacing.xs)
@@ -217,7 +217,7 @@ struct TableScanFlow: View {
                     Haptics.selection()
                 } label: {
                     Text(option.label)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .fontWeight(lens == option ? .semibold : .regular)
                         .foregroundStyle(lens == option ? AppColor.textPrimary : AppColor.textSecondary)
                         .padding(.horizontal, Spacing.md)
@@ -411,7 +411,7 @@ struct TableScanFlow: View {
     private var captureControls: some View {
         VStack(spacing: Spacing.md) {
             Text("One photo of the whole table.")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(maxWidth: .infinity)
 
@@ -424,7 +424,7 @@ struct TableScanFlow: View {
                             .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
                             .glassControl(.rect(cornerRadius: Spacing.smallCornerRadius))
                         Text("Import media")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                     }
                 }
@@ -448,7 +448,7 @@ struct TableScanFlow: View {
                         .labelsHidden()
                         .tint(AppColor.accentPrimary)
                     Text("Save original")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }
                 .frame(maxWidth: .infinity)
@@ -472,7 +472,7 @@ struct TableScanFlow: View {
                 .frame(minHeight: Spacing.minimumHitTarget)
             if !isReading && keepableCount > 0 {
                 Text("Swipe down anytime — you're done.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
             }
         }

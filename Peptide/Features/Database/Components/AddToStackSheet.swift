@@ -84,7 +84,7 @@ struct AddToStackSheet: View {
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text("Pick a protocol to add this peptide to")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }
 
@@ -144,15 +144,15 @@ struct AddToStackSheet: View {
 
                     HStack(spacing: Spacing.xs) {
                         Text("^[\(proto.peptides.count) peptide](inflect: true)")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
 
                         Text("·")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textTertiary)
 
                         Text(proto.schedule.daysDescription)
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                             .lineLimit(1)
                     }

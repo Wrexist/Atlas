@@ -150,7 +150,7 @@ struct MuscleGainsCard: View {
                 .font(AppFont.chipText)
                 .foregroundStyle(AppColor.textPrimary)
             Text(statLabel(for: value))
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
                 .monospacedDigit()
         }

@@ -25,7 +25,7 @@ struct DosageInfoSection: View {
                 }
 
                 Text("Educational summary of values reported in published research literature. Atlas does not recommend, prescribe, or calculate doses — always confirm anything you do with a qualified clinician.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -45,7 +45,7 @@ struct DosageInfoSection: View {
                             Image(systemName: "doc.text.magnifyingglass")
                                 .font(AppFont.scaled(11, weight: .semibold))
                             Text(sourcesLabel)
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                                 .fontWeight(.semibold)
                             Image(systemName: "arrow.down")
                                 .font(AppFont.scaled(11, weight: .semibold))

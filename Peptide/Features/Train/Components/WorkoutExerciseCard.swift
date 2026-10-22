@@ -84,11 +84,11 @@ struct WorkoutExerciseCard: View {
                     .lineLimit(2)
                 if let supersetLetter {
                     Label("Superset \(supersetLetter)", systemImage: "link")
-                        .font(AppFont.caption.weight(.semibold))
+                        .font(AppFont.caption2.weight(.semibold))
                         .foregroundStyle(AppColor.accentPrimary)
                 } else if let exercise {
                     Text(exercise.muscleGroup.displayName)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }

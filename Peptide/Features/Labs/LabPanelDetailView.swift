@@ -286,7 +286,7 @@ struct LabPanelDetailView: View {
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
             Text(entry.date.formatted(.dateTime.day().month(.abbreviated).year()))
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
         }
         .padding(.horizontal, Spacing.sm)
@@ -385,7 +385,7 @@ struct LabPanelDetailView: View {
 
     private var emptyShim: some View {
         Text("No entries")
-            .font(AppFont.caption)
+            .font(AppFont.caption2)
             .foregroundStyle(AppColor.textSecondary)
             .padding(.top, Spacing.xxl)
     }

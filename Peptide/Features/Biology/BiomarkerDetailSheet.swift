@@ -252,7 +252,7 @@ struct BiomarkerDetailSheet: View {
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
             Text(dayLabel(daysAgo: day))
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
         }
         .padding(.horizontal, Spacing.sm)
@@ -317,7 +317,7 @@ struct BiomarkerDetailSheet: View {
                 .font(AppFont.scaled(16, weight: .light))
                 .foregroundStyle(AppColor.textTertiary)
             Text("Need at least 4 days of data to chart a trend.")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
             Spacer()
         }

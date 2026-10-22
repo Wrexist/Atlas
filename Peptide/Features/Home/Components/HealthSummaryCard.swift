@@ -18,7 +18,7 @@ struct HealthSummaryCard: View {
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
                     Text("7-day avg")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
 
@@ -27,7 +27,7 @@ struct HealthSummaryCard: View {
                         ProgressView()
                             .tint(AppColor.accentPrimary)
                         Text("Loading your health metrics…")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                         Spacer(minLength: 0)
                     }
@@ -56,7 +56,7 @@ struct HealthSummaryCard: View {
                 .font(AppFont.scaled(20))
                 .foregroundStyle(AppColor.textTertiary)
             Text("Apple Health isn't available on this device")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
         }
@@ -74,7 +74,7 @@ struct HealthSummaryCard: View {
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textPrimary)
             Text("Make sure Atlas has access in Settings → Health → Data Access.")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
         }
@@ -90,7 +90,7 @@ struct HealthSummaryCard: View {
                 .foregroundStyle(AppColor.accentPrimary)
                 .accessibilityHidden(true)              // label below conveys the metric name
             Text(reading ?? "—")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textPrimary)
                 .lineLimit(1)

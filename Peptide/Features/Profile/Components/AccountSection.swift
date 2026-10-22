@@ -100,7 +100,7 @@ struct AccountSection: View {
                     .frame(width: 8, height: 8)
 
                 Text(authService.isSignedIn ? "Signed In" : "Not Signed In")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(authService.isSignedIn ? AppColor.accentLight : AppColor.textTertiary)
             }
         }
@@ -127,7 +127,7 @@ struct AccountSection: View {
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(syncCaption(for: state))
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -176,7 +176,7 @@ struct AccountSection: View {
             }
 
             Text("Optional — all features work without signing in")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
                 .frame(maxWidth: .infinity, alignment: .center)
         }

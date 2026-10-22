@@ -65,7 +65,7 @@ struct ConsistencyChart: View {
                 Spacer()
                 Text("Month 6")
             }
-            .font(AppFont.caption)
+            .font(AppFont.caption2)
             .fontWeight(.semibold)
             .foregroundStyle(AppColor.textSecondary)
         }
@@ -172,7 +172,7 @@ struct ConsistencyChart: View {
                 .fill(color)
                 .frame(width: 6, height: 6)
             Text(text)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .fontWeight(.semibold)
                 .foregroundStyle(color)
         }

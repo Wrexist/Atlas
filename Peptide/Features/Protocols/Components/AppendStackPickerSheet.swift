@@ -73,7 +73,7 @@ struct AppendStackPickerSheet: View {
                             .lineLimit(1)
 
                         Text(subtitle(for: proto))
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textTertiary)
                             .lineLimit(1)
                     }

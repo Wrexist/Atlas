@@ -115,7 +115,7 @@ struct LabEntryEditor: View {
                             .monospacedDigit()
                             .focused($valueFocused)
                         Text(panel.canonicalUnit)
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                     }
                     if showRangeWarning, let rangeWarning {
@@ -124,7 +124,7 @@ struct LabEntryEditor: View {
                                 .font(AppFont.scaled(11))
                                 .accessibilityHidden(true)
                             Text(rangeWarning)
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                         }
                         .foregroundStyle(AppColor.warning)
                         .transition(.opacity.combined(with: .move(edge: .top)))

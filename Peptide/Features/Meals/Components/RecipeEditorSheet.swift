@@ -141,7 +141,7 @@ struct RecipeEditorSheet: View {
                     .foregroundStyle(AppColor.accentLight)
                 if isPartial {
                     Text("Fix missing foods or portions before logging.")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }
                 HStack(spacing: Spacing.lg) {
@@ -332,7 +332,7 @@ struct RecipeFoodPickerSheet: View {
                                     Text(food.name)
                                         .foregroundStyle(AppColor.textPrimary)
                                     Text("\(Int(food.per100g.calories.rounded())) kcal / 100g")
-                                        .font(AppFont.caption)
+                                        .font(AppFont.caption2)
                                         .foregroundStyle(AppColor.textSecondary)
                                 }
                                 Spacer()

@@ -71,7 +71,7 @@ struct StatTile: View {
                 .minimumScaleFactor(0.7)
             if let footnote {
                 Text(footnote)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .lineLimit(1)
             }

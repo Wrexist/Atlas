@@ -420,7 +420,7 @@ struct PaywallView: View {
             pendingApprovalBanner
         case .nothingToRestore:
             Text("No previous purchase found to restore.")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
@@ -439,7 +439,7 @@ struct PaywallView: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.textPrimary)
                 Text("We'll unlock Pro automatically when the purchase is approved.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -477,7 +477,7 @@ struct PaywallView: View {
                         .fontWeight(.semibold)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(message)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -490,7 +490,7 @@ struct PaywallView: View {
                         notice = nil
                         Task { await purchase(product) }
                     }
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.accentLight)
                 }
@@ -499,7 +499,7 @@ struct PaywallView: View {
                     notice = nil
                     restore()
                 }
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textSecondary)
 
@@ -643,7 +643,7 @@ struct PaywallView: View {
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textPrimary)
             Text("Check your connection and try again.")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
             Button {
@@ -700,7 +700,7 @@ struct PaywallView: View {
                     }
 
                     Text(subtitle)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
@@ -1112,7 +1112,7 @@ struct PaywallView: View {
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textPrimary)
                 Text(length)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
             Spacer()
