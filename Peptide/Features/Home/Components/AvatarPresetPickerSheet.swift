@@ -57,7 +57,7 @@ struct AvatarPresetPickerSheet: View {
                             .strokeBorder(AppColor.glassBorderActive, lineWidth: 1)
                     }
                 Image(systemName: preset.symbol)
-                    .font(.system(size: 30, weight: .bold))
+                    .font(AppFont.scaled(30, weight: .bold, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.onAccent)
             }
             .liquidGlass(.circle)

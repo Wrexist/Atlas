@@ -125,7 +125,7 @@ struct StackAlertDetailSheet: View {
                     .liquidGlass(.circle)
 
                 Image(systemName: warning.icon)
-                    .font(.system(size: 30, weight: .semibold))
+                    .font(AppFont.scaled(30, weight: .semibold, relativeTo: .largeTitle))
                     .foregroundStyle(severityColor)
             }
             .shadow(color: .black.opacity(0.25), radius: 10, x: 0, y: 4)

@@ -328,7 +328,7 @@ struct ProfileCustomizationSheet: View {
                             .foregroundStyle(AppColor.accentLight)
                     } else {
                         Image(systemName: "person.fill")
-                            .font(.system(size: 48))
+                            .font(AppFont.scaled(48, relativeTo: .largeTitle))
                             .foregroundStyle(AppColor.accentLight)
                     }
                 }

@@ -88,7 +88,7 @@ struct ProfileStacksCard: View {
     private var emptyStacksView: some View {
         VStack(spacing: Spacing.md) {
             Image(systemName: "square.stack.3d.up.slash")
-                .font(.system(size: 32))
+                .font(AppFont.scaled(32, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.textTertiary)
 
             Text("No protocols yet")
