@@ -2458,7 +2458,7 @@ final class DataStore {
         async let baseHRV = kit.averageHRV(days: 30)
         async let recentRHR = kit.averageRestingHeartRate(days: 3)
         async let baseRHR = kit.averageRestingHeartRate(days: 30)
-        async let lastSleepHours = kit.averageSleepHours(days: 1)
+        async let lastSleepHours = kit.lastNightSleepHours()
         async let segments = kit.recentSleepSegments()
 
         let hrv = await recentHRV

@@ -448,9 +448,9 @@ final class HealthKitService {
     /// on date X" gets attributed to X. Lets a Tuesday dose →
     /// Wednesday-morning HRV correlation read naturally.
     ///
-    /// Merges overlapping samples (same logic as `averageSleepHours`)
-    /// so the Apple Watch + Pillow / AutoSleep duplicating their
-    /// own samples doesn't double a night's total.
+    /// Merges overlapping samples so the Apple Watch + Pillow /
+    /// AutoSleep duplicating their own samples doesn't double a
+    /// night's total.
     func dailySleepHours(days: Int) async -> [(date: Date, value: Double)] {
         guard isAvailable, days > 0 else { return [] }
         let calendar = Calendar.current
@@ -563,54 +563,21 @@ final class HealthKitService {
         }
     }
 
+    /// Mean of `dailySleepHours`, so every surface shares one
+    /// definition of a night: calendar-aligned, keyed by the wake-up
+    /// day, with a nap counted into its day instead of as an extra
+    /// night. Averages only the nights that have data, not the window.
     func averageSleepHours(days: Int) async -> Double? {
-        guard isAvailable else { return nil }
+        let nights = await dailySleepHours(days: days)
+        guard !nights.isEmpty else { return nil }
+        return nights.reduce(0.0) { $0 + $1.value } / Double(nights.count)
+    }
 
-        let calendar = Calendar.current
-        let endDate = Date()
-        guard let startDate = calendar.date(byAdding: .day, value: -days, to: endDate) else { return nil }
-
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate)
-        let descriptor = HKSampleQueryDescriptor(
-            predicates: [.categorySample(type: HKCategoryType(.sleepAnalysis), predicate: predicate)],
-            sortDescriptors: [SortDescriptor(\.startDate)]
-        )
-
-        do {
-            let samples = try await descriptor.result(for: store)
-            let asleepSamples = samples.filter(Self.isAsleep)
-            guard !asleepSamples.isEmpty else { return nil }
-            // Merge overlapping intervals before summing — Apple Watch
-            // plus a third-party tracker (Pillow, AutoSleep) both write
-            // their own samples for the same night, so a raw sum doubles
-            // the user's sleep duration. Sorting by start + collapsing
-            // overlaps gives the union of "any source said asleep".
-            let intervals = asleepSamples
-                .map { (start: $0.startDate, end: $0.endDate) }
-                .sorted { $0.start < $1.start }
-            var merged: [(start: Date, end: Date)] = []
-            for interval in intervals {
-                if var last = merged.last, last.end >= interval.start {
-                    last.end = max(last.end, interval.end)
-                    merged[merged.count - 1] = last
-                } else {
-                    merged.append(interval)
-                }
-            }
-            let totalSeconds = merged.reduce(0.0) { $0 + $1.end.timeIntervalSince($1.start) }
-            // Average over the nights that actually had sleep data, not
-            // the full requested window — dividing by `days` understated
-            // the average ~2x for a user who logs sleep only some nights.
-            // Each night is keyed by its wake-up (interval end) day so a
-            // midnight-crossing sleep counts once.
-            let nightsWithSleep = Set(
-                merged.map { Calendar.current.startOfDay(for: $0.end) }
-            ).count
-            return totalSeconds / 3600.0 / Double(max(1, nightsWithSleep))
-        } catch {
-            AppLog.healthKit.error("averageSleepHours query failed: \(error.localizedDescription, privacy: .private)")
-            return nil
-        }
+    /// The most recent night's total. Looks back two wake-up days so
+    /// between midnight and waking (today's bucket still empty) it
+    /// returns last night instead of nothing.
+    func lastNightSleepHours() async -> Double? {
+        await dailySleepHours(days: 2).last?.value
     }
 
     /// Every staged sleep segment from the last 30 hours, for
