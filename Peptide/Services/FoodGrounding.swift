@@ -14,13 +14,18 @@ enum FoodGrounding {
     static let maxCalorieRatio = 2.0
     /// Open Food Facts allows the app 8 searches a minute.
     static let maxLookups = 3
+    /// Search slots grounding never spends, so a table scan's several
+    /// concurrent reads can't leave the user's next food search throttled.
+    static let slotsKeptForUser = 4
     /// Grounding is a bonus; the review screen never waits long for it.
     static let lookupTimeout: Duration = .seconds(3)
 
     static func ground(
         _ items: [MealScannerService.ScannedFoodItem],
         myFoods: [CustomFood],
-        search: @escaping Search = { try await OpenFoodFactsService.shared.search(query: $0) }
+        search: @escaping Search = {
+            try await OpenFoodFactsService.shared.search(query: $0, leavingFree: FoodGrounding.slotsKeptForUser)
+        }
     ) async -> [MealScannerService.ScannedFoodItem] {
         let saved = items.map { match($0, in: myFoods) }
         let lookups = items.indices.filter { items[$0].brand != nil && saved[$0] == nil }.prefix(maxLookups)

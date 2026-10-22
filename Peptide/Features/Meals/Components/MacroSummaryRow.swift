@@ -25,6 +25,7 @@ struct MacroSummaryRow: View {
     let onUndoWater: (() -> Void)?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var waterFeedback = 0
     @State private var selectedWaterAmount: Double?
     /// Per-view-lifetime, so a tab switch back doesn't replay the fill.
@@ -74,7 +75,12 @@ struct MacroSummaryRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            HStack(alignment: .top, spacing: Spacing.lg) {
+            // At accessibility sizes the legend gets the full width under
+            // the rings instead of ~180 pt beside them.
+            let ringsAndLegend = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .center, spacing: Spacing.lg))
+                : AnyLayout(HStackLayout(alignment: .top, spacing: Spacing.lg))
+            ringsAndLegend {
                 ringStack
                     .frame(width: 132, height: 132)
 
@@ -324,9 +330,11 @@ struct MacroSummaryRow: View {
     }
 
     private var accessibilitySummary: String {
-        let calorieLine = "Calories \(consumed.caloriesKcal) of \(targets.calories)"
-        let proteinLine = "Protein \(consumed.proteinG) of \(targets.proteinG) grams"
-        let waterLine = "Water \(LifestyleDataLogic.displayedWater(consumed, unit: unit)) of \(unit.volumeValue(Double(Self.waterTargetOz))) \(unit.volumeSpokenUnit)"
-        return "\(calorieLine). \(proteinLine). \(waterLine)."
+        let water = LifestyleDataLogic.displayedWater(consumed, unit: unit)
+        let waterTarget = unit.volumeValue(Double(Self.waterTargetOz))
+        return String(
+            localized: "Calories \(consumed.caloriesKcal) of \(targets.calories). Protein \(consumed.proteinG) of \(targets.proteinG) grams. Water \(water) of \(waterTarget) \(unit.volumeSpokenUnit).",
+            comment: "VoiceOver summary of the day's calories, protein and water against targets."
+        )
     }
 }

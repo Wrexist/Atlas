@@ -9,6 +9,7 @@ struct WatchVitalsEntry: TimelineEntry {
     /// means "not synced", not "no Health data".
     var synced = true
     let vitals: WatchVitalsSnapshot?
+    var healthConnected = false
 
     static let placeholder = WatchVitalsEntry(
         date: .now,
@@ -61,7 +62,7 @@ struct WatchVitalsProvider: TimelineProvider {
               let data = try? Data(contentsOf: url),
               let watchData = try? Self.decoder.decode(WatchData.self, from: data).forDisplay(at: .now)
         else { return WatchVitalsEntry(date: .now, synced: false, vitals: nil) }
-        return WatchVitalsEntry(date: .now, vitals: watchData.vitals)
+        return WatchVitalsEntry(date: .now, vitals: watchData.vitals, healthConnected: watchData.healthConnected ?? false)
     }
 }
 
@@ -90,6 +91,10 @@ struct WatchRecoveryEntryView: View {
         }
         .gaugeStyle(.accessoryCircular)
         .tint(WatchPalette.heart)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            vitals?.recoveryScore.map { Text("Recovery score \($0)") } ?? Text("Recovery score unavailable")
+        )
         .containerBackground(for: .widget) { Color.clear }
     }
 
@@ -106,9 +111,11 @@ struct WatchRecoveryEntryView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             } else {
-                Text(entry.synced
-                     ? String(localized: "Connect Apple Health in Atlas")
-                     : String(localized: "Open Atlas on iPhone"))
+                Text(!entry.synced
+                     ? String(localized: "Open Atlas on iPhone")
+                     : entry.healthConnected
+                     ? String(localized: "No recovery data yet")
+                     : String(localized: "Connect Apple Health in Atlas"))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }

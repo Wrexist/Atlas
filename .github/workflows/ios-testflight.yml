@@ -17,21 +17,50 @@ permissions:
   contents: read
 
 jobs:
+  gate:
+    # TestFlight reaches testers, so it only builds a main commit that
+    # PR Checks (unit tests, Release build, lint, store metadata, proxy
+    # tests) has already passed. Without this a dispatch could ship an
+    # unreviewed branch or a red main.
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      actions: read
+    steps:
+      - name: Require main with green PR Checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$GITHUB_REF" != refs/heads/main ]; then
+            echo "::error::TestFlight builds only from main (got $GITHUB_REF)."
+            exit 1
+          fi
+          # Only main's own push or nightly run counts: a pull_request run
+          # can pass with build-check skipped (draft or non-iOS scope),
+          # and a fast-forward merge gives main that PR's head SHA.
+          PASSED=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/pr-checks.yml/runs?head_sha=$GITHUB_SHA&status=success&branch=main" \
+            -q '[.workflow_runs[] | select(.event == "push" or .event == "schedule")] | length')
+          if [ "$PASSED" = "0" ]; then
+            echo "::error::PR Checks has not passed on $GITHUB_SHA. Wait for the main run to go green, then dispatch again."
+            exit 1
+          fi
+
   build:
-    # Pin to macos-15 (Xcode 16) so TestFlight builds use the same
-    # toolchain as pr-checks. `macos-latest` drifts whenever GitHub
-    # rotates the default image and produces builds that diverge from
-    # the PR checks that passed on the same SHA.
+    needs: gate
+    # Pin to macos-15 so TestFlight builds use the same runner image as
+    # pr-checks. `macos-latest` drifts whenever GitHub rotates the
+    # default image. Xcode itself is `latest-stable` in both workflows,
+    # so the two follow the image together rather than being pinned.
     runs-on: macos-15
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
-      - uses: maxim-lobanov/setup-xcode@v1
+      - uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
         with:
           xcode-version: latest-stable
 
-      - uses: ruby/setup-ruby@v1
+      - uses: ruby/setup-ruby@b1da4809b005e0178fe08a1d57317bffc00b7b4c # v1.332.0
         with:
           ruby-version: '3.3'
           # Do NOT enable bundler-cache here. It caches vendor/bundle via
@@ -56,7 +85,7 @@ jobs:
           bundle config set --local path vendor/bundle
           bundle install --jobs 4 --retry 3
 
-      - uses: webfactory/ssh-agent@v0.9.0
+      - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387 # v0.9.0
         with:
           ssh-private-key: ${{ secrets.MATCH_SSH_PRIVATE_KEY }}
 

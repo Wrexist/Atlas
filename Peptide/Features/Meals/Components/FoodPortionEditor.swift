@@ -1,13 +1,16 @@
 import SwiftUI
 
 enum FoodPortionInput {
+    /// The weights a food portion may take, everywhere it can be set.
+    static let gramsRange: ClosedRange<Double> = 5...2000
+
     /// Decimal entry only; do not interpret grouping separators or partial input.
     static func grams(_ text: String) -> Double? {
         let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: ",", with: ".")
         guard normalized.range(of: "^[0-9]+(?:\\.[0-9]+)?$", options: .regularExpression) != nil,
               let value = Double(normalized), value.isFinite,
-              (5...2000).contains(value) else { return nil }
+              gramsRange.contains(value) else { return nil }
         return value
     }
 }

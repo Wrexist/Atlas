@@ -30,7 +30,7 @@ final class TodayOverviewSnapshotTests: XCTestCase {
 
     func test_build_withWaterLogged_reportsWater() {
         let store = DataStore(seedSampleData: false)
-        store.logWater(oz: 32)
+        store.logWater(fluidOunces: 32)
         let snapshot = TodayOverviewSnapshot.build(from: store)
         XCTAssertEqual(snapshot.waterToday, 32)
         XCTAssertTrue(snapshot.hasAnySignal)

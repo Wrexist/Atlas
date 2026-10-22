@@ -50,7 +50,7 @@ final class WeeklySummaryService {
         /// the card entirely.
         case disabled
         /// `WeeklySummaryEngine.build(...)` returned nil. Fewer
-        /// than 3 active dose days in the window. Caller suppresses
+        /// than 3 days with any logged activity in the window. Caller suppresses
         /// the card.
         case insufficientData
         case proxyNotConfigured
@@ -72,6 +72,7 @@ final class WeeklySummaryService {
         profile: UserProfile,
         protocols: [PeptideProtocol],
         entries: [ProtocolEntry],
+        workoutDates: [Date] = [],
         hrvSeries: [(date: Date, value: Double)] = [],
         rhrSeries: [(date: Date, value: Double)] = [],
         sleepSeries: [(date: Date, value: Double)] = [],
@@ -87,6 +88,7 @@ final class WeeklySummaryService {
             profile: profile,
             protocols: protocols,
             entries: entries,
+            workoutDates: workoutDates,
             referenceDate: referenceDate,
             hrvSeries: hrvSeries,
             rhrSeries: rhrSeries,
@@ -102,10 +104,9 @@ final class WeeklySummaryService {
         // stored fingerprint still matches what the week's entries,
         // meals, check-ins and labs produce today. A mismatch (dose
         // un-logged, meal deleted, lab added) regenerates.
-        let fingerprint = Self.sourceFingerprint(of: aggregate)
         if !forceRefresh,
            let cached = profile.weeklySummaries[aggregate.weekStart],
-           cached.sourceFingerprint == fingerprint {
+           Self.isFresh(cached, for: aggregate, now: Date()) {
             return cached
         }
 
@@ -139,16 +140,18 @@ final class WeeklySummaryService {
         profile: UserProfile,
         protocols: [PeptideProtocol],
         entries: [ProtocolEntry],
+        workoutDates: [Date] = [],
         referenceDate: Date = Date()
     ) -> WeeklySummary? {
         guard let aggregate = WeeklySummaryEngine.build(
             profile: profile,
             protocols: protocols,
             entries: entries,
+            workoutDates: workoutDates,
             referenceDate: referenceDate
         ) else { return nil }
         guard let cached = profile.weeklySummaries[aggregate.weekStart],
-              cached.sourceFingerprint == Self.sourceFingerprint(of: aggregate)
+              Self.isFresh(cached, for: aggregate, now: Date())
         else { return nil }
         return cached
     }
@@ -158,16 +161,30 @@ final class WeeklySummaryService {
     /// request for every dose, meal or check-in logged that day.
     static let staleRegenerationInterval: TimeInterval = 6 * 60 * 60
 
-    /// True when a stale summary is old enough to regenerate.
+    /// True when a stale summary is old enough to regenerate. An offline
+    /// fallback retries the proxy sooner, on `offlineRetryInterval`.
     static func isDueForRegeneration(_ summary: WeeklySummary, now: Date = Date()) -> Bool {
-        now.timeIntervalSince(summary.generatedAt) >= staleRegenerationInterval
+        let interval = summary.kind == .offline ? offlineRetryInterval : staleRegenerationInterval
+        return now.timeIntervalSince(summary.generatedAt) >= interval
+    }
+
+    /// How long an offline fallback is served before the next load
+    /// retries the proxy. Without it one network blip or 429 pinned
+    /// the template text until the user edited data or tapped refresh.
+    static let offlineRetryInterval: TimeInterval = 60 * 60
+
+    /// A cached summary is served only while its source data is
+    /// unchanged and, for an offline fallback, for `offlineRetryInterval`.
+    static func isFresh(_ cached: WeeklySummary, for aggregate: WeeklyAggregate, now: Date) -> Bool {
+        guard cached.sourceFingerprint == sourceFingerprint(of: aggregate) else { return false }
+        return cached.kind == .ai || now.timeIntervalSince(cached.generatedAt) < offlineRetryInterval
     }
 
     /// Deterministic hash of the user-editable inputs of an aggregate.
     /// Deliberately excludes `biometrics` (HealthKit series arrive
     /// passively and would re-fire the API on every new sample) and
     /// `topInsightCategory` (derived, churny) — the finding this guards
-    /// against is edits to entries, meals, check-ins and labs.
+    /// against is edits to entries, workouts, meals, check-ins and labs.
     static func sourceFingerprint(of aggregate: WeeklyAggregate) -> String {
         struct Sources: Encodable {
             let weekStart: String
@@ -175,6 +192,7 @@ final class WeeklySummaryService {
             let streak: WeeklyAggregate.Streak
             let outcomes: WeeklyAggregate.Outcomes?
             let nutrition: WeeklyAggregate.Nutrition?
+            let training: WeeklyAggregate.Training?
             let labs: WeeklyAggregate.Labs
         }
         let sources = Sources(
@@ -183,6 +201,7 @@ final class WeeklySummaryService {
             streak: aggregate.streak,
             outcomes: aggregate.outcomes,
             nutrition: aggregate.nutrition,
+            training: aggregate.training,
             labs: aggregate.labs
         )
         let encoder = JSONEncoder()

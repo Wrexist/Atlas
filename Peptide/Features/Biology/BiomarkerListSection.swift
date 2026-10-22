@@ -58,12 +58,16 @@ struct BiomarkerListSection: View {
                     .transition(.opacity)
             }
         }
-        // Re-key on a hashed identity rather than the full array. Without
-        // this, dismissing the Edit sheet re-fires the HealthKit fan-out
-        // even when the visible set didn't actually change — the parent
-        // re-evaluates `biologyConfig.visibleBiomarkers` and SwiftUI sees
-        // a structurally equal array with a fresh identity each time.
-        .task(id: LoadKey(biomarkers: visibleBiomarkers.hashValue, reloadID: reloadID)) {
+        // Keyed on every input the snapshots read, compared by value: a
+        // weigh-in, a new lab or a unit switch re-reads, while an Edit
+        // sheet that didn't change the visible set does not.
+        .task(id: LoadKey(
+            biomarkers: visibleBiomarkers,
+            weightHistory: dataStore.profile.weightHistory,
+            latestLab: latestLab,
+            unit: dataStore.profile.bodyMetrics.unit,
+            reloadID: reloadID
+        )) {
             await refresh()
         }
     }
@@ -97,8 +101,21 @@ struct BiomarkerListSection: View {
     }
 
     private struct LoadKey: Equatable {
-        let biomarkers: Int
+        let biomarkers: [Biomarker]
+        let weightHistory: [WeightEntry]
+        let latestLab: LabValue?
+        let unit: MeasurementUnit
         let reloadID: Int
+    }
+
+    /// LatestLabSummaries returns most-recent-per-panel; the lab tile
+    /// binds to the very latest sample so any panel wins — the
+    /// user-facing label still reads the specific panel name (Total
+    /// testosterone, IGF-1, …).
+    private var latestLab: LabValue? {
+        dataStore.latestLabSummaries
+            .max(by: { $0.latest.date < $1.latest.date })?
+            .latest
     }
 
     private func snapshot(for biomarker: Biomarker) -> BiomarkerSnapshot {
@@ -106,13 +123,6 @@ struct BiomarkerListSection: View {
     }
 
     private func refresh() async {
-        // LatestLabSummaries returns most-recent-per-panel; the
-        // lab tile binds to the very latest sample so any panel
-        // wins — the user-facing label still reads the specific
-        // panel name (Total testosterone, IGF-1, …).
-        let latestLab = dataStore.latestLabSummaries
-            .max(by: { $0.latest.date < $1.latest.date })?
-            .latest
         let fresh = await BiomarkerSeriesService.snapshots(
             for: visibleBiomarkers,
             weightHistory: dataStore.profile.weightHistory,

@@ -19,7 +19,7 @@ struct BiomarkerRow: View {
             HStack(spacing: Spacing.md) {
                 trendBadge
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(snapshot.biomarker.displayName)
                         .font(AppFont.subheadline)
                         .fontWeight(.semibold)

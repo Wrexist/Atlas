@@ -1,6 +1,5 @@
 import SwiftUI
 import VisionKit
-@preconcurrency import AVFoundation
 
 /// Live barcode-capture surface wrapping `DataScannerViewController`.
 ///
@@ -98,24 +97,5 @@ struct BarcodeScannerView: UIViewControllerRepresentable {
             }
             return nil
         }
-    }
-}
-
-/// Standalone camera-permission probe so the flow can prompt without
-/// instantiating the scanner. Mirrors `AVCaptureDevice.requestAccess`
-/// in async form to keep the call site readable.
-enum BarcodeCameraAuthorization {
-
-    static var current: AVAuthorizationStatus {
-        AVCaptureDevice.authorizationStatus(for: .video)
-    }
-
-    /// Requests camera access if the user hasn't decided yet. Returns
-    /// the post-request status so the caller can branch once.
-    static func request() async -> AVAuthorizationStatus {
-        if current == .notDetermined {
-            _ = await AVCaptureDevice.requestAccess(for: .video)
-        }
-        return current
     }
 }

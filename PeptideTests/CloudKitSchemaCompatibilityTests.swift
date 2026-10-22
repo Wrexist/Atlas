@@ -23,6 +23,27 @@ final class CloudKitSchemaCompatibilityTests: XCTestCase {
         }
     }
 
+    /// CloudKit's other hard rule: a non-optional column with no default
+    /// (or a non-optional relationship) also disables sync silently, and
+    /// the in-memory container test below would not notice.
+    func test_schema_everyAttributeIsOptionalOrDefaulted() {
+        let schema = Schema(versionedSchema: PeptideAtlasSchemaV2.self)
+        for entity in schema.entities {
+            for attribute in entity.attributes {
+                XCTAssertTrue(
+                    attribute.isOptional || attribute.defaultValue != nil,
+                    "\(entity.name).\(attribute.name) is neither optional nor defaulted — CloudKit sync would silently stop"
+                )
+            }
+            for relationship in entity.relationships {
+                XCTAssertTrue(
+                    relationship.isOptional,
+                    "\(entity.name).\(relationship.name) is a non-optional relationship — CloudKit sync would silently stop"
+                )
+            }
+        }
+    }
+
     func test_schema_declaresEveryStoredModel() {
         let schema = Schema(versionedSchema: PeptideAtlasSchemaV2.self)
         let names = Set(schema.entities.map(\.name))

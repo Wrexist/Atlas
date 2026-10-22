@@ -22,6 +22,10 @@ struct MealEntryEditorSheet: View {
     @State private var carbsG: String
     @State private var fatG: String
     @State private var date: Date
+    /// The macros the sheet last filled in itself (as logged, a portion
+    /// chip, or a re-weighed food). Typed values that differ no longer
+    /// match `components`, so those are dropped on save.
+    @State private var appliedMacros: LoggableMeal
     @State private var showDeleteConfirm: Bool = false
     @FocusState private var focusedField: MacroField?
 
@@ -51,6 +55,7 @@ struct MealEntryEditorSheet: View {
         _carbsG = State(initialValue: String(initial.carbsG))
         _fatG = State(initialValue: String(initial.fatG))
         _date = State(initialValue: initial.date)
+        _appliedMacros = State(initialValue: LifestyleDataLogic.scaledMacros(of: initial, by: 1))
     }
 
     /// The typed macros, or nil while any field is blank or not a
@@ -147,7 +152,7 @@ struct MealEntryEditorSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", action: onCancel)
+                    DiscardChangesCancelButton(hasChanges: hasChanges, onCancel: onCancel)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: commit)
@@ -179,6 +184,7 @@ struct MealEntryEditorSheet: View {
                 }
             }
         }
+        .interactiveDismissDisabled(hasChanges)
     }
 
     private var summaryCard: some View {
@@ -203,7 +209,7 @@ struct MealEntryEditorSheet: View {
                         Image(systemName: initial.source.icon)
                             .font(AppFont.scaled(11))
                             .foregroundStyle(AppColor.textSecondary)
-                        Text(Self.timeFormatter.string(from: initial.date))
+                        Text(date, format: .dateTime.hour().minute())
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.textSecondary)
                         // `sourceID` may point to a custom food the
@@ -293,6 +299,7 @@ struct MealEntryEditorSheet: View {
     }
 
     private func apply(_ macros: LoggableMeal) {
+        appliedMacros = macros
         calories = String(macros.calories)
         proteinG = String(macros.proteinG)
         carbsG = String(macros.carbsG)
@@ -344,7 +351,7 @@ struct MealEntryEditorSheet: View {
         guard let macros = editedMacros, !trimmedName.isEmpty else { return }
         var updated = initial
         updated.name = trimmedName
-        updated.components = components
+        updated.components = macros == appliedMacros ? components : nil
         updated.category = category
         updated.calories = macros.calories
         updated.proteinG = macros.proteinG
@@ -353,11 +360,4 @@ struct MealEntryEditorSheet: View {
         updated.date = date
         onSave(updated)
     }
-
-    private static let timeFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateStyle = .none
-        f.timeStyle = .short
-        return f
-    }()
 }

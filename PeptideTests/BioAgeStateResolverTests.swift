@@ -51,6 +51,20 @@ final class BioAgeStateResolverTests: XCTestCase {
         XCTAssertEqual(resolved.chronologicalAge, BioAgeStateResolver.chronologicalAgeFallback)
     }
 
+    /// A Pro user who skipped their age must not get an estimate built
+    /// against the fallback age.
+    func test_resolve_proNilAge_needsAgeNotEstimate() async {
+        let resolved = await BioAgeStateResolver.resolve(chronologicalAge: nil, isPro: true)
+        XCTAssertEqual(resolved.state, .needsAge)
+        XCTAssertNil(resolved.inputs)
+    }
+
+    func test_resolve_proUnderMinimumAge_needsAge() async {
+        let resolved = await BioAgeStateResolver.resolve(chronologicalAge: 16, isPro: true)
+        XCTAssertEqual(resolved.state, .needsAge)
+        XCTAssertEqual(resolved.chronologicalAge, 16)
+    }
+
     /// The minimum-baseline-days constant gates the Pro-tier
     /// "building" state. Locked here only because we forced
     /// isPro=false; in a real run with isPro=true + no HealthKit

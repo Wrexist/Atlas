@@ -26,6 +26,7 @@ struct WeeklyAggregate: Codable, Hashable, Sendable {
     let outcomes: Outcomes?
     let nutrition: Nutrition?
     let biometrics: Biometrics?
+    let training: Training?
     let labs: Labs
     /// Stable category for the highest-priority observation the
     /// on-device InsightEngine surfaced for the week. Used to be a
@@ -90,6 +91,12 @@ struct WeeklyAggregate: Codable, Hashable, Sendable {
         let sleepHoursAvg: Double?
     }
 
+    /// Nil when no training session started this week.
+    struct Training: Codable, Hashable, Sendable {
+        /// Distinct days with at least one training session.
+        let sessionDays: Int
+    }
+
     struct Labs: Codable, Hashable, Sendable {
         /// Distinct panels with a new entry this week. Zero when
         /// the user didn't log anything; the model is instructed
@@ -117,7 +124,7 @@ struct WeeklySummary: Codable, Hashable, Sendable, Identifiable {
     let kind: Kind
     let generatedAt: Date
     /// Hash of the user-editable source data (compliance, streak,
-    /// outcomes, nutrition, labs) the summary was generated from.
+    /// outcomes, nutrition, training, labs) the summary was generated from.
     /// `WeeklySummaryService` treats a mismatch as a cache miss so an
     /// edit within the week (a dose un-logged, a meal deleted) can't be
     /// served a frozen summary. Optional: summaries cached before this

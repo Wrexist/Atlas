@@ -403,7 +403,7 @@ struct HeroMetricSnapshot: Equatable, Sendable {
         async let baseHRV    = kit.averageHRV(days: 30)
         async let recentRHR  = kit.averageRestingHeartRate(days: 3)
         async let baseRHR    = kit.averageRestingHeartRate(days: 30)
-        async let sleepHours = kit.averageSleepHours(days: 1)
+        async let sleepHours = kit.lastNightSleepHours()
 
         let inputs = await RecoveryScoreEngine.Inputs(
             recentHRV: recentHRV,

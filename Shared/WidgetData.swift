@@ -1,9 +1,5 @@
 import Foundation
 
-enum AppGroup {
-    static let identifier = "group.com.peptidesai.app"
-}
-
 /// One row in the Medium widget's "today" list. Three of these are
 /// surfaced — enough to fill the widget without truncation under default
 /// Dynamic Type, per `docs/SCREENSHOT_SEED_DATA_AND_FIXES.md` slot 7.
@@ -25,27 +21,13 @@ struct WidgetMealSlot: Codable, Hashable, Sendable {
     let entryCount: Int
 }
 
-/// The most recently finished workout, flattened to what a training
-/// widget renders. Volume stays in canonical kilograms — the same
-/// contract `SetEntry` and session totals keep in-app — and is
-/// converted for display against `WidgetData.measurementUnit`.
-struct WidgetWorkoutSummary: Codable, Hashable, Sendable {
-    /// Session name, or "" for an unnamed workout (the widget falls
-    /// back to a date label rather than printing an empty line).
-    let name: String
-    let finishedAt: Date
-    let setCount: Int
-    let volumeKg: Double
-    let durationMinutes: Int
-}
-
-struct WidgetData: Codable, Sendable {
+struct WidgetData: Codable, Equatable, Sendable {
     let nextPeptideName: String
     let nextDose: String
     let nextDoseTime: Date?
     let completedToday: Int
     let totalToday: Int
-    let lastUpdated: Date
+    var lastUpdated: Date
     let upcoming: [WidgetDoseSlot]
     // MARK: - Nutrition (Phase 7 — nutrition widget)
     /// Today's calorie consumption sum. Zero when nothing's logged.
@@ -166,6 +148,28 @@ struct WidgetData: Codable, Sendable {
     /// True while a workout is in progress — the training widget swaps
     /// to a live elapsed-time layout.
     var workoutInProgress: Bool { activeWorkoutStartedAt != nil }
+
+    /// How long the payload can go unwritten before a running workout
+    /// in it counts as abandoned. Mirrors
+    /// `WorkoutStalenessEngine.loggedIdleLimit`, which closes such a
+    /// session — but only once the app launches again.
+    static let abandonedWorkoutAge: TimeInterval = 6 * 3600
+
+    /// The running workout's start, or nil when none is running or the
+    /// app hasn't written in long enough that the session was left
+    /// open. Without the cut-off the widget's timer counts for days.
+    func activeWorkoutStart(at now: Date) -> Date? {
+        guard now.timeIntervalSince(lastUpdated) <= Self.abandonedWorkoutAge else { return nil }
+        return activeWorkoutStartedAt
+    }
+
+    /// True when every field but `lastUpdated` matches — rewriting
+    /// such a payload would only spend the widgets' reload budget.
+    func hasSameContent(as other: WidgetData) -> Bool {
+        var restamped = other
+        restamped.lastUpdated = lastUpdated
+        return restamped == self
+    }
 
     /// Weight-unit suffix, mirroring `MeasurementUnit.weightSuffix`.
     /// Deliberately unlocalised: "kg" and "lb" are the symbols in every

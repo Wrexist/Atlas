@@ -20,8 +20,12 @@ import WidgetKit
 struct WorkoutLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: WorkoutActivityAttributes.self) { context in
-            WorkoutLockView(attributes: context.attributes, state: context.state)
-                .widgetURL(WorkoutActivityStyle.deepLink)
+            WorkoutLockView(
+                attributes: context.attributes,
+                state: context.state,
+                isIdle: context.state.isIdle(isStale: context.isStale)
+            )
+            .widgetURL(WidgetDeepLink.train)
         } dynamicIsland: { context in
             buildDynamicIsland(context: context)
         }
@@ -31,17 +35,24 @@ struct WorkoutLiveActivity: Widget {
     private func buildDynamicIsland(
         context: ActivityViewContext<WorkoutActivityAttributes>
     ) -> DynamicIsland {
-        let accent = WorkoutActivityStyle.accent(for: context.state)
+        let idle = context.state.isIdle(isStale: context.isStale)
+        let accent = WorkoutActivityStyle.accent(for: context.state, idle: idle)
         return DynamicIsland {
             DynamicIslandExpandedRegion(.leading) {
                 IslandGlyph(state: context.state, accent: accent)
             }
             DynamicIslandExpandedRegion(.trailing) {
-                IslandTimer(
-                    attributes: context.attributes,
-                    state: context.state,
-                    accent: accent
-                )
+                if idle {
+                    Text("Idle")
+                        .font(.system(size: 17, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.6))
+                } else {
+                    IslandTimer(
+                        attributes: context.attributes,
+                        state: context.state,
+                        accent: accent
+                    )
+                }
             }
             DynamicIslandExpandedRegion(.center) {
                 VStack(alignment: .leading, spacing: 1) {
@@ -49,7 +60,7 @@ struct WorkoutLiveActivity: Widget {
                         .font(.system(size: 14, weight: .heavy, design: .rounded))
                         .foregroundStyle(.white)
                         .lineLimit(1)
-                    Text(WorkoutActivityStyle.subtitle(for: context.state))
+                    Text(idle ? WorkoutActivityStyle.idleSubtitle : WorkoutActivityStyle.subtitle(for: context.state))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(.white.opacity(0.65))
                         .lineLimit(1)
@@ -59,7 +70,9 @@ struct WorkoutLiveActivity: Widget {
             DynamicIslandExpandedRegion(.bottom) {
                 VStack(spacing: 8) {
                     SetProgressBar(state: context.state, accent: accent)
-                    WorkoutActionButton(sessionId: context.attributes.sessionId, state: context.state, accent: accent)
+                    if !idle {
+                        WorkoutActionButton(sessionId: context.attributes.sessionId, state: context.state, accent: accent)
+                    }
                 }
             }
         } compactLeading: {
@@ -67,17 +80,23 @@ struct WorkoutLiveActivity: Widget {
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(accent)
         } compactTrailing: {
-            CompactTiming(
-                attributes: context.attributes,
-                state: context.state,
-                accent: accent
-            )
+            if idle {
+                Text("Idle")
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.55))
+            } else {
+                CompactTiming(
+                    attributes: context.attributes,
+                    state: context.state,
+                    accent: accent
+                )
+            }
         } minimal: {
             Image(systemName: WorkoutActivityStyle.glyph(for: context.state))
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(accent)
         }
-        .widgetURL(WorkoutActivityStyle.deepLink)
+        .widgetURL(WidgetDeepLink.train)
         .keylineTint(accent)
     }
 }
@@ -88,10 +107,6 @@ struct WorkoutLiveActivity: Widget {
 /// can't be handled in four views and missed in a fifth.
 @available(iOS 16.1, *)
 private enum WorkoutActivityStyle {
-    /// The Train tab, where the active workout already lives. Routed by
-    /// `DeepLinkRouter`.
-    static let deepLink = URL(string: "peptidex://train")
-
     /// `Text(timerInterval:)` traps on a range whose bounds are
     /// inverted. `status()` samples the clock a hair before this does,
     /// so a rest expiring in that gap would otherwise crash the
@@ -104,18 +119,23 @@ private enum WorkoutActivityStyle {
     /// Brand blue for training; amber while resting so a glance
     /// separates "move" from "wait"; green on the finish beat. Matched
     /// to the values `DoseWindowLiveActivity` uses for the same beats.
-    static func accent(for state: WorkoutActivityAttributes.ContentState) -> Color {
+    static func accent(for state: WorkoutActivityAttributes.ContentState, idle: Bool) -> Color {
+        if idle { return Color.gray }
         switch state.status() {
         case .paused:   return Color.gray
-        case .lifting:  return Color(red: 0.216, green: 0.541, blue: 0.867)
-        case .resting:  return Color(red: 1.00, green: 0.70, blue: 0.20)
-        case .finished: return Color(red: 0.36, green: 0.78, blue: 0.55)
+        case .lifting:  return WidgetPalette.training
+        case .resting:  return WidgetPalette.over
+        case .finished: return WidgetPalette.done
         }
     }
 
+    /// The frozen clock, in the same H:MM:SS / M:SS shape the running
+    /// timer and the training widget use.
     static func pausedTime(_ state: WorkoutActivityAttributes.ContentState) -> String {
         let seconds = max(0, state.pausedElapsedSeconds ?? 0)
-        return String(format: "%d:%02d", seconds / 60, seconds % 60)
+        return Duration.seconds(seconds).formatted(
+            .time(pattern: seconds >= 3600 ? .hourMinuteSecond : .minuteSecond)
+        )
     }
 
     static func glyph(for state: WorkoutActivityAttributes.ContentState) -> String {
@@ -127,16 +147,20 @@ private enum WorkoutActivityStyle {
         }
     }
 
+    /// Replaces the subtitle once the activity has gone stale with
+    /// nobody touching the workout.
+    static var idleSubtitle: LocalizedStringKey { "Workout idle · Tap to resume" }
+
     /// The line under the workout name. Falls back to the set count
     /// when there's no exercise to name yet.
-    static func subtitle(for state: WorkoutActivityAttributes.ContentState) -> String {
+    static func subtitle(for state: WorkoutActivityAttributes.ContentState) -> LocalizedStringKey {
         switch state.status() {
         case .paused:
             return "Workout paused"
         case .finished:
-            return "\(state.completedSets) sets · done"
+            return "^[\(state.completedSets) set](inflect: true) · done"
         case .resting, .lifting:
-            if !state.currentExercise.isEmpty { return state.currentExercise }
+            if !state.currentExercise.isEmpty { return "\(state.currentExercise)" }
             return state.exerciseCount == 0
                 ? "Add your first exercise"
                 : "\(state.completedSets)/\(state.totalSets) sets"
@@ -150,8 +174,11 @@ private enum WorkoutActivityStyle {
 private struct WorkoutLockView: View {
     let attributes: WorkoutActivityAttributes
     let state: WorkoutActivityAttributes.ContentState
+    /// Stale and untouched: the clock and the action button would
+    /// describe a workout nobody is doing.
+    let isIdle: Bool
 
-    private var accent: Color { WorkoutActivityStyle.accent(for: state) }
+    private var accent: Color { WorkoutActivityStyle.accent(for: state, idle: isIdle) }
 
     var body: some View {
         ZStack {
@@ -160,15 +187,44 @@ private struct WorkoutLockView: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            VStack(spacing: 12) {
-                topRow
-                SetProgressBar(state: state, accent: accent)
-                WorkoutActionButton(sessionId: attributes.sessionId, state: state, accent: accent)
+            if isIdle {
+                idleRow
+                    .padding(14)
+            } else {
+                VStack(spacing: 12) {
+                    topRow
+                    SetProgressBar(state: state, accent: accent)
+                    WorkoutActionButton(sessionId: attributes.sessionId, state: state, accent: accent)
+                }
+                .padding(14)
             }
-            .padding(14)
         }
         .activityBackgroundTint(Color.black.opacity(0.05))
         .activitySystemActionForegroundColor(.white)
+    }
+
+    /// Neutral layout for a forgotten workout. The whole view still
+    /// deep-links to the Train tab, so tapping resumes it.
+    private var idleRow: some View {
+        HStack(alignment: .center, spacing: 14) {
+            Image(systemName: "zzz")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 56, height: 56)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(state.displayName)
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                Text(WorkoutActivityStyle.idleSubtitle)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     private var topRow: some View {
@@ -201,7 +257,7 @@ private struct WorkoutLockView: View {
                 Text("Done")
                     .font(.system(size: 18, weight: .heavy, design: .rounded))
                     .foregroundStyle(accent)
-                Text("\(state.completedSets) sets")
+                Text("^[\(state.completedSets) set](inflect: true)")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.secondary)
             }
@@ -222,9 +278,17 @@ private struct WorkoutLockView: View {
                     .foregroundStyle(.secondary)
             }
         case .paused:
-            Text(WorkoutActivityStyle.pausedTime(state))
-                .font(.title3.monospacedDigit())
-                .accessibilityLabel("Workout paused")
+            VStack(alignment: .trailing, spacing: 0) {
+                Text(WorkoutActivityStyle.pausedTime(state))
+                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(.primary)
+                    .accessibilityLabel("Paused at \(WorkoutActivityStyle.pausedTime(state))")
+                Text("paused")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+            }
         case .lifting:
             VStack(alignment: .trailing, spacing: 0) {
                 Text(state.activeTimerStartedAt ?? attributes.startedAt, style: .timer)
@@ -232,7 +296,9 @@ private struct WorkoutLockView: View {
                     .monospacedDigit()
                     .multilineTextAlignment(.trailing)
                     .foregroundStyle(.primary)
-                    .frame(maxWidth: 88)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .frame(maxWidth: 100)
                 Text("elapsed")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.secondary)
@@ -252,9 +318,8 @@ private struct LockRing: View {
 
     private var progress: Double {
         switch state.status() {
-        case .resting:  return state.restProgress()
         case .finished: return 1
-        case .lifting, .paused: return state.setProgress
+        case .resting, .lifting, .paused: return state.setProgress
         }
     }
 
@@ -262,13 +327,31 @@ private struct LockRing: View {
         ZStack {
             Circle()
                 .stroke(accent.opacity(0.20), lineWidth: 5)
+            ring
+            Image(systemName: WorkoutActivityStyle.glyph(for: state))
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(accent)
+        }
+    }
+
+    /// A Live Activity only redraws on a push, so a rest arc drawn from
+    /// `Date()` would freeze between pushes; the system timer view keeps
+    /// filling on its own, as the dose activity's window ring does.
+    @ViewBuilder
+    private var ring: some View {
+        if case .resting = state.status(), let restInterval = state.restInterval {
+            ProgressView(timerInterval: restInterval, countsDown: false) {
+                EmptyView()
+            } currentValueLabel: {
+                EmptyView()
+            }
+            .progressViewStyle(.circular)
+            .tint(accent)
+        } else {
             Circle()
                 .trim(from: 0, to: max(0.001, min(1, progress)))
                 .stroke(accent, style: StrokeStyle(lineWidth: 5, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-            Image(systemName: WorkoutActivityStyle.glyph(for: state))
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(accent)
         }
     }
 }
@@ -318,7 +401,7 @@ private struct SetProgressBar: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Text(state.totalSets > 0
-                     ? "\(state.completedSets) of \(state.totalSets) sets"
+                     ? "\(state.completedSets) of ^[\(state.totalSets) set](inflect: true)"
                      : "No sets planned")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary)
@@ -381,14 +464,22 @@ private struct IslandTimer: View {
                     .foregroundStyle(.white.opacity(0.6))
             case .paused:
                 Text(WorkoutActivityStyle.pausedTime(state))
-                    .font(.headline.monospacedDigit())
-                    .accessibilityLabel("Workout paused")
+                    .font(.system(size: 17, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(.white)
+                    .accessibilityLabel("Paused at \(WorkoutActivityStyle.pausedTime(state))")
+                Text("paused")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.6))
+                    .accessibilityHidden(true)
             case .lifting:
                 Text(state.activeTimerStartedAt ?? attributes.startedAt, style: .timer)
                     .font(.system(size: 17, weight: .heavy, design: .rounded))
                     .monospacedDigit()
                     .multilineTextAlignment(.trailing)
                     .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     .frame(maxWidth: 72)
                 Text("elapsed")
                     .font(.system(size: 10, weight: .medium))
@@ -429,7 +520,9 @@ private struct CompactTiming: View {
                 .font(.system(size: 13, weight: .bold))
                 .monospacedDigit()
                 .foregroundStyle(accent)
-                .frame(maxWidth: 48)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(maxWidth: 56)
         }
     }
 }

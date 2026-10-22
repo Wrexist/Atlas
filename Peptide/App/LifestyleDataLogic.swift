@@ -100,15 +100,6 @@ enum LifestyleDataLogic {
         profile.dailyConsumption[key] = bucket
     }
 
-    /// Adds whole ounces of water to the day's bucket. Siri, the Watch
-    /// and the widget deep-link log in ounces, so they stay on this path.
-    static func logWater(into profile: inout UserProfile, oz: Int, date: Date) {
-        let key = consumptionKey(for: date)
-        var bucket = profile.dailyConsumption[key] ?? DailyConsumption.empty(on: date)
-        bucket.waterOz += oz
-        profile.dailyConsumption[key] = bucket
-    }
-
     /// Adds (or, negative, removes) an exact amount of water. `waterOz`
     /// stays the rounded whole-ounce total and `waterOzRemainder` keeps
     /// the fraction, so a metric +1 L reads back as exactly 1000 mL
@@ -117,19 +108,11 @@ enum LifestyleDataLogic {
     static func logWater(into profile: inout UserProfile, fluidOunces: Double, date: Date) {
         let key = consumptionKey(for: date)
         var bucket = profile.dailyConsumption[key] ?? DailyConsumption.empty(on: date)
-        let exact = max(0, bucket.waterFluidOunces + fluidOunces)
-        let whole = exact.rounded()
-        let remainder = exact - whole
-        bucket.waterOz = Int(whole)
-        bucket.waterOzRemainder = abs(remainder) < waterRemainderEpsilon ? nil : remainder
+        bucket.addWater(fluidOunces: fluidOunces)
         profile.dailyConsumption[key] = bucket
     }
 
     static let millilitresPerFluidOunce = 29.5735
-
-    /// Below this a remainder is floating-point noise from add/undo
-    /// round trips, not water.
-    private static let waterRemainderEpsilon = 1e-6
 
     static func fluidOunces(millilitres: Double) -> Double {
         millilitres / millilitresPerFluidOunce
@@ -451,9 +434,12 @@ enum LifestyleDataLogic {
     }
 
     /// Soft cap on `mealHistory` so the profile blob can't grow
-    /// without bound. 5 meals/day × 365 days × 2 years = 3,650
-    /// entries × ~150 B serialised ≈ 550 KB. Plenty of headroom for
-    /// the typical user without bloating the CloudKit record.
+    /// without bound: 5 meals/day × 365 days × 2 years = 3,650 entries.
+    /// A plain entry serialises to ~150 B, but a scanned meal carrying
+    /// `components` (per-100 g nutriments for each food) runs ~1 KB, so
+    /// a heavy scanner user can reach a few MB here. CloudKit moves an
+    /// oversized binary column to an asset rather than failing the
+    /// record, but the whole blob is still re-encoded on every save.
     /// Today's entries are always preserved past the cap so the
     /// rings can't lose data mid-day.
     static let maxMealHistoryEntries: Int = 3650
@@ -519,6 +505,9 @@ enum LifestyleDataLogic {
                 older.append(entry)
             }
         }
+        // Back-filled and re-dated entries break append order, so trim
+        // by date or a newer meal could go before an older one.
+        older.sort { $0.date < $1.date }
         let trimmedOlder = older.suffix(max(0, maxMealHistoryEntries - todays.count))
         profile.mealHistory = Array(trimmedOlder) + todays
     }
@@ -572,7 +561,7 @@ enum LifestyleDataLogic {
     /// Must match the user's local day, NOT the UTC day — a meal logged
     /// at 11:00 PM in Auckland would otherwise key under tomorrow's
     /// date and silently disappear from today's rings.
-    fileprivate static func consumptionKey(for date: Date) -> String {
+    static func consumptionKey(for date: Date) -> String {
         let day = Calendar.current.startOfDay(for: date)
         // Per-call formatter allocation. The previous shared
         // `nonisolated(unsafe)` instance was only safe while every
@@ -648,5 +637,19 @@ extension DailyConsumption {
     /// the remainder metric logs carry.
     var waterFluidOunces: Double {
         Double(waterOz) + (waterOzRemainder ?? 0)
+    }
+
+    /// Below this a remainder is floating-point noise from add/undo
+    /// round trips, not water.
+    private static let waterRemainderEpsilon = 1e-6
+
+    /// Adds (or, negative, removes) an exact amount of water, clamping
+    /// the day at zero.
+    mutating func addWater(fluidOunces: Double) {
+        let exact = max(0, waterFluidOunces + fluidOunces)
+        let whole = exact.rounded()
+        let remainder = exact - whole
+        waterOz = Int(whole)
+        waterOzRemainder = abs(remainder) < Self.waterRemainderEpsilon ? nil : remainder
     }
 }

@@ -48,6 +48,19 @@ final class EditableFoodItemTests: XCTestCase {
         XCTAssertTrue(uncertainCount([0.1, 0.2, 0.3, 0.9]) * 2 > 4)
     }
 
+    func test_loggedName_clearedName_fallsBackToScannerName() {
+        var item = EditableFoodItem(from: scanned(confidence: 0.9))
+        item.name = "   "
+        XCTAssertEqual(item.loggedName, "watermelon")
+        XCTAssertEqual(item.component.name, "watermelon")
+    }
+
+    func test_loggedName_editedName_isTrimmed() {
+        var item = EditableFoodItem(from: scanned(confidence: 0.9))
+        item.name = " Honeydew "
+        XCTAssertEqual(item.loggedName, "Honeydew")
+    }
+
     private func scanned(confidence: Double) -> MealScannerService.ScannedFoodItem {
         MealScannerService.ScannedFoodItem(
             name: "watermelon",

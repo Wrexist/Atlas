@@ -177,8 +177,9 @@ enum PeptideDatabase {
             frequency: dto.frequency,
             halfLife: dto.halfLife,
             adminRoute: dto.adminRoute,
-            researchLinks: dto.researchLinks.map { link in
+            researchLinks: dto.researchLinks.enumerated().map { index, link in
                 ResearchLink(
+                    id: stableLinkUUID(peptideID: dto.id, index: index),
                     title: link.title,
                     source: link.source,
                     year: link.year,
@@ -208,6 +209,13 @@ enum PeptideDatabase {
     /// Deterministic UUID from a peptide index, stable across launches.
     private static func stableUUID(from id: Int) -> UUID {
         let hex = String(format: "50455054-4944-4500-%04X-0000%08X", (id >> 32) & 0xFFFF, id & 0xFFFFFFFF)
+        return UUID(uuidString: hex) ?? UUID()
+    }
+
+    /// Same idea for a peptide's citations, so SwiftUI identity and the
+    /// peptide JSON persisted inside protocols stay the same across launches.
+    private static func stableLinkUUID(peptideID: Int, index: Int) -> UUID {
+        let hex = String(format: "5045504C-494E-4B00-%04X-0000%08X", index & 0xFFFF, peptideID & 0xFFFFFFFF)
         return UUID(uuidString: hex) ?? UUID()
     }
 

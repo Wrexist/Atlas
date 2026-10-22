@@ -57,6 +57,23 @@ final class BackupImportServiceTests: XCTestCase {
         }
     }
 
+    func test_validate_duplicateProtocolIDs_isRejected() throws {
+        let proto = makeProtocol(named: "Twice")
+        let backup = AppBackup(
+            exportDate: Date(),
+            version: "1.0",
+            protocols: [proto, proto],
+            entries: [],
+            profile: .fresh
+        )
+        let data = try encode(backup)
+        XCTAssertThrowsError(try BackupImportService.validate(data)) { error in
+            guard case BackupImportService.ImportError.bounds = error else {
+                return XCTFail("Expected .bounds, got \(error)")
+            }
+        }
+    }
+
     func test_validate_succeedsOnValidBackup() throws {
         let backup = AppBackup(
             exportDate: Date(),
@@ -183,6 +200,23 @@ final class BackupImportServiceTests: XCTestCase {
             "Original",
             "Merge keeps the user's current name on ID conflict"
         )
+    }
+
+    func test_replace_whenCommitFails_throwsInsteadOfReportingSuccess() {
+        let dataStore = makeDataStore()
+        let repo = SwiftDataRepository.shared
+        defer { repo.forceCommitFailureForTesting = false }
+        let backup = AppBackup(
+            exportDate: Date(),
+            version: "1.0",
+            protocols: [makeProtocol(named: "Backup A")],
+            entries: [],
+            profile: makeProfile(named: "Backup user")
+        )
+
+        repo.forceCommitFailureForTesting = true
+        XCTAssertThrowsError(try BackupImportService.apply(backup, strategy: .replace, into: dataStore))
+        XCTAssertEqual(dataStore.lastError, DataStore.saveFailureMessage)
     }
 
     // MARK: - Helpers

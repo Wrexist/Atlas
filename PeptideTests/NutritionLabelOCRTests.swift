@@ -144,6 +144,56 @@ final class NutritionLabelOCRTests: XCTestCase {
         XCTAssertNil(parsed?.servingGrams)
     }
 
+    // MARK: - Per-100g normalisation
+
+    func test_per100g_perServingPanelWithGrams_scalesToPer100g() throws {
+        let lines = [
+            "Serving size 1 cup (240g)",
+            "Calories 250",
+            "Total Fat 12g",
+            "Protein 6g",
+        ]
+        let parsed = try XCTUnwrap(NutritionLabelParser.parse(lines: lines))
+        XCTAssertEqual(parsed.per100g.calories, 250 * 100 / 240, accuracy: 0.001)
+        XCTAssertEqual(parsed.per100g.fatG, 5, accuracy: 0.001)
+        XCTAssertEqual(parsed.per100g.proteinG, 2.5, accuracy: 0.001)
+    }
+
+    func test_loggable_oneServingOfPerServingPanel_logsPrintedValues() throws {
+        let lines = [
+            "Serving size 1 cup (240g)",
+            "Calories 250",
+            "Total Fat 12g",
+        ]
+        let parsed = try XCTUnwrap(NutritionLabelParser.parse(lines: lines))
+        let product = ScannedProduct(
+            barcode: "ocr:test", name: "Label", brand: nil, imageURL: nil,
+            servingSizeText: parsed.servingSizeText, servingGrams: parsed.servingGrams,
+            packageGrams: nil, per100g: parsed.per100g, nutriScore: nil, novaGroup: nil,
+            fetchedAt: Date()
+        )
+        let meal = try XCTUnwrap(product.loggable(for: product.defaultPortion))
+        XCTAssertEqual(meal.calories, 250)
+        XCTAssertEqual(meal.fatG, 12)
+    }
+
+    func test_per100g_per100gPanel_keepsPrintedValues() throws {
+        let lines = [
+            "Nutrition per 100g",
+            "Serving size 30g",
+            "Energy 1050 kJ / 250 kcal",
+            "Fat 12g",
+        ]
+        let parsed = try XCTUnwrap(NutritionLabelParser.parse(lines: lines))
+        XCTAssertEqual(parsed.per100g.calories, 250)
+        XCTAssertEqual(parsed.per100g.fatG, 12)
+    }
+
+    func test_per100g_unknownServingGrams_keepsPrintedValues() throws {
+        let parsed = try XCTUnwrap(NutritionLabelParser.parse(lines: ["Serving size 1 muffin", "Calories 200"]))
+        XCTAssertEqual(parsed.per100g.calories, 200)
+    }
+
     // MARK: - Returns nil on non-nutrition-label text
 
     func test_parse_returnsNil_whenNoMacroKeywordsFound() {

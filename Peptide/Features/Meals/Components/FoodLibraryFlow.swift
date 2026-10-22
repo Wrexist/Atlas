@@ -147,18 +147,24 @@ struct FoodLibraryFlow: View {
                 AppColor.background.ignoresSafeArea()
                 content
             }
-            .navigationTitle(phase == .browse ? "Food library" : "Review")
+            .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(phase == .browse ? "Close" : "Back") {
-                        if phase == .browse {
-                            onClose()
-                        } else {
-                            backToBrowse()
-                        }
+                    // Review steps back to the list; the logged screen
+                    // already offers "Log another food", so its toolbar
+                    // action finishes instead.
+                    switch phase {
+                    case .browse:
+                        Button("Close", action: onClose)
+                            .foregroundStyle(AppColor.textSecondary)
+                    case .review:
+                        Button("Back", action: backToBrowse)
+                            .foregroundStyle(AppColor.textSecondary)
+                    case .logged:
+                        Button("Done", action: onClose)
+                            .foregroundStyle(AppColor.textSecondary)
                     }
-                    .foregroundStyle(AppColor.textSecondary)
                 }
                 if phase == .browse {
                     ToolbarItem(placement: .primaryAction) {
@@ -401,7 +407,14 @@ struct FoodLibraryFlow: View {
                 .submitLabel(.search)
                 .foregroundStyle(AppColor.textPrimary)
                 .tint(AppColor.accentPrimary)
-                .onSubmit { debouncedQuery = query }
+                .onSubmit { debouncedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+            if isSearching {
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(AppColor.textSecondary)
+                    .accessibilityLabel("Searching")
+            }
 
             if !query.isEmpty {
                 Button {
@@ -409,6 +422,7 @@ struct FoodLibraryFlow: View {
                     debouncedQuery = ""
                     results = []
                     searchError = nil
+                    isOffline = false
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(AppFont.scaled(16))
@@ -484,8 +498,13 @@ struct FoodLibraryFlow: View {
             for: recipe,
             customFoods: profile.customFoods
         )
-        let summary = review.totals.map { "\(recipe.components.count) ingredients - \($0.calories) kcal" }
-            ?? "Check ingredients before logging"
+        let name = recipe.name.isEmpty ? String(localized: "(unnamed)") : recipe.name
+        let summary: LocalizedStringKey
+        if let totals = review.totals {
+            summary = "^[\(recipe.components.count) ingredient](inflect: true) · \(totals.calories) kcal"
+        } else {
+            summary = "Check ingredients before logging"
+        }
         return Button {
             // Tap row → schedule the log (with auto-category).
             // The category picker confirms.
@@ -501,7 +520,7 @@ struct FoodLibraryFlow: View {
                         .foregroundStyle(AppColor.accentLight)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(recipe.name.isEmpty ? "(unnamed)" : recipe.name)
+                    Text(name)
                         .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(1)
@@ -539,7 +558,8 @@ struct FoodLibraryFlow: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(recipe.name), \(recipe.components.count) ingredients, \(summary). Tap to log.")
+        .accessibilityLabel(Text(name) + Text(verbatim: ", ") + Text(summary))
+        .accessibilityHint("Logs this recipe")
     }
 
     @ViewBuilder
@@ -556,7 +576,14 @@ struct FoodLibraryFlow: View {
                     customFoodRow(custom)
                 }
             }
-            if isSearching && results.isEmpty {
+            if debouncedQuery.count < Self.minimumSearchQueryLength {
+                // `runSearch` doesn't query this short, so "No results"
+                // would be a claim nobody checked.
+                Text("Keep typing to search Open Food Facts.")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else if isSearching && results.isEmpty {
                 searchSkeleton
             } else if let searchError, results.isEmpty {
                 inlineMessage(icon: "exclamationmark.triangle", text: searchError)
@@ -769,11 +796,11 @@ struct FoodLibraryFlow: View {
                 .fill(AppColor.surfaceSecondary.opacity(0.5))
                 .frame(width: 44, height: 44)
             VStack(alignment: .leading, spacing: 6) {
-                RoundedRectangle(cornerRadius: 4)
+                Capsule()
                     .fill(AppColor.surfaceSecondary.opacity(0.6))
                     .frame(height: 12)
                     .frame(maxWidth: 200)
-                RoundedRectangle(cornerRadius: 4)
+                Capsule()
                     .fill(AppColor.surfaceSecondary.opacity(0.4))
                     .frame(height: 10)
                     .frame(maxWidth: 140)
@@ -1114,7 +1141,7 @@ struct FoodLibraryFlow: View {
     /// Keyed by name, not entry id: the re-log becomes the newest entry
     /// for that name, and the row must keep its "Logged ✓" wash.
     private static func recentMealFoodID(_ meal: MealEntry) -> String {
-        "meal:" + meal.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        "meal:" + FoodLibraryLogic.normalized(meal.name)
     }
 
     /// Shows the row's "Logged ✓" wash, then clears it after the
@@ -1372,11 +1399,11 @@ struct FoodLibraryFlow: View {
     private var isLoggingToday: Bool { Calendar.current.isDateInToday(logDay) }
 
     private var addButtonTitle: LocalizedStringKey {
-        isLoggingToday ? "Add to today" : "Add to \(MealDaySwitcher.title(for: logDay))"
+        isLoggingToday ? "Add to today" : "Add to \(MealDaySwitcher.inlineTitle(for: logDay))"
     }
 
     private var addedTitle: LocalizedStringKey {
-        isLoggingToday ? "Added to today" : "Added to \(MealDaySwitcher.title(for: logDay))"
+        isLoggingToday ? "Added to today" : "Added to \(MealDaySwitcher.inlineTitle(for: logDay))"
     }
 
     /// Timestamp for a log made now from this sheet — see `logDay`.
@@ -1408,6 +1435,14 @@ struct FoodLibraryFlow: View {
         category = MealCategory.auto(for: logTimestamp())
         phase = .review
         searchFieldFocused = false
+    }
+
+    private var navigationTitle: LocalizedStringKey {
+        switch phase {
+        case .browse: "Food library"
+        case .review: "Review"
+        case .logged: "Logged"
+        }
     }
 
     private func backToBrowse() {
@@ -1538,6 +1573,7 @@ struct FoodLibraryFlow: View {
             isSearching = false
             results = []
             searchError = nil
+            isOffline = false
             return
         }
 
@@ -1560,15 +1596,17 @@ struct FoodLibraryFlow: View {
             guard !Task.isCancelled, trimmed == debouncedQuery else { return }
             results = []
             isOffline = false
-            searchError = error.localizedDescription
+            AppLog.diagnostics.error("Food search failed: \(error.localizedDescription, privacy: .public)")
+            searchError = String(localized: "Couldn't search foods. Try again.")
         }
     }
 
     private func matchingCustomFoods(for query: String) -> [CustomFood] {
-        let needle = query.lowercased()
+        let needle = FoodLibraryLogic.normalized(query)
+        guard !needle.isEmpty else { return [] }
         return profile.customFoods.filter { food in
-            food.name.lowercased().contains(needle)
-                || (food.brand?.lowercased().contains(needle) ?? false)
+            FoodLibraryLogic.normalized(food.name).contains(needle)
+                || FoodLibraryLogic.normalized(food.brand ?? "").contains(needle)
         }
     }
 
@@ -1580,14 +1618,16 @@ struct FoodLibraryFlow: View {
     /// reflects actual logging behavior, not editor activity.
     private func recentCustomFoods() -> [CustomFood] {
         let customByID: [String: CustomFood] = Dictionary(
-            uniqueKeysWithValues: profile.customFoods.map { ($0.foodID, $0) }
+            profile.customFoods.map { ($0.foodID, $0) },
+            uniquingKeysWith: { first, _ in first }
         )
-        // Walk mealHistory newest-first and pluck distinct custom IDs.
-        // Capped at 5 entries early so a long history doesn't slow
-        // the landing-page render.
+        // Walk custom logs newest-first by date (back-filled entries break
+        // append order) and pluck distinct IDs. Capped at 5 entries early
+        // so a long history doesn't slow the landing-page render.
         var seen: Set<String> = []
         var ranked: [CustomFood] = []
-        for entry in profile.mealHistory.reversed() where entry.source == .custom {
+        let customLogs = profile.mealHistory.filter { $0.source == .custom }.sorted { $0.date > $1.date }
+        for entry in customLogs {
             guard let id = entry.sourceID,
                   !seen.contains(id),
                   let food = customByID[id]
@@ -1616,10 +1656,12 @@ struct FoodLibraryFlow: View {
         guard !ids.isEmpty else { return [] }
 
         let customByID: [String: CustomFood] = Dictionary(
-            uniqueKeysWithValues: profile.customFoods.map { ($0.foodID, $0) }
+            profile.customFoods.map { ($0.foodID, $0) },
+            uniquingKeysWith: { first, _ in first }
         )
         let cachedByID: [String: ScannedProduct] = Dictionary(
-            uniqueKeysWithValues: cachedFavoriteProducts.map { ($0.barcode, $0) }
+            cachedFavoriteProducts.map { ($0.barcode, $0) },
+            uniquingKeysWith: { first, _ in first }
         )
 
         var out: [ScannedProduct] = []
@@ -1675,7 +1717,8 @@ struct FoodLibraryFlow: View {
                 searchError = lookupError.errorDescription
             } catch {
                 guard !Task.isCancelled else { return }
-                searchError = error.localizedDescription
+                AppLog.diagnostics.error("Food fetch failed: \(error.localizedDescription, privacy: .public)")
+                searchError = String(localized: "Couldn't load this food. Try again.")
             }
 
         case .recipe(let uuid):

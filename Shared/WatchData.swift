@@ -176,8 +176,13 @@ struct WatchData: Codable, Sendable {
     /// Water is stored in fluid ounces, so without this the watch showed
     /// ounces to a user whose phone was set to millilitres.
     let measurementUnit: String?
+    /// Whether Apple Health is connected on the phone, so a nil `vitals`
+    /// can say "no data yet" rather than "connect Health". Nil from an
+    /// older phone build.
+    let healthConnected: Bool?
     /// Recovery + sleep. Nil when Apple Health isn't connected on the
-    /// phone; the Watch hides the Recovery and Sleep pages in that case.
+    /// phone or has no readings yet; the Watch hides the Recovery and
+    /// Sleep pages in that case.
     private(set) var vitals: WatchVitalsSnapshot?
     /// The workout in progress on the phone, or nil. Drives the Watch's
     /// Workout page and the live state of the Training complication.
@@ -211,6 +216,7 @@ struct WatchData: Codable, Sendable {
         trainingHabitsDone: Int? = nil,
         trainingHabitsTotal: Int? = nil,
         measurementUnit: String? = nil,
+        healthConnected: Bool? = nil,
         vitals: WatchVitalsSnapshot? = nil,
         workout: WatchWorkoutSnapshot? = nil,
         training: WatchTrainingSnapshot? = nil,
@@ -234,6 +240,7 @@ struct WatchData: Codable, Sendable {
         self.trainingHabitsDone = trainingHabitsDone
         self.trainingHabitsTotal = trainingHabitsTotal
         self.measurementUnit = measurementUnit
+        self.healthConnected = healthConnected
         self.vitals = vitals
         self.workout = workout
         self.training = training
@@ -260,6 +267,7 @@ struct WatchData: Codable, Sendable {
         trainingHabitsDone = try c.decodeIfPresent(Int.self, forKey: .trainingHabitsDone)
         trainingHabitsTotal = try c.decodeIfPresent(Int.self, forKey: .trainingHabitsTotal)
         measurementUnit = try c.decodeIfPresent(String.self, forKey: .measurementUnit)
+        healthConnected = try c.decodeIfPresent(Bool.self, forKey: .healthConnected)
         vitals = try c.decodeIfPresent(WatchVitalsSnapshot.self, forKey: .vitals)
         workout = try c.decodeIfPresent(WatchWorkoutSnapshot.self, forKey: .workout)
         training = try c.decodeIfPresent(WatchTrainingSnapshot.self, forKey: .training)
@@ -329,6 +337,7 @@ struct WatchData: Codable, Sendable {
         case healthHabitsDone, healthHabitsTotal
         case trainingHabitsDone, trainingHabitsTotal
         case measurementUnit
+        case healthConnected
         case vitals
         case workout, training
         case hapticsEnabled
@@ -347,13 +356,15 @@ enum WatchMessage {
     static let markIncomplete = "markIncomplete"
     static let entryIdKey = "entryId"
     static let protocolIdKey = "protocolId"
-    /// Watch → phone "log water" command. Carries `ozKey` with an
-    /// integer ounces amount. The phone applies the log through
-    /// the same `dataStore.logWater` path used by the in-app
-    /// quick-add chips, so widget reload + Watch sync + HK write
-    /// all fire for free.
+    /// Watch → phone "log water" command. Carries `fluidOuncesKey` with
+    /// the exact amount, so +250 mL logs 250 mL rather than a rounded
+    /// 8 oz, and `ozKey` with whole ounces for older phone builds. The
+    /// phone applies the log through the same `dataStore.logWater` path
+    /// used by the in-app quick-add chips, so widget reload + Watch
+    /// sync + HK write all fire for free.
     static let logWater = "logWater"
     static let ozKey = "oz"
+    static let fluidOuncesKey = "fluidOunces"
     /// Watch → phone workout command. Carries `workoutRequestKey` with a
     /// JSON-encoded `WatchWorkoutRequest`.
     static let workout = "workout"

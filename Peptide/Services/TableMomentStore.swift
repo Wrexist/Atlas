@@ -36,6 +36,10 @@ final class TableMomentStore {
     private(set) var moments: [TableMoment] = []
     private(set) var progress: Progress?
 
+    /// The table whose diary write failed. Its dishes and reads cost an
+    /// AI scan and can't be re-made, so the toast offers to retry it.
+    @ObservationIgnored private var failedDraft: Draft?
+
     /// Cut-outs are drawn at most ~200 pt across; stored any larger they
     /// are only decode cost.
     static let stickerMaxEdge: CGFloat = 640
@@ -80,10 +84,12 @@ final class TableMomentStore {
     func keep(_ draft: Draft, in dataStore: DataStore) async {
         guard !draft.dishes.isEmpty else { return }
         progress = Progress(total: draft.dishes.count)
+        failedDraft = nil
         do {
             try dataStore.commitScannedMeals(draft.dishes.map(\.entry))
         } catch {
             AppLog.persistence.error("Table keep failed: \(error.localizedDescription, privacy: .public)")
+            failedDraft = draft
             progress?.outcome = .failed
             Haptics.error()
             return
@@ -107,8 +113,15 @@ final class TableMomentStore {
         Haptics.success()
     }
 
+    func retryFailedKeep(in dataStore: DataStore) async {
+        guard let draft = failedDraft else { return }
+        await keep(draft, in: dataStore)
+    }
+
+    /// Hides the pill, and gives up on a failed table.
     func clearProgress() {
         progress = nil
+        failedDraft = nil
     }
 
     func update(_ moment: TableMoment) {
@@ -141,6 +154,7 @@ final class TableMomentStore {
     func deleteAll() {
         moments = []
         progress = nil
+        failedDraft = nil
         stickers.removeAllObjects()
         if let directory { try? FileManager.default.removeItem(at: directory) }
     }

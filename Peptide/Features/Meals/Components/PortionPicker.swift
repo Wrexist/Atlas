@@ -8,7 +8,6 @@ struct PortionPicker: View {
     let product: ScannedProduct
     @Binding var portion: ScannedProduct.Portion
 
-    static let gramsRange: ClosedRange<Double> = 10...2000
     static let gramsStep: Double = 5
     static let quickGrams: [Double] = [50, 100, 200, 500]
 
@@ -46,10 +45,17 @@ struct PortionPicker: View {
                 switch mode {
                 case .serving: portion = .servings(1)
                 case .wholePack: portion = .wholePackage
-                case .grams: portion = .grams(100)
+                case .grams: portion = .grams(currentGrams)
                 }
             }
         )
+    }
+
+    /// Switching to grams keeps the amount already chosen, not 100 g.
+    private var currentGrams: Double {
+        guard let grams = product.grams(for: portion), grams.isFinite else { return 100 }
+        let range = FoodPortionInput.gramsRange
+        return min(range.upperBound, max(range.lowerBound, grams.rounded()))
     }
 
     private func label(_ mode: Mode) -> LocalizedStringKey {
@@ -139,7 +145,7 @@ struct PortionPicker: View {
             }
             Slider(
                 value: Binding(get: { grams }, set: { portion = .grams($0) }),
-                in: Self.gramsRange,
+                in: FoodPortionInput.gramsRange,
                 step: Self.gramsStep
             )
             .tint(AppColor.accentPrimary)

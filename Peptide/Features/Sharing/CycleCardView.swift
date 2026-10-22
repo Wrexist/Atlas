@@ -267,14 +267,14 @@ struct CycleCardView: View {
                     let unit = summary.weightUnit
                     healthCard(
                         icon: kg >= 0 ? "arrow.up" : "arrow.down",
-                        value: String(format: "%@%.1f %@", kg >= 0 ? "+" : "", unit.weightForDisplay(kg), unit.weightSuffix),
+                        value: "\(kg >= 0 ? "+" : "")\(unit.weightValue(kg, fractionDigits: 1...1)) \(unit.weightSuffix)",
                         label: "Weight"
                     )
                 }
                 if let hours = summary.avgSleepHours {
                     healthCard(
                         icon: "moon.fill",
-                        value: String(format: "%.1f h", hours),
+                        value: "\(hours.formatted(.number.precision(.fractionLength(1)))) h",
                         label: "Avg sleep"
                     )
                 }

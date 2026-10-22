@@ -1144,11 +1144,13 @@ struct HomeView: View {
     /// the card entirely when the user isn't Pro + opted-in. Routes
     /// through `WeeklySummaryService` so the Pro gate, opt-out gate,
     /// network call, cache, and offline fallback all stay in one
-    /// place.
-    private func loadWeeklySummary(forceRefresh: Bool) async {
+    /// place. Returns the loaded summary's kind, or nil when none was
+    /// produced.
+    @discardableResult
+    private func loadWeeklySummary(forceRefresh: Bool) async -> WeeklySummary.Kind? {
         guard WeeklySummaryService.shared.isAvailable(profile: dataStore.profile) else {
             weeklySummaryState = nil
-            return
+            return nil
         }
 
         // Cached value short-circuits unless the caller asked for a
@@ -1160,10 +1162,11 @@ struct HomeView: View {
         if !forceRefresh, let cached = WeeklySummaryService.shared.cachedIfFresh(
             profile: dataStore.profile,
             protocols: dataStore.protocols,
-            entries: dataStore.entries
+            entries: dataStore.entries,
+            workoutDates: dataStore.recentWorkoutDates()
         ) {
             weeklySummaryState = .ready(cached)
-            return
+            return cached.kind
         }
 
         // The week's data changed since the recap was generated. Keep the
@@ -1174,7 +1177,7 @@ struct HomeView: View {
         if !forceRefresh,
            let stale = WeeklySummaryService.shared.cached(in: dataStore.profile, for: Date()) {
             weeklySummaryState = .ready(stale)
-            guard WeeklySummaryService.isDueForRegeneration(stale) else { return }
+            guard WeeklySummaryService.isDueForRegeneration(stale) else { return stale.kind }
             isRefreshingStale = true
         }
 
@@ -1190,6 +1193,7 @@ struct HomeView: View {
                 profile: dataStore.profile,
                 protocols: dataStore.protocols,
                 entries: dataStore.entries,
+                workoutDates: dataStore.recentWorkoutDates(),
                 hrvSeries: hrv,
                 // Pass a stable category code rather than the
                 // free-text title — the title can embed details about
@@ -1208,10 +1212,13 @@ struct HomeView: View {
             WeeklySummaryService.shared.record(summary, in: &dataStore.profile)
             dataStore.persistProfile()
             weeklySummaryState = .ready(summary)
+            return summary.kind
         } catch WeeklySummaryService.GenerationError.insufficientData {
             weeklySummaryState = .empty
+            return nil
         } catch {
             if !isRefreshingStale { weeklySummaryState = .failed }
+            return nil
         }
     }
 
