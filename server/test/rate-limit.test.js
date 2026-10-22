@@ -386,3 +386,23 @@ test('refundSpend returns units to the device quota and the budget', async (t) =
   assert.equal(await withinDeviceQuota({ principal, cost: 3 }), true);
   assert.equal(await withinDailyBudget({ cost: 3 }), true);
 });
+
+test('refundSpend sets a TTL so a refund never leaves a key that outlives its window', async (t) => {
+  setEnv(t, {
+    ...NO_REDIS,
+    UPSTASH_REDIS_REST_URL: 'https://fake.upstash.test',
+    UPSTASH_REDIS_REST_TOKEN: 'tok',
+    DEVICE_DAILY_QUOTA: '3',
+    ANTHROPIC_DAILY_REQUEST_BUDGET: '3',
+  });
+  const calls = stubFetch(t, async () => new Response(JSON.stringify([{ result: -1 }, { result: 1 }])));
+  await refundSpend({ principal: 'k:refund-ttl', cost: 1 });
+  assert.equal(calls.length, 2);
+  for (const [, init] of calls) {
+    const [[decr, key], [expire, expireKey, ttl]] = JSON.parse(init.body);
+    assert.equal(decr, 'DECRBY');
+    assert.equal(expire, 'EXPIRE');
+    assert.equal(expireKey, key);
+    assert.equal(ttl, String(86_400 * 2));
+  }
+});

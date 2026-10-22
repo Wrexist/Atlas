@@ -115,11 +115,20 @@ function memoryRefund(key, windowMs, cost) {
   if (current !== undefined) memory.set(bucketKey, Math.max(0, current - cost));
 }
 
-/** Gives back units an `allowRate` call charged, on whichever store took them. */
+/**
+ * Gives back units an `allowRate` call charged, on whichever store took
+ * them. The EXPIRE matters when the charge landed in memory during a
+ * Redis blip: DECRBY then creates a negative key, which must not
+ * outlive its window and keep raising the ceiling.
+ */
 async function refundRate({ name, key, windowSeconds, cost }) {
   const windowMs = windowSeconds * 1000;
   const windowIndex = Math.floor(Date.now() / windowMs);
-  const results = await redisPipeline([['DECRBY', `rl:${name}:${key}:${windowIndex}`, String(cost)]]);
+  const redisKey = `rl:${name}:${key}:${windowIndex}`;
+  const results = await redisPipeline([
+    ['DECRBY', redisKey, String(cost)],
+    ['EXPIRE', redisKey, String(windowSeconds * 2)],
+  ]);
   if (!results) memoryRefund(`${name}:${key}`, windowMs, cost);
 }
 
