@@ -47,7 +47,9 @@ final class HealthWeightLocalStore {
         contents.entries.contains { $0.id == id }
     }
 
-    func record(_ additions: [WeightEntry]) {
+    /// False when the file couldn't be written, so the caller must not
+    /// put `additions` anywhere they'd reach iCloud.
+    func record(_ additions: [WeightEntry]) -> Bool {
         update { $0.entries += additions }
     }
 
@@ -82,10 +84,13 @@ final class HealthWeightLocalStore {
         isReadable = true
     }
 
-    private func update(_ change: (inout Contents) -> Void) {
+    /// True once `contents` matches the file, whether or not it changed.
+    @discardableResult
+    private func update(_ change: (inout Contents) -> Void) -> Bool {
         var next = contents
         change(&next)
-        guard isReadable, next != contents else { return }
+        guard isReadable else { return false }
+        guard next != contents else { return true }
         do {
             try FileManager.default.createDirectory(
                 at: fileURL.deletingLastPathComponent(),
@@ -102,10 +107,12 @@ final class HealthWeightLocalStore {
             values.isExcludedFromBackup = true
             try url.setResourceValues(values)
             contents = next
+            return true
         } catch {
             AppLog.persistence.error(
                 "Health weight store write failed: \(error.localizedDescription, privacy: .public)"
             )
+            return false
         }
     }
 

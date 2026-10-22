@@ -346,7 +346,7 @@ final class ProfileSyncIntegrityTests: XCTestCase {
 
     func test_healthImportedWeight_staysOutOfTheSyncedColumn_butLoads() throws {
         let imported = WeightEntry(date: day, kg: 81)
-        repo.recordHealthWeightImports([imported])
+        XCTAssertTrue(repo.recordHealthWeightImports([imported]))
         var profile = baseProfile()
         profile.weightHistory = [imported]
 
@@ -359,7 +359,7 @@ final class ProfileSyncIntegrityTests: XCTestCase {
 
     func test_deletedHealthImport_isDismissed() {
         let imported = WeightEntry(date: day, kg: 81)
-        repo.recordHealthWeightImports([imported])
+        XCTAssertTrue(repo.recordHealthWeightImports([imported]))
 
         repo.dismissHealthWeight(id: imported.id)
 

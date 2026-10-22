@@ -796,7 +796,9 @@ final class SwiftDataRepository {
     /// Apple Health samples the user deleted from the diary.
     var dismissedHealthWeightIDs: Set<UUID> { healthWeightStore.dismissedIDs }
 
-    func recordHealthWeightImports(_ entries: [WeightEntry]) {
+    /// False when they couldn't be kept on this device; the caller must
+    /// then leave them out of the profile.
+    func recordHealthWeightImports(_ entries: [WeightEntry]) -> Bool {
         healthWeightStore.record(entries)
     }
 

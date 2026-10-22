@@ -1310,8 +1310,7 @@ final class DataStore {
             existing: profile.weightHistory,
             dismissed: repo.dismissedHealthWeightIDs
         )
-        guard !additions.isEmpty else { return }
-        repo.recordHealthWeightImports(additions)
+        guard !additions.isEmpty, repo.recordHealthWeightImports(additions) else { return }
         profile.weightHistory = (profile.weightHistory + additions).sorted { $0.date < $1.date }
         save()
     }
