@@ -115,7 +115,9 @@ enum LabPanel: String, Codable, CaseIterable, Identifiable, Sendable {
 
     /// A panel added in a newer build decodes as `.other` instead of
     /// throwing — a throw here would fail the whole lab history (and
-    /// the profile blob carrying it) on an older build.
+    /// the profile blob carrying it) on an older build. Stopgap: the
+    /// next save writes it back as "other", so the newer build loses
+    /// that panel name once an older device edits the profile.
     init(from decoder: Decoder) throws {
         let raw = try decoder.singleValueContainer().decode(String.self)
         self = LabPanel(rawValue: raw) ?? .other
