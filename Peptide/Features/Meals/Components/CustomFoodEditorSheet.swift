@@ -360,7 +360,7 @@ struct CustomFoodEditorSheet: View {
         do {
             let scan = try await MealScannerService.shared.smartScan(
                 image: image, hint: "A packaged food or its nutrition label, being added to the user's food library.",
-                corrections: ScanCorrectionMemory.shared.recent)
+                corrections: ScanCorrectionMemory.shared.recent, metered: true)
             if !scan.items.isEmpty, !storeService.isProUser { MealScanQuota.recordSuccessfulScan() }
             applyFill(scan)
         } catch {
@@ -386,6 +386,11 @@ struct CustomFoodEditorSheet: View {
 
     private func failFill(_ error: Error) {
         isFilling = false
+        // The proxy's count outlives a reinstall; agree with it.
+        if case .scanAllowanceSpent = error as? MealScannerService.ScanError {
+            MealScanQuota.recordAllowanceExhausted()
+            showScanLimitPaywall = !storeService.isProUser
+        }
         fillError = (error as? LocalizedError)?.errorDescription
             ?? String(localized: "Couldn't fill this food in. Check your connection and try again.")
         Haptics.error()
