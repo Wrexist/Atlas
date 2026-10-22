@@ -1853,6 +1853,15 @@ final class DataStore {
         refreshTrainingGlanceables()
     }
 
+    /// Start dates of workout sessions from the last `days` days. The
+    /// weekly recap counts training days as activity.
+    func recentWorkoutDates(days: Int = 7) -> [Date] {
+        let now = Date()
+        let cal = Calendar.current
+        guard let start = cal.date(byAdding: .day, value: -days, to: cal.startOfDay(for: now)) else { return [] }
+        return repo.loadWorkoutSessions(startedBetween: start..<now).map(\.startedAt)
+    }
+
     /// (count, totalMinutes) for workout sessions logged on `date`'s
     /// calendar day.
     func workoutSummary(for date: Date = Date()) -> (count: Int, minutes: Int) {

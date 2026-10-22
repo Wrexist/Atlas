@@ -642,6 +642,7 @@ final class StoredProfile {
             recipes: ext.recipes,
             protocolNotes: ext.protocolNotes,
             weeklySummaryEnabled: ext.weeklySummaryEnabled ?? false,
+            weeklySummaryOptInConfirmed: ext.weeklySummaryOptInConfirmed,
             weeklySummaries: slice(summariesData, legacy: ext.weeklySummaries ?? [:]),
             biologyConfig: ext.biologyConfig,
             trainingPreferences: ext.trainingPreferences,
@@ -741,6 +742,7 @@ private struct ProfileExtension: Codable {
     /// empty dict for the cache) without a migration. `weeklySummaries`
     /// is read-only legacy: the cache lives in `WeeklySummaryLocalStore`.
     var weeklySummaryEnabled: Bool? = nil
+    var weeklySummaryOptInConfirmed: Bool = false
     var weeklySummaries: [String: WeeklySummary]? = nil
     /// User-committed goal completion date from the onboarding "By
     /// when?" step. Optional so older sidecar blobs decode cleanly.
@@ -793,6 +795,7 @@ private struct ProfileExtension: Codable {
         biologyConfig = try c.decodeIfPresent(BiologyConfig.self, forKey: .biologyConfig) ?? .default
         trainingPreferences = try c.decodeIfPresent(TrainingPreferences.self, forKey: .trainingPreferences)
         weeklySummaryEnabled = try c.decodeIfPresent(Bool.self, forKey: .weeklySummaryEnabled)
+        weeklySummaryOptInConfirmed = try c.decodeIfPresent(Bool.self, forKey: .weeklySummaryOptInConfirmed) ?? false
         weeklySummaries = try c.decodeIfPresent([String: WeeklySummary].self, forKey: .weeklySummaries)
         goalDate = try c.decodeIfPresent(Date.self, forKey: .goalDate)
         habits = try c.decodeIfPresent([Habit].self, forKey: .habits) ?? []
@@ -828,6 +831,7 @@ private struct ProfileExtension: Codable {
         ext.biologyConfig = profile.biologyConfig
         ext.trainingPreferences = profile.trainingPreferences
         ext.weeklySummaryEnabled = profile.weeklySummaryEnabled
+        ext.weeklySummaryOptInConfirmed = profile.weeklySummaryOptInConfirmed
         ext.goalDate = profile.goalDate
         return ext
     }

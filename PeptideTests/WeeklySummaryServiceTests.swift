@@ -40,7 +40,8 @@ final class WeeklySummaryServiceTests: XCTestCase {
     /// with its fingerprint — what `generate(...)` would have cached.
     private func makeCachedSummary(
         entries: [ProtocolEntry],
-        profile: inout UserProfile
+        profile: inout UserProfile,
+        kind: WeeklySummary.Kind = .ai
     ) throws -> WeeklySummary {
         let aggregate = try XCTUnwrap(WeeklySummaryEngine.build(
             profile: profile,
@@ -60,7 +61,7 @@ final class WeeklySummaryServiceTests: XCTestCase {
                 avgCalories: nil,
                 hrvDelta: nil
             ),
-            kind: .offline,
+            kind: kind,
             generatedAt: weekMonday,
             sourceFingerprint: WeeklySummaryService.sourceFingerprint(of: aggregate)
         )
@@ -137,5 +138,27 @@ final class WeeklySummaryServiceTests: XCTestCase {
             WeeklySummaryService.sourceFingerprint(of: b)
         )
         XCTAssertFalse(WeeklySummaryService.sourceFingerprint(of: a).isEmpty)
+    }
+
+    func test_offlineFallback_olderThanRetryInterval_isTreatedAsStale() throws {
+        var profile = UserProfile.fresh
+        let entries = [
+            entry(daysFromMonday: 0, completed: true),
+            entry(daysFromMonday: 1, completed: true),
+            entry(daysFromMonday: 2, completed: true),
+        ]
+        let summary = try makeCachedSummary(entries: entries, profile: &profile, kind: .offline)
+        let aggregate = try XCTUnwrap(WeeklySummaryEngine.build(
+            profile: profile, protocols: [], entries: entries, referenceDate: weekMonday
+        ))
+        let interval = WeeklySummaryService.offlineRetryInterval
+
+        XCTAssertTrue(WeeklySummaryService.isFresh(
+            summary, for: aggregate, now: weekMonday.addingTimeInterval(interval - 60)
+        ))
+        XCTAssertFalse(
+            WeeklySummaryService.isFresh(summary, for: aggregate, now: weekMonday.addingTimeInterval(interval + 60)),
+            "An offline fallback must retry the proxy instead of pinning the template text"
+        )
     }
 }

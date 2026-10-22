@@ -170,7 +170,7 @@ struct PeptideApp: App {
                 Task { @MainActor in
                     await StoreService.shared.checkProAccess()
                     await WeeklySummaryNotificationScheduler.reconcile(
-                        profile: dataStore.profile,
+                        dataStore: dataStore,
                         isPro: StoreService.shared.isProUser
                     )
                     await DailyReminderScheduler.reconcile(dataStore: dataStore)

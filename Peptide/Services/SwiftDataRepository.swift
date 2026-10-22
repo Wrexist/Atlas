@@ -872,8 +872,8 @@ final class SwiftDataRepository {
         let syncedSummaries = profile.weeklySummaries
         profile.weeklySummaries = summaryStore.load() ?? syncedSummaries
         let hasSyncedSummaries = stored.summariesData != nil || !syncedSummaries.isEmpty
-        let optInReset = WeeklySummaryOptInMigration.apply(to: &profile)
-        if hasSyncedSummaries || optInReset {
+        let optInChanged = WeeklySummaryOptInMigration.apply(to: &profile)
+        if hasSyncedSummaries || optInChanged {
             saveProfile(profile)
         }
         return profile
