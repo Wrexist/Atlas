@@ -167,11 +167,14 @@ final class SwiftDataRepository {
         isInoperable = true
         container = nil
         isUsingFallbackStore = false
-        // Weekly recaps are device-local and never synced, so a first
+        // Weekly recaps and Apple Health weigh-ins (with their dismissed
+        // sample ids) are device-local and never synced, so a first
         // sign-in (no previous token) keeps them: only a sign-out or a
         // switch to another account hands them to someone else.
-        if prev != nil { summaryStore.deleteAll() }
-        healthWeightStore.deleteAll()
+        if prev != nil {
+            summaryStore.deleteAll()
+            healthWeightStore.deleteAll()
+        }
         mealDraftStore.resetForAccountChange()
         let cloudFailureState: CloudSyncState = current != nil ? .unavailable : .noAccount
         cloudSyncState = cloudFailureState
