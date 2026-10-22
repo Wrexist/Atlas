@@ -209,7 +209,7 @@ struct MealEntryEditorSheet: View {
                         Image(systemName: initial.source.icon)
                             .font(AppFont.scaled(11))
                             .foregroundStyle(AppColor.textSecondary)
-                        Text(Self.timeFormatter.string(from: initial.date))
+                        Text(date, format: .dateTime.hour().minute())
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.textSecondary)
                         // `sourceID` may point to a custom food the
@@ -360,11 +360,4 @@ struct MealEntryEditorSheet: View {
         updated.date = date
         onSave(updated)
     }
-
-    private static let timeFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateStyle = .none
-        f.timeStyle = .short
-        return f
-    }()
 }
