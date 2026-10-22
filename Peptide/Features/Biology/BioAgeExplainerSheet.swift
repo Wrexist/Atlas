@@ -47,8 +47,7 @@ struct BioAgeExplainerSheet: View {
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
-                .frame(maxWidth: 640)
-                .frame(maxWidth: .infinity)
+                .readableContentWidth()
             }
             .background(AppColor.background.ignoresSafeArea())
             .navigationTitle("How Biological Age works")

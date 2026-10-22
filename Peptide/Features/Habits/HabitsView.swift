@@ -111,10 +111,7 @@ struct HabitsView: View {
                 .appAnimation(AppAnimation.springSnappy, value: visibleRows.map(\.id))
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxl)
-                // iPad cap so the heatmap rows don't stretch into an
-                // 1100pt wide strip (Phase 5.8 partial).
-                .frame(maxWidth: 640)
-                .frame(maxWidth: .infinity)
+                .readableContentWidth()
             }
             .task(id: ChangeToken(habits: habits, entries: dataStore.profile.habitEntries)) {
                 rebuildRows()

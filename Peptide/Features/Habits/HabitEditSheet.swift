@@ -97,8 +97,7 @@ struct HabitEditSheet: View {
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.top, Spacing.lg)
-                .frame(maxWidth: 640)
-                .frame(maxWidth: .infinity)
+                .readableContentWidth()
             }
             .background(AppColor.background.ignoresSafeArea())
             .scrollDismissesKeyboard(.interactively)

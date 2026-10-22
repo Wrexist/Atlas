@@ -52,6 +52,14 @@ enum Spacing {
     /// Bottom padding that keeps the last row of a scroll view clear of the
     /// tab bar and the floating next-dose accessory above it.
     static let scrollBottomInset: CGFloat = 96
+
+    // MARK: - Content width
+
+    /// Widest a single-column screen's content grows on iPad or a landscape
+    /// phone. Past this, cards stretch edge to edge and body copy runs into
+    /// long, hard-to-track lines. Every iPhone in portrait is narrower than
+    /// this, so the cap only takes effect on wide screens.
+    static let readableContentWidth: CGFloat = 640
 }
 
 extension View {
@@ -65,5 +73,14 @@ extension View {
     func minimumHitArea() -> some View {
         frame(minWidth: Spacing.minimumHitTarget, minHeight: Spacing.minimumHitTarget)
             .contentShape(Rectangle())
+    }
+
+    /// Caps the content at `Spacing.readableContentWidth` and centres it in
+    /// whatever width remains. Apply it after the content's own padding, on
+    /// the stack inside the scroll view, so the scroll view itself still
+    /// spans the screen and scrolls from its edges.
+    func readableContentWidth() -> some View {
+        frame(maxWidth: Spacing.readableContentWidth)
+            .frame(maxWidth: .infinity)
     }
 }
