@@ -76,6 +76,13 @@ final class CycleCompletionServiceTests: XCTestCase {
         XCTAssertEqual(due.count, 1, "Three dismissals should trigger auto-completion")
     }
 
+    func test_washoutProtocolOneWeekIntoWashout_isNeitherPromptedNorAutoCompleted() {
+        let proto = makeProtocol(weeksAgo: 9, cycleLengthWeeks: 8, washoutWeeks: 4)
+        XCTAssertNil(service.pendingCompletion(in: [proto]))
+        XCTAssertTrue(service.protocolsDueForAutoCompletion(in: [proto]).isEmpty,
+                      "A wash-out protocol repeats, so its first wash-out isn't the end")
+    }
+
     func test_markAutoCompleted_suppressesPrompt() {
         let proto = makeProtocol(weeksAgo: 10, cycleLengthWeeks: 8)
         XCTAssertEqual(service.pendingCompletion(in: [proto])?.id, proto.id)
@@ -125,6 +132,7 @@ final class CycleCompletionServiceTests: XCTestCase {
     private func makeProtocol(
         weeksAgo: Int,
         cycleLengthWeeks: Int,
+        washoutWeeks: Int = 0,
         status: ProtocolStatus = .active
     ) -> PeptideProtocol {
         let start = Calendar.current.date(byAdding: .weekOfYear, value: -weeksAgo, to: Date()) ?? Date()
@@ -134,6 +142,7 @@ final class CycleCompletionServiceTests: XCTestCase {
             peptides: [],
             schedule: ProtocolSchedule(daysOfWeek: [1,2,3,4,5,6,7], timesPerDay: 1, preferredTimes: ["8:00 AM"]),
             cycleLengthWeeks: cycleLengthWeeks,
+            washoutWeeks: washoutWeeks,
             startDate: start,
             status: status,
             notes: ""
