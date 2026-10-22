@@ -12,6 +12,8 @@ import SwiftUI
 /// without leaving the tab.
 struct MealCategoriesCard: View {
     let breakdown: LifestyleDataLogic.CategoryBreakdown
+    /// Nil for today; otherwise the viewed day ("Yesterday", "Mon 12 May").
+    var dayTitle: String? = nil
 
     private var maxCalories: Int {
         max(
@@ -38,7 +40,7 @@ struct MealCategoriesCard: View {
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Meals today")
+                Text(dayTitle.map { String(localized: "Meals · \($0)") } ?? String(localized: "Meals today"))
                     .font(AppFont.eyebrow)
                     .tracking(0.8)
                     .textCase(.uppercase)
@@ -65,7 +67,7 @@ struct MealCategoriesCard: View {
         category: MealCategory?,
         totals: LifestyleDataLogic.CategoryTotals
     ) -> some View {
-        let label = category?.displayName ?? "Other"
+        let label = category?.displayName ?? String(localized: "Other")
         let icon  = category?.icon       ?? "ellipsis.circle.fill"
         let tint  = category?.tint       ?? AppColor.textSecondary
 
@@ -108,11 +110,11 @@ struct MealCategoriesCard: View {
     private func progressBar(width fraction: Double, tint: Color) -> some View {
         GeometryReader { proxy in
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                Capsule()
                     .fill(AppColor.surfaceSecondary.opacity(0.7))
-                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                Capsule()
                     .fill(tint.opacity(0.85))
-                    .frame(width: max(2, proxy.size.width * fraction))
+                    .frame(width: proxy.size.width * fraction)
                     .appAnimation(AppAnimation.springSmooth, value: fraction)
             }
         }
@@ -124,9 +126,8 @@ struct MealCategoriesCard: View {
         return min(1.0, Double(calories) / Double(maxCalories))
     }
 
-    private func macroLine(for totals: LifestyleDataLogic.CategoryTotals) -> String {
-        let entries = totals.entryCount == 1 ? "1 item" : "\(totals.entryCount) items"
-        return "\(entries) · \(totals.proteinG)P · \(totals.carbsG)C · \(totals.fatG)F"
+    private func macroLine(for totals: LifestyleDataLogic.CategoryTotals) -> LocalizedStringKey {
+        "^[\(totals.entryCount) item](inflect: true) · \(totals.proteinG)P · \(totals.carbsG)C · \(totals.fatG)F"
     }
 
     private static func rowAccessibilityLabel(

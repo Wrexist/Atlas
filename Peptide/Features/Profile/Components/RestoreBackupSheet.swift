@@ -195,7 +195,8 @@ struct RestoreBackupSheet: View {
     private func handleFilePicked(_ result: Result<[URL], Error>) {
         switch result {
         case .failure(let error):
-            errorMessage = error.localizedDescription
+            AppLog.persistence.error("Backup file pick failed: \(error.localizedDescription, privacy: .public)")
+            errorMessage = String(localized: "Couldn't open that file. Try picking it again.")
             phase = .failed
         case .success(let urls):
             guard let url = urls.first else { return }
@@ -228,7 +229,8 @@ struct RestoreBackupSheet: View {
                 errorMessage = error.errorDescription
                 phase = .failed
             } catch {
-                errorMessage = error.localizedDescription
+                AppLog.persistence.error("Backup read failed: \(error.localizedDescription, privacy: .public)")
+                errorMessage = String(localized: "Couldn't read that file. Make sure it's an Atlas backup and try again.")
                 phase = .failed
             }
         }
@@ -253,7 +255,8 @@ struct RestoreBackupSheet: View {
                 errorMessage = error.errorDescription
                 phase = .failed
             } catch {
-                errorMessage = error.localizedDescription
+                AppLog.persistence.error("Backup restore failed: \(error.localizedDescription, privacy: .public)")
+                errorMessage = String(localized: "Couldn't restore this backup. Try again.")
                 phase = .failed
             }
         }

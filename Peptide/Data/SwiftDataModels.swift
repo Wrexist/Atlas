@@ -22,6 +22,15 @@ private let sdDecoder: JSONDecoder = {
     return d
 }()
 
+/// Assigns only a value that differs. Every assignment marks the CloudKit
+/// field dirty and re-exports it on the next sync, so rewriting unchanged
+/// rows on each save would re-upload the whole table.
+private func assignIfChanged<Root: AnyObject, Value: Equatable>(
+    _ root: Root, _ keyPath: ReferenceWritableKeyPath<Root, Value>, _ value: Value
+) {
+    if root[keyPath: keyPath] != value { root[keyPath: keyPath] = value }
+}
+
 // MARK: - StoredProtocol
 
 @Model
@@ -85,17 +94,17 @@ final class StoredProtocol {
     }
 
     func update(from proto: PeptideProtocol) throws {
-        name = proto.name
-        cycleLengthWeeks = proto.cycleLengthWeeks
-        startDate = proto.startDate
-        statusRaw = proto.status.rawValue
-        notes = proto.notes
-        peptideData = try sdEncoder.encode(proto.peptides)
-        scheduleData = try sdEncoder.encode(EncodedSchedule(from: proto))
-        authorName = proto.authorName
-        authorHandle = proto.authorHandle
-        forkedFromStackIdString = proto.forkedFromStackId?.uuidString
-        createdAt = proto.createdAt
+        assignIfChanged(self, \.name, proto.name)
+        assignIfChanged(self, \.cycleLengthWeeks, proto.cycleLengthWeeks)
+        assignIfChanged(self, \.startDate, proto.startDate)
+        assignIfChanged(self, \.statusRaw, proto.status.rawValue)
+        assignIfChanged(self, \.notes, proto.notes)
+        try assignIfChanged(self, \.peptideData, sdEncoder.encode(proto.peptides))
+        try assignIfChanged(self, \.scheduleData, sdEncoder.encode(EncodedSchedule(from: proto)))
+        assignIfChanged(self, \.authorName, proto.authorName)
+        assignIfChanged(self, \.authorHandle, proto.authorHandle)
+        assignIfChanged(self, \.forkedFromStackIdString, proto.forkedFromStackId?.uuidString)
+        assignIfChanged(self, \.createdAt, Optional(proto.createdAt))
     }
 
     func toPeptideProtocol() throws -> PeptideProtocol {
@@ -130,7 +139,9 @@ final class StoredProtocol {
             authorName: authorName,
             authorHandle: authorHandle,
             forkedFromStackId: forkedFromStackIdString.flatMap(UUID.init(uuidString:)),
-            createdAt: createdAt ?? Date()
+            // Legacy rows predate `createdAt`; `startDate` is the same on
+            // every device, so the backfill written by `update` agrees.
+            createdAt: createdAt ?? startDate
         )
     }
 }
@@ -221,13 +232,13 @@ final class StoredEntry {
     }
 
     func update(from entry: ProtocolEntry) throws {
-        completed = entry.completed
-        actualDose = entry.actualDose
-        actualTime = entry.actualTime
-        injectionSite = entry.injectionSite
-        notes = entry.notes
-        dose = entry.dose
-        peptideData = try sdEncoder.encode(entry.peptide)
+        assignIfChanged(self, \.completed, entry.completed)
+        assignIfChanged(self, \.actualDose, entry.actualDose)
+        assignIfChanged(self, \.actualTime, entry.actualTime)
+        assignIfChanged(self, \.injectionSite, entry.injectionSite)
+        assignIfChanged(self, \.notes, entry.notes)
+        assignIfChanged(self, \.dose, entry.dose)
+        try assignIfChanged(self, \.peptideData, sdEncoder.encode(entry.peptide))
     }
 
     func toProtocolEntry() throws -> ProtocolEntry {
@@ -369,7 +380,14 @@ final class StoredProfile {
         return stored
     }
 
-    func update(from profile: UserProfile) throws {
+    /// Writes `profile` into this row. `baseline` is the profile as this
+    /// device last read or wrote it: a field whose new value still
+    /// matches it wasn't edited here, so its column keeps whatever another
+    /// device synced into it meanwhile instead of being reverted by
+    /// stale in-memory state. Comparing values rather than encoded bytes
+    /// also skips encoding the slices a save didn't touch. Without a
+    /// baseline every column is written.
+    func update(from profile: UserProfile, since baseline: UserProfile? = nil) throws {
         // Assign only what actually changed. Every property assignment
         // marks its CloudKit record field dirty and ships it on the next
         // sync — and an untouched field is exactly what lets CloudKit
@@ -382,56 +400,136 @@ final class StoredProfile {
             self[keyPath: keyPath] = value
             contentChanged = true
         }
-        assign(\.name, profile.name)
-        assign(\.memberSince, profile.memberSince)
-        assign(\.healthConnected, profile.healthConnected)
-        assign(\.hapticFeedbackEnabled, profile.hapticFeedbackEnabled)
-        assign(\.doseRemindersEnabled, profile.doseRemindersEnabled)
-        assign(\.biometricLockEnabled, profile.biometricLockEnabled)
-        assign(\.goalsData, try sdEncoder.encode(profile.goals))
-        assign(\.bodyMetricsData, try sdEncoder.encode(profile.bodyMetrics))
-        assign(\.avatarImageData, profile.avatarImageData)
-        assign(\.bio, profile.bio.isEmpty ? nil : profile.bio)
-        assign(\.primaryGoal, profile.primaryGoal)
-        assign(\.extensionData, try sdEncoder.encode(ProfileExtension.residual(of: profile)))
-        try writeSlices(from: profile, assign: { keyPath, value in
+        func edited<V: Equatable>(_ field: (UserProfile) -> V) -> Bool {
+            guard let baseline else { return true }
+            return field(baseline) != field(profile)
+        }
+        if edited(\.name) { assign(\.name, profile.name) }
+        if edited(\.memberSince) { assign(\.memberSince, profile.memberSince) }
+        if edited(\.healthConnected) { assign(\.healthConnected, profile.healthConnected) }
+        if edited(\.hapticFeedbackEnabled) { assign(\.hapticFeedbackEnabled, profile.hapticFeedbackEnabled) }
+        if edited(\.doseRemindersEnabled) { assign(\.doseRemindersEnabled, profile.doseRemindersEnabled) }
+        if edited(\.biometricLockEnabled) { assign(\.biometricLockEnabled, profile.biometricLockEnabled) }
+        if edited(\.goals) { assign(\.goalsData, try sdEncoder.encode(profile.goals)) }
+        if edited(\.bodyMetrics) { assign(\.bodyMetricsData, try sdEncoder.encode(profile.bodyMetrics)) }
+        if edited(\.avatarImageData) { assign(\.avatarImageData, profile.avatarImageData) }
+        if edited(\.bio) { assign(\.bio, profile.bio.isEmpty ? nil : profile.bio) }
+        if edited(\.primaryGoal) { assign(\.primaryGoal, profile.primaryGoal) }
+        let residual = try sdEncoder.encode(ProfileExtension.residual(of: profile))
+        let residualEdited = try baseline.map {
+            try sdEncoder.encode(ProfileExtension.residual(of: $0)) != residual
+        } ?? true
+        if residualEdited, !holdsUnreadable(ProfileExtension.self, at: \.extensionData, replacingWith: residual) {
+            assign(\.extensionData, residual)
+        }
+        try writeSlices(from: profile, since: baseline, assign: { keyPath, value in
             assign(keyPath, value)
         })
         assign(\.singletonKey, Self.canonicalSingletonKey)
         if contentChanged { updatedAt = Date() }
     }
 
-    /// Encodes each split feature area into its own column.
+    /// Encodes each split feature area into its own column. A slice equal
+    /// to `baseline`'s wasn't edited here and is neither encoded nor
+    /// written. On the update path a column this build can't read is left
+    /// untouched.
     private func writeSlices(
         from profile: UserProfile,
+        since baseline: UserProfile? = nil,
         assign: ((ReferenceWritableKeyPath<StoredProfile, Data?>, Data?) -> Void)? = nil
     ) throws {
         let set: (ReferenceWritableKeyPath<StoredProfile, Data?>, Data?) -> Void =
             assign ?? { self[keyPath: $0] = $1 }
-        set(\.mealsData, try sdEncoder.encode(MealsSlice(
-            mealHistory: profile.mealHistory,
-            dailyConsumption: profile.dailyConsumption
-        )))
-        set(\.habitsData, try sdEncoder.encode(HabitsSlice(
-            habits: profile.habits,
-            habitEntries: profile.habitEntries
-        )))
-        set(\.momentumData, try sdEncoder.encode(MomentumSlice(
-            atlasScore: profile.atlasScore,
-            atlasLevel: profile.atlasLevel,
-            momentumAwardedToday: profile.momentumAwardedToday,
-            lastMomentumAwardDay: profile.lastMomentumAwardDay,
-            momentumHistory: profile.momentumHistory
-        )))
-        set(\.weightHistoryData, try sdEncoder.encode(profile.weightHistory))
-        set(\.labsData, try sdEncoder.encode(profile.labHistory))
-        set(\.outcomesData, try sdEncoder.encode(profile.outcomeHistory))
-        set(\.foodLibraryData, try sdEncoder.encode(FoodLibrarySlice(
-            customFoods: profile.customFoods,
-            favoriteFoodIDs: Array(profile.favoriteFoodIDs).sorted()
-        )))
+        func write<T: Codable & Equatable>(
+            _ keyPath: ReferenceWritableKeyPath<StoredProfile, Data?>,
+            _ slice: (UserProfile) -> T
+        ) throws {
+            let value = slice(profile)
+            if let baseline, slice(baseline) == value { return }
+            let data = try sdEncoder.encode(value)
+            if assign != nil, holdsUnreadable(T.self, at: keyPath, replacingWith: data) { return }
+            set(keyPath, data)
+        }
+        try write(\.mealsData) {
+            MealsSlice(mealHistory: $0.mealHistory, dailyConsumption: $0.dailyConsumption)
+        }
+        try write(\.habitsData) {
+            HabitsSlice(habits: $0.habits, habitEntries: $0.habitEntries)
+        }
+        try write(\.momentumData) {
+            MomentumSlice(
+                atlasScore: $0.atlasScore,
+                atlasLevel: $0.atlasLevel,
+                momentumAwardedToday: $0.momentumAwardedToday,
+                lastMomentumAwardDay: $0.lastMomentumAwardDay,
+                momentumHistory: $0.momentumHistory
+            )
+        }
+        try write(\.weightHistoryData) { $0.weightHistory }
+        try write(\.labsData) { $0.labHistory }
+        try write(\.outcomesData) { $0.outcomeHistory }
+        try write(\.foodLibraryData) {
+            FoodLibrarySlice(customFoods: $0.customFoods, favoriteFoodIDs: Array($0.favoriteFoodIDs).sorted())
+        }
         // Never synced — see `summariesData`.
         set(\.summariesData, nil)
+    }
+
+    /// Takes each slice column of `other` that this build can't decode,
+    /// where this row holds nothing readable there. Reads treat such a
+    /// column as empty, so deleting `other` would destroy it on every
+    /// device. False when a column can't move because this row holds
+    /// data there too; the caller then keeps `other`.
+    func adoptUnreadableColumns(of other: StoredProfile) -> Bool {
+        visitUnreadableColumns(of: other, adopting: true)
+    }
+
+    /// Whether `adoptUnreadableColumns(of:)` would succeed, without
+    /// moving anything.
+    func canAdoptUnreadableColumns(of other: StoredProfile) -> Bool {
+        visitUnreadableColumns(of: other, adopting: false)
+    }
+
+    private func visitUnreadableColumns(of other: StoredProfile, adopting: Bool) -> Bool {
+        var adoptedAll = true
+        func adopt<T: Decodable & Equatable>(_ keyPath: ReferenceWritableKeyPath<StoredProfile, Data?>, empty: T) {
+            guard let theirs = other[keyPath: keyPath],
+                  (try? sdDecoder.decode(T.self, from: theirs)) == nil
+            else { return }
+            let mine = self[keyPath: keyPath]
+            if mine == nil || mine.flatMap({ try? sdDecoder.decode(T.self, from: $0) }) == empty {
+                if adopting { self[keyPath: keyPath] = theirs }
+            } else {
+                adoptedAll = false
+            }
+        }
+        adopt(\.mealsData, empty: MealsSlice())
+        adopt(\.habitsData, empty: HabitsSlice())
+        adopt(\.momentumData, empty: MomentumSlice())
+        adopt(\.weightHistoryData, empty: [WeightEntry]())
+        adopt(\.labsData, empty: [LabValue]())
+        adopt(\.outcomesData, empty: [OutcomeEntry]())
+        adopt(\.foodLibraryData, empty: FoodLibrarySlice())
+        return adoptedAll
+    }
+
+    /// True when the column holds bytes this build can't decode as `T` —
+    /// corrupt, or written by a newer build with a case this one doesn't
+    /// know. Reads fall back to empty for such a column, so writing that
+    /// empty value back would wipe the data on every device; the column
+    /// stays as it is until a build that can read it saves.
+    private func holdsUnreadable<T: Decodable>(
+        _ type: T.Type,
+        at keyPath: KeyPath<StoredProfile, Data?>,
+        replacingWith data: Data
+    ) -> Bool {
+        guard let stored = self[keyPath: keyPath], stored != data,
+              (try? sdDecoder.decode(T.self, from: stored)) == nil
+        else { return false }
+        AppLog.swiftData.error(
+            "Profile column \(String(describing: T.self), privacy: .public) is unreadable by this build; leaving it untouched"
+        )
+        return true
     }
 
     /// Decodes an optional slice column, falling back to the legacy
@@ -529,6 +627,7 @@ final class StoredProfile {
             progressPhotoFilenames: ext.progressPhotoFilenames,
             dailyConsumption: meals.dailyConsumption,
             workoutHistory: ext.workoutHistory,
+            workoutLegacyMigrationCompleted: ext.workoutLegacyMigrationCompleted,
             avatarImageData: avatarImageData,
             bio: bio ?? "",
             primaryGoal: primaryGoal,
@@ -565,17 +664,17 @@ final class StoredProfile {
 /// Each groups only fields that are always edited together, so a
 /// CloudKit field-level merge preserves unrelated features edited on
 /// another device.
-struct MealsSlice: Codable {
+struct MealsSlice: Codable, Equatable {
     var mealHistory: [MealEntry] = []
     var dailyConsumption: [String: DailyConsumption] = [:]
 }
 
-struct HabitsSlice: Codable {
+struct HabitsSlice: Codable, Equatable {
     var habits: [Habit] = []
     var habitEntries: [HabitEntry] = []
 }
 
-struct MomentumSlice: Codable {
+struct MomentumSlice: Codable, Equatable {
     var atlasScore: Int = 0
     var atlasLevel: Int = 1
     var momentumAwardedToday: Int = 0
@@ -583,7 +682,7 @@ struct MomentumSlice: Codable {
     var momentumHistory: [MomentumDayPoint] = []
 }
 
-struct FoodLibrarySlice: Codable {
+struct FoodLibrarySlice: Codable, Equatable {
     var customFoods: [CustomFood] = []
     /// `[String]` (sorted) for a deterministic on-disk shape; collapsed
     /// back to `Set<String>` on read.
@@ -607,12 +706,18 @@ private struct ProfileExtension: Codable {
     var progressPhotoFilenames: [String] = []
     var dailyConsumption: [String: DailyConsumption] = [:]
     var workoutHistory: [WorkoutEntry] = []
+    var workoutLegacyMigrationCompleted: Bool = false
     var customFoods: [CustomFood] = []
     /// Encoded as `[String]` so the round-trip JSON has a deterministic
     /// shape (Set has no ordering guarantee). The accessor on
     /// `toUserProfile()` collapses back to `Set<String>`.
     var favoriteFoodIDs: [String] = []
     var mealHistory: [MealEntry] = []
+    /// Read-only legacy: the toggle is device-local now
+    /// (`HealthSyncSettings.nutritionEnabledKey`), since Health
+    /// permission is granted per device. Still carried through
+    /// `residual(of:)` so a later-upgrading device seeds from the
+    /// value the user chose before the split.
     var healthKitNutritionEnabled: Bool = false
     var outcomeHistory: [OutcomeEntry] = []
     var labHistory: [LabValue] = []
@@ -676,6 +781,7 @@ private struct ProfileExtension: Codable {
         progressPhotoFilenames = try c.decodeIfPresent([String].self, forKey: .progressPhotoFilenames) ?? []
         dailyConsumption = try c.decodeIfPresent([String: DailyConsumption].self, forKey: .dailyConsumption) ?? [:]
         workoutHistory = try c.decodeIfPresent([WorkoutEntry].self, forKey: .workoutHistory) ?? []
+        workoutLegacyMigrationCompleted = try c.decodeIfPresent(Bool.self, forKey: .workoutLegacyMigrationCompleted) ?? false
         customFoods = try c.decodeIfPresent([CustomFood].self, forKey: .customFoods) ?? []
         favoriteFoodIDs = try c.decodeIfPresent([String].self, forKey: .favoriteFoodIDs) ?? []
         mealHistory = try c.decodeIfPresent([MealEntry].self, forKey: .mealHistory) ?? []
@@ -717,6 +823,7 @@ private struct ProfileExtension: Codable {
         ext.progressPhotoFilenames = profile.progressPhotoFilenames
         ext.workoutHistory = profile.workoutHistory
         ext.healthKitNutritionEnabled = profile.healthKitNutritionEnabled
+        ext.workoutLegacyMigrationCompleted = profile.workoutLegacyMigrationCompleted
         ext.lastKnownTimezoneIdentifier = profile.lastKnownTimezoneIdentifier
         ext.streakFreezeDays = Array(profile.streakFreezeDays).sorted()
         ext.recipes = profile.recipes

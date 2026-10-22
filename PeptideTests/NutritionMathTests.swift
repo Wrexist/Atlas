@@ -136,6 +136,30 @@ final class NutritionMathTests: XCTestCase {
         XCTAssertGreaterThan(heavier!.proteinG, lighter!.proteinG)
     }
 
+    // MARK: - Calorie safety floor
+
+    /// 50 kg, 155 cm, 55-year-old sedentary woman: TDEE ≈ 1,239 kcal, so a
+    /// raw 20% cut would recommend ≈ 991 kcal.
+    func test_recommendedTargets_smallSedentaryFemaleCut_neverBelow1200() throws {
+        let metrics = BodyMetrics(
+            weightKg: 50, heightCm: 155, age: 55,
+            sex: .female, activityLevel: .sedentary, unit: .metric
+        )
+        let targets = try XCTUnwrap(NutritionMath.recommendedTargets(for: metrics, goalRaw: "loseFat"))
+        XCTAssertGreaterThanOrEqual(targets.calories, 1195) // macro rounding
+    }
+
+    func test_recommendedTargets_maintenanceBelowFloor_staysAtMaintenance() throws {
+        let metrics = BodyMetrics(
+            weightKg: 45, heightCm: 150, age: 70,
+            sex: .female, activityLevel: .sedentary, unit: .metric
+        )
+        let maintenance = try XCTUnwrap(NutritionMath.recommendedTargets(for: metrics, goalRaw: nil))
+        let cut = try XCTUnwrap(NutritionMath.recommendedTargets(for: metrics, goalRaw: "loseFat"))
+        XCTAssertLessThan(maintenance.calories, 1200)
+        XCTAssertEqual(Double(cut.calories), Double(maintenance.calories), accuracy: 10) // macro rounding
+    }
+
     // MARK: - Goal presets
 
     /// With full body stats, a preset must equal the personalised

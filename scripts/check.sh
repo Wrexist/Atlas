@@ -38,7 +38,9 @@ run() {
 # The checkers are checked first: a blind rule reports a clean bill it has
 # not earned, which is worse than no rule. This suite exists because that
 # actually happened to rule_glow on this branch.
-run "Checker self-tests" python3 scripts/test_design_lint.py
+run "Checker self-tests (design lint)" python3 scripts/test_design_lint.py
+run "Checker self-tests (copy claims)" python3 scripts/test_copy_claims.py
+run "Checker self-tests (contrast)" python3 scripts/test_contrast_check.py
 run "Design system (20 rules)" python3 scripts/design-lint.py --all
 run "Colour contrast (244 token pairs, WCAG AA)" python3 scripts/contrast-check.py
 
@@ -71,12 +73,12 @@ if not p.exists():
 data = json.loads(p.read_text())
 n = len(data if isinstance(data, list) else data.get("peptides", []))
 print(f"{n} entries")
-sys.exit(0 if n >= 200 else 1)
+sys.exit(0 if n == 208 else 1)  # same pin as pr-checks.yml
 PY
 
 # ------------------------------------------------------------------ Proxy side
 # The only part of this codebase whose tests actually execute here — Node,
-# no Xcode required. 48 of them, covering the rate limiter, the per-device
+# no Xcode required. They cover the routes, the rate limiter, the per-device
 # quota, App Attest and the CBOR decoder.
 if [ -d server ] && command -v node >/dev/null 2>&1; then
   run "Proxy tests (server/)" bash -c "cd server && node --test >/dev/null 2>&1"

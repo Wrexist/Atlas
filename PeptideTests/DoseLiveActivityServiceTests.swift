@@ -52,6 +52,28 @@ final class DoseLiveActivityServiceTests: XCTestCase {
         XCTAssertFalse(DoseLiveActivityService.isInActiveWindow(makeEntry(completed: true), at: doseTime))
     }
 
+    // MARK: - Open activity still matches its entry
+
+    private func attributes(for entry: ProtocolEntry, dose: String? = nil) -> DoseWindowAttributes {
+        DoseWindowAttributes(
+            entryId: entry.id,
+            peptideAbbreviation: entry.peptide.abbreviation,
+            peptideName: entry.peptide.name,
+            doseDisplay: dose ?? entry.dose,
+            tintHex: 0
+        )
+    }
+
+    func test_attributesMatch_unchangedEntry_keepsActivity() {
+        let entry = makeEntry()
+        XCTAssertTrue(DoseLiveActivityService.attributesMatch(attributes(for: entry), entry))
+    }
+
+    func test_attributesMatch_editedDose_restartsActivity() {
+        let entry = makeEntry()
+        XCTAssertFalse(DoseLiveActivityService.attributesMatch(attributes(for: entry, dose: "500mcg"), entry))
+    }
+
     // MARK: - Color → packed RGB hex
 
     func test_hex_packsPrimariesAndExtremes() {

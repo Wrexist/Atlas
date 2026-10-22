@@ -1,18 +1,11 @@
 import Foundation
 
 /// Pure functions that translate body metrics into a daily calorie/macro
-/// reference using Mifflin-St Jeor for BMR, a fixed moderate-activity
-/// multiplier (1.55) for TDEE, and a balanced 1.8 g/kg-protein /
+/// reference using Mifflin-St Jeor for BMR, the user's activity-level
+/// multiplier for TDEE, and a balanced 1.8 g/kg-protein /
 /// 25%-fat / fill-with-carbs split. These numbers are reference
 /// targets — not medical advice — and are surfaced behind a disclaimer.
 enum NutritionMath {
-
-    /// Fallback activity multiplier when the user hasn't picked an
-    /// `ActivityLevel`. Equivalent to `.moderate` — the value that
-    /// used to be hard-coded for everyone (audit Meals L12).
-    /// Live callers should read `BodyMetrics.activityLevel
-    /// .tdeeMultiplier` to honor the user's pick.
-    static let activityMultiplier: Double = 1.55
 
     /// Protein recommendation in grams per kilogram of bodyweight.
     static let proteinPerKg: Double = 1.8
@@ -132,10 +125,10 @@ enum NutritionMath {
 
         var shortLabel: String {
             switch self {
-            case .surplus:     return "lean gain"
-            case .deficit:     return "fat loss"
-            case .recomp:      return "recomposition"
-            case .maintenance: return "maintenance"
+            case .surplus:     return String(localized: "lean gain")
+            case .deficit:     return String(localized: "fat loss")
+            case .recomp:      return String(localized: "recomposition")
+            case .maintenance: return String(localized: "maintenance")
             }
         }
     }
@@ -164,7 +157,11 @@ enum NutritionMath {
         let intent = GoalIntent(goalRaw: goalRaw)
         let bmr = mifflinStJeor(weightKg: weightKg, heightCm: heightCm, age: age, sex: metrics.sex)
         let tdee = bmr * metrics.activityLevel.tdeeMultiplier
-        let targetCalories = tdee * intent.calorieMultiplier
+        // A deficit never drops below the common clinical floor (or BMR,
+        // when that is higher), capped at maintenance so the floor itself
+        // can't become a surplus for a very small, sedentary user.
+        let safetyFloor = min(tdee, max(minimumDailyCalories(for: metrics.sex), bmr))
+        let targetCalories = max(tdee * intent.calorieMultiplier, safetyFloor)
 
         let fatCalories = targetCalories * fatCalorieFraction
         let fatGRaw = fatCalories / kcalPerGramFat
@@ -204,9 +201,9 @@ enum NutritionMath {
 
         var title: String {
             switch self {
-            case .loseFat:     return "Lose fat"
-            case .maintain:    return "Maintain"
-            case .buildMuscle: return "Build muscle"
+            case .loseFat:     return String(localized: "Lose fat")
+            case .maintain:    return String(localized: "Maintain")
+            case .buildMuscle: return String(localized: "Build muscle")
             }
         }
 
@@ -260,6 +257,17 @@ enum NutritionMath {
     /// so the editor can always apply a tapped preset.
     static func presetTargets(_ preset: Preset, for metrics: BodyMetrics) -> NutritionTargets {
         recommendedTargets(for: metrics, goalRaw: preset.goalRaw) ?? preset.fallback
+    }
+
+    /// Lowest daily intake a recommendation may suggest without medical
+    /// supervision: 1,500 kcal for men, 1,200 kcal otherwise.
+    static func minimumDailyCalories(for sex: BiologicalSex) -> Double {
+        switch sex {
+        case .male:        return 1500
+        case .female,
+             .other,
+             .unspecified: return 1200
+        }
     }
 
     /// Mifflin-St Jeor BMR in kilocalories. The `.other` and `.unspecified`

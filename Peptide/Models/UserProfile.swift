@@ -511,11 +511,10 @@ struct UserProfile: Codable, Sendable {
     /// the macro rings; this is the per-meal sidecar. Newest-last so
     /// chronological iteration matches the visual log order.
     var mealHistory: [MealEntry]
-    /// User opted in to having each logged meal mirrored as Apple
-    /// Health dietary-energy / protein / carbs / fat / fiber samples.
-    /// Disabled by default — we only prompt for HK write permission
-    /// after the user flips this on in Profile. The corresponding HK
-    /// authorization is requested at toggle-time, not at install.
+    /// Legacy carrier of the meal → Apple Health toggle, which earlier
+    /// builds synced through the profile. The toggle is device-local now
+    /// (`HealthSyncSettings.nutritionEnabledKey`) because Health
+    /// permission is granted per device; this value only seeds it once.
     var healthKitNutritionEnabled: Bool
     /// Daily wellness check-ins. One entry per calendar day; a
     /// re-save on the same day replaces the previous entry through

@@ -124,7 +124,7 @@ struct WeeklySummaryHeroCard: View {
         .buttonStyle(ScalePressStyle(pressedScale: 0.985))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Weekly summary, \(weekTitle(for: summary.weekStart))")
-        .accessibilityHint("Double-tap to read the full recap")
+        .accessibilityHint("Opens the full recap")
     }
 
     // MARK: - Empty

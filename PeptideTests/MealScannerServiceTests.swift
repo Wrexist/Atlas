@@ -169,8 +169,10 @@ final class MealScannerServiceTests: XCTestCase {
             (Self.response(for: request, status: 500), Data())
         }
         await XCTAssertThrowsErrorAsync(try await service.analyze(image: tinyImage())) { error in
-            if case .requestFailed(let message) = error as? MealScannerService.ScanError {
-                XCTAssertTrue(message.contains("500"))
+            if case .requestFailed(let status) = error as? MealScannerService.ScanError {
+                XCTAssertEqual(status, 500)
+                // The status is for the log, not the user.
+                XCTAssertFalse(error.localizedDescription.contains("500"))
             } else {
                 XCTFail("Expected .requestFailed, got \(error)")
             }
@@ -186,6 +188,28 @@ final class MealScannerServiceTests: XCTestCase {
                 return XCTFail("Expected .serviceUnavailable, got \(error)")
             }
         }
+    }
+
+    func test_analyze_retryableUpstreamFailure_retriesOnce() async {
+        let attempts = AttemptCounter()
+        MockURLProtocol.handler = { request in
+            attempts.bump()
+            return (Self.response(for: request, status: 502), Data(#"{"error":{"message":"Upstream error","retryable":true}}"#.utf8))
+        }
+        await XCTAssertThrowsErrorAsync(try await service.analyze(image: tinyImage()))
+        XCTAssertEqual(attempts.value, 2)
+    }
+
+    func test_analyze_unmarkedServerFailure_isNotRetried() async {
+        // A truncated answer or a spent budget would fail again, and the
+        // second try is another paid vision call.
+        let attempts = AttemptCounter()
+        MockURLProtocol.handler = { request in
+            attempts.bump()
+            return (Self.response(for: request, status: 503), Data(#"{"error":{"message":"Service unavailable"}}"#.utf8))
+        }
+        await XCTAssertThrowsErrorAsync(try await service.analyze(image: tinyImage()))
+        XCTAssertEqual(attempts.value, 1)
     }
 
     func test_analyze_413_throwsImageTooLarge() async {
@@ -274,6 +298,20 @@ final class MealScannerServiceTests: XCTestCase {
 
     func test_stringSetting_returnsNilForMissingKey() {
         XCTAssertNil(MealScannerService.stringSetting(forKey: "DEFINITELY_NOT_SET_KEY_\(UUID().uuidString)"))
+    }
+
+    // MARK: - Resize
+
+    func test_resizedTo_cameraPhotoAtScaleOne_outputPixelsCappedAtMaxEdge() throws {
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        let photo = UIGraphicsImageRenderer(size: CGSize(width: 4032, height: 3024), format: format).image { _ in }
+
+        let resized = try XCTUnwrap(photo.resizedTo(maxEdge: 1568))
+        let cgImage = try XCTUnwrap(resized.cgImage)
+
+        XCTAssertEqual(cgImage.width, 1568)
+        XCTAssertEqual(cgImage.height, 1176)
     }
 
     // MARK: - Helpers

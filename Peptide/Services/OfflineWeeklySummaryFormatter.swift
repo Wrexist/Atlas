@@ -30,9 +30,8 @@ enum OfflineWeeklySummaryFormatter {
     // MARK: - Opener
 
     private static func opener(for aggregate: WeeklyAggregate) -> String {
-        guard aggregate.compliance.total > 0 else {
-            return "Here's how your week came together."
-        }
+        guard aggregate.compliance.total > 0 else { return dosesFreeOpener(for: aggregate) }
+
         let pct = Int((aggregate.compliance.pct * 100).rounded())
         let completed = aggregate.compliance.completed
         let total = aggregate.compliance.total
@@ -47,6 +46,19 @@ enum OfflineWeeklySummaryFormatter {
             return "Mixed week — \(completed) of \(total) doses logged (\(pct)%)."
         }
         return "Quiet week — \(completed) of \(total) doses logged (\(pct)%)."
+    }
+
+    /// For a week with nothing scheduled — a training- or nutrition-only
+    /// user — so the summary never leads with "0 of 0 doses".
+    private static func dosesFreeOpener(for aggregate: WeeklyAggregate) -> String {
+        if let outcomes = aggregate.outcomes, outcomes.checkInsCount > 0 {
+            let checkInWord = outcomes.checkInsCount == 1 ? "check-in" : "check-ins"
+            return "Your week in review — \(outcomes.checkInsCount) daily \(checkInWord) logged."
+        }
+        if let nutrition = aggregate.nutrition, nutrition.mealLoggingDays > 0 {
+            return "Your week in review — meals logged on \(nutrition.mealLoggingDays) of 7 days."
+        }
+        return "Your week in review."
     }
 
     // MARK: - Observations
@@ -124,7 +136,7 @@ enum OfflineWeeklySummaryFormatter {
 
     private static func closer(for aggregate: WeeklyAggregate) -> String {
         guard aggregate.compliance.total > 0 else {
-            return "Keep the rhythm going next week — consistency compounds."
+            return "Keep logging next week — every day of data sharpens the picture."
         }
         let pct = aggregate.compliance.pct
 

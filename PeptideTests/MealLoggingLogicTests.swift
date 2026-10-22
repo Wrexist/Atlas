@@ -173,7 +173,7 @@ final class MealLoggingLogicTests: XCTestCase {
         var profile = UserProfile.fresh
         let day = date(2026, 9, 27, 9)
 
-        LifestyleDataLogic.logWater(into: &profile, oz: 8, date: day)
+        LifestyleDataLogic.logWater(into: &profile, fluidOunces: 8, date: day)
         LifestyleDataLogic.logWater(into: &profile, fluidOunces: -32, date: day)
 
         XCTAssertEqual(LifestyleDataLogic.consumption(in: profile, for: day).waterFluidOunces, 0)

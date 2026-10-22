@@ -269,7 +269,7 @@ struct CommunityStackDetailView: View {
     NavigationStack {
         CommunityStackDetailView(stack: CommunityStack(
             id: UUID(),
-            name: "Wolverine Stack",
+            name: "Wolverine Protocol",
             authorName: "Atlas Editorial",
             authorHandle: nil,
             authorTitle: "Research summary, not a recommendation",

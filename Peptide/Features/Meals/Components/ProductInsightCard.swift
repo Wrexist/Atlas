@@ -71,7 +71,7 @@ struct ProductInsightCard: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .animation(AppAnimation.springSnappy, value: isLoading)
+        .appAnimation(AppAnimation.springSnappy, value: isLoading)
     }
 
     private func portionChips(_ options: [FoodPortionOption]) -> some View {
@@ -85,7 +85,7 @@ struct ProductInsightCard: View {
                     } label: {
                         Text(option.label)
                             .font(AppFont.scaled(11, weight: .semibold))
-                            .foregroundStyle(isActive ? .white : AppColor.textSecondary)
+                            .foregroundStyle(isActive ? AppColor.onAccent : AppColor.textSecondary)
                             .padding(.horizontal, Spacing.sm)
                             .padding(.vertical, Spacing.xs)
                             .background {

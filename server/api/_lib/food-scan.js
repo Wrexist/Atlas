@@ -170,7 +170,10 @@ function cleanString(value, max = MAX_FIELD_CHARS) {
 }
 
 function userContext(raw) {
-  const locale = /^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8})*$/.test(raw.locale ?? '') ? raw.locale : 'en_US';
+  // iOS identifiers can carry keywords (`sv_SE@rg=sezzzz`,
+  // `en_US@calendar=japanese`); only the language and region matter here.
+  const base = String(raw.locale ?? '').split('@')[0];
+  const locale = /^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8})*$/.test(base) ? base : 'en_US';
   const currency = /^[A-Z]{3}$/.test(raw.currency ?? '') ? raw.currency : 'USD';
   return `User locale: ${locale}. Currency: ${currency}.`;
 }

@@ -80,5 +80,14 @@ final class DoseWindowStatusTests: XCTestCase {
         let state = makeState(doseTime: doseTime)
         XCTAssertEqual(state.countdownInterval(from: doseTime.addingTimeInterval(600)), doseTime...doseTime)
     }
+
+    // MARK: - Stale redraw
+
+    func test_lateBoundary_redrawsIntoLate() {
+        let state = makeState(doseTime: Date())
+        guard case .late = state.status(at: state.lateBoundary) else {
+            return XCTFail("The stale-date redraw should land in .late")
+        }
+    }
 }
 #endif

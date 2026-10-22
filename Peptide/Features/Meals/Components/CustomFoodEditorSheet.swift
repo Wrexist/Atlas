@@ -15,9 +15,11 @@ import PhotosUI
 /// snap instead of copying a nutrition panel by hand.
 ///
 /// Validates inline: the Save button stays disabled until the name is
-/// non-empty and the calorie value is greater than zero. Everything
-/// else can stay zero.
+/// non-empty and calories are filled in. Zero is a real value (black
+/// coffee, water), but nothing passes 900 kcal or 100 g of macros per
+/// 100 g.
 struct CustomFoodEditorSheet: View {
+    @Environment(DataStore.self) private var dataStore
     let initial: CustomFood
     let onSave: (CustomFood) -> Void
     let onCancel: () -> Void
@@ -47,6 +49,11 @@ struct CustomFoodEditorSheet: View {
     /// A fill held on the device until the user allows sending it to the
     /// AI (Guideline 5.1.2(i)).
     @State private var pendingFill: PendingFill?
+    @State private var showScanLimitPaywall = false
+    @State private var storeService = StoreService.shared
+    /// The fields as the editor opened, so only real edits ask before
+    /// being discarded.
+    @State private var openedFields: [String] = []
 
     private enum PendingFill {
         case text(String)
@@ -62,30 +69,65 @@ struct CustomFoodEditorSheet: View {
         name.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var caloriesValue: Double { Self.parseDecimal(calories) ?? 0 }
-    private var canSave: Bool { !trimmedName.isEmpty && caloriesValue > 0 }
+    private var caloriesValue: Double? { Self.parseDecimal(calories) }
+    private var canSave: Bool { !trimmedName.isEmpty && caloriesValue != nil && rangeProblem == nil }
+
+    /// Pure fat is about 900 kcal per 100 g, and 100 g of food can't hold
+    /// more than 100 g of protein, carbs and fat.
+    private var rangeProblem: LocalizedStringKey? {
+        let entered = [calories, protein, carbs, fat, fiber, sugars].compactMap { Self.parseDecimal($0) }
+        if entered.contains(where: { $0 < 0 }) {
+            return "Values can't be negative."
+        }
+        if (caloriesValue ?? 0) > 900 {
+            return "Calories can't be more than 900 kcal per 100 g."
+        }
+        let macros = [protein, carbs, fat].compactMap { Self.parseDecimal($0) }.reduce(0, +)
+        if macros > 100 {
+            return "Protein, carbs and fat can't add up to more than 100 g per 100 g."
+        }
+        return nil
+    }
     private var isEditing: Bool { onDelete != nil }
+
+    private var fields: [String] {
+        [name, brand, calories, protein, carbs, fat, fiber, sugars, servingGrams, servingLabel]
+    }
+
+    private var hasChanges: Bool { fields != openedFields || pricePer100g != initial.pricePer100g }
 
     /// Locale-aware decimal parser. `Double("1,5")` returns nil on
     /// devices set to a comma-decimal locale (fr_FR, de_DE, es_ES,
     /// etc.), so the editor would silently log 0 calories for a user
-    /// who typed "1,5". Try the locale formatter first, fall back to
-    /// the C parse so a pasted "1.5" still works regardless of locale.
-    private static func parseDecimal(_ input: String) -> Double? {
+    /// who typed "1,5".
+    ///
+    /// The decimal pad never types a grouping separator, so a string
+    /// holding one is a pasted C-style decimal: in de_DE the formatter
+    /// would read "1.5" as 15. Those skip the formatter.
+    static func parseDecimal(_ input: String, locale: Locale = .current) -> Double? {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
-        if let n = decimalFormatter.number(from: trimmed) {
-            return n.doubleValue
+        let formatter = decimalFormatter(locale)
+        if let grouping = formatter.groupingSeparator, !grouping.isEmpty, trimmed.contains(grouping) {
+            return Double(trimmed.replacingOccurrences(of: ",", with: "."))
         }
-        return Double(trimmed)
+        return formatter.number(from: trimmed)?.doubleValue ?? Double(trimmed)
     }
 
-    private static let decimalFormatter: NumberFormatter = {
+    /// Renders with the same locale `parseDecimal` reads with, so opening
+    /// and re-saving a food never changes its values.
+    static func formatDecimal(_ value: Double, locale: Locale = .current) -> String {
+        decimalFormatter(locale).string(from: NSNumber(value: value)) ?? String(value)
+    }
+
+    private static func decimalFormatter(_ locale: Locale) -> NumberFormatter {
         let f = NumberFormatter()
         f.numberStyle = .decimal
-        f.locale = .current
+        f.locale = locale
+        f.usesGroupingSeparator = false
+        f.maximumFractionDigits = 2
         return f
-    }()
+    }
 
     var body: some View {
         NavigationStack {
@@ -111,7 +153,13 @@ struct CustomFoodEditorSheet: View {
                 } header: {
                     Text("Per 100 g")
                 } footer: {
-                    Text("Enter the nutrition values per 100 grams of this food. Portion math at log time scales these up or down automatically.")
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        Text("Enter the nutrition values per 100 grams of this food. Portion math at log time scales these up or down automatically.")
+                        if let rangeProblem {
+                            Text(rangeProblem)
+                                .foregroundStyle(AppColor.warning)
+                        }
+                    }
                 }
 
                 Section {
@@ -160,7 +208,7 @@ struct CustomFoodEditorSheet: View {
             .glassFormStyle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", action: onCancel)
+                    DiscardChangesCancelButton(hasChanges: hasChanges, onCancel: onCancel)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: commit)
@@ -187,8 +235,10 @@ struct CustomFoodEditorSheet: View {
         // `.onAppear` fires once per presentation, where `.task` would
         // re-run on every observation cycle and clobber the user's
         // in-progress edits when DataStore publishes a change.
+        .interactiveDismissDisabled(hasChanges)
         .onAppear {
             hydrate(from: initial, showZeros: isEditing)
+            openedFields = fields
             if let autoFillQuery {
                 aiQuery = autoFillQuery
                 Task { await fill(fromText: autoFillQuery) }
@@ -201,6 +251,11 @@ struct CustomFoodEditorSheet: View {
         .sheet(isPresented: Binding(get: { pendingFill != nil && !AIDataConsent.isGranted },
                                     set: { if !$0 { resumePendingFill() } })) {
             AIConsentSheet(whatIsSent: "The food you type, or the photo of its package.")
+        }
+        .sheet(isPresented: $showScanLimitPaywall) {
+            PaywallView(source: .mealScanLimit)
+                .environment(dataStore)
+                .liquidGlassPresentation()
         }
     }
 
@@ -280,8 +335,14 @@ struct CustomFoodEditorSheet: View {
         }
     }
 
+    /// A photo fill is a paid vision scan, so it spends the same weekly
+    /// allowance as a meal photo.
     private func fill(fromPhoto item: PhotosPickerItem) async {
         defer { aiPhoto = nil }
+        guard MealScanQuota.remainingThisWeek(isPro: storeService.isProUser) != 0 else {
+            showScanLimitPaywall = true
+            return
+        }
         guard let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) else {
             failFill(MealScannerService.ScanError.invalidResponse)
             return
@@ -297,9 +358,11 @@ struct CustomFoodEditorSheet: View {
         guard !isFilling else { return }
         startFill()
         do {
-            applyFill(try await MealScannerService.shared.smartScan(
+            let scan = try await MealScannerService.shared.smartScan(
                 image: image, hint: "A packaged food or its nutrition label, being added to the user's food library.",
-                corrections: ScanCorrectionMemory.shared.recent))
+                corrections: ScanCorrectionMemory.shared.recent)
+            if !scan.items.isEmpty, !storeService.isProUser { MealScanQuota.recordSuccessfulScan() }
+            applyFill(scan)
         } catch {
             failFill(error)
         }
@@ -323,7 +386,8 @@ struct CustomFoodEditorSheet: View {
 
     private func failFill(_ error: Error) {
         isFilling = false
-        fillError = error.localizedDescription
+        fillError = (error as? LocalizedError)?.errorDescription
+            ?? String(localized: "Couldn't fill this food in. Check your connection and try again.")
         Haptics.error()
     }
 
@@ -387,15 +451,12 @@ struct CustomFoodEditorSheet: View {
     /// zero-macro field on an existing food reads as the actual value
     /// instead of a misleading empty placeholder.
     private func formatRequired(_ value: Double) -> String {
-        if value.truncatingRemainder(dividingBy: 1) == 0 {
-            return String(Int(value))
-        }
-        return String(value)
+        Self.formatDecimal(value)
     }
 
     private func commit() {
         let nutrients = ScannedProduct.Nutriments(
-            calories: caloriesValue,
+            calories: caloriesValue ?? 0,
             proteinG: Self.parseDecimal(protein) ?? 0,
             carbsG: Self.parseDecimal(carbs) ?? 0,
             fatG: Self.parseDecimal(fat) ?? 0,
@@ -417,12 +478,7 @@ struct CustomFoodEditorSheet: View {
 
     private func formatOrEmpty(_ value: Double) -> String {
         guard value > 0 else { return "" }
-        // Trim trailing .0 for whole numbers so the field doesn't read
-        // "200.0" when the user entered "200".
-        if value.truncatingRemainder(dividingBy: 1) == 0 {
-            return String(Int(value))
-        }
-        return String(value)
+        return Self.formatDecimal(value)
     }
 
     private func formatOrEmptyOptional(_ value: Double?) -> String {
