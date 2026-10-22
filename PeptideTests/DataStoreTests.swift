@@ -326,13 +326,13 @@ final class DataStoreTests: XCTestCase {
             XCTFail("No incomplete entries in seed data")
             return
         }
-        store.markEntryComplete(entry.id)
+        store.markEntryComplete(entry.id, at: Date())
         XCTAssertEqual(store.entries.first { $0.id == entry.id }?.completed, true)
 
         // WCSession can deliver the same action twice (sendMessage error
         // fallback re-sends via transferUserInfo). The duplicate must not
         // flip the entry back to incomplete.
-        store.markEntryComplete(entry.id)
+        store.markEntryComplete(entry.id, at: Date())
         XCTAssertEqual(store.entries.first { $0.id == entry.id }?.completed, true)
     }
 
@@ -341,12 +341,29 @@ final class DataStoreTests: XCTestCase {
             XCTFail("No incomplete entries in seed data")
             return
         }
-        store.markEntryComplete(entry.id)
+        store.markEntryComplete(entry.id, at: Date())
         store.markEntryIncomplete(entry.id)
         XCTAssertEqual(store.entries.first { $0.id == entry.id }?.completed, false)
 
         store.markEntryIncomplete(entry.id)
         XCTAssertEqual(store.entries.first { $0.id == entry.id }?.completed, false)
+    }
+
+    func test_watchMarkComplete_recordsTapTimeAndUndoClearsIt() {
+        guard let entry = store.entries.first(where: { !$0.completed }) else {
+            XCTFail("No incomplete entries in seed data")
+            return
+        }
+        let tappedAt = Date().addingTimeInterval(-3 * 3600)
+        store.markEntryComplete(entry.id, at: tappedAt)
+        XCTAssertEqual(store.entries.first { $0.id == entry.id }?.actualTime, tappedAt)
+
+        // A duplicate delivery must not overwrite the original tap time.
+        store.markEntryComplete(entry.id, at: Date())
+        XCTAssertEqual(store.entries.first { $0.id == entry.id }?.actualTime, tappedAt)
+
+        store.markEntryIncomplete(entry.id)
+        XCTAssertNil(store.entries.first { $0.id == entry.id }?.actualTime)
     }
 
     // MARK: - Dirty tracking

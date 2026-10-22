@@ -7,7 +7,8 @@ import Foundation
 final class WatchSyncService: NSObject {
     static let shared = WatchSyncService()
 
-    var onMarkComplete: ((UUID, UUID) -> Void)?
+    /// Receives the entry, its protocol and when the user tapped.
+    var onMarkComplete: ((UUID, UUID, Date) -> Void)?
     var onMarkIncomplete: ((UUID, UUID) -> Void)?
     /// Callback fired when the watch logs water. Receives the
     /// ounces amount and when the user tapped; the phone-side handler
@@ -274,7 +275,9 @@ extension WatchSyncService: WCSessionDelegate {
         // reads happen on main — keeps Swift 6 strict-concurrency happy
         // and removes any race with a parent reassigning the callbacks.
         Task { [weak self] in
-            await self?.handleWatchMessage(action: action, entryId: entryId, protocolId: protocolId, messageID: messageID)
+            await self?.handleWatchMessage(
+                action: action, entryId: entryId, protocolId: protocolId, issuedAt: issuedAt, messageID: messageID
+            )
         }
     }
 }
@@ -310,11 +313,14 @@ private extension WatchSyncService {
         onLogWater?(oz, min(issuedAt ?? now, now))
     }
 
-    func handleWatchMessage(action: String, entryId: UUID, protocolId: UUID, messageID: String?) {
+    /// A dose tapped while the phone was away is stamped with the tap
+    /// time, not the delivery time.
+    func handleWatchMessage(action: String, entryId: UUID, protocolId: UUID, issuedAt: Date?, messageID: String?) {
         guard isFirstDelivery(messageID) else { return }
         switch action {
         case WatchMessage.markComplete:
-            onMarkComplete?(entryId, protocolId)
+            let now = Date()
+            onMarkComplete?(entryId, protocolId, min(issuedAt ?? now, now))
         case WatchMessage.markIncomplete:
             onMarkIncomplete?(entryId, protocolId)
         default:

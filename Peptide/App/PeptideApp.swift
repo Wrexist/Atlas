@@ -60,8 +60,8 @@ struct PeptideApp: App {
         _dataStore = State(wrappedValue: MainActor.assumeIsolated {
             MigrationService.shared.migrateIfNeeded()
             let store = DataStore()
-            WatchSyncService.shared.onMarkComplete = { entryId, _ in
-                store.markEntryComplete(entryId)
+            WatchSyncService.shared.onMarkComplete = { entryId, _, takenAt in
+                store.markEntryComplete(entryId, at: takenAt)
             }
             WatchSyncService.shared.onMarkIncomplete = { entryId, _ in
                 store.markEntryIncomplete(entryId)

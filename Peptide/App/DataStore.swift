@@ -508,14 +508,19 @@ final class DataStore {
     /// can happen after the phone already processed the message — so these
     /// only mutate when the entry is actually in the opposite state. A
     /// blind toggle would flip an already-completed dose back to
-    /// incomplete on the duplicate delivery.
-    func markEntryComplete(_ entryId: UUID) {
-        guard entries.first(where: { $0.id == entryId })?.completed == false else { return }
+    /// incomplete on the duplicate delivery. Completion records when the
+    /// dose was taken; undoing it clears that time.
+    func markEntryComplete(_ entryId: UUID, at takenAt: Date) {
+        guard let index = entries.firstIndex(where: { $0.id == entryId }),
+              !entries[index].completed else { return }
+        entries[index].actualTime = takenAt
         toggleEntry(entryId)
     }
 
     func markEntryIncomplete(_ entryId: UUID) {
-        guard entries.first(where: { $0.id == entryId })?.completed == true else { return }
+        guard let index = entries.firstIndex(where: { $0.id == entryId }),
+              entries[index].completed else { return }
+        entries[index].actualTime = nil
         toggleEntry(entryId)
     }
 
