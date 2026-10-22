@@ -495,6 +495,14 @@ jobs:
         # the links again.
         run: python3 scripts/check-store-metadata.py
 
+      - name: Localization gate
+        # A missing or broken translation is not a build error: a missing
+        # key silently renders English, a translation with the wrong
+        # format specifiers crashes or prints garbage, in that language
+        # only. Holds every shipped language to 80% of the UI and every
+        # translation to its key's specifiers.
+        run: python3 scripts/check-localization.py
+
       - name: Colour contrast check
         # The design tokens ship two schemes, and light mode has never been
         # rendered on a device. Contrast is the part of "is it legible" that
