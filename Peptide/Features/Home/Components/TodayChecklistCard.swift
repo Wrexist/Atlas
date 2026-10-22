@@ -122,8 +122,11 @@ struct TodayChecklistCard: View {
     private func detail(_ item: TodayChecklistEngine.Item) -> String {
         switch item {
         case .meals:
-            guard let next = state.nextMeal else {
+            if state.isDone(.meals) {
                 return String(localized: "Breakfast, lunch and dinner logged")
+            }
+            guard let next = state.nextMeal else {
+                return String(localized: "\(state.loggedMainMealCount) of 3 logged")
             }
             return String(localized: "\(state.loggedMainMealCount) of 3 logged · \(next.displayName) next")
         case .training:
@@ -201,7 +204,8 @@ struct LogWeightSheet: View {
                 trainedToday: false,
                 isTrainingDay: true,
                 waterFluidOunces: 40,
-                weightTodayKg: 82.4
+                weightTodayKg: 82.4,
+                currentMeal: .lunch
             ),
             unit: .metric,
             onAction: { _ in }

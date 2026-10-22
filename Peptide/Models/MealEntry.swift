@@ -43,8 +43,8 @@ enum MealCategory: String, Codable, CaseIterable, Identifiable, Sendable {
     /// most don't — picking a sane default saves a tap per log. The
     /// 23:00 dinner→snack boundary is intentionally generous: a 22:15
     /// late dinner is still dinner (audit Meals L15).
-    static func auto(for date: Date) -> MealCategory {
-        let hour = Calendar.current.component(.hour, from: date)
+    static func auto(for date: Date, calendar: Calendar = .current) -> MealCategory {
+        let hour = calendar.component(.hour, from: date)
         switch hour {
         case 4...10:   return .breakfast
         case 11...15:  return .lunch
