@@ -147,18 +147,24 @@ struct FoodLibraryFlow: View {
                 AppColor.background.ignoresSafeArea()
                 content
             }
-            .navigationTitle(phase == .browse ? "Food library" : "Review")
+            .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(phase == .browse ? "Close" : "Back") {
-                        if phase == .browse {
-                            onClose()
-                        } else {
-                            backToBrowse()
-                        }
+                    // Review steps back to the list; the logged screen
+                    // already offers "Log another food", so its toolbar
+                    // action finishes instead.
+                    switch phase {
+                    case .browse:
+                        Button("Close", action: onClose)
+                            .foregroundStyle(AppColor.textSecondary)
+                    case .review:
+                        Button("Back", action: backToBrowse)
+                            .foregroundStyle(AppColor.textSecondary)
+                    case .logged:
+                        Button("Done", action: onClose)
+                            .foregroundStyle(AppColor.textSecondary)
                     }
-                    .foregroundStyle(AppColor.textSecondary)
                 }
                 if phase == .browse {
                     ToolbarItem(placement: .primaryAction) {
@@ -1415,6 +1421,14 @@ struct FoodLibraryFlow: View {
         category = MealCategory.auto(for: logTimestamp())
         phase = .review
         searchFieldFocused = false
+    }
+
+    private var navigationTitle: LocalizedStringKey {
+        switch phase {
+        case .browse: "Food library"
+        case .review: "Review"
+        case .logged: "Logged"
+        }
     }
 
     private func backToBrowse() {
