@@ -22,7 +22,7 @@ struct PeptideListView: View {
     /// should always offer whichever escape actually applies.
     private var noResultsAction: EmptyStateView.Action {
         if viewModel.searchText.isEmpty {
-            return EmptyStateView.Action(title: "Add custom peptide",
+            return EmptyStateView.Action(title: "Add your own compound",
                                          icon: "plus.circle.fill") {
                 showCustomForm = true
             }

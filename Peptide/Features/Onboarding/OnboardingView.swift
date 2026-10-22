@@ -442,7 +442,7 @@ struct OnboardingView: View {
             // If the paywall cover dismissed without onAccept/onDecline
             // firing (system interruption — Siri, call, multi-scene
             // re-layout), advance into the theme picker anyway so the
-            // user isn't stuck on the Ready page tapping "Open Atlas"
+            // user isn't stuck on the Ready page tapping "Enter Atlas"
             // re-triggering the paywall every time (audit code-review
             // #10). The funnel event "paywall_dismissed_externally"
             // lets us distinguish this from user-initiated decline.
@@ -632,7 +632,7 @@ struct OnboardingView: View {
         case Page.welcome:      return "Let's go"
         case Page.disclaimer:   return "I understand"
         case Page.creatorCode:  return hasCreatorCodeToApply ? "Apply" : "Continue"
-        case Page.ready:        return "Open Atlas"
+        case Page.ready:        return "Enter Atlas"
         default:                return "Continue"
         }
     }
