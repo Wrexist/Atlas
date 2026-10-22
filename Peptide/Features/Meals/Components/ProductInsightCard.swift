@@ -71,7 +71,7 @@ struct ProductInsightCard: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .animation(AppAnimation.springSnappy, value: isLoading)
+        .appAnimation(AppAnimation.springSnappy, value: isLoading)
     }
 
     private func portionChips(_ options: [FoodPortionOption]) -> some View {

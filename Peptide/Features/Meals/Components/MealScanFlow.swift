@@ -72,6 +72,9 @@ struct MealScanFlow: View {
     /// Set only for a photo just taken with the LiDAR camera.
     @State private var photoScale: PhotoScale?
     @State private var mealText = ""
+    /// The description behind the current analysis, so a failed
+    /// "Describe a meal" retries the text rather than asking for a photo.
+    @State private var describedMeal: String?
     @State private var draftGeneration = MealScanDraftStore.shared.generation
     @State private var checkedDraft = false
     @State private var discardConfirmation = false
@@ -205,6 +208,7 @@ struct MealScanFlow: View {
             MealDescriptionSheet(text: $mealText) { text in
                 isDescribing = false
                 image = nil
+                describedMeal = text
                 photoScale = nil
                 capturedAtDate = Date()
                 chosenLogDate = nil
@@ -577,7 +581,7 @@ struct MealScanFlow: View {
                 Text("Photo estimates can miss ingredients and portions. Review each item’s calories and amounts before logging.")
                     .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
             }
-            .animation(AppAnimation.springSnappy, value: includedItems.count)
+            .appAnimation(AppAnimation.springSnappy, value: includedItems.count)
         }
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
@@ -613,7 +617,7 @@ struct MealScanFlow: View {
     /// eat" and three rows is bookkeeping nobody asked for.
     private var combineControl: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            Toggle(isOn: $logAsOneMeal.animation(AppAnimation.springSnappy)) {
+            Toggle(isOn: $logAsOneMeal) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Log as one meal")
                         .font(AppFont.subheadline)
@@ -636,6 +640,7 @@ struct MealScanFlow: View {
         }
         .padding(Spacing.lg)
         .glassSurface(cornerRadius: Spacing.cardCornerRadius)
+        .appAnimation(AppAnimation.springSnappy, value: logAsOneMeal)
     }
 
     /// Sits on the photo, where the count belongs — it describes the picture.
@@ -703,12 +708,12 @@ struct MealScanFlow: View {
             title: "Couldn't read this meal",
             message: LocalizedStringKey(errorText ?? String(localized: "Something went wrong. Check your connection and retry.")),
             accent: AppColor.warning,
-            action: canRetryPhoto ? retryAction : newPhotoAction,
-            secondary: canRetryPhoto ? newPhotoAction : nil
+            action: canRetry ? retryAction : newPhotoAction,
+            secondary: canRetry && image != nil ? newPhotoAction : nil
         )
     }
 
-    private var canRetryPhoto: Bool { image != nil && !errorNeedsNewPhoto }
+    private var canRetry: Bool { (image != nil || describedMeal != nil) && !errorNeedsNewPhoto }
 
     private var retryAction: EmptyStateView.Action {
         .init(title: "Retry", icon: "arrow.clockwise") { retryAnalysis() }
@@ -718,20 +723,28 @@ struct MealScanFlow: View {
         .init(title: image == nil ? "Try again" : "Choose another photo", icon: "photo.on.rectangle") { chooseAnotherPhoto() }
     }
 
-    /// Re-runs analysis on the photo already loaded — no need to make the
-    /// user re-pick and re-upload after a transient failure.
+    /// Re-runs analysis on the photo already loaded, or the meal already
+    /// described — no need to re-pick or re-type after a transient failure.
     private func retryAnalysis() {
-        guard let image else { return chooseAnotherPhoto() }
+        let image = image, describedMeal = describedMeal
+        guard image != nil || describedMeal != nil else { return chooseAnotherPhoto() }
         errorText = nil
         phase = .analyzing
         inFlightTask?.cancel()
-        inFlightTask = Task { await runAnalysis(on: image) }
+        inFlightTask = Task {
+            if let image {
+                await runAnalysis(on: image)
+            } else if let describedMeal {
+                await runAnalysis(describing: describedMeal)
+            }
+        }
     }
 
     private func chooseAnotherPhoto() {
         errorText = nil
         errorNeedsNewPhoto = false
         image = nil
+        describedMeal = nil
         photoScale = nil
         selectedItem = nil
         phase = .pickImage
@@ -845,6 +858,7 @@ struct MealScanFlow: View {
             try Task.checkCancellation()
             await MainActor.run {
                 image = ui
+                describedMeal = nil
                 photoScale = nil
                 capturedAtDate = capturedAt
                 chosenLogDate = nil
@@ -872,6 +886,7 @@ struct MealScanFlow: View {
     private func photographed(_ captured: UIImage, scale: PhotoScale?) {
         isShowingCamera = false
         image = captured
+        describedMeal = nil
         photoScale = scale
         capturedAtDate = Date()
         chosenLogDate = nil
