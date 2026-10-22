@@ -294,20 +294,11 @@ struct WorkoutSessionDetailView: View {
                         .frame(width: 20, alignment: .leading)
                         .foregroundStyle(AppColor.textTertiary)
                         .accessibilityLabel("Set \(set.index)")
-                    if set.measurement != nil {
-                        Text(RecapFormat.set(set, unit: unit))
-                            .font(AppFont.callout).foregroundStyle(AppColor.textPrimary)
-                    } else if set.weightKg > 0 {
-                        Text("\(unit.weightLabel(set.weightKg, fractionDigits: 1)) × \(set.reps)")
-                            .font(AppFont.callout)
-                            .foregroundStyle(AppColor.textPrimary)
-                    } else {
-                        Text("^[\(set.reps) rep](inflect: true)")
-                            .font(AppFont.callout)
-                            .foregroundStyle(AppColor.textPrimary)
-                    }
+                    Text(RecapFormat.set(set, unit: unit))
+                        .font(AppFont.callout)
+                        .foregroundStyle(AppColor.textPrimary)
                     if let rpe = set.rpe {
-                        Text("RPE \(rpe, specifier: "%.1f")")
+                        Text("RPE \(rpe.formatted(.number.precision(.fractionLength(0...1))))")
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.textSecondary)
                     }
