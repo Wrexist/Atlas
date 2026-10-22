@@ -205,17 +205,22 @@ struct AtlasProgressView: View {
 
     private func deltaBadge(now: Double, prev: Double) -> some View {
         let delta = Int(((now - prev) * 100).rounded())
-        let improving = delta >= 0
+        let tint = delta > 0 ? AppColor.success : AppColor.textTertiary
+        let symbol = delta > 0 ? "arrow.up.right" : delta < 0 ? "arrow.down.right" : "arrow.right"
+        let sign = delta > 0 ? "+" : "−"
+        let label = delta == 0
+            ? String(localized: "Same as previous 30 days")
+            : String(localized: "\(sign)\(abs(delta)) pts vs previous 30 days")
         return HStack(spacing: Spacing.xxs) {
-            Image(systemName: improving ? "arrow.up.right" : "arrow.down.right")
+            Image(systemName: symbol)
                 .font(AppFont.scaled(11, weight: .bold))
-            Text("\(abs(delta))% vs previous 30 days")
+            Text(label)
                 .font(AppFont.scaled(11, weight: .semibold))
         }
-        .foregroundStyle(improving ? AppColor.success : AppColor.textTertiary)
+        .foregroundStyle(tint)
         .padding(.horizontal, Spacing.sm)
         .padding(.vertical, 4)
-        .background(Capsule().fill((improving ? AppColor.success : AppColor.textTertiary).opacity(0.15)))
+        .background(Capsule().fill(tint.opacity(0.15)))
     }
 
     // MARK: - Shared
@@ -239,14 +244,7 @@ private extension View {
         self
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(AppColor.surfaceSecondary.opacity(0.6))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .stroke(AppColor.glassBorder, lineWidth: 0.5)
-            )
+            .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 }
 
