@@ -230,6 +230,19 @@ final class WatchWorkoutServiceTests: XCTestCase {
         XCTAssertEqual(service.activeSession?.focus?.rest?.sourceSetID, entry.sets[1].id)
     }
 
+    func test_watchSkipRest_slightlyBeforeAPhoneCompletedSet_stillSkips() throws {
+        let entry = start().exercises[0]
+        let completedAt = Date().addingTimeInterval(-5)
+        var set = entry.sets[0]
+        set.completed = true
+        service.updateSet(set, inExerciseEntryID: entry.id, now: completedAt)
+        XCTAssertNotNil(service.activeSession?.focus?.rest)
+
+        service.apply(try request(.skipRest, at: completedAt.addingTimeInterval(-1)))
+
+        XCTAssertNil(service.activeSession?.focus?.rest)
+    }
+
     func test_queuedExtendRest_extendsTheRestTheTapSaw() throws {
         let entry = start().exercises[0]
         let completedAt = Date().addingTimeInterval(-30)
