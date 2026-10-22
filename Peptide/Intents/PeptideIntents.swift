@@ -270,9 +270,47 @@ struct PeptideShortcuts: AppShortcutsProvider {
 
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
+            intent: LogWaterIntent(),
+            phrases: [
+                "Log water in \(.applicationName)",
+                "Add water in \(.applicationName)",
+                "Log a glass of water in \(.applicationName)",
+            ],
+            shortTitle: "Log Water",
+            systemImageName: "drop.fill"
+        )
+        AppShortcut(
+            intent: TodayMacrosIntent(),
+            phrases: [
+                "Show my calories in \(.applicationName)",
+                "How many calories in \(.applicationName)",
+                "Today's nutrition in \(.applicationName)",
+            ],
+            shortTitle: "Today's Nutrition",
+            systemImageName: "fork.knife"
+        )
+        AppShortcut(
+            intent: LogMealIntent(),
+            phrases: [
+                "Log a meal in \(.applicationName)",
+                "Log my food in \(.applicationName)",
+            ],
+            shortTitle: "Log Meal",
+            systemImageName: "fork.knife.circle.fill"
+        )
+        AppShortcut(
+            intent: LogRecipeIntent(),
+            phrases: [
+                "Log a recipe in \(.applicationName)",
+                "Log my recipe in \(.applicationName)",
+            ],
+            shortTitle: "Log Recipe",
+            systemImageName: "list.bullet.rectangle.fill"
+        )
+        AppShortcut(
             intent: LogDoseIntent(),
             phrases: [
-                "Log a \(.applicationName) dose",
+                "Log a dose in \(.applicationName)",
                 "Log my dose in \(.applicationName)",
                 "Mark my peptide complete in \(.applicationName)",
             ],
@@ -307,44 +345,6 @@ struct PeptideShortcuts: AppShortcutsProvider {
             ],
             shortTitle: "Streaks",
             systemImageName: "flame.fill"
-        )
-        AppShortcut(
-            intent: LogWaterIntent(),
-            phrases: [
-                "Log water in \(.applicationName)",
-                "Add water in \(.applicationName)",
-                "Log a glass of water in \(.applicationName)",
-            ],
-            shortTitle: "Log Water",
-            systemImageName: "drop.fill"
-        )
-        AppShortcut(
-            intent: TodayMacrosIntent(),
-            phrases: [
-                "Show my calories in \(.applicationName)",
-                "How many calories in \(.applicationName)",
-                "Today's nutrition in \(.applicationName)",
-            ],
-            shortTitle: "Today's Nutrition",
-            systemImageName: "fork.knife"
-        )
-        AppShortcut(
-            intent: LogMealIntent(),
-            phrases: [
-                "Log a meal in \(.applicationName)",
-                "Log my food in \(.applicationName)",
-            ],
-            shortTitle: "Log Meal",
-            systemImageName: "fork.knife.circle.fill"
-        )
-        AppShortcut(
-            intent: LogRecipeIntent(),
-            phrases: [
-                "Log a \(.applicationName) recipe",
-                "Log my recipe in \(.applicationName)",
-            ],
-            shortTitle: "Log Recipe",
-            systemImageName: "list.bullet.rectangle.fill"
         )
     }
 }
