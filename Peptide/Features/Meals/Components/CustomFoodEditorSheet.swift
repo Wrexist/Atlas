@@ -382,7 +382,8 @@ struct CustomFoodEditorSheet: View {
 
     private func failFill(_ error: Error) {
         isFilling = false
-        fillError = error.localizedDescription
+        fillError = (error as? LocalizedError)?.errorDescription
+            ?? String(localized: "Couldn't fill this food in. Check your connection and try again.")
         Haptics.error()
     }
 

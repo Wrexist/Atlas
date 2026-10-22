@@ -1047,8 +1047,9 @@ struct BarcodeScanFlow: View {
                 BarcodeHaptics.lookupFailure()
             }
         } catch {
+            AppLog.diagnostics.error("Nutrition label OCR failed: \(error.localizedDescription, privacy: .public)")
             await MainActor.run {
-                errorText = error.localizedDescription
+                errorText = "Couldn't read that label. Try a sharper photo of the nutrition panel."
                 phase = .error
                 ocrPickerItem = nil
                 BarcodeHaptics.lookupFailure()
@@ -1102,8 +1103,9 @@ struct BarcodeScanFlow: View {
                     return
                 }
             } catch {
+                AppLog.diagnostics.error("Barcode lookup failed: \(error.localizedDescription, privacy: .public)")
                 await MainActor.run {
-                    errorText = error.localizedDescription
+                    errorText = "Couldn't look up this product. Check your connection and try again."
                     phase = .error
                     BarcodeHaptics.lookupFailure()
                 }
@@ -1218,7 +1220,8 @@ struct BarcodeScanFlow: View {
             }
         } catch {
             await MainActor.run {
-                errorText = error.localizedDescription
+                errorText = (error as? LocalizedError)?.errorDescription
+                    ?? "Couldn't read this package. Check your connection and try again."
                 phase = .error
                 BarcodeHaptics.lookupFailure()
             }

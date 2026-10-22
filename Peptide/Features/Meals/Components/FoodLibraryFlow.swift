@@ -1596,7 +1596,8 @@ struct FoodLibraryFlow: View {
             guard !Task.isCancelled, trimmed == debouncedQuery else { return }
             results = []
             isOffline = false
-            searchError = error.localizedDescription
+            AppLog.diagnostics.error("Food search failed: \(error.localizedDescription, privacy: .public)")
+            searchError = String(localized: "Couldn't search foods. Try again.")
         }
     }
 
@@ -1716,7 +1717,8 @@ struct FoodLibraryFlow: View {
                 searchError = lookupError.errorDescription
             } catch {
                 guard !Task.isCancelled else { return }
-                searchError = error.localizedDescription
+                AppLog.diagnostics.error("Food fetch failed: \(error.localizedDescription, privacy: .public)")
+                searchError = String(localized: "Couldn't load this food. Try again.")
             }
 
         case .recipe(let uuid):

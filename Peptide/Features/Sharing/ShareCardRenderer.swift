@@ -10,13 +10,13 @@ enum ShareCardRenderer {
     enum Failure: LocalizedError {
         case render
         case encoding
-        case write(Error)
+        case write
 
         var errorDescription: String? {
             switch self {
             case .render: "Couldn't render the share card."
             case .encoding: "Couldn't encode the share card as a PNG."
-            case .write(let error): "Couldn't save the share card: \(error.localizedDescription)"
+            case .write: "Couldn't save the share card. Check your free storage and try again."
             }
         }
     }
@@ -38,7 +38,8 @@ enum ShareCardRenderer {
         do {
             try data.write(to: url, options: .atomic)
         } catch {
-            throw Failure.write(error)
+            AppLog.export.error("Share card write failed: \(error.localizedDescription, privacy: .public)")
+            throw Failure.write
         }
         return url
     }
