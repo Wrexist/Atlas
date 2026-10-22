@@ -54,7 +54,7 @@ struct SubscriptionSection: View {
             }
         }
         .manageSubscriptionsSheet(isPresented: $showManageSubscriptions)
-        .alert("Restore Failed", isPresented: Binding(
+        .alert("Restore didn't go through", isPresented: Binding(
             get: { restoreError != nil },
             set: { if !$0 { restoreError = nil } }
         )) {
