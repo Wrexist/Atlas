@@ -138,7 +138,7 @@ final class TodayDayEngineTests: XCTestCase {
             targetValue: nil
         )
         let yesterday = calendar.startOfDay(for: wednesday(12).addingTimeInterval(-86_400))
-        let entries = [HabitEntry(habitId: habit.id, date: yesterday)]
+        let entries = [HabitEntry(habitId: habit.id, date: yesterday, calendar: calendar)]
 
         let onYesterday = HabitsHeroSnapshot.build(
             activeHabits: [habit], entries: entries, on: yesterday, calendar: calendar
@@ -166,8 +166,8 @@ final class TodayDayEngineTests: XCTestCase {
         let monday = calendar.date(byAdding: .day, value: -2, to: missedDay)!
         let thursday = calendar.date(byAdding: .day, value: 1, to: missedDay)!
         let entries = [
-            HabitEntry(habitId: habit.id, date: monday),
-            HabitEntry(habitId: habit.id, date: tuesday),
+            HabitEntry(habitId: habit.id, date: monday, calendar: calendar),
+            HabitEntry(habitId: habit.id, date: tuesday, calendar: calendar),
         ]
 
         let browsed = HabitsHeroSnapshot.build(

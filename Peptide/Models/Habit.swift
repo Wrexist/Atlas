@@ -204,13 +204,16 @@ struct HabitEntry: Codable, Identifiable, Hashable, Sendable {
         habitId: UUID,
         date: Date,
         value: Int = 1,
-        notes: String? = nil
+        notes: String? = nil,
+        calendar: Calendar = .current
     ) {
         self.id = id
         self.habitId = habitId
         // Honor the documented start-of-day contract so a caller that
         // forgets to normalize can't create duplicate same-day entries.
-        self.date = Calendar.current.startOfDay(for: date)
+        // Takes the reader's calendar so the day matches the one
+        // `HabitsService` later buckets it into.
+        self.date = calendar.startOfDay(for: date)
         self.value = value
         self.notes = notes
     }
