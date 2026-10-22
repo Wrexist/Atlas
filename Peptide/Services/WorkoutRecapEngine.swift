@@ -32,9 +32,12 @@ enum WorkoutRecapEngine {
         var role: Role { contributions.contains { $0.role == .primary } ? .primary : .supporting }
         var setCount: Int { Set(contributions.flatMap { $0.sets.map(\.id) }).count }
         /// `name` is a raw dataset muscle or, for custom exercises, a
-        /// `MuscleGroup` raw value; this reads the way exercise detail does.
+        /// `MuscleGroup` raw value (lowercased by `derive`, so matched
+        /// without case); this reads the way exercise detail does.
         var displayName: String {
-            if let group = MuscleGroup(rawValue: name) { return group.displayName }
+            if let group = MuscleGroup.allCases.first(where: { $0.rawValue.lowercased() == name.lowercased() }) {
+                return group.displayName
+            }
             switch name.lowercased() {
             case "quadriceps": return "Quads"
             case "abdominals": return "Abs"

@@ -117,6 +117,15 @@ final class WorkoutRecapTests: XCTestCase {
         XCTAssertEqual(summary.entries.first?.name, "Custom exercise")
     }
 
+    func test_customExerciseCamelCaseGroup_readsAsGroupDisplayName() {
+        let custom = CustomExercise(name: "Complex", primaryMuscles: ["fullBody"]).asExercise()
+        let set = SetEntry(index: 1, weightKg: 20, reps: 10, completed: true)
+        let entry = WorkoutExerciseEntry(exerciseID: custom.id, index: 0, sets: [set])
+        let summary = WorkoutRecapEngine.derive(WorkoutSession(finishedAt: Date(), exercises: [entry]),
+                                                catalog: [custom.id: custom])
+        XCTAssertEqual(summary.muscles.map(\.displayName), ["Full Body"])
+    }
+
     func test_warmupOnlyUnfinishedAndTimedHaveNoInventedVolume() {
         var session = WorkoutRecapFixture.push()
         for e in session.exercises.indices {
