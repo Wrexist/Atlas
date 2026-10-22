@@ -204,9 +204,7 @@ private struct WorkoutClock: View {
     var body: some View {
         Group {
             if let paused = entry.pausedElapsed {
-                Text(Duration.seconds(paused).formatted(
-                    .time(pattern: paused >= 3600 ? .hourMinuteSecond : .minuteSecond)
-                ))
+                Text(Self.frozenTime(paused))
             } else if let start = entry.clockStart {
                 Text(start, style: .timer)
             }
@@ -215,6 +213,13 @@ private struct WorkoutClock: View {
         .monospacedDigit()
         .lineLimit(1)
         .minimumScaleFactor(0.6)
+    }
+
+    /// H:MM:SS from the first hour on, M:SS before it, like the running timer.
+    static func frozenTime(_ seconds: Int) -> String {
+        Duration.seconds(seconds).formatted(
+            .time(pattern: seconds >= 3600 ? .hourMinuteSecond : .minuteSecond)
+        )
     }
 }
 
@@ -457,7 +462,7 @@ private struct RectangularTrainingView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Label(entry.isActive ? LocalizedStringKey("Workout") : "This week", systemImage: trainingGlyph)
+            Label(headline, systemImage: entry.pausedElapsed == nil ? trainingGlyph : "pause.fill")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .widgetAccentable()
@@ -471,6 +476,11 @@ private struct RectangularTrainingView: View {
         }
         .lineLimit(1)
     }
+
+    private var headline: LocalizedStringKey {
+        guard entry.isActive else { return "This week" }
+        return entry.pausedElapsed == nil ? "Workout" : "Paused"
+    }
 }
 
 private struct InlineTrainingView: View {
@@ -480,7 +490,7 @@ private struct InlineTrainingView: View {
         if entry.isActive {
             Label {
                 if let paused = entry.pausedElapsed {
-                    Text("Paused at \(Duration.seconds(paused).formatted(.time(pattern: .minuteSecond)))")
+                    Text("Paused at \(WorkoutClock.frozenTime(paused))")
                 } else if let start = entry.clockStart {
                     Text("Workout \(Text(start, style: .timer))")
                 }
