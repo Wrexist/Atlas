@@ -132,7 +132,7 @@ struct WeeklySummaryHeroCard: View {
     private var emptyCard: some View {
         messageCard(
             title: "Your weekly recap will appear here",
-            message: "Log workouts, meals or a check-in on a few more days and your recap appears here."
+            message: "Log workouts, meals or a check-in on a few more days to unlock it."
         )
     }
 
