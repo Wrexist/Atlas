@@ -152,9 +152,11 @@ final class DataStore {
 
         // Phase 2: self is fully initialized — safe to call methods.
         if repo.isInoperable {
-            self.lastError = "Storage unavailable — please reinstall the app to restore data persistence."
+            // Never advise reinstalling: deleting the app erases any data
+            // that hasn't reached iCloud yet.
+            self.lastError = String(localized: "Atlas can't open its storage. Restart the app; if this keeps happening, contact support before deleting the app.")
         } else if repo.isUsingFallbackStore {
-            self.lastError = "Storage unavailable — changes won't be saved between launches."
+            self.lastError = String(localized: "Storage unavailable — changes won't be saved between launches.")
         }
         // Cold launch loads only the recent entry window synchronously —
         // every first-frame surface (Today, calendar month, 13-week
@@ -488,6 +490,7 @@ final class DataStore {
         guard let index = entries.firstIndex(where: { $0.id == entryId }) else { return }
         let becoming = !entries[index].completed
         entries[index].completed.toggle()
+        if !becoming { entries[index].actualTime = nil }
         save()
         Haptics.impact(becoming ? .light : .soft)
         // Live Activity reconciliation: when the user marks a dose
@@ -497,8 +500,18 @@ final class DataStore {
         if becoming {
             DoseLiveActivityService.shared.markCompleted(entryId)
         } else {
-            DoseLiveActivityService.shared.reconcile(entries: entries)
+            reconcileDoseLiveActivities()
         }
+    }
+
+    /// Starts and ends lock-screen dose activities for active protocols
+    /// only — the same set `todayEntries` shows — so a paused or
+    /// completed protocol's dose never raises a "Time for X" activity.
+    func reconcileDoseLiveActivities() {
+        let activeIds = Set(activeProtocols.map(\.id))
+        DoseLiveActivityService.shared.reconcile(
+            entries: entries.filter { activeIds.contains($0.protocolId) }
+        )
     }
 
     /// Idempotent completion setters for externally delivered commands
@@ -508,14 +521,18 @@ final class DataStore {
     /// can happen after the phone already processed the message — so these
     /// only mutate when the entry is actually in the opposite state. A
     /// blind toggle would flip an already-completed dose back to
-    /// incomplete on the duplicate delivery.
-    func markEntryComplete(_ entryId: UUID) {
-        guard entries.first(where: { $0.id == entryId })?.completed == false else { return }
+    /// incomplete on the duplicate delivery. Completion records when the
+    /// dose was taken; undoing it clears that time.
+    func markEntryComplete(_ entryId: UUID, at takenAt: Date) {
+        guard let index = entries.firstIndex(where: { $0.id == entryId }),
+              !entries[index].completed else { return }
+        entries[index].actualTime = takenAt
         toggleEntry(entryId)
     }
 
     func markEntryIncomplete(_ entryId: UUID) {
-        guard entries.first(where: { $0.id == entryId })?.completed == true else { return }
+        guard let index = entries.firstIndex(where: { $0.id == entryId }),
+              entries[index].completed else { return }
         toggleEntry(entryId)
     }
 
@@ -541,8 +558,8 @@ final class DataStore {
 
     /// Removes a previously-logged dose — flips `completed` back to false
     /// AND clears the `actual*` capture fields so a future re-log starts
-    /// from a clean slate. `toggleEntry` only flips completion, which
-    /// leaves stale `actualDose`/`actualTime`/`injectionSite`/`notes`
+    /// from a clean slate. `toggleEntry` only flips completion and clears
+    /// `actualTime`, which leaves stale `actualDose`/`injectionSite`/`notes`
     /// behind that the next render would have to ignore. Surfaces the
     /// Live Activity reconcile so a lock-screen dose that's now no
     /// longer logged returns to its pre-completion state.
@@ -563,7 +580,7 @@ final class DataStore {
         )
         save()
         Haptics.warning()
-        DoseLiveActivityService.shared.reconcile(entries: entries)
+        reconcileDoseLiveActivities()
     }
 
     func protocolsContaining(peptideId: UUID) -> [PeptideProtocol] {
@@ -1356,7 +1373,7 @@ final class DataStore {
 
     // MARK: - Travel mode
 
-    /// Shifts every active protocol's preferred dose times by the
+    /// Shifts every non-completed protocol's preferred dose times by the
     /// timezone delta. Use when the user opts to translate their
     /// schedule to local clock after a flight. Also acknowledges
     /// the new timezone so the prompt won't re-fire on the next
@@ -1364,8 +1381,8 @@ final class DataStore {
     /// the new times reflect immediately on the Home + Lifestyle
     /// tabs, and re-schedules notifications via the standard save
     /// path.
-    func applyTravelShift(toTimezone identifier: String, hoursDelta: Int) {
-        TravelModeLogic.shiftProtocolTimes(in: &protocols, byHours: hoursDelta)
+    func applyTravelShift(toTimezone identifier: String, minutesDelta: Int) {
+        TravelModeLogic.shiftProtocolTimes(in: &protocols, byMinutes: minutesDelta)
         TravelModeLogic.acknowledgeTimezoneChange(in: &profile, to: identifier)
         regenerateTodayEntries()
         save()
@@ -1683,6 +1700,7 @@ final class DataStore {
             Task { await HealthKitService.shared.deleteWorkout(id: id) }
         }
         PRDetectionEngine.shared.recompute(exerciseIDs: affectedExercises)
+        WorkoutSessionService.shared.invalidatePreviousSetCache()
         cacheVersion &+= 1
         // Same reason as `recordWorkoutFinished`: a repo-level write is
         // invisible to the property observers, so derived snapshots need
@@ -1752,6 +1770,7 @@ final class DataStore {
     /// Editing changes derived records and totals, but earns no second reward.
     func workoutWasEdited(exerciseIDs: Set<String>) {
         PRDetectionEngine.shared.recompute(exerciseIDs: exerciseIDs)
+        WorkoutSessionService.shared.invalidatePreviousSetCache()
         cacheVersion &+= 1
         revision &+= 1
         updateWidgetData()
@@ -2320,7 +2339,7 @@ final class DataStore {
     /// Banner copy for a transient live-save failure. Kept as a
     /// constant so `performSaveNow` can both set and clear exactly
     /// this message without disturbing other `lastError` states.
-    static let saveFailureMessage = "Couldn't save your latest changes — your device may be low on storage."
+    static let saveFailureMessage = String(localized: "Couldn't save your latest changes — your device may be low on storage.")
 
     // MARK: - Ephemeral / screenshot mode
 
@@ -2520,7 +2539,8 @@ final class DataStore {
             measurementUnit: profile.bodyMetrics.unit.rawValue,
             vitals: watchVitals,
             workout: watchWorkout,
-            training: WatchWorkoutSnapshotBuilder.training(from: repo.loadWorkoutSessions(limit: 30))
+            training: WatchWorkoutSnapshotBuilder.training(from: repo.loadWorkoutSessions(limit: 30)),
+            hapticsEnabled: profile.hapticFeedbackEnabled
         )
     }
 

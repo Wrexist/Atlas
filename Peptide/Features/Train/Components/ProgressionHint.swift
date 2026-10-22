@@ -14,7 +14,7 @@ struct ProgressionHint: View {
             Image(systemName: symbolName)
                 .foregroundStyle(AppColor.accentPrimary)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text("Today: \(target)")
                     .font(AppFont.callout.weight(.semibold))
                     .foregroundStyle(AppColor.textPrimary)
@@ -41,14 +41,14 @@ struct ProgressionHint: View {
 
     private var target: String {
         suggestion.weightKg > 0
-            ? "\(unit.weightValue(suggestion.weightKg, fractionDigits: 0...1)) \(unit.weightSuffix) × \(suggestion.reps)"
+            ? "\(unit.weightValue(suggestion.weightKg, fractionDigits: 0...2)) \(unit.weightSuffix) × \(suggestion.reps)"
             : "\(suggestion.reps) reps"
     }
 
     private var symbolName: String {
         switch suggestion.reason {
         case .addWeight: return "arrow.up.circle.fill"
-        case .addRep: return "plus.circle.fill"
+        case .addRep, .reachRange: return "plus.circle.fill"
         case .repeatLoad: return "equal.circle.fill"
         }
     }
@@ -57,6 +57,7 @@ struct ProgressionHint: View {
         switch suggestion.reason {
         case .addWeight: return String(localized: "Every set hit its reps last time, so add weight.")
         case .addRep: return String(localized: "Same weight, one more rep than last time.")
+        case .reachRange: return String(localized: "Same weight, aim for the bottom of the rep range.")
         case .repeatLoad: return String(localized: "Repeat last time's weight until every set hits its reps.")
         }
     }

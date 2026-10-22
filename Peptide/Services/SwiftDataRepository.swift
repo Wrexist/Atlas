@@ -67,6 +67,12 @@ final class SwiftDataRepository {
             return
         }
         #endif
+        // Hosted unit tests never open the user's on-disk / CloudKit store.
+        if ProcessInfo.processInfo.isRunningUnitTests {
+            container = Self.makeInMemoryContainer()
+            isInoperable = container == nil
+            return
+        }
         let token = FileManager.default.ubiquityIdentityToken
         lastObservedIdentityToken = token
         let iCloudAvailable = token != nil
@@ -1094,8 +1100,15 @@ final class SwiftDataRepository {
             predicate: #Predicate { $0.exerciseID == id }
         )
         do {
-            if let existing = try context.fetch(descriptor).first {
+            let rows = try context.fetch(descriptor)
+            if let existing = rows.first {
                 existing.update(from: record)
+                // CloudKit can't enforce a unique exerciseID; collapse
+                // rows another device synced so the store self-heals.
+                // Callers pass a record merged from every row.
+                for duplicate in rows.dropFirst() {
+                    context.delete(duplicate)
+                }
             } else {
                 context.insert(StoredPersonalRecord.make(from: record))
             }

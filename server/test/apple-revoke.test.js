@@ -34,13 +34,15 @@ const BASE_ENV = {
   KV_REST_API_TOKEN: undefined,
 };
 
-function stubApple(t, { tokenStatus = 200, revokeStatus = 200 } = {}) {
+const APPLE_TOKENS = { refresh_token: 'r-token', access_token: 'a-token' };
+
+function stubApple(t, { tokenStatus = 200, revokeStatus = 200, tokens = APPLE_TOKENS } = {}) {
   const real = globalThis.fetch;
   const calls = [];
   globalThis.fetch = async (url, init) => {
     calls.push({ url, form: new URLSearchParams(init.body) });
     if (url.endsWith('/auth/token')) {
-      return new Response(JSON.stringify({ refresh_token: 'r-token', access_token: 'a-token' }), {
+      return new Response(JSON.stringify(tokens), {
         status: tokenStatus,
         headers: { 'content-type': 'application/json' },
       });
@@ -141,6 +143,13 @@ test('missing Apple key configuration answers 503', async (t) => {
 test('an Apple failure surfaces as 502 and skips the revoke call', async (t) => {
   setEnv(t, BASE_ENV);
   const calls = stubApple(t, { tokenStatus: 400 });
+  assert.equal((await call(makeReq({ authorizationCode: 'c-123' }))).statusCode, 502);
+  assert.equal(calls.length, 1);
+});
+
+test('an exchange that returns no token is refused 502 without a revoke call', async (t) => {
+  setEnv(t, BASE_ENV);
+  const calls = stubApple(t, { tokens: {} });
   assert.equal((await call(makeReq({ authorizationCode: 'c-123' }))).statusCode, 502);
   assert.equal(calls.length, 1);
 });

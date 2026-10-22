@@ -87,6 +87,86 @@ final class WatchDataTests: XCTestCase {
         XCTAssertEqual(updated.vitals, vitals)
     }
 
+    // MARK: - Day rollover and staleness
+
+    private var nutrition: WatchNutritionSnapshot {
+        WatchNutritionSnapshot(caloriesToday: 1800, calorieTarget: 2400, proteinToday: 120,
+                               proteinTarget: 160, mealLoggingStreak: 4, mealEntriesToday: 3)
+    }
+
+    private var workout: WatchWorkoutSnapshot {
+        WatchWorkoutSnapshot(sessionId: UUID(), name: "Push", timerStartedAt: now, pausedElapsedSeconds: nil,
+                             exercises: [], selectedExerciseID: nil, rest: nil)
+    }
+
+    private func fullDay(workout: WatchWorkoutSnapshot? = nil) -> WatchData {
+        WatchData(
+            todayEntries: [entry(completed: true), entry(completed: false)],
+            completedToday: 1, totalToday: 2, lastUpdated: now,
+            currentStreak: 5, nutrition: nutrition, atlasScore: 142, atlasTodayEarned: 6,
+            healthHabitsDone: 2, healthHabitsTotal: 3, trainingHabitsDone: 1, trainingHabitsTotal: 2,
+            vitals: vitals, workout: workout
+        )
+    }
+
+    func test_forDisplay_sameDay_keepsTheDaysProgress() {
+        let shown = fullDay().forDisplay(at: now.addingTimeInterval(60))
+        XCTAssertEqual(shown.totalToday, 2)
+        XCTAssertEqual(shown.completedToday, 1)
+        XCTAssertEqual(shown.atlasTodayEarned, 6)
+        XCTAssertEqual(shown.healthHabitsDone, 2)
+        XCTAssertEqual(shown.nutrition, nutrition)
+    }
+
+    /// After midnight, yesterday's doses must not be listed or tappable,
+    /// and the habit and score counts start the new day at zero.
+    func test_forDisplay_snapshotFromEarlierDay_clearsDayProgressButKeepsTotals() {
+        let shown = fullDay().forDisplay(at: now.addingTimeInterval(24 * 3600))
+        XCTAssertTrue(shown.todayEntries.isEmpty)
+        XCTAssertEqual(shown.completedToday, 0)
+        XCTAssertEqual(shown.totalToday, 0)
+        XCTAssertEqual(shown.atlasTodayEarned, 0)
+        XCTAssertEqual(shown.healthHabitsDone, 0)
+        XCTAssertEqual(shown.trainingHabitsDone, 0)
+        XCTAssertEqual(shown.healthHabitsTotal, 3)
+        XCTAssertEqual(shown.nutrition?.caloriesToday, 0)
+        XCTAssertEqual(shown.nutrition?.calorieTarget, 2400)
+        XCTAssertEqual(shown.currentStreak, 5)
+        XCTAssertEqual(shown.atlasScore, 142)
+        XCTAssertEqual(shown.vitals, vitals)
+    }
+
+    func test_forDisplay_workoutPushedHoursAgo_dropsTheWorkout() {
+        let data = fullDay(workout: workout)
+        XCTAssertNotNil(data.forDisplay(at: now.addingTimeInterval(3600)).workout)
+        XCTAssertNil(data.forDisplay(at: now.addingTimeInterval(WatchData.workoutStaleAfter + 1)).workout)
+    }
+
+    /// The phone refreshes vitals only when its app is opened, so a night
+    /// days old must not be shown as last night. Recovery stays.
+    func test_forDisplay_sleepEndedOverThirtyHoursAgo_dropsOnlyTheSleep() {
+        let data = fullDay()
+        XCTAssertNotNil(data.forDisplay(at: now.addingTimeInterval(WatchData.sleepStaleAfter - 60)).vitals?.sleep)
+        let shown = data.forDisplay(at: now.addingTimeInterval(WatchData.sleepStaleAfter + 60))
+        XCTAssertNil(shown.vitals?.sleep)
+        XCTAssertEqual(shown.vitals?.recoveryScore, 82)
+        XCTAssertEqual(shown.vitals?.measuredAt, now)
+    }
+
+    /// The phone stamps each workout push so the Watch can tell it from an
+    /// older one; the Watch's optimistic copy keeps the push's date.
+    func test_replacingWorkout_stampsOnlyWhenGivenADate() {
+        let later = now.addingTimeInterval(30)
+        XCTAssertEqual(fullDay().replacingWorkout(workout).lastUpdated, now)
+        XCTAssertEqual(fullDay().replacingWorkout(workout, updatedAt: later).lastUpdated, later)
+    }
+
+    func test_decode_payloadWithoutHapticsSetting_decodesWithNil() throws {
+        let json = #"{"todayEntries":[],"completedToday":0,"totalToday":0,"lastUpdated":"2025-10-11T07:00:00Z"}"#
+        let decoded = try decoder.decode(WatchData.self, from: Data(json.utf8))
+        XCTAssertNil(decoded.hapticsEnabled)
+    }
+
     // MARK: - Sleep snapshot
 
     func test_sleepBand_matchesScoreCutPoints() {

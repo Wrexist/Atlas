@@ -23,10 +23,15 @@ enum PendingDoseLogStore {
     /// shared-container call sites.
     static let appGroupSuiteName = AppGroup.identifier
 
-    /// UserDefaults key. The value is a JSON array of
-    /// `PendingLog` so multiple taps queue cleanly when the app
-    /// is fully suspended.
-    private static let inboxKey = "com.peptidesai.app.pendingDoseLogs"
+    /// Each queued log lives under its own key with this prefix, so
+    /// the widget enqueuing and the app draining never read-modify-
+    /// write one shared value — a tap written between the app's read
+    /// and its removal would otherwise be erased.
+    private static let inboxKeyPrefix = "com.peptidesai.app.pendingDoseLog."
+
+    /// The single JSON-array inbox earlier builds wrote; drained once
+    /// so taps queued before an update still land.
+    private static let legacyInboxKey = "com.peptidesai.app.pendingDoseLogs"
 
     /// One queued log. Carries `loggedAt` so when the app drains
     /// the inbox it can stamp the entry's `actualTime` with the
@@ -39,39 +44,39 @@ enum PendingDoseLogStore {
 
     /// Append a log marker to the inbox. Safe to call from any
     /// process that holds the App Group entitlement. Idempotent
-    /// per (entryId, loggedAt) — re-pushing the exact same marker
-    /// is a no-op so a glitchy double-tap doesn't double-log.
+    /// per (entryId, loggedAt) — the key is derived from both, so
+    /// re-pushing the exact same marker overwrites itself and a
+    /// glitchy double-tap doesn't double-log.
     /// Posts a Darwin notification so a foregrounded main app
     /// drains the marker immediately instead of waiting on a
     /// scene-phase transition.
-    static func enqueue(_ log: PendingLog, defaults: UserDefaults? = nil) {
+    static func enqueue(_ pending: PendingLog, defaults: UserDefaults? = nil) {
         let store = defaults ?? sharedDefaults
-        var current = readPending(defaults: store)
-        if !current.contains(log) {
-            current.append(log)
-            write(current, defaults: store)
+        do {
+            store.set(try JSONEncoder().encode(pending), forKey: key(for: pending))
+        } catch {
+            log.error("inbox encode failed; dose tap not queued: \(error.localizedDescription, privacy: .public)")
         }
         postDarwinNotification()
     }
 
-    /// Drains every queued log and returns them in arrival order.
+    /// Drains every queued log and returns them in tap order.
     /// The caller is responsible for applying each one — this
-    /// helper just clears the inbox so a second app launch doesn't
-    /// re-apply the same logs.
+    /// helper removes exactly the keys it read, so a tap enqueued
+    /// mid-drain stays queued for the next pass.
     @discardableResult
     static func drain(defaults: UserDefaults? = nil) -> [PendingLog] {
         let store = defaults ?? sharedDefaults
-        let pending = readPending(defaults: store)
-        guard !pending.isEmpty else { return [] }
-        store.removeObject(forKey: inboxKey)
-        return pending
+        let queued = readQueued(store)
+        queued.keys.forEach { store.removeObject(forKey: $0) }
+        return inTapOrder(queued)
     }
 
     /// Visibility into the inbox without mutating it. Used by
     /// tests and by the live-activity reconcile pass that wants
     /// to skip an entry already queued for logging.
     static func peek(defaults: UserDefaults? = nil) -> [PendingLog] {
-        readPending(defaults: defaults ?? sharedDefaults)
+        inTapOrder(readQueued(defaults ?? sharedDefaults))
     }
 
     // MARK: - Internals
@@ -85,24 +90,38 @@ enum PendingDoseLogStore {
         UserDefaults(suiteName: appGroupSuiteName) ?? .standard
     }
 
-    private static func readPending(defaults: UserDefaults) -> [PendingLog] {
-        guard let data = defaults.data(forKey: inboxKey) else { return [] }
+    private static func key(for pending: PendingLog) -> String {
+        "\(inboxKeyPrefix)\(pending.entryId.uuidString)@\(pending.loggedAt.timeIntervalSinceReferenceDate)"
+    }
+
+    /// Every queued log keyed by the defaults key holding it. A key
+    /// that fails to decode maps to no logs, so draining still clears it.
+    private static func readQueued(_ defaults: UserDefaults) -> [String: [PendingLog]] {
+        var queued: [String: [PendingLog]] = [:]
+        for (key, value) in defaults.dictionaryRepresentation()
+        where key.hasPrefix(inboxKeyPrefix) || key == legacyInboxKey {
+            queued[key] = decode(value as? Data, isLegacy: key == legacyInboxKey)
+        }
+        return queued
+    }
+
+    private static func decode(_ data: Data?, isLegacy: Bool) -> [PendingLog] {
+        guard let data else { return [] }
+        let decoder = JSONDecoder()
         do {
-            return try JSONDecoder().decode([PendingLog].self, from: data)
+            return try isLegacy
+                ? decoder.decode([PendingLog].self, from: data)
+                : [decoder.decode(PendingLog.self, from: data)]
         } catch {
-            // A corrupted inbox means queued dose taps are about to be
+            // A corrupted marker means a queued dose tap is about to be
             // dropped — that must be visible in Console, not silent.
-            log.error("inbox decode failed; dropping queued logs: \(error.localizedDescription, privacy: .public)")
+            log.error("inbox decode failed; dropping queued log: \(error.localizedDescription, privacy: .public)")
             return []
         }
     }
 
-    private static func write(_ logs: [PendingLog], defaults: UserDefaults) {
-        do {
-            defaults.set(try JSONEncoder().encode(logs), forKey: inboxKey)
-        } catch {
-            log.error("inbox encode failed; dose tap not queued: \(error.localizedDescription, privacy: .public)")
-        }
+    private static func inTapOrder(_ queued: [String: [PendingLog]]) -> [PendingLog] {
+        Set(queued.values.joined()).sorted { $0.loggedAt < $1.loggedAt }
     }
 
     /// Posts a Darwin notification on the inbox name so observers in

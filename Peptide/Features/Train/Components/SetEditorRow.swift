@@ -24,13 +24,16 @@ struct SetEditorRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .callout) private var inputHeight: CGFloat = 48
+    @ScaledMetric(relativeTo: .callout) private var compactWeightWidth: CGFloat = 60
+    @ScaledMetric(relativeTo: .callout) private var compactRepsWidth: CGFloat = 48
+    @ScaledMetric(relativeTo: .callout) private var compactInputHeight: CGFloat = Spacing.minimumHitTarget
     @FocusState private var weightFocused: Bool
     @FocusState private var repsFocused: Bool
     @State private var completionTrigger = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            let rowLayout = focusStyle && dynamicTypeSize.isAccessibilitySize
+            let rowLayout = dynamicTypeSize.isAccessibilitySize
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.sm))
                 : AnyLayout(HStackLayout(spacing: Spacing.sm))
             rowLayout {
@@ -84,7 +87,8 @@ struct SetEditorRow: View {
         if focusStyle {
             Menu {
                 Button(action: toggleWarmup) {
-                    Label(set.isWarmup ? "Mark as working set" : "Mark as warm-up", systemImage: "flame")
+                    Label(set.isWarmup ? "Mark as working set" : "Mark as warm-up",
+                          systemImage: set.isWarmup ? "dumbbell" : "flame")
                 }
                 Button(role: .destructive, action: onDelete) {
                     Label("Delete set", systemImage: "trash")
@@ -116,20 +120,20 @@ struct SetEditorRow: View {
     @ViewBuilder
     private var previousReference: some View {
         if set.isWarmup {
-            Text("Warmup")
+            Text("Warm-up")
                 .font(AppFont.caption)
                 .foregroundStyle(AppColor.streak)
         } else if let prev = previousSet {
             Button {
                 fill(from: prev)
             } label: {
-                Text("\(unit.weightValue(prev.weightKg, fractionDigits: 0...1)) × \(prev.reps)")
+                Text("\(unit.weightValue(prev.weightKg, fractionDigits: 0...2)) × \(prev.reps)")
                     .font(AppFont.caption)
                     .foregroundStyle(AppColor.textTertiary)
                     .minimumHitArea()
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text("Previous: \(unit.weightValue(prev.weightKg, fractionDigits: 0...1)) \(unit.weightSpokenUnit) for \(prev.reps) reps"))
+            .accessibilityLabel(Text("Previous: \(unit.weightValue(prev.weightKg, fractionDigits: 0...2)) \(unit.weightSpokenUnit) for \(prev.reps) reps"))
             .accessibilityHint(Text("Fills this set with the same weight and reps"))
         } else {
             Text("—")
@@ -150,7 +154,7 @@ struct SetEditorRow: View {
                         get: { unit.weightForDisplay(set.weightKg) },
                         set: { set.weightKg = SetEntryLimits.clampWeightKg(unit.kilograms(fromDisplayed: $0)) }
                       ),
-                      format: .number.precision(.fractionLength(0...1)))
+                      format: .number.precision(.fractionLength(0...2)))
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.center)
                 .font(AppFont.callout.weight(.semibold))
@@ -158,11 +162,14 @@ struct SetEditorRow: View {
                 .monospacedDigit()
                 .focused($weightFocused)
                 .accessibilityIdentifier("workout-weight-\(set.index)")
+                .accessibilityLabel(Text("Weight for set \(set.index)"))
+                .accessibilityValue(Text("\(unit.weightValue(set.weightKg, fractionDigits: 0...2)) \(unit.weightSpokenUnit)"))
             if focusStyle {
                 Text(unit.weightSuffix).font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
+                    .accessibilityHidden(true)
             }
         }
-            .frame(width: focusStyle ? nil : 60, height: focusStyle ? inputHeight : Spacing.minimumHitTarget)
+            .frame(width: focusStyle ? nil : compactWeightWidth, height: focusStyle ? inputHeight : compactInputHeight)
             .frame(maxWidth: focusStyle ? .infinity : nil)
             .padding(.horizontal, focusStyle ? Spacing.sm : 0)
             .background(
@@ -174,8 +181,6 @@ struct SetEditorRow: View {
                     .stroke(weightFocused ? AppColor.accentPrimary : AppColor.glassBorder,
                             lineWidth: weightFocused ? 1 : 0.5)
             )
-            .accessibilityLabel(Text("Weight for set \(set.index)"))
-            .accessibilityValue(Text("\(unit.weightValue(set.weightKg, fractionDigits: 0...1)) \(unit.weightSpokenUnit)"))
     }
 
     private var repsField: some View {
@@ -192,7 +197,7 @@ struct SetEditorRow: View {
             .monospacedDigit()
             .focused($repsFocused)
             .accessibilityIdentifier("workout-reps-\(set.index)")
-            .frame(width: focusStyle ? nil : 48, height: focusStyle ? inputHeight : Spacing.minimumHitTarget)
+            .frame(width: focusStyle ? nil : compactRepsWidth, height: focusStyle ? inputHeight : compactInputHeight)
             .frame(maxWidth: focusStyle ? .infinity : nil)
             .background(
                 RoundedRectangle(cornerRadius: focusStyle ? Spacing.sheetCornerRadius : Spacing.chipCornerRadius, style: .continuous)

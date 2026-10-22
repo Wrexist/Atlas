@@ -130,7 +130,7 @@ enum OnboardingFunnelTracker {
         let snap = currentSnapshot
         guard snap.completedAt != nil else { return }
         guard let url = destinationURL else { return }
-        guard let payload = try? JSONEncoder().encode(snap) else {
+        guard let payload = try? DrainEndpoint.encoder.encode(snap) else {
             AppLog.onboarding.warning("funnel encode failed; skipping drain")
             return
         }

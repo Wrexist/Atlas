@@ -92,7 +92,10 @@ enum WeeklySummaryNotificationScheduler {
         else {
             return genericBody
         }
-        return String(localized: "\(headline) — tap for the full recap.")
+        return String(
+            localized: "\(headline) — tap for the full recap.",
+            comment: "Weekly recap notification body — value is the week-over-week headline."
+        )
     }
 
     /// Pulls the matching pending request and replaces it with a

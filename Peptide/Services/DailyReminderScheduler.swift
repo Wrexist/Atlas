@@ -18,7 +18,21 @@ enum DailyReminderScheduler {
     nonisolated static let startWorkoutAction = "START_WORKOUT"
     nonisolated static let logWeightAction = "LOG_WEIGHT"
 
+    private static var inFlight: Task<Void, Never>?
+
+    /// Runs after any reconcile already in flight: interleaved remove and
+    /// add steps from two passes could drop the other's reminders.
     static func reconcile(dataStore: DataStore) async {
+        let previous = inFlight
+        let task = Task {
+            await previous?.value
+            await replacePending(dataStore: dataStore)
+        }
+        inFlight = task
+        await task.value
+    }
+
+    private static func replacePending(dataStore: DataStore) async {
         let center = UNUserNotificationCenter.current()
         let stale = await center.pendingNotificationRequests()
             .map(\.identifier)

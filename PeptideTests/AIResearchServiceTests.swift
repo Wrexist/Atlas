@@ -233,6 +233,44 @@ final class AIResearchServiceTests: XCTestCase {
         }
     }
 
+    func test_reply_dailyQuota429_throwsDailyLimitReached() async {
+        MockURLProtocol.handler = { request in
+            (Self.response(for: request, status: 429), Data(#"{"error":{"message":"Daily limit reached","code":"daily_quota"}}"#.utf8))
+        }
+        await XCTAssertThrowsErrorAsyncResearch(try await service.reply(history: [], newUserPrompt: "hi", in: [])) { error in
+            guard case .dailyLimitReached = error as? AIResearchService.ChatError else {
+                return XCTFail("Expected .dailyLimitReached, got \(error)")
+            }
+        }
+    }
+
+    /// The chat view uses `replyStream`, so the daily quota has to be told
+    /// apart on the streaming path too, not only on `reply`.
+    func test_replyStream_dailyQuota429_throwsDailyLimitReached() async {
+        MockURLProtocol.handler = { request in
+            (Self.response(for: request, status: 429), Data(#"{"error":{"message":"Daily limit reached","code":"daily_quota"}}"#.utf8))
+        }
+        do {
+            for try await _ in service.replyStream(history: [], newUserPrompt: "hi", in: []) {}
+            XCTFail("Expected .dailyLimitReached, got a completed stream")
+        } catch {
+            guard case .dailyLimitReached = error as? AIResearchService.ChatError else {
+                return XCTFail("Expected .dailyLimitReached, got \(error)")
+            }
+        }
+    }
+
+    func test_reply_perMinute429_throwsRateLimited() async {
+        MockURLProtocol.handler = { request in
+            (Self.response(for: request, status: 429), Data(#"{"error":{"message":"Too many requests","code":"rate_limited"}}"#.utf8))
+        }
+        await XCTAssertThrowsErrorAsyncResearch(try await service.reply(history: [], newUserPrompt: "hi", in: [])) { error in
+            guard case .rateLimited = error as? AIResearchService.ChatError else {
+                return XCTFail("Expected .rateLimited, got \(error)")
+            }
+        }
+    }
+
     func test_reply_throwsUnauthorisedOn401() async {
         MockURLProtocol.handler = { request in
             (Self.response(for: request, status: 401), Data())

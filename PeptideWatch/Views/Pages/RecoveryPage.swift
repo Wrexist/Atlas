@@ -3,6 +3,8 @@ import SwiftUI
 /// Second page, in the shape of the system Heart Rate app: a heart beating
 /// at the user's resting rate with a ripple on every beat, a live ECG strip
 /// in step with it, the number below, and Recovery and HRV as capsules.
+/// Without a resting heart rate the heart holds still and the strip is
+/// hidden, rather than beating at an invented rate.
 struct RecoveryPage: View {
     let vitals: WatchVitalsSnapshot
     @State private var showsDetail = false
@@ -49,16 +51,16 @@ struct RecoveryPage: View {
         return chips
     }
 
-    private var bpm: Int { vitals.restingHeartRate ?? 60 }
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 4) {
-                PulsingHeart(bpm: bpm, size: 50)
+                PulsingHeart(bpm: vitals.restingHeartRate, size: 50)
                     .frame(maxWidth: .infinity)
-                ECGTrace(bpm: bpm)
-                    .frame(height: 26)
-                    .padding(.bottom, 2)
+                if let bpm = vitals.restingHeartRate {
+                    ECGTrace(bpm: bpm)
+                        .frame(height: 26)
+                        .padding(.bottom, 2)
+                }
 
                 if let hero {
                     VStack(alignment: .leading, spacing: 0) {
@@ -85,11 +87,15 @@ struct RecoveryPage: View {
                     }
                     .entrance(1)
                 }
-                Text("Updated \(vitals.measuredAt, format: .relative(presentation: .named))")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 2)
-                    .entrance(2)
+                // Re-rendered each minute so the age keeps up with the
+                // clock between pushes.
+                TimelineView(.everyMinute) { _ in
+                    Text("Updated \(vitals.measuredAt.formatted(.relative(presentation: .named)))")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.top, 2)
+                .entrance(2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }

@@ -43,23 +43,64 @@ final class MuscleGroupAndEquipmentTests: XCTestCase {
         XCTAssertNil(MuscleGroup.fromRaw("widgets"))
     }
 
+    func test_customExercise_storingGroupRawValue_roundTripsToThatGroup() {
+        for group in MuscleGroup.allCases {
+            let custom = CustomExercise(name: "Custom", primaryMuscles: [group.rawValue])
+            XCTAssertEqual(custom.asExercise().muscleGroup, group, "\(group)")
+        }
+    }
+
     // MARK: - Exercise.muscleGroup
 
-    func test_exercise_muscleGroup_fourPlusMuscles_isFullBody_strength() {
-        let exercise = Exercise(
-            id: "test_compound",
-            name: "Compound",
+    private func lift(
+        primary: [String],
+        secondary: [String],
+        category: Exercise.Category = .strength
+    ) -> Exercise {
+        Exercise(
+            id: "test_lift",
+            name: "Lift",
             force: .pull,
             level: .intermediate,
             mechanic: .compound,
             equipment: "barbell",
-            primaryMuscles: ["lats", "lower back", "glutes", "hamstrings"],
-            secondaryMuscles: ["traps"],
+            primaryMuscles: primary,
+            secondaryMuscles: secondary,
             instructions: [],
-            category: .strength,
+            category: category,
             images: []
         )
+    }
+
+    func test_exercise_muscleGroup_spanningFiveGroups_isFullBody() {
+        // Clean and Press's tags.
+        let exercise = lift(
+            primary: ["shoulders"],
+            secondary: ["abdominals", "calves", "glutes", "hamstrings", "lower back",
+                        "middle back", "quadriceps", "traps", "triceps"]
+        )
         XCTAssertEqual(exercise.muscleGroup, .fullBody)
+    }
+
+    func test_exercise_muscleGroup_squatWithManySecondaries_isLegs() {
+        let squat = lift(primary: ["quadriceps"],
+                         secondary: ["calves", "glutes", "hamstrings", "lower back"])
+        XCTAssertEqual(squat.muscleGroup, .legs)
+    }
+
+    func test_exercise_muscleGroup_barbellRowWithManySecondaries_isBack() {
+        let row = lift(primary: ["middle back"],
+                       secondary: ["biceps", "lats", "shoulders"])
+        XCTAssertEqual(row.muscleGroup, .back)
+    }
+
+    func test_exercise_muscleGroup_olympicLiftSpanningFiveGroups_isFullBody() {
+        let clean = lift(
+            primary: ["hamstrings"],
+            secondary: ["abdominals", "calves", "forearms", "glutes", "lower back", "traps"],
+            category: .olympicWeightlifting
+        )
+        XCTAssertEqual(clean.muscleGroup, .fullBody)
     }
 
     func test_exercise_muscleGroup_stretching_isCardioMobility() {
