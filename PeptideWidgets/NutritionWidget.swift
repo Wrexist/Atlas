@@ -35,6 +35,13 @@ struct NutritionEntry: TimelineEntry {
         return isOver ? "over" : "left"
     }
 
+    /// The ring's figure with its sign: "+300" past the target, so a
+    /// full gauge can't read as 300 left.
+    var signedHeadline: String {
+        let figure = headline.formatted(.number.notation(.compactName))
+        return isOver ? "+\(figure)" : figure
+    }
+
     /// One-line form for the lock screen.
     var budgetLine: LocalizedStringKey {
         if target == 0 { return "\(calories.formatted()) kcal today" }
@@ -297,6 +304,7 @@ private struct SmallNutritionView: View {
             Spacer(minLength: 6)
             CalorieRing(entry: entry)
                 .overlay { CalorieCenter(entry: entry, large: false) }
+                .calorieAccessibility(entry)
                 .aspectRatio(1, contentMode: .fit)
                 .frame(maxWidth: 80, maxHeight: 80)
                 .frame(maxWidth: .infinity)
@@ -317,6 +325,7 @@ private struct MediumNutritionView: View {
             VStack(spacing: 8) {
                 CalorieRing(entry: entry, lineWidth: 9)
                     .overlay { CalorieCenter(entry: entry, large: true) }
+                    .calorieAccessibility(entry)
                     .frame(width: 86, height: 86)
                 HStack(spacing: 10) {
                     if let scan = QuickAction.scanMeal.url {
@@ -380,19 +389,22 @@ private struct CircularNutritionView: View {
         Gauge(value: entry.progress) {
             Image(systemName: "fork.knife")
         } currentValueLabel: {
-            Text(entry.headline.formatted(.number.notation(.compactName)))
+            Text(entry.signedHeadline)
+                .foregroundStyle(entry.isOver ? WidgetPalette.over : Color.primary)
         }
         .gaugeStyle(.accessoryCircular)
         .widgetAccentable()
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityText)
+        .calorieAccessibility(entry)
     }
+}
 
-    /// The compact "1.2K" carries no unit or target when spoken.
-    private var accessibilityText: Text {
-        entry.target > 0
-            ? Text("\(entry.calories) of \(entry.target) calories")
-            : Text("\(entry.calories) calories")
+private extension View {
+    /// Speaks a calorie ring and its centre as one sentence — "300 kcal
+    /// left, 1,450 of 2,200 calories" — instead of loose fragments.
+    func calorieAccessibility(_ entry: NutritionEntry) -> some View {
+        accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(entry.budgetLine))
+            .accessibilityValue(entry.target > 0 ? Text("\(entry.calories) of \(entry.target) calories") : Text(""))
     }
 }
 
