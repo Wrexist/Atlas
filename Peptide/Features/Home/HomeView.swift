@@ -56,7 +56,7 @@ struct HomeView: View {
     /// per-section preference reads in `.onScrollGeometryChange` —
     /// effectively free since the scroll geometry callback is already
     /// firing for the sticky-header progress.
-    @State private var activeJumpAnchor: TodayJumpBar.SectionAnchor? = .doses
+    @State private var activeJumpAnchor: TodayJumpBar.SectionAnchor?
     /// Routes the chip-bar "+ Log" button. The sheet flag controls
     /// the picker; the action enum drives which sheet actually mounts.
     @State private var showQuickLogSheet = false
@@ -199,6 +199,12 @@ struct HomeView: View {
         notificationService.lastReport.hasAnyIssue && !notificationBannerDismissed
     }
 
+    /// Gates both the doses section and its jump chip, so the chip never
+    /// scrolls to a section that isn't rendered.
+    private var showsDoseSection: Bool {
+        !dataStore.protocols.isEmpty && derived.plan != nil
+    }
+
     /// The "At a glance" trio only has meaning once there's a data
     /// source — an active protocol, a Health connection, or a workout
     /// logged this week. Hidden otherwise so a day-0 user isn't met with
@@ -261,7 +267,7 @@ struct HomeView: View {
                     // the tab bar already does that job.
                     TodayJumpBar(
                         activeAnchor: activeJumpAnchor,
-                        showsDoses: !dataStore.protocols.isEmpty,
+                        showsDoses: showsDoseSection,
                         onSelect: { anchor in handleJump(to: anchor, proxy: proxy) },
                         isQuickLogOpen: showQuickLogSheet,
                         quickLogIncludesDose: dataStore.nextDose != nil,
@@ -376,7 +382,7 @@ struct HomeView: View {
                         .sectionAppear(index: 5)
                     }
 
-                    if !dataStore.protocols.isEmpty, let plan = derived.plan {
+                    if showsDoseSection, let plan = derived.plan {
                         // The ONE place doses appear on Today — the
                         // overview card and the timeline leave them out.
                         // The header's Manage button is the labeled
