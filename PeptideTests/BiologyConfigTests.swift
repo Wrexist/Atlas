@@ -114,6 +114,12 @@ final class BiologyConfigTests: XCTestCase {
         XCTAssertEqual(decoded, original)
     }
 
+    func test_encode_keepsHasSeenIntroKey_forOlderBuildDecoders() throws {
+        let data = try JSONEncoder().encode(BiologyConfig.default)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertEqual(json["hasSeenIntro"] as? Bool, false)
+    }
+
     func test_decode_missingKeys_fallsBackToDefaults() throws {
         let data = Data(#"{"visibleBiomarkers":["weight"]}"#.utf8)
         let decoded = try JSONDecoder().decode(BiologyConfig.self, from: data)

@@ -5,7 +5,7 @@ import Foundation
 /// on `UserProfile` so it round-trips with the rest of the
 /// profile through CloudKit / JSON / SwiftData sidecar.
 ///
-/// Decoding is hand-written (see the extension below): a missing
+/// Coding is hand-written (see the extension below): a missing
 /// key falls back to its default and an unknown biomarker raw value
 /// is dropped, so an older build reading a newer profile (or
 /// vice-versa) never fails — a failure here would empty the whole
@@ -70,13 +70,22 @@ struct BiologyConfig: Codable, Hashable, Sendable {
 
 extension BiologyConfig {
     private enum CodingKeys: String, CodingKey {
-        case visibleBiomarkers, hiddenBiomarkers
+        case visibleBiomarkers, hiddenBiomarkers, hasSeenIntro
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         visibleBiomarkers = try Self.decodeBiomarkers(c, .visibleBiomarkers) ?? Biomarker.defaultVisible
         hiddenBiomarkers = try Self.decodeBiomarkers(c, .hiddenBiomarkers) ?? []
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(visibleBiomarkers, forKey: .visibleBiomarkers)
+        try c.encode(hiddenBiomarkers, forKey: .hiddenBiomarkers)
+        // Builds before the tolerant decoder require this key; without it
+        // they fail the whole ProfileExtension and save it back empty.
+        try c.encode(false, forKey: .hasSeenIntro)
     }
 
     /// Decodes raw values and drops any this build doesn't know, so a
