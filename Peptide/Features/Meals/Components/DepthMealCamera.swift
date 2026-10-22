@@ -41,6 +41,12 @@ final class DepthCameraController: UIViewController, AVCapturePhotoCaptureDelega
     /// Keeps the photo and viewfinder upright however the phone is held.
     private var rotation: AVCaptureDevice.RotationCoordinator?
     private let shutter = UIButton(type: .custom)
+    /// Removed in `deinit`, which can't be main-actor isolated.
+    nonisolated(unsafe) private var sessionObservers: [NSObjectProtocol] = []
+
+    deinit {
+        for observer in sessionObservers { NotificationCenter.default.removeObserver(observer) }
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -50,6 +56,24 @@ final class DepthCameraController: UIViewController, AVCapturePhotoCaptureDelega
         view.layer.addSublayer(preview)
         configureSession()
         addControls()
+        observeSession()
+    }
+
+    /// Keeps the shutter in step with the session, so it comes back on
+    /// when an interruption (a call, Split View, another camera app) ends.
+    private func observeSession() {
+        let names: [Notification.Name] = [
+            .AVCaptureSessionDidStartRunning,
+            .AVCaptureSessionDidStopRunning,
+            .AVCaptureSessionWasInterrupted,
+            .AVCaptureSessionInterruptionEnded,
+        ]
+        sessionObservers = names.map { name in
+            NotificationCenter.default.addObserver(forName: name, object: session, queue: .main) { [weak self] _ in
+                guard let self else { return }
+                MainActor.assumeIsolated { self.refreshShutter() }
+            }
+        }
     }
 
     override func viewDidLayoutSubviews() {
@@ -75,7 +99,11 @@ final class DepthCameraController: UIViewController, AVCapturePhotoCaptureDelega
     }
 
     private func configureSession() {
-        guard let device = Self.lidarDevice, let input = try? AVCaptureDeviceInput(device: device) else { return }
+        guard let device = Self.lidarDevice, let input = try? AVCaptureDeviceInput(device: device) else {
+            // Close rather than leave a shutter that can never enable.
+            Task { [weak self] in self?.onCancel?() }
+            return
+        }
         session.beginConfiguration()
         session.sessionPreset = .photo
         if session.canAddInput(input) { session.addInput(input) }
