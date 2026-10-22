@@ -10,11 +10,11 @@ final class WatchSyncService: NSObject {
     /// Receives the entry, its protocol and when the user tapped.
     var onMarkComplete: ((UUID, UUID, Date) -> Void)?
     var onMarkIncomplete: ((UUID, UUID) -> Void)?
-    /// Callback fired when the watch logs water. Receives the
-    /// ounces amount and when the user tapped; the phone-side handler
-    /// routes through `dataStore.logWater` so the widget reload + watch
-    /// sync + HK write all fire for free.
-    var onLogWater: ((Int, Date) -> Void)?
+    /// Callback fired when the watch logs water. Receives the exact
+    /// fluid-ounce amount and when the user tapped; the phone-side
+    /// handler routes through `dataStore.logWater` so the widget reload
+    /// + watch sync + HK write all fire for free.
+    var onLogWater: ((Double, Date) -> Void)?
 
     private let encoder: JSONEncoder = {
         let e = JSONEncoder()
@@ -71,6 +71,7 @@ final class WatchSyncService: NSObject {
         trainingHabitsDone: Int? = nil,
         trainingHabitsTotal: Int? = nil,
         measurementUnit: String? = nil,
+        healthConnected: Bool? = nil,
         vitals: WatchVitalsSnapshot? = nil,
         workout: WatchWorkoutSnapshot? = nil,
         training: WatchTrainingSnapshot? = nil,
@@ -123,6 +124,7 @@ final class WatchSyncService: NSObject {
             trainingHabitsDone: trainingHabitsDone,
             trainingHabitsTotal: trainingHabitsTotal,
             measurementUnit: measurementUnit,
+            healthConnected: healthConnected,
             vitals: vitals,
             workout: workout,
             training: training,
@@ -257,9 +259,11 @@ extension WatchSyncService: WCSessionDelegate {
         }
 
         if action == WatchMessage.logWater {
-            guard let oz = message[WatchMessage.ozKey] as? Int else { return }
+            // Older Watch builds send whole ounces only.
+            guard let fluidOunces = message[WatchMessage.fluidOuncesKey] as? Double
+                    ?? (message[WatchMessage.ozKey] as? Int).map(Double.init) else { return }
             Task { [weak self] in
-                await self?.handleWaterMessage(oz: oz, issuedAt: issuedAt, messageID: messageID)
+                await self?.handleWaterMessage(fluidOunces: fluidOunces, issuedAt: issuedAt, messageID: messageID)
             }
             return
         }
@@ -307,10 +311,10 @@ private extension WatchSyncService {
 
     /// Logged at the tap, never in the future: a water tap queued while the
     /// phone was away still lands on the day it was made.
-    func handleWaterMessage(oz: Int, issuedAt: Date?, messageID: String?) {
+    func handleWaterMessage(fluidOunces: Double, issuedAt: Date?, messageID: String?) {
         guard isFirstDelivery(messageID) else { return }
         let now = Date()
-        onLogWater?(oz, min(issuedAt ?? now, now))
+        onLogWater?(fluidOunces, min(issuedAt ?? now, now))
     }
 
     /// A dose tapped while the phone was away is stamped with the tap

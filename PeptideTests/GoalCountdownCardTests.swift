@@ -91,4 +91,25 @@ final class GoalCountdownCardTests: XCTestCase {
         XCTAssertEqual(daysRemaining(for: oneWeek, now: now), 7)
         XCTAssertEqual(weeksRemaining(for: oneWeek, now: now), 1)
     }
+
+    // MARK: - Visibility
+
+    func test_noGoalDate_isHidden() {
+        XCTAssertFalse(GoalCountdownCard.isShown(goalDate: nil, now: now, calendar: calendar))
+    }
+
+    func test_goalReachedWithinGraceWindow_isShown() {
+        let goal = calendar.date(byAdding: .day, value: -(GoalCountdownCard.reachedGraceDays - 1), to: now)!
+        XCTAssertTrue(GoalCountdownCard.isShown(goalDate: goal, now: now, calendar: calendar))
+    }
+
+    func test_goalReachedPastGraceWindow_isHidden() {
+        let goal = calendar.date(byAdding: .day, value: -GoalCountdownCard.reachedGraceDays, to: now)!
+        XCTAssertFalse(GoalCountdownCard.isShown(goalDate: goal, now: now, calendar: calendar))
+    }
+
+    func test_futureGoalDate_isShown() {
+        let goal = calendar.date(byAdding: .day, value: 30, to: now)!
+        XCTAssertTrue(GoalCountdownCard.isShown(goalDate: goal, now: now, calendar: calendar))
+    }
 }

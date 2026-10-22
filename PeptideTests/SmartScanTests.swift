@@ -212,6 +212,31 @@ final class SmartScanTests: XCTestCase {
         XCTAssertEqual(filled.packageGrams, 1000, "the missing net weight is filled")
     }
 
+    func test_productFillingFromScan_withNoDatabaseNutrition_usesScanPer100g() throws {
+        let scan = try service.parseSmartScan(from: Data(SmartFixtures.product.utf8))
+        let empty = ScannedProduct(barcode: "7394376616228", name: "Barista", brand: "Oatly", imageURL: nil,
+                                   servingSizeText: nil, servingGrams: nil, packageGrams: nil,
+                                   per100g: .zero, nutriScore: nil, novaGroup: nil, fetchedAt: Date(),
+                                   nutritionMissing: true)
+        XCTAssertFalse(empty.hasNutrition)
+
+        let filled = SmartFoodLogic.product(empty, fillingFrom: scan)
+
+        XCTAssertTrue(filled.hasNutrition)
+        XCTAssertEqual(filled.per100g.calories, 59)
+        XCTAssertEqual(filled.per100g.proteinG, 1.1)
+    }
+
+    func test_productFillingFromScan_withDatabaseNutrition_keepsDatabaseValues() throws {
+        let scan = try service.parseSmartScan(from: Data(SmartFixtures.product.utf8))
+        let label = ScannedProduct.Nutriments(calories: 46, proteinG: 1, carbsG: 6.6, fatG: 1.5, fiberG: nil, sugarsG: nil)
+        let known = ScannedProduct(barcode: "7394376616228", name: "Barista", brand: "Oatly", imageURL: nil,
+                                   servingSizeText: nil, servingGrams: nil, packageGrams: nil,
+                                   per100g: label, nutriScore: nil, novaGroup: nil, fetchedAt: Date())
+
+        XCTAssertEqual(SmartFoodLogic.product(known, fillingFrom: scan).per100g, label)
+    }
+
     func test_packagePhoto_becomesReviewableProduct_underScannedBarcode() throws {
         let scan = try service.parseSmartScan(from: Data(SmartFixtures.product.utf8))
         let product = try XCTUnwrap(SmartFoodLogic.product(from: scan, barcode: "7394376616228"))

@@ -115,7 +115,8 @@ struct MealDaySwitcher: View {
     }
 
     /// "Today", "Yesterday", or a short weekday + date. Shared with the
-    /// log buttons so "Add to Yesterday" names the same day the switcher does.
+    /// log buttons (via `inlineTitle`) so "Add to yesterday" names the
+    /// same day the switcher does.
     static func title(for day: Date, calendar: Calendar = .current) -> String {
         if calendar.isDateInToday(day) {
             return String(localized: "Today", comment: "Meals day switcher — the current day")
@@ -124,5 +125,16 @@ struct MealDaySwitcher: View {
             return String(localized: "Yesterday", comment: "Meals day switcher — the previous day")
         }
         return day.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())
+    }
+
+    /// Sentence-case `title` for use mid-sentence: "Add to yesterday".
+    static func inlineTitle(for day: Date, calendar: Calendar = .current) -> String {
+        if calendar.isDateInToday(day) {
+            return String(localized: "today", comment: "Mid-sentence name of the current day, as in “Add to today”")
+        }
+        if calendar.isDateInYesterday(day) {
+            return String(localized: "yesterday", comment: "Mid-sentence name of the previous day, as in “Add to yesterday”")
+        }
+        return title(for: day, calendar: calendar)
     }
 }

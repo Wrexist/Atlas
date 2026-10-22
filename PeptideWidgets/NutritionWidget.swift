@@ -35,6 +35,13 @@ struct NutritionEntry: TimelineEntry {
         return isOver ? "over" : "left"
     }
 
+    /// The ring's figure with its sign: "+300" past the target, so a
+    /// full gauge can't read as 300 left.
+    var signedHeadline: String {
+        let figure = headline.formatted(.number.notation(.compactName))
+        return isOver ? "+\(figure)" : figure
+    }
+
     /// One-line form for the lock screen.
     var budgetLine: LocalizedStringKey {
         if target == 0 { return "\(calories.formatted()) kcal today" }
@@ -85,17 +92,23 @@ struct NutritionTimelineProvider: TimelineProvider {
 
     private func currentEntry() -> NutritionEntry {
         guard let data = WidgetStore.load() else { return .empty }
+        // The intake belongs to the day the app last wrote it. Past
+        // midnight with no app launch it would be yesterday's, so the
+        // widget starts the new day at zero against the same targets.
+        let today = Calendar.current.isDateInToday(data.lastUpdated)
         return NutritionEntry(
             date: .now,
-            calories: data.caloriesToday,
+            calories: today ? data.caloriesToday : 0,
             target: data.calorieTarget,
-            protein: data.proteinToday,
-            carbs: data.carbsToday,
-            fat: data.fatToday,
+            protein: today ? data.proteinToday : 0,
+            carbs: today ? data.carbsToday : 0,
+            fat: today ? data.fatToday : 0,
             proteinTarget: data.proteinTarget,
             carbsTarget: data.carbsTarget,
             fatTarget: data.fatTarget,
-            meals: data.mealsByCategory
+            meals: today ? data.mealsByCategory : data.mealsByCategory.map {
+                WidgetMealSlot(category: $0.category, calories: 0, entryCount: 0)
+            }
         )
     }
 }
@@ -291,6 +304,7 @@ private struct SmallNutritionView: View {
             Spacer(minLength: 6)
             CalorieRing(entry: entry)
                 .overlay { CalorieCenter(entry: entry, large: false) }
+                .calorieAccessibility(entry)
                 .aspectRatio(1, contentMode: .fit)
                 .frame(maxWidth: 80, maxHeight: 80)
                 .frame(maxWidth: .infinity)
@@ -311,6 +325,7 @@ private struct MediumNutritionView: View {
             VStack(spacing: 8) {
                 CalorieRing(entry: entry, lineWidth: 9)
                     .overlay { CalorieCenter(entry: entry, large: true) }
+                    .calorieAccessibility(entry)
                     .frame(width: 86, height: 86)
                 HStack(spacing: 10) {
                     if let scan = QuickAction.scanMeal.url {
@@ -374,10 +389,22 @@ private struct CircularNutritionView: View {
         Gauge(value: entry.progress) {
             Image(systemName: "fork.knife")
         } currentValueLabel: {
-            Text(entry.headline.formatted(.number.notation(.compactName)))
+            Text(entry.signedHeadline)
+                .foregroundStyle(entry.isOver ? WidgetPalette.over : Color.primary)
         }
         .gaugeStyle(.accessoryCircular)
         .widgetAccentable()
+        .calorieAccessibility(entry)
+    }
+}
+
+private extension View {
+    /// Speaks a calorie ring and its centre as one sentence — "300 kcal
+    /// left, 1,450 of 2,200 calories" — instead of loose fragments.
+    func calorieAccessibility(_ entry: NutritionEntry) -> some View {
+        accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(entry.budgetLine))
+            .accessibilityValue(entry.target > 0 ? Text("\(entry.calories) of \(entry.target) calories") : Text(""))
     }
 }
 
@@ -396,6 +423,7 @@ private struct RectangularNutritionView: View {
             Text("P \(entry.protein) · C \(entry.carbs) · F \(entry.fat)")
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
+                .accessibilityLabel(Text("Protein \(entry.protein) grams, carbs \(entry.carbs) grams, fat \(entry.fat) grams"))
             Gauge(value: entry.progress) { EmptyView() }
                 .gaugeStyle(.accessoryLinearCapacity)
         }

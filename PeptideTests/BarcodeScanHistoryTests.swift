@@ -145,7 +145,7 @@ final class BarcodeScanHistoryTests: XCTestCase {
     func test_clear_removesAllRecords() async {
         await history.recordLog(barcode: "A", portion: .grams(100))
         await history.recordLog(barcode: "B", portion: .grams(200))
-        await history.clear()
+        await history.removeAll()
         let a = await history.lastPortion(for: "A")
         let b = await history.lastPortion(for: "B")
         XCTAssertNil(a)

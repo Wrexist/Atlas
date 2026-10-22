@@ -17,6 +17,14 @@ function setEnv(t, vars) {
   });
 }
 
+// Per-minute limits use fixed windows, so two calls that straddle a
+// minute boundary land in different buckets and both pass. Holding the
+// clock mid-minute keeps a "second call is limited" test deterministic.
+function holdClockMidMinute(t) {
+  const now = Math.floor(Date.now() / 60_000) * 60_000 + 30_000;
+  t.mock.timers.enable({ apis: ['Date'], now });
+}
+
 const BASE_ENV = {
   PROXY_SHARED_SECRET: 'test-secret',
   ANTHROPIC_API_KEY: 'test-key',
@@ -87,6 +95,7 @@ function makeRes() {
 
 test('over-RPM weekly-summary request is rejected 429', async (t) => {
   setEnv(t, { ...BASE_ENV, WEEKLY_RPM: '1' });
+  holdClockMidMinute(t);
   const upstream = stubUpstream(t);
 
   const first = makeRes();
@@ -117,6 +126,47 @@ test('oversized parsed body is rejected 413 regardless of content-length', async
 
   assert.equal(res.statusCode, 413);
   assert.equal(upstream.length, 0);
+});
+
+test('no-dose week omits compliance from the model prompt', async (t) => {
+  setEnv(t, BASE_ENV);
+  const upstream = stubUpstream(t);
+
+  const req = makeReq('10.1.0.8', {
+    aggregate: {
+      weekStart: '2026-06-01',
+      compliance: { completed: 0, total: 0, pct: 0 },
+      streak: { current: 0, best: 0 },
+    },
+  });
+  const res = makeRes();
+  await handler(req, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(upstream.length, 1);
+  const prompt = JSON.parse(upstream[0][1].body).messages[0].content;
+  assert.match(prompt, /"weekStart"/);
+  assert.doesNotMatch(prompt, /compliance/);
+});
+
+test('training session days reach the model prompt', async (t) => {
+  setEnv(t, BASE_ENV);
+  const upstream = stubUpstream(t);
+
+  const req = makeReq('10.1.0.9', {
+    aggregate: {
+      weekStart: '2026-06-01',
+      compliance: { completed: 0, total: 0, pct: 0 },
+      training: { sessionDays: 3, note: 'dropped' },
+    },
+  });
+  const res = makeRes();
+  await handler(req, res);
+
+  assert.equal(res.statusCode, 200);
+  const prompt = JSON.parse(upstream[0][1].body).messages[0].content;
+  assert.match(prompt, /"sessionDays": 3/);
+  assert.doesNotMatch(prompt, /dropped/);
 });
 
 function promptAggregate(call) {

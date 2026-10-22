@@ -127,7 +127,7 @@ struct TrainingTimelineProvider: TimelineProvider {
         // in. Past a Monday with no app launch they would be last week's,
         // so the widget starts the new week at zero instead.
         let sameWeek = Calendar.current.isDate(data.lastUpdated, equalTo: .now, toGranularity: .weekOfYear)
-        let start = data.activeWorkoutStartedAt
+        let start = data.activeWorkoutStart(at: .now)
         var pausedElapsed: Int?
         if let start, let pausedAt = data.activeWorkoutPausedAt {
             pausedElapsed = max(0, Int(pausedAt.timeIntervalSince(start) - data.activeWorkoutPausedSeconds))
@@ -154,10 +154,6 @@ struct TrainingTimelineProvider: TimelineProvider {
 
 private let trainingTint = WidgetPalette.training
 private let trainingGlyph = "figure.strengthtraining.traditional"
-
-private func sessionsWord(_ count: Int) -> LocalizedStringKey {
-    count == 1 ? "session" : "sessions"
-}
 
 /// Monday to Sunday, a dot per day: filled where a session finished,
 /// ringed for today, faded for days still to come. The week's rhythm at
@@ -204,9 +200,7 @@ private struct WorkoutClock: View {
     var body: some View {
         Group {
             if let paused = entry.pausedElapsed {
-                Text(Duration.seconds(paused).formatted(
-                    .time(pattern: paused >= 3600 ? .hourMinuteSecond : .minuteSecond)
-                ))
+                Text(Self.frozenTime(paused))
             } else if let start = entry.clockStart {
                 Text(start, style: .timer)
             }
@@ -215,6 +209,13 @@ private struct WorkoutClock: View {
         .monospacedDigit()
         .lineLimit(1)
         .minimumScaleFactor(0.6)
+    }
+
+    /// H:MM:SS from the first hour on, M:SS before it, like the running timer.
+    static func frozenTime(_ seconds: Int) -> String {
+        Duration.seconds(seconds).formatted(
+            .time(pattern: seconds >= 3600 ? .hourMinuteSecond : .minuteSecond)
+        )
     }
 }
 
@@ -240,18 +241,22 @@ private struct SessionCount: View {
     let count: Int
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 4) {
-            Text("\(count)")
-                .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                .monospacedDigit()
-                .foregroundStyle(trainingTint)
-                .contentTransition(.numericText(value: Double(count)))
-                .widgetAccentable()
-            Text(sessionsWord(count))
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+        Text(label)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .contentTransition(.numericText(value: Double(count)))
+            .lineLimit(1)
+    }
+
+    /// Inflected as one phrase so the noun agrees with the count in any
+    /// language, then the count itself set large in the training tint.
+    private var label: AttributedString {
+        var text = AttributedString(localized: "^[\(count) session](inflect: true)")
+        if let number = text.range(of: count.formatted()) {
+            text[number].font = .system(.largeTitle, design: .rounded, weight: .bold).monospacedDigit()
+            text[number].foregroundColor = trainingTint
         }
-        .lineLimit(1)
+        return text
     }
 }
 
@@ -435,6 +440,7 @@ private struct CircularTrainingView: View {
             VStack(spacing: 0) {
                 Image(systemName: entry.pausedElapsed == nil ? trainingGlyph : "pause.fill")
                     .font(.caption)
+                    .accessibilityHidden(true)
                 if entry.isActive {
                     WorkoutClock(entry: entry, font: .caption.weight(.bold))
                         .multilineTextAlignment(.center)
@@ -443,6 +449,7 @@ private struct CircularTrainingView: View {
                     Text("\(entry.workoutsThisWeek)")
                         .font(.system(.title3, design: .rounded, weight: .bold))
                         .contentTransition(.numericText(value: Double(entry.workoutsThisWeek)))
+                        .accessibilityLabel(Text("\(entry.workoutsThisWeek) workouts this week"))
                 }
             }
             .widgetAccentable()
@@ -455,7 +462,7 @@ private struct RectangularTrainingView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Label(entry.isActive ? LocalizedStringKey("Workout") : "This week", systemImage: trainingGlyph)
+            Label(headline, systemImage: entry.pausedElapsed == nil ? trainingGlyph : "pause.fill")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .widgetAccentable()
@@ -469,6 +476,11 @@ private struct RectangularTrainingView: View {
         }
         .lineLimit(1)
     }
+
+    private var headline: LocalizedStringKey {
+        guard entry.isActive else { return "This week" }
+        return entry.pausedElapsed == nil ? "Workout" : "Paused"
+    }
 }
 
 private struct InlineTrainingView: View {
@@ -478,7 +490,7 @@ private struct InlineTrainingView: View {
         if entry.isActive {
             Label {
                 if let paused = entry.pausedElapsed {
-                    Text("Paused at \(Duration.seconds(paused).formatted(.time(pattern: .minuteSecond)))")
+                    Text("Paused at \(WorkoutClock.frozenTime(paused))")
                 } else if let start = entry.clockStart {
                     Text("Workout \(Text(start, style: .timer))")
                 }

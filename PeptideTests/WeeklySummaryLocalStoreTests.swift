@@ -98,7 +98,7 @@ final class WeeklySummaryLocalStoreTests: XCTestCase {
         XCTAssertFalse(profile.weeklySummaryEnabled)
 
         profile.weeklySummaryEnabled = true
-        XCTAssertFalse(WeeklySummaryOptInMigration.apply(to: &profile, defaults: defaults))
+        _ = WeeklySummaryOptInMigration.apply(to: &profile, defaults: defaults)
         XCTAssertTrue(profile.weeklySummaryEnabled)
     }
 
@@ -109,13 +109,50 @@ final class WeeklySummaryLocalStoreTests: XCTestCase {
         XCTAssertTrue(defaults.bool(forKey: WeeklySummaryOptInMigration.defaultsKey))
     }
 
+    func test_optInMigration_optInConfirmedOnAnotherDevice_leavesOptInAlone() {
+        var profile = UserProfile.fresh
+        profile.weeklySummaryEnabled = true
+        profile.weeklySummaryOptInConfirmed = true
+
+        XCTAssertFalse(WeeklySummaryOptInMigration.apply(to: &profile, defaults: defaults))
+        XCTAssertTrue(profile.weeklySummaryEnabled)
+    }
+
+    func test_loadProfile_firstLoadAfterUpgradeWithConfirmedOptIn_keepsOptIn() {
+        var profile = UserProfile.fresh
+        profile.weeklySummaryEnabled = true
+        profile.weeklySummaryOptInConfirmed = true
+        repo.saveProfile(profile)
+        UserDefaults.standard.removeObject(forKey: WeeklySummaryOptInMigration.defaultsKey)
+
+        XCTAssertEqual(repo.loadProfile()?.weeklySummaryEnabled, true)
+    }
+
     func test_optInMigration_afterMarkCompleted_leavesOptInAlone() {
         WeeklySummaryOptInMigration.markCompleted(in: defaults)
         var profile = UserProfile.fresh
         profile.weeklySummaryEnabled = true
 
-        XCTAssertFalse(WeeklySummaryOptInMigration.apply(to: &profile, defaults: defaults))
+        _ = WeeklySummaryOptInMigration.apply(to: &profile, defaults: defaults)
         XCTAssertTrue(profile.weeklySummaryEnabled)
+    }
+
+    func test_optInMigration_enabledAfterResetRan_backfillsConfirmation() {
+        WeeklySummaryOptInMigration.markCompleted(in: defaults)
+        var profile = UserProfile.fresh
+        profile.weeklySummaryEnabled = true
+
+        XCTAssertTrue(WeeklySummaryOptInMigration.apply(to: &profile, defaults: defaults))
+        XCTAssertTrue(profile.weeklySummaryOptInConfirmed)
+        XCTAssertFalse(WeeklySummaryOptInMigration.apply(to: &profile, defaults: defaults))
+    }
+
+    func test_optInMigration_disabledAfterResetRan_reportsNoChange() {
+        WeeklySummaryOptInMigration.markCompleted(in: defaults)
+        var profile = UserProfile.fresh
+
+        XCTAssertFalse(WeeklySummaryOptInMigration.apply(to: &profile, defaults: defaults))
+        XCTAssertFalse(profile.weeklySummaryOptInConfirmed)
     }
 
     // MARK: - Helpers

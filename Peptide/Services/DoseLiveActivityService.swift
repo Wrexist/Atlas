@@ -11,7 +11,6 @@ import UIKit
 ///
 /// Lives in the iOS app target only (not the widget) since it relies
 /// on `Activity<…>.request(...)` which requires app authorisation.
-/// Safe to call on iOS < 16.1 — every entry-point bails early.
 @MainActor
 final class DoseLiveActivityService {
     static let shared = DoseLiveActivityService()
@@ -24,20 +23,8 @@ final class DoseLiveActivityService {
     /// Latest the activity stays alive after the scheduled time
     /// before being auto-dismissed. 90 minutes covers "took it but
     /// didn't open the app" without leaving stale activities for
-    /// hours.
-    private static let stalenessMinutes: Int = 90
-
-    /// In-flight "show Logged for 4s then end" tasks, keyed by entry id.
-    /// Tracked so a subsequent `reconcile` / `endAll` / repeat
-    /// `markCompleted` can cancel a stale closer instead of letting two
-    /// `activity.end(...)` calls race.
-    private var dismissTasks: [UUID: Task<Void, Never>] = [:]
-
-    /// Identity token for the current dismiss task per entry. A task
-    /// re-checks its token after the 4s sleep before calling `end()`:
-    /// once past the sleep, `cancel()` is a no-op, so a `reconcile` or
-    /// a repeat `markCompleted` would otherwise race a second `end()`.
-    private var dismissTokens: [UUID: UUID] = [:]
+    /// hours. Also where `DoseWindowAttributes` closes the window.
+    private static let stalenessMinutes = DoseWindowAttributes.ContentState.windowCloseMinutes
 
     private init() {}
 
@@ -45,46 +32,52 @@ final class DoseLiveActivityService {
 
     /// Reconciles the user's open Activities against `entries`. Starts
     /// new activities for any entry currently in the active window
-    /// without one, and ends activities whose entries are no longer
-    /// in the window or have been deleted. Call on app foreground +
-    /// after every entry mutation.
+    /// without one, moves an open activity's countdown when its entry
+    /// was rescheduled, and ends activities whose entries are no longer
+    /// in the window, have been deleted, or had their peptide or dose
+    /// edited (static attributes can't be updated, so those restart).
+    /// Ending runs even with Live Activities switched off, so a card
+    /// left up when the user disabled them still clears. Call on app
+    /// foreground + after every entry mutation.
     func reconcile(entries: [ProtocolEntry]) {
-        guard #available(iOS 16.1, *), areLiveActivitiesEnabled else { return }
         let now = Date()
         let inWindow = entries.filter { entry in
             Self.isInActiveWindow(entry, at: now)
         }
+        let inWindowByID = Dictionary(inWindow.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
 
-        let inWindowIDs = Set(inWindow.map(\.id))
-        let openActivities = Activity<DoseWindowAttributes>.activities
-
-        // End activities whose entries are no longer in-window or
-        // gone entirely. Cancel any pending dismiss-after-Logged task —
-        // it would call end() a second time once it wakes up.
-        for activity in openActivities where !inWindowIDs.contains(activity.attributes.entryId) {
-            let entryId = activity.attributes.entryId
-            dismissTasks.removeValue(forKey: entryId)?.cancel()
-            // Invalidate the token so a dismiss task already past its
-            // sleep bows out instead of racing this end().
-            dismissTokens.removeValue(forKey: entryId)
-            Task { await activity.end(nil, dismissalPolicy: .immediate) }
+        var openIDs = Set<UUID>()
+        // An ended activity still showing its Logged badge already has a
+        // system-owned dismissal; ending it again would cut the badge.
+        for activity in Activity<DoseWindowAttributes>.activities
+        where [.active, .stale].contains(activity.activityState) {
+            guard let entry = inWindowByID[activity.attributes.entryId],
+                  Self.attributesMatch(activity.attributes, entry) else {
+                Task { await activity.end(nil, dismissalPolicy: .immediate) }
+                continue
+            }
+            openIDs.insert(entry.id)
+            if activity.content.state.doseTime != entry.date {
+                let state = Self.initialState(for: entry)
+                Task { await activity.update(ActivityContent(state: state, staleDate: state.lateBoundary)) }
+            }
         }
 
         // Start activities for in-window entries that don't have one
         // yet. If the user has 4+ open activities (the system soft
         // cap on most devices), skip the rest — better to leave the
         // earliest few than fail silently.
-        let openIDs = Set(openActivities.map(\.attributes.entryId))
+        guard areLiveActivitiesEnabled else { return }
         for entry in inWindow where !openIDs.contains(entry.id) {
             startActivity(for: entry)
         }
     }
 
-    /// Push the `completed = true` content state for the matching
-    /// activity. Doesn't end immediately — the live activity briefly
-    /// shows "Logged" before the next reconcile pass dismisses it.
+    /// Ends the matching activity on its `completed = true` state. The
+    /// system keeps the "Logged" badge up briefly, then dismisses it —
+    /// no app-side timer, so it clears even if the app is suspended.
     func markCompleted(_ entryId: UUID) {
-        guard #available(iOS 16.1, *), areLiveActivitiesEnabled else { return }
+        guard areLiveActivitiesEnabled else { return }
         guard let activity = Activity<DoseWindowAttributes>.activities.first(where: {
             $0.attributes.entryId == entryId
         }) else { return }
@@ -99,41 +92,17 @@ final class DoseLiveActivityService {
             completed: true,
             loggedAt: currentState.loggedAt ?? Date()
         )
-        // Cancel any prior dismiss-after-Logged task for this entry so
-        // we don't double-end, and mint a fresh identity token.
-        dismissTasks.removeValue(forKey: entryId)?.cancel()
-        let token = UUID()
-        dismissTokens[entryId] = token
-        dismissTasks[entryId] = Task { [weak self] in
-            await activity.update(ActivityContent(state: updated, staleDate: nil))
-            // Auto-dismiss after a short confirmation window so the
-            // user sees the "Logged" badge, then the lock screen
-            // clears itself.
-            do {
-                try await Task.sleep(nanoseconds: 4_000_000_000)
-            } catch {
-                return // cancelled — leave the activity for reconcile to clean up
-            }
-            // Past the sleep, cancel() is a no-op — re-check that this
-            // task is still the current one before ending the activity
-            // so a superseding markCompleted / reconcile doesn't race
-            // a second end().
-            guard await self?.dismissTokens[entryId] == token else { return }
-            await activity.end(nil, dismissalPolicy: .immediate)
-            await MainActor.run {
-                self?.dismissTasks.removeValue(forKey: entryId)
-                self?.dismissTokens.removeValue(forKey: entryId)
-                return ()
-            }
+        let dismissAt = Date().addingTimeInterval(DoseWindowAttributes.ContentState.loggedBadgeSeconds)
+        Task {
+            await activity.end(
+                ActivityContent(state: updated, staleDate: nil),
+                dismissalPolicy: .after(dismissAt)
+            )
         }
     }
 
     /// End every open activity. Used on logout / data reset paths.
     func endAll() {
-        guard #available(iOS 16.1, *) else { return }
-        dismissTasks.values.forEach { $0.cancel() }
-        dismissTasks.removeAll()
-        dismissTokens.removeAll()
         for activity in Activity<DoseWindowAttributes>.activities {
             Task { await activity.end(nil, dismissalPolicy: .immediate) }
         }
@@ -141,12 +110,10 @@ final class DoseLiveActivityService {
 
     // MARK: - Internals
 
-    @available(iOS 16.1, *)
     private var areLiveActivitiesEnabled: Bool {
         ActivityAuthorizationInfo().areActivitiesEnabled
     }
 
-    @available(iOS 16.1, *)
     private func startActivity(for entry: ProtocolEntry) {
         let palette = VialPalette.colors(for: entry.peptide.name, category: entry.peptide.category)
         let attributes = DoseWindowAttributes(
@@ -156,22 +123,11 @@ final class DoseLiveActivityService {
             doseDisplay: entry.dose,
             tintHex: Self.hex(of: palette.fill)
         )
-        let windowStart = Calendar.current.date(
-            byAdding: .minute,
-            value: -Self.startLeadMinutes,
-            to: entry.date
-        ) ?? entry.date
-        let initialState = DoseWindowAttributes.ContentState(
-            doseTime: entry.date,
-            windowStart: windowStart,
-            completed: entry.completed
-        )
-        let stale = Calendar.current.date(byAdding: .minute, value: Self.stalenessMinutes, to: entry.date)
-
+        let initialState = Self.initialState(for: entry)
         do {
             _ = try Activity<DoseWindowAttributes>.request(
                 attributes: attributes,
-                content: ActivityContent(state: initialState, staleDate: stale),
+                content: ActivityContent(state: initialState, staleDate: initialState.lateBoundary),
                 pushType: nil
             )
         } catch {
@@ -179,6 +135,29 @@ final class DoseLiveActivityService {
             // don't propagate. The next reconcile pass tries again.
             AppLog.live.error("Live Activity start failed: \(error.localizedDescription, privacy: .public)")
         }
+    }
+
+    private static func initialState(for entry: ProtocolEntry) -> DoseWindowAttributes.ContentState {
+        let windowStart = Calendar.current.date(
+            byAdding: .minute,
+            value: -startLeadMinutes,
+            to: entry.date
+        ) ?? entry.date
+        return DoseWindowAttributes.ContentState(
+            doseTime: entry.date,
+            windowStart: windowStart,
+            completed: entry.completed
+        )
+    }
+
+    /// Whether an open activity still describes `entry`. The tint is
+    /// left out: it is derived from the peptide, and resolving it
+    /// against the current trait collection could differ between
+    /// passes and restart the activity for nothing.
+    static func attributesMatch(_ attributes: DoseWindowAttributes, _ entry: ProtocolEntry) -> Bool {
+        attributes.peptideAbbreviation == entry.peptide.abbreviation
+            && attributes.peptideName == entry.peptide.name
+            && attributes.doseDisplay == entry.dose
     }
 
     /// Pure window math — internal (not private) so the unit tests

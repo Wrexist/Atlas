@@ -63,6 +63,12 @@ final class DataStore {
     @ObservationIgnored private var cacheVersion: Int = 0
     @ObservationIgnored private var versionedDay: Date = Calendar.current.startOfDay(for: Date())
 
+    /// When activation last pulled from HealthKit. A glance at Control
+    /// Center or a Face ID prompt also re-activates the scene, and each
+    /// pull republishes to the Watch and widgets.
+    @ObservationIgnored private var lastHealthRefresh: Date?
+    private static let healthRefreshInterval: TimeInterval = 5 * 60
+
     /// IDs scheduled for delete on the next save. Replaces the
     /// previous "bulk-replace and delete-missing" save path that
     /// silently dropped CloudKit-added records the local in-memory
@@ -84,6 +90,12 @@ final class DataStore {
     @ObservationIgnored private var protocolsNeedSave = false
     @ObservationIgnored private var entriesNeedSave = false
     @ObservationIgnored private var profileNeedsSave = false
+
+    /// The profile as this device last read it from, or wrote it to, the
+    /// store. Saves pass it as the baseline so a column this device
+    /// didn't edit keeps whatever another device synced into it, rather
+    /// than being reverted by in-memory state that predates the import.
+    @ObservationIgnored private var persistedProfile: UserProfile?
 
     @ObservationIgnored private var _todayEntries: (version: Int, value: [ProtocolEntry])?
     @ObservationIgnored private var _currentStreak: (version: Int, value: Int)?
@@ -175,6 +187,10 @@ final class DataStore {
             self.protocols = savedProtocols
             self.entries   = savedEntries
             self.profile   = savedProfile ?? .fresh
+            self.persistedProfile = savedProfile
+            if let savedProfile {
+                HealthSyncSettings.adoptSyncedNutritionFlag(savedProfile.healthKitNutritionEnabled)
+            }
             // Everything above came off disk and is already persisted.
             // A synthesised `.fresh` profile is the exception: there's no
             // row for it yet, so it stays dirty until the first save
@@ -199,6 +215,7 @@ final class DataStore {
             _ = WorkoutLogMigrationService.migrateIfNeeded(profile: &profile, repository: repo)
             if markerWasFalse && profile.workoutLegacyMigrationCompleted {
                 repo.saveProfile(profile)
+                persistedProfile = profile
             }
         } else if seedSampleData {
             // Tests/previews: seed mock data
@@ -263,11 +280,11 @@ final class DataStore {
 
     /// Coalesces CloudKit-import notifications (they fire in bursts
     /// during a sync) into one `reloadFromDisk()`, deferred while a
-    /// debounced local save is still pending — the user's in-memory
+    /// local change hasn't reached the store yet — the user's in-memory
     /// edits win locally and land via their own save; reloading over
     /// them mid-edit would drop keystrokes. If the store never goes
     /// quiet within the retry budget the refresh is skipped; the next
-    /// import event or foreground pass catches up.
+    /// import event catches up.
     @ObservationIgnored private var cloudImportRefreshTask: Task<Void, Never>?
 
     @MainActor
@@ -277,18 +294,25 @@ final class DataStore {
         cloudImportRefreshTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .seconds(2))
             var attempts = 0
-            while !Task.isCancelled, self?.pendingSaveTask != nil, attempts < 10 {
+            while !Task.isCancelled, self?.hasUnsavedChanges == true, attempts < 10 {
                 try? await Task.sleep(for: .seconds(1))
                 attempts += 1
             }
             guard !Task.isCancelled,
                   let self,
-                  self.pendingSaveTask == nil,
+                  !self.hasUnsavedChanges,
                   !self.isEphemeral
             else { return }
             AppLog.persistence.log("CloudKit import finished; refreshing in-memory state")
             self.reloadFromDisk()
         }
+    }
+
+    /// True while an in-memory change hasn't been committed: a debounced
+    /// save is pending, or the last one failed and left state dirty.
+    private var hasUnsavedChanges: Bool {
+        pendingSaveTask != nil || protocolsNeedSave || entriesNeedSave || profileNeedsSave
+            || !pendingProtocolDeletions.isEmpty || !pendingEntryDeletions.isEmpty
     }
 
     @MainActor
@@ -313,6 +337,7 @@ final class DataStore {
         protocols = []
         entries = []
         profile = .fresh
+        WorkoutSessionService.shared.reloadActiveSession()
         // SwiftDataRepository's identity handler swaps the container
         // BEFORE posting the notification, so loadProtocols / etc.
         // here read from the new identity's store. If the new
@@ -501,16 +526,28 @@ final class DataStore {
         entries[index].completed.toggle()
         if !becoming { entries[index].actualTime = nil }
         save()
-        Haptics.impact(becoming ? .light : .soft)
-        // Live Activity reconciliation: when the user marks a dose
-        // taken from the app (or undoes it), push the matching state
-        // into any open lock-screen activity so the countdown stops
-        // and the "Logged" badge appears before auto-dismiss.
         if becoming {
-            DoseLiveActivityService.shared.markCompleted(entryId)
+            doseWasTaken(entries[index])
         } else {
             reconcileDoseLiveActivities()
         }
+    }
+
+    /// A dose just became taken. Pushes that into any open lock-screen
+    /// activity so the countdown stops and the "Logged" badge appears
+    /// before auto-dismiss. One reminder covers every peptide a protocol
+    /// doses at that minute, so its snoozes and its copy in Notification
+    /// Center are withdrawn only once the whole slot is logged.
+    private func doseWasTaken(_ entry: ProtocolEntry) {
+        DoseLiveActivityService.shared.markCompleted(entry.id)
+        let slotLogged = entries
+            .filter {
+                $0.protocolId == entry.protocolId
+                    && Calendar.current.isDate($0.date, equalTo: entry.date, toGranularity: .minute)
+            }
+            .allSatisfy(\.completed)
+        guard slotLogged else { return }
+        Task { await NotificationService.shared.clearReminders(for: entry) }
     }
 
     /// Starts and ends lock-screen dose activities for active protocols
@@ -555,14 +592,15 @@ final class DataStore {
             peptide: existing.peptide,
             date: existing.date,
             dose: existing.dose,
-            notes: notes.isEmpty ? existing.notes : notes,
+            notes: notes,
             completed: true,
-            actualDose: actualDose,
+            actualDose: actualDose?.nilIfEmpty,
             actualTime: actualTime,
             injectionSite: injectionSite
         )
         save()
-        if !wasCompleted { Haptics.success() }
+        // The view that logged the dose plays its own haptic.
+        if !wasCompleted { doseWasTaken(entries[index]) }
     }
 
     /// Removes a previously-logged dose — flips `completed` back to false
@@ -701,9 +739,7 @@ final class DataStore {
             entry.protocolId == id && Calendar.current.isDateInToday(entry.date)
         }
         let toRemove = entries.filter(isToday)
-        let completedToday = toRemove.filter { entry in
-            entry.completed || entry.actualDose != nil || !entry.notes.isEmpty
-        }
+        let completedToday = toRemove.filter(\.isLogged)
         let preservedIds = Set(completedToday.map(\.id))
         pendingEntryDeletions.formUnion(toRemove.filter { !preservedIds.contains($0.id) }.map(\.id))
         // A preserved entry is being kept in `entries`; it must never be
@@ -1064,7 +1100,20 @@ final class DataStore {
         LifestyleDataLogic.logWeight(into: &profile, kg: kg, date: date)
         save()
         guard HealthSyncSettings.isEnabled else { return }
-        Task { await HealthKitService.shared.writeBodyMass(kg: kg, date: date) }
+        enqueueBodyMassHealthWrite { await HealthKitService.shared.writeBodyMass(kg: kg, date: date) }
+    }
+
+    /// Body-mass mirroring is delete-then-save for the day, so two quick
+    /// weigh-ins run concurrently would both delete, then both save and
+    /// leave two samples. Each write waits for the one before it.
+    @ObservationIgnored private var bodyMassHealthWriteTask: Task<Void, Never>?
+
+    private func enqueueBodyMassHealthWrite(_ write: @escaping @Sendable @MainActor () async -> Void) {
+        let previous = bodyMassHealthWriteTask
+        bodyMassHealthWriteTask = Task {
+            await previous?.value
+            await write()
+        }
     }
 
     /// Weight history with at-most-one entry per calendar day.
@@ -1076,44 +1125,30 @@ final class DataStore {
 
     func deleteWeight(id: UUID) {
         let deleted = profile.weightHistory.first { $0.id == id }
+        let wasRecordedImport = repo.isHealthWeightImport(id)
+        repo.dismissHealthWeight(id: id)
         LifestyleDataLogic.deleteWeight(from: &profile, id: id)
         save()
         guard let deleted, HealthSyncSettings.isEnabled else { return }
-        Task { await HealthKitService.shared.deleteBodyMass(onDayOf: deleted.date) }
+        let day = deleted.date
+        if !wasRecordedImport {
+            Task { await self.dismissExternalWeights(onDayOf: day) }
+        }
+        enqueueBodyMassHealthWrite { await HealthKitService.shared.deleteBodyMass(onDayOf: day) }
     }
 
-    func logMeal(calories: Int, proteinG: Int, carbsG: Int, fatG: Int, date: Date = Date()) {
-        LifestyleDataLogic.logMeal(
-            into: &profile,
-            calories: calories,
-            proteinG: proteinG,
-            carbsG: carbsG,
-            fatG: fatG,
-            date: date
-        )
-        save()
+    /// Earlier builds imported Health weigh-ins under random ids, so
+    /// deleting one can't dismiss its sample by id. Dismissing every
+    /// outside sample on that day keeps the next pass from re-importing it.
+    private func dismissExternalWeights(onDayOf day: Date) async {
+        let external = await HealthKitService.shared.externalWeights(days: HealthSyncEngine.importWindowDays)
+        let sameDay = external.filter { Calendar.current.isDate($0.date, inSameDayAs: day) }
+        repo.dismissHealthWeights(ids: Set(sameDay.map(\.id)))
     }
 
-    func unlogMeal(calories: Int, proteinG: Int, carbsG: Int, fatG: Int, date: Date = Date()) {
-        LifestyleDataLogic.unlogMeal(
-            from: &profile,
-            calories: calories,
-            proteinG: proteinG,
-            carbsG: carbsG,
-            fatG: fatG,
-            date: date
-        )
-        save()
-    }
-
-    func logWater(oz: Int, date: Date = Date()) {
-        LifestyleDataLogic.logWater(into: &profile, oz: oz, date: date)
-        save()
-        mirrorWaterToHealth(fluidOunces: Double(oz), date: date)
-    }
-
-    /// Exact-amount water log used by the Meals tab quick-adds. A
-    /// negative amount is the Undo path; the day clamps at zero.
+    /// Exact-amount water log behind every entry point (quick-adds,
+    /// Siri, the Watch, the widget). A negative amount is the Undo
+    /// path; the day clamps at zero.
     func logWater(fluidOunces: Double, date: Date = Date()) {
         LifestyleDataLogic.logWater(into: &profile, fluidOunces: fluidOunces, date: date)
         save()
@@ -1144,7 +1179,7 @@ final class DataStore {
     /// undo, category breakdowns, and a stable identifier you can
     /// hold onto for HealthKit sample mapping.
     ///
-    /// When `healthKitNutritionEnabled` is on, fires a background
+    /// When the meal Health toggle is on, fires a background
     /// HealthKit write tagged with the entry's UUID. The HK write is
     /// fire-and-forget — failures log and disappear because they
     /// shouldn't block the in-app log. Undo removes the matching
@@ -1152,7 +1187,7 @@ final class DataStore {
     func logMealEntry(_ entry: MealEntry) {
         LifestyleDataLogic.logMealEntry(into: &profile, entry: entry)
         save()
-        if profile.healthKitNutritionEnabled {
+        if HealthSyncSettings.isNutritionEnabled {
             Task { await HealthKitService.shared.writeMealEntry(entry) }
         }
     }
@@ -1201,12 +1236,15 @@ final class DataStore {
             }
             changed.append(meal)
         }
-        if !isEphemeral { try repo.saveMealProfileDurably(candidate) }
+        if !isEphemeral {
+            try repo.saveMealProfileDurably(candidate, since: persistedProfile)
+            persistedProfile = candidate
+        }
         profile = candidate
         // Keep the established projection/achievement save path. It may save
         // other pending changes; the meals above already have durable storage.
         save()
-        if profile.healthKitNutritionEnabled && !isEphemeral {
+        if HealthSyncSettings.isNutritionEnabled && !isEphemeral {
             let previous = mealHealthWriteTask
             mealHealthWriteTask = Task {
                 await previous?.value
@@ -1233,7 +1271,7 @@ final class DataStore {
         guard profile.mealHistory.contains(where: { $0.id == updated.id }) else { return }
         LifestyleDataLogic.applyMealEntryEdit(into: &profile, updated: updated)
         save()
-        if profile.healthKitNutritionEnabled {
+        if HealthSyncSettings.isNutritionEnabled {
             Task {
                 await HealthKitService.shared.deleteSamples(forEntryID: updated.id)
                 await HealthKitService.shared.writeMealEntry(updated)
@@ -1245,11 +1283,10 @@ final class DataStore {
     /// the day's aggregate. Used by every review screen's Undo button
     /// once it switches to the new logging path.
     func unlogMealEntry(id: UUID) {
-        let mirroredToHealthKit = profile.healthKitNutritionEnabled
         LifestyleDataLogic.unlogMealEntry(from: &profile, id: id)
         save()
         TableMomentStore.shared.removeDish(id: id)
-        if mirroredToHealthKit {
+        if HealthSyncSettings.isNutritionEnabled {
             Task { await HealthKitService.shared.deleteSamples(forEntryID: id) }
         }
     }
@@ -1270,13 +1307,11 @@ final class DataStore {
         if enabled {
             let granted = await HealthKitService.shared.requestNutritionWriteAuthorization()
             guard granted else {
-                profile.healthKitNutritionEnabled = false
-                save()
+                UserDefaults.standard.set(false, forKey: HealthSyncSettings.nutritionEnabledKey)
                 return false
             }
         }
-        profile.healthKitNutritionEnabled = enabled
-        save()
+        UserDefaults.standard.set(enabled, forKey: HealthSyncSettings.nutritionEnabledKey)
         return true
     }
 
@@ -1297,11 +1332,16 @@ final class DataStore {
 
     /// Takes in weigh-ins from a smart scale or another app for days
     /// Atlas has no weight, so the trend and checklist see them too.
+    /// They're kept on this device only — never synced to iCloud.
     func importHealthWeights() async {
         guard HealthSyncSettings.isEnabled else { return }
         let external = await HealthKitService.shared.externalWeights(days: HealthSyncEngine.importWindowDays)
-        let additions = HealthSyncEngine.weightsToImport(external, existing: profile.weightHistory)
-        guard !additions.isEmpty else { return }
+        let additions = HealthSyncEngine.weightsToImport(
+            external,
+            existing: profile.weightHistory,
+            dismissed: repo.dismissedHealthWeightIDs
+        )
+        guard !additions.isEmpty, repo.recordHealthWeightImports(additions) else { return }
         profile.weightHistory = (profile.weightHistory + additions).sorted { $0.date < $1.date }
         save()
     }
@@ -1322,13 +1362,40 @@ final class DataStore {
     /// as a grace day — the streak doesn't reset just because the
     /// user hasn't logged yet this morning.
     var mealLoggingStreak: Int {
-        LifestyleDataLogic.mealLoggingStreak(in: profile)
+        mealStreaks.current
     }
 
     /// All-time best meal-logging streak. Surfaced on the Lifestyle
     /// tab when the user is below their personal record.
     var bestMealLoggingStreak: Int {
-        LifestyleDataLogic.bestMealLoggingStreak(in: profile)
+        mealStreaks.best
+    }
+
+    private struct MealStreakCache {
+        let history: [MealEntry]
+        let freezeDays: Set<String>
+        let day: Date
+        let current: Int
+        let best: Int
+    }
+
+    @ObservationIgnored private var mealStreakCache: MealStreakCache?
+
+    /// Both streaks walk the whole meal history, and the Meals screen
+    /// re-reads them on every profile change — each water tap included.
+    /// Reused until the history, the freezes or the day change; an
+    /// untouched array compares equal by identity, so the check is cheap.
+    private var mealStreaks: (current: Int, best: Int) {
+        let day = Calendar.current.startOfDay(for: Date())
+        if let cached = mealStreakCache, cached.day == day,
+           cached.history == profile.mealHistory, cached.freezeDays == profile.streakFreezeDays {
+            return (cached.current, cached.best)
+        }
+        let current = LifestyleDataLogic.mealLoggingStreak(in: profile)
+        let best = LifestyleDataLogic.bestMealLoggingStreak(in: profile)
+        mealStreakCache = MealStreakCache(history: profile.mealHistory, freezeDays: profile.streakFreezeDays,
+                                          day: day, current: current, best: best)
+        return (current, best)
     }
 
     // MARK: - Outcome check-ins
@@ -1386,15 +1453,19 @@ final class DataStore {
     /// timezone delta. Use when the user opts to translate their
     /// schedule to local clock after a flight. Also acknowledges
     /// the new timezone so the prompt won't re-fire on the next
-    /// launch in the same zone. Regenerates today's entries so
-    /// the new times reflect immediately on the Home + Lifestyle
-    /// tabs, and re-schedules notifications via the standard save
-    /// path.
+    /// launch in the same zone. Regenerates today's entries (keeping
+    /// any already logged) so the new times reflect immediately on the
+    /// Home + Lifestyle tabs, then moves the pending reminders and Live
+    /// Activities to them.
     func applyTravelShift(toTimezone identifier: String, minutesDelta: Int) {
         TravelModeLogic.shiftProtocolTimes(in: &protocols, byMinutes: minutesDelta)
         TravelModeLogic.acknowledgeTimezoneChange(in: &profile, to: identifier)
-        regenerateTodayEntries()
+        for proto in activeProtocols {
+            regenerateTodayEntriesPreservingLogs(for: proto)
+        }
         save()
+        rescheduleNotificationsIfEnabled()
+        reconcileDoseLiveActivities()
     }
 
     /// User declined the schedule shift but acknowledged the
@@ -1521,7 +1592,7 @@ final class DataStore {
         guard let totals = RecipeDataLogic.review(
             for: recipe,
             customFoods: profile.customFoods
-        ).totals, totals.calories > 0 else { return nil }
+        ).totals else { return nil }
         let chosenCategory = category ?? MealCategory.auto(for: date)
         let entry = MealEntry(
             loggable: totals,
@@ -1686,8 +1757,10 @@ final class DataStore {
         if repo.commitDidFail {
             lastError = Self.saveFailureMessage
         } else {
-            updateWidgetData()
-            updateWatchData()
+            if HealthSyncSettings.isEnabled {
+                Task { await HealthKitService.shared.writeWorkout(session) }
+            }
+            refreshTrainingGlanceables()
         }
         // Quick-log sessions have no exercises, so no PRs are possible.
         recordWorkoutFinished(detectedPRCount: 0)
@@ -1705,9 +1778,10 @@ final class DataStore {
             .map { Set($0.exercises.map(\.exerciseID)) } ?? []
         repo.beginSaveBatch()
         repo.deleteWorkoutSession(id: id)
-        if HealthSyncSettings.isEnabled {
-            Task { await HealthKitService.shared.deleteWorkout(id: id) }
-        }
+        // Not gated on the sync toggle: a workout mirrored while sync was
+        // on must still leave Health. It matches only Atlas's own sample
+        // and fails quietly without permission.
+        Task { await HealthKitService.shared.deleteWorkout(id: id) }
         PRDetectionEngine.shared.recompute(exerciseIDs: affectedExercises)
         WorkoutSessionService.shared.invalidatePreviousSetCache()
         cacheVersion &+= 1
@@ -1718,8 +1792,7 @@ final class DataStore {
         if repo.commitDidFail {
             lastError = Self.saveFailureMessage
         } else {
-            updateWidgetData()
-            updateWatchData()
+            refreshTrainingGlanceables()
         }
     }
 
@@ -1757,6 +1830,7 @@ final class DataStore {
     /// today's. Same reasoning as the cache bump in
     /// `recordWorkoutFinished`, applied to the out-of-process snapshot.
     func refreshTrainingGlanceables() {
+        widgetWorkouts = nil
         updateWidgetData()
         updateWatchData()
     }
@@ -1782,12 +1856,20 @@ final class DataStore {
         WorkoutSessionService.shared.invalidatePreviousSetCache()
         cacheVersion &+= 1
         revision &+= 1
-        updateWidgetData()
-        updateWatchData()
+        refreshTrainingGlanceables()
     }
 
-    /// (count, totalMinutes) for workout sessions logged on `date`'s
-    /// calendar day.
+    /// Start dates of workout sessions from the last `days` days. The
+    /// weekly recap counts training days as activity.
+    func recentWorkoutDates(days: Int = 7) -> [Date] {
+        let now = Date()
+        let cal = Calendar.current
+        guard let start = cal.date(byAdding: .day, value: -days, to: cal.startOfDay(for: now)) else { return [] }
+        return repo.loadWorkoutSessions(startedBetween: start..<now).map(\.startedAt)
+    }
+
+    /// (count, totalMinutes) for finished workout sessions on `date`'s
+    /// calendar day. A session still in progress isn't logged yet.
     func workoutSummary(for date: Date = Date()) -> (count: Int, minutes: Int) {
         // Reads from `StoredWorkoutSession` now (Plan C) — quick-log
         // entries and Train-tab sessions both land there. Uses the
@@ -1801,13 +1883,9 @@ final class DataStore {
             return (0, 0)
         }
         let sessions = repo.loadWorkoutSessions(startedBetween: dayStart..<dayEnd)
-        let count = sessions.count
-        let minutes = sessions.reduce(0) { acc, session in
-            guard session.finishedAt != nil else { return acc }
-            let secs = session.elapsedSeconds()
-            return acc + max(0, Int(secs / 60))
-        }
-        return (count, minutes)
+            .filter { !$0.isActive }
+        let minutes = sessions.reduce(0) { $0 + $1.elapsedSeconds() / 60 }
+        return (sessions.count, minutes)
     }
 
     func addProgressPhotoFilename(_ filename: String) {
@@ -2207,6 +2285,9 @@ final class DataStore {
         pendingSaveTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .milliseconds(Int64(Self.saveDebounceMs)))
             guard let self, !Task.isCancelled else { return }
+            // Cleared before the write so a CloudKit refresh waiting on
+            // it can run once the save lands.
+            self.pendingSaveTask = nil
             self.performSaveNow()
         }
     }
@@ -2248,7 +2329,9 @@ final class DataStore {
             let older = self.repo.loadEntries(before: cutoff)
             guard !older.isEmpty, !Task.isCancelled, !self.isEphemeral else { return }
             let known = Set(self.entries.map(\.id))
-            let missing = older.filter { !known.contains($0.id) }
+            let missing = older.filter {
+                !known.contains($0.id) && !self.pendingProtocolDeletions.contains($0.protocolId)
+            }
             guard !missing.isEmpty else { return }
             // Append-only merge: the backfill by construction holds only
             // rows outside the in-memory window, so nothing the user
@@ -2298,11 +2381,25 @@ final class DataStore {
         if entriesNeedSave { repo.upsertEntries(entries) }
         for id in pendingProtocolDeletions {
             repo.deleteProtocol(id: id)
+            // Includes rows outside the in-memory window or synced in
+            // since the last load, which the explicit ids miss.
+            repo.deleteEntries(protocolId: id)
         }
         if !pendingEntryDeletions.isEmpty {
-            repo.deleteEntries(ids: pendingEntryDeletions)
+            // A regenerated dose reuses its slot's id; a row still in
+            // memory is never deleted.
+            let liveIDs = Set(entries.map(\.id))
+            repo.deleteEntries(ids: pendingEntryDeletions.subtracting(liveIDs))
         }
-        if profileNeedsSave { repo.saveProfile(profile) }
+        if profileNeedsSave {
+            if persistedProfile == nil, let stored = repo.loadProfile() {
+                // Launch found no profile row, but CloudKit has imported
+                // the account's since: merge this device's fresh profile
+                // into it instead of overwriting the user's history.
+                profile = ProfileMergeEngine.reconcile(profile, with: stored)
+            }
+            repo.saveProfile(profile, since: persistedProfile)
+        }
 
         // Surface a banner if any commit in this batch failed — a
         // disk-full / locked-store save would otherwise drop the
@@ -2325,6 +2422,7 @@ final class DataStore {
         protocolsNeedSave = false
         entriesNeedSave = false
         profileNeedsSave = false
+        persistedProfile = profile
         pendingProtocolDeletions.removeAll()
         pendingEntryDeletions.removeAll()
 
@@ -2366,6 +2464,7 @@ final class DataStore {
         self.protocols = newProtocols
         self.entries = newEntries
         cacheVersion &+= 1
+        widgetWorkouts = nil
         // Refresh widget + watch surfaces so the lock-screen
         // accessory + Watch Today page render the demo numbers
         // for the screenshots. Safe to call even though
@@ -2397,6 +2496,9 @@ final class DataStore {
     @ObservationIgnored private(set) var widgetUpdateCountForTesting = 0
     @ObservationIgnored private(set) var watchUpdateCountForTesting = 0
     #endif
+    /// The payload last written to the App Group container.
+    @ObservationIgnored private var lastWidgetData: WidgetData?
+    @ObservationIgnored private var widgetWorkouts: [WorkoutSession]?
 
     /// Last recovery + sleep glance pushed to the Watch. HealthKit is
     /// async-only and `updateWatchData()` is sync, so the snapshot is
@@ -2414,14 +2516,11 @@ final class DataStore {
             updateWatchData()
             return
         }
-        let vitals = await Self.buildWatchVitals(sleepTargetHours: Self.watchSleepTargetHours)
+        let vitals = await Self.buildWatchVitals(sleepTargetHours: RecoveryScoreEngine.defaultSleepTargetHours)
         guard profile.healthConnected else { return }
         watchVitals = vitals
         updateWatchData()
     }
-
-    /// Same target the Today hero's Recovery score assumes.
-    private static let watchSleepTargetHours = 8.0
 
     private static func buildWatchVitals(sleepTargetHours: Double) async -> WatchVitalsSnapshot? {
         let kit = HealthKitService.shared
@@ -2429,7 +2528,7 @@ final class DataStore {
         async let baseHRV = kit.averageHRV(days: 30)
         async let recentRHR = kit.averageRestingHeartRate(days: 3)
         async let baseRHR = kit.averageRestingHeartRate(days: 30)
-        async let lastSleepHours = kit.averageSleepHours(days: 1)
+        async let lastSleepHours = kit.lastNightSleepHours()
         async let segments = kit.recentSleepSegments()
 
         let hrv = await recentHRV
@@ -2487,16 +2586,26 @@ final class DataStore {
             consumption: LifestyleDataLogic.consumption(in: profile, for: Date()),
             targets: profile.nutritionTargets,
             breakdown: LifestyleDataLogic.mealsByCategory(in: profile, for: Date()),
-            // Newest-first and bounded: 30 sessions covers the current
-            // week plus the last finished workout for any user, without
-            // decoding the whole history on every mutation that lands
-            // here. The builder filters the in-progress session out.
-            workouts: repo.loadWorkoutSessions(limit: 30),
+            workouts: recentWidgetWorkouts(),
             activeWorkout: WorkoutSessionService.shared.activeSession,
             unit: profile.bodyMetrics.unit
         )
+        if let lastWidgetData, data.hasSameContent(as: lastWidgetData) { return }
+        lastWidgetData = data
         PersistenceService.shared.updateWidgetData(data)
         WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    /// Newest-first and bounded: 30 sessions covers the current week plus
+    /// the last finished workout for any user. Cached because most widget
+    /// pushes follow dose and meal saves that leave workouts untouched;
+    /// `refreshTrainingGlanceables` drops the cache after workout writes.
+    /// The builder filters the in-progress session out.
+    private func recentWidgetWorkouts() -> [WorkoutSession] {
+        if let widgetWorkouts { return widgetWorkouts }
+        let loaded = repo.loadWorkoutSessions(limit: 30)
+        widgetWorkouts = loaded
+        return loaded
     }
 
     /// Pushes a snapshot through `WatchSyncService`. Math (compliance
@@ -2537,6 +2646,7 @@ final class DataStore {
             trainingHabitsDone: trainingDue.filter(isDone).count,
             trainingHabitsTotal: trainingDue.count,
             measurementUnit: profile.bodyMetrics.unit.rawValue,
+            healthConnected: profile.healthConnected,
             vitals: watchVitals,
             workout: watchWorkout,
             training: WatchWorkoutSnapshotBuilder.training(from: repo.loadWorkoutSessions(limit: 30)),
@@ -2647,6 +2757,15 @@ final class DataStore {
         // scheduled entries before the status change lands.
         performCycleAutoCompletion()
         regenerateTodayEntries()
+        refreshHealthIfDue()
+    }
+
+    private func refreshHealthIfDue() {
+        let now = Date()
+        if let last = lastHealthRefresh,
+           now.timeIntervalSince(last) < Self.healthRefreshInterval,
+           Calendar.current.isDate(last, inSameDayAs: now) { return }
+        lastHealthRefresh = now
         Task { await refreshWatchVitals() }
         Task { await importHealthWeights() }
     }
@@ -2666,7 +2785,9 @@ final class DataStore {
         if repo.entryCount() > entries.count {
             scheduleEntryBackfill(before: entryWindowStart)
         }
-        if let saved = repo.loadProfile() {
+        let saved = repo.loadProfile()
+        persistedProfile = saved
+        if let saved {
             profile = saved
             // Only clear the profile flag when a row actually replaced
             // it — otherwise an unsaved in-memory profile edit would be
@@ -2681,11 +2802,13 @@ final class DataStore {
         protocolsNeedSave = false
         entriesNeedSave = false
         regenerateTodayEntries()
+        // Routines from another device (or the new iCloud account) would
+        // otherwise show only once the routine list is next opened.
+        RoutineStore.shared.load()
         // CloudKit-driven pulls land here; without these the lock-
         // screen widget and the Watch tab would stay stale until the
         // next user mutation or the widget's 15-min auto-timer.
-        updateWidgetData()
-        updateWatchData()
+        refreshTrainingGlanceables()
     }
 
     /// Transactionally applies a backup import — the user has
@@ -2748,6 +2871,7 @@ final class DataStore {
         let liveEntryIDs = Set(repo.loadEntryIDs())
         let importEntryIDs = Set(newEntries.map(\.id))
 
+        repo.beginSaveBatch()
         repo.upsertProtocols(newProtocols)
         repo.upsertEntries(newEntries)
 
@@ -2796,6 +2920,7 @@ final class DataStore {
 
             customPeptides = training.customPeptides
             PersistenceService.shared.saveCustomPeptides(training.customPeptides)
+            RoutineStore.shared.load()
 
             // Training rows bypass the `protocols`/`entries`/`profile`
             // didSet bumps, same as recordWorkoutFinished — bump so
@@ -2804,9 +2929,26 @@ final class DataStore {
             revision &+= 1
         }
 
+        // A failed commit leaves the restored state dirty in memory, so
+        // the next save retries the write instead of reporting success.
+        if repo.commitDidFail {
+            lastError = Self.saveFailureMessage
+            throw NSError(
+                domain: "Peptide.BackupImport",
+                code: 2,
+                userInfo: [NSLocalizedDescriptionKey:
+                    "The restore couldn't be saved — your device may be low on storage."]
+            )
+        }
+        // Everything assigned above is now on disk; left dirty, the next
+        // save would upsert the whole restore a second time.
+        protocolsNeedSave = false
+        entriesNeedSave = false
+        profileNeedsSave = false
+        persistedProfile = newProfile
+
         regenerateTodayEntries()
-        updateWidgetData()
-        updateWatchData()
+        refreshTrainingGlanceables()
         rescheduleNotificationsIfEnabled()
     }
 
@@ -2865,7 +3007,9 @@ final class DataStore {
                     .addingTimeInterval(TimeInterval(hour * 3600 + minute * 60))
             }
             return ProtocolEntry(
-                id: UUID(),
+                id: ProtocolEntry.scheduledID(
+                    protocolId: proto.id, peptideId: peptide.id, date: entryDate, calendar: calendar
+                ),
                 protocolId: proto.id,
                 peptide: peptide,
                 date: entryDate,

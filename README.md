@@ -117,6 +117,9 @@ placeholder copy, sub-44pt targets, off-grid spacing, faded ink,
 unlabelled icon buttons, and rows VoiceOver reads as several stops. CI
 fails on any error; warnings are printed for review. It's currently clean
 on both counts — keep it that way rather than growing an exemption list.
+It scans `Peptide/App`, `Peptide/Features` and `Peptide/DesignSystem`; the
+widget and watch targets don't compile the design system, so they are out
+of its scope.
 
 ## Secrets
 

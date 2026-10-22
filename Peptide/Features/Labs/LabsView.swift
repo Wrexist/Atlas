@@ -21,11 +21,9 @@ struct LabsView: View {
     @State private var detailPanel: LabPanel?
     @State private var pendingDelete: LabValue?
 
-    private var summaries: [LabDataLogic.LatestSummary] {
-        dataStore.latestLabSummaries
-    }
-
-    private var groupedSummaries: [(LabPanel.Category, [LabDataLogic.LatestSummary])] {
+    private func byCategory(
+        _ summaries: [LabDataLogic.LatestSummary]
+    ) -> [(LabPanel.Category, [LabDataLogic.LatestSummary])] {
         let grouped = Dictionary(grouping: summaries) { $0.latest.panel.category }
         return LabPanel.Category.allCases.compactMap { cat in
             guard let rows = grouped[cat], !rows.isEmpty else { return nil }
@@ -34,14 +32,16 @@ struct LabsView: View {
     }
 
     var body: some View {
+        // Scans the whole lab history, so it runs once per update.
+        let summaries = dataStore.latestLabSummaries
         NavigationStack {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
                     if summaries.isEmpty {
                         emptyState
                     } else {
-                        introHeader
-                        ForEach(Array(groupedSummaries.enumerated()), id: \.element.0) { index, group in
+                        introHeader(count: summaries.count)
+                        ForEach(Array(byCategory(summaries).enumerated()), id: \.element.0) { index, group in
                             section(for: group.0, rows: group.1)
                                 .sectionAppear(index: index)
                         }
@@ -78,7 +78,7 @@ struct LabsView: View {
             .sheet(isPresented: $creatingEntry) {
                 LabEntryEditor(
                     initial: nil,
-                    defaultPanel: mostRecentPanel,
+                    defaultPanel: mostRecentPanel(in: summaries),
                     sex: dataStore.profile.bodyMetrics.sex,
                     onSave: { value in
                         AppAnimation.with(AppAnimation.springSnappy) { dataStore.saveLabValue(value) }
@@ -126,14 +126,14 @@ struct LabsView: View {
     }
 
     /// The panel the user logged most recently, so a new entry starts there.
-    private var mostRecentPanel: LabPanel? {
+    private func mostRecentPanel(in summaries: [LabDataLogic.LatestSummary]) -> LabPanel? {
         summaries.max(by: { $0.latest.date < $1.latest.date })?.latest.panel
     }
 
     // MARK: - Sections
 
-    private var introHeader: some View {
-        Text("^[\(summaries.count) panel](inflect: true) tracked")
+    private func introHeader(count: Int) -> some View {
+        Text("^[\(count) marker](inflect: true) tracked")
             .font(AppFont.subheadline)
             .foregroundStyle(AppColor.textSecondary)
             .contentTransition(.numericText())
@@ -150,7 +150,7 @@ struct LabsView: View {
                 .tracking(0.8)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.textTertiary)
-                .padding(.horizontal, 4)
+                .padding(.horizontal, Spacing.xs)
 
             VStack(spacing: Spacing.xs) {
                 ForEach(rows) { summary in
@@ -214,13 +214,25 @@ struct LabSummaryRow: View {
 
     private var panel: LabPanel { summary.latest.panel }
 
-    // Non-Sendable Foundation formatter; thread-safe for read-only
-    // use after configuration.
-    nonisolated(unsafe) private static let relative: RelativeDateTimeFormatter = {
+    private static let relative: RelativeDateTimeFormatter = {
         let f = RelativeDateTimeFormatter()
         f.unitsStyle = .short
+        f.dateTimeStyle = .named
+        f.formattingContext = .beginningOfSentence
         return f
     }()
+
+    /// "Today", "Yesterday", "3 days ago". The draw date is picked without
+    /// a time, so it's compared by day; hours since it was logged would
+    /// read "3 hr. ago" for a morning draw.
+    private static func drawDay(_ date: Date) -> String {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let day = calendar.startOfDay(for: date)
+        return day == today
+            ? relative.localizedString(from: DateComponents(day: 0))
+            : relative.localizedString(for: day, relativeTo: today)
+    }
 
     var body: some View {
         HStack(spacing: Spacing.md) {
@@ -244,7 +256,7 @@ struct LabSummaryRow: View {
                     .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(1)
-                Text(Self.relative.localizedString(for: summary.latest.date, relativeTo: Date()))
+                Text(Self.drawDay(summary.latest.date))
                     .font(AppFont.scaled(11))
                     .foregroundStyle(AppColor.textSecondary)
                     .monospacedDigit()

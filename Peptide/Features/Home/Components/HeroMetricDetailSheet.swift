@@ -31,7 +31,7 @@ struct HeroMetricDetailSheet: View {
             todayEntries: [ProtocolEntry] = [],
             recoveryComponents: RecoveryScoreEngine.Components? = nil,
             lastSleepHours: Double? = nil,
-            sleepTargetHours: Double = 8.0
+            sleepTargetHours: Double = RecoveryScoreEngine.defaultSleepTargetHours
         ) {
             self.todayEntries = todayEntries
             self.recoveryComponents = recoveryComponents
@@ -212,14 +212,16 @@ struct HeroMetricDetailSheet: View {
             return String(format: String(localized: "%d of %d doses logged today"), completed, total)
         case .recovery:
             guard valueForRing.isAvailable else {
-                return String(localized: "Connect Apple Health to unlock Recovery.")
+                return snapshot.healthConnected
+                    ? String(localized: "Not enough recent data — wear your Apple Watch overnight to build a baseline.")
+                    : String(localized: "Connect Apple Health to unlock Recovery.")
             }
             return String(localized: "Composite of HRV, last night's sleep, and resting heart rate.")
         case .sleep:
             guard let hours = context.lastSleepHours, hours > 0 else {
                 return String(localized: "No sleep data yet for last night.")
             }
-            return String(format: String(localized: "%@ last night"), String(format: "%.1f h", hours))
+            return String(localized: "\(hours.formatted(.number.precision(.fractionLength(1)))) h last night")
         }
     }
 
@@ -229,8 +231,7 @@ struct HeroMetricDetailSheet: View {
     private var targetLine: String? {
         guard case .sleep = kind,
               let hours = context.lastSleepHours, hours > 0 else { return nil }
-        return String(format: String(localized: "Target %@"),
-                      String(format: "%.0f h", context.sleepTargetHours))
+        return String(localized: "Target \(context.sleepTargetHours.formatted(.number.precision(.fractionLength(0)))) h")
     }
 
     // MARK: - Explainer
@@ -309,6 +310,7 @@ struct HeroMetricDetailSheet: View {
                 VStack(spacing: Spacing.xs) {
                     ForEach(context.todayEntries) { entry in
                         doseButton(entry)
+                            .accessibilityValue(entry.completed ? "Taken" : "Pending")
                     }
                 }
             }
@@ -374,6 +376,7 @@ struct HeroMetricDetailSheet: View {
             Image(systemName: entry.completed ? "checkmark.circle.fill" : "circle")
                 .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(entry.completed ? AppColor.success : AppColor.textTertiary)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
                 Text(entry.peptide.name)
                     .font(AppFont.subheadline)
@@ -424,10 +427,10 @@ struct HeroMetricDetailSheet: View {
     private enum RecoveryDriver {
         case hrv, sleep, rhr
 
-        var label: LocalizedStringKey {
+        func label(sleepTargetHours: Double) -> LocalizedStringKey {
             switch self {
             case .hrv:   "HRV vs baseline"
-            case .sleep: "Sleep vs 8h target"
+            case .sleep: "Sleep vs \(sleepTargetHours.formatted(.number.precision(.fractionLength(0))))h target"
             case .rhr:   "Resting HR vs baseline"
             }
         }
@@ -470,7 +473,7 @@ struct HeroMetricDetailSheet: View {
                     .background { Circle().fill(driver.tint.opacity(0.18)) }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(driver.label)
+                    Text(driver.label(sleepTargetHours: context.sleepTargetHours))
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(value.map { "\(Int(($0 * 100).rounded()))%" } ?? "—")
@@ -577,12 +580,12 @@ struct HeroMetricDetailSheet: View {
                 sleepStat(
                     icon: "clock",
                     label: "Slept",
-                    value: context.lastSleepHours.map { String(format: "%.1f h", $0) } ?? "—"
+                    value: context.lastSleepHours.map { "\($0.formatted(.number.precision(.fractionLength(1)))) h" } ?? "—"
                 )
                 sleepStat(
                     icon: "target",
                     label: "Target",
-                    value: String(format: "%.0f h", context.sleepTargetHours)
+                    value: "\(context.sleepTargetHours.formatted(.number.precision(.fractionLength(0)))) h"
                 )
                 sleepStat(
                     icon: "star.fill",

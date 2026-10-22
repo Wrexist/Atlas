@@ -1,0 +1,13 @@
+# Third-party actions are pinned to commit SHAs so a moved tag cannot
+# run new code next to the signing and App Store Connect secrets. This
+# keeps those pins (and the fastlane bundle) from going stale.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: bundler
+    directory: /
+    schedule:
+      interval: weekly

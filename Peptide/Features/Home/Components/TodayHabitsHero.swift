@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Immutable snapshot powering the Today habits hero. Built in a `.task` /
-/// `.onChange` (not in `body`) so HomeView never re-walks every habit's
+/// Immutable snapshot powering the Today habits hero. Built in HomeView's
+/// `refreshDerived()` (not in `body`) so HomeView never re-walks every habit's
 /// streak summary on a scroll frame (audit A6).
 struct HabitsHeroSnapshot: Equatable {
     struct Item: Equatable, Identifiable {
@@ -62,8 +62,10 @@ struct HabitsHeroSnapshot: Equatable {
 struct TodayHabitsHero: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
-    @State private var snapshot: HabitsHeroSnapshot = .empty
+    /// Built by HomeView once per store revision and day rollover.
+    let snapshot: HabitsHeroSnapshot
     @State private var addingNew = false
+    @ScaledMetric(relativeTo: .headline) private var emptyIconSize: CGFloat = 40
 
     var body: some View {
         Group {
@@ -76,24 +78,12 @@ struct TodayHabitsHero: View {
             }
         }
         .appAnimation(AppAnimation.springSmooth, value: dataStore.activeHabits.isEmpty)
-        .task { rebuild() }
-        .onChange(of: dataStore.profile.habitEntries) { _, _ in rebuild() }
-        .onChange(of: dataStore.activeHabits) { _, _ in rebuild() }
         .sheet(isPresented: $addingNew) {
             HabitEditSheet(editing: nil) { habit in
                 dataStore.addHabit(habit)
             } onDelete: { _ in }
                 .liquidGlassPresentation()
         }
-    }
-
-    private func rebuild() {
-        let next = HabitsHeroSnapshot.build(
-            activeHabits: dataStore.activeHabits,
-            entries: dataStore.profile.habitEntries,
-            frozenDayKeys: dataStore.profile.streakFreezeDays
-        )
-        AppAnimation.with(AppAnimation.springSnappy) { snapshot = next }
     }
 
     // MARK: - Populated
@@ -105,14 +95,7 @@ struct TodayHabitsHero: View {
             viewAllButton
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .stroke(AppColor.glassBorder, lineWidth: 0.5)
-        )
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 
     private var summaryRow: some View {
@@ -149,6 +132,8 @@ struct TodayHabitsHero: View {
                         .font(AppFont.badgeSmall)
                         .foregroundStyle(AppColor.textTertiary)
                 }
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
             } else {
                 Image(systemName: "leaf.fill")
                     .font(AppFont.scaled(16, weight: .semibold))
@@ -237,7 +222,7 @@ struct TodayHabitsHero: View {
                     ZStack {
                         Circle()
                             .fill(AppColor.accentPrimary.opacity(0.15))
-                            .frame(width: 40, height: 40)
+                            .frame(width: emptyIconSize, height: emptyIconSize)
                         Image(systemName: "checkmark.seal.fill")
                             .font(AppFont.scaled(16, weight: .semibold))
                             .foregroundStyle(AppColor.accentPrimary)
@@ -249,27 +234,21 @@ struct TodayHabitsHero: View {
                         Text("Small wins, every day. Watch your streak — and your Atlas Score — climb.")
                             .font(AppFont.caption)
                             .foregroundStyle(AppColor.textSecondary)
-                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer()
                     Image(systemName: "plus.circle.fill")
                         .font(AppFont.scaled(24))
                         .foregroundStyle(AppColor.accentPrimary)
                 }
+                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
 
             StarterHabitSuggestions(onPick: addStarter)
         }
         .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .stroke(AppColor.glassBorder, lineWidth: 0.5)
-        )
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 
     private func addStarter(_ template: HabitTemplate) {

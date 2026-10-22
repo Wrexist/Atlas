@@ -15,7 +15,7 @@ struct CycleTransitionCard: View {
                         transitionRow(transition)
 
                         if transition.id != transitions.last?.id {
-                            Divider().foregroundStyle(AppColor.glassBorder)
+                            Divider().overlay(AppColor.glassBorder)
                         }
                     }
                 }

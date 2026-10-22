@@ -4,7 +4,6 @@ struct DoseLoggingSheet: View {
     let entry: ProtocolEntry
     let onLog: (String?, Date?, String?, String) -> Void
     @Environment(\.dismiss) private var dismiss
-    @Environment(DataStore.self) private var dataStore
 
     @State private var actualDose: String
     @State private var actualTime: Date
@@ -110,12 +109,13 @@ struct DoseLoggingSheet: View {
                                             }
                                             Haptics.selection()
                                         } label: {
-                                            Text(site.rawValue)
+                                            Text(site.displayName)
                                                 .font(AppFont.caption)
                                                 .fontWeight(.semibold)
                                                 .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
                                                 .frame(maxWidth: .infinity)
                                                 .padding(.vertical, Spacing.sm)
+                                                .frame(minHeight: Spacing.minimumHitTarget)
                                                 .glassControl(
                                                     .rect(cornerRadius: Spacing.chipCornerRadius),
                                                     tint: isSelected ? AppColor.accentPrimary.opacity(0.25) : AppColor.surfaceElevated,
@@ -123,6 +123,7 @@ struct DoseLoggingSheet: View {
                                                 )
                                         }
                                         .buttonStyle(ScalePressStyle())
+                                        .accessibilityAddTraits(isSelected ? .isSelected : [])
                                     }
                                 }
                             }
@@ -160,7 +161,8 @@ struct DoseLoggingSheet: View {
             // Pinned so the primary action is reachable without
             // scrolling past every field first.
             .pinnedFooter {
-                GlassButton(title: "Log dose", icon: "checkmark.circle.fill", style: .primary, isFullWidth: true) {
+                // Re-opening a taken dose edits it rather than logging a second one.
+                GlassButton(title: entry.completed ? "Save changes" : "Log dose", icon: "checkmark.circle.fill", style: .primary, isFullWidth: true) {
                     Haptics.success()
                     onLog(actualDose, actualTime, selectedSite, notes)
                     dismiss()
@@ -171,7 +173,7 @@ struct DoseLoggingSheet: View {
             }
             .dismissKeyboardOnTap()
             .background(AppColor.background)
-            .navigationTitle("Log dose")
+            .navigationTitle(entry.completed ? "Edit dose" : "Log dose")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

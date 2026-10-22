@@ -71,7 +71,7 @@ final class WeeklySummaryNotificationSchedulerTests: XCTestCase {
         profile.weeklySummaries = [current.weekStart: current, previous.weekStart: previous]
         XCTAssertEqual(
             WeeklySummaryNotificationScheduler.notificationBody(for: profile),
-            "Compliance up 20% from last week — tap for the full recap."
+            "Adherence up 20 points from last week — tap for the full recap."
         )
     }
 
@@ -92,7 +92,25 @@ final class WeeklySummaryNotificationSchedulerTests: XCTestCase {
         // meaningful-change floor but report a different, wrong number.
         XCTAssertEqual(
             WeeklySummaryNotificationScheduler.notificationBody(for: profile),
-            "Compliance up 20% from last week — tap for the full recap."
+            "Adherence up 20 points from last week — tap for the full recap."
         )
+    }
+
+    // MARK: - nextDeliveryDate
+
+    func test_nextDeliveryDate_sundayAfterNine_isTheFollowingSunday() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let sundayTen = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 1, day: 11, hour: 10)))
+        let delivery = WeeklySummaryNotificationScheduler.nextDeliveryDate(after: sundayTen, calendar: calendar)
+        XCTAssertEqual(delivery, calendar.date(from: DateComponents(year: 2026, month: 1, day: 18, hour: 9)))
+    }
+
+    func test_nextDeliveryDate_midweek_isThatWeeksSunday() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let wednesday = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 1, day: 7, hour: 12)))
+        let delivery = WeeklySummaryNotificationScheduler.nextDeliveryDate(after: wednesday, calendar: calendar)
+        XCTAssertEqual(delivery, calendar.date(from: DateComponents(year: 2026, month: 1, day: 11, hour: 9)))
     }
 }

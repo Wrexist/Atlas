@@ -186,6 +186,14 @@ final class MigrationServiceTests: XCTestCase {
         )
     }
 
+    func test_migrationVerification_rowsSyncedFromAnotherDevice_pass() {
+        repo.saveProtocols(MockProtocols.all)
+        XCTAssertNil(
+            migration.verificationFailure(protocols: [MockProtocols.all[0]], entries: nil, profile: nil),
+            "Stored rows beyond the imported ones came from CloudKit and must not fail the import"
+        )
+    }
+
     // MARK: - Legacy archive retention
 
     func test_archivedLegacyFiles_expireAfterRetentionWindow() throws {

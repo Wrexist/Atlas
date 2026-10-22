@@ -100,6 +100,15 @@ final class CycleCompletionService {
         persistDismissCounts(map)
     }
 
+    /// Forgets this cycle's dismissals. Extending keeps the same
+    /// id + startDate key, so without this the extended cycle would
+    /// inherit the old count and auto-complete early.
+    func resetDismissals(for proto: PeptideProtocol) {
+        var map = dismissCounts
+        map[key(for: proto)] = nil
+        persistDismissCounts(map)
+    }
+
     /// Records that the user (or the auto-completion sweep) marked
     /// the protocol completed. Prevents the prompt from re-firing.
     func markAutoCompleted(_ proto: PeptideProtocol) {

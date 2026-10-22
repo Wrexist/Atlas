@@ -5,22 +5,31 @@ struct AchievementToastView: View {
     @Binding var isShowing: Bool
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
 
     var body: some View {
         if isShowing {
             VStack {
                 HStack(spacing: Spacing.md) {
-                    MilestoneArtwork(symbol: achievement.icon, tint: AppColor.achievement, size: 48)
-                        .id(achievement.id)
+                    // Combined on its own so the Dismiss button stays a
+                    // separate, actionable VoiceOver element.
+                    HStack(spacing: Spacing.md) {
+                        MilestoneArtwork(symbol: achievement.icon, tint: AppColor.achievement, size: 48)
+                            .id(achievement.id)
 
-                    VStack(alignment: .leading, spacing: Spacing.xxs) {
-                        Text("Achievement unlocked")
-                            .font(AppFont.caption)
-                            .foregroundStyle(AppColor.accentLight)
-                        Text(achievement.title)
-                            .font(AppFont.headline)
-                            .foregroundStyle(AppColor.textPrimary)
+                        VStack(alignment: .leading, spacing: Spacing.xxs) {
+                            Text("Achievement unlocked")
+                                .font(AppFont.caption)
+                                .foregroundStyle(AppColor.accentLight)
+                            Text(achievement.title)
+                                .font(AppFont.headline)
+                                .foregroundStyle(AppColor.textPrimary)
+                        }
                     }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Achievement unlocked: \(achievement.title)")
+                    .accessibilityValue(achievement.description)
+                    .accessibilityAddTraits(.isStaticText)
 
                     Spacer()
 
@@ -42,10 +51,6 @@ struct AchievementToastView: View {
                 .glassSurface(cornerRadius: Spacing.cardCornerRadius)
                 .padding(.horizontal, Spacing.screenPadding)
                 .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel("Achievement unlocked: \(achievement.title)")
-                .accessibilityValue(achievement.description)
-                .accessibilityAddTraits(.isStaticText)
 
                 Spacer()
             }
@@ -55,7 +60,12 @@ struct AchievementToastView: View {
                 do {
                     try await Task.sleep(for: .milliseconds(120))
                     Haptics.success()
-                    try await Task.sleep(for: .seconds(4))
+                    AccessibilityNotification.Announcement(
+                        String(localized: "Achievement unlocked: \(achievement.title)")
+                    ).post()
+                    // VoiceOver needs time to finish the announcement and
+                    // reach the Dismiss button before the toast hides.
+                    try await Task.sleep(for: .seconds(voiceOverEnabled ? 10 : 4))
                     withAnimation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion)) {
                         isShowing = false
                     }

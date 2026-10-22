@@ -94,12 +94,12 @@ extension PerformanceAgeEngine.Driver.Kind {
     /// "48 ms", "8,412 steps", "+1.2 kg" — the user's reading.
     func formattedValue(_ value: Double, unit: MeasurementUnit) -> String {
         switch self {
-        case .vo2Max:        String(format: "%.1f", value)
+        case .vo2Max:        String(localized: "\(value.formatted(.number.precision(.fractionLength(1)))) ml/kg/min")
         case .hrv:           String(localized: "\(Int(value.rounded())) ms")
         case .rhr:           String(localized: "\(Int(value.rounded())) bpm")
-        case .sleep:         String(localized: "\(String(format: "%.1f", value)) h")
-        case .steps:         value.formatted(.number.precision(.fractionLength(0)))
-        case .bodyMassIndex: String(format: "%.1f", value)
+        case .sleep:         String(localized: "\(value.formatted(.number.precision(.fractionLength(1)))) h")
+        case .steps:         String(localized: "\(value.formatted(.number.precision(.fractionLength(0)))) steps")
+        case .bodyMassIndex: value.formatted(.number.precision(.fractionLength(1)))
         case .weight:        signedWeight(value, unit: unit)
         }
     }
@@ -108,17 +108,17 @@ extension PerformanceAgeEngine.Driver.Kind {
     func formattedReference(_ reference: Double, unit: MeasurementUnit) -> String {
         switch self {
         case .vo2Max:
-            String(localized: "Typical for your age: \(String(format: "%.1f", reference))")
+            String(localized: "Typical for your age: \(reference.formatted(.number.precision(.fractionLength(1)))) ml/kg/min")
         case .hrv:
             String(localized: "Typical for your age: \(Int(reference.rounded())) ms")
         case .rhr:
             String(localized: "Neutral at \(Int(reference.rounded())) bpm")
         case .sleep:
-            String(localized: "Target: \(String(format: "%.1f", reference)) h")
+            String(localized: "Target: \(reference.formatted(.number.precision(.fractionLength(1)))) h")
         case .steps:
-            String(localized: "Neutral at \(reference.formatted(.number.precision(.fractionLength(0))))")
+            String(localized: "Neutral at \(reference.formatted(.number.precision(.fractionLength(0)))) steps")
         case .bodyMassIndex:
-            String(localized: "Neutral up to \(String(format: "%.0f", reference))")
+            String(localized: "Neutral up to \(reference.formatted(.number.precision(.fractionLength(0))))")
         case .weight:
             String(localized: "Neutral within ±\(magnitude(reference, unit: unit))")
         }
@@ -130,9 +130,7 @@ extension PerformanceAgeEngine.Driver.Kind {
     }
 
     private func magnitude(_ kg: Double, unit: MeasurementUnit) -> String {
-        let value = unit == .imperial ? unit.weightForDisplay(kg) : kg
-        let label = unit == .imperial ? "lb" : "kg"
-        return "\(String(format: "%.1f", value)) \(label)"
+        "\(unit.weightValue(kg, fractionDigits: 1...1)) \(unit.weightSuffix)"
     }
 }
 

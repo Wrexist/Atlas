@@ -11,6 +11,7 @@ struct PlateTableView: View {
 
     @Environment(DataStore.self) private var dataStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
     @State private var scene = PlateTableScene(size: CGSize(width: 1, height: 1))
     @State private var isPlaying = false
     @State private var showsLabels = true
@@ -59,6 +60,7 @@ struct PlateTableView: View {
         .onChange(of: noteFocused) { _, focused in if !focused { saveNote() } }
         .task(id: dishes.map(\.id)) { renderShareImage(moment, dishes: dishes) }
         .onChange(of: dishes.map(\.id)) { _, _ in if isPlaying { startPhysics(dishes) } }
+        .onChange(of: canPlay) { _, allowed in if !allowed { isPlaying = false } }
         .sheet(item: $openDish) { dish in
             TableDishSheet(
                 dish: dish,
@@ -179,8 +181,10 @@ struct PlateTableView: View {
                     showsLabels.toggle()
                     scene.setLabelsVisible(showsLabels)
                 }
-                toggle("Play", icon: "dot.circle.and.hand.point.up.left.fill", isOn: isPlaying) {
-                    togglePlay()
+                if canPlay {
+                    toggle("Play", icon: "dot.circle.and.hand.point.up.left.fill", isOn: isPlaying) {
+                        togglePlay()
+                    }
                 }
             }
             if isPlaying {
@@ -231,6 +235,11 @@ struct PlateTableView: View {
         .minimumHitArea()
         .accessibilityAddTraits(isOn ? .isSelected : [])
     }
+
+    /// Tilt physics is motion Reduce Motion asks to avoid, and plates in
+    /// play can't be opened one by one with VoiceOver, so both keep the
+    /// table at rest.
+    private var canPlay: Bool { !reduceMotion && !voiceOverEnabled }
 
     private func togglePlay() {
         let dishes = store.moment(id: momentID).map(loggedDishes(of:)) ?? []

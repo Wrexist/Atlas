@@ -77,11 +77,49 @@ final class BodyMetricsTests: XCTestCase {
             age: 34,
             sex: .female,
             activityLevel: .athlete,
-            unit: .imperial
+            unit: .imperial,
+            ageRecordedAt: Date(timeIntervalSince1970: 0)
         )
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(BodyMetrics.self, from: data)
         XCTAssertEqual(decoded, original)
+    }
+
+    // MARK: - Age
+
+    func test_age_afterABirthdayYear_advancesByOne() {
+        let entered = Date(timeIntervalSince1970: 1_700_000_000)
+        let metrics = BodyMetrics(
+            weightKg: nil, heightCm: nil, age: 34,
+            sex: .female, activityLevel: .moderate, unit: .metric,
+            ageRecordedAt: entered
+        )
+        XCTAssertEqual(metrics.ageAsOf(entered.addingTimeInterval(200 * 86_400)), 34)
+        XCTAssertEqual(metrics.ageAsOf(entered.addingTimeInterval(400 * 86_400)), 35)
+    }
+
+    func test_userProfile_ageWithoutRecordedDate_advancesFromLoadDateNotMemberSince() throws {
+        let legacyJSON = """
+        {
+            "name": "Alex",
+            "goals": [],
+            "memberSince": "2023-01-01T00:00:00Z",
+            "healthConnected": false,
+            "bodyMetrics": {
+                "age": 30,
+                "sex": "unspecified",
+                "activityLevel": "moderate",
+                "unit": "metric"
+            }
+        }
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let loadedAt = Date()
+        let profile = try decoder.decode(UserProfile.self, from: legacyJSON)
+        let recordedAt = try XCTUnwrap(profile.bodyMetrics.ageRecordedAt)
+        XCTAssertGreaterThanOrEqual(recordedAt, loadedAt)
+        XCTAssertEqual(profile.bodyMetrics.ageAsOf(loadedAt), 30)
     }
 
     // MARK: - UserProfile backward compatibility
@@ -218,5 +256,12 @@ final class BodyMetricsTests: XCTestCase {
         // reads, which is the whole reason for the promotion.
         XCTAssertEqual(MeasurementUnit.metric.volumeLabel(34), "1.0 L")
         XCTAssertEqual(MeasurementUnit.metric.volumeLabel(100), "3.0 L")
+    }
+
+    func test_metricVolume_fractionalOunces_readsBackExactMillilitres() {
+        let glass = 250 / 29.5735
+        XCTAssertEqual(MeasurementUnit.metric.volumeLabel(glass), "250 mL")
+        XCTAssertEqual(MeasurementUnit.metric.volumeValue(glass), 250)
+        XCTAssertEqual(MeasurementUnit.imperial.volumeLabel(glass), "8 oz")
     }
 }

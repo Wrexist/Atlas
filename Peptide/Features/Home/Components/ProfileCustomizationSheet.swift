@@ -328,7 +328,7 @@ struct ProfileCustomizationSheet: View {
                             .foregroundStyle(AppColor.accentLight)
                     } else {
                         Image(systemName: "person.fill")
-                            .font(.system(size: 48))
+                            .font(AppFont.scaled(48, relativeTo: .largeTitle))
                             .foregroundStyle(AppColor.accentLight)
                     }
                 }
@@ -441,7 +441,7 @@ struct ProfileCustomizationSheet: View {
                     text: $name
                 )
 
-                Divider().foregroundStyle(AppColor.glassBorder)
+                Divider().overlay(AppColor.glassBorder)
 
                 bioField
             }
@@ -758,7 +758,7 @@ struct ProfileCustomizationSheet: View {
                     dataStore.persistProfile()
                 }
 
-                Divider().foregroundStyle(AppColor.glassBorder)
+                Divider().overlay(AppColor.glassBorder)
 
                 preferenceToggle(
                     icon: "bell.fill",

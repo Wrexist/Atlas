@@ -199,6 +199,23 @@ enum BackupImportService {
         if backup.exportDate > now.addingTimeInterval(24 * 60 * 60) {
             throw ImportError.bounds("export date is more than a day in the future")
         }
+        // A hand-edited or merged backup can repeat an id. Neither copy is
+        // in the live store yet, so the upserts would insert both rows.
+        try rejectDuplicateIDs(in: backup.protocols, label: "protocols", id: \.id)
+        try rejectDuplicateIDs(in: backup.entries, label: "entries", id: \.id)
+        try rejectDuplicateIDs(in: backup.workoutSessions ?? [], label: "workout sessions", id: \.id)
+        try rejectDuplicateIDs(in: backup.routines ?? [], label: "routines", id: \.id)
+        try rejectDuplicateIDs(in: backup.customExercises ?? [], label: "custom exercises", id: \.id)
+        try rejectDuplicateIDs(in: backup.personalRecords ?? [], label: "personal records", id: \.exerciseID)
+    }
+
+    private static func rejectDuplicateIDs<T, ID: Hashable>(
+        in items: [T],
+        label: String,
+        id: (T) -> ID
+    ) throws {
+        guard Set(items.map(id)).count != items.count else { return }
+        throw ImportError.bounds("\(label) repeat the same id")
     }
 
     // MARK: - Apply

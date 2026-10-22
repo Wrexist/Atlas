@@ -280,3 +280,87 @@ final class WorkoutFocusServiceTests: XCTestCase {
         XCTAssertEqual(service.activeSession?.completedSetCount, 1)
     }
 }
+
+final class PendingWorkoutActionStoreTests: XCTestCase {
+    private let tappedAt = Date(timeIntervalSince1970: 1_000)
+    private var defaults: UserDefaults!
+    private var suiteName: String!
+
+    override func setUp() {
+        super.setUp()
+        suiteName = "PendingWorkoutActionStoreTests.\(UUID().uuidString)"
+        defaults = UserDefaults(suiteName: suiteName)
+    }
+
+    override func tearDown() {
+        defaults.removePersistentDomain(forName: suiteName)
+        super.tearDown()
+    }
+
+    private func enqueue(_ action: WorkoutActivityAction, session: UUID, after seconds: TimeInterval) {
+        PendingWorkoutActionStore.enqueue(
+            .init(sessionId: session, action: action, tappedAt: tappedAt.addingTimeInterval(seconds)),
+            defaults: defaults
+        )
+    }
+
+    func test_drain_completeSetDoubleTap_keepsOneTap() {
+        let session = UUID()
+        enqueue(.completeSet, session: session, after: 0)
+        enqueue(.completeSet, session: session, after: 0.4)
+        XCTAssertEqual(PendingWorkoutActionStore.drain(defaults: defaults).count, 1)
+    }
+
+    func test_drain_completeSetsFurtherApart_keepsBoth() {
+        let session = UUID()
+        enqueue(.completeSet, session: session, after: 0)
+        enqueue(.completeSet, session: session, after: 5)
+        XCTAssertEqual(PendingWorkoutActionStore.drain(defaults: defaults).count, 2)
+    }
+
+    func test_drain_quickTapsOnDifferentActionsOrWorkouts_keepsAll() {
+        let session = UUID()
+        enqueue(.completeSet, session: session, after: 0)
+        enqueue(.skipRest, session: session, after: 0.2)
+        enqueue(.completeSet, session: UUID(), after: 0.3)
+        XCTAssertEqual(PendingWorkoutActionStore.drain(defaults: defaults).count, 3)
+    }
+
+    func test_isDoubleTap_completeSetRightAfterAQueuedOne_isTrue() {
+        let session = UUID()
+        enqueue(.completeSet, session: session, after: 0)
+        let tap = PendingWorkoutActionStore.Pending(
+            sessionId: session, action: .completeSet, tappedAt: tappedAt.addingTimeInterval(0.4)
+        )
+        XCTAssertTrue(PendingWorkoutActionStore.isDoubleTap(tap, defaults: defaults))
+    }
+
+    func test_isDoubleTap_completeSetRightAfterADrainedOne_isTrue() {
+        let session = UUID()
+        enqueue(.completeSet, session: session, after: 0)
+        _ = PendingWorkoutActionStore.drain(defaults: defaults)
+        let tap = PendingWorkoutActionStore.Pending(
+            sessionId: session, action: .completeSet, tappedAt: tappedAt.addingTimeInterval(0.4)
+        )
+        XCTAssertTrue(PendingWorkoutActionStore.isDoubleTap(tap, defaults: defaults))
+    }
+
+    func test_isDoubleTap_completeSetAfterTheWindowOrOnAnotherWorkout_isFalse() {
+        let session = UUID()
+        enqueue(.completeSet, session: session, after: 0)
+        let later = PendingWorkoutActionStore.Pending(
+            sessionId: session, action: .completeSet, tappedAt: tappedAt.addingTimeInterval(5)
+        )
+        let elsewhere = PendingWorkoutActionStore.Pending(
+            sessionId: UUID(), action: .completeSet, tappedAt: tappedAt.addingTimeInterval(0.4)
+        )
+        XCTAssertFalse(PendingWorkoutActionStore.isDoubleTap(later, defaults: defaults))
+        XCTAssertFalse(PendingWorkoutActionStore.isDoubleTap(elsewhere, defaults: defaults))
+    }
+
+    func test_drain_clearsTheInbox() {
+        enqueue(.skipRest, session: UUID(), after: 0)
+        _ = PendingWorkoutActionStore.drain(defaults: defaults)
+        XCTAssertTrue(PendingWorkoutActionStore.drain(defaults: defaults).isEmpty)
+    }
+}

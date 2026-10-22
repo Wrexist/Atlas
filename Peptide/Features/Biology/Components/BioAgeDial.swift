@@ -25,6 +25,8 @@ struct BioAgeDial: View {
     var rangeHalfSpan: Int = 5
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// The pulse clock stops while the dial is scrolled out of view.
+    @State private var isOnScreen = true
 
     private var lowerBound: Double { Double(chronologicalAge - rangeHalfSpan) }
     private var upperBound: Double { Double(chronologicalAge + rangeHalfSpan) }
@@ -60,6 +62,7 @@ struct BioAgeDial: View {
             boundLabels
         }
         .frame(width: size, height: size)
+        .onScrollVisibilityChange { isOnScreen = $0 }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityDescription)
     }
@@ -128,7 +131,7 @@ struct BioAgeDial: View {
     @ViewBuilder
     private var markerPulse: some View {
         if let markerValue {
-            TimelineView(.animation(minimumInterval: 1.0 / 30)) { context in
+            TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !isOnScreen)) { context in
                 let phase = context.date.timeIntervalSinceReferenceDate
                     .truncatingRemainder(dividingBy: Self.pulsePeriod) / Self.pulsePeriod
                 Circle()
@@ -170,8 +173,7 @@ struct BioAgeDial: View {
     // MARK: - Bound labels
 
     /// The two ends of the scale, so the number in the middle has something
-    /// to be read against. The localized number formatter picks the right
-    /// decimal separator per locale.
+    /// to be read against.
     private var boundLabels: some View {
         ZStack {
             labelAt(angle: angle(for: lowerBound), value: lowerBound)
@@ -188,7 +190,7 @@ struct BioAgeDial: View {
         // our angle system points up (-90° in screen coords).
         let x = sin(radians) * radius
         let y = -cos(radians) * radius
-        return Text(BioAgeFormat.age(value))
+        return Text(Self.yearLabel(value))
             .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
             .foregroundStyle(AppColor.textSecondary)
             .offset(x: x, y: y)
@@ -206,14 +208,16 @@ struct BioAgeDial: View {
         return startAngle + 90 + fraction * sweep
     }
 
+    /// The scale only. The value itself is announced by the number in the
+    /// dial's centre, so repeating it here would read it twice.
     private var accessibilityDescription: String {
-        let low = BioAgeFormat.age(lowerBound)
-        let high = BioAgeFormat.age(upperBound)
-        guard let bioAge else {
-            return String(format: String(localized: "Biological age scale, %@ to %@ years"), low, high)
-        }
-        return String(format: String(localized: "Biological age %@, on a scale from %@ to %@ years"),
-                      BioAgeFormat.age(bioAge), low, high)
+        String(localized: "Biological age scale, \(Self.yearLabel(lowerBound)) to \(Self.yearLabel(upperBound)) years")
+    }
+
+    /// The bounds are chronological age ± a whole number of years, so they
+    /// print without a decimal ("30", not "30.0").
+    private static func yearLabel(_ value: Double) -> String {
+        Int(value).formatted()
     }
 }
 

@@ -24,7 +24,8 @@ struct HomeView: View {
     // tab's avatar button route through the same presentation.
     /// 0…1 fade progress for the sticky compressing header. Driven
     /// by `.onScrollGeometryChange` so the bar materialises in lock-
-    /// step with the user's finger.
+    /// step with the user's finger. Handed down as a binding and never
+    /// read here, so scroll frames re-render only the header.
     @State private var stickyProgress: Double = 0
     /// State of the Sunday-recap card on Today. Loads on the first
     /// appear of each weekend; cached entries pre-fill the .ready
@@ -46,12 +47,19 @@ struct HomeView: View {
     /// already dismissed past the threshold. Cleared via the four
     /// onResolve callbacks (mark / extend / new / dismiss).
     @State private var completionPrompt: CompletionPromptItem?
+    /// Set by the three resolving actions so the sheet's disappear
+    /// handler can count every other exit — "Decide later" or a
+    /// swipe-down — as a dismissal toward auto-completion.
+    @State private var completionPromptResolved = false
     /// Tracks which jump-bar section is currently nearest the top of
     /// the viewport so the corresponding chip highlights. Driven by
     /// per-section preference reads in `.onScrollGeometryChange` —
     /// effectively free since the scroll geometry callback is already
     /// firing for the sticky-header progress.
-    @State private var activeJumpAnchor: TodayJumpBar.SectionAnchor? = .doses
+    @State private var activeJumpAnchor: TodayJumpBar.SectionAnchor?
+    /// The chip the user just tapped. Holds the highlight while the jump
+    /// scroll animates past other sections, until the user scrolls again.
+    @State private var pendingJumpAnchor: TodayJumpBar.SectionAnchor?
     /// Routes the chip-bar "+ Log" button. The sheet flag controls
     /// the picker; the action enum drives which sheet actually mounts.
     @State private var showQuickLogSheet = false
@@ -64,7 +72,9 @@ struct HomeView: View {
     /// True until the first `refreshHeroSnapshot()` lands, so the trio
     /// shows a skeleton instead of flashing "—" rings before real values.
     @State private var isHeroLoading = true
-    /// Session-only dismissal of the reminder-limit banner.
+    /// Session-only dismissal of the reminder-limit banner. Cleared when
+    /// a reschedule drops a different set of protocols, so a new problem
+    /// isn't hidden behind the old dismissal.
     @State private var notificationBannerDismissed = false
     /// Health Monitor grid snapshot — HRV / RHR / Sleep with their
     /// personal-range envelopes. Same refresh cadence as the hero
@@ -87,6 +97,7 @@ struct HomeView: View {
     /// `dataStore.revision` change instead.
     @State private var derived = DerivedToday()
     @Environment(\.requestReview) private var requestReview
+    @Environment(\.scenePhase) private var scenePhase
 
     private struct DerivedToday {
         var overview: TodayOverviewSnapshot?
@@ -99,13 +110,18 @@ struct HomeView: View {
         /// message that would be shown, so `CoachingCard` now renders
         /// `primaryReason?.message` instead.
         var primaryReason: PrimaryReasonEngine.Reason?
+        /// Habit progress for the habits hero, built once per revision and
+        /// shared with `primaryReason` so habits are walked a single time.
+        var habits: HabitsHeroSnapshot = .empty
         /// Finished sessions this calendar week — the trio's first ring
         /// for a user with no active protocol.
         var workoutsThisWeek = 0
         /// Today's session count and minutes — feeds the Movement card
-        /// and the checklist's training row without a fetch from `body`.
+        /// without a fetch from `body`.
         var workoutSummary: (count: Int, minutes: Int) = (0, 0)
-        var trainedToday: Bool { workoutSummary.count > 0 }
+        /// The logging checklist. Filters the full meal and weight
+        /// histories, so it's built here rather than in `body`.
+        var checklist: TodayChecklistEngine.State?
     }
 
     private struct HeroDetailItem: Identifiable {
@@ -114,7 +130,11 @@ struct HomeView: View {
     }
 
     private enum QuickLogAction: Identifiable {
-        case meal, dose
+        case meal
+        /// The next dose as it was when the menu row was tapped. Read
+        /// live, a store change while the sheet is open could swap the
+        /// sheet's entry and log the user's input against another dose.
+        case dose(ProtocolEntry?)
         var id: Int {
             switch self { case .meal: 0; case .dose: 1 }
         }
@@ -134,29 +154,64 @@ struct HomeView: View {
         return (entries, score, completed, total)
     }
 
-    /// Recomputes the four derived Today models. Cheap enough to run
+    /// Today's dose adherence for the trio — `nil` on a day with no doses
+    /// scheduled so the ring rests instead of reading 0%.
+    private var adherenceRatio: Double? {
+        let stats = todayStats
+        return stats.total > 0 ? stats.score : nil
+    }
+
+    /// Recomputes the derived Today models. Cheap enough to run
     /// synchronously on the main actor — it's a handful of in-memory passes
-    /// plus one day-scoped SwiftData fetch — but it must not run from `body`.
+    /// plus one week-scoped SwiftData fetch — but it must not run from `body`.
     private func refreshDerived() {
         let plan = DailyScheduleEngine.plan(for: dataStore.todayEntries)
+        let habits = HabitsHeroSnapshot.build(
+            activeHabits: dataStore.activeHabits,
+            entries: dataStore.profile.habitEntries,
+            frozenDayKeys: dataStore.profile.streakFreezeDays
+        )
+        let weekSessions = finishedWorkoutSessionsThisWeek()
+        let todaySessions = weekSessions.filter { Calendar.current.isDateInToday($0.startedAt) }
+        let workoutSummary = (
+            count: todaySessions.count,
+            minutes: todaySessions.reduce(0) { $0 + $1.elapsedSeconds() / 60 }
+        )
         let next = DerivedToday(
             overview: TodayOverviewSnapshot.build(from: dataStore),
             plan: plan,
-            timeline: buildTimelineEvents(),
-            primaryReason: buildPrimaryReason(plan: plan),
-            workoutsThisWeek: countWorkoutsThisWeek(),
-            workoutSummary: dataStore.workoutSummary(for: Date())
+            timeline: buildTimelineEvents(workoutSessions: todaySessions),
+            primaryReason: buildPrimaryReason(plan: plan, habits: habits),
+            habits: habits,
+            workoutsThisWeek: weekSessions.count,
+            workoutSummary: workoutSummary,
+            checklist: TodayChecklistEngine.state(
+                profile: dataStore.profile,
+                consumption: dataStore.consumption(),
+                trainedToday: workoutSummary.count > 0
+            )
         )
         // Inside an animation so the cards' numericText digits roll.
         AppAnimation.with(AppAnimation.springSmooth) { derived = next }
     }
 
-    private func countWorkoutsThisWeek() -> Int {
-        guard let week = Calendar.current.dateInterval(of: .weekOfYear, for: Date()) else { return 0 }
+    /// Rebuilds everything that depends on the clock rather than the store —
+    /// the derived models (day rollover, the time-of-day next meal and
+    /// coaching copy) and the HealthKit-backed rings, which can move without
+    /// any store mutation: overnight sleep, a new HRV sample.
+    private func refreshForCurrentTime() {
+        refreshDerived()
+        Task { await refreshHeroSnapshot() }
+        Task { await refreshHealthRange() }
+    }
+
+    /// The week's finished sessions — one fetch that also covers today, so
+    /// the weekly count, Movement summary and timeline share it.
+    private func finishedWorkoutSessionsThisWeek() -> [WorkoutSession] {
+        guard let week = Calendar.current.dateInterval(of: .weekOfYear, for: Date()) else { return [] }
         return SwiftDataRepository.shared
             .loadWorkoutSessions(startedBetween: week.start..<week.end)
             .filter { !$0.isActive }
-            .count
     }
 
     /// Touches `notificationService.lastReport` so the View takes a SwiftUI
@@ -165,6 +220,12 @@ struct HomeView: View {
     /// and so the banner won't refresh after a reschedule.
     private var shouldShowNotificationBanner: Bool {
         notificationService.lastReport.hasAnyIssue && !notificationBannerDismissed
+    }
+
+    /// Gates both the doses section and its jump chip, so the chip never
+    /// scrolls to a section that isn't rendered.
+    private var showsDoseSection: Bool {
+        !dataStore.protocols.isEmpty && derived.plan != nil
     }
 
     /// The "At a glance" trio only has meaning once there's a data
@@ -229,10 +290,18 @@ struct HomeView: View {
                     // the tab bar already does that job.
                     TodayJumpBar(
                         activeAnchor: activeJumpAnchor,
-                        showsDoses: !dataStore.protocols.isEmpty,
+                        showsDoses: showsDoseSection,
                         onSelect: { anchor in handleJump(to: anchor, proxy: proxy) },
                         isQuickLogOpen: showQuickLogSheet,
-                        onQuickLog: { showQuickLogSheet = true }
+                        quickLogIncludesDose: dataStore.nextDose != nil,
+                        onQuickLog: {
+                            // A one-row menu is just an extra tap.
+                            if dataStore.nextDose == nil {
+                                quickLogAction = .meal
+                            } else {
+                                showQuickLogSheet = true
+                            }
+                        }
                     )
                     .sectionAppear(index: 1)
 
@@ -322,23 +391,21 @@ struct HomeView: View {
                     // completion ring, and the active streak. Per-habit
                     // summary work is snapshotted off-body inside the
                     // component (audit A6).
-                    TodayHabitsHero()
+                    TodayHabitsHero(snapshot: derived.habits)
                         .sectionAppear(index: 4)
 
                     // The day's logging loop in one card — every open
                     // row is also the shortcut that closes it.
-                    TodayChecklistCard(
-                        state: TodayChecklistEngine.state(
-                            profile: dataStore.profile,
-                            consumption: dataStore.consumption(),
-                            trainedToday: derived.trainedToday
-                        ),
-                        unit: dataStore.profile.bodyMetrics.unit,
-                        onAction: handleChecklistAction
-                    )
-                    .sectionAppear(index: 5)
+                    if let checklist = derived.checklist {
+                        TodayChecklistCard(
+                            state: checklist,
+                            unit: dataStore.profile.bodyMetrics.unit,
+                            onAction: handleChecklistAction
+                        )
+                        .sectionAppear(index: 5)
+                    }
 
-                    if !dataStore.protocols.isEmpty, let plan = derived.plan {
+                    if showsDoseSection, let plan = derived.plan {
                         // The ONE place doses appear on Today — the
                         // overview card and the timeline leave them out.
                         // The header's Manage button is the labeled
@@ -360,6 +427,7 @@ struct HomeView: View {
 
                             DailyPlanCard(
                                 plan: plan,
+                                hasActiveProtocols: !dataStore.activeProtocols.isEmpty,
                                 onTapDose: { entry in selectedEntry = entry },
                                 onToggleDose: toggleDose,
                                 onAddProtocol: {
@@ -414,8 +482,8 @@ struct HomeView: View {
                     // Momentum — goal countdown for users who committed
                     // to a target date, and the earned Atlas Score
                     // (level / tier / progress). Guarded so the header
-                    // never sits alone when no goal date is set.
-                    if dataStore.profile.goalDate != nil {
+                    // never sits alone when the card has nothing to show.
+                    if GoalCountdownCard.isShown(goalDate: dataStore.profile.goalDate) {
                         VStack(spacing: Spacing.sm) {
                             HomeSectionHeader(eyebrow: "Momentum", title: "Your goal")
 
@@ -503,6 +571,9 @@ struct HomeView: View {
             } action: { _, newValue in
                 stickyProgress = newValue
             }
+            .onScrollPhaseChange { _, newPhase in
+                if newPhase == .interacting { pendingJumpAnchor = nil }
+            }
             // Scroll-tracked jump-bar active anchor. Each tagged
             // section publishes its frame via SectionAnchorFrameKey;
             // ActiveSectionPicker reduces the dictionary to the
@@ -512,6 +583,7 @@ struct HomeView: View {
             // rendering on every scroll tick.
             .coordinateSpace(name: "HomeScroll")
             .onPreferenceChange(SectionAnchorFrameKey.self) { frames in
+                guard pendingJumpAnchor == nil else { return }
                 let picked = ActiveSectionPicker.pick(from: frames)
                 if picked != activeJumpAnchor {
                     activeJumpAnchor = picked
@@ -528,7 +600,7 @@ struct HomeView: View {
                         Haptics.impact(.light)
                         appState.showProfile = true
                     },
-                    progress: stickyProgress
+                    progress: $stickyProgress
                 )
             }
             .sheet(item: $selectedEntry) { entry in
@@ -576,7 +648,6 @@ struct HomeView: View {
                     proto: item.proto,
                     milestone: item.milestone,
                     onShare: {
-                        CycleMilestoneService.shared.markShown(item.milestone, for: item.proto)
                         let proto = item.proto
                         milestonePrompt = nil
                         // Defer one runloop tick so the prompt sheet has
@@ -587,12 +658,14 @@ struct HomeView: View {
                             milestoneShareProtocol = proto
                         }
                     },
-                    onDismiss: {
-                        CycleMilestoneService.shared.markShown(item.milestone, for: item.proto)
-                        milestonePrompt = nil
-                    }
+                    onDismiss: { milestonePrompt = nil }
                 )
                 .liquidGlassPresentation(detents: [.medium])
+                // Every exit — share, dismiss or swipe-down — marks the
+                // milestone shown so it doesn't re-fire on the next appear.
+                .onDisappear {
+                    CycleMilestoneService.shared.markShown(item.milestone, for: item.proto)
+                }
             }
             .sheet(item: $completionPrompt) { item in
                 CycleCompletionPromptSheet(
@@ -601,6 +674,7 @@ struct HomeView: View {
                     onMarkComplete: {
                         dataStore.updateProtocolStatus(id: item.proto.id, to: .completed)
                         CycleCompletionService.shared.markAutoCompleted(item.proto)
+                        completionPromptResolved = true
                         completionPrompt = nil
                     },
                     onExtend: {
@@ -616,7 +690,9 @@ struct HomeView: View {
                         // this protocol. Clear the dismiss counter
                         // instead so subsequent dismissals on the
                         // extended cycle start from zero.
+                        CycleCompletionService.shared.resetDismissals(for: item.proto)
                         dataStore.extendProtocol(id: item.proto.id, byWeeks: 2)
+                        completionPromptResolved = true
                         completionPrompt = nil
                     },
                     onStartNewCycle: {
@@ -625,25 +701,23 @@ struct HomeView: View {
                         // (the cycle that actually ended).
                         CycleCompletionService.shared.markAutoCompleted(item.proto)
                         dataStore.restartProtocol(id: item.proto.id)
+                        completionPromptResolved = true
                         completionPrompt = nil
                     },
-                    onDismiss: {
-                        CycleCompletionService.shared.recordDismissal(for: item.proto)
-                        completionPrompt = nil
-                    }
+                    onDismiss: { completionPrompt = nil }
                 )
                 .liquidGlassPresentation(detents: [.medium, .large])
+                .onDisappear {
+                    if !completionPromptResolved {
+                        CycleCompletionService.shared.recordDismissal(for: item.proto)
+                    }
+                    completionPromptResolved = false
+                }
             }
             .sheet(item: $milestoneShareProtocol) { proto in
                 ShareCardSheet(subject: .singleProtocol(proto))
                     .environment(dataStore)
                     .liquidGlassPresentation()
-            }
-            .navigationDestination(for: Peptide.self) { peptide in
-                PeptideDetailView(peptide: peptide)
-            }
-            .navigationDestination(for: PeptideProtocol.self) { proto in
-                ProtocolDetailView(protocol_: proto)
             }
             .overlay {
                 if celebrationCenter.current == nil, let achievement = toastAchievement {
@@ -676,14 +750,17 @@ struct HomeView: View {
                 // the last being dropped.
                 if !isShowing { achievementService.acknowledgeLatestUnlock() }
             }
-            // Single handler for adherence-ratio changes: refresh the
-            // hero trio so the Adherence ring reflects a logged/unlogged
-            // dose immediately, and fire the review prompt when the day
-            // first hits 100%. Previously two separate `onChange(of:
-            // stats.score)` modifiers spawned two async tasks per toggle.
-            .onChange(of: stats.score) { oldScore, newScore in
-                Task { await refreshHeroSnapshot() }
-                if oldScore < 1.0, newScore >= 1.0, stats.total > 0 {
+            // Single handler for adherence-ratio changes: update only the
+            // trio's Adherence ring so a logged/unlogged dose shows
+            // immediately without re-reading HealthKit, and fire the
+            // review prompt when the day first hits 100%. Keyed on the
+            // optional ratio so going from no doses to N untaken (nil → 0)
+            // still reaches the ring.
+            .onChange(of: adherenceRatio) { oldRatio, newRatio in
+                AppAnimation.with(AppAnimation.springSmooth) {
+                    heroSnapshot = heroSnapshot.withAdherence(newRatio)
+                }
+                if (oldRatio ?? 0) < 1.0, (newRatio ?? 0) >= 1.0 {
                     Task { @MainActor in
                         try? await Task.sleep(for: .seconds(1))
                         ReviewPromptService.shared.requestReviewIfEligible(using: requestReview)
@@ -696,12 +773,28 @@ struct HomeView: View {
             .task(id: dataStore.revision) {
                 refreshDerived()
             }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { refreshForCurrentTime() }
+            }
+            // Neither notification promises main-thread delivery.
+            .onReceive(
+                NotificationCenter.default.publisher(for: .NSCalendarDayChanged)
+                    .receive(on: DispatchQueue.main)
+            ) { _ in
+                refreshForCurrentTime()
+            }
+            .onReceive(
+                NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)
+                    .receive(on: DispatchQueue.main)
+            ) { _ in
+                refreshForCurrentTime()
+            }
             // The coaching copy reads recovery + sleep off the hero snapshot,
             // so it has to re-pick when that lands (it arrives async, after
             // the first `refreshDerived()`).
             .onChange(of: heroSnapshot) { _, _ in
                 let plan = derived.plan ?? DailyScheduleEngine.plan(for: dataStore.todayEntries)
-                let reason = buildPrimaryReason(plan: plan)
+                let reason = buildPrimaryReason(plan: plan, habits: derived.habits)
                 AppAnimation.with(AppAnimation.springSmooth) { derived.primaryReason = reason }
             }
             .onAppear {
@@ -711,6 +804,9 @@ struct HomeView: View {
                 Task { await loadWeeklySummary(forceRefresh: false) }
                 Task { await refreshHeroSnapshot() }
                 Task { await refreshHealthRange() }
+            }
+            .onChange(of: notificationService.lastReport.droppedProtocolIDs) { _, _ in
+                notificationBannerDismissed = false
             }
             .onChange(of: appState.pendingDoseLogEntryId) { _, _ in
                 consumePendingDoseDeepLink()
@@ -748,8 +844,7 @@ struct HomeView: View {
                     context: .init(
                         todayEntries: stats.entries,
                         recoveryComponents: heroSnapshot.recoveryComponents,
-                        lastSleepHours: heroSnapshot.lastSleepHours,
-                        sleepTargetHours: 8.0
+                        lastSleepHours: heroSnapshot.lastSleepHours
                     ),
                     onLogDose: { entry in selectedEntry = entry }
                 )
@@ -763,10 +858,10 @@ struct HomeView: View {
                     .liquidGlassPresentation()
             }
             .sheet(isPresented: $showQuickLogSheet) {
-                LogMealSheet(
+                QuickLogMenuSheet(
                     nextDose: dataStore.nextDose,
                     onSnapMeal: { startQuickLog(.meal) },
-                    onLogNextDose: { startQuickLog(.dose) }
+                    onLogNextDose: { startQuickLog(.dose(dataStore.nextDose)) }
                 )
             }
             }   // closes ScrollViewReader
@@ -785,6 +880,7 @@ struct HomeView: View {
         AppAnimation.with(AppAnimation.settle) {
             proxy.scrollTo(anchor, anchor: .top)
         }
+        pendingJumpAnchor = anchor
         activeJumpAnchor = anchor
     }
 
@@ -832,9 +928,9 @@ struct HomeView: View {
     }
 
     /// The dose row's one-tap check. A success haptic marks the dose
-    /// taken; un-checking keeps the store's own soft tap.
+    /// taken; un-checking gets a soft tap.
     private func toggleDose(_ entry: ProtocolEntry) {
-        if !entry.completed { Haptics.success() }
+        if entry.completed { Haptics.impact(.soft) } else { Haptics.success() }
         AppAnimation.with(AppAnimation.springSnappy) { dataStore.toggleEntry(entry.id) }
     }
 
@@ -864,37 +960,27 @@ struct HomeView: View {
     }
 
     /// Today's chronological event feed for `TodayTimelineCard`.
-    /// Pulls meals + check-in + workouts and hands them
+    /// Pulls meals + check-in + today's finished workouts and hands them
     /// to the pure `TodayTimelineEvent.build` for sorting + row
-    /// construction. Recomputes cheaply on every body re-eval
-    /// (small lists, all in-memory).
-    private func buildTimelineEvents() -> [TodayTimelineEvent] {
-        let now = Date()
-        let cal = Calendar.current
+    /// construction.
+    private func buildTimelineEvents(workoutSessions: [WorkoutSession]) -> [TodayTimelineEvent] {
         // Plan C: workouts now live in StoredWorkoutSession; the
         // timeline still expects the legacy `WorkoutEntry` shape, so
         // adapt at this boundary. Empty-exercise quick-log sessions
         // still render — the timeline only needs name + date +
         // duration.
-        let dayStart = cal.startOfDay(for: now)
-        let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
-        let workoutsToday: [WorkoutEntry] = SwiftDataRepository.shared
-            .loadWorkoutSessions(startedBetween: dayStart..<dayEnd)
+        let workoutsToday: [WorkoutEntry] = workoutSessions
             .map { session in
                 let sets = session.exercises.flatMap(\.sets)
                 let reps = sets.reduce(0) { $0 + $1.reps }
                 let avgReps = sets.isEmpty ? 0 : reps / sets.count
-                let duration: Int = {
-                    guard session.finishedAt != nil else { return 0 }
-                    return session.elapsedSeconds() / 60
-                }()
                 return WorkoutEntry(
                     id: session.id,
                     date: session.startedAt,
                     name: session.displayName,
                     sets: sets.count,
                     reps: avgReps,
-                    durationMinutes: duration
+                    durationMinutes: session.elapsedSeconds() / 60
                 )
             }
         return TodayTimelineEvent.build(
@@ -908,6 +994,7 @@ struct HomeView: View {
     /// snapshot. Pure read — synchronous so the view body can
     /// consume it without an async hop.
     private func buildCoachingContext() -> CoachingMessageEngine.Context {
+        let stats = todayStats
         let next = dataStore.nextDose
         let nextTimeDisplay: String? = next.map {
             DateFormatter.localizedString(from: $0.date, dateStyle: .none, timeStyle: .short)
@@ -920,8 +1007,8 @@ struct HomeView: View {
             healthConnected: dataStore.profile.healthConnected,
             recoveryScore: heroSnapshot.recovery.isAvailable ? heroSnapshot.recovery.displayPercent : nil,
             sleepHours: heroSnapshot.sleep.isAvailable ? heroSnapshot.lastSleepHours : nil,
-            adherenceRatio: todayStats.score,
-            pendingDoseCount: todayStats.total - todayStats.completed,
+            adherenceRatio: stats.score,
+            pendingDoseCount: stats.total - stats.completed,
             nextDoseAbbreviation: next?.peptide.abbreviation,
             nextDoseTimeDisplay: nextTimeDisplay,
             hourOfDay: Calendar.current.component(.hour, from: Date()),
@@ -933,12 +1020,10 @@ struct HomeView: View {
     /// changed weekly review into the one top-of-Today reason to act.
     /// `plan` is threaded in from `refreshDerived()` rather than recomputed
     /// so the two stay built from the same `dataStore.todayEntries` pass.
-    private func buildPrimaryReason(plan: DailyScheduleEngine.DailyPlan) -> PrimaryReasonEngine.Reason {
-        let habits = HabitsHeroSnapshot.build(
-            activeHabits: dataStore.activeHabits,
-            entries: dataStore.profile.habitEntries,
-            frozenDayKeys: dataStore.profile.streakFreezeDays
-        )
+    private func buildPrimaryReason(
+        plan: DailyScheduleEngine.DailyPlan,
+        habits: HabitsHeroSnapshot
+    ) -> PrimaryReasonEngine.Reason {
         let context = PrimaryReasonEngine.Context(
             coaching: buildCoachingContext(),
             dailyPlanHeadline: plan.hasAny ? plan.headline : nil,
@@ -967,7 +1052,7 @@ struct HomeView: View {
     /// cached for short windows by HealthKit itself.
     private func refreshHeroSnapshot() async {
         let snapshot = await HeroMetricSnapshot.build(
-            adherenceRatio: todayStats.score,
+            adherenceRatio: adherenceRatio,
             healthConnected: dataStore.profile.healthConnected
         )
         AppAnimation.with(AppAnimation.springSmooth) {
@@ -1003,8 +1088,8 @@ struct HomeView: View {
             MealScanFlow(onClose: { quickLogAction = nil })
                 .environment(dataStore)
                 .liquidGlassPresentation()
-        case .dose:
-            if let next = dataStore.nextDose {
+        case .dose(let next):
+            if let next {
                 DoseLoggingSheet(entry: next) { actualDose, actualTime, site, notes in
                     dataStore.logDose(
                         entryId: next.id,
@@ -1017,9 +1102,9 @@ struct HomeView: View {
                 }
                 .liquidGlassPresentation()
             } else {
-                // `nextDose` can go nil between the menu tap and the
-                // sheet mounting (e.g. logged on the Watch). Show a
-                // real "nothing to log" state, not a blank modal.
+                // `nextDose` was nil at the menu tap (e.g. just
+                // logged on the Watch). Show a real "nothing to log"
+                // state, not a blank modal.
                 EmptyStateView(
                     icon: "checkmark.circle",
                     title: "Nothing to log",
@@ -1059,11 +1144,13 @@ struct HomeView: View {
     /// the card entirely when the user isn't Pro + opted-in. Routes
     /// through `WeeklySummaryService` so the Pro gate, opt-out gate,
     /// network call, cache, and offline fallback all stay in one
-    /// place.
-    private func loadWeeklySummary(forceRefresh: Bool) async {
+    /// place. Returns the loaded summary's kind, or nil when none was
+    /// produced.
+    @discardableResult
+    private func loadWeeklySummary(forceRefresh: Bool) async -> WeeklySummary.Kind? {
         guard WeeklySummaryService.shared.isAvailable(profile: dataStore.profile) else {
             weeklySummaryState = nil
-            return
+            return nil
         }
 
         // Cached value short-circuits unless the caller asked for a
@@ -1075,13 +1162,26 @@ struct HomeView: View {
         if !forceRefresh, let cached = WeeklySummaryService.shared.cachedIfFresh(
             profile: dataStore.profile,
             protocols: dataStore.protocols,
-            entries: dataStore.entries
+            entries: dataStore.entries,
+            workoutDates: dataStore.recentWorkoutDates()
         ) {
             weeklySummaryState = .ready(cached)
-            return
+            return cached.kind
         }
 
-        weeklySummaryState = .loading
+        // The week's data changed since the recap was generated. Keep the
+        // stale recap on screen and regenerate it in the background, at
+        // most every few hours, instead of a shimmer plus an AI request
+        // on every Today appear after each log.
+        var isRefreshingStale = false
+        if !forceRefresh,
+           let stale = WeeklySummaryService.shared.cached(in: dataStore.profile, for: Date()) {
+            weeklySummaryState = .ready(stale)
+            guard WeeklySummaryService.isDueForRegeneration(stale) else { return stale.kind }
+            isRefreshingStale = true
+        }
+
+        if !isRefreshingStale { weeklySummaryState = .loading }
         do {
             // Pull a fresh HRV series each refresh — cheaper than
             // caching it on the @State, and the user is unlikely to
@@ -1093,6 +1193,7 @@ struct HomeView: View {
                 profile: dataStore.profile,
                 protocols: dataStore.protocols,
                 entries: dataStore.entries,
+                workoutDates: dataStore.recentWorkoutDates(),
                 hrvSeries: hrv,
                 // Pass a stable category code rather than the
                 // free-text title — the title can embed details about
@@ -1111,10 +1212,13 @@ struct HomeView: View {
             WeeklySummaryService.shared.record(summary, in: &dataStore.profile)
             dataStore.persistProfile()
             weeklySummaryState = .ready(summary)
+            return summary.kind
         } catch WeeklySummaryService.GenerationError.insufficientData {
             weeklySummaryState = .empty
+            return nil
         } catch {
-            weeklySummaryState = .failed
+            if !isRefreshingStale { weeklySummaryState = .failed }
+            return nil
         }
     }
 
@@ -1245,10 +1349,10 @@ struct HomeView: View {
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
-        case 5..<12: return "Good morning"
-        case 12..<17: return "Good afternoon"
-        case 17..<24: return "Good evening"
-        default: return "Up late"
+        case 5..<12: return String(localized: "Good morning")
+        case 12..<17: return String(localized: "Good afternoon")
+        case 17..<24: return String(localized: "Good evening")
+        default: return String(localized: "Up late")
         }
     }
 

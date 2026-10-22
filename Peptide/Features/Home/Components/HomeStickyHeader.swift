@@ -23,7 +23,9 @@ struct HomeStickyHeader: View {
     /// 0…1 fade + slide progress. Caller derives this from scroll
     /// offset; the view multiplies it against every animated
     /// property so a single source of truth drives the transition.
-    let progress: Double
+    /// A binding so only this view, not the caller's body, reads it
+    /// on every scroll frame.
+    @Binding var progress: Double
 
     var body: some View {
         HStack(spacing: Spacing.sm) {
@@ -107,7 +109,7 @@ struct HomeStickyHeader: View {
             firstName: "Alex",
             avatarImageData: nil,
             onAvatarTap: {},
-            progress: 0
+            progress: .constant(0)
         )
         Spacer()
     }
@@ -121,7 +123,7 @@ struct HomeStickyHeader: View {
             firstName: "Alex",
             avatarImageData: nil,
             onAvatarTap: {},
-            progress: 1
+            progress: .constant(1)
         )
         Spacer()
     }

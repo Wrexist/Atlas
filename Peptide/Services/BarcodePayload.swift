@@ -93,6 +93,13 @@ enum BarcodePayload: Equatable, Sendable {
             if code.hasPrefix("0") { add(String(code.dropFirst())) }
         case 12:
             add("0" + code)
+        case 8:
+            // A UPC-E on a can or a pack of gum is the database's UPC-A
+            // with its zeros squeezed out.
+            if let expanded = upcA(expandingUPCE: code) {
+                add(expanded)
+                add("0" + expanded)
+            }
         default:
             break
         }
@@ -106,6 +113,27 @@ enum BarcodePayload: Equatable, Sendable {
         guard code.count == 14, code.allSatisfy(\.isNumber) else { return nil }
         let base = String(code.dropFirst().dropLast())
         guard let check = checkDigit(for: base) else { return nil }
+        return base + String(check)
+    }
+
+    /// The UPC-A a UPC-E code stands for, or nil when `code` isn't a
+    /// UPC-E: 8 digits, number system 0 or 1, and a check digit that
+    /// agrees with the expansion. The last of the six middle digits
+    /// says where the suppressed zeros go.
+    static func upcA(expandingUPCE code: String) -> String? {
+        guard code.count == 8, code.allSatisfy(\.isNumber) else { return nil }
+        let digits = Array(code)
+        let system = digits[0]
+        guard system == "0" || system == "1" else { return nil }
+        let d = digits[1...6].map(String.init)
+        let body: String = switch d[5] {
+        case "0", "1", "2": d[0] + d[1] + d[5] + "0000" + d[2] + d[3] + d[4]
+        case "3":           d[0] + d[1] + d[2] + "00000" + d[3] + d[4]
+        case "4":           d[0] + d[1] + d[2] + d[3] + "00000" + d[4]
+        default:            d[0] + d[1] + d[2] + d[3] + d[4] + "0000" + d[5]
+        }
+        let base = String(system) + body
+        guard let check = checkDigit(for: base), check == digits[7].wholeNumberValue else { return nil }
         return base + String(check)
     }
 
