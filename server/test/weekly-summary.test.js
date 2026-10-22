@@ -17,6 +17,14 @@ function setEnv(t, vars) {
   });
 }
 
+// Per-minute limits use fixed windows, so two calls that straddle a
+// minute boundary land in different buckets and both pass. Holding the
+// clock mid-minute keeps a "second call is limited" test deterministic.
+function holdClockMidMinute(t) {
+  const now = Math.floor(Date.now() / 60_000) * 60_000 + 30_000;
+  t.mock.timers.enable({ apis: ['Date'], now });
+}
+
 const BASE_ENV = {
   PROXY_SHARED_SECRET: 'test-secret',
   ANTHROPIC_API_KEY: 'test-key',
@@ -87,6 +95,7 @@ function makeRes() {
 
 test('over-RPM weekly-summary request is rejected 429', async (t) => {
   setEnv(t, { ...BASE_ENV, WEEKLY_RPM: '1' });
+  holdClockMidMinute(t);
   const upstream = stubUpstream(t);
 
   const first = makeRes();
