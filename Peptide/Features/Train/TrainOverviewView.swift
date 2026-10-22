@@ -268,14 +268,11 @@ struct TrainOverviewView: View {
                     }
                 }
 
-                Picker("Training period", selection: Binding(
-                    get: { selectedPeriod }, set: { selectedPeriodRaw = $0.rawValue }
-                )) {
-                    ForEach(TrainingMapPeriod.allCases, id: \.self) { period in
-                        Text(period.title).tag(period)
-                    }
-                }
-                .pickerStyle(.segmented)
+                GlassSegmentedControl(
+                    options: TrainingMapPeriod.allCases,
+                    selected: Binding(get: { selectedPeriod }, set: { selectedPeriodRaw = $0.rawValue }),
+                    label: { LocalizedStringKey($0.title) }
+                )
                 .accessibilityIdentifier("training-map-period")
 
                 TrainingBodyExplorer(

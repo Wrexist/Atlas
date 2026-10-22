@@ -22,6 +22,14 @@ struct GlassSegmentedControl<T: Hashable>: View {
     @Namespace private var pillNamespace
 
     var body: some View {
+        track
+            // One container, so an identifier on the control lands on the
+            // group rather than on every segment button.
+            .accessibilityElement(children: .contain)
+    }
+
+    @ViewBuilder
+    private var track: some View {
         switch style {
         case .standard:
             segments(spacing: 0)

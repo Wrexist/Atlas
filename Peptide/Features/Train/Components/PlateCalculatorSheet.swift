@@ -66,11 +66,11 @@ struct PlateCalculatorSheet: View {
     // MARK: - Inputs
 
     private var unitPicker: some View {
-        Picker("Unit", selection: Binding(get: { unit }, set: { switchUnit(to: $0) })) {
-            Text("kg").tag(MeasurementUnit.metric)
-            Text("lb").tag(MeasurementUnit.imperial)
-        }
-        .pickerStyle(.segmented)
+        GlassSegmentedControl(
+            options: [MeasurementUnit.metric, .imperial],
+            selected: Binding(get: { unit }, set: { switchUnit(to: $0) }),
+            label: { $0 == .metric ? "kg" : "lb" }
+        )
     }
 
     private var inputs: some View {

@@ -46,12 +46,11 @@ struct TrainingBodyExplorer: View {
 
     private var content: some View {
         VStack(spacing: Spacing.md) {
-            Picker("Body view", selection: $side) {
-                ForEach(Side.allCases, id: \.self) { side in
-                    Text(side.rawValue).tag(side)
-                }
-            }
-            .pickerStyle(.segmented)
+            GlassSegmentedControl(
+                options: Side.allCases,
+                selected: $side,
+                label: { LocalizedStringKey($0.rawValue) }
+            )
             .accessibilityIdentifier("training-body-side")
 
             MuscleMapView(
