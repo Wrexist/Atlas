@@ -21,12 +21,12 @@ enum BackupImportService {
     /// Soft cap on the raw JSON size. A 50 MB blob is plenty for
     /// years of dose history + meal logs; anything larger is almost
     /// certainly a corrupt file or a different app's export.
-    static let maxBackupBytes: Int = 50 * 1024 * 1024
+    nonisolated static let maxBackupBytes: Int = 50 * 1024 * 1024
 
     /// Supported `AppBackup.version` major prefixes. A backup whose
     /// version doesn't match one of these is rejected. Update when a
     /// breaking schema change ships.
-    static let supportedMajorVersions: Set<String> = ["1", "2"]
+    nonisolated static let supportedMajorVersions: Set<String> = ["1", "2"]
 
     /// Controls how the import interacts with the user's current data.
     enum Strategy: Hashable, Sendable {
@@ -94,7 +94,7 @@ enum BackupImportService {
     /// but the fields are identical, and three hand-written copies of
     /// the same eight-field initializer is three chances for one of
     /// them to drift.
-    private static func preview(
+    private nonisolated static func preview(
         exportDate: Date,
         version: String,
         protocols: [PeptideProtocol],
@@ -120,7 +120,7 @@ enum BackupImportService {
     }
 
     /// The backup summarised as it arrived — nothing applied.
-    private static func preview(of backup: AppBackup) -> Preview {
+    private nonisolated static func preview(of backup: AppBackup) -> Preview {
         preview(
             exportDate: backup.exportDate,
             version: backup.version,
@@ -137,8 +137,9 @@ enum BackupImportService {
 
     /// Parses + structurally validates the backup. Doesn't write
     /// anything. Errors thrown here are user-actionable strings the
-    /// UI can render directly.
-    static func validate(_ data: Data) throws -> (backup: AppBackup, preview: Preview) {
+    /// UI can render directly. Nonisolated so the restore sheet can
+    /// decode a large backup off the main actor.
+    nonisolated static func validate(_ data: Data) throws -> (backup: AppBackup, preview: Preview) {
         guard data.count <= maxBackupBytes else {
             throw ImportError.fileTooLarge(bytes: data.count)
         }
@@ -178,7 +179,7 @@ enum BackupImportService {
         return (backup, preview(of: backup))
     }
 
-    private static func sanityCheck(_ backup: AppBackup) throws {
+    private nonisolated static func sanityCheck(_ backup: AppBackup) throws {
         // Anchor the upper bound at "a power user's lifetime of data" —
         // 10 years of 5 active protocols × 365 daily entries = 18,250.
         // 100k is a 5× safety margin.
