@@ -133,3 +133,23 @@ test('no-dose week omits compliance from the model prompt', async (t) => {
   assert.match(prompt, /"weekStart"/);
   assert.doesNotMatch(prompt, /compliance/);
 });
+
+test('training session days reach the model prompt', async (t) => {
+  setEnv(t, BASE_ENV);
+  const upstream = stubUpstream(t);
+
+  const req = makeReq('10.1.0.4', {
+    aggregate: {
+      weekStart: '2026-06-01',
+      compliance: { completed: 0, total: 0, pct: 0 },
+      training: { sessionDays: 3, note: 'dropped' },
+    },
+  });
+  const res = makeRes();
+  await handler(req, res);
+
+  assert.equal(res.statusCode, 200);
+  const prompt = JSON.parse(upstream[0][1].body).messages[0].content;
+  assert.match(prompt, /"sessionDays": 3/);
+  assert.doesNotMatch(prompt, /dropped/);
+});

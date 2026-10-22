@@ -106,6 +106,11 @@ enum OfflineWeeklySummaryFormatter {
             }
         }
 
+        if let training = aggregate.training {
+            let dayWord = training.sessionDays == 1 ? "day" : "days"
+            observations.append("Trained on \(training.sessionDays) \(dayWord) this week.")
+        }
+
         if aggregate.labs.newPanelsLogged > 0 {
             let panels = aggregate.labs.newPanelsLogged
             let panelWord = panels == 1 ? "panel" : "panels"

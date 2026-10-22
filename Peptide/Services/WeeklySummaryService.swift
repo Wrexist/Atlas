@@ -172,7 +172,7 @@ final class WeeklySummaryService {
     /// Deliberately excludes `biometrics` (HealthKit series arrive
     /// passively and would re-fire the API on every new sample) and
     /// `topInsightCategory` (derived, churny) — the finding this guards
-    /// against is edits to entries, meals, check-ins and labs.
+    /// against is edits to entries, workouts, meals, check-ins and labs.
     static func sourceFingerprint(of aggregate: WeeklyAggregate) -> String {
         struct Sources: Encodable {
             let weekStart: String
@@ -180,6 +180,7 @@ final class WeeklySummaryService {
             let streak: WeeklyAggregate.Streak
             let outcomes: WeeklyAggregate.Outcomes?
             let nutrition: WeeklyAggregate.Nutrition?
+            let training: WeeklyAggregate.Training?
             let labs: WeeklyAggregate.Labs
         }
         let sources = Sources(
@@ -188,6 +189,7 @@ final class WeeklySummaryService {
             streak: aggregate.streak,
             outcomes: aggregate.outcomes,
             nutrition: aggregate.nutrition,
+            training: aggregate.training,
             labs: aggregate.labs
         )
         let encoder = JSONEncoder()

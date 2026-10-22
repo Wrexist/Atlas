@@ -29,7 +29,7 @@ enum WeeklySummaryEngine {
     /// pass `nil` (or empty arrays) when the user hasn't connected
     /// Apple Health, and the biometrics block is suppressed.
     /// `workoutDates` are training-session start dates; they count
-    /// toward the active-day gate.
+    /// toward the active-day gate and fill the training block.
     static func build(
         profile: UserProfile,
         protocols: [PeptideProtocol],
@@ -111,6 +111,12 @@ enum WeeklySummaryEngine {
             calendar: calendar
         )
 
+        let sessionDays = activeDayCount(
+            of: workoutDates.filter { weekRange.contains($0) },
+            calendar: calendar
+        )
+        let training = sessionDays > 0 ? WeeklyAggregate.Training(sessionDays: sessionDays) : nil
+
         let labs = WeeklyAggregate.Labs(
             newPanelsLogged: distinctPanelsLogged(
                 history: profile.labHistory,
@@ -125,6 +131,7 @@ enum WeeklySummaryEngine {
             outcomes: outcomes,
             nutrition: nutrition,
             biometrics: biometrics,
+            training: training,
             labs: labs,
             topInsightCategory: topInsightCategory?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
         )

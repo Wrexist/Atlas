@@ -83,6 +83,32 @@ final class WeeklySummaryEngineTests: XCTestCase {
         XCTAssertEqual(agg?.compliance.total, 0)
     }
 
+    func test_build_workoutOnlyWeek_carriesSessionDays() {
+        let workoutDates = (0..<3).map { calendar.date(byAdding: .day, value: $0, to: weekMonday)! }
+            + [calendar.date(byAdding: .hour, value: 8, to: weekMonday)!]
+            + [calendar.date(byAdding: .day, value: -3, to: weekMonday)!]
+        let agg = WeeklySummaryEngine.build(
+            profile: .fresh,
+            protocols: [],
+            entries: [],
+            workoutDates: workoutDates,
+            referenceDate: weekMonday
+        )
+        XCTAssertEqual(agg?.training?.sessionDays, 3)
+    }
+
+    func test_build_noWorkouts_omitsTraining() {
+        let entries = (0..<3).map { entry(daysFromMonday: $0, completed: true) }
+        let agg = WeeklySummaryEngine.build(
+            profile: .fresh,
+            protocols: [],
+            entries: entries,
+            referenceDate: weekMonday
+        )
+        XCTAssertNotNil(agg)
+        XCTAssertNil(agg?.training)
+    }
+
     func test_build_mixedActivityAcrossThreeDays_returnsAggregate() {
         var profile = UserProfile.fresh
         profile.outcomeHistory = [
