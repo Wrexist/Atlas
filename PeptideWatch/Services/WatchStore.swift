@@ -144,8 +144,8 @@ final class WatchStore: NSObject, ObservableObject {
     private var restHapticTask: Task<Void, Never>?
 
     /// Taps the wrist when the rest ends while the app is open. With the
-    /// app closed, the phone's own "Time to lift" notification reaches the
-    /// watch instead. Plays regardless of the Haptic Feedback setting: it
+    /// app suspended, only the phone's "Time to lift" notification can
+    /// reach the wrist, and only while the phone is locked. Plays regardless of the Haptic Feedback setting: it
     /// is the alert itself, not a tap confirmation. A wait that resumes
     /// after the app was suspended past the rest end stays silent rather
     /// than buzzing minutes late.
