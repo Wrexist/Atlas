@@ -204,9 +204,11 @@ extension TodayOverviewSnapshot {
             )
         }
         if let lab = latestLab, lab.daysAgo <= 60 {
-            let body = lab.daysAgo == 0
-                ? String(localized: "Logged today")
-                : String(format: String(localized: "Logged %d days ago"), lab.daysAgo)
+            let body = switch lab.daysAgo {
+            case 0: String(localized: "Logged today")
+            case 1: String(localized: "Logged yesterday")
+            default: String(localized: "Logged \(lab.daysAgo) days ago")
+            }
             return .latestLab(
                 title: "\(lab.panelShortName) — \(lab.valueDisplay)",
                 body: body,
