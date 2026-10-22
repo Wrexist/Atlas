@@ -39,4 +39,12 @@ final class HealthWeightLocalStoreTests: XCTestCase {
         XCTAssertFalse(HealthWeightLocalStore(fileURL: fileURL).record([WeightEntry(date: Date(), kg: 80)]))
         XCTAssertEqual(try Data(contentsOf: fileURL), corrupt)
     }
+
+    func test_dismissIDs_forUnrecordedSamples_marksThemDismissed() {
+        let legacySample = UUID()
+
+        HealthWeightLocalStore(fileURL: fileURL).dismiss(ids: [legacySample])
+
+        XCTAssertEqual(HealthWeightLocalStore(fileURL: fileURL).dismissedIDs, [legacySample])
+    }
 }

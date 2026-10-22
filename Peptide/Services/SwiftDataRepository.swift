@@ -802,10 +802,20 @@ final class SwiftDataRepository {
         healthWeightStore.record(entries)
     }
 
+    func isHealthWeightImport(_ id: UUID) -> Bool {
+        healthWeightStore.isImported(id)
+    }
+
     /// Keeps a deleted imported weigh-in from coming back on the next
     /// import pass. A no-op for a weight logged in Atlas.
     func dismissHealthWeight(id: UUID) {
         healthWeightStore.dismiss(id: id)
+    }
+
+    /// Dismisses Apple Health samples this device never recorded as
+    /// imports.
+    func dismissHealthWeights(ids: Set<UUID>) {
+        healthWeightStore.dismiss(ids: ids)
     }
 
     private func write(_ profile: UserProfile, into row: StoredProfile, since baseline: UserProfile?) throws {

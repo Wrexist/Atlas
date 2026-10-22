@@ -63,6 +63,12 @@ final class HealthWeightLocalStore {
         }
     }
 
+    /// Keeps samples that were never recorded here — imported by an
+    /// earlier build under another id — from being imported again.
+    func dismiss(ids: Set<UUID>) {
+        update { $0.dismissedIDs.formUnion(ids) }
+    }
+
     /// Forgets entries the diary no longer holds — replaced by a weight
     /// the user logged for that day.
     func retain(only ids: Set<UUID>) {

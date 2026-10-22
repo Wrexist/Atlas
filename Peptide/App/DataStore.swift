@@ -1102,12 +1102,25 @@ final class DataStore {
 
     func deleteWeight(id: UUID) {
         let deleted = profile.weightHistory.first { $0.id == id }
+        let wasRecordedImport = repo.isHealthWeightImport(id)
         repo.dismissHealthWeight(id: id)
         LifestyleDataLogic.deleteWeight(from: &profile, id: id)
         save()
         guard let deleted, HealthSyncSettings.isEnabled else { return }
         let day = deleted.date
+        if !wasRecordedImport {
+            Task { await self.dismissExternalWeights(onDayOf: day) }
+        }
         enqueueBodyMassHealthWrite { await HealthKitService.shared.deleteBodyMass(onDayOf: day) }
+    }
+
+    /// Earlier builds imported Health weigh-ins under random ids, so
+    /// deleting one can't dismiss its sample by id. Dismissing every
+    /// outside sample on that day keeps the next pass from re-importing it.
+    private func dismissExternalWeights(onDayOf day: Date) async {
+        let external = await HealthKitService.shared.externalWeights(days: HealthSyncEngine.importWindowDays)
+        let sameDay = external.filter { Calendar.current.isDate($0.date, inSameDayAs: day) }
+        repo.dismissHealthWeights(ids: Set(sameDay.map(\.id)))
     }
 
     func logWater(oz: Int, date: Date = Date()) {
