@@ -64,6 +64,16 @@ final class PeptideProtocolCycleTests: XCTestCase {
         XCTAssertEqual(proto.cycleNumber, 2)
     }
 
+    func test_secondCycle_startsTheDayTheWashoutEnds() {
+        // 8 weeks on + 4 weeks off end today, so today is C2 · W1 and
+        // the new on-phase measures a full 8 weeks from today.
+        let proto = makeProtocol(startDate: date(weeksAgo: 12))
+        XCTAssertEqual(proto.cycleNumber, 2)
+        XCTAssertEqual(proto.weekNumber, 1)
+        XCTAssertEqual(proto.currentCycleStartDay, Calendar.current.startOfDay(for: Date()))
+        XCTAssertEqual(proto.daysRemaining, 56)
+    }
+
     func test_cycleNumber_handlesProtocolWithoutWashout() {
         // A protocol with no washout simply repeats every
         // `cycleLengthWeeks`. After 9 weeks of an 8-week cycle the
