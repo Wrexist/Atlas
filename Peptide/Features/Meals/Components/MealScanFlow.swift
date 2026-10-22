@@ -695,7 +695,6 @@ struct MealScanFlow: View {
             icon: "exclamationmark.triangle.fill",
             title: "Couldn't read this meal",
             message: LocalizedStringKey(errorText ?? String(localized: "Something went wrong. Check your connection and retry.")),
-            accent: AppColor.warning,
             action: .init(title: image == nil ? "Try again" : "Retry", icon: "arrow.clockwise") { retryAnalysis() }
         )
     }
