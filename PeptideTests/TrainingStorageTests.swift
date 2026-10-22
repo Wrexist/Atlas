@@ -1,3 +1,4 @@
+import SwiftData
 import XCTest
 @testable import Peptide
 
@@ -275,6 +276,61 @@ final class TrainingStorageTests: XCTestCase {
         XCTAssertEqual(loaded.count, 1,
                        "PR upsert by exerciseID must not create duplicates")
         XCTAssertEqual(loaded.first?.bestEstimatedOneRepMaxKg, 150)
+    }
+
+    func test_personalRecordMerge_keepsEachBestWithItsDate() {
+        let early = Date(timeIntervalSince1970: 1_000)
+        let late = Date(timeIntervalSince1970: 2_000)
+        let phone = PersonalRecord(
+            exerciseID: "Squat",
+            bestEstimatedOneRepMaxKg: 120, bestEstimatedOneRepMaxAt: early,
+            bestAbsoluteWeightKg: 100, bestAbsoluteWeightAt: early
+        )
+        let ipad = PersonalRecord(
+            exerciseID: "Squat",
+            bestEstimatedOneRepMaxKg: 110, bestEstimatedOneRepMaxAt: late,
+            bestAbsoluteWeightKg: 105, bestAbsoluteWeightAt: late,
+            bestSessionVolumeKg: 2000, bestSessionVolumeAt: late
+        )
+        let merged = phone.merged(with: ipad)
+        XCTAssertEqual(merged.bestEstimatedOneRepMaxKg, 120)
+        XCTAssertEqual(merged.bestEstimatedOneRepMaxAt, early)
+        XCTAssertEqual(merged.bestAbsoluteWeightKg, 105)
+        XCTAssertEqual(merged.bestAbsoluteWeightAt, late)
+        XCTAssertEqual(merged.bestSessionVolumeKg, 2000)
+        XCTAssertNil(merged.bestRepsBodyweight)
+    }
+
+    func test_duplicateSyncedPRRows_ingestMergesAndCollapsesRows() throws {
+        let context = try XCTUnwrap(repo.contextForTesting)
+        context.insert(StoredPersonalRecord(
+            exerciseID: "Squat", bestEstimatedOneRepMaxKg: 120, bestAbsoluteWeightKg: 100
+        ))
+        context.insert(StoredPersonalRecord(
+            exerciseID: "Squat", bestEstimatedOneRepMaxKg: 110, bestAbsoluteWeightKg: 105
+        ))
+        try context.save()
+        let finishedAt = Date(timeIntervalSince1970: 1_700_003_600)
+        let session = WorkoutSession(
+            startedAt: finishedAt.addingTimeInterval(-3600),
+            finishedAt: finishedAt,
+            exercises: [
+                WorkoutExerciseEntry(
+                    exerciseID: "Squat",
+                    index: 0,
+                    sets: [SetEntry(index: 1, weightKg: 60, reps: 5, completed: true)]
+                )
+            ]
+        )
+
+        let detected = PRDetectionEngine.shared.ingest(session: session)
+
+        XCTAssertTrue(detected.isEmpty, "A first volume is a baseline and no merged best was beaten")
+        let loaded = repo.loadPersonalRecords()
+        XCTAssertEqual(loaded.count, 1, "Upsert must collapse synced duplicate rows")
+        XCTAssertEqual(loaded.first?.bestEstimatedOneRepMaxKg, 120)
+        XCTAssertEqual(loaded.first?.bestAbsoluteWeightKg, 105)
+        XCTAssertEqual(loaded.first?.bestSessionVolumeKg, 300)
     }
 
     // MARK: - Empty state

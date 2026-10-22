@@ -231,16 +231,15 @@ final class WeeklySummaryService {
         request.timeoutInterval = 30
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(secret, forHTTPHeaderField: "X-Peptide-Proxy")
-        // App Attest assertion — see AppAttestService; absence falls
-        // back to secret-only auth.
-        if let attestHeaders = await AppAttestService.shared.assertionHeaders() {
-            for (field, value) in attestHeaders {
-                request.setValue(value, forHTTPHeaderField: field)
-            }
-        }
         request.httpBody = try JSONEncoder().encode(RequestEnvelope(aggregate: aggregate))
 
-        let (data, response) = try await session.data(for: request)
+        var (data, response) = try await session.data(for: attested(request))
+        if (response as? HTTPURLResponse)?.statusCode == 401, AppAttestService.isAttestRejection(data) {
+            // The proxy lost this install's key: register a fresh one
+            // and send once more rather than stay on the offline recap.
+            await AppAttestService.shared.invalidateRegistration()
+            (data, response) = try await session.data(for: attested(request, waitForRegistration: true))
+        }
         guard let http = response as? HTTPURLResponse else {
             throw GenerationError.requestFailed("Invalid response")
         }
@@ -257,6 +256,18 @@ final class WeeklySummaryService {
             throw GenerationError.requestFailed("Empty text")
         }
         return trimmed
+    }
+
+    /// `request` with a fresh App Attest assertion — see
+    /// AppAttestService; absence falls back to secret-only auth.
+    private func attested(_ request: URLRequest, waitForRegistration: Bool = false) async -> URLRequest {
+        var request = request
+        if let attestHeaders = await AppAttestService.shared.assertionHeaders(waitForRegistration: waitForRegistration) {
+            for (field, value) in attestHeaders {
+                request.setValue(value, forHTTPHeaderField: field)
+            }
+        }
+        return request
     }
 
     // MARK: - Cache write

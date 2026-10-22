@@ -139,7 +139,7 @@ private struct RestTimerRow: View {
         SettingsPickerRow(
             icon: "timer",
             title: "Default rest timer",
-            subtitle: "\(Self.label(for: selection)) between sets"
+            subtitle: "\(WorkoutClock.label(selection)) between sets"
         ) {
             // Six segments fit a phone at default sizes; at large Dynamic
             // Type or on a narrow screen they'd truncate, so fall back to a menu.
@@ -153,16 +153,10 @@ private struct RestTimerRow: View {
     private var picker: some View {
         Picker("Default rest timer", selection: $selection) {
             ForEach(choices, id: \.self) { seconds in
-                Text(Self.label(for: seconds)).tag(seconds)
+                Text(WorkoutClock.label(seconds)).tag(seconds)
             }
         }
         .labelsHidden()
-    }
-
-    /// "0:30", "1:30", "4:00" — the same m:ss shape the rest timer counts
-    /// down in, and short enough for six segments on a phone.
-    private static func label(for seconds: Int) -> String {
-        String(format: "%d:%02d", seconds / 60, seconds % 60)
     }
 }
 

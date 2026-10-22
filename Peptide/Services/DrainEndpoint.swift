@@ -18,6 +18,14 @@ enum DrainEndpoint {
     /// the verification machinery.
     static let authHeaderField = "X-Peptide-Proxy"
 
+    /// Body encoder for every drain: ISO 8601 dates, so the backend
+    /// parses affiliate and funnel payloads with one date strategy.
+    static let encoder: JSONEncoder = {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        return encoder
+    }()
+
     /// Resolves and validates an endpoint from Info.plist. Absent
     /// key, empty value, non-HTTPS scheme, or a host outside
     /// `allowedDomains` all disable the drain (return nil).

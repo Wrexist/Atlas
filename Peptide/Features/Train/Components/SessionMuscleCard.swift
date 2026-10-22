@@ -16,11 +16,9 @@ struct SessionMuscleCard: View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 Text("Muscles trained")
-                    .font(AppFont.title)
+                    .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
-                Text(highlights.isEmpty
-                     ? "Complete a working set to light up your muscles."
-                     : "Based on completed working sets in this workout.")
+                Text(caption)
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
                 TrainingBodyExplorer(
@@ -45,4 +43,10 @@ struct SessionMuscleCard: View {
         }
     }
 
+    private var caption: LocalizedStringKey {
+        if !highlights.isEmpty { return "Based on completed working sets in this workout." }
+        return session.isActive
+            ? "Complete a working set to light up your muscles."
+            : "No completed working sets were logged."
+    }
 }

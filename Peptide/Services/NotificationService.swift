@@ -127,10 +127,14 @@ final class NotificationService {
         UNUserNotificationCenter.current().add(request) { _ in /* best effort */ }
     }
 
-    /// Cancels a request previously scheduled via `scheduleOneShot(id:...)`.
+    /// Cancels a request previously scheduled via `scheduleOneShot(id:...)`,
+    /// and clears it from Notification Center if it already fired — a
+    /// "Rest's up" alert for a finished or discarded workout is stale.
     nonisolated static func cancelOneShot(id: String) {
-        UNUserNotificationCenter.current()
-            .removePendingNotificationRequests(withIdentifiers: ["\(adHocIDPrefix)\(id)"])
+        let identifiers = ["\(adHocIDPrefix)\(id)"]
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+        center.removeDeliveredNotifications(withIdentifiers: identifiers)
     }
 
     /// Pure collision check + resolution for `scheduleHabitReminders`: if
@@ -270,36 +274,18 @@ final class NotificationService {
         // check-in), but they must not be scheduled past the slots the
         // habit/snooze namespaces already occupy or iOS silently drops
         // whichever requests are added last.
-        let reservedSlots = currentIDs.filter {
-            $0.hasPrefix(Self.habitIDPrefix) || $0.hasPrefix(Self.snoozeIDPrefix)
-                || $0.hasPrefix(Self.dailyIDPrefix) || $0 == Self.trialReminderID
-        }.count
+        let preserved = currentIDs.filter { Self.isOwnedByAnotherScheduler($0) }
+        let reservedSlots = preserved.count
         let doseLimit = max(0, Self.pendingRequestLimit - reservedSlots)
         let kept = Array(pendingRequests.prefix(doseLimit))
         let dropped = Array(pendingRequests.dropFirst(doseLimit))
         let droppedProtocolIDs = Set(dropped.map(\.protocolID))
 
         let newIDs = Set(kept.map(\.request.identifier))
-        // Preserve user-initiated snoozes across reschedules — they're one-shot
-        // transient requests that iOS clears after firing, not stale doses.
-        // Habit reminders live in a separate namespace; their own scheduler
-        // owns their lifecycle so we must not sweep them here.
-        let preservedSnoozes = currentIDs.filter { $0.hasPrefix(Self.snoozeIDPrefix) }
-        let preservedHabits = currentIDs.filter { $0.hasPrefix(Self.habitIDPrefix) }
-        let preservedDaily = currentIDs.filter { $0.hasPrefix(Self.dailyIDPrefix) }
-        // The Sunday weekly-recap request lives in its own scheduler but
-        // shares the pending-request pool. `reconcilePendingState()` absorbs
-        // its fixed ID into `currentIDs` on launch, and without this carve-out
-        // the next protocol edit's set-diff cancelled it — edit a protocol on
-        // Saturday evening, never reopen, and the Sunday 09:00 push silently
-        // vanished.
-        let preservedWeekly = currentIDs.intersection([WeeklySummaryNotificationScheduler.identifier, Self.trialReminderID])
-        let toRemove = currentIDs
-            .subtracting(newIDs)
-            .subtracting(preservedSnoozes)
-            .subtracting(preservedHabits)
-            .subtracting(preservedDaily)
-            .subtracting(preservedWeekly)
+        // Snoozes, habit / daily / ad-hoc reminders, the trial reminder and
+        // the Sunday recap share the pending pool but belong to other
+        // schedulers; the set-diff must never sweep them.
+        let toRemove = currentIDs.subtracting(newIDs).subtracting(preserved)
 
         if !toRemove.isEmpty {
             center.removePendingNotificationRequests(withIdentifiers: Array(toRemove))
@@ -308,7 +294,7 @@ final class NotificationService {
             center.add(entry.request)
         }
 
-        currentIDs = newIDs.union(preservedSnoozes).union(preservedHabits).union(preservedDaily).union(preservedWeekly)
+        currentIDs = newIDs.union(preserved)
         requestedCount = pendingRequests.count
         scheduledCount = kept.count
 
@@ -445,7 +431,7 @@ final class NotificationService {
         let interval = fireDate.timeIntervalSinceNow
         guard interval > 0 else { return }
         let content = UNMutableNotificationContent()
-        content.title = "Atlas Pro trial"
+        content.title = String(localized: "Atlas Pro trial", comment: "Trial-ending reminder title.")
         content.body = body
         content.sound = .default
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
@@ -480,7 +466,7 @@ final class NotificationService {
     func registerCategories() {
         let markAction = UNNotificationAction(
             identifier: "MARK_TAKEN",
-            title: "Mark as Taken",
+            title: String(localized: "Mark as taken", comment: "Dose reminder action — logs the dose."),
             options: [.foreground]
         )
         // Three snooze options instead of one — long-press on the
@@ -491,17 +477,17 @@ final class NotificationService {
         // single shared handler.
         let snooze15 = UNNotificationAction(
             identifier: "SNOOZE_15",
-            title: "Remind in 15 min",
+            title: String(localized: "Remind in 15 min", comment: "Dose reminder action — snooze 15 minutes."),
             options: []
         )
         let snooze30 = UNNotificationAction(
             identifier: "SNOOZE_30",
-            title: "Remind in 30 min",
+            title: String(localized: "Remind in 30 min", comment: "Dose reminder action — snooze 30 minutes."),
             options: []
         )
         let snooze60 = UNNotificationAction(
             identifier: "SNOOZE_60",
-            title: "Remind in 1 hour",
+            title: String(localized: "Remind in 1 hour", comment: "Dose reminder action — snooze 1 hour."),
             options: []
         )
         let category = UNNotificationCategory(
@@ -549,14 +535,22 @@ final class NotificationService {
         lastReport = .empty
     }
 
-    /// Wipes only the protocol-dose reminders, leaving habit reminders and
-    /// pending snoozes intact. Used when the user disables dose reminders —
-    /// flipping that switch shouldn't silently break their habit reminders.
+    /// True for a pending request that the dose scheduler doesn't own:
+    /// snoozes, habit / daily / ad-hoc reminders, the trial reminder and the
+    /// Sunday recap. Shared by the dose set-diff, its slot reservation and
+    /// `cancelProtocolReminders` so the three can never disagree.
+    static func isOwnedByAnotherScheduler(_ identifier: String) -> Bool {
+        let prefixes = [Self.snoozeIDPrefix, Self.habitIDPrefix, Self.dailyIDPrefix, Self.adHocIDPrefix]
+        return prefixes.contains { identifier.hasPrefix($0) }
+            || identifier == Self.trialReminderID
+            || identifier == WeeklySummaryNotificationScheduler.identifier
+    }
+
+    /// Wipes only the protocol-dose reminders, leaving every other
+    /// scheduler's requests (see `isOwnedByAnotherScheduler`) intact. Used
+    /// when the user disables dose reminders — flipping that switch shouldn't silently break their habit reminders.
     func cancelProtocolReminders() {
-        let toKeep = currentIDs.filter {
-            $0.hasPrefix(Self.snoozeIDPrefix) || $0.hasPrefix(Self.habitIDPrefix)
-                || $0.hasPrefix(Self.dailyIDPrefix) || $0 == Self.trialReminderID
-        }
+        let toKeep = currentIDs.filter { Self.isOwnedByAnotherScheduler($0) }
         let toRemove = currentIDs.subtracting(toKeep)
         if !toRemove.isEmpty {
             center.removePendingNotificationRequests(withIdentifiers: Array(toRemove))
@@ -595,7 +589,10 @@ final class NotificationService {
     ) -> UNMutableNotificationContent {
         let content = UNMutableNotificationContent()
         if let peptide = peptides.first, peptides.count == 1 {
-            content.title = "Time for \(peptide.abbreviation)"
+            content.title = String(
+                localized: "Time for \(peptide.abbreviation)",
+                comment: "Dose reminder title — value is the compound's abbreviation."
+            )
             let dose = proto.schedule(for: peptide.id).resolvedDose(for: peptide)
             content.body = "\(peptide.name) \u{2022} \(dose)"
         } else {

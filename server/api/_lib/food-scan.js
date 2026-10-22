@@ -19,7 +19,8 @@ const EFFORTS = new Set(['low', 'medium', 'high']);
 // Thinking and the JSON share this budget. A ten-item plate is ~3k
 // output tokens, so this leaves low-effort thinking plenty of room.
 const MAX_TOKENS = 6000;
-const MAX_IMAGE_CHARS = 7 * 1024 * 1024;
+// Under the proxy's 4.4 MB body cap, which the rest of the payload shares.
+const MAX_IMAGE_CHARS = 4_300_000;
 const MAX_FIELD_CHARS = 200;
 const MAX_CORRECTIONS = 15;
 
