@@ -183,7 +183,7 @@ struct WhatsNewTourSheet: View {
                 .offset(x: -120, y: 70)
 
             Image(systemName: page.icon)
-                .font(.system(size: 60, weight: .semibold))
+                .font(AppFont.scaled(60, weight: .semibold, relativeTo: .title1))
                 .foregroundStyle(AppColor.onAccent)
                 .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
                 .symbolEffect(.bounce, value: currentIndex)

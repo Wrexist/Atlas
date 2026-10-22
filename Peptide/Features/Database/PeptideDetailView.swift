@@ -59,7 +59,7 @@ struct PeptideDetailView: View {
                                     }
 
                                 Image(systemName: peptide.imageSystemName)
-                                    .font(.system(size: 32))
+                                    .font(AppFont.scaled(32, relativeTo: .title1))
                                     .foregroundStyle(peptide.category.color)
                             }
                             .accessibilityHidden(true)

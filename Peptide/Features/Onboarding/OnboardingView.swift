@@ -1167,7 +1167,7 @@ struct OnboardingView: View {
         } label: {
             VStack(spacing: Spacing.sm) {
                 Image(systemName: goal.icon)
-                    .font(.system(size: 28, weight: .semibold))
+                    .font(AppFont.scaled(28, weight: .semibold, relativeTo: .title1))
                     .foregroundStyle(goal.tint)
                     .symbolEffect(.bounce, value: selected)
                 Text(goal.displayName)
