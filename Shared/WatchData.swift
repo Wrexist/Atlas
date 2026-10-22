@@ -29,8 +29,9 @@ struct WatchNutritionSnapshot: Codable, Hashable, Sendable {
     let proteinToday: Int
     let proteinTarget: Int
     let mealLoggingStreak: Int
-    /// Number of meal entries logged today — drives the
-    /// "3 meals logged" subtitle on the Watch view.
+    /// Number of meal entries logged today. No watch surface shows it,
+    /// but it stays on the wire: older watch builds require the key and
+    /// would fail to decode the whole payload without it.
     let mealEntriesToday: Int
 
     var calorieProgress: Double {
@@ -41,6 +42,16 @@ struct WatchNutritionSnapshot: Codable, Hashable, Sendable {
     var proteinProgress: Double {
         guard proteinTarget > 0 else { return 0 }
         return min(1.0, Double(proteinToday) / Double(proteinTarget))
+    }
+
+    /// Same targets and streak, nothing eaten yet: how a snapshot from an
+    /// earlier day reads once that day is over.
+    var emptied: WatchNutritionSnapshot {
+        WatchNutritionSnapshot(
+            caloriesToday: 0, calorieTarget: calorieTarget,
+            proteinToday: 0, proteinTarget: proteinTarget,
+            mealLoggingStreak: mealLoggingStreak, mealEntriesToday: 0
+        )
     }
 }
 
@@ -63,6 +74,14 @@ struct WatchVitalsSnapshot: Codable, Hashable, Sendable {
     let sleep: WatchSleepSnapshot?
     /// When the phone ran the HealthKit queries this snapshot came from.
     let measuredAt: Date
+
+    /// The same snapshot without its night, for one too old to pass as
+    /// last night's.
+    var withoutSleep: WatchVitalsSnapshot {
+        WatchVitalsSnapshot(recoveryScore: recoveryScore, restingHeartRate: restingHeartRate,
+                            restingHeartRateBaseline: restingHeartRateBaseline, hrv: hrv,
+                            hrvBaseline: hrvBaseline, sleep: nil, measuredAt: measuredAt)
+    }
 }
 
 /// Last night, split by stage. Sources that only record "asleep" (most
@@ -120,7 +139,7 @@ struct WatchData: Codable, Sendable {
     private(set) var todayEntries: [WatchEntry]
     private(set) var completedToday: Int
     private(set) var totalToday: Int
-    let lastUpdated: Date
+    private(set) var lastUpdated: Date
     /// Current dose-logging streak. Decode-if-present so a phone running an
     /// older build that doesn't write this field still decodes cleanly on
     /// the watch — the watch app should render "—" rather than fail.
@@ -132,7 +151,7 @@ struct WatchData: Codable, Sendable {
     /// Today's nutrition snapshot. Optional so an older build that
     /// doesn't write this field still decodes on the watch — the
     /// nutrition surface hides itself gracefully when absent.
-    let nutrition: WatchNutritionSnapshot?
+    private(set) var nutrition: WatchNutritionSnapshot?
     /// Atlas Score (cumulative momentum) + level/tier/progress for the
     /// Watch complications. Decode-if-present like the fields above so an
     /// older phone build that doesn't write them still decodes on the watch.
@@ -144,12 +163,12 @@ struct WatchData: Codable, Sendable {
     /// 0…1 progress toward the next level.
     let atlasProgress: Double?
     /// Points banked today (drives the "+N today" affordance).
-    let atlasTodayEarned: Int?
+    private(set) var atlasTodayEarned: Int?
     /// Today's habit completion split by domain — health (green) and
     /// training/fitness (blue) — powering the color-coded complications.
-    let healthHabitsDone: Int?
+    private(set) var healthHabitsDone: Int?
     let healthHabitsTotal: Int?
-    let trainingHabitsDone: Int?
+    private(set) var trainingHabitsDone: Int?
     let trainingHabitsTotal: Int?
     /// `MeasurementUnit` rawValue — "metric" or "imperial". A String for
     /// the same reason `atlasTier` is: this file is shared with the watch
@@ -159,12 +178,15 @@ struct WatchData: Codable, Sendable {
     let measurementUnit: String?
     /// Recovery + sleep. Nil when Apple Health isn't connected on the
     /// phone; the Watch hides the Recovery and Sleep pages in that case.
-    let vitals: WatchVitalsSnapshot?
+    private(set) var vitals: WatchVitalsSnapshot?
     /// The workout in progress on the phone, or nil. Drives the Watch's
     /// Workout page and the live state of the Training complication.
     private(set) var workout: WatchWorkoutSnapshot?
     /// This week's training, for the Training complication between workouts.
     let training: WatchTrainingSnapshot?
+    /// The phone's Haptic Feedback setting, so the wrist honours it too.
+    /// Nil from an older phone build, which reads as on.
+    let hapticsEnabled: Bool?
 
     var compliance: Double {
         totalToday > 0 ? Double(completedToday) / Double(totalToday) : 0
@@ -191,7 +213,8 @@ struct WatchData: Codable, Sendable {
         measurementUnit: String? = nil,
         vitals: WatchVitalsSnapshot? = nil,
         workout: WatchWorkoutSnapshot? = nil,
-        training: WatchTrainingSnapshot? = nil
+        training: WatchTrainingSnapshot? = nil,
+        hapticsEnabled: Bool? = nil
     ) {
         self.todayEntries = todayEntries
         self.completedToday = completedToday
@@ -214,6 +237,7 @@ struct WatchData: Codable, Sendable {
         self.vitals = vitals
         self.workout = workout
         self.training = training
+        self.hapticsEnabled = hapticsEnabled
     }
 
     init(from decoder: Decoder) throws {
@@ -239,6 +263,7 @@ struct WatchData: Codable, Sendable {
         vitals = try c.decodeIfPresent(WatchVitalsSnapshot.self, forKey: .vitals)
         workout = try c.decodeIfPresent(WatchWorkoutSnapshot.self, forKey: .workout)
         training = try c.decodeIfPresent(WatchTrainingSnapshot.self, forKey: .training)
+        hapticsEnabled = try c.decodeIfPresent(Bool.self, forKey: .hapticsEnabled)
     }
 
     /// The same snapshot with a new dose list — what an optimistic Watch
@@ -254,10 +279,45 @@ struct WatchData: Codable, Sendable {
     }
 
     /// The same snapshot with a new workout state, for an optimistic
-    /// Watch tap and for the phone's set-by-set pushes.
-    func replacingWorkout(_ workout: WatchWorkoutSnapshot?) -> WatchData {
+    /// Watch tap and for the phone's set-by-set pushes. The phone passes
+    /// `updatedAt` so the Watch can tell its push from an older one; an
+    /// optimistic tap keeps the date of the push it builds on.
+    func replacingWorkout(_ workout: WatchWorkoutSnapshot?, updatedAt: Date? = nil) -> WatchData {
         var copy = self
         copy.workout = workout
+        if let updatedAt { copy.lastUpdated = updatedAt }
+        return copy
+    }
+
+    /// A workout whose last push is this old ended without its final
+    /// push reaching the Watch, so it no longer counts as running.
+    static let workoutStaleAfter: TimeInterval = 6 * 3600
+
+    /// A night that ended this long ago is no longer last night: the phone
+    /// only refreshes vitals when its app is opened.
+    static let sleepStaleAfter: TimeInterval = 30 * 3600
+
+    /// The snapshot as it reads at `now`. One sent on an earlier day keeps
+    /// its totals and targets but none of that day's progress, so the
+    /// Watch never shows yesterday's doses (or lets them be tapped) after
+    /// midnight. A workout the phone stopped pushing hours ago is dropped,
+    /// and so is a night too old to show as last night.
+    func forDisplay(at now: Date) -> WatchData {
+        var copy = self
+        if now.timeIntervalSince(lastUpdated) > Self.workoutStaleAfter {
+            copy.workout = nil
+        }
+        if let sleep = vitals?.sleep, now.timeIntervalSince(sleep.end) > Self.sleepStaleAfter {
+            copy.vitals = vitals?.withoutSleep
+        }
+        guard !Calendar.current.isDate(lastUpdated, inSameDayAs: now) else { return copy }
+        copy.todayEntries = []
+        copy.completedToday = 0
+        copy.totalToday = 0
+        copy.atlasTodayEarned = atlasTodayEarned.map { _ in 0 }
+        copy.healthHabitsDone = healthHabitsDone.map { _ in 0 }
+        copy.trainingHabitsDone = trainingHabitsDone.map { _ in 0 }
+        copy.nutrition = nutrition?.emptied
         return copy
     }
 
@@ -271,6 +331,7 @@ struct WatchData: Codable, Sendable {
         case measurementUnit
         case vitals
         case workout, training
+        case hapticsEnabled
     }
 
     static let empty = WatchData(
@@ -297,4 +358,11 @@ enum WatchMessage {
     /// JSON-encoded `WatchWorkoutRequest`.
     static let workout = "workout"
     static let workoutRequestKey = "request"
+    /// Every Watch → phone command carries a unique id, so a command
+    /// delivered twice (live send, then the `transferUserInfo` fallback)
+    /// is applied once.
+    static let messageIdKey = "messageId"
+    /// When the user tapped, as seconds since 1970. A queued command can
+    /// arrive hours later; the phone logs it at the tap, not at delivery.
+    static let issuedAtKey = "issuedAt"
 }

@@ -488,6 +488,7 @@ final class DataStore {
         guard let index = entries.firstIndex(where: { $0.id == entryId }) else { return }
         let becoming = !entries[index].completed
         entries[index].completed.toggle()
+        if !becoming { entries[index].actualTime = nil }
         save()
         Haptics.impact(becoming ? .light : .soft)
         // Live Activity reconciliation: when the user marks a dose
@@ -508,14 +509,18 @@ final class DataStore {
     /// can happen after the phone already processed the message — so these
     /// only mutate when the entry is actually in the opposite state. A
     /// blind toggle would flip an already-completed dose back to
-    /// incomplete on the duplicate delivery.
-    func markEntryComplete(_ entryId: UUID) {
-        guard entries.first(where: { $0.id == entryId })?.completed == false else { return }
+    /// incomplete on the duplicate delivery. Completion records when the
+    /// dose was taken; undoing it clears that time.
+    func markEntryComplete(_ entryId: UUID, at takenAt: Date) {
+        guard let index = entries.firstIndex(where: { $0.id == entryId }),
+              !entries[index].completed else { return }
+        entries[index].actualTime = takenAt
         toggleEntry(entryId)
     }
 
     func markEntryIncomplete(_ entryId: UUID) {
-        guard entries.first(where: { $0.id == entryId })?.completed == true else { return }
+        guard let index = entries.firstIndex(where: { $0.id == entryId }),
+              entries[index].completed else { return }
         toggleEntry(entryId)
     }
 
@@ -541,8 +546,8 @@ final class DataStore {
 
     /// Removes a previously-logged dose — flips `completed` back to false
     /// AND clears the `actual*` capture fields so a future re-log starts
-    /// from a clean slate. `toggleEntry` only flips completion, which
-    /// leaves stale `actualDose`/`actualTime`/`injectionSite`/`notes`
+    /// from a clean slate. `toggleEntry` only flips completion and clears
+    /// `actualTime`, which leaves stale `actualDose`/`injectionSite`/`notes`
     /// behind that the next render would have to ignore. Surfaces the
     /// Live Activity reconcile so a lock-screen dose that's now no
     /// longer logged returns to its pre-completion state.
@@ -2511,7 +2516,8 @@ final class DataStore {
             measurementUnit: profile.bodyMetrics.unit.rawValue,
             vitals: watchVitals,
             workout: watchWorkout,
-            training: WatchWorkoutSnapshotBuilder.training(from: repo.loadWorkoutSessions(limit: 30))
+            training: WatchWorkoutSnapshotBuilder.training(from: repo.loadWorkoutSessions(limit: 30)),
+            hapticsEnabled: profile.hapticFeedbackEnabled
         )
     }
 

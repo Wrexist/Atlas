@@ -70,7 +70,7 @@ private struct WorkoutClockRow: View {
         HStack {
             Group {
                 if let paused = workout.pausedElapsedSeconds {
-                    Text(Duration.seconds(paused).formatted(.time(pattern: Self.pattern(for: paused))))
+                    Text(Duration.seconds(paused).formatted(.time(pattern: WatchFormat.elapsedPattern(seconds: paused))))
                 } else {
                     Text(workout.timerStartedAt, style: .timer)
                 }
@@ -80,6 +80,7 @@ private struct WorkoutClockRow: View {
             .foregroundStyle(workout.isPaused ? Color.secondary : Color.primary)
             Spacer(minLength: 4)
             Text("\(workout.completedSets)/\(workout.totalSets) sets")
+                .accessibilityLabel("\(workout.completedSets) of \(workout.totalSets) sets")
                 .font(.system(.footnote, design: .rounded, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(WatchPalette.training)
@@ -88,16 +89,13 @@ private struct WorkoutClockRow: View {
         }
         .accessibilityElement(children: .combine)
     }
-
-    private static func pattern(for seconds: Int) -> Duration.TimeFormatStyle.Pattern {
-        seconds >= 3600 ? .hourMinuteSecond : .minuteSecond
-    }
 }
 
 /// The set to do next. Tap the load or reps to put it on the Crown, then
 /// log it with the button; the values sent are the ones on screen.
 private struct SetLogger: View {
     @EnvironmentObject private var store: WatchStore
+    @Environment(\.watchPageIsActive) private var isActive
     let exercise: WatchWorkoutSnapshot.Exercise
     let set: WatchWorkoutSnapshot.SetRow
     let unit: WatchWeightUnit
@@ -161,6 +159,14 @@ private struct SetLogger: View {
         .entrance(0)
         .onChange(of: set.weightKg) { weightKg = set.weightKg }
         .onChange(of: set.reps) { reps = Double(set.reps) }
+        // Leaving the page hands the Crown back to the pager.
+        .onChange(of: isActive) { if !isActive { focus = nil } }
+    }
+
+    /// A tap puts a tile on the Crown; a second tap on the same tile hands
+    /// the Crown back to scrolling and paging.
+    private func toggleFocus(_ field: Field) {
+        focus = focus == field ? nil : field
     }
 
     private var weightBinding: Binding<Double> {
@@ -173,6 +179,7 @@ private struct SetLogger: View {
     private var weightTile: some View {
         ValueTile(value: unit.format(weightKg), label: unit.symbol, isFocused: focus == .weight)
             .focusable()
+            .focusEffectDisabled()
             .focused($focus, equals: .weight)
             .digitalCrownRotation(
                 weightBinding,
@@ -183,7 +190,8 @@ private struct SetLogger: View {
                 isContinuous: false,
                 isHapticFeedbackEnabled: true
             )
-            .onTapGesture { focus = .weight }
+            .onTapGesture { toggleFocus(.weight) }
+            .accessibilityElement(children: .ignore)
             .accessibilityLabel("Weight")
             .accessibilityValue("\(unit.format(weightKg)) \(unit.symbol)")
             .accessibilityAdjustableAction { direction in
@@ -195,6 +203,7 @@ private struct SetLogger: View {
     private var repsTile: some View {
         ValueTile(value: "\(Int(reps.rounded()))", label: String(localized: "reps"), isFocused: focus == .reps)
             .focusable()
+            .focusEffectDisabled()
             .focused($focus, equals: .reps)
             .digitalCrownRotation(
                 $reps,
@@ -205,7 +214,8 @@ private struct SetLogger: View {
                 isContinuous: false,
                 isHapticFeedbackEnabled: true
             )
-            .onTapGesture { focus = .reps }
+            .onTapGesture { toggleFocus(.reps) }
+            .accessibilityElement(children: .ignore)
             .accessibilityLabel("Reps")
             .accessibilityValue("\(Int(reps.rounded()))")
             .accessibilityAdjustableAction { direction in
@@ -266,6 +276,8 @@ private struct RestCard: View {
     let upNext: (exercise: WatchWorkoutSnapshot.Exercise, set: WatchWorkoutSnapshot.SetRow)?
     let unit: WatchWeightUnit
 
+    @ScaledMetric(relativeTo: .largeTitle) private var countdownSize: CGFloat = 40
+
     private var interval: ClosedRange<Date> {
         rest.endsAt.addingTimeInterval(-max(rest.totalSeconds, 1))...rest.endsAt
     }
@@ -278,8 +290,10 @@ private struct RestCard: View {
                     .tracking(0.8)
                     .foregroundStyle(WatchPalette.training)
                 Text(timerInterval: interval, countsDown: true)
-                    .font(.system(size: 40, weight: .semibold, design: .rounded))
+                    .font(.system(size: countdownSize, weight: .semibold, design: .rounded))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
                     .multilineTextAlignment(.center)
                 ProgressView(timerInterval: interval, countsDown: true) {
                     EmptyView()
@@ -362,6 +376,7 @@ private struct AllSetsDoneCard: View {
                     Label("Add set", systemImage: "plus")
                         .frame(maxWidth: .infinity)
                 }
+                .disabled(store.isSending)
             }
             Text("Finish the workout on your iPhone.")
                 .font(.caption2)
@@ -392,6 +407,7 @@ struct WorkoutExerciseList: View {
                                 .font(.system(.body, design: .rounded))
                                 .lineLimit(2)
                             Text("\(exercise.completedWorkingSets)/\(exercise.workingSets.count) sets")
+                                .accessibilityLabel("\(exercise.completedWorkingSets) of \(exercise.workingSets.count) sets")
                                 .font(.caption2)
                                 .monospacedDigit()
                                 .foregroundStyle(.secondary)
