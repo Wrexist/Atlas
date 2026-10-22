@@ -366,6 +366,22 @@ final class DataStoreTests: XCTestCase {
         XCTAssertNil(store.entries.first { $0.id == entry.id }?.actualTime)
     }
 
+    func test_phoneUndoOfWatchTappedDose_clearsTapTime() {
+        guard let entry = store.entries.first(where: { !$0.completed }) else {
+            XCTFail("No incomplete entries in seed data")
+            return
+        }
+        store.markEntryComplete(entry.id, at: Date().addingTimeInterval(-3600))
+
+        // Undo from Home / Protocol detail / intents goes through the plain
+        // toggle; a stale tap time would show as the untaken dose's time.
+        store.toggleEntry(entry.id)
+
+        let undone = store.entries.first { $0.id == entry.id }
+        XCTAssertEqual(undone?.completed, false)
+        XCTAssertNil(undone?.actualTime)
+    }
+
     // MARK: - Dirty tracking
 
     func test_flushPendingSave_withNothingChanged_isANoOp() {
