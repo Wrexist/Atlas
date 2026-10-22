@@ -97,7 +97,7 @@ final class BarcodeIdentityService: Sendable {
 
     init(
         session: URLSession = .shared,
-        userAgent: String = "Atlas/1.0 (https://peptidesai.com)"
+        userAgent: String = OpenFoodFactsService.defaultUserAgent
     ) {
         self.session = session
         self.userAgent = userAgent

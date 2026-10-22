@@ -45,6 +45,13 @@ final class OpenFoodFactsService: Sendable {
     private static let defaultBaseURL = URL.staticHTTPS("https://world.openfoodfacts.org/api/v2/product/")
     private static let defaultSearchURL = URL.staticHTTPS("https://world.openfoodfacts.org/cgi/search.pl")
 
+    /// OFF asks for "AppName/Version (contact)"; shared by every
+    /// Open *Facts client so the version follows the build.
+    static let defaultUserAgent: String = {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+        return "Atlas/\(version) (https://peptidesai.com)"
+    }()
+
     private let searchURL: URL
 
     /// OFF's documented ceiling for `/cgi/search.pl` is 10 requests per
@@ -79,7 +86,7 @@ final class OpenFoodFactsService: Sendable {
         cache: BarcodeProductCache = .shared,
         baseURL: URL = OpenFoodFactsService.defaultBaseURL,
         searchURL: URL = OpenFoodFactsService.defaultSearchURL,
-        userAgent: String = "Atlas/1.0 (https://peptidesai.com)"
+        userAgent: String = OpenFoodFactsService.defaultUserAgent
     ) {
         self.session = session
         self.cache = cache
