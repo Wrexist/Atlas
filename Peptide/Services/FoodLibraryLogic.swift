@@ -22,15 +22,18 @@ enum FoodLibraryLogic {
         }.map(\.element)
     }
 
+    /// The grams of the latest single-food log of this product. One
+    /// linear pass, no sort: it runs for every visible row on each render.
     static func previousGrams(for product: ScannedProduct, history: [MealEntry]) -> Double? {
-        for entry in history.sorted(by: { $0.date > $1.date }) {
+        var latest: (date: Date, grams: Double)?
+        for entry in history where entry.date > latest?.date ?? .distantPast {
             guard entry.sourceID == product.barcode, let components = entry.components,
                   components.count == 1, let food = components.first,
                   food.grams.isFinite, FoodPortionInput.gramsRange.contains(food.grams),
                   product.loggable(for: .grams(food.grams)) != nil else { continue }
-            return food.grams
+            latest = (entry.date, food.grams)
         }
-        return nil
+        return latest?.grams
     }
 
     static func normalized(_ value: String) -> String {

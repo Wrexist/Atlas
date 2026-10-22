@@ -39,6 +39,7 @@ final class FoodLibraryLogicTests: XCTestCase {
         let newer = MealEntry(loggable: try XCTUnwrap(product.loggable(for: .grams(120))), name: product.name,
                               category: .breakfast, source: .custom, sourceID: product.barcode, date: Date(timeIntervalSince1970: 200))
         XCTAssertEqual(FoodLibraryLogic.previousGrams(for: product, history: [newer, old]), 120)
+        XCTAssertEqual(FoodLibraryLogic.previousGrams(for: product, history: [old, newer]), 120)
         XCTAssertNil(FoodLibraryLogic.previousGrams(for: food("Rice").toScannedProduct(), history: [newer]))
         XCTAssertNil(FoodLibraryLogic.previousGrams(for: product, history: []))
     }
