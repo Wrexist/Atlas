@@ -43,8 +43,24 @@ final class NotificationDelegateTests: XCTestCase {
         XCTAssertEqual(Set(due.map(\.id)), [bpc.id, tb.id])
     }
 
-    func test_entriesDue_yesterdayAndTodayInSlot_returnsOnlyNewestDay() {
+    func test_entriesDue_todaysSlotStillAhead_returnsYesterdaysDose() {
         let now = calendar.date(bySettingHour: 20, minute: 30, second: 0, of: Date())!
+        let yesterday = entry(MockPeptides.bpc157, at: date(daysAgo: 1, hour: 20, minute: 45, from: now))
+        let today = entry(MockPeptides.bpc157, at: date(daysAgo: 0, hour: 20, minute: 45, from: now))
+
+        let due = NotificationDelegate.entriesDue(
+            in: [yesterday, today],
+            protocolId: protocolId,
+            hour: 20,
+            minute: 45,
+            now: now
+        )
+
+        XCTAssertEqual(due.map(\.id), [yesterday.id])
+    }
+
+    func test_entriesDue_todaysSlotPassed_returnsTodaysDose() {
+        let now = calendar.date(bySettingHour: 21, minute: 0, second: 0, of: Date())!
         let yesterday = entry(MockPeptides.bpc157, at: date(daysAgo: 1, hour: 20, minute: 45, from: now))
         let today = entry(MockPeptides.bpc157, at: date(daysAgo: 0, hour: 20, minute: 45, from: now))
 

@@ -148,8 +148,8 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
     }
 
     /// Every incomplete dose a combined reminder covers: the newest day in
-    /// the last 24 hours with an entry at `hour:minute` for `protocolId`,
-    /// and all of that day's entries in the slot. The 24-hour window lets
+    /// the last 24 hours with an already-due entry at `hour:minute` for
+    /// `protocolId`, and all of that day's entries in the slot. The 24-hour window lets
     /// a snooze that fires after midnight still reach yesterday's doses;
     /// keeping to one day stops it from also marking an older dose at the
     /// same time the user never took.
@@ -165,7 +165,8 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         let inSlot = entries.filter { entry in
             guard entry.protocolId == protocolId,
                   !entry.completed,
-                  entry.date >= cutoff else { return false }
+                  entry.date >= cutoff,
+                  entry.date <= now else { return false }
             return calendar.component(.hour, from: entry.date) == hour
                 && calendar.component(.minute, from: entry.date) == minute
         }
