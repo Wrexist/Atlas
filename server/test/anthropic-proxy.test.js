@@ -25,6 +25,14 @@ function setEnv(t, vars) {
   });
 }
 
+// Per-minute limits use fixed windows, so two calls that straddle a
+// minute boundary land in different buckets and both pass. Holding the
+// clock mid-minute keeps a "second call is limited" test deterministic.
+function holdClockMidMinute(t) {
+  const now = Math.floor(Date.now() / 60_000) * 60_000 + 30_000;
+  t.mock.timers.enable({ apis: ['Date'], now });
+}
+
 const BASE_ENV = {
   PROXY_SHARED_SECRET: 'test-secret',
   ANTHROPIC_API_KEY: 'test-key',
@@ -101,6 +109,7 @@ async function forward(req, logLabel) {
 
 test('over-RPM request is rejected 429 before reaching Anthropic', async (t) => {
   setEnv(t, { ...BASE_ENV, RATE_LIMIT_RPM: '1' });
+  holdClockMidMinute(t);
   const upstream = stubUpstream(t);
 
   const first = await forward(makeReq('10.0.0.1'), 'test-rpm');
@@ -206,6 +215,7 @@ test('quota rejection never reaches Anthropic', async (t) => {
 
 test('per-principal limits are per route, so one route cannot starve another', async (t) => {
   setEnv(t, { ...BASE_ENV, RATE_LIMIT_RPM: '1', DEVICE_DAILY_QUOTA: '0' });
+  holdClockMidMinute(t);
   stubUpstream(t);
   assert.equal((await forward(makeReq('9.9.9.5'), 'route-a')).statusCode, 200);
   assert.equal((await forward(makeReq('9.9.9.5'), 'route-a')).statusCode, 429);
@@ -309,6 +319,7 @@ test('every api route exports a default handler', async () => {
 
 test('limit refusals carry a stable code and Retry-After', async (t) => {
   setEnv(t, { ...BASE_ENV, RATE_LIMIT_RPM: '1' });
+  holdClockMidMinute(t);
   stubUpstream(t);
   await forward(makeReq('10.0.10.1'), 'test-codes');
   const limited = await forward(makeReq('10.0.10.1'), 'test-codes');
