@@ -97,8 +97,8 @@ struct LiftedDishCell: View {
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.96))
         .accessibilityLabel(Text(dish.name.isEmpty ? suggestedName : dish.name))
-        .accessibilityValue(dish.include ? Text("Kept") : Text("Left out"))
-        .accessibilityHint("Double-tap to keep or leave out this dish.")
+        .accessibilityAddTraits(dish.include ? .isSelected : [])
+        .accessibilityHint("Keeps or leaves out this dish.")
     }
 
     private var suggestedName: String {
