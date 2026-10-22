@@ -9,6 +9,7 @@ final class OfflineWeeklySummaryFormatterTests: XCTestCase {
         outcomes: WeeklyAggregate.Outcomes? = nil,
         nutrition: WeeklyAggregate.Nutrition? = nil,
         hrvDelta: Int? = nil,
+        training: WeeklyAggregate.Training? = nil,
         newPanels: Int = 0
     ) -> WeeklyAggregate {
         WeeklyAggregate(
@@ -24,6 +25,7 @@ final class OfflineWeeklySummaryFormatterTests: XCTestCase {
             outcomes: outcomes,
             nutrition: nutrition,
             biometrics: hrvDelta.map { WeeklyAggregate.Biometrics(hrvAvg: 60, hrvDelta: $0, rhrAvg: nil, sleepHoursAvg: nil) },
+            training: training,
             labs: .init(newPanelsLogged: newPanels),
             topInsightCategory: nil
         )
