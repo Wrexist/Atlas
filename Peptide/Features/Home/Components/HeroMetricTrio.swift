@@ -394,7 +394,7 @@ struct HeroMetricSnapshot: Equatable, Sendable {
     static func build(
         adherenceRatio: Double?,
         healthConnected: Bool,
-        sleepTargetHours: Double = 8.0
+        sleepTargetHours: Double = RecoveryScoreEngine.defaultSleepTargetHours
     ) async -> HeroMetricSnapshot {
         let adherence = adherenceValue(adherenceRatio)
         guard healthConnected else {

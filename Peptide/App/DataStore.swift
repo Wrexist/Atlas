@@ -2382,14 +2382,11 @@ final class DataStore {
             updateWatchData()
             return
         }
-        let vitals = await Self.buildWatchVitals(sleepTargetHours: Self.watchSleepTargetHours)
+        let vitals = await Self.buildWatchVitals(sleepTargetHours: RecoveryScoreEngine.defaultSleepTargetHours)
         guard profile.healthConnected else { return }
         watchVitals = vitals
         updateWatchData()
     }
-
-    /// Same target the Today hero's Recovery score assumes.
-    private static let watchSleepTargetHours = 8.0
 
     private static func buildWatchVitals(sleepTargetHours: Double) async -> WatchVitalsSnapshot? {
         let kit = HealthKitService.shared

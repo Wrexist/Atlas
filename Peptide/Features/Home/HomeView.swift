@@ -834,8 +834,7 @@ struct HomeView: View {
                     context: .init(
                         todayEntries: stats.entries,
                         recoveryComponents: heroSnapshot.recoveryComponents,
-                        lastSleepHours: heroSnapshot.lastSleepHours,
-                        sleepTargetHours: 8.0
+                        lastSleepHours: heroSnapshot.lastSleepHours
                     ),
                     onLogDose: { entry in selectedEntry = entry }
                 )

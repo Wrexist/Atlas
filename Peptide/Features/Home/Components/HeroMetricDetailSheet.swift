@@ -31,7 +31,7 @@ struct HeroMetricDetailSheet: View {
             todayEntries: [ProtocolEntry] = [],
             recoveryComponents: RecoveryScoreEngine.Components? = nil,
             lastSleepHours: Double? = nil,
-            sleepTargetHours: Double = 8.0
+            sleepTargetHours: Double = RecoveryScoreEngine.defaultSleepTargetHours
         ) {
             self.todayEntries = todayEntries
             self.recoveryComponents = recoveryComponents
@@ -422,10 +422,10 @@ struct HeroMetricDetailSheet: View {
     private enum RecoveryDriver {
         case hrv, sleep, rhr
 
-        var label: LocalizedStringKey {
+        func label(sleepTargetHours: Double) -> LocalizedStringKey {
             switch self {
             case .hrv:   "HRV vs baseline"
-            case .sleep: "Sleep vs 8h target"
+            case .sleep: "Sleep vs \(sleepTargetHours.formatted(.number.precision(.fractionLength(0))))h target"
             case .rhr:   "Resting HR vs baseline"
             }
         }
@@ -468,7 +468,7 @@ struct HeroMetricDetailSheet: View {
                     .background { Circle().fill(driver.tint.opacity(0.18)) }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(driver.label)
+                    Text(driver.label(sleepTargetHours: context.sleepTargetHours))
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(value.map { "\(Int(($0 * 100).rounded()))%" } ?? "—")
