@@ -71,9 +71,9 @@ final class OnDeviceSummaryTests: XCTestCase {
 
     func test_weekFacts_countsTrainedDays_andEmptyWeekIsNil() throws {
         let day = Calendar.current.startOfDay(for: now)
-        let days = (0..<7).map { offset in
-            WorkoutRecapEngine.Day(date: day.addingTimeInterval(Double(offset) * 86_400),
-                                   count: offset == 1 ? 2 : (offset == 4 ? 1 : 0))
+        let counts = [0, 2, 0, 0, 1, 0, 0]
+        let days: [WorkoutRecapEngine.Day] = counts.enumerated().map { offset, count in
+            WorkoutRecapEngine.Day(date: day.addingTimeInterval(Double(offset) * 86_400), count: count)
         }
         let week = WorkoutRecapEngine.Week(days: days, count: 3, volumeKg: nil, isCurrent: true)
         let facts = try XCTUnwrap(OnDeviceSummaryEngine.week(week, unit: .metric, now: now))
@@ -81,8 +81,8 @@ final class OnDeviceSummaryTests: XCTestCase {
             "Workouts completed so far this week: 3",
             "Days with a workout this week: 2"
         ])
-        let empty = WorkoutRecapEngine.Week(days: days.map { .init(date: $0.date, count: 0) }, count: 0, volumeKg: nil,
-                                             isCurrent: true)
+        let emptyDays = days.map { WorkoutRecapEngine.Day(date: $0.date, count: 0) }
+        let empty = WorkoutRecapEngine.Week(days: emptyDays, count: 0, volumeKg: nil, isCurrent: true)
         XCTAssertNil(OnDeviceSummaryEngine.week(empty, unit: .metric, now: now))
     }
 
