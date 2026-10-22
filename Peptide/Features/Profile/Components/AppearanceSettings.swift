@@ -7,6 +7,7 @@ let settingsIconColumnWidth: CGFloat = 24
 
 struct AppearanceSettings: View {
     @Environment(DataStore.self) private var dataStore
+    @Environment(\.scenePhase) private var scenePhase
     @State private var notificationService = NotificationService.shared
     @State private var biometricService = BiometricService.shared
     @State private var themeManager = ThemeManager.shared
@@ -91,6 +92,12 @@ struct AppearanceSettings: View {
                     LanguagePickerRow()
                 }
             }
+        }
+        .task(id: scenePhase) {
+            // Re-checked on return from iOS Settings, so the row clears as
+            // soon as the user grants notifications there.
+            guard scenePhase == .active, notificationsDenied else { return }
+            notificationsDenied = await NotificationService.shared.checkAuthorization() == .denied
         }
     }
 
