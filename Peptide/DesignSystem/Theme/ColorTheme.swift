@@ -212,16 +212,6 @@ enum AppColor {
     static let mealDinner = Color(light: 0x5A5FCF, dark: 0x7A80EB)
     static let mealSnack = Color(light: 0x2A7A47, dark: 0x5CC78C)
 
-    /// Lab panel sections. Each page reads as one hue end to end; darkened
-    /// in light mode so the section icons clear contrast on a white card.
-    static let labSexHormones = Color(light: 0xB23A6A, dark: 0xEB739E)
-    static let labGrowth = Color(light: 0x2F8F5B, dark: 0x66C78C)
-    static let labThyroid = Color(light: 0x5A5FCF, dark: 0x7A80EB)
-    static let labMetabolic = Color(light: 0xB2740F, dark: 0xF2A64D)
-    static let labLipids = Color(light: 0xB23B3B, dark: 0xEB6161)
-    static let labOrganHealth = Color(light: 0x2F6E96, dark: 0x8CC7EB)
-    static let labOther = Color(light: 0x5F5F7A, dark: 0xBFBFD9)
-
     /// Daily check-in dimensions, shared by the sliders, timeline rows and
     /// correlation card. Darkened in light mode like the meal categories.
     static let outcomeEnergy = Color(light: 0x9C7714, dark: 0xFFC733)
