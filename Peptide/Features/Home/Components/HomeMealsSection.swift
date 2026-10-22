@@ -133,7 +133,7 @@ struct HomeMealsSection: View {
             .scrollReveal()
 
             if !dayEntries.isEmpty {
-                DailyMealNutrientsCard(entries: dayEntries)
+                DailyMealNutrientsCard(entries: dayEntries, fiberTargetG: dataStore.profile.nutritionTargets?.fiberG)
                     .scrollReveal()
             }
             if dailyConsumption.caloriesKcal > 0 || !dayEntries.isEmpty {

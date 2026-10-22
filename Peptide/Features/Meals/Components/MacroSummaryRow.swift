@@ -3,7 +3,8 @@ import SwiftUI
 /// Nutrition hero on the Lifestyle tab. Three Apple-Activity-style
 /// concentric rings render Calories (outer), Protein (middle), and
 /// Water (inner) progress in a single glass card, with a legend row
-/// underneath that exposes the live values + targets. Water quick-add
+/// underneath that exposes the live values + targets. Carbs and fat
+/// have no ring, so they sit in a compact row below. Water quick-add
 /// chips sit at the bottom so the most common action (logging a glass
 /// of water) stays one tap from the card.
 struct MacroSummaryRow: View {
@@ -113,6 +114,8 @@ struct MacroSummaryRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
 
+            carbsAndFat
+
             Divider()
                 .overlay(AppColor.glassBorder)
 
@@ -134,6 +137,36 @@ struct MacroSummaryRow: View {
         .onChange(of: consumed.waterFluidOunces) { oldValue, newValue in
             if selectedWaterAmount != nil && newValue > oldValue { waterFeedback &+= 1 }
         }
+    }
+
+    /// Same legend style as the ring rows; a zero target shows the
+    /// consumed grams alone.
+    private var carbsAndFat: some View {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.sm))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: Spacing.lg))
+        return layout {
+            legend(
+                title: "Carbs",
+                value: consumed.carbsG,
+                target: Self.gramsTarget(targets.carbsG),
+                color: AppColor.macroCarbs,
+                index: 3
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+            legend(
+                title: "Fat",
+                value: consumed.fatG,
+                target: Self.gramsTarget(targets.fatG),
+                color: AppColor.macroFat,
+                index: 4
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private static func gramsTarget(_ grams: Int) -> String {
+        grams > 0 ? "/\(grams) g" : " g"
     }
 
     private var ringStack: some View {
