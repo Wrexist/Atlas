@@ -388,7 +388,9 @@ final class WorkoutSessionService {
     /// lookup deserializes the stored workouts, and seeding a routine plus
     /// the exercise stack's re-renders ask once per exercise. The active
     /// session is excluded, so editing its sets can't change the answer —
-    /// only a start, finish or discard can, and those clear the memo.
+    /// only a start, finish, discard or a history edit can, and those
+    /// clear the memo. An exercise logged twice in one session contributes
+    /// both entries' sets, in entry order.
     func previousSessionSets(forExerciseID id: String) -> [SetEntry] {
         previousSetsByExercise()[id] ?? []
     }
@@ -400,9 +402,14 @@ final class WorkoutSessionService {
         let sessions = SwiftDataRepository.shared.loadWorkoutSessions()
             .sorted { $0.startedAt > $1.startedAt }
         for session in sessions where session.id != activeSession?.id {
-            for entry in session.exercises where byExercise[entry.exerciseID] == nil {
-                let completed = entry.sets.filter { $0.completed && $0.supportsRepLogging }
-                if !completed.isEmpty { byExercise[entry.exerciseID] = completed }
+            var sessionSets: [String: [SetEntry]] = [:]
+            for entry in session.exercises.sorted(by: { $0.index < $1.index })
+            where byExercise[entry.exerciseID] == nil {
+                sessionSets[entry.exerciseID, default: []]
+                    += entry.sets.filter { $0.completed && $0.supportsRepLogging }
+            }
+            for (exerciseID, completed) in sessionSets where !completed.isEmpty {
+                byExercise[exerciseID] = completed
             }
         }
         previousSetCache = byExercise
@@ -589,7 +596,8 @@ final class WorkoutSessionService {
     /// change.
     @ObservationIgnored private var previousSetCache: [String: [SetEntry]]?
 
-    private func invalidatePreviousSetCache() {
+    /// Called whenever stored history changes under an active workout.
+    func invalidatePreviousSetCache() {
         previousSetCache = nil
     }
 

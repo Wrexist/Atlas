@@ -388,6 +388,24 @@ final class WorkoutSessionServiceTests: XCTestCase {
         XCTAssertEqual(service.lastCompletedSet(forExerciseID: bench().id)?.reps, 3)
     }
 
+    func test_previousSessionSets_exerciseLoggedTwice_mergesBothEntriesInOrder() {
+        repo.upsertWorkoutSession(WorkoutSession(
+            startedAt: Date().addingTimeInterval(-7200),
+            finishedAt: Date().addingTimeInterval(-3600),
+            exercises: [
+                WorkoutExerciseEntry(exerciseID: bench().id, index: 0, sets: [
+                    SetEntry(index: 1, weightKg: 80, reps: 5, completed: true),
+                ]),
+                WorkoutExerciseEntry(exerciseID: bench().id, index: 1, sets: [
+                    SetEntry(index: 1, weightKg: 60, reps: 10, completed: true),
+                ]),
+            ]
+        ))
+        _ = service.startWorkout()
+
+        XCTAssertEqual(service.previousSessionSets(forExerciseID: bench().id).map(\.weightKg), [80, 60])
+    }
+
     func test_startWorkout_fromRoutine_afterHittingTheTarget_seedsTheNextLoad() {
         let saved = DataStore.current
         DataStore.current = nil
