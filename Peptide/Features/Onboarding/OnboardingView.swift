@@ -1212,14 +1212,14 @@ struct OnboardingView: View {
         goalHasBeenSelected = !selectedGoals.isEmpty
     }
 
-    /// Human-readable "8 weeks to commit" summary for the merged
-    /// goal-and-date step. Used inside the date section underneath
-    /// the picker.
     /// Two weeks out: the soonest target the date picker offers.
     private var earliestGoalDate: Date {
         Date().addingTimeInterval(60 * 60 * 24 * 14)
     }
 
+    /// Human-readable "8 weeks to commit" summary for the merged
+    /// goal-and-date step. Used inside the date section underneath
+    /// the picker.
     private var goalDateSummary: String {
         "That's \(goalWeeks) week\(goalWeeks == 1 ? "" : "s") to commit."
     }

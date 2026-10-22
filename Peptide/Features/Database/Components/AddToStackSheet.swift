@@ -5,9 +5,6 @@ struct AddToStackSheet: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// How long the "Added" state holds before the sheet closes, so the
-    /// confirmation registers.
-
     let peptide: Peptide
     var onCreateNew: () -> Void
 
