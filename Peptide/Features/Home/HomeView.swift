@@ -98,10 +98,6 @@ struct HomeView: View {
     @State private var derived = DerivedToday()
     @Environment(\.requestReview) private var requestReview
     @Environment(\.scenePhase) private var scenePhase
-    /// Start of the calendar day Today is showing. Re-synced on midnight,
-    /// time-zone changes and every foreground, so the derived models and
-    /// the habits hero roll over even when nothing else mutates the store.
-    @State private var displayedDay = Calendar.current.startOfDay(for: .now)
 
     private struct DerivedToday {
         var overview: TodayOverviewSnapshot?
@@ -199,12 +195,12 @@ struct HomeView: View {
         AppAnimation.with(AppAnimation.springSmooth) { derived = next }
     }
 
-    /// Rolls Today over to the current calendar day (re-keying the derived
-    /// models when it changed) and re-reads the HealthKit-backed rings, which
-    /// can move without any store mutation — overnight sleep, a new HRV sample.
-    private func syncDisplayedDay() {
-        let today = Calendar.current.startOfDay(for: .now)
-        if today != displayedDay { displayedDay = today }
+    /// Rebuilds everything that depends on the clock rather than the store —
+    /// the derived models (day rollover, the time-of-day next meal and
+    /// coaching copy) and the HealthKit-backed rings, which can move without
+    /// any store mutation: overnight sleep, a new HRV sample.
+    private func refreshForCurrentTime() {
+        refreshDerived()
         Task { await refreshHeroSnapshot() }
         Task { await refreshHealthRange() }
     }
@@ -776,15 +772,21 @@ struct HomeView: View {
             .task(id: dataStore.revision) {
                 refreshDerived()
             }
-            .onChange(of: displayedDay) { _, _ in refreshDerived() }
             .onChange(of: scenePhase) { _, phase in
-                if phase == .active { syncDisplayedDay() }
+                if phase == .active { refreshForCurrentTime() }
             }
-            .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
-                syncDisplayedDay()
+            // Neither notification promises main-thread delivery.
+            .onReceive(
+                NotificationCenter.default.publisher(for: .NSCalendarDayChanged)
+                    .receive(on: DispatchQueue.main)
+            ) { _ in
+                refreshForCurrentTime()
             }
-            .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
-                syncDisplayedDay()
+            .onReceive(
+                NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)
+                    .receive(on: DispatchQueue.main)
+            ) { _ in
+                refreshForCurrentTime()
             }
             // The coaching copy reads recovery + sleep off the hero snapshot,
             // so it has to re-pick when that lands (it arrives async, after
