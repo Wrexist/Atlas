@@ -183,6 +183,7 @@ struct ProtocolListView: View {
                     .liquidGlassPresentation()
             }
         }
+        .presentationSizing(.page)
     }
 
     /// Pushes the deep-linked protocol onto the navigation path if the

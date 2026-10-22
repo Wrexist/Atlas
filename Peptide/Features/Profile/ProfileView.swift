@@ -159,6 +159,7 @@ struct ProfileView: View {
                     .environment(dataStore)
             }
         }
+        .presentationSizing(.page)
     }
 
     /// `toggleHealthConnection` requests authorization itself and refuses

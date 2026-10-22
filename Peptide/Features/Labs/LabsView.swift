@@ -123,6 +123,7 @@ struct LabsView: View {
                 Text("This can't be undone. The trend chart will skip the deleted point.")
             }
         }
+        .presentationSizing(.page)
     }
 
     /// The panel the user logged most recently, so a new entry starts there.

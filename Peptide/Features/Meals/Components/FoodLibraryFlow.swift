@@ -179,6 +179,7 @@ struct FoodLibraryFlow: View {
                 }
             }
         }
+        .presentationSizing(.page)
         .onDisappear {
             // Cancel outstanding "Logged ✓" timeouts so they can't
             // fire into a re-presented sheet and surface stale

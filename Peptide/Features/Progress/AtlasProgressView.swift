@@ -48,6 +48,7 @@ struct AtlasProgressView: View {
             }
             .task(id: dataStore.revision) { refreshDerived() }
         }
+        .presentationSizing(.page)
     }
 
     private func refreshDerived() {

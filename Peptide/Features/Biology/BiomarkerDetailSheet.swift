@@ -77,6 +77,7 @@ struct BiomarkerDetailSheet: View {
                 }
             }
         }
+        .presentationSizing(.page)
     }
 
     // MARK: - Hero

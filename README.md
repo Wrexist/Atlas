@@ -94,6 +94,12 @@ there being exactly one primitive to reach for:
   `Spacing.concentric(in:inset:)` for a shape nested inside another rather
   than guessing a second literal, and `.minimumHitArea()` on any control
   whose artwork is smaller than 44pt.
+- **iPad** — a single-column scroll caps its content with
+  `.readableContentWidth()` (`Spacing.readableContentWidth`). A list that
+  pushes a detail splits on `horizontalSizeClass == .regular` into a
+  `NavigationSplitView` and keeps its `NavigationStack` in compact
+  (`PeptideListView`, `TrainContainerView`). A content-heavy sheet sets
+  `.presentationSizing(.page)`; forms keep the default form size.
 - **Motion** — curves come from `AppAnimation` (`springSnappy`, `step`,
   `quick`, `toast`, `settle`, …); add a named token to
   `AnimationConstants.swift` rather than tuning a spring inline. Animate
