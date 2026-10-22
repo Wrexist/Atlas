@@ -273,7 +273,7 @@ final class StoreService {
     var hasLifetimeAccess: Bool { purchasedProductIDs.contains(Self.lifetimeID) }
 
     /// Gates the Pro weekly AI recap — enforced in
-    /// `WeeklySummaryService.generateIfNeeded`.
+    /// `WeeklySummaryService.isAvailable(profile:)`.
     ///
     /// This is the only per-feature entitlement flag the app actually
     /// checks. `canAccessCloudSync`, `canAccessAllWidgets`,
