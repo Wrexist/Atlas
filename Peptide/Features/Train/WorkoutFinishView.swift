@@ -147,12 +147,15 @@ struct WorkoutFinishView: View {
         }
     }
 
-    /// A fresh save celebrates; reopening an old session from history
-    /// leads with when it happened instead of "Workout saved".
+    /// The week count only reads as "this week" when the recap charts the
+    /// current week, not a past session's own week.
     private func recapFacts(_ summary: WorkoutRecapEngine.Summary) -> OnDeviceSummaryEngine.Facts? {
-        OnDeviceSummaryEngine.workout(summary, newPRCount: detectedPRs.count, weekCount: store.week?.count, unit: unit)
+        let weekCount = store.week.flatMap { $0.isCurrent ? $0.count : nil }
+        return OnDeviceSummaryEngine.workout(summary, newPRCount: detectedPRs.count, weekCount: weekCount, unit: unit)
     }
 
+    /// A fresh save celebrates; reopening an old session from history
+    /// leads with when it happened instead of "Workout saved".
     private func header(_ summary: WorkoutRecapEngine.Summary) -> some View {
         VStack(spacing: Spacing.sm) {
             if celebratesSave {

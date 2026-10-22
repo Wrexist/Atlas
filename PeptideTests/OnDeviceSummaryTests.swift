@@ -75,14 +75,23 @@ final class OnDeviceSummaryTests: XCTestCase {
             WorkoutRecapEngine.Day(date: day.addingTimeInterval(Double(offset) * 86_400),
                                    count: offset == 1 ? 2 : (offset == 4 ? 1 : 0))
         }
-        let week = WorkoutRecapEngine.Week(days: days, count: 3, volumeKg: nil)
+        let week = WorkoutRecapEngine.Week(days: days, count: 3, volumeKg: nil, isCurrent: true)
         let facts = try XCTUnwrap(OnDeviceSummaryEngine.week(week, unit: .metric, now: now))
         XCTAssertEqual(facts.statements, [
             "Workouts completed so far this week: 3",
             "Days with a workout this week: 2"
         ])
-        let empty = WorkoutRecapEngine.Week(days: days.map { .init(date: $0.date, count: 0) }, count: 0, volumeKg: nil)
+        let empty = WorkoutRecapEngine.Week(days: days.map { .init(date: $0.date, count: 0) }, count: 0, volumeKg: nil,
+                                             isCurrent: true)
         XCTAssertNil(OnDeviceSummaryEngine.week(empty, unit: .metric, now: now))
+    }
+
+    func test_weekFacts_pastWeek_doesNotSayThisWeek() throws {
+        let day = Calendar.current.startOfDay(for: now)
+        let days = (0..<7).map { WorkoutRecapEngine.Day(date: day.addingTimeInterval(Double($0) * 86_400), count: $0 == 2 ? 1 : 0) }
+        let week = WorkoutRecapEngine.Week(days: days, count: 1, volumeKg: nil, isCurrent: false)
+        let facts = try XCTUnwrap(OnDeviceSummaryEngine.week(week, unit: .metric, now: now))
+        XCTAssertEqual(facts.statements, ["Workouts completed that week: 1", "Days with a workout that week: 1"])
     }
 
     func test_coachingFacts_fallbackIsDeterministicBody() throws {

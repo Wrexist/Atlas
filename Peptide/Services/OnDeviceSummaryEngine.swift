@@ -57,7 +57,7 @@ enum OnDeviceSummaryEngine {
             .filter { $0.role == .primary }
             .sorted { $0.setCount != $1.setCount ? $0.setCount > $1.setCount : $0.name < $1.name }
             .prefix(3)
-            .map(\.name)
+            .map(\.displayName)
         if !muscles.isEmpty {
             lines.append("Main muscles worked: \(muscles.joined(separator: ", "))")
         }
@@ -73,12 +73,15 @@ enum OnDeviceSummaryEngine {
     static func week(_ week: WorkoutRecapEngine.Week, unit: MeasurementUnit,
                      now: Date = Date(), calendar: Calendar = .current) -> Facts? {
         guard week.count > 0 else { return nil }
+        // A recap reopened from history charts that workout's own week,
+        // which is not "this week" to the reader.
+        let span = week.isCurrent ? "this week" : "that week"
         var lines = [
-            "Workouts completed so far this week: \(week.count)",
-            "Days with a workout this week: \(week.days.filter { $0.count > 0 }.count)"
+            "Workouts completed \(week.isCurrent ? "so far this week" : span): \(week.count)",
+            "Days with a workout \(span): \(week.days.filter { $0.count > 0 }.count)"
         ]
         if let volume = week.volumeKg {
-            lines.append("Recorded training volume this week: \(RecapFormat.volume(volume, unit: unit))")
+            lines.append("Recorded training volume \(span): \(RecapFormat.volume(volume, unit: unit))")
         }
         return Facts(kind: .week, day: dayKey(now, calendar), statements: lines, fallback: nil)
     }
@@ -105,7 +108,7 @@ enum OnDeviceSummaryEngine {
         case .workout:
             task = "Summarize the workout the user just finished."
         case .week:
-            task = "Recap the user's training so far this week."
+            task = "Recap the user's training for the week in the facts."
         case .coaching:
             task = "Rewrite the recommendation so it reads naturally. Do not repeat the headline. "
                 + "Keep its meaning, and keep any advice exactly as cautious as the original."
