@@ -342,7 +342,9 @@ struct OnboardingView: View {
             // onboarding (debug menu, reset-onboarding tester).
             // Otherwise the @State defaults (12 weeks from today,
             // .buildMuscle) win, which is also fine for a fresh install.
-            if let saved = dataStore.profile.goalDate {
+            // A saved date that's now inside the picker's minimum window
+            // keeps the default instead of landing outside its range.
+            if let saved = dataStore.profile.goalDate, saved >= earliestGoalDate {
                 goalDate = saved
             }
             if let rawGoal = dataStore.profile.primaryGoal,
@@ -1124,7 +1126,7 @@ struct OnboardingView: View {
             DatePicker(
                 "Or a custom date",
                 selection: $goalDate,
-                in: Date().addingTimeInterval(60 * 60 * 24 * 14)...,
+                in: earliestGoalDate...,
                 displayedComponents: .date
             )
             .datePickerStyle(.compact)
@@ -1213,6 +1215,11 @@ struct OnboardingView: View {
     /// Human-readable "8 weeks to commit" summary for the merged
     /// goal-and-date step. Used inside the date section underneath
     /// the picker.
+    /// Two weeks out: the soonest target the date picker offers.
+    private var earliestGoalDate: Date {
+        Date().addingTimeInterval(60 * 60 * 24 * 14)
+    }
+
     private var goalDateSummary: String {
         "That's \(goalWeeks) week\(goalWeeks == 1 ? "" : "s") to commit."
     }
@@ -1653,19 +1660,19 @@ struct OnboardingView: View {
     }
 
     private var projectionHeadline: String {
-        let weeks = goalWeeks
+        let weeks = goalWeeks == 1 ? "1 week" : "\(goalWeeks) weeks"
         switch primaryGoal {
-        case .buildMuscle:    return "+\(projectedMuscleGain) in \(weeks) weeks"
-        case .loseFat:        return "−\(projectedFatLoss) in \(weeks) weeks"
-        case .getStronger:    return "Build strength\nover \(weeks) weeks"
-        case .stayConsistent: return "\(daysPerWeek * weeks) sessions\nin \(weeks) weeks"
-        case .athletic:       return "Work on conditioning\nover \(weeks) weeks"
-        case .recomp:         return "Work toward a recomp\nover \(weeks) weeks"
-        case .betterSleep:    return "Track your sleep\nover \(weeks) weeks"
-        case .recovery:       return "Track your recovery\nover \(weeks) weeks"
-        case .antiAging:      return "Track your biomarkers\nover \(weeks) weeks"
-        case .skinHair:       return "Track how you look & feel\nover \(weeks) weeks"
-        case .energy:         return "Track your energy\nover \(weeks) weeks"
+        case .buildMuscle:    return "+\(projectedMuscleGain) in \(weeks)"
+        case .loseFat:        return "−\(projectedFatLoss) in \(weeks)"
+        case .getStronger:    return "Build strength\nover \(weeks)"
+        case .stayConsistent: return "\(daysPerWeek * goalWeeks) sessions\nin \(weeks)"
+        case .athletic:       return "Work on conditioning\nover \(weeks)"
+        case .recomp:         return "Work toward a recomp\nover \(weeks)"
+        case .betterSleep:    return "Track your sleep\nover \(weeks)"
+        case .recovery:       return "Track your recovery\nover \(weeks)"
+        case .antiAging:      return "Track your biomarkers\nover \(weeks)"
+        case .skinHair:       return "Track how you look & feel\nover \(weeks)"
+        case .energy:         return "Track your energy\nover \(weeks)"
         }
     }
 
