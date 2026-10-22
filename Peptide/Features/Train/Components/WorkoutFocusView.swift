@@ -206,8 +206,9 @@ struct WorkoutFocusView: View {
             }
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .appAnimation(AppAnimation.springSnappy, value: exerciseDone(entry))
-            .onChange(of: exerciseDone(entry)) { _, done in
-                if done { Haptics.success() }
+            .onChange(of: DoneState(entryID: entry.id, done: exerciseDone(entry))) { old, new in
+                // Selecting an already-finished exercise isn't a completion.
+                if old.entryID == new.entryID, !old.done, new.done { Haptics.success() }
             }
             Divider()
             WorkoutFocusMetrics(session: session, unit: unit)
@@ -278,6 +279,11 @@ struct WorkoutFocusView: View {
         let name = library.displayName(for: target.exerciseID)
         return "Up next: \(name) · Set \(set.index)"
     }
+}
+
+private struct DoneState: Equatable {
+    let entryID: UUID
+    let done: Bool
 }
 
 private struct WorkoutFocusRestHeader: View {
