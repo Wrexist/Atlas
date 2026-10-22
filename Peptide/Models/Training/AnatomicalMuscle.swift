@@ -226,19 +226,10 @@ enum AnatomicalMuscle: String, CaseIterable, Codable, Hashable, Sendable {
     }
 
     /// Context-free region set for a raw muscle string — every head of the
-    /// group at once. Used where there's no exercise name to specialise by
-    /// (and by the simpler highlight builders). One raw string can light
-    /// several heads, so the return is a `Set`.
+    /// group at once, for when there's no exercise name to specialise by.
+    /// One raw string can light several heads, so the return is a `Set`.
     static func regions(forRawMuscle raw: String) -> Set<AnatomicalMuscle> {
         Set(headWeights(forRawMuscle: raw).keys)
-    }
-
-    /// Convenience: the union of every head touched by a list of raw
-    /// muscle strings (an exercise's `primaryMuscles` / `secondaryMuscles`).
-    static func regions(forRawMuscles raws: [String]) -> Set<AnatomicalMuscle> {
-        raws.reduce(into: Set<AnatomicalMuscle>()) { acc, raw in
-            acc.formUnion(regions(forRawMuscle: raw))
-        }
     }
 }
 

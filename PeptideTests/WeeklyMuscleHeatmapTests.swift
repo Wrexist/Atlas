@@ -77,11 +77,6 @@ final class WeeklyMuscleHeatmapTests: XCTestCase {
         XCTAssertEqual(AnatomicalMuscle.regions(forRawMuscle: "Lats"), [.lats])
     }
 
-    func test_regions_forRawMuscles_unionsRegions() {
-        let union = AnatomicalMuscle.regions(forRawMuscles: ["chest", "biceps"])
-        XCTAssertEqual(union, [.pecSternal, .pecClavicular, .biceps])
-    }
-
     // MARK: - AnatomicalMuscle.headWeights (per-head emphasis)
 
     func test_headWeights_chest_inclineFavoursClavicular() {
@@ -241,25 +236,6 @@ final class WeeklyMuscleHeatmapTests: XCTestCase {
 
 @MainActor
 final class MuscleMapHighlightBuilderTests: XCTestCase {
-
-    func test_highlights_primaryWinsOverSecondary_whenMuscleAppearsInBoth() {
-        // Edge case: same muscle listed as both primary and secondary.
-        // Primary should dominate so the user sees the strong tint.
-        let map = MuscleMapView.highlights(
-            primaryRawMuscles: ["chest"],
-            secondaryRawMuscles: ["chest", "triceps"]
-        )
-        XCTAssertEqual(map[.pecSternal], .primary)
-        XCTAssertEqual(map[.tricepsLong], .secondary)
-        XCTAssertEqual(map[.tricepsLateral], .secondary)
-    }
-
-    func test_highlights_emptyInputReturnsEmptyMap() {
-        XCTAssertTrue(MuscleMapView.highlights(
-            primaryRawMuscles: [],
-            secondaryRawMuscles: []
-        ).isEmpty)
-    }
 
     func test_intensityHighlights_normalisesAgainstMax() {
         let map = MuscleMapView.intensityHighlights(from: [

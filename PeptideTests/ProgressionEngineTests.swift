@@ -25,6 +25,13 @@ final class ProgressionEngineTests: XCTestCase {
         XCTAssertEqual(suggestion, .init(weightKg: 60, reps: 9, reason: .addRep))
     }
 
+    func test_weakestSetBelowRangeFloor_holdsWeightAndAimsForTheFloor() {
+        let suggestion = ProgressionEngine.suggestion(
+            previous: sets([(60, 6), (60, 3)]), repRange: 6...10, incrementKg: 2.5
+        )
+        XCTAssertEqual(suggestion, .init(weightKg: 60, reps: 6, reason: .reachRange))
+    }
+
     func test_fixedRoutineTargetHit_addsWeightAtTheTarget() {
         let suggestion = ProgressionEngine.suggestion(
             previous: sets([(80, 8), (80, 8), (80, 9)]), repRange: 8...8, incrementKg: 2.5

@@ -10,34 +10,32 @@ import Foundation
 /// without standing up `DataStore`.
 enum TravelModeLogic {
 
-    /// Rewrites every active protocol's default + per-peptide
-    /// preferred times by `hours` (positive = later in the local
-    /// day, negative = earlier). Ordering is preserved; the new
-    /// strings are formatted in the same `h:mm a` shape the
-    /// schedule editor produces, locale-aware so a French user
-    /// who shifts +3 hours sees "11:00" → "14:00", not "11:00 AM"
-    /// → "14:00 AM".
+    /// Rewrites every non-completed protocol's default + per-peptide
+    /// preferred times by `minutes` (positive = later in the local
+    /// day, negative = earlier). Paused protocols shift too, so one
+    /// resumed after the trip doesn't fire on the old clock — the
+    /// acknowledged zone means nothing re-prompts. Ordering is
+    /// preserved; the new strings use the `h:mm a` shape the
+    /// schedule editor produces.
     ///
-    /// Doesn't mutate the protocol's `daysOfWeek`, cycle config,
-    /// or anything else — strictly a clock translation. A
-    /// future enhancement could distribute the shift across
-    /// multiple days for receptor-stability reasons; for v1 the
-    /// shift is immediate, matching the typical traveller's
-    /// expectation that "I land, my doses are now on local time".
+    /// The shift keeps each dose at the same absolute moment, so a
+    /// time that crosses midnight moves its schedule's days with it
+    /// (an 11:00 PM Monday dose shifted +3 h lands at 2:00 AM
+    /// Tuesday). Cycle config is untouched.
     static func shiftProtocolTimes(
         in protocols: inout [PeptideProtocol],
-        byHours hours: Int
+        byMinutes minutes: Int
     ) {
         for index in protocols.indices {
             let original = protocols[index]
-            guard original.status == .active else { continue }
+            guard original.status != .completed else { continue }
             let updated = PeptideProtocol(
                 id: original.id,
                 name: original.name,
                 peptides: original.peptides,
-                schedule: shiftSchedule(original.schedule, byHours: hours),
+                schedule: shiftSchedule(original.schedule, byMinutes: minutes),
                 peptideSchedules: original.peptideSchedules.mapValues {
-                    shiftSchedule($0, byHours: hours)
+                    shiftSchedule($0, byMinutes: minutes)
                 },
                 cycleLengthWeeks: original.cycleLengthWeeks,
                 washoutWeeks: original.washoutWeeks,
@@ -64,30 +62,62 @@ enum TravelModeLogic {
     }
 
     /// Returns `schedule` with every `preferredTimes` entry shifted
-    /// by `hours`. Times that fail to parse are passed through
+    /// by `minutes`. Times that fail to parse are passed through
     /// unchanged — better to leave a stray "Around lunch" string
     /// alone than to lose it during a migration.
-    static func shiftSchedule(_ schedule: ProtocolSchedule, byHours hours: Int) -> ProtocolSchedule {
-        let shifted = schedule.preferredTimes.map { shiftTime($0, byHours: hours) }
+    ///
+    /// When every parsed time crosses midnight the same way, the
+    /// weekdays and interval anchor move by that day. A schedule
+    /// whose times straddle midnight (8:00 AM and 11:00 PM, +3 h)
+    /// can't be expressed with one set of days, so its days stay.
+    static func shiftSchedule(_ schedule: ProtocolSchedule, byMinutes minutes: Int) -> ProtocolSchedule {
+        let shifted = schedule.preferredTimes.map { shiftedTime($0, byMinutes: minutes) }
+        let dayOffsets = Set(shifted.compactMap { $0.dayOffset })
+        let dayOffset = dayOffsets.count == 1 ? dayOffsets.first ?? 0 : 0
         return ProtocolSchedule(
-            daysOfWeek: schedule.daysOfWeek,
+            daysOfWeek: schedule.daysOfWeek.map { rotateWeekday($0, by: dayOffset) }.sorted(),
             timesPerDay: schedule.timesPerDay,
-            preferredTimes: shifted,
+            preferredTimes: shifted.map { $0.time },
+            customDose: schedule.customDose,
             intervalDays: schedule.intervalDays,
-            intervalAnchor: schedule.intervalAnchor
+            intervalAnchor: schedule.intervalAnchor.flatMap {
+                Calendar.current.date(byAdding: .day, value: dayOffset, to: $0)
+            }
         )
     }
 
     /// Single time-string shift. Public-on-the-enum so the prompt
     /// preview UI can render "your 8:00 AM dose → 11:00 AM" without
     /// the caller having to recreate the parsing logic.
-    static func shiftTime(_ string: String, byHours hours: Int) -> String {
-        guard let date = parseTime(string) else { return string }
+    static func shiftTime(_ string: String, byMinutes minutes: Int) -> String {
+        shiftedTime(string, byMinutes: minutes).time
+    }
+
+    /// The shifted time plus how many days it crossed (-1, 0, +1),
+    /// or a nil offset when the string doesn't parse.
+    private static func shiftedTime(
+        _ string: String,
+        byMinutes minutes: Int
+    ) -> (time: String, dayOffset: Int?) {
         let calendar = Calendar.current
-        guard let shifted = calendar.date(byAdding: .hour, value: hours, to: date) else {
-            return string
-        }
-        return formatTime(shifted)
+        guard let date = parseTime(string) else { return (string, nil) }
+        let parts = calendar.dateComponents([.hour, .minute], from: date)
+        let total = (parts.hour ?? 0) * 60 + (parts.minute ?? 0) + minutes
+        let minutesPerDay = 24 * 60
+        let dayOffset = Int((Double(total) / Double(minutesPerDay)).rounded(.down))
+        let minuteOfDay = total - dayOffset * minutesPerDay
+        guard let shifted = calendar.date(
+            bySettingHour: minuteOfDay / 60,
+            minute: minuteOfDay % 60,
+            second: 0,
+            of: date
+        ) else { return (string, nil) }
+        return (formatTime(shifted), dayOffset)
+    }
+
+    /// Moves a 1=Mon…7=Sun weekday by `days`, wrapping the week.
+    private static func rotateWeekday(_ weekday: Int, by days: Int) -> Int {
+        ((weekday - 1 + days) % 7 + 7) % 7 + 1
     }
 
     // MARK: - Parsing helpers

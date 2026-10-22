@@ -8,8 +8,10 @@ import Foundation
 ///
 /// One JSON file per barcode keeps the implementation trivial: no
 /// schema migrations, no index, and a "clear" is a single directory
-/// removal. The TTL is enforced on read by comparing file modification
-/// dates rather than baking timestamps into the payload.
+/// removal. The TTL is enforced on read by comparing file creation
+/// dates (reset by every atomic write) rather than baking timestamps
+/// into the payload. Modification dates carry recency instead: a write
+/// sets it, and so does a read that marks the product as used.
 actor BarcodeProductCache {
 
     static let shared = BarcodeProductCache()
@@ -44,15 +46,21 @@ actor BarcodeProductCache {
 
     /// Returns the cached product when present and within TTL. Treats
     /// any I/O or decoding error as a cache miss — the caller refetches.
-    func read(barcode: String) -> ScannedProduct? {
+    /// `markingUsed` moves a re-scanned product to the front of
+    /// `recent` and the back of the eviction queue; background reads
+    /// such as the Spotlight reindex leave recency alone.
+    func read(barcode: String, markingUsed: Bool = false) -> ScannedProduct? {
         let url = fileURL(for: barcode)
         guard let attrs = try? fileManager.attributesOfItem(atPath: url.path),
-              let modified = attrs[.modificationDate] as? Date,
-              Date().timeIntervalSince(modified) <= ttl,
+              let written = attrs[.creationDate] as? Date,
+              Date().timeIntervalSince(written) <= ttl,
               let data = try? Data(contentsOf: url),
               let product = try? Self.decoder.decode(ScannedProduct.self, from: data)
         else {
             return nil
+        }
+        if markingUsed {
+            try? fileManager.setAttributes([.modificationDate: Date()], ofItemAtPath: url.path)
         }
         return product
     }
@@ -69,12 +77,12 @@ actor BarcodeProductCache {
     }
 
     /// Returns the `limit` most-recently-scanned products, ordered by
-    /// last-fetched-first. Used by the scanner UI to surface a "recently
+    /// last-used-first. Used by the scanner UI to surface a "recently
     /// scanned" row above the live viewfinder so users can re-log
     /// without re-aiming the camera.
     ///
     /// Pre-filters candidates by TTL using only the directory listing's
-    /// modification dates so stale entries are skipped without opening
+    /// creation dates so stale entries are skipped without opening
     /// the file. Cuts a sweep of N `Data(contentsOf:)` reads down to
     /// only the live entries actually returned.
     func recent(limit: Int) -> [ScannedProduct] {
@@ -82,7 +90,7 @@ actor BarcodeProductCache {
         let now = Date()
         let ttl = self.ttl
         let liveEntries = entriesByDescendingModifiedDate()
-            .filter { now.timeIntervalSince($0.modified) <= ttl }
+            .filter { now.timeIntervalSince($0.written) <= ttl }
 
         var out: [ScannedProduct] = []
         out.reserveCapacity(min(limit, liveEntries.count))
@@ -118,21 +126,25 @@ actor BarcodeProductCache {
 
     private struct DirectoryEntry {
         let url: URL
+        let written: Date
         let modified: Date
     }
 
     private func entriesByDescendingModifiedDate() -> [DirectoryEntry] {
         let contents = (try? fileManager.contentsOfDirectory(
             at: directory,
-            includingPropertiesForKeys: [.contentModificationDateKey],
+            includingPropertiesForKeys: [.creationDateKey, .contentModificationDateKey],
             options: [.skipsHiddenFiles, .skipsSubdirectoryDescendants]
         )) ?? []
         return contents
             .compactMap { url -> DirectoryEntry? in
                 guard url.pathExtension == "json" else { return nil }
-                let modified = (try? url.resourceValues(forKeys: [.contentModificationDateKey])
-                    .contentModificationDate) ?? .distantPast
-                return DirectoryEntry(url: url, modified: modified)
+                let values = try? url.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey])
+                return DirectoryEntry(
+                    url: url,
+                    written: values?.creationDate ?? .distantPast,
+                    modified: values?.contentModificationDate ?? .distantPast
+                )
             }
             .sorted { $0.modified > $1.modified }
     }

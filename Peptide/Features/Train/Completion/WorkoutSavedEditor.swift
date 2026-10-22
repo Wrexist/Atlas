@@ -29,7 +29,7 @@ struct WorkoutSavedEditor: View {
                         .focused($focusedField, equals: "notes")
                 }
                 ForEach($draft.exercises) { $entry in
-                    Section(ExerciseLibrary.shared.lookup(id: entry.exerciseID)?.name ?? entry.exerciseID) {
+                    Section(ExerciseLibrary.shared.displayName(for: entry.exerciseID)) {
                         ForEach($entry.sets) { $set in
                             DisclosureGroup("Set \(set.index) · \(RecapFormat.set(set, unit: unit))") {
                                 RecapSetEditor(set: $set, unit: unit, invalidFields: $invalidFields, focusedField: $focusedField)

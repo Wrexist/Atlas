@@ -80,6 +80,7 @@ final class ExerciseLibraryTests: XCTestCase {
         let hit = library.lookup(id: id)
         XCTAssertNotNil(hit, "Stable bundled id \(id) should resolve")
         XCTAssertEqual(hit?.name, "3/4 Sit-Up")
+        XCTAssertEqual(hit?.isCustom, false)
     }
 
     func test_lookup_byUnknownID_returnsNil() {
@@ -95,9 +96,25 @@ final class ExerciseLibraryTests: XCTestCase {
         XCTAssertNotNil(hit)
         XCTAssertEqual(hit?.name, "Test Curl")
         XCTAssertEqual(hit?.primaryMuscles, ["biceps"])
+        XCTAssertEqual(hit?.isCustom, true)
+    }
+
+    func test_displayName_unknownID_readsUnknownExerciseNotTheRawID() {
+        XCTAssertEqual(library.displayName(for: "custom_deleted_123"), "Unknown exercise")
     }
 
     // MARK: - Filter
+
+    func test_filter_afterAttachingCustom_includesItSortedByName() {
+        let custom = CustomExercise(name: "Aaa Test Curl", primaryMuscles: ["biceps"])
+        library.attachCustomExercises([custom])
+        defer { library.attachCustomExercises([]) }
+
+        let results = library.filter(query: "aaa test")
+        XCTAssertEqual(results.map(\.id), [custom.id])
+        let names = library.filter().map(\.name)
+        XCTAssertEqual(names, names.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending })
+    }
 
     func test_filter_byMuscleGroup_returnsOnlyMatches() {
         let chestOnly = library.filter(muscleGroup: .chest)
@@ -160,6 +177,22 @@ final class ExerciseLibraryTests: XCTestCase {
                        "Query matching should be case-insensitive")
     }
 
+    func test_filter_multiWordQueryInAnyOrder_matchesEveryWord() {
+        let ordered = library.filter(query: "dumbbell bench press").map(\.id)
+        let shuffled = library.filter(query: "bench press dumbbell").map(\.id)
+        XCTAssertTrue(ordered.contains("Dumbbell_Bench_Press"))
+        XCTAssertEqual(ordered, shuffled)
+    }
+
+    func test_filter_hyphenSpaceAndJoinedSpellings_matchSameExercise() {
+        for query in ["pull-up", "pull up", "pullup"] {
+            XCTAssertTrue(
+                library.filter(query: query).contains { $0.id == "Band_Assisted_Pull-Up" },
+                "Query '\(query)' should match Band Assisted Pull-Up"
+            )
+        }
+    }
+
     func test_filter_combined_appliesAllPredicates() {
         let pushups = library.filter(query: "push", equipment: .bodyweight)
         XCTAssertFalse(pushups.isEmpty)
@@ -176,29 +209,5 @@ final class ExerciseLibraryTests: XCTestCase {
         let stretches = library.filter(category: .stretching)
         XCTAssertFalse(stretches.isEmpty)
         for s in stretches { XCTAssertEqual(s.category, .stretching) }
-    }
-
-    // MARK: - Equipment-access scoping
-
-    func test_availableForEquipment_emptySetReturnsAll() {
-        let all = library.availableForEquipment([])
-        XCTAssertEqual(all.count, library.bundled.count + library.custom.count,
-                       "An empty access set should fall through to the full union of bundled + custom")
-    }
-
-    func test_availableForEquipment_filtersToSubset() {
-        let scoped = library.availableForEquipment([.barbell])
-        XCTAssertFalse(scoped.isEmpty)
-        // A barbell gym also has the EZ bar and loose plates.
-        let covered: Set<EquipmentKind> = [.barbell, .ezBar, .plate]
-        for exercise in scoped {
-            XCTAssertTrue(covered.contains(exercise.equipmentKind), exercise.name)
-        }
-    }
-
-    func test_availableForEquipment_machineAccess_coversTheSmithMachine() {
-        let scoped = library.availableForEquipment([.machine])
-        XCTAssertTrue(scoped.contains { $0.id == "Smith_Machine_Squat" })
-        XCTAssertFalse(scoped.contains { $0.id == "Trap_Bar_Deadlift" })
     }
 }

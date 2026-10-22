@@ -31,6 +31,20 @@ enum WorkoutRecapEngine {
         let contributions: [Contribution]
         var role: Role { contributions.contains { $0.role == .primary } ? .primary : .supporting }
         var setCount: Int { Set(contributions.flatMap { $0.sets.map(\.id) }).count }
+        /// `name` is a raw dataset muscle or, for custom exercises, a
+        /// `MuscleGroup` raw value (lowercased by `derive`, so matched
+        /// without case); this reads the way exercise detail does.
+        var displayName: String {
+            if let group = MuscleGroup.allCases.first(where: { $0.rawValue.lowercased() == name.lowercased() }) {
+                return group.displayName
+            }
+            switch name.lowercased() {
+            case "quadriceps": return "Quads"
+            case "abdominals": return "Abs"
+            case "middle back": return "Mid back"
+            default: return name.prefix(1).uppercased() + name.dropFirst()
+            }
+        }
     }
     struct Entry: Identifiable, Sendable {
         let id: UUID
@@ -59,10 +73,7 @@ enum WorkoutRecapEngine {
         var qualifiesForWeek: Bool {
             session.finishedAt != nil && (workingSetCount > 0 || session.exercises.isEmpty)
         }
-        var name: String {
-            let name = session.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            return name.isEmpty ? String(localized: "Workout") : name
-        }
+        var name: String { session.displayName }
     }
 
     static func derive(_ session: WorkoutSession, catalog: [String: Exercise]) -> Summary {
@@ -83,7 +94,7 @@ enum WorkoutRecapEngine {
             let primary = Array(Set(exercise?.primaryMuscles.map { $0.lowercased() } ?? [])).sorted()
             let supporting = Array(Set(exercise?.secondaryMuscles.map { $0.lowercased() } ?? [])
                 .subtracting(primary)).sorted()
-            let name = exercise?.name ?? entry.exerciseID.replacingOccurrences(of: "_", with: " ")
+            let name = exercise?.name ?? fallbackName(for: entry.exerciseID)
             let volumes = sets.compactMap { set -> Double? in
                 // Older cardio/stretching records have no timed/distance schema;
                 // retain the record but do not reinterpret reps as external work.
@@ -113,6 +124,15 @@ enum WorkoutRecapEngine {
                        excludedVolumeSets: excluded, missingMappings: missing, hasLegacyLoad: legacy)
     }
 
+    /// Name for an exercise missing from the catalog. A bundled slug reads
+    /// fine with its underscores spaced out; a deleted custom exercise's id
+    /// is a UUID, so it gets a generic label instead.
+    private static func fallbackName(for exerciseID: String) -> String {
+        exerciseID.hasPrefix(CustomExercise.idPrefix)
+            ? String(localized: "Custom exercise")
+            : exerciseID.replacingOccurrences(of: "_", with: " ")
+    }
+
     static func duration(of session: WorkoutSession) -> Duration {
         if session.focus?.timing == .notTracked { return .notTracked }
         guard session.focus?.timing != .unavailable, let end = session.finishedAt else { return .unavailable }
@@ -132,15 +152,27 @@ enum WorkoutRecapEngine {
         let days: [Day]
         let count: Int
         let volumeKg: Double?
+        /// False when the week was anchored on a past workout.
+        let isCurrent: Bool
+
+        var title: String {
+            guard !isCurrent, let start = days.first?.date else { return String(localized: "This week") }
+            return String(localized: "Week of \(start.formatted(.dateTime.day().month(.abbreviated)))")
+        }
+        /// Trailing phrase for counts: "this week" or "that week".
+        var phrase: String {
+            isCurrent ? String(localized: "this week") : String(localized: "that week")
+        }
     }
 
-    /// Current locale/calendar week. A qualifying workout is finished and has
-    /// working sets or is a legacy manual log without structured exercise data.
-    /// Start date matches Atlas history.
-    static func week(sessions: [WorkoutSession], catalog: [String: Exercise],
+    /// The locale/calendar week containing `anchor` (today when nil). A
+    /// qualifying workout is finished and has working sets or is a legacy
+    /// manual log without structured exercise data. Start date matches
+    /// Atlas history.
+    static func week(sessions: [WorkoutSession], catalog: [String: Exercise], anchor: Date? = nil,
                      now: Date = Date(), calendar: Calendar = .current) -> Week {
-        guard let interval = calendar.dateInterval(of: .weekOfYear, for: now) else {
-            return Week(days: [], count: 0, volumeKg: nil)
+        guard let interval = calendar.dateInterval(of: .weekOfYear, for: anchor ?? now) else {
+            return Week(days: [], count: 0, volumeKg: nil, isCurrent: true)
         }
         var seen = Set<UUID>()
         let included = sessions.filter {
@@ -153,6 +185,7 @@ enum WorkoutRecapEngine {
             return Day(date: date, count: included.filter { calendar.isDate($0.session.startedAt, inSameDayAs: date) }.count)
         }
         let volumes = included.compactMap(\.volumeKg)
-        return Week(days: days, count: included.count, volumeKg: volumes.isEmpty ? nil : volumes.reduce(0, +))
+        return Week(days: days, count: included.count, volumeKg: volumes.isEmpty ? nil : volumes.reduce(0, +),
+                    isCurrent: now >= interval.start && now < interval.end)
     }
 }

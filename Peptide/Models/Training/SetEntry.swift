@@ -124,12 +124,15 @@ struct SetEntry: Codable, Hashable, Identifiable, Sendable {
     }
 
     /// Epley 1RM estimate for the working load. Returns `nil` for
-    /// warm-up sets, incomplete sets, or 0 reps so callers don't have
-    /// to special-case those branches.
+    /// warm-up sets, incomplete sets, 0 reps, or more reps than Epley
+    /// holds for — 60 kg × 40 would otherwise claim a 140 kg max.
     var estimatedOneRepMaxKg: Double? {
-        guard completed, !isWarmup, reps > 0, weightKg > 0,
+        guard completed, !isWarmup, reps > 0, reps <= Self.maxEstimableReps, weightKg > 0,
               measurement == nil || measurement?.kind == .repetitions else { return nil }
         if reps == 1 { return weightKg }
         return weightKg * (1.0 + Double(reps) / 30.0)
     }
+
+    /// Past about a dozen reps a set tests endurance, not strength.
+    static let maxEstimableReps = 12
 }

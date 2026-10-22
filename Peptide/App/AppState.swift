@@ -94,6 +94,9 @@ final class AppState {
     /// The meal scanner or weight entry, opened by a quick action and
     /// presented from the root over whichever tab is active.
     var presentedQuickSheet: QuickActionSheet?
+    /// True while `ActiveWorkoutView` is on screen. It signals rest end
+    /// itself, so the system banner for it is suppressed only then.
+    var isActiveWorkoutVisible = false
 }
 
 /// Routes a `peptidex://` (or `atlas://`) URL onto AppState. Extracted from

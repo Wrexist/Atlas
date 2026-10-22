@@ -22,6 +22,7 @@ struct MuscleActivationMap: View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             StagedMuscleMap(
                 highlights: focused.map { MuscleInvolvementEngine.focus(highlights, on: $0) } ?? highlights,
+                identifiesOnTap: !rows.isEmpty,
                 onIdentify: { muscle in toggle(rows.first { $0.muscles.contains(muscle) }) },
                 selectedMuscle: focused?.muscles.first
             )
@@ -48,7 +49,7 @@ struct MuscleActivationMap: View {
 
     private var focusCaption: some View {
         Text(focused.map { "\($0.name) · \($0.role.rawValue.lowercased()) mover" }
-             ?? "Tap a muscle to focus it")
+             ?? (rows.isEmpty ? "No muscle mapping for this exercise" : "Tap a muscle to focus it"))
             .font(AppFont.footnote.weight(.semibold))
             .foregroundStyle(focused == nil ? AppColor.textTertiary : AppColor.textPrimary)
             .frame(maxWidth: .infinity)
