@@ -284,9 +284,11 @@ private struct DailyPlanDoseRow: View {
                         fastedFlag
                     }
                 }
-                Text(dose.entry.dose)
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textTertiary)
+                if !dose.entry.dose.isEmpty {
+                    Text(dose.entry.dose)
+                        .font(AppFont.caption)
+                        .foregroundStyle(AppColor.textTertiary)
+                }
             }
 
             Spacer()

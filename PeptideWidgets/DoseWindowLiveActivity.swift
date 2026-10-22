@@ -63,10 +63,12 @@ struct DoseWindowLiveActivity: Widget {
                         .font(.system(size: 14, weight: .heavy, design: .rounded))
                         .foregroundStyle(.white)
                         .lineLimit(1)
-                    Text(context.attributes.doseDisplay)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.65))
-                        .lineLimit(1)
+                    if !context.attributes.doseDisplay.isEmpty {
+                        Text(context.attributes.doseDisplay)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.65))
+                            .lineLimit(1)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -230,11 +232,13 @@ private struct DoseWindowLockView: View {
                     .foregroundStyle(.primary)
                     .lineLimit(1)
                 HStack(spacing: 6) {
-                    Text(attributes.doseDisplay)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.secondary)
-                    Text("·")
-                        .foregroundStyle(.secondary)
+                    if !attributes.doseDisplay.isEmpty {
+                        Text(attributes.doseDisplay)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.secondary)
+                        Text("·")
+                            .foregroundStyle(.secondary)
+                    }
                     Text(attributes.peptideAbbreviation)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(accent)

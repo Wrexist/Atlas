@@ -13,13 +13,13 @@ final class DoseDayMapTests: XCTestCase {
         calendar.date(from: DateComponents(year: 2026, month: 3, day: 11, hour: 9))!
     }
 
-    private func entry(completed: Bool) -> ProtocolEntry {
+    private func entry(completed: Bool, dose: String = "250mcg") -> ProtocolEntry {
         ProtocolEntry(
             id: UUID(),
             protocolId: UUID(),
             peptide: MockPeptides.bpc157,
             date: referenceDay,
-            dose: "250mcg",
+            dose: dose,
             notes: "",
             completed: completed
         )
@@ -39,6 +39,11 @@ final class DoseDayMapTests: XCTestCase {
         let result = marks(for: [pending])
         XCTAssertEqual(result.map(\.kind), [.scheduled])
         XCTAssertEqual(result.first?.entryID, pending.id)
+    }
+
+    func test_build_entryWithoutDose_showsDoseNotSet() {
+        let result = marks(for: [entry(completed: false, dose: "")])
+        XCTAssertEqual(result.first?.dose, String(localized: "Dose not set"))
     }
 
     func test_build_entryWithActualTime_showsActualTime() {

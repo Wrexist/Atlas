@@ -31,9 +31,11 @@ struct DoseRowView: View {
                         .font(.system(.headline, design: .rounded))
                         .foregroundStyle(entry.completed ? .secondary : .primary)
                         .strikethrough(entry.completed, color: .secondary)
-                    Text(entry.dose)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                    if !entry.dose.isEmpty {
+                        Text(entry.dose)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 Spacer(minLength: 4)
