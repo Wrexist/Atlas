@@ -105,6 +105,7 @@ struct WeeklySummaryToggleRow: View {
 
     private func setEnabled(_ enabled: Bool) {
         dataStore.profile.weeklySummaryEnabled = enabled
+        if enabled { dataStore.profile.weeklySummaryOptInConfirmed = true }
         dataStore.persistProfile()
         Task { @MainActor in
             await WeeklySummaryNotificationScheduler.reconcile(

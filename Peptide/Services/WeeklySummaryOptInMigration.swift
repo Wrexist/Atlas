@@ -8,7 +8,9 @@ import Foundation
 /// This turns those off once, on the first profile load after upgrade;
 /// the user can opt back in from Profile → Settings. A device with no
 /// stored profile (a new install) is only marked done, so a later
-/// opt-in there is never undone.
+/// opt-in there is never undone. The done-marker is per device but the
+/// toggle syncs, so an opt-in confirmed on another device
+/// (`weeklySummaryOptInConfirmed`) is left alone too.
 enum WeeklySummaryOptInMigration {
     static let defaultsKey = "weeklySummaryOptInMigrationV1"
 
@@ -17,7 +19,7 @@ enum WeeklySummaryOptInMigration {
     static func apply(to profile: inout UserProfile, defaults: UserDefaults = .standard) -> Bool {
         guard !defaults.bool(forKey: defaultsKey) else { return false }
         markCompleted(in: defaults)
-        guard profile.weeklySummaryEnabled else { return false }
+        guard profile.weeklySummaryEnabled, !profile.weeklySummaryOptInConfirmed else { return false }
         profile.weeklySummaryEnabled = false
         return true
     }
