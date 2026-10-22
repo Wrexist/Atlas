@@ -59,6 +59,7 @@ enum ProfileMergeEngine {
         let fresh = UserProfile.fresh
         if merged.bodyMetrics == fresh.bodyMetrics { merged.bodyMetrics = other.bodyMetrics }
         if merged.biologyConfig == fresh.biologyConfig { merged.biologyConfig = other.biologyConfig }
+        if merged.todayLayout == fresh.todayLayout { merged.todayLayout = other.todayLayout }
         if merged.hapticFeedbackEnabled == fresh.hapticFeedbackEnabled,
            merged.doseRemindersEnabled == fresh.doseRemindersEnabled,
            merged.biometricLockEnabled == fresh.biometricLockEnabled,
