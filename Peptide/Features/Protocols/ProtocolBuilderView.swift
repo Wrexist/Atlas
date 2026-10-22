@@ -414,6 +414,10 @@ struct ProtocolBuilderView: View {
 
     private var isAppending: Bool { appendTargetProtocolId != nil }
 
+    private var appendableProtocols: [PeptideProtocol] {
+        dataStore.activeProtocols + dataStore.pausedProtocols
+    }
+
     private var appendTargetProtocol: PeptideProtocol? {
         guard let id = appendTargetProtocolId else { return nil }
         return dataStore.protocols.first { $0.id == id }
@@ -451,7 +455,7 @@ struct ProtocolBuilderView: View {
                     .buttonStyle(ScalePressStyle())
                     .minimumHitArea()
 
-                    if !dataStore.protocols.isEmpty {
+                    if !appendableProtocols.isEmpty {
                         startFromButton("Existing") {
                             isShowingAppendPicker = true
                         }
@@ -461,7 +465,7 @@ struct ProtocolBuilderView: View {
         }
         .sheet(isPresented: $isShowingAppendPicker) {
             AppendStackPickerSheet(
-                protocols: dataStore.activeProtocols + dataStore.pausedProtocols,
+                protocols: appendableProtocols,
                 selectedId: appendTargetProtocolId,
                 onPick: { id in
                     AppAnimation.with(AppAnimation.springSnappy) {
