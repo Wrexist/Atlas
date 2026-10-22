@@ -40,7 +40,7 @@ struct ProfileStacksCard: View {
                         ForEach(stacks) { stack in
                             stackRow(stack)
                             if stack.id != stacks.last?.id {
-                                Divider().foregroundStyle(AppColor.glassBorder)
+                                Divider().overlay(AppColor.glassBorder)
                             }
                         }
                     }
@@ -88,7 +88,7 @@ struct ProfileStacksCard: View {
     private var emptyStacksView: some View {
         VStack(spacing: Spacing.md) {
             Image(systemName: "square.stack.3d.up.slash")
-                .font(.system(size: 32))
+                .font(AppFont.scaled(32, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.textTertiary)
 
             Text("No protocols yet")
@@ -224,7 +224,7 @@ struct ProfileStacksCard: View {
             HStack {
                 Text("Week \(stack.weekNumber) of \(stack.cycleLengthWeeks)")
                 Spacer()
-                Text("\(stack.daysRemaining) days left")
+                Text("^[\(stack.daysRemaining) day](inflect: true) left")
             }
             .font(AppFont.caption2)
             .foregroundStyle(AppColor.textTertiary)

@@ -15,6 +15,8 @@ struct CutItOutSheet: View {
     @State private var pinchStart: CGFloat?
 
     private static let radiusRange: ClosedRange<CGFloat> = 0.06...0.5
+    /// One VoiceOver move or resize step, as a fraction of the photo.
+    private static let nudgeStep: CGFloat = 0.05
 
     var body: some View {
         NavigationStack {
@@ -42,7 +44,23 @@ struct CutItOutSheet: View {
                                 x: fit.minX + center.x * fit.width,
                                 y: fit.minY + center.y * fit.height
                             )
-                            .accessibilityHidden(true)
+                            .accessibilityElement()
+                            .accessibilityLabel("Cut circle")
+                            .accessibilityValue(Text("\(Int((center.x * 100).rounded())) percent across, \(Int((center.y * 100).rounded())) percent down"))
+                            .accessibilityHint("Swipe up or down to resize. Use actions to move it.")
+                            .accessibilityAdjustableAction { direction in
+                                switch direction {
+                                case .increment: radius = Self.clampedRadius(radius + Self.nudgeStep)
+                                case .decrement: radius = Self.clampedRadius(radius - Self.nudgeStep)
+                                @unknown default: break
+                                }
+                            }
+                            .accessibilityActions {
+                                Button("Move up") { move(by: CGSize(width: 0, height: -Self.nudgeStep)) }
+                                Button("Move down") { move(by: CGSize(width: 0, height: Self.nudgeStep)) }
+                                Button("Move left") { move(by: CGSize(width: -Self.nudgeStep, height: 0)) }
+                                Button("Move right") { move(by: CGSize(width: Self.nudgeStep, height: 0)) }
+                            }
                     }
                     .contentShape(Rectangle())
                     .gesture(drag(in: fit).simultaneously(with: pinch))
@@ -90,15 +108,27 @@ struct CutItOutSheet: View {
             .intersection(CGRect(x: 0, y: 0, width: 1, height: 1))
     }
 
+    private static func clampedRadius(_ value: CGFloat) -> CGFloat {
+        min(max(value, radiusRange.lowerBound), radiusRange.upperBound)
+    }
+
+    private static func clampedCenter(_ point: CGPoint) -> CGPoint {
+        CGPoint(x: min(max(point.x, 0), 1), y: min(max(point.y, 0), 1))
+    }
+
+    private func move(by offset: CGSize) {
+        center = Self.clampedCenter(CGPoint(x: center.x + offset.width, y: center.y + offset.height))
+    }
+
     private func drag(in fit: CGRect) -> some Gesture {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
                 let start = dragStart ?? center
                 dragStart = start
-                center = CGPoint(
-                    x: min(max(start.x + value.translation.width / max(fit.width, 1), 0), 1),
-                    y: min(max(start.y + value.translation.height / max(fit.height, 1), 0), 1)
-                )
+                center = Self.clampedCenter(CGPoint(
+                    x: start.x + value.translation.width / max(fit.width, 1),
+                    y: start.y + value.translation.height / max(fit.height, 1)
+                ))
             }
             .onEnded { _ in dragStart = nil }
     }
@@ -108,7 +138,7 @@ struct CutItOutSheet: View {
             .onChanged { value in
                 let start = pinchStart ?? radius
                 pinchStart = start
-                radius = min(max(start * value.magnification, Self.radiusRange.lowerBound), Self.radiusRange.upperBound)
+                radius = Self.clampedRadius(start * value.magnification)
             }
             .onEnded { _ in pinchStart = nil }
     }

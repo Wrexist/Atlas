@@ -398,7 +398,6 @@ final class ScreenshotTests: XCTestCase {
     }
 
     func test_captureExerciseRollout() {
-        test_captureWorkoutFocus()
         for appearance in ["light", "dark"] {
             launch(appearance: appearance)
             dismissOverlaysIfNeeded()
@@ -673,46 +672,25 @@ final class ScreenshotTests: XCTestCase {
     private func launch(appearance: String, extraArguments: [String] = []) {
         continueAfterFailure = false
         app = XCUIApplication()
-        // `-key value` pairs land in the NSArgumentDomain, so these read
-        // back through UserDefaults at launch: skip onboarding, flip
-        // ScreenshotMode on (its key is read by ScreenshotMode.init), and
-        // pin the appearance (read by ThemeManager.init).
-        //
-        // Also pre-stamp WhatsNewService's "last seen tour version" key
-        // (`WhatsNewService.currentTourVersion`, currently "v3.1-biology").
-        // `bootstrapForFreshInstallIfNeeded` only stamps this on launch when
-        // `hasCompletedOnboarding` is still false, but this suite launches
-        // with onboarding pre-completed above — so on a fresh simulator the
-        // stamp is never written, `shouldShowTour` sees a nil last-seen
-        // version, and PeptideApp presents the full-screen, drag-to-dismiss-
-        // disabled WhatsNewTourSheet ~450ms after the first `.active` scene
-        // phase. That sheet then silently absorbs every subsequent tab tap
-        // in `captureAllTabs` (each tap lands on the sheet's own "Continue"
-        // control, which happens to sit in the same screen region as the
-        // real tab bar), so every capture past the first ends up showing a
-        // tour page instead of the tab it's named after, and the Habits
-        // tab / paywall step are never reached. Stamping the key up front
-        // matches how a real existing user (the only audience this tour
-        // targets) would already have it set, and keeps the suite in sync
-        // if `currentTourVersion` is bumped again.
-        app.launchArguments = [
-            "-hasCompletedOnboarding", "YES",
+        // On top of the returning-user state, flip ScreenshotMode on (its
+        // key is read by ScreenshotMode.init) and pin the appearance (read
+        // by ThemeManager.init).
+        app.launchArguments = XCUIApplication.returningUserArguments + [
             "-com.peptidesai.app.screenshotMode.enabled", "YES",
             "-appDisplayMode", appearance,
-            "-com.peptidesai.app.whatsNew.lastSeenVersion", "v3.1-biology",
         ] + extraArguments
         app.launch()
     }
 
-    /// Walks the five tabs and captures each. Tabs that don't appear are
-    /// skipped rather than failing, so one renamed tab can't lose the
-    /// whole run. The Biology tab additionally opens the paywall — see
+    /// Walks the five tabs and captures each, failing on a missing or
+    /// unselected tab so a capture can never be filed under the wrong
+    /// name. The Biology tab additionally opens the paywall — see
     /// `capturePaywall`.
     ///
     /// Two different first-launch overlays can appear at any point in
     /// this sequence, neither gated on a specific screen:
     ///
-    /// - The system notification-permission alert.
+    /// - A system permission alert (notifications, HealthKit, camera).
     /// - `HomeView`'s `CycleMilestonePromptSheet` ("Share your week 1
     ///   snapshot?"), triggered by `CycleMilestoneService` once the demo
     ///   protocol's seeded start date crosses the day-7 mark. It's a
@@ -734,9 +712,10 @@ final class ScreenshotTests: XCTestCase {
 
         for (offset, tab) in Self.secondaryTabs.enumerated() {
             let button = app.tabBars.buttons[tab]
-            guard button.waitForExistence(timeout: 5) else { continue }
+            XCTAssertTrue(button.waitForExistence(timeout: 5), "\(tab) tab missing")
             button.tap()
             dismissOverlaysIfNeeded()
+            XCTAssertTrue(button.isSelected, "\(tab) tab should be selected before its capture")
             capture(named: String(format: "%@-%02d-%@", prefix, offset + 2, tab))
 
             if tab == "Biology" {
@@ -750,7 +729,9 @@ final class ScreenshotTests: XCTestCase {
     /// clearing before every capture. Cheap to call speculatively: each
     /// wait only costs real time when that overlay is actually present.
     private func dismissOverlaysIfNeeded() {
-        let alert = app.alerts.firstMatch
+        // Permission prompts are owned by SpringBoard, not the app, so
+        // `app.alerts` never sees them.
+        let alert = XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.firstMatch
         if alert.waitForExistence(timeout: 0.5) {
             if alert.buttons["Allow"].exists {
                 alert.buttons["Allow"].tap()

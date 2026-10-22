@@ -86,6 +86,17 @@ Still owed, none of it possible without hardware:
   author has no linked Vercel account, so Claude-authored commits show it
   red. Allow unlinked authors in that project's Git settings, or ignore it.
 
+### Deferred: paywall Close off-screen at accessibility sizes (A049)
+
+At accessibility XXXL `PaywallView` lays out wider than the screen and its
+top-trailing Close button lands off-screen. The cause is not confirmed: the
+likeliest suspects are the `.fixedSize()` plan name, savings pill and price
+in `pricingRow`, which together refuse to shrink. It needs a device or
+simulator to reproduce, so it was not changed blind. `capturePaywall` in
+`PeptideUITests/ScreenshotTests.swift` still wraps the miss in
+`XCTExpectFailure`; once Close stays hittable, replace that block with
+`XCTAssertTrue(closeButton.isHittable)`.
+
 ### Earlier: September 2026 audit
 
 Branch: `claude/sleepy-babbage-fjf6gh`, on top of `main` at PR #178.

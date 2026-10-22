@@ -45,6 +45,13 @@ final class OpenFoodFactsService: Sendable {
     private static let defaultBaseURL = URL.staticHTTPS("https://world.openfoodfacts.org/api/v2/product/")
     private static let defaultSearchURL = URL.staticHTTPS("https://world.openfoodfacts.org/cgi/search.pl")
 
+    /// OFF asks for "AppName/Version (contact)"; shared by every
+    /// Open *Facts client so the version follows the build.
+    static let defaultUserAgent: String = {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+        return "Atlas/\(version) (https://peptidesai.com)"
+    }()
+
     private let searchURL: URL
 
     /// OFF's documented ceiling for `/cgi/search.pl` is 10 requests per
@@ -79,7 +86,7 @@ final class OpenFoodFactsService: Sendable {
         cache: BarcodeProductCache = .shared,
         baseURL: URL = OpenFoodFactsService.defaultBaseURL,
         searchURL: URL = OpenFoodFactsService.defaultSearchURL,
-        userAgent: String = "Atlas/1.0 (https://peptidesai.com)"
+        userAgent: String = OpenFoodFactsService.defaultUserAgent
     ) {
         self.session = session
         self.cache = cache
@@ -225,7 +232,11 @@ final class OpenFoodFactsService: Sendable {
     ///
     /// Throws `LookupError.notFound` on empty results so the caller can
     /// branch the empty state the same way it does for a missed barcode.
-    func search(query: String, pageSize: Int = 20) async throws -> [ScannedProduct] {
+    ///
+    /// `leavingFree` keeps that many rate-limit slots for someone else:
+    /// background callers pass it so they never spend the budget a
+    /// user's next typed search needs.
+    func search(query: String, pageSize: Int = 20, leavingFree: Int = 0) async throws -> [ScannedProduct] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= Self.minimumSearchQueryLength else { return [] }
 
@@ -239,7 +250,7 @@ final class OpenFoodFactsService: Sendable {
         // `.rateLimited` further down — these are distinct failure
         // modes so the UI copy can differ.
         let requestedAt = Date()
-        switch await Self.searchRateLimiter.requestSlot(now: requestedAt) {
+        switch await Self.searchRateLimiter.requestSlot(now: requestedAt, leavingFree: leavingFree) {
         case .allowed:
             break
         case .denied(let secondsToRetry):
@@ -459,8 +470,7 @@ final class OpenFoodFactsService: Sendable {
         let response: URLResponse
         do {
             (data, response) = try await session.data(for: request)
-        } catch let urlError as URLError where urlError.code == .notConnectedToInternet
-                                            || urlError.code == .dataNotAllowed {
+        } catch let urlError as URLError where Self.isNetworkUnavailable(urlError) {
             // Genuinely offline. The error card hints that cached
             // results still work, so the user knows what to expect.
             throw LookupError.networkUnavailable
@@ -552,18 +562,12 @@ final class OpenFoodFactsService: Sendable {
         return nil
     }
 
+    /// Only a device with no connection is "offline". A timeout or a
+    /// dropped connection means OFF is slow, so those go through the
+    /// retry loop and end as `.serviceUnavailable`.
     private static func isNetworkUnavailable(_ error: URLError) -> Bool {
         switch error.code {
-        case .notConnectedToInternet,
-             .dataNotAllowed,
-             .timedOut,
-             .networkConnectionLost,
-             .cannotConnectToHost,
-             .cannotFindHost,
-             .dnsLookupFailed,
-             .internationalRoamingOff,
-             .callIsActive,
-             .secureConnectionFailed:
+        case .notConnectedToInternet, .dataNotAllowed, .internationalRoamingOff:
             return true
         default:
             return false
@@ -627,33 +631,16 @@ private extension OpenFoodFactsService {
             let resolvedName = [productName, brands]
                 .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .first(where: { !$0.isEmpty })
-                ?? "Unknown product"
+                ?? String(localized: "Unknown product")
 
             let n = nutriments
-            // Energy resolution path (audit Meals MED 5):
-            // 1. Prefer `energy-kcal_100g` when present — already kcal.
-            // 2. Fall back to `energy_100g`, but consult `energy_unit`
-            //    before dividing — legacy OFF entries sometimes store
-            //    a kcal value in `energy_100g` AND label it "kcal",
-            //    in which case dividing by 4.184 silently logs ~4×
-            //    less calories than the actual product.
-            //    Default unit is kJ when the field is absent.
-            let kcal = n?.energyKcal100g?.value
-            let rawEnergy = n?.energy100g?.value
-            let unit = n?.energyUnit?.lowercased()
-            let calories: Double
-            if let kcal {
-                calories = kcal
-            } else if let rawEnergy {
-                switch unit {
-                case "kcal":   calories = rawEnergy
-                case "kj":     calories = rawEnergy / 4.184
-                case nil:      calories = rawEnergy / 4.184 // legacy default
-                default:       calories = rawEnergy / 4.184 // unknown → assume kJ
-                }
-            } else {
-                calories = 0
-            }
+            // Prefer `energy-kcal_100g`. OFF normalises `energy_100g` to
+            // kJ whatever unit the contributor typed (`energy_unit`
+            // describes their entry, not this field), so it always
+            // converts.
+            let calories = n?.energyKcal100g?.value
+                ?? n?.energy100g.map { $0.value / 4.184 }
+                ?? 0
 
             let per100 = ScannedProduct.Nutriments(
                 calories: calories,
@@ -682,7 +669,8 @@ private extension OpenFoodFactsService {
                 nutriScore: nutriscoreGrade?.trimmingCharacters(in: .whitespacesAndNewlines)
                     .nilIfEmpty,
                 novaGroup: novaGroup?.value,
-                fetchedAt: fetchedAt
+                fetchedAt: fetchedAt,
+                nutritionMissing: n?.hasEnergyOrMacros != true
             )
         }
     }
@@ -699,13 +687,6 @@ private extension OpenFoodFactsService {
     struct RawNutriments: Decodable {
         let energyKcal100g: FlexibleDouble?
         let energy100g: FlexibleDouble?
-        /// "kj" / "kcal" — sometimes absent on legacy entries. When
-        /// present, drives whether `energy_100g` is interpreted as
-        /// kilojoules (default) or already-kcal. Without this check
-        /// we used to silently divide an already-kcal value by 4.184
-        /// and log ~4× less calories than the actual product
-        /// (audit Meals MED 5).
-        let energyUnit: String?
         let proteins100g: FlexibleDouble?
         let carbohydrates100g: FlexibleDouble?
         let fat100g: FlexibleDouble?
@@ -715,12 +696,16 @@ private extension OpenFoodFactsService {
         enum CodingKeys: String, CodingKey {
             case energyKcal100g     = "energy-kcal_100g"
             case energy100g         = "energy_100g"
-            case energyUnit         = "energy_unit"
             case proteins100g       = "proteins_100g"
             case carbohydrates100g  = "carbohydrates_100g"
             case fat100g            = "fat_100g"
             case fiber100g          = "fiber_100g"
             case sugars100g         = "sugars_100g"
+        }
+
+        /// Whether the record states energy or any macro, zero included.
+        var hasEnergyOrMacros: Bool {
+            [energyKcal100g, energy100g, proteins100g, carbohydrates100g, fat100g].contains { $0 != nil }
         }
     }
 }
@@ -860,22 +845,25 @@ actor OFFRateLimiter {
         self.windowSeconds = max(0.001, windowSeconds)
     }
 
-    func requestSlot(now: Date = Date()) -> Verdict {
+    /// `leavingFree` denies the request unless that many slots would
+    /// still be open after it.
+    func requestSlot(now: Date = Date(), leavingFree: Int = 0) -> Verdict {
         // Prune anything outside the sliding window first so the
         // count below is the live in-window total.
         let cutoff = now.addingTimeInterval(-windowSeconds)
         while let first = timestamps.first, first < cutoff {
             timestamps.removeFirst()
         }
-        if timestamps.count < maxRequests {
+        if timestamps.count < maxRequests - leavingFree {
             timestamps.append(now)
             return .allowed
         }
         // Caller has to wait until the oldest in-window timestamp
         // ages out. Ceil so the UI shows "try again in 1s" rather
         // than "0s" right at the edge.
+        let oldest = timestamps.first ?? now
         let secondsToRetry = max(1, Int(
-            (timestamps[0].addingTimeInterval(windowSeconds).timeIntervalSince(now))
+            (oldest.addingTimeInterval(windowSeconds).timeIntervalSince(now))
                 .rounded(.up)
         ))
         return .denied(secondsToRetry: secondsToRetry)

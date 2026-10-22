@@ -6,35 +6,38 @@ import SwiftUI
 struct NutritionPage: View {
     @EnvironmentObject private var store: WatchStore
     let nutrition: WatchNutritionSnapshot
-    /// Taps per water button, keyed by ounces, so only the tapped
+    /// Taps per water button, keyed by option, so only the tapped
     /// button's drop bounces.
-    @State private var pours: [Int: Int] = [:]
+    @State private var pours: [String: Int] = [:]
     @ScaledMetric(relativeTo: .largeTitle) private var calorieSize: CGFloat = 24
 
     /// Water is stored in fluid ounces, so the labels follow the phone's
     /// unit setting or the two surfaces disagree about the same number.
-    /// An older phone build that doesn't send the unit gets imperial,
-    /// which is what the Watch always showed.
-    private var isMetric: Bool { store.watchData.measurementUnit == "metric" }
+    /// Read through `WatchWeightUnit` so a missing unit means metric here
+    /// too, never oz water beside kg weights.
+    private var isMetric: Bool { !WatchWeightUnit(store.watchData.measurementUnit).isImperial }
 
-    /// `spoken` is carried rather than derived: the metric amounts are
-    /// the nearest whole ounce to a round millilitre figure, so deriving
-    /// it from `oz` would announce "237 milliliters" for "+250mL".
+    /// Metric amounts are sent as exact fractional ounces, so +250mL
+    /// logs 250 mL on the phone rather than a rounded 8 oz (237 mL).
     private struct WaterOption: Identifiable {
         let label: String
         let spoken: String
-        let oz: Int
-        var id: Int { oz }
+        let fluidOunces: Double
+        var id: String { label }
     }
 
     private var waterOptions: [WaterOption] {
         isMetric
-            ? [.init(label: "+250mL", spoken: String(localized: "Log 250 milliliters of water"), oz: 8),
-               .init(label: "+500mL", spoken: String(localized: "Log 500 milliliters of water"), oz: 17),
-               .init(label: "+1L", spoken: String(localized: "Log 1 liter of water"), oz: 34)]
-            : [.init(label: "+8oz", spoken: String(localized: "Log 8 ounces of water"), oz: 8),
-               .init(label: "+16oz", spoken: String(localized: "Log 16 ounces of water"), oz: 16),
-               .init(label: "+32oz", spoken: String(localized: "Log 32 ounces of water"), oz: 32)]
+            ? [.init(label: "+250mL", spoken: String(localized: "Log 250 milliliters of water"), fluidOunces: Self.fluidOunces(milliliters: 250)),
+               .init(label: "+500mL", spoken: String(localized: "Log 500 milliliters of water"), fluidOunces: Self.fluidOunces(milliliters: 500)),
+               .init(label: "+1L", spoken: String(localized: "Log 1 liter of water"), fluidOunces: Self.fluidOunces(milliliters: 1000))]
+            : [.init(label: "+8oz", spoken: String(localized: "Log 8 ounces of water"), fluidOunces: 8),
+               .init(label: "+16oz", spoken: String(localized: "Log 16 ounces of water"), fluidOunces: 16),
+               .init(label: "+32oz", spoken: String(localized: "Log 32 ounces of water"), fluidOunces: 32)]
+    }
+
+    private static func fluidOunces(milliliters: Double) -> Double {
+        Measurement(value: milliliters, unit: UnitVolume.milliliters).converted(to: .fluidOunces).value
     }
 
     /// Ring geometry. The calorie figure sits inside the protein ring's
@@ -98,7 +101,9 @@ struct NutritionPage: View {
                     : "\(nutrition.proteinToday)g",
                 label: String(localized: "Protein"),
                 color: WatchPalette.protein,
-                spoken: String(localized: "Protein \(nutrition.proteinToday) grams")
+                spoken: nutrition.proteinTarget > 0
+                    ? String(localized: "Protein \(nutrition.proteinToday) of \(nutrition.proteinTarget) grams")
+                    : String(localized: "Protein \(nutrition.proteinToday) grams")
             )
             StatColumn(
                 value: String(localized: "\(nutrition.mealLoggingStreak)d"),
@@ -113,14 +118,14 @@ struct NutritionPage: View {
         HStack(spacing: 5) {
             ForEach(waterOptions) { option in
                 Button {
-                    store.logWater(oz: option.oz)
-                    pours[option.oz, default: 0] += 1
+                    store.logWater(fluidOunces: option.fluidOunces)
+                    pours[option.id, default: 0] += 1
                 } label: {
                     VStack(spacing: 1) {
                         Image(systemName: "drop.fill")
                             .font(.caption2)
                             .foregroundStyle(WatchPalette.water)
-                            .symbolEffect(.bounce, value: pours[option.oz, default: 0])
+                            .symbolEffect(.bounce, value: pours[option.id, default: 0])
                         Text(option.label)
                             .font(.system(.caption2, design: .rounded, weight: .bold))
                             .monospacedDigit()

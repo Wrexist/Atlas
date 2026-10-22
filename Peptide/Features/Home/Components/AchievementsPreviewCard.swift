@@ -67,7 +67,7 @@ struct AchievementsPreviewCard: View {
     private func overflowTile(extra: Int) -> some View {
         VStack(spacing: Spacing.xs) {
             Image(systemName: "ellipsis.circle.fill")
-                .font(.system(size: 28))
+                .font(AppFont.scaled(28, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.textTertiary)
             Text("+\(extra)")
                 .font(AppFont.caption2)

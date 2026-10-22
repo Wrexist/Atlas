@@ -74,6 +74,29 @@ final class BarcodePayloadTests: XCTestCase {
         XCTAssertEqual(BarcodePayload.candidates(for: "5449000000996"), ["5449000000996"])
     }
 
+    func test_candidates_expandsAUPCEToItsUPCAAndEAN13() {
+        // Small US packs print UPC-E; the database files them under the
+        // expanded UPC-A.
+        XCTAssertEqual(
+            BarcodePayload.candidates(for: "04252614"),
+            ["04252614", "042100005264", "0042100005264"]
+        )
+    }
+
+    func test_upcAExpandingUPCE_placesTheZerosByTheLastDigit() {
+        XCTAssertEqual(BarcodePayload.upcA(expandingUPCE: "04252614"), "042100005264")
+        XCTAssertEqual(BarcodePayload.upcA(expandingUPCE: "01234531"), "012300000451")
+        XCTAssertEqual(BarcodePayload.upcA(expandingUPCE: "01234543"), "012340000053")
+        XCTAssertEqual(BarcodePayload.upcA(expandingUPCE: "01234572"), "012345000072")
+    }
+
+    func test_upcAExpandingUPCE_rejectsCodesThatAreNotUPCE() {
+        // Wrong check digit, a number system other than 0 or 1, and an EAN-8.
+        XCTAssertNil(BarcodePayload.upcA(expandingUPCE: "01234570"))
+        XCTAssertNil(BarcodePayload.upcA(expandingUPCE: "21234572"))
+        XCTAssertEqual(BarcodePayload.candidates(for: "96385074"), ["96385074"])
+    }
+
     func test_candidates_neverRepeatsAForm() {
         for code in ["5449000000996", "036000291452", "96385074", "15449000000993"] {
             let candidates = BarcodePayload.candidates(for: code)

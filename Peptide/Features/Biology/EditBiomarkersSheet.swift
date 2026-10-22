@@ -108,7 +108,10 @@ struct EditBiomarkersSheet: View {
     }
 
     private func row(_ biomarker: Biomarker, action: RowAction) -> some View {
-        let locked = biomarker.requiresPro && !isPro
+        let needsPro = biomarker.requiresPro && !isPro
+        // Only turning a Pro row *on* needs Pro; one left showing after a
+        // lapse can always be turned off.
+        let locked = needsPro && action == .show
         return HStack(spacing: Spacing.md) {
             ZStack {
                 Circle()
@@ -119,7 +122,7 @@ struct EditBiomarkersSheet: View {
             }
             .frame(width: 32, height: 32)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 HStack(spacing: Spacing.xs) {
                     Text(biomarker.displayName)
                         .font(AppFont.subheadline)
@@ -130,6 +133,11 @@ struct EditBiomarkersSheet: View {
                 }
                 if let unitString = biomarker.displayUnit(for: unit) {
                     Text(unitString)
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+                if needsPro && action == .hide {
+                    Text("Paused without Pro")
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }
@@ -186,15 +194,17 @@ struct EditBiomarkersSheet: View {
     }
 
     private func toggle(_ biomarker: Biomarker) {
+        let isVisible = config.visibleBiomarkers.contains(biomarker)
         // Defense in depth — a locked Pro-only row shows a lock in
         // place of its `Toggle` when the user isn't on Pro, but
         // VoiceOver's `accessibilityActivate`, keyboard control, or any
         // future programmatic caller can still reach this method.
-        // Re-check the entitlement at the mutation site.
-        guard !biomarker.requiresPro || isPro else { return }
+        // Re-check the entitlement at the mutation site. Hiding is
+        // always allowed.
+        guard isVisible || !biomarker.requiresPro || isPro else { return }
         Haptics.selection()
         AppAnimation.with(AppAnimation.springSnappy) {
-            if config.visibleBiomarkers.contains(biomarker) {
+            if isVisible {
                 config.hide(biomarker)
             } else {
                 config.show(biomarker)

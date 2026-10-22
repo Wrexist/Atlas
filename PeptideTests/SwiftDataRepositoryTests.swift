@@ -1,3 +1,4 @@
+import SwiftData
 import XCTest
 @testable import Peptide
 
@@ -157,6 +158,39 @@ final class SwiftDataRepositoryTests: XCTestCase {
         XCTAssertNotNil(repo.loadProfile())
     }
 
+    // MARK: - Duplicate stored rows
+
+    // CloudKit can't enforce a unique id, so two devices can each sync a
+    // row with the same one. A save must update both, not trap.
+
+    func test_upsertProtocols_withDuplicateStoredRows_updatesEveryRow() throws {
+        var proto = MockProtocols.recoveryStack
+        let context = try XCTUnwrap(repo.contextForTesting)
+        context.insert(try StoredProtocol.make(from: proto))
+        context.insert(try StoredProtocol.make(from: proto))
+        try context.save()
+
+        proto.cycleLengthWeeks += 4
+        repo.upsertProtocols([proto])
+
+        let rows = try context.fetch(FetchDescriptor<StoredProtocol>())
+        XCTAssertEqual(rows.map(\.cycleLengthWeeks), [proto.cycleLengthWeeks, proto.cycleLengthWeeks])
+    }
+
+    func test_upsertEntries_withDuplicateStoredRows_updatesEveryRow() throws {
+        var entry = try XCTUnwrap(sampleEntries().first)
+        let context = try XCTUnwrap(repo.contextForTesting)
+        context.insert(try StoredEntry.make(from: entry))
+        context.insert(try StoredEntry.make(from: entry))
+        try context.save()
+
+        entry.completed.toggle()
+        repo.upsertEntries([entry])
+
+        let rows = try context.fetch(FetchDescriptor<StoredEntry>())
+        XCTAssertEqual(rows.map(\.completed), [entry.completed, entry.completed])
+    }
+
     // MARK: - hasAnyData
 
     func test_hasAnyData_isTrue_whenProtocolsExist() {
@@ -167,6 +201,25 @@ final class SwiftDataRepositoryTests: XCTestCase {
     func test_hasAnyData_isTrue_whenOnlyProfileExists() {
         repo.saveProfile(MockProfile.current)
         XCTAssertTrue(repo.hasAnyData)
+    }
+
+    func test_hasAnyData_isTrue_whenOnlyPersonalRecordsExist() {
+        repo.upsertPersonalRecord(PersonalRecord(exerciseID: "Barbell_Squat", bestAbsoluteWeightKg: 100))
+        XCTAssertTrue(repo.hasAnyData)
+    }
+
+    // MARK: - Migration rollback
+
+    func test_rollBackMigrationImport_keepsRowsOutsideTheImport() {
+        let imported = MockProtocols.recoveryStack
+        let synced = MockProtocols.all.filter { $0.id != imported.id }
+        repo.upsertProtocols(MockProtocols.all)
+        repo.saveProfile(MockProfile.current)
+
+        repo.rollBackMigrationImport(protocolIDs: [imported.id], entryIDs: [], includingProfile: true)
+
+        XCTAssertEqual(Set(repo.loadProtocols().map(\.id)), Set(synced.map(\.id)))
+        XCTAssertNil(repo.loadProfile())
     }
 
     func test_hasAnyData_isFalse_afterDeleteAll() {

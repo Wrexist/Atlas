@@ -5,6 +5,8 @@ import SwiftUI
 ///   • `.locked` — free tier: shows the dial outline + scale + particle
 ///     cluster where the marker would go, plus a quiet "Included with
 ///     Atlas Pro" caption. The host's promo card carries the one CTA.
+///   • `.needsAge` — Pro tier with no age (or under 18) in Profile: asks
+///     for it instead of estimating against a made-up age.
 ///   • `.building(progress:)` — Pro tier without enough data: shows
 ///     a progress bar and the day count.
 ///   • `.unlocked(estimate:)` — Pro tier + sufficient data: the arc sweeps
@@ -17,6 +19,10 @@ import SwiftUI
 struct BioAgeHeroSection: View {
     let state: BioAgeState?
     let chronologicalAge: Int
+    /// Health is connected but returned no heart or sleep data at all —
+    /// read access denied, or no Watch. Waiting won't help, so the
+    /// building state says so instead of counting days.
+    var noHealthData = false
     /// Metrics offered in the header pill's menu alongside Biological Age.
     /// Selecting one opens its history; the host owns that routing.
     var metricShortcuts: [Biomarker] = []
@@ -25,6 +31,7 @@ struct BioAgeHeroSection: View {
 
     enum BioAgeState: Equatable, Sendable {
         case locked
+        case needsAge
         case building(progress: Double)               // 0…1, share of 7-day baseline collected
         case unlocked(estimate: PerformanceAgeEngine.Estimate)
     }
@@ -108,6 +115,9 @@ struct BioAgeHeroSection: View {
                 size: 280
             )
             centreContent
+                // The dial is a fixed 280pt; past AX2 the number, unit and
+                // info button outgrow its interior and overlap the arc.
+                .dynamicTypeSize(...DynamicTypeSize.accessibility2)
         }
         .frame(height: 280)
     }
@@ -125,6 +135,12 @@ struct BioAgeHeroSection: View {
                 .transition(Self.stateTransition)
         case .locked?:
             BioAgeParticleCluster(size: 200)
+                .transition(Self.stateTransition)
+        case .needsAge?:
+            Image(systemName: "person.crop.circle.badge.questionmark")
+                .font(AppFont.scaled(32, weight: .light, relativeTo: .title1))
+                .foregroundStyle(AppColor.textSecondary)
+                .accessibilityHidden(true)
                 .transition(Self.stateTransition)
         case .building(let progress)?:
             buildingCentre(progress: progress)
@@ -151,7 +167,7 @@ struct BioAgeHeroSection: View {
             Image(systemName: "hourglass")
                 .font(AppFont.scaled(28, weight: .light, relativeTo: .title1))
                 .foregroundStyle(AppColor.textSecondary)
-                .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion)
+                .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion && !noHealthData)
                 .accessibilityHidden(true)
             GlassProgressBar(progress: progress)
                 .frame(width: 140)
@@ -167,6 +183,8 @@ struct BioAgeHeroSection: View {
                 .font(AppFont.scaled(56, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
                 .foregroundStyle(tint(for: estimate))
                 .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
                 .contentTransition(.numericText(value: shown))
                 .animation(reduceMotion ? nil : AppAnimation.springSmooth, value: shown)
                 // A neutral drop, not a tinted halo. Legibility over the
@@ -204,6 +222,9 @@ struct BioAgeHeroSection: View {
         case .locked?:
             proCaption
                 .transition(Self.stateTransition)
+        case .needsAge?:
+            needsAgeLabel
+                .transition(Self.stateTransition)
         case .building(let progress)?:
             buildingLabel(progress: progress)
                 .transition(Self.stateTransition)
@@ -221,7 +242,31 @@ struct BioAgeHeroSection: View {
             .foregroundStyle(AppColor.textSecondary)
     }
 
+    private var needsAgeLabel: some View {
+        let isUnderage = (1..<BioAgeStateResolver.minimumAge).contains(chronologicalAge)
+        return Text(isUnderage
+            ? String(localized: "Biological Age is available for users 18+.")
+            : String(localized: "Add your age in Profile to see your Biological Age."))
+            .font(AppFont.scaled(13, weight: .semibold))
+            .foregroundStyle(AppColor.textSecondary)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, Spacing.xl)
+    }
+
+    @ViewBuilder
     private func buildingLabel(progress: Double) -> some View {
+        if noHealthData {
+            Text("Atlas can't see any heart or sleep data. Check that Atlas has read access in the Health app, and wear Apple Watch overnight.")
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Spacing.xl)
+        } else {
+            buildingProgressLabel(progress: progress)
+        }
+    }
+
+    private func buildingProgressLabel(progress: Double) -> some View {
         // `progress` is `dataDays / minBaselineDays` — a fraction of the
         // 7-day baseline window. Render the day count it represents.
         let total = BioAgeStateResolver.minBaselineDays
@@ -267,7 +312,7 @@ struct BioAgeHeroSection: View {
 
     private func deltaBadge(for estimate: PerformanceAgeEngine.Estimate) -> some View {
         let delta = estimate.biologicalAge - Double(chronologicalAge)
-        let absDelta = abs(delta) < 0.05 ? 0 : abs(delta)
+        let absDelta = abs(delta) < Self.matchingTolerance ? 0 : abs(delta)
         let badgeTint = tint(for: estimate)
         let label: String = {
             if absDelta == 0 {
@@ -297,8 +342,14 @@ struct BioAgeHeroSection: View {
 
     /// Green when younger / matching; warm orange when older.
     private func tint(for estimate: PerformanceAgeEngine.Estimate) -> Color {
-        estimate.biologicalAge <= Double(chronologicalAge) ? AppColor.positive : AppColor.negative
+        estimate.biologicalAge - Double(chronologicalAge) < Self.matchingTolerance
+            ? AppColor.positive
+            : AppColor.negative
     }
+
+    /// Below this many years either way the badge reads "Matching your
+    /// age", so the tint treats it as matching too.
+    private static let matchingTolerance = 0.05
 
     // MARK: - Reveal
 

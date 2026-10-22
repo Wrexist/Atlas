@@ -28,14 +28,7 @@ struct TodayTimelineCard: View {
                 }
                 .padding(.vertical, Spacing.sm)
                 .padding(.horizontal, Spacing.md)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .fill(AppColor.surfaceSecondary.opacity(0.55))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                                .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                        }
-                }
+                .glassSurface(cornerRadius: Spacing.cardCornerRadius)
             }
         }
     }
@@ -163,7 +156,7 @@ struct TodayTimelineEvent: Identifiable, Equatable, Sendable {
                 icon: "heart.text.square.fill",
                 tint: .checkIn,
                 title: "Daily check-in",
-                subtitle: String(format: "%.1f / 5 across energy, sleep, recovery, mood, focus", avg)
+                subtitle: String(localized: "\(avg.formatted(.number.precision(.fractionLength(1)))) / 5 across energy, sleep, recovery, mood, focus")
             ))
         }
 

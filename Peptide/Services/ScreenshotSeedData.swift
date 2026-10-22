@@ -58,7 +58,7 @@ enum ScreenshotSeedData {
         return [
             PeptideProtocol(
                 id: UUID(),
-                name: "Recovery",
+                name: "Recovery Protocol",
                 peptides: [MockPeptides.bpc157, MockPeptides.tb500],
                 schedule: ProtocolSchedule(
                     daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
@@ -220,7 +220,6 @@ enum ScreenshotSeedData {
             bio: "Training for longevity.",
             primaryGoal: "Recovery",
             mealHistory: buildMealHistory(referenceDate: referenceDate),
-            healthKitNutritionEnabled: true,
             outcomeHistory: buildOutcomes(referenceDate: referenceDate),
             labHistory: buildLabs(referenceDate: referenceDate),
             weeklySummaryEnabled: true,

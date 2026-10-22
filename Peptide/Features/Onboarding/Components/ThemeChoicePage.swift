@@ -12,7 +12,7 @@ struct ThemeChoicePage: View {
         VStack(spacing: Spacing.xxl) {
             OnboardingHeader(
                 title: "Make it yours.",
-                subtitle: "Choose your look. You can change this any time in Settings."
+                subtitle: "Choose your look. You can change this any time in Profile → Settings."
             )
 
             displayModeSection

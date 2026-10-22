@@ -9,7 +9,7 @@ struct CategoryFilterChips: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Spacing.sm) {
                 GlassChip("All", isSelected: selected == nil) {
-                    handleSelect(nil)
+                    onSelect(nil)
                 }
 
                 ForEach(categories) { category in
@@ -19,17 +19,12 @@ struct CategoryFilterChips: View {
                         tint: category.color,
                         isSelected: selected == category
                     ) {
-                        handleSelect(category)
+                        onSelect(category)
                     }
                 }
             }
             .padding(.horizontal, Spacing.screenPadding)
         }
-    }
-
-    private func handleSelect(_ category: PeptideCategory?) {
-        guard category != selected else { return }
-        onSelect(category)
     }
 }
 

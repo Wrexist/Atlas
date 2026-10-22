@@ -41,7 +41,7 @@ struct ProgressionHint: View {
 
     private var target: String {
         suggestion.weightKg > 0
-            ? "\(formatted(suggestion.weightKg)) \(unit.weightSuffix) × \(suggestion.reps)"
+            ? "\(unit.weightValue(suggestion.weightKg, fractionDigits: 0...2)) \(unit.weightSuffix) × \(suggestion.reps)"
             : String(AttributedString(localized: "^[\(suggestion.reps) rep](inflect: true)").characters)
     }
 
@@ -60,10 +60,5 @@ struct ProgressionHint: View {
         case .reachRange: return String(localized: "Same weight, aim for the bottom of the rep range.")
         case .repeatLoad: return String(localized: "Repeat last time's weight until every set hits its reps.")
         }
-    }
-
-    /// Two places, so a 1.25 kg change plate (61.25) isn't shown as 61.3.
-    private func formatted(_ kg: Double) -> String {
-        unit.weightForDisplay(kg).formatted(.number.precision(.fractionLength(0...2)))
     }
 }

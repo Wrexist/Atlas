@@ -231,7 +231,7 @@ struct PaywallView: View {
     private var headlineHero: String {
         guard let product = selectedProduct else { return String(localized: "Atlas Pro") }
         if let days = storeService.redeemableTrialDays(for: product) {
-            return String(localized: "\(days) days free")
+            return days == 1 ? String(localized: "1 day free") : String(localized: "\(days) days free")
         }
         return product.displayPrice
     }
@@ -245,9 +245,9 @@ struct PaywallView: View {
         }
         let price = "\(product.displayPrice)\(periodSuffix(for: product))"
         if storeService.redeemableTrialDays(for: product) != nil {
-            return String(localized: "Then \(price). Cancel any time before it starts.")
+            return String(localized: "Then \(price). Cancel anytime before it starts.")
         }
-        return String(localized: "\(price) — cancel any time.")
+        return String(localized: "\(price) — cancel anytime.")
     }
 
     // MARK: - Trust line
@@ -263,12 +263,23 @@ struct PaywallView: View {
             Image(systemName: "lock.shield.fill")
                 .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.accentPrimary)
-            Text("Private by design — no ads, no tracking, cancel anytime")
+            Text(isOneTimePurchaseSelected
+                 ? "Private by design — no ads, no tracking"
+                 : "Private by design — no ads, no tracking, cancel anytime")
                 .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Private by design. No ads, no tracking. Cancel anytime.")
+        .accessibilityLabel(isOneTimePurchaseSelected
+                            ? "Private by design. No ads, no tracking."
+                            : "Private by design. No ads, no tracking. Cancel anytime.")
+    }
+
+    /// Lifetime is a one-time purchase: "cancel anytime" copy would
+    /// contradict the footer's "nothing to renew or cancel" disclosure.
+    private var isOneTimePurchaseSelected: Bool {
+        guard let product = selectedProduct else { return false }
+        return product.type != .autoRenewable
     }
 
     // MARK: - Trial timeline
@@ -296,11 +307,15 @@ struct PaywallView: View {
                         title: "Today",
                         detail: "Everything unlocks. You pay \(zeroPrice(for: product))."
                     )
-                    timelineRow(
-                        icon: "gearshape.fill",
-                        title: "Day \(max(days - 1, 1))",
-                        detail: "Still not for you? Cancel anytime in Settings → Apple ID → Subscriptions and keep the rest of the trial."
-                    )
+                    // A cancel day only reads as distinct from Today and the
+                    // charge day when the trial leaves room for one.
+                    if days >= 3 {
+                        timelineRow(
+                            icon: "gearshape.fill",
+                            title: "Day \(days - 1)",
+                            detail: "Still not for you? Cancel anytime in Settings → your name → Subscriptions and keep the rest of the trial."
+                        )
+                    }
                     timelineRow(
                         icon: "checkmark.seal.fill",
                         title: "Day \(days)",
@@ -396,7 +411,9 @@ struct PaywallView: View {
                 .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.positive)
                 .accessibilityHidden(true)
-            Text("Cancel anytime in Settings → Apple ID → Subscriptions. Your logs, workouts and photos stay yours either way.")
+            Text(isOneTimePurchaseSelected
+                 ? "One payment. Your logs, workouts and photos stay yours."
+                 : "Cancel anytime in Settings → your name → Subscriptions. Your logs, workouts and photos stay yours either way.")
                 .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -414,8 +431,10 @@ struct PaywallView: View {
     @ViewBuilder
     private func noticeView(_ notice: PurchaseNotice) -> some View {
         switch notice {
-        case .failed(let message):
-            purchaseErrorBanner(message: message)
+        case .purchaseFailed(let message):
+            failureBanner(title: "Purchase didn't go through", message: message, isRestore: false)
+        case .restoreFailed(let message):
+            failureBanner(title: "Restore didn't go through", message: message, isRestore: true)
         case .pending:
             pendingApprovalBanner
         case .nothingToRestore:
@@ -463,8 +482,9 @@ struct PaywallView: View {
     /// that just dumped the StoreKit description on the user with no path
     /// forward. Surfaces a localized headline + the underlying detail in
     /// muted secondary text, plus an explicit Restore Purchases shortcut so
-    /// a transient StoreKit failure isn't a dead end.
-    private func purchaseErrorBanner(message: String) -> some View {
+    /// a transient StoreKit failure isn't a dead end. A failed restore
+    /// retries the restore — never a purchase the user didn't ask for.
+    private func failureBanner(title: LocalizedStringKey, message: String, isRestore: Bool) -> some View {
         VStack(spacing: Spacing.xs) {
             HStack(alignment: .top, spacing: Spacing.sm) {
                 Image(systemName: "exclamationmark.triangle.fill")
@@ -472,7 +492,7 @@ struct PaywallView: View {
                     .foregroundStyle(AppColor.destructive)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Purchase didn't go through")
+                    Text(title)
                         .font(AppFont.subheadline)
                         .fontWeight(.semibold)
                         .foregroundStyle(AppColor.textPrimary)
@@ -485,27 +505,38 @@ struct PaywallView: View {
             }
 
             HStack(spacing: Spacing.sm) {
-                if let product = selectedProduct {
-                    Button("Try again") {
+                if isRestore {
+                    Button {
                         notice = nil
-                        Task { await purchase(product) }
+                        restore()
+                    } label: {
+                        Text("Try again").minimumHitArea()
                     }
-                    .font(AppFont.caption2)
-                    .fontWeight(.semibold)
                     .foregroundStyle(AppColor.accentLight)
-                }
+                } else {
+                    if let product = selectedProduct {
+                        Button {
+                            notice = nil
+                            Task { await purchase(product) }
+                        } label: {
+                            Text("Try again").minimumHitArea()
+                        }
+                        .foregroundStyle(AppColor.accentLight)
+                    }
 
-                Button("Restore purchases") {
-                    notice = nil
-                    restore()
+                    Button {
+                        notice = nil
+                        restore()
+                    } label: {
+                        Text("Restore purchases").minimumHitArea()
+                    }
+                    .foregroundStyle(AppColor.textSecondary)
                 }
-                .font(AppFont.caption2)
-                .fontWeight(.semibold)
-                .foregroundStyle(AppColor.textSecondary)
 
                 Spacer(minLength: 0)
             }
-            .padding(.top, Spacing.xs)
+            .font(AppFont.caption2)
+            .fontWeight(.semibold)
         }
         .padding(Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -818,6 +849,22 @@ struct PaywallView: View {
         Decimal.zero.formatted(product.priceFormatStyle)
     }
 
+    /// "1 month", "1 year" — the subscription length, localised.
+    private func periodLength(for product: Product) -> String {
+        guard let period = product.subscription?.subscriptionPeriod else { return "" }
+        var components = DateComponents()
+        switch period.unit {
+        case .year:  components.year = period.value
+        case .month: components.month = period.value
+        case .week:  components.weekOfMonth = period.value
+        case .day:   components.day = period.value
+        @unknown default: return ""
+        }
+        let formatter = DateComponentsFormatter()
+        formatter.unitsStyle = .full
+        return formatter.string(from: components) ?? ""
+    }
+
     /// "/yr", "/mo" — read from the product's own renewal period rather
     /// than its identifier, so a future weekly plan can't render as a
     /// yearly one.
@@ -911,27 +958,12 @@ struct PaywallView: View {
                     }
                 }
             }
-            .foregroundStyle(AppColor.onAccent)
-            .frame(maxWidth: .infinity, minHeight: 40)
-            .padding(.vertical, Spacing.md)
-            .background {
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                AppColor.ctaGradientStart,
-                                AppColor.ctaGradientEnd,
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-            }
-            .shadow(color: AppColor.ctaGlow, radius: 14, y: 6)
+            .primaryCTAChrome()
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.97))
-        .disabled(selectedProduct == nil || isPurchasing)
-        .opacity(selectedProduct == nil ? AppOpacity.disabled : 1)
+        // Not disabled while purchasing: the action's guard already blocks a
+        // second tap, and the disabled dim would fade the spinner.
+        .disabled(selectedProduct == nil)
         .accessibilityLabel(ctaAccessibilityLabel)
     }
 
@@ -956,7 +988,7 @@ struct PaywallView: View {
         if storeService.redeemableTrialDays(for: product) != nil {
             return String(localized: "\(zeroPrice(for: product)) today, then \(price)")
         }
-        return String(localized: "\(price) · cancel any time")
+        return String(localized: "\(price) · cancel anytime")
     }
 
     private var ctaAccessibilityLabel: String {
@@ -1035,7 +1067,7 @@ struct PaywallView: View {
     /// problem).
     @ViewBuilder
     private var autoRenewDisclosure: some View {
-        if let product = selectedProduct, product.type != .autoRenewable {
+        if isOneTimePurchaseSelected {
             Text("One-time purchase, charged to your Apple ID. No subscription — nothing to renew or cancel.")
                 .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textTertiary)
@@ -1047,12 +1079,13 @@ struct PaywallView: View {
             } label: {
                 (
                     Text(autoRenewLine)
-                    + Text(" Details").foregroundColor(AppColor.accentLight)
+                    + Text(" Details").foregroundStyle(AppColor.accentLight)
                 )
                 .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textTertiary)
                 .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
+                .contentShape(.rect)
             }
             .buttonStyle(.plain)
         }
@@ -1076,16 +1109,16 @@ struct PaywallView: View {
                         .font(AppFont.title2)
                         .foregroundStyle(AppColor.textPrimary)
 
-                    Text("Payment is charged to your Apple ID. Subscription auto-renews at the same price unless cancelled at least 24 hours before the end of the current period. You can manage or cancel your subscription in Settings → Apple ID → Subscriptions.")
+                    Text("Payment is charged to your Apple ID. Subscription auto-renews at the same price unless cancelled at least 24 hours before the end of the current period. You can manage or cancel your subscription in Settings → your name → Subscriptions.")
                         .font(AppFont.body)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
 
                     if let monthly = storeService.monthlyProduct {
-                        termRow(monthly.displayName, length: "1 month", price: "\(monthly.displayPrice)/month")
+                        termRow(for: monthly)
                     }
                     if let annual = storeService.annualProduct {
-                        termRow(annual.displayName, length: "1 year", price: "\(annual.displayPrice)/year")
+                        termRow(for: annual)
                     }
                 }
                 .padding(Spacing.lg)
@@ -1105,18 +1138,20 @@ struct PaywallView: View {
 
     /// Product title from App Store Connect, its length and its price —
     /// the three facts Guideline 3.1.2 asks for on each auto-renewable plan.
-    private func termRow(_ name: String, length: LocalizedStringKey, price: String) -> some View {
+    /// Length and price period come from the product itself, so this sheet
+    /// can't disagree with what App Store Connect will charge.
+    private func termRow(for product: Product) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(verbatim: name)
+                Text(verbatim: product.displayName)
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textPrimary)
-                Text(length)
+                Text(verbatim: periodLength(for: product))
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
             Spacer()
-            Text(price)
+            Text(verbatim: "\(product.displayPrice)\(periodSuffix(for: product))")
                 .font(AppFont.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.accentLight)
@@ -1172,7 +1207,7 @@ struct PaywallView: View {
                 break // no UI noise on explicit cancel
             }
         } catch {
-            notice = .failed("Purchase failed. Try again or restore.")
+            notice = .purchaseFailed("Purchase failed. Try again or restore.")
         }
     }
 
@@ -1184,7 +1219,7 @@ struct PaywallView: View {
         Task {
             defer { isRestoring = false }
             do {
-                try await storeService.restorePurchases()
+                guard try await storeService.restorePurchases() == .completed else { return }
                 if storeService.isProUser {
                     didConvert = true
                     dismiss()
@@ -1192,7 +1227,7 @@ struct PaywallView: View {
                     notice = .nothingToRestore
                 }
             } catch {
-                notice = .failed("Restore failed. Check your internet connection and try again.")
+                notice = .restoreFailed("Restore failed. Check your internet connection and try again.")
             }
         }
     }
@@ -1217,7 +1252,8 @@ struct PaywallView: View {
 
 /// What the paywall footer reports after a purchase or restore attempt.
 private enum PurchaseNotice: Equatable {
-    case failed(String)
+    case purchaseFailed(String)
+    case restoreFailed(String)
     case pending
     case nothingToRestore
 }

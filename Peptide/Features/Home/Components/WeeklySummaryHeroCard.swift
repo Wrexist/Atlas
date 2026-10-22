@@ -124,7 +124,7 @@ struct WeeklySummaryHeroCard: View {
         .buttonStyle(ScalePressStyle(pressedScale: 0.985))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Weekly summary, \(weekTitle(for: summary.weekStart))")
-        .accessibilityHint("Double-tap to read the full recap")
+        .accessibilityHint("Opens the full recap")
     }
 
     // MARK: - Empty
@@ -132,7 +132,7 @@ struct WeeklySummaryHeroCard: View {
     private var emptyCard: some View {
         messageCard(
             title: "Your weekly recap will appear here",
-            message: "Log workouts, meals or a check-in on a few more days and your recap appears here."
+            message: "Log workouts, meals or a check-in on a few more days to unlock it."
         )
     }
 
@@ -241,7 +241,7 @@ struct WeeklySummaryHeroCard: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(.title3, design: .rounded, weight: .heavy))
+                    .font(AppFont.scaled(AppFont.Scale.title, weight: .heavy, design: .rounded, relativeTo: .title3))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.leading)
                     .lineLimit(2)
@@ -283,7 +283,7 @@ struct WeeklySummaryHeroCard: View {
             if let composite = stats.avgCheckInScore {
                 StatTile(
                     label: "Check-in",
-                    value: String(format: "%.1f", composite),
+                    value: composite.formatted(.number.precision(.fractionLength(1))),
                     tint: AppColor.metricHRV
                 )
             }
@@ -309,27 +309,10 @@ struct WeeklySummaryHeroCard: View {
 
     // MARK: - Helpers
 
-    /// Hoisted out of `weekTitle` — it allocated both formatters on every
-    /// ready-card render. Plain statics are MainActor-safe inside a View.
-    private static let weekStartParser: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withFullDate]
-        return f
-    }()
-    private static let weekDisplayFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.setLocalizedDateFormatFromTemplate("MMMd")
-        return f
-    }()
-
-    /// Renders "Week of Jan 5" given an ISO yyyy-MM-dd weekStart.
-    /// Locale-aware date formatting so the German + Spanish builds
-    /// don't ship "Week of 01/05".
+    /// Renders "Week of Jan 5" given an ISO yyyy-MM-dd weekStart, in the
+    /// user's locale.
     private func weekTitle(for isoWeekStart: String) -> String {
-        guard let date = Self.weekStartParser.date(from: isoWeekStart) else {
-            return String(localized: "This week")
-        }
-        return String(format: String(localized: "Week of %@"), Self.weekDisplayFormatter.string(from: date))
+        WeeklySummary.weekTitle(for: isoWeekStart) ?? String(localized: "This week")
     }
 
     /// Truncates the AI paragraph for the card preview. Splits on

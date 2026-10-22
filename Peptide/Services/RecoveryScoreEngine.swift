@@ -16,6 +16,10 @@ import Foundation
 /// my heart is racing today" cases.
 enum RecoveryScoreEngine {
 
+    /// Nightly sleep the Recovery score and the Today sleep ring measure
+    /// against — the typical floor at which recovery curves plateau.
+    static let defaultSleepTargetHours: Double = 8
+
     /// Final score returned to the UI. 0…100 (Int) is the user-facing
     /// number; `components` is included so the detail sheet can
     /// surface "your HRV is up, your sleep is short" without
@@ -47,8 +51,8 @@ enum RecoveryScoreEngine {
         let baselineRHR: Double?
         /// Last sleep session duration in hours.
         let lastSleepHours: Double?
-        /// Optional override of the sleep target. Defaults to 8h —
-        /// the typical floor at which recovery curves plateau.
+        /// Optional override of the sleep target. Defaults to
+        /// `defaultSleepTargetHours`.
         let sleepTargetHours: Double
 
         init(
@@ -57,7 +61,7 @@ enum RecoveryScoreEngine {
             recentRHR: Double? = nil,
             baselineRHR: Double? = nil,
             lastSleepHours: Double? = nil,
-            sleepTargetHours: Double = 8.0
+            sleepTargetHours: Double = RecoveryScoreEngine.defaultSleepTargetHours
         ) {
             self.recentHRV = recentHRV
             self.baselineHRV = baselineHRV

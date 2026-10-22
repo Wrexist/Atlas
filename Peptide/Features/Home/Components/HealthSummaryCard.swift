@@ -41,7 +41,7 @@ struct HealthSummaryCard: View {
                     HStack(spacing: Spacing.md) {
                         metricView(icon: "heart.fill", value: restingHR.map { "\(Int($0))" }, unit: "bpm", label: "Resting HR")
                         metricView(icon: "waveform.path.ecg", value: hrv.map { "\(Int($0))" }, unit: "ms", label: "HRV")
-                        metricView(icon: "moon.fill", value: sleepHours.map { String(format: "%.1f", $0) }, unit: "hrs", label: "Sleep")
+                        metricView(icon: "moon.fill", value: sleepHours.map { $0.formatted(.number.precision(.fractionLength(1))) }, unit: "hrs", label: "Sleep")
                         metricView(icon: "figure.walk", value: steps.map { Int($0).formatted(.number.notation(.compactName)) }, unit: "", label: "Steps")
                     }
                 }

@@ -45,6 +45,12 @@ struct ScannedProduct: Codable, Hashable, Sendable {
     /// ISO 8601 timestamp the upstream record was fetched. Stamped by
     /// the service so callers can show a "data updated" hint.
     let fetchedAt: Date
+
+    /// True when the Open Food Facts record carried no energy and no
+    /// macros at all, so `per100g` is zeros by default rather than a
+    /// real zero-calorie label (water, plain tea). Set at mapping time
+    /// because the values alone cannot tell the two apart.
+    var nutritionMissing = false
 }
 
 extension ScannedProduct {
@@ -79,7 +85,7 @@ extension ScannedProduct {
         case wholePackage
     }
 
-    /// Macros rounded to the integer shape `DataStore.logMeal(...)`
+    /// Macros rounded to the integer shape `MealEntry`
     /// expects. Returns nil when the requested portion mode needs a
     /// field the product doesn't have (e.g. `.servings` on a product
     /// with no per-serving weight).
@@ -117,6 +123,11 @@ extension ScannedProduct {
         return .grams(100)
     }
 
+    /// False when the record has no energy and no macros at all. Crowd
+    /// Open Food Facts entries often lack them, and the missing fields
+    /// collapse to 0 — logging one would add a silent 0 kcal row. A
+    /// record that states 0 (water) still counts as having nutrition.
+    var hasNutrition: Bool { !nutritionMissing }
 
     private func roundedNonNegative(_ value: Double) -> Int {
         guard value.isFinite, value > 0 else { return 0 }
@@ -141,7 +152,7 @@ extension ScannedProduct.Portion {
     }
 }
 
-/// Integer-rounded macros in the exact shape `DataStore.logMeal(...)`
+/// Integer-rounded macros in the exact shape `MealEntry`
 /// accepts. Decoupled from `MealScannerService.MealEstimate` because the
 /// barcode flow doesn't have a confidence score or model-generated name.
 struct LoggableMeal: Hashable, Sendable {

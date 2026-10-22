@@ -44,4 +44,26 @@ final class HealthSyncEngineTests: XCTestCase {
 
         XCTAssertTrue(HealthSyncEngine.weightsToImport(external, existing: first, calendar: calendar).isEmpty)
     }
+
+    func test_readingTheUserDeleted_isNotImportedAgain() {
+        let wrongReading = WeightEntry(date: october(17, 7), kg: 120)
+
+        let imported = HealthSyncEngine.weightsToImport(
+            [wrongReading], existing: [], dismissed: [wrongReading.id], calendar: calendar
+        )
+
+        XCTAssertTrue(imported.isEmpty)
+    }
+
+    func test_adoptSyncedNutritionFlag_takesTheSyncedValueOnlyOnce() {
+        let key = HealthSyncSettings.nutritionEnabledKey
+        let saved = UserDefaults.standard.object(forKey: key)
+        defer { UserDefaults.standard.set(saved, forKey: key) }
+        UserDefaults.standard.removeObject(forKey: key)
+
+        HealthSyncSettings.adoptSyncedNutritionFlag(true)
+        HealthSyncSettings.adoptSyncedNutritionFlag(false)
+
+        XCTAssertTrue(HealthSyncSettings.isNutritionEnabled)
+    }
 }

@@ -61,23 +61,13 @@ struct WashoutPicker: View {
                     .monospacedDigit()
             }
             Spacer()
-            Stepper(
+            LiquidGlassStepper(
+                label: "Wash-out length",
                 value: $washoutWeeks,
-                in: 1...12,
-                step: 1
-            ) {
-                HStack(spacing: 4) {
-                    Text("\(washoutWeeks)")
-                        .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundStyle(AppColor.textPrimary)
-                        .contentTransition(.numericText())
-                    Text(washoutWeeks == 1 ? "week" : "weeks")
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textSecondary)
-                }
-            }
-            .tint(AppColor.accentPrimary)
+                range: 1...12,
+                formatter: { "\($0) wk" },
+                width: 64
+            )
         }
     }
 

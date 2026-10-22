@@ -14,7 +14,7 @@ struct BodyMetricsCard: View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 HStack {
-                    Label("Body Metrics", systemImage: "figure.arms.open")
+                    Label("Body metrics", systemImage: "figure.arms.open")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
@@ -86,8 +86,7 @@ struct BodyMetricsCard: View {
     }
 
     private func formatNumber(_ value: Double) -> String {
-        if value == value.rounded() { return String(Int(value.rounded())) }
-        return String(format: "%.1f", value)
+        value.formatted(.number.precision(.fractionLength(0...1)).grouping(.never))
     }
 
     private func metricStat(label: LocalizedStringKey, value: String) -> some View {
@@ -135,7 +134,7 @@ private struct BodyMetricsEditSheet: View {
                     .padding(.bottom, Spacing.xxxxl)
             }
             .background(AppColor.background)
-            .navigationTitle("Body Metrics")
+            .navigationTitle("Body metrics")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

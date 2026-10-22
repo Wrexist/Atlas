@@ -30,7 +30,7 @@ final class TodayOverviewSnapshotTests: XCTestCase {
 
     func test_build_withWaterLogged_reportsWater() {
         let store = DataStore(seedSampleData: false)
-        store.logWater(oz: 32)
+        store.logWater(fluidOunces: 32)
         let snapshot = TodayOverviewSnapshot.build(from: store)
         XCTAssertEqual(snapshot.waterToday, 32)
         XCTAssertTrue(snapshot.hasAnySignal)
@@ -87,6 +87,18 @@ final class TodayOverviewSnapshotTests: XCTestCase {
         store.saveLabValue(LabValue(date: Date(), panel: .tsh, value: 2.4))
         let snapshot = TodayOverviewSnapshot.build(from: store)
         XCTAssertEqual(snapshot.latestLab?.valueDisplay, "2.4 μIU/mL")
+    }
+
+    func test_build_labFromYesterday_bottomInsightSaysYesterday() {
+        let store = DataStore(seedSampleData: false)
+        let now = Date()
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: now)!
+        store.saveLabValue(LabValue(date: yesterday, panel: .totalTestosterone, value: 712))
+        let snapshot = TodayOverviewSnapshot.build(from: store, now: now)
+        guard case .latestLab(_, let body, _) = snapshot.bottomInsight else {
+            return XCTFail("Expected the lab insight, got \(String(describing: snapshot.bottomInsight))")
+        }
+        XCTAssertEqual(body, "Logged yesterday")
     }
 
     // MARK: - Bottom insight selection

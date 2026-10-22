@@ -109,12 +109,6 @@ struct MealEntryRow: View {
 
     @ScaledMetric(relativeTo: .body) private var tileSize: CGFloat = 44
 
-    private static let timeFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.timeStyle = .short
-        return f
-    }()
-
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: Spacing.md) {
@@ -138,7 +132,14 @@ struct MealEntryRow: View {
                         Image(systemName: entry.source.icon)
                             .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
-                        Text(Self.timeFormatter.string(from: entry.date))
+                        Circle()
+                            .fill(entry.category.tint)
+                            .frame(width: 6, height: 6)
+                        Text(verbatim: "\(entry.category.displayName) ·")
+                            .font(AppFont.scaled(11))
+                            .foregroundStyle(AppColor.textSecondary)
+                            .lineLimit(1)
+                        Text(entry.date, format: .dateTime.hour().minute())
                             .font(AppFont.scaled(11))
                             .monospacedDigit()
                             .foregroundStyle(AppColor.textSecondary)
@@ -191,7 +192,7 @@ struct MealEntryRow: View {
     }
 
     private static func accessibilityLabel(for entry: MealEntry) -> String {
-        let time = timeFormatter.string(from: entry.date)
+        let time = entry.date.formatted(date: .omitted, time: .shortened)
         return String(
             localized: "\(entry.name), \(entry.category.displayName) at \(time), \(entry.calories) kilocalories, \(entry.proteinG) grams protein, \(entry.carbsG) grams carbohydrate, \(entry.fatG) grams fat",
             comment: "VoiceOver readout for one meal entry in Today's meals list."

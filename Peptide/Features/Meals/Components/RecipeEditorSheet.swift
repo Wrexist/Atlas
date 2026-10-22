@@ -35,6 +35,10 @@ struct RecipeEditorSheet: View {
 
     private var isEditing: Bool { onDelete != nil }
 
+    private var hasChanges: Bool {
+        name != initial.name || note != (initial.note ?? "") || components != initial.components
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -56,7 +60,7 @@ struct RecipeEditorSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", action: onCancel)
+                    DiscardChangesCancelButton(hasChanges: hasChanges, onCancel: onCancel)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: commit)
@@ -102,6 +106,7 @@ struct RecipeEditorSheet: View {
                 Text("Past meal logs aren't affected — only the recipe disappears from your library.")
             }
         }
+        .interactiveDismissDisabled(hasChanges)
         .onAppear { hydrate() }
     }
 
@@ -154,7 +159,7 @@ struct RecipeEditorSheet: View {
         }
     }
 
-    private func macroPill(value: String, label: String, tint: Color) -> some View {
+    private func macroPill(value: String, label: LocalizedStringKey, tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(value)
                 .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
@@ -261,7 +266,9 @@ struct RecipeEditorSheet: View {
     private func portionDescription(_ portion: ScannedProduct.Portion) -> String {
         switch portion {
         case .grams(let g):    return "\(Int(g.rounded()))g"
-        case .servings(let s): return s == 1 ? "1 serving" : String(format: "%.1f servings", s)
+        case .servings(let s):
+            return s == 1 ? String(localized: "1 serving")
+                : String(localized: "\(s.formatted(.number.precision(.fractionLength(0...1)))) servings")
         case .wholePackage:    return String(localized: "Whole package")
         }
     }
@@ -450,7 +457,7 @@ struct RecipeComponentEditorSheet: View {
                     get: { s },
                     set: { portion = .servings($0) }
                 ), in: 0.5...10, step: 0.5) {
-                    Text(String(format: "%.1f", s))
+                    Text(s.formatted(.number.precision(.fractionLength(0...1))))
                         .monospacedDigit()
                 }
             }

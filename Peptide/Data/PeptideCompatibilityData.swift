@@ -20,7 +20,7 @@ enum PeptideCompatibilityData {
     static let validatedStacks: [ValidatedStack] = [
         // Recovery
         ValidatedStack(
-            name: "Wolverine",
+            name: "Wolverine Protocol",
             peptideAbbreviations: ["BPC-157", "TB-500"],
             goal: "Tissue repair & recovery",
             synergy: "BPC-157 upregulates VEGF and nitric oxide for blood vessel formation while TB-500 regulates actin for cell migration. Together they address complementary stages of the healing cascade.",
@@ -35,14 +35,14 @@ enum PeptideCompatibilityData {
         ),
         // Growth Hormone
         ValidatedStack(
-            name: "GH Pulse",
+            name: "GH Pulse Protocol",
             peptideAbbreviations: ["CJC-1295 DAC", "Ipamorelin"],
             goal: "Growth hormone optimization",
             synergy: "CJC-1295 (GHRH analog) activates cAMP/PKA via the GHRH receptor while Ipamorelin (GHS-R agonist) activates phospholipase C via the ghrelin receptor. Different receptors produce synergistic GH release 2-3x greater than either alone.",
-            notes: "Gold standard GH stack. Ipamorelin is selective — doesn't elevate cortisol or prolactin unlike GHRP-2/6."
+            notes: "Commonly researched GH pairing. Ipamorelin is selective — doesn't elevate cortisol or prolactin unlike GHRP-2/6."
         ),
         ValidatedStack(
-            name: "GH Pulse (non-DAC)",
+            name: "GH Pulse Protocol (non-DAC)",
             peptideAbbreviations: ["Mod GRF 1-29", "Ipamorelin"],
             goal: "Pulsatile growth hormone release",
             synergy: "Same GHRH+GHRP synergy mechanism as CJC-1295/Ipamorelin but with shorter-acting Mod GRF for more natural pulsatile GH release patterns.",
@@ -65,7 +65,7 @@ enum PeptideCompatibilityData {
         ),
         // Immune
         ValidatedStack(
-            name: "Immune Defense",
+            name: "Immune Defense Protocol",
             peptideAbbreviations: ["TA1", "LL-37", "KPV"],
             goal: "Comprehensive immune support",
             synergy: "TA1 boosts adaptive immunity (T-cell maturation). LL-37 provides direct innate antimicrobial action (disrupts bacterial/viral membranes). KPV suppresses excessive inflammation via NF-κB inhibition. Three layers of defense with minimal overlap.",
@@ -88,7 +88,7 @@ enum PeptideCompatibilityData {
         ),
         // Anti-Aging
         ValidatedStack(
-            name: "Longevity",
+            name: "Longevity Protocol",
             peptideAbbreviations: ["Epitalon", "GHK-Cu", "BPC-157"],
             goal: "Anti-aging and cellular renewal",
             synergy: "Epitalon activates telomerase for telomere maintenance. GHK-Cu stimulates collagen/elastin synthesis and has broad gene-resetting activity. BPC-157 provides systemic cytoprotection. Addresses aging at genetic (telomeres), structural (collagen), and protective levels.",
@@ -96,7 +96,7 @@ enum PeptideCompatibilityData {
         ),
         // Performance & Athletic
         ValidatedStack(
-            name: "Performance",
+            name: "Performance Protocol",
             peptideAbbreviations: ["BPC-157", "TB-500", "CJC-1295 DAC", "Ipamorelin"],
             goal: "Athletic performance and recovery",
             synergy: "BPC-157 and TB-500 accelerate tissue repair through complementary mechanisms (VEGF/NO and actin regulation). CJC-1295/Ipamorelin elevate GH for systemic anabolism and protein synthesis. Four non-overlapping pathways supporting training recovery.",
@@ -118,7 +118,7 @@ enum PeptideCompatibilityData {
         ),
         // Sleep & Recovery
         ValidatedStack(
-            name: "Deep Sleep",
+            name: "Deep Sleep Protocol",
             peptideAbbreviations: ["CJC-1295 DAC", "Ipamorelin", "Epitalon"],
             goal: "Sleep quality and nocturnal recovery",
             synergy: "CJC-1295/Ipamorelin pre-bed dosing amplifies natural nocturnal GH pulse for deep sleep-phase recovery. Epitalon supports melatonin synthesis via pineal gland activation, improving circadian rhythm regulation.",
@@ -148,7 +148,7 @@ enum PeptideCompatibilityData {
             notes: "Tesamorelin is FDA-approved for HIV-associated lipodystrophy."
         ),
         ValidatedStack(
-            name: "Lean Mass",
+            name: "Lean Mass Protocol",
             peptideAbbreviations: ["CJC-1295 DAC", "Ipamorelin", "IGF-1 LR3"],
             goal: "Lean muscle growth",
             synergy: "CJC-1295/Ipamorelin elevate systemic GH for protein synthesis and recovery. IGF-1 LR3 provides direct downstream anabolic signaling with extended half-life (20-30 hours). GH peptides drive hepatic IGF-1; exogenous IGF-1 LR3 adds localized muscle-specific growth.",
@@ -226,13 +226,13 @@ enum PeptideCompatibilityData {
         Interaction(
             peptideA: "GHRP-2", peptideB: "GHRP-6",
             severity: .caution,
-            reason: "Both are GHS-R1a agonists with overlapping side effect profiles (appetite stimulation, cortisol elevation). Stacking amplifies these without proportional GH increase.",
+            reason: "Both are GHS-R1a agonists with overlapping side effect profiles (appetite stimulation, cortisol elevation). Combining them amplifies these without proportional GH increase.",
             recommendation: "Pick one GHRP based on your tolerance for appetite stimulation (GHRP-6 stronger) and pair with CJC-1295."
         ),
         Interaction(
             peptideA: "GHRP-6", peptideB: "Hexarelin",
             severity: .caution,
-            reason: "Redundant GHS-R1a activation. Both have unfavorable side effect profiles (cortisol, prolactin). Stacking worsens these without proportional efficacy gain.",
+            reason: "Redundant GHS-R1a activation. Both have unfavorable side effect profiles (cortisol, prolactin). Combining them worsens these without proportional efficacy gain.",
             recommendation: "Select the single best GHRP for your needs and combine with a GHRH analog."
         ),
         Interaction(
@@ -270,7 +270,7 @@ enum PeptideCompatibilityData {
         Interaction(
             peptideA: "IGF-1 LR3", peptideB: "IGF-1 DES",
             severity: .caution,
-            reason: "Both directly activate IGF-1 receptors. Stacking can lead to excessive IGF-1 signaling: joint pain, water retention, hypoglycemia, and theoretical organ growth risk.",
+            reason: "Both directly activate IGF-1 receptors. Combining them can lead to excessive IGF-1 signaling: joint pain, water retention, hypoglycemia, and theoretical organ growth risk.",
             recommendation: "Use one IGF-1 variant. IGF-1 LR3 for sustained effect or IGF-1 DES for acute peri-workout pulses."
         ),
     ]
@@ -291,7 +291,7 @@ enum PeptideCompatibilityData {
             peptideAbbreviations: ["Ipamorelin", "GHRP-2", "GHRP-6", "Hexarelin", "MK-677"],
             description: "Growth hormone secretagogues acting on the ghrelin receptor",
             maxSafe: 1,
-            warningText: "Use only one GHS-R agonist. Pair with a GHRH analog for synergy instead of stacking multiple GHRPs."
+            warningText: "Use only one GHS-R agonist. Pair with a GHRH analog for synergy instead of combining multiple GHRPs."
         ),
         PathwayGroup(
             pathway: "GHRH Receptor",
@@ -305,7 +305,7 @@ enum PeptideCompatibilityData {
             peptideAbbreviations: ["Semaglutide", "Tirzepatide", "Retatrutide", "Liraglutide", "Dulaglutide", "Exenatide", "Lixisenatide", "Orforglipron", "Survodutide"],
             description: "Incretin mimetics for appetite and glucose regulation",
             maxSafe: 1,
-            warningText: "Use only one GLP-1 agonist at a time. Stacking amplifies GI side effects without demonstrated additive efficacy."
+            warningText: "Use only one GLP-1 agonist at a time. Combining them amplifies GI side effects without demonstrated additive efficacy."
         ),
         PathwayGroup(
             pathway: "IGF-1 Receptor",
@@ -319,7 +319,7 @@ enum PeptideCompatibilityData {
             peptideAbbreviations: ["BPC-157", "TB-500", "TB-4", "GHK-Cu", "GHK", "PDA"],
             description: "Tissue repair peptides acting through different mechanisms (NO, actin, collagen)",
             maxSafe: 3,
-            warningText: "These use different pathways and generally stack well. However, all promote angiogenesis — use caution with history of malignancy."
+            warningText: "These use different pathways and are generally combined without pathway overlap. However, all promote angiogenesis — use caution with history of malignancy."
         ),
         PathwayGroup(
             pathway: "Cognitive/Nootropic",

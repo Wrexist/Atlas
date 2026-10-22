@@ -271,7 +271,7 @@ struct OnboardingView: View {
 
     var body: some View {
         ZStack {
-            OnboardingBackground(step: page)
+            OnboardingBackground()
 
             VStack(spacing: 0) {
                 topBar
@@ -342,7 +342,9 @@ struct OnboardingView: View {
             // onboarding (debug menu, reset-onboarding tester).
             // Otherwise the @State defaults (12 weeks from today,
             // .buildMuscle) win, which is also fine for a fresh install.
-            if let saved = dataStore.profile.goalDate {
+            // A saved date that's now inside the picker's minimum window
+            // keeps the default instead of landing outside its range.
+            if let saved = dataStore.profile.goalDate, saved >= earliestGoalDate {
                 goalDate = saved
             }
             if let rawGoal = dataStore.profile.primaryGoal,
@@ -442,7 +444,7 @@ struct OnboardingView: View {
             // If the paywall cover dismissed without onAccept/onDecline
             // firing (system interruption — Siri, call, multi-scene
             // re-layout), advance into the theme picker anyway so the
-            // user isn't stuck on the Ready page tapping "Open Atlas"
+            // user isn't stuck on the Ready page tapping "Enter Atlas"
             // re-triggering the paywall every time (audit code-review
             // #10). The funnel event "paywall_dismissed_externally"
             // lets us distinguish this from user-initiated decline.
@@ -490,8 +492,8 @@ struct OnboardingView: View {
         if name.isEmpty { name = profile.name }
         if bodyMetrics == .unspecified { bodyMetrics = profile.bodyMetrics }
         if let prefs = profile.trainingPreferences {
-            daysPerWeek = prefs.daysPerWeek
             preferredDays = prefs.preferredDays
+            setDaysPerWeek(min(max(prefs.daysPerWeek, Self.daysPerWeekRange.lowerBound), Self.daysPerWeekRange.upperBound))
             timeOfDay = prefs.timeOfDay
             if !prefs.equipmentAccess.isEmpty { equipment = prefs.equipmentAccess }
         }
@@ -632,7 +634,7 @@ struct OnboardingView: View {
         case Page.welcome:      return "Let's go"
         case Page.disclaimer:   return "I understand"
         case Page.creatorCode:  return hasCreatorCodeToApply ? "Apply" : "Continue"
-        case Page.ready:        return "Open Atlas"
+        case Page.ready:        return "Enter Atlas"
         default:                return "Continue"
         }
     }
@@ -690,6 +692,7 @@ struct OnboardingView: View {
             // save, so we never clobber an explicit choice.
             bodyMetrics.activityLevel = activityFromExperience()
         case Page.bodyMetrics:
+            bodyMetrics = BodyMetricsRanges.filledWithDefaults(bodyMetrics)
             dataStore.updateBodyMetrics(bodyMetrics)
         case Page.schedule, Page.equipment:
             // Schedule and equipment both feed the same struct.
@@ -703,7 +706,7 @@ struct OnboardingView: View {
             // Nutrition targets derived from body metrics persist here,
             // alongside the user seeing them on the same screen as the
             // projection (merged from a now-deleted dedicated step).
-            if let targets = NutritionMath.dailyTargets(for: bodyMetrics) {
+            if let targets = NutritionMath.recommendedTargets(for: bodyMetrics, goalRaw: primaryGoal.rawValue) {
                 dataStore.updateNutritionTargets(targets)
             }
         case Page.disclaimer:
@@ -1123,7 +1126,7 @@ struct OnboardingView: View {
             DatePicker(
                 "Or a custom date",
                 selection: $goalDate,
-                in: Date().addingTimeInterval(60 * 60 * 24 * 14)...,
+                in: earliestGoalDate...,
                 displayedComponents: .date
             )
             .datePickerStyle(.compact)
@@ -1164,7 +1167,7 @@ struct OnboardingView: View {
         } label: {
             VStack(spacing: Spacing.sm) {
                 Image(systemName: goal.icon)
-                    .font(.system(size: 28, weight: .semibold))
+                    .font(AppFont.scaled(28, weight: .semibold, relativeTo: .title1))
                     .foregroundStyle(goal.tint)
                     .symbolEffect(.bounce, value: selected)
                 Text(goal.displayName)
@@ -1207,6 +1210,11 @@ struct OnboardingView: View {
             selectedGoals.insert(goal)
         }
         goalHasBeenSelected = !selectedGoals.isEmpty
+    }
+
+    /// Two weeks out: the soonest target the date picker offers.
+    private var earliestGoalDate: Date {
+        Date().addingTimeInterval(60 * 60 * 24 * 14)
     }
 
     /// Human-readable "8 weeks to commit" summary for the merged
@@ -1310,15 +1318,34 @@ struct OnboardingView: View {
         }
     }
 
+    private static let daysPerWeekRange = 2...6
+
+    /// Keeps the preferred days within the weekly count, dropping the
+    /// latest days of the week first.
+    private func setDaysPerWeek(_ count: Int) {
+        daysPerWeek = count
+        if preferredDays.count > count {
+            preferredDays = Set(Weekday.allCases.filter(preferredDays.contains).prefix(count))
+        }
+    }
+
+    /// Picking more preferred days than the weekly count raises the count.
+    private func togglePreferredDay(_ day: Weekday) {
+        if preferredDays.remove(day) == nil {
+            preferredDays.insert(day)
+            daysPerWeek = max(daysPerWeek, preferredDays.count)
+        }
+    }
+
     private var daysStepper: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             sectionEyebrow("Days per week")
             HStack(spacing: Spacing.xs) {
-                ForEach(2...6, id: \.self) { count in
+                ForEach(Self.daysPerWeekRange, id: \.self) { count in
                     let isSelected = daysPerWeek == count
                     Button {
                         Haptics.selection()
-                        AppAnimation.with(AppAnimation.springSnappy) { daysPerWeek = count }
+                        AppAnimation.with(AppAnimation.springSnappy) { setDaysPerWeek(count) }
                     } label: {
                         Text("\(count)")
                             .font(AppFont.headline.weight(.bold))
@@ -1341,23 +1368,20 @@ struct OnboardingView: View {
             HStack(spacing: Spacing.xs) {
                 ForEach(Weekday.allCases) { day in
                     let isSelected = preferredDays.contains(day)
+                    let isFull = !isSelected && preferredDays.count >= Self.daysPerWeekRange.upperBound
                     Button {
                         Haptics.selection()
-                        AppAnimation.with(AppAnimation.springSnappy) {
-                            if isSelected {
-                                _ = preferredDays.remove(day)
-                            } else {
-                                _ = preferredDays.insert(day)
-                            }
-                        }
+                        AppAnimation.with(AppAnimation.springSnappy) { togglePreferredDay(day) }
                     } label: {
                         Text(day.shortName.prefix(1).uppercased())
                             .font(AppFont.footnote.weight(.bold))
                             .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textPrimary)
                             .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
                             .onboardingFilledChoice(isSelected: isSelected, .capsule)
+                            .opacity(isFull ? 0.4 : 1)
                     }
                     .buttonStyle(ScalePressStyle())
+                    .disabled(isFull)
                     // "T" and "S" are ambiguous spoken; say the day.
                     .accessibilityLabel(day.rawValue.capitalized)
                     .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
@@ -1586,35 +1610,6 @@ struct OnboardingView: View {
         )
     }
 
-    // MARK: - Program name (used only on the Ready summary now;
-    // the dedicated "Your starter plan" step was removed in the
-    // polish pass as redundant with the projection reveal).
-
-    private var recommendedProgramName: String {
-        // Switch on the goal first, then refine by days inside each
-        // arm where the choice depends on volume. Avoids the
-        // partial-range-inside-tuple-pattern Swift 6 parser ambiguity
-        // (the older `case (.buildMuscle, 5...)` form looked like it
-        // worked but the audit flagged it as unreliable across
-        // compiler versions). Every PrimaryGoal case must be covered —
-        // the v3 expansion added five wellness-track goals that need
-        // explicit program names so the Program Preview screen
-        // doesn't crash on a non-exhaustive switch.
-        switch primaryGoal {
-        case .getStronger:    return "5/3/1 Strength"
-        case .buildMuscle:    return daysPerWeek >= 5 ? "Push Pull Legs" : "Upper / Lower"
-        case .loseFat:        return "Full Body Hypertrophy"
-        case .athletic:       return "Athletic Conditioning"
-        case .recomp:         return "Hybrid Recomp"
-        case .stayConsistent: return "Consistency Builder"
-        case .betterSleep:    return "Recovery & Sleep Hygiene"
-        case .recovery:       return "Active Recovery Plan"
-        case .antiAging:      return "Healthy Aging Plan"
-        case .skinHair:       return "Look & Feel Plan"
-        case .energy:         return "Energy & Vitality Plan"
-        }
-    }
-
     // MARK: - Projection (personalised plan reveal)
 
     /// Cal-AI-style projection moment. Numbers are illustrative — the
@@ -1636,6 +1631,7 @@ struct OnboardingView: View {
                     startWeightKg: bodyMetrics.weightKg,
                     weeks: goalWeeks,
                     targetDate: goalDate,
+                    spokenSummary: "\(projectionStatLabel), \(projectionStatValue)",
                     revealed: projectionRevealed
                 )
                 .padding(.top, Spacing.sm)
@@ -1647,7 +1643,7 @@ struct OnboardingView: View {
                         icon: primaryGoal.icon,
                         tint: primaryGoal.tint
                     )
-                    if let targets = NutritionMath.dailyTargets(for: bodyMetrics) {
+                    if let targets = NutritionMath.recommendedTargets(for: bodyMetrics, goalRaw: primaryGoal.rawValue) {
                         // Daily nutrition targets folded in here so the
                         // user sees the derived plan inline rather than
                         // on a separate "Nutrition" step. Hidden when
@@ -1681,26 +1677,26 @@ struct OnboardingView: View {
     }
 
     private var projectionHeadline: String {
-        let weeks = goalWeeks
+        let weeks = goalWeeks == 1 ? "1 week" : "\(goalWeeks) weeks"
         switch primaryGoal {
-        case .buildMuscle:    return "+\(projectedMuscleGain) in \(weeks) weeks"
-        case .loseFat:        return "−\(projectedFatLoss) in \(weeks) weeks"
-        case .getStronger:    return "Build strength\nover \(weeks) weeks"
-        case .stayConsistent: return "\(daysPerWeek * weeks) sessions\nin \(weeks) weeks"
-        case .athletic:       return "Work on conditioning\nover \(weeks) weeks"
-        case .recomp:         return "Work toward a recomp\nover \(weeks) weeks"
-        case .betterSleep:    return "Track your sleep\nover \(weeks) weeks"
-        case .recovery:       return "Track your recovery\nover \(weeks) weeks"
-        case .antiAging:      return "Track your biomarkers\nover \(weeks) weeks"
-        case .skinHair:       return "Track how you look & feel\nover \(weeks) weeks"
-        case .energy:         return "Track your energy\nover \(weeks) weeks"
+        case .buildMuscle:    return "+\(projectedMuscleGain) in \(weeks)"
+        case .loseFat:        return "−\(projectedFatLoss) in \(weeks)"
+        case .getStronger:    return "Build strength\nover \(weeks)"
+        case .stayConsistent: return "\(daysPerWeek * goalWeeks) sessions\nin \(weeks)"
+        case .athletic:       return "Work on conditioning\nover \(weeks)"
+        case .recomp:         return "Work toward a recomp\nover \(weeks)"
+        case .betterSleep:    return "Track your sleep\nover \(weeks)"
+        case .recovery:       return "Track your recovery\nover \(weeks)"
+        case .antiAging:      return "Track your biomarkers\nover \(weeks)"
+        case .skinHair:       return "Track how you look & feel\nover \(weeks)"
+        case .energy:         return "Track your energy\nover \(weeks)"
         }
     }
 
     private var projectionSubtitle: String {
         switch primaryGoal {
         case .buildMuscle, .recomp:
-            return "Based on \(daysPerWeek) sessions per week and your starting weight."
+            return "Based on your training experience and \(daysPerWeek) sessions per week."
         case .loseFat:
             return "From a moderate deficit at \(daysPerWeek) sessions per week."
         case .getStronger, .athletic:
@@ -1738,13 +1734,20 @@ struct OnboardingView: View {
         }
     }
 
-    // The realistic-range clamps are expressed in kilograms because the
-    // underlying model is; the label converts afterwards so an imperial
-    // user reads "9 lb", not "4 kg". Both estimates are per 12-week
-    // block and scale with the chosen span, so "8 weeks" and "26 weeks"
-    // no longer promise the same number.
+    // Estimates are in kilograms because the underlying model is; the
+    // label converts afterwards so an imperial user reads lb, not kg.
+    // Both scale with the chosen span, so "8 weeks" and "26 weeks"
+    // don't promise the same number.
+
+    /// A range rather than a single number, from half the typical rate
+    /// for the user's experience up to it — a personal projection shown
+    /// before the paywall shouldn't promise more than training delivers.
     private var projectedMuscleGain: String {
-        bodyMetrics.unit.weightLabel(min(6, max(1, (estimatedMuscleGainKg * goalSpanFactor).rounded())))
+        let months = Double(goalWeeks) * 12 / 52
+        let upperKg = monthlyLeanGainKg * months
+        let unit = bodyMetrics.unit
+        let lower = String(format: "%.1f", unit.weightForDisplay(upperKg / 2))
+        return "\(lower)–\(unit.weightLabel(upperKg, fractionDigits: 1))"
     }
 
     private var projectedFatLoss: String {
@@ -1755,8 +1758,14 @@ struct OnboardingView: View {
         Double(goalWeeks) / 12
     }
 
-    private var estimatedMuscleGainKg: Double {
-        Double(daysPerWeek) * 0.6 + 1.5
+    /// Typical lean-mass gain per month on a good program, which falls
+    /// steeply with training age.
+    private var monthlyLeanGainKg: Double {
+        switch Experience(rawValue: experienceLevel) ?? .beginner {
+        case .beginner:     return 0.75
+        case .intermediate: return 0.4
+        case .advanced:     return 0.2
+        }
     }
 
     private var estimatedFatLossKg: Double {
@@ -2102,8 +2111,6 @@ struct OnboardingView: View {
                     .staggeredAppear(index: 1)
                     summaryRow(label: "Schedule", value: "\(daysPerWeek)× per week, \(timeOfDay.displayName.lowercased())")
                         .staggeredAppear(index: 2)
-                    summaryRow(label: "Program", value: recommendedProgramName)
-                        .staggeredAppear(index: 3)
                     if let attribution = creatorAttribution {
                         // Attribution only — no percentage; the checkout
                         // applies no discount (see CreatorCodeService).
@@ -2111,7 +2118,7 @@ struct OnboardingView: View {
                             label: "Referral",
                             value: "via \(attribution.creatorName)"
                         )
-                        .staggeredAppear(index: 4)
+                        .staggeredAppear(index: 3)
                     }
                 }
                 .id(page == Page.ready)
@@ -2151,16 +2158,31 @@ struct OnboardingView: View {
         .padding(.top, Spacing.sm)
     }
 
+    /// Label and value side by side while both fit on one line; at large
+    /// Dynamic Type sizes the value drops under the label instead of
+    /// truncating either.
     private func summaryRow(label: String, value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(AppFont.footnote)
-                .foregroundStyle(AppColor.textSecondary)
-                .frame(width: 100, alignment: .leading)
-            Text(value)
-                .font(AppFont.callout.weight(.semibold))
-                .foregroundStyle(AppColor.textPrimary)
-            Spacer()
+        let labelText = Text(label)
+            .font(AppFont.footnote)
+            .foregroundStyle(AppColor.textSecondary)
+        let valueText = Text(value)
+            .font(AppFont.callout.weight(.semibold))
+            .foregroundStyle(AppColor.textPrimary)
+        return ViewThatFits(in: .horizontal) {
+            HStack {
+                labelText
+                    .lineLimit(1)
+                    .frame(minWidth: 100, alignment: .leading)
+                valueText
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                labelText
+                valueText
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(Spacing.md)
         .glassSurface(cornerRadius: Spacing.smallCornerRadius)
@@ -2226,6 +2248,7 @@ struct OnboardingView: View {
             .textInputAutocapitalization(.characters)
             .autocorrectionDisabled()
             .submitLabel(.done)
+            .onSubmit { if hasCreatorCodeToApply { applyCreatorCode() } }
 
             if let error = creatorError {
                 HStack(spacing: Spacing.xs) {
@@ -2347,6 +2370,7 @@ private struct ProjectionChart: View {
     let startWeightKg: Double?
     let weeks: Int
     let targetDate: Date
+    let spokenSummary: String
     let revealed: Bool
 
     @State private var drawAmount: CGFloat = 0
@@ -2405,7 +2429,7 @@ private struct ProjectionChart: View {
         .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(
-            "Projected \(goal.displayName.lowercased()) trend from today to \(targetDate.formatted(.dateTime.month(.wide).day()))"
+            "\(spokenSummary), by \(targetDate.formatted(.dateTime.month(.wide).day()))"
         )
         .onChange(of: revealed) { _, newValue in
             if newValue {

@@ -119,6 +119,9 @@ def main() -> int:
         name = rel.split("/")[-1]
         check(EULA in source, f"{name} links to the Terms of Use (EULA)")
         check(privacy in source, f"{name} links to the Privacy Policy")
+        check("Pro Yearly" not in source,
+              f"{name} names the annual plan as App Store Connect does",
+              "the product is 'Atlas Pro Annual' — use Product.displayName")
 
     print("\nMarketing site")
     terms = REPO / "docs" / "terms.html"

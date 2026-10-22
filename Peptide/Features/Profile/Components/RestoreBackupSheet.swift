@@ -59,10 +59,13 @@ struct RestoreBackupSheet: View {
             .navigationTitle("Restore Backup")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
+                if phase != .applying {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Close") { dismiss() }
+                    }
                 }
             }
+            .interactiveDismissDisabled(phase == .applying)
             .fileImporter(
                 isPresented: $showingFileImporter,
                 allowedContentTypes: [.json],
@@ -195,7 +198,8 @@ struct RestoreBackupSheet: View {
     private func handleFilePicked(_ result: Result<[URL], Error>) {
         switch result {
         case .failure(let error):
-            errorMessage = error.localizedDescription
+            AppLog.persistence.error("Backup file pick failed: \(error.localizedDescription, privacy: .public)")
+            errorMessage = String(localized: "Couldn't open that file. Try picking it again.")
             phase = .failed
         case .success(let urls):
             guard let url = urls.first else { return }
@@ -208,19 +212,18 @@ struct RestoreBackupSheet: View {
         // doesn't freeze the UI while validation runs. The
         // security-scoped resource lifetime must cover the entire
         // read, so it's acquired inside the detached task and
-        // released right after Data(contentsOf:) returns. The
-        // decoded `Data` is sendable and crosses back to the main
+        // released once validation returns. The decoded
+        // backup and preview are sendable and cross back to the main
         // actor cheaply.
         let target = url
         Task { @MainActor in
             do {
-                let data = try await Task.detached(priority: .userInitiated) {
-                    () throws -> Data in
+                let (parsed, preview) = try await Task.detached(priority: .userInitiated) {
+                    () throws -> (backup: AppBackup, preview: BackupImportService.Preview) in
                     let scoped = target.startAccessingSecurityScopedResource()
                     defer { if scoped { target.stopAccessingSecurityScopedResource() } }
-                    return try Data(contentsOf: target)
+                    return try BackupImportService.validate(Data(contentsOf: target))
                 }.value
-                let (parsed, preview) = try BackupImportService.validate(data)
                 self.backup = parsed
                 self.preview = preview
                 self.phase = .preview
@@ -228,7 +231,8 @@ struct RestoreBackupSheet: View {
                 errorMessage = error.errorDescription
                 phase = .failed
             } catch {
-                errorMessage = error.localizedDescription
+                AppLog.persistence.error("Backup read failed: \(error.localizedDescription, privacy: .public)")
+                errorMessage = String(localized: "Couldn't read that file. Make sure it's an Atlas backup and try again.")
                 phase = .failed
             }
         }
@@ -253,7 +257,8 @@ struct RestoreBackupSheet: View {
                 errorMessage = error.errorDescription
                 phase = .failed
             } catch {
-                errorMessage = error.localizedDescription
+                AppLog.persistence.error("Backup restore failed: \(error.localizedDescription, privacy: .public)")
+                errorMessage = String(localized: "Couldn't restore this backup. Try again.")
                 phase = .failed
             }
         }

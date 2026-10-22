@@ -34,6 +34,9 @@ struct NutritionTargetsEditor: View {
     @State private var carbs: String = ""
     @State private var fat: String = ""
     @State private var fiber: String = ""
+    /// The fields as the editor opened, so only real edits ask before
+    /// being discarded.
+    @State private var openedFields: [String] = []
     @FocusState private var focusedField: Field?
 
     private enum Field: Hashable { case calories, protein, carbs, fat, fiber }
@@ -85,7 +88,7 @@ struct NutritionTargetsEditor: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", action: onCancel)
+                    DiscardChangesCancelButton(hasChanges: hasChanges, onCancel: onCancel)
                         .foregroundStyle(AppColor.textSecondary)
                 }
                 ToolbarItem(placement: .confirmationAction) {
@@ -100,7 +103,11 @@ struct NutritionTargetsEditor: View {
                 }
             }
         }
-        .onAppear(perform: hydrate)
+        .interactiveDismissDisabled(hasChanges)
+        .onAppear {
+            hydrate()
+            openedFields = fields
+        }
     }
 
     // MARK: - Live summary
@@ -363,32 +370,39 @@ struct NutritionTargetsEditor: View {
         text: Binding<String>,
         field: Field
     ) -> some View {
-        HStack(spacing: Spacing.md) {
-            ZStack {
-                RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
-                    .fill(tint.opacity(0.18))
-                    .frame(width: 30, height: 30)
-                Image(systemName: icon)
-                    .font(AppFont.scaled(13, weight: .semibold))
-                    .foregroundStyle(tint)
+        VStack(alignment: .trailing, spacing: Spacing.xxs) {
+            HStack(spacing: Spacing.md) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
+                        .fill(tint.opacity(0.18))
+                        .frame(width: 30, height: 30)
+                    Image(systemName: icon)
+                        .font(AppFont.scaled(13, weight: .semibold))
+                        .foregroundStyle(tint)
+                }
+                Text(title)
+                    .font(AppFont.body)
+                    .foregroundStyle(AppColor.textPrimary)
+                Spacer(minLength: Spacing.sm)
+                TextField("0", text: text)
+                    .accessibilityLabel(Text(title))
+                    .keyboardType(.numberPad)
+                    .multilineTextAlignment(.trailing)
+                    .font(AppFont.scaled(16, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(AppColor.textPrimary)
+                    .focused($focusedField, equals: field)
+                    .frame(maxWidth: 90)
+                Text(unit)
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.textTertiary)
+                    .frame(width: 28, alignment: .leading)
             }
-            Text(title)
-                .font(AppFont.body)
-                .foregroundStyle(AppColor.textPrimary)
-            Spacer(minLength: Spacing.sm)
-            TextField("0", text: text)
-                .accessibilityLabel(Text(title))
-                .keyboardType(.numberPad)
-                .multilineTextAlignment(.trailing)
-                .font(AppFont.scaled(16, weight: .semibold, design: .rounded))
-                .monospacedDigit()
-                .foregroundStyle(AppColor.textPrimary)
-                .focused($focusedField, equals: field)
-                .frame(maxWidth: 90)
-            Text(unit)
-                .font(AppFont.caption2)
-                .foregroundStyle(AppColor.textTertiary)
-                .frame(width: 28, alignment: .leading)
+            if value(for: field) == nil {
+                Text(field == .calories ? "Enter 800–10,000 kcal" : "Enter 0–1,000 g")
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.warning)
+            }
         }
         .padding(.vertical, Spacing.xs)
         .contentShape(Rectangle())
@@ -433,17 +447,38 @@ struct NutritionTargetsEditor: View {
     /// summary without blocking the keyboard.
     private func intValue(_ s: String) -> Int { Int(s) ?? 0 }
 
+    /// The field's target, or nil when it is blank or out of range. A 0 kcal
+    /// target would leave every ring permanently empty. Fiber is optional,
+    /// so blank reads as no target.
+    private func value(for field: Field) -> Int? {
+        let text = switch field {
+        case .calories: calories
+        case .protein: protein
+        case .carbs: carbs
+        case .fat: fat
+        case .fiber: fiber
+        }
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        if field == .fiber && trimmed.isEmpty { return 0 }
+        let range = field == .calories ? 800...10_000 : 0...1_000
+        return Int(trimmed).flatMap { range.contains($0) ? $0 : nil }
+    }
+
+    private var fields: [String] { [calories, protein, carbs, fat, fiber] }
+
+    private var hasChanges: Bool { fields != openedFields }
+
     private var isValid: Bool {
-        [calories, protein, carbs, fat, fiber].allSatisfy { Int($0) != nil }
+        [Field.calories, .protein, .carbs, .fat, .fiber].allSatisfy { value(for: $0) != nil }
     }
 
     private func save() {
         guard
-            let kcal = Int(calories),
-            let p = Int(protein),
-            let c = Int(carbs),
-            let f = Int(fat),
-            let fib = Int(fiber)
+            let kcal = value(for: .calories),
+            let p = value(for: .protein),
+            let c = value(for: .carbs),
+            let f = value(for: .fat),
+            let fib = value(for: .fiber)
         else { return }
         onSave(NutritionTargets(
             calories: kcal,

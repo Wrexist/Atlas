@@ -16,8 +16,6 @@ struct CycleCompletionPromptSheet: View {
     let onStartNewCycle: () -> Void
     let onDismiss: () -> Void
 
-    @Environment(\.dismiss) private var dismissEnv
-
     var body: some View {
         VStack(spacing: Spacing.lg) {
             header
@@ -33,11 +31,11 @@ struct CycleCompletionPromptSheet: View {
     private var header: some View {
         VStack(spacing: Spacing.sm) {
             Image(systemName: "checkmark.seal")
-                .font(.system(size: 44, weight: .light))
+                .font(AppFont.scaled(44, weight: .light, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.accentPrimary)
                 .padding(.top, Spacing.md)
 
-            Text("Your cycle just finished")
+            Text(daysPastEnd > 0 ? "Your cycle has ended" : "Your cycle just finished")
                 .font(AppFont.title)
                 .foregroundStyle(AppColor.textPrimary)
 

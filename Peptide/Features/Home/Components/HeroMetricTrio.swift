@@ -66,19 +66,17 @@ struct HeroMetricTrio: View {
             .frame(minWidth: 0, maxWidth: .infinity)
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { rowWidth = $0 }
 
-            if !isLoading, snapshot.needsHealthConnection {
-                healthConnectionFooter
+            if !isLoading {
+                if snapshot.needsHealthConnection {
+                    healthConnectionFooter
+                } else if snapshot.awaitsHealthData {
+                    footerContent(Self.awaitingDataMessage, chevron: false)
+                        .accessibilityElement(children: .combine)
+                }
             }
         }
         .padding(Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.6))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                }
-        }
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Today's metrics")
     }
@@ -117,16 +115,6 @@ struct HeroMetricTrio: View {
                     celebrateAtCompletion: kind == .adherence
                 ) {
                     ringCenter(kind: kind, value: value)
-                }
-                .onChange(of: value.progress) { oldValue, newValue in
-                    // Pair the celebration scale-pulse with a
-                    // success notification haptic the first time
-                    // the adherence ring crosses 100% in a day.
-                    // Suppressed for Recovery + Sleep — same
-                    // reason as celebrateAtCompletion above.
-                    guard kind == .adherence,
-                          oldValue < 1.0, newValue >= 1.0 else { return }
-                    Haptics.success()
                 }
 
                 Text(kind.label)
@@ -197,7 +185,7 @@ struct HeroMetricTrio: View {
     private var healthConnectionFooter: some View {
         if let onConnectHealth {
             Button(action: onConnectHealth) {
-                footerContent(chevron: true)
+                footerContent(Self.connectHealthMessage, chevron: true)
             }
             .buttonStyle(ScalePressStyle(pressedScale: 0.96))
             .minimumHitArea()
@@ -205,16 +193,23 @@ struct HeroMetricTrio: View {
             .accessibilityLabel("Connect Apple Health for Recovery and Sleep scores")
             .accessibilityHint("Asks for Apple Health access")
         } else {
-            footerContent(chevron: false)
+            footerContent(Self.connectHealthMessage, chevron: false)
         }
     }
 
-    private func footerContent(chevron: Bool) -> some View {
+    private static var connectHealthMessage: LocalizedStringKey {
+        "Connect Apple Health for Recovery & Sleep scores"
+    }
+    private static var awaitingDataMessage: LocalizedStringKey {
+        "Not enough recent Health data — wear your Apple Watch overnight to build a baseline"
+    }
+
+    private func footerContent(_ message: LocalizedStringKey, chevron: Bool) -> some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: "heart.text.square.fill")
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)
-            Text("Connect Apple Health for Recovery & Sleep scores")
+            Text(message)
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
                 .lineLimit(2)
@@ -316,7 +311,9 @@ struct HeroMetricValue: Equatable, Sendable {
         case .recovery:  name = "Recovery"
         case .sleep:     name = "Sleep"
         }
-        guard isAvailable else { return "\(name), no data" }
+        guard isAvailable else {
+            return kind == .adherence ? "\(name), no doses today" : "\(name), no data"
+        }
         return "\(name), \(displayPercent) percent"
     }
 }
@@ -347,6 +344,11 @@ struct HeroMetricSnapshot: Equatable, Sendable {
         !healthConnected && (!recovery.isAvailable || !sleep.isAvailable)
     }
 
+    /// Connected, but Recovery or Sleep has no recent samples to score.
+    var awaitsHealthData: Bool {
+        healthConnected && (!recovery.isAvailable || !sleep.isAvailable)
+    }
+
     static let empty = HeroMetricSnapshot(
         adherence: .unavailable,
         recovery: .unavailable,
@@ -356,19 +358,38 @@ struct HeroMetricSnapshot: Equatable, Sendable {
         lastSleepHours: nil
     )
 
+    /// A copy with only the adherence ring changed, so a dose toggle
+    /// doesn't repeat the HealthKit reads behind Recovery and Sleep.
+    func withAdherence(_ ratio: Double?) -> HeroMetricSnapshot {
+        HeroMetricSnapshot(
+            adherence: Self.adherenceValue(ratio),
+            recovery: recovery,
+            sleep: sleep,
+            healthConnected: healthConnected,
+            recoveryComponents: recoveryComponents,
+            lastSleepHours: lastSleepHours
+        )
+    }
+
+    private static func adherenceValue(_ ratio: Double?) -> HeroMetricValue {
+        ratio.map(HeroMetricValue.percent) ?? .unavailable
+    }
+
     /// Builds the snapshot. Adherence is synchronous (uses the
-    /// caller's already-computed ratio); Recovery and Sleep pull
-    /// from HealthKit via `RecoveryScoreEngine`. Safe to call from
+    /// caller's already-computed ratio, `nil` on a day with no doses
+    /// scheduled so the ring rests instead of reading 0%); Recovery
+    /// and Sleep pull from HealthKit via `RecoveryScoreEngine`. Safe to call from
     /// `.task` in HomeView — the call sites batch their work so a
     /// scene-phase change re-runs once, not three times.
     static func build(
-        adherenceRatio: Double,
+        adherenceRatio: Double?,
         healthConnected: Bool,
-        sleepTargetHours: Double = 8.0
+        sleepTargetHours: Double = RecoveryScoreEngine.defaultSleepTargetHours
     ) async -> HeroMetricSnapshot {
+        let adherence = adherenceValue(adherenceRatio)
         guard healthConnected else {
             return HeroMetricSnapshot(
-                adherence: .percent(adherenceRatio),
+                adherence: adherence,
                 recovery: .unavailable,
                 sleep: .unavailable,
                 healthConnected: false,
@@ -382,7 +403,7 @@ struct HeroMetricSnapshot: Equatable, Sendable {
         async let baseHRV    = kit.averageHRV(days: 30)
         async let recentRHR  = kit.averageRestingHeartRate(days: 3)
         async let baseRHR    = kit.averageRestingHeartRate(days: 30)
-        async let sleepHours = kit.averageSleepHours(days: 1)
+        async let sleepHours = kit.lastNightSleepHours()
 
         let inputs = await RecoveryScoreEngine.Inputs(
             recentHRV: recentHRV,
@@ -405,7 +426,7 @@ struct HeroMetricSnapshot: Equatable, Sendable {
         }()
 
         return HeroMetricSnapshot(
-            adherence: .percent(adherenceRatio),
+            adherence: adherence,
             recovery: recoveryValue,
             sleep: sleepValue,
             healthConnected: true,

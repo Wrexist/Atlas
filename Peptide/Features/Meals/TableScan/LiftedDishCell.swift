@@ -6,6 +6,9 @@ struct ReviewDish: Identifiable {
         case pending
         case read(TableDishReader.Reading)
         case failed(String)
+        /// The scan found nothing edible — a phone or a napkin cut out of
+        /// the table. Reading it again can't change that.
+        case notFood
     }
 
     let id: UUID
@@ -94,8 +97,8 @@ struct LiftedDishCell: View {
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.96))
         .accessibilityLabel(Text(dish.name.isEmpty ? suggestedName : dish.name))
-        .accessibilityValue(dish.include ? Text("Kept") : Text("Left out"))
-        .accessibilityHint("Double-tap to keep or leave out this dish.")
+        .accessibilityAddTraits(dish.include ? .isSelected : [])
+        .accessibilityHint("Keeps or leaves out this dish.")
     }
 
     private var suggestedName: String {
@@ -146,16 +149,31 @@ struct LiftedDishCell: View {
             .buttonStyle(ScalePressStyle(pressedScale: 0.95))
             .minimumHitArea()
             .accessibilityHint("Uses this name for the dish.")
-        case .failed:
-            Button(action: onRetry) {
-                Label("Couldn't read · Retry", systemImage: "arrow.clockwise")
+        case .failed(let message):
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(message)
                     .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.warning)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .frame(minHeight: Spacing.minimumHitTarget)
-                    .contentShape(Rectangle())
+                    .foregroundStyle(AppColor.textSecondary)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button(action: onRetry) {
+                    Label("Retry", systemImage: "arrow.clockwise")
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.warning)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(minHeight: Spacing.minimumHitTarget)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Retry reading this dish")
             }
-            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        case .notFood:
+            Text("Not food — left out")
+                .font(AppFont.caption2)
+                .foregroundStyle(AppColor.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(minHeight: Spacing.minimumHitTarget)
         }
     }
 }
@@ -191,6 +209,7 @@ struct DishKindPicker: View {
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
+                .minimumHitArea()
                 .accessibilityAddTraits(selection == kind ? .isSelected : [])
             }
         }

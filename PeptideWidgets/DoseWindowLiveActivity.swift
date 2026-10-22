@@ -1,6 +1,7 @@
 import ActivityKit
 import AppIntents
 import SwiftUI
+import UIKit
 import WidgetKit
 
 /// Lock-screen + Dynamic Island Live Activity for an in-progress
@@ -12,8 +13,10 @@ import WidgetKit
 ///   • upcoming — soft accent ring growing toward the dose time
 ///   • dueNow   — full-bleed accent, "Take now" CTA, Log button
 ///                lights up
-///   • late     — amber accent, "Late" pill
-///   • stale    — neutral "Missed window" layout once the window closes
+///   • late     — amber accent, "Late" pill. An unlogged dose stays
+///                here: the one stale-date redraw is spent moving into
+///                Late, and the app ends the activity once the window
+///                closes.
 ///   • completed— green pill with a checkmark, auto-dismissing
 ///
 /// The activity is started by `DoseLiveActivityService` from the
@@ -28,8 +31,7 @@ struct DoseWindowLiveActivity: Widget {
         ActivityConfiguration(for: DoseWindowAttributes.self) { context in
             DoseWindowLockView(
                 attributes: context.attributes,
-                state: context.state,
-                isStale: context.isStale
+                state: context.state
             )
             // Tapping anywhere outside the Log button deep-links
             // into the matching dose row in the app.
@@ -63,11 +65,16 @@ struct DoseWindowLiveActivity: Widget {
                         .font(.system(size: 14, weight: .heavy, design: .rounded))
                         .foregroundStyle(.white)
                         .lineLimit(1)
-                    Text(context.attributes.doseDisplay)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.65))
-                        .lineLimit(1)
+                    if !context.attributes.doseDisplay.isEmpty {
+                        Text(context.attributes.doseDisplay)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.65))
+                            .lineLimit(1)
+                    }
                 }
+                // Redacted on a locked device, as the home and lock
+                // screen widgets redact the same names and doses.
+                .privacySensitive()
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             DynamicIslandExpandedRegion(.bottom) {
@@ -115,8 +122,8 @@ private func statusAccent(
     switch state.status() {
     case .upcoming:  return tint
     case .dueNow:    return tint
-    case .late:      return Color(red: 1.00, green: 0.70, blue: 0.20) // amber
-    case .completed: return Color(red: 0.36, green: 0.78, blue: 0.55) // green
+    case .late:      return WidgetPalette.over
+    case .completed: return WidgetPalette.done
     }
 }
 
@@ -137,13 +144,13 @@ private func statusShortLabel(
 ) -> String {
     switch state.status() {
     case .upcoming:
-        return "Due \(state.doseTime.formatted(date: .omitted, time: .shortened))"
+        return String(localized: "Due \(state.doseTime.formatted(date: .omitted, time: .shortened))")
     case .dueNow:
-        return "now"
+        return String(localized: "now")
     case .late:
-        return "Late"
+        return String(localized: "Late")
     case .completed:
-        return "Logged"
+        return String(localized: "Logged")
     }
 }
 
@@ -153,9 +160,7 @@ private func statusShortLabel(
 private struct DoseWindowLockView: View {
     let attributes: DoseWindowAttributes
     let state: DoseWindowAttributes.ContentState
-    /// Past the activity's `staleDate` (dose + 90 min). Nothing will
-    /// update it again, so the live countdown would be a lie.
-    let isStale: Bool
+    @Environment(\.colorScheme) private var colorScheme
 
     private var tint: Color { Color(hex: attributes.tintHex) }
     private var accent: Color { statusAccent(for: state, tint: tint) }
@@ -176,43 +181,14 @@ private struct DoseWindowLockView: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            if isStale && !state.completed {
-                missedWindow
-                    .padding(14)
-            } else {
-                VStack(spacing: 12) {
-                    topRow
-                    bottomRow
-                }
-                .padding(14)
+            VStack(spacing: 12) {
+                topRow
+                bottomRow
             }
+            .padding(14)
         }
         .activityBackgroundTint(Color.black.opacity(0.05))
         .activitySystemActionForegroundColor(.white)
-    }
-
-    /// Neutral layout once the window has closed without a log. The
-    /// whole view still deep-links to the dose row, so tapping logs it.
-    private var missedWindow: some View {
-        HStack(alignment: .center, spacing: 14) {
-            Image(systemName: "clock.badge.xmark")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .frame(width: 56, height: 56)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(attributes.peptideName)
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                Text("Missed window · Tap to log")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-            Spacer(minLength: 0)
-        }
-        .accessibilityElement(children: .combine)
     }
 
     private var topRow: some View {
@@ -229,17 +205,21 @@ private struct DoseWindowLockView: View {
                     .font(.system(size: 17, weight: .bold, design: .rounded))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
+                    .privacySensitive()
                 HStack(spacing: 6) {
-                    Text(attributes.doseDisplay)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.secondary)
-                    Text("·")
-                        .foregroundStyle(.secondary)
+                    if !attributes.doseDisplay.isEmpty {
+                        Text(attributes.doseDisplay)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.secondary)
+                        Text("·")
+                            .foregroundStyle(.secondary)
+                    }
                     Text(attributes.peptideAbbreviation)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(accent)
                 }
                 .lineLimit(1)
+                .privacySensitive()
             }
 
             Spacer(minLength: 0)
@@ -319,7 +299,7 @@ private struct DoseWindowLockView: View {
                     Text("Log")
                         .font(.system(size: 14, weight: .heavy))
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(labelColor(on: accent, in: colorScheme))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .background {
@@ -444,6 +424,7 @@ private struct CompactTrailing: View {
     let state: DoseWindowAttributes.ContentState
     let accent: Color
 
+    @ViewBuilder
     var body: some View {
         switch state.status() {
         case .completed:
@@ -457,13 +438,16 @@ private struct CompactTrailing: View {
                 .foregroundStyle(accent)
                 .padding(.trailing, 2)
         case .late:
-            HStack(spacing: 2) {
-                Text(state.doseTime, style: .relative)
-                    .font(.system(size: 11, weight: .heavy, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(accent)
-            }
-            .padding(.trailing, 2)
+            // A count-up timer stays "1:12:00" past the hour, where the
+            // relative style grows to "1 hr, 12 min" and spills the pill.
+            Text(state.doseTime, style: .timer)
+                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(accent)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(maxWidth: 44)
+                .padding(.trailing, 2)
         case .upcoming:
             Text(timerInterval: state.countdownInterval(), countsDown: true)
                 .font(.system(size: 11, weight: .heavy, design: .rounded))
@@ -523,7 +507,7 @@ private struct IslandTrailingTimer: View {
 
     var body: some View {
         VStack(alignment: .trailing, spacing: 0) {
-            primaryText
+            statusText
                 .font(.system(size: 17, weight: .heavy, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(accent)
@@ -537,12 +521,16 @@ private struct IslandTrailingTimer: View {
     }
 
     @ViewBuilder
-    private var primaryText: some View {
+    private var statusText: some View {
         switch state.status() {
         case .completed:
-            Text("✓")
+            // The "Logged" caption underneath already speaks the state.
+            Image(systemName: "checkmark")
+                .accessibilityHidden(true)
         case .late:
-            Text(state.doseTime, style: .relative)
+            Text(state.doseTime, style: .timer)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
         case .dueNow:
             Text(state.doseTime, style: .time)
         case .upcoming:
@@ -556,6 +544,7 @@ private struct IslandBottomBar: View {
     let entryId: UUID
     let state: DoseWindowAttributes.ContentState
     let tint: Color
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         HStack(spacing: 10) {
@@ -577,7 +566,7 @@ private struct IslandBottomBar: View {
                 Text("Logged")
                     .font(.system(size: 13, weight: .heavy))
             }
-            .foregroundStyle(Color(red: 0.36, green: 0.78, blue: 0.55))
+            .foregroundStyle(WidgetPalette.done)
         } else {
             Button(intent: LogDoseLiveActivityIntent(entryId: entryId)) {
                 HStack(spacing: 6) {
@@ -586,7 +575,7 @@ private struct IslandBottomBar: View {
                     Text("Log dose")
                         .font(.system(size: 13, weight: .heavy))
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(labelColor(on: tint, in: colorScheme))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 7)
                 .background {
@@ -628,7 +617,25 @@ private struct ProgressLabel: View {
     }
 }
 
-// MARK: - Colour helper
+// MARK: - Colour helpers
+
+/// Black or white, whichever reads better on `fill`. Vial tints run from
+/// deep to pale, and the late amber is light, so a fixed white label
+/// fails contrast on some of the fills the Log button takes. The late
+/// amber is a light/dark pair, so it is resolved against the scheme the
+/// view draws in, not whatever trait collection is current.
+private func labelColor(on fill: Color, in colorScheme: ColorScheme) -> Color {
+    let traits = UITraitCollection(userInterfaceStyle: colorScheme == .dark ? .dark : .light)
+    var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+    guard UIColor(fill).resolvedColor(with: traits).getRed(&r, green: &g, blue: &b, alpha: &a) else { return .white }
+    func linear(_ channel: CGFloat) -> Double {
+        let c = Double(channel)
+        return c <= 0.03928 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
+    }
+    let luminance = 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
+    // Above this, black text out-contrasts white (WCAG relative luminance).
+    return luminance > 0.179 ? .black : .white
+}
 
 private extension Color {
     init(hex: UInt) {

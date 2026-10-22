@@ -28,7 +28,7 @@ struct MealNutrientDetails: View {
         }
     }
     private func row(_ title: LocalizedStringKey, value: Double?) -> some View {
-        LabeledContent(title, value: value.map { "\($0.formatted(.number.precision(.fractionLength(0...1)))) g" } ?? "Unavailable")
+        LabeledContent(title, value: value.map { "\($0.formatted(.number.precision(.fractionLength(0...1)))) g" } ?? String(localized: "Unavailable"))
             .font(AppFont.callout)
     }
 }
@@ -48,9 +48,10 @@ struct DailyMealNutrientsCard: View {
     }
     private func row(_ title: LocalizedStringKey, coverage: MealNutrientCoverage) -> some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            LabeledContent(title, value: coverage.total.map {
-                "\($0.formatted(.number.precision(.fractionLength(0...1)))) g\(coverage.missing > 0 ? " · Partial" : "")"
-            } ?? "Unavailable")
+            LabeledContent(title, value: coverage.total.map { (total: Double) -> String in
+                let grams = "\(total.formatted(.number.precision(.fractionLength(0...1)))) g"
+                return coverage.missing > 0 ? String(localized: "\(grams) · Partial") : grams
+            } ?? String(localized: "Unavailable"))
             if coverage.missing > 0 {
                 Text("^[\(coverage.missing) item](inflect: true) without label data")
                     .font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)

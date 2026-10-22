@@ -53,43 +53,75 @@ struct ProtocolSchedule: Hashable, Codable, Sendable {
         return daysOfWeek.contains(isoDay)
     }
 
+    /// `isActive(on:)`, except an interval schedule with no stored anchor
+    /// (library imports) counts from the protocol's start instead of
+    /// matching every day.
+    func isActive(on date: Date, protocolStart: Date, calendar: Calendar = .current) -> Bool {
+        guard isInterval, intervalAnchor == nil else {
+            return isActive(on: date, calendar: calendar)
+        }
+        let anchored = ProtocolSchedule(
+            daysOfWeek: daysOfWeek,
+            timesPerDay: timesPerDay,
+            preferredTimes: preferredTimes,
+            customDose: customDose,
+            intervalDays: intervalDays,
+            intervalAnchor: protocolStart
+        )
+        return anchored.isActive(on: date, calendar: calendar)
+    }
+
+    /// `preferredTimes` are stored as en_US_POSIX "h:mm a" keys; this
+    /// renders one in the user's own clock format ("08:00" on a 24-hour
+    /// device). Unparseable keys pass through unchanged.
+    static func displayTime(_ storageKey: String) -> String {
+        guard let date = storageTimeParser.date(from: storageKey) else { return storageKey }
+        return date.formatted(date: .omitted, time: .shortened)
+    }
+
+    private static let storageTimeParser: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "h:mm a"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
+
     var daysDescription: String {
         if isInterval, let n = intervalDays {
-            return n == 1 ? "Every day" : "Every \(n) days"
+            return n == 1 ? String(localized: "Every day") : String(localized: "Every \(n) days")
         }
-        let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
         let validDays = daysOfWeek.filter { (1...7).contains($0) }
-        if validDays.count == 7 { return "Every day" }
-        return validDays.sorted().map { dayNames[$0 - 1] }.joined(separator: ", ")
+        if validDays.count == 7 { return String(localized: "Every day") }
+        return Self.dayNames(validDays)
     }
 
     var compactDaysDescription: String {
         if isInterval, let n = intervalDays {
-            return n == 1 ? "Daily" : "Every \(n)d"
+            return n == 1 ? String(localized: "Daily") : String(localized: "Every \(n)d")
         }
-        let dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        let validDays = daysOfWeek.filter { (1...7).contains($0) }.sorted()
-        if validDays.count == 7 { return "Daily" }
-        return validDays.map { dayNames[$0 - 1] }.joined(separator: ", ")
+        let validDays = daysOfWeek.filter { (1...7).contains($0) }
+        if validDays.count == 7 { return String(localized: "Daily") }
+        return Self.dayNames(validDays)
+    }
+
+    /// Localised short names for ISO weekdays (1 = Mon … 7 = Sun), in
+    /// Monday-first order. `shortWeekdaySymbols` starts at Sunday.
+    private static func dayNames(_ isoDays: [Int], calendar: Calendar = .current) -> String {
+        let symbols = calendar.shortWeekdaySymbols
+        return isoDays.sorted().map { symbols[$0 % 7] }.joined(separator: ", ")
     }
 
     var summary: String {
         "\(compactDaysDescription) · \(timesPerDay)x"
     }
 
-    /// Returns the dose for an entry, preferring the custom override and
-    /// falling back to the peptide's high end of its default dosage range.
-    /// Whitespace- or newline-only overrides are treated as empty so legacy
-    /// data with stray whitespace doesn't surface as a custom dose.
-    func resolvedDose(for peptide: Peptide) -> String {
-        if let customDose {
-            let normalized = customDose.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !normalized.isEmpty { return normalized }
-        }
-        return peptide.dosageRange
-            .components(separatedBy: "-")
-            .last?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? peptide.dosageRange
+    /// The user's own dose, or empty when they haven't set one. Never
+    /// derived from the database's free-text research range: that prose
+    /// doesn't parse into a dose, and presenting a reference figure as
+    /// the user's dose breaks Guideline 1.4.1. Whitespace-only overrides
+    /// from legacy data count as unset.
+    var resolvedDose: String {
+        customDose?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
 
     // MARK: - Codable (backwards-compatible: customDose / interval are optional)
@@ -191,15 +223,80 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
         peptideSchedules[peptideId] != nil
     }
 
-    /// Cycle-end is defined once on `cycleEndDay`; `endDate` is an
-    /// alias so the two can never drift (they previously used
-    /// `.weekOfYear`-add on the raw start date vs `.day`-add on the
-    /// start-of-day, disagreeing by an hour across DST and by the
-    /// time-of-day component always).
-    var endDate: Date { cycleEndDay }
+    /// Completed doses ÷ doses due over the last `days` calendar days,
+    /// today included. Entries are only generated on days the app is
+    /// opened, so past days take their due count from the schedule — a
+    /// day the app never saw counts as missed rather than vanishing.
+    /// Wash-out days and days past the cycle's end have nothing due.
+    /// Today only counts doses already due or already taken. Nil when
+    /// nothing was due in the window.
+    func adherence(
+        entries: [ProtocolEntry],
+        days: Int,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Double? {
+        let today = calendar.startOfDay(for: now)
+        guard let windowStart = calendar.date(byAdding: .day, value: -(days - 1), to: today) else { return nil }
+        let firstDay = max(windowStart, calendar.startOfDay(for: startDate))
+        let windowEntries = entries.filter { $0.protocolId == id && $0.date >= firstDay }
 
-    /// Canonical "cycle is over" boundary used by `CycleCompletionService`
-    /// and `daysRemaining`. Normalised to `startOfDay(of: startDate)`
+        var due = 0
+        var completed = 0
+        var day = firstDay
+        while day < today {
+            let dayEntries = windowEntries.filter { calendar.isDate($0.date, inSameDayAs: day) }
+            let scheduled = status == .active && CyclePhaseEngine.isOnCycle(day, protocol: self, calendar: calendar)
+                ? scheduledDoseCount(on: day, calendar: calendar)
+                : 0
+            due += max(scheduled, dayEntries.count)
+            completed += dayEntries.filter(\.completed).count
+            guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
+            day = next
+        }
+
+        let todayEntries = windowEntries.filter {
+            calendar.isDate($0.date, inSameDayAs: today) && ($0.completed || $0.date <= now)
+        }
+        due += todayEntries.count
+        completed += todayEntries.filter(\.completed).count
+
+        guard due > 0 else { return nil }
+        return Double(completed) / Double(due)
+    }
+
+    /// Doses the schedule puts on `day`, one per preferred time per
+    /// peptide — the same shape the app generates entries in.
+    private func scheduledDoseCount(on day: Date, calendar: Calendar) -> Int {
+        peptides.reduce(0) { total, peptide in
+            let peptideSchedule = schedule(for: peptide.id)
+            guard peptideSchedule.isActive(on: day, protocolStart: startDate, calendar: calendar) else { return total }
+            return total + peptideSchedule.preferredTimes.count
+        }
+    }
+
+    /// End of the cycle the user is in now. Matches `cycleEndDay` for
+    /// the first cycle; a wash-out protocol in a later cycle ends that
+    /// cycle instead, so the card's "days left" and progress agree with
+    /// its "Week N" (which wraps per cycle).
+    var endDate: Date {
+        let cal = Calendar.current
+        return cal.date(byAdding: .day, value: safeCycleLengthWeeks * 7, to: currentCycleStartDay)
+            ?? currentCycleStartDay
+    }
+
+    /// Start of day of the current on-phase. Only wash-out protocols
+    /// repeat; a single-cycle protocol always measures from `startDate`.
+    var currentCycleStartDay: Date {
+        let cal = Calendar.current
+        let dayStart = cal.startOfDay(for: startDate)
+        guard washoutWeeks > 0 else { return dayStart }
+        let cycleDays = (safeCycleLengthWeeks + washoutWeeks) * 7
+        return cal.date(byAdding: .day, value: (cycleNumber - 1) * cycleDays, to: dayStart) ?? dayStart
+    }
+
+    /// Canonical "cycle is over" boundary used by `CycleCompletionService`:
+    /// the end of the first cycle. Normalised to `startOfDay(of: startDate)`
     /// so a protocol created at 11 PM doesn't drift its end-of-cycle
     /// across midnight relative to `endDate`. Uses `safeCycleLengthWeeks`
     /// to floor at 1 week.
@@ -224,20 +321,24 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
     }
 
     var cycleProgress: Double {
-        // Normalize to start-of-day on both ends: `endDate` (cycleEndDay)
-        // is already day-aligned, so measuring elapsed/total from the raw
+        // Normalize to start-of-day on both ends: `endDate` is already
+        // day-aligned, so measuring elapsed/total from the raw
         // startDate + current time made a protocol started at 11pm read
         // ~95% on its final day until midnight.
         let cal = Calendar.current
-        let start = cal.startOfDay(for: startDate)
+        let start = currentCycleStartDay
         let total = endDate.timeIntervalSince(start)
         let elapsed = cal.startOfDay(for: Date()).timeIntervalSince(start)
         guard total > 0 else { return 0 }
         return min(max(elapsed / total, 0), 1)
     }
 
+    /// Whole calendar days to `endDate`. Measured from today's start of
+    /// day like `cycleProgress`: from `Date()` the partial day truncated
+    /// and read one short for most of every day.
     var daysRemaining: Int {
-        let days = Calendar.current.dateComponents([.day], from: Date(), to: endDate).day ?? 0
+        let cal = Calendar.current
+        let days = cal.dateComponents([.day], from: cal.startOfDay(for: Date()), to: endDate).day ?? 0
         return max(days, 0)
     }
 

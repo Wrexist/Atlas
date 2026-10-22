@@ -208,7 +208,9 @@ final class ExportService {
     /// The training parameters default to empty so callers that only
     /// have protocol data (tests, fixtures) keep working, but the
     /// production call site must pass everything.
-    func exportFullBackup(
+    /// `nonisolated` so the export flow can encode years of history off
+    /// the main thread; it touches nothing but its Sendable arguments.
+    nonisolated func exportFullBackup(
         protocols: [PeptideProtocol],
         entries: [ProtocolEntry],
         profile: UserProfile,

@@ -168,6 +168,29 @@ final class AuthServiceTests: XCTestCase {
         XCTAssertNil(UserDefaults.standard.data(forKey: "achievements"))
     }
 
+    /// The product cache feeds the "recently scanned" rows, so it is scan
+    /// history too and must not survive the erase.
+    func test_deleteAllData_clearsRecentlyScannedProducts() async throws {
+        SwiftDataRepository.shared.configureForTesting()
+        _ = DataStore(seedSampleData: true)
+        let cache = BarcodeProductCache.shared
+        await cache.write(ScannedProduct(barcode: "7394376616228", name: "Barista", brand: "Oatly", imageURL: nil,
+                                         servingSizeText: "1 cup", servingGrams: 200, packageGrams: nil,
+                                         per100g: .zero, nutriScore: nil, novaGroup: nil, fetchedAt: Date()))
+        let seeded = await cache.recent(limit: 1)
+        XCTAssertFalse(seeded.isEmpty)
+
+        auth.deleteAllData()
+
+        // The erase reaches the cache actor from an unstructured task.
+        var remaining = await cache.recent(limit: 1)
+        for _ in 0..<50 where !remaining.isEmpty {
+            try await Task.sleep(for: .milliseconds(20))
+            remaining = await cache.recent(limit: 1)
+        }
+        XCTAssertTrue(remaining.isEmpty)
+    }
+
     func test_deleteAccount_whenSignedOut_leavesDataIntact() {
         SwiftDataRepository.shared.configureForTesting()
         _ = DataStore(seedSampleData: true)

@@ -190,6 +190,200 @@ final class ProfileSyncIntegrityTests: XCTestCase {
         XCTAssertEqual(try fetchAllRows().count, 1)
     }
 
+    func test_freshOnboardingRowNewerThanTheRealRow_keepsTheAccountHistory() throws {
+        // A new iPhone finishes onboarding before CloudKit's first import:
+        // its fresh row is newer than the account's real one.
+        var real = baseProfile()
+        real.weightHistory = [WeightEntry(date: day, kg: 80)]
+        let realRow = try StoredProfile.make(from: real)
+        realRow.updatedAt = day
+
+        var fresh = UserProfile.fresh
+        fresh.name = "Onboarded"
+        let freshRow = try StoredProfile.make(from: fresh)
+        freshRow.updatedAt = day.addingTimeInterval(3600)
+
+        try insertRows([realRow, freshRow])
+
+        let loaded = try XCTUnwrap(repo.loadProfile())
+        XCTAssertEqual(loaded.name, "Onboarded")
+        XCTAssertEqual(loaded.mealHistory.map(\.name), ["Base meal"])
+        XCTAssertEqual(loaded.habits.map(\.name), ["Hydrate"])
+        XCTAssertEqual(loaded.weightHistory.count, 1)
+        XCTAssertEqual(try fetchAllRows().count, 1)
+    }
+
+    func test_freshRowNewerThanTheRealRow_keepsTheAccountSettings() throws {
+        // A save after an identity change, before CloudKit's first import,
+        // writes the in-memory fresh profile as the newest row.
+        var real = baseProfile()
+        real.bodyMetrics = BodyMetrics(weightKg: 82, heightCm: 180, age: 38,
+                                       sex: .male, activityLevel: .active, unit: .metric)
+        real.biometricLockEnabled = true
+        real.lastKnownTimezoneIdentifier = "Europe/Stockholm"
+        let realRow = try StoredProfile.make(from: real)
+        realRow.updatedAt = day
+
+        let freshRow = try StoredProfile.make(from: .fresh)
+        freshRow.updatedAt = day.addingTimeInterval(3600)
+
+        try insertRows([realRow, freshRow])
+
+        let loaded = try XCTUnwrap(repo.loadProfile())
+        XCTAssertEqual(loaded.bodyMetrics, real.bodyMetrics)
+        XCTAssertTrue(loaded.biometricLockEnabled)
+        XCTAssertEqual(loaded.lastKnownTimezoneIdentifier, "Europe/Stockholm")
+        XCTAssertEqual(loaded.name, "Sync Tester")
+        XCTAssertEqual(try fetchAllRows().count, 1)
+    }
+
+    func test_duplicateRowWithUnreadableColumn_movesItToTheWinner() throws {
+        let unreadable = Data("written by a newer build".utf8)
+        let olderRow = try StoredProfile.make(from: .fresh)
+        olderRow.mealsData = unreadable
+        olderRow.updatedAt = day
+        let newerRow = try StoredProfile.make(from: .fresh)
+        newerRow.updatedAt = day.addingTimeInterval(3600)
+
+        try insertRows([olderRow, newerRow])
+        _ = repo.loadProfile()
+
+        let rows = try fetchAllRows()
+        XCTAssertEqual(rows.count, 1)
+        XCTAssertEqual(rows.first?.mealsData, unreadable)
+    }
+
+    func test_duplicateRowWithUnreadableColumn_isKeptWhenTheWinnerHasData() throws {
+        let olderRow = try StoredProfile.make(from: .fresh)
+        olderRow.mealsData = Data("written by a newer build".utf8)
+        olderRow.updatedAt = day
+        let newerRow = try StoredProfile.make(from: baseProfile())
+        newerRow.updatedAt = day.addingTimeInterval(3600)
+
+        try insertRows([olderRow, newerRow])
+        let loaded = try XCTUnwrap(repo.loadProfile())
+
+        XCTAssertEqual(loaded.mealHistory.map(\.name), ["Base meal"])
+        XCTAssertEqual(try fetchAllRows().count, 2)
+    }
+
+    func test_keptDuplicateRow_isNotMergedAgain_soADeletedHabitStaysDeleted() throws {
+        let olderRow = try StoredProfile.make(from: baseProfile())
+        olderRow.mealsData = Data("written by a newer build".utf8)
+        olderRow.updatedAt = day
+        let newerRow = try StoredProfile.make(from: baseProfile())
+        newerRow.updatedAt = day.addingTimeInterval(3600)
+        try insertRows([olderRow, newerRow])
+
+        var loaded = try XCTUnwrap(repo.loadProfile())
+        loaded.habits = []
+        repo.saveProfile(loaded)
+
+        XCTAssertEqual(try XCTUnwrap(repo.loadProfile()).habits, [])
+        XCTAssertEqual(try fetchAllRows().count, 2)
+    }
+
+    func test_reconcile_mealOnBothRows_isCountedOnce() {
+        var shared = UserProfile.fresh
+        LifestyleDataLogic.logMealEntry(into: &shared, entry: meal("Shared"))
+        var primary = shared
+        LifestyleDataLogic.logMealEntry(into: &primary, entry: meal("Primary"))
+        var other = shared
+        LifestyleDataLogic.logMealEntry(into: &other, entry: meal("Other"))
+
+        let merged = ProfileMergeEngine.reconcile(primary, with: other)
+
+        XCTAssertEqual(Set(merged.mealHistory.map(\.name)), ["Shared", "Primary", "Other"])
+        XCTAssertEqual(LifestyleDataLogic.consumption(in: merged, for: day).caloriesKcal, 3 * 550)
+    }
+
+    // MARK: - Stale in-memory state
+
+    func test_saveSinceBaseline_keepsAColumnAnotherDeviceChanged() throws {
+        let base = baseProfile()
+        repo.saveProfile(base)
+        var remote = base
+        remote.habitEntries.append(HabitEntry(habitId: base.habits[0].id, date: day))
+        repo.saveProfile(remote)
+
+        var local = base
+        local.name = "Renamed here"
+        repo.saveProfile(local, since: base)
+
+        let loaded = try XCTUnwrap(repo.loadProfile())
+        XCTAssertEqual(loaded.name, "Renamed here")
+        XCTAssertEqual(loaded.habitEntries.count, 1,
+                       "A column this device didn't edit must keep the other device's check-in")
+    }
+
+    func test_saveSinceBaseline_replaysThisDevicesMealOntoAnotherDevicesDiary() throws {
+        var base = UserProfile.fresh
+        LifestyleDataLogic.logMealEntry(into: &base, entry: meal("Breakfast"))
+        repo.saveProfile(base)
+        var remote = base
+        LifestyleDataLogic.logMealEntry(into: &remote, entry: meal("iPad lunch"))
+        repo.saveProfile(remote)
+
+        var local = base
+        LifestyleDataLogic.logMealEntry(into: &local, entry: meal("iPhone dinner"))
+        repo.saveProfile(local, since: base)
+
+        let loaded = try XCTUnwrap(repo.loadProfile())
+        XCTAssertEqual(Set(loaded.mealHistory.map(\.name)), ["Breakfast", "iPad lunch", "iPhone dinner"])
+        XCTAssertEqual(LifestyleDataLogic.consumption(in: loaded, for: day).caloriesKcal, 3 * 550)
+    }
+
+    // MARK: - Unreadable columns
+
+    func test_unreadableSliceColumn_isLeftUntouchedBySave() throws {
+        let row = try StoredProfile.make(from: baseProfile())
+        let unreadable = Data("written by a newer build".utf8)
+        row.mealsData = unreadable
+
+        var decoded = try row.toUserProfile()
+        XCTAssertTrue(decoded.mealHistory.isEmpty)
+        decoded.habitEntries.append(HabitEntry(habitId: decoded.habits[0].id, date: day))
+        try row.update(from: decoded)
+
+        XCTAssertEqual(row.mealsData, unreadable, "An unreadable column must survive a save untouched")
+        XCTAssertEqual(try row.toUserProfile().habitEntries.count, 1)
+    }
+
+    func test_workoutMigrationMarker_survivesARoundTrip() throws {
+        var profile = baseProfile()
+        profile.workoutLegacyMigrationCompleted = true
+
+        let row = try StoredProfile.make(from: profile)
+
+        XCTAssertTrue(try row.toUserProfile().workoutLegacyMigrationCompleted)
+    }
+
+    // MARK: - Apple Health imports
+
+    func test_healthImportedWeight_staysOutOfTheSyncedColumn_butLoads() throws {
+        let imported = WeightEntry(date: day, kg: 81)
+        XCTAssertTrue(repo.recordHealthWeightImports([imported]))
+        var profile = baseProfile()
+        profile.weightHistory = [imported]
+
+        repo.saveProfile(profile)
+
+        let synced = try XCTUnwrap(loadStoredRow()?.weightHistoryData)
+        XCTAssertFalse(String(decoding: synced, as: UTF8.self).contains(imported.id.uuidString))
+        XCTAssertEqual(repo.loadProfile()?.weightHistory.map(\.id), [imported.id])
+    }
+
+    func test_deletedHealthImport_isDismissed() {
+        let imported = WeightEntry(date: day, kg: 81)
+        XCTAssertTrue(repo.recordHealthWeightImports([imported]))
+
+        repo.dismissHealthWeight(id: imported.id)
+
+        XCTAssertTrue(repo.dismissedHealthWeightIDs.contains(imported.id))
+        repo.saveProfile(baseProfile())
+        XCTAssertEqual(repo.loadProfile()?.weightHistory, [])
+    }
+
     // MARK: - Helpers
 
     private func loadStoredRow() throws -> StoredProfile? {

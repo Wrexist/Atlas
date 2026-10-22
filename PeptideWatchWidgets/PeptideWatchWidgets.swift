@@ -105,7 +105,9 @@ struct WatchAccessoryRectangularView: View {
             }
             Text(entry.nextPeptide.isEmpty
                  ? (entry.totalToday == 0 ? "No doses today" : "All complete")
-                 : "\(entry.nextPeptide) · \(entry.nextDose)")
+                 : entry.nextDose.isEmpty
+                    ? "\(entry.nextPeptide)"
+                    : "\(entry.nextPeptide) · \(entry.nextDose)")
                 .font(.caption2)
                 .lineLimit(1)
         }

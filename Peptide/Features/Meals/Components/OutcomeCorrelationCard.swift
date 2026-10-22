@@ -22,9 +22,9 @@ struct OutcomeCorrelationCard: View {
     private var delta: Double { headline.delta ?? 0 }
     private var deltaPhrase: String {
         let value = (delta * 10).rounded() / 10  // one decimal
-        // %+ signs both directions — a hardcoded "+" rendered a negative
+        // `.always()` signs both directions — a hardcoded "+" rendered a negative
         // delta as "+-0.8".
-        return String(format: "%+.1f", value)
+        return value.formatted(.number.precision(.fractionLength(1)).sign(strategy: .always()))
     }
 
     var body: some View {
@@ -114,7 +114,7 @@ struct OutcomeCorrelationCard: View {
                 }
             }
             .frame(height: 10)
-            Text(String(format: "%.1f", value))
+            Text(value.formatted(.number.precision(.fractionLength(1))))
                 .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
@@ -126,7 +126,7 @@ struct OutcomeCorrelationCard: View {
                 .frame(width: 28, alignment: .trailing)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(label) average \(String(format: "%.1f", value)) over \(count) days")
+        .accessibilityLabel("\(label) average \(value.formatted(.number.precision(.fractionLength(1)))) over \(count) days")
     }
 
     private var footnote: some View {

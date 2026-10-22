@@ -132,6 +132,13 @@ test('test_productMode_sendsOnlyKnownFields', () => {
   assert.match(text, /locale: en_US\. Currency: USD/);
 });
 
+test('test_localeWithKeywords_keepsLanguageAndRegion', () => {
+  for (const locale of ['sv_SE@rg=sezzzz', 'sv_SE@calendar=gregorian;rg=sezzzz']) {
+    const request = buildFoodScanRequest({ mode: 'product', product: { query: 'mjölk' }, locale, currency: 'SEK' });
+    assert.match(request.messages[0].content[0].text, /locale: sv_SE\. Currency: SEK/);
+  }
+});
+
 test('test_corrections_reachPrompt_cappedAndShapeChecked', () => {
   const fix = { seen: 'spaghetti', seen_grams: 250, logged_as: 'Fullkornspasta', grams: 180, brand: 'Barilla' };
   const request = buildFoodScanRequest({

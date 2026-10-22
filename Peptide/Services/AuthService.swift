@@ -263,7 +263,12 @@ final class AuthService {
                 self?.coordinator = nil
                 switch result {
                 case .success(let authorization):
+                    // A different Apple ID (the device's account was switched)
+                    // would revoke the wrong token while the signed-in one stays
+                    // linked, so that reads as `.unavailable` and the user is
+                    // told to remove Atlas manually.
                     guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+                          credential.user == self?.userIdentifier,
                           let data = credential.authorizationCode,
                           let code = String(data: data, encoding: .utf8)
                     else {
@@ -278,6 +283,15 @@ final class AuthService {
             }
             self.coordinator = coordinator
             coordinator.start()
+            // Same watchdog as `signIn()`: Apple's auth daemon can hang, and
+            // without it the deletion card waits on "Deleting…" forever. A
+            // timeout reads as `.unavailable`, so the erase still runs and
+            // the user is told to revoke manually. `cancel` also dismisses
+            // Apple's sheet so nobody finishes a sign-in that is ignored.
+            Task { @MainActor in
+                try? await Task.sleep(for: Self.signInTimeout)
+                coordinator.cancel()
+            }
         }
     }
 
@@ -346,14 +360,19 @@ final class AuthService {
         TableMomentStore.shared.deleteAll()
         BackupSnapshotService.deleteAll()
         ExportService.shared.clearExports()
-        // Records kept outside the main stores: pending reminders carry
-        // protocol names and times, Live Activities show doses, and
-        // achievements, barcode history and scan corrections sit in
-        // UserDefaults.
+        // Records kept outside the main stores: reminders carry protocol
+        // names and times, Live Activities show doses, achievements, barcode
+        // history and scan corrections sit in UserDefaults, the product
+        // cache feeds "recently scanned", and Spotlight indexes custom
+        // foods and recipes.
         NotificationService.shared.cancelAll()
         DoseLiveActivityService.shared.endAll()
         AchievementService.shared.eraseAll()
-        Task { await BarcodeScanHistory.shared.removeAll() }
+        Task {
+            await BarcodeScanHistory.shared.removeAll()
+            await BarcodeProductCache.shared.clear()
+            await FoodSpotlightService.shared.removeAll()
+        }
         ScanCorrectionMemory.shared.eraseAll()
         if let store { resetInMemoryState(of: store) }
     }
@@ -541,7 +560,16 @@ private final class AppleSignInCoordinator: NSObject {
         controller.performRequests()
     }
 
-    fileprivate func finish(_ result: Result<ASAuthorization, Error>) {
+    /// Resolves as `.failed` and dismisses Apple's sheet. `finish` resolves
+    /// once, so the controller's own cancel callback afterwards is a no-op,
+    /// and so is this after a real callback.
+    func cancel() {
+        let controller = self.controller
+        finish(.failure(ASAuthorizationError(.failed)))
+        controller?.cancel()
+    }
+
+    private func finish(_ result: Result<ASAuthorization, Error>) {
         guard !hasFinished else { return }
         hasFinished = true
         controller = nil

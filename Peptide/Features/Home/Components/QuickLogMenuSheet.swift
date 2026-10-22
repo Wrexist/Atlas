@@ -5,7 +5,7 @@ import SwiftUI
 /// row says what it does so the choice reads at a glance. The sheet only
 /// reports the pick — the presenter dismisses it and mounts the follow-up
 /// sheet, since SwiftUI can't present that one from in here.
-struct LogMealSheet: View {
+struct QuickLogMenuSheet: View {
     /// `nil` hides the dose row, keeping the old dialog's gate.
     let nextDose: ProtocolEntry?
     let onSnapMeal: () -> Void
@@ -56,7 +56,7 @@ struct LogMealSheet: View {
             Text("Quick log")
                 .font(AppFont.title3)
                 .foregroundStyle(AppColor.textPrimary)
-            Text("Capture something without scrolling.")
+            Text("Log a meal or your next dose.")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
         }
@@ -117,6 +117,6 @@ struct LogMealSheet: View {
 #Preview {
     Color.clear
         .sheet(isPresented: .constant(true)) {
-            LogMealSheet(nextDose: nil, onSnapMeal: {}, onLogNextDose: {})
+            QuickLogMenuSheet(nextDose: nil, onSnapMeal: {}, onLogNextDose: {})
         }
 }

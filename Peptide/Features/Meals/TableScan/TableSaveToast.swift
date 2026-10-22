@@ -3,9 +3,11 @@ import SwiftUI
 /// The pill at the bottom of the screen while a kept table is written —
 /// "Adding 2 of 4 dishes…", then "4 dishes added" with a burst of
 /// confetti. Reads `TableMomentStore.progress`, so any screen can mount
-/// it and they all agree.
+/// it and they all agree. A failed save stays up with Retry until the
+/// user dismisses it — the scanned table exists nowhere else.
 struct TableSaveToast: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(DataStore.self) private var dataStore
     private var store: TableMomentStore { TableMomentStore.shared }
 
     static let doneDuration: Duration = .milliseconds(2_400)
@@ -32,7 +34,7 @@ struct TableSaveToast: View {
         .allowsHitTesting(store.progress != nil)
         .appAnimation(AppAnimation.toast, value: store.progress)
         .task(id: store.progress?.outcome) {
-            guard store.progress?.outcome != nil else { return }
+            guard store.progress?.outcome == .done else { return }
             try? await Task.sleep(for: Self.doneDuration)
             guard !Task.isCancelled else { return }
             AppAnimation.with(AppAnimation.toast) { store.clearProgress() }
@@ -58,14 +60,39 @@ struct TableSaveToast: View {
                 }
             }
             Spacer(minLength: 0)
+            if progress.outcome == .failed {
+                failureActions
+            }
         }
         .padding(.horizontal, Spacing.md)
         .padding(.vertical, Spacing.sm)
         .frame(maxWidth: .infinity)
         .glassControl(.rect(cornerRadius: Spacing.cardCornerRadius), interactive: false)
         .appShadow(AppShadow.toast)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: progress.outcome == .failed ? .contain : .combine)
         .accessibilityAddTraits(.updatesFrequently)
+    }
+
+    private var failureActions: some View {
+        HStack(spacing: Spacing.sm) {
+            Button("Retry") {
+                Task { await store.retryFailedKeep(in: dataStore) }
+            }
+            .font(AppFont.subheadline)
+            .fontWeight(.semibold)
+            .foregroundStyle(AppColor.accentLight)
+            .minimumHitArea()
+            Button {
+                AppAnimation.with(AppAnimation.toast) { store.clearProgress() }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(AppFont.scaled(13, weight: .semibold))
+                    .foregroundStyle(AppColor.textSecondary)
+                    .minimumHitArea()
+            }
+            .accessibilityLabel("Dismiss")
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
@@ -97,7 +124,7 @@ struct TableSaveToast: View {
                 ? String(localized: "1 dish added")
                 : String(localized: "\(progress.total) dishes added")
         case .failed:
-            String(localized: "Couldn't save the table. Try again.")
+            String(localized: "Couldn't save the table.")
         case nil:
             String(localized: "Adding \(min(progress.saved + 1, progress.total)) of \(progress.total) dishes…")
         }

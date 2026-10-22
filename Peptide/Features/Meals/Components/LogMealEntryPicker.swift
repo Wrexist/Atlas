@@ -81,7 +81,7 @@ struct LogMealEntryPicker: View {
         title: LocalizedStringKey,
         subtitle: LocalizedStringKey,
         accent: Color,
-        accessibilityHint: String,
+        accessibilityHint: LocalizedStringKey,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {

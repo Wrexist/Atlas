@@ -3,7 +3,7 @@ import Foundation
 /// Builds a per-day plan from today's `ProtocolEntry` list:
 /// - Groups doses into time-of-day slots (morning fasted, post-workout, pre-bed, …).
 /// - Orders doses within each slot so fasted/critical-timing peptides go first.
-/// - Surfaces validated co-injection synergies (e.g. CJC-1295 + Ipamorelin).
+/// - Surfaces researched pairings (e.g. CJC-1295 + Ipamorelin).
 /// - Flags same-day conflicts (intranasal spacing, GHS-R/GHRH receptor overlap,
 ///   GLP-1 stacking, IGF-1 stacking, hepatic load).
 ///
@@ -100,7 +100,6 @@ enum DailyScheduleEngine {
 
     struct CombinationHint: Hashable {
         let withAbbreviation: String
-        let stackName: String
         let synergy: String
     }
 
@@ -213,7 +212,7 @@ enum DailyScheduleEngine {
         var summary: String {
             var parts = [Self.inflected("^[\(totalDoses) dose](inflect: true) across ^[\(slots.count) window](inflect: true)")]
             if combinationCount > 0 {
-                parts.append(Self.inflected("^[\(combinationCount) co-inject match](inflect: true)"))
+                parts.append(Self.inflected("^[\(combinationCount) research pairing](inflect: true)"))
             }
             if conflictCount > 0 {
                 parts.append(Self.inflected("^[\(conflictCount) timing note](inflect: true)"))
@@ -380,7 +379,6 @@ enum DailyScheduleEngine {
                 seenPairs.insert(partner)
                 hints.append(CombinationHint(
                     withAbbreviation: partner,
-                    stackName: stack.name,
                     synergy: stack.synergy
                 ))
             }

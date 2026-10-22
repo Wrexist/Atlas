@@ -63,26 +63,23 @@ final class WorkoutActivityStatusTests: XCTestCase {
         XCTAssertEqual(s.status(at: now), .finished)
     }
 
-    // MARK: - Rest progress
+    // MARK: - Rest interval
 
-    func test_restProgress_tracksElapsedFractionOfTheRest() {
-        let s = state(restEndsAt: now.addingTimeInterval(30), restTotalSeconds: 120)
-        XCTAssertEqual(s.restProgress(at: now), 0.75, accuracy: 0.0001)
+    func test_restInterval_spansTheRestEndingAtItsTarget() {
+        let endsAt = now.addingTimeInterval(30)
+        let s = state(restEndsAt: endsAt, restTotalSeconds: 120)
+        XCTAssertEqual(s.restInterval, endsAt.addingTimeInterval(-120)...endsAt)
     }
 
-    func test_restProgress_isZeroWhenNotResting() {
-        XCTAssertEqual(state().restProgress(at: now), 0)
-        XCTAssertEqual(
-            state(restEndsAt: now.addingTimeInterval(-10), restTotalSeconds: 60).restProgress(at: now),
-            0
-        )
+    func test_restInterval_isNilWithNoRest() {
+        XCTAssertNil(state().restInterval)
     }
 
-    func test_restProgress_clampsWhenTheUserAddsTimeBeyondTheOriginalRest() {
-        // +15s on a 30s rest leaves more remaining than the total; the
-        // ring must not run backwards past empty.
-        let s = state(restEndsAt: now.addingTimeInterval(45), restTotalSeconds: 30)
-        XCTAssertEqual(s.restProgress(at: now), 0)
+    func test_restInterval_negativeTotal_doesNotInvertTheRange() {
+        // `ProgressView(timerInterval:)` traps on an inverted range.
+        let endsAt = now.addingTimeInterval(30)
+        let s = state(restEndsAt: endsAt, restTotalSeconds: -10)
+        XCTAssertEqual(s.restInterval, endsAt...endsAt)
     }
 
     // MARK: - Set progress
@@ -97,6 +94,32 @@ final class WorkoutActivityStatusTests: XCTestCase {
 
     func test_setProgress_clampsWhenExtraSetsAreLogged() {
         XCTAssertEqual(state(completedSets: 14, totalSets: 12).setProgress, 1)
+    }
+
+    // MARK: - Idle
+
+    func test_isIdle_notStale_isFalse() {
+        XCTAssertFalse(state().isIdle(isStale: false, at: now))
+    }
+
+    func test_isIdle_staleWithNoRest_isTrue() {
+        XCTAssertTrue(state().isIdle(isStale: true, at: now))
+    }
+
+    func test_isIdle_staleAtTheEndOfARest_isFalse() {
+        // The rest's end is the stale date; that redraw is the countdown
+        // finishing, not the workout being forgotten.
+        let s = state(restEndsAt: now.addingTimeInterval(-5), restTotalSeconds: 90)
+        XCTAssertFalse(s.isIdle(isStale: true, at: now))
+    }
+
+    func test_isIdle_staleLongAfterTheLastRest_isTrue() {
+        let s = state(restEndsAt: now.addingTimeInterval(-3 * 3600), restTotalSeconds: 90)
+        XCTAssertTrue(s.isIdle(isStale: true, at: now))
+    }
+
+    func test_isIdle_finished_isFalse() {
+        XCTAssertFalse(state(finishedAt: now).isIdle(isStale: true, at: now))
     }
 
     // MARK: - Display name
@@ -145,6 +168,29 @@ final class WorkoutActivityStatusTests: XCTestCase {
         XCTAssertNil(mapped.restEndsAt)
         XCTAssertEqual(mapped.restTotalSeconds, 0)
         XCTAssertEqual(mapped.displayName, "Workout")
+    }
+
+    // MARK: - Stale date
+
+    func test_staleDate_whileResting_isTheEndOfTheRest() {
+        let endsAt = now.addingTimeInterval(90)
+        let stale = state(restEndsAt: endsAt, restTotalSeconds: 120).staleDate(now: now)
+        XCTAssertEqual(stale, endsAt)
+    }
+
+    func test_staleDate_restAlreadyOver_isTwoHoursOut() {
+        let stale = state(restEndsAt: now.addingTimeInterval(-5), restTotalSeconds: 120).staleDate(now: now)
+        XCTAssertEqual(stale, now.addingTimeInterval(2 * 3600))
+    }
+
+    func test_staleDate_afterSkippingARest_isTheIdleIntervalOut() {
+        // The Skip rest button clears the rest on the activity; keeping
+        // the rest's end as the stale date would grey a live workout
+        // out as idle the moment that end passed.
+        var skipped = state(restEndsAt: now.addingTimeInterval(90), restTotalSeconds: 120)
+        skipped.restEndsAt = nil
+        skipped.restTotalSeconds = 0
+        XCTAssertEqual(skipped.staleDate(now: now), now.addingTimeInterval(2 * 3600))
     }
 }
 #endif

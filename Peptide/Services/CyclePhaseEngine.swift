@@ -115,6 +115,18 @@ enum CyclePhaseEngine {
         }
     }
 
+    /// True when `day` falls in an "on" phase: the single cycle when
+    /// there's no wash-out, otherwise every repeat of it.
+    static func isOnCycle(_ day: Date, protocol proto: PeptideProtocol, calendar: Calendar = .current) -> Bool {
+        let start = calendar.startOfDay(for: proto.startDate)
+        let elapsedDays = calendar.dateComponents([.day], from: start, to: calendar.startOfDay(for: day)).day ?? 0
+        guard elapsedDays >= 0 else { return false }
+        let onDays = proto.safeCycleLengthWeeks * 7
+        let washDays = max(0, proto.washoutWeeks) * 7
+        guard washDays > 0 else { return elapsedDays < onDays }
+        return elapsedDays % (onDays + washDays) < onDays
+    }
+
     // MARK: - Render helpers
 
     /// User-facing label for the phase. Splits into title + subtitle

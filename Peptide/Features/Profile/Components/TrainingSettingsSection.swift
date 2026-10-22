@@ -125,7 +125,13 @@ private struct MeasurementUnitRow: View {
 private struct RestTimerRow: View {
     @Binding var selection: Int
 
-    private static let choices = [30, 60, 90, 120, 180, 240]
+    private static let presets = [30, 60, 90, 120, 180, 240]
+
+    /// A stored value outside the presets (an older build, a restored
+    /// backup) still gets a segment, so the picker never shows no selection.
+    private var choices: [Int] {
+        Self.presets.contains(selection) ? Self.presets : (Self.presets + [selection]).sorted()
+    }
 
     var body: some View {
         SettingsPickerRow(
@@ -137,12 +143,12 @@ private struct RestTimerRow: View {
             // Type or on a narrow screen they'd truncate, so fall back to a menu.
             ViewThatFits(in: .horizontal) {
                 GlassSegmentedControl(
-                    options: Self.choices,
+                    options: choices,
                     selected: $selection,
                     label: { LocalizedStringKey(WorkoutClock.label($0)) }
                 )
                 Picker("Default rest timer", selection: $selection) {
-                    ForEach(Self.choices, id: \.self) { seconds in
+                    ForEach(choices, id: \.self) { seconds in
                         Text(WorkoutClock.label(seconds)).tag(seconds)
                     }
                 }
@@ -179,8 +185,14 @@ private struct PlateInventoryRow: View {
         }
     }
 
+    /// The last plate can't be removed: with none left the calculator
+    /// can't load the bar and there's no barbell jump to progress by.
     private func toggle(_ plate: Double) {
         if available.contains(plate) {
+            guard available.count > 1 else {
+                Haptics.error()
+                return
+            }
             available.removeAll { $0 == plate }
         } else {
             available = (available + [plate]).sorted(by: >)

@@ -194,10 +194,7 @@ struct BodyMetricsPage: View {
 
     private var heightFeetBinding: Binding<Int> {
         Binding(
-            get: {
-                let inchesTotal = (metrics.heightCm ?? Double(BodyMetricsRanges.defaultHeightCm)) / 2.54
-                return BodyMetricsRanges.clampHeightFeet(Int(inchesTotal) / 12)
-            },
+            get: { currentFeet },
             set: { newFeet in
                 let inches = currentInches
                 let totalInches = newFeet * 12 + inches
@@ -208,10 +205,7 @@ struct BodyMetricsPage: View {
 
     private var heightInchesBinding: Binding<Int> {
         Binding(
-            get: {
-                let inchesTotal = (metrics.heightCm ?? Double(BodyMetricsRanges.defaultHeightCm)) / 2.54
-                return Int(inchesTotal) % 12
-            },
+            get: { currentInches },
             set: { newInches in
                 let feet = currentFeet
                 let totalInches = feet * 12 + newInches
@@ -220,15 +214,13 @@ struct BodyMetricsPage: View {
         )
     }
 
-    private var currentFeet: Int {
-        let inchesTotal = (metrics.heightCm ?? Double(BodyMetricsRanges.defaultHeightCm)) / 2.54
-        return BodyMetricsRanges.clampHeightFeet(Int(inchesTotal) / 12)
+    private var currentFeetAndInches: (feet: Int, inches: Int) {
+        BodyMetricsRanges.feetAndInches(fromCm: metrics.heightCm ?? Double(BodyMetricsRanges.defaultHeightCm))
     }
 
-    private var currentInches: Int {
-        let inchesTotal = (metrics.heightCm ?? Double(BodyMetricsRanges.defaultHeightCm)) / 2.54
-        return Int(inchesTotal) % 12
-    }
+    private var currentFeet: Int { currentFeetAndInches.feet }
+
+    private var currentInches: Int { currentFeetAndInches.inches }
 
     private var weightKgBinding: Binding<Int> {
         Binding(
@@ -299,8 +291,26 @@ enum BodyMetricsRanges {
     static let defaultWeightKg: Int = 75
     static let defaultAge: Int = 30
 
+    /// The wheels display the defaults for unset fields, so committing the
+    /// step must store them too — otherwise an untouched wheel saves nil
+    /// and the nutrition targets can't be derived.
+    static func filledWithDefaults(_ metrics: BodyMetrics) -> BodyMetrics {
+        var filled = metrics
+        filled.heightCm = filled.heightCm ?? Double(defaultHeightCm)
+        filled.weightKg = filled.weightKg ?? Double(defaultWeightKg)
+        filled.age = filled.age ?? defaultAge
+        return filled
+    }
+
     static func clampHeightCm(_ v: Int) -> Int { v.clamped(to: heightCm) }
-    static func clampHeightFeet(_ v: Int) -> Int { v.clamped(to: heightFeet) }
+    /// Rounds to the nearest inch: truncating let a picked 5'9" (stored as
+    /// 175.26 cm) read back as 68.999… in and snap the wheel to 5'8".
+    static func feetAndInches(fromCm cm: Double) -> (feet: Int, inches: Int) {
+        let wheelInches = (heightFeet.lowerBound * 12)...(heightFeet.upperBound * 12 + heightInches.upperBound)
+        let totalInches = Int((cm / 2.54).rounded()).clamped(to: wheelInches)
+        return (totalInches / 12, totalInches % 12)
+    }
+
     static func clampWeightKg(_ v: Int) -> Int { v.clamped(to: weightKg) }
     static func clampWeightLb(_ v: Int) -> Int { v.clamped(to: weightLb) }
     static func clampAge(_ v: Int) -> Int { v.clamped(to: age) }

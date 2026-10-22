@@ -70,6 +70,61 @@ final class WeeklySummaryEngineTests: XCTestCase {
         XCTAssertEqual(agg?.compliance.activeDaysCount, 3)
     }
 
+    func test_build_noDosesButThreeWorkoutDays_returnsAggregate() {
+        let workoutDates = (0..<3).map { calendar.date(byAdding: .day, value: $0, to: weekMonday)! }
+        let agg = WeeklySummaryEngine.build(
+            profile: .fresh,
+            protocols: [],
+            entries: [],
+            workoutDates: workoutDates,
+            referenceDate: weekMonday
+        )
+        XCTAssertNotNil(agg)
+        XCTAssertEqual(agg?.compliance.total, 0)
+    }
+
+    func test_build_workoutOnlyWeek_carriesSessionDays() {
+        let workoutDates = (0..<3).map { calendar.date(byAdding: .day, value: $0, to: weekMonday)! }
+            + [calendar.date(byAdding: .hour, value: 8, to: weekMonday)!]
+            + [calendar.date(byAdding: .day, value: -3, to: weekMonday)!]
+        let agg = WeeklySummaryEngine.build(
+            profile: .fresh,
+            protocols: [],
+            entries: [],
+            workoutDates: workoutDates,
+            referenceDate: weekMonday
+        )
+        XCTAssertEqual(agg?.training?.sessionDays, 3)
+    }
+
+    func test_build_noWorkouts_omitsTraining() {
+        let entries = (0..<3).map { entry(daysFromMonday: $0, completed: true) }
+        let agg = WeeklySummaryEngine.build(
+            profile: .fresh,
+            protocols: [],
+            entries: entries,
+            referenceDate: weekMonday
+        )
+        XCTAssertNotNil(agg)
+        XCTAssertNil(agg?.training)
+    }
+
+    func test_build_mixedActivityAcrossThreeDays_returnsAggregate() {
+        var profile = UserProfile.fresh
+        profile.outcomeHistory = [
+            OutcomeEntry(date: calendar.date(byAdding: .day, value: 1, to: weekMonday)!,
+                         energy: 3, sleepQuality: 3, recovery: 3, mood: 3, focus: 3),
+        ]
+        let agg = WeeklySummaryEngine.build(
+            profile: profile,
+            protocols: [],
+            entries: [entry(daysFromMonday: 0, completed: true)],
+            workoutDates: [calendar.date(byAdding: .day, value: 2, to: weekMonday)!],
+            referenceDate: weekMonday
+        )
+        XCTAssertNotNil(agg)
+    }
+
     // MARK: - Compliance math
 
     func test_compliance_partial_reportsExactPct() throws {
@@ -277,18 +332,18 @@ final class WeeklySummaryEngineTests: XCTestCase {
         XCTAssertNil(WeeklySummaryEngine.changeHeadline(current: current, previous: nil))
     }
 
-    func test_changeHeadline_meaningfulComplianceIncrease_reportsPercent() {
+    func test_changeHeadline_meaningfulComplianceIncrease_reportsPoints() {
         let current = makeSummary(weekStart: "2026-01-12", compliancePct: 0.9)
         let previous = makeSummary(weekStart: "2026-01-05", compliancePct: 0.7)
         let headline = WeeklySummaryEngine.changeHeadline(current: current, previous: previous)
-        XCTAssertEqual(headline, "Compliance up 20% from last week")
+        XCTAssertEqual(headline, "Adherence up 20 points from last week")
     }
 
     func test_changeHeadline_meaningfulComplianceDecrease_reportsDownDirection() {
         let current = makeSummary(weekStart: "2026-01-12", compliancePct: 0.6)
         let previous = makeSummary(weekStart: "2026-01-05", compliancePct: 0.8)
         let headline = WeeklySummaryEngine.changeHeadline(current: current, previous: previous)
-        XCTAssertEqual(headline, "Compliance down 20% from last week")
+        XCTAssertEqual(headline, "Adherence down 20 points from last week")
     }
 
     func test_changeHeadline_noiseLevelComplianceChange_fallsThroughToNil() {
@@ -345,7 +400,7 @@ final class WeeklySummaryEngineTests: XCTestCase {
         let current = makeSummary(weekStart: "2026-01-12", compliancePct: 0.9, currentStreak: 6, hrvDelta: 10)
         let previous = makeSummary(weekStart: "2026-01-05", compliancePct: 0.7, currentStreak: 3, hrvDelta: nil)
         let headline = WeeklySummaryEngine.changeHeadline(current: current, previous: previous)
-        XCTAssertEqual(headline, "Compliance up 20% from last week")
+        XCTAssertEqual(headline, "Adherence up 20 points from last week")
     }
 
     func test_changeHeadline_priorityOrder_streakBeatsHRVWhenBothMeaningful() {
@@ -355,5 +410,18 @@ final class WeeklySummaryEngineTests: XCTestCase {
         let previous = makeSummary(weekStart: "2026-01-05", compliancePct: 0.7, currentStreak: 3, hrvDelta: nil)
         let headline = WeeklySummaryEngine.changeHeadline(current: current, previous: previous)
         XCTAssertEqual(headline, "Your streak grew by 3 days this week")
+    }
+
+    // MARK: - Week start parsing
+
+    func test_weekStartDate_westOfUTC_parsesToLocalMidnightSameDay() throws {
+        var losAngeles = Calendar(identifier: .gregorian)
+        losAngeles.timeZone = try XCTUnwrap(TimeZone(identifier: "America/Los_Angeles"))
+        let date = try XCTUnwrap(WeeklySummaryEngine.weekStartDate(from: "2026-10-19", calendar: losAngeles))
+        let parts = losAngeles.dateComponents([.year, .month, .day, .hour], from: date)
+        XCTAssertEqual(parts.year, 2026)
+        XCTAssertEqual(parts.month, 10)
+        XCTAssertEqual(parts.day, 19)
+        XCTAssertEqual(parts.hour, 0)
     }
 }

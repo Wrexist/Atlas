@@ -45,8 +45,6 @@ enum AppAnimation {
     /// One skeleton shimmer sweep — the beat Health and the App Store use,
     /// slow enough to read as "still working" without feeling stalled.
     static let loadingSweep = Animation.linear(duration: 1.4)
-    /// One cycle of the onboarding backdrop's orb drift.
-    static let ambientDrift = Animation.linear(duration: 32)
 
     static let staggerDelay: Double = 0.05
     static let sectionDelay: Double = 0.15
@@ -67,6 +65,10 @@ enum AppAnimation {
     /// pick a different value and find out the hard way that 200ms
     /// is too short.
     static let sheetDismissDelay: Duration = .milliseconds(350)
+
+    /// How long an "Added" confirmation stays on screen before its sheet
+    /// dismisses. Skipped under Reduce Motion.
+    static let confirmationHold: Duration = .milliseconds(600)
 
     // MARK: - Food library timings
 

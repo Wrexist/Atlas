@@ -106,10 +106,16 @@ extension MeasurementUnit {
         self == .metric ? value : value / Self.poundsPerKilogram
     }
 
+    /// Display number without its suffix, with the locale's decimal
+    /// separator ("72,5" in Sweden) so it matches the editors' FormatStyle.
+    func weightValue(_ kilograms: Double, fractionDigits: ClosedRange<Int>) -> String {
+        weightForDisplay(kilograms)
+            .formatted(.number.precision(.fractionLength(fractionDigits)).grouping(.never))
+    }
+
     /// Rounded display value plus its suffix — the common case.
     func weightLabel(_ kilograms: Double, fractionDigits: Int = 0) -> String {
-        let value = weightForDisplay(kilograms)
-        return "\(String(format: "%.\(fractionDigits)f", value)) \(weightSuffix)"
+        "\(weightValue(kilograms, fractionDigits: fractionDigits...fractionDigits)) \(weightSuffix)"
     }
 
     // MARK: - Volume
@@ -133,18 +139,19 @@ extension MeasurementUnit {
     /// Fluid ounces → the number to show, in the user's unit. Metric
     /// promotes to litres past 1000 mL so a 3 L target doesn't read as
     /// "2960 mL".
-    func volumeLabel(_ fluidOunces: Int) -> String {
-        guard self == .metric else { return "\(fluidOunces) oz" }
-        let millilitres = Int((Double(fluidOunces) * Self.millilitresPerFluidOunce).rounded())
-        guard millilitres >= 1_000 else { return "\(millilitres) mL" }
-        return String(format: "%.1f L", Double(millilitres) / 1_000)
+    /// Takes the exact `Double` total so a 250 mL glass reads "250 mL",
+    /// not the 237 mL of its rounded 8 oz.
+    func volumeLabel(_ fluidOunces: Double) -> String {
+        let value = volumeValue(fluidOunces)
+        guard self == .metric else { return "\(value) oz" }
+        guard value >= 1_000 else { return "\(value) mL" }
+        return "\((Double(value) / 1_000).formatted(.number.precision(.fractionLength(1)))) L"
     }
 
     /// Bare number, for a value shown next to a separate unit suffix.
-    func volumeValue(_ fluidOunces: Int) -> Int {
-        self == .metric
-            ? Int((Double(fluidOunces) * Self.millilitresPerFluidOunce).rounded())
-            : fluidOunces
+    func volumeValue(_ fluidOunces: Double) -> Int {
+        let converted = self == .metric ? fluidOunces * Self.millilitresPerFluidOunce : fluidOunces
+        return Int(converted.rounded())
     }
 }
 
@@ -156,10 +163,66 @@ extension MeasurementUnit {
 struct BodyMetrics: Codable, Hashable, Sendable {
     var weightKg: Double?
     var heightCm: Double?
-    var age: Int?
+    /// The age as entered, true on `ageRecordedAt`. Read `age` instead.
+    private var enteredAge: Int?
+    /// When `enteredAge` was entered. Nil on metrics saved before it
+    /// existed (or re-saved by such a build) until `UserProfile`
+    /// backfills it with the load date.
+    private(set) var ageRecordedAt: Date?
     var sex: BiologicalSex
     var activityLevel: ActivityLevel
     var unit: MeasurementUnit
+
+    private enum CodingKeys: String, CodingKey {
+        case weightKg, heightCm, enteredAge = "age", ageRecordedAt, sex, activityLevel, unit
+    }
+
+    init(
+        weightKg: Double?,
+        heightCm: Double?,
+        age: Int?,
+        sex: BiologicalSex,
+        activityLevel: ActivityLevel,
+        unit: MeasurementUnit,
+        ageRecordedAt: Date = Date()
+    ) {
+        self.weightKg = weightKg
+        self.heightCm = heightCm
+        self.enteredAge = age
+        self.ageRecordedAt = age == nil ? nil : ageRecordedAt
+        self.sex = sex
+        self.activityLevel = activityLevel
+        self.unit = unit
+    }
+
+    /// Today's age: the entered age plus the whole years since it was
+    /// entered, so Biological Age and calorie targets don't go a year
+    /// stale after each birthday.
+    var age: Int? {
+        get { ageAsOf(Date()) }
+        set {
+            enteredAge = newValue
+            ageRecordedAt = newValue == nil ? nil : Date()
+        }
+    }
+
+    func ageAsOf(_ date: Date, calendar: Calendar = .current) -> Int? {
+        guard let enteredAge else { return nil }
+        guard let ageRecordedAt else { return enteredAge }
+        let years = calendar.dateComponents([.year], from: ageRecordedAt, to: date).year ?? 0
+        return enteredAge + max(0, years)
+    }
+
+    /// Stamps metrics saved without `ageRecordedAt` with `date`. Pass
+    /// the load date, never an earlier guess such as `memberSince`: the
+    /// age may have been entered or corrected since, and an early stamp
+    /// would advance it too far.
+    func backfillingAgeRecordedAt(_ date: Date) -> BodyMetrics {
+        guard enteredAge != nil, ageRecordedAt == nil else { return self }
+        var copy = self
+        copy.ageRecordedAt = date
+        return copy
+    }
 
     static var unspecified: BodyMetrics {
         BodyMetrics(
@@ -449,11 +512,10 @@ struct UserProfile: Codable, Sendable {
     /// the macro rings; this is the per-meal sidecar. Newest-last so
     /// chronological iteration matches the visual log order.
     var mealHistory: [MealEntry]
-    /// User opted in to having each logged meal mirrored as Apple
-    /// Health dietary-energy / protein / carbs / fat / fiber samples.
-    /// Disabled by default — we only prompt for HK write permission
-    /// after the user flips this on in Profile. The corresponding HK
-    /// authorization is requested at toggle-time, not at install.
+    /// Legacy carrier of the meal → Apple Health toggle, which earlier
+    /// builds synced through the profile. The toggle is device-local now
+    /// (`HealthSyncSettings.nutritionEnabledKey`) because Health
+    /// permission is granted per device; this value only seeds it once.
     var healthKitNutritionEnabled: Bool
     /// Daily wellness check-ins. One entry per calendar day; a
     /// re-save on the same day replaces the previous entry through
@@ -502,6 +564,10 @@ struct UserProfile: Codable, Sendable {
     /// Profiles saved while the default was on are reset once by
     /// `WeeklySummaryOptInMigration`.
     var weeklySummaryEnabled: Bool
+    /// True once the user turned the weekly summary on themselves.
+    /// Syncs with the profile, so `WeeklySummaryOptInMigration` running
+    /// later on another device leaves that choice alone.
+    var weeklySummaryOptInConfirmed: Bool
     /// Cached weekly summaries keyed by ISO week-start ("yyyy-MM-dd"
     /// of the Monday). One entry per generated week — capped on
     /// write to the most-recent 26 weeks so the JSON stays small
@@ -587,6 +653,7 @@ struct UserProfile: Codable, Sendable {
         recipes: [Recipe] = [],
         protocolNotes: [ProtocolNote] = [],
         weeklySummaryEnabled: Bool = false,
+        weeklySummaryOptInConfirmed: Bool = false,
         weeklySummaries: [String: WeeklySummary] = [:],
         biologyConfig: BiologyConfig = .default,
         trainingPreferences: TrainingPreferences? = nil,
@@ -606,7 +673,7 @@ struct UserProfile: Codable, Sendable {
         self.hapticFeedbackEnabled = hapticFeedbackEnabled
         self.doseRemindersEnabled = doseRemindersEnabled
         self.biometricLockEnabled = biometricLockEnabled
-        self.bodyMetrics = bodyMetrics
+        self.bodyMetrics = bodyMetrics.backfillingAgeRecordedAt(Date())
         self.nutritionTargets = nutritionTargets
         self.creatorAttribution = creatorAttribution
         self.affiliateApplication = affiliateApplication
@@ -630,6 +697,7 @@ struct UserProfile: Codable, Sendable {
         self.recipes = recipes
         self.protocolNotes = protocolNotes
         self.weeklySummaryEnabled = weeklySummaryEnabled
+        self.weeklySummaryOptInConfirmed = weeklySummaryOptInConfirmed
         self.weeklySummaries = weeklySummaries
         self.biologyConfig = biologyConfig
         self.trainingPreferences = trainingPreferences
@@ -652,7 +720,8 @@ struct UserProfile: Codable, Sendable {
         hapticFeedbackEnabled = try container.decodeIfPresent(Bool.self, forKey: .hapticFeedbackEnabled) ?? true
         doseRemindersEnabled = try container.decodeIfPresent(Bool.self, forKey: .doseRemindersEnabled) ?? false
         biometricLockEnabled = try container.decodeIfPresent(Bool.self, forKey: .biometricLockEnabled) ?? false
-        bodyMetrics = try container.decodeIfPresent(BodyMetrics.self, forKey: .bodyMetrics) ?? .unspecified
+        bodyMetrics = (try container.decodeIfPresent(BodyMetrics.self, forKey: .bodyMetrics) ?? .unspecified)
+            .backfillingAgeRecordedAt(Date())
         nutritionTargets = try container.decodeIfPresent(NutritionTargets.self, forKey: .nutritionTargets)
         creatorAttribution = try container.decodeIfPresent(CreatorAttribution.self, forKey: .creatorAttribution)
         affiliateApplication = try container.decodeIfPresent(AffiliateApplication.self, forKey: .affiliateApplication)
@@ -680,6 +749,7 @@ struct UserProfile: Codable, Sendable {
         recipes = try container.decodeIfPresent([Recipe].self, forKey: .recipes) ?? []
         protocolNotes = try container.decodeIfPresent([ProtocolNote].self, forKey: .protocolNotes) ?? []
         weeklySummaryEnabled = try container.decodeIfPresent(Bool.self, forKey: .weeklySummaryEnabled) ?? false
+        weeklySummaryOptInConfirmed = try container.decodeIfPresent(Bool.self, forKey: .weeklySummaryOptInConfirmed) ?? false
         weeklySummaries = try container.decodeIfPresent([String: WeeklySummary].self, forKey: .weeklySummaries) ?? [:]
         biologyConfig = try container.decodeIfPresent(BiologyConfig.self, forKey: .biologyConfig) ?? .default
         trainingPreferences = try container.decodeIfPresent(TrainingPreferences.self, forKey: .trainingPreferences)

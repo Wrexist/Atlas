@@ -18,7 +18,14 @@ struct TrialOfferView: View {
     @State private var storeService = StoreService.shared
     @State private var isPurchasing = false
     @State private var isRestoring = false
-    @State private var errorMessage: String?
+    @State private var notice: PurchaseNotice?
+    /// Starts `true` so the first frame shimmers rather than showing the
+    /// "plans couldn't load" row while the initial fetch is in flight.
+    @State private var isLoadingProducts = true
+    /// The experiment's default tier applies once. `.task` re-fires each
+    /// time the onboarding page reappears, and re-applying it would undo
+    /// the plan the user picked before swiping back.
+    @State private var didApplyVariantDefault = false
     /// Selected billing cadence. Initialised to `.annual` then re-assigned
     /// from `OnboardingExperiment.variant(for: .paywallTierOrder)` inside
     /// the view's `.task` modifier — the experiment service is
@@ -52,6 +59,12 @@ struct TrialOfferView: View {
     /// copy waits, so nothing on screen quotes a price StoreKit hasn't given.
     private var arePricesLoaded: Bool {
         storeService.monthlyProduct != nil && storeService.annualProduct != nil
+    }
+
+    /// The fetch finished without both plans (offline, storefront hiccup):
+    /// stop shimmering and offer a retry instead of loading forever.
+    private var arePlansUnavailable: Bool {
+        !isLoadingProducts && !arePricesLoaded
     }
 
     private var monthlyPrice: String {
@@ -162,15 +175,15 @@ struct TrialOfferView: View {
                 )
             }
             switch resolution.variant {
-            case .control:
-                orderedTiers = [.annual, .monthly]
-                selectedTier = .annual
-            case .variantA:
-                orderedTiers = [.monthly, .annual]
-                selectedTier = .monthly
+            case .control:  orderedTiers = [.annual, .monthly]
+            case .variantA: orderedTiers = [.monthly, .annual]
+            }
+            if !didApplyVariantDefault {
+                selectedTier = orderedTiers[0]
+                didApplyVariantDefault = true
             }
 
-            await storeService.loadProducts()
+            await loadPlans()
         }
     }
 
@@ -196,21 +209,15 @@ struct TrialOfferView: View {
     }
 
     private var headlineHero: String {
-        guard let days = trialDays else {
-            return selectedTier == .annual ? annualPrice : monthlyPrice
-        }
-        return "\(days) Days Free"
+        if let days = trialDays { return "\(days) days free" }
+        guard arePricesLoaded else { return "Atlas Pro" }
+        return selectedTier == .annual ? annualPrice : monthlyPrice
     }
 
-    private var headlinePlan: String {
-        switch selectedTier {
-        case .annual:  return "Atlas Pro Yearly"
-        case .monthly: return "Atlas Pro Monthly"
-        }
-    }
+    private var headlinePlan: String { planName(for: selectedTier) }
 
     private var headlineSupport: String {
-        guard arePricesLoaded else { return "Loading plans…" }
+        guard arePricesLoaded else { return plansStatus }
         // "Then …" only reads correctly when something comes first. Once the
         // trial is spent it's just the price, so the lead-in has to go.
         let lead = trialDays == nil ? "" : "Then "
@@ -251,7 +258,7 @@ struct TrialOfferView: View {
         // Until StoreKit answers, the eyebrow can't know whether a trial
         // is redeemable and the prices read "—"; show the shape of the
         // headline instead of copy that flips a beat later.
-        .loadingPlaceholder(!arePricesLoaded)
+        .loadingPlaceholder(isLoadingProducts && !arePricesLoaded)
         .appAnimation(AppAnimation.fadeIn, value: arePricesLoaded)
         .animation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion), value: selectedTier)
     }
@@ -288,7 +295,7 @@ struct TrialOfferView: View {
 
     // MARK: - Value banner
 
-    /// Static "best value" banner. This used to be a live 10-minute
+    /// Static value banner. This used to be a live 10-minute
     /// "WELCOME OFFER ENDS IN mm:ss" countdown with a draining bar — but
     /// nothing actually changed at 0:00: the price, the trial, and the
     /// products were identical before and after, which makes it exactly the
@@ -299,10 +306,15 @@ struct TrialOfferView: View {
     /// that offer's actual deadline, never a synthetic one.
     private var valueBanner: some View {
         // "Free trial" only while this Apple ID can still redeem one —
-        // same eligibility gate as the headline and the CTA.
-        let caption = trialDays != nil
-            ? "Best value — start with a free trial"
-            : "Best value — full access, cancel anytime"
+        // same eligibility gate as the headline and the CTA. "Best value"
+        // only describes annual, so Monthly gets the offer alone.
+        let caption: String
+        switch (selectedTier == .annual, trialDays != nil) {
+        case (true, true):   caption = "Best value — start with a free trial"
+        case (true, false):  caption = "Best value — full access, cancel anytime"
+        case (false, true):  caption = "Start with a free trial"
+        case (false, false): caption = "Full access, cancel anytime"
+        }
         return HStack(spacing: Spacing.xs) {
             Image(systemName: "bolt.fill")
                 .font(AppFont.scaled(13, weight: .bold))
@@ -377,9 +389,49 @@ struct TrialOfferView: View {
             // monthly first (trial framing prominent). Variant is sticky
             // per install via OnboardingExperiment so a user doesn't see
             // the order flip between launches.
-            ForEach(orderedTiers, id: \.self) { tier in
-                tierCard(tier)
+            if arePlansUnavailable {
+                plansUnavailable
+            } else {
+                ForEach(orderedTiers, id: \.self) { tier in
+                    tierCard(tier)
+                }
             }
+        }
+    }
+
+    /// Same recovery as `PaywallView.productsUnavailable`: without it a
+    /// failed fetch left the cards shimmering and the CTA disabled for good.
+    private var plansUnavailable: some View {
+        VStack(spacing: Spacing.sm) {
+            Image(systemName: "wifi.exclamationmark")
+                .font(AppFont.scaled(20, weight: .semibold))
+                .foregroundStyle(AppColor.textSecondary)
+                .accessibilityHidden(true)
+            Text("Plans couldn't load")
+                .font(AppFont.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(AppColor.textPrimary)
+            Text("Check your connection and try again.")
+                .font(AppFont.caption2)
+                .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+            Button {
+                Task { await loadPlans() }
+            } label: {
+                Text("Retry")
+                    .font(AppFont.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(AppColor.accentLight)
+                    .padding(.horizontal, Spacing.lg)
+                    .minimumHitArea()
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(Spacing.md)
+        .frame(maxWidth: .infinity)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                .fill(AppColor.surfaceSecondary.opacity(0.6))
         }
     }
 
@@ -491,10 +543,10 @@ struct TrialOfferView: View {
 
     private var footer: some View {
         VStack(spacing: Spacing.sm) {
-            if let errorMessage {
-                Text(errorMessage)
+            if let notice {
+                Text(notice.message)
                     .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.destructive)
+                    .foregroundStyle(notice.color)
                     .multilineTextAlignment(.center)
                     .transition(.opacity)
             }
@@ -531,7 +583,7 @@ struct TrialOfferView: View {
                 }
             }
             .buttonStyle(ScalePressStyle(pressedScale: 0.97))
-            .disabled(isPurchasing || !arePricesLoaded)
+            .disabled(isPurchasing || isRestoring || !arePricesLoaded)
             .opacity(arePricesLoaded ? 1 : 0.5)
             .accessibilityLabel("\(ctaTitle). \(ctaDetail)")
 
@@ -582,6 +634,17 @@ struct TrialOfferView: View {
 
     private var productForSelectedTier: Product? { product(for: selectedTier) }
 
+    /// The App Store product's own name ("Atlas Pro Annual"), so the
+    /// purchase surface names the subscription exactly as Guideline 3.1.2
+    /// and App Store Connect do. The fallback covers the load window.
+    private func planName(for tier: Tier) -> String {
+        if let product = product(for: tier) { return product.displayName }
+        switch tier {
+        case .annual:  return "Atlas Pro Annual"
+        case .monthly: return "Atlas Pro Monthly"
+        }
+    }
+
     private func product(for tier: Tier) -> Product? {
         switch tier {
         case .annual:  return storeService.annualProduct
@@ -594,7 +657,7 @@ struct TrialOfferView: View {
     /// Top line of the CTA: what the tap gets you, never "Continue".
     private var ctaTitle: String {
         guard let days = trialDays else {
-            return selectedTier == .annual ? "Get Atlas Pro Yearly" : "Get Atlas Pro Monthly"
+            return "Get \(headlinePlan)"
         }
         return "Start My \(days)-Day Free Trial"
     }
@@ -604,7 +667,7 @@ struct TrialOfferView: View {
     /// user to guess whether tapping it bills them, and the ones who guess
     /// wrong cancel within the hour.
     private var ctaDetail: String {
-        guard arePricesLoaded else { return "Loading plans…" }
+        guard arePricesLoaded else { return plansStatus }
         let price = selectedTier == .annual
             ? "\(annualPrice)/yr"
             : "\(monthlyPrice)/mo"
@@ -626,12 +689,21 @@ struct TrialOfferView: View {
         return "No charge today · Cancel anytime"
     }
 
+    private var plansStatus: String {
+        isLoadingProducts ? "Loading plans…" : "Plans unavailable"
+    }
+
+    /// Guideline 3.1.2 terms. Before StoreKit answers there is no price in
+    /// the storefront's currency to quote, but the plan names, lengths and
+    /// auto-renewal still have to be on the purchase surface.
     private var legalCopy: String {
-        guard arePricesLoaded else { return "Subscription terms appear once plans load." }
+        let renewal = "Auto-renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → your name → Subscriptions."
+        guard arePricesLoaded else {
+            return "\(planName(for: .monthly)) (billed monthly) and \(planName(for: .annual)) (billed yearly) are auto-renewable subscriptions. \(renewal)"
+        }
         let plan = selectedTier == .annual
-            ? "\(annualPrice) per year for the Atlas Pro Yearly subscription"
-            : "\(monthlyPrice) per month for the Atlas Pro Monthly subscription"
-        let renewal = "Auto-renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → Apple ID → Subscriptions."
+            ? "\(annualPrice) per year for the \(planName(for: .annual)) subscription"
+            : "\(monthlyPrice) per month for the \(planName(for: .monthly)) subscription"
         guard let days = trialDays else { return "Billed \(plan). \(renewal)" }
         return "No charge for \(days) days. Then \(plan). \(renewal)"
     }
@@ -639,11 +711,11 @@ struct TrialOfferView: View {
     // MARK: - Actions
 
     private func startTrial() {
-        guard !isPurchasing else { return }
+        guard !isPurchasing, !isRestoring else { return }
         Haptics.impact(.medium)
-        errorMessage = nil
+        notice = nil
         guard let product = productForSelectedTier else {
-            AppAnimation.with(AppAnimation.fadeIn) { errorMessage = "Plan still loading. Try again in a moment." }
+            AppAnimation.with(AppAnimation.fadeIn) { notice = .failed("Plan still loading. Try again in a moment.") }
             return
         }
         isPurchasing = true
@@ -663,13 +735,13 @@ struct TrialOfferView: View {
                     onAccept()
                 case .pending:
                     AppAnimation.with(AppAnimation.fadeIn) {
-                        errorMessage = "Purchase pending approval. We'll unlock Pro as soon as it's approved."
+                        notice = .pending
                     }
                 case .userCancelled:
                     break // no UI noise on explicit cancel
                 }
             } catch {
-                AppAnimation.with(AppAnimation.fadeIn) { errorMessage = "Couldn't complete the purchase. Please try again." }
+                AppAnimation.with(AppAnimation.fadeIn) { notice = .failed("Couldn't complete the purchase. Please try again.") }
             }
         }
     }
@@ -678,27 +750,58 @@ struct TrialOfferView: View {
     /// restores leaves onboarding exactly as a fresh purchase would.
     private func restore() {
         guard !isRestoring, !isPurchasing else { return }
-        errorMessage = nil
+        notice = nil
         isRestoring = true
         Task {
             defer { isRestoring = false }
             do {
-                try await storeService.restorePurchases()
+                guard try await storeService.restorePurchases() == .completed else { return }
                 if storeService.isProUser {
                     Haptics.success()
                     onAccept()
                 } else {
-                    AppAnimation.with(AppAnimation.fadeIn) { errorMessage = "No previous purchase found to restore." }
+                    AppAnimation.with(AppAnimation.fadeIn) { notice = .nothingToRestore }
                 }
             } catch {
-                AppAnimation.with(AppAnimation.fadeIn) { errorMessage = "Restore failed. Check your internet connection and try again." }
+                AppAnimation.with(AppAnimation.fadeIn) { notice = .failed("Restore failed. Check your internet connection and try again.") }
             }
         }
+    }
+
+    private func loadPlans() async {
+        isLoadingProducts = true
+        defer { isLoadingProducts = false }
+        await storeService.loadProducts()
     }
 
     private func declineTrial() {
         Haptics.impact(.light)
         onDecline()
+    }
+}
+
+/// What the footer reports after a purchase or restore attempt. Only a
+/// real failure is red — a pending Ask to Buy and an empty restore are
+/// outcomes, not errors, matching `PaywallView`.
+private enum PurchaseNotice {
+    case failed(String)
+    case pending
+    case nothingToRestore
+
+    var message: String {
+        switch self {
+        case .failed(let message): return message
+        case .pending:             return "Purchase pending approval. We'll unlock Pro as soon as it's approved."
+        case .nothingToRestore:    return "No previous purchase found to restore."
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .failed:           return AppColor.destructive
+        case .pending:          return AppColor.recap
+        case .nothingToRestore: return AppColor.textSecondary
+        }
     }
 }
 

@@ -1,5 +1,4 @@
 import SwiftUI
-@preconcurrency import AVFoundation
 import PhotosUI
 
 /// End-to-end barcode-scan sheet: opens the camera, resolves the
@@ -61,9 +60,13 @@ struct BarcodeScanFlow: View {
     @State private var insight: MealScannerService.SmartScan?
     @State private var isLoadingInsight = false
     @State private var insightTask: Task<Void, Never>?
+    @State private var lookupTask: Task<Void, Never>?
     /// True when `product` came from a package photo rather than the
     /// food database — changes the source badge and the logged source.
     @State private var productReadByAI = false
+    /// Grows with the Nutri-Score letter so it never clips its circle.
+    @ScaledMetric(relativeTo: .body) private var nutriScoreDiameter: CGFloat = 28
+    @State private var nutritionEstimatedByAI = false
     @State private var savedToMyFoods = false
     @State private var isShowingPackageCamera = false
     @State private var packagePickerItem: PhotosPickerItem?
@@ -71,6 +74,10 @@ struct BarcodeScanFlow: View {
     /// it to the AI (Guideline 5.1.2(i)).
     @State private var pendingPackageImage: UIImage?
     @State private var showPackageConsent = false
+    @State private var showScanLimitPaywall = false
+    /// Camera access was declined (not restricted), so Settings can fix it.
+    @State private var cameraDenied = false
+    @State private var storeService = StoreService.shared
 
     private enum Phase: Equatable {
         case preflight       // checking camera permission + device support
@@ -79,7 +86,7 @@ struct BarcodeScanFlow: View {
         case lookingUp       // OFF network round-trip
         case ocrProcessing   // VisionKit text recognition on a label photo
         case review          // product + portion + macros
-        case logged          // success screen with Undo + auto-close
+        case logged          // success screen with Undo
         case notFound        // barcode looked up cleanly but no product
         case unsupportedCode // read fine, but it isn't a product code at all
         case error           // any other terminal failure
@@ -138,6 +145,13 @@ struct BarcodeScanFlow: View {
         }
         .task { await preflightCheck() }
         .task { await loadRecentlyScanned() }
+        // Closing mid-lookup must not go on to spend a paid AI insight
+        // call for a sheet that is gone.
+        .onDisappear {
+            lookupTask?.cancel()
+            insightTask?.cancel()
+            identifyTask?.cancel()
+        }
         .confirmationDialog(
             "Already logged this recently",
             isPresented: Binding(
@@ -159,8 +173,7 @@ struct BarcodeScanFlow: View {
                 pendingDuplicateConfirm = nil
             }
         } message: { ctx in
-            let mins = Int(Date().timeIntervalSince(ctx.lastLoggedAt) / 60)
-            Text("You logged \(ctx.product.name) \(mins) minute\(mins == 1 ? "" : "s") ago. Log it again?")
+            Text("You logged \(ctx.product.name) \(ctx.lastLoggedAt.formatted(.relative(presentation: .numeric, unitsStyle: .wide))). Log it again?")
         }
         .sheet(isPresented: $showEditSheet) {
             if let product {
@@ -317,6 +330,18 @@ struct BarcodeScanFlow: View {
                 handleDetected(barcode: manualBarcode)
             }
             .disabled(manualBarcode.trimmingCharacters(in: .whitespaces).count < 8)
+
+            if cameraDenied {
+                openSettingsButton
+            }
+        }
+    }
+
+    private var openSettingsButton: some View {
+        GlassButton(title: "Open Settings", icon: "gear", style: .secondary) {
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(url)
+            }
         }
     }
 
@@ -383,7 +408,7 @@ struct BarcodeScanFlow: View {
 
     private func sourceBadge(for product: ScannedProduct) -> some View {
         HStack(spacing: Spacing.xs) {
-            Image(systemName: productReadByAI ? "sparkles" : "globe")
+            Image(systemName: productReadByAI || nutritionEstimatedByAI ? "sparkles" : "globe")
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
             Text(sourceLabel(for: product))
@@ -406,7 +431,9 @@ struct BarcodeScanFlow: View {
     }
 
     private func sourceLabel(for product: ScannedProduct) -> LocalizedStringKey {
-        productReadByAI ? "Read from the package by Atlas AI" : "Open Food Facts · \(Self.relativeAge(product.fetchedAt))"
+        if productReadByAI { return "Read from the package by Atlas AI" }
+        if nutritionEstimatedByAI { return "Nutrition estimated by Atlas AI" }
+        return "Open Food Facts · \(Self.relativeAge(product.fetchedAt))"
     }
 
     private var overrideNotice: some View {
@@ -501,7 +528,20 @@ struct BarcodeScanFlow: View {
             .buttonStyle(.plain)
             .disabled(!canEdit)
             .accessibilityLabel("Edit nutrition manually")
+            if manualOverride == nil && !product.hasNutrition {
+                Text("No nutrition data for this product. Edit nutrition with the values from its label.")
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.warning)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
+    }
+
+    /// An all-zero Open Food Facts record stays unloggable until the user
+    /// enters the label values — logging it would add a silent 0 kcal row.
+    private func canLog(_ product: ScannedProduct?) -> Bool {
+        guard let product, currentMacros(for: product) != nil else { return false }
+        return manualOverride != nil || product.hasNutrition
     }
 
     private var actionButtons: some View {
@@ -513,7 +553,7 @@ struct BarcodeScanFlow: View {
             GlassButton(title: addButtonTitle, style: .primary, isFullWidth: true) {
                 confirm()
             }
-            .disabled(currentMacros(for: product) == nil)
+            .disabled(!canLog(product))
         }
     }
 
@@ -659,6 +699,11 @@ struct BarcodeScanFlow: View {
             }
         }) {
             AIConsentSheet(whatIsSent: "The photo of the package you take or pick.")
+        }
+        .sheet(isPresented: $showScanLimitPaywall) {
+            PaywallView(source: .mealScanLimit)
+                .environment(dataStore)
+                .liquidGlassPresentation()
         }
         .fullScreenCover(isPresented: $isShowingPackageCamera) {
             CameraPicker(
@@ -808,6 +853,7 @@ struct BarcodeScanFlow: View {
     private var packagePhotoButton: some View {
         if UIImagePickerController.SourceType.cameraIsAvailable {
             GlassButton(title: "Photograph the package", icon: "sparkles", style: .primary) {
+                guard !scanLimitReached() else { return }
                 // Ask before the camera opens, so the consent sheet never
                 // has to present over a dismissing camera.
                 guard AIDataConsent.isGranted else {
@@ -862,6 +908,10 @@ struct BarcodeScanFlow: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.lg)
             VStack(spacing: Spacing.sm) {
+                if cameraDenied {
+                    openSettingsButton
+                }
+
                 GlassButton(title: "Try again", style: .primary) {
                     errorText = nil
                     product = nil
@@ -884,12 +934,13 @@ struct BarcodeScanFlow: View {
     // MARK: - Small components
 
     private func nutriScorePill(_ score: String) -> some View {
-        Text(score.uppercased())
+        let palette = Self.nutriScorePalette(score)
+        return Text(score.uppercased())
             .font(AppFont.scaled(13, weight: .heavy))
-            .foregroundStyle(AppColor.onAccent)
-            .frame(width: 28, height: 28)
+            .foregroundStyle(palette.ink)
+            .frame(width: nutriScoreDiameter, height: nutriScoreDiameter)
             .background {
-                Circle().fill(Self.nutriScoreColor(score))
+                Circle().fill(palette.fill)
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Nutri-Score \(score.uppercased())")
@@ -898,46 +949,41 @@ struct BarcodeScanFlow: View {
 
     // MARK: - Helpers
 
-    private static func nutriScoreColor(_ score: String) -> Color {
+    /// Fill and letter colour together: near-white is under 3:1 on the
+    /// light B and C fills, so those take a fixed dark ink.
+    private static func nutriScorePalette(_ score: String) -> (fill: Color, ink: Color) {
+        let darkInk = Color(hex: 0x111114)
         switch score.lowercased() {
-        case "a":  Color(red: 0.16, green: 0.59, blue: 0.27)
-        case "b":  Color(red: 0.51, green: 0.74, blue: 0.21)
-        case "c":  Color(red: 0.96, green: 0.78, blue: 0.18)
-        case "d":  Color(red: 0.94, green: 0.49, blue: 0.18)
-        case "e":  Color(red: 0.86, green: 0.20, blue: 0.18)
-        default:   AppColor.textSecondary
+        case "a":  return (Color(red: 0.16, green: 0.59, blue: 0.27), AppColor.onAccent)
+        case "b":  return (Color(red: 0.51, green: 0.74, blue: 0.21), darkInk)
+        case "c":  return (Color(red: 0.96, green: 0.78, blue: 0.18), darkInk)
+        case "d":  return (Color(red: 0.94, green: 0.49, blue: 0.18), AppColor.onAccent)
+        case "e":  return (Color(red: 0.86, green: 0.20, blue: 0.18), AppColor.onAccent)
+        default:   return (AppColor.textSecondary, AppColor.onAccent)
         }
     }
 
     private var isLoggingToday: Bool { Calendar.current.isDateInToday(logDay) }
 
     private var addButtonTitle: LocalizedStringKey {
-        isLoggingToday ? "Add to today" : "Add to \(MealDaySwitcher.title(for: logDay))"
+        isLoggingToday ? "Add to today" : "Add to \(MealDaySwitcher.inlineTitle(for: logDay))"
     }
 
     private var addedTitle: LocalizedStringKey {
-        isLoggingToday ? "Added to today" : "Added to \(MealDaySwitcher.title(for: logDay))"
+        isLoggingToday ? "Added to today" : "Added to \(MealDaySwitcher.inlineTitle(for: logDay))"
     }
 
     // MARK: - Actions
 
     private func preflightCheck() async {
-        let status = await BarcodeCameraAuthorization.request()
-        await MainActor.run {
-            switch status {
-            case .authorized:
-                phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
-            case .denied, .restricted:
-                errorText = "Camera access is off. Enable it in Settings to scan barcodes, or type a code below."
-                phase = .manualEntry
-            case .notDetermined:
-                // Shouldn't happen — request() resolves notDetermined —
-                // but if it somehow does, falling back to manual entry
-                // is still a working path.
-                phase = .manualEntry
-            @unknown default:
-                phase = .manualEntry
-            }
+        let outcome = await CameraAuthorization.resolve()
+        switch outcome {
+        case .granted:
+            phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
+        case .denied, .restricted:
+            cameraDenied = outcome == .denied
+            errorText = "Camera access is off. Enable it in Settings to scan barcodes, or type a code below."
+            phase = .manualEntry
         }
     }
 
@@ -961,7 +1007,8 @@ struct BarcodeScanFlow: View {
         }
 
         phase = .lookingUp
-        Task { await lookupProduct(candidates: candidates) }
+        lookupTask?.cancel()
+        lookupTask = Task { await lookupProduct(candidates: candidates) }
     }
 
     /// OCR fallback: load the picked image, run on-device text
@@ -1000,8 +1047,9 @@ struct BarcodeScanFlow: View {
                 BarcodeHaptics.lookupFailure()
             }
         } catch {
+            AppLog.diagnostics.error("Nutrition label OCR failed: \(error.localizedDescription, privacy: .public)")
             await MainActor.run {
-                errorText = error.localizedDescription
+                errorText = "Couldn't read that label. Try a sharper photo of the nutrition panel."
                 phase = .error
                 ocrPickerItem = nil
                 BarcodeHaptics.lookupFailure()
@@ -1055,8 +1103,9 @@ struct BarcodeScanFlow: View {
                     return
                 }
             } catch {
+                AppLog.diagnostics.error("Barcode lookup failed: \(error.localizedDescription, privacy: .public)")
                 await MainActor.run {
-                    errorText = error.localizedDescription
+                    errorText = "Couldn't look up this product. Check your connection and try again."
                     phase = .error
                     BarcodeHaptics.lookupFailure()
                 }
@@ -1075,6 +1124,7 @@ struct BarcodeScanFlow: View {
         // is async (actor read), so it happens here before we hop to
         // main.
         let remembered = await BarcodeScanHistory.shared.lastPortion(for: result.barcode)
+        try Task.checkCancellation()
         await MainActor.run {
             product = result
             portion = remembered ?? result.defaultPortion
@@ -1103,13 +1153,17 @@ struct BarcodeScanFlow: View {
                 isLoadingInsight = false
                 guard let scan, product?.barcode == result.barcode else { return }
                 insight = scan
-                product = SmartFoodLogic.product(result, fillingFrom: scan)
+                let filled = SmartFoodLogic.product(result, fillingFrom: scan)
+                nutritionEstimatedByAI = !result.hasNutrition && filled.hasNutrition
+                product = filled
             }
         }
     }
 
     private func openPackageCamera() async {
-        if await CameraAuthorization.resolve() == .granted {
+        let outcome = await CameraAuthorization.resolve()
+        cameraDenied = outcome == .denied
+        if outcome == .granted {
             isShowingPackageCamera = true
         } else {
             errorText = "Allow camera access in Settings to photograph the package."
@@ -1117,7 +1171,16 @@ struct BarcodeScanFlow: View {
         }
     }
 
+    /// A package read is a paid photo scan, so it spends the same weekly
+    /// allowance as a meal photo.
+    private func scanLimitReached() -> Bool {
+        guard MealScanQuota.remainingThisWeek(isPro: storeService.isProUser) == 0 else { return false }
+        showScanLimitPaywall = true
+        return true
+    }
+
     private func requestReadPackage(_ image: UIImage) async {
+        guard !scanLimitReached() else { return }
         guard AIDataConsent.isGranted else {
             pendingPackageImage = image
             showPackageConsent = true
@@ -1146,6 +1209,7 @@ struct BarcodeScanFlow: View {
                 throw MealScannerService.ScanError.noFoodDetected
             }
             await MainActor.run {
+                if !storeService.isProUser { MealScanQuota.recordSuccessfulScan() }
                 product = read
                 insight = scan
                 productReadByAI = true
@@ -1156,7 +1220,8 @@ struct BarcodeScanFlow: View {
             }
         } catch {
             await MainActor.run {
-                errorText = error.localizedDescription
+                errorText = (error as? LocalizedError)?.errorDescription
+                    ?? "Couldn't read this package. Check your connection and try again."
                 phase = .error
                 BarcodeHaptics.lookupFailure()
             }
@@ -1192,6 +1257,7 @@ struct BarcodeScanFlow: View {
         insight = nil
         isLoadingInsight = false
         productReadByAI = false
+        nutritionEstimatedByAI = false
         savedToMyFoods = false
         identity = nil
         isIdentifying = false
@@ -1204,6 +1270,7 @@ struct BarcodeScanFlow: View {
         // shortcut intent) from logging twice while only being able
         // to undo once.
         guard phase == .review,
+              canLog(product),
               let product,
               let meal = currentMacros(for: product) else { return }
         // Duplicate-scan guard (audit Meals MED 7): if the same
@@ -1282,7 +1349,7 @@ struct BarcodeScanFlow: View {
                 )
             }
         }
-        phase = .logged                                  // .task(id: phase) above starts the 5-s auto-close
+        phase = .logged
     }
 
     private func undoLastLog() {
@@ -1290,9 +1357,6 @@ struct BarcodeScanFlow: View {
             onClose()
             return
         }
-        // Cancel the auto-close timer before it fires onClose a second
-        // time — moving phase out of `.logged` triggers the
-        // `.task(id: phase)` modifier to drop the in-flight sleep.
         phase = .review
         dataStore.unlogMealEntry(id: snapshot.entryID)
         // Roll back the scan-history record too so an undone scan

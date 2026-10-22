@@ -31,8 +31,8 @@ struct BiomarkerDetailSheet: View {
     /// True while the 90-day read is in flight, so a short initial
     /// series shows a loading chart rather than "need more data".
     @State private var isFetching = false
-    /// The day the user is scrubbing on the chart, as days-ago (≤ 0).
-    @State private var selectedDay: Int?
+    /// The date the user is scrubbing on the chart.
+    @State private var selectedDate: Date?
     @Environment(\.dismiss) private var dismiss
 
     /// What the rest of the view reads — the larger window if the
@@ -133,10 +133,12 @@ struct BiomarkerDetailSheet: View {
 
     private var explainer: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text("WHAT THIS TRACKS")
+            Text("What this tracks")
+                .textCase(.uppercase)
                 .font(AppFont.eyebrow)
                 .tracking(1.0)
                 .foregroundStyle(AppColor.textSecondary)
+                .accessibilityAddTraits(.isHeader)
             Text(explainerBody)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
@@ -153,11 +155,11 @@ struct BiomarkerDetailSheet: View {
         case .rhrBaseline:
             return String(localized: "Your resting heart rate. Lower is typically better — athletes commonly sit in the 50s.")
         case .sleepBaseline:
-            return String(localized: "Total time asleep per night. Atlas's recovery score uses 8 hours as a default target.")
+            return String(localized: "Total time asleep per night. It feeds both your recovery score and your Biological Age.")
         case .stepsBaseline:
             return String(localized: "Daily step count. Loosely correlates with total activity volume.")
         case .bodyTemperature:
-            return String(localized: "Wrist temperature deviation. Spikes can signal poor recovery or illness.")
+            return String(localized: "Your body temperature. Spikes above your usual reading can signal poor recovery or illness.")
         case .bodyFat:
             return String(localized: "Body fat percentage. Manual log; correlate with weight trend for body-comp context.")
         case .waist:
@@ -173,12 +175,14 @@ struct BiomarkerDetailSheet: View {
 
     @ViewBuilder
     private var chartBlock: some View {
-        if snapshot.sparkline.count >= 4 {
+        if snapshot.samples.count >= 4 {
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text("RECENT TREND")
+                Text("Recent trend")
+                    .textCase(.uppercase)
                     .font(AppFont.eyebrow)
                     .tracking(1.0)
                     .foregroundStyle(AppColor.textSecondary)
+                    .accessibilityAddTraits(.isHeader)
 
                 trendChart
             }
@@ -195,29 +199,29 @@ struct BiomarkerDetailSheet: View {
 
     private var trendChart: some View {
         Chart {
-            ForEach(Array(snapshot.sparkline.enumerated()), id: \.offset) { idx, value in
-                trendMarks(idx: idx, value: value)
+            ForEach(snapshot.samples, id: \.date) { sample in
+                trendMarks(for: sample)
             }
-            if let selectedDay, let selectedValue = reading(atDay: selectedDay) {
-                RuleMark(x: .value("Day", selectedDay))
+            if let selectedSample {
+                RuleMark(x: .value("Date", selectedSample.date, unit: .day))
                     .foregroundStyle(AppColor.textTertiary)
                     .lineStyle(.init(lineWidth: 1))
                     .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
-                        selectionCallout(day: selectedDay, value: selectedValue)
+                        selectionCallout(for: selectedSample)
                     }
             }
         }
-        .chartXSelection(value: $selectedDay)
-        .appSensoryFeedback(.selection, trigger: selectedDay)
+        .chartXSelection(value: $selectedDate)
+        .appSensoryFeedback(.selection, trigger: selectedSample?.date)
         .chartXAxis {
             // Stride scales with the window — daily ticks
             // would be unreadable at 90 days, weekly is
             // unreadable at 14, so we pick based on series
             // length.
-            AxisMarks(values: .stride(by: Double(axisStride))) { value in
+            AxisMarks(values: .stride(by: .day, count: axisStride)) { value in
                 AxisValueLabel {
-                    if let day = value.as(Int.self) {
-                        Text(dayLabel(daysAgo: day))
+                    if let date = value.as(Date.self) {
+                        Text(dayLabel(for: date))
                             .font(AppFont.scaled(11))
                             .foregroundStyle(AppColor.textTertiary)
                     }
@@ -237,21 +241,21 @@ struct BiomarkerDetailSheet: View {
         .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 
-    /// The scrubbed day's reading in display units, or `nil` off the series.
-    private func reading(atDay day: Int) -> Double? {
-        let index = snapshot.sparkline.count - 1 + day
-        guard snapshot.sparkline.indices.contains(index) else { return nil }
-        return biomarker.displayValue(snapshot.sparkline[index], for: unit)
+    /// The reading nearest the scrubbed date, or `nil` when not scrubbing.
+    private var selectedSample: BiomarkerSnapshot.Sample? {
+        guard let selectedDate else { return nil }
+        return snapshot.samples.min {
+            abs($0.date.timeIntervalSince(selectedDate)) < abs($1.date.timeIntervalSince(selectedDate))
+        }
     }
 
-    private func selectionCallout(day: Int, value: Double) -> some View {
+    private func selectionCallout(for sample: BiomarkerSnapshot.Sample) -> some View {
         VStack(spacing: Spacing.xxs) {
-            Text(BiomarkerSeriesService.formatValue(value, for: biomarker)
-                 + (biomarker.displayUnit(for: unit).map { " \($0)" } ?? ""))
+            Text(formattedWithUnit(biomarker.displayValue(sample.value, for: unit)))
                 .font(AppFont.scaled(13, weight: .bold, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
-            Text(dayLabel(daysAgo: day))
+            Text(dayLabel(for: sample.date))
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
         }
@@ -260,22 +264,29 @@ struct BiomarkerDetailSheet: View {
         .glassSurface(cornerRadius: Spacing.chipCornerRadius)
     }
 
+    /// A display-unit value with its unit, e.g. "72.0 kg".
+    private func formattedWithUnit(_ displayValue: Double) -> String {
+        BiomarkerSeriesService.formatValue(displayValue, for: biomarker)
+            + (biomarker.displayUnit(for: unit).map { " \($0)" } ?? "")
+    }
+
     @ChartContentBuilder
-    private func trendMarks(idx: Int, value: Double) -> some ChartContent {
-        let day = -snapshot.sparkline.count + idx + 1
-        // Sparkline values are canonical metric — convert so the chart's
+    private func trendMarks(for sample: BiomarkerSnapshot.Sample) -> some ChartContent {
+        // Sample values are canonical metric — convert so the chart's
         // Y axis matches the imperial hero number above it.
-        let displayValue = biomarker.displayValue(value, for: unit)
+        let displayValue = biomarker.displayValue(sample.value, for: unit)
         LineMark(
-            x: .value("Day", day),
+            x: .value("Date", sample.date, unit: .day),
             y: .value(biomarker.displayName, displayValue)
         )
         .interpolationMethod(.monotone)
         .lineStyle(.init(lineWidth: 2, lineCap: .round, lineJoin: .round))
         .foregroundStyle(AppColor.accentPrimary)
+        .accessibilityLabel(dayLabel(for: sample.date))
+        .accessibilityValue(formattedWithUnit(displayValue))
 
         AreaMark(
-            x: .value("Day", day),
+            x: .value("Date", sample.date, unit: .day),
             y: .value(biomarker.displayName, displayValue)
         )
         .interpolationMethod(.monotone)
@@ -289,13 +300,14 @@ struct BiomarkerDetailSheet: View {
                 endPoint: .bottom
             )
         )
+        // Same reading as the line — VoiceOver would announce it twice.
+        .accessibilityHidden(true)
     }
 
     /// "Today", else the calendar date ("12 Mar"), so ticks read in the
     /// user's locale rather than as English abbreviations.
-    private func dayLabel(daysAgo: Int) -> String {
-        if daysAgo == 0 { return String(localized: "Today") }
-        let date = Calendar.current.date(byAdding: .day, value: daysAgo, to: .now) ?? .now
+    private func dayLabel(for date: Date) -> String {
+        if Calendar.current.isDateInToday(date) { return String(localized: "Today") }
         return date.formatted(.dateTime.day().month(.abbreviated))
     }
 
@@ -305,7 +317,7 @@ struct BiomarkerDetailSheet: View {
     /// stride, 90 daily samples (historical) → 14-day stride. Wide
     /// enough that dated labels ("12 Mar") don't collide.
     private var axisStride: Int {
-        let count = snapshot.sparkline.count
+        let count = snapshot.samples.count
         if count >= 80 { return 14 }
         if count >= 30 { return 7 }
         return 4
@@ -332,10 +344,12 @@ struct BiomarkerDetailSheet: View {
 
     private var deltaBlock: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text("VS RECENT AVERAGE")
+            Text("Vs recent average")
+                .textCase(.uppercase)
                 .font(AppFont.eyebrow)
                 .tracking(1.0)
                 .foregroundStyle(AppColor.textSecondary)
+                .accessibilityAddTraits(.isHeader)
             Text(deltaLine)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textPrimary)
@@ -354,18 +368,13 @@ struct BiomarkerDetailSheet: View {
         // the temperature offset (°C→°F adds 32) cancels — the delta is a
         // true difference, not an inflated one.
         let delta = biomarker.displayValue(latest, for: unit) - biomarker.displayValue(avg, for: unit)
-        let absDelta = BiomarkerSeriesService.formatValue(abs(delta), for: biomarker)
-        let unitString = biomarker.displayUnit(for: unit) ?? ""
         if abs(delta) < 0.01 {
             return String(localized: "Right at your recent average.")
         }
-        let direction = delta > 0
-            ? String(localized: "above")
-            : String(localized: "below")
-        return String(
-            format: String(localized: "%@ %@ %@ your recent average."),
-            absDelta, unitString, direction
-        )
+        let amount = formattedWithUnit(abs(delta))
+        return delta > 0
+            ? String(localized: "\(amount) above your recent average.")
+            : String(localized: "\(amount) below your recent average.")
     }
 
     // MARK: - Footnote
@@ -400,7 +409,12 @@ struct BiomarkerDetailSheet: View {
             biomarker: .hrvBaseline,
             latest: 58,
             trend: .up,
-            sparkline: [50, 52, 54, 53, 55, 57, 56, 58, 60, 58, 59, 58, 60, 62],
+            samples: [50, 52, 54, 53, 55, 57, 56, 58, 60, 58, 59, 58, 60, 62].enumerated().map {
+                BiomarkerSnapshot.Sample(
+                    date: Calendar.current.date(byAdding: .day, value: $0.offset - 13, to: .now) ?? .now,
+                    value: Double($0.element)
+                )
+            },
             changeText: "Trending up · 58 ms"
         )
     )

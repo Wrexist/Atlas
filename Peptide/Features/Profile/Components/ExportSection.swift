@@ -6,6 +6,7 @@ struct ExportSection: View {
     @State private var showPaywall = false
     @State private var exportURL: URL?
     @State private var exportError: String?
+    @State private var isPreparingBackup = false
     private var isPro: Bool { StoreService.shared.isProUser }
 
     var body: some View {
@@ -68,9 +69,10 @@ struct ExportSection: View {
             }
         }
 
-        GlassButton(title: "Backup", icon: "externaldrive.fill", style: .secondary) {
+        GlassButton(title: isPreparingBackup ? "Preparing…" : "Backup", icon: "externaldrive.fill", style: .secondary) {
             isPro ? exportJSON() : (showPaywall = true)
         }
+        .disabled(isPreparingBackup)
 
         GlassButton(title: "PDF", icon: "doc.richtext", style: .secondary) {
             isPro ? exportPDF() : (showPaywall = true)
@@ -181,21 +183,39 @@ struct ExportSection: View {
         share(ExportService.shared.writeCSV(csv, filename: "atlas-checkins-\(dateStamp).csv"))
     }
 
+    /// Snapshots the value types here, then encodes off the main thread:
+    /// years of workout history otherwise froze the screen mid-tap.
     private func exportJSON() {
-        guard let data = ExportService.shared.exportFullBackup(
-            protocols: dataStore.protocols,
-            entries: dataStore.entries,
-            profile: dataStore.profile,
-            workoutSessions: dataStore.allWorkoutSessionsForBackup(),
-            routines: dataStore.routinesForBackup(),
-            customExercises: dataStore.customExercisesForBackup(),
-            personalRecords: dataStore.personalRecordsForBackup(),
-            customPeptides: dataStore.customPeptides
-        ) else {
-            exportError = "Couldn't prepare the backup. Please try again."
-            return
+        let service = ExportService.shared
+        let protocols = dataStore.protocols
+        let entries = dataStore.entries
+        let profile = dataStore.profile
+        let workoutSessions = dataStore.allWorkoutSessionsForBackup()
+        let routines = dataStore.routinesForBackup()
+        let customExercises = dataStore.customExercisesForBackup()
+        let personalRecords = dataStore.personalRecordsForBackup()
+        let customPeptides = dataStore.customPeptides
+        isPreparingBackup = true
+        Task {
+            let data = await Task.detached(priority: .userInitiated) {
+                service.exportFullBackup(
+                    protocols: protocols,
+                    entries: entries,
+                    profile: profile,
+                    workoutSessions: workoutSessions,
+                    routines: routines,
+                    customExercises: customExercises,
+                    personalRecords: personalRecords,
+                    customPeptides: customPeptides
+                )
+            }.value
+            isPreparingBackup = false
+            guard let data else {
+                exportError = "Couldn't prepare the backup. Please try again."
+                return
+            }
+            share(service.writeJSON(data, filename: "atlas-backup-\(dateStamp).json"))
         }
-        share(ExportService.shared.writeJSON(data, filename: "atlas-backup-\(dateStamp).json"))
     }
 
     private func exportPDF() {

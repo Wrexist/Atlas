@@ -30,7 +30,7 @@ struct BarcodeScannerOverlay: View {
     }
 
     private var reticle: some View {
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
+        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
             .strokeBorder(AppColor.accentLight.opacity(0.85), lineWidth: 2)
             .frame(width: 240, height: 140)
             .scaleEffect(isBreathing ? 1.06 : 1.0)
@@ -74,11 +74,11 @@ struct BarcodeLookupSkeleton: View {
                         .shimmer()
 
                     VStack(alignment: .leading, spacing: Spacing.xs) {
-                        RoundedRectangle(cornerRadius: 4)
+                        RoundedRectangle(cornerRadius: Spacing.iconCornerRadius)
                             .fill(AppColor.surfaceSecondary.opacity(0.8))
                             .frame(width: 160, height: 16)
                             .shimmer()
-                        RoundedRectangle(cornerRadius: 4)
+                        RoundedRectangle(cornerRadius: Spacing.iconCornerRadius)
                             .fill(AppColor.surfaceSecondary.opacity(0.8))
                             .frame(width: 100, height: 12)
                             .shimmer()
@@ -91,12 +91,12 @@ struct BarcodeLookupSkeleton: View {
                 VStack(alignment: .leading, spacing: Spacing.sm) {
                     ForEach(0..<4, id: \.self) { _ in
                         HStack {
-                            RoundedRectangle(cornerRadius: 4)
+                            RoundedRectangle(cornerRadius: Spacing.iconCornerRadius)
                                 .fill(AppColor.surfaceSecondary.opacity(0.8))
                                 .frame(width: 70, height: 12)
                                 .shimmer()
                             Spacer()
-                            RoundedRectangle(cornerRadius: 4)
+                            RoundedRectangle(cornerRadius: Spacing.iconCornerRadius)
                                 .fill(AppColor.surfaceSecondary.opacity(0.8))
                                 .frame(width: 60, height: 12)
                                 .shimmer()

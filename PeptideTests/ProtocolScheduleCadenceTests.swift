@@ -19,6 +19,23 @@ final class ProtocolScheduleCadenceTests: XCTestCase {
         return calendar.date(from: c)!
     }
 
+    // MARK: - resolvedDose
+
+    func test_resolvedDose_noCustomDose_isEmptyNotResearchRange() {
+        let s = ProtocolSchedule(daysOfWeek: [1], timesPerDay: 1, preferredTimes: ["8:00 AM"])
+        XCTAssertEqual(s.resolvedDose, "")
+    }
+
+    func test_resolvedDose_whitespaceCustomDose_isEmpty() {
+        let s = ProtocolSchedule(daysOfWeek: [1], timesPerDay: 1, preferredTimes: ["8:00 AM"], customDose: "  \n")
+        XCTAssertEqual(s.resolvedDose, "")
+    }
+
+    func test_resolvedDose_customDose_isTrimmed() {
+        let s = ProtocolSchedule(daysOfWeek: [1], timesPerDay: 1, preferredTimes: ["8:00 AM"], customDose: " 300 mcg ")
+        XCTAssertEqual(s.resolvedDose, "300 mcg")
+    }
+
     // MARK: - isInterval
 
     func test_isInterval_falseWhenNilOrZero() {
@@ -116,6 +133,12 @@ final class ProtocolScheduleCadenceTests: XCTestCase {
     func test_daysDescription_weeklyCadence_unchanged() {
         let weekly = ProtocolSchedule(daysOfWeek: [1, 3, 5], timesPerDay: 1, preferredTimes: ["8:00 AM"])
         XCTAssertEqual(weekly.daysDescription, "Mon, Wed, Fri")
+    }
+
+    func test_daysDescription_isoSunday_listsLastInLocalisedNames() {
+        let weekend = ProtocolSchedule(daysOfWeek: [7, 1], timesPerDay: 1, preferredTimes: ["8:00 AM"])
+        let symbols = Calendar.current.shortWeekdaySymbols
+        XCTAssertEqual(weekend.compactDaysDescription, "\(symbols[1]), \(symbols[0])")
     }
 
     func test_summary_includesCadence() {

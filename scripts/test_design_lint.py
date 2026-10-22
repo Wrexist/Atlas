@@ -69,6 +69,10 @@ CASES = [
      'Text("a").font(AppFont.scaled(13, weight: .bold))'),
 
     ("rule_fixed_font", "Foo.swift",
+     'Text("a").font(.system(.title2, design: .rounded, weight: .heavy))',
+     'Text("a").font(AppFont.scaled(24, weight: .heavy, design: .rounded, relativeTo: .title2))'),
+
+    ("rule_fixed_font", "Foo.swift",
      'Text("a").font(.system(size: 44, weight: .heavy))',
      'Text("a").font(AppFont.scaled(44, weight: .heavy, relativeTo: .largeTitle))'),
 

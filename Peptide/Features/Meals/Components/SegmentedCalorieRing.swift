@@ -147,7 +147,7 @@ struct SegmentedCalorieRing: View {
             return String(localized: "Calorie ring. No target set.")
         }
         if breakdown.totalCalories == 0 {
-            return String(localized: "Calorie ring. No meals logged today.")
+            return String(localized: "Calorie ring. No meals logged.")
         }
         let parts: [(MealCategory?, Int)] = [
             (.breakfast, breakdown.breakfast.calories),

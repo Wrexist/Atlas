@@ -2,9 +2,12 @@ import Foundation
 import UserNotifications
 
 /// Schedules the Sunday-morning push that surfaces a freshly
-/// generated weekly summary. Repeats weekly; canceled and rescheduled
-/// on every transition to `.active` so an opt-out toggle takes effect
-/// immediately and so the trigger survives an app reinstall.
+/// generated weekly summary. One-shot for the coming Sunday, and only
+/// once that week has enough activity for a recap — a repeating
+/// trigger pinged users whose week would only open "Recap
+/// unavailable". Canceled and rescheduled on every transition to
+/// `.active` so an opt-out toggle takes effect immediately and a week
+/// that qualifies mid-way gets its push.
 ///
 /// One notification, identifier `peptidex.weeklySummary.sunday`, so a
 /// re-schedule is idempotent: remove + add against the same id and
@@ -25,24 +28,44 @@ enum WeeklySummaryNotificationScheduler {
     /// the user's profile preference. Call on every transition to
     /// `.active` so flipping the toggle off / on takes effect on
     /// the next foreground without waiting for the next Sunday.
-    static func reconcile(profile: UserProfile, isPro: Bool) async {
+    static func reconcile(dataStore: DataStore, isPro: Bool) async {
         guard await isAuthorised else {
             // Without notification permission there's nothing to
             // schedule — the in-app card still works.
             return
         }
-        if isPro && profile.weeklySummaryEnabled {
-            await schedule(profile: profile)
-        } else {
+        let profile = dataStore.profile
+        guard isPro, profile.weeklySummaryEnabled,
+              let deliveryDate = nextDeliveryDate(after: Date()),
+              WeeklySummaryEngine.build(
+                  profile: profile,
+                  protocols: dataStore.protocols,
+                  entries: dataStore.entries,
+                  workoutDates: dataStore.recentWorkoutDates(),
+                  referenceDate: deliveryDate
+              ) != nil
+        else {
             cancel()
+            return
         }
+        await schedule(profile: profile, on: deliveryDate)
+    }
+
+    /// The next Sunday 9 am strictly after `now`. Its ISO week is the
+    /// one the push recaps, since ISO weeks end on Sunday.
+    static func nextDeliveryDate(after now: Date, calendar: Calendar = .current) -> Date? {
+        calendar.nextDate(
+            after: now,
+            matching: DateComponents(hour: 9, minute: 0, weekday: 1),
+            matchingPolicy: .nextTime
+        )
     }
 
     /// Generic fallback body — used when there isn't yet a second
     /// generated summary to compare against, or when nothing tracked
     /// changed by a meaningful margin. Never asserts a trend it can't
     /// back with a real delta.
-    static let genericBody = String(localized: "Tap to see how the week went — compliance, streak, and the patterns that mattered.")
+    static let genericBody = String(localized: "Tap to see how the week went — training, nutrition, recovery, and the patterns that mattered.")
 
     /// The two most recently *generated* summaries in `profile
     /// .weeklySummaries`, newest first. Deliberately not "this calendar
@@ -76,9 +99,9 @@ enum WeeklySummaryNotificationScheduler {
     }
 
     /// Pulls the matching pending request and replaces it with a
-    /// fresh one. Sunday 9 am local time, repeating, with a
-    /// `peptidex://weekly/current` deep link in `userInfo`.
-    private static func schedule(profile: UserProfile) async {
+    /// fresh one-shot at `date`, with a `peptidex://weekly/current`
+    /// deep link in `userInfo`.
+    private static func schedule(profile: UserProfile, on date: Date) async {
         let center = UNUserNotificationCenter.current()
 
         // Remove first so the second `.add` truly replaces. Without
@@ -93,14 +116,9 @@ enum WeeklySummaryNotificationScheduler {
         content.userInfo = ["deeplink": "peptidex://weekly/current"]
         content.threadIdentifier = identifier
 
-        var components = DateComponents()
-        components.weekday = 1   // Sunday in Foundation's 1-indexed weekday (1=Sun)
-        components.hour = 9
-        components.minute = 0
-
         let trigger = UNCalendarNotificationTrigger(
-            dateMatching: components,
-            repeats: true
+            dateMatching: Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date),
+            repeats: false
         )
 
         let request = UNNotificationRequest(
@@ -112,7 +130,7 @@ enum WeeklySummaryNotificationScheduler {
         do {
             try await center.add(request)
         } catch {
-            AppLog.persistence.error(
+            AppLog.notifications.error(
                 "Weekly summary notification add failed: \(error.localizedDescription, privacy: .public)"
             )
         }

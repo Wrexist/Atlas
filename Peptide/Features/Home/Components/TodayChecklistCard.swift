@@ -25,7 +25,7 @@ struct TodayChecklistCard: View {
                     ForEach(Array(TodayChecklistEngine.Item.allCases.enumerated()), id: \.element) { index, item in
                         if index > 0 {
                             Divider()
-                                .foregroundStyle(AppColor.glassBorder)
+                                .overlay(AppColor.glassBorder)
                                 .padding(.leading, Spacing.minimumHitTarget + Spacing.md)
                         }
                         row(item)
@@ -122,8 +122,11 @@ struct TodayChecklistCard: View {
     private func detail(_ item: TodayChecklistEngine.Item) -> String {
         switch item {
         case .meals:
-            guard let next = state.nextMeal else {
+            if state.isDone(.meals) {
                 return String(localized: "Breakfast, lunch and dinner logged")
+            }
+            guard let next = state.nextMeal else {
+                return String(localized: "\(state.loggedMainMealCount) of 3 logged")
             }
             return String(localized: "\(state.loggedMainMealCount) of 3 logged · \(next.displayName) next")
         case .training:
@@ -132,8 +135,8 @@ struct TodayChecklistCard: View {
                 ? String(localized: "On the plan today — tap to start")
                 : String(localized: "Recovery counts too")
         case .water:
-            let current = Int(state.waterFluidOunces.rounded())
-            return String(localized: "\(unit.volumeLabel(current)) of \(unit.volumeLabel(TodayChecklistEngine.waterTargetOz))")
+            let target = Double(TodayChecklistEngine.waterTargetOz)
+            return String(localized: "\(unit.volumeLabel(state.waterFluidOunces)) of \(unit.volumeLabel(target))")
         case .weight:
             guard let kg = state.weightTodayKg else { return String(localized: "Tap to log today's weight") }
             return unit.weightLabel(kg, fractionDigits: 1)
@@ -201,7 +204,8 @@ struct LogWeightSheet: View {
                 trainedToday: false,
                 isTrainingDay: true,
                 waterFluidOunces: 40,
-                weightTodayKg: 82.4
+                weightTodayKg: 82.4,
+                currentMeal: .lunch
             ),
             unit: .metric,
             onAction: { _ in }

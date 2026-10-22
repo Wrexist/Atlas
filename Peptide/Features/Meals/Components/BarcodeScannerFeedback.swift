@@ -2,7 +2,7 @@
 
 /// Names the barcode-scan flow's haptic vocabulary so the feel stays
 /// consistent as the flow grows. The actual firing delegates to
-/// `Haptics`, which honours the global "Haptic Feedback" setting in one
+/// `Haptics`, which honours the global "Haptic feedback" setting in one
 /// place — so the "reduce haptics" preference these calls used to need
 /// a manual guard for is now respected automatically.
 @MainActor

@@ -7,9 +7,13 @@ let settingsIconColumnWidth: CGFloat = 24
 
 struct AppearanceSettings: View {
     @Environment(DataStore.self) private var dataStore
+    @Environment(\.scenePhase) private var scenePhase
     @State private var notificationService = NotificationService.shared
     @State private var biometricService = BiometricService.shared
     @State private var themeManager = ThemeManager.shared
+    /// Set when turning protocol reminders on hits a denied permission, so
+    /// the toggle bouncing back comes with a route to Settings.
+    @State private var notificationsDenied = false
 
     var body: some View {
         @Bindable var store = dataStore
@@ -38,6 +42,11 @@ struct AppearanceSettings: View {
                         if dataStore.profile.doseRemindersEnabled, notificationService.requestedCount > 0 {
                             notificationStatusRow
                         }
+
+                        if notificationsDenied {
+                            NotificationsDeniedRow()
+                                .padding(.leading, settingsIconColumnWidth + Spacing.md)
+                        }
                     }
 
                     Divider().overlay(AppColor.glassBorder)
@@ -45,7 +54,7 @@ struct AppearanceSettings: View {
 
                 SettingsToggleRow(
                     icon: "hand.tap.fill",
-                    title: "Haptic Feedback",
+                    title: "Haptic feedback",
                     subtitle: "Vibrate on interactions",
                     isOn: $store.profile.hapticFeedbackEnabled
                 )
@@ -58,7 +67,7 @@ struct AppearanceSettings: View {
 
                     SettingsToggleRow(
                         icon: biometricService.biometryIcon,
-                        title: "\(biometricService.biometryName) Lock",
+                        title: "\(biometricService.biometryName) lock",
                         subtitle: "Require \(biometricService.biometryName) to open Atlas.",
                         isOn: $store.profile.biometricLockEnabled
                     )
@@ -84,6 +93,12 @@ struct AppearanceSettings: View {
                 }
             }
         }
+        .task(id: scenePhase) {
+            // Re-checked on return from iOS Settings, so the row clears as
+            // soon as the user grants notifications there.
+            guard scenePhase == .active, notificationsDenied else { return }
+            notificationsDenied = await NotificationService.shared.checkAuthorization() == .denied
+        }
     }
 
     private var notificationStatusRow: some View {
@@ -99,7 +114,7 @@ struct AppearanceSettings: View {
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.warning)
             } else {
-                Text("\(notificationService.scheduledCount) reminders scheduled")
+                Text("^[\(notificationService.scheduledCount) reminder](inflect: true) scheduled")
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
             }
@@ -128,6 +143,7 @@ struct AppearanceSettings: View {
         if enabled {
             Task {
                 let authorized = await NotificationService.shared.requestAuthorization()
+                notificationsDenied = !authorized
                 if authorized {
                     NotificationService.shared.scheduleNotifications(for: dataStore.activeProtocols)
                 } else {
@@ -186,9 +202,10 @@ private struct ThemePickerRow: View {
                     .font(AppFont.scaled(13))
                     .foregroundStyle(AppColor.accentPrimary)
                     .frame(width: settingsIconColumnWidth)
+                    .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text("Accent Color")
+                    Text("Accent color")
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(selection.displayName)

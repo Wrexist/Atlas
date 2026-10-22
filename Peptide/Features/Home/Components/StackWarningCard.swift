@@ -22,7 +22,7 @@ struct StackWarningCard: View {
                         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
 
                         if warning.id != warnings.last?.id {
-                            Divider().foregroundStyle(AppColor.glassBorder)
+                            Divider().overlay(AppColor.glassBorder)
                         }
                     }
                 }
