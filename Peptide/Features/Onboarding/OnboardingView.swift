@@ -271,7 +271,7 @@ struct OnboardingView: View {
 
     var body: some View {
         ZStack {
-            OnboardingBackground(step: page)
+            OnboardingBackground()
 
             VStack(spacing: 0) {
                 topBar
