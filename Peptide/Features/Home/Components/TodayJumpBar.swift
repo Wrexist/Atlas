@@ -53,6 +53,9 @@ struct TodayJumpBar: View {
     /// Whether the parent's quick-log sheet is up. Turns the "+" into a
     /// "×" so the control reads as the thing that opened the sheet.
     let isQuickLogOpen: Bool
+    /// Whether "+ Log" opens the meal-or-dose menu. Without a pending
+    /// dose it goes straight to the meal scanner, and the hint says so.
+    let quickLogIncludesDose: Bool
     /// Triggered by the trailing "+" quick-log button. Parent decides
     /// what to surface (meal scan, dose entry).
     let onQuickLog: () -> Void
@@ -146,7 +149,9 @@ struct TodayJumpBar: View {
         }
         .buttonStyle(ScalePressStyle())
         .accessibilityLabel("Quick log")
-        .accessibilityHint("Opens a menu to snap a meal photo or log your next dose.")
+        .accessibilityHint(quickLogIncludesDose
+            ? Text("Opens a menu to snap a meal photo or log your next dose.")
+            : Text("Opens the meal scanner."))
     }
 }
 
@@ -159,6 +164,7 @@ struct TodayJumpBar: View {
                 showsDoses: true,
                 onSelect: { _ in },
                 isQuickLogOpen: false,
+                quickLogIncludesDose: true,
                 onQuickLog: {}
             )
             TodayJumpBar(
@@ -166,6 +172,7 @@ struct TodayJumpBar: View {
                 showsDoses: false,
                 onSelect: { _ in },
                 isQuickLogOpen: true,
+                quickLogIncludesDose: false,
                 onQuickLog: {}
             )
         }

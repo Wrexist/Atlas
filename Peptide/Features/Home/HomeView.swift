@@ -264,7 +264,15 @@ struct HomeView: View {
                         showsDoses: !dataStore.protocols.isEmpty,
                         onSelect: { anchor in handleJump(to: anchor, proxy: proxy) },
                         isQuickLogOpen: showQuickLogSheet,
-                        onQuickLog: { showQuickLogSheet = true }
+                        quickLogIncludesDose: dataStore.nextDose != nil,
+                        onQuickLog: {
+                            // A one-row menu is just an extra tap.
+                            if dataStore.nextDose == nil {
+                                quickLogAction = .meal
+                            } else {
+                                showQuickLogSheet = true
+                            }
+                        }
                     )
                     .sectionAppear(index: 1)
 
@@ -809,7 +817,7 @@ struct HomeView: View {
                     .liquidGlassPresentation()
             }
             .sheet(isPresented: $showQuickLogSheet) {
-                LogMealSheet(
+                QuickLogMenuSheet(
                     nextDose: dataStore.nextDose,
                     onSnapMeal: { startQuickLog(.meal) },
                     onLogNextDose: { startQuickLog(.dose(dataStore.nextDose)) }
