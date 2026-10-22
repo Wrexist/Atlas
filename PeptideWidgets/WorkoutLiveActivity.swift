@@ -149,21 +149,21 @@ private enum WorkoutActivityStyle {
 
     /// Replaces the subtitle once the activity has gone stale with
     /// nobody touching the workout.
-    static let idleSubtitle = String(localized: "Workout idle · Tap to resume")
+    static var idleSubtitle: LocalizedStringKey { "Workout idle · Tap to resume" }
 
     /// The line under the workout name. Falls back to the set count
     /// when there's no exercise to name yet.
-    static func subtitle(for state: WorkoutActivityAttributes.ContentState) -> String {
+    static func subtitle(for state: WorkoutActivityAttributes.ContentState) -> LocalizedStringKey {
         switch state.status() {
         case .paused:
-            return String(localized: "Workout paused")
+            return "Workout paused"
         case .finished:
-            return String(localized: "\(state.completedSets) sets · done")
+            return "^[\(state.completedSets) set](inflect: true) · done"
         case .resting, .lifting:
-            if !state.currentExercise.isEmpty { return state.currentExercise }
+            if !state.currentExercise.isEmpty { return "\(state.currentExercise)" }
             return state.exerciseCount == 0
-                ? String(localized: "Add your first exercise")
-                : String(localized: "\(state.completedSets)/\(state.totalSets) sets")
+                ? "Add your first exercise"
+                : "\(state.completedSets)/\(state.totalSets) sets"
         }
     }
 }
@@ -257,7 +257,7 @@ private struct WorkoutLockView: View {
                 Text("Done")
                     .font(.system(size: 18, weight: .heavy, design: .rounded))
                     .foregroundStyle(accent)
-                Text("\(state.completedSets) sets")
+                Text("^[\(state.completedSets) set](inflect: true)")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.secondary)
             }
@@ -401,7 +401,7 @@ private struct SetProgressBar: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Text(state.totalSets > 0
-                     ? "\(state.completedSets) of \(state.totalSets) sets"
+                     ? "\(state.completedSets) of ^[\(state.totalSets) set](inflect: true)"
                      : "No sets planned")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary)

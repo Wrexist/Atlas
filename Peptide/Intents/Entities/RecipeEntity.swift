@@ -21,8 +21,15 @@ struct RecipeEntity: AppEntity, Identifiable {
     var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(
             title: "\(displayName)",
-            subtitle: "\(ingredientCount) ingredients · \(calorieSummary) kcal"
+            subtitle: "\(ingredientsLabel) · \(calorieSummary) kcal"
         )
+    }
+
+    /// "1 ingredient" / "3 ingredients". Inflected through
+    /// `AttributedString`, which resolves the agreement markdown that a
+    /// plain `LocalizedStringResource` would show raw.
+    private var ingredientsLabel: String {
+        String(AttributedString(localized: "^[\(ingredientCount) ingredient](inflect: true)").characters)
     }
 
     // Stateless query — `let` so Swift 6 strict concurrency
