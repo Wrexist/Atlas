@@ -54,7 +54,7 @@ final class FoodLibraryLogicTests: XCTestCase {
             DataStore.current = nil
             repo.configureForTesting()
         }
-        store.profile.healthKitNutritionEnabled = false
+        UserDefaults.standard.set(false, forKey: HealthSyncSettings.nutritionEnabledKey)
         let oats = food()
         store.profile.customFoods = [oats]
         store.flushPendingSave()

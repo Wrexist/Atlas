@@ -336,6 +336,19 @@ final class DataStoreTests: XCTestCase {
         XCTAssertEqual(store.entries.first { $0.id == entry.id }?.completed, true)
     }
 
+    func test_logDose_clearedNotesAndBlankDose_areStoredAsCleared() {
+        guard let entry = store.entries.first else {
+            XCTFail("No entries in store")
+            return
+        }
+        store.logDose(entryId: entry.id, actualDose: "250 mcg", actualTime: nil, injectionSite: nil, notes: "Left side")
+        store.logDose(entryId: entry.id, actualDose: "  ", actualTime: nil, injectionSite: nil, notes: "")
+
+        let updated = store.entries.first { $0.id == entry.id }
+        XCTAssertEqual(updated?.notes, "")
+        XCTAssertNil(updated?.actualDose)
+    }
+
     func test_watchMarkIncompleteDuplicateDelivery_doesNotComplete() {
         guard let entry = store.entries.first(where: { !$0.completed }) else {
             XCTFail("No incomplete entries in seed data")
@@ -437,6 +450,95 @@ final class DataStoreTests: XCTestCase {
         store.reloadFromDisk()
 
         XCTAssertEqual(store.profile.name, "Dirty Tracking")
+    }
+
+    // MARK: - Multi-device sync
+
+    func test_cloudImport_afterADebouncedSave_reloadsFromDisk() async throws {
+        store.updateProfileIdentity(name: "Local edit", bio: "")
+        try await Task.sleep(for: .seconds(1))
+        let synced = PeptideProtocol(
+            id: UUID(),
+            name: "Synced from iPad",
+            peptides: [],
+            schedule: ProtocolSchedule(daysOfWeek: [1], timesPerDay: 1, preferredTimes: ["8:00 AM"]),
+            cycleLengthWeeks: 4,
+            startDate: Date(),
+            status: .paused,
+            notes: ""
+        )
+        SwiftDataRepository.shared.upsertProtocols([synced])
+
+        NotificationCenter.default.post(name: .peptideXCloudKitImportCompleted, object: nil)
+        try await Task.sleep(for: .seconds(4))
+
+        XCTAssertTrue(store.protocols.contains { $0.id == synced.id },
+                      "A finished debounced save must not block the import refresh for the rest of the session")
+    }
+
+    func test_scheduledID_sameDoseSlot_isIdenticalOnEveryDevice() {
+        let protocolId = UUID()
+        let peptideId = UUID()
+        let slot = Date(timeIntervalSince1970: 1_760_000_000)
+
+        let iPhone = ProtocolEntry.scheduledID(protocolId: protocolId, peptideId: peptideId, date: slot, calendar: .current)
+        let iPad = ProtocolEntry.scheduledID(protocolId: protocolId, peptideId: peptideId, date: slot, calendar: .current)
+        let laterSlot = ProtocolEntry.scheduledID(
+            protocolId: protocolId, peptideId: peptideId, date: slot.addingTimeInterval(3600), calendar: .current
+        )
+
+        XCTAssertEqual(iPhone, iPad)
+        XCTAssertNotEqual(iPhone, laterSlot)
+    }
+
+    func test_collapsingDuplicateIDs_twoDevicesRows_keepsTheLoggedOne() {
+        let pending = ProtocolEntry(
+            id: UUID(), protocolId: UUID(), peptide: MockPeptides.bpc157,
+            date: Date(), dose: "250 mcg", notes: "", completed: false
+        )
+        var logged = pending
+        logged.completed = true
+
+        let collapsed = SwiftDataRepository.collapsingDuplicateIDs([pending, logged])
+
+        XCTAssertEqual(collapsed.count, 1)
+        XCTAssertEqual(collapsed.first?.completed, true)
+    }
+
+    func test_deleteProtocol_alsoDeletesItsRowsNotLoadedInMemory() throws {
+        let proto = try XCTUnwrap(store.protocols.first)
+        let syncedIn = ProtocolEntry(
+            id: UUID(), protocolId: proto.id, peptide: MockPeptides.bpc157,
+            date: Date(), dose: "250 mcg", notes: "", completed: false
+        )
+        SwiftDataRepository.shared.upsertEntries([syncedIn])
+
+        store.deleteProtocol(id: proto.id)
+        store.flushPendingSave()
+
+        XCTAssertFalse(SwiftDataRepository.shared.loadEntries().contains { $0.protocolId == proto.id })
+    }
+
+    // MARK: - Travel mode
+
+    func test_applyTravelShift_movesTodaysPendingDoseToTheShiftedTime() {
+        let proto = PeptideProtocol(
+            id: UUID(),
+            name: "Travel test",
+            peptides: [MockPeptides.bpc157],
+            schedule: ProtocolSchedule(daysOfWeek: Array(1...7), timesPerDay: 1, preferredTimes: ["8:00 AM"]),
+            cycleLengthWeeks: 8,
+            startDate: Date(),
+            status: .active,
+            notes: ""
+        )
+        store.addProtocol(proto)
+
+        store.applyTravelShift(toTimezone: TimeZone.current.identifier, minutesDelta: 120)
+
+        let todays = store.entries.filter { $0.protocolId == proto.id && Calendar.current.isDateInToday($0.date) }
+        XCTAssertEqual(todays.map { Calendar.current.component(.hour, from: $0.date) }, [10],
+                       "Today's already-generated dose must move with the schedule")
     }
 
     // MARK: - Persistence failure must not update projections

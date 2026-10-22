@@ -21,13 +21,13 @@ struct WidgetMealSlot: Codable, Hashable, Sendable {
     let entryCount: Int
 }
 
-struct WidgetData: Codable, Sendable {
+struct WidgetData: Codable, Equatable, Sendable {
     let nextPeptideName: String
     let nextDose: String
     let nextDoseTime: Date?
     let completedToday: Int
     let totalToday: Int
-    let lastUpdated: Date
+    var lastUpdated: Date
     let upcoming: [WidgetDoseSlot]
     // MARK: - Nutrition (Phase 7 — nutrition widget)
     /// Today's calorie consumption sum. Zero when nothing's logged.
@@ -148,6 +148,14 @@ struct WidgetData: Codable, Sendable {
     /// True while a workout is in progress — the training widget swaps
     /// to a live elapsed-time layout.
     var workoutInProgress: Bool { activeWorkoutStartedAt != nil }
+
+    /// True when every field but `lastUpdated` matches — rewriting
+    /// such a payload would only spend the widgets' reload budget.
+    func hasSameContent(as other: WidgetData) -> Bool {
+        var restamped = other
+        restamped.lastUpdated = lastUpdated
+        return restamped == self
+    }
 
     /// Weight-unit suffix, mirroring `MeasurementUnit.weightSuffix`.
     /// Deliberately unlocalised: "kg" and "lb" are the symbols in every

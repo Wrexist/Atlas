@@ -110,7 +110,7 @@ final class MealScannerService: Sendable {
     ]
 
     /// Result shape mirrors the JSON keys we ask Claude to return so the
-    /// roll-up into `dataStore.logMeal(...)` can be a 1:1 mapping.
+    /// roll-up into a `MealEntry` can be a 1:1 mapping.
     struct MealEstimate: Codable, Hashable {
         let mealName: String
         let calories: Int

@@ -7011,7 +7011,7 @@
         "Heart failure exacerbation (observed in clinical trial)"
       ],
       "commonStacks": [
-        "Not commonly stacked — investigated as monotherapy in clinical trials"
+        "Not commonly combined — investigated as monotherapy in clinical trials"
       ],
       "regulatoryStatus": "Investigational drug. Phase II clinical trials were conducted but development appears to have been discontinued. Not approved for human use by any regulatory agency.",
       "imageSystemName": "figure.strengthtraining.traditional",
@@ -15343,7 +15343,7 @@
         "Falls (noted in PSP clinical trials)"
       ],
       "commonStacks": [
-        "Not commonly stacked — investigated as standalone agent in clinical research"
+        "Not commonly combined — investigated as standalone agent in clinical research"
       ],
       "regulatoryStatus": "Research chemical, not approved for human use. Phase II/III clinical trials were conducted for progressive supranuclear palsy (PSP) and mild cognitive impairment (MCI), but the PSP trial did not meet primary endpoints. Development was discontinued by Allon Therapeutics.",
       "imageSystemName": "brain.head.profile.fill",
@@ -16533,7 +16533,7 @@
         "Dyspepsia"
       ],
       "commonStacks": [
-        "Not typically stacked — investigated as monotherapy in clinical trials"
+        "Not typically combined — investigated as monotherapy in clinical trials"
       ],
       "regulatoryStatus": "Investigational drug in clinical development (Phase 2); not approved by the FDA or other regulatory agencies for any indication",
       "imageSystemName": "flame.fill",
@@ -16964,7 +16964,7 @@
         "Theoretical risk of metabolic disruption with exogenous administration"
       ],
       "commonStacks": [
-        "No established peptide stacking protocols exist for adropin"
+        "No established peptide combination protocols exist for adropin"
       ],
       "regulatoryStatus": "Research chemical, not approved for human therapeutic use. Primarily studied as a biomarker and in preclinical animal models.",
       "imageSystemName": "flame.fill",
@@ -17129,7 +17129,7 @@
         "Potential effects on bone turnover markers"
       ],
       "commonStacks": [
-        "Not commonly stacked — primarily an endogenous research biomarker",
+        "Not commonly combined — primarily an endogenous research biomarker",
         "FGF21 (co-investigated in browning research)",
         "BAIBA (exercise-induced metabolic mediator)"
       ],
