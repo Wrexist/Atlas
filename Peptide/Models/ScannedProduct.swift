@@ -45,9 +45,33 @@ struct ScannedProduct: Codable, Hashable, Sendable {
     /// ISO 8601 timestamp the upstream record was fetched. Stamped by
     /// the service so callers can show a "data updated" hint.
     let fetchedAt: Date
+
+    /// True when the Open Food Facts record carried no energy and no
+    /// macros at all, so `per100g` is zeros by default rather than a
+    /// real zero-calorie label (water, plain tea). Set at mapping time
+    /// because the values alone cannot tell the two apart.
+    var nutritionMissing = false
 }
 
 extension ScannedProduct {
+
+    /// Decodes `nutritionMissing` only when present, so products cached
+    /// before the field existed still load.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        barcode = try container.decode(String.self, forKey: .barcode)
+        name = try container.decode(String.self, forKey: .name)
+        brand = try container.decodeIfPresent(String.self, forKey: .brand)
+        imageURL = try container.decodeIfPresent(URL.self, forKey: .imageURL)
+        servingSizeText = try container.decodeIfPresent(String.self, forKey: .servingSizeText)
+        servingGrams = try container.decodeIfPresent(Double.self, forKey: .servingGrams)
+        packageGrams = try container.decodeIfPresent(Double.self, forKey: .packageGrams)
+        per100g = try container.decode(Nutriments.self, forKey: .per100g)
+        nutriScore = try container.decodeIfPresent(String.self, forKey: .nutriScore)
+        novaGroup = try container.decodeIfPresent(Int.self, forKey: .novaGroup)
+        fetchedAt = try container.decode(Date.self, forKey: .fetchedAt)
+        nutritionMissing = try container.decodeIfPresent(Bool.self, forKey: .nutritionMissing) ?? false
+    }
 
     struct Nutriments: Codable, Hashable, Sendable {
         let calories: Double
@@ -119,10 +143,9 @@ extension ScannedProduct {
 
     /// False when the record has no energy and no macros at all. Crowd
     /// Open Food Facts entries often lack them, and the missing fields
-    /// collapse to 0 — logging one would add a silent 0 kcal row.
-    var hasNutrition: Bool {
-        [per100g.calories, per100g.proteinG, per100g.carbsG, per100g.fatG].contains { $0 > 0 }
-    }
+    /// collapse to 0 — logging one would add a silent 0 kcal row. A
+    /// record that states 0 (water) still counts as having nutrition.
+    var hasNutrition: Bool { !nutritionMissing }
 
     private func roundedNonNegative(_ value: Double) -> Int {
         guard value.isFinite, value > 0 else { return 0 }

@@ -62,7 +62,8 @@ enum SmartFoodLogic {
             per100g: nutriments,
             nutriScore: product.nutriScore,
             novaGroup: product.novaGroup,
-            fetchedAt: product.fetchedAt
+            fetchedAt: product.fetchedAt,
+            nutritionMissing: !product.hasNutrition && scan.items.isEmpty
         )
     }
 

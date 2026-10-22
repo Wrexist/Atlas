@@ -149,6 +149,22 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         XCTAssertEqual(product.per100g.fatG, 0)
     }
 
+    func test_fetch_allZeroNutriments_countsAsHavingNutrition() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.water.utf8))
+        }
+        let product = try await service.fetch(barcode: "7777777777777")
+        XCTAssertTrue(product.hasNutrition)
+    }
+
+    func test_fetch_noNutriments_hasNoNutrition() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.noNutriments.utf8))
+        }
+        let product = try await service.fetch(barcode: "8888888888888")
+        XCTAssertFalse(product.hasNutrition)
+    }
+
     func test_fetch_addsUserAgentHeader() async throws {
         let captured: SendableBox<URLRequest?> = .init(nil)
         MockURLProtocol.handler = { request in
@@ -562,6 +578,33 @@ private enum Fixtures {
         "nutriments": {
           "energy-kcal_100g": 100
         }
+      }
+    }
+    """
+
+    static let water = """
+    {
+      "status": 1,
+      "code": "7777777777777",
+      "product": {
+        "product_name": "Still water",
+        "nutriments": {
+          "energy-kcal_100g": 0,
+          "proteins_100g": 0,
+          "carbohydrates_100g": 0,
+          "fat_100g": 0
+        }
+      }
+    }
+    """
+
+    static let noNutriments = """
+    {
+      "status": 1,
+      "code": "8888888888888",
+      "product": {
+        "product_name": "Unlabelled",
+        "nutriments": {}
       }
     }
     """

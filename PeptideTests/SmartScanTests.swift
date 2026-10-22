@@ -216,7 +216,8 @@ final class SmartScanTests: XCTestCase {
         let scan = try service.parseSmartScan(from: Data(SmartFixtures.product.utf8))
         let empty = ScannedProduct(barcode: "7394376616228", name: "Barista", brand: "Oatly", imageURL: nil,
                                    servingSizeText: nil, servingGrams: nil, packageGrams: nil,
-                                   per100g: .zero, nutriScore: nil, novaGroup: nil, fetchedAt: Date())
+                                   per100g: .zero, nutriScore: nil, novaGroup: nil, fetchedAt: Date(),
+                                   nutritionMissing: true)
         XCTAssertFalse(empty.hasNutrition)
 
         let filled = SmartFoodLogic.product(empty, fillingFrom: scan)

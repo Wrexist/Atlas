@@ -669,7 +669,8 @@ private extension OpenFoodFactsService {
                 nutriScore: nutriscoreGrade?.trimmingCharacters(in: .whitespacesAndNewlines)
                     .nilIfEmpty,
                 novaGroup: novaGroup?.value,
-                fetchedAt: fetchedAt
+                fetchedAt: fetchedAt,
+                nutritionMissing: n?.hasEnergyOrMacros != true
             )
         }
     }
@@ -700,6 +701,11 @@ private extension OpenFoodFactsService {
             case fat100g            = "fat_100g"
             case fiber100g          = "fiber_100g"
             case sugars100g         = "sugars_100g"
+        }
+
+        /// Whether the record states energy or any macro, zero included.
+        var hasEnergyOrMacros: Bool {
+            [energyKcal100g, energy100g, proteins100g, carbohydrates100g, fat100g].contains { $0 != nil }
         }
     }
 }
