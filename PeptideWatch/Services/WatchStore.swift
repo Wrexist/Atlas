@@ -123,13 +123,14 @@ final class WatchStore: NSObject, ObservableObject {
     /// once it processes the message. Picks the smaller of the two
     /// haptic patterns (.click) — water is a frequent micro-log, not
     /// a milestone.
-    func logWater(oz: Int) {
+    func logWater(fluidOunces: Double) {
         guard !isSending else { return }
         isSending = true
         WKInterfaceDevice.current().play(.click)
         sendOrQueue([
             "action": WatchMessage.logWater,
-            WatchMessage.ozKey: oz,
+            WatchMessage.fluidOuncesKey: fluidOunces,
+            WatchMessage.ozKey: Int(fluidOunces.rounded()),
         ])
     }
 

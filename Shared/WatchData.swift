@@ -286,13 +286,15 @@ enum WatchMessage {
     static let markIncomplete = "markIncomplete"
     static let entryIdKey = "entryId"
     static let protocolIdKey = "protocolId"
-    /// Watch → phone "log water" command. Carries `ozKey` with an
-    /// integer ounces amount. The phone applies the log through
-    /// the same `dataStore.logWater` path used by the in-app
-    /// quick-add chips, so widget reload + Watch sync + HK write
-    /// all fire for free.
+    /// Watch → phone "log water" command. Carries `fluidOuncesKey` with
+    /// the exact amount, so +250 mL logs 250 mL rather than a rounded
+    /// 8 oz, and `ozKey` with whole ounces for older phone builds. The
+    /// phone applies the log through the same `dataStore.logWater` path
+    /// used by the in-app quick-add chips, so widget reload + Watch
+    /// sync + HK write all fire for free.
     static let logWater = "logWater"
     static let ozKey = "oz"
+    static let fluidOuncesKey = "fluidOunces"
     /// Watch → phone workout command. Carries `workoutRequestKey` with a
     /// JSON-encoded `WatchWorkoutRequest`.
     static let workout = "workout"

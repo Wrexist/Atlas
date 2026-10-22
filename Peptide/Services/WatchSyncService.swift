@@ -9,11 +9,11 @@ final class WatchSyncService: NSObject {
 
     var onMarkComplete: ((UUID, UUID) -> Void)?
     var onMarkIncomplete: ((UUID, UUID) -> Void)?
-    /// Callback fired when the watch logs water. Receives the
-    /// ounces amount; the phone-side handler routes through
+    /// Callback fired when the watch logs water. Receives the exact
+    /// fluid-ounce amount; the phone-side handler routes through
     /// `dataStore.logWater` so the widget reload + watch sync +
     /// HK write all fire for free.
-    var onLogWater: ((Int) -> Void)?
+    var onLogWater: ((Double) -> Void)?
 
     private let encoder: JSONEncoder = {
         let e = JSONEncoder()
@@ -231,9 +231,11 @@ extension WatchSyncService: WCSessionDelegate {
         }
 
         if action == WatchMessage.logWater {
-            guard let oz = message[WatchMessage.ozKey] as? Int else { return }
+            // Older Watch builds send whole ounces only.
+            guard let fluidOunces = message[WatchMessage.fluidOuncesKey] as? Double
+                    ?? (message[WatchMessage.ozKey] as? Int).map(Double.init) else { return }
             Task { [weak self] in
-                await self?.handleWaterMessage(oz: oz)
+                await self?.handleWaterMessage(fluidOunces: fluidOunces)
             }
             return
         }
@@ -255,8 +257,8 @@ extension WatchSyncService: WCSessionDelegate {
 }
 
 private extension WatchSyncService {
-    func handleWaterMessage(oz: Int) {
-        onLogWater?(oz)
+    func handleWaterMessage(fluidOunces: Double) {
+        onLogWater?(fluidOunces)
     }
 
     func handleWatchMessage(action: String, entryId: UUID, protocolId: UUID) {
