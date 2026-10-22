@@ -249,6 +249,18 @@ final class StoreServiceTests: XCTestCase {
 
     // MARK: - Revocation, expiry, deferred purchases
 
+    /// SKTestSession refunds and expiries reach `currentEntitlements`
+    /// asynchronously, so re-read until the change lands or time runs out.
+    private func awaitProAccess(_ expected: Bool, timeout: Duration = .seconds(10)) async {
+        let clock = ContinuousClock()
+        let deadline = clock.now + timeout
+        await service.checkProAccess()
+        while service.isProUser != expected, clock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(200))
+            await service.checkProAccess()
+        }
+    }
+
     func test_refundedLifetime_revokesPro() async throws {
         await service.loadProducts()
         let lifetime = try XCTUnwrap(service.lifetimeProduct, "lifetime missing")
@@ -259,7 +271,7 @@ final class StoreServiceTests: XCTestCase {
             session.allTransactions().first { $0.productIdentifier == StoreService.lifetimeID }
         )
         try session.refundTransaction(identifier: transaction.identifier)
-        await service.checkProAccess()
+        await awaitProAccess(false)
 
         XCTAssertFalse(service.isProUser, "A refunded lifetime purchase must not keep Pro")
     }
@@ -271,7 +283,7 @@ final class StoreServiceTests: XCTestCase {
         XCTAssertTrue(service.isProUser)
 
         try session.expireSubscription(productIdentifier: StoreService.monthlyID)
-        await service.checkProAccess()
+        await awaitProAccess(false)
 
         XCTAssertFalse(service.isProUser, "An expired subscription outside grace must not keep Pro")
     }
