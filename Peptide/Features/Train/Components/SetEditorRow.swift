@@ -162,8 +162,11 @@ struct SetEditorRow: View {
                 .monospacedDigit()
                 .focused($weightFocused)
                 .accessibilityIdentifier("workout-weight-\(set.index)")
+                .accessibilityLabel(Text("Weight for set \(set.index)"))
+                .accessibilityValue(Text("\(formatted(set.weightKg)) \(unit.weightSpokenUnit)"))
             if focusStyle {
                 Text(unit.weightSuffix).font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
+                    .accessibilityHidden(true)
             }
         }
             .frame(width: focusStyle ? nil : compactWeightWidth, height: focusStyle ? inputHeight : compactInputHeight)
@@ -178,8 +181,6 @@ struct SetEditorRow: View {
                     .stroke(weightFocused ? AppColor.accentPrimary : AppColor.glassBorder,
                             lineWidth: weightFocused ? 1 : 0.5)
             )
-            .accessibilityLabel(Text("Weight for set \(set.index)"))
-            .accessibilityValue(Text("\(formatted(set.weightKg)) \(unit.weightSpokenUnit)"))
     }
 
     private var repsField: some View {
