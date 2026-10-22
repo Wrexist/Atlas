@@ -227,7 +227,7 @@ struct ExercisePickerSheet: View {
             if exercise.id != exercises.last?.id {
                 Divider()
                     .background(AppColor.glassBorder)
-                    .padding(.leading, Spacing.screenPadding + 56 + Spacing.md)
+                    .padding(.leading, Spacing.screenPadding + ExerciseRow.tileSize + Spacing.md)
             }
         }
     }
