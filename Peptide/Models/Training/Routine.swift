@@ -4,10 +4,6 @@ import Foundation
 /// list with target set schemes — from which a `WorkoutSession` is
 /// instantiated when the user taps Start. The session is the concrete
 /// log; the routine is the plan.
-///
-/// Bundled programs (PPL, 5/3/1, etc.) also reduce to a collection of
-/// routines under the hood — a `Program` is just a sequence of
-/// `RoutineTemplate`s with scheduling on top.
 struct Routine: Codable, Hashable, Identifiable, Sendable {
     let id: UUID
     var name: String

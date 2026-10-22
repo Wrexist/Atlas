@@ -3,7 +3,7 @@ import SwiftUI
 /// Train-tab root. Hosts a segmented switcher between the four
 /// surface modes — Overview (the muscle heatmap + recent workouts),
 /// Routines (saved templates, one tap to start), Exercises (the
-/// searchable library), and History (calendar + PRs).
+/// searchable library), and History (finished workouts by month).
 /// The single `NavigationStack` lets every sub-screen push the same
 /// destination types (`TrainNavigation`) without each tab re-creating
 /// its own stack.
@@ -170,11 +170,13 @@ struct TrainContainerView: View {
                         HStack(spacing: Spacing.xs) {
                             // Active time, not wall clock: frozen while
                             // paused, and pauses don't count.
-                            TimelineView(.periodic(from: .now, by: 1)) { context in
+                            TimelineView(.animation(minimumInterval: 1, paused: active.isPaused)) { context in
                                 Text(WorkoutClock.label(active.elapsedSeconds(now: context.date)))
+                                    .accessibilityLabel(WorkoutClock.spoken(active.elapsedSeconds(now: context.date)))
                             }
                             Text("·")
-                            Text("\(active.completedSetCount) sets logged")
+                                .accessibilityHidden(true)
+                            Text("^[\(active.completedSetCount) set](inflect: true) logged")
                                 .contentTransition(.numericText())
                         }
                         .font(AppFont.caption)
@@ -197,6 +199,7 @@ struct TrainContainerView: View {
             .padding(.bottom, Spacing.xs)
         }
         .buttonStyle(ScalePressStyle())
+        .accessibilityHint("Opens your workout")
     }
 
     private var sectionPicker: some View {
@@ -239,9 +242,7 @@ struct TrainContainerView: View {
 
     @ViewBuilder
     private func workoutDetailDestination(for id: UUID) -> some View {
-        if let session = SwiftDataRepository.shared
-            .loadWorkoutSessions()
-            .first(where: { $0.id == id }) {
+        if let session = SwiftDataRepository.shared.loadWorkoutSession(id: id) {
             WorkoutSessionDetailView(session: session)
         } else {
             // Session was deleted between deep-link generation and

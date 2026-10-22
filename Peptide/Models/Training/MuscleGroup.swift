@@ -51,19 +51,24 @@ enum MuscleGroup: String, CaseIterable, Codable, Identifiable, Sendable {
     /// "quadriceps") to its collapsed group. Returns `nil` for
     /// unrecognized strings so callers can decide whether to fall
     /// through to `.fullBody` (compound) or just skip the exercise.
+    /// Also accepts this enum's own raw values, which custom exercises
+    /// store as their muscles.
     static func fromRaw(_ raw: String) -> MuscleGroup? {
         switch raw.lowercased() {
         case "chest":                                            return .chest
-        case "lats", "middle back", "lower back", "traps":       return .back
+        case "back", "lats", "middle back", "lower back",
+             "traps":                                            return .back
         case "shoulders", "neck":                                return .shoulders
-        case "biceps", "triceps", "forearms":                    return .arms
-        case "quadriceps", "hamstrings", "calves",
+        case "arms", "biceps", "triceps", "forearms":            return .arms
+        case "legs", "quadriceps", "hamstrings", "calves",
              "adductors":                                        return .legs
         // Abductors (gluteus medius/minimus) anatomically sit with the
         // glutes — `AnatomicalMuscle.fromRaw` already maps them that
         // way, so the collapsed group matches (audit Train M5).
         case "glutes", "abductors":                              return .glutes
-        case "abdominals":                                       return .core
+        case "core", "abdominals":                               return .core
+        case "fullbody":                                         return .fullBody
+        case "cardiomobility":                                   return .cardioMobility
         default:                                                 return nil
         }
     }

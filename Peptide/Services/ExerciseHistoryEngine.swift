@@ -7,10 +7,7 @@ enum ExerciseHistoryEngine {
         let session: WorkoutSession
         let sets: [SetEntry]
         var date: Date { session.startedAt }
-        var name: String {
-            let value = session.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            return value.isEmpty ? String(localized: "Workout") : value
-        }
+        var name: String { session.displayName }
     }
 
     static func visits(exerciseID: String, sessions: [WorkoutSession],
