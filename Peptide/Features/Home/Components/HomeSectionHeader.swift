@@ -23,7 +23,7 @@ struct HomeSectionHeader<Trailing: View>: View {
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.accentLight)
                 Text(title)
-                    .font(.system(.title2, design: .rounded, weight: .bold))
+                    .font(AppFont.sectionTitle)
                     .foregroundStyle(AppColor.textPrimary)
             }
             // The eyebrow and title are one heading; the trailing action
