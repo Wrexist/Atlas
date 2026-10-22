@@ -15,8 +15,9 @@ import XCTest
 final class PRDetectionEngineTests: XCTestCase {
 
     private let testExerciseIDs: Set<String> = [
-        "test_pushups", "test_bench", "test_squat",
+        "test_pushups", "test_bench", "test_squat", PRDetectionEngineTests.barbellBenchID,
     ]
+    private static let barbellBenchID = "Barbell_Bench_Press_-_Medium_Grip"
 
     override func setUp() {
         super.setUp()
@@ -124,6 +125,22 @@ final class PRDetectionEngineTests: XCTestCase {
         XCTAssertFalse(
             detections.contains { $0.kind == .bodyweightReps },
             "Tying the previous bodyweight PR should not produce a new PR"
+        )
+    }
+
+    func test_loadedLiftAtZeroKg_doesNotRecordRepsPR() async {
+        await ExerciseLibrary.shared.load()
+        _ = PRDetectionEngine.shared.ingest(session: session(
+            exerciseID: Self.barbellBenchID,
+            sets: [completedSet(weightKg: 0, reps: 3)]
+        ))
+        let detections = PRDetectionEngine.shared.ingest(session: session(
+            exerciseID: Self.barbellBenchID,
+            sets: [completedSet(weightKg: 0, reps: 8)]
+        ))
+        XCTAssertFalse(
+            detections.contains { $0.kind == .bodyweightReps },
+            "A barbell set left at its seeded 0 kg isn't a bodyweight rep PR"
         )
     }
 

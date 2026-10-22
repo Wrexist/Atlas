@@ -113,8 +113,13 @@ final class PRDetectionEngine {
             // This is what "I did 35 push-ups today" looks like —
             // weight 0, reps high. Reported separately from the
             // weighted track so a bodyweight-only user still gets
-            // celebration moments.
-            let bodyweightSets = allSets.filter { $0.weightKg == 0 }
+            // celebration moments. A loaded lift left at its seeded
+            // 0 kg isn't a bodyweight set, so it stays off this track.
+            let isBodyweightLift = ExerciseLibrary.shared.lookup(id: exerciseID)
+                .map { $0.equipmentKind == .bodyweight } ?? true
+            let bodyweightSets = allSets.filter {
+                $0.weightKg == 0 && (isBodyweightLift || $0.measurement?.kind == .bodyweight)
+            }
             let bestBodyweightReps = bodyweightSets.map(\.reps).max() ?? 0
             let finishedAt = session.finishedAt ?? Date()
 
