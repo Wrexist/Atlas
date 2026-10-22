@@ -73,7 +73,7 @@ struct LiftedDishCell: View {
                             .scaledToFit()
                             .frame(height: Self.stickerHeight)
                             .matchedGeometryEffect(id: dish.id, in: namespace)
-                            .shadow(color: .black.opacity(dish.include ? 0.18 : 0.06), radius: 8, y: 4)
+                            .appShadow(AppShadow.glassSubtle)
                             .saturation(dish.include ? 1 : 0)
                             .scaleEffect(dish.include ? 1 : 0.9)
                     } else {

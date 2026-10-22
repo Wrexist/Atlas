@@ -205,6 +205,8 @@ struct CompoundVial: View {
                 border: Color.white.opacity(0.35),
                 interactive: false
             )
+            // A 1.5pt bevel that seats the label band on the glass, not an
+            // elevation, so it stays a fixed ink rather than an AppShadow.
             .shadow(color: .black.opacity(0.25), radius: 1.5, y: 0.8)
     }
 
