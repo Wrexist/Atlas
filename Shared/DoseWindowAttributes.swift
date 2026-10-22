@@ -121,8 +121,8 @@ extension DoseWindowAttributes.ContentState {
     /// scheduled time hits.
     static let dueNowToleranceMinutes: Int = 5
 
-    /// How long after `doseTime` the window stays open. Past it an
-    /// unlogged dose reads as missed and the app ends the activity.
+    /// How long after `doseTime` the window stays open. Past it the
+    /// app ends the activity for an unlogged dose.
     static let windowCloseMinutes: Int = 90
 
     /// How long the "Logged" badge stays up before the activity
@@ -133,17 +133,10 @@ extension DoseWindowAttributes.ContentState {
     /// tolerance. A Live Activity only redraws on a push or at its
     /// stale date, and status is read from the clock at draw time, so
     /// this redraw is what moves a suspended app's activity into
-    /// `.late`.
+    /// `.late`. It is the only redraw a suspended app gets, so an
+    /// unlogged dose stays on Late until the app ends the activity.
     var lateBoundary: Date {
         doseTime.addingTimeInterval(Double((Self.dueNowToleranceMinutes + 1) * 60))
-    }
-
-    /// The window closed with the dose unlogged. `isStale` comes from
-    /// the activity context; it is set from `lateBoundary`, so the
-    /// clock decides whether the window has actually closed.
-    func isMissed(isStale: Bool, at now: Date = Date()) -> Bool {
-        guard isStale, !completed else { return false }
-        return now >= doseTime.addingTimeInterval(Double(Self.windowCloseMinutes * 60))
     }
 
     /// Resolves the current status against `now`. Pure — same input

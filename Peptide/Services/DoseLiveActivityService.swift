@@ -23,7 +23,7 @@ final class DoseLiveActivityService {
     /// Latest the activity stays alive after the scheduled time
     /// before being auto-dismissed. 90 minutes covers "took it but
     /// didn't open the app" without leaving stale activities for
-    /// hours. Shared with the widget, which reads it as "missed".
+    /// hours. Also where `DoseWindowAttributes` closes the window.
     private static let stalenessMinutes = DoseWindowAttributes.ContentState.windowCloseMinutes
 
     private init() {}

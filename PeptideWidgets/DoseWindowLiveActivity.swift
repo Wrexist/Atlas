@@ -13,8 +13,10 @@ import WidgetKit
 ///   • upcoming — soft accent ring growing toward the dose time
 ///   • dueNow   — full-bleed accent, "Take now" CTA, Log button
 ///                lights up
-///   • late     — amber accent, "Late" pill
-///   • stale    — neutral "Missed window" layout once the window closes
+///   • late     — amber accent, "Late" pill. An unlogged dose stays
+///                here: the one stale-date redraw is spent moving into
+///                Late, and the app ends the activity once the window
+///                closes.
 ///   • completed— green pill with a checkmark, auto-dismissing
 ///
 /// The activity is started by `DoseLiveActivityService` from the
@@ -29,8 +31,7 @@ struct DoseWindowLiveActivity: Widget {
         ActivityConfiguration(for: DoseWindowAttributes.self) { context in
             DoseWindowLockView(
                 attributes: context.attributes,
-                state: context.state,
-                isStale: context.isStale
+                state: context.state
             )
             // Tapping anywhere outside the Log button deep-links
             // into the matching dose row in the app.
@@ -45,7 +46,6 @@ struct DoseWindowLiveActivity: Widget {
         context: ActivityViewContext<DoseWindowAttributes>
     ) -> DynamicIsland {
         let tint = Color(hex: context.attributes.tintHex)
-        let missed = context.state.isMissed(isStale: context.isStale)
         return DynamicIsland {
             DynamicIslandExpandedRegion(.leading) {
                 IslandLeadingBadge(
@@ -56,8 +56,7 @@ struct DoseWindowLiveActivity: Widget {
             DynamicIslandExpandedRegion(.trailing) {
                 IslandTrailingTimer(
                     state: context.state,
-                    accent: statusAccent(for: context.state, tint: tint),
-                    missed: missed
+                    accent: statusAccent(for: context.state, tint: tint)
                 )
             }
             DynamicIslandExpandedRegion(.center) {
@@ -80,8 +79,7 @@ struct DoseWindowLiveActivity: Widget {
                 IslandBottomBar(
                     entryId: context.attributes.entryId,
                     state: context.state,
-                    tint: tint,
-                    missed: missed
+                    tint: tint
                 )
             }
         } compactLeading: {
@@ -92,8 +90,7 @@ struct DoseWindowLiveActivity: Widget {
         } compactTrailing: {
             CompactTrailing(
                 state: context.state,
-                accent: statusAccent(for: context.state, tint: tint),
-                missed: missed
+                accent: statusAccent(for: context.state, tint: tint)
             )
         } minimal: {
             MinimalGlyph(
@@ -161,9 +158,6 @@ private func statusShortLabel(
 private struct DoseWindowLockView: View {
     let attributes: DoseWindowAttributes
     let state: DoseWindowAttributes.ContentState
-    /// Past the activity's `staleDate`. Once the window has also
-    /// closed (`isMissed`), the live countdown would be a lie.
-    let isStale: Bool
 
     private var tint: Color { Color(hex: attributes.tintHex) }
     private var accent: Color { statusAccent(for: state, tint: tint) }
@@ -184,44 +178,14 @@ private struct DoseWindowLockView: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            if state.isMissed(isStale: isStale) {
-                missedWindow
-                    .padding(14)
-            } else {
-                VStack(spacing: 12) {
-                    topRow
-                    bottomRow
-                }
-                .padding(14)
+            VStack(spacing: 12) {
+                topRow
+                bottomRow
             }
+            .padding(14)
         }
         .activityBackgroundTint(Color.black.opacity(0.05))
         .activitySystemActionForegroundColor(.white)
-    }
-
-    /// Neutral layout once the window has closed without a log. The
-    /// whole view still deep-links to the dose row, so tapping logs it.
-    private var missedWindow: some View {
-        HStack(alignment: .center, spacing: 14) {
-            Image(systemName: "clock.badge.xmark")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .frame(width: 56, height: 56)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(attributes.peptideName)
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .privacySensitive()
-                Text("Missed window · Tap to log")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-            Spacer(minLength: 0)
-        }
-        .accessibilityElement(children: .combine)
     }
 
     private var topRow: some View {
@@ -454,21 +418,9 @@ private struct CompactLeading: View {
 private struct CompactTrailing: View {
     let state: DoseWindowAttributes.ContentState
     let accent: Color
-    let missed: Bool
-
-    var body: some View {
-        if missed {
-            Text("Missed")
-                .font(.system(size: 11, weight: .heavy, design: .rounded))
-                .foregroundStyle(.white.opacity(0.55))
-                .padding(.trailing, 2)
-        } else {
-            statusText
-        }
-    }
 
     @ViewBuilder
-    private var statusText: some View {
+    var body: some View {
         switch state.status() {
         case .completed:
             Image(systemName: "checkmark")
@@ -547,30 +499,20 @@ private struct IslandLeadingBadge: View {
 private struct IslandTrailingTimer: View {
     let state: DoseWindowAttributes.ContentState
     let accent: Color
-    let missed: Bool
 
     var body: some View {
         VStack(alignment: .trailing, spacing: 0) {
-            primaryText
+            statusText
                 .font(.system(size: 17, weight: .heavy, design: .rounded))
                 .monospacedDigit()
-                .foregroundStyle(missed ? .white.opacity(0.55) : accent)
-            Text(missed ? String(localized: "Tap to log") : statusShortLabel(for: state))
+                .foregroundStyle(accent)
+            Text(statusShortLabel(for: state))
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.55))
                 .textCase(.uppercase)
                 .tracking(0.5)
         }
         .frame(maxWidth: .infinity, alignment: .trailing)
-    }
-
-    @ViewBuilder
-    private var primaryText: some View {
-        if missed {
-            Text("Missed")
-        } else {
-            statusText
-        }
     }
 
     @ViewBuilder
@@ -597,7 +539,6 @@ private struct IslandBottomBar: View {
     let entryId: UUID
     let state: DoseWindowAttributes.ContentState
     let tint: Color
-    let missed: Bool
 
     var body: some View {
         HStack(spacing: 10) {
@@ -620,16 +561,6 @@ private struct IslandBottomBar: View {
                     .font(.system(size: 13, weight: .heavy))
             }
             .foregroundStyle(WidgetPalette.done)
-        } else if missed {
-            // Matches the lock screen's missed layout: the window has
-            // closed, and a tap on the island still opens the dose row.
-            HStack(spacing: 5) {
-                Image(systemName: "clock.badge.xmark")
-                    .font(.system(size: 13, weight: .heavy))
-                Text("Missed window")
-                    .font(.system(size: 13, weight: .heavy))
-            }
-            .foregroundStyle(.white.opacity(0.55))
         } else {
             Button(intent: LogDoseLiveActivityIntent(entryId: entryId)) {
                 HStack(spacing: 6) {
