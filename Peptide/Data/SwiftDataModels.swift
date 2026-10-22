@@ -704,7 +704,9 @@ private struct ProfileExtension: Codable {
     var mealHistory: [MealEntry] = []
     /// Read-only legacy: the toggle is device-local now
     /// (`HealthSyncSettings.nutritionEnabledKey`), since Health
-    /// permission is granted per device.
+    /// permission is granted per device. Still carried through
+    /// `residual(of:)` so a later-upgrading device seeds from the
+    /// value the user chose before the split.
     var healthKitNutritionEnabled: Bool = false
     var outcomeHistory: [OutcomeEntry] = []
     var labHistory: [LabValue] = []
@@ -807,6 +809,7 @@ private struct ProfileExtension: Codable {
         ext.emailSubscription = profile.emailSubscription
         ext.progressPhotoFilenames = profile.progressPhotoFilenames
         ext.workoutHistory = profile.workoutHistory
+        ext.healthKitNutritionEnabled = profile.healthKitNutritionEnabled
         ext.workoutLegacyMigrationCompleted = profile.workoutLegacyMigrationCompleted
         ext.lastKnownTimezoneIdentifier = profile.lastKnownTimezoneIdentifier
         ext.streakFreezeDays = Array(profile.streakFreezeDays).sorted()

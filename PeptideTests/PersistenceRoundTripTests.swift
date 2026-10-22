@@ -1107,7 +1107,7 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertEqual(past, .allowed)
     }
 
-    func test_userProfile_healthKitNutritionEnabled_defaultsOffAndStaysOutOfSync() throws {
+    func test_userProfile_healthKitNutritionEnabled_defaultsOffAndRoundTrips() throws {
         // Default: opt-in flag is off so a fresh install never writes
         // to Apple Health silently.
         let fresh = UserProfile.fresh
@@ -1126,11 +1126,11 @@ final class PersistenceRoundTripTests: XCTestCase {
         let decoded = try decoder.decode(UserProfile.self, from: data)
         XCTAssertTrue(decoded.healthKitNutritionEnabled)
 
-        // Health permission is per device, so the synced StoredProfile
-        // must not carry the flag to a device that never asked for it.
+        // The StoredProfile keeps carrying the legacy flag so a device
+        // that upgrades later seeds its device-local toggle from it.
         let stored = try StoredProfile.make(from: opted)
         let roundTripped = try stored.toUserProfile()
-        XCTAssertFalse(roundTripped.healthKitNutritionEnabled)
+        XCTAssertTrue(roundTripped.healthKitNutritionEnabled)
     }
 
     func test_userProfile_legacyJSON_decodesWithEmptyFoodLibraryDefaults() throws {
