@@ -26,7 +26,7 @@ enum FoodLibraryLogic {
         for entry in history.sorted(by: { $0.date > $1.date }) {
             guard entry.sourceID == product.barcode, let components = entry.components,
                   components.count == 1, let food = components.first,
-                  food.grams.isFinite, (5...2000).contains(food.grams),
+                  food.grams.isFinite, FoodPortionInput.gramsRange.contains(food.grams),
                   product.loggable(for: .grams(food.grams)) != nil else { continue }
             return food.grams
         }

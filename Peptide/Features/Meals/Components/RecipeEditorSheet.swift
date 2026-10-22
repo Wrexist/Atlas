@@ -266,7 +266,9 @@ struct RecipeEditorSheet: View {
     private func portionDescription(_ portion: ScannedProduct.Portion) -> String {
         switch portion {
         case .grams(let g):    return "\(Int(g.rounded()))g"
-        case .servings(let s): return s == 1 ? "1 serving" : String(format: "%.1f servings", s)
+        case .servings(let s):
+            return s == 1 ? String(localized: "1 serving")
+                : String(localized: "\(s.formatted(.number.precision(.fractionLength(0...1)))) servings")
         case .wholePackage:    return String(localized: "Whole package")
         }
     }
@@ -455,7 +457,7 @@ struct RecipeComponentEditorSheet: View {
                     get: { s },
                     set: { portion = .servings($0) }
                 ), in: 0.5...10, step: 0.5) {
-                    Text(String(format: "%.1f", s))
+                    Text(s.formatted(.number.precision(.fractionLength(0...1))))
                         .monospacedDigit()
                 }
             }
