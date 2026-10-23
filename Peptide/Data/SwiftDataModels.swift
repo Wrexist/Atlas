@@ -569,7 +569,15 @@ final class StoredProfile {
     }
 
     func toUserProfile() throws -> UserProfile {
-        let goals = try sdDecoder.decode([String].self, from: goalsData)
+        let goals: [String]
+        do {
+            goals = try sdDecoder.decode([String].self, from: goalsData)
+        } catch {
+            // Throwing here made the whole row read as "no profile", and
+            // the launch save then wrote a blank profile over it.
+            AppLog.swiftData.error("Goals decode failed; falling back to none: \(error.localizedDescription, privacy: .public)")
+            goals = []
+        }
         let metrics: BodyMetrics
         if let data = bodyMetricsData {
             do {

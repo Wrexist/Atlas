@@ -371,6 +371,22 @@ final class ProfileSyncIntegrityTests: XCTestCase {
         XCTAssertEqual(try row.toUserProfile().habitEntries.count, 1)
     }
 
+    func test_unreadableGoals_launchSaveKeepsTheRestOfTheProfile() throws {
+        var profile = baseProfile()
+        profile.weightHistory = [WeightEntry(date: day, kg: 80)]
+        let row = try StoredProfile.make(from: profile)
+        row.goalsData = Data("not a goal list".utf8)
+        try insertRows([row])
+
+        let store = DataStore()
+        store.flushPendingSave()
+
+        let loaded = try XCTUnwrap(repo.loadProfile())
+        XCTAssertEqual(loaded.name, profile.name)
+        XCTAssertEqual(loaded.habits.map(\.id), profile.habits.map(\.id))
+        XCTAssertEqual(loaded.weightHistory.map(\.id), profile.weightHistory.map(\.id))
+    }
+
     func test_workoutMigrationMarker_survivesARoundTrip() throws {
         var profile = baseProfile()
         profile.workoutLegacyMigrationCompleted = true
