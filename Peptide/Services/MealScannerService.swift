@@ -434,8 +434,9 @@ final class MealScannerService: Sendable {
             // network error.
             switch http.statusCode {
             case 401: throw ScanError.unauthorised
-            // A Pro-only route without a verified Pro entitlement.
-            case 403: throw ScanError.proRequired
+            // A Pro-only route without a verified Pro entitlement. Only
+            // those routes send it; elsewhere a 403 is a platform refusal.
+            case 403 where proOnly: throw ScanError.proRequired
             // The proxy throttles per device and caps a daily quota, so
             // 429 is a state the user can act on — and on a metered scan
             // it can be the free weekly allowance running out.
