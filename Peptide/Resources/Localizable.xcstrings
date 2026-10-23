@@ -20379,12 +20379,42 @@
         }
       }
     },
-    "Meal streak paused, best was %lld.": {
+    "Meal streak paused, best was %lld days.": {
       "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Meal streak paused, best was %lld day."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Meal streak paused, best was %lld days."
+                }
+              }
+            }
+          }
+        },
         "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Måltidssviten är pausad, bästa var %lld."
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Måltidssviten är pausad, bästa var %lld dag."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Måltidssviten är pausad, bästa var %lld dagar."
+                }
+              }
+            }
           }
         }
       }
@@ -39827,6 +39857,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ · stödjande muskel"
+          }
+        }
+      }
+    },
+    "No streak yet. Log a meal today to start one.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingen svit ännu. Logga en måltid i dag för att starta en."
           }
         }
       }
