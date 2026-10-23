@@ -193,6 +193,29 @@ export function refuse(res, code) {
   res.status(status).json({ error: { message, code } });
 }
 
+/**
+ * The Pro gate for routes the app only offers to subscribers: true when
+ * the request carries a verified StoreKit Pro entitlement (the same
+ * proof that lifts the free scan allowance). Otherwise it refuses with
+ * 403 `pro_required` and returns false — the app gates these features
+ * behind the paywall, so this is what stops a client holding only the
+ * shared secret from running them for free.
+ *
+ * Verification needs no configuration (it pins Apple's root and
+ * defaults to this app's bundle ID), but it has only met synthetic
+ * fixtures, so `PRO_GATE_MODE=report` turns the gate into a log line
+ * rather than a redeploy if a real subscriber's JWS is ever refused.
+ */
+export function passesProGate(req, res, logLabel) {
+  if (hasVerifiedPro(req, logLabel)) return true;
+  if (process.env.PRO_GATE_MODE === 'report') {
+    console.warn(`[${logLabel}] pro gate report: no verified entitlement`);
+    return true;
+  }
+  refuse(res, 'pro_required');
+  return false;
+}
+
 // Anthropic accepts content parts of these typed shapes. Anything else
 // (tool_use, tool_result, document, ...) is rejected so a tampered
 // client can't reach features the app doesn't ship — and so the proxy
@@ -401,22 +424,7 @@ export async function forwardToAnthropic(req, res, {
     return;
   }
 
-  // Pro-only routes (`requirePro`) need the same StoreKit proof that
-  // lifts the free scan allowance. The app gates them behind the
-  // paywall; this is what stops a client holding only the shared
-  // secret from running them for free.
-  // Verification needs no configuration (it pins Apple's root and
-  // defaults to this app's bundle ID), but it has only met synthetic
-  // fixtures, so `PRO_GATE_MODE=report` turns the gate into a log line
-  // rather than a redeploy if a real subscriber's JWS is ever refused.
-  if (requirePro && !hasVerifiedPro(req, logLabel)) {
-    if (process.env.PRO_GATE_MODE === 'report') {
-      console.warn(`[${logLabel}] pro gate report: no verified entitlement`);
-    } else {
-      refuse(res, 'pro_required');
-      return;
-    }
-  }
+  if (requirePro && !passesProGate(req, res, logLabel)) return;
 
   // Charged on the parsed body, never on `content-length`, which a
   // client can omit or understate — and only once the request is known

@@ -340,6 +340,20 @@ final class AIResearchServiceTests: XCTestCase {
         }
     }
 
+    /// The proxy's Pro gate (403 `pro_required`) asks for Pro instead
+    /// of claiming the assistant is down, and Retry can't fix it.
+    func test_reply_proGateRefusal_throwsProRequired() async {
+        MockURLProtocol.handler = { request in
+            (Self.response(for: request, status: 403), Data(#"{"error":{"code":"pro_required"}}"#.utf8))
+        }
+        await XCTAssertThrowsErrorAsyncResearch(try await service.reply(history: [], newUserPrompt: "hi", in: [])) { error in
+            guard case .proRequired = error as? AIResearchService.ChatError else {
+                return XCTFail("Expected .proRequired, got \(error)")
+            }
+            XCTAssertFalse(AIResearchService.ChatError.proRequired.isRetryable)
+        }
+    }
+
     /// The gateway codes that get the friendlier message.
     func test_reply_throwsServiceUnavailableOnGatewayErrors() async {
         for status in [502, 503, 504] {

@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import handler from '../api/weekly-summary.js';
+import { makeStoreKitChain, signTransaction, transactionPayload } from '../testutil/storekit-fixtures.js';
+
+const chain = makeStoreKitChain();
+const PRO = { 'x-atlas-entitlement': signTransaction(chain, transactionPayload()) };
 
 function setEnv(t, vars) {
   const saved = {};
@@ -38,6 +42,9 @@ const BASE_ENV = {
   SHARED_IP_LIMIT_SCALE: '1',
   APP_ATTEST_MODE: 'off',
   APP_ATTEST_APP_ID: undefined,
+  STOREKIT_ROOT_CA_FINGERPRINT: chain.rootFingerprint,
+  STOREKIT_BUNDLE_ID: undefined,
+  PRO_GATE_MODE: undefined,
 };
 
 function stubUpstream(t, stopReason = 'end_turn') {
@@ -56,13 +63,16 @@ function stubUpstream(t, stopReason = 'end_turn') {
   return calls;
 }
 
-function makeReq(ip, body) {
+// Every request is a Pro subscriber's unless a test says otherwise; the
+// gate itself has its own tests at the bottom.
+function makeReq(ip, body, headers = PRO) {
   return {
     method: 'POST',
     headers: {
       'x-peptide-proxy': 'test-secret',
       'x-real-ip': ip,
       'content-length': '100',
+      ...headers,
     },
     socket: {},
     body: body ?? {
@@ -252,4 +262,36 @@ test('a summary cut off at the token cap is refused 502', async (t) => {
   const res = makeRes();
   await handler(makeReq('10.1.0.7'), res);
   assert.equal(res.statusCode, 502);
+});
+
+test('test_weeklySummary_withoutVerifiedProEntitlement_isRefused403BeforeUpstream', async (t) => {
+  setEnv(t, BASE_ENV);
+  const upstream = stubUpstream(t);
+  const forged = { 'x-atlas-entitlement': signTransaction(makeStoreKitChain(), transactionPayload()) };
+  for (const headers of [{}, forged]) {
+    const res = makeRes();
+    await handler(makeReq('10.1.1.1', undefined, headers), res);
+    assert.equal(res.statusCode, 403);
+    assert.equal(res.body.error.code, 'pro_required');
+  }
+  assert.equal(upstream.length, 0);
+});
+
+test('test_weeklySummary_proGateReportMode_letsUnverifiedRecapThrough', async (t) => {
+  setEnv(t, { ...BASE_ENV, PRO_GATE_MODE: 'report' });
+  const upstream = stubUpstream(t);
+  const res = makeRes();
+  await handler(makeReq('10.1.1.2', undefined, {}), res);
+  assert.equal(res.statusCode, 200);
+  assert.equal(upstream.length, 1);
+});
+
+test('test_weeklySummary_withVerifiedProEntitlement_reachesUpstream', async (t) => {
+  setEnv(t, BASE_ENV);
+  const upstream = stubUpstream(t);
+  const res = makeRes();
+  await handler(makeReq('10.1.1.3'), res);
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.text, 'A solid week.');
+  assert.equal(upstream.length, 1);
 });

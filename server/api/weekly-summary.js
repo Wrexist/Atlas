@@ -13,8 +13,11 @@
  * for the full privacy contract.
  *
  * Returns: `{ text: string, generatedAt: ISOString }`.
+ *
+ * A verified Pro entitlement is required (403 `pro_required`
+ * otherwise); the app falls back to its offline recap on any refusal.
  */
-import { principalFor, refuse, THINKING_OFF } from './_lib/anthropic-proxy.js';
+import { passesProGate, principalFor, refuse, THINKING_OFF } from './_lib/anthropic-proxy.js';
 import { checkAppAttest } from './_lib/app-attest.js';
 import { authorize } from './_lib/auth.js';
 import {
@@ -252,6 +255,12 @@ export default async function handler(req, res) {
     res.status(400).json({ error: { message: 'Malformed aggregate' } });
     return;
   }
+
+  // Pro-only in the app (`WeeklySummaryService.isAvailable`); the app
+  // sends its StoreKit transaction in X-Atlas-Entitlement. Checked where
+  // `forwardToAnthropic` checks it: after the body is known good, before
+  // anything is charged.
+  if (!passesProGate(req, res, 'weekly-summary')) return;
 
   // Charged only once the request is known to be well-formed, so a
   // 400 or 413 costs the caller nothing.

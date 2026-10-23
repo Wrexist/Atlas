@@ -110,7 +110,8 @@ same auth, App Attest gate and limiter.
      - `STOREKIT_BUNDLE_ID` — bundle ID a Pro transaction must carry.
        Default `com.peptidesai.app`; only set it for a different app.
      - `PRO_GATE_MODE` — `enforce` (default) or `report`; see "Free scan
-       quota" below for the Pro-only lab-scan route.
+       quota" below for the Pro-only routes (lab-scan, ai-research,
+       weekly-summary).
 4. Note the deploy URL (e.g. `https://peptidex-proxy.vercel.app`).
 
 ## Wire the iOS app
@@ -187,8 +188,9 @@ endpoint.
   ceiling. `BUDGET_FAIL_OPEN=1` opts out.
 - **Stable refusal codes**: limit and availability refusals carry
   `error.code` — `rate_limited`, `blocked` and `daily_quota` (429,
-  with `Retry-After`), `scan_quota` (429, free weekly scans spent) or
-  `unavailable` (503).
+  with `Retry-After`), `scan_quota` (429, free weekly scans spent),
+  `pro_required` (403, Pro-only route without a verified entitlement)
+  or `unavailable` (503).
 - **Free scan quota** (`_lib/scan-quota.js`, `/api/food-scan` only).
   See below.
 - **Body sanitisation**: only `model`, `max_tokens`, `messages`, and
@@ -322,15 +324,20 @@ which a reinstall wipes. The proxy keeps the authoritative count:
   scan is allowed. This is a product allowance, not a spend ceiling —
   `ANTHROPIC_DAILY_REQUEST_BUDGET` is that.
 
-`/api/lab-scan` is Pro-only, as it is in the app, and uses the same
-check without a free allowance: no `X-Atlas-Entitlement` that verifies
-means `403 { error: { code: "pro_required" } }` before any quota or
-budget is spent. The check needs no env vars in production — it pins
+`/api/lab-scan`, `/api/ai-research` and `/api/weekly-summary` are
+Pro-only, as they are in the app (the Labs scanner, the research chat
+and Meals diet coach, and the Sunday recap), and use the same check
+without a free allowance: no `X-Atlas-Entitlement` that verifies means
+`403 { error: { code: "pro_required" } }` before any quota or budget is
+spent. All three share `passesProGate` in `_lib/anthropic-proxy.js`
+(weekly-summary builds its own request, so it calls it directly). The
+app answers a refused research question with an "Atlas Pro" alert and a
+refused recap with its offline summary. The check needs no env vars in production — it pins
 Apple Root CA - G3 and defaults to `com.peptidesai.app` (leave
 `STOREKIT_ROOT_CA_FINGERPRINT` unset there, or every real subscriber
 is refused). Unlike the free allowance it does not fail open on its
 own, so `PRO_GATE_MODE=report` is the switch: it logs
-`pro gate report` and lets the scan through. Flip it if
+`pro gate report` and lets the request through on all three routes. Flip it if
 `entitlement rejected` lines show up for real subscribers, since the
 verifier has so far only been tested against synthetic fixtures.
 

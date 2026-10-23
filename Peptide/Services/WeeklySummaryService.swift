@@ -280,6 +280,11 @@ final class WeeklySummaryService {
         request.timeoutInterval = 30
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(secret, forHTTPHeaderField: "X-Peptide-Proxy")
+        // The proxy refuses this route without a verified Pro entitlement;
+        // a refusal lands on the offline recap like any other failure.
+        if let entitlementJWS = await StoreService.shared.resolvedProEntitlementJWS() {
+            request.setValue(entitlementJWS, forHTTPHeaderField: MealScanQuota.Header.entitlement)
+        }
         request.httpBody = try JSONEncoder().encode(RequestEnvelope(aggregate: aggregate))
 
         var (data, response) = try await session.data(for: attested(request))
