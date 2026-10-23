@@ -403,33 +403,39 @@ enum LifestyleDataLogic {
         return streak
     }
 
-    /// All-time best meal-logging streak. Walks the full history
-    /// once, building a sorted list of distinct logged days, then
-    /// counts the longest run of consecutive days. O(n log n) for
-    /// the sort, fine on the cap of 3,650 entries we enforce.
-    /// Returns the current streak when nothing higher has happened
-    /// historically.
+    /// All-time best meal-logging streak: the longest run of
+    /// consecutive days that were logged or covered by a streak freeze,
+    /// matching how `mealLoggingStreak` counts — so a freeze-bridged run
+    /// doesn't shrink in "Best" once it ends. Returns the current streak
+    /// when nothing higher has happened historically.
     static func bestMealLoggingStreak(in profile: UserProfile, asOf reference: Date = Date()) -> Int {
-        guard !profile.mealHistory.isEmpty else { return 0 }
         let calendar = Calendar.current
-        let days = Set(profile.mealHistory.map { calendar.startOfDay(for: $0.date) }).sorted()
-        guard let firstDay = days.first else { return 0 }
-
-        var best = 1
-        var currentRun = 1
-        var previous = firstDay
-        for day in days.dropFirst() {
-            if let expected = calendar.date(byAdding: .day, value: 1, to: previous),
-               calendar.isDate(day, inSameDayAs: expected) {
-                currentRun += 1
-                best = max(best, currentRun)
-            } else {
-                currentRun = 1
-            }
-            previous = day
+        let loggedDays = Set(profile.mealHistory.map { calendar.startOfDay(for: $0.date) })
+        guard !loggedDays.isEmpty else { return 0 }
+        let isCovered: (Date) -> Bool = { day in
+            loggedDays.contains(day) || StreakFreezeService.isFrozen(day, in: profile)
         }
-        // Compare against the live streak too — the ongoing run
-        // hasn't been counted as "completed" in the loop above.
+
+        var best = 0
+        var counted: Set<Date> = []
+        for day in loggedDays.sorted() where !counted.contains(day) {
+            // Back over any freeze days that open the run, then forward
+            // to its end.
+            var start = day
+            while let previous = calendar.date(byAdding: .day, value: -1, to: start), isCovered(previous) {
+                start = previous
+            }
+            var run = 0
+            var cursor = start
+            while isCovered(cursor) {
+                run += 1
+                counted.insert(cursor)
+                guard let next = calendar.date(byAdding: .day, value: 1, to: cursor) else { break }
+                cursor = next
+            }
+            best = max(best, run)
+        }
+        // A live streak of freeze days alone never starts a walk above.
         return max(best, mealLoggingStreak(in: profile, asOf: reference))
     }
 
