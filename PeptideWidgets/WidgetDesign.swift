@@ -1,6 +1,7 @@
 import WidgetKit
 import SwiftUI
 import UIKit
+import OSLog
 
 // MARK: - Palette
 
@@ -26,6 +27,13 @@ enum WidgetPalette {
     static let protein = dynamic(light: 0xB56F0B, dark: WatchPalette.protein)
     static let carbs = dynamic(light: 0x2A6F55, dark: 0x5FD3A0)
     static let fat = dynamic(light: 0x9E4055, dark: 0xE8899F)
+
+    /// `AppColor.mealBreakfast`, `.mealLunch`, `.mealDinner`, `.mealSnack`.
+    /// Darkened in light mode: the dark-mode yellow is unreadable on white.
+    static let breakfast = dynamic(light: 0xB85A12, dark: 0xFF9E4D)
+    static let lunch = dynamic(light: 0x9C7714, dark: 0xFAC733)
+    static let dinner = dynamic(light: 0x5A5FCF, dark: 0x7A80EB)
+    static let snack = dynamic(light: 0x2A7A47, dark: 0x5CC78C)
 
     /// Track behind a ring or bar fill.
     static let track = Color.primary.opacity(0.10)
@@ -74,46 +82,88 @@ enum WidgetMeal: Int, CaseIterable {
 
     var tint: Color {
         switch self {
-        case .breakfast: Color(red: 1.0, green: 0.62, blue: 0.30)
-        case .lunch: Color(red: 0.98, green: 0.78, blue: 0.20)
-        case .dinner: Color(red: 0.48, green: 0.50, blue: 0.92)
-        case .snack: Color(red: 0.36, green: 0.78, blue: 0.55)
+        case .breakfast: WidgetPalette.breakfast
+        case .lunch: WidgetPalette.lunch
+        case .dinner: WidgetPalette.dinner
+        case .snack: WidgetPalette.snack
         }
     }
 }
 
 // MARK: - Data
 
+/// What `WidgetStore.load` found. A file that exists but can't be read
+/// is kept apart from no file at all: before the first unlock after a
+/// reboot the payload is still encrypted, and showing the empty state
+/// then would tell the user they have no protocol, meals or workouts.
+enum WidgetPayload {
+    case loaded(WidgetData)
+    /// The app hasn't written one yet: the empty state is the truth.
+    case missing
+    /// Still protected, or no longer decodes.
+    case unreadable
+}
+
 /// Reads the payload the app writes to the App Group container. One
 /// loader for every widget, so a schema or path change is one edit.
 enum WidgetStore {
-    static func load() -> WidgetData? {
+    /// How soon a widget that couldn't read the payload tries again —
+    /// soon enough to recover shortly after the device is unlocked.
+    static let unreadableRetryMinutes = 5
+
+    private static let log = Logger(subsystem: "com.peptidesai.app", category: "WidgetStore")
+
+    static func load() -> WidgetPayload {
         guard let url = FileManager.default
             .containerURL(forSecurityApplicationGroupIdentifier: AppGroup.identifier)?
-            .appendingPathComponent("widget-data.json"),
-              let data = try? Data(contentsOf: url) else { return nil }
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return try? decoder.decode(WidgetData.self, from: data)
+            .appendingPathComponent("widget-data.json") else {
+            log.error("App Group container unavailable; widget payload unreadable")
+            return .unreadable
+        }
+        guard FileManager.default.fileExists(atPath: url.path) else { return .missing }
+        do {
+            let data = try Data(contentsOf: url)
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            return .loaded(try decoder.decode(WidgetData.self, from: data))
+        } catch {
+            log.error("widget payload unreadable: \(error.localizedDescription, privacy: .public)")
+            return .unreadable
+        }
+    }
+}
+
+extension WidgetPayload {
+    var isLoaded: Bool {
+        if case .loaded = self { return true }
+        return false
     }
 
-    /// The next reload: in fifteen minutes, or at midnight if that comes
-    /// first, so a new day never inherits yesterday's totals.
-    static func nextRefresh(after now: Date, minutes: Int = 15) -> Date {
-        let calendar = Calendar.current
-        let midnight = calendar.startOfDay(
-            for: calendar.date(byAdding: .day, value: 1, to: now) ?? now
-        )
-        let soon = calendar.date(byAdding: .minute, value: minutes, to: now) ?? now
-        return min(soon, midnight)
+    /// When a timeline built from this payload should reload: soon after
+    /// a failed read, so the widget recovers once the device unlocks;
+    /// otherwise on the usual schedule.
+    func reloadDate(after now: Date, minutes: Int = 15) -> Date {
+        if case .unreadable = self {
+            return now.addingTimeInterval(TimeInterval(WidgetStore.unreadableRetryMinutes * 60))
+        }
+        return WidgetData.nextRefresh(after: now, minutes: minutes)
     }
 }
 
 enum WidgetFormat {
     /// "58m", "1h 12m".
     static func duration(minutes: Int) -> String {
-        Duration.seconds(minutes * 60)
-            .formatted(.units(allowed: [.hours, .minutes], width: .narrow))
+        format(minutes: minutes, width: .narrow)
+    }
+
+    /// "58 minutes", "1 hour, 12 minutes" — the narrow form can be read
+    /// aloud as "58 meters".
+    static func spokenDuration(minutes: Int) -> String {
+        format(minutes: minutes, width: .wide)
+    }
+
+    private static func format(minutes: Int, width: Duration.UnitsFormatStyle.UnitWidth) -> String {
+        Duration.seconds(minutes * 60).formatted(.units(allowed: [.hours, .minutes], width: width))
     }
 
     /// "4,320 kg", or "12.5K kg" once the full number stops fitting a
@@ -136,6 +186,9 @@ struct WidgetHeader: View {
     let title: LocalizedStringKey
     let tint: Color
     var trailing: String?
+    /// The trailing figure as it should be spoken: "2/4" reads as "two
+    /// slash four".
+    var trailingAccessibilityLabel: Text?
 
     var body: some View {
         HStack(spacing: 4) {
@@ -155,6 +208,7 @@ struct WidgetHeader: View {
                     .font(.caption2.weight(.semibold).monospacedDigit())
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                    .accessibilityLabel(trailingAccessibilityLabel ?? Text(trailing))
             }
         }
     }

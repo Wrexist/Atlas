@@ -29,15 +29,19 @@ struct WidgetData: Codable, Equatable, Sendable {
     let totalToday: Int
     var lastUpdated: Date
     let upcoming: [WidgetDoseSlot]
+    /// Whether any protocol is active, whether or not it doses today.
+    /// A rest day of a three-times-a-week protocol has no doses, and
+    /// without this the widget can't tell it from having no protocol.
+    let hasActiveProtocol: Bool
     // MARK: - Nutrition (Phase 7 — nutrition widget)
     /// Today's calorie consumption sum. Zero when nothing's logged.
-    let caloriesToday: Int
+    var caloriesToday: Int
     /// User's calorie target. Zero when the user hasn't picked one
     /// yet — the widget hides the "X / Y" line in that case.
     let calorieTarget: Int
-    let proteinToday: Int
-    let carbsToday: Int
-    let fatToday: Int
+    var proteinToday: Int
+    var carbsToday: Int
+    var fatToday: Int
     /// Macro targets in grams. Zero when the user hasn't set one — the
     /// widget then shows the gram count without a progress bar.
     let proteinTarget: Int
@@ -46,21 +50,21 @@ struct WidgetData: Codable, Equatable, Sendable {
     /// Per-category breakdown for the Medium nutrition widget. Empty
     /// on legacy payloads written before this branch — the small
     /// widget renders fine without it.
-    let mealsByCategory: [WidgetMealSlot]
+    var mealsByCategory: [WidgetMealSlot]
 
     // MARK: - Training
     /// Most recent finished workout. Nil until the user finishes one —
     /// the widget shows its "start a workout" empty state.
     let lastWorkout: WidgetWorkoutSummary?
     /// Finished sessions in the current calendar week.
-    let workoutsThisWeek: Int
+    var workoutsThisWeek: Int
     /// Completed working sets across those sessions.
-    let weeklySetCount: Int
+    var weeklySetCount: Int
     /// Their combined volume, in canonical kilograms.
-    let weeklyVolumeKg: Double
+    var weeklyVolumeKg: Double
     /// Start time of the workout in progress, or nil when none is.
     /// One field rather than a Bool plus a Date, which can disagree.
-    let activeWorkoutStartedAt: Date?
+    var activeWorkoutStartedAt: Date?
     /// Seconds the running workout has spent paused, before any pause
     /// still open. The widget's live timer counts from
     /// `activeWorkoutStartedAt` shifted by this, so it agrees with the
@@ -71,7 +75,7 @@ struct WidgetData: Codable, Equatable, Sendable {
     let activeWorkoutPausedAt: Date?
     /// Start of each day this week with at least one finished session.
     /// Feeds the training widget's Monday-to-Sunday strip.
-    let trainingDaysThisWeek: [Date]
+    var trainingDaysThisWeek: [Date]
     /// `MeasurementUnit` rawValue — "metric" or "imperial". A String
     /// for the reason `WatchData.measurementUnit` is one: this file
     /// compiles into the widget targets, which can't see the app's
@@ -87,6 +91,7 @@ struct WidgetData: Codable, Equatable, Sendable {
         totalToday: Int,
         lastUpdated: Date,
         upcoming: [WidgetDoseSlot] = [],
+        hasActiveProtocol: Bool = false,
         caloriesToday: Int = 0,
         calorieTarget: Int = 0,
         proteinToday: Int = 0,
@@ -113,6 +118,7 @@ struct WidgetData: Codable, Equatable, Sendable {
         self.totalToday = totalToday
         self.lastUpdated = lastUpdated
         self.upcoming = upcoming
+        self.hasActiveProtocol = hasActiveProtocol
         self.caloriesToday = caloriesToday
         self.calorieTarget = calorieTarget
         self.proteinToday = proteinToday
@@ -155,12 +161,69 @@ struct WidgetData: Codable, Equatable, Sendable {
     /// session — but only once the app launches again.
     static let abandonedWorkoutAge: TimeInterval = 6 * 3600
 
-    /// The running workout's start, or nil when none is running or the
-    /// app hasn't written in long enough that the session was left
-    /// open. Without the cut-off the widget's timer counts for days.
-    func activeWorkoutStart(at now: Date) -> Date? {
-        guard now.timeIntervalSince(lastUpdated) <= Self.abandonedWorkoutAge else { return nil }
-        return activeWorkoutStartedAt
+    /// Where the running workout's clock counts from: its start shifted
+    /// by the time spent paused, so a timer drawn from it agrees with
+    /// the app after a pause and resume. Nil when no workout is running.
+    var activeWorkoutClockStart: Date? {
+        activeWorkoutStartedAt?.addingTimeInterval(activeWorkoutPausedSeconds)
+    }
+
+    /// Elapsed seconds frozen at the open pause, or nil while the clock
+    /// runs or no workout is running.
+    var activeWorkoutPausedElapsed: Int? {
+        guard let start = activeWorkoutStartedAt, let pausedAt = activeWorkoutPausedAt else { return nil }
+        return max(0, Int(pausedAt.timeIntervalSince(start) - activeWorkoutPausedSeconds))
+    }
+
+    /// Whether the dose half of the payload belongs to an earlier day.
+    /// Only a payload that carried a protocol can be out of date; one
+    /// without falls through to the no-protocol state rather than
+    /// nagging a user who has nothing to load. Payloads written before
+    /// `hasActiveProtocol` existed fall back to today's doses.
+    func isProtocolOutdated(at now: Date, calendar: Calendar = .current) -> Bool {
+        let carriedProtocol = hasActiveProtocol || totalToday > 0 || nextDoseTime != nil
+        return carriedProtocol && !calendar.isDate(lastUpdated, inSameDayAs: now)
+    }
+
+    /// The payload as it reads at `now`, for an app that hasn't written
+    /// since. Intake logged on an earlier day starts the new day at zero
+    /// against the same targets; the week's training figures reset in a
+    /// new week; a workout left running past `abandonedWorkoutAge` is
+    /// dropped, or its timer would count for days. The dose fields are
+    /// left alone: `isProtocolOutdated(at:)` says when they are stale.
+    func forDisplay(at now: Date, calendar: Calendar = .current) -> WidgetData {
+        var copy = self
+        if now.timeIntervalSince(lastUpdated) > Self.abandonedWorkoutAge {
+            copy.activeWorkoutStartedAt = nil
+        }
+        if !calendar.isDate(lastUpdated, equalTo: now, toGranularity: .weekOfYear) {
+            copy.workoutsThisWeek = 0
+            copy.weeklySetCount = 0
+            copy.weeklyVolumeKg = 0
+            copy.trainingDaysThisWeek = []
+        }
+        guard !calendar.isDate(lastUpdated, inSameDayAs: now) else { return copy }
+        copy.caloriesToday = 0
+        copy.proteinToday = 0
+        copy.carbsToday = 0
+        copy.fatToday = 0
+        copy.mealsByCategory = mealsByCategory.map {
+            WidgetMealSlot(category: $0.category, calories: 0, entryCount: 0)
+        }
+        return copy
+    }
+
+    /// The next widget reload: in `minutes`, or at midnight if that
+    /// comes first, so a new day never waits on the reload to start.
+    static func nextRefresh(after now: Date, minutes: Int = 15, calendar: Calendar = .current) -> Date {
+        let soon = calendar.date(byAdding: .minute, value: minutes, to: now) ?? now
+        return min(soon, nextMidnight(after: now, calendar: calendar))
+    }
+
+    /// Start of the day after `now`. A timeline entry here rolls the
+    /// widget over even when WidgetKit defers the reload past midnight.
+    static func nextMidnight(after now: Date, calendar: Calendar = .current) -> Date {
+        calendar.startOfDay(for: calendar.date(byAdding: .day, value: 1, to: now) ?? now)
     }
 
     /// True when every field but `lastUpdated` matches — rewriting
@@ -196,7 +259,7 @@ struct WidgetData: Codable, Equatable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case nextPeptideName, nextDose, nextDoseTime
-        case completedToday, totalToday, lastUpdated, upcoming
+        case completedToday, totalToday, lastUpdated, upcoming, hasActiveProtocol
         case caloriesToday, calorieTarget
         case proteinToday, carbsToday, fatToday
         case proteinTarget, carbsTarget, fatTarget
@@ -215,6 +278,7 @@ struct WidgetData: Codable, Equatable, Sendable {
         totalToday = try c.decode(Int.self, forKey: .totalToday)
         lastUpdated = try c.decode(Date.self, forKey: .lastUpdated)
         upcoming = try c.decodeIfPresent([WidgetDoseSlot].self, forKey: .upcoming) ?? []
+        hasActiveProtocol = try c.decodeIfPresent(Bool.self, forKey: .hasActiveProtocol) ?? false
         caloriesToday = try c.decodeIfPresent(Int.self, forKey: .caloriesToday) ?? 0
         calorieTarget = try c.decodeIfPresent(Int.self, forKey: .calorieTarget) ?? 0
         proteinToday = try c.decodeIfPresent(Int.self, forKey: .proteinToday) ?? 0
