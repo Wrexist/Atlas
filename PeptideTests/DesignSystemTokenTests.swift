@@ -155,6 +155,28 @@ final class DesignSystemTokenTests: XCTestCase {
         }
     }
 
+    // MARK: - SyncToast
+
+    /// An Undo toast is a time-limited control: under VoiceOver or Switch
+    /// Control it has to stay long enough to reach the button.
+    @MainActor
+    func test_syncToastDelay_actionWithAssistiveTech_isExtended() {
+        let delay = SyncToast.dismissDelay(base: .seconds(5), hasAction: true, assistiveTechRunning: true)
+        XCTAssertEqual(delay, .seconds(30))
+    }
+
+    @MainActor
+    func test_syncToastDelay_withoutActionOrAssistiveTech_keepsBase() {
+        XCTAssertEqual(
+            SyncToast.dismissDelay(base: .seconds(5), hasAction: true, assistiveTechRunning: false),
+            .seconds(5)
+        )
+        XCTAssertEqual(
+            SyncToast.dismissDelay(base: .seconds(5), hasAction: false, assistiveTechRunning: true),
+            .seconds(5)
+        )
+    }
+
     // MARK: - BenefitStyleMap
 
     func test_dnaRepairBenefit_getsTheImmuneStyleNotGenericRepair() {

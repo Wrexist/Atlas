@@ -89,6 +89,7 @@ struct HomeView: View {
     @State private var lastWaterLog: WaterLog?
     @State private var showWaterToast = false
     @State private var waterToastMessage: LocalizedStringResource = ""
+    @State private var waterToastID = 0
     /// Identifies which hero-trio ring the user tapped so the
     /// detail sheet can route. Non-optional Identifiable wrapper so
     /// `.sheet(item:)` does the right thing.
@@ -608,7 +609,8 @@ struct HomeView: View {
                         isShowing: $showWaterToast,
                         message: waterToastMessage,
                         autoDismissAfter: AppAnimation.logSuccessAutoCloseDelay,
-                        action: .init(label: "Undo", perform: undoWaterGlass)
+                        action: .init(label: "Undo", perform: undoWaterGlass),
+                        presentationID: waterToastID
                     )
                 }
                 .padding(.top, Spacing.sm)
@@ -1181,6 +1183,7 @@ struct HomeView: View {
             "Added \(dataStore.profile.bodyMetrics.unit.volumeLabel(glass))",
             comment: "Toast after a one-tap water log on Today. The value is the amount with its unit."
         )
+        waterToastID += 1
         showWaterToast = true
     }
 
