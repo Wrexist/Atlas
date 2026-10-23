@@ -92,6 +92,12 @@ struct PeptideApp: App {
         _dataStore = State(wrappedValue: launch.store)
         _appState = State(wrappedValue: launch.appState)
         _notificationDelegate = State(wrappedValue: launch.notificationDelegate)
+        // Unlocked whenever the lock is off, so turning it on from
+        // Profile doesn't raise the lock screen over the toggle's own
+        // Face ID check (B014). Held locked while an account change keeps
+        // the real profile from loading.
+        _isUnlocked = State(wrappedValue: !launch.store.profile.biometricLockEnabled
+            && !launch.store.isAwaitingCloudAccountDecision)
     }
 
     var body: some Scene {
@@ -206,6 +212,12 @@ struct PeptideApp: App {
         .environment(\.locale, localization.effectiveLocale)
         .environment(\.layoutDirection, localization.layoutDirection)
         .id(localization.selectedCode ?? "system")
+        .onChange(of: dataStore.profile.biometricLockEnabled) { _, enabled in
+            if !enabled { isUnlocked = true }
+        }
+        .onChange(of: dataStore.isAwaitingCloudAccountDecision) { _, awaiting in
+            if !awaiting && !dataStore.profile.biometricLockEnabled { isUnlocked = true }
+        }
         .onChange(of: privacyCover, initial: true) { _, cover in
             syncPrivacyCover(cover)
         }
