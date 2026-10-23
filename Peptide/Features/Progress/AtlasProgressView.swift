@@ -210,9 +210,16 @@ struct AtlasProgressView: View {
         let tint = delta > 0 ? AppColor.success : AppColor.textTertiary
         let symbol = delta > 0 ? "arrow.up.right" : delta < 0 ? "arrow.down.right" : "arrow.right"
         let sign = delta > 0 ? "+" : "−"
+        // A change in a percentage, not Atlas Score "pts" from the card
+        // above; spoken as percentage points.
         let label = delta == 0
             ? String(localized: "Same as previous 30 days")
-            : String(localized: "\(sign)\(abs(delta)) pts vs previous 30 days")
+            : String(localized: "\(sign)\(abs(delta))% vs previous 30 days")
+        let spoken = delta == 0
+            ? label
+            : delta > 0
+                ? String(localized: "Up \(abs(delta)) percentage points vs previous 30 days")
+                : String(localized: "Down \(abs(delta)) percentage points vs previous 30 days")
         return HStack(spacing: Spacing.xxs) {
             Image(systemName: symbol)
                 .font(AppFont.scaled(11, weight: .bold))
@@ -221,14 +228,16 @@ struct AtlasProgressView: View {
         }
         .foregroundStyle(tint)
         .padding(.horizontal, Spacing.sm)
-        .padding(.vertical, 4)
+        .padding(.vertical, Spacing.xs)
         .background(Capsule().fill(tint.opacity(0.15)))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(spoken)
     }
 
     // MARK: - Shared
 
     private func sectionHeader(_ title: LocalizedStringKey, systemImage: String) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: Spacing.sm) {
             Image(systemName: systemImage)
                 .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.accentLight)

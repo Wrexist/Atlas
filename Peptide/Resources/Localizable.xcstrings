@@ -1305,16 +1305,6 @@
         }
       }
     },
-    "%@%lld pts vs previous 30 days": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@%2$lld p jämfört med föregående 30 dagar"
-          }
-        }
-      }
-    },
     "%@%lld sessions this week — %@.": {
       "localizations": {
         "sv": {
@@ -1371,6 +1361,16 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "%@%lld%% vs previous 30 days": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@%2$lld %% jämfört med föregående 30 dagar"
           }
         }
       }
@@ -10271,6 +10271,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cykeln klar · %lld dagar"
+          }
+        }
+      }
+    },
+    "Down %lld percentage points vs previous 30 days": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ned %lld procentenheter jämfört med föregående 30 dagar"
           }
         }
       }
@@ -34885,6 +34895,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ostoppbar"
+          }
+        }
+      }
+    },
+    "Up %lld percentage points vs previous 30 days": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upp %lld procentenheter jämfört med föregående 30 dagar"
           }
         }
       }
