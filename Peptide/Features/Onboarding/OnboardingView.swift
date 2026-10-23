@@ -83,6 +83,9 @@ struct OnboardingView: View {
     // accept both flip `hasCompleted` — the trial is optional, but the
     // user shouldn't enter the app before seeing the offer once.
     @State private var showTrialOffer: Bool = false
+    /// The plan page's CTA waits on the entitlement scan before choosing
+    /// between the paywall and the theme picker.
+    @State private var isResolvingProStatus = false
     // Theme picker presented after the paywall closes. Persisted via
     // ThemeManager.shared inside the page itself.
     @State private var showThemePicker: Bool = false
@@ -570,6 +573,8 @@ struct OnboardingView: View {
             // picker auto-defaults to 12 weeks from today so no
             // explicit date selection is required.
             return goalHasBeenSelected
+        case .plan:
+            return !isResolvingProStatus
         default:
             return true
         }
@@ -637,13 +642,21 @@ struct OnboardingView: View {
     /// through the paywall and the theme picker before hasCompleted
     /// flips. The theme picker's onContinue path resets `lastPage = 0`
     /// so a future re-onboarding starts at page 0. An existing
-    /// subscriber (reinstall / new device) skips the trial offer.
+    /// subscriber (reinstall / new device) skips the trial offer — after
+    /// the first entitlement scan, since `isProUser` reads false until it
+    /// finishes and a reinstalling subscriber would see the trial.
     private func presentPaywall() {
-        if StoreService.shared.isProUser {
-            OnboardingFunnelTracker.recordEvent("paywall_skipped_pro")
-            showThemePicker = true
-        } else {
-            showTrialOffer = true
+        guard !isResolvingProStatus else { return }
+        isResolvingProStatus = true
+        Task {
+            let isPro = await StoreService.shared.resolvedProStatus()
+            isResolvingProStatus = false
+            if isPro {
+                OnboardingFunnelTracker.recordEvent("paywall_skipped_pro")
+                showThemePicker = true
+            } else {
+                showTrialOffer = true
+            }
         }
     }
 
