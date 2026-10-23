@@ -10435,6 +10435,16 @@
         }
       }
     },
+    "Cycle transitions": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cykelövergångar"
+          }
+        }
+      }
+    },
     "Display name": {
       "localizations": {
         "sv": {
@@ -23243,6 +23253,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Studeras ofta tillsammans med %@"
+          }
+        }
+      }
+    },
+    "Often rotated with %@. Discuss changes with a qualified clinician.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Roteras ofta med %@. Diskutera ändringar med legitimerad vårdpersonal."
           }
         }
       }
