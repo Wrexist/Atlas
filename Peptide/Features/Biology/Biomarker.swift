@@ -130,10 +130,9 @@ enum Biomarker: String, CaseIterable, Codable, Hashable, Sendable {
     var hasDataSource: Bool {
         switch self {
         case .weight, .hrvBaseline, .rhrBaseline,
-             .sleepBaseline, .latestLabPanel:
+             .sleepBaseline, .stepsBaseline, .latestLabPanel:
             return true
-        case .stepsBaseline, .bodyTemperature, .bodyFat,
-             .waist, .bloodPressure:
+        case .bodyTemperature, .bodyFat, .waist, .bloodPressure:
             return false
         }
     }
