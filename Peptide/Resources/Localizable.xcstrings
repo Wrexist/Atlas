@@ -1802,6 +1802,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld active protocol"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld active protocols"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -2150,6 +2168,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld day"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld days"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -2172,6 +2208,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld day apart"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld days apart"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -2190,6 +2244,24 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld dagar gratis"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld day free"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld days free"
                 }
               }
             }
@@ -2236,6 +2308,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld day in a row. Keep the momentum going."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld days in a row. Keep the momentum going."
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -2254,6 +2344,24 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld dagar kvar"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld day left"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld days left"
                 }
               }
             }
@@ -2352,6 +2460,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dish"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dishes"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -2370,6 +2496,24 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld rätter tillagda"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dish added"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dishes added"
                 }
               }
             }
@@ -2536,6 +2680,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld exercise"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld exercises"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -2688,6 +2850,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld hour"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld hours"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -2716,6 +2896,24 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld objekt"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld item"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld items"
                 }
               }
             }
@@ -2882,6 +3080,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld minute"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld minutes"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -2904,6 +3120,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld month apart"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld months apart"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -2922,6 +3156,24 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld månader gratis"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld month free"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld months free"
                 }
               }
             }
@@ -3140,6 +3392,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld peptide"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld peptides"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -3334,6 +3604,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld rep"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld reps"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -3468,6 +3756,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld session logged"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld sessions logged"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -3490,6 +3796,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld set"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld sets"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -3508,6 +3832,24 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld stjärnor"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld star"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld stars"
                 }
               }
             }
@@ -3584,6 +3926,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld week"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld weeks"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -3606,6 +3966,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld week apart"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld weeks apart"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -3624,6 +4002,24 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld veckor gratis"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld week free"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld weeks free"
                 }
               }
             }
@@ -3660,6 +4056,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld working set"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld working sets"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -3692,6 +4106,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld year apart"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld years apart"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -3710,6 +4142,24 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld år gratis"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld year free"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld years free"
                 }
               }
             }
@@ -7664,6 +8114,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Based on %lld check-in. Correlations aren't causation — but they're a useful nudge."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Based on %lld check-ins. Correlations aren't causation — but they're a useful nudge."
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -8050,6 +8518,24 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "Biologisk ålder %lld år"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Biological age %lld year"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Biological age %lld years"
                 }
               }
             }
@@ -8984,6 +9470,24 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "Kondition, HRV och vilopuls väger tyngst för säkerheten, eftersom de följer åldrandet närmast. Säkerheten ökar också för varje dag med hjärt- och sömndata, upp till %lld dagar."
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Cardio fitness, HRV and resting heart rate count most toward confidence, because they track ageing most closely. Confidence also grows with each day of heart and sleep data, up to %lld day."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Cardio fitness, HRV and resting heart rate count most toward confidence, because they track ageing most closely. Confidence also grows with each day of heart and sleep data, up to %lld days."
                 }
               }
             }
@@ -10862,6 +11366,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Consistency curve from %lld session per week."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Consistency curve from %lld sessions per week."
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -11814,6 +12336,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Current streak: %lld day"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Current streak: %lld days"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -11832,6 +12372,24 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "Nuvarande svit: %lld dagar."
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Current streak: %lld day."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Current streak: %lld days."
                 }
               }
             }
@@ -15530,6 +16088,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "From a moderate deficit at %lld session per week."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "From a moderate deficit at %lld sessions per week."
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -16752,6 +17328,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "How consistently you've hit each muscle over the last %lld week."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "How consistently you've hit each muscle over the last %lld weeks."
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -17946,6 +18540,24 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "Senaste %lld dagarna"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Last %lld day"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Last %lld days"
                 }
               }
             }
@@ -21472,6 +22084,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "No doses logged for %lld day. Pausing keeps your stats clean and stops misleading streak alerts."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "No doses logged for %lld days. Pausing keeps your stats clean and stops misleading streak alerts."
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -22602,6 +23232,24 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "Äldre under %lld dagar"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Older over %lld day"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Older over %lld days"
                 }
               }
             }
@@ -25096,6 +25744,24 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "Progressiv överbelastning med %lld pass per vecka."
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Progressive overload at %lld session per week."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Progressive overload at %lld sessions per week."
                 }
               }
             }
@@ -27744,6 +28410,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Running %lld protocol. Consider focusing on fewer for better compliance."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Running %lld protocols. Consider focusing on fewer for better compliance."
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -29148,6 +29832,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Shares %lld benefit with your protocol"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Shares %lld benefits with your protocol"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -30496,6 +31198,24 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "Stabil under %lld dagar"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Steady over %lld day"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Steady over %lld days"
                 }
               }
             }
@@ -34208,6 +34928,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Up to %lld year"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Up to %lld years"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -36006,6 +36744,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Working sets · Latest %lld workout"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Working sets · Latest %lld workouts"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -36764,6 +37520,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Younger over %lld day"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Younger over %lld days"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -36792,6 +37566,24 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "Dina %lld slutförda set raderas."
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Your %lld completed set will be deleted."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Your %lld completed sets will be deleted."
                 }
               }
             }
@@ -36894,6 +37686,24 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "Din biologiska ålder börjar på din verkliga ålder och rör sig sedan upp eller ner med upp till %lld signaler från Apple Hälsa och din profil. Varje signal kan bara flytta den några år."
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Your Biological Age starts at your real age, then moves up or down with up to %lld signal from Apple Health and your profile. Each one can only move it a few years."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Your Biological Age starts at your real age, then moves up or down with up to %lld signals from Apple Health and your profile. Each one can only move it a few years."
                 }
               }
             }
@@ -37336,6 +38146,24 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "Din svit växte med %lld dagar den här veckan"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Your streak grew by %lld day this week"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Your streak grew by %lld days this week"
                 }
               }
             }
