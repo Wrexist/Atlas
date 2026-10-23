@@ -280,6 +280,20 @@ final class WorkoutFocusServiceTests: XCTestCase {
         XCTAssertEqual(service.activeSession?.completedSetCount, 1)
     }
 
+    func test_liveActivitySkipTappedBeforeThisRest_leavesTheRestRunning() throws {
+        start()
+        service.completeNextSet()
+        let id = try XCTUnwrap(service.activeSession?.id)
+
+        PendingWorkoutActionStore.enqueue(.init(sessionId: id, action: .skipRest, tappedAt: Date().addingTimeInterval(-60)))
+        WorkoutActivityActionProcessor.drain()
+        XCTAssertNotNil(service.activeSession?.focus?.rest)
+
+        PendingWorkoutActionStore.enqueue(.init(sessionId: id, action: .skipRest, tappedAt: Date()))
+        WorkoutActivityActionProcessor.drain()
+        XCTAssertNil(service.activeSession?.focus?.rest)
+    }
+
     func test_liveActivityTapInAppProcess_isAppliedBeforeIntentReturns() async throws {
         start()
         let id = try XCTUnwrap(service.activeSession?.id)

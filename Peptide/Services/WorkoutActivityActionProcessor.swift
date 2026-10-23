@@ -13,7 +13,10 @@ enum WorkoutActivityActionProcessor {
         for pending in queued {
             guard service.activeSession?.id == pending.sessionId else { continue }
             switch pending.action {
-            case .skipRest:    service.skipRest()
+            case .skipRest:
+                // A tap drained late must not cancel a newer rest that a
+                // later set started, same as the Watch's skip.
+                if service.activeSession?.restWasRunning(at: pending.tappedAt) == true { service.skipRest() }
             case .completeSet: service.completeNextSet(now: pending.tappedAt)
             }
         }
