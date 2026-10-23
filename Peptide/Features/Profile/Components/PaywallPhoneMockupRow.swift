@@ -26,6 +26,9 @@ struct PaywallPhoneMockupRow: View {
                 .zIndex(2)
         }
         .frame(height: 230)
+        // Fixed-size artwork on a fixed 130×220 canvas: pin its text so
+        // large Dynamic Type doesn't clip or overlap the mock screens.
+        .dynamicTypeSize(.large)
         // Decorative artwork — the feature list below says the same in words.
         .accessibilityHidden(true)
     }
