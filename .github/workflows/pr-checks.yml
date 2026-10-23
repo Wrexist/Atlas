@@ -512,6 +512,7 @@ jobs:
           python3 scripts/test_design_lint.py
           python3 scripts/test_copy_claims.py
           python3 scripts/test_contrast_check.py
+          python3 scripts/test_store_metadata.py
 
       - name: Copy claims vs source
         # Pins numeric marketing copy (exercise counts, compound counts,

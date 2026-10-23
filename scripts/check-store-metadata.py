@@ -15,8 +15,9 @@ until the next rejection.
 
 So the links are pinned here. Both URLs must be in the description, the
 paywall, and the onboarding trial offer; every auto-renewable product's
-price and period must be in the description; and the description must still
-fit in 4 000 characters with the links present.
+title, price and period must be in the description's SUBSCRIPTION TERMS
+block; and the description must still fit in 4 000 characters with the
+links present.
 
     python3 scripts/check-store-metadata.py
 """
@@ -69,6 +70,42 @@ def auto_renewable_products(md: str) -> list[tuple[str, str]]:
     return [(name.strip(), price.strip()) for name, price in rows]
 
 
+PERIODS = {"mo": "monthly", "yr": "yearly"}
+
+
+def subscription_terms(description: str) -> str | None:
+    """The SUBSCRIPTION TERMS block, up to the next `——` divider or the end."""
+    m = re.search(r"^SUBSCRIPTION TERMS$(.*?)(?=^——|\Z)", description, re.M | re.S)
+    return m.group(1) if m else None
+
+
+def subscription_terms_problems(description: str, products: list[tuple[str, str]]) -> list[str]:
+    """What the terms block fails to disclose for each auto-renewable product.
+
+    Each product's title, price and renewal period must sit inside the
+    block itself: a marketing line elsewhere that happens to quote a price
+    is not the disclosure 3.1.2 asks for. Whitespace is matched loosely so
+    a line wrap inside "renews yearly" still counts.
+    """
+    terms = subscription_terms(description)
+    if terms is None:
+        return ["the description has no SUBSCRIPTION TERMS block"]
+    problems = []
+    for name, price in products:
+        if not re.search(r"\s+".join(map(re.escape, name.split())), terms):
+            problems.append(f"{name}: title missing from SUBSCRIPTION TERMS")
+        amount = re.search(r"\$[\d.]+", price)
+        if not amount or amount.group(0) not in terms:
+            problems.append(f"{name}: price {price} missing from SUBSCRIPTION TERMS")
+        unit = re.search(r"/\s*(\w+)", price)
+        period = PERIODS.get(unit.group(1)) if unit else None
+        if not period:
+            problems.append(f"{name}: price {price} names no known period (/ mo or / yr)")
+        elif not re.search(rf"renews\s+{period}", terms):
+            problems.append(f"{name}: 'renews {period}' missing from SUBSCRIPTION TERMS")
+    return problems
+
+
 def main() -> int:
     failures: list[str] = []
 
@@ -104,14 +141,10 @@ def main() -> int:
 
     products = auto_renewable_products(md)
     check(bool(products), "auto-renewable products found in the IAP table")
-    for name, price in products:
-        amount = re.search(r"\$[\d.]+", price)
-        check(bool(amount) and amount.group(0) in description,
-              f"{name}: price {price} disclosed in the description",
-              "3.1.2 wants title, length, and price per period in the description")
-
-    check(re.search(r"renews (monthly|yearly)", description) is not None,
-          "renewal period disclosed in the description")
+    terms_problems = subscription_terms_problems(description, products)
+    check(not terms_problems,
+          "every auto-renewable title, price and period is in SUBSCRIPTION TERMS",
+          "; ".join(terms_problems) + " — 3.1.2 wants title, length, and price per period")
 
     print("\nIn-app purchase surfaces")
     for rel in PURCHASE_SURFACES:
