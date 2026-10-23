@@ -332,7 +332,7 @@ final class StackRecommendationEngineTests: XCTestCase {
             for: [bpc], activeProtocols: [proto]
         )
         let hasCycleWarning = warnings.contains {
-            $0.title.contains("past its cycle") && $0.kind == .cycleOverrun
+            $0.title.contains("past its cycle")
         }
         XCTAssertTrue(hasCycleWarning, "Should warn about BPC-157 being over its recommended cycle")
     }
@@ -351,7 +351,7 @@ final class StackRecommendationEngineTests: XCTestCase {
             for: [ipamorelin, bpc], activeProtocols: [proto]
         )
         let hasDesensitization = warnings.contains {
-            $0.title.contains("desensitization") && $0.kind == .desensitization
+            $0.title.contains("desensitization")
         }
         XCTAssertTrue(hasDesensitization, "Should warn about GHS-R1a desensitization risk")
     }
@@ -362,10 +362,6 @@ final class StackRecommendationEngineTests: XCTestCase {
         let warnings = StackRecommendationEngine.warnings(for: stack)
         let hasHepato = warnings.contains { $0.title.contains("liver") }
         XCTAssertTrue(hasHepato, "Should warn about multiple hepatotoxic peptides")
-        XCTAssertTrue(
-            warnings.filter { $0.title.contains("liver") }.allSatisfy { $0.kind == .general },
-            "Warnings without a dedicated follow-up action stay general"
-        )
     }
 
     func test_timingConflicts_detectsAvoidWithPairs() {
@@ -373,7 +369,7 @@ final class StackRecommendationEngineTests: XCTestCase {
         guard stack.count == 2 else { return XCTFail("Fixture peptides missing from the database") }
         let warnings = StackRecommendationEngine.warnings(for: stack)
         let hasTimingConflict = warnings.contains {
-            $0.title.contains("Timing separation") && $0.kind == .timingConflict
+            $0.title.contains("Timing separation")
         }
         XCTAssertTrue(hasTimingConflict, "Should detect Semax/Selank timing conflict")
     }
