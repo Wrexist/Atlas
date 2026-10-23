@@ -3728,9 +3728,39 @@
     "%lld research pairings": {
       "localizations": {
         "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld forskningskombinationer"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld forskningskombination"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld forskningskombinationer"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld research pairing"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld research pairings"
+                }
+              }
+            }
           }
         }
       }
