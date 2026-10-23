@@ -1643,7 +1643,7 @@ struct OnboardingView: View {
                     )
                     disclaimerBullet(
                         icon: "lock.fill",
-                        text: String(localized: "Your data lives in your private iCloud, and you can lock the app with Face ID.")
+                        text: privacyBulletText
                     )
                 }
                 .padding(Spacing.lg)
@@ -1654,6 +1654,16 @@ struct OnboardingView: View {
             }
             .padding(.horizontal, Spacing.lg)
         }
+    }
+
+    /// Names the lock this device actually offers, and only when it offers
+    /// one — the Profile toggle is hidden without enrolled biometrics.
+    private var privacyBulletText: String {
+        let biometrics = BiometricService.shared
+        guard biometrics.isAvailable else {
+            return String(localized: "Your data syncs through your private iCloud when iCloud is on.")
+        }
+        return String(localized: "Your data syncs through your private iCloud when iCloud is on, and you can lock the app with \(biometrics.biometryName).")
     }
 
     private func disclaimerBullet(icon: String, text: String) -> some View {

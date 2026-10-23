@@ -37152,7 +37152,27 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Din data synkas via iCloud när det är på, oavsett om du loggar in."
+            "value": "Dina data synkas via iCloud när det är på, oavsett om du loggar in."
+          }
+        }
+      }
+    },
+    "Your data syncs through your private iCloud when iCloud is on, and you can lock the app with %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina data synkas via din privata iCloud när iCloud är på, och du kan låsa appen med %@."
+          }
+        }
+      }
+    },
+    "Your data syncs through your private iCloud when iCloud is on.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina data synkas via din privata iCloud när iCloud är på."
           }
         }
       }
@@ -37937,16 +37957,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dina data är säkra. Kontrollera anslutningen och försök igen."
-          }
-        }
-      }
-    },
-    "Your data lives in your private iCloud, and you can lock the app with Face ID.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dina data finns i din privata iCloud, och du kan låsa appen med Face ID."
           }
         }
       }
