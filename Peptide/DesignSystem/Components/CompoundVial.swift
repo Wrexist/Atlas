@@ -187,7 +187,7 @@ struct CompoundVial: View {
 
     private func labelChip(metrics m: VialMetrics, text: String) -> some View {
         Text(text)
-            .font(.system(size: m.labelFontSize, weight: .heavy, design: .rounded))
+            .font(AppFont.scaled(m.labelFontSize, weight: .heavy, design: .rounded, in: .large))
             .foregroundStyle(Color.white)
             .multilineTextAlignment(.center)
             .lineLimit(2)

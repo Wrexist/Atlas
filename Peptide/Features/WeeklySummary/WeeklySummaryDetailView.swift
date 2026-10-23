@@ -75,7 +75,7 @@ struct WeeklySummaryDetailView: View {
                         .fill(accent)
                         .frame(width: 64, height: 64)
                     Image(systemName: "chart.bar.doc.horizontal.fill")
-                        .font(.system(size: 26, weight: .heavy))
+                        .font(AppFont.scaled(26, weight: .heavy, in: .large))
                         .foregroundStyle(AppColor.onAccent)
                 }
 

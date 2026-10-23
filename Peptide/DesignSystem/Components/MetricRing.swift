@@ -217,7 +217,7 @@ extension MetricRing where Center == EmptyView {
                 celebrateAtCompletion: true
             ) {
                 Text("85")
-                    .font(.system(size: 30, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(30, weight: .heavy, design: .rounded, in: .large))
                     .foregroundStyle(.white)
             }
         }

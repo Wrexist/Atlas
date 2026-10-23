@@ -141,7 +141,7 @@ struct ProgressPhotoCompareView: View {
             RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                 .fill(AppColor.surfaceSecondary.opacity(0.65))
             Image(systemName: "photo")
-                .font(.system(size: 28, weight: .light))
+                .font(AppFont.scaled(28, weight: .light, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.textTertiary)
         }
         .aspectRatio(3.0 / 4.0, contentMode: .fit)

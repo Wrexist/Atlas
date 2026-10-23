@@ -90,7 +90,7 @@ struct CycleCardView: View {
                 // image carries it.
                 atlasMark(size: 48)
                 Text("Atlas")
-                    .font(.system(size: 38, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(38, weight: .heavy, design: .rounded, in: .large))
                     .foregroundStyle(.white)
                     .tracking(-0.5)
             }
@@ -121,7 +121,7 @@ struct CycleCardView: View {
                     .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(Color.white.opacity(0.55))
                 Text(cycleProgressLine)
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(28, weight: .bold, design: .rounded, in: .large))
                     .foregroundStyle(.white)
             }
         }
@@ -150,7 +150,7 @@ struct CycleCardView: View {
             if model.peptides.count > Self.maxVisibleVials {
                 let extra = model.peptides.count - Self.maxVisibleVials
                 Text("+\(extra)")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(32, weight: .bold, design: .rounded, in: .large))
                     .foregroundStyle(Color.white.opacity(0.65))
                     .padding(.leading, 32)
             }
@@ -227,13 +227,13 @@ struct CycleCardView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Text(value)
-                    .font(.system(size: 42, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(42, weight: .bold, design: .rounded, in: .large))
                     .foregroundStyle(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 if let trailingGlyph {
                     Text(trailingGlyph)
-                        .font(.system(size: 30))
+                        .font(AppFont.scaled(30, in: .large))
                 }
             }
             Text(label)
@@ -301,7 +301,7 @@ struct CycleCardView: View {
                     .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(Color(red: 0.78, green: 0.74, blue: 0.96))
                 Text(value)
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(26, weight: .bold, design: .rounded, in: .large))
                     .foregroundStyle(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
