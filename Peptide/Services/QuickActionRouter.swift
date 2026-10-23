@@ -1,3 +1,4 @@
+import BackgroundTasks
 import SwiftUI
 import UIKit
 
@@ -106,6 +107,7 @@ final class AtlasAppDelegate: NSObject, UIApplicationDelegate {
         MainActor.assumeIsolated {
             PendingWorkoutActionStore.applyInProcess = { WorkoutActivityActionProcessor.drain() }
             PendingDoseLogStore.applyInProcess = { PendingDoseLogProcessor.drainAndReconcile() }
+            registerDoseWindowCloseTask()
             workoutActionToken = WorkoutActivityActionProcessor.startObserving()
             doseLogToken = PendingDoseLogProcessor.startObserving()
             waterToken = QuickActionRouter.observePendingWater()
@@ -116,6 +118,21 @@ final class AtlasAppDelegate: NSObject, UIApplicationDelegate {
             store.reconcileDoseLiveActivities()
         }
         return true
+    }
+
+    /// Ends dose Live Activities whose window has closed when iOS wakes
+    /// the app for the refresh `DoseLiveActivityService` scheduled. Must
+    /// be registered before launch finishes.
+    private func registerDoseWindowCloseTask() {
+        BGTaskScheduler.shared.register(
+            forTaskWithIdentifier: DoseLiveActivityService.windowCloseTaskIdentifier,
+            using: .main
+        ) { task in
+            MainActor.assumeIsolated {
+                IntentDataStore.resolve().reconcileDoseLiveActivities()
+            }
+            task.setTaskCompleted(success: true)
+        }
     }
 
     func application(

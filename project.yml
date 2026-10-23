@@ -106,6 +106,13 @@ targets:
           - sv
         ITSAppUsesNonExemptEncryption: false
         NSSupportsLiveActivities: true
+        # Ends a dose Live Activity when its window closes even if the
+        # app isn't opened (DoseLiveActivityService). App refresh tasks
+        # need the fetch background mode.
+        BGTaskSchedulerPermittedIdentifiers:
+          - com.peptidesai.app.doseWindowClose
+        UIBackgroundModes:
+          - fetch
         # The peptidex:// scheme predates this registration — widget and
         # Live Activity `widgetURL` links route to the containing app
         # without it — but notification deep links, Shortcuts, and any
