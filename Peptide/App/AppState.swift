@@ -120,22 +120,27 @@ enum DeepLinkRouter {
             // HomeView consumes the parked UUID on next appear and
             // presents the dose-logging sheet.
             guard let entryUUID = UUID(uuidString: url.lastPathComponent) else { return false }
+            closeRootModals(appState)
             appState.selectedTab = .today
             appState.pendingDoseLogEntryId = entryUUID
         case "weekly":
             // Weekly recap notification → `peptidex://weekly/current`.
+            closeRootModals(appState)
             appState.selectedTab = .today
             appState.pendingWeeklyRecap = true
         case "today":
             // Home-screen dose/compliance widgets → land on Today.
+            closeRootModals(appState)
             appState.selectedTab = .today
         case "train":
             // Reserved for workout reminders and a future training
             // widget — lands on the Train tab, where the resume banner
             // or Start Workout CTA is the next action.
+            closeRootModals(appState)
             appState.selectedTab = .train
         case "meals":
             // Nutrition widget → the Meals tab's log-entry pickers.
+            closeRootModals(appState)
             appState.selectedTab = .meals
         case "quick":
             // Widget buttons → `peptidex://quick/<QuickAction>`.
@@ -147,13 +152,21 @@ enum DeepLinkRouter {
             // Library are closed first: the paywall presents from the root
             // and cannot stack on top of a modal that is already up.
             guard !isPro else { return true }
-            appState.showProfile = false
-            appState.showLibrary = false
+            closeRootModals(appState)
             appState.presentedPaywall = .deepLink
         default:
             return false
         }
         return true
+    }
+
+    /// Tab switches and the dose sheet happen behind a modal presented
+    /// from the root, so a link would otherwise change nothing visible.
+    private static func closeRootModals(_ appState: AppState) {
+        appState.showProfile = false
+        appState.showLibrary = false
+        appState.presentedQuickSheet = nil
+        appState.presentedPaywall = nil
     }
 }
 

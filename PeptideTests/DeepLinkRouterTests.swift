@@ -38,6 +38,25 @@ final class DeepLinkRouterTests: XCTestCase {
         XCTAssertEqual(state.selectedTab, .today) // default, untouched
     }
 
+    func test_doseHost_closesModalsTheDoseSheetCannotStackOn() {
+        let state = AppState()
+        state.showProfile = true
+        state.showLibrary = true
+        state.presentedQuickSheet = .logWeight
+        DeepLinkRouter.route(XCTUnwrapURL("peptidex://dose/\(UUID().uuidString)"), appState: state)
+        XCTAssertFalse(state.showProfile)
+        XCTAssertFalse(state.showLibrary)
+        XCTAssertNil(state.presentedQuickSheet)
+    }
+
+    func test_tabHost_closesModalsHidingTheTab() {
+        let state = AppState()
+        state.showLibrary = true
+        DeepLinkRouter.route(XCTUnwrapURL("peptidex://meals"), appState: state)
+        XCTAssertFalse(state.showLibrary)
+        XCTAssertEqual(state.selectedTab, .meals)
+    }
+
     func test_weeklyHost_flagsRecapAndSelectsToday() {
         let (handled, state) = route("peptidex://weekly/current")
         XCTAssertTrue(handled)
