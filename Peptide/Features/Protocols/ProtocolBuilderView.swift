@@ -146,21 +146,21 @@ struct ProtocolBuilderView: View {
     private var defaultSchedule: ProtocolSchedule {
         ProtocolSchedule(
             daysOfWeek: cadenceMode == .weekly ? selectedDays.sorted() : [1, 2, 3, 4, 5, 6, 7],
-            timesPerDay: timesPerDay,
+            timesPerDay: resolvedTimes.count,
             preferredTimes: resolvedTimes,
             intervalDays: cadenceMode == .interval ? intervalDays : nil,
             intervalAnchor: cadenceMode == .interval ? intervalAnchor : nil
         )
     }
 
-    /// Always returns exactly `timesPerDay` strings — pads from the user's
-    /// edits if available, otherwise falls back to the default presets.
+    /// `timesPerDay` slots — padded from the default presets — with
+    /// duplicates dropped and sorted through the day.
     private var resolvedTimes: [String] {
         var times = preferredTimes
         while times.count < timesPerDay {
             times.append(ScheduleEditor.defaultTimeString(for: times.count))
         }
-        return Array(times.prefix(timesPerDay))
+        return ProtocolSchedule.normalizedTimes(Array(times.prefix(timesPerDay)))
     }
 
     /// Non-persisted protocol used to drive the live preview share-card render.

@@ -79,6 +79,26 @@ struct ProtocolSchedule: Hashable, Codable, Sendable {
         return date.formatted(date: .omitted, time: .shortened)
     }
 
+    /// Dose times with duplicates removed and sorted through the day.
+    /// Two identical times would generate two entries sharing one
+    /// deterministic id. Unparseable keys keep their order at the end.
+    static func normalizedTimes(_ times: [String], calendar: Calendar = .current) -> [String] {
+        var seenMinutes = Set<Int>()
+        var parsed: [(minute: Int, key: String)] = []
+        var unparsed: [String] = []
+        for key in times {
+            guard let date = storageTimeParser.date(from: key) else {
+                if !unparsed.contains(key) { unparsed.append(key) }
+                continue
+            }
+            let minute = calendar.component(.hour, from: date) * 60 + calendar.component(.minute, from: date)
+            if seenMinutes.insert(minute).inserted {
+                parsed.append((minute, key))
+            }
+        }
+        return parsed.sorted { $0.minute < $1.minute }.map(\.key) + unparsed
+    }
+
     private static let storageTimeParser: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "h:mm a"

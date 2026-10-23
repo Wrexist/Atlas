@@ -202,13 +202,21 @@ struct ScheduleEditor: View {
                 .foregroundStyle(AppColor.textTertiary)
                 .textCase(.uppercase)
 
+            let times = binding.wrappedValue
             VStack(spacing: Spacing.xs) {
                 ForEach(0..<timesPerDay, id: \.self) { index in
                     TimeSlotRow(
                         index: index,
-                        timeString: timeStringBinding(for: index, in: binding)
+                        timeString: timeStringBinding(for: index, in: binding),
+                        isDuplicate: Self.repeatsEarlierSlot(index, in: times)
                     )
                 }
+            }
+
+            if (0..<min(timesPerDay, times.count)).contains(where: { Self.repeatsEarlierSlot($0, in: times) }) {
+                Label("Repeated times are saved once.", systemImage: "exclamationmark.triangle.fill")
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.warning)
             }
         }
         .onChange(of: timesPerDay) { _, newCount in
@@ -246,6 +254,12 @@ struct ScheduleEditor: View {
                 binding.wrappedValue = times
             }
         )
+    }
+
+    /// True when slot `index` holds the same time as an earlier slot.
+    static func repeatsEarlierSlot(_ index: Int, in times: [String]) -> Bool {
+        guard index < times.count else { return false }
+        return times[..<index].contains(times[index])
     }
 
     static func defaultTimeString(for index: Int) -> String {
@@ -413,6 +427,7 @@ struct LiquidGlassStepper: View {
 private struct TimeSlotRow: View {
     let index: Int
     @Binding var timeString: String
+    let isDuplicate: Bool
 
     @State private var pickerDate: Date = Date()
     @State private var isShowingPicker = false
@@ -447,6 +462,13 @@ private struct TimeSlotRow: View {
                     .foregroundStyle(AppColor.textSecondary)
 
                 Spacer()
+
+                if isDuplicate {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.warning)
+                        .accessibilityLabel("Repeated time")
+                }
 
                 Text(ProtocolSchedule.displayTime(timeString))
                     .font(AppFont.subheadline)

@@ -40034,6 +40034,28 @@
           }
         }
       }
+    },
+    "Repeated times are saved once.": {
+      "comment": "Schedule editor — shown when two dose slots hold the same time.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tider som upprepas sparas bara en gång."
+          }
+        }
+      }
+    },
+    "Repeated time": {
+      "comment": "VoiceOver — warning icon on a dose slot that repeats an earlier time.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upprepad tid"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -224,12 +224,12 @@ struct PeptideScheduleSheet: View {
             while times.count < timesPerDay {
                 times.append(ScheduleEditor.defaultTimeString(for: times.count))
             }
-            times = Array(times.prefix(timesPerDay))
+            times = ProtocolSchedule.normalizedTimes(Array(times.prefix(timesPerDay)))
 
             let trimmedDose = customDose.trimmingCharacters(in: .whitespacesAndNewlines)
             let schedule = ProtocolSchedule(
                 daysOfWeek: cadenceMode == .weekly ? selectedDays.sorted() : [1, 2, 3, 4, 5, 6, 7],
-                timesPerDay: timesPerDay,
+                timesPerDay: times.count,
                 preferredTimes: times,
                 customDose: trimmedDose.isEmpty ? nil : trimmedDose,
                 intervalDays: cadenceMode == .interval ? intervalDays : nil,
