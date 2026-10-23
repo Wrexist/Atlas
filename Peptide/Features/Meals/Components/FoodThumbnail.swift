@@ -120,41 +120,60 @@ struct FoodArtwork: Equatable {
     ]
 }
 
-/// A food's picture at a fixed size: the product photo on a clean white
-/// card when there is one, else its `FoodArtwork`.
+/// A food's picture at a fixed size: the product cut out of its photo on
+/// the food's own tint, the whole photo on a white card when Vision found
+/// no clean edge, else its `FoodArtwork`.
 struct FoodThumbnail: View {
     let name: String
-    var imageURL: URL?
-    var size: CGFloat = 44
+    let imageURL: URL?
+    let size: CGFloat
+
+    @State private var photo: ProductPhoto?
+
+    init(name: String, imageURL: URL? = nil, size: CGFloat = 44) {
+        self.name = name
+        self.imageURL = imageURL
+        self.size = size
+        _photo = State(initialValue: imageURL.flatMap(ProductPhotoStore.shared.cached))
+    }
 
     var body: some View {
         Group {
-            if let imageURL {
-                AsyncImage(url: imageURL) { phase in
-                    if case .success(let image) = phase {
-                        photo(image)
-                    } else {
-                        artwork
-                    }
-                }
+            if let photo {
+                picture(photo)
             } else {
                 artwork
             }
         }
         .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous))
+        .appAnimation(AppAnimation.fadeIn, value: photo?.isCutout)
+        .task(id: imageURL) {
+            guard let imageURL else {
+                photo = nil
+                return
+            }
+            photo = await ProductPhotoStore.shared.photo(for: imageURL)
+        }
         .accessibilityHidden(true)
     }
 
-    /// Packshots come on every kind of background; a white card with a
-    /// little margin makes a row of them read as one set.
-    private func photo(_ image: Image) -> some View {
-        image
+    /// A cut-out sits on the same tint as the artwork so a row of them
+    /// reads as one set; a whole packshot comes on any background, so it
+    /// gets a white card with a little margin instead.
+    private func picture(_ photo: ProductPhoto) -> some View {
+        Image(uiImage: photo.image)
             .resizable()
             .scaledToFit()
-            .padding(size * 0.1)
+            .padding(size * (photo.isCutout ? 0.12 : 0.1))
             .frame(width: size, height: size)
-            .background(AppColor.onAccent)
+            .background {
+                if photo.isCutout {
+                    tint(FoodArtwork.match(name).tint)
+                } else {
+                    AppColor.onAccent
+                }
+            }
             .transition(.opacity)
     }
 
@@ -165,12 +184,14 @@ struct FoodThumbnail: View {
             .lineLimit(1)
             .minimumScaleFactor(0.5)
             .frame(width: size, height: size)
-            .background {
-                LinearGradient(
-                    colors: [art.tint.opacity(0.28), art.tint.opacity(0.12)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            }
+            .background { tint(art.tint) }
+    }
+
+    private func tint(_ color: Color) -> some View {
+        LinearGradient(
+            colors: [color.opacity(0.28), color.opacity(0.12)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 }
