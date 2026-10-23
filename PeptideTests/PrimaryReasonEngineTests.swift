@@ -42,6 +42,9 @@ final class PrimaryReasonEngineTests: XCTestCase {
         let reason = PrimaryReasonEngine.pick(context: context)
         XCTAssertEqual(reason.priority, .optionalReminder)
         XCTAssertEqual(reason.message.body, "Start with BPC-157 — fasted, on waking")
+        // The enriched copy keeps its kind, so nothing downstream has to
+        // recognise it by its localised eyebrow.
+        XCTAssertEqual(reason.message.kind, .onTrack)
     }
 
     // MARK: - Multiple candidates → exactly one clear primary, by priority
