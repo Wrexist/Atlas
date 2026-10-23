@@ -26788,6 +26788,34 @@
               }
             }
           }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recipe · %#@arg1@ · %2$lld kcal"
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg ingredient"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg ingredients"
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
