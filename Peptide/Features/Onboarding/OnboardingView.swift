@@ -1495,7 +1495,7 @@ struct OnboardingView: View {
     }
 
     private var projectionHeadline: String {
-        let weeks = goalWeeks == 1 ? "1 week" : "\(goalWeeks) weeks"
+        let weeks = goalWeeks == 1 ? String(localized: "1 week") : String(localized: "\(goalWeeks) weeks")
         switch primaryGoal {
         case .buildMuscle:    return String(localized: "+\(projectedMuscleGain) in \(weeks)")
         case .loseFat:        return String(localized: "−\(projectedFatLoss) in \(weeks)")
