@@ -51,7 +51,16 @@ final class CustomFoodDecimalTests: XCTestCase {
         XCTAssertEqual(problem(fiber: 500), .fiberOrSugarsOver100g)
     }
 
-    func test_inputProblem_sugarsAboveCarbs_isRejected() {
-        XCTAssertEqual(problem(carbs: 10, sugars: 12), .sugarsOverCarbs)
+    func test_inputProblem_sugarsAboveCarbs_stillSaves() {
+        XCTAssertNil(problem(carbs: 10, sugars: 12))
+    }
+
+    func test_sugarsExceedCarbs_bothEntered_warns() {
+        XCTAssertTrue(CustomFoodEditorSheet.sugarsExceedCarbs(carbs: 10, sugars: 12))
+        XCTAssertFalse(CustomFoodEditorSheet.sugarsExceedCarbs(carbs: 12, sugars: 10))
+    }
+
+    func test_sugarsExceedCarbs_carbsBlank_doesNotWarn() {
+        XCTAssertFalse(CustomFoodEditorSheet.sugarsExceedCarbs(carbs: nil, sugars: 5))
     }
 }

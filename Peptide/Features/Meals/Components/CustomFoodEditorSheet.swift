@@ -86,7 +86,7 @@ struct CustomFoodEditorSheet: View {
 
     /// Why the entered values can't be saved.
     enum InputProblem: Equatable {
-        case negative, caloriesOver900, macrosOver100g, fiberOrSugarsOver100g, sugarsOverCarbs, servingOutOfRange
+        case negative, caloriesOver900, macrosOver100g, fiberOrSugarsOver100g, servingOutOfRange
 
         var message: LocalizedStringKey {
             switch self {
@@ -94,7 +94,6 @@ struct CustomFoodEditorSheet: View {
             case .caloriesOver900: "Calories can't be more than 900 kcal per 100 g."
             case .macrosOver100g: "Protein, carbs and fat can't add up to more than 100 g per 100 g."
             case .fiberOrSugarsOver100g: "Fiber and sugars can't be more than 100 g per 100 g."
-            case .sugarsOverCarbs: "Sugars can't be more than carbs."
             case .servingOutOfRange:
                 "Serving size must be \(FoodPortionInput.gramsRange.lowerBound.formatted())–\(FoodPortionInput.gramsRange.upperBound.formatted()) g."
             }
@@ -102,8 +101,7 @@ struct CustomFoodEditorSheet: View {
     }
 
     /// Pure fat is about 900 kcal per 100 g, 100 g of food can't hold
-    /// more than 100 g of protein, carbs and fat, sugars are part of the
-    /// carbs, and a serving is held to the same bounds as any portion —
+    /// more than 100 g of protein, carbs and fat, and a serving is held to the same bounds as any portion —
     /// quick log, Siri and recipes use it as the default.
     static func inputProblem(calories: Double?, protein: Double?, carbs: Double?, fat: Double?,
                              fiber: Double?, sugars: Double?, servingGrams: Double?) -> InputProblem? {
@@ -111,11 +109,22 @@ struct CustomFoodEditorSheet: View {
         if (calories ?? 0) > 900 { return .caloriesOver900 }
         if (protein ?? 0) + (carbs ?? 0) + (fat ?? 0) > 100 { return .macrosOver100g }
         if (fiber ?? 0) > 100 || (sugars ?? 0) > 100 { return .fiberOrSugarsOver100g }
-        if (sugars ?? 0) > (carbs ?? 0) { return .sugarsOverCarbs }
         if let servingGrams, servingGrams > 0, !FoodPortionInput.gramsRange.contains(servingGrams) {
             return .servingOutOfRange
         }
         return nil
+    }
+
+    /// Sugars are part of the carbs, so more sugars than carbs is likely a
+    /// typo. Only a warning: label rounding and older or AI-filled foods
+    /// can carry it, and blocking would trap an edit to an unrelated field.
+    static func sugarsExceedCarbs(carbs: Double?, sugars: Double?) -> Bool {
+        guard let carbs, let sugars else { return false }
+        return sugars > carbs
+    }
+
+    private var sugarsWarning: Bool {
+        Self.sugarsExceedCarbs(carbs: Self.parseDecimal(carbs), sugars: Self.parseDecimal(sugars))
     }
     private var isEditing: Bool { onDelete != nil }
 
@@ -186,6 +195,9 @@ struct CustomFoodEditorSheet: View {
                         Text("Enter the nutrition values per 100 grams of this food. Portion math at log time scales these up or down automatically.")
                         if let inputProblem, inputProblem != .servingOutOfRange {
                             Text(inputProblem.message)
+                                .foregroundStyle(AppColor.warning)
+                        } else if sugarsWarning {
+                            Text("Sugars are higher than carbs. Check both values.")
                                 .foregroundStyle(AppColor.warning)
                         }
                     }

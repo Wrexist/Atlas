@@ -31817,13 +31817,13 @@
         }
       }
     },
-    "Sugars can't be more than carbs.": {
-      "comment": "Custom food validation error.",
+    "Sugars are higher than carbs. Check both values.": {
+      "comment": "Custom food editor warning that does not block saving.",
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Socker kan inte vara mer än kolhydrater."
+            "value": "Socker är högre än kolhydrater. Kontrollera båda värdena."
           }
         }
       }
