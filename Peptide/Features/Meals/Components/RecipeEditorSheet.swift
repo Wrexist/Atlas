@@ -213,17 +213,21 @@ struct RecipeEditorSheet: View {
                     .padding(.vertical, Spacing.md)
                     .frame(maxWidth: .infinity, alignment: .center)
             } else {
+                let unresolved = Set(RecipeDataLogic.review(for: livePreview, customFoods: availableCustomFoods)
+                    .unresolved.map(\.id))
                 VStack(spacing: Spacing.xs) {
                     ForEach(components) { component in
-                        componentRow(component)
+                        componentRow(component, isUnresolved: unresolved.contains(component.id))
                     }
                 }
             }
         }
     }
 
-    private func componentRow(_ component: Recipe.Component) -> some View {
-        Button {
+    private func componentRow(_ component: Recipe.Component, isUnresolved: Bool) -> some View {
+        // The live name follows renames; the cached one survives a deleted food.
+        let food = availableCustomFoods.first { $0.foodID == component.foodID }
+        return Button {
             editingComponent = component
         } label: {
             HStack(spacing: Spacing.sm) {
@@ -232,14 +236,20 @@ struct RecipeEditorSheet: View {
                     .foregroundStyle(AppColor.accentLight)
                     .frame(width: 22)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(component.cachedName)
+                    Text(food?.name ?? component.cachedName)
                         .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(1)
-                    Text(portionDescription(component.portion))
-                        .font(AppFont.scaled(11))
-                        .foregroundStyle(AppColor.textSecondary)
-                        .monospacedDigit()
+                    if isUnresolved {
+                        Label(food == nil ? "Missing food" : "Invalid portion", systemImage: "exclamationmark.triangle.fill")
+                            .font(AppFont.scaled(11, weight: .semibold))
+                            .foregroundStyle(AppColor.warning)
+                    } else {
+                        Text(portionDescription(component.portion))
+                            .font(AppFont.scaled(11))
+                            .foregroundStyle(AppColor.textSecondary)
+                            .monospacedDigit()
+                    }
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.right")

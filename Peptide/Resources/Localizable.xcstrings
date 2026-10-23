@@ -10608,6 +10608,17 @@
         }
       }
     },
+    "Invalid portion": {
+      "comment": "Recipe ingredient whose portion cannot be logged.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ogiltig portion"
+          }
+        }
+      }
+    },
     "Ketosis": {
       "localizations": {
         "sv": {
@@ -10734,6 +10745,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "milliliter"
+          }
+        }
+      }
+    },
+    "Missing food": {
+      "comment": "Recipe ingredient whose food was deleted.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Livsmedel saknas"
           }
         }
       }
