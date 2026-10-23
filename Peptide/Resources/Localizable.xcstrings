@@ -17361,12 +17361,12 @@
         }
       }
     },
-    "How much water to log, in fluid ounces. Leave empty for one glass.": {
+    "How much water to log, in millilitres or fluid ounces to match your unit setting. Leave empty for one glass.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hur mycket vatten som ska loggas, i fluid ounces. Lämna tomt för ett glas."
+            "value": "Hur mycket vatten som ska loggas, i milliliter eller fluid ounces enligt din enhetsinställning. Lämna tomt för ett glas."
           }
         }
       }

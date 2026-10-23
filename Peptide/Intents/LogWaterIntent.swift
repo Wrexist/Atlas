@@ -1,11 +1,11 @@
 import AppIntents
 
-/// "Log [N] ounces of water" / "Log a glass of water".
+/// "Log [N] of water" / "Log a glass of water".
 ///
-/// Optional `ounces` parameter — when omitted, logs one glass in the
-/// user's unit (8 oz, or 250 mL for metric), the same glass the Control
-/// Center button logs. Power users wiring this into Shortcuts can drop
-/// in any whole number of ounces.
+/// Optional `amount` parameter in the user's own unit: millilitres for
+/// metric, fluid ounces for imperial. A metric user who says 250 means
+/// 250 mL, not 250 oz (7.4 L). When omitted, logs one glass (8 oz, or
+/// 250 mL for metric), the same glass the Control Center button logs.
 struct LogWaterIntent: AppIntent {
     static let title: LocalizedStringResource = "Log water"
 
@@ -17,21 +17,33 @@ struct LogWaterIntent: AppIntent {
     static let openAppWhenRun: Bool = false
 
     /// The lower bound is 1 so a Shortcut input can't sneak in a
-    /// negative or zero value; upper bound at 256 oz (≈ 2 gallons) is
-    /// a sanity check against fat-fingered input.
+    /// negative or zero value. The upper bound fits the metric range;
+    /// `fluidOunces(amount:unit:)` caps each unit at about two gallons
+    /// as a check against fat-fingered input.
     @Parameter(
-        title: "Ounces",
-        description: "How much water to log, in fluid ounces. Leave empty for one glass.",
-        inclusiveRange: (1, 256)
+        title: "Amount",
+        description: "How much water to log, in millilitres or fluid ounces to match your unit setting. Leave empty for one glass.",
+        inclusiveRange: (1, 8000)
     )
-    var ounces: Int?
+    var amount: Int?
+
+    /// `amount` read in the user's unit, as the fluid ounces the log stores.
+    static func fluidOunces(amount: Int?, unit: MeasurementUnit) -> Double {
+        guard let amount else { return TodayChecklistEngine.glassFluidOunces(for: unit) }
+        switch unit {
+        case .metric:
+            return LifestyleDataLogic.fluidOunces(millilitres: Double(min(amount, 8000)))
+        case .imperial:
+            return Double(min(amount, 256))
+        }
+    }
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        let amount = ounces
+        let requested = amount
         let (added, total): (String, String) = await MainActor.run {
             let store = IntentDataStore.resolve()
             let unit = store.profile.bodyMetrics.unit
-            let fluidOunces = amount.map(Double.init) ?? TodayChecklistEngine.glassFluidOunces(for: unit)
+            let fluidOunces = Self.fluidOunces(amount: requested, unit: unit)
             store.logWater(fluidOunces: fluidOunces)
             store.flushPendingSave()
             let totalValue = LifestyleDataLogic.displayedWater(store.consumption(), unit: unit)
