@@ -13,6 +13,10 @@ struct MealScanTotalsCard: View {
     let fatG: Int
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// Grows with the number inside it, capped so the macro grid beside
+    /// it keeps room at the largest sizes.
+    @ScaledMetric(relativeTo: .title3) private var ringDiameter: CGFloat = 96
 
     /// Energy shares, not gram shares. Four calories a gram for protein and
     /// carbohydrate, nine for fat — a gram split would show fat as a sliver
@@ -102,13 +106,19 @@ struct MealScanTotalsCard: View {
                     .minimumScaleFactor(0.6)
                     .contentTransition(.numericText())
                     .animation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion), value: calories)
-                Text("kcal")
-                    .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.textSecondary)
+                // The unit is in the card's spoken label; at accessibility
+                // sizes the hole only fits the number.
+                if !dynamicTypeSize.isAccessibilitySize {
+                    Text("kcal")
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                }
             }
             .padding(.horizontal, Spacing.md)
         }
-        .frame(width: 96, height: 96)
+        .frame(width: min(ringDiameter, 140), height: min(ringDiameter, 140))
         .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: [proteinG, carbsG, fatG])
         .accessibilityHidden(true)
     }
