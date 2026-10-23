@@ -211,6 +211,14 @@ final class OpenFoodFactsService: Sendable {
         return product
     }
 
+    /// Files a product read from its package under its real barcode, so
+    /// a re-scan lands on it without another paid read and it shows in
+    /// "Recently scanned". Synthetic `ai:`/`ocr:` codes are never filed.
+    func remember(_ product: ScannedProduct) async {
+        guard (try? Self.normalize(barcode: product.barcode)) == product.barcode else { return }
+        await cache.write(product)
+    }
+
     /// Returns the `limit` most-recently-scanned products, surfaced by
     /// the scanner UI as a one-tap re-log row. Pure cache read — never
     /// hits the network.

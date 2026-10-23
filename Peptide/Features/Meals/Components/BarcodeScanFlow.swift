@@ -1127,6 +1127,7 @@ struct BarcodeScanFlow: View {
         try Task.checkCancellation()
         await MainActor.run {
             product = result
+            productReadByAI = result.readFromPackage == true
             portion = remembered ?? result.defaultPortion
             category = MealCategory.auto(for: LifestyleDataLogic.logTimestamp(on: logDay))
             phase = .review
@@ -1209,6 +1210,7 @@ struct BarcodeScanFlow: View {
             guard let read = SmartFoodLogic.product(from: scan, barcode: barcode) else {
                 throw MealScannerService.ScanError.noFoodDetected
             }
+            await OpenFoodFactsService.shared.remember(read)
             await MainActor.run {
                 if !storeService.isProUser { MealScanQuota.recordSuccessfulScan() }
                 product = read

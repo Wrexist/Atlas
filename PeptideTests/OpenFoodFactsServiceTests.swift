@@ -344,6 +344,39 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         XCTAssertEqual(callCount.value, 0, "Cache hit must not touch network")
     }
 
+    func test_remember_packageReadProduct_isServedOnRescanWithoutNetwork() async throws {
+        var read = ScannedProduct(
+            barcode: "7394376616228", name: "Barista", brand: "Oatly", imageURL: nil,
+            servingSizeText: nil, servingGrams: 250, packageGrams: 1000,
+            per100g: .init(calories: 59, proteinG: 1, carbsG: 6.6, fatG: 3, fiberG: nil, sugarsG: nil),
+            nutriScore: nil, novaGroup: nil, fetchedAt: Date()
+        )
+        read.readFromPackage = true
+        let callCount = SendableBox<Int>(0)
+        MockURLProtocol.handler = { request in
+            callCount.set(callCount.value + 1)
+            return (Self.ok(for: request), Data(Fixtures.notFound.utf8))
+        }
+
+        await service.remember(read)
+        let rescanned = try await service.fetch(barcode: "7394376616228")
+
+        XCTAssertEqual(rescanned.name, "Barista")
+        XCTAssertEqual(rescanned.readFromPackage, true)
+        XCTAssertEqual(callCount.value, 0)
+    }
+
+    func test_remember_syntheticBarcode_isNotCached() async {
+        let read = ScannedProduct(
+            barcode: "ai:\(UUID().uuidString)", name: "Unlabelled bar", brand: nil, imageURL: nil,
+            servingSizeText: nil, servingGrams: nil, packageGrams: nil,
+            per100g: .zero, nutriScore: nil, novaGroup: nil, fetchedAt: Date()
+        )
+        await service.remember(read)
+        let recent = await cache.recent(limit: 5)
+        XCTAssertTrue(recent.isEmpty)
+    }
+
     // MARK: - Package weight from printed quantity
 
     func test_packageGrams_readsPlainWeight() {

@@ -242,6 +242,7 @@ final class SmartScanTests: XCTestCase {
         let product = try XCTUnwrap(SmartFoodLogic.product(from: scan, barcode: "7394376616228"))
 
         XCTAssertEqual(product.barcode, "7394376616228")
+        XCTAssertEqual(product.readFromPackage, true)
         XCTAssertEqual(product.defaultPortion, .servings(1))
         XCTAssertEqual(product.loggable(for: .wholePackage)?.calories, 590)
     }
