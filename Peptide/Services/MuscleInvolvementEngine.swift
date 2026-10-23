@@ -7,9 +7,15 @@ import Foundation
 @MainActor
 enum MuscleInvolvementEngine {
 
-    enum Role: String, Sendable {
-        case primary = "Primary"
-        case supporting = "Supporting"
+    enum Role: Sendable {
+        case primary, supporting
+
+        var displayName: String {
+            switch self {
+            case .primary: String(localized: "Primary")
+            case .supporting: String(localized: "Supporting")
+            }
+        }
     }
 
     struct Row: Identifiable, Equatable, Sendable {

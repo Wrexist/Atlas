@@ -14899,12 +14899,12 @@
         }
       }
     },
-    "Exercise detail shows primary + secondary muscles": {
+    "Exercise detail shows primary and supporting muscles": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Övningsdetaljer visar primära + sekundära muskler"
+            "value": "Övningsdetaljer visar primära och stödjande muskler"
           }
         }
       }
@@ -26993,12 +26993,12 @@
         }
       }
     },
-    "Relative training score: primary work counts more than secondary work. Not a measure of growth or recovery.": {
+    "Relative training score: primary work counts more than supporting work. Not a measure of growth or recovery.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Relativ träningspoäng: primärt arbete räknas mer än sekundärt. Inte ett mått på tillväxt eller återhämtning."
+            "value": "Relativ träningspoäng: primärt arbete räknas mer än stödjande arbete. Inte ett mått på tillväxt eller återhämtning."
           }
         }
       }
@@ -29103,12 +29103,12 @@
         }
       }
     },
-    "Secondary muscles (optional)": {
+    "Supporting muscles (optional)": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sekundära muskler (valfritt)"
+            "value": "Stödjande muskler (valfritt)"
           }
         }
       }
@@ -39807,6 +39807,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kostcoach"
+          }
+        }
+      }
+    },
+    "%@ · primary mover": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · primär muskel"
+          }
+        }
+      }
+    },
+    "%@ · supporting mover": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · stödjande muskel"
           }
         }
       }

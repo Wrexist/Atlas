@@ -215,7 +215,7 @@ struct RecapMuscleNames: View {
         let names = muscles.filter { $0.role == role }.map { $0.displayName }
         if !names.isEmpty {
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                Label(role.rawValue, systemImage: role == .primary ? "circle.fill" : "circle.lefthalf.filled")
+                Label(role.displayName, systemImage: role == .primary ? "circle.fill" : "circle.lefthalf.filled")
                     .foregroundStyle(role == .primary ? AppColor.trainingPrimaryMuscle : AppColor.trainingSecondaryMuscle)
                 Text(names.joined(separator: ", ")).foregroundStyle(AppColor.recapText)
             }.font(AppFont.subheadline)

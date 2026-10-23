@@ -130,7 +130,7 @@ struct WorkoutSocialCanvas: View {
         return Group {
             if !names.isEmpty {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    Text(role.rawValue).foregroundStyle(color).fontWeight(.semibold)
+                    Text(role.displayName).foregroundStyle(color).fontWeight(.semibold)
                     Text(names.joined(separator: ", ")).lineLimit(1)
                 }.font(.caption)
             }

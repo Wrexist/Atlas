@@ -48,7 +48,7 @@ struct MuscleActivationMap: View {
     }
 
     private var focusCaption: some View {
-        Text(focused.map { "\($0.name) · \($0.role.rawValue.lowercased()) mover" }
+        Text(focused.map { $0.role == .primary ? String(localized: "\($0.name) · primary mover") : String(localized: "\($0.name) · supporting mover") }
              ?? (rows.isEmpty ? String(localized: "No muscle mapping for this exercise") : String(localized: "Tap a muscle to focus it")))
             .font(AppFont.footnote.weight(.semibold))
             .foregroundStyle(focused == nil ? AppColor.textTertiary : AppColor.textPrimary)
@@ -68,7 +68,7 @@ struct MuscleActivationMap: View {
                         .font(AppFont.callout.weight(.semibold))
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
-                    Text(row.role.rawValue)
+                    Text(row.role.displayName)
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }
@@ -80,7 +80,7 @@ struct MuscleActivationMap: View {
         .buttonStyle(.plain)
         .opacity(isDimmed ? 0.4 : 1)
         .animation(reduceMotion ? nil : AppAnimation.springSnappy, value: focused)
-        .accessibilityLabel("\(row.name), \(row.role.rawValue), \(Int(row.share * 100)) percent involvement")
+        .accessibilityLabel("\(row.name), \(row.role.displayName), \(Int(row.share * 100)) percent involvement")
         .accessibilityAddTraits(focused == row ? .isSelected : [])
         .accessibilityIdentifier("muscle-row-\(row.name)")
     }

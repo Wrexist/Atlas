@@ -89,7 +89,7 @@ extension WhatsNewPage {
             bullets: [
                 "Two-tap set logging — your previous values fill in automatically",
                 "PR detection celebrates new e1RM / volume bests",
-                "Exercise detail shows primary + secondary muscles",
+                "Exercise detail shows primary and supporting muscles",
             ]
         ),
         WhatsNewPage(
