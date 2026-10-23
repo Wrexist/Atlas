@@ -7,6 +7,7 @@ struct TodayPage: View {
     @EnvironmentObject private var store: WatchStore
     @Environment(\.watchPageIsActive) private var isActive
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private struct Ring: Identifiable {
         let id: String
@@ -48,7 +49,7 @@ struct TodayPage: View {
                     ActivityRings(rings: rings.map(\.spec), lineWidth: rings.count > 2 ? 14 : 17, spacing: 3)
                         .frame(maxWidth: 132)
                         .accessibilityHidden(true)
-                    HStack(alignment: .top, spacing: 4) {
+                    statLayout {
                         ForEach(rings) { stat($0) }
                     }
                     .entrance(0)
@@ -59,6 +60,14 @@ struct TodayPage: View {
         }
         .navigationTitle("Today")
         .pageBackground(WatchPalette.tier(store.watchData.atlasTier))
+    }
+
+    /// Side by side, or stacked at accessibility text sizes where even a
+    /// shrunk label no longer fits a third of the screen.
+    private var statLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: 4))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 4))
     }
 
     private func stat(_ ring: Ring) -> some View {
