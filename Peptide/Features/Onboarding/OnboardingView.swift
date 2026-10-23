@@ -41,6 +41,8 @@ struct OnboardingView: View {
     @AppStorage("onboarding.lastPage.v2") private var lastPage: Int = 0
 
     @State private var page: OnboardingStep = .welcome
+    /// Sets which way the step transition slides.
+    @State private var isGoingBack = false
     @State private var name: String = ""
     /// The headline goal — drives the projection chart, the goal-date
     /// tint, and the nutrition recommendation. Always one of
@@ -217,22 +219,36 @@ struct OnboardingView: View {
         }
     }
 
-    /// The only way forward is the footer button: `primaryAction()` is
-    /// what persists each step (name, goal, nutrition targets) and records
-    /// the disclaimer acknowledgment (Deep Audit II A1). Swiping the pager
-    /// is switched off (see the TabView), because a rejected binding write
-    /// left the pager showing the next page with no state change to drive
-    /// it back. This gate stays as a backstop for paths that still page
-    /// it, such as VoiceOver's three-finger scroll; back is always allowed.
-    /// `advance()` writes `page` directly, so it never hits this gate.
-    private var gatedPage: Binding<OnboardingStep> {
-        Binding(
-            get: { page },
-            set: { newValue in
-                guard newValue <= page else { return }
-                page = newValue
-            }
+    /// The incoming step slides in from the side it's heading toward
+    /// while the outgoing one fades. The outgoing step keeps the
+    /// transition it rendered with, from before `isGoingBack` changed, so
+    /// a direction-dependent removal would slide the wrong way.
+    private var stepTransition: AnyTransition {
+        guard !reduceMotion else { return .opacity }
+        return .asymmetric(
+            insertion: .opacity.combined(with: .move(edge: isGoingBack ? .leading : .trailing)),
+            removal: .opacity
         )
+    }
+
+    /// Only the current step is mounted. A swipeable pager let a swipe
+    /// skip `primaryAction()`, which persists each step (name, goal,
+    /// nutrition targets) and records the disclaimer acknowledgment (Deep
+    /// Audit II A1), and a rejected swipe left the pager showing the next
+    /// page with no state change to drive it back (B094). Forward is the
+    /// footer button, back the top-bar button.
+    @ViewBuilder private var currentStep: some View {
+        switch page {
+        case .welcome: welcome
+        case .name: nameStep
+        case .goal: goalStep
+        case .bodyMetrics: bodyMetricsStep
+        case .training: trainingStep
+        case .permissions: permissionsStep
+        case .referral: referralStep
+        case .disclaimer: disclaimerStep
+        case .plan: planStep
+        }
     }
 
     var body: some View {
@@ -245,31 +261,16 @@ struct OnboardingView: View {
                     .padding(.top, Spacing.lg)
                     .padding(.bottom, Spacing.sm)
 
-                TabView(selection: gatedPage) {
-                    // Note: page-resume + bookmark wiring lives on the
-                    // ZStack below — `.onAppear` restores from
-                    // `lastPage`, `.onChange(of: page)` writes it
-                    // back. A kill mid-flow resumes where the user
-                    // left off instead of restarting from page 0 with
-                    // partially-saved body metrics.
-                    //
-                    // Tags are `OnboardingStep` cases rather than literal
-                    // Ints so a step insertion doesn't silently shift
-                    // every downstream tag and re-bucket the funnel events.
-                    welcome.scrollDisabled(false).tag(OnboardingStep.welcome)
-                    nameStep.scrollDisabled(false).tag(OnboardingStep.name)
-                    goalStep.scrollDisabled(false).tag(OnboardingStep.goal)
-                    bodyMetricsStep.scrollDisabled(false).tag(OnboardingStep.bodyMetrics)
-                    trainingStep.scrollDisabled(false).tag(OnboardingStep.training)
-                    permissionsStep.scrollDisabled(false).tag(OnboardingStep.permissions)
-                    referralStep.scrollDisabled(false).tag(OnboardingStep.referral)
-                    disclaimerStep.scrollDisabled(false).tag(OnboardingStep.disclaimer)
-                    planStep.scrollDisabled(false).tag(OnboardingStep.plan)
+                // Page-resume + bookmark wiring lives on the ZStack below:
+                // `.onAppear` restores from `lastPage`, `.onChange(of: page)`
+                // writes it back, so a kill mid-flow resumes where the user
+                // left off.
+                ZStack {
+                    currentStep
+                        .id(page)
+                        .transition(stepTransition)
                 }
-                .tabViewStyle(.page(indexDisplayMode: .never))
-                // No swiping between pages; each page re-enables its own
-                // scrolling above. Back stays on the top-bar button.
-                .scrollDisabled(true)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: page)
                 // `pinnedFooter`, not a floating overlay. The footer used
                 // to be `VStack { Spacer(); footer }` layered in this
@@ -326,27 +327,19 @@ struct OnboardingView: View {
         }
         .onChange(of: page) { _, newPage in
             OnboardingFunnelTracker.recordStepEntered(newPage.funnelName, index: newPage.rawValue)
-            // Focus the name field only when the name page is actually
-            // the current one. Driving this from the sub-view's
-            // `.onAppear` summoned the keyboard early — TabView mounts
-            // adjacent pages, so `.onAppear` fired on the prior page.
-            //
             // Leaving any text-entry step must put the keyboard away —
             // otherwise the name keyboard rode along onto the goal grid
             // (and the creator-code keyboard onto its
             // neighbours), covering the lower half of the next card.
-            if newPage == .name {
-                nameFocused = true
-            } else {
+            // The name step focuses its own field once it's mounted.
+            if newPage != .name {
                 nameFocused = false
                 dismissKeyboard()
             }
             // Move VoiceOver to the new step instead of leaving focus
             // parked on the footer button of the step that just left.
             UIAccessibility.post(notification: .screenChanged, argument: nil)
-            // Driven by the page, not the step's `.onAppear`: the paged
-            // TabView mounts neighbours, so the curve used to draw while
-            // the user was still on the previous page.
+            // Driven by the page so the curve draws after the step lands.
             if newPage == .plan {
                 Haptics.success()
                 AppAnimation.with(AppAnimation.springSmooth.delay(0.2)) {
@@ -448,6 +441,7 @@ struct OnboardingView: View {
                 if let previous = page.previous {
                     Button {
                         haptic()
+                        isGoingBack = true
                         withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { page = previous }
                     } label: {
                         Image(systemName: "chevron.left")
@@ -710,6 +704,7 @@ struct OnboardingView: View {
         // Tear down the keyboard before the page transition so it can't
         // linger over the next card mid-animation.
         dismissKeyboard()
+        isGoingBack = false
         withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { page = page.next ?? page }
     }
 
@@ -972,11 +967,11 @@ struct OnboardingView: View {
             .padding(.horizontal, Spacing.lg)
         }
         .scrollDismissesKeyboard(.interactively)
-        // Only the pre-fill runs here. Focus is driven from the root
-        // `.onChange(of: page)` — setting it on appear fired while the
-        // page was still off-screen (TabView pre-mounts neighbours) and
-        // summoned the keyboard early.
+        // Only the current step is mounted, so appearing means the user
+        // is on it. Focus waits for the field to exist; set from the
+        // page change, it raced the field's insertion.
         .onAppear { prefillNameFromAppleID() }
+        .task { nameFocused = true }
     }
 
     /// Pre-fills the first name from the Apple-relayed full name.
