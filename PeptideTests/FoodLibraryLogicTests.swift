@@ -184,4 +184,32 @@ final class FoodLibraryLogicTests: XCTestCase {
         XCTAssertEqual(store.profile.mealHistory.count, before)
         XCTAssertEqual(LogRecipeIntent.log(recipeID: UUID().uuidString, in: store, at: Date()), .notFound)
     }
+
+    @MainActor
+    func test_logMealIntent_saveFails_reportsFailureAndLogsNothing() {
+        let repo = SwiftDataRepository.shared
+        repo.configureForTesting()
+        let store = DataStore(seedSampleData: false)
+        defer {
+            repo.forceCommitFailureForTesting = false
+            store.flushPendingSave()
+            DataStore.current = nil
+            repo.configureForTesting()
+        }
+        UserDefaults.standard.set(false, forKey: HealthSyncSettings.nutritionEnabledKey)
+        let oats = food()
+        store.profile.customFoods = [oats]
+        store.flushPendingSave()
+        let before = store.profile.mealHistory.count
+
+        repo.forceCommitFailureForTesting = true
+        XCTAssertEqual(LogMealIntent.log(foodID: oats.foodID, in: store, at: Date()), .saveFailed)
+        XCTAssertEqual(store.profile.mealHistory.count, before)
+
+        repo.forceCommitFailureForTesting = false
+        guard case .logged = LogMealIntent.log(foodID: oats.foodID, in: store, at: Date()) else {
+            return XCTFail("Expected the meal to be logged once saving works")
+        }
+        XCTAssertEqual(store.profile.mealHistory.count, before + 1)
+    }
 }
