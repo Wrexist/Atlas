@@ -200,6 +200,7 @@ struct LabPanelDetailView: View {
     private func chart(_ entries: [LabValue]) -> some View {
         let selected = selectedEntry(in: entries)
         let xStride = chartXStride(entries)
+        let domain = chartDomain(entries)
         return Chart {
             if let range = panel.typicalRange(for: userSex) {
                 // A RectangleMark with only y bounds spans the whole
@@ -244,6 +245,7 @@ struct LabPanelDetailView: View {
         }
         .chartXSelection(value: $selectedDate)
         .appSensoryFeedback(.selection, trigger: selected?.id)
+        .chartYScale(domain: domain)
         .frame(height: 200)
         .chartXAxis {
             AxisMarks(values: .stride(by: xStride.component, count: xStride.count)) { _ in
@@ -260,6 +262,18 @@ struct LabPanelDetailView: View {
                     .foregroundStyle(AppColor.textSecondary)
             }
         }
+    }
+
+    /// Domain around the draws and the typical-range band, so values far
+    /// from zero (cholesterol, testosterone) aren't squashed against the
+    /// top of a zero-based axis.
+    private func chartDomain(_ entries: [LabValue]) -> ClosedRange<Double> {
+        var values = entries.map(\.value)
+        if let range = panel.typicalRange(for: userSex) {
+            values += [range.lowerBound, range.upperBound]
+        }
+        let scale = values.map { abs($0) }.max() ?? 0
+        return ChartYDomain.padded(values, minimumPadding: scale * 0.05) ?? 0...1
     }
 
     /// Colours a draw by where it sits against the typical range, so an

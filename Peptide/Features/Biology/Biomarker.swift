@@ -107,6 +107,21 @@ enum Biomarker: String, CaseIterable, Codable, Hashable, Sendable {
         }
     }
 
+    /// Smallest padding, in display units, around a trend chart's
+    /// values, so day-to-day noise on a steady series isn't stretched
+    /// to fill the plot.
+    var chartMinimumPadding: Double {
+        switch self {
+        case .weight, .waist:               return 1
+        case .hrvBaseline, .rhrBaseline,
+             .bloodPressure:                return 2
+        case .sleepBaseline, .bodyFat:      return 0.5
+        case .stepsBaseline:                return 500
+        case .bodyTemperature:              return 0.2
+        case .latestLabPanel:               return 0
+        }
+    }
+
     /// False for catalog slots `BiomarkerSeriesService` can't fill yet
     /// (no HealthKit helper, no manual-entry surface). The Edit sheet
     /// stops offering them so nobody switches on a row that can never

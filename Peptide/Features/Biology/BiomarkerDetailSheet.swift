@@ -224,10 +224,18 @@ struct BiomarkerDetailSheet: View {
         }
     }
 
+    /// Display-unit domain around the plotted values, so the line uses
+    /// the plot's height instead of hugging the top of a zero-based axis.
+    private var chartDomain: ClosedRange<Double> {
+        let values = snapshot.samples.map { biomarker.displayValue($0.value, for: unit) }
+        return ChartYDomain.padded(values, minimumPadding: biomarker.chartMinimumPadding) ?? 0...1
+    }
+
     private var trendChart: some View {
-        Chart {
+        let domain = chartDomain
+        return Chart {
             ForEach(snapshot.samples, id: \.date) { sample in
-                trendMarks(for: sample)
+                trendMarks(for: sample, floor: domain.lowerBound)
             }
             if let selectedSample {
                 RuleMark(x: .value("Date", selectedSample.date, unit: .day))
@@ -256,6 +264,7 @@ struct BiomarkerDetailSheet: View {
                 AxisGridLine().foregroundStyle(AppColor.glassBorder)
             }
         }
+        .chartYScale(domain: domain)
         .chartYAxis {
             AxisMarks(position: .leading) { _ in
                 AxisValueLabel()
@@ -298,7 +307,7 @@ struct BiomarkerDetailSheet: View {
     }
 
     @ChartContentBuilder
-    private func trendMarks(for sample: BiomarkerSnapshot.Sample) -> some ChartContent {
+    private func trendMarks(for sample: BiomarkerSnapshot.Sample, floor: Double) -> some ChartContent {
         // Sample values are canonical metric — convert so the chart's
         // Y axis matches the imperial hero number above it.
         let displayValue = biomarker.displayValue(sample.value, for: unit)
@@ -312,9 +321,12 @@ struct BiomarkerDetailSheet: View {
         .accessibilityLabel(dayLabel(for: sample.date))
         .accessibilityValue(formattedWithUnit(displayValue))
 
+        // Filled down to the axis floor, not to zero, which now sits
+        // outside the plot.
         AreaMark(
             x: .value("Date", sample.date, unit: .day),
-            y: .value(biomarker.displayName, displayValue)
+            yStart: .value(biomarker.displayName, floor),
+            yEnd: .value(biomarker.displayName, displayValue)
         )
         .interpolationMethod(.monotone)
         .foregroundStyle(
