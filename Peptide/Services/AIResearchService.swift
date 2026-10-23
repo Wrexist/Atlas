@@ -67,6 +67,27 @@ final class AIResearchService: Sendable {
             case .invalidResponse:      String(localized: "The assistant returned an unexpected response.")
             }
         }
+
+        /// The assistant was reached for these, so the alert must not say
+        /// it wasn't.
+        var alertTitle: String {
+            switch self {
+            case .dailyLimitReached:                  String(localized: "Daily limit reached")
+            case .questionTooLong:                    String(localized: "Message too long")
+            case .proxyNotConfigured, .unauthorised:  String(localized: "Assistant unavailable")
+            case .offline, .rateLimited, .serviceUnavailable, .invalidResponse:
+                String(localized: "Couldn't reach the assistant")
+            }
+        }
+
+        /// Sending the same question again can't succeed for these, so
+        /// Retry would only burn a request into the same error.
+        var isRetryable: Bool {
+            switch self {
+            case .dailyLimitReached, .questionTooLong, .proxyNotConfigured, .unauthorised: false
+            case .offline, .rateLimited, .serviceUnavailable, .invalidResponse: true
+            }
+        }
     }
 
     /// Maps a transport-layer `URLError` to a typed `ChatError`:

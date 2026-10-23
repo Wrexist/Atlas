@@ -5765,6 +5765,16 @@
         }
       }
     },
+    "Assistant unavailable": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assistenten är inte tillgänglig"
+          }
+        }
+      }
+    },
     "Atlas can't convert %@. Enter the value in %@.": {
       "localizations": {
         "sv": {
@@ -10275,6 +10285,16 @@
         }
       }
     },
+    "Daily limit reached": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagsgränsen är nådd"
+          }
+        }
+      }
+    },
     "Drag to reorder. Switch a section off to hide it from Today.": {
       "localizations": {
         "sv": {
@@ -10701,6 +10721,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Måltider av livsmedel du redan äter, anpassade efter dina mål"
+          }
+        }
+      }
+    },
+    "Message too long": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meddelandet är för långt"
           }
         }
       }

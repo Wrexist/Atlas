@@ -273,6 +273,27 @@ final class AIResearchServiceTests: XCTestCase {
         XCTAssertTrue(system.hasSuffix("Active malignancy"), "Entries are kept whole or not at all")
     }
 
+    // MARK: - Error presentation
+
+    func test_chatError_dailyLimit_isNotRetryableAndSaysSo() {
+        let error = AIResearchService.ChatError.dailyLimitReached
+        XCTAssertFalse(error.isRetryable)
+        XCTAssertEqual(error.alertTitle, String(localized: "Daily limit reached"))
+    }
+
+    func test_chatError_rejectedBuild_isNotRetryable() {
+        XCTAssertFalse(AIResearchService.ChatError.unauthorised.isRetryable)
+        XCTAssertFalse(AIResearchService.ChatError.proxyNotConfigured.isRetryable)
+        XCTAssertFalse(AIResearchService.ChatError.questionTooLong.isRetryable)
+    }
+
+    func test_chatError_transientFailures_areRetryable() {
+        for error in [AIResearchService.ChatError.offline, .rateLimited, .serviceUnavailable, .invalidResponse] {
+            XCTAssertTrue(error.isRetryable, "\(error)")
+            XCTAssertEqual(error.alertTitle, String(localized: "Couldn't reach the assistant"), "\(error)")
+        }
+    }
+
     // MARK: - HTTP failures
 
     func test_reply_unmappedStatus_throwsServiceUnavailable() async {

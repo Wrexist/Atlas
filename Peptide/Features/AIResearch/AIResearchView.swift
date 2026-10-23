@@ -21,6 +21,10 @@ struct AIResearchView: View {
     @State private var input: String = ""
     @State private var isStreaming = false
     @State private var errorText: String?
+    @State private var errorTitle = String(localized: "Couldn't reach the assistant")
+    /// False when re-sending can't help (daily limit, rejected build), so
+    /// the alert offers no Retry.
+    @State private var errorRetryable = true
     /// In-flight Anthropic request. Cancelled on send (so a new
     /// question doesn't double-bill) and on disappear (closing the
     /// chat sheet shouldn't keep a 30s call alive against the
@@ -81,13 +85,13 @@ struct AIResearchView: View {
                     .liquidGlassPresentation()
             }
             .alert(
-                "Couldn't reach the assistant",
+                errorTitle,
                 isPresented: Binding(
                     get: { errorText != nil },
                     set: { if !$0 { errorText = nil } }
                 )
             ) {
-                if let prompt = lastFailedPrompt {
+                if let prompt = lastFailedPrompt, errorRetryable {
                     Button("Retry") {
                         errorText = nil
                         lastFailedPrompt = nil
@@ -349,8 +353,7 @@ struct AIResearchView: View {
                 // — surface a friendly error instead of leaving a blank
                 // bubble sitting in the transcript.
                 if removeIfUnanswered(userTurn, assistantTurn) {
-                    errorText = AIResearchService.ChatError.invalidResponse.errorDescription
-                    lastFailedPrompt = prompt
+                    present(AIResearchService.ChatError.invalidResponse, for: prompt)
                 } else {
                     // Focus stays on the composer, so tell VoiceOver the
                     // answer is in rather than leaving it to hunt.
@@ -365,11 +368,21 @@ struct AIResearchView: View {
                 // the user doesn't see a half-rendered assistant bubble,
                 // and Retry doesn't stack a second copy of the question.
                 removeIfUnanswered(userTurn, assistantTurn)
-                errorText = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-                lastFailedPrompt = prompt
+                present(error, for: prompt)
                 Haptics.error()
             }
         }
+    }
+
+    /// Titles the alert and decides whether Retry is offered from the
+    /// error's case; the prompt is kept either way so Dismiss hands it
+    /// back to the composer.
+    private func present(_ error: Error, for prompt: String) {
+        let chatError = error as? AIResearchService.ChatError
+        errorTitle = chatError?.alertTitle ?? String(localized: "Couldn't reach the assistant")
+        errorRetryable = chatError?.isRetryable ?? true
+        errorText = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        lastFailedPrompt = prompt
     }
 
     /// Removes the question and its reply placeholder when no reply text
