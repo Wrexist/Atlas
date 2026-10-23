@@ -47,9 +47,11 @@ enum ReconstitutionEngine {
     }
 
     /// Whole amounts of `amountMcg` a vial of `vialMg` holds, rounded down.
+    /// Divides in micrograms and floors with a small tolerance: 7 mg ÷
+    /// 0.14 mg lands at 49.999…, which would otherwise read one short.
     static func amountsPerVial(amountMcg: Double, vialMg: Double) -> Int? {
         guard isPositive(amountMcg), isPositive(vialMg) else { return nil }
-        let count = (vialMg / milligrams(fromMicrograms: amountMcg)).rounded(.down)
+        let count = (micrograms(fromMilligrams: vialMg) / amountMcg + 1e-9).rounded(.down)
         return countable(count)
     }
 
