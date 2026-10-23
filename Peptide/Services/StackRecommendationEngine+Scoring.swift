@@ -95,7 +95,7 @@ extension StackRecommendationEngine {
         candidate: Peptide,
         context: RecommendationContext
     ) -> (Int, RecommendationReason?) {
-        let currentHalfLives = context.currentPeptides.compactMap { parseHalfLifeHours($0.halfLife) }
+        let currentHalfLives = context.currentHalfLives
         guard !currentHalfLives.isEmpty else { return (0, nil) }
         guard let candidateHL = parseHalfLifeHours(candidate.halfLife) else { return (0, nil) }
 
@@ -147,19 +147,24 @@ extension StackRecommendationEngine {
     // MARK: Signal 12: Seasonal Relevance
 
     /// Bonus if peptide's category matches current seasonal context.
+    /// `seasonalBoosts` is written for the northern hemisphere, so a
+    /// southern-hemisphere region reads it six months shifted.
     static func scoreSeasonal(
         candidate: Peptide,
-        context: RecommendationContext
+        context: RecommendationContext,
+        region: Locale.Region? = Locale.current.region
     ) -> (Int, RecommendationReason?) {
-        let month = Calendar.current.component(.month, from: context.currentDate)
+        let calendarMonth = Calendar.current.component(.month, from: context.currentDate)
+        let isSouthern = region.map { southernHemisphereRegions.contains($0.identifier) } ?? false
+        let month = isSouthern ? (calendarMonth + 5) % 12 + 1 : calendarMonth
         if let boostMonths = PeptideTimingData.seasonalBoosts[candidate.category],
            boostMonths.contains(month) {
             let season: String
             switch month {
-            case 12, 1, 2: season = "winter"
-            case 3, 4, 5: season = "spring"
-            case 6, 7, 8: season = "summer"
-            default: season = "fall"
+            case 12, 1, 2: season = String(localized: "winter", comment: "Season name inside 'X peptides are especially relevant in <season>'.")
+            case 3, 4, 5: season = String(localized: "spring", comment: "Season name inside 'X peptides are especially relevant in <season>'.")
+            case 6, 7, 8: season = String(localized: "summer", comment: "Season name inside 'X peptides are especially relevant in <season>'.")
+            default: season = String(localized: "fall", comment: "Season name inside 'X peptides are especially relevant in <season>'.")
             }
             return (1, .seasonalRelevance(
                 description: String(localized: "\(candidate.category.displayName) peptides are especially relevant in \(season)")
@@ -167,6 +172,12 @@ extension StackRecommendationEngine {
         }
         return (0, nil)
     }
+
+    /// Temperate regions south of the equator, where the seasons run
+    /// opposite to the northern calendar.
+    private static let southernHemisphereRegions: Set<String> = [
+        "AU", "NZ", "ZA", "AR", "CL", "UY", "PY", "LS", "SZ", "NA", "BW",
+    ]
 
     // MARK: - Confidence Computation
 
@@ -185,15 +196,20 @@ extension StackRecommendationEngine {
 
     // MARK: - Half-Life Parsing
 
+    /// Numeric value with unit. Compiled once: `scoreHalfLife` parses every
+    /// current peptide for each of ~208 candidates on a cache miss.
+    nonisolated(unsafe) private static let halfLifeRegex = try? NSRegularExpression(
+        pattern: #"(\d+\.?\d*)\s*[-–]?\s*(\d+\.?\d*)?\s*(second|sec|min|hour|hr|h|day|d|week|wk)"#,
+        options: .caseInsensitive
+    )
+
     /// Parses a human-readable half-life string into approximate hours.
     /// Returns nil for unknown/unparseable values.
     static func parseHalfLifeHours(_ halfLife: String) -> Double? {
         let lower = halfLife.lowercased()
         if lower.contains("unknown") || lower.isEmpty || lower.hasPrefix("n/a") { return nil }
 
-        // Extract numeric value with unit
-        let pattern = #"(\d+\.?\d*)\s*[-–]?\s*(\d+\.?\d*)?\s*(second|sec|min|hour|hr|h|day|d|week|wk)"#
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+        guard let regex = halfLifeRegex,
               let match = regex.firstMatch(in: lower, range: NSRange(lower.startIndex..., in: lower)) else {
             return nil
         }

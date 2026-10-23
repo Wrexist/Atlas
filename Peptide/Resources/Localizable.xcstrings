@@ -40123,6 +40123,50 @@
           }
         }
       }
+    },
+    "winter": {
+      "comment": "Season name inside 'X peptides are especially relevant in <season>'.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vintern"
+          }
+        }
+      }
+    },
+    "spring": {
+      "comment": "Season name inside 'X peptides are especially relevant in <season>'.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "våren"
+          }
+        }
+      }
+    },
+    "summer": {
+      "comment": "Season name inside 'X peptides are especially relevant in <season>'.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sommaren"
+          }
+        }
+      }
+    },
+    "fall": {
+      "comment": "Season name inside 'X peptides are especially relevant in <season>'.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hösten"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

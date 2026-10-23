@@ -224,6 +224,26 @@ final class StackRecommendationEngineTests: XCTestCase {
         }
     }
 
+    func test_seasonalScoring_southernHemisphereJuly_isWinter() {
+        let stack = peptides(abbrevs: ["BPC-157"])
+        guard !stack.isEmpty, let ta1 = peptide(abbrev: "TA1") else {
+            return XCTFail("Fixture peptides missing from the database")
+        }
+        let july = Calendar.current.date(from: DateComponents(year: 2026, month: 7, day: 15))!
+        let context = StackRecommendationEngine.RecommendationContext(
+            currentPeptides: stack, database: database, goals: [],
+            activeProtocols: [], entries: [], currentDate: july
+        )
+        let (australia, _) = StackRecommendationEngine.scoreSeasonal(
+            candidate: ta1, context: context, region: Locale.Region("AU")
+        )
+        let (sweden, _) = StackRecommendationEngine.scoreSeasonal(
+            candidate: ta1, context: context, region: Locale.Region("SE")
+        )
+        XCTAssertGreaterThan(australia, 0, "July is winter in Australia")
+        XCTAssertEqual(sweden, 0, "July is summer in Sweden")
+    }
+
     // MARK: - Confidence
 
     func test_confidence_highForValidatedStack() {
