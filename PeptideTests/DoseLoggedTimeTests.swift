@@ -84,6 +84,21 @@ final class DoseLoggedTimeTests: XCTestCase {
         )
     }
 
+    func test_lastInjectionSite_uncheckedDoseWithSite_isIgnored() {
+        let pending = entry(scheduled: at(day: 23, hour: 20))
+        var unchecked = logged(scheduled: at(day: 23, hour: 8), site: InjectionSite.leftThigh.rawValue)
+        unchecked.completed = false
+        let history = [
+            logged(scheduled: at(day: 22, hour: 8), site: InjectionSite.rightAbdomen.rawValue),
+            unchecked,
+            pending,
+        ]
+        XCTAssertEqual(
+            pending.lastInjectionSite(in: history, now: at(day: 23, hour: 12)),
+            InjectionSite.rightAbdomen.rawValue
+        )
+    }
+
     func test_lastInjectionSite_noSiteEverLogged_isNil() {
         let pending = entry(scheduled: at(day: 23, hour: 8))
         let history = [logged(scheduled: at(day: 22, hour: 8), site: nil), pending]

@@ -247,7 +247,8 @@ extension ProtocolEntry {
     /// other than this dose — what the logging sheet tags for rotation.
     func lastInjectionSite(in entries: [ProtocolEntry], now: Date = Date()) -> String? {
         entries
-            .filter { $0.id != id }
+            // An unchecked dose keeps its site but was never taken.
+            .filter { $0.id != id && $0.completed }
             .compactMap { other -> (site: String, time: Date)? in
                 guard let site = other.injectionSite, !site.isEmpty else { return nil }
                 return (site, other.actualTime ?? other.date)
