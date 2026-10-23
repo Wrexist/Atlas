@@ -81,6 +81,34 @@ final class DeepLinkRouterTests: XCTestCase {
         XCTAssertEqual(state.presentedPaywall, .deepLink)
     }
 
+    func test_doseHost_withProfileOpen_closesRootModals() {
+        let state = AppState()
+        state.showProfile = true
+        state.showLibrary = true
+        state.presentedQuickSheet = .logWeight
+        DeepLinkRouter.route(XCTUnwrapURL("peptidex://dose/\(UUID().uuidString)"), appState: state)
+        XCTAssertFalse(state.showProfile)
+        XCTAssertFalse(state.showLibrary)
+        XCTAssertNil(state.presentedQuickSheet)
+        XCTAssertNotNil(state.pendingDoseLogEntryId)
+    }
+
+    func test_tabHosts_withLibraryOpen_closeItSoTheSwitchIsVisible() {
+        for host in ["weekly/current", "today", "train", "meals"] {
+            let state = AppState()
+            state.showLibrary = true
+            DeepLinkRouter.route(XCTUnwrapURL("peptidex://\(host)"), appState: state)
+            XCTAssertFalse(state.showLibrary, host)
+        }
+    }
+
+    func test_garbledDoseLink_leavesOpenModalsAlone() {
+        let state = AppState()
+        state.showProfile = true
+        DeepLinkRouter.route(XCTUnwrapURL("peptidex://dose/not-a-uuid"), appState: state)
+        XCTAssertTrue(state.showProfile)
+    }
+
     func test_proHost_proUser_isHandledWithoutPaywall() {
         let (handled, state) = route("atlas://pro", isPro: true)
         XCTAssertTrue(handled)

@@ -8,8 +8,7 @@ import UIKit
 enum QuickActionRouter {
     static func perform(_ action: QuickAction, appState: AppState, dataStore: DataStore) {
         // Sheets present from the root and can't stack on an open modal.
-        appState.showProfile = false
-        appState.showLibrary = false
+        appState.dismissModalsForRouting()
 
         switch action {
         case .scanMeal:

@@ -96,6 +96,16 @@ final class AppState {
     /// True while `ActiveWorkoutView` is on screen. It signals rest end
     /// itself, so the system banner for it is suppressed only then.
     var isActiveWorkoutVisible = false
+
+    /// Closes the root-presented modals before a deep link, quick action
+    /// or Spotlight tap navigates. A tab switch or a pending flag behind
+    /// an open Profile sheet or Library cover happens out of sight, and
+    /// the view that consumes the flag can't present over the modal.
+    func dismissModalsForRouting() {
+        showProfile = false
+        showLibrary = false
+        presentedQuickSheet = nil
+    }
 }
 
 /// Routes a `peptidex://` (or `atlas://`) URL onto AppState. Extracted from
@@ -120,22 +130,27 @@ enum DeepLinkRouter {
             // HomeView consumes the parked UUID on next appear and
             // presents the dose-logging sheet.
             guard let entryUUID = UUID(uuidString: url.lastPathComponent) else { return false }
+            appState.dismissModalsForRouting()
             appState.selectedTab = .today
             appState.pendingDoseLogEntryId = entryUUID
         case "weekly":
             // Weekly recap notification → `peptidex://weekly/current`.
+            appState.dismissModalsForRouting()
             appState.selectedTab = .today
             appState.pendingWeeklyRecap = true
         case "today":
             // Home-screen dose/compliance widgets → land on Today.
+            appState.dismissModalsForRouting()
             appState.selectedTab = .today
         case "train":
             // Reserved for workout reminders and a future training
             // widget — lands on the Train tab, where the resume banner
             // or Start Workout CTA is the next action.
+            appState.dismissModalsForRouting()
             appState.selectedTab = .train
         case "meals":
             // Nutrition widget → the Meals tab's log-entry pickers.
+            appState.dismissModalsForRouting()
             appState.selectedTab = .meals
         case "quick":
             // Widget buttons → `peptidex://quick/<QuickAction>`.
@@ -143,12 +158,11 @@ enum DeepLinkRouter {
             appState.pendingQuickAction = action
         case "pro":
             // `atlas://pro` → the paywall. A Pro user has nothing to buy,
-            // so the link is handled but opens nothing. Profile and the
-            // Library are closed first: the paywall presents from the root
-            // and cannot stack on top of a modal that is already up.
+            // so the link is handled but opens nothing. The root modals
+            // are closed first: the paywall presents from the root and
+            // cannot stack on top of a modal that is already up.
             guard !isPro else { return true }
-            appState.showProfile = false
-            appState.showLibrary = false
+            appState.dismissModalsForRouting()
             appState.presentedPaywall = .deepLink
         default:
             return false

@@ -270,6 +270,7 @@ struct PeptideApp: App {
             // Meals tab so the receiver of `pendingFoodLogID`
             // (the meals section's `.onChange`) doesn't race the
             // mirror mount still on Today.
+            appState.dismissModalsForRouting()
             appState.selectedTab = .meals
             appState.pendingFoodLogID = deepLink
         }
