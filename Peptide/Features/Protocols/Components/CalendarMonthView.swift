@@ -33,7 +33,15 @@ struct CalendarMonthView: View {
     @Namespace private var selection
     private static let maxDots = 3
     private static let maxBands = 4
-    private static let rowHeight: CGFloat = 52
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    /// Seven columns leave about 50pt a day on a phone, so the grid grows
+    /// with text size only up to xxxLarge; past that the day number would
+    /// spill out of its circle and over the next week.
+    private var gridTypeSize: DynamicTypeSize { min(dynamicTypeSize, .xxxLarge) }
+    private var rowHeight: CGFloat { AppFont.scaledValue(52, in: gridTypeSize) }
+    private var circleSize: CGFloat { AppFont.scaledValue(34, in: gridTypeSize) }
 
     private var firstWeekday: Int { calendar.firstWeekday }
     private var grid: [Date] {
@@ -70,7 +78,7 @@ struct CalendarMonthView: View {
                         .frame(maxWidth: .infinity)
                 }
             }
-            .frame(height: Self.rowHeight)
+            .frame(height: rowHeight)
 
             if displayMode == .cycle {
                 bandStrip(for: bandsPerRow[safe: row] ?? [])
@@ -86,7 +94,7 @@ struct CalendarMonthView: View {
         HStack(spacing: 0) {
             ForEach(Array(weekdays.enumerated()), id: \.offset) { _, symbol in
                 Text(symbol.prefix(3).uppercased())
-                    .font(AppFont.scaled(11, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold, in: gridTypeSize))
                     .tracking(0.8)
                     .foregroundStyle(AppColor.textTertiary)
                     .frame(maxWidth: .infinity)
@@ -113,19 +121,19 @@ struct CalendarMonthView: View {
                     if isSelected {
                         Circle()
                             .fill(AppColor.accentFill)
-                            .frame(width: 34, height: 34)
+                            .frame(width: circleSize, height: circleSize)
                             .matchedGeometryEffect(id: "selection", in: selection)
                     } else if isToday {
                         Circle()
                             .fill(AppColor.accentPrimary.opacity(0.14))
-                            .frame(width: 34, height: 34)
+                            .frame(width: circleSize, height: circleSize)
                     }
                     Text(dayNumber(for: date))
-                        .font(AppFont.scaled(16, weight: dayWeight(isSelected: isSelected, isToday: isToday, isCurrentMonth: isCurrentMonth), design: .rounded))
+                        .font(AppFont.scaled(16, weight: dayWeight(isSelected: isSelected, isToday: isToday, isCurrentMonth: isCurrentMonth), design: .rounded, in: gridTypeSize))
                         .foregroundStyle(dateColor(isCurrentMonth: isCurrentMonth, isSelected: isSelected, isToday: isToday))
                         .monospacedDigit()
                 }
-                .frame(height: 34)
+                .frame(height: circleSize)
 
                 if displayMode == .schedule {
                     dotRow(for: marks, isSelected: isSelected)
@@ -137,7 +145,7 @@ struct CalendarMonthView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: Self.rowHeight)
+            .frame(height: rowHeight)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
