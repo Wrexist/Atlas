@@ -456,6 +456,7 @@ struct BarcodeScanFlow: View {
             }
             .font(AppFont.subheadline)
             .foregroundStyle(AppColor.textSecondary)
+            .minimumHitArea()
         }
         .padding(Spacing.md)
         .background {
