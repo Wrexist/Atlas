@@ -139,13 +139,17 @@ struct PeptideApp: App {
                 // was suspended, the local `doseRemindersEnabled`
                 // flag stays true and `scheduleNotifications` would
                 // silently no-op forever. Flip the flag so the UI
-                // surfaces the inconsistency. Then roll the habit
-                // reminders' one-shot window forward.
+                // surfaces the inconsistency. Otherwise re-plan doses,
+                // which refills the every-N-days lookahead as its
+                // one-shots fire, then habits, which roll their window
+                // forward and step past the fresh dose slots.
                 Task { @MainActor in
                     let status = await NotificationService.shared.checkAuthorization()
                     if status == .denied && dataStore.profile.doseRemindersEnabled {
                         dataStore.profile.doseRemindersEnabled = false
                         dataStore.persistProfile()
+                    } else if status != .denied {
+                        dataStore.rescheduleNotificationsIfEnabled()
                     }
                     await dataStore.rescheduleHabitReminders()
                 }

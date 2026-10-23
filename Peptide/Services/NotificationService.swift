@@ -592,8 +592,8 @@ final class NotificationService {
     /// How many future occurrences to pre-schedule for an every-N-days
     /// protocol. iOS caps total pending requests at 64; this leaves
     /// breathing room for multiple interval protocols + weekly ones.
-    /// `rescheduleNotificationsIfEnabled` runs on every app activation, so
-    /// the queue gets topped up as occurrences fire.
+    /// `PeptideApp` re-plans doses on every activation, so the queue gets
+    /// topped up as occurrences fire.
     private static let intervalLookahead: Int = 12
 
     private func makeContent(

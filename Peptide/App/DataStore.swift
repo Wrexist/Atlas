@@ -2332,7 +2332,7 @@ final class DataStore {
         return protocols.filter { dropped.contains($0.id) }.map(\.name).sorted()
     }
 
-    private func rescheduleNotificationsIfEnabled() {
+    func rescheduleNotificationsIfEnabled() {
         guard profile.doseRemindersEnabled else { return }
         NotificationService.shared.scheduleNotifications(for: activeProtocols)
     }
@@ -2898,6 +2898,11 @@ final class DataStore {
         // screen widget and the Watch tab would stay stale until the
         // next user mutation or the widget's 15-min auto-timer.
         refreshTrainingGlanceables()
+        // A protocol added, paused or re-timed on another device, or a
+        // habit reminder changed there, would otherwise keep this
+        // device's old reminders until the next local edit.
+        rescheduleNotificationsIfEnabled()
+        Task { await rescheduleHabitReminders() }
     }
 
     /// Transactionally applies a backup import — the user has
