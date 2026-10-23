@@ -5,8 +5,8 @@ import SwiftUI
 ///
 /// Logged marks are interactive: a tap opens the dose-edit sheet for
 /// that entry and a long-press surfaces an Edit / Delete context menu.
-/// Scheduled marks are static — they're synthesized from the protocol
-/// schedule, not real entries, so there's nothing to mutate.
+/// A pending entry on today or an earlier day opens the same sheet to
+/// log it. Synthesized future marks are static — there's no entry yet.
 ///
 /// The panel itself is purely a view; the caller (`TrackCalendarSection`)
 /// owns the `editingEntry` state and the DataStore handles persistence,
@@ -137,11 +137,11 @@ struct DoseDayDetailPanel: View {
 
     @ViewBuilder
     private func doseCard(for mark: CalendarDoseMark) -> some View {
-        // Scheduled marks are synthesized from the protocol schedule and
-        // have no entryID, so there's nothing to edit or delete — render
-        // as a static row. Logged marks wrap in a Button so tapping opens
-        // the edit sheet and a context menu surfaces Edit / Delete.
-        if mark.kind == .logged, let entryID = mark.entryID, onEditEntry != nil {
+        // Synthesized scheduled marks have no entryID, so there's nothing
+        // to log or edit — they render as a static row. Real entries wrap
+        // in a Button that opens the dose sheet; only a logged one offers
+        // Remove in its context menu.
+        if let entryID = mark.entryID, onEditEntry != nil, isActionable(mark) {
             Button {
                 onEditEntry?(entryID)
             } label: {
@@ -152,9 +152,13 @@ struct DoseDayDetailPanel: View {
                 Button {
                     onEditEntry?(entryID)
                 } label: {
-                    Label("Edit dose", systemImage: "pencil")
+                    if mark.kind == .logged {
+                        Label("Edit dose", systemImage: "pencil")
+                    } else {
+                        Label("Log dose", systemImage: "checkmark.circle")
+                    }
                 }
-                if onDeleteEntry != nil {
+                if mark.kind == .logged, onDeleteEntry != nil {
                     Button(role: .destructive) {
                         pendingDeletion = PendingDeletion(
                             entryID: entryID,
@@ -165,11 +169,18 @@ struct DoseDayDetailPanel: View {
                     }
                 }
             }
-            .accessibilityHint("Edits this dose")
+            .accessibilityHint(mark.kind == .logged ? Text("Edits this dose") : Text("Logs this dose as taken."))
         } else {
             cardContent(for: mark)
                 .accessibilityElement(children: .combine)
         }
+    }
+
+    /// A logged dose can always be edited. A pending one — a real entry not
+    /// yet taken — can be logged from here once its day has arrived, so a
+    /// missed or due dose doesn't need a trip back to Today.
+    private func isActionable(_ mark: CalendarDoseMark) -> Bool {
+        mark.kind == .logged || mark.day <= Calendar.current.startOfDay(for: Date())
     }
 
     private func cardContent(for mark: CalendarDoseMark) -> some View {
@@ -224,7 +235,7 @@ struct DoseDayDetailPanel: View {
 
             Spacer(minLength: 0)
 
-            if mark.kind == .logged, onEditEntry != nil {
+            if mark.entryID != nil, onEditEntry != nil, isActionable(mark) {
                 Image(systemName: "chevron.right")
                     .font(AppFont.scaled(11, weight: .bold))
                     .foregroundStyle(AppColor.textTertiary)

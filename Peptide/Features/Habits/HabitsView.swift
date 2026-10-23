@@ -77,7 +77,6 @@ struct HabitsView: View {
                                 .transition(.move(edge: .top).combined(with: .opacity))
                         }
                         habitsSummaryHeader(rows: visibleRows)
-                        progressLink
                         ForEach(Array(visibleRows.enumerated()), id: \.element.id) { index, row in
                             HabitRowCard(
                                 habit: row.habit,
@@ -106,6 +105,10 @@ struct HabitsView: View {
                             .transition(.opacity.combined(with: .move(edge: .top)))
                             .staggeredAppear(index: index)
                         }
+                        // Below the rows: checking a habit off is what this
+                        // tab is opened for, so nothing sits between the
+                        // summary and the first check button.
+                        progressLink
                     }
                 }
                 .appAnimation(AppAnimation.springSnappy, value: visibleRows.map(\.id))

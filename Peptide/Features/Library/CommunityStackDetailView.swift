@@ -60,7 +60,6 @@ struct CommunityStackDetailView: View {
                 cardPreview
                 description
                 peptidesList
-                useStackButton
                 Text("Research summary for education, not a recommendation or medical advice. Talk to a clinician before using any peptide.")
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
@@ -70,6 +69,14 @@ struct CommunityStackDetailView: View {
             .padding(.bottom, Spacing.xxxxl)
         }
         .background(AppColor.background)
+        // The share-card preview pushes the in-flow button a full screen
+        // down; pinned, the one action here is always under the thumb.
+        .pinnedFooter {
+            useStackButton
+                .padding(.horizontal, Spacing.screenPadding)
+                .padding(.top, Spacing.xl)
+                .padding(.bottom, Spacing.sm)
+        }
         .navigationTitle(stack.name)
         .navigationBarTitleDisplayMode(.inline)
     }

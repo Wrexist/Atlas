@@ -34,7 +34,8 @@ struct AddToStackSheet: View {
                     GlassButton(
                         title: "Create New Protocol",
                         icon: "plus.circle.fill",
-                        style: .secondary,
+                        // The only way forward when there's nothing to pick.
+                        style: availableProtocols.isEmpty ? .primary : .secondary,
                         isFullWidth: true
                     ) {
                         dismiss()

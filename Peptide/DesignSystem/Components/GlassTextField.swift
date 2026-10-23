@@ -50,7 +50,10 @@ struct GlassTextField: View {
                     Text("\(text.count)/\(characterLimit)")
                         .font(AppFont.caption2)
                         .monospacedDigit()
-                        .foregroundStyle(AppColor.textTertiary)
+                        // Warns in the last tenth, before the limit starts
+                        // silently cutting off what the user types.
+                        .foregroundStyle(text.count * 10 >= characterLimit * 9
+                                         ? AppColor.warning : AppColor.textTertiary)
                 }
             }
 
@@ -61,6 +64,11 @@ struct GlassTextField: View {
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.md)
         .modifier(GlassFieldSurface(axis: axis))
+        // The whole glass shape focuses the field. The text line alone
+        // was the target, so a tap on the icon or the padding around the
+        // text did nothing.
+        .contentShape(shape)
+        .onTapGesture { isFocused.wrappedValue = true }
         .overlay {
             shape
                 .stroke(AppColor.accentPrimary, lineWidth: 1)

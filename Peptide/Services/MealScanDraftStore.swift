@@ -14,6 +14,8 @@ struct MealScanDraft: Codable, Equatable {
     var undoRequested = false
     var accountIdentity: Data?
     var insight: ScanInsight?
+    /// Nil in drafts saved before the flag existed.
+    var categoryPickedByHand: Bool?
 }
 
 #if DEBUG

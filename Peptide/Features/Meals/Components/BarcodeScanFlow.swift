@@ -33,6 +33,7 @@ struct BarcodeScanFlow: View {
     @State private var recentlyScanned: [ScannedProduct] = []
     @State private var manualOverride: LoggableMeal?
     @State private var showEditSheet = false
+    @State private var editingExactPortion = false
     @State private var loggedSnapshot: LoggedSnapshot?
     @State private var torchOn = false
     @State private var ocrPickerItem: PhotosPickerItem?
@@ -186,6 +187,13 @@ struct BarcodeScanFlow: View {
                     },
                     onCancel: { showEditSheet = false }
                 )
+            }
+        }
+        // The gram slider spans 5–2,000 g, too coarse to land on the 37 g
+        // a label lists; typing it is the precise path, as in the library.
+        .sheet(isPresented: $editingExactPortion) {
+            if let product, let component = product.loggable(for: portion)?.components?.first {
+                FoodPortionEditor(component: component) { portion = .grams($0) }
             }
         }
     }
@@ -499,6 +507,8 @@ struct BarcodeScanFlow: View {
                     .foregroundStyle(AppColor.textSecondary)
 
                 PortionPicker(product: product, portion: $portion)
+                Button("Enter exact grams") { editingExactPortion = true }
+                    .minimumHitArea()
             }
         }
     }

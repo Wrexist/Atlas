@@ -53,6 +53,7 @@ struct FoodPortionEditor: View {
                             .accessibilityLabel("Portion in grams")
                         Text("g").foregroundStyle(AppColor.textSecondary)
                     }
+                    factorChips
                 } footer: {
                     Text("\(FoodPortionInput.gramsRange.lowerBound.formatted())–\(FoodPortionInput.gramsRange.upperBound.formatted()) g")
                 }
@@ -90,6 +91,39 @@ struct FoodPortionEditor: View {
                 }
             }
         }
+    }
+
+    /// "Half of it" or "twice that" is how a portion usually gets
+    /// corrected, so those are one tap instead of mental arithmetic.
+    private static let factors: [Double] = [0.5, 1, 1.5, 2]
+
+    private var factorChips: some View {
+        HStack(spacing: Spacing.xs) {
+            ForEach(Self.factors, id: \.self) { factor in
+                factorChip(factor)
+            }
+        }
+    }
+
+    private func factorChip(_ factor: Double) -> some View {
+        let grams = (component.grams * factor).rounded()
+        let label = "×" + factor.formatted(.number.precision(.fractionLength(0...1)))
+        let isActive = FoodPortionInput.grams(amount) == grams
+        return Button {
+            Haptics.selection()
+            amount = grams.formatted(.number.grouping(.never).precision(.fractionLength(0...3)))
+        } label: {
+            Text(verbatim: label)
+                .font(AppFont.scaled(13, weight: .semibold))
+                .monospacedDigit()
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .tint(isActive ? AppColor.accentPrimary : AppColor.textSecondary)
+        .minimumHitArea()
+        .disabled(!FoodPortionInput.gramsRange.contains(grams))
+        .accessibilityLabel(Text("\(label) portion"))
+        .accessibilityAddTraits(isActive ? .isSelected : [])
     }
 
     private func previewRow(_ title: LocalizedStringKey, value: Int, unit: String) -> some View {

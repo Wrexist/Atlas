@@ -126,6 +126,12 @@ struct ProtocolDetailView: View {
                 }
                 .sectionAppear(index: 1)
 
+                // Logging a pending dose is what this screen is opened for
+                // most, so the logs sit right under the status actions
+                // rather than below the configuration cards.
+                recentLogsCard
+                    .sectionAppear(index: 2)
+
                 // Peptides in protocol — tap row to edit schedule, tap info icon to view details.
                 GlassCard {
                     VStack(alignment: .leading, spacing: Spacing.md) {
@@ -153,7 +159,7 @@ struct ProtocolDetailView: View {
                         }
                     }
                 }
-                .sectionAppear(index: 2)
+                .sectionAppear(index: 3)
 
                 // Schedule
                 GlassCard {
@@ -199,7 +205,7 @@ struct ProtocolDetailView: View {
                         }
                     }
                 }
-                .sectionAppear(index: 3)
+                .sectionAppear(index: 4)
 
                 // Static protocol-creation notes (entered at
                 // builder time). Surfaces only when populated.
@@ -216,7 +222,7 @@ struct ProtocolDetailView: View {
                                 .lineSpacing(4)
                         }
                     }
-                    .sectionAppear(index: 4)
+                    .sectionAppear(index: 5)
                 }
 
                 // Per-day journal entries — qualitative companion
@@ -229,41 +235,6 @@ struct ProtocolDetailView: View {
                         onSave: { dataStore.saveProtocolNote($0) },
                         onDelete: { dataStore.deleteProtocolNote(id: $0) }
                     )
-                }
-                .sectionAppear(index: 5)
-
-                // Recent logs
-                GlassCard {
-                    VStack(alignment: .leading, spacing: Spacing.md) {
-                        HStack(alignment: .firstTextBaseline) {
-                            Label("Recent Logs", systemImage: "list.bullet")
-                                .font(AppFont.headline)
-                                .foregroundStyle(AppColor.textPrimary)
-                            Spacer()
-                            if !recentEntries.isEmpty {
-                                Text("\(recentEntries.filter(\.completed).count)/\(recentEntries.count) done")
-                                    .font(AppFont.caption2)
-                                    .foregroundStyle(AppColor.textTertiary)
-                            }
-                        }
-
-                        if recentEntries.isEmpty {
-                            EmptyStateView(
-                                icon: "tray",
-                                title: "No entries yet",
-                                message: "Logged doses for this protocol will appear here.",
-                                style: .compact
-                            )
-                        } else {
-                            ForEach(Array(recentEntries.enumerated()), id: \.element.id) { index, entry in
-                                recentLogRow(entry)
-
-                                if index < recentEntries.count - 1 {
-                                    Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
-                                }
-                            }
-                        }
-                    }
                 }
                 .sectionAppear(index: 6)
 
@@ -373,6 +344,41 @@ struct ProtocolDetailView: View {
         }
     }
 
+    private var recentLogsCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: Spacing.md) {
+                HStack(alignment: .firstTextBaseline) {
+                    Label("Recent Logs", systemImage: "list.bullet")
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Spacer()
+                    if !recentEntries.isEmpty {
+                        Text("\(recentEntries.filter(\.completed).count)/\(recentEntries.count) done")
+                            .font(AppFont.caption2)
+                            .foregroundStyle(AppColor.textTertiary)
+                    }
+                }
+
+                if recentEntries.isEmpty {
+                    EmptyStateView(
+                        icon: "tray",
+                        title: "No entries yet",
+                        message: "Logged doses for this protocol will appear here.",
+                        style: .compact
+                    )
+                } else {
+                    ForEach(Array(recentEntries.enumerated()), id: \.element.id) { index, entry in
+                        recentLogRow(entry)
+
+                        if index < recentEntries.count - 1 {
+                            Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /// A pending dose logs in one tap. A logged one opens for editing, and
     /// removing it — which clears its notes, site and amount — sits behind
     /// a confirmation, as on the calendar's day panel.
@@ -384,6 +390,7 @@ struct ProtocolDetailView: View {
                 AppAnimation.with(AppAnimation.springSnappy) {
                     dataStore.markEntryComplete(entry.id, at: Date())
                 }
+                Haptics.success()
             }
         } label: {
             DoseLogRow(entry: entry)

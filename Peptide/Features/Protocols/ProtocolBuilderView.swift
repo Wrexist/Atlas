@@ -111,10 +111,28 @@ struct ProtocolBuilderView: View {
         dismiss()
     }
 
+    /// A name is optional: picking compounds is the real decision, and an
+    /// unnamed protocol is called after them.
     private var canProceed: Bool {
-        guard !selectedPeptides.isEmpty else { return false }
-        if isAppending { return true }
-        return !name.trimmingCharacters(in: .whitespaces).isEmpty
+        !selectedPeptides.isEmpty
+    }
+
+    private var trimmedName: String {
+        name.trimmingCharacters(in: .whitespaces)
+    }
+
+    private var resolvedName: String {
+        trimmedName.isEmpty ? Self.suggestedName(for: orderedSelectedPeptides) : trimmedName
+    }
+
+    /// The fallback name: up to three abbreviations joined with "+", and a
+    /// count for the rest, so protocols stay distinguishable in the list.
+    static func suggestedName(for peptides: [Peptide]) -> String {
+        let shown = peptides.prefix(3).map(\.abbreviation)
+        guard !shown.isEmpty else { return String(localized: "New Protocol") }
+        let joined = shown.joined(separator: " + ")
+        let hidden = peptides.count - shown.count
+        return hidden > 0 ? "\(joined) +\(hidden)" : joined
     }
 
     private var canCreate: Bool {
@@ -172,7 +190,7 @@ struct ProtocolBuilderView: View {
     private var previewProtocol: PeptideProtocol {
         PeptideProtocol(
             id: editingProtocol?.id ?? previewID,
-            name: name.trimmingCharacters(in: .whitespaces).isEmpty ? String(localized: "New Protocol") : name,
+            name: resolvedName,
             peptides: orderedSelectedPeptides,
             schedule: defaultSchedule,
             peptideSchedules: peptideOverrides,
@@ -284,26 +302,9 @@ struct ProtocolBuilderView: View {
                         }
                     }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    if currentStep == 0 {
-                        if isAppending {
-                            Button("Add") { appendToExistingStack() }
-                                .fontWeight(.semibold)
-                                .foregroundStyle(canCreate ? AppColor.accentPrimary : AppColor.textTertiary)
-                                .disabled(!canCreate)
-                        } else {
-                            Button("Next") {
-                                Haptics.impact(.light)
-                                AppAnimation.with(AppAnimation.step) {
-                                    currentStep = 1
-                                }
-                            }
-                            .fontWeight(.semibold)
-                            .foregroundStyle(canProceed ? AppColor.accentPrimary : AppColor.textTertiary)
-                            .disabled(!canProceed)
-                        }
-                    }
-                }
+                // Advancing lives on the pinned footer, as Create does on
+                // step two, so each step has one primary action in the
+                // same thumb-reachable place.
             }
             .onAppear {
                 guard !didHydrate else { return }
@@ -364,6 +365,12 @@ struct ProtocolBuilderView: View {
 
                         if !isAppending {
                             GlassTextField(placeholder: "e.g., Recovery Protocol", text: $name, icon: nil)
+                            if trimmedName.isEmpty, !selectedPeptides.isEmpty {
+                                Text("Saved as “\(resolvedName)” unless you name it.")
+                                    .font(AppFont.caption2)
+                                    .foregroundStyle(AppColor.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
                         } else if let target = appendTargetProtocol {
                             Text("Adding to \"\(target.name)\". The peptides you pick below will inherit \(target.schedule.summary).")
                                 .font(AppFont.caption2)
@@ -400,6 +407,30 @@ struct ProtocolBuilderView: View {
         .scrollDismissesKeyboard(.interactively)
         .keyboardDoneButton()
         .task(id: selectedPeptides) { refreshInlineWarnings() }
+        .pinnedFooter {
+            detailsFooterButton
+                .padding(.horizontal, Spacing.screenPadding)
+                .padding(.top, Spacing.xl)
+                .padding(.bottom, Spacing.sm)
+        }
+    }
+
+    @ViewBuilder
+    private var detailsFooterButton: some View {
+        if isAppending {
+            GlassButton(title: "Add", icon: "plus.circle.fill", style: .primary, isFullWidth: true) {
+                appendToExistingStack()
+            }
+            .disabled(!canCreate)
+        } else {
+            GlassButton(title: "Next", icon: "arrow.right", style: .primary, isFullWidth: true) {
+                Haptics.impact(.light)
+                AppAnimation.with(AppAnimation.step) {
+                    currentStep = 1
+                }
+            }
+            .disabled(!canProceed)
+        }
     }
 
     private func hydrate(from proto: PeptideProtocol) {
@@ -765,7 +796,7 @@ struct ProtocolBuilderView: View {
 
         let newProtocol = PeptideProtocol(
             id: UUID(),
-            name: name.trimmingCharacters(in: .whitespaces),
+            name: resolvedName,
             peptides: peptides,
             schedule: defaultSchedule,
             peptideSchedules: peptideOverrides,
@@ -789,7 +820,7 @@ struct ProtocolBuilderView: View {
 
         dataStore.updateProtocol(
             id: proto.id,
-            name: name.trimmingCharacters(in: .whitespaces),
+            name: resolvedName,
             peptides: peptides,
             schedule: defaultSchedule,
             peptideSchedules: peptideOverrides,

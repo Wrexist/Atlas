@@ -22,13 +22,11 @@ struct ProtocolCard: View {
                             .font(AppFont.title3)
                             .foregroundStyle(AppColor.textPrimary)
 
-                        HStack(spacing: Spacing.sm) {
-                            StatusBadge(status: protocol_.status)
-
-                            Text("^[\(protocol_.peptides.count) peptide](inflect: true)")
-                                .font(AppFont.caption2)
-                                .foregroundStyle(AppColor.textSecondary)
-                        }
+                        // No status badge: every card sits under a section
+                        // header (Active / Paused / Completed) that says it.
+                        Text("^[\(protocol_.peptides.count) peptide](inflect: true)")
+                            .font(AppFont.caption2)
+                            .foregroundStyle(AppColor.textSecondary)
                     }
 
                     Spacer()

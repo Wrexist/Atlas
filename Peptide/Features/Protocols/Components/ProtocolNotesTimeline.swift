@@ -103,26 +103,34 @@ struct ProtocolNotesTimeline: View {
             .accessibilityElement(children: .combine)
             .accessibilityAddTraits(.isHeader)
             Spacer()
-            Button {
-                creatingNote = true
-            } label: {
-                HStack(spacing: Spacing.xs) {
-                    Image(systemName: "plus")
-                        .font(AppFont.chipText)
-                        .accessibilityHidden(true)
-                    Text("Add note")
-                        .font(AppFont.chipText)
-                }
-                .foregroundStyle(AppColor.accentLight)
-                .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.xs + Spacing.xxs)
-                .background {
-                    Capsule().fill(AppColor.accentPrimary.opacity(0.18))
-                }
-                .minimumHitArea()
+            // The empty state carries its own Add note; two in one card
+            // read as two different actions.
+            if !notes.isEmpty {
+                addNoteButton
             }
-            .buttonStyle(ScalePressStyle())
         }
+    }
+
+    private var addNoteButton: some View {
+        Button {
+            creatingNote = true
+        } label: {
+            HStack(spacing: Spacing.xs) {
+                Image(systemName: "plus")
+                    .font(AppFont.chipText)
+                    .accessibilityHidden(true)
+                Text("Add note")
+                    .font(AppFont.chipText)
+            }
+            .foregroundStyle(AppColor.accentLight)
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.xs + Spacing.xxs)
+            .background {
+                Capsule().fill(AppColor.accentPrimary.opacity(0.18))
+            }
+            .minimumHitArea()
+        }
+        .buttonStyle(ScalePressStyle())
     }
 
     private var emptyState: some View {

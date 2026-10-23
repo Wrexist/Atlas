@@ -19,6 +19,7 @@ struct RoutineBuilderView: View {
     @State private var renaming = false
     @State private var nameDraft = ""
     @State private var pendingStart: Routine?
+    @State private var confirmingDelete = false
     @Environment(\.dismiss) private var dismiss
 
     /// The rest the timer runs for a slot and routine that set none.
@@ -61,7 +62,7 @@ struct RoutineBuilderView: View {
         }
         .task { await library.load() }
         .sheet(isPresented: $addingExercise) {
-            ExercisePickerSheet { exercise in
+            ExercisePickerSheet(existingIDs: Set(routine?.exercises.map(\.exerciseID) ?? [])) { exercise in
                 add(exercise)
             }
         }
@@ -70,7 +71,10 @@ struct RoutineBuilderView: View {
                 exerciseName: name(of: slot.exerciseID),
                 sets: slot.targetSets,
                 reps: slot.targetReps,
-                restSeconds: slot.restSeconds
+                restSeconds: slot.restSeconds,
+                // What "Default" resolves to when the routine starts:
+                // the routine's own rest, then the profile's.
+                defaultRestSeconds: routine?.defaultRestSeconds ?? defaultRestSeconds
             ) { sets, reps, restSeconds in
                 updateTargets(slotID: slot.id, sets: sets, reps: reps, restSeconds: restSeconds)
             }
@@ -81,6 +85,15 @@ struct RoutineBuilderView: View {
             Button("Save") { store.rename(id: routineID, to: nameDraft) }
         }
         .confirmingRoutineStart(pending: $pendingStart) { store.startWorkout(from: $0) }
+        .alert("Delete routine?", isPresented: $confirmingDelete) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                store.delete(id: routineID)
+                dismiss()
+            }
+        } message: {
+            Text("\"\(routine?.name ?? "")\" will be removed. Workouts you already logged from it are kept.")
+        }
     }
 
     // MARK: - Editor
@@ -209,10 +222,12 @@ struct RoutineBuilderView: View {
             } label: {
                 Label("Rename", systemImage: "pencil")
             }
-            Button {
-                addingExercise = true
+            // "Add exercise" already sits under the list; delete lives
+            // here too so the editor isn't a dead end for it.
+            Button(role: .destructive) {
+                confirmingDelete = true
             } label: {
-                Label("Add exercise", systemImage: "plus")
+                Label("Delete routine", systemImage: "trash")
             }
         } label: {
             Image(systemName: "ellipsis.circle")
@@ -323,22 +338,29 @@ private struct RoutineTargetSheet: View {
     @State private var reps: Int
     /// Nil keeps the routine / training-preferences default.
     @State private var restSeconds: Int?
+    /// What "Default" resolves to, shown so the choice isn't blind.
+    let defaultRestSeconds: Int
     let onSave: (_ sets: Int, _ reps: Int, _ restSeconds: Int?) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    /// The common set × rep schemes, one tap each instead of two steppers.
+    private static let schemes: [(sets: Int, reps: Int)] = [(3, 8), (3, 10), (3, 12), (4, 6), (5, 5)]
 
     init(
         exerciseName: String,
         sets: Int,
         reps: Int,
         restSeconds: Int?,
+        defaultRestSeconds: Int,
         onSave: @escaping (_ sets: Int, _ reps: Int, _ restSeconds: Int?) -> Void
     ) {
         self.exerciseName = exerciseName
         self._sets = State(initialValue: sets)
         self._reps = State(initialValue: reps)
         self._restSeconds = State(initialValue: restSeconds)
+        self.defaultRestSeconds = defaultRestSeconds
         self.onSave = onSave
     }
 
@@ -346,6 +368,7 @@ private struct RoutineTargetSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Spacing.xl) {
+                    schemePresets
                     GlassCard {
                         VStack(spacing: Spacing.lg) {
                             Stepper(value: $sets, in: RoutineEditEngine.targetSets) {
@@ -404,7 +427,7 @@ private struct RoutineTargetSheet: View {
                 .foregroundStyle(AppColor.textPrimary)
             Spacer(minLength: 0)
             Picker("Rest", selection: $restSeconds) {
-                Text("Default").tag(Int?.none)
+                Text("Default (\(RestTimeOptions.label(for: defaultRestSeconds)))").tag(Int?.none)
                 ForEach(RestTimeOptions.choices(including: restSeconds), id: \.self) { seconds in
                     Text(RestTimeOptions.label(for: seconds)).tag(Int?.some(seconds))
                 }
@@ -414,6 +437,24 @@ private struct RoutineTargetSheet: View {
             .labelsHidden()
         }
         .frame(minHeight: Spacing.minimumHitTarget)
+    }
+
+    private var schemePresets: some View {
+        FlowLayout(spacing: Spacing.sm) {
+            ForEach(Self.schemes.indices, id: \.self) { index in
+                let scheme = Self.schemes[index]
+                GlassChip(
+                    "\(scheme.sets) × \(scheme.reps)",
+                    isSelected: sets == scheme.sets && reps == scheme.reps
+                ) {
+                    AppAnimation.with(AppAnimation.springSnappy) {
+                        sets = scheme.sets
+                        reps = scheme.reps
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func field(_ label: LocalizedStringKey, value: String) -> some View {
