@@ -39,12 +39,19 @@ final class CommunityStackService {
             cycleLengthWeeks: stack.cycleLengthWeeks,
             startDate: Date(),
             status: .active,
-            notes: String(localized: "Forked from \(stack.authorName)'s community protocol.\n\n\(stack.description)"),
+            notes: String(localized: "Started from the \(stack.name) template.\n\n\(stack.description)"),
             authorName: stack.authorName,
             authorHandle: stack.authorHandle,
             forkedFromStackId: stack.id,
             createdAt: Date()
         )
+    }
+
+    /// A running or paused protocol already started from `stack`, so
+    /// using the template again can confirm instead of silently adding a
+    /// duplicate.
+    func existingFork(of stack: CommunityStack, in protocols: [PeptideProtocol]) -> PeptideProtocol? {
+        protocols.first { $0.forkedFromStackId == stack.id && $0.status != .completed }
     }
 
     /// All goal tags surfaced by the bundled stacks, sorted alphabetically.

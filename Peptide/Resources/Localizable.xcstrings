@@ -15877,16 +15877,6 @@
         }
       }
     },
-    "Forked from %@'s community protocol.\n\n%@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kopierat från %@s community-protokoll.\n\n%@"
-          }
-        }
-      }
-    },
     "Format": {
       "localizations": {
         "sv": {
@@ -40067,6 +40057,48 @@
           "stringUnit": {
             "state": "translated",
             "value": "Förslag för dina protokoll"
+          }
+        }
+      }
+    },
+    "Started from the %@ template.\n\n%@": {
+      "comment": "Notes on a protocol created from a library template; the second value is the template description.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Startat från mallen %@.\n\n%@"
+          }
+        }
+      }
+    },
+    "Already in your protocols": {
+      "comment": "Confirmation title when using a library template that already has a running protocol.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finns redan i dina protokoll"
+          }
+        }
+      }
+    },
+    "Add another copy": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till en kopia till"
+          }
+        }
+      }
+    },
+    "You're already running a protocol from this template.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du har redan ett protokoll från den här mallen."
           }
         }
       }

@@ -46,7 +46,17 @@ final class CommunityStackServiceTests: XCTestCase {
         XCTAssertEqual(proto.schedule.daysOfWeek, stack.scheduleDaysOfWeek)
         XCTAssertEqual(proto.schedule.timesPerDay, stack.scheduleTimesPerDay)
         XCTAssertEqual(proto.status, .active)
-        XCTAssertTrue(proto.notes.contains(stack.authorName))
+        XCTAssertTrue(proto.notes.contains(stack.name))
+    }
+
+    func test_existingFork_runningCopy_isFound_completedCopyIsNot() {
+        let stack = makeStack()
+        let service = CommunityStackService.makeForTesting(stacks: [stack])
+        var running = service.forkToProtocol(stack)
+        XCTAssertEqual(service.existingFork(of: stack, in: [running])?.id, running.id)
+
+        running.status = .completed
+        XCTAssertNil(service.existingFork(of: stack, in: [running]))
     }
 
     func testRankedFloatsFeaturedFirst() {
