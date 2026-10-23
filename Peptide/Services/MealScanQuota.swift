@@ -8,7 +8,9 @@ import Foundation
 ///
 /// Counts live in UserDefaults under one key per week
 /// (`mealScanCount-2026-W39`), so a new week starts at zero without a
-/// reset job.
+/// reset job. That count is for instant UI only: UserDefaults is wiped
+/// on reinstall, so the proxy keeps the authoritative count per Keychain
+/// install ID (see `serverHeaders`) and its `scan_quota` refusal wins.
 enum MealScanQuota {
     static let freeScansPerWeek = 3
     private static let keyPrefix = "mealScanCount-"
@@ -24,12 +26,18 @@ enum MealScanQuota {
     /// for every locale; only the time zone comes from `calendar`, so the
     /// week turns over at the user's local midnight on Monday.
     static func weekKey(for date: Date, calendar: Calendar) -> String {
+        keyPrefix + weekID(for: date, calendar: calendar)
+    }
+
+    /// The ISO week alone (`2026-W39`). Sent to the proxy so its counter
+    /// turns over at the same local Monday midnight as this one.
+    static func weekID(for date: Date, calendar: Calendar) -> String {
         var iso = Calendar(identifier: .iso8601)
         iso.timeZone = calendar.timeZone
         let parts = iso.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)
         let year = parts.yearForWeekOfYear ?? 0
         let week = parts.weekOfYear ?? 0
-        return keyPrefix + String(format: "%04d-W%02d", year, week)
+        return String(format: "%04d-W%02d", year, week)
     }
 
     static func count(
@@ -58,5 +66,47 @@ enum MealScanQuota {
     ) {
         let key = weekKey(for: date, calendar: calendar)
         defaults.set(defaults.integer(forKey: key) + 1, forKey: key)
+    }
+
+    /// The proxy said this install has no free scans left this week —
+    /// typically after a reinstall emptied UserDefaults. Brings the local
+    /// count up to the allowance so the caption agrees; never lowers it.
+    static func recordAllowanceExhausted(
+        on date: Date = Date(),
+        calendar: Calendar = .current,
+        defaults: UserDefaults = .standard
+    ) {
+        let key = weekKey(for: date, calendar: calendar)
+        defaults.set(max(defaults.integer(forKey: key), freeScansPerWeek), forKey: key)
+    }
+
+    // MARK: - Proxy headers
+
+    enum Header {
+        static let metered = "X-Atlas-Scan-Metered"
+        static let installID = "X-Atlas-Install-Id"
+        static let week = "X-Atlas-Scan-Week"
+        static let entitlement = "X-Atlas-Entitlement"
+    }
+
+    /// Headers on a scan that spends the allowance. The proxy counts it
+    /// against `installID` unless `entitlementJWS` — the StoreKit signed
+    /// transaction of a Pro entitlement — verifies.
+    static func serverHeaders(installID: String, weekID: String, entitlementJWS: String?) -> [String: String] {
+        var headers = [Header.metered: "1", Header.installID: installID, Header.week: weekID]
+        if let entitlementJWS, !entitlementJWS.isEmpty {
+            headers[Header.entitlement] = entitlementJWS
+        }
+        return headers
+    }
+
+    /// True when a 429 body is the proxy's free-allowance refusal
+    /// (`{"error":{"code":"scan_quota"}}`) rather than a rate limit.
+    static func isAllowanceRefusal(_ body: Data) -> Bool {
+        struct Envelope: Decodable {
+            struct Failure: Decodable { let code: String? }
+            let error: Failure?
+        }
+        return (try? JSONDecoder().decode(Envelope.self, from: body))?.error?.code == "scan_quota"
     }
 }

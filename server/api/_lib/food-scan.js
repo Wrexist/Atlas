@@ -282,3 +282,12 @@ export function readFoodScanResult(message) {
     return { status: 502, body: { error: { message: 'Upstream error' } } };
   }
 }
+
+/**
+ * Whether a food-scan answer spends a free scan: the app counts only
+ * scans that came back with food, so the proxy refunds the rest.
+ */
+export function isFoodScanHit(status, body) {
+  const result = body?.result;
+  return status === 200 && result?.kind !== 'not_food' && Array.isArray(result?.items) && result.items.length > 0;
+}

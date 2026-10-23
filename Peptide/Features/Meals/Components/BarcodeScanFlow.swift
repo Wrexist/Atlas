@@ -1203,7 +1203,8 @@ struct BarcodeScanFlow: View {
             let scan = try await MealScannerService.shared.smartScan(
                 image: image,
                 hint: "A packaged product whose barcode \(barcode) isn't in Open Food Facts. Read the brand, product name, net weight and nutrition panel from the package.",
-                corrections: corrections
+                corrections: corrections,
+                metered: true
             )
             guard let read = SmartFoodLogic.product(from: scan, barcode: barcode) else {
                 throw MealScannerService.ScanError.noFoodDetected
@@ -1224,6 +1225,11 @@ struct BarcodeScanFlow: View {
                     ?? "Couldn't read this package. Check your connection and try again."
                 phase = .error
                 BarcodeHaptics.lookupFailure()
+                // The proxy's count outlives a reinstall; agree with it.
+                if case .scanAllowanceSpent = error as? MealScannerService.ScanError {
+                    MealScanQuota.recordAllowanceExhausted()
+                    showScanLimitPaywall = !storeService.isProUser
+                }
             }
         }
     }

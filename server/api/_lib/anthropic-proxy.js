@@ -48,6 +48,8 @@
  *   APP_ATTEST_MODE / APP_ATTEST_APP_ID
  *                        — App Attest assertion gate; see
  *                          _lib/app-attest.js for modes and rollout.
+ *   FREE_SCANS_PER_WEEK  — free-tier scan allowance on routes that
+ *                          pass `scanSucceeded`; see _lib/scan-quota.js.
  *
  * iOS clients pull the proxy URL and the matching secret from
  * Info.plist (or scheme env): `MEAL_SCANNER_ENDPOINT` +
@@ -60,6 +62,7 @@
  */
 import { checkAppAttest } from './app-attest.js';
 import { authorize } from './auth.js';
+import { chargeScan } from './scan-quota.js';
 import {
   abuseBlockSeconds,
   allowRate,
@@ -149,6 +152,9 @@ const REFUSALS = {
     message: 'Daily limit reached; try again tomorrow',
     retryAfter: () => secondsUntilWindowEnd(86_400),
   },
+  // The free weekly scan allowance (scan-quota.js); no Retry-After,
+  // since the app answers it with the paywall, not a retry.
+  scan_quota: { status: 429, message: 'Free scan limit reached' },
   unavailable: { status: 503, message: 'Service unavailable' },
 };
 
@@ -268,6 +274,7 @@ export async function forwardToAnthropic(req, res, {
   readResponse,
   betas,
   requireJson = false,
+  scanSucceeded,
   timeoutMs = 25_000,
 }) {
   if (req.method !== 'POST') {
@@ -379,6 +386,17 @@ export async function forwardToAnthropic(req, res, {
     return;
   }
 
+  // Free-tier scan allowance, on routes that pass `scanSucceeded`.
+  // Charged after every other refusal so a rejected request never
+  // spends a scan, and refunded unless the scan produced a result.
+  const scan = scanSucceeded ? await chargeScan(req, { principal, logLabel }) : null;
+  if (scan && !scan.allowed) {
+    await refundSpend({ principal, cost, budget: false });
+    refuse(res, 'scan_quota');
+    return;
+  }
+  let scanSpent = false;
+
   // Hard spend ceiling, checked last so only requests that would
   // actually reach Anthropic consume budget. Fail closed with the
   // same generic 503 the missing-key path uses — the client treats
@@ -386,6 +404,7 @@ export async function forwardToAnthropic(req, res, {
   if (!(await withinDailyBudget({ cost }))) {
     console.error(`[${logLabel}] daily Anthropic budget exhausted or unverifiable`);
     await refundSpend({ principal, cost, budget: false });
+    await scan?.refund();
     refuse(res, 'unavailable');
     return;
   }
@@ -422,6 +441,7 @@ export async function forwardToAnthropic(req, res, {
 
     if (readResponse) {
       const { status, body } = readResponse(await upstream.json());
+      scanSpent = Boolean(scanSucceeded?.(status, body));
       res.status(status).json(body);
       return;
     }
@@ -443,5 +463,6 @@ export async function forwardToAnthropic(req, res, {
     res.status(502).json({ error: { message: 'Proxy failure', retryable: true } });
   } finally {
     clearTimeout(timeout);
+    if (scan && !scanSpent) await scan.refund();
   }
 }

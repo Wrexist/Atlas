@@ -76,7 +76,7 @@ final class LabScanService: Sendable {
             return String(localized: "Lab scanning is temporarily unavailable. Try again later, or enter the values by hand.")
         case .offline?:
             return String(localized: "You're offline — lab scanning needs an internet connection. Reconnect and try again.")
-        case .proxyNotConfigured?, .unauthorised?, .requestFailed?:
+        case .proxyNotConfigured?, .unauthorised?, .requestFailed?, .scanAllowanceSpent?:
             return error.localizedDescription
         case nil:
             return error.localizedDescription
