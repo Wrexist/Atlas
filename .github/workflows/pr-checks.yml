@@ -254,12 +254,10 @@ jobs:
             2>&1 | tee build-output.log
 
       - name: Count concurrency warnings
-        # Report-only, never gating. Swift 5 mode with targeted strict
-        # concurrency downgrades data-race diagnostics to warnings, so
-        # nothing else surfaces them. This tracks the count per PR as
-        # the first step toward a committed baseline (audit A553).
-        if: always()
-        continue-on-error: true
+        # Swift 5 mode with targeted strict concurrency downgrades
+        # data-race diagnostics to warnings, so nothing else surfaces
+        # them. Ratcheted against scripts/ci-baselines.json: a PR may not
+        # add any (audits A553, B345).
         run: |
           if [ ! -f build-output.log ]; then
             echo "No build-output.log — Build app step did not run."
@@ -272,6 +270,7 @@ jobs:
             echo ""
             echo "Unique warnings mentioning Sendable, actor-isolated, data race or nonisolated in the Debug app build: **${COUNT}**"
           } >> "$GITHUB_STEP_SUMMARY" || true
+          python3 scripts/ratchet.py concurrency_warnings "$COUNT"
 
       - name: Build app (Release)
         # Debug alone never sees a symbol referenced outside its
@@ -352,8 +351,9 @@ jobs:
           key: derived-data-${{ runner.os }}-${{ github.sha }}
 
       - name: Coverage report
+        # Ratcheted against scripts/ci-baselines.json: a PR may not lower
+        # total line coverage (audit B345).
         if: always()
-        continue-on-error: true
         run: |
           if [ ! -d UnitTestResults.xcresult ]; then
             echo "No xcresult bundle — skipping coverage."
@@ -383,12 +383,7 @@ jobs:
             jq -r '.targets[]? | "| \(.name) | \((.lineCoverage // 0) * 100 | . * 10 | floor / 10)% |"' coverage.json 2>/dev/null || true
           } >> "$GITHUB_STEP_SUMMARY"
 
-          # Soft gate: warn (no fail) below 25%. Raise as the suite grows.
-          MIN_PCT_X10=250
-          PCT_X10=$(jq -r '(.lineCoverage // 0) * 1000 | floor' coverage.json 2>/dev/null || echo "0")
-          if [ "$PCT_X10" -lt "$MIN_PCT_X10" ]; then
-            echo "::warning::Line coverage ${PCT}% is below the 25.0% threshold."
-          fi
+          python3 scripts/ratchet.py line_coverage_pct "$PCT"
 
       - name: Print test failures
         # `always()`, not `failure()`. The Unit Tests step now fails the
@@ -518,6 +513,7 @@ jobs:
           python3 scripts/test_copy_claims.py
           python3 scripts/test_contrast_check.py
           python3 scripts/test_store_metadata.py
+          python3 scripts/test_ratchet.py
 
       - name: Copy claims vs source
         # Pins numeric marketing copy (exercise counts, compound counts,
@@ -539,8 +535,9 @@ jobs:
         # key silently renders English, a translation with the wrong
         # format specifiers crashes or prints garbage, in that language
         # only. Holds every shipped language to 80% of the UI and every
-        # translation to its key's specifiers.
-        run: python3 scripts/check-localization.py
+        # translation to its key's specifiers, and every UI sentence to a
+        # catalog entry: coverage is 100% today, so a PR may not lower it.
+        run: python3 scripts/check-localization.py --min-coverage 100
 
       - name: Colour contrast check
         # The design tokens ship two schemes, and light mode has never been

@@ -42,6 +42,7 @@ run "Checker self-tests (design lint)" python3 scripts/test_design_lint.py
 run "Checker self-tests (copy claims)" python3 scripts/test_copy_claims.py
 run "Checker self-tests (contrast)" python3 scripts/test_contrast_check.py
 run "Checker self-tests (store metadata)" python3 scripts/test_store_metadata.py
+run "Checker self-tests (ratchet)" python3 scripts/test_ratchet.py
 run "Design system (20 rules)" python3 scripts/design-lint.py --all
 run "Colour contrast (token pairs, WCAG AA)" python3 scripts/contrast-check.py
 
@@ -63,7 +64,7 @@ run "App Store metadata (3.1.2)" python3 scripts/check-store-metadata.py
 
 # A shipped language must cover 80% of the UI, and every translation must
 # keep its key's format specifiers — neither is a build error otherwise.
-run "Localization (coverage, specifiers)" python3 scripts/check-localization.py
+run "Localization (coverage, specifiers)" python3 scripts/check-localization.py --min-coverage 100
 
 run "Bundled peptide dataset" python3 - <<'PY'
 import json, pathlib, sys
