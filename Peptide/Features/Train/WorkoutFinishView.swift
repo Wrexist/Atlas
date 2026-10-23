@@ -268,7 +268,7 @@ struct RecapNewPRs: View {
             let reps = Int(pr.value)
             return reps == 1 ? String(localized: "1 rep") : String(localized: "\(reps) reps")
         }
-        let load = unit.weightForDisplay(pr.value).formatted(.number.precision(.fractionLength(0...1)))
+        let load = unit.weightValue(pr.value, fractionDigits: 0...2)
         return load + " " + unit.weightSuffix
     }
 }

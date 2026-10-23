@@ -107,7 +107,7 @@ enum RecapFormat {
             guard set.reps >= 0 else { return String(localized: "Repetitions unavailable") }
             guard set.weightKg.isFinite, set.weightKg >= 0 else { return String(localized: "Load unavailable · ") + reps }
             guard set.weightKg > 0 else { return m?.kind == .bodyweight ? String(localized: "Bodyweight × ") + reps : reps }
-            let load = unit.weightForDisplay(set.weightKg).formatted(.number.precision(.fractionLength(0...1)))
+            let load = unit.weightValue(set.weightKg, fractionDigits: 0...2)
             let convention: String
             switch m?.load {
             case .eachPair: convention = String(localized: " each · both counted")

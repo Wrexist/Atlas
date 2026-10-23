@@ -408,4 +408,11 @@ final class WorkoutCompletionPersistenceTests: XCTestCase {
 
         XCTAssertTrue(store.wasEdited)
     }
+
+    func test_recapSetFormat_quarterKiloLoad_keepsBothDecimals() {
+        let set = SetEntry(index: 1, weightKg: 61.25, reps: 5, completed: true)
+        let expected = 61.25.formatted(.number.precision(.fractionLength(2)).grouping(.never))
+
+        XCTAssertTrue(RecapFormat.set(set, unit: .metric).hasPrefix(expected + " "))
+    }
 }
