@@ -36,7 +36,15 @@ final class BioAgeStateResolverTests: XCTestCase {
     /// The HealthKit read has to reach back far enough for the oldest
     /// trend point's own 30-day window.
     func test_historyDays_coversTrendPlusWindow() {
-        XCTAssertGreaterThanOrEqual(BioAgeStateResolver.historyDays, 90 + PerformanceAgeEngine.windowDays)
+        XCTAssertGreaterThanOrEqual(BioAgeStateResolver.historyDays,
+                                    PerformanceAgeEngine.trendDays + PerformanceAgeEngine.windowDays)
+    }
+
+    /// VO2 max has a 90-day window, so its read reaches further back than
+    /// the other signals' or the oldest trend point loses most of it.
+    func test_vo2HistoryDays_coversTrendPlusVO2Window() {
+        XCTAssertGreaterThanOrEqual(BioAgeStateResolver.vo2HistoryDays,
+                                    PerformanceAgeEngine.trendDays + PerformanceAgeEngine.vo2WindowDays)
     }
 
     /// The fallback constant exists so locked-state screenshots

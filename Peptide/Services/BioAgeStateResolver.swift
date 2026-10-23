@@ -18,9 +18,12 @@ enum BioAgeStateResolver {
     /// computed below this age.
     static let minimumAge: Int = 18
 
-    /// How far back HealthKit is read: the 90-day trend plus the 30-day
-    /// window its oldest point looks back over.
-    static let historyDays: Int = 90 + PerformanceAgeEngine.windowDays
+    /// How far back HealthKit is read: the trend plus the window its
+    /// oldest point looks back over.
+    static let historyDays: Int = PerformanceAgeEngine.trendDays + PerformanceAgeEngine.windowDays
+    /// VO2 max is read over its own, longer window, so its read reaches
+    /// further back.
+    static let vo2HistoryDays: Int = PerformanceAgeEngine.trendDays + PerformanceAgeEngine.vo2WindowDays
 
     /// Resolves the Biological Age state for the current moment. The Pro
     /// check + HealthKit reads happen inside; callers pass only what lives
@@ -92,7 +95,7 @@ enum BioAgeStateResolver {
         async let rhr = kit.dailyRestingHeartRate(days: days)
         async let sleep = kit.dailySleepHours(days: days)
         async let steps = kit.dailySteps(days: days)
-        async let vo2 = kit.dailyVO2Max(days: days)
+        async let vo2 = kit.dailyVO2Max(days: vo2HistoryDays)
         // Bound one at a time because Swift rejects `await` to the right of
         // a non-assignment operator. All five are already in flight.
         let hrvDays = await hrv
