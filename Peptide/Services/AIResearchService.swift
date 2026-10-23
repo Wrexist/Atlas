@@ -422,6 +422,10 @@ final class AIResearchService: Sendable {
         "• If the summary is thin (few logged days), say so and encourage consistent logging before drawing conclusions.",
     ]
 
+    static var truncationNote: String {
+        String(localized: "Answer was cut short. Ask me to continue.")
+    }
+
     private func parseAssistantText(from data: Data) throws -> String {
         let envelopeObject: Any
         do {
@@ -441,6 +445,10 @@ final class AIResearchService: Sendable {
         else {
             throw ChatError.invalidResponse
         }
-        return text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let answer = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        // A reply that hit the token cap ends mid-sentence; say so rather
+        // than let it read as the whole answer.
+        guard envelope["stop_reason"] as? String == "max_tokens", !answer.isEmpty else { return answer }
+        return answer + "\n\n" + Self.truncationNote
     }
 }

@@ -93,6 +93,23 @@ final class AIResearchServiceTests: XCTestCase {
         XCTAssertEqual(text, "Trimmed answer.")
     }
 
+    func test_reply_maxTokensStop_marksAnswerTruncated() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.truncatedReply.utf8))
+        }
+        let text = try await service.reply(history: [], newUserPrompt: "hi", in: [])
+        XCTAssertTrue(text.hasPrefix("BPC-157 has been studied in"))
+        XCTAssertTrue(text.hasSuffix(AIResearchService.truncationNote))
+    }
+
+    func test_reply_endTurnStop_isNotMarkedTruncated() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.helloReply.utf8))
+        }
+        let text = try await service.reply(history: [], newUserPrompt: "hi", in: [])
+        XCTAssertFalse(text.contains(AIResearchService.truncationNote))
+    }
+
     // MARK: - Headers
 
     func test_reply_sendsSharedSecretHeader() async throws {
@@ -472,6 +489,15 @@ private enum Fixtures {
       "content": [
         { "type": "text", "text": "Hello! How can I help with peptide research today?" }
       ]
+    }
+    """
+
+    static let truncatedReply = """
+    {
+      "content": [
+        { "type": "text", "text": "BPC-157 has been studied in" }
+      ],
+      "stop_reason": "max_tokens"
     }
     """
 

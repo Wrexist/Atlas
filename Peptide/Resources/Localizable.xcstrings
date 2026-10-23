@@ -5725,6 +5725,16 @@
         }
       }
     },
+    "Answer was cut short. Ask me to continue.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Svaret kortades av. Be mig fortsätta."
+          }
+        }
+      }
+    },
     "Around 12 hours in, many people rely more on stored fat for energy.": {
       "localizations": {
         "sv": {
