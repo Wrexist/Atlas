@@ -10535,6 +10535,56 @@
         }
       }
     },
+    "Dose streak": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dossvit"
+          }
+        }
+      }
+    },
+    "Dose streak: %lld days": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Dossvit: %lld dag"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Dossvit: %lld dagar"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Dose streak: %lld day"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Dose streak: %lld days"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Double-tap to remove": {
       "localizations": {
         "sv": {
@@ -10831,6 +10881,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hög prioritet"
+          }
+        }
+      }
+    },
+    "HRV change": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HRV-förändring"
           }
         }
       }

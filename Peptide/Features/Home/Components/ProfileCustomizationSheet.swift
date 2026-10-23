@@ -357,14 +357,18 @@ struct ProfileCustomizationSheet: View {
 
     private var statsRow: some View {
         HStack(spacing: Spacing.sm) {
-            StatTile(
-                label: "Streak",
-                value: "\(dataStore.currentStreak)",
-                icon: "flame.fill",
-                tint: AppColor.warning,
-                surface: .glass,
-                accessibilityLabel: String(localized: "Current streak: \(dataStore.currentStreak) days")
-            )
+            // The streak counts doses, so it means nothing without a
+            // protocol running — a training-only user would see 0 forever.
+            if dataStore.protocols.contains(where: { $0.status == .active }) {
+                StatTile(
+                    label: "Dose streak",
+                    value: "\(dataStore.currentStreak)",
+                    icon: "flame.fill",
+                    tint: AppColor.warning,
+                    surface: .glass,
+                    accessibilityLabel: String(localized: "Dose streak: \(dataStore.currentStreak) days")
+                )
+            }
             StatTile(
                 label: "Days",
                 value: "\(dataStore.totalDaysLogged)",

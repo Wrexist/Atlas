@@ -175,6 +175,40 @@ extension WeeklySummary {
 }
 
 extension WeeklySummary {
+    /// The recap text cut to whole sentences within `limit` characters,
+    /// for a card preview. Sentence breaking (not the last ".") keeps a
+    /// decimal like "4.1" intact and keeps the sentence's own period;
+    /// "…" marks only text that was actually removed.
+    static func preview(of text: String, limit: Int) -> String {
+        guard text.count > limit else { return text }
+        var end = text.startIndex
+        text.enumerateSubstrings(in: text.startIndex..., options: [.bySentences, .substringNotRequired]) { _, range, _, stop in
+            guard text.distance(from: text.startIndex, to: range.upperBound) <= limit else {
+                stop = true
+                return
+            }
+            end = range.upperBound
+        }
+        if end > text.startIndex {
+            return text[..<end].trimmingCharacters(in: .whitespacesAndNewlines) + " …"
+        }
+        // The first sentence alone is too long: cut at a word instead.
+        let prefix = text.prefix(limit)
+        let cut = prefix.lastIndex(where: \.isWhitespace) ?? prefix.endIndex
+        return prefix[..<cut].trimmingCharacters(in: .whitespacesAndNewlines) + "…"
+    }
+
+    /// Spoken form of the week-over-week HRV delta, shared by the Today
+    /// card and the detail view so VoiceOver never reads "delta, m s".
+    static func hrvChangeAccessibilityLabel(_ delta: Int) -> String {
+        let ms = abs(delta)
+        if delta > 0 { return String(localized: "HRV change, up \(ms) milliseconds versus prior week") }
+        if delta < 0 { return String(localized: "HRV change, down \(ms) milliseconds versus prior week") }
+        return String(localized: "HRV change, no change versus prior week")
+    }
+}
+
+extension WeeklySummary {
     /// Parses in the local zone, matching how `WeeklySummaryService`
     /// writes the key; the GMT default put US users a day early.
     @MainActor private static let weekStartParser: ISO8601DateFormatter = {
