@@ -1466,7 +1466,7 @@ private struct FoodItemEditCard: View {
                         .lineLimit(1)
                 }
                 if let verified = item.activeVerification {
-                    Label(verified.displayName, systemImage: "checkmark.seal.fill")
+                    Label(verified.displayName, systemImage: "checkmark.circle.fill")
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.positive)
                         .lineLimit(1)

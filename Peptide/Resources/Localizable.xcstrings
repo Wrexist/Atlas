@@ -35027,12 +35027,12 @@
         }
       }
     },
-    "Verified on Open Food Facts": {
+    "Matched on Open Food Facts": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Verifierad på Open Food Facts"
+            "value": "Matchad mot Open Food Facts"
           }
         }
       }

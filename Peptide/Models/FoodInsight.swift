@@ -118,7 +118,7 @@ enum VerifiedFoodSource: String, Codable, Hashable, Sendable {
     var displayName: String {
         switch self {
         case .myFoods:       String(localized: "From My Foods", comment: "Scanned item values come from the user's saved foods")
-        case .openFoodFacts: String(localized: "Verified on Open Food Facts", comment: "Scanned item values come from Open Food Facts")
+        case .openFoodFacts: String(localized: "Matched on Open Food Facts", comment: "Scanned item values were matched to an Open Food Facts entry")
         }
     }
 }
