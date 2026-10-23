@@ -8,8 +8,7 @@ import Foundation
 /// Removed from the old 16-page flow: the "try a set" demo (no data,
 /// and the plan page now carries the value moment). Merged: sign-in
 /// into name, experience into goal, equipment into schedule, health
-/// into notifications, attribution into creator code, and projection
-/// into the Ready summary.
+/// into notifications, and projection into the Ready summary.
 enum OnboardingStep: Int, CaseIterable, Comparable, Sendable {
     case welcome
     case name

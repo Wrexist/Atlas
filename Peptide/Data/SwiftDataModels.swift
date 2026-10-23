@@ -693,8 +693,6 @@ final class StoredProfile {
             biometricLockEnabled: biometricLockEnabled,
             bodyMetrics: metrics,
             nutritionTargets: ext.nutritionTargets,
-            creatorAttribution: ext.creatorAttribution,
-            affiliateApplication: ext.affiliateApplication,
             emailSubscription: ext.emailSubscription,
             weightHistory: slice(weightHistoryData, arrays: Self.weightArrays, legacy: ext.weightHistory),
             progressPhotoFilenames: ext.progressPhotoFilenames,
@@ -900,8 +898,6 @@ struct FoodLibrarySlice: Codable, Equatable {
 /// default value).
 private struct ProfileExtension: Codable {
     var nutritionTargets: NutritionTargets? = nil
-    var creatorAttribution: CreatorAttribution? = nil
-    var affiliateApplication: AffiliateApplication? = nil
     var emailSubscription: EmailSubscription? = nil
     var weightHistory: [WeightEntry] = []
     var progressPhotoFilenames: [String] = []
@@ -977,8 +973,6 @@ private struct ProfileExtension: Codable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         nutritionTargets = try c.decodeIfPresent(NutritionTargets.self, forKey: .nutritionTargets)
-        creatorAttribution = try c.decodeIfPresent(CreatorAttribution.self, forKey: .creatorAttribution)
-        affiliateApplication = try c.decodeIfPresent(AffiliateApplication.self, forKey: .affiliateApplication)
         emailSubscription = try c.decodeIfPresent(EmailSubscription.self, forKey: .emailSubscription)
         weightHistory = try c.decodeIfPresent([WeightEntry].self, forKey: .weightHistory) ?? []
         progressPhotoFilenames = try c.decodeIfPresent([String].self, forKey: .progressPhotoFilenames) ?? []
@@ -1021,8 +1015,6 @@ private struct ProfileExtension: Codable {
     static func residual(of profile: UserProfile) -> ProfileExtension {
         var ext = ProfileExtension()
         ext.nutritionTargets = profile.nutritionTargets
-        ext.creatorAttribution = profile.creatorAttribution
-        ext.affiliateApplication = profile.affiliateApplication
         ext.emailSubscription = profile.emailSubscription
         ext.progressPhotoFilenames = profile.progressPhotoFilenames
         ext.workoutHistory = profile.workoutHistory

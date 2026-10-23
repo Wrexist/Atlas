@@ -265,71 +265,6 @@ struct NutritionTargets: Codable, Hashable, Sendable {
     var fiberG: Int
 }
 
-/// Creator attribution captured during onboarding when the user enters a
-/// referral code. Persisted on the profile so the install / conversion can
-/// be matched against a creator on the (still-to-be-built) backend, and so
-/// the paywall can surface the discount the creator's code grants.
-///
-/// Matching today is local-only against `CreatorCodeService.seeded` —
-/// the spec'd Supabase pipeline (creator_codes table, RPC counters,
-/// dashboard) is tracked as a follow-up.
-struct CreatorAttribution: Codable, Hashable, Sendable {
-    let code: String
-    let creatorName: String
-    let discountPercent: Int
-}
-
-/// Creator-program application from the retired onboarding apply
-/// form. Nothing writes it any more (there is no intake backend); the
-/// type and the profile field stay so existing local / CloudKit rows
-/// keep decoding without a schema change.
-struct AffiliateApplication: Codable, Hashable, Sendable {
-    enum Channel: String, Codable, Hashable, Sendable, CaseIterable, Identifiable {
-        case instagram, tiktok, youtube, podcast, newsletter, website, other
-        var id: String { rawValue }
-        var displayName: String {
-            switch self {
-            case .instagram:  return String(localized: "Instagram")
-            case .tiktok:     return "TikTok"
-            case .youtube:    return "YouTube"
-            case .podcast:    return String(localized: "Podcast")
-            case .newsletter: return String(localized: "Newsletter")
-            case .website:    return String(localized: "Website / blog")
-            case .other:      return String(localized: "Other")
-            }
-        }
-    }
-
-    enum AudienceBand: String, Codable, Hashable, Sendable, CaseIterable, Identifiable {
-        case under1k    = "under_1k"
-        case k1to10     = "1k_to_10k"
-        case k10to50    = "10k_to_50k"
-        case k50to250   = "50k_to_250k"
-        case over250k   = "over_250k"
-        var id: String { rawValue }
-        var displayName: String {
-            switch self {
-            case .under1k:   return String(localized: "Under 1k")
-            case .k1to10:    return "1k – 10k"
-            case .k10to50:   return "10k – 50k"
-            case .k50to250:  return "50k – 250k"
-            case .over250k:  return "250k +"
-            }
-        }
-    }
-
-    var handle: String
-    var channel: Channel
-    var audienceBand: AudienceBand
-    var channelURL: String?
-    var notes: String?
-    var submittedAt: Date
-    /// Carried forward so the eventual backend drain can match the
-    /// application to the rest of the user's onboarding session.
-    var name: String?
-    var email: String?
-}
-
 /// Email captured during the onboarding mailing-list step. Stored locally
 /// so the address survives a relaunch; pushing it to the spec'd
 /// `email_subscribers` Supabase table + Resend welcome email + 7-day
@@ -435,14 +370,6 @@ struct UserProfile: Codable, Sendable {
     /// the numbers later. Optional so older profiles decode cleanly and so
     /// the Meals tab can detect "not yet computed" and re-prompt.
     var nutritionTargets: NutritionTargets?
-    /// Set when the user enters a valid creator code on the onboarding
-    /// attribution step. Used by the paywall copy to acknowledge the
-    /// discount and (eventually) by the backend to count installs /
-    /// conversions per creator.
-    var creatorAttribution: CreatorAttribution?
-    /// Legacy creator-program application; read-only, see
-    /// `AffiliateApplication`.
-    var affiliateApplication: AffiliateApplication?
     /// Set when the user opts in on the onboarding email-capture step.
     /// Local-only today; will be drained into Supabase + Resend when the
     /// backend ships.
@@ -632,8 +559,6 @@ struct UserProfile: Codable, Sendable {
         biometricLockEnabled: Bool = false,
         bodyMetrics: BodyMetrics = .unspecified,
         nutritionTargets: NutritionTargets? = nil,
-        creatorAttribution: CreatorAttribution? = nil,
-        affiliateApplication: AffiliateApplication? = nil,
         emailSubscription: EmailSubscription? = nil,
         weightHistory: [WeightEntry] = [],
         progressPhotoFilenames: [String] = [],
@@ -677,8 +602,6 @@ struct UserProfile: Codable, Sendable {
         self.biometricLockEnabled = biometricLockEnabled
         self.bodyMetrics = bodyMetrics.backfillingAgeRecordedAt(Date())
         self.nutritionTargets = nutritionTargets
-        self.creatorAttribution = creatorAttribution
-        self.affiliateApplication = affiliateApplication
         self.emailSubscription = emailSubscription
         self.weightHistory = weightHistory
         self.progressPhotoFilenames = progressPhotoFilenames
@@ -726,8 +649,6 @@ struct UserProfile: Codable, Sendable {
         bodyMetrics = (try container.decodeIfPresent(BodyMetrics.self, forKey: .bodyMetrics) ?? .unspecified)
             .backfillingAgeRecordedAt(Date())
         nutritionTargets = try container.decodeIfPresent(NutritionTargets.self, forKey: .nutritionTargets)
-        creatorAttribution = try container.decodeIfPresent(CreatorAttribution.self, forKey: .creatorAttribution)
-        affiliateApplication = try container.decodeIfPresent(AffiliateApplication.self, forKey: .affiliateApplication)
         emailSubscription = try container.decodeIfPresent(EmailSubscription.self, forKey: .emailSubscription)
         weightHistory = try container.decodeIfPresent([WeightEntry].self, forKey: .weightHistory) ?? []
         progressPhotoFilenames = try container.decodeIfPresent([String].self, forKey: .progressPhotoFilenames) ?? []

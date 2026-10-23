@@ -72,8 +72,6 @@ enum ProfileMergeEngine {
             merged.biometricLockEnabled = other.biometricLockEnabled
             merged.weeklySummaryEnabled = other.weeklySummaryEnabled
         }
-        merged.creatorAttribution = merged.creatorAttribution ?? other.creatorAttribution
-        merged.affiliateApplication = merged.affiliateApplication ?? other.affiliateApplication
         merged.emailSubscription = merged.emailSubscription ?? other.emailSubscription
         merged.lastKnownTimezoneIdentifier = merged.lastKnownTimezoneIdentifier ?? other.lastKnownTimezoneIdentifier
     }
@@ -182,7 +180,7 @@ enum ProfileMergeEngine {
     private static var blobFields: [BlobField] {
         [
             .of(\.favoriteFoodIDs),
-            .of(\.nutritionTargets), .of(\.creatorAttribution), .of(\.affiliateApplication),
+            .of(\.nutritionTargets),
             .of(\.emailSubscription), .of(\.progressPhotoFilenames), .of(\.workoutHistory),
             .of(\.healthKitNutritionEnabled), .of(\.workoutLegacyMigrationCompleted),
             .of(\.lastKnownTimezoneIdentifier), .of(\.streakFreezeDays), .of(\.biologyConfig),

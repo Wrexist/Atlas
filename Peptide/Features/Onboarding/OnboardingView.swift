@@ -19,7 +19,7 @@ import UIKit
 ///   - `disclaimerAcknowledgedAt` — Unix timestamp of the two-tap
 ///     medical-disclaimer acknowledgement; persistent legal record
 ///   - `profile.{name,bodyMetrics,nutritionTargets,primaryGoal,
-///      goals,goalDate,trainingPreferences,creatorAttribution}`
+///      goals,goalDate,trainingPreferences}`
 ///      — persisted via DataStore
 struct OnboardingView: View {
     @Environment(DataStore.self) private var dataStore
@@ -91,11 +91,6 @@ struct OnboardingView: View {
     // Theme picker presented after the paywall closes. Persisted via
     // ThemeManager.shared inside the page itself.
     @State private var showThemePicker: Bool = false
-    // Creator-attribution step state. Looked up against
-    // CreatorCodeService.seeded on primary-action.
-    @State private var creatorCodeInput: String = ""
-    @State private var creatorAttribution: CreatorAttribution?
-    @State private var creatorError: String?
     // Projection chart "reveal" state. Drives a tasteful fade-in on
     // the chart instead of jump-cutting in fully drawn.
     @State private var projectionRevealed: Bool = false
@@ -327,10 +322,9 @@ struct OnboardingView: View {
         }
         .onChange(of: page) { _, newPage in
             OnboardingFunnelTracker.recordStepEntered(newPage.funnelName, index: newPage.rawValue)
-            // Leaving any text-entry step must put the keyboard away —
-            // otherwise the name keyboard rode along onto the goal grid
-            // (and the creator-code keyboard onto its
-            // neighbours), covering the lower half of the next card.
+            // Leaving the name step must put the keyboard away —
+            // otherwise it rode along onto the goal grid, covering the
+            // lower half of the next card.
             // The name step focuses its own field once it's mounted.
             if newPage != .name {
                 nameFocused = false
@@ -537,7 +531,7 @@ struct OnboardingView: View {
 
     private var primaryButton: some View {
         PrimaryCTAButton(title: LocalizedStringKey(primaryTitle), action: primaryAction)
-            // "Continue" → "I understand" → "Apply" cross-fades instead
+            // "Continue" → "I understand" → "Start my plan" cross-fades instead
             // of jump-cutting between steps.
             .contentTransition(.interpolate)
             .appAnimation(AppAnimation.springSnappy, value: primaryTitle)
@@ -548,17 +542,9 @@ struct OnboardingView: View {
         switch page {
         case .welcome:    return String(localized: "Let's go")
         case .disclaimer: return String(localized: "I understand")
-        case .referral:   return hasCreatorCodeToApply ? String(localized: "Apply") : String(localized: "Continue")
         case .plan:       return String(localized: "Start my plan")
         default:          return String(localized: "Continue")
         }
-    }
-
-    /// "Apply" only once there's a code to apply — an empty field reads
-    /// "Continue", since that's what tapping it does.
-    private var hasCreatorCodeToApply: Bool {
-        creatorAttribution == nil
-            && !creatorCodeInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var primaryEnabled: Bool {
@@ -624,11 +610,6 @@ struct OnboardingView: View {
             // @AppStorage timestamp is the legal audit trail.
             disclaimerAcknowledgedAt = Date().timeIntervalSince1970
             OnboardingFunnelTracker.recordEvent("disclaimer_acknowledged")
-        case .referral:
-            if creatorAttribution == nil {
-                applyCreatorCode()
-                return
-            }
         default:
             break
         }
@@ -657,43 +638,6 @@ struct OnboardingView: View {
         }
     }
 
-    /// Looks up the typed creator code against the seeded list and
-    /// flips state for the success card. Empty input is a silent
-    /// "skip" — the user moves on without any record.
-    private func applyCreatorCode() {
-        let trimmed = creatorCodeInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty {
-            creatorError = nil
-            advance()
-            return
-        }
-        if let match = CreatorCodeService.lookup(trimmed) {
-            AppAnimation.with(AppAnimation.springBouncy) {
-                creatorAttribution = match
-                creatorError = nil
-            }
-            dataStore.profile.creatorAttribution = match
-            // Flush sync — see goalDate comment.
-            dataStore.flushPendingSave()
-            OnboardingFunnelTracker.recordEvent("creator_code_applied")
-            Haptics.success()
-        } else {
-            AppAnimation.with(AppAnimation.fadeIn) { creatorError = String(localized: "Code not found — double-check and try again.") }
-            OnboardingFunnelTracker.recordEvent("creator_code_invalid")
-            Haptics.error()
-        }
-    }
-
-    /// Undoes an applied code, so a typo that happened to match another
-    /// creator's code isn't locked in for the rest of the flow.
-    private func clearCreatorCode() {
-        Haptics.selection()
-        AppAnimation.with(AppAnimation.springSnappy) { creatorAttribution = nil }
-        dataStore.profile.creatorAttribution = nil
-        dataStore.flushPendingSave()
-        OnboardingFunnelTracker.recordEvent("creator_code_cleared")
-    }
-
     private var currentTrainingPrefs: TrainingPreferences {
         TrainingPreferences(
             daysPerWeek: daysPerWeek,
@@ -711,9 +655,9 @@ struct OnboardingView: View {
         withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { page = page.next ?? page }
     }
 
-    /// Resigns the first responder app-wide. Covers the text fields that
-    /// live inside sub-views (creator code) where the parent has
-    /// no `FocusState` binding to flip.
+    /// Resigns the first responder app-wide, so the keyboard is gone
+    /// before the page transition starts rather than after the focus
+    /// binding flips.
     private func dismissKeyboard() {
         #if canImport(UIKit)
         UIApplication.shared.sendAction(
@@ -878,13 +822,11 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Referral (attribution survey + creator code)
+    // MARK: - Referral (attribution survey)
 
-    /// Optional page pairing the two "how did you get here" asks. The
-    /// channel answer is anonymous, captured into the funnel snapshot
-    /// only — useful for allocating ad spend, never stored on the
-    /// profile. The creator code stamps attribution onto the profile
-    /// (credit only — no discount is applied at checkout).
+    /// Optional "how did you find Atlas?" page. The channel answer is
+    /// anonymous, captured into the funnel snapshot only — useful for
+    /// allocating ad spend, never stored on the profile.
     private var referralStep: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.lg) {
@@ -897,16 +839,6 @@ struct OnboardingView: View {
                         attributionChip(channel)
                     }
                 }
-
-                VStack(alignment: .leading, spacing: Spacing.sm) {
-                    sectionEyebrow("Have a creator or referral code?")
-                    if let attribution = creatorAttribution {
-                        creatorSuccessCard(attribution)
-                    } else {
-                        creatorCodeField
-                    }
-                }
-                .padding(.top, Spacing.sm)
 
                 Spacer(minLength: 100)
             }
@@ -1483,16 +1415,6 @@ struct OnboardingView: View {
                         icon: "checkmark.seal.fill",
                         tint: AppColor.accentPrimary
                     )
-                    if let attribution = creatorAttribution {
-                        // Attribution only — no percentage; the checkout
-                        // applies no discount (see CreatorCodeService).
-                        projectionStatRow(
-                            label: "Referral",
-                            value: "via \(attribution.creatorName)",
-                            icon: "person.text.rectangle",
-                            tint: AppColor.accentPrimary
-                        )
-                    }
                 }
 
                 Text("Projections from your goal, schedule, and body metrics. Actual results vary — what matters is the consistency curve.")
@@ -1813,75 +1735,6 @@ struct OnboardingView: View {
         var reminders = DailyReminderSettings.load(training: dataStore.profile.trainingPreferences)
         reminders.slots[.workout]?.isEnabled = true
         reminders.save()
-    }
-
-    // MARK: - Creator code
-
-    private var creatorCodeField: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            GlassTextField(
-                placeholder: "Enter creator code…",
-                text: $creatorCodeInput,
-                icon: "person.text.rectangle"
-            )
-            .textInputAutocapitalization(.characters)
-            .autocorrectionDisabled()
-            .submitLabel(.done)
-            .onSubmit { if hasCreatorCodeToApply { applyCreatorCode() } }
-            // "Code not found" describes the last Apply, not what's being
-            // typed now.
-            .onChange(of: creatorCodeInput) { _, _ in
-                guard creatorError != nil else { return }
-                AppAnimation.with(AppAnimation.fadeIn) { creatorError = nil }
-            }
-
-            if let error = creatorError {
-                HStack(spacing: Spacing.xs) {
-                    Image(systemName: "exclamationmark.circle.fill")
-                        .font(AppFont.scaled(11, weight: .semibold))
-                    Text(error)
-                        .font(AppFont.caption2)
-                }
-                .foregroundStyle(AppColor.destructive)
-                .padding(.leading, Spacing.md)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-    }
-
-    private func creatorSuccessCard(_ attribution: CreatorAttribution) -> some View {
-        HStack(alignment: .top, spacing: Spacing.md) {
-            Image(systemName: "checkmark.seal.fill")
-                .font(AppFont.scaled(20, weight: .bold))
-                .foregroundStyle(AppColor.accentPrimary)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Code applied")
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.textPrimary)
-                // Attribution only — the checkout applies no discount,
-                // so promising "X% off" here would charge full price.
-                Text("\(attribution.creatorName) gets credit for bringing you to Atlas.")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
-            Button("Change", action: clearCreatorCode)
-                .font(AppFont.subheadline.weight(.semibold))
-                .foregroundStyle(AppColor.accentLight)
-                .minimumHitArea()
-        }
-        .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.accentPrimary.opacity(0.12))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .strokeBorder(AppColor.accentPrimary.opacity(0.45), lineWidth: 1)
-        )
-        .transition(.scale(scale: 0.94).combined(with: .opacity))
     }
 }
 

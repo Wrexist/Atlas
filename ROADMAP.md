@@ -44,7 +44,7 @@ CI/CD to TestFlight via Fastlane.
 | **Watch app** | Redesigned | watchOS 10-style vertical pages (Today rings, Recovery, Sleep Score, Nutrition, Protocol) plus Recovery and Sleep complications. Vitals are computed on the phone (no watch HealthKit entitlement). **Needs a manual Xcode build and on-device check** |
 | **Achievements** | Complete | 14 achievements (dose milestones, streaks, protocol, logging), toast notifications |
 | **Export** | Complete | CSV, JSON and a paginated PDF report (`ExportService.exportPDF`) |
-| **Onboarding** | Complete | 16-page flow: welcome → Sign in with Apple → attribution → name → goal → experience → body metrics → schedule → equipment → demo set → projection → disclaimer → notifications → Health → creator code → ready |
+| **Onboarding** | Complete | 16-page flow: welcome → Sign in with Apple → attribution → name → goal → experience → body metrics → schedule → equipment → demo set → projection → disclaimer → notifications → Health → ready |
 | **HealthKit** | Complete | Reads 7 data types (HR, HRV, sleep, weight, steps, energy); observer-based background delivery wired; daily-series helpers for HRV / RHR / Sleep used by Health Monitor grid |
 | **Biometric lock** | Complete | LocalAuthentication-backed lock screen with auto-Face-ID on appear, scene-phase re-lock on background, Reduce-Motion respect, haptic feedback, toggle in AppearanceSettings, `NSFaceIDUsageDescription` in project.yml |
 | **Persistence** | Complete | SwiftData @Model classes, CloudKit-backed private container with local + in-memory fallbacks |
@@ -117,10 +117,9 @@ CI/CD to TestFlight via Fastlane.
 
 | # | Feature | Effort | Description |
 |---|---------|--------|-------------|
-| 5.1 | **Promo-offer JWT signing** | 1–2 days | Creator-code banner currently shows a discount that isn't applied; sign promo offers server-side via `Product.PurchaseOption.promotionalOffer` |
 | 5.2 | **Onboarding compression** | 2 days | 16 pages → ≤9. Show first-dose value before paywall |
 | 5.3 | **Empty-state day 0** | 1 day | First-install dashboard ("0/4, 0%, 0 days") reads as failure; replace with curiosity copy + first-dose preview |
-| 5.4 | **Referrals via Universal Links** | 2 days | Share Atlas → personal link → recipient signs in with creator credit |
+| 5.4 | **Referrals via Universal Links** | 2 days | Share Atlas → personal link → install attributed to the sharer |
 | 5.5 | **Streak recovery** | 1 day | Streak-freeze Pro perk: 1 per week, auto-applied to a missed day |
 | 5.6 | **Share-card formats** | 1 day | Add 1080×1080 (Instagram) and 1200×630 (Twitter) using the existing renderer |
 

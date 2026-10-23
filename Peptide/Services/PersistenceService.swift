@@ -253,13 +253,12 @@ final class PersistenceService: @unchecked Sendable {
                 let data = try encoder.encode(value)
                 // .completeFileProtection (the default) encrypts the file
                 // at rest while the device is locked. The profile JSON carries the
-                // user's captured email and creator-attribution data and
-                // shouldn't be readable from a locked-device filesystem
-                // dump (audit security H-1). Backups still include the
-                // profile — that's intentional, the user expects a phone
-                // restore to recover their name / metrics / weight
-                // history; the email and attribution survive too. The
-                // protection only blocks the off-device-attacker case.
+                // user's captured email and body metrics and shouldn't be
+                // readable from a locked-device filesystem dump (audit
+                // security H-1). Backups still include the profile — that's
+                // intentional, the user expects a phone restore to recover
+                // their name / metrics / weight history; the email survives
+                // too. The protection only blocks the off-device-attacker case.
                 try data.write(to: url, options: [.atomic, protection])
                 return true
             } catch {

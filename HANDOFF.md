@@ -151,9 +151,10 @@ calculator on an iPhone SE and a Pro Max, plus Dynamic Type and VoiceOver.
 - GitHub secrets: `APP_ATTEST_ENDPOINT`, `APP_ATTEST_SECRET`; then ship,
   watch for `app-attest ok` in logs, and set `APP_ATTEST_MODE=enforce`.
 - App Store Connect: one-week intro offer on both subscriptions; rank Annual
-  above Monthly in the group; decide on Family Sharing; create creator
-  offer codes and win-back offers; review screenshot slot 8 (the privacy
-  screen now shows an AI card).
+  above Monthly in the group; decide on Family Sharing; create win-back
+  offers; review screenshot slot 8 (the privacy screen now shows an AI
+  card). Creator codes were removed from the app: deactivate any creator
+  offer codes or promotional offers set up for them.
 
 ## Before merging branch work
 
