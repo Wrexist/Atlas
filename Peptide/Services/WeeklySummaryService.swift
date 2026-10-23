@@ -263,10 +263,13 @@ final class WeeklySummaryService {
         request.httpBody = try JSONEncoder().encode(RequestEnvelope(aggregate: aggregate))
 
         var (data, response) = try await session.data(for: attested(request))
-        if (response as? HTTPURLResponse)?.statusCode == 401, AppAttestService.isAttestRejection(data) {
-            // The proxy lost this install's key: register a fresh one
-            // and send once more rather than stay on the offline recap.
-            await AppAttestService.shared.invalidateRegistration()
+        if let http = response as? HTTPURLResponse, http.statusCode == 401,
+           await AppAttestService.shared.recover(
+               fromRejection: data, serverDate: http.value(forHTTPHeaderField: "Date")
+           ) {
+            // The proxy lost this install's key or refused the device
+            // clock: recover and send once more rather than stay on the
+            // offline recap.
             (data, response) = try await session.data(for: attested(request, waitForRegistration: true))
         }
         guard let http = response as? HTTPURLResponse else {

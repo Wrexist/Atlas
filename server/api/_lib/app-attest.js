@@ -222,9 +222,14 @@ export function verifyAssertion({ assertion, publicKeyPem, clientDataHash, appId
 // MARK: Key registry (Redis)
 
 const keySlot = (keyIdB64) => `attest:key:${keyIdB64}`;
+// A key unused this long belongs to a deleted install or one that has
+// since re-registered; each successful assertion pushes it back out.
+export const ATTEST_KEY_TTL_SECONDS = 90 * 24 * 60 * 60;
 
 export async function storeAttestKey(keyIdB64, record) {
-  const results = await redisPipeline([['SET', keySlot(keyIdB64), JSON.stringify(record)]]);
+  const results = await redisPipeline([
+    ['SET', keySlot(keyIdB64), JSON.stringify(record), 'EX', String(ATTEST_KEY_TTL_SECONDS)],
+  ]);
   return results?.[0]?.result === 'OK';
 }
 
@@ -264,6 +269,9 @@ const SEEN_COUNTER_TTL_SECONDS = (2 * CLIENT_DATA_MAX_AGE_MS) / 1000;
 async function claimCounter(keyIdB64, counter) {
   const results = await redisPipeline([
     ['SET', `attest:seen:${keyIdB64}:${counter}`, '1', 'NX', 'EX', String(SEEN_COUNTER_TTL_SECONDS)],
+    // Rides the same round trip: only reached once the signature
+    // verified, so a key in use never ages out.
+    ['EXPIRE', keySlot(keyIdB64), String(ATTEST_KEY_TTL_SECONDS)],
   ]);
   return results?.[0]?.result === 'OK';
 }
@@ -276,8 +284,11 @@ function attestMode() {
 /**
  * Checks the App Attest assertion headers on a proxied request.
  *
- * Returns `{ ok, reason?, keyId? }`; `ok: false` only ever in enforce
- * mode, and callers reject with 401 when it is. `keyId` is set only
+ * Returns `{ ok, reason?, code?, keyId? }`; `ok: false` only ever in
+ * enforce mode, and callers reject with 401 and `code` when it is:
+ * `attest_clock` when the client's timestamp is outside the freshness
+ * window (the app corrects its clock from the `Date` header and keeps
+ * its key), `attest_required` for everything else (re-register). `keyId` is set only
  * when an assertion actually verified — it's the one per-install
  * identity the server can trust, so the rate limiter keys on it in
  * preference to the client IP (which rotates freely on mobile data
@@ -290,9 +301,9 @@ export async function checkAppAttest(req, { logLabel }) {
 
   const appId = process.env.APP_ATTEST_APP_ID;
   const enforce = mode === 'enforce';
-  const deny = (reason) => {
+  const deny = (reason, code = 'attest_required') => {
     console.warn(`[${logLabel}] app-attest ${enforce ? 'reject' : 'report'}: ${reason}`);
-    return enforce ? { ok: false, reason } : { ok: true };
+    return enforce ? { ok: false, reason, code } : { ok: true };
   };
 
   if (!appId) {
@@ -322,7 +333,9 @@ export async function checkAppAttest(req, { logLabel }) {
   // usable; `claimCounter` makes it single-use within that window.
   if (clientData.length !== 24) return deny('bad client data');
   const stampedAt = Number(clientData.readBigUInt64BE(16));
-  if (Math.abs(Date.now() - stampedAt) > CLIENT_DATA_MAX_AGE_MS) return deny('stale client data');
+  // A distinct code: the key is fine, the device clock is not, and
+  // re-registering would only mint a new key that fails the same way.
+  if (Math.abs(Date.now() - stampedAt) > CLIENT_DATA_MAX_AGE_MS) return deny('stale client data', 'attest_clock');
 
   const record = await loadAttestKey(String(keyIdB64));
   if (!record) return deny('unknown attest key');

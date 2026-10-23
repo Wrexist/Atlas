@@ -67,6 +67,9 @@ final class MealScannerService: Sendable {
         /// The proxy's verdict that this install's free AI scans for the
         /// week are spent — authoritative over the local count.
         case scanAllowanceSpent
+        /// A Pro-only route (lab-scan) refused: no verified Pro
+        /// entitlement reached the proxy.
+        case proRequired
         case offline
         case imageTooLarge
         case requestFailed(status: Int)
@@ -86,6 +89,7 @@ final class MealScannerService: Sendable {
             case .rateLimited:          String(localized: "You've scanned a lot of meals recently. Wait a minute and try again — if you've hit today's limit, scanning resets tomorrow.")
             case .serviceUnavailable:   String(localized: "Scanning is temporarily unavailable — try again later.")
             case .scanAllowanceSpent:   String(localized: "You've used this week's free AI scans. Pro makes them unlimited — barcode scans are always free.")
+            case .proRequired:          String(localized: "This needs Atlas Pro. If you've subscribed, restore your purchase and try again.")
             case .offline:              String(localized: "You're offline — meal scanning needs an internet connection. Reconnect and try again.")
             case .imageTooLarge:        String(localized: "Photo is too large to upload. Try a smaller image.")
             case .requestFailed:        String(localized: "The meal scanner hit a problem. Try again in a moment.")
@@ -349,8 +353,9 @@ final class MealScannerService: Sendable {
     /// Posts to another route on the same proxy deployment (`lab-scan`),
     /// with this service's secret, App Attest headers, retry and status
     /// mapping, so a new vision route doesn't grow a second transport.
-    func post(_ payload: [String: Any], toSiblingRoute route: String) async throws -> Data {
-        try await post(payload, to: endpoint?.deletingLastPathComponent().appendingPathComponent(route))
+    /// `proOnly` attaches the StoreKit Pro transaction the route demands.
+    func post(_ payload: [String: Any], toSiblingRoute route: String, proOnly: Bool = false) async throws -> Data {
+        try await post(payload, to: endpoint?.deletingLastPathComponent().appendingPathComponent(route), proOnly: proOnly)
     }
 
     /// The JPEG this service would upload for `image`: same edge, quality
@@ -379,7 +384,7 @@ final class MealScannerService: Sendable {
 
     /// Posts a JSON payload to the proxy with the shared secret, validates
     /// the HTTP status, and returns the body.
-    private func post(_ payload: [String: Any], to url: URL?, metered: Bool = false) async throws -> Data {
+    private func post(_ payload: [String: Any], to url: URL?, metered: Bool = false, proOnly: Bool = false) async throws -> Data {
         guard let url, let proxySecret, !proxySecret.isEmpty else {
             // The user-facing error stays generic so the public surface
             // doesn't leak which side is misconfigured, but the log call
@@ -413,6 +418,9 @@ final class MealScannerService: Sendable {
                 request.setValue(value, forHTTPHeaderField: field)
             }
         }
+        if proOnly, let entitlementJWS = await StoreService.shared.resolvedProEntitlementJWS() {
+            request.setValue(entitlementJWS, forHTTPHeaderField: MealScanQuota.Header.entitlement)
+        }
         request.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [])
 
         let (data, http) = try await sendWithRetry(request)
@@ -426,6 +434,9 @@ final class MealScannerService: Sendable {
             // network error.
             switch http.statusCode {
             case 401: throw ScanError.unauthorised
+            // A Pro-only route without a verified Pro entitlement. Only
+            // those routes send it; elsewhere a 403 is a platform refusal.
+            case 403 where proOnly: throw ScanError.proRequired
             // The proxy throttles per device and caps a daily quota, so
             // 429 is a state the user can act on — and on a metered scan
             // it can be the free weekly allowance running out.
@@ -492,10 +503,11 @@ final class MealScannerService: Sendable {
                     continue
                 }
                 if http.statusCode == 401, attempt < maxAttempts,
-                   AppAttestService.isAttestRejection(data) {
-                    // The proxy lost this install's key; the next
-                    // attempt waits for a fresh one to register.
-                    await AppAttestService.shared.invalidateRegistration()
+                   await AppAttestService.shared.recover(
+                       fromRejection: data, serverDate: http.value(forHTTPHeaderField: "Date")
+                   ) {
+                    // The proxy lost this install's key or refused the
+                    // device clock; the next attempt waits for a key.
                     waitForRegistration = true
                     continue
                 }

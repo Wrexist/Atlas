@@ -194,13 +194,15 @@ final class AIResearchService: Sendable {
     }
 
     /// Sends with a fresh assertion. When the proxy has lost this
-    /// install's key (401 `attest_required`), re-registers and sends
-    /// once more instead of failing until the next reinstall.
+    /// install's key (401 `attest_required`) or refused the device
+    /// clock (401 `attest_clock`), recovers and sends once more instead
+    /// of failing until the next reinstall.
     private func sendAttested(_ request: URLRequest) async throws -> (Data, URLResponse) {
         let first = try await session.data(for: attested(request))
-        guard (first.1 as? HTTPURLResponse)?.statusCode == 401,
-              AppAttestService.isAttestRejection(first.0) else { return first }
-        await AppAttestService.shared.invalidateRegistration()
+        guard let http = first.1 as? HTTPURLResponse, http.statusCode == 401,
+              await AppAttestService.shared.recover(
+                  fromRejection: first.0, serverDate: http.value(forHTTPHeaderField: "Date")
+              ) else { return first }
         return try await session.data(for: attested(request, waitForRegistration: true))
     }
 
