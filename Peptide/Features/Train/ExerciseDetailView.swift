@@ -4,6 +4,8 @@ import SwiftUI
 struct ExerciseDetailView: View {
     let exerciseID: String
     @State private var library = ExerciseLibrary.shared
+    /// Follows the in-app language picker, so the steps match the UI.
+    @Environment(\.locale) private var locale
     /// Step-number column, scaled with the text so "10" never wraps.
     @ScaledMetric(relativeTo: .headline) private var stepNumberWidth: CGFloat = 22
     @State private var loading = true
@@ -148,7 +150,7 @@ struct ExerciseDetailView: View {
     // MARK: - Instructions
 
     private func instructionsSection(for exercise: Exercise) -> some View {
-        let steps = library.steps(for: exercise)
+        let steps = library.steps(for: exercise, locale: locale)
         return GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 Text("How to perform")

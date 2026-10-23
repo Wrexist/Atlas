@@ -26,10 +26,9 @@ final class ExerciseLibrary {
     private(set) var custom: [CustomExercise] = []
 
     private var byID: [String: Exercise] = [:]
-    /// Instruction steps in the app's language, keyed by bundled exercise
-    /// id. Empty in English, where `Exercise.instructions` already is the
-    /// text.
-    private var translatedSteps: [String: [String]] = [:]
+    /// Translated instruction steps: language code to bundled exercise id
+    /// to steps. English has no entry; `Exercise.instructions` is the text.
+    private var translatedSteps: [String: [String: [String]]] = [:]
     /// Bundled + custom, sorted by name, with each row's filter keys
     /// worked out once. `filter` runs on every library render, so it
     /// must not re-classify or re-sort ~870 exercises per keystroke.
@@ -43,10 +42,13 @@ final class ExerciseLibrary {
 
     // MARK: - Instructions
 
-    /// How to perform the exercise, in the app's language when a
-    /// translation ships for it. Custom exercises keep the user's own text.
-    func steps(for exercise: Exercise) -> [String] {
-        translatedSteps[exercise.id] ?? exercise.instructions
+    /// How to perform the exercise in `locale`'s language when a
+    /// translation ships for it. Pass the view's `\.locale`, which follows
+    /// the in-app language picker; the bundle's own preference does not.
+    /// Custom exercises keep the user's own text.
+    func steps(for exercise: Exercise, locale: Locale) -> [String] {
+        let language = locale.language.languageCode?.identifier ?? "en"
+        return translatedSteps[language]?[exercise.id] ?? exercise.instructions
     }
 
     /// `exercise-instructions.<language>.json`: bundled exercise id to its
@@ -82,12 +84,14 @@ final class ExerciseLibrary {
         // Move the read + decode off the main actor. The bundled JSON is
         // ~800 KB; on older devices the synchronous Data(contentsOf:) +
         // JSONDecoder runs visibly stalled the first Train tab open.
-        let language = Bundle.main.preferredLocalizations.first ?? "en"
-        let parsed: ([Exercise], [String: [String]])? = await Task.detached(priority: .userInitiated) {
+        let languages = Bundle.main.localizations
+        let parsed: ([Exercise], [String: [String: [String]]])? = await Task.detached(priority: .userInitiated) {
             do {
                 let data = try Data(contentsOf: url)
                 let exercises = try JSONDecoder().decode([Exercise].self, from: data)
-                return (exercises, Self.translatedSteps(language: language))
+                let translations = Dictionary(uniqueKeysWithValues: languages.map { ($0, Self.translatedSteps(language: $0)) })
+                    .filter { !$0.value.isEmpty }
+                return (exercises, translations)
             } catch {
                 AppLog.training.error("ExerciseLibrary decode failed: \(error.localizedDescription, privacy: .public)")
                 return nil

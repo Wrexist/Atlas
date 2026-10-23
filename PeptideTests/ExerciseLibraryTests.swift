@@ -67,6 +67,15 @@ final class ExerciseLibraryTests: XCTestCase {
         }
     }
 
+    /// The steps follow the locale the view hands in (the in-app language
+    /// picker), not the device language.
+    func test_steps_followTheGivenLocale() throws {
+        let squat = try XCTUnwrap(library.lookup(id: "Barbell_Squat"))
+        let swedish = ExerciseLibrary.translatedSteps(language: "sv")["Barbell_Squat"]
+        XCTAssertEqual(library.steps(for: squat, locale: Locale(identifier: "sv_SE")), swedish)
+        XCTAssertEqual(library.steps(for: squat, locale: Locale(identifier: "en_US")), squat.instructions)
+    }
+
     func test_translatedSteps_withoutFile_isEmpty() {
         XCTAssertTrue(ExerciseLibrary.translatedSteps(language: "en").isEmpty)
     }
