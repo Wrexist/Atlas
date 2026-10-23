@@ -50,7 +50,7 @@ final class ExportService {
             .map { monthStart, group -> PDFMonthlyBucket in
                 let logged = group.filter(\.completed).count
                 let total = group.count
-                let pct = total > 0 ? Int(Double(logged) / Double(total) * 100) : 0
+                let pct = Self.compliancePercent(done: logged, total: total)
                 return PDFMonthlyBucket(
                     monthStart: monthStart,
                     label: Self.monthFormatter.string(from: monthStart),
@@ -60,6 +60,13 @@ final class ExportService {
                 )
             }
             .sorted { $0.monthStart > $1.monthStart }
+    }
+
+    /// Rounded, not truncated, so 2 of 3 reads 67% as it does on the
+    /// share card and in the app.
+    nonisolated static func compliancePercent(done: Int, total: Int) -> Int {
+        guard total > 0 else { return 0 }
+        return Int((Double(done) / Double(total) * 100).rounded())
     }
 
     struct PDFMonthlyBucket: Equatable {
@@ -369,7 +376,7 @@ final class ExportService {
             y += sumTH + 8
 
             let completedDoses = entries.filter(\.completed).count
-            let compliancePct  = entries.isEmpty ? 0 : Int(Double(completedDoses) / Double(entries.count) * 100)
+            let compliancePct  = Self.compliancePercent(done: completedDoses, total: entries.count)
             let activeCount    = protocols.filter { $0.status == .active }.count
 
             for (label, value) in [
@@ -393,8 +400,7 @@ final class ExportService {
                     .filter { $0.protocolId == proto.id }
                     .sorted { $0.date > $1.date }
                 let done = protoEntries.filter(\.completed).count
-                let pct  = protoEntries.isEmpty ? 0
-                    : Int(Double(done) / Double(protoEntries.count) * 100)
+                let pct  = Self.compliancePercent(done: done, total: protoEntries.count)
 
                 checkPageBreak(for: 80)
 

@@ -39,6 +39,20 @@ final class ExportServiceTests: XCTestCase {
         XCTAssertTrue(row.hasPrefix("2026-03-14,"), "Got \(row)")
     }
 
+    func test_monthlyBuckets_roundsCompliance() {
+        let day = Date()
+        let entries = [true, true, false].map { completed in
+            ProtocolEntry(
+                id: UUID(), protocolId: UUID(), peptide: MockPeptides.bpc157,
+                date: day, dose: "250 mcg", notes: "", completed: completed
+            )
+        }
+
+        let buckets = ExportService.monthlyBuckets(for: entries)
+
+        XCTAssertEqual(buckets.map(\.compliancePct), [67])
+    }
+
     // MARK: - PDF
 
     func test_pdfExport_producesNonEmptyData() throws {
