@@ -539,17 +539,22 @@ final class HealthKitService {
         )
     }
 
+    /// Mean of the last `days` completed days. One extra day is fetched
+    /// so the window still spans `days` once today is left out.
     func averageSteps(days: Int) async -> Double? {
         guard isAvailable, days > 0 else { return nil }
+        let daily = await dailySteps(days: days + 1)
+        return Self.averageOfCompletedDays(daily, startOfToday: Calendar.current.startOfDay(for: Date()))
+    }
 
-        // Average over days that actually have step data, not the full
-        // window — a user who synced steps on 3 of 7 days shouldn't see
-        // their daily average halved by dividing the total by 7.
-        // `dailyQuantity` buckets per day and skips empty days.
-        let daily = await dailySteps(days: days)
-        guard !daily.isEmpty else { return nil }
-        let total = daily.reduce(0.0) { $0 + $1.value }
-        return total / Double(daily.count)
+    /// Averages over days that actually have data, not the full window —
+    /// a user who synced steps on 3 of 7 days shouldn't see their average
+    /// divided by 7 — and leaves out today's bucket, which is still
+    /// filling and would pull the average down every morning.
+    static func averageOfCompletedDays(_ daily: [(date: Date, value: Double)], startOfToday: Date) -> Double? {
+        let completed = daily.filter { $0.date < startOfToday }
+        guard !completed.isEmpty else { return nil }
+        return completed.reduce(0.0) { $0 + $1.value } / Double(completed.count)
     }
 
     // MARK: - Sleep
