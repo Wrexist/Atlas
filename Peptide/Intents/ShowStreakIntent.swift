@@ -18,8 +18,9 @@ struct ShowStreakIntent: AppIntent {
         let snapshot: Snapshot = await MainActor.run {
             let store = IntentDataStore.resolve()
             return Snapshot(
+                tracksDoses: !store.protocols.isEmpty,
                 doseStreak: store.currentStreak,
-                tracksProtocols: !store.activeProtocols.isEmpty,
+                doseBest: store.bestStreak,
                 mealStreak: store.mealLoggingStreak,
                 mealBest: store.bestMealLoggingStreak
             )
@@ -28,55 +29,67 @@ struct ShowStreakIntent: AppIntent {
         return .result(dialog: IntentDialog(Self.readout(snapshot)))
     }
 
-    /// Composes the dose and meal lines independently, so a user who has
-    /// never logged a meal doesn't hear "0 day meal streak" and a user with
-    /// no protocol doesn't hear about doses at all.
+    /// Composes the dose and meal lines independently so a user who has
+    /// never logged a meal hears a sensible response instead of "0 day
+    /// meal streak", and one who has never set up a protocol, which is
+    /// optional, hears nothing about doses.
     static func readout(_ s: Snapshot) -> LocalizedStringResource {
-        let doseLine: LocalizedStringResource? = s.doseStreak > 0
-            ? LocalizedStringResource(
-                "\(s.doseStreak) day dose streak.",
-                comment: "Siri readout when the dose streak is active."
-            )
-            : (s.tracksProtocols
-                ? LocalizedStringResource(
-                    "No active dose streak.",
-                    comment: "Siri readout when the dose streak has lapsed."
-                )
-                : nil)
-
-        let mealLine: LocalizedStringResource? = s.mealStreak > 0
-            ? LocalizedStringResource(
-                "\(s.mealStreak) day meal streak.",
-                comment: "Siri readout when the meal streak is active."
-            )
-            : (s.mealBest > 0
-                ? LocalizedStringResource(
-                    "Meal streak paused, best was \(s.mealBest) days.",
-                    comment: "Siri readout when the meal streak has lapsed but a best exists."
-                )
-                : nil)
-
-        switch (doseLine, mealLine) {
-        case let (dose?, meal?):
+        let lines = [doseLine(s), mealLine(s)].compactMap { $0 }
+        switch lines.count {
+        case 2:
             return LocalizedStringResource(
-                "\(String(localized: dose)) \(String(localized: meal))",
+                "\(String(localized: lines[0])) \(String(localized: lines[1]))",
                 comment: "Concatenated dose + meal streak readout for Siri."
             )
-        case let (dose?, nil):
-            return dose
-        case let (nil, meal?):
-            return meal
-        case (nil, nil):
+        case 1:
+            return lines[0]
+        default:
             return LocalizedStringResource(
-                "No streak yet. Log a meal today to start one.",
-                comment: "Siri readout when there is no dose or meal streak to report."
+                "No active streaks yet.",
+                comment: "Siri readout when there is neither a dose nor a meal streak to report."
             )
         }
     }
 
+    private static func doseLine(_ s: Snapshot) -> LocalizedStringResource? {
+        guard s.tracksDoses else { return nil }
+        if s.doseStreak > 0 {
+            return LocalizedStringResource(
+                "\(s.doseStreak) day dose streak.",
+                comment: "Siri readout when the dose streak is active."
+            )
+        }
+        if s.doseBest > 0 {
+            return LocalizedStringResource(
+                "Dose streak paused, best was \(s.doseBest) days.",
+                comment: "Siri readout when the dose streak has lapsed but a best exists."
+            )
+        }
+        return LocalizedStringResource(
+            "No active dose streak.",
+            comment: "Siri readout when the dose streak has lapsed."
+        )
+    }
+
+    private static func mealLine(_ s: Snapshot) -> LocalizedStringResource? {
+        if s.mealStreak > 0 {
+            return LocalizedStringResource(
+                "\(s.mealStreak) day meal streak.",
+                comment: "Siri readout when the meal streak is active."
+            )
+        }
+        guard s.mealBest > 0 else { return nil }
+        return LocalizedStringResource(
+            "Meal streak paused, best was \(s.mealBest) days.",
+            comment: "Siri readout when the meal streak has lapsed but a best exists."
+        )
+    }
+
     struct Snapshot {
+        /// False for a user with no protocols, current or past.
+        let tracksDoses: Bool
         let doseStreak: Int
-        let tracksProtocols: Bool
+        let doseBest: Int
         let mealStreak: Int
         let mealBest: Int
     }
