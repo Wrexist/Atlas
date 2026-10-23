@@ -10827,6 +10827,16 @@
         }
       }
     },
+    "Your Atlas Pro subscription is billed by Apple and keeps renewing until you cancel it in Settings → your name → Subscriptions.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Din Atlas Pro-prenumeration debiteras av Apple och förnyas tills du avslutar den i Inställningar → ditt namn → Prenumerationer."
+          }
+        }
+      }
+    },
     "Your data is back. A safety copy of your previous data couldn't be saved.": {
       "localizations": {
         "sv": {
