@@ -94,7 +94,8 @@ final class ExportService {
         for entry in sortedEntries {
             let protocolName = protocols.first { $0.id == entry.protocolId }?.name ?? "Unknown"
             let dateStr = Self.calendarDay(entry.date)
-            let timeStr = entry.date.formatted(.dateTime.hour().minute())
+            // When the dose was actually taken, matching the PDF row.
+            let timeStr = (entry.actualTime ?? entry.date).formatted(.dateTime.hour().minute())
             let actualDose = entry.actualDose ?? entry.dose
             let site = entry.injectionSite ?? ""
 
