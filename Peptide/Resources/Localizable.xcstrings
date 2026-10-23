@@ -5445,6 +5445,16 @@
         }
       }
     },
+    "A few more signals will unlock your estimate.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Några fler signaler låser upp din uppskattning."
+          }
+        }
+      }
+    },
     "A Lifesum-class food library": {
       "localizations": {
         "sv": {
@@ -14483,16 +14493,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Plan för energi och vitalitet"
-          }
-        }
-      }
-    },
-    "Enough days — a few more signals will unlock your estimate.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tillräckligt många dagar – några fler signaler låser upp din uppskattning."
           }
         }
       }

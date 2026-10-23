@@ -434,6 +434,13 @@ enum PerformanceAgeEngine {
         return max(0, min(1, coverage)) * densityFactor
     }
 
+    /// Fewest days of recovery data at which `coverage` clears
+    /// `minConfidence`, or nil when coverage alone never can — the user
+    /// needs more signals, not more days.
+    static func minimumDays(forCoverage coverage: Double) -> Int? {
+        (0...windowDays).first { confidenceScore(coverage: coverage, healthDataDays: $0) >= minConfidence }
+    }
+
     // MARK: - From daily series
 
     struct DailyValue: Equatable, Sendable {

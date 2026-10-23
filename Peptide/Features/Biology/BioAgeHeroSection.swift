@@ -7,8 +7,9 @@ import SwiftUI
 ///     Atlas Pro" caption. The host's promo card carries the one CTA.
 ///   • `.needsAge` — Pro tier with no age (or under 18) in Profile: asks
 ///     for it instead of estimating against a made-up age.
-///   • `.building(progress:)` — Pro tier without enough data: shows
-///     a progress bar and the day count.
+///   • `.building(days:requiredDays:)` — Pro tier without enough data:
+///     shows a progress bar and the day count, or asks for more signals
+///     when more days alone can't unlock the estimate.
 ///   • `.unlocked(estimate:)` — Pro tier + sufficient data: the arc sweeps
 ///     up to the estimate as the number rolls to it, then the delta against
 ///     chronological age and how sure the estimate is.
@@ -32,7 +33,9 @@ struct BioAgeHeroSection: View {
     enum BioAgeState: Equatable, Sendable {
         case locked
         case needsAge
-        case building(progress: Double)               // 0…1, share of 7-day baseline collected
+        /// `requiredDays` is the day the estimate unlocks with the signals
+        /// present; nil when only more signals can unlock it.
+        case building(days: Int, requiredDays: Int?)
         case unlocked(estimate: PerformanceAgeEngine.Estimate)
     }
 
@@ -142,8 +145,8 @@ struct BioAgeHeroSection: View {
                 .foregroundStyle(AppColor.textSecondary)
                 .accessibilityHidden(true)
                 .transition(Self.stateTransition)
-        case .building(let progress)?:
-            buildingCentre(progress: progress)
+        case .building(let days, let requiredDays)?:
+            buildingCentre(progress: Self.buildingProgress(days: days, requiredDays: requiredDays))
                 .transition(Self.stateTransition)
         case .unlocked(let estimate)?:
             unlockedCentre(estimate: estimate)
@@ -225,8 +228,8 @@ struct BioAgeHeroSection: View {
         case .needsAge?:
             needsAgeLabel
                 .transition(Self.stateTransition)
-        case .building(let progress)?:
-            buildingLabel(progress: progress)
+        case .building(let days, let requiredDays)?:
+            buildingLabel(days: days, requiredDays: requiredDays)
                 .transition(Self.stateTransition)
         case .unlocked(let estimate)?:
             unlockedSummary(estimate: estimate)
@@ -254,7 +257,7 @@ struct BioAgeHeroSection: View {
     }
 
     @ViewBuilder
-    private func buildingLabel(progress: Double) -> some View {
+    private func buildingLabel(days: Int, requiredDays: Int?) -> some View {
         if noHealthData {
             Text("Atlas can't see any heart or sleep data. Check that Atlas has read access in the Health app, and wear Apple Watch overnight.")
                 .font(AppFont.scaled(13, weight: .semibold))
@@ -262,27 +265,33 @@ struct BioAgeHeroSection: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.xl)
         } else {
-            buildingProgressLabel(progress: progress)
+            buildingProgressLabel(days: days, requiredDays: requiredDays)
         }
     }
 
-    private func buildingProgressLabel(progress: Double) -> some View {
-        // `progress` is `dataDays / minBaselineDays` — a fraction of the
-        // 7-day baseline window. Render the day count it represents.
-        let total = BioAgeStateResolver.minBaselineDays
-        let days = max(0, min(total, Int((progress * Double(total)).rounded())))
-        return VStack(spacing: Spacing.xs) {
-            Text("\(days) of \(total) days of data collected")
-                .font(AppFont.scaled(13, weight: .semibold))
-                .foregroundStyle(AppColor.textSecondary)
-            if days >= total {
-                Text("Enough days — a few more signals will unlock your estimate.")
-                    .font(AppFont.scaled(13))
+    /// Days against the unlock day when more days will get there;
+    /// otherwise the missing signals are what's holding it back.
+    private func buildingProgressLabel(days: Int, requiredDays: Int?) -> some View {
+        VStack(spacing: Spacing.xs) {
+            if let requiredDays {
+                Text("\(min(days, requiredDays)) of \(requiredDays) days of data collected")
+                    .font(AppFont.scaled(13, weight: .semibold))
+                    .foregroundStyle(AppColor.textSecondary)
+            } else {
+                Text("A few more signals will unlock your estimate.")
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)
             }
         }
         .padding(.horizontal, Spacing.xl)
+    }
+
+    /// Share of the unlock day reached; when only signals are missing,
+    /// the share of the full confidence window instead.
+    static func buildingProgress(days: Int, requiredDays: Int?) -> Double {
+        let target = max(1, requiredDays ?? PerformanceAgeEngine.windowDays)
+        return min(1, Double(max(0, days)) / Double(target))
     }
 
     /// Below the dial: the delta against chronological age, then what it
@@ -394,11 +403,11 @@ struct BioAgeHeroSection: View {
     }
 }
 
-#Preview("Building (4 of 7 days)") {
+#Preview("Building (4 of 15 days)") {
     ZStack {
         CosmicBackdrop(intensity: 0.55).ignoresSafeArea()
         BioAgeHeroSection(
-            state: .building(progress: 4.0 / 7.0),
+            state: .building(days: 4, requiredDays: 15),
             chronologicalAge: 26
         )
     }

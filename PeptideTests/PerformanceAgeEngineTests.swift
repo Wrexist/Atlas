@@ -567,6 +567,38 @@ final class PerformanceAgeEngineTests: XCTestCase {
         ).isEmpty)
     }
 
+    // MARK: - Unlock day
+
+    /// Full coverage: 14 days is just below the confidence gate, 15 clears it.
+    func test_estimate_fullCoverage_unlocksOnDayFifteen() {
+        func inputs(days: Int) -> PerformanceAgeEngine.Inputs {
+            .init(chronologicalAge: 35, hrvMedian30d: 50, rhrMedian30d: 60,
+                  sleepHoursMedian30d: 7.5, vo2MaxRecent: 40, healthDataDays: days)
+        }
+        XCTAssertNil(PerformanceAgeEngine.estimate(inputs: inputs(days: 14)))
+        XCTAssertNotNil(PerformanceAgeEngine.estimate(inputs: inputs(days: 15)))
+        XCTAssertEqual(PerformanceAgeEngine.minimumDays(forCoverage: 1), 15)
+    }
+
+    /// The typical watch set (HRV + resting HR + sleep) unlocks later, and
+    /// the derived day is exactly where the engine starts answering.
+    func test_minimumDays_watchCoreSignals_matchesEstimateGate() throws {
+        let coverage = PerformanceAgeEngine.coverage(of: [.hrv, .rhr, .sleep])
+        let required = try XCTUnwrap(PerformanceAgeEngine.minimumDays(forCoverage: coverage))
+        XCTAssertEqual(required, 17)
+        func inputs(days: Int) -> PerformanceAgeEngine.Inputs {
+            .init(chronologicalAge: 35, hrvMedian30d: 50, rhrMedian30d: 60,
+                  sleepHoursMedian30d: 7.5, healthDataDays: days)
+        }
+        XCTAssertNil(PerformanceAgeEngine.estimate(inputs: inputs(days: required - 1)))
+        XCTAssertNotNil(PerformanceAgeEngine.estimate(inputs: inputs(days: required)))
+    }
+
+    /// Coverage too thin to ever clear the gate: more days won't help.
+    func test_minimumDays_lowCoverage_isNil() {
+        XCTAssertNil(PerformanceAgeEngine.minimumDays(forCoverage: PerformanceAgeEngine.coverage(of: [.steps])))
+    }
+
     func test_median_evenOddAndNonFinite() {
         XCTAssertEqual(PerformanceAgeEngine.median([3, 1, 2]), 2)
         XCTAssertEqual(PerformanceAgeEngine.median([4, 1, 3, 2]), 2.5)
