@@ -1,4 +1,3 @@
-import SwiftData
 import XCTest
 @testable import Peptide
 
