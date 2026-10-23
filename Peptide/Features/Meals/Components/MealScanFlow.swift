@@ -1292,7 +1292,10 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
         per100g = .init(calories: Double(meal.calories) / grams * 100,
                        proteinG: Double(meal.proteinG) / grams * 100,
                        carbsG: Double(meal.carbsG) / grams * 100,
-                       fatG: Double(meal.fatG) / grams * 100, fiberG: nil, sugarsG: nil)
+                       fatG: Double(meal.fatG) / grams * 100,
+                       // The edit covers energy and the three macros only;
+                       // the scan's fibre and sugar still describe the food.
+                       fiberG: per100g.fiberG, sugarsG: per100g.sugarsG)
         nutritionEdited = true
         savedToLibrary = false
     }

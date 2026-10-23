@@ -142,4 +142,14 @@ final class EditableFoodItemTests: XCTestCase {
         XCTAssertEqual(item.servingGrams, 200)
         XCTAssertEqual(item.servingLabel, "2 slices")
     }
+
+    func test_correctNutrition_keepsScannedFibreAndSugar() {
+        var scan = scanned(confidence: 0.9)
+        scan.per100g = .init(calories: 100, proteinG: 2, carbsG: 25, fatG: 0.5, fiberG: 3, sugarsG: 12)
+        var item = EditableFoodItem(from: scan)
+        item.correctNutrition(.init(calories: 260, proteinG: 4, carbsG: 50, fatG: 1))
+        XCTAssertEqual(item.per100g.fiberG, 3)
+        XCTAssertEqual(item.per100g.sugarsG, 12)
+        XCTAssertEqual(item.calories, 260)
+    }
 }
