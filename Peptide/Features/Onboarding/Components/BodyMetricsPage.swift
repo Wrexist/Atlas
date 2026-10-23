@@ -195,22 +195,14 @@ struct BodyMetricsPage: View {
     private var heightFeetBinding: Binding<Int> {
         Binding(
             get: { currentFeet },
-            set: { newFeet in
-                let inches = currentInches
-                let totalInches = newFeet * 12 + inches
-                metrics.heightCm = Double(totalInches) * 2.54
-            }
+            set: { metrics.heightCm = BodyMetricsRanges.clampedHeightCm(feet: $0, inches: currentInches) }
         )
     }
 
     private var heightInchesBinding: Binding<Int> {
         Binding(
             get: { currentInches },
-            set: { newInches in
-                let feet = currentFeet
-                let totalInches = feet * 12 + newInches
-                metrics.heightCm = Double(totalInches) * 2.54
-            }
+            set: { metrics.heightCm = BodyMetricsRanges.clampedHeightCm(feet: currentFeet, inches: $0) }
         )
     }
 
@@ -239,7 +231,7 @@ struct BodyMetricsPage: View {
                     metrics.weightKg ?? Double(BodyMetricsRanges.defaultWeightKg))
                 return BodyMetricsRanges.clampWeightLb(Int(lb.rounded()))
             },
-            set: { metrics.weightKg = MeasurementUnit.imperial.kilograms(fromDisplayed: Double($0)) }
+            set: { metrics.weightKg = BodyMetricsRanges.clampedWeightKg(pounds: $0) }
         )
     }
 
@@ -309,6 +301,20 @@ enum BodyMetricsRanges {
         let wheelInches = (heightFeet.lowerBound * 12)...(heightFeet.upperBound * 12 + heightInches.upperBound)
         let totalInches = Int((cm / 2.54).rounded()).clamped(to: wheelInches)
         return (totalInches / 12, totalInches % 12)
+    }
+
+    /// A feet-and-inches pick in centimetres, held inside the metric
+    /// wheel's range: 3'0" to 7'11" spans 91–241 cm, and an unclamped pick
+    /// saved a height the metric wheel can't show.
+    static func clampedHeightCm(feet: Int, inches: Int) -> Double {
+        let cm = Double(feet * 12 + inches) * 2.54
+        return cm.clamped(to: Double(heightCm.lowerBound)...Double(heightCm.upperBound))
+    }
+
+    /// A pound pick in kilograms, held inside the metric wheel's range.
+    static func clampedWeightKg(pounds: Int) -> Double {
+        let kg = MeasurementUnit.imperial.kilograms(fromDisplayed: Double(pounds))
+        return kg.clamped(to: Double(weightKg.lowerBound)...Double(weightKg.upperBound))
     }
 
     static func clampWeightKg(_ v: Int) -> Int { v.clamped(to: weightKg) }

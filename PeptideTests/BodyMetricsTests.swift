@@ -68,6 +68,26 @@ final class BodyMetricsTests: XCTestCase {
         XCTAssertEqual(BodyMetricsRanges.feetAndInches(fromCm: 260).inches, 11)
     }
 
+    func test_imperialExtremes_storeValuesInsideMetricWheels() {
+        let range = Double(BodyMetricsRanges.heightCm.lowerBound)...Double(BodyMetricsRanges.heightCm.upperBound)
+        let tallest = BodyMetricsRanges.clampedHeightCm(
+            feet: BodyMetricsRanges.heightFeet.upperBound,
+            inches: BodyMetricsRanges.heightInches.upperBound
+        )
+        let shortest = BodyMetricsRanges.clampedHeightCm(feet: BodyMetricsRanges.heightFeet.lowerBound, inches: 0)
+        XCTAssertTrue(range.contains(tallest))
+        XCTAssertTrue(range.contains(shortest))
+
+        let weightRange = Double(BodyMetricsRanges.weightKg.lowerBound)...Double(BodyMetricsRanges.weightKg.upperBound)
+        XCTAssertTrue(weightRange.contains(BodyMetricsRanges.clampedWeightKg(pounds: BodyMetricsRanges.weightLb.lowerBound)))
+        XCTAssertTrue(weightRange.contains(BodyMetricsRanges.clampedWeightKg(pounds: BodyMetricsRanges.weightLb.upperBound)))
+    }
+
+    func test_imperialInRangePick_isStoredUnclamped() {
+        XCTAssertEqual(BodyMetricsRanges.clampedHeightCm(feet: 5, inches: 9), 69 * 2.54, accuracy: 0.0001)
+        XCTAssertEqual(BodyMetricsRanges.clampedWeightKg(pounds: 180), 180 / 2.20462, accuracy: 0.01)
+    }
+
     // MARK: - Codable round-trip
 
     func test_bodyMetrics_codableRoundTrip() throws {
