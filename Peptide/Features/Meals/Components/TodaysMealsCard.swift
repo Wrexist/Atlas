@@ -107,14 +107,18 @@ struct MealEntryRow: View {
     let onLogAgain: () -> Void
     let onDelete: () -> Void
 
+    @Environment(DataStore.self) private var dataStore
     @ScaledMetric(relativeTo: .body) private var tileSize: CGFloat = 44
 
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: Spacing.md) {
-                // `MealEntry` stores no photo, so the row leads with the
-                // picture its name points to.
-                FoodThumbnail(name: entry.name, size: tileSize)
+                FoodThumbnail(
+                    name: entry.name,
+                    imageURL: entry.pictureURL(in: dataStore.profile.customFoods),
+                    barcode: entry.productBarcode,
+                    size: tileSize
+                )
                 VStack(alignment: .leading, spacing: Spacing.xs) {
                     HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
                         Text(entry.name)

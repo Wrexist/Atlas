@@ -45,6 +45,11 @@ struct CustomFood: Codable, Hashable, Identifiable, Sendable {
     /// for foods added by hand.
     var pricePer100g: FoodPriceEstimate?
 
+    /// The Open Food Facts packshot of the product this food was saved
+    /// from, so My Foods shows the same picture the scan did. Nil for
+    /// foods typed by hand.
+    var imageURL: URL?
+
     /// Stamp on create / edit. Used to sort the "My Foods" tab so the
     /// food you just added lands at the top.
     var updatedAt: Date
@@ -57,6 +62,7 @@ struct CustomFood: Codable, Hashable, Identifiable, Sendable {
         servingGrams: Double? = nil,
         servingLabel: String? = nil,
         pricePer100g: FoodPriceEstimate? = nil,
+        imageURL: URL? = nil,
         updatedAt: Date = Date()
     ) {
         self.id = id
@@ -66,6 +72,7 @@ struct CustomFood: Codable, Hashable, Identifiable, Sendable {
         self.servingGrams = servingGrams
         self.servingLabel = servingLabel
         self.pricePer100g = pricePer100g
+        self.imageURL = imageURL
         self.updatedAt = updatedAt
     }
 }
@@ -87,7 +94,7 @@ extension CustomFood {
             name: name,
             brand: brand?.trimmingCharacters(in: .whitespacesAndNewlines)
                 .nilIfEmpty,
-            imageURL: nil,
+            imageURL: imageURL,
             servingSizeText: servingLabel?.trimmingCharacters(in: .whitespacesAndNewlines)
                 .nilIfEmpty,
             servingGrams: servingGrams.flatMap { $0 > 0 ? $0 : nil },

@@ -857,7 +857,7 @@ struct FoodLibraryFlow: View {
             select(food.toScannedProduct())
         } label: {
             HStack(spacing: Spacing.sm) {
-                FoodThumbnail(name: food.name)
+                FoodThumbnail(name: food.name, imageURL: food.imageURL)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(food.name)
                         .font(AppFont.scaled(16, weight: .semibold))
@@ -917,7 +917,8 @@ struct FoodLibraryFlow: View {
             relogMeal(meal)
         } label: {
             HStack(spacing: Spacing.sm) {
-                FoodThumbnail(name: meal.name)
+                FoodThumbnail(name: meal.name, imageURL: meal.pictureURL(in: dataStore.profile.customFoods),
+                              barcode: meal.productBarcode)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(meal.name)
                         .font(AppFont.scaled(16, weight: .semibold))
@@ -1161,7 +1162,7 @@ struct FoodLibraryFlow: View {
         HStack(spacing: Spacing.md) {
             FoodThumbnail(
                 name: product.name,
-                imageURL: product.barcode.hasPrefix("custom:") ? nil : product.imageURL,
+                imageURL: product.imageURL,
                 size: 56
             )
             VStack(alignment: .leading, spacing: 4) {
