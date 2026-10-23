@@ -634,6 +634,12 @@ struct TrialOfferView: View {
             .font(AppFont.scaled(11))
             .foregroundStyle(AppColor.accentLight)
         }
+        // VoiceOver focus returns to the CTA after the purchase sheet
+        // closes, so the notice has to be spoken to be noticed.
+        .onChange(of: notice?.message) { _, message in
+            guard let message else { return }
+            AccessibilityNotification.Announcement(message).post()
+        }
     }
 
     private var productForSelectedTier: Product? { product(for: selectedTier) }

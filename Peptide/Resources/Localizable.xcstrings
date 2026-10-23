@@ -10785,6 +10785,16 @@
         }
       }
     },
+    "Restore didn't go through": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Återställningen gick inte igenom"
+          }
+        }
+      }
+    },
     "Saved on this device before each restore.": {
       "localizations": {
         "sv": {

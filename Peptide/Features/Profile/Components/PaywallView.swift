@@ -949,6 +949,12 @@ struct PaywallView: View {
             footerLinks
         }
         .appAnimation(AppAnimation.springSnappy, value: notice)
+        // VoiceOver focus returns to the CTA after the purchase sheet
+        // closes, so the notice has to be spoken to be noticed.
+        .onChange(of: notice) { _, newNotice in
+            guard let newNotice else { return }
+            AccessibilityNotification.Announcement(newNotice.announcement).post()
+        }
     }
 
     /// Two-line CTA: the action on top, the money underneath.
@@ -1297,4 +1303,18 @@ private enum PurchaseNotice: Equatable {
     case restoreFailed(String)
     case pending
     case nothingToRestore
+
+    var announcement: String {
+        switch self {
+        case .purchaseFailed(let message):
+            String(localized: "Purchase didn't go through") + ". " + message
+        case .restoreFailed(let message):
+            String(localized: "Restore didn't go through") + ". " + message
+        case .pending:
+            String(localized: "Waiting for approval") + ". "
+                + String(localized: "We'll unlock Pro automatically when the purchase is approved.")
+        case .nothingToRestore:
+            String(localized: "No previous purchase found to restore.")
+        }
+    }
 }
