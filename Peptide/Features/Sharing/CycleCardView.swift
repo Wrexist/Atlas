@@ -171,7 +171,7 @@ struct CycleCardView: View {
                     .tracking(-0.5)
             }
             Spacer()
-            Text(model.subjectTitle)
+            Text(displayTitle)
                 .font(AppFont.scaled(20, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.55))
                 .lineLimit(1)
@@ -466,6 +466,12 @@ struct CycleCardView: View {
         }
     }
 
+    /// Protocols are often named after their compounds ("BPC-157 +
+    /// TB-500"), so the mask hides the title as well as the vials.
+    private var displayTitle: String {
+        maskCompoundNames ? String(localized: "My Protocol") : model.subjectTitle
+    }
+
     // MARK: - Accessibility
 
     private var accessibilityLabel: String {
@@ -484,7 +490,7 @@ struct CycleCardView: View {
         } else {
             names = model.peptides.map(\.abbreviation).joined(separator: ", ")
         }
-        return String(localized: "\(model.subjectTitle) cycle card. \(cycleProgressLine). ") +
+        return String(localized: "\(displayTitle) cycle card. \(cycleProgressLine). ") +
                String(localized: "Peptides: \(names). ") +
                String(localized: "Doses logged: \(model.dosesLogged). Adherence: \(model.adherencePercent) percent. ") +
                String(localized: "Streak: \(streakLabel). Watermark: Atlas.")

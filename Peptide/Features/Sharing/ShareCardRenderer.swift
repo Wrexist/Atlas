@@ -38,7 +38,7 @@ enum ShareCardRenderer {
         // and health figures.
         ExportService.shared.clearExports()
         let directory = ExportService.exportDirectory
-        let url = directory.appendingPathComponent(filename(for: model))
+        let url = directory.appendingPathComponent(filename(for: model, maskCompoundNames: maskCompoundNames))
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             try data.write(to: url, options: [.atomic, .completeFileProtectionUnlessOpen])
@@ -74,8 +74,11 @@ enum ShareCardRenderer {
         return image
     }
 
-    private static func filename(for model: CycleCardModel) -> String {
-        let safeTitle = model.subjectTitle
+    /// A masked card falls back to "atlas-cycle-…" so the file name shown
+    /// in AirDrop and Messages doesn't leak the protocol name either.
+    private static func filename(for model: CycleCardModel, maskCompoundNames: Bool) -> String {
+        let title = maskCompoundNames ? "" : model.subjectTitle
+        let safeTitle = title
             .components(separatedBy: CharacterSet.alphanumerics.inverted)
             .filter { !$0.isEmpty }
             .joined(separator: "-")
