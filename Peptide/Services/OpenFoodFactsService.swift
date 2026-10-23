@@ -664,8 +664,8 @@ private extension OpenFoodFactsService {
                 // OFF occasionally serializes 0 for unknown weights —
                 // collapse to nil so `defaultPortion` correctly skips
                 // the .servings branch and the "Add" button stays live.
-                servingGrams: servingQuantity?.value.positiveOrNil,
-                packageGrams: productQuantity?.value.positiveOrNil
+                servingGrams: servingQuantity?.value?.positiveOrNil,
+                packageGrams: productQuantity?.value?.positiveOrNil
                     ?? quantity.flatMap(OpenFoodFactsService.packageGrams(fromQuantity:)),
                 per100g: per100,
                 nutriScore: nutriscoreGrade?.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -708,42 +708,36 @@ private extension OpenFoodFactsService {
 }
 
 /// Open Food Facts inconsistently serializes numeric fields as numbers
-/// or as strings ("330" vs 330). These wrappers absorb the variance so
-/// the rest of the codebase only deals with `Double` / `Int`.
+/// or as strings ("330", "1,5", "", "n/a"). These wrappers absorb the
+/// variance: anything unreadable decodes to a nil `value` instead of
+/// throwing, so one bad field can't fail the whole product or a whole
+/// search page.
 private struct FlexibleDouble: Decodable {
-    let value: Double
+    let value: Double?
     init(from decoder: Decoder) throws {
         let c = try decoder.singleValueContainer()
         if let d = try? c.decode(Double.self) {
             value = d
-        } else if let s = try? c.decode(String.self), let d = Double(s) {
-            value = d
+        } else if let s = try? c.decode(String.self) {
+            value = Double(s.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: "."))
         } else {
-            throw DecodingError.typeMismatch(
-                Double.self,
-                .init(codingPath: decoder.codingPath, debugDescription: "Expected Double or numeric String")
-            )
+            value = nil
         }
     }
 }
 
 private struct FlexibleInt: Decodable {
-    /// Nil for a number no `Int` can hold, so a malformed field reads as
-    /// absent instead of trapping or failing the whole record.
     let value: Int?
     init(from decoder: Decoder) throws {
         let c = try decoder.singleValueContainer()
         if let i = try? c.decode(Int.self) {
             value = i
         } else if let d = try? c.decode(Double.self) {
-            value = d.isFinite && abs(d) < Double(Int.max) ? Int(d) : nil
-        } else if let s = try? c.decode(String.self), let i = Int(s) {
-            value = i
+            value = d.isFinite ? Int(exactly: d.rounded(.towardZero)) : nil
+        } else if let s = try? c.decode(String.self) {
+            value = Int(s.trimmingCharacters(in: .whitespacesAndNewlines))
         } else {
-            throw DecodingError.typeMismatch(
-                Int.self,
-                .init(codingPath: decoder.codingPath, debugDescription: "Expected Int, Double, or numeric String")
-            )
+            value = nil
         }
     }
 }
