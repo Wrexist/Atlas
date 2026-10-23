@@ -102,7 +102,7 @@ enum StreakEngine {
         var best = 0
         var current = 0
         var consecutiveEmptyDays = 0
-        var day = earliest
+        var day = calendar.startOfDay(for: earliest)
 
         while day <= todayStart {
             switch verdict(for: day, in: entriesByDay, frozenDayKeys: frozenDayKeys, calendar: calendar) {
@@ -121,8 +121,11 @@ enum StreakEngine {
                 consecutiveEmptyDays = 0
             }
 
+            // Re-normalise: where DST starts at midnight, start of day is
+            // 01:00, and adding a day would keep that wall time and miss
+            // every later start-of-day key.
             guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
-            day = next
+            day = calendar.startOfDay(for: next)
         }
 
         return best
@@ -151,7 +154,7 @@ enum StreakEngine {
     ) -> DayVerdict {
         // A redeemed freeze shields the day whether it was empty or
         // logged-and-missed — that's what the user spent it on.
-        if !frozenDayKeys.isEmpty, frozenDayKeys.contains(StreakFreezeService.dayKey(for: date)) {
+        if !frozenDayKeys.isEmpty, frozenDayKeys.contains(StreakFreezeService.dayKey(for: date, calendar: calendar)) {
             return .extends
         }
 
