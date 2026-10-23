@@ -36,10 +36,16 @@ struct ProgressPhotosCard: View {
 
     private static let slotCount = 4
 
+    /// Photos with a file on this device, oldest first. The synced profile
+    /// can name photos taken on another device, whose files never arrive.
+    private var localFilenames: [String] {
+        ProgressPhotoMetadata.onDevice(dataStore.profile.progressPhotoFilenames, exists: ProgressPhotoStorage.exists)
+    }
+
     /// Newest-first slice of the most recent four filenames so the grid
     /// fills top-left → bottom-right with the latest photos.
     private var recentFilenames: [String] {
-        Array(dataStore.profile.progressPhotoFilenames.suffix(Self.slotCount).reversed())
+        Array(localFilenames.suffix(Self.slotCount).reversed())
     }
 
     var body: some View {
@@ -93,7 +99,7 @@ struct ProgressPhotosCard: View {
         }
         .fullScreenCover(item: $viewerSelection) { selection in
             ProgressPhotoViewer(
-                filenames: dataStore.profile.progressPhotoFilenames,
+                filenames: localFilenames,
                 initialFilename: selection.filename,
                 onCompare: { picked in
                     viewerSelection = nil
@@ -118,7 +124,7 @@ struct ProgressPhotosCard: View {
         }
         .fullScreenCover(item: $compareSelection) { selection in
             ProgressPhotoCompareView(
-                allFilenames: dataStore.profile.progressPhotoFilenames,
+                allFilenames: localFilenames,
                 primary: selection.filename,
                 onClose: { compareSelection = nil }
             )
@@ -138,12 +144,12 @@ struct ProgressPhotosCard: View {
 
             Spacer(minLength: 0)
 
-            if dataStore.profile.progressPhotoFilenames.count >= 2 {
+            if localFilenames.count >= 2 {
                 Button {
                     // Default to comparing the newest photo first —
                     // most users open compare to "see my progress
                     // against the earliest photo".
-                    if let newest = dataStore.profile.progressPhotoFilenames.last {
+                    if let newest = localFilenames.last {
                         compareSelection = PhotoSelection(filename: newest)
                     }
                 } label: {
@@ -264,7 +270,7 @@ struct ProgressPhotosCard: View {
                 } label: {
                     Label("Open viewer", systemImage: "rectangle.expand.vertical")
                 }
-                if dataStore.profile.progressPhotoFilenames.count >= 2 {
+                if localFilenames.count >= 2 {
                     Button {
                         compareSelection = PhotoSelection(filename: filename)
                     } label: {

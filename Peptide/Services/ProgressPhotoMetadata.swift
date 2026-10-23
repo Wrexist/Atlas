@@ -29,6 +29,19 @@ enum ProgressPhotoMetadata {
         return Date(timeIntervalSince1970: stamp)
     }
 
+    /// The photos this device can show, oldest first and without
+    /// duplicates. Filenames sync through the profile but the JPEGs stay
+    /// on the device that took them, so names whose file isn't here (another
+    /// device, or a reinstall) are dropped instead of becoming ghost tiles.
+    /// The profile keeps them: pruning would sync the loss to the device
+    /// that still has the file.
+    static func onDevice(_ filenames: [String], exists: (String) -> Bool) -> [String] {
+        var seen = Set<String>()
+        return filenames
+            .filter { seen.insert($0).inserted && exists($0) }
+            .sorted { isEarlier($0, than: $1) }
+    }
+
     /// Whether `a` was taken before `b`. Falls back to name order (which
     /// is chronological for this scheme) when a date can't be parsed.
     static func isEarlier(_ a: String, than b: String) -> Bool {

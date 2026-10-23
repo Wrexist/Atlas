@@ -847,6 +847,17 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertFalse(ProgressPhotoMetadata.isEarlier(newer, than: older))
     }
 
+    func test_progressPhotoMetadata_onDevice_dropsMissingFilesAndSortsOldestFirst() {
+        let local = "progress-1700000000-aaa111.jpg"
+        let newerLocal = "progress-1750000000-ccc333.jpg"
+        let otherDevice = "progress-1800000000-bbb222.jpg"
+        // Merge order: this device's names, then the other device's.
+        let synced = [newerLocal, local, otherDevice, local]
+        let onDisk: Set<String> = [local, newerLocal]
+
+        XCTAssertEqual(ProgressPhotoMetadata.onDevice(synced, exists: onDisk.contains), [local, newerLocal])
+    }
+
     func test_progressPhotoMetadata_daysBetween_isAbsoluteAndDayResolution() {
         let cal = Calendar.current
         let now = cal.startOfDay(for: Date())

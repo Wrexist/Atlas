@@ -139,6 +139,12 @@ enum ProgressPhotoStorage {
         }
     }
 
+    /// Whether the photo's file is on this device.
+    static func exists(_ filename: String) -> Bool {
+        guard let url = try? url(for: filename) else { return false }
+        return FileManager.default.fileExists(atPath: url.path)
+    }
+
     static func url(for filename: String) throws -> URL {
         try ensureDirectory().appendingPathComponent(filename)
     }
