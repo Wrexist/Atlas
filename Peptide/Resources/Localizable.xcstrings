@@ -7715,16 +7715,6 @@
         }
       }
     },
-    "Atlas never sees your email — Apple relays it.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Atlas ser aldrig din e-post – Apple vidarebefordrar den."
-          }
-        }
-      }
-    },
     "Atlas runs no server that stores your logs. AI features you invoke send only what they need — a meal photo, weekly averages — to answer your request.": {
       "localizations": {
         "sv": {
@@ -10141,16 +10131,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Närmast möjliga vikt är %@, %@ under ditt mål."
-          }
-        }
-      }
-    },
-    "Cloud sync across iPhone, iPad, and Watch.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Molnsynk mellan iPhone, iPad och Watch."
           }
         }
       }
@@ -28601,6 +28581,16 @@
         }
       }
     },
+    "Sign in with Apple (optional)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga in med Apple (valfritt)"
+          }
+        }
+      }
+    },
     "Sleep vs %@h target": {
       "localizations": {
         "sv": {
@@ -37065,6 +37055,16 @@
         }
       }
     },
+    "You can hide your email — Apple will relay it.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du kan dölja din e-post – Apple vidarebefordrar den då."
+          }
+        }
+      }
+    },
     "You reached your %lld-hour fasting goal. End the fast in Atlas when you eat.": {
       "localizations": {
         "sv": {
@@ -37143,6 +37143,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Din kroppstemperatur. Toppar över ditt vanliga värde kan tyda på dålig återhämtning eller sjukdom."
+          }
+        }
+      }
+    },
+    "Your data syncs through iCloud when it's on, signed in or not.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Din data synkas via iCloud när det är på, oavsett om du loggar in."
           }
         }
       }

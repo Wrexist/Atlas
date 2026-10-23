@@ -763,11 +763,13 @@ struct OnboardingView: View {
 
     /// Optional sign-in, folded under the name field. Skipping it is
     /// genuinely fine — every feature works without an Apple ID, and
-    /// Profile → Account offers the same button later — but a signed-in
-    /// user gets cloud sync across devices and their name pre-filled.
+    /// Profile → Account offers the same button later. Today it only
+    /// pre-fills the name: sync runs through iCloud for everyone, and the
+    /// Apple ID link is reserved for future server features, so the copy
+    /// must not suggest that skipping it loses a backup.
     private var signInSection: some View {
         VStack(spacing: Spacing.md) {
-            sectionEyebrow("Save your progress (optional)")
+            sectionEyebrow("Sign in with Apple (optional)")
                 .frame(maxWidth: .infinity, alignment: .leading)
             Group {
                 if authService.isSignedIn {
@@ -791,8 +793,8 @@ struct OnboardingView: View {
             }
             .transition(.opacity.combined(with: .scale(scale: 0.96)))
 
-            signInDisclosureRow(icon: "icloud.fill", text: "Cloud sync across iPhone, iPad, and Watch.")
-            signInDisclosureRow(icon: "lock.shield.fill", text: "Atlas never sees your email — Apple relays it.")
+            signInDisclosureRow(icon: "icloud.fill", text: "Your data syncs through iCloud when it's on, signed in or not.")
+            signInDisclosureRow(icon: "lock.shield.fill", text: "You can hide your email — Apple will relay it.")
         }
         .appAnimation(AppAnimation.springSnappy, value: authService.isSignedIn)
         .appAnimation(AppAnimation.springSnappy, value: authService.isSigningIn)
@@ -841,7 +843,7 @@ struct OnboardingView: View {
         )
     }
 
-    private func signInDisclosureRow(icon: String, text: String) -> some View {
+    private func signInDisclosureRow(icon: String, text: LocalizedStringKey) -> some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: icon)
                 .font(AppFont.scaled(13, weight: .semibold))
