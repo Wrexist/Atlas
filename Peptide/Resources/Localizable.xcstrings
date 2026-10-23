@@ -33567,16 +33567,6 @@
         }
       }
     },
-    "Total %lld kilocalories. ": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Totalt %lld kilokalorier."
-          }
-        }
-      }
-    },
     "Total T": {
       "localizations": {
         "sv": {
@@ -39919,6 +39909,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "✏ Redigerad"
+          }
+        }
+      }
+    },
+    "Total %lld kilocalories. Protein %lld grams, carbohydrate %lld grams, fat %lld grams.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Totalt %lld kilokalorier. Protein %lld gram, kolhydrater %lld gram, fett %lld gram."
           }
         }
       }

@@ -46,8 +46,7 @@ struct MealScanTotalsCard: View {
         .glassSurface(cornerRadius: Spacing.cardCornerRadius, tinted: true)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
-            "Total \(calories) kilocalories. "
-            + "Protein \(proteinG) grams, carbohydrate \(carbsG) grams, fat \(fatG) grams."
+            "Total \(calories) kilocalories. Protein \(proteinG) grams, carbohydrate \(carbsG) grams, fat \(fatG) grams."
         )
     }
 
