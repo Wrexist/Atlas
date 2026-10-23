@@ -46,10 +46,14 @@ struct BiomarkerDetailSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.xl) {
+                    // The number and its chart sit together; the static
+                    // explainer follows what changes day to day.
                     heroBlock
-                    explainer
                     chartBlock
-                    deltaBlock
+                    if hasComparison {
+                        deltaBlock
+                    }
+                    explainer
                     footnote
                 }
                 .padding(Spacing.screenPadding)
@@ -202,7 +206,7 @@ struct BiomarkerDetailSheet: View {
 
     @ViewBuilder
     private var chartBlock: some View {
-        if snapshot.samples.count >= 4 {
+        if snapshot.samples.count >= Self.minimumSamples {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text("Recent trend")
                     .textCase(.uppercase)
@@ -374,10 +378,8 @@ struct BiomarkerDetailSheet: View {
             Spacer()
         }
         .padding(Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.45))
-        }
+        // Same card as the chart it stands in for.
+        .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 
     // MARK: - Delta block
@@ -399,10 +401,17 @@ struct BiomarkerDetailSheet: View {
         .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 
+    /// Enough readings for an average to mean something. Below it the
+    /// chart placeholder already says more data is needed, so the
+    /// comparison card stays out rather than saying it a second time.
+    private var hasComparison: Bool {
+        snapshot.latest != nil && snapshot.sparkline.count >= Self.minimumSamples
+    }
+
+    private static let minimumSamples = 4
+
     private var deltaLine: String {
-        guard let latest = snapshot.latest, snapshot.sparkline.count >= 4 else {
-            return String(localized: "Log more data to see a comparison.")
-        }
+        guard let latest = snapshot.latest, hasComparison else { return "" }
         let avg = snapshot.sparkline.reduce(0, +) / Double(snapshot.sparkline.count)
         // Convert both endpoints to the display unit *before* subtracting so
         // the temperature offset (°C→°F adds 32) cancels — the delta is a

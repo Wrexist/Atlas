@@ -101,6 +101,16 @@ struct AtlasProgressView: View {
                 .foregroundStyle(tint)
             }
 
+            // How close the next level is, as on Today's score card.
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                GlassProgressBar(progress: momentum.progressInLevel)
+                Text("\(momentum.pointsToNextLevel) to level \(momentum.level + 1)")
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+            }
+
             if week > 0 {
                 Text("+\(week) points this week")
                     .font(AppFont.caption2)
@@ -160,9 +170,17 @@ struct AtlasProgressView: View {
             Text(label)
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
-            Text("Best \(best)")
-                .font(AppFont.scaled(11, weight: .semibold))
-                .foregroundStyle(AppColor.textTertiary)
+            // A run that is the best yet says so instead of repeating
+            // its own number back.
+            if current > 0 && current >= best {
+                Text("Personal best")
+                    .font(AppFont.scaled(11, weight: .heavy))
+                    .foregroundStyle(AppColor.textPrimary)
+            } else {
+                Text("Best \(best)")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, Spacing.sm)
