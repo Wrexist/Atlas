@@ -125,7 +125,22 @@ struct ProtocolBuilderView: View {
     }
 
     private var orderedSelectedPeptides: [Peptide] {
-        dataStore.peptideDatabase.filter { selectedPeptides.contains($0.id) }
+        selectablePeptides.filter { selectedPeptides.contains($0.id) }
+    }
+
+    private var selectablePeptides: [Peptide] {
+        Self.selectablePeptides(
+            catalogue: dataStore.peptideDatabase,
+            protocolPeptides: editingProtocol?.peptides ?? []
+        )
+    }
+
+    /// The catalogue plus the edited protocol's own peptides. Custom
+    /// peptides don't sync, so a protocol from another device can hold
+    /// one this catalogue lacks — saving must not silently drop it.
+    static func selectablePeptides(catalogue: [Peptide], protocolPeptides: [Peptide]) -> [Peptide] {
+        let known = Set(catalogue.map(\.id))
+        return catalogue + protocolPeptides.filter { !known.contains($0.id) }
     }
 
     private var defaultSchedule: ProtocolSchedule {
@@ -364,7 +379,7 @@ struct ProtocolBuilderView: View {
 
                         PeptideSelector(
                             selectedPeptides: $selectedPeptides,
-                            allPeptides: dataStore.peptideDatabase,
+                            allPeptides: selectablePeptides,
                             onAddCustomPeptide: { dataStore.addCustomPeptide($0) }
                         )
                     }
