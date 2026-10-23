@@ -219,6 +219,14 @@ struct PeptideApp: App {
         .onChange(of: privacyCover, initial: true) { _, cover in
             syncPrivacyCover(cover)
         }
+        .onChange(of: isUnlocked) { _, unlocked in
+            // The launch prompts wait for the lock to clear, and the Face
+            // ID answer can land after the scene is already active again.
+            guard unlocked, scenePhase == .active else { return }
+            detectTimezoneChange()
+            maybePresentWhatsNewTour()
+            maybePresentWinBack()
+        }
         // A116: after an iCloud sign-out or account switch the store
         // stays closed until the user says what happens to the data the
         // previous account left on this device.

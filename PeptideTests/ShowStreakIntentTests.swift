@@ -11,13 +11,16 @@ final class ShowStreakIntentTests: XCTestCase {
         mealStreak: Int = 0,
         mealBest: Int = 0
     ) -> String {
-        String(localized: ShowStreakIntent.readout(ShowStreakIntent.Snapshot(
+        var resource = ShowStreakIntent.readout(ShowStreakIntent.Snapshot(
             tracksDoses: tracksDoses,
             doseStreak: doseStreak,
             doseBest: doseBest,
             mealStreak: mealStreak,
             mealBest: mealBest
-        )))
+        ))
+        // The assertions read English words; pin it over the host's language.
+        resource.locale = Locale(identifier: "en")
+        return String(localized: resource)
     }
 
     func test_noProtocols_omitsTheDoseLine() {
