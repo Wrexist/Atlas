@@ -149,9 +149,16 @@ struct BodyMetricsPage: View {
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
 
-            HStack(spacing: Spacing.xs) {
-                ForEach(BiologicalSex.onboardingChoices) { option in
-                    genderPill(option)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Spacing.xs) {
+                    ForEach(BiologicalSex.onboardingChoices) { option in
+                        genderPill(option)
+                    }
+                }
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Spacing.xs) {
+                    ForEach(BiologicalSex.onboardingChoices) { option in
+                        genderPill(option)
+                    }
                 }
             }
         }

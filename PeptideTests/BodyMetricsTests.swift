@@ -88,6 +88,10 @@ final class BodyMetricsTests: XCTestCase {
         XCTAssertEqual(BodyMetricsRanges.clampedWeightKg(pounds: 180), 180 / 2.20462, accuracy: 0.01)
     }
 
+    func test_onboardingSexChoices_includeUnspecifiedDefault() {
+        XCTAssertTrue(BiologicalSex.onboardingChoices.contains(BodyMetrics.unspecified.sex))
+    }
+
     // MARK: - Codable round-trip
 
     func test_bodyMetrics_codableRoundTrip() throws {
