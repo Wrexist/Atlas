@@ -11969,22 +11969,22 @@
         }
       }
     },
-    "Couldn't sign in to the meal scanner. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build.": {
+    "Couldn't connect to the meal scanner. Update Atlas to the latest version, or contact support if you're already up to date.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kunde inte logga in på måltidsskannern. Den här versionens inloggningsuppgifter avvisades – uppdatera till senaste versionen från TestFlight eller App Store, eller kontakta support om du redan har den senaste."
+            "value": "Kunde inte ansluta till måltidsskannern. Uppdatera Atlas till den senaste versionen, eller kontakta supporten om du redan har den."
           }
         }
       }
     },
-    "Couldn't sign in to the research assistant. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build.": {
+    "Couldn't connect to the research assistant. Update Atlas to the latest version, or contact support if you're already up to date.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kunde inte logga in på researchassistenten. Den här versionens inloggningsuppgifter avvisades – uppdatera till senaste versionen från TestFlight eller App Store, eller kontakta support om du redan har den senaste."
+            "value": "Kunde inte ansluta till researchassistenten. Uppdatera Atlas till den senaste versionen, eller kontakta supporten om du redan har den."
           }
         }
       }
@@ -20349,12 +20349,12 @@
         }
       }
     },
-    "Meal scanning isn't available in this build. Update Atlas from the App Store or TestFlight.": {
+    "Meal scanning isn't available in this version. Update Atlas from the App Store.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Måltidsskanning finns inte i den här versionen. Uppdatera Atlas från App Store eller TestFlight."
+            "value": "Måltidsskanning är inte tillgänglig i den här versionen. Uppdatera Atlas från App Store."
           }
         }
       }
