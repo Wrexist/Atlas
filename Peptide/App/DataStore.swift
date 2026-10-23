@@ -1131,6 +1131,42 @@ final class DataStore {
         save()
     }
 
+    /// Expenditure estimate from logged intake + weight trend, or the
+    /// formula when there isn't enough data yet. Nil only when there's
+    /// neither logging history nor complete body stats.
+    func expenditureEstimate(asOf now: Date = Date()) -> AdaptiveTDEEEngine.Estimate? {
+        AdaptiveTDEEEngine.estimate(
+            weights: dedupedWeightHistory,
+            intake: Array(profile.dailyConsumption.values),
+            formulaTDEE: NutritionMath.formulaTDEE(for: profile.bodyMetrics),
+            asOf: now
+        )
+    }
+
+    /// Moves the saved targets with the adaptive estimate, MacroFactor-style,
+    /// but only while they're still the recommendation the user accepted —
+    /// hand-entered numbers are never overwritten.
+    func refreshAdaptiveTargets(asOf now: Date = Date()) {
+        guard
+            AdaptiveTDEESettings.isEnabled,
+            let current = profile.nutritionTargets,
+            let estimate = expenditureEstimate(asOf: now),
+            estimate.source == .adaptive,
+            let next = NutritionMath.recommendedTargets(
+                for: profile.bodyMetrics,
+                goalRaw: profile.primaryGoal,
+                maintenanceKcal: Double(estimate.kcal)
+            ),
+            AdaptiveTDEEEngine.shouldFollow(
+                current: current,
+                followed: AdaptiveTDEESettings.followedTargets,
+                next: next
+            )
+        else { return }
+        AdaptiveTDEESettings.followedTargets = next
+        updateNutritionTargets(next)
+    }
+
     // MARK: - Lifestyle data
     //
     // Bodyweight, nutrition, water, workouts, and the progress-photo

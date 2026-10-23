@@ -26,6 +26,9 @@ struct NutritionTargetsEditor: View {
     /// of a DataStore dependency.
     var bodyMetrics: BodyMetrics = .unspecified
     var goalRaw: String? = nil
+    /// Expenditure estimate from `DataStore.expenditureEstimate()` —
+    /// adaptive when enough intake + weigh-ins are logged, else formula.
+    var expenditure: AdaptiveTDEEEngine.Estimate? = nil
     let onSave: (NutritionTargets) -> Void
     let onCancel: () -> Void
 
@@ -38,6 +41,7 @@ struct NutritionTargetsEditor: View {
     /// being discarded.
     @State private var openedFields: [String] = []
     @FocusState private var focusedField: Field?
+    @AppStorage(AdaptiveTDEESettings.enabledKey) private var useAdaptive = true
 
     private enum Field: Hashable { case calories, protein, carbs, fat, fiber }
 
@@ -48,8 +52,15 @@ struct NutritionTargetsEditor: View {
     /// the matching preset's fixed default when body metrics are incomplete,
     /// so the editor always leads with a usable target instead of zeros.
     private var recommended: NutritionTargets {
-        NutritionMath.recommendedTargets(for: bodyMetrics, goalRaw: goalRaw)
+        NutritionMath.recommendedTargets(for: bodyMetrics, goalRaw: goalRaw, maintenanceKcal: adaptiveMaintenance)
             ?? NutritionMath.Preset.matching(goalRaw: goalRaw).fallback
+    }
+
+    /// Measured maintenance calories when adaptive targets are on and the
+    /// estimate rests on logged data; nil means "use the formula".
+    private var adaptiveMaintenance: Double? {
+        guard useAdaptive, let expenditure, expenditure.source == .adaptive else { return nil }
+        return Double(expenditure.kcal)
     }
 
     /// True once full body stats exist — decides whether the recommendation
@@ -72,6 +83,9 @@ struct NutritionTargetsEditor: View {
                 ScrollView {
                     VStack(spacing: Spacing.lg) {
                         summaryCard
+                        if let expenditure {
+                            expenditureCard(expenditure)
+                        }
                         recommendedCard(recommended)
                         presetsCard
                         caloriesCard
@@ -210,9 +224,7 @@ struct NutritionTargetsEditor: View {
                         Text("Recommended for you")
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
-                        Text(hasPersonalStats
-                             ? "Based on your stats + \(goalLabel) goal"
-                             : "A \(goalLabel) starting point — add stats in Profile to personalize")
+                        recommendationSubtitle
                             .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                     }
@@ -237,6 +249,67 @@ struct NutritionTargetsEditor: View {
                 }
                 .disabled(isApplied)
             }
+        }
+    }
+
+    private var recommendationSubtitle: Text {
+        if adaptiveMaintenance != nil {
+            return Text("Based on your measured expenditure + \(goalLabel) goal")
+        }
+        return hasPersonalStats
+            ? Text("Based on your stats + \(goalLabel) goal")
+            : Text("A \(goalLabel) starting point — add stats in Profile to personalize")
+    }
+
+    // MARK: - Expenditure
+
+    /// What the recommendation is built on — the measured (adaptive) or
+    /// formula expenditure — plus the switch that lets targets follow it.
+    private func expenditureCard(_ estimate: AdaptiveTDEEEngine.Estimate) -> some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: Spacing.md) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text("Estimated expenditure: \(estimate.kcal) kcal")
+                        .font(AppFont.headline)
+                        .monospacedDigit()
+                        .foregroundStyle(AppColor.textPrimary)
+                        .contentTransition(.numericText())
+                    expenditureSourceText(estimate)
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                rowDivider
+
+                Toggle(isOn: $useAdaptive) {
+                    HStack(spacing: Spacing.md) {
+                        Image(systemName: "chart.line.uptrend.xyaxis")
+                            .font(AppFont.scaled(13, weight: .semibold))
+                            .foregroundStyle(AppColor.accentLight)
+                            .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: Spacing.xxs) {
+                            Text("Adaptive targets")
+                                .font(AppFont.subheadline)
+                                .foregroundStyle(AppColor.textPrimary)
+                            Text("Targets follow what you actually burn once there's enough data")
+                                .font(AppFont.caption2)
+                                .foregroundStyle(AppColor.textTertiary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                .tint(AppColor.accentPrimary)
+            }
+        }
+    }
+
+    private func expenditureSourceText(_ estimate: AdaptiveTDEEEngine.Estimate) -> Text {
+        switch estimate.source {
+        case .adaptive:
+            return Text("Adaptive, based on \(estimate.intakeDays) days of logged meals and weigh-ins")
+        case .formula:
+            return Text("Formula — log meals and weigh in for 2 weeks to switch to adaptive")
         }
     }
 
@@ -280,7 +353,7 @@ struct NutritionTargetsEditor: View {
     }
 
     private func presetChip(_ preset: NutritionMath.Preset) -> some View {
-        let targets = NutritionMath.presetTargets(preset, for: bodyMetrics)
+        let targets = NutritionMath.presetTargets(preset, for: bodyMetrics, maintenanceKcal: adaptiveMaintenance)
         let isSelected = matchesDraft(targets)
         let isRecommended = preset == recommendedPreset
         return Button {
@@ -480,13 +553,11 @@ struct NutritionTargetsEditor: View {
             let f = value(for: .fat),
             let fib = value(for: .fiber)
         else { return }
-        onSave(NutritionTargets(
-            calories: kcal,
-            proteinG: p,
-            carbsG: c,
-            fatG: f,
-            fiberG: fib
-        ))
+        // Remember an accepted recommendation so `refreshAdaptiveTargets`
+        // may move it later; custom numbers opt out of auto-updates.
+        let targets = NutritionTargets(calories: kcal, proteinG: p, carbsG: c, fatG: f, fiberG: fib)
+        AdaptiveTDEESettings.followedTargets = matchesDraft(recommended) ? targets : nil
+        onSave(targets)
     }
 }
 
