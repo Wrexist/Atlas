@@ -34,15 +34,20 @@ final class WorkoutSessionService {
         // Re-hydrate any session that was active when the process was
         // suspended so the user picks up where they left off.
         activeSession = SwiftDataRepository.shared.loadActiveWorkoutSession()
-        // An activity outlives the process, so a relaunch can inherit one
-        // whose workout is long gone — or lose one whose workout isn't.
-        WorkoutLiveActivityService.shared.reconcile(active: activeSession)
         // Deferred: clearing an expired rest and closing both reach
         // DataStore, which reads `.shared` — still mid-initialisation here.
         Task { [weak self] in
-            self?.reconcileRest()
-            self?.closeIfStale()
-            self?.closeStaleOrphans()
+            // The Live Activity and the Watch name the current exercise,
+            // which reads "Unknown exercise" until the library has loaded.
+            await ExerciseLibrary.shared.load()
+            guard let self else { return }
+            // An activity outlives the process, so a relaunch can inherit
+            // one whose workout is long gone — or lose one whose workout isn't.
+            WorkoutLiveActivityService.shared.reconcile(active: self.activeSession)
+            DataStore.current?.pushWorkoutToWatch()
+            self.reconcileRest()
+            self.closeIfStale()
+            self.closeStaleOrphans()
         }
     }
 

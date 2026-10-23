@@ -71,7 +71,7 @@ final class WorkoutLiveActivityService {
     /// set leaves a running rest timer where it was.
     func update(_ session: WorkoutSession) {
         guard let activity = currentActivity(for: session.id) else { return }
-        push(Self.state(for: session), to: activity)
+        push(Self.state(for: session, previous: activity.content.state), to: activity)
     }
 
     /// Ends the activity on its summary beat. The system owns the
@@ -79,7 +79,7 @@ final class WorkoutLiveActivityService {
     /// after Finish and the app is suspended.
     func finish(_ session: WorkoutSession) {
         guard let activity = currentActivity(for: session.id) else { return }
-        var finalState = Self.state(for: session)
+        var finalState = Self.state(for: session, previous: activity.content.state)
         finalState.restEndsAt = nil
         finalState.restTotalSeconds = 0
         finalState.finishedAt = session.finishedAt ?? Date()
@@ -122,10 +122,16 @@ final class WorkoutLiveActivityService {
 
     /// Pure mapping from a session to what the activity renders.
     /// Internal so the tests can pin it without ActivityKit running.
-    static func state(for session: WorkoutSession) -> WorkoutActivityAttributes.ContentState {
+    /// `previous` is what the activity shows now: its exercise name is
+    /// kept while the library is still loading after a relaunch, rather
+    /// than replaced with "Unknown exercise".
+    static func state(
+        for session: WorkoutSession,
+        previous: WorkoutActivityAttributes.ContentState? = nil
+    ) -> WorkoutActivityAttributes.ContentState {
         WorkoutActivityAttributes.ContentState(
             workoutName: session.name ?? "",
-            currentExercise: currentExerciseName(in: session),
+            currentExercise: currentExerciseName(in: session, previous: previous?.currentExercise),
             completedSets: session.completedSetCount,
             totalSets: session.exercises.reduce(0) { total, entry in
                 total + entry.sets.filter { !$0.isWarmup }.count
@@ -141,8 +147,9 @@ final class WorkoutLiveActivityService {
     /// The exercise the user is working through: the one selected in the
     /// focus view, else the first with an unchecked set, else the first,
     /// so a finished-but-not-sealed workout doesn't blank the label.
-    private static func currentExerciseName(in session: WorkoutSession) -> String {
+    private static func currentExerciseName(in session: WorkoutSession, previous: String?) -> String {
         guard let entry = session.selectedExercise else { return "" }
+        if !ExerciseLibrary.shared.isLoaded, let previous, !previous.isEmpty { return previous }
         return ExerciseLibrary.shared.displayName(for: entry.exerciseID)
     }
 }

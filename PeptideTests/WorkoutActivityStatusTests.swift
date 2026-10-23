@@ -170,6 +170,36 @@ final class WorkoutActivityStatusTests: XCTestCase {
         XCTAssertEqual(mapped.displayName, "Workout")
     }
 
+    @MainActor
+    func test_stateForSession_beforeLibraryLoads_keepsThePreviousExerciseName() async {
+        let session = WorkoutSession(startedAt: now, exercises: [
+            WorkoutExerciseEntry(exerciseID: "Barbell_Squat", index: 0, sets: [
+                SetEntry(index: 1, weightKg: 100, reps: 5),
+            ]),
+        ])
+        ExerciseLibrary.shared.reset()
+
+        let mapped = WorkoutLiveActivityService.state(for: session, previous: state())
+        await ExerciseLibrary.shared.load()
+
+        XCTAssertEqual(mapped.currentExercise, "Bench Press")
+    }
+
+    @MainActor
+    func test_stateForSession_afterLibraryLoads_namesTheSelectedExercise() async {
+        await ExerciseLibrary.shared.load()
+        let session = WorkoutSession(startedAt: now, exercises: [
+            WorkoutExerciseEntry(exerciseID: "Barbell_Squat", index: 0, sets: [
+                SetEntry(index: 1, weightKg: 100, reps: 5),
+            ]),
+        ])
+
+        let mapped = WorkoutLiveActivityService.state(for: session, previous: state())
+
+        XCTAssertEqual(mapped.currentExercise, ExerciseLibrary.shared.lookup(id: "Barbell_Squat")?.name)
+        XCTAssertNotEqual(mapped.currentExercise, "Bench Press")
+    }
+
     // MARK: - Stale date
 
     func test_staleDate_whileResting_isTheEndOfTheRest() {
