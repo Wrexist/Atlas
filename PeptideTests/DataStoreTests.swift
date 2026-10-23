@@ -579,6 +579,23 @@ final class DataStoreTests: XCTestCase {
         XCTAssertFalse(SwiftDataRepository.shared.loadEntries().contains { $0.protocolId == proto.id })
     }
 
+    // MARK: - Custom peptides
+
+    func test_addCustomPeptide_whenStoredLibraryUnreadable_keepsTheFileIntact() throws {
+        let documents = try XCTUnwrap(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first)
+        let url = documents.appendingPathComponent("custom-peptides.json")
+        let unreadable = Data("not a peptide list".utf8)
+        try unreadable.write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let launchedLocked = DataStore()
+        launchedLocked.addCustomPeptide(MockPeptides.bpc157)
+
+        XCTAssertEqual(try Data(contentsOf: url), unreadable,
+                       "An unread library must not be replaced by the one peptide added this session")
+        XCTAssertEqual(launchedLocked.lastError, DataStore.saveFailureMessage)
+    }
+
     // MARK: - Travel mode
 
     func test_applyTravelShift_movesTodaysPendingDoseToTheShiftedTime() {

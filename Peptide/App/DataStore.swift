@@ -27,6 +27,11 @@ final class DataStore {
         didSet { peptideDatabaseCache = nil }
     }
 
+    /// False while custom-peptides.json exists but couldn't be read.
+    /// Saving then would replace the unread library with only what this
+    /// session added.
+    @ObservationIgnored private var customPeptidesReadable = true
+
     /// Observable counterpart to the private `cacheVersion`. Views key
     /// `.task(id:)` / `.onChange(of:)` off this to recompute a derived
     /// snapshot exactly once per mutation, instead of doing the work inline
@@ -160,7 +165,9 @@ final class DataStore {
         self.protocols = []
         self.entries   = []
         self.profile   = .fresh
-        self.customPeptides = PersistenceService.shared.loadCustomPeptides() ?? []
+        let storedCustomPeptides = Self.readCustomPeptides()
+        self.customPeptides = storedCustomPeptides ?? []
+        self.customPeptidesReadable = storedCustomPeptides != nil
 
         // Phase 2: self is fully initialized — safe to call methods.
         if repo.isAwaitingAccountDecision {
@@ -266,6 +273,18 @@ final class DataStore {
         ) { [weak self] _ in
             Task { @MainActor in
                 self?.handleIdentityChange()
+            }
+        }
+
+        // A launch while the device was locked (notification action,
+        // Siri intent) may not have been able to read the library.
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.protectedDataDidBecomeAvailableNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.retryUnreadableCustomPeptides()
             }
         }
 
@@ -428,8 +447,35 @@ final class DataStore {
 
     func addCustomPeptide(_ peptide: Peptide) {
         customPeptides.append(peptide)
+        retryUnreadableCustomPeptides()
+        guard customPeptidesReadable else {
+            lastError = Self.saveFailureMessage
+            return
+        }
         PersistenceService.shared.saveCustomPeptides(customPeptides)
         Haptics.success()
+    }
+
+    private static func readCustomPeptides() -> [Peptide]? {
+        do {
+            return try PersistenceService.shared.loadCustomPeptides()
+        } catch {
+            AppLog.persistence.error("Custom peptides unreadable: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
+    /// Re-reads a library that was unreadable at launch and keeps any
+    /// peptide added since, writing the merge back.
+    private func retryUnreadableCustomPeptides() {
+        guard !customPeptidesReadable, let stored = Self.readCustomPeptides() else { return }
+        let storedIDs = Set(stored.map(\.id))
+        let addedSince = customPeptides.filter { !storedIDs.contains($0.id) }
+        customPeptides = stored + addedSince
+        customPeptidesReadable = true
+        if !addedSince.isEmpty {
+            PersistenceService.shared.saveCustomPeptides(customPeptides)
+        }
     }
 
     // MARK: - Protocols
