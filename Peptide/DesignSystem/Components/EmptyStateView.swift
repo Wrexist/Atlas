@@ -26,8 +26,8 @@ struct EmptyStateView: View {
     var accent: Color = AppColor.accentFill
     var action: Action? = nil
     /// Secondary hint or affordance below the primary CTA. Renders
-    /// as an uppercase text button without a background, so
-    /// it reads as a "you can also…" rather than a competing CTA.
+    /// as a ghost text button without a background, so it reads as
+    /// a "you can also…" rather than a competing CTA.
     var secondary: Action? = nil
     var style: Style = .fullScreen
 
@@ -92,22 +92,7 @@ struct EmptyStateView: View {
                 }
 
                 if let secondary {
-                    Button(action: secondary.perform) {
-                        HStack(spacing: Spacing.xs) {
-                            if let icon = secondary.icon {
-                                Image(systemName: icon)
-                                    .font(AppFont.scaled(11, weight: .heavy))
-                                    .accessibilityHidden(true)
-                            }
-                            Text(secondary.title)
-                                .font(AppFont.scaled(13, weight: .heavy))
-                                .tracking(0.4)
-                                .textCase(.uppercase)
-                        }
-                        .foregroundStyle(AppColor.textTertiary)
-                        .minimumHitArea()
-                    }
-                    .buttonStyle(ScalePressStyle())
+                    secondaryButton(secondary)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -166,9 +151,22 @@ struct EmptyStateView: View {
                 }
                 .padding(.top, Spacing.xs)
             }
+
+            if let secondary {
+                secondaryButton(secondary)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, Spacing.md)
+    }
+
+    /// The "you can also…" action, drawn as the app's text button: accent
+    /// ink reads as tappable, where the old uppercase tertiary caption
+    /// read as a section label, and no surface keeps it below the CTA.
+    private func secondaryButton(_ secondary: Action) -> some View {
+        GlassButton(title: secondary.title, icon: secondary.icon, style: .ghost) {
+            secondary.perform()
+        }
     }
 }
 

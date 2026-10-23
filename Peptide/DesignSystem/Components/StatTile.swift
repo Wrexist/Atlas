@@ -77,6 +77,16 @@ struct StatTile: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(alignment: .topTrailing) {
+            // A tile that opens something says so, the way a list row
+            // does; otherwise it looks identical to a static readout.
+            if action != nil {
+                Image(systemName: "chevron.right")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityHidden(true)
+            }
+        }
         .modifier(StatTileSurface(surface: surface))
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
