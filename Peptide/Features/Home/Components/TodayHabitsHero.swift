@@ -233,7 +233,6 @@ struct TodayHabitsHero: View {
     }
 
     private var summaryAccessibilityLabel: String {
-        let dayWord = isReadOnly ? "that day" : "today"
         let progress = snapshot.dueCount > 0
             ? (isReadOnly
                 ? String(localized: "\(snapshot.doneCount) of \(snapshot.dueCount) habits done that day")
