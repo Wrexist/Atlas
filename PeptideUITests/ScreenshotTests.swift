@@ -783,15 +783,12 @@ final class ScreenshotTests: XCTestCase {
         dismissOverlaysIfNeeded()
         capture(named: String(format: "%@-%02d-Paywall", prefix, slot))
 
-        // Dismiss so the loop above can go on to the Habits tab.
-        if closeButton.isHittable {
-            closeButton.tap()
-        } else {
-            XCTExpectFailure("At accessibility text sizes the paywall lays out wider than the screen and pushes Close off-screen") {
-                XCTFail("Paywall Close button is off-screen")
-            }
-            app.swipeDown(velocity: .fast)
-        }
+        // Close must stay reachable at every text size, including the
+        // accessibility sizes this suite runs at: a purchase surface the
+        // user cannot dismiss is an App Review risk. Tapping it also
+        // returns the loop above to the Habits tab.
+        XCTAssertTrue(closeButton.isHittable, "Paywall Close button is off-screen")
+        closeButton.tap()
     }
 
     private func capture(named name: String) {
