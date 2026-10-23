@@ -20467,16 +20467,6 @@
         }
       }
     },
-    "Meal streak paused, best was %lld.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Måltidssviten är pausad, bästa var %lld."
-          }
-        }
-      }
-    },
     "Meal-logging streak paused. Best streak %lld days.": {
       "localizations": {
         "sv": {
@@ -39949,6 +39939,96 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nästa dos: %@ kl. %@"
+          }
+        }
+      }
+    },
+    "Meal streak paused, best was %lld days.": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Meal streak paused, best was %lld day."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Meal streak paused, best was %lld days."
+                }
+              }
+            }
+          }
+        },
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Måltidssviten är pausad, bästa var %lld dag."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Måltidssviten är pausad, bästa var %lld dagar."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Dose streak paused, best was %lld days.": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Dose streak paused, best was %lld day."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Dose streak paused, best was %lld days."
+                }
+              }
+            }
+          }
+        },
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Dossviten är pausad, bästa var %lld dag."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Dossviten är pausad, bästa var %lld dagar."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "No active streaks yet.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga aktiva sviter än."
           }
         }
       }
