@@ -71,13 +71,13 @@ struct NutritionTargetsEditor: View {
     /// is personalised or a generic starting point.
     private var hasPersonalStats: Bool { bodyMetrics.isComplete }
 
+    private var goalLabel: String {
+        NutritionMath.GoalIntent(goalRaw: goalRaw).shortLabel
+    }
+
     /// Preset that matches the user's stated goal, flagged in the chip row.
     private var recommendedPreset: NutritionMath.Preset {
         NutritionMath.Preset.matching(goalRaw: goalRaw)
-    }
-
-    private var goalLabel: String {
-        NutritionMath.GoalIntent(goalRaw: goalRaw).shortLabel
     }
 
     var body: some View {
@@ -236,10 +236,10 @@ struct NutritionTargetsEditor: View {
                 }
 
                 HStack(spacing: Spacing.sm) {
-                    recChip("\(rec.calories)", "kcal", tint: AppColor.accentLight)
-                    recChip("\(rec.proteinG)", "P", tint: AppColor.macroProtein)
-                    recChip("\(rec.carbsG)", "C", tint: AppColor.macroCarbs)
-                    recChip("\(rec.fatG)", "F", tint: AppColor.macroFat)
+                    recChip("\(rec.calories)", "kcal", spoken: Text("\(rec.calories) kilocalories"), tint: AppColor.accentLight)
+                    recChip("\(rec.proteinG)", "P", spoken: Text("\(rec.proteinG) grams protein"), tint: AppColor.macroProtein)
+                    recChip("\(rec.carbsG)", "C", spoken: Text("\(rec.carbsG) grams carbs"), tint: AppColor.macroCarbs)
+                    recChip("\(rec.fatG)", "F", spoken: Text("\(rec.fatG) grams fat"), tint: AppColor.macroFat)
                 }
 
                 GlassButton(
@@ -317,7 +317,7 @@ struct NutritionTargetsEditor: View {
         }
     }
 
-    private func recChip(_ value: String, _ unit: LocalizedStringKey, tint: Color) -> some View {
+    private func recChip(_ value: String, _ unit: LocalizedStringKey, spoken: Text, tint: Color) -> some View {
         VStack(spacing: 1) {
             Text(value)
                 .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
@@ -333,6 +333,8 @@ struct NutritionTargetsEditor: View {
             RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                 .fill(tint.opacity(0.12))
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(spoken)
     }
 
     // MARK: - Goal presets
@@ -402,6 +404,10 @@ struct NutritionTargetsEditor: View {
             }
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(isRecommended
+            ? Text("\(preset.title), \(targets.calories) kilocalories, recommended")
+            : Text("\(preset.title), \(targets.calories) kilocalories"))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     // MARK: - Input cards

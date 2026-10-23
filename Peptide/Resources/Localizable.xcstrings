@@ -1415,6 +1415,28 @@
         }
       }
     },
+    "%@, %lld kilocalories": {
+      "comment": "VoiceOver label for a goal preset chip: preset name, calories.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$lld kilokalorier"
+          }
+        }
+      }
+    },
+    "%@, %lld kilocalories, recommended": {
+      "comment": "VoiceOver label for the recommended goal preset chip: preset name, calories.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$lld kilokalorier, rekommenderas"
+          }
+        }
+      }
+    },
     "%@, %lld logged, %lld scheduled": {
       "localizations": {
         "sv": {
