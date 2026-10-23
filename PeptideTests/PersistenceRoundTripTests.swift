@@ -1148,6 +1148,19 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertFalse(service.shouldShowTour(hasCompletedOnboarding: true))
     }
 
+    func test_whatsNewService_updateMidOnboarding_skipsTourAfterFinishing() {
+        let suiteName = "whatsNewServiceTest.midOnboarding.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let service = WhatsNewService(defaults: defaults)
+
+        // Onboarding started on an older build, which stamped its own
+        // version; the update lands before the user finishes.
+        defaults.set("old", forKey: "com.peptidesai.app.whatsNew.lastSeenVersion")
+        service.bootstrapForFreshInstallIfNeeded(hasCompletedOnboarding: false)
+        XCTAssertFalse(service.shouldShowTour(hasCompletedOnboarding: true))
+    }
+
     func test_whatsNewService_doesNotFireWhenOnboardingIncomplete() {
         let suiteName = "whatsNewServiceTest.onboarding.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
