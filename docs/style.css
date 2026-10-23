@@ -128,54 +128,9 @@ header.site nav a:hover { color: var(--fg); }
   margin-top: 1rem;
 }
 
-/* ─────────────────────────── Social-proof pill ─────────────────── */
-
-.social-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.4rem 0.8rem 0.4rem 0.5rem;
-  background: var(--bg-soft);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  font-size: 0.9rem;
-  color: var(--fg-muted);
-}
-.avatar-stack {
-  display: inline-flex;
-}
-.avatar {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  border: 2px solid var(--bg);
-  margin-left: -8px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: #fff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  letter-spacing: -0.01em;
-}
-.avatar:first-child { margin-left: 0; }
-.avatar-a { background: linear-gradient(135deg, #C4B5FD, #7F77DD); }
-.avatar-b { background: linear-gradient(135deg, #7F77DD, #4F46E5); }
-.avatar-c { background: linear-gradient(135deg, #D4537E, #7C3AED); }
-.social-text strong { color: var(--fg); font-weight: 600; }
-.rating {
-  font-weight: 700;
-  color: var(--fg);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-}
-.rating .star { color: #F59E0B; }
-
 /* ───────────────────────────────── CTA pills ───────────────────── */
 
-.cta-stack {
+.cta-row {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -390,49 +345,6 @@ header.site nav a:hover { color: var(--fg); }
 }
 @media (max-width: 540px) {
   .feature-grid { grid-template-columns: 1fr; }
-}
-
-/* ─────────────────────────────── Testimonials ──────────────────── */
-
-.testimonials {
-  padding: 3rem 1.25rem;
-}
-.testimonial-grid {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.25rem;
-}
-.testimonial {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 1.25rem 1.4rem;
-  margin: 0;
-}
-.testimonial p {
-  margin: 0 0 0.75rem;
-  font-size: 1rem;
-  color: var(--fg);
-  line-height: 1.5;
-}
-.testimonial footer {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  color: var(--fg-soft);
-  font-size: 0.85rem;
-}
-.testimonial cite { font-style: normal; }
-.testimonial .stars {
-  color: #F59E0B;
-  font-size: 0.85rem;
-  letter-spacing: 0.05em;
-}
-
-@media (max-width: 880px) {
-  .testimonial-grid { grid-template-columns: 1fr; gap: 1rem; }
 }
 
 /* ───────────────────────────── Disclaimer ──────────────────────── */
