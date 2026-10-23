@@ -47,7 +47,7 @@ struct RoutinesView: View {
             rebuildSummaries()
         }
         .task(id: store.routines) { rebuildSummaries() }
-        .onAppear(perform: discardUntouchedRoutines)
+        .onAppear { store.discardAbandonedDrafts() }
         .alert("Rename routine", isPresented: renameBinding) {
             TextField("Routine name", text: $renameText)
             Button("Cancel", role: .cancel) { renaming = nil }
@@ -128,7 +128,7 @@ struct RoutinesView: View {
 
     private var newRoutineButton: some View {
         GlassButton(title: "New routine", icon: "plus", style: .secondary, isFullWidth: true) {
-            open(store.create(name: RoutineStore.untitledName).id)
+            open(store.createDraft().id)
         }
     }
 
@@ -176,7 +176,7 @@ struct RoutinesView: View {
                     title: "No routines yet",
                     message: "A routine is your workout written down — the lifts, in order, with the sets and reps you're aiming for. Save one and every session after this starts with a single tap.",
                     action: .init(title: "Build a routine", icon: "plus") {
-                        open(store.create(name: RoutineStore.untitledName).id)
+                        open(store.createDraft().id)
                     }
                 )
 
@@ -201,13 +201,6 @@ struct RoutinesView: View {
     /// "New routine" saves an empty routine before pushing its builder.
     /// Coming back here without adding an exercise or renaming it
     /// shouldn't leave that empty card behind.
-    private func discardUntouchedRoutines() {
-        for routine in store.routines
-        where routine.exercises.isEmpty && routine.name == RoutineStore.untitledName {
-            store.delete(id: routine.id)
-        }
-    }
-
     private func open(_ id: UUID) {
         path.append(.routineBuilder(id))
     }
