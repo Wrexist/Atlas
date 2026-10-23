@@ -232,6 +232,34 @@ def check_compatibility_wording() -> list[str]:
     return failures
 
 
+# Dosing directives and efficacy claims in UI copy. Atlas tells users it does
+# not calculate or recommend doses; copy that says "recommended max",
+# "monitor liver enzymes" or "amplify tissue repair" contradicts that and is
+# what Guideline 1.4.1 reviews reject. Comments are skipped.
+HEALTH_DIRECTIVES = (r"(?i)recommended max|consult an oncologist|monitor liver"
+                     r"|(?:restore|preserve) receptor sensitivity"
+                     r"|\bamplif(?:y|ies) (?:tissue|healing|recovery|repair)"
+                     r"|accelerate healing|nail your|don't eat for \d+")
+
+
+def check_health_directives() -> list[str]:
+    failures = []
+    for root in ("Peptide/Services", "Peptide/Features"):
+        for path in sorted((REPO / root).rglob("*.swift")):
+            for number, line in enumerate(path.read_text().splitlines(), 1):
+                if line.lstrip().startswith("//"):
+                    continue
+                for literal in re.findall(r'"((?:[^"\\]|\\.)*)"', line):
+                    hit = re.search(HEALTH_DIRECTIVES, literal)
+                    if hit:
+                        name = path.relative_to(REPO)
+                        print(f"  FAIL {name}:{number}: health directive {hit.group(0)!r}")
+                        failures.append(f"directive:{name}:{number}")
+    if not failures:
+        print("  ok   UI copy gives no dosing directives or efficacy claims")
+    return failures
+
+
 def tier_for_level(level: int) -> str:
     """Mirror of MomentumEngine.Tier.forLevel, parsed from the source so it
     cannot drift from it."""
@@ -385,6 +413,7 @@ def main() -> int:
     failures += check_exercise_fixtures()
     failures += check_store_terms()
     failures += check_screenshot_countdowns()
+    failures += check_health_directives()
     failures += check_compatibility_wording()
 
     if failures:

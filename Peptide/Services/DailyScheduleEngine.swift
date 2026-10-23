@@ -444,14 +444,14 @@ enum DailyScheduleEngine {
         // Fasted reminder if at least one other dose lands in the same slot,
         // so the user knows not to break the fast for the second injection.
         if fastedRequired && !companions.isEmpty {
-            let fastedNote = String(localized: "Stay fasted — don't eat for 30 min after injection. Other doses in this window can be taken back-to-back without breaking the fast.")
+            let fastedTitle = String(localized: "Stay fasted")
             // Only add if this is the first fasted-required peptide we see;
             // otherwise the note becomes redundant noise.
-            if !hints.contains(where: { $0.title.hasPrefix("Stay fasted") }) {
+            if !hints.contains(where: { $0.title == fastedTitle }) {
                 hints.append(ConflictHint(
                     severity: .info,
-                    title: String(localized: "Stay fasted"),
-                    detail: fastedNote,
+                    title: fastedTitle,
+                    detail: String(localized: "Your plan marks this dose as fasted. Other doses in this window can be taken back-to-back without breaking the fast."),
                     counterpart: nil
                 ))
             }

@@ -3423,12 +3423,12 @@
         }
       }
     },
-    "%lld peptides in your protocol promote blood vessel growth. Use caution if you have a history of malignancy, as angiogenesis can theoretically fuel tumor vascularization.": {
+    "%lld peptides in your protocol are described in research as promoting blood vessel growth. Some sources flag this for people with a history of cancer.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld peptider i ditt protokoll främjar kärlnybildning. Var försiktig om du har haft cancer, eftersom angiogenes teoretiskt kan gynna tumörers blodförsörjning."
+            "value": "%lld peptider i ditt protokoll beskrivs i forskning som kärlnybildande. Vissa källor lyfter detta för personer som har haft cancer."
           }
         }
       }
@@ -3443,12 +3443,12 @@
         }
       }
     },
-    "%lld peptides target the %@ pathway (recommended max: %lld).": {
+    "%lld peptides in your protocol target the %@ pathway. Some sources describe using no more than %lld together.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld peptider verkar på %@-vägen (rekommenderat max: %lld)."
+            "value": "%lld peptider i ditt protokoll verkar på %@-vägen. Vissa källor beskriver att man inte använder fler än %lld samtidigt."
           }
         }
       }
@@ -6945,12 +6945,12 @@
         }
       }
     },
-    "Alternate on/off periods to preserve receptor sensitivity.": {
+    "Alternate on and off periods, as your plan describes.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Växla mellan på- och av-perioder för att bevara receptorkänsligheten."
+            "value": "Växla mellan på- och av-perioder enligt din plan."
           }
         }
       }
@@ -7075,12 +7075,12 @@
         }
       }
     },
-    "Anti-Aging + Recovery enhance regeneration": {
+    "Anti-Aging + Recovery are often studied together for regeneration": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Anti-aging + återhämtning förbättrar regenerering"
+            "value": "Anti-aging + återhämtning studeras ofta tillsammans för regenerering"
           }
         }
       }
@@ -10155,12 +10155,12 @@
         }
       }
     },
-    "Cognitive + Anti-Aging support neuroprotection": {
+    "Cognitive + Anti-Aging are often studied together for neuroprotection": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kognitiv + anti-aging stödjer neuroskydd"
+            "value": "Kognitiv + anti-aging studeras ofta tillsammans för neuroskydd"
           }
         }
       }
@@ -11295,7 +11295,7 @@
         }
       }
     },
-    "Consider a %lld-week washout period to restore receptor sensitivity.": {
+    "Some sources describe a %lld-week break at this point. Discuss timing with your clinician.": {
       "localizations": {
         "sv": {
           "variations": {
@@ -11303,13 +11303,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Överväg en uppehållsperiod på %lld vecka för att återställa receptorkänsligheten."
+                  "value": "Vissa källor beskriver ett uppehåll på %lld vecka i det här läget. Diskutera tidpunkten med din läkare."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Överväg en uppehållsperiod på %lld veckor för att återställa receptorkänsligheten."
+                  "value": "Vissa källor beskriver ett uppehåll på %lld veckor i det här läget. Diskutera tidpunkten med din läkare."
                 }
               }
             }
@@ -11317,12 +11317,12 @@
         }
       }
     },
-    "Consider an easier day. Hydrate, prioritize sleep, and don't skip rest doses.": {
+    "Consider an easier day. Hydrate and prioritize sleep.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Överväg en lugnare dag. Drick vatten, prioritera sömn och hoppa inte över vilodoser."
+            "value": "Överväg en lugnare dag. Drick vatten och prioritera sömn."
           }
         }
       }
@@ -16569,12 +16569,22 @@
         }
       }
     },
-    "Growth + Cognitive support neuroplasticity": {
+    "Growth + Cognitive are often studied together for neuroplasticity": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tillväxt + kognitiv stödjer neuroplasticitet"
+            "value": "Tillväxt + kognitiv studeras ofta tillsammans för neuroplasticitet"
+          }
+        }
+      }
+    },
+    "Growth + Recovery are often studied together for tissue repair": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tillväxt + återhämtning studeras ofta tillsammans för vävnadsreparation"
           }
         }
       }
@@ -17641,12 +17651,12 @@
         }
       }
     },
-    "If you have any cancer history, consult an oncologist before using multiple angiogenic peptides together.": {
+    "Discuss this combination with your clinician, especially if you have any cancer history.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Om du har haft cancer, rådgör med en onkolog innan du använder flera angiogena peptider samtidigt."
+            "value": "Diskutera kombinationen med din läkare, särskilt om du har haft cancer."
           }
         }
       }
@@ -17681,12 +17691,12 @@
         }
       }
     },
-    "Immune + Recovery accelerate healing response": {
+    "Immune + Recovery are often studied together for healing": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Immunförsvar + återhämtning snabbar på läkningen"
+            "value": "Immunförsvar + återhämtning studeras ofta tillsammans för läkning"
           }
         }
       }
@@ -20699,12 +20709,12 @@
         }
       }
     },
-    "Metabolic + Growth preserve muscle during fat loss": {
+    "Metabolic + Growth are often studied together for muscle retention during fat loss": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Metabol + tillväxt bevarar muskler vid fettminskning"
+            "value": "Metabol + tillväxt studeras ofta tillsammans för att behålla muskler vid fettminskning"
           }
         }
       }
@@ -20929,12 +20939,12 @@
         }
       }
     },
-    "Monitor liver enzymes (ALT, AST) and avoid combining with alcohol or hepatotoxic supplements.": {
+    "Discuss liver monitoring with your clinician. Alcohol and some supplements also affect the liver.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Följ leverenzymer (ALT, AST) och undvik att kombinera med alkohol eller levertoxiska kosttillskott."
+            "value": "Diskutera leverkontroller med din läkare. Alkohol och vissa kosttillskott påverkar också levern."
           }
         }
       }
@@ -26831,12 +26841,12 @@
         }
       }
     },
-    "Recommended cycle is %lld weeks on / %lld weeks off. You're at week %lld. %@.": {
+    "Sources commonly describe %lld weeks on and %lld weeks off. You're at week %lld. %@.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rekommenderad cykel är %lld veckor på / %lld veckor av. Du är på vecka %lld. %@."
+            "value": "Källor beskriver ofta %lld veckor på och %lld veckor av. Du är på vecka %lld. %@."
           }
         }
       }
@@ -26981,22 +26991,22 @@
         }
       }
     },
-    "Recovery is up — good day to nail your %@ dose at %@.": {
+    "Recovery is up. Your %@ dose is scheduled for %@.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Återhämtningen är uppe – en bra dag att ta din %@-dos kl. %@."
+            "value": "Återhämtningen är uppe. Din %@-dos är schemalagd kl. %@."
           }
         }
       }
     },
-    "Recovery is up — good day to nail your BPC-157 dose at 8:00 PM.": {
+    "Recovery is up. Your BPC-157 dose is scheduled for 8:00 PM.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Återhämtningen är uppe – en bra dag att ta din BPC-157-dos kl. 20.00."
+            "value": "Återhämtningen är uppe. Din BPC-157-dos är schemalagd kl. 20.00."
           }
         }
       }
@@ -29031,34 +29041,12 @@
         }
       }
     },
-    "Schedule a %lld-week off period.%@": {
+    "Review your cycle plan with your clinician.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Schemalägg ett uppehåll på %#@arg1@.%2$@"
-          },
-          "substitutions": {
-            "arg1": {
-              "argNum": 1,
-              "formatSpecifier": "lld",
-              "variations": {
-                "plural": {
-                  "one": {
-                    "stringUnit": {
-                      "state": "translated",
-                      "value": "%arg vecka"
-                    }
-                  },
-                  "other": {
-                    "stringUnit": {
-                      "state": "translated",
-                      "value": "%arg veckor"
-                    }
-                  }
-                }
-              }
-            }
+            "value": "Gå igenom din cykelplan med din läkare."
           }
         }
       }
@@ -31143,12 +31131,12 @@
         }
       }
     },
-    "Stay fasted — don't eat for 30 min after injection. Other doses in this window can be taken back-to-back without breaking the fast.": {
+    "Your plan marks this dose as fasted. Other doses in this window can be taken back-to-back without breaking the fast.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Förbli fastande – ät inte på 30 min efter injektionen. Andra doser i det här fönstret kan tas direkt efter varandra utan att bryta fastan."
+            "value": "Din plan anger att den här dosen tas fastande. Andra doser i det här fönstret kan tas direkt efter varandra utan att bryta fastan."
           }
         }
       }

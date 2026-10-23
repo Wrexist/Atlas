@@ -146,7 +146,7 @@ enum CoachingMessageEngine {
     private static func strongRecoveryMessage(context: Context, recovery: Int) -> CoachingMessage {
         let body: String
         if let dose = context.nextDoseAbbreviation, let time = context.nextDoseTimeDisplay {
-            body = String(localized: "Recovery is up — good day to nail your \(dose) dose at \(time).")
+            body = String(localized: "Recovery is up. Your \(dose) dose is scheduled for \(time).")
         } else {
             body = String(localized: "Recovery is up. Good day to push and stay consistent.")
         }
@@ -164,7 +164,7 @@ enum CoachingMessageEngine {
             icon: "moon.zzz.fill",
             eyebrow: String(localized: "COACHING"),
             title: String(localized: "Lower recovery — \(recovery)%"),
-            body: String(localized: "Consider an easier day. Hydrate, prioritize sleep, and don't skip rest doses."),
+            body: String(localized: "Consider an easier day. Hydrate and prioritize sleep."),
             tone: .cautionary
         )
     }

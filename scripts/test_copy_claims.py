@@ -52,6 +52,14 @@ class StoreFacingCopyTests(unittest.TestCase):
         self.assertRegex("⚡ WELCOME OFFER ENDS IN", claims.COUNTDOWN_COPY)
         self.assertNotRegex("7 days free, then choose a plan", claims.COUNTDOWN_COPY)
 
+    def test_dosing_directives_are_flagged_and_neutral_copy_is_not(self):
+        for text in ["(recommended max: 2)", "Monitor liver enzymes (ALT, AST)",
+                     "Growth + Recovery amplify tissue repair",
+                     "don't eat for 30 min after injection"]:
+            with self.subTest(text=text):
+                self.assertRegex(text, claims.HEALTH_DIRECTIVES)
+        self.assertNotRegex("Discuss liver monitoring with your clinician.", claims.HEALTH_DIRECTIVES)
+
 
 if __name__ == "__main__":
     unittest.main()
