@@ -55,7 +55,10 @@ final class FoodLibraryLogicTests: XCTestCase {
             DataStore.current = nil
             repo.configureForTesting()
         }
-        UserDefaults.standard.set(false, forKey: HealthSyncSettings.nutritionEnabledKey)
+        let healthKey = HealthSyncSettings.nutritionEnabledKey
+        let savedHealthFlag = UserDefaults.standard.object(forKey: healthKey)
+        defer { UserDefaults.standard.set(savedHealthFlag, forKey: healthKey) }
+        UserDefaults.standard.set(false, forKey: healthKey)
         let oats = food()
         store.profile.customFoods = [oats]
         store.flushPendingSave()
