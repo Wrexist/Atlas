@@ -198,6 +198,10 @@ enum AppColor {
     // out of inline hex literals so every site that renders the same idea uses
     // the same color and a future palette tweak is one edit.
 
+    /// Protocol wash-out phase — the cool counterpart to the accent's
+    /// "on cycle" on the cycle-phase card.
+    static let washout = Color(light: 0x6B63C4, dark: 0xA89EF5)
+
     /// Warm orange used for streak flames and "consecutive days" affordances.
     static let streak = Color(light: 0xC26A2B, dark: 0xE88D4F)
 
