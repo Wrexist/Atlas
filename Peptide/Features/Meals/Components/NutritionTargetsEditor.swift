@@ -75,11 +75,6 @@ struct NutritionTargetsEditor: View {
         NutritionMath.GoalIntent(goalRaw: goalRaw).shortLabel
     }
 
-    /// Preset that matches the user's stated goal, flagged in the chip row.
-    private var recommendedPreset: NutritionMath.Preset {
-        NutritionMath.Preset.matching(goalRaw: goalRaw)
-    }
-
     var body: some View {
         NavigationStack {
             ZStack {
@@ -341,7 +336,7 @@ struct NutritionTargetsEditor: View {
 
     /// Three one-tap goal presets. Each applies a ready-made calorie + macro
     /// split so a user who doesn't want to think about numbers can pick a
-    /// goal and be done. The chip matching their stated goal is marked.
+    /// goal and be done. The chip matching the recommendation is marked.
     private var presetsCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -361,7 +356,9 @@ struct NutritionTargetsEditor: View {
     private func presetChip(_ preset: NutritionMath.Preset) -> some View {
         let targets = NutritionMath.presetTargets(preset, for: bodyMetrics, maintenanceKcal: adaptiveMaintenance)
         let isSelected = matchesDraft(targets)
-        let isRecommended = preset == recommendedPreset
+        // Only a chip whose numbers match the "Recommended for you" card
+        // is flagged, so the screen never shows two different plans.
+        let isRecommended = targets == recommended
         return Button {
             Haptics.impact(.soft)
             apply(targets)
