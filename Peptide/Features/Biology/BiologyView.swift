@@ -278,7 +278,7 @@ struct BiologyView: View {
         let profile = dataStore.profile
         let latestWeight = profile.weightHistory.max(by: { $0.date < $1.date })?.kg
             ?? profile.bodyMetrics.weightKg
-        resolved = await BioAgeStateResolver.resolve(
+        let fresh = await BioAgeStateResolver.resolve(
             chronologicalAge: profile.bodyMetrics.age,
             sex: profile.bodyMetrics.sex,
             bodyMassIndex: PerformanceAgeEngine.bodyMassIndex(
@@ -288,8 +288,14 @@ struct BiologyView: View {
             weightHistory: profile.weightHistory,
             isPro: storeService.isProUser
         )
+        // A superseded run keeps going after cancellation; it must not
+        // overwrite the newer run's result when its reads land last.
+        guard !Task.isCancelled else { return }
+        resolved = fresh
         if profile.healthConnected && storeService.isProUser {
-            needsHealthUpgrade = await HealthKitService.shared.hasUnrequestedReadTypes()
+            let unrequested = await HealthKitService.shared.hasUnrequestedReadTypes()
+            guard !Task.isCancelled else { return }
+            needsHealthUpgrade = unrequested
         } else {
             needsHealthUpgrade = false
         }
