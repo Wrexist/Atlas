@@ -39,6 +39,11 @@ struct ActiveWorkoutView: View {
         dataStore.profile.trainingPreferences?.restTimerDefault ?? 90
     }
 
+    /// Marked in the picker so a lift isn't added twice by accident.
+    private var inWorkoutExerciseIDs: Set<String> {
+        Set(sessionService.activeSession?.exercises.map(\.exerciseID) ?? [])
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -247,6 +252,13 @@ struct ActiveWorkoutView: View {
                         if let liveSession = sessionService.activeSession {
                             heroHeader(for: liveSession)
                             SessionMuscleCard(session: liveSession)
+                            if liveSession.isPaused {
+                                // Says why the sets below don't respond.
+                                Label("Paused — resume to edit sets.", systemImage: "pause.circle")
+                                    .font(AppFont.callout)
+                                    .foregroundStyle(AppColor.textSecondary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
                             exerciseStack(for: liveSession).disabled(liveSession.isPaused)
                         }
                     }
@@ -275,13 +287,13 @@ struct ActiveWorkoutView: View {
             // Its own presenter: the workout-level picker can't open while
             // this sheet is still up.
             .sheet(isPresented: $showOverviewPicker) {
-                ExercisePickerSheet { exercise in
+                ExercisePickerSheet(existingIDs: inWorkoutExerciseIDs) { exercise in
                     sessionService.addExercise(exercise)
                 }
             }
         }
         .sheet(isPresented: $showExercisePicker) {
-            ExercisePickerSheet { exercise in
+            ExercisePickerSheet(existingIDs: inWorkoutExerciseIDs) { exercise in
                 sessionService.addExercise(exercise)
             }
         }

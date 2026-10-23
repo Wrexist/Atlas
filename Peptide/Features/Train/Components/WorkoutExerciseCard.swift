@@ -191,7 +191,11 @@ struct WorkoutExerciseCard: View {
     }
 
     private var addSetButton: some View {
-        Button(action: onAddSet) {
+        Button {
+            // Same tick as the focus screen's "Add set".
+            Haptics.impact(.light)
+            onAddSet()
+        } label: {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "plus.circle.fill")
                 Text("Add set")
