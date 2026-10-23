@@ -67,7 +67,10 @@ struct HabitsHeroSnapshot: Equatable {
                 due += 1
                 if summary.isCompletedToday { done += 1 }
             }
-            best = max(best, summary.currentStreak)
+            // Weekly habits count weeks; the hero's figure is days.
+            if !habit.schedule.countsStreakInWeeks {
+                best = max(best, summary.currentStreak)
+            }
         }
         return HabitsHeroSnapshot(items: items, dueCount: due, doneCount: done, bestCurrentStreak: best)
     }

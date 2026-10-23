@@ -188,7 +188,8 @@ struct HabitsView: View {
     private func habitsSummaryHeader(rows: [Row]) -> some View {
         let due = rows.filter { $0.summary.isDueToday }.count
         let done = rows.filter { $0.summary.isDueToday && $0.summary.isCompletedToday }.count
-        let best = rows.map { $0.summary.currentStreak }.max() ?? 0
+        // Weekly habits count weeks; the header's figure is days.
+        let best = rows.filter { !$0.habit.schedule.countsStreakInWeeks }.map(\.summary.currentStreak).max() ?? 0
         let progress = due > 0 ? min(1, Double(done) / Double(due)) : 0
         let momentum = dataStore.momentum
 

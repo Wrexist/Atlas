@@ -1567,6 +1567,16 @@
         }
       }
     },
+    "%@. %@. %@, %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@. %2$@. %3$@, %4$@."
+          }
+        }
+      }
+    },
     "%@. %@. %lld day streak, %lld days total.": {
       "localizations": {
         "sv": {
@@ -1746,6 +1756,46 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld dagar gratis"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld days total": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dag totalt"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dagar totalt"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld day total"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld days total"
                 }
               }
             }
@@ -3903,6 +3953,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld till nivå %lld"
+          }
+        }
+      }
+    },
+    "%lld week streak": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld veckas svit"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld veckors svit"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld week streak"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld week streak"
+                }
+              }
+            }
           }
         }
       }

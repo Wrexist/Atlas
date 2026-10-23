@@ -2185,11 +2185,13 @@ final class DataStore {
     /// True when every habit due today is completed (and at least one was
     /// due). Drives the "perfect day" celebration + achievement.
     func allHabitsDoneToday(on date: Date = Date()) -> Bool {
-        let due = activeHabits.filter { $0.schedule.isDue(on: date) }
+        // The summary's due flag, not the schedule's: a times-per-week
+        // habit that met its target stops holding the perfect day open.
+        let due = activeHabits
+            .map { HabitsService.summary(for: $0, entries: profile.habitEntries, on: date) }
+            .filter(\.isDueToday)
         guard !due.isEmpty else { return false }
-        return due.allSatisfy {
-            HabitsService.summary(for: $0, entries: profile.habitEntries, on: date).isCompletedToday
-        }
+        return due.allSatisfy(\.isCompletedToday)
     }
 
     /// Fires the habit-completion celebration on the not-complete → complete
@@ -2254,10 +2256,10 @@ final class DataStore {
     }
 
     private func momentumInputs() -> MomentumEngine.Inputs {
-        let dueHabits = activeHabits.filter { $0.schedule.isDue(on: Date()) }
-        let doneHabits = dueHabits.filter {
-            HabitsService.summary(for: $0, entries: profile.habitEntries).isCompletedToday
-        }
+        let dueHabits = activeHabits
+            .map { HabitsService.summary(for: $0, entries: profile.habitEntries) }
+            .filter(\.isDueToday)
+        let doneHabits = dueHabits.filter(\.isCompletedToday)
         let today = todayEntries
         return MomentumEngine.Inputs(
             habitsDone: doneHabits.count,

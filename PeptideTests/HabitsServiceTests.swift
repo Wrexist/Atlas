@@ -386,4 +386,60 @@ final class HabitsServiceTests: XCTestCase {
             4
         )
     }
+
+    // MARK: - Times-per-week streaks
+
+    private var mondayFirstUTC: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        calendar.firstWeekday = 2
+        return calendar
+    }
+
+    /// A day in October 2026; the 5th, 12th and 19th are Mondays.
+    private func october(_ day: Int) -> Date {
+        mondayFirstUTC.date(from: DateComponents(year: 2026, month: 10, day: day))!
+    }
+
+    private func weeklySummary(_ habit: Habit, doneOn days: [Int], on today: Int) -> HabitsService.Summary {
+        let entries = days.map { HabitEntry(habitId: habit.id, date: october($0), value: 1) }
+        return HabitsService.summary(for: habit, entries: entries, on: october(today), calendar: mondayFirstUTC)
+    }
+
+    func test_timesPerWeek_monWedFri_streakCountsWeeks() {
+        let habit = makeHabit(schedule: .timesPerWeek(3))
+        let summary = weeklySummary(habit, doneOn: [5, 7, 9, 12, 14, 16, 19, 21, 23], on: 23)
+        XCTAssertEqual(summary.currentStreak, 3)
+        XCTAssertEqual(summary.bestStreak, 3)
+    }
+
+    func test_timesPerWeek_weekInProgress_doesNotBreakStreak() {
+        let habit = makeHabit(schedule: .timesPerWeek(3))
+        let summary = weeklySummary(habit, doneOn: [5, 7, 9, 12, 14, 16, 19], on: 21)
+        XCTAssertEqual(summary.currentStreak, 2)
+    }
+
+    func test_timesPerWeek_missedWeek_breaksStreak() {
+        let habit = makeHabit(schedule: .timesPerWeek(3))
+        let summary = weeklySummary(habit, doneOn: [5, 7, 9, 12, 19, 21, 23], on: 23)
+        XCTAssertEqual(summary.currentStreak, 1)
+        XCTAssertEqual(summary.bestStreak, 1)
+    }
+
+    func test_timesPerWeek_targetMet_notCountedAsDueToday() {
+        let habit = makeHabit(schedule: .timesPerWeek(3))
+        XCTAssertFalse(weeklySummary(habit, doneOn: [19, 20, 21], on: 22).isDueToday)
+        XCTAssertTrue(weeklySummary(habit, doneOn: [19, 20, 21], on: 21).isDueToday,
+                      "The day that met the target still counts as due and done")
+        XCTAssertTrue(weeklySummary(habit, doneOn: [19, 20], on: 22).isDueToday)
+    }
+
+    func test_bestStreak_thousandDailyEntries_isLinearAndCorrect() {
+        let habit = makeHabit()
+        let entries = (0..<1000).map { HabitEntry(habitId: habit.id, date: day($0), value: 1) }
+        let start = Date()
+        let summary = HabitsService.summary(for: habit, entries: entries)
+        XCTAssertLessThan(Date().timeIntervalSince(start), 0.5)
+        XCTAssertEqual(summary.bestStreak, 1000)
+    }
 }
