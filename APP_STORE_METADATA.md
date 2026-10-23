@@ -68,13 +68,15 @@ curl -sI https://wrexist.github.io/Atlas/terms.html   | head -1
 ## Promotional Text *(170 chars — update anytime without a new build)*
 
 ```
-New in 1.3: train one exercise at a time with a muscle map, get a recap after every session, and log food on any day in exact grams. Free to start, no ads.
+Train one exercise at a time, log sets from your Apple Watch, and scan a meal in one photo. Wake up to your recovery score. Free to start, no ads.
 ```
-*(155 / 170)*
+*(146 / 170)*
 
 > Swap this out for launch events, seasonal campaigns, or new-feature
 > announcements without needing a build review. Keep the hook punchy
-> and lead with a free-tier action so the preview isn't gated.
+> and lead with a free-tier action so the preview isn't gated. Leave the
+> version number out: What's New already carries it, and a "New in 1.x"
+> here goes stale the day the next build ships.
 
 ---
 
