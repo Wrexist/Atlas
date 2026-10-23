@@ -94,21 +94,24 @@ struct MacroSummaryRow: View {
                         // accent dot would name a colour the ring doesn't use.
                         color: breakdown == nil ? AppColor.accentPrimary : AppColor.textTertiary,
                         index: 0,
-                        overBy: max(0, consumed.caloriesKcal - targets.calories)
+                        overBy: max(0, consumed.caloriesKcal - targets.calories),
+                        remaining: targets.calories > 0 ? targets.calories - consumed.caloriesKcal : nil
                     )
                     legend(
                         title: "Protein",
                         value: consumed.proteinG,
                         target: "/\(targets.proteinG) g",
                         color: AppColor.macroProtein,
-                        index: 1
+                        index: 1,
+                        goalMet: targets.proteinG > 0 && consumed.proteinG >= targets.proteinG
                     )
                     legend(
                         title: "Water",
                         value: LifestyleDataLogic.displayedWater(consumed, unit: unit),
                         target: "/\(unit.volumeLabel(Double(Self.waterTargetOz)))",
                         color: AppColor.macroWaterLight,
-                        index: 2
+                        index: 2,
+                        goalMet: consumed.waterFluidOunces >= Double(Self.waterTargetOz)
                     )
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -151,7 +154,8 @@ struct MacroSummaryRow: View {
                 value: consumed.carbsG,
                 target: Self.gramsTarget(targets.carbsG),
                 color: AppColor.macroCarbs,
-                index: 3
+                index: 3,
+                progress: Self.fraction(consumed.carbsG, of: targets.carbsG)
             )
             .frame(maxWidth: .infinity, alignment: .leading)
             legend(
@@ -159,7 +163,8 @@ struct MacroSummaryRow: View {
                 value: consumed.fatG,
                 target: Self.gramsTarget(targets.fatG),
                 color: AppColor.macroFat,
-                index: 4
+                index: 4,
+                progress: Self.fraction(consumed.fatG, of: targets.fatG)
             )
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -167,6 +172,12 @@ struct MacroSummaryRow: View {
 
     private static func gramsTarget(_ grams: Int) -> String {
         grams > 0 ? "/\(grams) g" : " g"
+    }
+
+    /// Carbs and fat have no ring, so a bar shows how far along they
+    /// are; nil without a target, where there is nothing to fill toward.
+    private static func fraction(_ value: Int, of target: Int) -> Double? {
+        target > 0 ? Double(value) / Double(target) : nil
     }
 
     private var ringStack: some View {
@@ -242,8 +253,21 @@ struct MacroSummaryRow: View {
     }
 
     /// The number rolls up from zero alongside its ring via `numericText`,
-    /// so SwiftUI animates the glyphs; no per-frame timer.
-    private func legend(title: LocalizedStringKey, value: Int, target: String, color: Color, index: Int, overBy: Int = 0) -> some View {
+    /// so SwiftUI animates the glyphs; no per-frame timer. `remaining`
+    /// says how much of the calorie budget is left, `goalMet` closes a
+    /// ring the user has filled, and `progress` draws a bar for the
+    /// macros that have no ring.
+    private func legend(
+        title: LocalizedStringKey,
+        value: Int,
+        target: String,
+        color: Color,
+        index: Int,
+        overBy: Int = 0,
+        remaining: Int? = nil,
+        goalMet: Bool = false,
+        progress: Double? = nil
+    ) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
             Circle()
                 .fill(color)
@@ -269,15 +293,35 @@ struct MacroSummaryRow: View {
                         .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                         .monospacedDigit()
+                    if goalMet && isRevealed {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(AppFont.scaled(11, weight: .bold))
+                            .foregroundStyle(AppColor.positive)
+                            .transition(.scale.combined(with: .opacity))
+                            .accessibilityLabel("Goal reached")
+                    }
                 }
+                .appAnimation(AppAnimation.springSnappy, value: goalMet)
                 if overBy > 0 && targets.calories > 0 {
                     Text("+\(overBy) over")
                         .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.warning)
                         .monospacedDigit()
+                } else if let remaining, remaining > 0 {
+                    Text("\(remaining) kcal left")
+                        .font(AppFont.scaled(11, weight: .semibold))
+                        .foregroundStyle(AppColor.textSecondary)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                }
+                if let progress {
+                    GlassProgressBar(progress: progress, height: 4, gradient: [color])
+                        .padding(.top, Spacing.xxs)
+                        .accessibilityHidden(true)
                 }
             }
         }
+        .accessibilityElement(children: .combine)
     }
 
     /// Quick-add amounts, chosen per unit so both systems get round

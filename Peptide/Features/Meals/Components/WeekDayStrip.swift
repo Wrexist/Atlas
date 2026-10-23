@@ -2,11 +2,14 @@ import SwiftUI
 
 /// The week holding the selected meal day, starting on the locale's first
 /// weekday. A filled pill marks the selection and slides between cells;
-/// today carries a dot. Days after today or past the lookback floor are
-/// dimmed and inert. Speaks the same day offsets as `MealDaySwitcher`.
+/// today's date is tinted and a dot marks every day with meals logged, as
+/// Calendar marks days with events, so gaps in the diary show at a glance.
+/// Days after today or past the lookback floor are dimmed and inert.
+/// Speaks the same day offsets as `MealDaySwitcher`.
 struct WeekDayStrip: View {
     @Binding var offset: Int
 
+    @Environment(DataStore.self) private var dataStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var pillNamespace
     @State private var hasAppeared = false
@@ -49,6 +52,9 @@ struct WeekDayStrip: View {
         let day = Self.date(for: dayOffset)
         let isSelected = dayOffset == offset
         let isSelectable = Self.selectableOffsets.contains(dayOffset)
+        let isToday = dayOffset == 0
+        let hasMeals = isSelectable
+            && (!dataStore.mealEntries(for: day).isEmpty || dataStore.consumption(for: day).caloriesKcal > 0)
         return Button { select(dayOffset) } label: {
             VStack(spacing: Spacing.xxs) {
                 Text(day, format: .dateTime.weekday(.abbreviated))
@@ -57,11 +63,11 @@ struct WeekDayStrip: View {
                 Text(day, format: .dateTime.day())
                     .font(AppFont.scaled(16, weight: .bold, relativeTo: .headline))
                     .monospacedDigit()
-                    .foregroundStyle(ink(AppColor.textPrimary, isSelected: isSelected, isSelectable: isSelectable))
+                    .foregroundStyle(ink(isToday ? AppColor.accentLight : AppColor.textPrimary, isSelected: isSelected, isSelectable: isSelectable))
                 Circle()
-                    .fill(AppColor.accentPrimary)
+                    .fill(isSelected ? AppColor.onAccent : AppColor.accentPrimary)
                     .frame(width: Spacing.xs, height: Spacing.xs)
-                    .opacity(dayOffset == 0 && !isSelected ? 1 : 0)
+                    .opacity(hasMeals ? 1 : 0)
             }
             .lineLimit(1)
             .minimumScaleFactor(0.7)
@@ -79,8 +85,17 @@ struct WeekDayStrip: View {
         .buttonStyle(ScalePressStyle(pressedScale: 0.94))
         .disabled(!isSelectable)
         .accessibilityLabel(Text(day, format: .dateTime.weekday(.wide).month(.wide).day()))
-        .accessibilityValue(dayOffset == 0 ? Text("Today") : Text(""))
+        .accessibilityValue(Self.spokenState(isToday: isToday, hasMeals: hasMeals))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private static func spokenState(isToday: Bool, hasMeals: Bool) -> Text {
+        switch (isToday, hasMeals) {
+        case (true, true): Text("Today, meals logged")
+        case (true, false): Text("Today")
+        case (false, true): Text("Meals logged")
+        case (false, false): Text("")
+        }
     }
 
     private func ink(_ base: Color, isSelected: Bool, isSelectable: Bool) -> Color {

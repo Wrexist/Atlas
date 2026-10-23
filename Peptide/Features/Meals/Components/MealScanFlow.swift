@@ -29,6 +29,9 @@ struct MealScanFlow: View {
     /// photo instead of retrying this one.
     @State private var errorNeedsNewPhoto = false
     @State private var category: MealCategory = MealCategory.auto(for: Date())
+    /// Set once the user taps the category picker, so a later time change
+    /// never overrides their choice, even when it matches the time's default.
+    @State private var categoryPickedByHand = false
     /// The dish the model thinks these items add up to, when they add up to
     /// one. Nil for a tray of unrelated things, which is what keeps the
     /// combine control from appearing where it would make no sense.
@@ -585,9 +588,11 @@ struct MealScanFlow: View {
                     combineControl
                 }
 
-                MealCategoryPicker(selection: $category)
+                MealCategoryPicker(selection: Binding(
+                    get: { category }, set: { category = $0; categoryPickedByHand = true }
+                ))
                 DatePicker("Log meal on", selection: Binding(
-                    get: { logDate }, set: { chosenLogDate = $0 }
+                    get: { logDate }, set: { moveLogDate(to: $0) }
                 ), in: ...Date(), displayedComponents: [.date, .hourAndMinute])
                 Text("Photo estimates can miss ingredients and portions. Review each item’s calories and amounts before logging.")
                     .font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
@@ -603,8 +608,10 @@ struct MealScanFlow: View {
             if let draftError {
                 Text(draftError).font(AppFont.caption2)
                 Button("Retry saving draft") { _ = persistDraft() }.minimumHitArea()
-            } else {
-                Text(dataStore.isEphemeral ? "Preview mode · Draft not saved" : "Draft saved on this device").font(AppFont.caption2)
+            } else if dataStore.isEphemeral {
+                // A working draft is the expected state; only say so
+                // when it is not being kept, so the CTA stands alone.
+                Text("Preview mode · Draft not saved").font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
             GlassButton(title: addButtonTitle, style: .primary, isFullWidth: true) {
@@ -806,6 +813,7 @@ struct MealScanFlow: View {
         photoScale = nil
         chosenLogDate = draft.date
         category = draft.category
+        categoryPickedByHand = draft.category != MealCategory.auto(for: draft.date)
         suggestedMealName = draft.suggestedName
         insight = draft.insight
         mealName = draft.name
@@ -955,6 +963,7 @@ struct MealScanFlow: View {
                 // dinner photo picked at 10am gets bucketed as snack
                 // (audit Meals M1).
                 category = MealCategory.auto(for: logDate)
+                categoryPickedByHand = false
                 chosenLogDate = logDate
                 phase = .review
                 _ = persistDraft()
@@ -1052,10 +1061,27 @@ struct MealScanFlow: View {
         return String(localized: "\(pendingEntries.count) items")
     }
 
+    /// Moving the meal to another time of day re-files it under the meal
+    /// that time belongs to, unless the user already picked one by hand.
+    private func moveLogDate(to date: Date) {
+        if !categoryPickedByHand {
+            category = MealCategory.auto(for: date)
+        }
+        chosenLogDate = date
+    }
+
+    private var addedTitle: LocalizedStringKey {
+        Calendar.current.isDateInToday(logDate)
+            ? "Added to today"
+            : "Added to \(MealDaySwitcher.inlineTitle(for: logDate))"
+    }
+
     private var loggedCard: some View {
         VStack(spacing: Spacing.lg) {
             MilestoneArtwork(size: 64)
-            Text("Meal logged")
+            // Same title as the barcode and library success screens, so
+            // the three ways of logging end on the same words.
+            Text(addedTitle)
                 .font(AppFont.title2)
                 .foregroundStyle(AppColor.textPrimary)
             LoggedCaloriePanel(
@@ -1065,9 +1091,11 @@ struct MealScanFlow: View {
                 targetCalories: (dataStore.profile.nutritionTargets ?? .placeholder).calories,
                 date: logDate
             )
-            Text(dataStore.isEphemeral ? "Preview mode · No meal saved to storage." : "Saved to your food log.")
-                .font(AppFont.caption2)
-                .foregroundStyle(AppColor.textSecondary)
+            if dataStore.isEphemeral {
+                Text("Preview mode · No meal saved to storage.")
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
             if let draftError {
                 Text(draftError)
                     .font(AppFont.caption2)

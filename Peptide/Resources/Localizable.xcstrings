@@ -42119,6 +42119,148 @@
         }
       }
     },
+    "%lld kcal left": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld kcal kvar"
+          }
+        }
+      }
+    },
+    "Daily target reached": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagsmålet nått"
+          }
+        }
+      }
+    },
+    "^[%lld day](inflect: true) to a %lld-day streak": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%#@arg1@ kvar till en svit på %2$lld dagar"
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg dag"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg dagar"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "End fast early?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avsluta fastan i förtid?"
+          }
+        }
+      }
+    },
+    "End fast": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avsluta fastan"
+          }
+        }
+      }
+    },
+    "Keep fasting": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fortsätt fasta"
+          }
+        }
+      }
+    },
+    "It hasn't reached its goal yet, so it won't count toward your streak.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fastan har inte nått sitt mål än, så den räknas inte till din svit."
+          }
+        }
+      }
+    },
+    "Fasted %@ today · goal reached": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fastat %@ idag · målet nått"
+          }
+        }
+      }
+    },
+    "Fasted %@ today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fastat %@ idag"
+          }
+        }
+      }
+    },
+    "%@ in %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ om %2$@"
+          }
+        }
+      }
+    },
+    "Today, meals logged": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idag, måltider loggade"
+          }
+        }
+      }
+    },
+    "Meals logged": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Måltider loggade"
+          }
+        }
+      }
+    },
     "Already added": {
       "localizations": {
         "sv": {

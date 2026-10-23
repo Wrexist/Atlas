@@ -69,6 +69,8 @@ struct LoggedCaloriePanel: View {
             .accessibilityLabel("Calories for \(date.formatted(date: .abbreviated, time: .omitted)): \(totalCalories) of \(targetCalories)")
             .accessibilityValue("\(Int(finalProgress * 100)) percent")
 
+            budgetLine
+
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "plus.circle.fill")
                     .font(AppFont.scaled(11, weight: .semibold))
@@ -89,6 +91,26 @@ struct LoggedCaloriePanel: View {
             withAnimation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion)) {
                 hasRevealed = true
             }
+        }
+    }
+
+    /// What the meal leaves of the day's budget, so the success screen
+    /// ends on where the day stands rather than only on what was added.
+    @ViewBuilder
+    private var budgetLine: some View {
+        if targetCalories > 0 {
+            let remaining = targetCalories - totalCalories
+            Label {
+                if remaining > 0 {
+                    Text("\(remaining) kcal left").monospacedDigit()
+                } else {
+                    Text("Daily target reached")
+                }
+            } icon: {
+                Image(systemName: remaining > 0 ? "flag.checkered" : "checkmark.seal.fill")
+            }
+            .font(AppFont.scaled(13, weight: .semibold))
+            .foregroundStyle(remaining > 0 ? AppColor.textPrimary : AppColor.positive)
         }
     }
 

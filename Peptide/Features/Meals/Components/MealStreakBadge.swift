@@ -110,11 +110,23 @@ struct MealStreakBadge: View {
             Text("New personal best — keep going.")
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(flameTint)
+        } else if let next = Self.nextMilestone(after: currentStreak),
+                  currentStreak > 0, next < bestStreak || bestStreak <= currentStreak {
+            // The nearer goal: a milestone ahead of the personal best is
+            // closer, so it is the one to count down to.
+            Text("^[\(next - currentStreak) day](inflect: true) to a \(next)-day streak")
+                .font(AppFont.scaled(11))
+                .foregroundStyle(AppColor.textSecondary)
         } else if bestStreak > currentStreak {
             Text("Best: ^[\(bestStreak) day](inflect: true)")
                 .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textTertiary)
         }
+    }
+
+    /// The next streak length worth celebrating, or nil past the last.
+    static func nextMilestone(after streak: Int) -> Int? {
+        milestones.sorted().first { $0 > streak }
     }
 
     private var voiceOverLabel: String {
