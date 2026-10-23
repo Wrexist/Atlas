@@ -951,18 +951,18 @@ final class DataStore {
     /// previous implementation used the global averageCompliance and
     /// shipped a misleading number when the user had multiple stacks
     /// (audit Sharing P1.6).
+    ///
+    /// Same definition as the protocol screen (`PeptideProtocol.adherence`),
+    /// over the whole run since the protocol's start.
     func adherence(forProtocol id: UUID) -> Double {
-        let now = Date()
-        let protocolEntries = entries.filter { $0.protocolId == id && $0.date <= now }
-        let grouped = protocolEntries.groupedByDay
-        guard !grouped.isEmpty else { return 0 }
-
-        let dailyCompliance = grouped.map { _, dayEntries in
-            let completed = dayEntries.filter(\.completed).count
-            return Double(completed) / Double(dayEntries.count)
-        }
-
-        return dailyCompliance.reduce(0, +) / Double(dailyCompliance.count)
+        guard let proto = protocols.first(where: { $0.id == id }) else { return 0 }
+        let calendar = Calendar.current
+        let daysSinceStart = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: proto.startDate),
+            to: calendar.startOfDay(for: Date())
+        ).day ?? 0
+        return proto.adherence(entries: entries, days: max(1, daysSinceStart + 1)) ?? 0
     }
 
     func complianceTrend(for range: Int) -> Double {
@@ -2700,7 +2700,7 @@ final class DataStore {
             entries: entries,
             protocols: protocols,
             currentStreak: currentStreak,
-            weeklyCompliance: EntryAnalytics.weeklyComplianceFraction(in: entries),
+            weeklyCompliance: EntryAnalytics.weeklyComplianceFraction(in: entries, protocols: protocols),
             totalDosesLogged: EntryAnalytics.totalDosesLogged(in: entries),
             nutrition: nutritionSnapshotForWatch(),
             atlasScore: snap.score,

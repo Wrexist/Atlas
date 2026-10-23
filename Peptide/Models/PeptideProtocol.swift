@@ -262,8 +262,21 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> Double? {
+        let counts = adherenceCounts(entries: entries, days: days, now: now, calendar: calendar)
+        guard counts.due > 0 else { return nil }
+        return Double(counts.completed) / Double(counts.due)
+    }
+
+    /// The due and completed dose counts behind `adherence`, so callers
+    /// can pool several protocols into one ratio.
+    func adherenceCounts(
+        entries: [ProtocolEntry],
+        days: Int,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> (due: Int, completed: Int) {
         let today = calendar.startOfDay(for: now)
-        guard let windowStart = calendar.date(byAdding: .day, value: -(days - 1), to: today) else { return nil }
+        guard let windowStart = calendar.date(byAdding: .day, value: -(days - 1), to: today) else { return (0, 0) }
         let firstDay = max(windowStart, calendar.startOfDay(for: startDate))
         let windowEntries = entries.filter { $0.protocolId == id && $0.date >= firstDay }
 
@@ -286,9 +299,7 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
         }
         due += todayEntries.count
         completed += todayEntries.filter(\.completed).count
-
-        guard due > 0 else { return nil }
-        return Double(completed) / Double(due)
+        return (due, completed)
     }
 
     /// Doses the schedule puts on `day`, one per preferred time per

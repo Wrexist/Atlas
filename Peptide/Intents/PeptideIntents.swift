@@ -103,7 +103,8 @@ struct ComplianceIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ProvidesDialog & ReturnsValue<Int> {
         let percent: Int? = await MainActor.run {
-            EntryAnalytics.weeklyComplianceFraction(in: IntentDataStore.resolve().entries)
+            let store = IntentDataStore.resolve()
+            return EntryAnalytics.weeklyComplianceFraction(in: store.entries, protocols: store.protocols)
                 .map { Int(($0 * 100).rounded()) }
         }
 
