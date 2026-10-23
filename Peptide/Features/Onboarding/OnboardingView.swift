@@ -1635,7 +1635,7 @@ struct OnboardingView: View {
                     )
                     disclaimerBullet(
                         icon: "lock.fill",
-                        text: String(localized: "Your data lives in your private iCloud, and you can lock the app with Face ID.")
+                        text: privacyBulletText
                     )
                 }
                 .padding(Spacing.lg)
@@ -1646,6 +1646,16 @@ struct OnboardingView: View {
             }
             .padding(.horizontal, Spacing.lg)
         }
+    }
+
+    /// Names the biometry this device actually has, and leaves the lock out
+    /// where there is none, rather than promising Face ID on a Touch ID phone.
+    private var privacyBulletText: String {
+        let biometrics = BiometricService.shared
+        guard biometrics.isAvailable else {
+            return String(localized: "Your data lives in your private iCloud.")
+        }
+        return String(localized: "Your data lives in your private iCloud, and you can lock the app with \(biometrics.biometryName).")
     }
 
     private func disclaimerBullet(icon: String, text: String) -> some View {
@@ -1706,7 +1716,7 @@ struct OnboardingView: View {
                     action: requestHealth
                 )
 
-                Text("Health is read-only by default. Optional nutrition-write turns on later from Profile.")
+                Text("Health is read-only by default. You can give Atlas permission to save nutrition to Health later in Profile.")
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .multilineTextAlignment(.center)

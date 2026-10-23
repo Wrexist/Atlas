@@ -10457,12 +10457,12 @@
         }
       }
     },
-    "Health is read-only by default. Optional nutrition-write turns on later from Profile.": {
+    "Health is read-only by default. You can give Atlas permission to save nutrition to Health later in Profile.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hälsa är skrivskyddad som standard. Valfri skrivning av näringsdata slås på senare under Profil."
+            "value": "Hälsa är skrivskyddad som standard. Du kan senare ge Atlas tillåtelse att spara näringsdata i Hälsa under Profil."
           }
         }
       }
@@ -34337,12 +34337,12 @@
         }
       }
     },
-    "Two-tap set logging with auto-prefilled prev values": {
+    "Two-tap set logging — your previous values fill in automatically": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Setloggning med två tryck och förifyllda tidigare värden"
+            "value": "Setloggning med två tryck – dina tidigare värden fylls i automatiskt"
           }
         }
       }
@@ -37779,12 +37779,12 @@
         }
       }
     },
-    "Your data lives in your private iCloud, and you can lock the app with Face ID.": {
+    "Your data lives in your private iCloud, and you can lock the app with %@.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dina data finns i din privata iCloud, och du kan låsa appen med Face ID."
+            "value": "Dina data finns i din privata iCloud, och du kan låsa appen med %@."
           }
         }
       }
@@ -39907,6 +39907,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Byt abonnemang eller säg upp när du vill. Om du säger upp behåller du Pro till slutet av perioden du har betalat för."
+          }
+        }
+      }
+    },
+    "Your data lives in your private iCloud.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina data finns i din privata iCloud."
           }
         }
       }
