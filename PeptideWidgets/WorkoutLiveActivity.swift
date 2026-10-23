@@ -407,9 +407,7 @@ private struct SetProgressBar: View {
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 0)
                 if state.exerciseCount > 0 {
-                    Text(state.exerciseCount == 1
-                         ? "1 exercise"
-                         : "\(state.exerciseCount) exercises")
+                    Text("^[\(state.exerciseCount) exercise](inflect: true)")
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(.secondary)
                 }

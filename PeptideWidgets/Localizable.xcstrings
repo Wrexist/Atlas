@@ -187,6 +187,28 @@
         }
       }
     },
+    "^[%lld exercise](inflect: true)": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld övning"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld övningar"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Action": {
       "localizations": {
         "sv": {
