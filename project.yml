@@ -338,6 +338,11 @@ schemes:
     test:
       config: Debug
       storeKitConfiguration: Peptide/Resources/Products.storekit
+      # Pinned so formatter assertions ("60.3 kg") don't depend on the
+      # simulator's region: a comma-decimal one such as sv_SE failed them
+      # locally while the en_US CI runner passed.
+      language: en
+      region: US
       # Feeds the Coverage report step in pr-checks.yml; XcodeGen
       # defaults this to false, which left that step reading nothing.
       gatherCoverageData: true
@@ -375,5 +380,7 @@ schemes:
         PeptideTrainingTests: [test]
     test:
       config: Debug
+      language: en
+      region: US
       targets:
         - PeptideTrainingTests
