@@ -177,7 +177,10 @@ final class DataStore {
         // history doesn't decode row-by-row before first frame.
         let entryWindowStart = Self.recentEntryWindowStart()
         let savedProtocols = repo.loadProtocols()
-        let savedEntries   = repo.loadEntries(onOrAfter: entryWindowStart)
+        let savedEntries   = repo.loadEntries(
+            onOrAfter: entryWindowStart,
+            resolvingFrom: Self.entryPeptideIndex(protocols: savedProtocols, customPeptides: customPeptides)
+        )
         let savedProfile   = repo.loadProfile()
         let hasOlderEntries = repo.entryCount() > savedEntries.count
 
@@ -379,6 +382,21 @@ final class DataStore {
     }
 
     @ObservationIgnored private var peptideDatabaseCache: [Peptide]?
+
+    /// Full records that stored dose snapshots resolve against (A379):
+    /// the protocols' peptides — the records doses are generated from —
+    /// then custom peptides. The bundled catalog is left out on purpose:
+    /// this runs in `init`, and reading it there would put its ~930 KB
+    /// decode back on the launch path.
+    private var entryPeptideIndex: [UUID: Peptide] {
+        Self.entryPeptideIndex(protocols: protocols, customPeptides: customPeptides)
+    }
+
+    private static func entryPeptideIndex(
+        protocols: [PeptideProtocol], customPeptides: [Peptide]
+    ) -> [UUID: Peptide] {
+        EntryPeptideSnapshot.index(protocols.flatMap(\.peptides) + customPeptides)
+    }
 
     func addCustomPeptide(_ peptide: Peptide) {
         customPeptides.append(peptide)
@@ -2326,7 +2344,7 @@ final class DataStore {
         entryBackfillTask?.cancel()
         entryBackfillTask = Task(priority: .userInitiated) { @MainActor [weak self] in
             guard let self, !Task.isCancelled, !self.isEphemeral else { return }
-            let older = self.repo.loadEntries(before: cutoff)
+            let older = self.repo.loadEntries(before: cutoff, resolvingFrom: self.entryPeptideIndex)
             guard !older.isEmpty, !Task.isCancelled, !self.isEphemeral else { return }
             let known = Set(self.entries.map(\.id))
             let missing = older.filter {
@@ -2781,7 +2799,7 @@ final class DataStore {
         // backfilled immediately after.
         let entryWindowStart = Self.recentEntryWindowStart()
         protocols = repo.loadProtocols()
-        entries = repo.loadEntries(onOrAfter: entryWindowStart)
+        entries = repo.loadEntries(onOrAfter: entryWindowStart, resolvingFrom: entryPeptideIndex)
         if repo.entryCount() > entries.count {
             scheduleEntryBackfill(before: entryWindowStart)
         }

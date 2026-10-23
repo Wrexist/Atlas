@@ -626,8 +626,10 @@ final class SwiftDataRepository {
         }
     }
 
-    func loadEntries() -> [ProtocolEntry] {
-        fetchEntries(FetchDescriptor<StoredEntry>())
+    /// `known` (see `EntryPeptideSnapshot.index`) supplies the full
+    /// peptide records that snapshot rows resolve against.
+    func loadEntries(resolvingFrom known: [UUID: Peptide] = [:]) -> [ProtocolEntry] {
+        fetchEntries(FetchDescriptor<StoredEntry>(), resolvingFrom: known)
     }
 
     /// Recent-window fetch with the date filter pushed into SQLite —
@@ -635,19 +637,19 @@ final class SwiftDataRepository {
     /// full-table decode (one JSON `Peptide` decode per row) for
     /// history the UI can't show anyway. Mirrors
     /// `loadWorkoutSessions(startedBetween:)`.
-    func loadEntries(onOrAfter cutoff: Date) -> [ProtocolEntry] {
+    func loadEntries(onOrAfter cutoff: Date, resolvingFrom known: [UUID: Peptide] = [:]) -> [ProtocolEntry] {
         fetchEntries(FetchDescriptor<StoredEntry>(
             predicate: #Predicate { $0.date >= cutoff }
-        ))
+        ), resolvingFrom: known)
     }
 
     /// Complement of `loadEntries(onOrAfter:)` — the post-launch
     /// backfill that hydrates the long tail (exports, lifetime totals,
     /// multi-year streaks) without blocking first frame.
-    func loadEntries(before cutoff: Date) -> [ProtocolEntry] {
+    func loadEntries(before cutoff: Date, resolvingFrom known: [UUID: Peptide] = [:]) -> [ProtocolEntry] {
         fetchEntries(FetchDescriptor<StoredEntry>(
             predicate: #Predicate { $0.date < cutoff }
-        ))
+        ), resolvingFrom: known)
     }
 
     /// ID-only projection for set-difference bookkeeping (backup
@@ -677,7 +679,10 @@ final class SwiftDataRepository {
         }
     }
 
-    private func fetchEntries(_ descriptor: FetchDescriptor<StoredEntry>) -> [ProtocolEntry] {
+    private func fetchEntries(
+        _ descriptor: FetchDescriptor<StoredEntry>,
+        resolvingFrom known: [UUID: Peptide]
+    ) -> [ProtocolEntry] {
         guard let context else { return [] }
         let stored: [StoredEntry]
         do {
@@ -688,7 +693,7 @@ final class SwiftDataRepository {
         }
         return Self.collapsingDuplicateIDs(stored.compactMap {
             do {
-                return try $0.toProtocolEntry()
+                return try $0.toProtocolEntry(resolvingFrom: known)
             } catch {
                 AppLog.swiftData.error("Decode StoredEntry failed: \(error.localizedDescription, privacy: .public)")
                 return nil
