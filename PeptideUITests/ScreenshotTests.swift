@@ -38,7 +38,7 @@ final class ScreenshotTests: XCTestCase {
     func test_captureFoodReviewRecovery() {
         launch(appearance: "dark", extraArguments: ["--food-review-fixture"])
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
-        dismissOverlaysIfNeeded()
+        app.dismissOverlaysIfNeeded()
         let mealsTab = app.tabBars.buttons["Meals"]
         XCTAssertTrue(mealsTab.waitForExistence(timeout: 10))
         mealsTab.tap()
@@ -79,7 +79,7 @@ final class ScreenshotTests: XCTestCase {
     private func captureTableScan(appearance: String) {
         launch(appearance: appearance, extraArguments: ["--table-scan-fixture"])
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
-        dismissOverlaysIfNeeded()
+        app.dismissOverlaysIfNeeded()
         let mealsTab = app.tabBars.buttons["Meals"]
         XCTAssertTrue(mealsTab.waitForExistence(timeout: 10))
         mealsTab.tap()
@@ -240,7 +240,7 @@ final class ScreenshotTests: XCTestCase {
 
     func test_captureWorkoutCompletionSaveError() {
         launch(appearance: "dark", extraArguments: ["--completion-fixture", "--completion-save-failure"])
-        dismissOverlaysIfNeeded()
+        app.dismissOverlaysIfNeeded()
         app.tabBars.buttons["Train"].tap()
         let options = app.buttons["workout-options"]
         XCTAssertTrue(options.waitForExistence(timeout: 15))
@@ -261,7 +261,7 @@ final class ScreenshotTests: XCTestCase {
 
     private func openCompletedFixture(appearance: String, arguments: [String] = []) {
         launch(appearance: appearance, extraArguments: ["--completion-fixture"] + arguments)
-        dismissOverlaysIfNeeded()
+        app.dismissOverlaysIfNeeded()
         app.tabBars.buttons["Train"].tap()
         let options = app.buttons["workout-options"]
         XCTAssertTrue(options.waitForExistence(timeout: 15))
@@ -305,11 +305,11 @@ final class ScreenshotTests: XCTestCase {
         for appearance in ["light", "dark"] {
             launch(appearance: appearance)
             XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
-            dismissOverlaysIfNeeded()
+            app.dismissOverlaysIfNeeded()
             let train = app.tabBars.buttons["Train"]
             XCTAssertTrue(train.waitForExistence(timeout: 10))
             train.tap()
-            dismissOverlaysIfNeeded()
+            app.dismissOverlaysIfNeeded()
             discardLeftoverWorkout()
             let start = app.buttons["Start workout"]
             reveal(start)
@@ -368,9 +368,9 @@ final class ScreenshotTests: XCTestCase {
     func test_capturePremiumTrainingContinuity() {
         launch(appearance: "dark")
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
-        dismissOverlaysIfNeeded()
+        app.dismissOverlaysIfNeeded()
         app.tabBars.buttons["Train"].tap()
-        dismissOverlaysIfNeeded()
+        app.dismissOverlaysIfNeeded()
         discardLeftoverWorkout()
         app.buttons["Exercises"].firstMatch.tap()
         let search = app.searchFields.firstMatch
@@ -400,9 +400,9 @@ final class ScreenshotTests: XCTestCase {
     func test_captureExerciseRollout() {
         for appearance in ["light", "dark"] {
             launch(appearance: appearance)
-            dismissOverlaysIfNeeded()
+            app.dismissOverlaysIfNeeded()
             app.tabBars.buttons["Train"].tap()
-            dismissOverlaysIfNeeded()
+            app.dismissOverlaysIfNeeded()
             discardLeftoverWorkout()
             let start = app.buttons["Start workout"]
             reveal(start)
@@ -431,11 +431,11 @@ final class ScreenshotTests: XCTestCase {
     func test_captureMuscleTraining() {
         for appearance in ["light", "dark"] {
             launch(appearance: appearance)
-            dismissOverlaysIfNeeded()
+            app.dismissOverlaysIfNeeded()
             let train = app.tabBars.buttons["Train"]
             XCTAssertTrue(train.waitForExistence(timeout: 10))
             train.tap()
-            dismissOverlaysIfNeeded()
+            app.dismissOverlaysIfNeeded()
             if !train.isSelected { train.tap() }
             XCTAssertTrue(train.isSelected)
             discardLeftoverWorkout()
@@ -505,7 +505,7 @@ final class ScreenshotTests: XCTestCase {
             XCTAssertTrue(summaryDone.waitForExistence(timeout: 5))
             capture(named: "body-\(appearance)-05-completed")
             summaryDone.tap()
-            dismissOverlaysIfNeeded()
+            app.dismissOverlaysIfNeeded()
             scrollToTop()
             capture(named: "body-\(appearance)-06-training-history")
             app.terminate()
@@ -515,11 +515,11 @@ final class ScreenshotTests: XCTestCase {
     func test_captureMuscleActivation() {
         for appearance in ["dark", "light"] {
             launch(appearance: appearance)
-            dismissOverlaysIfNeeded()
+            app.dismissOverlaysIfNeeded()
             let train = app.tabBars.buttons["Train"]
             XCTAssertTrue(train.waitForExistence(timeout: 10))
             train.tap()
-            dismissOverlaysIfNeeded()
+            app.dismissOverlaysIfNeeded()
             discardLeftoverWorkout()
             app.buttons["Exercises"].firstMatch.tap()
 
@@ -675,8 +675,7 @@ final class ScreenshotTests: XCTestCase {
         // On top of the returning-user state, flip ScreenshotMode on (its
         // key is read by ScreenshotMode.init) and pin the appearance (read
         // by ThemeManager.init).
-        app.launchArguments = XCUIApplication.returningUserArguments + [
-            "-com.peptidesai.app.screenshotMode.enabled", "YES",
+        app.launchArguments = XCUIApplication.demoDataArguments + [
             "-appDisplayMode", appearance,
         ] + extraArguments
         app.launch()
@@ -704,51 +703,23 @@ final class ScreenshotTests: XCTestCase {
     /// dismisses one tap later than expected — pushing every subsequent
     /// screenshot's label out of sync with what's actually on screen, and
     /// dropping the last tab (and the paywall step) off the end entirely.
-    /// `dismissOverlaysIfNeeded()` clears both before they can do that.
+    /// `app.dismissOverlaysIfNeeded()` clears both before they can do that.
     private func captureAllTabs(prefix: String) {
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
-        dismissOverlaysIfNeeded()
+        app.dismissOverlaysIfNeeded()
         capture(named: "\(prefix)-01-Today")
 
         for (offset, tab) in Self.secondaryTabs.enumerated() {
             let button = app.tabBars.buttons[tab]
             XCTAssertTrue(button.waitForExistence(timeout: 5), "\(tab) tab missing")
             button.tap()
-            dismissOverlaysIfNeeded()
+            app.dismissOverlaysIfNeeded()
             XCTAssertTrue(button.isSelected, "\(tab) tab should be selected before its capture")
             capture(named: String(format: "%@-%02d-%@", prefix, offset + 2, tab))
 
             if tab == "Biology" {
                 capturePaywall(prefix: prefix, slot: offset + 3)
             }
-        }
-    }
-
-    /// Dismisses whichever first-launch overlay (if any) is currently on
-    /// screen — see `captureAllTabs`'s doc comment for why both need
-    /// clearing before every capture. Cheap to call speculatively: each
-    /// wait only costs real time when that overlay is actually present.
-    private func dismissOverlaysIfNeeded() {
-        // Permission prompts are owned by SpringBoard, not the app, so
-        // `app.alerts` never sees them.
-        let alert = XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.firstMatch
-        if alert.waitForExistence(timeout: 0.5) {
-            if alert.buttons["Allow"].exists {
-                alert.buttons["Allow"].tap()
-            } else if alert.buttons["Don't Allow"].exists {
-                alert.buttons["Don't Allow"].tap()
-            }
-        }
-
-        let notNow = app.buttons["Not now"]
-        if notNow.waitForExistence(timeout: 0.5) {
-            notNow.tap()
-        }
-        // On compact phones the demo reminder overlaps the tab bar. Hide
-        // only the reminder; tapping its main body would exit demo mode.
-        let hideReminder = app.buttons["Hide screenshot mode reminder"]
-        if hideReminder.waitForExistence(timeout: 0.5) {
-            hideReminder.tap()
         }
     }
 
@@ -780,7 +751,7 @@ final class ScreenshotTests: XCTestCase {
         let closeButton = app.buttons["Close"]
         guard closeButton.waitForExistence(timeout: 5) else { return }
         Thread.sleep(forTimeInterval: 2.0)
-        dismissOverlaysIfNeeded()
+        app.dismissOverlaysIfNeeded()
         capture(named: String(format: "%@-%02d-Paywall", prefix, slot))
 
         // Close must stay reachable at every text size, including the
