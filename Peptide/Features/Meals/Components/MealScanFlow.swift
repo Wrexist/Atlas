@@ -970,7 +970,7 @@ struct MealScanFlow: View {
                     errorText = described
                 } else {
                     AppLog.diagnostics.error("Meal scan failed: \(error.localizedDescription, privacy: .public)")
-                    errorText = String(localized: "Couldn't analyse this meal. Check your connection and try again.")
+                    errorText = String(localized: "Couldn't analyze this meal. Check your connection and try again.")
                 }
                 errorNeedsNewPhoto = (error as? MealScannerService.ScanError)?.needsDifferentPhoto ?? false
                 phase = .error

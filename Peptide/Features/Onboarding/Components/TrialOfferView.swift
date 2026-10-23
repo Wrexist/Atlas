@@ -679,7 +679,7 @@ struct TrialOfferView: View {
     /// the storefront's currency to quote, but the plan names, lengths and
     /// auto-renewal still have to be on the purchase surface.
     private var legalCopy: String {
-        let renewal = String(localized: "Auto-renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → your name → Subscriptions.")
+        let renewal = String(localized: "Auto-renews unless canceled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → your name → Subscriptions.")
         guard arePricesLoaded else {
             return String(localized: "\(planName(for: .monthly)) (billed monthly) and \(planName(for: .annual)) (billed yearly) are auto-renewable subscriptions. \(renewal)")
         }

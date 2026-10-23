@@ -7745,12 +7745,12 @@
         }
       }
     },
-    "Auto-renews at %@ unless cancelled at least 24 hours before the period ends.": {
+    "Auto-renews at %@ unless canceled at least 24 hours before the period ends.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Förnyas automatiskt för %@ om den inte avslutas minst 24 timmar innan perioden tar slut."
+            "value": "Förnyas automatiskt för %@ om den inte sägs upp minst 24 timmar innan perioden tar slut."
           }
         }
       }
@@ -7765,7 +7765,7 @@
         }
       }
     },
-    "Auto-renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → your name → Subscriptions.": {
+    "Auto-renews unless canceled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → your name → Subscriptions.": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -7775,12 +7775,12 @@
         }
       }
     },
-    "Auto-renews unless cancelled at least 24 hours before the period ends.": {
+    "Auto-renews unless canceled at least 24 hours before the period ends.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Förnyas automatiskt om den inte avslutas minst 24 timmar innan perioden tar slut."
+            "value": "Förnyas automatiskt om den inte sägs upp minst 24 timmar innan perioden tar slut."
           }
         }
       }
@@ -9445,7 +9445,7 @@
         }
       }
     },
-    "Cardio fitness, HRV and resting heart rate count most toward confidence, because they track ageing most closely. Confidence also grows with each day of heart and sleep data, up to %lld days.": {
+    "Cardio fitness, HRV and resting heart rate count most toward confidence, because they track aging most closely. Confidence also grows with each day of heart and sleep data, up to %lld days.": {
       "localizations": {
         "sv": {
           "variations": {
@@ -9460,24 +9460,6 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "Kondition, HRV och vilopuls väger tyngst för säkerheten, eftersom de följer åldrandet närmast. Säkerheten ökar också för varje dag med hjärt- och sömndata, upp till %lld dagar."
-                }
-              }
-            }
-          }
-        },
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Cardio fitness, HRV and resting heart rate count most toward confidence, because they track ageing most closely. Confidence also grows with each day of heart and sleep data, up to %lld day."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Cardio fitness, HRV and resting heart rate count most toward confidence, because they track ageing most closely. Confidence also grows with each day of heart and sleep data, up to %lld days."
                 }
               }
             }
@@ -9675,7 +9657,7 @@
         }
       }
     },
-    "Checking non-food catalogues…": {
+    "Checking non-food catalogs…": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -11597,7 +11579,7 @@
         }
       }
     },
-    "Couldn't analyse this meal. Check your connection and try again.": {
+    "Couldn't analyze this meal. Check your connection and try again.": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -23457,12 +23439,12 @@
         }
       }
     },
-    "One-time purchase, charged to your Apple ID. No subscription — nothing to renew or cancel.": {
+    "One-time purchase, charged to your Apple Account. No subscription — nothing to renew or cancel.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Engångsköp som debiteras ditt Apple-ID. Ingen prenumeration – inget att förnya eller avsluta."
+            "value": "Engångsköp som debiteras ditt Apple-konto. Ingen prenumeration – inget att förnya eller säga upp."
           }
         }
       }
@@ -24347,12 +24329,12 @@
         }
       }
     },
-    "Payment is charged to your Apple ID. Subscription auto-renews at the same price unless cancelled at least 24 hours before the end of the current period. You can manage or cancel your subscription in Settings → your name → Subscriptions.": {
+    "Payment is charged to your Apple Account. Subscription auto-renews at the same price unless canceled at least 24 hours before the end of the current period. You can manage or cancel your subscription in Settings → your name → Subscriptions.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Betalningen debiteras ditt Apple-ID. Prenumerationen förnyas automatiskt till samma pris om den inte sägs upp minst 24 timmar innan den aktuella perioden tar slut. Du kan hantera eller säga upp prenumerationen i Inställningar → ditt namn → Prenumerationer."
+            "value": "Betalningen debiteras ditt Apple-konto. Prenumerationen förnyas automatiskt till samma pris om den inte sägs upp minst 24 timmar innan den aktuella perioden tar slut. Du kan hantera eller säga upp prenumerationen i Inställningar → ditt namn → Prenumerationer."
           }
         }
       }
@@ -31863,7 +31845,7 @@
         }
       }
     },
-    "The scanner couldn't analyse this report. Try a different photo.": {
+    "The scanner couldn't analyze this report. Try a different photo.": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -33015,12 +32997,12 @@
         }
       }
     },
-    "This permanently removes the Apple ID linkage from this device and erases all your workouts, meals, protocols, dose entries, progress photos, and profile data. Data in Apple Health is not touched. If iCloud sync is on, the deletion propagates to your other devices. This cannot be undone.": {
+    "This permanently removes the Apple Account link from this device and erases all your workouts, meals, protocols, dose entries, progress photos, and profile data. Data in Apple Health is not touched. If iCloud sync is on, the deletion propagates to your other devices. This cannot be undone.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Det här tar permanent bort kopplingen till Apple-ID från enheten och raderar alla dina pass, måltider, protokoll, dosposter, framstegsbilder och profildata. Data i Apple Hälsa påverkas inte. Om iCloud-synk är på sprids raderingen till dina andra enheter. Det går inte att ångra."
+            "value": "Det här tar permanent bort kopplingen till Apple-kontot från enheten och raderar alla dina pass, måltider, protokoll, dosposter, framstegsbilder och profildata. Data i Apple Hälsa påverkas inte. Om iCloud-synk är på sprids raderingen till dina andra enheter. Det går inte att ångra."
           }
         }
       }
@@ -37809,12 +37791,12 @@
         }
       }
     },
-    "Your data is erased. To finish, remove Atlas in Settings → your name → Sign in with Apple.": {
+    "Your data is erased. To finish, remove Atlas in Settings → your name → Sign-In & Security → Sign in with Apple.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dina data har raderats. För att slutföra, ta bort Atlas under Inställningar → ditt namn → Logga in med Apple."
+            "value": "Dina data har raderats. För att slutföra, ta bort Atlas under Inställningar → ditt namn → Inloggning och säkerhet → Logga in med Apple."
           }
         }
       }
@@ -39957,6 +39939,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Exportera hela din historik som CSV, JSON eller PDF"
+          }
+        }
+      }
+    },
+    "Change plan, or cancel anytime. Canceling keeps Pro active until the end of the period you've paid for.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Byt abonnemang eller säg upp när du vill. Om du säger upp behåller du Pro till slutet av perioden du har betalat för."
           }
         }
       }

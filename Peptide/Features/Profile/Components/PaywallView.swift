@@ -1091,7 +1091,7 @@ struct PaywallView: View {
     @ViewBuilder
     private var autoRenewDisclosure: some View {
         if isOneTimePurchaseSelected {
-            Text("One-time purchase, charged to your Apple ID. No subscription — nothing to renew or cancel.")
+            Text("One-time purchase, charged to your Apple Account. No subscription — nothing to renew or cancel.")
                 .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textTertiary)
                 .multilineTextAlignment(.center)
@@ -1118,10 +1118,10 @@ struct PaywallView: View {
     /// the user sees them without opening the Details sheet.
     private var autoRenewLine: String {
         guard let product = selectedProduct else {
-            return String(localized: "Auto-renews unless cancelled at least 24 hours before the period ends.")
+            return String(localized: "Auto-renews unless canceled at least 24 hours before the period ends.")
         }
         let price = "\(product.displayPrice)\(periodSuffix(for: product))"
-        return String(localized: "Auto-renews at \(price) unless cancelled at least 24 hours before the period ends.")
+        return String(localized: "Auto-renews at \(price) unless canceled at least 24 hours before the period ends.")
     }
 
     private var disclosureSheet: some View {
@@ -1132,7 +1132,7 @@ struct PaywallView: View {
                         .font(AppFont.title2)
                         .foregroundStyle(AppColor.textPrimary)
 
-                    Text("Payment is charged to your Apple ID. Subscription auto-renews at the same price unless cancelled at least 24 hours before the end of the current period. You can manage or cancel your subscription in Settings → your name → Subscriptions.")
+                    Text("Payment is charged to your Apple Account. Subscription auto-renews at the same price unless canceled at least 24 hours before the end of the current period. You can manage or cancel your subscription in Settings → your name → Subscriptions.")
                         .font(AppFont.body)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)

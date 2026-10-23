@@ -39,12 +39,12 @@ struct AccountSection: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This permanently removes the Apple ID linkage from this device and erases all your workouts, meals, protocols, dose entries, progress photos, and profile data. Data in Apple Health is not touched. If iCloud sync is on, the deletion propagates to your other devices. This cannot be undone.")
+            Text("This permanently removes the Apple Account link from this device and erases all your workouts, meals, protocols, dose entries, progress photos, and profile data. Data in Apple Health is not touched. If iCloud sync is on, the deletion propagates to your other devices. This cannot be undone.")
         }
         .alert("Account Deleted", isPresented: $needsManualAppleRevoke) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("Your data is erased. To finish, remove Atlas in Settings → your name → Sign in with Apple.")
+            Text("Your data is erased. To finish, remove Atlas in Settings → your name → Sign-In & Security → Sign in with Apple.")
         }
         .confirmationDialog("Sign out?", isPresented: $isConfirmingSignOut, titleVisibility: .visible) {
             Button("Sign Out", role: .destructive) {
