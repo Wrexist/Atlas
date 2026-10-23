@@ -495,7 +495,7 @@
         }
       }
     },
-    "Log 1 litre of water": {
+    "Log 1 liter of water": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -515,7 +515,7 @@
         }
       }
     },
-    "Log 250 millilitres of water": {
+    "Log 250 milliliters of water": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -535,7 +535,7 @@
         }
       }
     },
-    "Log 500 millilitres of water": {
+    "Log 500 milliliters of water": {
       "localizations": {
         "sv": {
           "stringUnit": {
