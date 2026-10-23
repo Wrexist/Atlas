@@ -27,6 +27,11 @@ final class DataStore {
         didSet { peptideDatabaseCache = nil }
     }
 
+    /// False while custom-peptides.json exists but couldn't be read.
+    /// Saving then would replace the unread library with only what this
+    /// session added.
+    @ObservationIgnored private var customPeptidesReadable = true
+
     /// Observable counterpart to the private `cacheVersion`. Views key
     /// `.task(id:)` / `.onChange(of:)` off this to recompute a derived
     /// snapshot exactly once per mutation, instead of doing the work inline
@@ -160,7 +165,9 @@ final class DataStore {
         self.protocols = []
         self.entries   = []
         self.profile   = .fresh
-        self.customPeptides = PersistenceService.shared.loadCustomPeptides() ?? []
+        let storedCustomPeptides = DataStore.readCustomPeptides()
+        self.customPeptides = storedCustomPeptides ?? []
+        self.customPeptidesReadable = storedCustomPeptides != nil
 
         // Phase 2: self is fully initialized — safe to call methods.
         if repo.isAwaitingAccountDecision {
@@ -197,6 +204,7 @@ final class DataStore {
             self.persistedProfile = savedProfile
             if let savedProfile {
                 HealthSyncSettings.adoptSyncedNutritionFlag(savedProfile.healthKitNutritionEnabled)
+                adoptDeviceHealthConnection()
             }
             // Everything above came off disk and is already persisted.
             // A synthesised `.fresh` profile is the exception: there's no
@@ -266,6 +274,18 @@ final class DataStore {
         ) { [weak self] _ in
             Task { @MainActor in
                 self?.handleIdentityChange()
+            }
+        }
+
+        // A launch while the device was locked (notification action,
+        // Siri intent) may not have been able to read the library.
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.protectedDataDidBecomeAvailableNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.retryUnreadableCustomPeptides()
             }
         }
 
@@ -428,8 +448,35 @@ final class DataStore {
 
     func addCustomPeptide(_ peptide: Peptide) {
         customPeptides.append(peptide)
+        retryUnreadableCustomPeptides()
+        guard customPeptidesReadable else {
+            lastError = Self.saveFailureMessage
+            return
+        }
         PersistenceService.shared.saveCustomPeptides(customPeptides)
         Haptics.success()
+    }
+
+    private static func readCustomPeptides() -> [Peptide]? {
+        do {
+            return try PersistenceService.shared.loadCustomPeptides()
+        } catch {
+            AppLog.persistence.error("Custom peptides unreadable: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
+    /// Re-reads a library that was unreadable at launch and keeps any
+    /// peptide added since, writing the merge back.
+    private func retryUnreadableCustomPeptides() {
+        guard !customPeptidesReadable, let stored = Self.readCustomPeptides() else { return }
+        let storedIDs = Set(stored.map(\.id))
+        let addedSince = customPeptides.filter { !storedIDs.contains($0.id) }
+        customPeptides = stored + addedSince
+        customPeptidesReadable = true
+        if !addedSince.isEmpty {
+            PersistenceService.shared.saveCustomPeptides(customPeptides)
+        }
     }
 
     // MARK: - Protocols
@@ -1215,18 +1262,18 @@ final class DataStore {
         guard let deleted, HealthSyncSettings.isEnabled else { return }
         let day = deleted.date
         if !wasRecordedImport {
-            Task { await self.dismissExternalWeights(onDayOf: day) }
+            Task { await self.dismissLegacyImports(of: deleted) }
         }
         enqueueBodyMassHealthWrite { await HealthKitService.shared.deleteBodyMass(onDayOf: day) }
     }
 
     /// Earlier builds imported Health weigh-ins under random ids, so
-    /// deleting one can't dismiss its sample by id. Dismissing every
-    /// outside sample on that day keeps the next pass from re-importing it.
-    private func dismissExternalWeights(onDayOf day: Date) async {
+    /// deleting one can't dismiss its sample by id; dismissing the
+    /// matching outside sample keeps the next pass from re-importing it.
+    private func dismissLegacyImports(of deleted: WeightEntry) async {
         let external = await HealthKitService.shared.externalWeights(days: HealthSyncEngine.importWindowDays)
-        let sameDay = external.filter { Calendar.current.isDate($0.date, inSameDayAs: day) }
-        repo.dismissHealthWeights(ids: Set(sameDay.map(\.id)))
+        let imports = HealthSyncEngine.legacyImports(of: deleted, in: external)
+        repo.dismissHealthWeights(ids: Set(imports.map(\.id)))
     }
 
     /// Exact-amount water log behind every entry point (quick-adds,
@@ -1375,16 +1422,11 @@ final class DataStore {
     }
 
     /// Flips the Apple Health write toggle. When turning ON, requests
-    /// HK write permission first — if that fails (sim, denied, no
-    /// HealthKit on iPad), the toggle stays off and we surface the
-    /// failure via the returned Bool so the caller can show an
-    /// error pill or revert the switch.
-    ///
-    /// Apple's privacy model doesn't tell us whether the user
-    /// approved or denied; we treat "permission prompt completed
-    /// without throwing" as success. The user can revoke any time in
-    /// the Settings → Health pane, which is the right level of
-    /// indirection for a delete-everything action.
+    /// HK write permission first — if that fails (sim, every type
+    /// denied, no HealthKit on iPad), the toggle stays off and we
+    /// surface the failure via the returned Bool so the caller can
+    /// point the user to Settings. A later revocation in Settings is
+    /// picked up on the next foreground (`turnOffDeniedHealthWrites`).
     @discardableResult
     func setHealthKitNutritionEnabled(_ enabled: Bool) async -> Bool {
         if enabled {
@@ -1399,7 +1441,7 @@ final class DataStore {
     }
 
     /// Turns "Sync workouts, weight and water" on or off. Like the meal
-    /// toggle, it only stays on once the permission prompt completed.
+    /// toggle, it only stays on while some write type is allowed.
     @discardableResult
     func setHealthActivitySyncEnabled(_ enabled: Bool) async -> Bool {
         if enabled {
@@ -1982,14 +2024,15 @@ final class DataStore {
     }
 
     /// Toggle off (revoke local link) is unconditional. Toggle ON
-    /// only succeeds after the user has actually granted at least
-    /// one HealthKit type — previously we'd flip the bool to true
-    /// regardless and downstream UI showed "connected" with empty
-    /// cards (audit Biology H9). Caller can `await` the result and
-    /// surface a permissions prompt when this returns false.
+    /// succeeds once Health's permission sheet completes. HealthKit
+    /// never reveals denied read access, so a user who allowed nothing
+    /// still connects; `HealthKitService.hasReadableData` is how the
+    /// Profile card tells them nothing is visible. Returns false when
+    /// the request itself failed (no HealthKit, or it threw).
     @discardableResult
     func toggleHealthConnection() async -> Bool {
         if profile.healthConnected {
+            HealthSyncSettings.setConnected(false)
             profile.healthConnected = false
             save()
             await refreshWatchVitals()
@@ -2000,10 +2043,33 @@ final class DataStore {
             AppLog.healthKit.warning("toggleHealthConnection blocked — no HealthKit grant")
             return false
         }
+        HealthSyncSettings.setConnected(true)
         profile.healthConnected = true
         save()
         await refreshWatchVitals()
         return true
+    }
+
+    /// Health permission is granted per device, so a just-loaded profile
+    /// shows this device's connection, not the synced column another
+    /// device set. Applied to the baseline too, so the column is only
+    /// written when the user toggles here. A device that predates the
+    /// local flag adopts the synced value only if Health has asked it.
+    private func adoptDeviceHealthConnection() {
+        let synced = profile.healthConnected
+        let local = HealthSyncSettings.isConnected
+        profile.healthConnected = local ?? false
+        persistedProfile?.healthConnected = local ?? false
+        guard local == nil, synced else { return }
+        Task { @MainActor [weak self] in
+            let askedHere = await HealthKitService.shared.hasRequestedReadAuthorization()
+            guard HealthSyncSettings.isConnected == nil else { return }
+            HealthSyncSettings.setConnected(askedHere)
+            guard askedHere, let self else { return }
+            self.profile.healthConnected = true
+            self.persistedProfile?.healthConnected = true
+            await self.refreshWatchVitals()
+        }
     }
 
     /// Atomically updates the user-customizable identity fields shown on the
@@ -2464,8 +2530,12 @@ final class DataStore {
         else { return }
 
         repo.beginSaveBatch()
+        if protocolsNeedSave || entriesNeedSave { dropProtocolsDeletedElsewhere() }
         if protocolsNeedSave { repo.upsertProtocols(protocols) }
-        if entriesNeedSave { repo.upsertEntries(entries) }
+        if entriesNeedSave {
+            let deletedElsewhere = repo.upsertEntries(entries)
+            if !deletedElsewhere.isEmpty { entries.removeAll { deletedElsewhere.contains($0.id) } }
+        }
         for id in pendingProtocolDeletions {
             repo.deleteProtocol(id: id)
             // Includes rows outside the in-memory window or synced in
@@ -2519,6 +2589,16 @@ final class DataStore {
 
         updateWidgetData()
         updateWatchData()
+    }
+
+    /// A protocol another device deleted, whose CloudKit import landed
+    /// before this device reloaded, leaves memory here instead of being
+    /// re-inserted (with today's doses) by this save.
+    private func dropProtocolsDeletedElsewhere() {
+        let deletedElsewhere = repo.protocolIDsDeletedElsewhere(among: Set(protocols.map(\.id)))
+        guard !deletedElsewhere.isEmpty else { return }
+        protocols.removeAll { deletedElsewhere.contains($0.id) }
+        entries.removeAll { deletedElsewhere.contains($0.protocolId) }
     }
 
     /// Banner copy for a transient live-save failure. Kept as a
@@ -2848,6 +2928,21 @@ final class DataStore {
         performCycleAutoCompletion()
         regenerateTodayEntries()
         refreshHealthIfDue()
+        turnOffDeniedHealthWrites()
+        // The unlock notification isn't delivered to a suspended app.
+        retryUnreadableCustomPeptides()
+    }
+
+    /// Write access can be withdrawn in Settings at any time; a toggle
+    /// left on would only make every write fail in the log.
+    private func turnOffDeniedHealthWrites() {
+        let health = HealthKitService.shared
+        if HealthSyncSettings.isNutritionEnabled, health.isNutritionWriteDenied {
+            UserDefaults.standard.set(false, forKey: HealthSyncSettings.nutritionEnabledKey)
+        }
+        if HealthSyncSettings.isEnabled, health.isActivityWriteDenied {
+            UserDefaults.standard.set(false, forKey: HealthSyncSettings.enabledKey)
+        }
     }
 
     private func refreshHealthIfDue() {
@@ -2860,10 +2955,20 @@ final class DataStore {
         Task { await importHealthWeights() }
     }
 
-    /// Re-pulls protocols / entries / profile from the repository — used by
-    /// the Protocols list's pull-to-refresh so a CloudKit sync from another
-    /// device shows up without an app relaunch. Falls back to the existing
-    /// in-memory state if the repo returns nil for that resource.
+    /// Pull-to-refresh. Lands pending edits first, so the reload can't
+    /// discard them or bring back a protocol whose deletion is still
+    /// queued; while they can't be saved, memory stays as it is.
+    func refreshFromStore() {
+        flushPendingSave()
+        guard !hasUnsavedChanges else { return }
+        reloadFromDisk()
+    }
+
+    /// Re-pulls protocols / entries / profile from the repository so a
+    /// CloudKit sync from another device shows up without an app
+    /// relaunch. Falls back to the existing in-memory state if the repo
+    /// returns nil for that resource. Replaces unsaved in-memory edits;
+    /// user-triggered refreshes go through `refreshFromStore`.
     func reloadFromDisk() {
         // Same two-phase shape as init: the recent window synchronously
         // (this runs on pull-to-refresh and CloudKit pulls, where a
@@ -2879,6 +2984,7 @@ final class DataStore {
         persistedProfile = saved
         if let saved {
             profile = saved
+            adoptDeviceHealthConnection()
             // Only clear the profile flag when a row actually replaced
             // it — otherwise an unsaved in-memory profile edit would be
             // marked clean without ever reaching disk.
@@ -2971,6 +3077,7 @@ final class DataStore {
         let importEntryIDs = Set(newEntries.map(\.id))
 
         repo.beginSaveBatch()
+        repo.forgetPersistedIDs()
         repo.upsertProtocols(newProtocols)
         repo.upsertEntries(newEntries)
 

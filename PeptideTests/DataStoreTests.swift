@@ -1,3 +1,4 @@
+import SwiftData
 import XCTest
 @testable import Peptide
 
@@ -8,11 +9,13 @@ final class DataStoreTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
+        UserDefaults.standard.removeObject(forKey: HealthSyncSettings.connectedKey)
         SwiftDataRepository.shared.configureForTesting()
         store = DataStore(seedSampleData: true)
     }
 
     override func tearDown() {
+        UserDefaults.standard.removeObject(forKey: HealthSyncSettings.connectedKey)
         SwiftDataRepository.shared.deleteAll()
         store = nil
         super.tearDown()
@@ -232,6 +235,26 @@ final class DataStoreTests: XCTestCase {
     }
 
     // MARK: - Profile customization
+
+    func test_profileSyncedAsHealthConnected_onADeviceThatNeverConnected_isNotConnected() {
+        var synced = MockProfile.current
+        synced.healthConnected = true
+        SwiftDataRepository.shared.saveProfile(synced)
+        UserDefaults.standard.removeObject(forKey: HealthSyncSettings.connectedKey)
+
+        let otherDevice = DataStore()
+
+        XCTAssertFalse(otherDevice.profile.healthConnected)
+    }
+
+    func test_profileSyncedAsDisconnected_onADeviceThatConnected_staysConnected() {
+        SwiftDataRepository.shared.saveProfile(MockProfile.current)
+        HealthSyncSettings.setConnected(true)
+
+        let connectedDevice = DataStore()
+
+        XCTAssertTrue(connectedDevice.profile.healthConnected)
+    }
 
     func test_updateProfileIdentity_trimsWhitespaceAndPersists() {
         store.updateProfileIdentity(name: "  Casey  ", bio: "\n Optimizing recovery.\n ")
@@ -507,6 +530,27 @@ final class DataStoreTests: XCTestCase {
         XCTAssertEqual(store.profile.name, "Dirty Tracking")
     }
 
+    func test_refreshFromStore_beforeTheDebouncedSave_keepsTheDeletion() throws {
+        let proto = try XCTUnwrap(store.protocols.first)
+
+        store.deleteProtocol(id: proto.id)
+        store.refreshFromStore()
+
+        XCTAssertFalse(store.protocols.contains { $0.id == proto.id })
+        XCTAssertFalse(SwiftDataRepository.shared.loadProtocols().contains { $0.id == proto.id })
+    }
+
+    func test_refreshFromStore_whenSaveFails_keepsUnsavedEdits() throws {
+        let entry = try XCTUnwrap(store.entries.first { !$0.completed })
+        SwiftDataRepository.shared.forceCommitFailureForTesting = true
+        defer { SwiftDataRepository.shared.forceCommitFailureForTesting = false }
+
+        store.toggleEntry(entry.id)
+        store.refreshFromStore()
+
+        XCTAssertEqual(store.entries.first { $0.id == entry.id }?.completed, true)
+    }
+
     // MARK: - Multi-device sync
 
     func test_cloudImport_afterADebouncedSave_reloadsFromDisk() async throws {
@@ -590,6 +634,39 @@ final class DataStoreTests: XCTestCase {
         XCTAssertEqual(collapsed.first?.completed, true)
     }
 
+    func test_updateProtocolStatus_withDuplicateStoredRows_survivesSaveAndReload() throws {
+        let proto = try XCTUnwrap(store.protocols.first { $0.status == .active })
+        let context = try XCTUnwrap(SwiftDataRepository.shared.contextForTesting)
+        context.insert(try StoredProtocol.make(from: proto))
+        try context.save()
+        store.reloadFromDisk()
+        XCTAssertEqual(store.protocols.filter { $0.id == proto.id }.count, 1)
+
+        store.updateProtocolStatus(id: proto.id, to: .paused)
+        store.flushPendingSave()
+        store.reloadFromDisk()
+
+        XCTAssertEqual(store.protocols.first { $0.id == proto.id }?.status, .paused)
+    }
+
+    func test_save_afterProtocolDeletedOnAnotherDevice_doesNotRecreateIt() throws {
+        store.flushPendingSave()
+        let deleted = try XCTUnwrap(store.protocols.first)
+        let deletedID = deleted.id
+        let context = try XCTUnwrap(SwiftDataRepository.shared.contextForTesting)
+        try context.delete(model: StoredProtocol.self, where: #Predicate { $0.id == deletedID })
+        try context.delete(model: StoredEntry.self, where: #Predicate { $0.protocolId == deletedID })
+        try context.save()
+        let survivor = try XCTUnwrap(store.protocols.first { $0.id != deletedID })
+
+        store.extendProtocol(id: survivor.id, byWeeks: 1)
+        store.flushPendingSave()
+
+        XCTAssertFalse(SwiftDataRepository.shared.loadProtocols().contains { $0.id == deletedID })
+        XCTAssertFalse(SwiftDataRepository.shared.loadEntries().contains { $0.protocolId == deletedID })
+        XCTAssertFalse(store.protocols.contains { $0.id == deletedID })
+    }
+
     func test_deleteProtocol_alsoDeletesItsRowsNotLoadedInMemory() throws {
         let proto = try XCTUnwrap(store.protocols.first)
         let syncedIn = ProtocolEntry(
@@ -602,6 +679,23 @@ final class DataStoreTests: XCTestCase {
         store.flushPendingSave()
 
         XCTAssertFalse(SwiftDataRepository.shared.loadEntries().contains { $0.protocolId == proto.id })
+    }
+
+    // MARK: - Custom peptides
+
+    func test_addCustomPeptide_whenStoredLibraryUnreadable_keepsTheFileIntact() throws {
+        let documents = try XCTUnwrap(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first)
+        let url = documents.appendingPathComponent("custom-peptides.json")
+        let unreadable = Data("not a peptide list".utf8)
+        try unreadable.write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let launchedLocked = DataStore()
+        launchedLocked.addCustomPeptide(MockPeptides.bpc157)
+
+        XCTAssertEqual(try Data(contentsOf: url), unreadable,
+                       "An unread library must not be replaced by the one peptide added this session")
+        XCTAssertEqual(launchedLocked.lastError, DataStore.saveFailureMessage)
     }
 
     // MARK: - Travel mode

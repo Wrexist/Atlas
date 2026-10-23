@@ -17,6 +17,13 @@ struct HealthConnectionCard: View {
     /// pass-through as the meal toggle.
     var activitySyncEnabled: Bool = false
     var onToggleActivitySync: (Bool) -> Void = { _ in }
+    /// True after turning a write toggle on came back without access.
+    var writeAccessRefused: Bool = false
+    /// False when connected but no read type returned a recent sample —
+    /// most often read access denied in Health's sheet.
+    var healthDataVisible: Bool = true
+
+    @Environment(\.openURL) private var openURL
     /// Awaited so the button can show it's waiting on HealthKit's
     /// permission sheet rather than sitting idle under it.
     var onConnect: @MainActor () async -> Void = {}
@@ -83,6 +90,9 @@ struct HealthConnectionCard: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 } else {
                     VStack(alignment: .leading, spacing: Spacing.lg) {
+                        if !healthDataVisible {
+                            noVisibleDataNotice
+                        }
                         syncToggle(
                             title: "Sync workouts, weight and water",
                             detail: "Finished workouts, weigh-ins and water show up in the Health app, and weigh-ins from a smart scale come back to Atlas.",
@@ -95,6 +105,12 @@ struct HealthConnectionCard: View {
                             isOn: nutritionWriteEnabled,
                             onChange: onToggleNutritionWrite
                         )
+                        if writeAccessRefused {
+                            Text("Atlas isn't allowed to write to Apple Health. Turn it on in Settings › Health › Data Access & Devices › Atlas.")
+                                .font(AppFont.caption2)
+                                .foregroundStyle(AppColor.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
@@ -103,6 +119,22 @@ struct HealthConnectionCard: View {
         }
         .onChange(of: isConnected) { _, connected in
             if connected { Haptics.success() }
+        }
+    }
+
+    private var noVisibleDataNotice: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("Atlas can't see any Health data. Check that Atlas has read access in Settings › Health › Data Access & Devices › Atlas.")
+                .font(AppFont.caption2)
+                .foregroundStyle(AppColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Button("Open Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    openURL(url)
+                }
+            }
+            .font(AppFont.caption2)
+            .foregroundStyle(AppColor.accentLight)
         }
     }
 

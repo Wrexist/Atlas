@@ -52,4 +52,27 @@ final class DoseDayMapTests: XCTestCase {
         logged.actualTime = takenAt
         XCTAssertEqual(marks(for: [logged]).first?.time, takenAt.formatted(.dateTime.hour().minute()))
     }
+
+    func test_build_duplicateProtocolIDs_doesNotTrapAndKeepsFirstStatus() {
+        // CloudKit can sync two rows for one protocol id.
+        let logged = entry(completed: true)
+        let paused = PeptideProtocol(
+            id: logged.protocolId,
+            name: "Synced twice",
+            peptides: [MockPeptides.bpc157],
+            schedule: ProtocolSchedule(daysOfWeek: [1], timesPerDay: 1, preferredTimes: ["8:00 AM"]),
+            cycleLengthWeeks: 8,
+            startDate: referenceDay,
+            status: .paused,
+            notes: ""
+        )
+        var twin = paused
+        twin.status = .active
+
+        let map = DoseDayMap.build(
+            for: referenceDay, entries: [logged], protocols: [paused, twin], calendar: calendar
+        )
+
+        XCTAssertEqual(map[calendar.startOfDay(for: referenceDay)]?.first?.protocolStatus, .paused)
+    }
 }

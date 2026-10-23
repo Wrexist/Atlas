@@ -27,11 +27,24 @@ final class HealthWeightLocalStore {
     }
 
     private let fileURL: URL
-    private lazy var contents: Contents = load()
+    private var loaded: Contents?
     /// False while the file exists but couldn't be read. Writes are
     /// refused so a transient failure can't replace it with the empty
     /// contents the read fell back to.
     private var isReadable = true
+
+    /// The file's contents, read on first use. A failed read is retried
+    /// on the next access instead of hiding imported weigh-ins, and
+    /// refusing every write, for the rest of the process.
+    private var contents: Contents {
+        get {
+            if let loaded { return loaded }
+            let read = load()
+            if isReadable { loaded = read }
+            return read
+        }
+        set { loaded = newValue }
+    }
 
     init(fileURL: URL) {
         self.fileURL = fileURL
@@ -123,6 +136,7 @@ final class HealthWeightLocalStore {
     }
 
     private func load() -> Contents {
+        isReadable = true
         guard FileManager.default.fileExists(atPath: fileURL.path) else { return Contents() }
         do {
             return try JSONDecoder().decode(Contents.self, from: Data(contentsOf: fileURL))

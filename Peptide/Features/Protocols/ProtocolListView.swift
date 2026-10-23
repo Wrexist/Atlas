@@ -154,10 +154,8 @@ struct ProtocolListView: View {
             }
             .refreshable {
                 // Re-load from disk via the repo so a CloudKit sync from
-                // another device shows up without restarting the app. The
-                // repo loads are fast (single JSON read per file) so this
-                // can happen on every pull-to-refresh.
-                dataStore.reloadFromDisk()
+                // another device shows up without restarting the app.
+                dataStore.refreshFromStore()
             }
             .navigationTitle("Protocols")
             .toolbar {

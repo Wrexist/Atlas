@@ -99,12 +99,13 @@ final class AppState {
 
     /// Closes the root-presented modals before a deep link, quick action
     /// or Spotlight tap navigates. A tab switch or a pending flag behind
-    /// an open Profile sheet or Library cover happens out of sight, and
+    /// an open Profile sheet, Library cover or paywall happens out of sight, and
     /// the view that consumes the flag can't present over the modal.
     func dismissModalsForRouting() {
         showProfile = false
         showLibrary = false
         presentedQuickSheet = nil
+        presentedPaywall = nil
     }
 }
 

@@ -299,6 +299,67 @@ final class ProfileSyncIntegrityTests: XCTestCase {
         XCTAssertEqual(LifestyleDataLogic.consumption(in: merged, for: day).caloriesKcal, 3 * 550)
     }
 
+    func test_reconcile_sameHabitCheckedOnBothRowsSameDay_keepsOneEntryWithTheLargerValue() {
+        let hydrate = habit("Hydrate")
+        var primary = UserProfile.fresh
+        primary.habits = [hydrate]
+        primary.habitEntries = [HabitEntry(habitId: hydrate.id, date: day, value: 2)]
+        var other = primary
+        other.habitEntries = [HabitEntry(habitId: hydrate.id, date: day, value: 5)]
+
+        let merged = ProfileMergeEngine.reconcile(primary, with: other)
+
+        XCTAssertEqual(merged.habitEntries.map(\.value), [5])
+        XCTAssertEqual(merged.habitEntries.map(\.id), primary.habitEntries.map(\.id))
+    }
+
+    func test_reconcile_outcomeCheckInOnBothRowsSameDay_keepsTheNewerOne() {
+        var primary = UserProfile.fresh
+        primary.outcomeHistory = [OutcomeEntry(date: day, energy: 2, sleepQuality: 2, recovery: 2, mood: 2, focus: 2,
+                                               updatedAt: day)]
+        var other = UserProfile.fresh
+        other.outcomeHistory = [OutcomeEntry(date: day, energy: 4, sleepQuality: 4, recovery: 4, mood: 4, focus: 4,
+                                             updatedAt: day.addingTimeInterval(600))]
+
+        let merged = ProfileMergeEngine.reconcile(primary, with: other)
+
+        XCTAssertEqual(merged.outcomeHistory.map(\.energy), [4])
+    }
+
+    func test_reconcile_waterOnBothRowsSameDay_addsTheOtherRowsWater() {
+        var primary = UserProfile.fresh
+        LifestyleDataLogic.logWater(into: &primary, fluidOunces: 8, date: day)
+        var other = UserProfile.fresh
+        LifestyleDataLogic.logWater(into: &other, fluidOunces: 16, date: day)
+
+        let merged = ProfileMergeEngine.reconcile(primary, with: other)
+
+        XCTAssertEqual(LifestyleDataLogic.consumption(in: merged, for: day).waterFluidOunces, 24)
+    }
+
+    func test_reconcile_rowsCopiedFromOneHistory_doNotDoubleTheirWater() {
+        var primary = UserProfile.fresh
+        LifestyleDataLogic.logMealEntry(into: &primary, entry: meal("Shared lunch"))
+        LifestyleDataLogic.logWater(into: &primary, fluidOunces: 8, date: day)
+        var other = primary
+        LifestyleDataLogic.logWater(into: &other, fluidOunces: 4, date: day)
+
+        let identical = ProfileMergeEngine.reconcile(primary, with: primary)
+        let diverged = ProfileMergeEngine.reconcile(primary, with: other)
+
+        XCTAssertEqual(LifestyleDataLogic.consumption(in: identical, for: day).waterFluidOunces, 8)
+        XCTAssertEqual(LifestyleDataLogic.consumption(in: diverged, for: day).waterFluidOunces, 12)
+    }
+
+    func test_reconcile_legacyWorkoutsOnTheOtherRow_areKept() {
+        var other = UserProfile.fresh
+        other.workoutHistory = [WorkoutEntry(date: day, name: "Run", sets: 1, reps: 1, durationMinutes: 30)]
+
+        let merged = ProfileMergeEngine.reconcile(UserProfile.fresh, with: other)
+
+        XCTAssertEqual(merged.workoutHistory.map(\.id), other.workoutHistory.map(\.id))
+    }
+
     func test_reconcile_freshWinnerAndCustomizedTodayLayout_adoptsTheCustomLayout() {
         var other = UserProfile.fresh
         other.todayLayout.setHidden(.momentum, true)
@@ -355,6 +416,58 @@ final class ProfileSyncIntegrityTests: XCTestCase {
         XCTAssertEqual(LifestyleDataLogic.consumption(in: loaded, for: day).caloriesKcal, 3 * 550)
     }
 
+    func test_saveSinceBaseline_keepsAnotherDevicesWeighInAndHabitCheckIn() throws {
+        let base = baseProfile()
+        repo.saveProfile(base)
+        let nextDay = day.addingTimeInterval(86_400)
+        var remote = base
+        remote.weightHistory.append(WeightEntry(date: day, kg: 80))
+        remote.habitEntries.append(HabitEntry(habitId: base.habits[0].id, date: day))
+        repo.saveProfile(remote)
+
+        var local = base
+        local.weightHistory.append(WeightEntry(date: nextDay, kg: 79))
+        local.habitEntries.append(HabitEntry(habitId: base.habits[0].id, date: nextDay))
+        repo.saveProfile(local, since: base)
+
+        let loaded = try XCTUnwrap(repo.loadProfile())
+        XCTAssertEqual(loaded.weightHistory.map(\.kg), [80, 79])
+        XCTAssertEqual(loaded.habitEntries.count, 2)
+    }
+
+    func test_saveSinceBaseline_newRecipeHereKeepsTargetsChangedElsewhere() throws {
+        let base = baseProfile()
+        repo.saveProfile(base)
+        var remote = base
+        remote.nutritionTargets = NutritionTargets(calories: 2400, proteinG: 180, carbsG: 240, fatG: 80, fiberG: 30)
+        repo.saveProfile(remote)
+
+        var local = base
+        local.recipes.append(Recipe(name: "Overnight oats", updatedAt: day))
+        repo.saveProfile(local, since: base)
+
+        let loaded = try XCTUnwrap(repo.loadProfile())
+        XCTAssertEqual(loaded.nutritionTargets, remote.nutritionTargets)
+        XCTAssertEqual(loaded.recipes.map(\.name), ["Overnight oats"])
+    }
+
+    func test_saveSinceBaseline_deletingALabHereKeepsALabAddedElsewhere() throws {
+        var base = baseProfile()
+        let old = LabValue(date: day, panel: .tsh, value: 2.1)
+        base.labHistory = [old]
+        repo.saveProfile(base)
+        var remote = base
+        let added = LabValue(date: day, panel: .hba1c, value: 5.2)
+        remote.labHistory.append(added)
+        repo.saveProfile(remote)
+
+        var local = base
+        local.labHistory.removeAll()
+        repo.saveProfile(local, since: base)
+
+        XCTAssertEqual(try XCTUnwrap(repo.loadProfile()).labHistory.map(\.id), [added.id])
+    }
+
     // MARK: - Unreadable columns
 
     func test_unreadableSliceColumn_isLeftUntouchedBySave() throws {
@@ -369,6 +482,58 @@ final class ProfileSyncIntegrityTests: XCTestCase {
 
         XCTAssertEqual(row.mealsData, unreadable, "An unreadable column must survive a save untouched")
         XCTAssertEqual(try row.toUserProfile().habitEntries.count, 1)
+    }
+
+    func test_unreadableGoals_launchSaveKeepsTheRestOfTheProfile() throws {
+        var profile = baseProfile()
+        profile.weightHistory = [WeightEntry(date: day, kg: 80)]
+        let row = try StoredProfile.make(from: profile)
+        row.goalsData = Data("not a goal list".utf8)
+        try insertRows([row])
+
+        let store = DataStore()
+        store.flushPendingSave()
+
+        let loaded = try XCTUnwrap(repo.loadProfile())
+        XCTAssertEqual(loaded.name, profile.name)
+        XCTAssertEqual(loaded.habits.map(\.id), profile.habits.map(\.id))
+        XCTAssertEqual(loaded.weightHistory.map(\.id), profile.weightHistory.map(\.id))
+    }
+
+    func test_mealFromANewerBuild_isHiddenAndKept_whileANewMealSaves() throws {
+        repo.saveProfile(baseProfile())
+        try editStoredMeals { meals in
+            var future = meals[0]
+            future["id"] = UUID().uuidString
+            future["category"] = "brunch"
+            meals.append(future)
+        }
+
+        let loaded = try XCTUnwrap(repo.loadProfile())
+        XCTAssertEqual(loaded.mealHistory.map(\.name), ["Base meal"])
+        var edited = loaded
+        LifestyleDataLogic.logMealEntry(into: &edited, entry: meal("New lunch"))
+        repo.beginSaveBatch()
+        repo.saveProfile(edited, since: loaded)
+
+        XCTAssertFalse(repo.commitDidFail)
+        XCTAssertEqual(Set(try XCTUnwrap(repo.loadProfile()).mealHistory.map(\.name)), ["Base meal", "New lunch"])
+        let stored = String(decoding: try XCTUnwrap(loadStoredRow()?.mealsData), as: UTF8.self)
+        XCTAssertTrue(stored.contains("brunch"), "The newer build's meal must survive this build's save")
+    }
+
+    func test_fieldFromANewerBuild_survivesSavingAnotherMeal() throws {
+        repo.saveProfile(baseProfile())
+        try editStoredMeals { meals in meals[0]["addedByNewerBuild"] = "kept" }
+
+        let loaded = try XCTUnwrap(repo.loadProfile())
+        var edited = loaded
+        LifestyleDataLogic.logMealEntry(into: &edited, entry: meal("New lunch"))
+        repo.saveProfile(edited, since: loaded)
+
+        let stored = String(decoding: try XCTUnwrap(loadStoredRow()?.mealsData), as: UTF8.self)
+        XCTAssertTrue(stored.contains("addedByNewerBuild"))
+        XCTAssertTrue(stored.contains("New lunch"))
     }
 
     func test_workoutMigrationMarker_survivesARoundTrip() throws {
@@ -415,6 +580,19 @@ final class ProfileSyncIntegrityTests: XCTestCase {
     private func fetchAllRows() throws -> [StoredProfile] {
         try XCTUnwrap(repo.contextForTesting)
             .fetch(FetchDescriptor<StoredProfile>())
+    }
+
+    /// Rewrites the stored meal column as a newer build would.
+    private func editStoredMeals(_ change: (inout [[String: Any]]) -> Void) throws {
+        let row = try XCTUnwrap(loadStoredRow())
+        var root = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: XCTUnwrap(row.mealsData)) as? [String: Any]
+        )
+        var meals = try XCTUnwrap(root["mealHistory"] as? [[String: Any]])
+        change(&meals)
+        root["mealHistory"] = meals
+        row.mealsData = try JSONSerialization.data(withJSONObject: root)
+        try XCTUnwrap(repo.contextForTesting).save()
     }
 
     private func insertRows(_ rows: [StoredProfile]) throws {
