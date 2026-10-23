@@ -15,6 +15,9 @@ final class WatchSyncService: NSObject {
     /// handler routes through `dataStore.logWater` so the widget reload
     /// + watch sync + HK write all fire for free.
     var onLogWater: ((Double, Date) -> Void)?
+    /// Where handled Watch command ids are remembered. Tests swap in an
+    /// isolated suite so they never touch the host app's defaults.
+    var deliveryLog: UserDefaults = .standard
 
     private let encoder: JSONEncoder = {
         let e = JSONEncoder()
@@ -286,9 +289,9 @@ extension WatchSyncService: WCSessionDelegate {
     }
 }
 
-private extension WatchSyncService {
-    static let handledMessageIDsKey = "watchSync.handledMessageIDs"
-    static let handledMessageIDsLimit = 50
+extension WatchSyncService {
+    private static let handledMessageIDsKey = "watchSync.handledMessageIDs"
+    private static let handledMessageIDsLimit = 50
 
     /// Records a Watch command's id and reports whether this is its first
     /// delivery. Kept across launches because the `transferUserInfo`
@@ -296,15 +299,14 @@ private extension WatchSyncService {
     /// Watch build carry no id and always pass.
     func isFirstDelivery(_ messageID: String?) -> Bool {
         guard let messageID else { return true }
-        let defaults = UserDefaults.standard
-        var handled = defaults.stringArray(forKey: Self.handledMessageIDsKey) ?? []
+        var handled = deliveryLog.stringArray(forKey: Self.handledMessageIDsKey) ?? []
         guard !handled.contains(messageID) else { return false }
         handled.append(messageID)
-        defaults.set(Array(handled.suffix(Self.handledMessageIDsLimit)), forKey: Self.handledMessageIDsKey)
+        deliveryLog.set(Array(handled.suffix(Self.handledMessageIDsLimit)), forKey: Self.handledMessageIDsKey)
         return true
     }
 
-    func handleWorkoutRequest(_ request: WatchWorkoutRequest, messageID: String?) {
+    private func handleWorkoutRequest(_ request: WatchWorkoutRequest, messageID: String?) {
         guard isFirstDelivery(messageID) else { return }
         WorkoutSessionService.shared.apply(request)
     }
