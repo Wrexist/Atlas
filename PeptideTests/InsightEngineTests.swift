@@ -154,7 +154,7 @@ final class InsightEngineTests: XCTestCase {
             entries.append(makeEntry(daysAgo: Double(i), completed: i % 5 == 0))
         }
         let insights = InsightEngine.generateInsights(from: entries, protocols: [])
-        XCTAssertTrue(insights.contains { $0.title == "Compliance improving" })
+        XCTAssertTrue(insights.contains { $0.title == "Adherence improving" })
     }
 
     func test_generateInsights_decliningCompliance_returnsWarningInsight() {
@@ -168,7 +168,7 @@ final class InsightEngineTests: XCTestCase {
             entries.append(makeEntry(daysAgo: Double(i), completed: true))
         }
         let insights = InsightEngine.generateInsights(from: entries, protocols: [])
-        XCTAssertTrue(insights.contains { $0.title == "Compliance dipping" })
+        XCTAssertTrue(insights.contains { $0.title == "Adherence dipping" })
     }
 
     // MARK: - Empty / no crash

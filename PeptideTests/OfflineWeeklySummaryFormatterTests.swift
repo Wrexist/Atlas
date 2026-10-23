@@ -43,7 +43,7 @@ final class OfflineWeeklySummaryFormatterTests: XCTestCase {
 
     func test_summary_pctAtNinety_isStrongWeek() {
         let text = summary(aggregate(pct: 0.9))
-        XCTAssertTrue(text.hasPrefix("Strong week — 9 of 10 doses logged (90% compliance)."))
+        XCTAssertTrue(text.hasPrefix("Strong week — 9 of 10 doses logged (90% adherence)."))
         XCTAssertTrue(text.contains("consistency at this level compounds"))
     }
 

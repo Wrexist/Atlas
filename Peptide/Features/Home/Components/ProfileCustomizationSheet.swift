@@ -703,7 +703,7 @@ struct ProfileCustomizationSheet: View {
                         bodyStat("Age", metrics.age.map { "\($0)" } ?? "—")
                     }
                 } else {
-                    Text("Optional — add your weight, height, and age in the Profile tab to display them alongside compliance trends.")
+                    Text("Optional — add your weight, height, and age in Profile to display them alongside adherence trends.")
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)

@@ -37,10 +37,10 @@ enum OfflineWeeklySummaryFormatter {
         let total = aggregate.compliance.total
 
         if pct >= 90 {
-            return String(localized: "Strong week — \(completed) of \(total) doses logged (\(pct)% compliance).")
+            return String(localized: "Strong week — \(completed) of \(total) doses logged (\(pct)% adherence).")
         }
         if pct >= 70 {
-            return String(localized: "Solid week — \(completed) of \(total) doses logged (\(pct)% compliance).")
+            return String(localized: "Solid week — \(completed) of \(total) doses logged (\(pct)% adherence).")
         }
         if pct >= 40 {
             return String(localized: "Mixed week — \(completed) of \(total) doses logged (\(pct)%).")

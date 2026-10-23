@@ -368,7 +368,7 @@ final class ExportService {
             for (label, value) in [
                 ("Active Protocols", "\(activeCount) of \(protocols.count)"),
                 ("Doses Logged", "\(completedDoses) of \(entries.count)"),
-                ("Overall Compliance", "\(compliancePct)%"),
+                ("Overall Adherence", "\(compliancePct)%"),
             ] {
                 let h = drawText(label, font: bodyFont, color: mutedColor)
                 drawText(value, font: labelFont, x: pageWidth - margin - 60, width: 60, align: .right)
@@ -400,7 +400,7 @@ final class ExportService {
                 let startStr   = proto.startDate.formatted(date: .abbreviated, time: .omitted)
                 let peptideStr = proto.peptides.map(\.abbreviation).joined(separator: ", ")
                 let metaH = drawText(
-                    "Started \(startStr)  ·  \(proto.cycleLengthWeeks)w cycle  ·  \(pct)% compliance",
+                    "Started \(startStr)  ·  \(proto.cycleLengthWeeks)w cycle  ·  \(pct)% adherence",
                     font: captionFont, color: mutedColor
                 )
                 y += metaH + 2
@@ -422,7 +422,7 @@ final class ExportService {
                     for bucket in monthlyBuckets {
                         checkPageBreak(for: 18)
                         let lineH = drawText(
-                            "\(bucket.label)  ·  \(bucket.logged) logged · \(bucket.missed) missed · \(bucket.compliancePct)% compliance",
+                            "\(bucket.label)  ·  \(bucket.logged) logged · \(bucket.missed) missed · \(bucket.compliancePct)% adherence",
                             font: captionFont
                         )
                         y += lineH + 3

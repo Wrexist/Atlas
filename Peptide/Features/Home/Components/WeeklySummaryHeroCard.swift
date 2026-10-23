@@ -334,7 +334,7 @@ struct WeeklySummaryHeroCard: View {
             state: .ready(
                 WeeklySummary(
                     weekStart: "2026-01-05",
-                    text: "Strong week — 19 of 21 doses logged (90 % compliance) and a 12-day streak. Your check-ins averaged 4.1 of 5, holding steady alongside an HRV that climbed 4 ms versus the prior week. Keep the cadence steady next week; consistency at this level tends to compound.",
+                    text: "Strong week — 19 of 21 doses logged (90 % adherence) and a 12-day streak. Your check-ins averaged 4.1 of 5, holding steady alongside an HRV that climbed 4 ms versus the prior week. Keep the cadence steady next week; consistency at this level tends to compound.",
                     keyStats: .init(
                         compliancePct: 0.905,
                         dosesCompleted: 19,
