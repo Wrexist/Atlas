@@ -107,12 +107,15 @@ struct RoutinesView: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .contextMenu { menu(for: summary.routine) }
+                    // No destructive role: the alert confirms first, and the
+                    // role would start List's row-removal animation early.
                     .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) {
+                        Button {
                             pendingDeletion = summary.routine
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
+                        .tint(AppColor.destructive)
                     }
                 }
                 .onMove { source, destination in
