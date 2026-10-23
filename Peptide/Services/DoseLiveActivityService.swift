@@ -64,9 +64,7 @@ final class DoseLiveActivityService {
         }
 
         // Start activities for in-window entries that don't have one
-        // yet. If the user has 4+ open activities (the system soft
-        // cap on most devices), skip the rest — better to leave the
-        // earliest few than fail silently.
+        // yet. A start the system refuses is logged by `startActivity`.
         guard areLiveActivitiesEnabled else { return }
         for entry in inWindow where !openIDs.contains(entry.id) {
             startActivity(for: entry)
