@@ -191,18 +191,19 @@ struct LogDoseIntent: AppIntent {
         }
     }
 
-    /// Completes today's earliest incomplete dose of the peptide and
-    /// flushes the save, so the write survives the app being killed
-    /// right after a cold-launched intent returns.
+    /// Completes today's earliest incomplete dose of the peptide, stamped
+    /// with when it was taken like every other logging path, and flushes
+    /// the save, so the write survives the app being killed right after a
+    /// cold-launched intent returns.
     @MainActor
-    static func logEarliestDose(of peptideID: String, in store: DataStore) -> ToggleResolution {
+    static func logEarliestDose(of peptideID: String, in store: DataStore, at takenAt: Date = Date()) -> ToggleResolution {
         let candidate = store.todayEntries
             .sorted { $0.date < $1.date }
             .first { !$0.completed && $0.peptide.id.uuidString == peptideID }
         guard let entry = candidate else { return .nothingToLog }
-        store.toggleEntry(entry.id)
+        store.markEntryComplete(entry.id, at: takenAt)
         store.flushPendingSave()
-        return .logged(at: entry.date, dose: entry.dose)
+        return .logged(at: takenAt, dose: entry.dose)
     }
 
     enum ToggleResolution: Equatable {
