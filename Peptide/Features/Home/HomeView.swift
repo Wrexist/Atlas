@@ -1028,7 +1028,7 @@ struct HomeView: View {
     /// rows — still one labeled row, so the Library stays findable.
     @ViewBuilder
     private var exploreSection: some View {
-        ResearchAssistantRow {
+        ResearchAssistantRow(isLocked: !StoreService.shared.isProUser) {
             if StoreService.shared.isProUser {
                 showResearchAssistant = true
             } else {

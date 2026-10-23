@@ -7915,6 +7915,16 @@
         }
       }
     },
+    "Atom": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atom"
+          }
+        }
+      }
+    },
     "Audience demographics, post cadence, etc.": {
       "localizations": {
         "sv": {
@@ -8035,6 +8045,26 @@
         }
       }
     },
+    "Avatar": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avatar"
+          }
+        }
+      }
+    },
+    "Avatar: %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avatar: %@"
+          }
+        }
+      }
+    },
     "Avg kcal": {
       "localizations": {
         "sv": {
@@ -8091,6 +8121,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Baserat på din träningserfarenhet och %lld pass per vecka."
+          }
+        }
+      }
+    },
+    "beats per minute": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "slag per minut"
           }
         }
       }
@@ -10895,6 +10935,16 @@
         }
       }
     },
+    "hours": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "timmar"
+          }
+        }
+      }
+    },
     "HRV change": {
       "localizations": {
         "sv": {
@@ -11131,6 +11181,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "milliliter"
+          }
+        }
+      }
+    },
+    "milliseconds": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "millisekunder"
+          }
+        }
+      }
+    },
+    "Moon": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Måne"
           }
         }
       }
@@ -16212,7 +16282,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Låga"
+            "value": "Flamma"
           }
         }
       }
@@ -24127,6 +24197,16 @@
         }
       }
     },
+    "Opens Atlas Pro": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar Atlas Pro"
+          }
+        }
+      }
+    },
     "Opens Meals": {
       "localizations": {
         "sv": {
@@ -26605,6 +26685,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chinsstång"
+          }
+        }
+      }
+    },
+    "Pulse": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puls"
           }
         }
       }
@@ -31357,6 +31447,16 @@
         }
       }
     },
+    "Spark": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gnista"
+          }
+        }
+      }
+    },
     "Sparkles": {
       "localizations": {
         "sv": {
@@ -31839,6 +31939,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Steg"
+          }
+        }
+      }
+    },
+    "steps": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "steg"
           }
         }
       }
@@ -36177,6 +36287,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "V5"
+          }
+        }
+      }
+    },
+    "Wave": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Våg"
           }
         }
       }

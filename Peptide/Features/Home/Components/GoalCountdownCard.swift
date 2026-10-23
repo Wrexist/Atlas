@@ -190,6 +190,8 @@ struct GoalCountdownCard: View {
             }
             Spacer()
         }
+        // One stop: "8, weeks, 56 days remaining" instead of three.
+        .accessibilityElement(children: .combine)
     }
 
     private func heroUnit(weeks: Int, days: Int) -> LocalizedStringKey {

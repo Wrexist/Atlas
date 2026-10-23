@@ -53,6 +53,22 @@ struct AvatarPreset: Identifiable, Hashable {
         ),
     ]
 
+    /// What VoiceOver calls the preset, instead of its symbol's name
+    /// ("wave 3 right").
+    var name: String {
+        switch id {
+        case "spark": String(localized: "Spark")
+        case "wave": String(localized: "Wave")
+        case "atom": String(localized: "Atom")
+        case "flame": String(localized: "Flame")
+        case "leaf": String(localized: "Leaf")
+        case "bolt": String(localized: "Pulse")
+        case "moon": String(localized: "Moon")
+        case "dumbbell": String(localized: "Dumbbell")
+        default: String(localized: "Avatar")
+        }
+    }
+
     /// Renders the preset to a square JPEG matching the customization sheet's
     /// 1024px / 0.82-quality avatar pipeline. Performed on the calling thread
     /// — callers should hop off the main thread for big batches.
