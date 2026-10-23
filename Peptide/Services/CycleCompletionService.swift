@@ -129,6 +129,18 @@ final class CycleCompletionService {
         defaults.set(Array(set), forKey: Self.autoCompletedKey)
     }
 
+    /// Drops dismiss counts, grace starts and auto-complete marks for
+    /// protocols that no longer exist. Skipped for an empty list (a
+    /// store that hasn't loaded).
+    func pruneState(keeping protocols: [PeptideProtocol]) {
+        guard !protocols.isEmpty else { return }
+        let ids = Set(protocols.map(\.id.uuidString))
+        let isKept: (String) -> Bool = { ids.contains(String($0.prefix { $0 != ":" })) }
+        persistDismissCounts(dismissCounts.filter { isKept($0.key) })
+        defaults.set(graceStarts.filter { isKept($0.key) }, forKey: Self.graceStartKey)
+        defaults.set(Array(autoCompletedIdentifiers.filter(isKept)), forKey: Self.autoCompletedKey)
+    }
+
     /// Test-only reset hook.
     func resetForTesting() {
         defaults.removeObject(forKey: Self.dismissCountKey)

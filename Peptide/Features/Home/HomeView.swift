@@ -1529,6 +1529,8 @@ struct HomeView: View {
         // all apply to a soon-to-be-completed cycle. Running the
         // sweep here too keeps the two surfaces consistent.
         dataStore.performCycleAutoCompletion()
+        CycleCompletionService.shared.pruneState(keeping: dataStore.protocols)
+        CycleMilestoneService.shared.pruneSuppression(keeping: dataStore.protocols)
 
         // Completion prompt wins when present.
         if let pending = CycleCompletionService.shared.pendingCompletion(in: dataStore.protocols) {
