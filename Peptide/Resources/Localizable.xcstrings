@@ -21893,12 +21893,12 @@
         }
       }
     },
-    "No ads. No tracking. No data sold. Verified by privacy manifest.": {
+    "No ads. No tracking. No data sold. Declared in the app's privacy manifest.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ingen reklam. Ingen spårning. Inga data säljs. Verifierat av integritetsmanifestet."
+            "value": "Ingen reklam. Ingen spårning. Inga data säljs. Angivet i appens integritetsmanifest."
           }
         }
       }
@@ -22825,12 +22825,12 @@
         }
       }
     },
-    "Nothing is sent until you allow it. You can turn this off in Profile › About › Privacy at a glance.": {
+    "Nothing is sent until you allow it. You can turn this off in Profile → Settings → About → Privacy at a glance.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Inget skickas förrän du tillåter det. Du kan stänga av det under Profil › Om › Integritet i korthet."
+            "value": "Inget skickas förrän du tillåter det. Du kan stänga av det under Profil → Inställningar → Om → Integritet i korthet."
           }
         }
       }
@@ -37991,12 +37991,12 @@
         }
       }
     },
-    "Your logs stay on your phone": {
+    "Your logs stay on your device and in your private iCloud": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dina loggar stannar på telefonen"
+            "value": "Dina loggar stannar på din enhet och i ditt privata iCloud"
           }
         }
       }

@@ -53,12 +53,12 @@ struct PrivacySummaryView: View {
                 .padding(.top, Spacing.md)
                 .accessibilityHidden(true)
 
-            Text("Your logs stay on your phone")
+            Text("Your logs stay on your device and in your private iCloud")
                 .font(AppFont.title2)
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.center)
 
-            Text("No ads. No tracking. No data sold. Verified by privacy manifest.")
+            Text("No ads. No tracking. No data sold. Declared in the app's privacy manifest.")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
