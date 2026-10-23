@@ -19,7 +19,8 @@ final class WeeklySummaryPreviewTests: XCTestCase {
     }
 
     func test_preview_cutAtSentenceEnd_keepsThePeriod() {
-        let text = "One. Two. " + String(repeating: "word ", count: 80)
+        // Capitalised: ICU does not end a sentence before a lowercase word.
+        let text = "One. Two. " + String(repeating: "Word ", count: 80)
         let preview = WeeklySummary.preview(of: text, limit: 20)
         XCTAssertEqual(preview, "One. Two. …")
     }

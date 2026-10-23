@@ -249,9 +249,10 @@ enum DailyScheduleEngine {
             return DailyPlan(slots: [], totalDoses: 0)
         }
 
+        let morningWindow = sharedMorningWindow(for: entries, calendar: calendar)
         let assignments: [(entry: ProtocolEntry, slot: DaySlot, fasted: Bool, note: String)] = entries.map { entry in
             let info = PeptideTimingData.timingRecommendations[entry.peptide.abbreviation]
-            let placement = resolveSlot(for: entry, timing: info, calendar: calendar)
+            let placement = resolveSlot(for: entry, timing: info, morningWindow: morningWindow, calendar: calendar)
             let fasted = info?.preferredWindows.contains(.morningFasted) == true
                 && (info?.notes.lowercased().contains("fasted") == true
                     || info?.notes.lowercased().contains("empty stomach") == true)
@@ -303,23 +304,42 @@ enum DailyScheduleEngine {
     /// truth, so the list keeps clock order and only doses that really share
     /// a window are analysed together. A morning dose takes the peptide's
     /// own morning window so knowledge-base timing (fasted or with food)
-    /// shows. `usualSlot` names the preferred window when the schedule
-    /// sits outside every one of them.
+    /// shows; a morning dose with no morning window of its own joins
+    /// `morningWindow`, so a stack taken together stays together.
+    /// `usualSlot` names the preferred window when the schedule sits
+    /// outside every one of them.
     private static func resolveSlot(
         for entry: ProtocolEntry,
         timing: PeptideTimingData.PeptideTiming?,
+        morningWindow: DaySlot,
         calendar: Calendar
     ) -> (slot: DaySlot, usualSlot: DaySlot?) {
         let clockSlot = DaySlot.from(hour: calendar.component(.hour, from: entry.date))
         let preferred = (timing?.preferredWindows ?? []).compactMap(DaySlot.from(_:)).sorted()
-        if clockSlot == .morning,
-           let morning = preferred.first(where: { $0 == .morningFasted || $0 == .morningWithFood }) {
-            return (morning, nil)
+        if clockSlot == .morning {
+            if let own = morningPreference(preferred) { return (own, nil) }
+            return (morningWindow, preferred.isEmpty ? nil : preferred.first)
         }
         if preferred.isEmpty || preferred.contains(clockSlot) {
             return (clockSlot, nil)
         }
         return (clockSlot, preferred.first)
+    }
+
+    /// The morning window that doses at a morning clock time share: the
+    /// first knowledge-base morning window among them, fasted first.
+    private static func sharedMorningWindow(for entries: [ProtocolEntry], calendar: Calendar) -> DaySlot {
+        entries
+            .filter { DaySlot.from(hour: calendar.component(.hour, from: $0.date)) == .morning }
+            .compactMap { entry in
+                let windows = PeptideTimingData.timingRecommendations[entry.peptide.abbreviation]?.preferredWindows ?? []
+                return morningPreference(windows.compactMap(DaySlot.from(_:)))
+            }
+            .min() ?? .morning
+    }
+
+    private static func morningPreference(_ slots: [DaySlot]) -> DaySlot? {
+        slots.filter { $0 == .morningFasted || $0 == .morningWithFood }.min()
     }
 
     // MARK: - Ordering within a slot
