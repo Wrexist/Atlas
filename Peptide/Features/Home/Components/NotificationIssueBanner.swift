@@ -48,12 +48,12 @@ struct NotificationIssueBanner: View {
     private var headline: LocalizedStringKey {
         if !report.droppedProtocolIDs.isEmpty {
             let count = max(0, report.requested - report.scheduled)
-            return String(localized: "\(count) reminders couldn't be scheduled")
+            return "\(count) reminders couldn't be scheduled"
         }
         if !report.invalidTimes.isEmpty {
-            return String(localized: "Some reminder times couldn't be parsed")
+            return "Some reminder times couldn't be parsed"
         }
-        return String(localized: "Some reminders couldn't be scheduled")
+        return "Some reminders couldn't be scheduled"
     }
 
     private var detail: String {
