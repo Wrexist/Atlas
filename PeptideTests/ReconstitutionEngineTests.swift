@@ -115,6 +115,17 @@ final class ReconstitutionEngineTests: XCTestCase {
         XCTAssertNil(ReconstitutionEngine.roundedUnits(1e19))
     }
 
+    func test_unitsAbove100_flaggedAsExceedingSyringe() {
+        XCTAssertTrue(ReconstitutionEngine.exceedsSyringe(units: 100.5))
+        XCTAssertTrue(ReconstitutionEngine.exceedsSyringe(units: 250))
+    }
+
+    func test_unitsAtOrBelow100_notFlaggedAsExceedingSyringe() {
+        XCTAssertFalse(ReconstitutionEngine.exceedsSyringe(units: 100))
+        XCTAssertFalse(ReconstitutionEngine.exceedsSyringe(units: 10))
+        XCTAssertFalse(ReconstitutionEngine.exceedsSyringe(units: .infinity))
+    }
+
     func test_hasFractionalUnits_wholeNumber_isFalse() {
         XCTAssertFalse(ReconstitutionEngine.hasFractionalUnits(10))
     }

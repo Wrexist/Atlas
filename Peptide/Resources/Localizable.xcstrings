@@ -10695,6 +10695,38 @@
         }
       }
     },
+    "More than one full 100-unit syringe": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mer än en full spruta med 100 enheter"
+          }
+        }
+      }
+    },
+    "Syringe diagram. Equivalent volume: %lld units, more than one full 100-unit syringe.": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Sprutdiagram. Motsvarande volym: %lld enhet, mer än en full spruta med 100 enheter."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Sprutdiagram. Motsvarande volym: %lld enheter, mer än en full spruta med 100 enheter."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Syringe diagram. No amount entered.": {
       "localizations": {
         "sv": {

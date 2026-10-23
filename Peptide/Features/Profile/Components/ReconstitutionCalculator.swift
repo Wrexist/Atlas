@@ -206,6 +206,12 @@ struct ReconstitutionCalculator: View {
             Text("on a 100-unit (U-100) insulin syringe")
                 .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textTertiary)
+            if let unitsOnSyringe, ReconstitutionEngine.exceedsSyringe(units: unitsOnSyringe) {
+                Label("More than one full 100-unit syringe", systemImage: "exclamationmark.triangle.fill")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.warning)
+                    .padding(.top, 2)
+            }
         }
     }
 
@@ -284,6 +290,18 @@ struct SyringeDiagram: View {
         return min(1.0, unitsToFill / maxUnits)
     }
 
+    /// The result needs more than one syringe, so the full fill is drawn
+    /// in the warning colour rather than reading as an exact 100.
+    private var overflows: Bool {
+        ReconstitutionEngine.exceedsSyringe(units: unitsToFill)
+    }
+
+    private var fillColors: [Color] {
+        overflows
+            ? [AppColor.warning.opacity(0.85), AppColor.warning.opacity(0.6)]
+            : [AppColor.accentPrimary.opacity(0.85), AppColor.accentLight.opacity(0.85)]
+    }
+
     var body: some View {
         GeometryReader { proxy in
             let bodyWidth  = proxy.size.width * 0.78
@@ -307,10 +325,7 @@ struct SyringeDiagram: View {
                 RoundedRectangle(cornerRadius: 5, style: .continuous)
                     .fill(
                         LinearGradient(
-                            colors: [
-                                AppColor.accentPrimary.opacity(0.85),
-                                AppColor.accentLight.opacity(0.85),
-                            ],
+                            colors: fillColors,
                             startPoint: .leading,
                             endPoint: .trailing
                         )
@@ -352,6 +367,12 @@ struct SyringeDiagram: View {
             return String(
                 localized: "Syringe diagram. No amount entered.",
                 comment: "VoiceOver readout for the reconstitution calculator's syringe diagram when there is no result to show."
+            )
+        }
+        if overflows {
+            return String(
+                localized: "Syringe diagram. Equivalent volume: \(units) units, more than one full 100-unit syringe.",
+                comment: "VoiceOver readout for the reconstitution calculator's syringe diagram when the result exceeds one syringe."
             )
         }
         return String(
