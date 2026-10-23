@@ -462,12 +462,11 @@ enum LifestyleDataLogic {
         profile.outcomeHistory.removeAll {
             calendar.isDate($0.date, inSameDayAs: dayStart)
         }
-        // Normalise the stored date to start-of-day so a re-fetch
-        // with a different time-of-day reference still resolves the
-        // same entry.
-        var normalised = entry
-        normalised.updatedAt = Date()
-        profile.outcomeHistory.append(normalised)
+        // The check-in keeps its time of day; lookups go through
+        // `isDate(_:inSameDayAs:)`, never exact-date equality.
+        var stamped = entry
+        stamped.updatedAt = Date()
+        profile.outcomeHistory.append(stamped)
         // Sort chronological so callers iterating forward see the
         // oldest entry first (matches mealHistory's invariant).
         profile.outcomeHistory.sort { $0.date < $1.date }
