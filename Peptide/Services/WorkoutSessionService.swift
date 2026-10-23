@@ -561,7 +561,9 @@ final class WorkoutSessionService {
         guard var session = activeSession, var rest = session.focus?.rest else { return }
         let remaining = max(0, rest.remaining(at: now) + seconds)
         if remaining == 0 { skipRest(); return }
-        rest.totalSeconds = remaining
+        // The ring draws remaining / total, so the total only grows when
+        // the rest is extended past it; resetting it would refill the ring.
+        rest.totalSeconds = max(rest.totalSeconds, remaining)
         if session.isPaused { rest.frozenSeconds = remaining }
         else { rest.endsAt = now.addingTimeInterval(remaining) }
         session.focus?.rest = rest

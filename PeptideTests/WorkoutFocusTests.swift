@@ -294,6 +294,24 @@ final class WorkoutFocusServiceTests: XCTestCase {
         XCTAssertNil(service.activeSession?.focus?.rest)
     }
 
+    func test_adjustRest_movesTheRingWithTheTimeLeft() throws {
+        start()
+        let started = Date()
+        service.completeNextSet(now: started)
+        let total = try XCTUnwrap(service.activeSession?.focus?.rest?.totalSeconds)
+        let midway = started.addingTimeInterval(total / 2)
+        let before = try XCTUnwrap(service.activeSession?.focus?.rest?.remainingFraction(at: midway))
+
+        service.adjustRest(by: -15, now: midway)
+        let shortened = try XCTUnwrap(service.activeSession?.focus?.rest?.remainingFraction(at: midway))
+        service.adjustRest(by: 15, now: midway)
+        let restored = try XCTUnwrap(service.activeSession?.focus?.rest?.remainingFraction(at: midway))
+
+        XCTAssertLessThan(shortened, before)
+        XCTAssertGreaterThan(restored, shortened)
+        XCTAssertLessThanOrEqual(restored, 1)
+    }
+
     func test_liveActivityTapInAppProcess_isAppliedBeforeIntentReturns() async throws {
         start()
         let id = try XCTUnwrap(service.activeSession?.id)
