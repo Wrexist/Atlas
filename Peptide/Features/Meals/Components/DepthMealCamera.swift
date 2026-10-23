@@ -180,8 +180,14 @@ final class DepthCameraController: UIViewController, AVCapturePhotoCaptureDelega
     nonisolated func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         let image = error == nil ? photo.fileDataRepresentation().flatMap(UIImage.init(data:)) : nil
         let distance = photo.depthData.flatMap(Self.centreDistance(of:))
+        if image == nil {
+            AppLog.diagnostics.error("Depth meal photo lost: \(error?.localizedDescription ?? "undecodable data", privacy: .public)")
+        }
         Task { @MainActor in
             guard let image else {
+                // The shot is gone; say so rather than leave the user
+                // waiting for an analysis that never starts.
+                Haptics.error()
                 self.refreshShutter()
                 return
             }

@@ -94,6 +94,7 @@ struct ProductInsightCard: View {
                     }
                     .buttonStyle(.plain)
                     .minimumHitArea()
+                    .accessibilityAddTraits(isActive ? .isSelected : [])
                 }
             }
         }

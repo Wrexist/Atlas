@@ -1139,11 +1139,11 @@ struct MealScanFlow: View {
             name: item.loggedName,
             brand: item.brand,
             per100g: item.per100g,
-            // One serving = the model's depicted-portion estimate, not
-            // whatever the user dialed the portion to before saving, so
-            // the library's "Serving" mode stays accurate on re-log.
-            servingGrams: item.aiGrams > 0 ? item.aiGrams : nil,
-            servingLabel: item.quantityLabel.nilIfEmpty,
+            // One serving = the depicted portion (or the replacement food's
+            // serving), not whatever the user dialed the portion to before
+            // saving, so the library's "Serving" mode stays accurate on re-log.
+            servingGrams: item.servingGrams.flatMap { $0 > 0 ? $0 : nil },
+            servingLabel: item.servingLabel,
             pricePer100g: item.pricePer100g
         )
         dataStore.saveCustomFood(food)
@@ -1219,6 +1219,19 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
         var label: LocalizedStringKey { self == .serving ? "Servings" : "Grams" }
     }
 
+    /// Clamps a portion to the range the scanner itself accepts.
+    static func clampedGrams(_ value: Double) -> Double {
+        let range = MealScannerService.itemGramRange
+        return min(max(value, range.lowerBound), range.upperBound)
+    }
+
+    /// Moves the portion by `delta` grams, never against the tap — a
+    /// portion already past either end stays where it is.
+    mutating func stepGrams(by delta: Double) {
+        let target = Self.clampedGrams(grams + delta)
+        grams = delta > 0 ? max(grams, target) : min(grams, target)
+    }
+
     /// Current portion expressed in servings, where one serving is the
     /// model's depicted-portion estimate (`aiGrams`).
     var servings: Double { aiGrams > 0 ? grams / aiGrams : 1 }
@@ -1227,10 +1240,14 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
     /// was cleared, so the diary never gets a blank row.
     var loggedName: String { name.nilIfEmpty ?? aiName?.nilIfEmpty ?? String(localized: "Food") }
 
+    /// One serving: the scanner's depicted portion, or the replacement
+    /// food's own serving once the user has swapped the food.
+    var servingGrams: Double? { replacementSourceID == nil ? aiGrams : replacementServingGrams }
+    var servingLabel: String? { replacementSourceID == nil ? quantityLabel.nilIfEmpty : replacementServingLabel }
+
     var component: MealFoodComponent {
         MealFoodComponent(id: id.uuidString, name: loggedName, grams: grams,
-                          servingGrams: replacementSourceID == nil ? aiGrams : replacementServingGrams,
-                          servingLabel: replacementSourceID == nil ? quantityLabel.nilIfEmpty : replacementServingLabel,
+                          servingGrams: servingGrams, servingLabel: servingLabel,
                           per100g: per100g, sourceID: replacementSourceID)
     }
 
@@ -1275,7 +1292,10 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
         per100g = .init(calories: Double(meal.calories) / grams * 100,
                        proteinG: Double(meal.proteinG) / grams * 100,
                        carbsG: Double(meal.carbsG) / grams * 100,
-                       fatG: Double(meal.fatG) / grams * 100, fiberG: nil, sugarsG: nil)
+                       fatG: Double(meal.fatG) / grams * 100,
+                       // The edit covers energy and the three macros only;
+                       // the scan's fibre and sugar still describe the food.
+                       fiberG: per100g.fiberG, sugarsG: per100g.sugarsG)
         nutritionEdited = true
         savedToLibrary = false
     }
@@ -1303,7 +1323,7 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
         let from = question.answers[selectedAnswer]
         let to = question.answers[index]
         per100g = to.per100g
-        grams = min(2000, max(5, (grams * to.grams / from.grams).rounded()))
+        grams = Self.clampedGrams((grams * to.grams / from.grams).rounded())
         answerIndex = index
         savedToLibrary = false
     }
@@ -1611,7 +1631,7 @@ private struct FoodItemEditCard: View {
                 .foregroundStyle(AppColor.textSecondary)
             Spacer()
             stepperButton(icon: "minus.circle.fill", label: String(localized: "Decrease grams")) {
-                item.grams = max(5, item.grams - 10)
+                item.stepGrams(by: -10)
             }
             Text("\(item.grams.formatted(.number.precision(.fractionLength(0...1)))) g")
                 .font(AppFont.headline)
@@ -1620,7 +1640,7 @@ private struct FoodItemEditCard: View {
                 .contentTransition(.numericText(value: item.grams))
                 .frame(minWidth: 64)
             stepperButton(icon: "plus.circle.fill", label: String(localized: "Increase grams")) {
-                item.grams = min(2000, item.grams + 10)
+                item.stepGrams(by: 10)
             }
         }
     }
@@ -1641,7 +1661,7 @@ private struct FoodItemEditCard: View {
     /// keeping `grams` the single source of truth for macro scaling.
     private func setServings(_ value: Double) {
         let snapped = max(0.5, (value * 2).rounded() / 2)
-        item.grams = min(2000, max(5, (snapped * item.aiGrams).rounded()))
+        item.grams = EditableFoodItem.clampedGrams((snapped * item.aiGrams).rounded())
     }
 
     private var servingsLabel: String { "\(formatCount(item.servings))×" }
@@ -1680,7 +1700,7 @@ private struct FoodItemEditCard: View {
         let isActive = abs(item.grams - grams.rounded()) < 0.0001
         return Button {
             AppAnimation.with(AppAnimation.quick) {
-                item.grams = min(2000, max(5, grams.rounded()))
+                item.grams = EditableFoodItem.clampedGrams(grams.rounded())
             }
         } label: {
             Text(label)

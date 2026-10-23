@@ -1,4 +1,5 @@
 @preconcurrency import AVFoundation
+import Combine
 import SwiftUI
 import UIKit
 
@@ -34,7 +35,11 @@ final class TableCamera: NSObject, AVCapturePhotoCaptureDelegate {
             ?? AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
     }
 
-    let session = AVCaptureSession()
+    let session: AVCaptureSession
+    /// `true` while the session is interrupted (a call, Split View,
+    /// another camera app) and `false` once it resumes — the shutter
+    /// can't fire in between.
+    let interruptions: AnyPublisher<Bool, Never>
     private let output = AVCapturePhotoOutput()
     private let queue = DispatchQueue(label: "com.peptidesai.app.table-camera")
     private var device: AVCaptureDevice?
@@ -43,11 +48,28 @@ final class TableCamera: NSObject, AVCapturePhotoCaptureDelegate {
     private var rotation: AVCaptureDevice.RotationCoordinator?
     private var pending: CheckedContinuation<UIImage?, Never>?
 
-    func start() {
-        if device == nil { configure() }
+    override init() {
+        let session = AVCaptureSession()
+        let center = NotificationCenter.default
+        self.session = session
+        interruptions = Publishers.Merge(
+            center.publisher(for: AVCaptureSession.wasInterruptedNotification, object: session).map { _ in true },
+            center.publisher(for: AVCaptureSession.interruptionEndedNotification, object: session).map { _ in false }
+        )
+        .receive(on: DispatchQueue.main)
+        .eraseToAnyPublisher()
+        super.init()
+    }
+
+    /// Returns `false` when the camera can't be wired up, so the caller
+    /// shows the import fallback instead of a dead shutter.
+    @discardableResult
+    func start() -> Bool {
+        if device == nil, !configure() { return false }
         queue.async { [session] in
             if !session.isRunning { session.startRunning() }
         }
+        return true
     }
 
     func stop() {
@@ -62,14 +84,15 @@ final class TableCamera: NSObject, AVCapturePhotoCaptureDelegate {
     }
 
     /// The ultra-wide is zoom factor 1 on a virtual device; the main lens
-    /// starts at its first switch-over factor.
+    /// starts at its first switch-over factor. A single wide lens has no
+    /// switch-over, so the three framings step through 1x, 1.5x and 2x.
     func frame(_ lens: Lens) {
         guard let device else { return }
-        let main = device.virtualDeviceSwitchOverVideoZoomFactors.first.map { CGFloat(truncating: $0) } ?? 1
+        let main = device.virtualDeviceSwitchOverVideoZoomFactors.first.map { CGFloat(truncating: $0) }
         let factor: CGFloat = switch lens {
         case .table: 1
-        case .plate: main
-        case .dish:  main * 2
+        case .plate: main ?? 1.5
+        case .dish:  main.map { $0 * 2 } ?? 2
         }
         do {
             try device.lockForConfiguration()
@@ -80,8 +103,17 @@ final class TableCamera: NSObject, AVCapturePhotoCaptureDelegate {
         }
     }
 
+    /// `capturePhoto` raises an exception without an active video
+    /// connection: before the session starts, while it is interrupted, or
+    /// when the input couldn't be added.
+    private var canCapture: Bool {
+        guard session.isRunning, !session.isInterrupted,
+              let connection = output.connection(with: .video) else { return false }
+        return connection.isActive && connection.isEnabled
+    }
+
     func capture() async -> UIImage? {
-        guard pending == nil, session.isRunning else { return nil }
+        guard pending == nil, canCapture else { return nil }
         return await withCheckedContinuation { continuation in
             pending = continuation
             if let rotation, let connection = output.connection(with: .video),
@@ -92,16 +124,28 @@ final class TableCamera: NSObject, AVCapturePhotoCaptureDelegate {
         }
     }
 
-    private func configure() {
-        guard let device = Self.device, let input = try? AVCaptureDeviceInput(device: device) else { return }
-        self.device = device
+    private func configure() -> Bool {
+        guard let device = Self.device else { return false }
+        let input: AVCaptureDeviceInput
+        do {
+            input = try AVCaptureDeviceInput(device: device)
+        } catch {
+            AppLog.diagnostics.error("Table camera input failed: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
         session.beginConfiguration()
         session.sessionPreset = .photo
-        if session.canAddInput(input) { session.addInput(input) }
-        if session.canAddOutput(output) { session.addOutput(output) }
+        let wired = session.canAddInput(input) && session.canAddOutput(output)
+        if wired {
+            session.addInput(input)
+            session.addOutput(output)
+        }
         session.commitConfiguration()
+        guard wired else { return false }
+        self.device = device
         rotation = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: nil)
         frame(.table)
+        return true
     }
 
     nonisolated func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {

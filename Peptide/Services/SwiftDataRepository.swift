@@ -174,14 +174,10 @@ final class SwiftDataRepository {
         isInoperable = true
         container = nil
         isUsingFallbackStore = false
-        // Weekly recaps and Apple Health weigh-ins (with their dismissed
-        // sample ids) are device-local and never synced, so a first
-        // sign-in (no previous token) keeps them: only a sign-out or a
-        // switch to another account hands them to someone else.
-        if prev != nil {
-            summaryStore.deleteAll()
-            healthWeightStore.deleteAll()
-        }
+        // A first sign-in (no previous token) keeps the device-local
+        // records: only a sign-out or a switch to another account hands
+        // them to someone else.
+        if prev != nil { forgetDeviceLocalRecords() }
         mealDraftStore.resetForAccountChange()
         cloudSyncState = current != nil ? .unavailable : .noAccount
 
@@ -439,6 +435,20 @@ final class SwiftDataRepository {
         } catch {
             AppLog.swiftData.error("Failed to create in-memory ModelContainer: \(error.localizedDescription, privacy: .public)")
             return nil
+        }
+    }
+
+    /// Weekly recaps, Apple Health weigh-ins (with their dismissed sample
+    /// ids), scan corrections — sent to the proxy with every scan — barcode
+    /// history and the "Recently scanned" product cache are device-local
+    /// and never synced, so they belong to whoever was signed in.
+    func forgetDeviceLocalRecords() {
+        summaryStore.deleteAll()
+        healthWeightStore.deleteAll()
+        ScanCorrectionMemory.shared.eraseAll()
+        Task {
+            await BarcodeScanHistory.shared.removeAll()
+            await BarcodeProductCache.shared.clear()
         }
     }
 

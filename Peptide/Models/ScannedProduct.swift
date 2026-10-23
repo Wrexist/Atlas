@@ -51,6 +51,12 @@ struct ScannedProduct: Codable, Hashable, Sendable {
     /// real zero-calorie label (water, plain tea). Set at mapping time
     /// because the values alone cannot tell the two apart.
     var nutritionMissing = false
+
+    /// True when Atlas AI read this product off its package because the
+    /// database had no record, so a re-scan served from the cache keeps
+    /// its "Read from the package" badge. Optional so cache entries
+    /// written before it existed still decode.
+    var readFromPackage: Bool?
 }
 
 extension ScannedProduct {

@@ -27180,6 +27180,34 @@
               }
             }
           }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recipe · %#@arg1@ · %2$lld kcal"
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg ingredient"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg ingredients"
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -40433,6 +40461,66 @@
           "stringUnit": {
             "state": "translated",
             "value": "✏ Redigerad"
+          }
+        }
+      }
+    },
+    "Total %lld kilocalories. Protein %lld grams, carbohydrate %lld grams, fat %lld grams.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Totalt %lld kilokalorier. Protein %lld gram, kolhydrater %lld gram, fett %lld gram."
+          }
+        }
+      }
+    },
+    "Barcode number": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Streckkodsnummer"
+          }
+        }
+      }
+    },
+    "The camera couldn't start. Close and reopen the scanner, or type the code.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kameran kunde inte starta. Stäng och öppna skannern igen, eller skriv in koden."
+          }
+        }
+      }
+    },
+    "Type the code": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skriv in koden"
+          }
+        }
+      }
+    },
+    "%@, rated %lld of 5 stars": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, betyg %lld av 5 stjärnor"
+          }
+        }
+      }
+    },
+    "Adding your dish…": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägger till din rätt …"
           }
         }
       }

@@ -61,11 +61,11 @@ final class EditableFoodItemTests: XCTestCase {
         XCTAssertEqual(item.loggedName, "Honeydew")
     }
 
-    private func scanned(confidence: Double) -> MealScannerService.ScannedFoodItem {
+    private func scanned(confidence: Double, grams: Double = 200) -> MealScannerService.ScannedFoodItem {
         MealScannerService.ScannedFoodItem(
             name: "watermelon",
             quantityLabel: "2 slices",
-            grams: 200,
+            grams: grams,
             calories: 200,
             proteinG: 4,
             carbsG: 50,
@@ -99,5 +99,57 @@ final class EditableFoodItemTests: XCTestCase {
         item.grams = 0
         item.correctNutrition(.init(calories: 100, proteinG: 1, carbsG: 1, fatG: 1))
         XCTAssertFalse(item.nutritionEdited)
+    }
+
+    func test_stepGrams_onPortionAboveTwoKilos_increasesGrams() {
+        var item = EditableFoodItem(from: scanned(confidence: 0.9, grams: 2_500))
+        item.stepGrams(by: 10)
+        XCTAssertEqual(item.grams, 2_510)
+    }
+
+    func test_clampedGrams_oneServingOfLargePortion_restoresScannedAmount() {
+        var item = EditableFoodItem(from: scanned(confidence: 0.9, grams: 2_500))
+        item.grams = 1_000
+        item.grams = EditableFoodItem.clampedGrams(item.aiGrams.rounded())
+        XCTAssertEqual(item.grams, 2_500)
+    }
+
+    func test_stepGrams_downFromTinyPortion_neverIncreasesGrams() {
+        var item = EditableFoodItem(from: scanned(confidence: 0.9, grams: 2))
+        item.stepGrams(by: -10)
+        XCTAssertEqual(item.grams, 1)
+        item.stepGrams(by: -10)
+        XCTAssertEqual(item.grams, 1)
+    }
+
+    func test_stepGrams_atScannerCeiling_staysPut() {
+        var item = EditableFoodItem(from: scanned(confidence: 0.9, grams: 5_000))
+        item.stepGrams(by: 10)
+        XCTAssertEqual(item.grams, 5_000)
+    }
+
+    func test_servingAfterReplace_usesReplacementFoodsServing() {
+        var item = EditableFoodItem(from: scanned(confidence: 0.9))
+        item.replace(with: ScannedProduct(
+            barcode: "7310865004703", name: "Crispbread", brand: nil, imageURL: nil,
+            servingSizeText: "1 slice (12 g)", servingGrams: 12, packageGrams: nil,
+            per100g: .init(calories: 340, proteinG: 10, carbsG: 60, fatG: 2, fiberG: 18, sugarsG: 1),
+            nutriScore: nil, novaGroup: nil, fetchedAt: Date()
+        ))
+        XCTAssertEqual(item.servingGrams, 12)
+        XCTAssertEqual(item.servingLabel, "1 slice (12 g)")
+        item.resetNutrition()
+        XCTAssertEqual(item.servingGrams, 200)
+        XCTAssertEqual(item.servingLabel, "2 slices")
+    }
+
+    func test_correctNutrition_keepsScannedFibreAndSugar() {
+        var scan = scanned(confidence: 0.9)
+        scan.per100g = .init(calories: 100, proteinG: 2, carbsG: 25, fatG: 0.5, fiberG: 3, sugarsG: 12)
+        var item = EditableFoodItem(from: scan)
+        item.correctNutrition(.init(calories: 260, proteinG: 4, carbsG: 50, fatG: 1))
+        XCTAssertEqual(item.per100g.fiberG, 3)
+        XCTAssertEqual(item.per100g.sugarsG, 12)
+        XCTAssertEqual(item.calories, 260)
     }
 }

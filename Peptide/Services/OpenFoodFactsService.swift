@@ -25,6 +25,9 @@ final class OpenFoodFactsService: Sendable {
     /// product entries are amended slowly by volunteer editors, so a
     /// weekly check is plenty to stay current without thrashing.
     static let staleAfter: TimeInterval = 60 * 60 * 24 * 7
+    /// A cached product with no package weight is re-checked at most this
+    /// often: many records have no quantity at all and never gain one.
+    static let missingPackageRefreshAfter: TimeInterval = 60 * 60 * 24
 
     /// `fields=` trims the response from ~80 KB to ~3 KB by only asking
     /// for the keys we actually map. Listed once here so the wire shape
@@ -182,8 +185,8 @@ final class OpenFoodFactsService: Sendable {
         if let cached = await cache.read(barcode: normalized, markingUsed: true) {
             // Entries cached before the printed `quantity` was read have
             // no package weight; refresh those too so the Package tab
-            // shows up on the next scan.
-            if Self.isStale(cached) || cached.packageGrams == nil {
+            // shows up on a later scan — once a day, not on every scan.
+            if Self.isStale(cached) || Self.needsPackageWeightRefresh(cached) {
                 // No [weak self] — the service is a long-lived shared
                 // instance, so a strong capture for the refresh task
                 // is correct and avoids silently dropping work if a
@@ -198,7 +201,7 @@ final class OpenFoodFactsService: Sendable {
                         // the user still gets the cached response on
                         // this call, so this is diagnostic-only.
                         AppLog.persistence.error(
-                            "Barcode background refresh failed for \(normalized, privacy: .public): \(error.localizedDescription, privacy: .public)"
+                            "Barcode background refresh failed for \(normalized, privacy: .private): \(error.localizedDescription, privacy: .public)"
                         )
                     }
                 }
@@ -209,6 +212,14 @@ final class OpenFoodFactsService: Sendable {
         let product = try await fetchFromNetwork(barcode: normalized)
         await cache.write(product)
         return product
+    }
+
+    /// Files a product read from its package under its real barcode, so
+    /// a re-scan lands on it without another paid read and it shows in
+    /// "Recently scanned". Synthetic `ai:`/`ocr:` codes are never filed.
+    func remember(_ product: ScannedProduct) async {
+        guard (try? Self.normalize(barcode: product.barcode)) == product.barcode else { return }
+        await cache.write(product)
     }
 
     /// Returns the `limit` most-recently-scanned products, surfaced by
@@ -388,6 +399,10 @@ final class OpenFoodFactsService: Sendable {
         Date().timeIntervalSince(product.fetchedAt) > staleAfter
     }
 
+    static func needsPackageWeightRefresh(_ product: ScannedProduct) -> Bool {
+        product.packageGrams == nil && Date().timeIntervalSince(product.fetchedAt) > missingPackageRefreshAfter
+    }
+
     /// Net weight in grams from OFF's free-text `quantity`: "130 g",
     /// "0,5 kg", "33 cl", "6 x 33 cl". Liquids count a millilitre as a
     /// gram, close enough for drinks.
@@ -526,11 +541,6 @@ final class OpenFoodFactsService: Sendable {
     /// request.
     private static let decoder = JSONDecoder()
 
-    /// Treat the standard "no path to the server" `URLError` codes as
-    /// offline rather than as generic request failures. Airplane
-    /// Mode, captive portals, mid-flight signal drop, and DNS-down
-    /// all surface through these codes; the UI pivots into "showing
-    /// cached results" mode rather than "lookup failed, try again".
     /// Allow-listed host suffixes for product image URLs. OFF data is
     /// community-edited, so the `image_front_small_url` field is
     /// effectively user-controlled — accepting arbitrary HTTPS hosts
@@ -639,7 +649,7 @@ private extension OpenFoodFactsService {
             // describes their entry, not this field), so it always
             // converts.
             let calories = n?.energyKcal100g?.value
-                ?? n?.energy100g.map { $0.value / 4.184 }
+                ?? n?.energy100g?.value.map { $0 / 4.184 }
                 ?? 0
 
             let per100 = ScannedProduct.Nutriments(
@@ -662,8 +672,8 @@ private extension OpenFoodFactsService {
                 // OFF occasionally serializes 0 for unknown weights —
                 // collapse to nil so `defaultPortion` correctly skips
                 // the .servings branch and the "Add" button stays live.
-                servingGrams: servingQuantity?.value.positiveOrNil,
-                packageGrams: productQuantity?.value.positiveOrNil
+                servingGrams: servingQuantity?.value?.positiveOrNil,
+                packageGrams: productQuantity?.value?.positiveOrNil
                     ?? quantity.flatMap(OpenFoodFactsService.packageGrams(fromQuantity:)),
                 per100g: per100,
                 nutriScore: nutriscoreGrade?.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -705,46 +715,44 @@ private extension OpenFoodFactsService {
 
         /// Whether the record states energy or any macro, zero included.
         var hasEnergyOrMacros: Bool {
-            [energyKcal100g, energy100g, proteins100g, carbohydrates100g, fat100g].contains { $0 != nil }
+            [energyKcal100g, energy100g, proteins100g, carbohydrates100g, fat100g].contains { $0?.value != nil }
         }
     }
 }
 
 /// Open Food Facts inconsistently serializes numeric fields as numbers
-/// or as strings ("330" vs 330). These wrappers absorb the variance so
-/// the rest of the codebase only deals with `Double` / `Int`.
+/// or as strings ("330", "1,5", "", "n/a"). These wrappers absorb the
+/// variance: anything unreadable decodes to a nil `value` instead of
+/// throwing, so one bad field can't fail the whole product or a whole
+/// search page.
 private struct FlexibleDouble: Decodable {
-    let value: Double
+    let value: Double?
     init(from decoder: Decoder) throws {
         let c = try decoder.singleValueContainer()
         if let d = try? c.decode(Double.self) {
             value = d
-        } else if let s = try? c.decode(String.self), let d = Double(s) {
-            value = d
+        } else if let s = try? c.decode(String.self) {
+            // `Double("nan")` and `Double("inf")` parse; neither is a nutrient.
+            value = Double(s.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: "."))
+                .flatMap { $0.isFinite ? $0 : nil }
         } else {
-            throw DecodingError.typeMismatch(
-                Double.self,
-                .init(codingPath: decoder.codingPath, debugDescription: "Expected Double or numeric String")
-            )
+            value = nil
         }
     }
 }
 
 private struct FlexibleInt: Decodable {
-    let value: Int
+    let value: Int?
     init(from decoder: Decoder) throws {
         let c = try decoder.singleValueContainer()
         if let i = try? c.decode(Int.self) {
             value = i
         } else if let d = try? c.decode(Double.self) {
-            value = Int(d)
-        } else if let s = try? c.decode(String.self), let i = Int(s) {
-            value = i
+            value = d.isFinite ? Int(exactly: d.rounded(.towardZero)) : nil
+        } else if let s = try? c.decode(String.self) {
+            value = Int(s.trimmingCharacters(in: .whitespacesAndNewlines))
         } else {
-            throw DecodingError.typeMismatch(
-                Int.self,
-                .init(codingPath: decoder.codingPath, debugDescription: "Expected Int, Double, or numeric String")
-            )
+            value = nil
         }
     }
 }
