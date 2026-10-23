@@ -31963,6 +31963,17 @@
         }
       }
     },
+    "That recipe has missing foods or invalid portions — open Atlas to fix the ingredient list.": {
+      "comment": "Siri response when a recipe has deleted foods or unloggable portions.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Receptet har saknade livsmedel eller ogiltiga portioner – öppna Atlas för att rätta ingredienslistan."
+          }
+        }
+      }
+    },
     "The research assistant isn't available right now. Update Atlas or try again later.": {
       "localizations": {
         "sv": {

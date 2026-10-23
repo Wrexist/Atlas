@@ -139,4 +139,49 @@ final class FoodLibraryLogicTests: XCTestCase {
         XCTAssertEqual(entry.calories, 0)
         XCTAssertTrue(store.profile.mealHistory.contains { $0.id == entry.id })
     }
+
+    @MainActor
+    func test_logRecipeIntent_zeroCalorieRecipe_logs() {
+        let repo = SwiftDataRepository.shared
+        repo.configureForTesting()
+        let store = DataStore(seedSampleData: false)
+        defer {
+            store.flushPendingSave()
+            DataStore.current = nil
+            repo.configureForTesting()
+        }
+        store.profile.healthKitNutritionEnabled = false
+        let tea = CustomFood(name: "Tea", per100g: .zero)
+        let recipe = Recipe(name: "Tea", components: [.init(foodID: tea.foodID, cachedName: "Tea", portion: .grams(250))])
+        store.profile.customFoods = [tea]
+        store.profile.recipes = [recipe]
+        store.flushPendingSave()
+        let now = Date()
+
+        let outcome = LogRecipeIntent.log(recipeID: recipe.id.uuidString, in: store, at: now)
+
+        XCTAssertEqual(outcome, .logged(name: "Tea", calories: 0, category: MealCategory.auto(for: now)))
+        XCTAssertTrue(store.profile.mealHistory.contains { $0.name == "Tea" })
+    }
+
+    @MainActor
+    func test_logRecipeIntent_missingFood_reportsEmptyAndLogsNothing() {
+        let repo = SwiftDataRepository.shared
+        repo.configureForTesting()
+        let store = DataStore(seedSampleData: false)
+        defer {
+            store.flushPendingSave()
+            DataStore.current = nil
+            repo.configureForTesting()
+        }
+        store.profile.healthKitNutritionEnabled = false
+        let recipe = Recipe(name: "Bowl", components: [.init(foodID: "custom:missing", cachedName: "Gone", portion: .grams(80))])
+        store.profile.recipes = [recipe]
+        store.flushPendingSave()
+        let before = store.profile.mealHistory.count
+
+        XCTAssertEqual(LogRecipeIntent.log(recipeID: recipe.id.uuidString, in: store, at: Date()), .empty)
+        XCTAssertEqual(store.profile.mealHistory.count, before)
+        XCTAssertEqual(LogRecipeIntent.log(recipeID: UUID().uuidString, in: store, at: Date()), .notFound)
+    }
 }
