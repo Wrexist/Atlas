@@ -173,6 +173,8 @@ enum PerformanceAgeEngine {
     static let vo2WindowDays: Int = 90
     /// How far back the trend reaches.
     static let trendDays: Int = 90
+    /// Days between trend points.
+    static let trendStrideDays: Int = 7
 
     /// HRV thresholds in milliseconds at `hrvReferenceAge`. Above
     /// `hrvHighFloor` → up to `-hrvSwingYears`; below `hrvLowCeiling` → up
@@ -518,7 +520,7 @@ enum PerformanceAgeEngine {
         profile: Profile,
         endingOn endDay: Date,
         days: Int = trendDays,
-        strideDays: Int = 7,
+        strideDays: Int = trendStrideDays,
         calendar: Calendar = .current
     ) -> [TrendPoint] {
         guard days > 0, strideDays > 0 else { return [] }
