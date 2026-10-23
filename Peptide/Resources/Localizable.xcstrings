@@ -39962,6 +39962,16 @@
           }
         }
       }
+    },
+    "Adding your dish…": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägger till din rätt …"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
