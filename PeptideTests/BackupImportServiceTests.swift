@@ -202,6 +202,53 @@ final class BackupImportServiceTests: XCTestCase {
         )
     }
 
+    func test_merge_intoEmptyProfile_restoresHabitsNotesAndDailyConsumption() throws {
+        let dataStore = makeDataStore()
+        let day = Calendar.current.startOfDay(for: Date())
+        let key = LifestyleDataLogic.consumptionKey(for: day)
+        let habit = Habit(name: "Read", iconSymbol: "book.fill", tintHex: 0x6B8AFF)
+        var backupProfile = makeProfile(named: "Backup user")
+        backupProfile.habits = [habit]
+        backupProfile.habitEntries = [HabitEntry(habitId: habit.id, date: day)]
+        backupProfile.protocolNotes = [ProtocolNote(protocolID: UUID(), body: "Felt great")]
+        var bucket = DailyConsumption.empty(on: day)
+        bucket.caloriesKcal = 1800
+        bucket.proteinG = 140
+        backupProfile.dailyConsumption = [key: bucket]
+        backupProfile.weeklySummaries = ["2026-01-05": WeeklySummary(
+            weekStart: "2026-01-05",
+            text: "HRV up 4 ms on the week.",
+            keyStats: WeeklySummary.KeyStats(
+                compliancePct: 0.9,
+                dosesCompleted: 9,
+                dosesTotal: 10,
+                currentStreak: 5,
+                avgCheckInScore: nil,
+                avgCalories: nil,
+                hrvDelta: 4
+            ),
+            kind: .ai,
+            generatedAt: Date(timeIntervalSince1970: 1_767_600_000)
+        )]
+        let backup = AppBackup(
+            exportDate: Date(),
+            version: "1.0",
+            protocols: [],
+            entries: [],
+            profile: backupProfile
+        )
+
+        _ = try BackupImportService.apply(backup, strategy: .merge, into: dataStore)
+
+        let restored = dataStore.profile
+        XCTAssertEqual(restored.habits.map(\.id), [habit.id])
+        XCTAssertEqual(restored.habitEntries.count, 1)
+        XCTAssertEqual(restored.protocolNotes.map(\.body), ["Felt great"])
+        XCTAssertEqual(restored.dailyConsumption[key]?.caloriesKcal, 1800)
+        XCTAssertEqual(restored.dailyConsumption[key]?.proteinG, 140)
+        XCTAssertNotNil(restored.weeklySummaries["2026-01-05"])
+    }
+
     func test_replace_whenCommitFails_throwsInsteadOfReportingSuccess() {
         let dataStore = makeDataStore()
         let repo = SwiftDataRepository.shared

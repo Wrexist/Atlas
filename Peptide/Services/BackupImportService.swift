@@ -289,10 +289,8 @@ enum BackupImportService {
             resolvedEntries = dataStore.entries + backup.entries.filter {
                 !existingEntryIDs.contains($0.id)
             }
-            // Profile merge: current wins on every scalar field;
-            // history arrays union by ID where present, append-only
-            // for fields without IDs. Implemented inside DataStore
-            // because it has full visibility into the field set.
+            // Profile merge: current wins on conflict; every history
+            // collection unions in what only the backup holds.
             resolvedProfile = mergeProfile(current: dataStore.profile, incoming: backup.profile)
         case .dryRun:
             // The guard above already returned. Reaching here would
@@ -415,48 +413,14 @@ enum BackupImportService {
         }
     }
 
-    /// Field-level merge for `UserProfile`. Current state wins for
-    /// scalars; history arrays union by ID where present.
+    /// Field-level merge for `UserProfile`: the same union sync uses, so
+    /// every logged record (habits, notes, meals and their day totals,
+    /// momentum) comes back, and current state wins on conflict. Weekly
+    /// recaps are the one collection sync leaves alone, so they're
+    /// unioned here by week, current winning.
     private static func mergeProfile(current: UserProfile, incoming: UserProfile) -> UserProfile {
-        var merged = current
-
-        // Weight history: union by entry ID.
-        let currentWeightIDs = Set(current.weightHistory.map(\.id))
-        merged.weightHistory = current.weightHistory + incoming.weightHistory.filter {
-            !currentWeightIDs.contains($0.id)
-        }
-
-        // Lab history: union by ID.
-        let currentLabIDs = Set(current.labHistory.map(\.id))
-        merged.labHistory = current.labHistory + incoming.labHistory.filter {
-            !currentLabIDs.contains($0.id)
-        }
-
-        // Meal history: union by ID.
-        let currentMealIDs = Set(current.mealHistory.map(\.id))
-        merged.mealHistory = current.mealHistory + incoming.mealHistory.filter {
-            !currentMealIDs.contains($0.id)
-        }
-
-        // Outcome history: union by ID.
-        let currentOutcomeIDs = Set(current.outcomeHistory.map(\.id))
-        merged.outcomeHistory = current.outcomeHistory + incoming.outcomeHistory.filter {
-            !currentOutcomeIDs.contains($0.id)
-        }
-
-        // Recipes + custom foods: union by ID.
-        let currentRecipeIDs = Set(current.recipes.map(\.id))
-        merged.recipes = current.recipes + incoming.recipes.filter {
-            !currentRecipeIDs.contains($0.id)
-        }
-        let currentFoodIDs = Set(current.customFoods.map(\.id))
-        merged.customFoods = current.customFoods + incoming.customFoods.filter {
-            !currentFoodIDs.contains($0.id)
-        }
-
-        // Favorite foods: set union.
-        merged.favoriteFoodIDs = current.favoriteFoodIDs.union(incoming.favoriteFoodIDs)
-
+        var merged = ProfileMergeEngine.reconcile(current, with: incoming)
+        merged.weeklySummaries.merge(incoming.weeklySummaries) { currentRecap, _ in currentRecap }
         return merged
     }
 }
