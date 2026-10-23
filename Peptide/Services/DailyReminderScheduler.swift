@@ -93,7 +93,7 @@ enum DailyReminderScheduler {
         let repeatMeal = UNNotificationAction(
             identifier: repeatMealAction,
             title: String(localized: "Same as yesterday", comment: "Meal reminder action — re-logs yesterday's meal"),
-            options: [],
+            options: [.authenticationRequired],
             icon: UNNotificationActionIcon(systemImageName: "arrow.uturn.backward")
         )
         let startWorkout = UNNotificationAction(
@@ -105,7 +105,7 @@ enum DailyReminderScheduler {
         let logWeight = UNTextInputNotificationAction(
             identifier: logWeightAction,
             title: String(localized: "Log weight", comment: "Weigh-in reminder action"),
-            options: [],
+            options: [.authenticationRequired],
             icon: UNNotificationActionIcon(systemImageName: "scalemass.fill"),
             textInputButtonTitle: String(localized: "Save"),
             textInputPlaceholder: String(localized: "Today's weight", comment: "Weigh-in reply field placeholder")

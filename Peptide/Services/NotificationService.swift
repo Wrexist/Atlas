@@ -479,10 +479,13 @@ final class NotificationService {
     }
 
     func registerCategories() {
+        // Logs in place: the delegate marks the doses and flushes the
+        // save without UI, so launching the app only added friction. An
+        // unlocked device is still required to write to the log.
         let markAction = UNNotificationAction(
             identifier: "MARK_TAKEN",
             title: String(localized: "Mark as taken", comment: "Dose reminder action — logs the dose."),
-            options: [.foreground]
+            options: [.authenticationRequired]
         )
         // Three snooze options instead of one — long-press on the
         // notification banner reveals up to 4 actions on iOS, so
