@@ -95,7 +95,10 @@ struct ReplaceScannedFoodSheet: View {
         } catch {
             guard !Task.isCancelled else { return }
             loading = false
-            errorText = String(localized: "Couldn't search the food database. Retry, or choose one of your saved foods.")
+            // The local throttle and rate limits carry their own "try
+            // again in Ns" copy; an immediate Retry would just fail again.
+            errorText = (error as? OpenFoodFactsService.LookupError)?.errorDescription
+                ?? String(localized: "Couldn't search the food database. Retry, or choose one of your saved foods.")
         }
     }
 }
