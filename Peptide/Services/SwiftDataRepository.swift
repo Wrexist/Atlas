@@ -1165,16 +1165,16 @@ final class SwiftDataRepository {
         guard !isUsingFallbackStore, let context else { throw WorkoutSaveError.unavailable }
         let sessionID = session.id
         let descriptor = FetchDescriptor<StoredWorkoutSession>(predicate: #Predicate { $0.id == sessionID })
-        let existing = try context.fetch(descriptor).first
-        let previous = try existing?.toWorkoutSession()
+        let existing = try context.fetch(descriptor)
+        let previous = try existing.map { try $0.toWorkoutSession() }
         let prepared = try StoredWorkoutSession.make(from: session)
         do {
-            if let existing { try existing.update(from: session) }
-            else { context.insert(prepared) }
+            for row in existing { try row.update(from: session) }
+            if existing.isEmpty { context.insert(prepared) }
             guard commit() else { throw WorkoutSaveError.failed }
         } catch {
-            if let existing, let previous { try? existing.update(from: previous) }
-            else { context.delete(prepared) }
+            for (row, prior) in zip(existing, previous) { try? row.update(from: prior) }
+            if existing.isEmpty { context.delete(prepared) }
             throw error
         }
     }
@@ -1190,12 +1190,11 @@ final class SwiftDataRepository {
             predicate: #Predicate { $0.id == sessionID }
         )
         do {
-            if let existing = try context.fetch(descriptor).first {
-                try existing.update(from: session)
-            } else {
-                let stored = try StoredWorkoutSession.make(from: session)
-                context.insert(stored)
-            }
+            // Every copy CloudKit synced for the id, so a stale twin
+            // can't come back; loads keep one per id.
+            let rows = try context.fetch(descriptor)
+            for existing in rows { try existing.update(from: session) }
+            if rows.isEmpty { context.insert(try StoredWorkoutSession.make(from: session)) }
             commit()
         } catch {
             AppLog.swiftData.error("upsert workout session failed: \(error.localizedDescription, privacy: .public)")
@@ -1234,14 +1233,14 @@ final class SwiftDataRepository {
         descriptor.fetchLimit = max(1, limit)
         do {
             let stored = try context.fetch(descriptor)
-            return stored.compactMap {
+            return Self.keepingFirstPerID(stored.compactMap {
                 do {
                     return try $0.toWorkoutSession()
                 } catch {
                     AppLog.swiftData.error("Decode StoredWorkoutSession failed: \(error.localizedDescription, privacy: .public)")
                     return nil
                 }
-            }
+            })
         } catch {
             AppLog.swiftData.error("Load workout sessions failed: \(error.localizedDescription, privacy: .public)")
             return []
@@ -1274,14 +1273,14 @@ final class SwiftDataRepository {
         let descriptor = FetchDescriptor<StoredWorkoutSession>(
             predicate: #Predicate { $0.startedAt >= start && $0.startedAt < end },
             sortBy: [SortDescriptor(\.startedAt)])
-        return try context.fetch(descriptor).compactMap {
+        return Self.keepingFirstPerID(try context.fetch(descriptor).compactMap {
             do {
                 return try $0.toWorkoutSession()
             } catch {
                 AppLog.swiftData.error("Decode StoredWorkoutSession (recap) failed: \(error.localizedDescription, privacy: .public)")
                 return nil
             }
-        }
+        })
     }
 
     /// Uncapped full-history fetch, oldest first. Exists for correctness
@@ -1296,14 +1295,14 @@ final class SwiftDataRepository {
         )
         do {
             let stored = try context.fetch(descriptor)
-            return stored.compactMap {
+            return Self.keepingFirstPerID(stored.compactMap {
                 do {
                     return try $0.toWorkoutSession()
                 } catch {
                     AppLog.swiftData.error("Decode StoredWorkoutSession (full) failed: \(error.localizedDescription, privacy: .public)")
                     return nil
                 }
-            }
+            })
         } catch {
             AppLog.swiftData.error("Load all workout sessions failed: \(error.localizedDescription, privacy: .public)")
             return []
@@ -1341,14 +1340,14 @@ final class SwiftDataRepository {
         descriptor.fetchLimit = SwiftDataRepository.workoutHistoryFetchLimit
         do {
             let stored = try context.fetch(descriptor)
-            return stored.compactMap {
+            return Self.keepingFirstPerID(stored.compactMap {
                 do {
                     return try $0.toWorkoutSession()
                 } catch {
                     AppLog.swiftData.error("Decode StoredWorkoutSession (windowed) failed: \(error.localizedDescription, privacy: .public)")
                     return nil
                 }
-            }
+            })
         } catch {
             AppLog.swiftData.error("Load windowed workout sessions failed: \(error.localizedDescription, privacy: .public)")
             return []
@@ -1372,14 +1371,14 @@ final class SwiftDataRepository {
             sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
         )
         do {
-            return try context.fetch(descriptor).compactMap {
+            return Self.keepingFirstPerID(try context.fetch(descriptor).compactMap {
                 do {
                     return try $0.toWorkoutSession()
                 } catch {
                     AppLog.swiftData.error("Decode StoredWorkoutSession (unfinished) failed: \(error.localizedDescription, privacy: .public)")
                     return nil
                 }
-            }
+            })
         } catch {
             AppLog.swiftData.error("Load unfinished workouts failed: \(error.localizedDescription, privacy: .public)")
             return []
@@ -1395,12 +1394,11 @@ final class SwiftDataRepository {
             predicate: #Predicate { $0.id == id }
         )
         do {
-            if let existing = try context.fetch(descriptor).first {
-                try existing.update(from: exercise)
-            } else {
-                let stored = try StoredCustomExercise.make(from: exercise)
-                context.insert(stored)
-            }
+            // Every copy CloudKit synced for the id, so a stale twin
+            // can't come back; loads keep one per id.
+            let rows = try context.fetch(descriptor)
+            for existing in rows { try existing.update(from: exercise) }
+            if rows.isEmpty { context.insert(try StoredCustomExercise.make(from: exercise)) }
             commit()
         } catch {
             AppLog.swiftData.error("upsert custom exercise failed: \(error.localizedDescription, privacy: .public)")
@@ -1429,14 +1427,14 @@ final class SwiftDataRepository {
             sortBy: [SortDescriptor(\.name, order: .forward)]
         )
         do {
-            return try context.fetch(descriptor).compactMap {
+            return Self.keepingFirstPerID(try context.fetch(descriptor).compactMap {
                 do {
                     return try $0.toCustomExercise()
                 } catch {
                     AppLog.swiftData.error("Decode StoredCustomExercise failed: \(error.localizedDescription, privacy: .public)")
                     return nil
                 }
-            }
+            })
         } catch {
             AppLog.swiftData.error("Load custom exercises failed: \(error.localizedDescription, privacy: .public)")
             return []
@@ -1452,12 +1450,11 @@ final class SwiftDataRepository {
             predicate: #Predicate { $0.id == routineID }
         )
         do {
-            if let existing = try context.fetch(descriptor).first {
-                try existing.update(from: routine)
-            } else {
-                let stored = try StoredRoutine.make(from: routine)
-                context.insert(stored)
-            }
+            // Every copy CloudKit synced for the id, so a stale twin
+            // can't come back; loads keep one per id.
+            let rows = try context.fetch(descriptor)
+            for existing in rows { try existing.update(from: routine) }
+            if rows.isEmpty { context.insert(try StoredRoutine.make(from: routine)) }
             commit()
         } catch {
             AppLog.swiftData.error("upsert routine failed: \(error.localizedDescription, privacy: .public)")
@@ -1523,14 +1520,14 @@ final class SwiftDataRepository {
             ]
         )
         do {
-            return try context.fetch(descriptor).compactMap {
+            return Self.keepingFirstPerID(try context.fetch(descriptor).compactMap {
                 do {
                     return try $0.toRoutine()
                 } catch {
                     AppLog.swiftData.error("Decode StoredRoutine failed: \(error.localizedDescription, privacy: .public)")
                     return nil
                 }
-            }
+            })
         } catch {
             AppLog.swiftData.error("Load routines failed: \(error.localizedDescription, privacy: .public)")
             return []

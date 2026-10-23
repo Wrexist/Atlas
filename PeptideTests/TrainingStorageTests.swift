@@ -161,6 +161,57 @@ final class TrainingStorageTests: XCTestCase {
         XCTAssertEqual(loaded.map(\.id), [session.id])
     }
 
+    // MARK: - Rows CloudKit duplicated
+
+    func test_upsertWorkoutSession_withDuplicateStoredRows_updatesEveryRowAndLoadsOne() throws {
+        var session = makeSession()
+        let context = try XCTUnwrap(repo.contextForTesting)
+        context.insert(try StoredWorkoutSession.make(from: session))
+        context.insert(try StoredWorkoutSession.make(from: session))
+        try context.save()
+
+        session.name = "Renamed"
+        repo.upsertWorkoutSession(session)
+
+        let rows = try context.fetch(FetchDescriptor<StoredWorkoutSession>())
+        XCTAssertEqual(rows.map(\.name), ["Renamed", "Renamed"])
+        XCTAssertEqual(repo.loadWorkoutSessions().map(\.id), [session.id])
+        XCTAssertEqual(repo.loadAllWorkoutSessions().map(\.id), [session.id])
+    }
+
+    func test_upsertRoutine_withDuplicateStoredRows_updatesEveryRowAndLoadsOne() throws {
+        var routine = Routine(name: "Legs")
+        let context = try XCTUnwrap(repo.contextForTesting)
+        context.insert(try StoredRoutine.make(from: routine))
+        context.insert(try StoredRoutine.make(from: routine))
+        try context.save()
+
+        routine.name = "Leg day"
+        repo.upsertRoutine(routine)
+
+        let rows = try context.fetch(FetchDescriptor<StoredRoutine>())
+        XCTAssertEqual(rows.map(\.name), ["Leg day", "Leg day"])
+        XCTAssertEqual(repo.loadRoutines().map(\.id), [routine.id])
+    }
+
+    func test_upsertCustomExercise_withDuplicateStoredRows_updatesEveryRowAndLoadsOne() throws {
+        var exercise = CustomExercise(
+            name: "Reverse Pec Deck", primaryMuscles: ["shoulders"], secondaryMuscles: [],
+            equipment: "machine", instructions: []
+        )
+        let context = try XCTUnwrap(repo.contextForTesting)
+        context.insert(try StoredCustomExercise.make(from: exercise))
+        context.insert(try StoredCustomExercise.make(from: exercise))
+        try context.save()
+
+        exercise.name = "Rear Delt Fly"
+        repo.upsertCustomExercise(exercise)
+
+        let rows = try context.fetch(FetchDescriptor<StoredCustomExercise>())
+        XCTAssertEqual(rows.map(\.name), ["Rear Delt Fly", "Rear Delt Fly"])
+        XCTAssertEqual(repo.loadCustomExercises().map(\.id), [exercise.id])
+    }
+
     // MARK: - Custom exercise round-trip
 
     func test_customExercise_roundTrips() {
