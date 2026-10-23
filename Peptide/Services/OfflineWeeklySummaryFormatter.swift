@@ -59,9 +59,9 @@ enum OfflineWeeklySummaryFormatter {
 
         switch band(forPercent: pct) {
         case .strong:
-            return String(localized: "Strong week — \(completed) of \(total) doses logged (\(pct)% compliance).")
+            return String(localized: "Strong week — \(completed) of \(total) doses logged (\(pct)% adherence).")
         case .solid:
-            return String(localized: "Solid week — \(completed) of \(total) doses logged (\(pct)% compliance).")
+            return String(localized: "Solid week — \(completed) of \(total) doses logged (\(pct)% adherence).")
         case .mixed:
             return String(localized: "Mixed week — \(completed) of \(total) doses logged (\(pct)%).")
         case .quiet:
@@ -99,7 +99,7 @@ enum OfflineWeeklySummaryFormatter {
                 outcomes.energyAvg + outcomes.sleepAvg + outcomes.recoveryAvg
                 + outcomes.moodAvg + outcomes.focusAvg
             ) / 5.0
-            let compStr = String(format: "%.1f", composite)
+            let compStr = composite.formatted(.number.precision(.fractionLength(1)))
             if outcomes.compositeDelta > 0.2 {
                 observations.append(
                     String(localized: "Daily check-ins averaged \(compStr) of 5 — up from last week.")

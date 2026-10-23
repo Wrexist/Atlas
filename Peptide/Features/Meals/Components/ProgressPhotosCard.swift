@@ -134,7 +134,7 @@ struct ProgressPhotosCard: View {
     private var header: some View {
         HStack(spacing: Spacing.sm) {
             Label {
-                Text("Progress Photos")
+                Text("Progress photos")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
             } icon: {

@@ -140,6 +140,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld workout this week"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld workouts this week"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -453,7 +471,7 @@
         }
       }
     },
-    "Last night's Sleep Score and time asleep.": {
+    "Last night's sleep score and time asleep.": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -743,7 +761,7 @@
         }
       }
     },
-    "Sleep Score": {
+    "Sleep score": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -753,7 +771,7 @@
         }
       }
     },
-    "Sleep Score %lld, %@": {
+    "Sleep score %lld, %@": {
       "localizations": {
         "sv": {
           "stringUnit": {

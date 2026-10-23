@@ -51,20 +51,21 @@ enum BackupImportService {
         case bounds(String)
         case applyFailed(String)
 
+        /// What the user reads. The associated detail is for the log
+        /// (`RestoreBackupSheet` records it); it names fields and limits
+        /// that mean nothing to someone restoring their data.
         var errorDescription: String? {
             switch self {
             case .fileTooLarge(let bytes):
                 return String(localized: "This backup is unusually large (\(bytes / 1024 / 1024) MB) and was rejected to avoid accidentally importing a different app's export.")
-            case .invalidJSON(let detail):
-                return String(localized: "Couldn't read the backup file: \(detail)")
+            case .invalidJSON:
+                return String(localized: "Couldn't read that file. Make sure it's an Atlas backup and try again.")
             case .unsupportedVersion(let v):
                 return String(localized: "This backup was created by a version of Atlas that this build can't read (\(v)). Update the app and try again.")
-            case .decodeFailure(let detail):
-                return String(localized: "The backup decoded partially but a field was malformed: \(detail)")
-            case .bounds(let detail):
-                return String(localized: "The backup contents look implausible: \(detail)")
-            case .applyFailed(let detail):
-                return String(localized: "Backup validated but couldn't be applied: \(detail)")
+            case .decodeFailure, .bounds:
+                return String(localized: "This backup looks damaged, so nothing was imported. Try a different backup file.")
+            case .applyFailed:
+                return String(localized: "The backup checked out but couldn't be restored. Try again.")
             }
         }
     }

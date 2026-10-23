@@ -56,7 +56,7 @@ struct AIResearchView: View {
                 composer
             }
             .background(AppColor.background.ignoresSafeArea())
-            .navigationTitle(isCoach ? "Diet Coach" : "Research Assistant")
+            .navigationTitle(isCoach ? "Diet coach" : "Research assistant")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

@@ -279,30 +279,12 @@ struct TrialOfferView: View {
     private var benefitsCard: some View {
         GlassCard(tinted: true) {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                ForEach(benefits, id: \.0) { benefit in
-                    benefitRow(icon: benefit.0, title: benefit.1)
+                ForEach(ProBenefits.all, id: \.icon) { benefit in
+                    benefitRow(icon: benefit.icon, title: benefit.title)
                 }
             }
         }
     }
-
-    /// Outcomes, not features. The previous list named the machinery —
-    /// "AI photo + barcode meal scanner", "Cloud sync across all your
-    /// devices" — which tells someone what they are buying but not what
-    /// changes for them. Each line now leads with the result and keeps the
-    /// mechanism as the short half, so the column scans as a list of things
-    /// that get better.
-    ///
-    /// Nothing here promises an outcome the app does not measure: every
-    /// claim maps to a surface that exists (auto-progression, the scanner,
-    /// Biological Age, the cited-research chat, CloudKit sync).
-    private let benefits: [(String, LocalizedStringKey)] = [
-        ("figure.strengthtraining.traditional", "Lift more every week — plans that progress you automatically"),
-        ("camera.viewfinder", "Log a meal in one photo — no weighing, no searching"),
-        ("heart.text.square.fill", "Know before you train — recovery, HRV and Biological Age"),
-        ("brain.head.profile.fill", "Ask anything, get cited research — not guesswork"),
-        ("icloud.fill", "Never lose a session — synced across every device"),
-    ]
 
     // MARK: - Value banner
 
@@ -699,7 +681,7 @@ struct TrialOfferView: View {
 
     private var restoreButton: some View {
         Button(action: restore) {
-            Text("Restore Purchases").minimumHitArea()
+            Text("Restore purchases").minimumHitArea()
         }
         .buttonStyle(.plain)
         .disabled(isPurchasing || isRestoring)
@@ -750,7 +732,7 @@ struct TrialOfferView: View {
         guard let days = trialDays else {
             return String(localized: "Get \(headlinePlan)")
         }
-        return String(localized: "Start My \(days)-Day Free Trial")
+        return String(localized: "Start my \(days)-day free trial")
     }
 
     /// Second line of the CTA: the charge, in the user's own currency. A
@@ -788,7 +770,7 @@ struct TrialOfferView: View {
     /// the storefront's currency to quote, but the plan names, lengths and
     /// auto-renewal still have to be on the purchase surface.
     private var legalCopy: String {
-        let renewal = String(localized: "Auto-renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → your name → Subscriptions.")
+        let renewal = String(localized: "Auto-renews unless canceled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → your name → Subscriptions.")
         guard arePricesLoaded else {
             return String(localized: "\(planName(for: .monthly)) (billed monthly) and \(planName(for: .annual)) (billed yearly) are auto-renewable subscriptions. \(renewal)")
         }

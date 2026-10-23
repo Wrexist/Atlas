@@ -751,7 +751,7 @@ struct BarcodeScanFlow: View {
         HStack(spacing: Spacing.xs) {
             ProgressView()
                 .controlSize(.small)
-            Text("Checking non-food catalogues…")
+            Text("Checking non-food catalogs…")
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
         }

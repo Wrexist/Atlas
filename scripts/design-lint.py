@@ -490,6 +490,44 @@ def rule_placeholder_copy(path, source, code) -> list[Finding]:
     return out
 
 
+UI_LITERAL = re.compile(
+    r'(?:\bText|\bButton|\bLabel|\.alert|\.confirmationDialog|\.navigationTitle)'
+    r'\(\s*"((?:[^"\\]|\\.)*)"'
+)
+# Names that keep their capitals inside a sentence-case string.
+PROPER_NAMES = re.compile(
+    r"Apple (?:Health|Watch|Account)|Atlas (?:Pro|Score)|Biological Age|(?:Face|Touch|Optic) ID"
+    r"|Sign in with Apple|Open Food Facts|App Store|Live Activit(?:y|ies)|Lock Screen"
+    r"|Home Screen|Control Center|Recovery Score|Sleep Score|Terms of Use|Privacy Policy"
+)
+MINOR_WORDS = {"a", "an", "the", "and", "or", "of", "to", "in", "on", "for", "per",
+               "with", "vs", "at", "by", "from", "your", "my"}
+
+
+def is_title_case(text: str) -> bool:
+    """Three or more words with every word after the first capitalised,
+    ignoring short connecting words, interpolations and product names."""
+    text = PROPER_NAMES.sub("x", re.sub(r"\\\(.*?\)", "x", text))
+    words = re.findall(r"[A-Za-z][A-Za-z'’-]*", text)
+    if len(words) < 3:
+        return False
+    content = [w for w in words[1:] if w.lower() not in MINOR_WORDS]
+    return bool(content) and all(w[0].isupper() and not w.isupper() for w in content)
+
+
+def rule_title_case_copy(path, source, code) -> list[Finding]:
+    """Titles, buttons and alerts are sentence case, Apple's current iOS
+    guidance and the app's dominant style. Mixed casing made the same kind
+    of control read as if different people wrote it ("Sign out?" over a
+    "Sign Out" button)."""
+    out = []
+    for m in UI_LITERAL.finditer(code):
+        if is_title_case(m.group(1)):
+            out.append(Finding(path, line_of(code, m.start()), "title-case-copy",
+                               f"use sentence case: {m.group(1)[:50]!r}", "warning"))
+    return out
+
+
 def rule_hit_target(path, source, code) -> list[Finding]:
     """A control smaller than 44pt is hard to hit and fails an audit.
 
@@ -916,6 +954,7 @@ RULES = [
     rule_raw_sensory_feedback,
     rule_curve_literal,
     rule_placeholder_copy,
+    rule_title_case_copy,
     rule_placeholder_as_label,
     rule_hit_target,
     rule_off_grid_spacing,

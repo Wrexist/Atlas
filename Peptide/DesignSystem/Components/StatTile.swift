@@ -156,7 +156,7 @@ private struct StatTileAccessibilityLabel: ViewModifier {
                          tint: AppColor.macroProtein, footnote: "of 2400 kcal", progress: 0.53)
                 StatTile(label: "Water", value: "48", icon: "drop.fill",
                          tint: AppColor.macroWater, footnote: "oz today")
-                StatTile(label: "Compliance", value: "86%", tint: AppColor.accentPrimary,
+                StatTile(label: "Adherence", value: "86%", tint: AppColor.accentPrimary,
                          footnote: "12 of 14 doses", size: .large)
                 StatTile(label: "HRV Δ", value: "-4 ms", tint: AppColor.negative)
             }

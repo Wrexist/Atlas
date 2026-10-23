@@ -96,7 +96,7 @@ struct LabScanFlow: View {
             )
             .ignoresSafeArea()
         }
-        .alert("Camera Access Off", isPresented: $cameraDenied) {
+        .alert("Camera access off", isPresented: $cameraDenied) {
             Button("Open Settings") {
                 if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
             }

@@ -219,7 +219,7 @@ extension StackRecommendationEngine {
             warnings.append(Warning(
                 severity: .caution,
                 title: String(localized: "\(group.pathway) overload"),
-                detail: String(localized: "\(matching.count) peptides target the \(group.pathway) pathway (recommended max: \(group.maxSafe))."),
+                detail: String(localized: "\(matching.count) peptides in your protocol target the \(group.pathway) pathway. Some sources describe using no more than \(group.maxSafe) together."),
                 suggestion: group.warningText,
                 peptides: matching.map(\.abbreviation),
                 icon: "arrow.triangle.2.circlepath"
@@ -234,8 +234,8 @@ extension StackRecommendationEngine {
             warnings.append(Warning(
                 severity: .caution,
                 title: String(localized: "High angiogenic activity"),
-                detail: String(localized: "\(angiogenic.count) peptides in your protocol promote blood vessel growth. Use caution if you have a history of malignancy, as angiogenesis can theoretically fuel tumor vascularization."),
-                suggestion: String(localized: "If you have any cancer history, consult an oncologist before using multiple angiogenic peptides together."),
+                detail: String(localized: "\(angiogenic.count) peptides in your protocol are described in research as promoting blood vessel growth. Some sources flag this for people with a history of cancer."),
+                suggestion: String(localized: "Discuss this combination with your clinician, especially if you have any cancer history."),
                 peptides: angiogenic.map(\.abbreviation),
                 icon: "staroflife.fill"
             ))
@@ -267,14 +267,11 @@ extension StackRecommendationEngine {
                       weeksElapsed > cycle.onWeeks,
                       overrunWarned.insert(peptide.abbreviation).inserted else { continue }
                 let overBy = weeksElapsed - cycle.onWeeks
-                let transitionText = cycle.transitionSuggestions.isEmpty
-                    ? ""
-                    : String(localized: " Consider transitioning to \(cycle.transitionSuggestions.joined(separator: " or ")).")
                 warnings.append(Warning(
                     severity: .caution,
                     title: String(localized: "\(peptide.abbreviation) is \(overBy) weeks past its cycle"),
-                    detail: String(localized: "Recommended cycle is \(cycle.onWeeks) weeks on / \(cycle.offWeeks) weeks off. You're at week \(weeksElapsed). \(cycle.reason)."),
-                    suggestion: String(localized: "Schedule a \(cycle.offWeeks)-week off period.\(transitionText)"),
+                    detail: String(localized: "Sources commonly describe \(cycle.onWeeks) weeks on and \(cycle.offWeeks) weeks off. You're at week \(weeksElapsed). \(cycle.reason)."),
+                    suggestion: String(localized: "Review your cycle plan with your clinician."),
                     peptides: [peptide.abbreviation],
                     icon: "clock.arrow.circlepath",
                     kind: .cycleOverrun
@@ -297,7 +294,7 @@ extension StackRecommendationEngine {
                 severity: .caution,
                 title: String(localized: "\(info.receptor) desensitization risk"),
                 detail: String(localized: "\(peptide.abbreviation) active for \(weeks) weeks. \(info.description) typically begins around week \(info.riskOnsetWeeks)."),
-                suggestion: String(localized: "Consider a \(offWeeks)-week washout period to restore receptor sensitivity."),
+                suggestion: String(localized: "Some sources describe a \(offWeeks)-week break at this point. Discuss timing with your clinician."),
                 peptides: [peptide.abbreviation],
                 icon: "arrow.down.right.circle",
                 kind: .desensitization
@@ -313,7 +310,7 @@ extension StackRecommendationEngine {
                 severity: .caution,
                 title: String(localized: "Multiple liver-stressing peptides"),
                 detail: String(localized: "\(hepatotoxic.count) peptides in your protocol have hepatic metabolism burden: \(hepatotoxic.map(\.abbreviation).joined(separator: ", "))."),
-                suggestion: String(localized: "Monitor liver enzymes (ALT, AST) and avoid combining with alcohol or hepatotoxic supplements."),
+                suggestion: String(localized: "Discuss liver monitoring with your clinician. Alcohol and some supplements also affect the liver."),
                 peptides: hepatotoxic.map(\.abbreviation),
                 icon: "exclamationmark.triangle.fill"
             ))

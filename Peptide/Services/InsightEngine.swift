@@ -62,9 +62,9 @@ struct InsightEngine {
         let recentCompliance = complianceForRange(entries: rated, days: 7, now: now)
         let olderCompliance = complianceForExclusiveRange(entries: rated, from: 30, to: 7, now: now)
         if recentCompliance > olderCompliance + 0.1 && olderCompliance > 0 {
-            insights.append(Insight(icon: "arrow.up.right", title: String(localized: "Compliance improving"), description: String(localized: "Your 7-day compliance is \(Int(recentCompliance * 100))%, up from \(Int(olderCompliance * 100))% prior average."), type: .positive))
+            insights.append(Insight(icon: "arrow.up.right", title: String(localized: "Adherence improving"), description: String(localized: "Your 7-day adherence is \(Int(recentCompliance * 100))%, up from \(Int(olderCompliance * 100))% prior average."), type: .positive))
         } else if recentCompliance < olderCompliance - 0.15 && olderCompliance > 0 {
-            insights.append(Insight(icon: "arrow.down.right", title: String(localized: "Compliance dipping"), description: String(localized: "Recent compliance dropped to \(Int(recentCompliance * 100))%. Prior average was \(Int(olderCompliance * 100))%."), type: .warning))
+            insights.append(Insight(icon: "arrow.down.right", title: String(localized: "Adherence dipping"), description: String(localized: "Recent adherence dropped to \(Int(recentCompliance * 100))%. Prior average was \(Int(olderCompliance * 100))%."), type: .warning))
         }
 
         // Protocol count

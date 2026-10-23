@@ -58,7 +58,7 @@ final class AIResearchService: Sendable {
             // Build-config detail belongs in the log, not in front of
             // customers; they only need to know the assistant is down.
             case .proxyNotConfigured:   String(localized: "The research assistant isn't available right now. Update Atlas or try again later.")
-            case .unauthorised:         String(localized: "Couldn't sign in to the research assistant. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build.")
+            case .unauthorised:         String(localized: "Couldn't connect to the research assistant. Update Atlas to the latest version, or contact support if you're already up to date.")
             case .offline:              String(localized: "You're offline — the research assistant needs an internet connection. Reconnect and try again.")
             case .rateLimited:          String(localized: "You're sending questions faster than the assistant can answer. Wait a minute and try again.")
             case .dailyLimitReached:    String(localized: "You've reached today's research limit. It resets tomorrow.")

@@ -446,7 +446,7 @@ enum DailyScheduleEngine {
             hints.append(ConflictHint(
                 severity: .info,
                 title: String(localized: "Stay fasted"),
-                detail: String(localized: "Stay fasted — don't eat for 30 min after injection. Other doses in this window can be taken back-to-back without breaking the fast."),
+                detail: String(localized: "Your plan marks this dose as fasted. Other doses in this window can be taken back-to-back without breaking the fast."),
                 counterpart: nil
             ))
         }

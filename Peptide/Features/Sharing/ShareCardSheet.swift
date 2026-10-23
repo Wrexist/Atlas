@@ -344,7 +344,7 @@ struct ShareCardSheet: View {
         healthSummary = CycleCardModel.HealthSummary(
             weightDeltaKg: weightDeltaSinceCycleStart(),
             avgSleepHours: sleepHours,
-            hrvTrendDescription: hrvAvg.map { String(format: String(localized: "%.0f ms avg"), $0) },
+            hrvTrendDescription: hrvAvg.map { String(localized: "\(Int($0.rounded())) ms avg") },
             weightUnit: dataStore.profile.bodyMetrics.unit
         )
     }

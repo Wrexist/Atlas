@@ -154,7 +154,7 @@ final class InsightEngineTests: XCTestCase {
             entries.append(makeEntry(daysAgo: Double(i), completed: i % 5 == 0))
         }
         let insights = InsightEngine.generateInsights(from: entries, protocols: [makeProtocol()])
-        XCTAssertTrue(insights.contains { $0.title == "Compliance improving" })
+        XCTAssertTrue(insights.contains { $0.title == "Adherence improving" })
     }
 
     func test_generateInsights_decliningCompliance_returnsWarningInsight() {
@@ -168,7 +168,7 @@ final class InsightEngineTests: XCTestCase {
             entries.append(makeEntry(daysAgo: Double(i), completed: true))
         }
         let insights = InsightEngine.generateInsights(from: entries, protocols: [makeProtocol()])
-        XCTAssertTrue(insights.contains { $0.title == "Compliance dipping" })
+        XCTAssertTrue(insights.contains { $0.title == "Adherence dipping" })
     }
 
     func test_generateInsights_morningWithPendingEveningDose_doesNotReportDip() {
@@ -190,14 +190,14 @@ final class InsightEngineTests: XCTestCase {
 
         let insights = InsightEngine.generateInsights(from: entries, protocols: [makeProtocol()], now: morning)
 
-        XCTAssertFalse(insights.contains { $0.title == "Compliance dipping" })
+        XCTAssertFalse(insights.contains { $0.title == "Adherence dipping" })
     }
 
     func test_generateInsights_pausedProtocolMisses_doNotReportDip() {
         var entries = (0..<7).map { makeEntry(daysAgo: Double($0) + 1, completed: false) }
         entries += (8..<30).map { makeEntry(daysAgo: Double($0), completed: true) }
         let insights = InsightEngine.generateInsights(from: entries, protocols: [makeProtocol(status: .paused)])
-        XCTAssertFalse(insights.contains { $0.title == "Compliance dipping" })
+        XCTAssertFalse(insights.contains { $0.title == "Adherence dipping" })
     }
 
     // MARK: - Empty / no crash

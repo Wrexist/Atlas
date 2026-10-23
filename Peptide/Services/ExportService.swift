@@ -388,7 +388,7 @@ final class ExportService {
             for (label, value) in [
                 ("Active Protocols", "\(activeCount) of \(protocols.count)"),
                 ("Doses Logged", "\(completedDoses) of \(entries.count)"),
-                ("Overall Compliance", "\(compliancePct)%"),
+                ("Overall Adherence", "\(compliancePct)%"),
             ] {
                 let h = drawText(label, font: bodyFont, color: mutedColor)
                 drawText(value, font: labelFont, x: pageWidth - margin - 60, width: 60, align: .right)
@@ -419,7 +419,7 @@ final class ExportService {
                 let startStr   = proto.startDate.formatted(date: .abbreviated, time: .omitted)
                 let peptideStr = proto.peptides.map(\.abbreviation).joined(separator: ", ")
                 let metaH = drawText(
-                    "Started \(startStr)  ·  \(proto.cycleLengthWeeks)w cycle  ·  \(pct)% compliance",
+                    "Started \(startStr)  ·  \(proto.cycleLengthWeeks)w cycle  ·  \(pct)% adherence",
                     font: captionFont, color: mutedColor
                 )
                 y += metaH + 2
@@ -441,7 +441,7 @@ final class ExportService {
                     for bucket in monthlyBuckets {
                         checkPageBreak(for: 18)
                         let lineH = drawText(
-                            "\(bucket.label)  ·  \(bucket.logged) logged · \(bucket.missed) missed · \(bucket.compliancePct)% compliance",
+                            "\(bucket.label)  ·  \(bucket.logged) logged · \(bucket.missed) missed · \(bucket.compliancePct)% adherence",
                             font: captionFont
                         )
                         y += lineH + 3
@@ -522,7 +522,7 @@ final class ExportService {
                 if protoEntries.count > entriesToRender.count {
                     let hidden = protoEntries.count - entriesToRender.count
                     let moreH = drawText(
-                        "… \(hidden) earlier entries · use the CSV export in Profile → Export Data for the complete log",
+                        "… \(hidden) earlier entries · use the CSV export in Profile → Settings → Data Export for the complete log",
                         font: captionFont, color: mutedColor
                     )
                     y += moreH + 3
@@ -582,7 +582,7 @@ final class ExportService {
     }
 
     /// Removes every export file. Called before each new export and by
-    /// "Delete All Data".
+    /// "Delete all data".
     func clearExports() {
         let directory = Self.exportDirectory
         guard FileManager.default.fileExists(atPath: directory.path) else { return }

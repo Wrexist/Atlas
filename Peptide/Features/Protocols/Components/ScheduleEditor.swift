@@ -96,7 +96,7 @@ struct ScheduleEditor: View {
     private var weeklyDaySelector: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack {
-                Text("Days of Week")
+                Text("Days of week")
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
                 Spacer()
@@ -185,7 +185,7 @@ struct ScheduleEditor: View {
                 width: 36
             )
         ) {
-            Text("Times per Day")
+            Text("Times per day")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
         }
@@ -278,7 +278,7 @@ struct ScheduleEditor: View {
                 width: 64
             )
         ) {
-            Text("Cycle Length")
+            Text("Cycle length")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
         }

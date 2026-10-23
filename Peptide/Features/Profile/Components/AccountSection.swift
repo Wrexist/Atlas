@@ -33,21 +33,21 @@ struct AccountSection: View {
             }
         }
         .task { cloudSyncState = await SwiftDataRepository.shared.refinedCloudSyncState() }
-        .alert("Delete Account?", isPresented: $isConfirmingDeletion) {
-            Button("Delete Account", role: .destructive) {
+        .alert("Delete account?", isPresented: $isConfirmingDeletion) {
+            Button("Delete account", role: .destructive) {
                 Task { await deleteAccount() }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text(deleteAccountMessage)
         }
-        .alert("Account Deleted", isPresented: $needsManualAppleRevoke) {
+        .alert("Account deleted", isPresented: $needsManualAppleRevoke) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("Your data is erased. To finish, remove Atlas in Settings → your name → Sign in with Apple.")
+            Text("Your data is erased. To finish, remove Atlas in Settings → your name → Sign-In & Security → Sign in with Apple.")
         }
         .confirmationDialog("Sign out?", isPresented: $isConfirmingSignOut, titleVisibility: .visible) {
-            Button("Sign Out", role: .destructive) {
+            Button("Sign out", role: .destructive) {
                 Haptics.impact(.medium)
                 authService.signOut()
             }
@@ -55,8 +55,8 @@ struct AccountSection: View {
         } message: {
             Text("Your data stays on this device.")
         }
-        .alert("Delete All Data?", isPresented: $isConfirmingDataErase) {
-            Button("Delete All Data", role: .destructive) {
+        .alert("Delete all data?", isPresented: $isConfirmingDataErase) {
+            Button("Delete all data", role: .destructive) {
                 authService.deleteAllData()
             }
             Button("Cancel", role: .cancel) {}
@@ -99,7 +99,7 @@ struct AccountSection: View {
                     .fill(authService.isSignedIn ? AppColor.accentPrimary : AppColor.textTertiary)
                     .frame(width: 8, height: 8)
 
-                Text(authService.isSignedIn ? "Signed In" : "Not Signed In")
+                Text(authService.isSignedIn ? "Signed in" : "Not signed in")
                     .font(AppFont.caption2)
                     .foregroundStyle(authService.isSignedIn ? AppColor.accentLight : AppColor.textTertiary)
             }
@@ -197,12 +197,12 @@ struct AccountSection: View {
             Divider()
                 .overlay(AppColor.glassBorder)
 
-            GlassButton(title: "Sign Out", icon: "rectangle.portrait.and.arrow.right",
+            GlassButton(title: "Sign out", icon: "rectangle.portrait.and.arrow.right",
                         style: .secondary, isFullWidth: true) {
                 isConfirmingSignOut = true
             }
 
-            GlassButton(title: "Delete Account", icon: "trash.fill",
+            GlassButton(title: "Delete account", icon: "trash.fill",
                         style: .destructive, isFullWidth: true) {
                 isConfirmingDeletion = true
             }
@@ -248,7 +248,7 @@ struct AccountSection: View {
             Divider()
                 .overlay(AppColor.glassBorder)
 
-            GlassButton(title: "Delete All Data", icon: "xmark.bin.fill",
+            GlassButton(title: "Delete all data", icon: "xmark.bin.fill",
                         style: .destructive, isFullWidth: true) {
                 isConfirmingDataErase = true
             }
@@ -262,7 +262,7 @@ struct AccountSection: View {
     }
 
     private var deleteAccountMessage: String {
-        String(localized: "This permanently removes the Apple ID linkage from this device and erases all your workouts, meals, protocols, dose entries, progress photos, and profile data. Data in Apple Health is not touched. If iCloud sync is on, the deletion propagates to your other devices. This cannot be undone.")
+        String(localized: "This permanently removes the Apple Account link from this device and erases all your workouts, meals, protocols, dose entries, progress photos, and profile data. Data in Apple Health is not touched. If iCloud sync is on, the deletion propagates to your other devices. This cannot be undone.")
             + subscriptionNotice
     }
 

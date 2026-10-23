@@ -325,7 +325,7 @@ struct TrainOverviewView: View {
                 Text("Select Front or Back for a closer look. Tap a muscle for its exercises.")
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textPrimary)
-                Text("Relative training score: primary work counts more than secondary work. Not a measure of growth or recovery.")
+                Text("Relative training score: primary work counts more than supporting work. Not a measure of growth or recovery.")
                     .font(AppFont.footnote)
                     .foregroundStyle(AppColor.textSecondary)
             }

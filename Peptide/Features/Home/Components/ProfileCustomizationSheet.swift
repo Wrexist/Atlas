@@ -223,7 +223,7 @@ struct ProfileCustomizationSheet: View {
             switch reason {
             case .denied:
                 Alert(
-                    title: Text("Camera Access Off"),
+                    title: Text("Camera access off"),
                     message: Text("Turn on Camera access for Atlas in Settings to take a profile photo. You can also pick from your library."),
                     primaryButton: .default(Text("Open Settings")) {
                         if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -261,8 +261,8 @@ struct ProfileCustomizationSheet: View {
                 Task { await tapTakePhoto() }
             }
         }
-        Button("Choose from Library") { isShowingLibrary = true }
-        Button("Pick a Preset Avatar") { isShowingPresetPicker = true }
+        Button("Choose from library") { isShowingLibrary = true }
+        Button("Pick a preset avatar") { isShowingPresetPicker = true }
         Button("Cancel", role: .cancel) {}
     }
 
@@ -709,7 +709,7 @@ struct ProfileCustomizationSheet: View {
                         bodyStat("Age", metrics.age.map { "\($0)" } ?? "—")
                     }
                 } else {
-                    Text("Optional — add your weight, height, and age in the Body metrics card on your Profile to display them alongside compliance trends.")
+                    Text("Optional — add your weight, height, and age in the Body metrics card on your Profile to display them alongside adherence trends.")
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -763,23 +763,17 @@ struct ProfileCustomizationSheet: View {
                 SettingsToggleRow(
                     icon: "hand.tap.fill",
                     title: "Haptic feedback",
-                    subtitle: "Vibrate on taps and toggles",
+                    subtitle: "Vibrate on interactions",
                     isOn: $store.profile.hapticFeedbackEnabled
                 )
                 .onChange(of: dataStore.profile.hapticFeedbackEnabled) { _, _ in
                     dataStore.persistProfile()
                 }
 
-                Divider().overlay(AppColor.glassBorder)
+                if !dataStore.activeProtocols.isEmpty {
+                    Divider().overlay(AppColor.glassBorder)
 
-                SettingsToggleRow(
-                    icon: "bell.fill",
-                    title: "Dose reminders",
-                    subtitle: "Get notified for scheduled doses",
-                    isOn: $store.profile.doseRemindersEnabled
-                )
-                .onChange(of: dataStore.profile.doseRemindersEnabled) { _, _ in
-                    dataStore.persistProfile()
+                    ProtocolRemindersRow()
                 }
             }
         }

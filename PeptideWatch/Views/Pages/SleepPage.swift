@@ -41,7 +41,7 @@ struct SleepPage: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .navigationTitle("Sleep Score")
+        .navigationTitle("Sleep score")
         .pageBackground(WatchPalette.stageCore)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {

@@ -7,12 +7,12 @@ enum StackRecommendationEngine {
     // MARK: - Category Synergies
 
     private static let categorySynergies: [(PeptideCategory, PeptideCategory, String)] = [
-        (.growth, .recovery, String(localized: "Growth + Recovery amplify tissue repair")),
-        (.cognitive, .antiAging, String(localized: "Cognitive + Anti-Aging support neuroprotection")),
-        (.metabolic, .growth, String(localized: "Metabolic + Growth preserve muscle during fat loss")),
-        (.immune, .recovery, String(localized: "Immune + Recovery accelerate healing response")),
-        (.antiAging, .recovery, String(localized: "Anti-Aging + Recovery enhance regeneration")),
-        (.growth, .cognitive, String(localized: "Growth + Cognitive support neuroplasticity")),
+        (.growth, .recovery, String(localized: "Growth + Recovery are often studied together for tissue repair")),
+        (.cognitive, .antiAging, String(localized: "Cognitive + Anti-Aging are often studied together for neuroprotection")),
+        (.metabolic, .growth, String(localized: "Metabolic + Growth are often studied together for muscle retention during fat loss")),
+        (.immune, .recovery, String(localized: "Immune + Recovery are often studied together for healing")),
+        (.antiAging, .recovery, String(localized: "Anti-Aging + Recovery are often studied together for regeneration")),
+        (.growth, .cognitive, String(localized: "Growth + Cognitive are often studied together for neuroplasticity")),
     ]
 
     // MARK: - Goal Mapping

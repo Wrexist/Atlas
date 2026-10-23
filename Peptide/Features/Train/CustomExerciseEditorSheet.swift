@@ -59,7 +59,7 @@ struct CustomExerciseEditorSheet: View {
                     .pickerStyle(.menu)
                 }
 
-                Section("Secondary muscles (optional)") {
+                Section("Supporting muscles (optional)") {
                     ForEach(MuscleGroup.allCases) { group in
                         Toggle(group.displayName,
                                isOn: Binding(

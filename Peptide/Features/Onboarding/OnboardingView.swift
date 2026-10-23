@@ -1508,7 +1508,7 @@ struct OnboardingView: View {
     }
 
     private var projectionHeadline: String {
-        let weeks = goalWeeks == 1 ? String(localized: "1 week") : String(localized: "\(goalWeeks) weeks")
+        let weeks = String(localized: "\(goalWeeks) weeks")
         switch primaryGoal {
         case .buildMuscle:    return String(localized: "+\(projectedMuscleGain) in \(weeks)")
         case .loseFat:        return String(localized: "−\(projectedFatLoss) in \(weeks)")
@@ -1710,7 +1710,7 @@ struct OnboardingView: View {
                     action: requestHealth
                 )
 
-                Text("Health is read-only by default. Optional nutrition-write turns on later from Profile.")
+                Text("Health is read-only by default. You can give Atlas permission to save nutrition to Health later in Profile.")
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .multilineTextAlignment(.center)

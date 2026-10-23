@@ -109,7 +109,7 @@ struct CoachingCard: View {
                 icon: "bolt.heart.fill",
                 eyebrow: "COACHING",
                 title: "Excellent recovery — 85%",
-                body: "Recovery is up — good day to nail your BPC-157 dose at 8:00 PM.",
+                body: "Recovery is up. Your BPC-157 dose is scheduled for 8:00 PM.",
                 tone: .positive,
                 kind: .strongRecovery
             ))
@@ -117,7 +117,7 @@ struct CoachingCard: View {
                 icon: "moon.zzz.fill",
                 eyebrow: "COACHING",
                 title: "Lower recovery — 32%",
-                body: "Consider an easier day. Hydrate, prioritize sleep, and don't skip rest days.",
+                body: "Consider an easier day. Hydrate and prioritize sleep.",
                 tone: .cautionary,
                 kind: .weakRecovery
             ))

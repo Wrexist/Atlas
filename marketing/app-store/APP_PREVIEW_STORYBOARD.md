@@ -38,7 +38,7 @@ screenshot deck so the whole listing tells one story.
 | 2 | 0:03–0:07 | **Train** → tap a set; weight/reps pre-fill; the **PR banner** pops on the 100 kg set. | "Log a set in 2 taps." | Push left |
 | 3 | 0:07–0:11 | **Meal scan** → camera → AI splits the plate into 3 items → tap **Add**. | "Snap a photo. Logged." | Push left |
 | 4 | 0:11–0:15 | **Biology** → the Bio-Age gauge animates to **28.4**, "3.6 years younger". | "See your biological age." · *Atlas Pro* badge | Cross-dissolve |
-| 5 | 0:15–0:19 | **Habits** heatmap scrolls; cut to **Atlas Score** medallion ticking +48 / Level 14. | "Build a streak you won't break." | Push left |
+| 5 | 0:15–0:19 | **Habits** heatmap scrolls; cut to **Atlas Score** medallion ticking +48 / Level 39. | "Build a streak you won't break." | Push left |
 | 6 | 0:19–0:22 | **Apple Watch** glance: Recovery 78 → raise-wrist to the complications face. | "…and on your wrist." | Cross-dissolve |
 | 7 | 0:22–0:25 | Brand close: Atlas logo + wordmark on the dark gradient; App Store line. | "Atlas — your whole health, in one app." | Fade to logo |
 

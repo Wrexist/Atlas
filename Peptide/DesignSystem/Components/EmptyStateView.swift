@@ -178,7 +178,7 @@ struct EmptyStateView: View {
         EmptyStateView(
             icon: "list.clipboard.fill",
             title: "No protocols yet",
-            message: "Create your first peptide protocol to start tracking doses, streaks, and compliance.",
+            message: "Create your first peptide protocol to start tracking doses, streaks, and adherence.",
             action: .init(title: "Create Protocol", icon: "plus", perform: {}),
             secondary: .init(title: "Browse the library", icon: "magnifyingglass", perform: {})
         )
@@ -193,7 +193,7 @@ struct EmptyStateView: View {
         EmptyStateView(
             icon: "chart.line.uptrend.xyaxis",
             title: "No data yet",
-            message: "Log a few doses to see compliance, streaks, and correlation trends here.",
+            message: "Log a few doses to see adherence, streaks, and correlation trends here.",
             accent: Color(red: 0.40, green: 0.74, blue: 0.92),
             action: .init(title: "Create a Protocol", icon: "plus", perform: {})
         )

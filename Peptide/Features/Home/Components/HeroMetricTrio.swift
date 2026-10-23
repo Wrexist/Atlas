@@ -198,7 +198,7 @@ struct HeroMetricTrio: View {
     }
 
     private static var connectHealthMessage: LocalizedStringKey {
-        "Connect Apple Health for Recovery & Sleep scores"
+        "Connect Apple Health for Recovery and Sleep scores"
     }
     private static var awaitingDataMessage: LocalizedStringKey {
         "Not enough recent Health data — wear your Apple Watch overnight to build a baseline"

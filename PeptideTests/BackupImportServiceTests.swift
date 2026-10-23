@@ -74,6 +74,15 @@ final class BackupImportServiceTests: XCTestCase {
         }
     }
 
+    func test_rejectedBackupMessage_leavesOutTheInternalDetail() {
+        let error = BackupImportService.ImportError.bounds("entries count (100001) exceeds the plausible maximum (100,000)")
+
+        let message = error.errorDescription ?? ""
+        XCTAssertFalse(message.isEmpty)
+        XCTAssertFalse(message.contains("plausible"))
+        XCTAssertFalse(message.contains("100001"))
+    }
+
     func test_validate_succeedsOnValidBackup() throws {
         let backup = AppBackup(
             exportDate: Date(),

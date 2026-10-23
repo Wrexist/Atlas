@@ -17,8 +17,8 @@ enum WorkoutRecapEngine {
             }
         }
     }
-    enum Role: String, Sendable {
-        case primary = "Primary", supporting = "Supporting"
+    enum Role: Sendable {
+        case primary, supporting
 
         var displayName: String {
             switch self {

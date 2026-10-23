@@ -84,8 +84,8 @@ final class MealScannerService: Sendable {
 
         var errorDescription: String? {
             switch self {
-            case .proxyNotConfigured:   String(localized: "Meal scanning isn't available in this build. Update Atlas from the App Store or TestFlight.")
-            case .unauthorised:         String(localized: "Couldn't sign in to the meal scanner. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build.")
+            case .proxyNotConfigured:   String(localized: "Meal scanning isn't available in this version. Update Atlas from the App Store.")
+            case .unauthorised:         String(localized: "Couldn't connect to the meal scanner. Update Atlas to the latest version, or contact support if you're already up to date.")
             case .rateLimited:          String(localized: "You've scanned a lot of meals recently. Wait a minute and try again — if you've hit today's limit, scanning resets tomorrow.")
             case .serviceUnavailable:   String(localized: "Scanning is temporarily unavailable — try again later.")
             case .scanAllowanceSpent:   String(localized: "You've used this week's free AI scans. Pro makes them unlimited — barcode scans are always free.")

@@ -247,7 +247,7 @@ struct PeptideApp: App {
         // stays closed until the user says what happens to the data the
         // previous account left on this device.
         .alert(
-            "iCloud Account Changed",
+            "iCloud account changed",
             isPresented: Binding(
                 get: { dataStore.isAwaitingCloudAccountDecision },
                 set: { _ in }
@@ -262,7 +262,7 @@ struct PeptideApp: App {
         } message: {
             Text("Atlas data from the previous iCloud account is still on this iPhone. If you keep it, it syncs to the iCloud account you're signed in to now. Removing it doesn't touch the copy in the previous account's iCloud.")
         }
-        .alert("App Lock Turned Off", isPresented: $showLockReleasedNotice) {
+        .alert("App lock turned off", isPresented: $showLockReleasedNotice) {
             Button("OK", role: .cancel) {}
         } message: {
             Text("This iPhone no longer has a passcode, so Atlas can't stay locked. Set a passcode in Settings, then turn the lock back on in Profile.")

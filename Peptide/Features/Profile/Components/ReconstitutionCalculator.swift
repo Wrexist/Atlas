@@ -254,7 +254,7 @@ struct ReconstitutionCalculator: View {
 
     private var concentrationString: String {
         guard let concentrationMgPerMl else { return "—" }
-        return String(format: "%.2f mg/mL", concentrationMgPerMl)
+        return "\(concentrationMgPerMl.formatted(.number.precision(.fractionLength(2)))) mg/mL"
     }
 
     private var amountsPerVialString: String {
@@ -266,10 +266,7 @@ struct ReconstitutionCalculator: View {
     }
 
     private func formatted(_ value: Double) -> String {
-        if value.truncatingRemainder(dividingBy: 1) == 0 {
-            return String(format: "%.0f", value)
-        }
-        return String(format: "%.1f", value)
+        value.formatted(.number.precision(.fractionLength(0...1)))
     }
 }
 

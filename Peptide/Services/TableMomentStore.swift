@@ -149,7 +149,7 @@ final class TableMomentStore {
         remove(dishID: id, from: moment.id)
     }
 
-    /// "Delete All Data" — cut-outs are photos of the user's meals and
+    /// "Delete all data" — cut-outs are photos of the user's meals and
     /// must not survive an erase.
     func deleteAll() {
         moments = []

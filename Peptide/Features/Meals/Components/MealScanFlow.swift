@@ -237,7 +237,7 @@ struct MealScanFlow: View {
             switch reason {
             case .denied:
                 Alert(
-                    title: Text("Camera Access Off"),
+                    title: Text("Camera access off"),
                     message: Text("Turn on Camera access for Atlas in Settings to scan meals with your camera. You can still pick a photo from your library."),
                     primaryButton: .default(Text("Open Settings")) {
                         if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -970,7 +970,7 @@ struct MealScanFlow: View {
                     errorText = described
                 } else {
                     AppLog.diagnostics.error("Meal scan failed: \(error.localizedDescription, privacy: .public)")
-                    errorText = String(localized: "Couldn't analyse this meal. Check your connection and try again.")
+                    errorText = String(localized: "Couldn't analyze this meal. Check your connection and try again.")
                 }
                 errorNeedsNewPhoto = (error as? MealScannerService.ScanError)?.needsDifferentPhoto ?? false
                 phase = .error
@@ -1486,7 +1486,7 @@ private struct FoodItemEditCard: View {
                         .lineLimit(1)
                 }
                 if let verified = item.activeVerification {
-                    Label(verified.displayName, systemImage: "checkmark.seal.fill")
+                    Label(verified.displayName, systemImage: "checkmark.circle.fill")
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.positive)
                         .lineLimit(1)

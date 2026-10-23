@@ -13,7 +13,7 @@ struct HealthSummaryCard: View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 HStack {
-                    Label("Health Metrics", systemImage: "heart.fill")
+                    Label("Health metrics", systemImage: "heart.fill")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
@@ -77,7 +77,7 @@ struct HealthSummaryCard: View {
                 .font(AppFont.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textPrimary)
-            Text("Make sure Atlas has access in Settings → Health → Data Access.")
+            Text("Make sure Atlas has access in Settings → Privacy & Security → Health → Atlas.")
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)

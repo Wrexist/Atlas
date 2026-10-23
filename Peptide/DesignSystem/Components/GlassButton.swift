@@ -119,7 +119,7 @@ struct GlassIconButton: View {
     ZStack {
         AppColor.background.ignoresSafeArea()
         VStack(spacing: Spacing.lg) {
-            GlassButton(title: "Add to Protocol", icon: "plus", style: .primary) {}
+            GlassButton(title: "Add to protocol", icon: "plus", style: .primary) {}
             GlassButton(title: "View Details", style: .secondary) {}
             GlassButton(title: "Cancel", style: .ghost) {}
             GlassButton(title: "Delete", icon: "trash", style: .destructive) {}

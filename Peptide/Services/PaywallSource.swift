@@ -46,12 +46,12 @@ enum PaywallSource: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .protocolLimit:  return String(localized: "The free plan covers three active protocols. Pro removes the cap.")
         case .biology:        return String(localized: "HRV, resting heart rate and sleep, read together every morning.")
-        case .performanceAge: return String(localized: "One number built from your recovery and training data.")
+        case .performanceAge: return String(localized: "Built from cardio fitness, HRV, resting heart rate, sleep and more.")
         case .weeklyRecap:    return String(localized: "A Sunday summary of your week, written for you.")
         case .export:         return String(localized: "Take every log with you as a file you own.")
         case .aiResearch:     return String(localized: "Questions answered with cited research.")
         case .communityStack: return String(localized: "Add it to your protocols and track it like your own.")
-        case .mealScanLimit:  return String(localized: "Log every meal from a photo or barcode.")
+        case .mealScanLimit:  return String(localized: "Log every meal from a photo, with no weekly cap.")
         case .labScan:        return String(localized: "Photograph a blood test and review every marker before it's saved.")
         case .winBack:        return String(localized: "Pick up where you left off.")
         case .profile, .deepLink, .generic: return nil

@@ -261,6 +261,7 @@ struct RestoreBackupSheet: View {
                 self.preview = preview
                 self.phase = .preview
             } catch let error as BackupImportService.ImportError {
+                AppLog.persistence.error("Backup rejected: \(String(describing: error), privacy: .public)")
                 errorMessage = error.errorDescription
                 phase = .failed
             } catch {
@@ -287,6 +288,7 @@ struct RestoreBackupSheet: View {
                 phase = .done
                 Haptics.success()
             } catch let error as BackupImportService.ImportError {
+                AppLog.persistence.error("Backup restore rejected: \(String(describing: error), privacy: .public)")
                 errorMessage = error.errorDescription
                 phase = .failed
             } catch {

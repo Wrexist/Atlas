@@ -36,7 +36,7 @@ struct AIConsentSheet: View {
                         )
                         ConsentRow(
                             icon: "hand.raised",
-                            text: "Nothing is sent until you allow it. You can turn this off in Profile › About › Privacy at a glance."
+                            text: "Nothing is sent until you allow it. You can turn this off in Profile → Settings → About → Privacy at a glance."
                         )
                     }
 

@@ -33,7 +33,7 @@ struct WashoutPicker: View {
                     Text("Cycle with wash-out")
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)
-                    Text("Alternate on/off periods to preserve receptor sensitivity.")
+                    Text("Alternate on and off periods, as your plan describes.")
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)

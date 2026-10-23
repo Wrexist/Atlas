@@ -96,7 +96,7 @@ struct ProfileStacksCard: View {
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textSecondary)
 
-            Text("Create your first protocol from your Peptide Library to start tracking doses, streaks, and compliance.")
+            Text("Create your first protocol from your Library to start tracking doses, streaks, and adherence.")
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
                 .multilineTextAlignment(.center)

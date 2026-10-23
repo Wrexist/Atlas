@@ -141,7 +141,7 @@ private struct InsetRowFill: View {
             GlassEntryRow(
                 icon: "flask.fill",
                 title: "Create your first protocol",
-                subtitle: Text("Track doses, streaks, and compliance."),
+                subtitle: Text("Track doses, streaks, and adherence."),
                 badge: Badge("Get started", style: .solid),
                 action: {}
             )

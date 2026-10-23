@@ -69,7 +69,7 @@ final class LabScanService: Sendable {
         case .parseFailure?, .invalidResponse?, .implausibleResult?, .noFoodDetected?:
             return String(localized: "Couldn't read the results from the scanner. Try again, or enter the values by hand.")
         case .declined?:
-            return String(localized: "The scanner couldn't analyse this report. Try a different photo.")
+            return String(localized: "The scanner couldn't analyze this report. Try a different photo.")
         case .routeMissing?:
             return String(localized: "Lab scanning isn't available on this server yet. Enter the values by hand for now.")
         case .serviceUnavailable?:

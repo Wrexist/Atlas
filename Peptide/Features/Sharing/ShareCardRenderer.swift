@@ -33,7 +33,7 @@ enum ShareCardRenderer {
         let image = try renderImage(for: model, format: format, maskCompoundNames: maskCompoundNames)
         guard let data = image.pngData() else { throw Failure.encoding }
 
-        // Shares go in the export folder so "Delete All Data" and the next
+        // Shares go in the export folder so "Delete all data" and the next
         // export or share sweep them; the card can carry compound names
         // and health figures.
         ExportService.shared.clearExports()

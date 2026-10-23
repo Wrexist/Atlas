@@ -87,9 +87,9 @@ extension WhatsNewPage {
             ],
             accent: Color(light: 0xA04E6C, dark: 0xEB739E),
             bullets: [
-                "Two-tap set logging with auto-prefilled prev values",
+                "Two-tap set logging — your previous values fill in automatically",
                 "PR detection celebrates new e1RM / volume bests",
-                "Exercise detail shows primary + secondary muscles",
+                "Exercise detail shows primary and supporting muscles",
             ]
         ),
         WhatsNewPage(

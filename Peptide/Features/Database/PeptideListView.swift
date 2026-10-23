@@ -201,7 +201,7 @@ struct PeptideListView: View {
                         icon: "magnifyingglass",
                         title: "No peptides found",
                         message: viewModel.searchText.isEmpty
-                            ? "Add a custom peptide to start building protocols."
+                            ? "Add your own compound to start building protocols."
                             : "Try a different search term.",
                         // The copy already tells the user what to do next;
                         // without this it was the only way to do it.

@@ -85,7 +85,7 @@ def marketing_says(pattern: str) -> list[tuple[str, str]]:
     base = REPO / "marketing" / "app-store"
     if not base.exists():
         return found
-    for d in ("screens", "screens-watch", "screens-watch-frames"):
+    for d in ("screens", "screens-watch", "screens-watch-frames", "social"):
         for p in sorted((base / d).glob("*.html")):
             for m in re.finditer(pattern, p.read_text()):
                 found.append((str(p.relative_to(REPO)), m.group(0)))
@@ -151,18 +151,44 @@ STORE_BRIEFS = ("APP_STORE_METADATA.md", "SCREENSHOT_PROMPT.md")
 RETIRED_TERMS = r"(?i)\bperformance age\b|\bstack(?:s|ing)?\b"
 
 
+def store_facing_files() -> list[pathlib.Path]:
+    """The briefs, every marketing screen and doc, and the Marketing URL page
+    App Review opens. The screenshots said "Performance Age" long after the
+    briefs were fixed, because only the briefs were scanned."""
+    files = [REPO / name for name in STORE_BRIEFS] + [REPO / "docs" / "index.html"]
+    marketing = REPO / "marketing"
+    if marketing.exists():
+        files += sorted(p for p in marketing.rglob("*") if p.suffix in (".html", ".md"))
+    return [p for p in files if p.exists()]
+
+
 def check_store_terms() -> list[str]:
     failures = []
-    for name in STORE_BRIEFS:
-        path = REPO / name
-        if not path.exists():
-            continue
+    for path in store_facing_files():
+        name = path.relative_to(REPO)
         for number, line in enumerate(path.read_text().splitlines(), 1):
             for m in re.finditer(RETIRED_TERMS, line):
                 print(f"  FAIL {name}:{number}: retired term {m.group(0)!r}")
                 failures.append(f"term:{name}:{number}")
     if not failures:
-        print("  ok   store briefs use Protocol / Biological Age naming")
+        print("  ok   store-facing copy uses Protocol / Biological Age naming")
+    return failures
+
+
+# The app removed its synthetic "offer ends in" timer as misleading urgency
+# (TrialOfferView), so a store screen showing one advertises UI that does not
+# exist (Guideline 2.3.1).
+COUNTDOWN_COPY = r"(?i)\bends in\b|\boffer expires\b|\btime left\b|\bcountdown\b"
+
+
+def check_screenshot_countdowns() -> list[str]:
+    failures = []
+    for file, text in marketing_says(r"<[^<>]*>[^<>]*</"):
+        if re.search(COUNTDOWN_COPY, text):
+            print(f"  FAIL {file}: countdown copy {text!r}")
+            failures.append(f"countdown:{file}")
+    if not failures:
+        print("  ok   store screens show no offer countdown")
     return failures
 
 
@@ -207,6 +233,34 @@ def check_compatibility_wording() -> list[str]:
             flag(path.name, text)
     if not failures:
         print("  ok   bundled data copy avoids 'stack' and 'gold standard'")
+    return failures
+
+
+# Dosing directives and efficacy claims in UI copy. Atlas tells users it does
+# not calculate or recommend doses; copy that says "recommended max",
+# "monitor liver enzymes" or "amplify tissue repair" contradicts that and is
+# what Guideline 1.4.1 reviews reject. Comments are skipped.
+HEALTH_DIRECTIVES = (r"(?i)recommended max|consult an oncologist|monitor liver"
+                     r"|(?:restore|preserve) receptor sensitivity"
+                     r"|\bamplif(?:y|ies) (?:tissue|healing|recovery|repair)"
+                     r"|accelerate healing|nail your|don't eat for \d+")
+
+
+def check_health_directives() -> list[str]:
+    failures = []
+    for root in ("Peptide/Services", "Peptide/Features"):
+        for path in sorted((REPO / root).rglob("*.swift")):
+            for number, line in enumerate(path.read_text().splitlines(), 1):
+                if line.lstrip().startswith("//"):
+                    continue
+                for literal in re.findall(r'"((?:[^"\\]|\\.)*)"', line):
+                    hit = re.search(HEALTH_DIRECTIVES, literal)
+                    if hit:
+                        name = path.relative_to(REPO)
+                        print(f"  FAIL {name}:{number}: health directive {hit.group(0)!r}")
+                        failures.append(f"directive:{name}:{number}")
+    if not failures:
+        print("  ok   UI copy gives no dosing directives or efficacy claims")
     return failures
 
 
@@ -362,6 +416,8 @@ def main() -> int:
 
     failures += check_exercise_fixtures()
     failures += check_store_terms()
+    failures += check_screenshot_countdowns()
+    failures += check_health_directives()
     failures += check_compatibility_wording()
 
     if failures:
