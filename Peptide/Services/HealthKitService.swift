@@ -81,6 +81,30 @@ final class HealthKitService {
         }
     }
 
+    /// Whether any read type has a sample in the last `days` days. A
+    /// denied read looks exactly like no data, so this is the only way
+    /// to tell a connection that can see nothing. A failed query counts
+    /// as visible rather than raising a false alarm.
+    func hasReadableData(days: Int) async -> Bool {
+        guard isAvailable else { return false }
+        let end = Date()
+        let start = Calendar.current.date(byAdding: .day, value: -days, to: end) ?? end
+        let window = HKQuery.predicateForSamples(withStart: start, end: end)
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: readTypes.compactMap { $0 as? HKSampleType }.map {
+                HKSamplePredicate<HKSample>.sample(type: $0, predicate: window)
+            },
+            sortDescriptors: [],
+            limit: 1
+        )
+        do {
+            return try await !descriptor.result(for: store).isEmpty
+        } catch {
+            AppLog.healthKit.error("Readable-data probe failed: \(error.localizedDescription, privacy: .private)")
+            return true
+        }
+    }
+
     // MARK: - Nutrition write authorization
 
     /// HK quantity types we write when the user opts in. Kept as a

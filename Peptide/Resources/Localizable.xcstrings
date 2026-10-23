@@ -5765,6 +5765,16 @@
         }
       }
     },
+    "Atlas can't see any Health data. Check that Atlas has read access in Settings › Health › Data Access & Devices › Atlas.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atlas ser ingen data från Hälsa. Kontrollera att Atlas har läsåtkomst i Inställningar › Hälsa › Dataåtkomst och enheter › Atlas."
+          }
+        }
+      }
+    },
     "Atlas can't see any heart or sleep data. Check that Atlas has read access in the Health app, and wear Apple Watch overnight.": {
       "localizations": {
         "sv": {

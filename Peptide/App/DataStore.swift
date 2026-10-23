@@ -2023,11 +2023,11 @@ final class DataStore {
     }
 
     /// Toggle off (revoke local link) is unconditional. Toggle ON
-    /// only succeeds after the user has actually granted at least
-    /// one HealthKit type — previously we'd flip the bool to true
-    /// regardless and downstream UI showed "connected" with empty
-    /// cards (audit Biology H9). Caller can `await` the result and
-    /// surface a permissions prompt when this returns false.
+    /// succeeds once Health's permission sheet completes. HealthKit
+    /// never reveals denied read access, so a user who allowed nothing
+    /// still connects; `HealthKitService.hasReadableData` is how the
+    /// Profile card tells them nothing is visible. Returns false when
+    /// the request itself failed (no HealthKit, or it threw).
     @discardableResult
     func toggleHealthConnection() async -> Bool {
         if profile.healthConnected {

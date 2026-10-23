@@ -10,6 +10,7 @@ struct ProfileView: View {
     @AppStorage(HealthSyncSettings.nutritionEnabledKey) private var healthNutritionWrite = false
     /// Set when turning on a Health write toggle came back refused.
     @State private var healthWriteRefused = false
+    @State private var healthDataVisible = true
     @State private var authService = AuthService.shared
     @State private var showReconstitutionCalculator = false
     @State private var showProfileCustomization = false
@@ -98,6 +99,7 @@ struct ProfileView: View {
                             Task { healthWriteRefused = !(await dataStore.setHealthActivitySyncEnabled(enabled)) }
                         },
                         writeAccessRefused: healthWriteRefused,
+                        healthDataVisible: healthDataVisible,
                         onConnect: connectHealthKit
                     )
                     .scrollReveal()
@@ -148,6 +150,10 @@ struct ProfileView: View {
             }
             .task { await authService.validateCredential() }
             .task { workoutCount = SwiftDataRepository.shared.workoutSessionCount() }
+            .task(id: dataStore.profile.healthConnected) {
+                guard dataStore.profile.healthConnected else { return }
+                healthDataVisible = await HealthKitService.shared.hasReadableData(days: 30)
+            }
             .sheet(isPresented: $showReconstitutionCalculator) {
                 ReconstitutionSheet(onClose: { showReconstitutionCalculator = false })
             }
