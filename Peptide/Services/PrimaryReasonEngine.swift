@@ -103,11 +103,21 @@ enum PrimaryReasonEngine {
         let cc = context.coaching
         let coaching = CoachingMessageEngine.pick(context: cc)
 
-        // Onboarding states take absolute precedence in
-        // CoachingMessageEngine's own cascade (its very first two
-        // branches) — nothing here outranks getting a new or
-        // disconnected user set up.
-        if coaching.eyebrow == String(localized: "WELCOME") || coaching.eyebrow == String(localized: "GET STARTED") {
+        // Onboarding messages lead CoachingMessageEngine's cascade, but a
+        // concrete task today outranks them: habits due, then doses still
+        // open late in the day. Recovery and sleep are unknown on these
+        // paths (no Health, or a brand-new member), so nothing else here
+        // applies. Otherwise the onboarding message is the quiet fallback.
+        if coaching.isOnboarding {
+            if context.habitsDueCount > 0, context.habitsDoneCount == 0 {
+                return Reason(message: habitsMessage(context: context), priority: .highValueAction)
+            }
+            if cc.hourOfDay >= lateInDayHour, cc.pendingDoseCount > 0 {
+                return Reason(
+                    message: CoachingMessageEngine.catchUpMessage(pending: cc.pendingDoseCount),
+                    priority: .timeSensitive
+                )
+            }
             return Reason(message: coaching, priority: .optionalReminder)
         }
 
@@ -165,9 +175,10 @@ enum PrimaryReasonEngine {
         // with the dose-plan's more precise headline (fasted-first
         // ordering, conflict-aware) in place of the generic "Next: X at
         // Y" body that fallback uses.
-        if let headline = context.dailyPlanHeadline, coaching.eyebrow == String(localized: "ON TRACK") {
+        if let headline = context.dailyPlanHeadline, coaching.kind == .onTrack {
             return Reason(
                 message: CoachingMessageEngine.CoachingMessage(
+                    kind: coaching.kind,
                     icon: coaching.icon,
                     eyebrow: coaching.eyebrow,
                     title: coaching.title,
@@ -183,6 +194,7 @@ enum PrimaryReasonEngine {
     private static func habitsMessage(context: Context) -> CoachingMessageEngine.CoachingMessage {
         let remaining = max(0, context.habitsDueCount - context.habitsDoneCount)
         return CoachingMessageEngine.CoachingMessage(
+            kind: .habitsDue,
             icon: "checklist",
             eyebrow: String(localized: "HABITS"),
             title: String(localized: "\(remaining) habits due today"),
@@ -193,6 +205,7 @@ enum PrimaryReasonEngine {
 
     private static func weeklyReviewMessage(headline: String) -> CoachingMessageEngine.CoachingMessage {
         CoachingMessageEngine.CoachingMessage(
+            kind: .weeklyReview,
             icon: "chart.line.uptrend.xyaxis",
             eyebrow: String(localized: "WEEKLY REVIEW"),
             title: String(localized: "Your week in review"),

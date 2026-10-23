@@ -784,7 +784,7 @@ struct HomeView: View {
     private func todaySectionContent(_ section: TodaySection, proxy: ScrollViewProxy) -> some View {
         switch section {
         case .atAGlance: atAGlanceSection
-        case .coaching: coachingSection
+        case .coaching: coachingSection(proxy: proxy)
         case .weeklyRecap: weeklyRecapSection
         case .habits: habitsSection
         case .checklist: checklistSection
@@ -838,13 +838,14 @@ struct HomeView: View {
     /// sleep, cap intensity") — just reconciled across more signals
     /// than coaching alone used to see.
     @ViewBuilder
-    private var coachingSection: some View {
+    private func coachingSection(proxy: ScrollViewProxy) -> some View {
         if let reason = derived.primaryReason {
             // Keyed on the title so a new recommendation
             // cross-fades in rather than swapping text in place.
             CoachingCard(
                 message: reason.message,
-                rephrasedBody: derived.coachingFacts.flatMap { summaryService.text(for: $0) }
+                rephrasedBody: derived.coachingFacts.flatMap { summaryService.text(for: $0) },
+                onAction: isViewingToday ? { handleCoachingAction($0, proxy: proxy) } : nil
             )
                 .id(reason.message.title)
                 .transition(.opacity.combined(with: .scale(0.98)))
@@ -883,6 +884,7 @@ struct HomeView: View {
         if isViewingToday || !dataStore.activeHabits.isEmpty {
             TodayHabitsHero(snapshot: derived.habits, day: isViewingToday ? nil : selectedDay)
                 .sectionAppear(index: 4)
+                .id(TodaySection.habits)
         }
     }
 
@@ -1095,6 +1097,21 @@ struct HomeView: View {
         }
         pendingJumpAnchor = anchor
         activeJumpAnchor = anchor
+    }
+
+    private func handleCoachingAction(_ action: CoachingMessageEngine.CoachingMessage.Action, proxy: ScrollViewProxy) {
+        switch action {
+        case .connectHealth:
+            connectHealth()
+        case .scrollToHabits:
+            Haptics.impact(.light)
+            AppAnimation.with(AppAnimation.settle) {
+                proxy.scrollTo(TodaySection.habits, anchor: .top)
+            }
+        case .scrollToDoses:
+            Haptics.impact(.light)
+            handleJump(to: .doses, proxy: proxy)
+        }
     }
 
     private func backToToday() {

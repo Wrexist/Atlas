@@ -21,7 +21,7 @@ final class OnDeviceSummaryTests: XCTestCase {
 
     private func coachingFacts() throws -> OnDeviceSummaryEngine.Facts {
         let message = CoachingMessageEngine.CoachingMessage(
-            icon: "bed.double.fill", eyebrow: "COACHING", title: "Short sleep — 5.2 h",
+            kind: .shortSleep, icon: "bed.double.fill", eyebrow: "COACHING", title: "Short sleep — 5.2 h",
             body: "Cap intensity today.", tone: .cautionary)
         let context = CoachingMessageEngine.Context(hasProtocols: true, healthConnected: true,
                                                     recoveryScore: 55, sleepHours: 5.2)
@@ -103,9 +103,9 @@ final class OnDeviceSummaryTests: XCTestCase {
 
     func test_coachingFacts_welcomeOrBodyless_returnsNil() {
         let context = CoachingMessageEngine.Context(hasProtocols: false, healthConnected: false)
-        let welcome = CoachingMessageEngine.CoachingMessage(icon: "sparkles", eyebrow: "WELCOME",
+        let welcome = CoachingMessageEngine.CoachingMessage(kind: .welcome, icon: "sparkles", eyebrow: "WELCOME",
                                                             title: "Hi", body: "Body", tone: .welcome)
-        let bodyless = CoachingMessageEngine.CoachingMessage(icon: "sparkles", eyebrow: "COACHING",
+        let bodyless = CoachingMessageEngine.CoachingMessage(kind: .onTrack, icon: "sparkles", eyebrow: "COACHING",
                                                              title: "Hi", body: nil, tone: .neutral)
         XCTAssertNil(OnDeviceSummaryEngine.coaching(welcome, context: context, now: now))
         XCTAssertNil(OnDeviceSummaryEngine.coaching(bodyless, context: context, now: now))

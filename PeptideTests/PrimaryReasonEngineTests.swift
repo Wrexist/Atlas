@@ -152,4 +152,42 @@ final class PrimaryReasonEngineTests: XCTestCase {
         XCTAssertEqual(reason.priority, .optionalReminder)
         XCTAssertEqual(reason.message.eyebrow, "WELCOME")
     }
+
+    // MARK: - Onboarding messages yield to concrete tasks
+
+    func test_pick_healthNotConnectedWithHabitsDue_returnsHabitsReason() {
+        let context = PrimaryReasonEngine.Context(
+            coaching: coachingContext(healthConnected: false),
+            habitsDueCount: 2,
+            habitsDoneCount: 0
+        )
+        let reason = PrimaryReasonEngine.pick(context: context)
+        XCTAssertEqual(reason.priority, .highValueAction)
+        XCTAssertEqual(reason.message.kind, .habitsDue)
+    }
+
+    func test_pick_healthNotConnectedLateWithPendingDoses_returnsCatchUp() {
+        let context = PrimaryReasonEngine.Context(
+            coaching: coachingContext(healthConnected: false, pendingDoseCount: 3, hourOfDay: 20)
+        )
+        let reason = PrimaryReasonEngine.pick(context: context)
+        XCTAssertEqual(reason.priority, .timeSensitive)
+        XCTAssertEqual(reason.message.kind, .catchUp)
+    }
+
+    func test_pick_newMemberWithHabitsDue_habitsOutrankWelcome() {
+        let context = PrimaryReasonEngine.Context(
+            coaching: coachingContext(hasProtocols: false, memberDays: 1),
+            habitsDueCount: 1,
+            habitsDoneCount: 0
+        )
+        XCTAssertEqual(PrimaryReasonEngine.pick(context: context).message.kind, .habitsDue)
+    }
+
+    func test_pick_healthNotConnectedNothingDue_fallsBackToConnectHealth() {
+        let context = PrimaryReasonEngine.Context(coaching: coachingContext(healthConnected: false))
+        let reason = PrimaryReasonEngine.pick(context: context)
+        XCTAssertEqual(reason.priority, .optionalReminder)
+        XCTAssertEqual(reason.message.kind, .connectHealth)
+    }
 }

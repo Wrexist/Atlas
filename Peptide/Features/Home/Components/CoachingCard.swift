@@ -9,8 +9,32 @@ struct CoachingCard: View {
     let message: CoachingMessageEngine.CoachingMessage
     /// The on-device model's rephrasing of `message.body`, when one landed.
     var rephrasedBody: String?
+    /// Runs `message.action`; the card is only a button when it has one.
+    var onAction: ((CoachingMessageEngine.CoachingMessage.Action) -> Void)?
 
     var body: some View {
+        if let action = message.action, let onAction {
+            Button {
+                onAction(action)
+            } label: {
+                card(showsChevron: true)
+            }
+            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+            .accessibilityHint(hint(for: action))
+        } else {
+            card(showsChevron: false)
+        }
+    }
+
+    private func hint(for action: CoachingMessageEngine.CoachingMessage.Action) -> Text {
+        switch action {
+        case .connectHealth: Text("Asks to connect Apple Health")
+        case .scrollToHabits: Text("Scrolls to today's habits")
+        case .scrollToDoses: Text("Scrolls to today's doses")
+        }
+    }
+
+    private func card(showsChevron: Bool) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             iconBadge
 
@@ -35,6 +59,14 @@ struct CoachingCard: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+
+            if showsChevron {
+                Image(systemName: "chevron.right")
+                    .font(AppFont.scaled(13, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .frame(maxHeight: .infinity)
+                    .accessibilityHidden(true)
+            }
         }
         .padding(Spacing.md)
         .background {
@@ -45,6 +77,7 @@ struct CoachingCard: View {
                         .strokeBorder(toneColor.opacity(0.25), lineWidth: 0.8)
                 }
         }
+        .contentShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 
@@ -73,6 +106,7 @@ struct CoachingCard: View {
         AppColor.background.ignoresSafeArea()
         VStack(spacing: Spacing.md) {
             CoachingCard(message: .init(
+                kind: .strongRecovery,
                 icon: "bolt.heart.fill",
                 eyebrow: "COACHING",
                 title: "Excellent recovery — 85%",
@@ -80,19 +114,21 @@ struct CoachingCard: View {
                 tone: .positive
             ))
             CoachingCard(message: .init(
+                kind: .weakRecovery,
                 icon: "moon.zzz.fill",
                 eyebrow: "COACHING",
                 title: "Lower recovery — 32%",
-                body: "Consider an easier day. Hydrate, prioritize sleep, and don't skip rest doses.",
+                body: "Consider an easier day. Hydrate, prioritize sleep, and don't skip rest days.",
                 tone: .cautionary
             ))
             CoachingCard(message: .init(
-                icon: "sparkles",
-                eyebrow: "WELCOME",
-                title: "Set up your first protocol",
-                body: "Atlas builds your schedule, tracks every dose, and learns your patterns.",
-                tone: .welcome
-            ))
+                kind: .connectHealth,
+                icon: "heart.text.square.fill",
+                eyebrow: "GET STARTED",
+                title: "Connect Apple Health",
+                body: "Unlock Recovery and Sleep scores plus per-protocol HRV correlations.",
+                tone: .neutral
+            ), onAction: { _ in })
         }
         .padding(Spacing.lg)
     }

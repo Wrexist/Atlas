@@ -5845,6 +5845,16 @@
         }
       }
     },
+    "Asks to connect Apple Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ber om att ansluta Apple Hälsa"
+          }
+        }
+      }
+    },
     "AST": {
       "localizations": {
         "sv": {
@@ -7815,6 +7825,16 @@
         }
       }
     },
+    "Atlas Score: level %lld, %@ tier, %lld points. %lld to the next level.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atlas-poäng: nivå %1$lld, klass %2$@, %3$lld poäng. %4$lld till nästa nivå."
+          }
+        }
+      }
+    },
     "Audience demographics, post cadence, etc.": {
       "localizations": {
         "sv": {
@@ -9191,6 +9211,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Att kombinera GLP-1-agonister kan förstärka mag-tarmbiverkningar. Diskutera att använda en i taget med kvalificerad vårdpersonal."
+          }
+        }
+      }
+    },
+    "Consider an easier day. Hydrate, prioritize sleep, and don't skip rest days.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Överväg en lugnare dag. Drick vatten, prioritera sömnen och hoppa inte över vilodagar."
           }
         }
       }
@@ -10781,6 +10811,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Logga en måltid eller din nästa dos."
+          }
+        }
+      }
+    },
+    "Log a workout, a meal, or a habit to keep the day moving.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga ett pass, en måltid eller en vana för att hålla dagen igång."
+          }
+        }
+      }
+    },
+    "Log a workout, a meal, or a habit — Atlas learns your patterns as you go.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga ett pass, en måltid eller en vana – Atlas lär sig dina mönster efter hand."
           }
         }
       }
@@ -26489,6 +26539,16 @@
         }
       }
     },
+    "Recovery is steady — a normal training day.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Återhämtningen är stabil – en vanlig träningsdag."
+          }
+        }
+      }
+    },
     "Reminders, weekly recaps, and rest-timer alerts.": {
       "localizations": {
         "sv": {
@@ -28717,6 +28777,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "POÄNG"
+          }
+        }
+      }
+    },
+    "Scrolls to today's doses": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rullar till dagens doser"
+          }
+        }
+      }
+    },
+    "Scrolls to today's habits": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rullar till dagens vanor"
           }
         }
       }
@@ -32031,6 +32111,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Systemets standard"
+          }
+        }
+      }
+    },
+    "Tap a dose below to log it.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck på en dos nedan för att logga den."
           }
         }
       }
