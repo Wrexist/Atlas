@@ -36,6 +36,13 @@ enum FoodLibraryLogic {
         return latest?.grams
     }
 
+    /// A per-100 g value rounded for display. Cached products can predate
+    /// the decode-time sanitising, so this never traps on a non-finite or
+    /// huge value the way `Int(_:)` does.
+    static func wholeNumber(_ value: Double) -> Int {
+        value.isFinite ? Int(min(max(value, 0), 99_999).rounded()) : 0
+    }
+
     static func normalized(_ value: String) -> String {
         value.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "en_US_POSIX"))
             .split(whereSeparator: { !$0.isLetter && !$0.isNumber }).joined(separator: " ")

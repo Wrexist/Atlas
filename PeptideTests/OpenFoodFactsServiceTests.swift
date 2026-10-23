@@ -165,6 +165,28 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         XCTAssertFalse(product.hasNutrition)
     }
 
+    func test_fetch_nonFiniteOrHugeNutriments_areDroppedAsMissing() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.malformedNutriments.utf8))
+        }
+        let product = try await service.fetch(barcode: "9999999999999")
+        XCTAssertEqual(product.per100g.calories, 0)
+        XCTAssertEqual(product.per100g.proteinG, 0)
+        XCTAssertEqual(product.per100g.carbsG, 12)
+        XCTAssertEqual(product.per100g.fatG, 0)
+        XCTAssertNil(product.per100g.fiberG)
+        XCTAssertNil(product.novaGroup)
+        XCTAssertTrue(product.hasNutrition)
+    }
+
+    func test_fetch_onlyMalformedNutriments_hasNoNutrition() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.onlyMalformedNutriments.utf8))
+        }
+        let product = try await service.fetch(barcode: "9999999999998")
+        XCTAssertFalse(product.hasNutrition)
+    }
+
     func test_fetch_addsUserAgentHeader() async throws {
         let captured: SendableBox<URLRequest?> = .init(nil)
         MockURLProtocol.handler = { request in
@@ -582,6 +604,38 @@ private enum Fixtures {
         "product_name": "Sparse",
         "nutriments": {
           "energy-kcal_100g": 100
+        }
+      }
+    }
+    """
+
+    static let malformedNutriments = """
+    {
+      "status": 1,
+      "code": "9999999999999",
+      "product": {
+        "product_name": "Malformed",
+        "nova_group": 1e30,
+        "nutriments": {
+          "energy-kcal_100g": "nan",
+          "proteins_100g": "inf",
+          "carbohydrates_100g": "12",
+          "fat_100g": "1e30",
+          "fiber_100g": -4
+        }
+      }
+    }
+    """
+
+    static let onlyMalformedNutriments = """
+    {
+      "status": 1,
+      "code": "9999999999998",
+      "product": {
+        "product_name": "Garbage",
+        "nutriments": {
+          "energy-kcal_100g": "nan",
+          "proteins_100g": "-inf"
         }
       }
     }

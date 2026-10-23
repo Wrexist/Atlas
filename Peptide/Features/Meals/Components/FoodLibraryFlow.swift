@@ -943,10 +943,10 @@ struct FoodLibraryFlow: View {
 
     private func macroPreview(_ n: ScannedProduct.Nutriments) -> some View {
         macroPreview(
-            calories: Int(n.calories.rounded()),
-            protein: Int(n.proteinG.rounded()),
-            carbs: Int(n.carbsG.rounded()),
-            fat: Int(n.fatG.rounded())
+            calories: FoodLibraryLogic.wholeNumber(n.calories),
+            protein: FoodLibraryLogic.wholeNumber(n.proteinG),
+            carbs: FoodLibraryLogic.wholeNumber(n.carbsG),
+            fat: FoodLibraryLogic.wholeNumber(n.fatG)
         )
     }
 
@@ -1703,19 +1703,19 @@ struct FoodLibraryFlow: View {
             )
         }
         let kcal = String(
-            localized: "\(Int(n.calories.rounded())) kilocalories",
+            localized: "\(FoodLibraryLogic.wholeNumber(n.calories)) kilocalories",
             comment: "VoiceOver readout of calories per serving."
         )
         let protein = String(
-            localized: "\(Int(n.proteinG.rounded())) grams protein",
+            localized: "\(FoodLibraryLogic.wholeNumber(n.proteinG)) grams protein",
             comment: "VoiceOver readout of protein grams."
         )
         let carbs = String(
-            localized: "\(Int(n.carbsG.rounded())) grams carbs",
+            localized: "\(FoodLibraryLogic.wholeNumber(n.carbsG)) grams carbs",
             comment: "VoiceOver readout of carbohydrate grams."
         )
         let fat = String(
-            localized: "\(Int(n.fatG.rounded())) grams fat",
+            localized: "\(FoodLibraryLogic.wholeNumber(n.fatG)) grams fat",
             comment: "VoiceOver readout of fat grams."
         )
         return "\(header) \(kcal), \(protein), \(carbs), \(fat)."

@@ -22,6 +22,14 @@ final class FoodLibraryLogicTests: XCTestCase {
         XCTAssertNil(oats.toScannedProduct().loggable(for: .grams(.nan)))
     }
 
+    func test_wholeNumber_nonFiniteOrHugeValue_doesNotTrap() {
+        XCTAssertEqual(FoodLibraryLogic.wholeNumber(.nan), 0)
+        XCTAssertEqual(FoodLibraryLogic.wholeNumber(.infinity), 0)
+        XCTAssertEqual(FoodLibraryLogic.wholeNumber(1e30), 99_999)
+        XCTAssertEqual(FoodLibraryLogic.wholeNumber(-3), 0)
+        XCTAssertEqual(FoodLibraryLogic.wholeNumber(12.6), 13)
+    }
+
     func testSearchRankingDeduplicatesAndPreservesTies() {
         let exact = food("Oats").toScannedProduct()
         let prefix = food("Oats rolled").toScannedProduct()
