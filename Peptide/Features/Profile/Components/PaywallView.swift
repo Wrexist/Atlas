@@ -941,7 +941,7 @@ struct PaywallView: View {
     /// The old label was "Continue", which is the weakest thing a paywall
     /// button can say — it names the gesture, not what the user gets, and it
     /// hides the one fact that removes the risk of tapping it. The top line
-    /// now states the offer ("Start My 7-Day Free Trial") and the bottom line
+    /// now states the offer ("Start my 7-day free trial") and the bottom line
     /// states the charge in the user's own currency ("$0.00 today, then
     /// $49.99/yr"). Both halves matter: trial-first framing is what lifts
     /// tap-through, and the explicit price is what stops the day-0 cancel
@@ -984,13 +984,13 @@ struct PaywallView: View {
         .accessibilityLabel(ctaAccessibilityLabel)
     }
 
-    private var ctaTitle: LocalizedStringKey {
-        guard let product = selectedProduct else { return "Choose a plan" }
-        guard product.type == .autoRenewable else { return "Get Lifetime Access" }
+    private var ctaTitle: String {
+        guard let product = selectedProduct else { return String(localized: "Choose a plan") }
+        guard product.type == .autoRenewable else { return String(localized: "Get lifetime access") }
         if let days = storeService.redeemableTrialDays(for: product) {
-            return "Start My \(days)-Day Free Trial"
+            return String(localized: "Start my \(days)-day free trial")
         }
-        return "Unlock Atlas Pro"
+        return String(localized: "Unlock Atlas Pro")
     }
 
     /// The money line. Never promises a free trial the user can't redeem —
@@ -1008,18 +1008,11 @@ struct PaywallView: View {
         return String(localized: "\(price) · cancel anytime")
     }
 
+    /// The visible title, then the money line, so VoiceOver reads the
+    /// same words the button shows.
     private var ctaAccessibilityLabel: String {
-        guard let product = selectedProduct else { return String(localized: "Choose a plan") }
-        let action: String
-        if product.type != .autoRenewable {
-            action = String(localized: "Get lifetime access")
-        } else if let days = storeService.redeemableTrialDays(for: product) {
-            action = String(localized: "Start my \(days) day free trial")
-        } else {
-            action = String(localized: "Unlock Atlas Pro")
-        }
-        guard let ctaDetail else { return action }
-        return "\(action). \(ctaDetail)"
+        guard let ctaDetail else { return ctaTitle }
+        return "\(ctaTitle). \(ctaDetail)"
     }
 
     // MARK: - Footer
@@ -1056,7 +1049,7 @@ struct PaywallView: View {
                         .controlSize(.mini)
                         .accessibilityLabel("Restoring purchases")
                 } else {
-                    Text("Restore")
+                    Text("Restore purchases")
                 }
             }
             .minimumHitArea()

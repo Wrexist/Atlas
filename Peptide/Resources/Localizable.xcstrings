@@ -16221,16 +16221,6 @@
         }
       }
     },
-    "Get Lifetime Access": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Skaffa livstidsåtkomst"
-          }
-        }
-      }
-    },
     "Get lifetime access": {
       "localizations": {
         "sv": {
@@ -27943,16 +27933,6 @@
         }
       }
     },
-    "Restore Purchases": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Återställ köp"
-          }
-        }
-      }
-    },
     "Restore complete": {
       "localizations": {
         "sv": {
@@ -30837,7 +30817,7 @@
         }
       }
     },
-    "Start My %lld-Day Free Trial": {
+    "Start my %lld-day free trial": {
       "localizations": {
         "sv": {
           "variations": {
@@ -30915,28 +30895,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Utgå från"
-          }
-        }
-      }
-    },
-    "Start my %lld day free trial": {
-      "localizations": {
-        "sv": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Starta min gratis provperiod på %lld dag"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Starta min gratis provperiod på %lld dagar"
-                }
-              }
-            }
           }
         }
       }

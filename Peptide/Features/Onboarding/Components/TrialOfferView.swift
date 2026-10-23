@@ -596,7 +596,7 @@ struct TrialOfferView: View {
 
             HStack(spacing: Spacing.md) {
                 Button(action: restore) {
-                    Text("Restore Purchases").minimumHitArea()
+                    Text("Restore purchases").minimumHitArea()
                 }
                 .buttonStyle(.plain)
                 .disabled(isPurchasing || isRestoring)
@@ -641,7 +641,7 @@ struct TrialOfferView: View {
         guard let days = trialDays else {
             return String(localized: "Get \(headlinePlan)")
         }
-        return String(localized: "Start My \(days)-Day Free Trial")
+        return String(localized: "Start my \(days)-day free trial")
     }
 
     /// Second line of the CTA: the charge, in the user's own currency. A
