@@ -575,6 +575,10 @@ struct UserProfile: Codable, Sendable {
     /// profiles decoded without this field land on
     /// `BiologyConfig.default` cleanly.
     var biologyConfig: BiologyConfig
+    /// Today screen arrangement — section order and hidden sections
+    /// from the "Edit Today" sheet. Defaults so profiles decoded
+    /// without this field land on `TodayLayout.default`.
+    var todayLayout: TodayLayout
     /// Training preferences (days/week, equipment access, plate
     /// inventory, rest-timer default, auto-progression toggle).
     /// Populated by the redesigned onboarding's "Activity & schedule"
@@ -652,6 +656,7 @@ struct UserProfile: Codable, Sendable {
         weeklySummaryOptInConfirmed: Bool = false,
         weeklySummaries: [String: WeeklySummary] = [:],
         biologyConfig: BiologyConfig = .default,
+        todayLayout: TodayLayout = .default,
         trainingPreferences: TrainingPreferences? = nil,
         goalDate: Date? = nil,
         habits: [Habit] = [],
@@ -696,6 +701,7 @@ struct UserProfile: Codable, Sendable {
         self.weeklySummaryOptInConfirmed = weeklySummaryOptInConfirmed
         self.weeklySummaries = weeklySummaries
         self.biologyConfig = biologyConfig
+        self.todayLayout = todayLayout
         self.trainingPreferences = trainingPreferences
         self.goalDate = goalDate
         self.habits = habits
@@ -748,6 +754,7 @@ struct UserProfile: Codable, Sendable {
         weeklySummaryOptInConfirmed = try container.decodeIfPresent(Bool.self, forKey: .weeklySummaryOptInConfirmed) ?? false
         weeklySummaries = try container.decodeIfPresent([String: WeeklySummary].self, forKey: .weeklySummaries) ?? [:]
         biologyConfig = try container.decodeIfPresent(BiologyConfig.self, forKey: .biologyConfig) ?? .default
+        todayLayout = try container.decodeIfPresent(TodayLayout.self, forKey: .todayLayout) ?? .default
         trainingPreferences = try container.decodeIfPresent(TrainingPreferences.self, forKey: .trainingPreferences)
         goalDate = try container.decodeIfPresent(Date.self, forKey: .goalDate)
         habits = try container.decodeIfPresent([Habit].self, forKey: .habits) ?? []

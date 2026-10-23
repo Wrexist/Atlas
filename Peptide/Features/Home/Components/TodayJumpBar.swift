@@ -36,6 +36,15 @@ struct TodayJumpBar: View {
             }
         }
 
+        /// The Today section this chip scrolls to.
+        var todaySection: TodaySection {
+            switch self {
+            case .doses:    .doses
+            case .wellness: .wellness
+            case .movement: .movement
+            }
+        }
+
         var accent: Color {
             switch self {
             case .doses:    AppColor.accentPrimary
@@ -49,6 +58,8 @@ struct TodayJumpBar: View {
     /// Whether the user has any logged protocols. When false we drop
     /// the Doses chip — there's nothing for it to scroll to.
     let showsDoses: Bool
+    /// Chips whose section the user hid from Today.
+    var hiddenAnchors: Set<SectionAnchor> = []
     let onSelect: (SectionAnchor) -> Void
     /// Whether the parent's quick-log sheet is up. Turns the "+" into a
     /// "×" so the control reads as the thing that opened the sheet.
@@ -64,7 +75,7 @@ struct TodayJumpBar: View {
     @Namespace private var activePill
 
     private var chips: [SectionAnchor] {
-        SectionAnchor.allCases.filter { $0 != .doses || showsDoses }
+        SectionAnchor.allCases.filter { ($0 != .doses || showsDoses) && !hiddenAnchors.contains($0) }
     }
 
     var body: some View {
