@@ -85,8 +85,8 @@ final class ExportService {
     /// `yyyy-MM-dd` in the user's time zone. The bare `.iso8601` style
     /// formats in GMT, which put an evening entry in the Americas on the
     /// next day next to a local-time Time column.
-    nonisolated static func calendarDay(_ date: Date) -> String {
-        date.formatted(Date.ISO8601FormatStyle(timeZone: .current).year().month().day())
+    nonisolated static func calendarDay(_ date: Date, timeZone: TimeZone = .current) -> String {
+        date.formatted(Date.ISO8601FormatStyle(timeZone: timeZone).year().month().day())
     }
 
     func exportProtocolsCSV(protocols: [PeptideProtocol], entries: [ProtocolEntry]) -> String {
