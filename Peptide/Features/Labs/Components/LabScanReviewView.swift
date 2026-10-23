@@ -120,8 +120,14 @@ struct LabScanReviewView: View {
 
             Picker("Marker", selection: panelBinding(row)) {
                 Text("Not matched — skip").tag(LabPanel?.none)
-                ForEach(LabPanel.allCases.filter { $0 != .other }) { panel in
-                    Text(panel.displayName).tag(Optional(panel))
+                // Grouped like the manual editor's picker, so a long
+                // catalog reads as a few short lists.
+                ForEach(LabPanel.Category.allCases) { category in
+                    Section(category.displayName) {
+                        ForEach(LabPanel.allCases.filter { $0.category == category && $0 != .other }) { panel in
+                            Text(panel.displayName).tag(Optional(panel))
+                        }
+                    }
                 }
             }
             .pickerStyle(.menu)
