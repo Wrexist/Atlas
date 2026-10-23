@@ -175,7 +175,7 @@ enum CyclePhaseEngine {
     static func tint(for phase: Phase) -> Color {
         switch phase {
         case .onCycle:  return AppColor.accentPrimary
-        case .washout:  return Color(red: 0.55, green: 0.50, blue: 0.85)
+        case .washout:  return AppColor.cycleWashout
         case .completed: return AppColor.textSecondary
         case .upcoming: return AppColor.accentLight
         }

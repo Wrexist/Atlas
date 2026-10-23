@@ -113,6 +113,48 @@ final class DesignSystemTokenTests: XCTestCase {
         XCTAssertGreaterThan(brightness(of: dark), 0.02)
     }
 
+    // MARK: - Stored-hex palettes
+
+    /// A habit's stored hex is its dark-scheme hue; light mode must print a
+    /// deeper stop, or the 11pt weekly count fades to under 2:1 on white.
+    func test_habitTint_catalogSwatch_isDeeperInLightMode() {
+        let light = UITraitCollection(userInterfaceStyle: .light)
+        let dark = UITraitCollection(userInterfaceStyle: .dark)
+        for hex in HabitTintCatalog.all {
+            let resolved = UIColor(HabitTintCatalog.color(for: hex))
+            XCTAssertLessThan(
+                brightness(of: resolved.resolvedColor(with: light)),
+                brightness(of: resolved.resolvedColor(with: dark)),
+                String(format: "Habit tint 0x%06X needs a deeper light stop", hex)
+            )
+        }
+    }
+
+    /// Older data may carry a hex outside today's catalog; it must still
+    /// render as that colour rather than disappear.
+    func test_habitTint_unknownHex_rendersAsStored() {
+        let resolved = UIColor(HabitTintCatalog.color(for: 0x33AAFF))
+            .resolvedColor(with: UITraitCollection(userInterfaceStyle: .light))
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        resolved.getRed(&r, green: &g, blue: &b, alpha: &a)
+        XCTAssertEqual(r, 0x33 / 255, accuracy: 0.01)
+        XCTAssertEqual(g, 0xAA / 255, accuracy: 0.01)
+        XCTAssertEqual(b, 0xFF / 255, accuracy: 0.01)
+    }
+
+    func test_tierTint_isDeeperInLightMode() {
+        let light = UITraitCollection(userInterfaceStyle: .light)
+        let dark = UITraitCollection(userInterfaceStyle: .dark)
+        for tier in MomentumEngine.Tier.allCases {
+            let resolved = UIColor(tier.tint)
+            XCTAssertLessThan(
+                brightness(of: resolved.resolvedColor(with: light)),
+                brightness(of: resolved.resolvedColor(with: dark)),
+                "\(tier) needs a deeper light stop"
+            )
+        }
+    }
+
     // MARK: - BenefitStyleMap
 
     func test_dnaRepairBenefit_getsTheImmuneStyleNotGenericRepair() {

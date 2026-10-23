@@ -73,7 +73,7 @@ struct AtlasProgressView: View {
     private var atlasScoreSection: some View {
         let momentum = dataStore.momentum
         let history = derived.history
-        let tint = Color(hex: UInt(momentum.tier.tintHex))
+        let tint = momentum.tier.tint
         let week = weekEarned(history)
 
         return VStack(alignment: .leading, spacing: Spacing.md) {

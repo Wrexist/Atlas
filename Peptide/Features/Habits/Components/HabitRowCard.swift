@@ -129,7 +129,7 @@ struct HabitRowCard: View {
                         .transition(.scale.combined(with: .opacity))
                     Image(systemName: "checkmark")
                         .font(AppFont.scaled(11, weight: .bold))
-                        .foregroundStyle(AppColor.onAccent)
+                        .foregroundStyle(AppColor.background)
                         .symbolEffect(.bounce, value: summary.isCompletedToday)
                         .transition(.scale.combined(with: .opacity))
                 } else if summary.todayProgress > 0 {

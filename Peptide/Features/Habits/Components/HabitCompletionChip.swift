@@ -74,7 +74,7 @@ struct HabitCompletionChip: View {
                     .frame(width: 14, height: 14)
                 Image(systemName: "checkmark")
                     .font(AppFont.scaled(8, weight: .bold))
-                    .foregroundStyle(AppColor.onAccent)
+                    .foregroundStyle(AppColor.background)
                     .symbolEffect(.bounce, value: completionTrigger)
             } else {
                 Image(systemName: habit.iconSymbol)

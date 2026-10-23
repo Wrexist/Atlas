@@ -23,7 +23,7 @@ struct AtlasScoreCard: View {
 
     private var card: some View {
         let momentum = dataStore.momentum
-        let tint = Color(hex: UInt(momentum.tier.tintHex))
+        let tint = momentum.tier.tint
 
         return HStack(spacing: Spacing.lg) {
             MetricRing(

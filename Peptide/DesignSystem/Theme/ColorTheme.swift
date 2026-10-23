@@ -160,12 +160,12 @@ enum AppColor {
     // 11pt short-name label drawn in the tint on a 20% tint tile.
 
     static let labSexHormones = Color(light: 0xA02A50, dark: 0xF080AA)
-    static let labGrowth = Color(light: 0x186A3B, dark: 0x66C78C)
-    static let labThyroid = Color(light: 0x4A4FC4, dark: 0x9AA0F4)
+    static let labGrowth = Color(light: 0x15603A, dark: 0x66C78C)
+    static let labThyroid = Color(light: 0x4448B8, dark: 0x9AA0F4)
     static let labMetabolic = Color(light: 0x874705, dark: 0xF2A64C)
     static let labLipids = Color(light: 0xA32A2A, dark: 0xF07C7C)
     static let labOrganHealth = Color(light: 0x1A5F85, dark: 0x8CC7EB)
-    static let labOther = Color(light: 0x5D5D78, dark: 0xBFBFD9)
+    static let labOther = Color(light: 0x55556E, dark: 0xBFBFD9)
 
     // MARK: - Feature accents
 
@@ -190,6 +190,10 @@ enum AppColor {
     static let ringRecoveryEnd = Color(light: 0x2F7A3B, dark: 0x47C75C)
     static let ringSleepStart = Color(light: 0x6B63C4, dark: 0xA89EF5)
     static let ringSleepEnd = Color(light: 0x453FA8, dark: 0x7366D9)
+
+    /// Cool purple for a protocol's wash-out phase. Printed as the
+    /// cycle card's eyebrow, so the light value is deepened to 4.5:1.
+    static let cycleWashout = Color(light: 0x5A50B0, dark: 0x8C80D9)
 
     // MARK: - Semantic accents
     //

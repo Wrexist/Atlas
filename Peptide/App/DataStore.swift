@@ -2238,7 +2238,7 @@ final class DataStore {
             profile.atlasLevel = newLevel
             let tier = MomentumEngine.Tier.forLevel(newLevel)
             CelebrationCenter.shared.celebrate(
-                .levelUp(level: newLevel, tierName: tier.name, tierSymbol: tier.symbol, tintHex: tier.tintHex)
+                .levelUp(level: newLevel, tier: tier)
             )
         } else {
             profile.atlasLevel = max(profile.atlasLevel, newLevel)
