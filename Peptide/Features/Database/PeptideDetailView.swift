@@ -89,7 +89,7 @@ struct PeptideDetailView: View {
                             icon: "plus",
                             style: .primary
                         ) {
-                            showingPicker = true
+                            addToProtocol()
                         }
                     }
                 }
@@ -321,13 +321,7 @@ struct PeptideDetailView: View {
         }
         .appSensoryFeedback(.impact(weight: .medium), trigger: showingPicker) { _, new in new }
         .glassSheet(isPresented: $showingPicker) {
-            AddToStackSheet(peptide: peptide) {
-                if StoreService.shared.requiresPro(activeProtocolCount: dataStore.activeProtocols.count) {
-                    showingPaywall = true
-                } else {
-                    showingBuilder = true
-                }
-            }
+            AddToStackSheet(peptide: peptide) { openBuilder() }
         }
         .glassSheet(isPresented: $showingBuilder) {
             ProtocolBuilderView(preselectedPeptide: peptide)
@@ -336,6 +330,25 @@ struct PeptideDetailView: View {
             PaywallView(source: .protocolLimit)
                 .liquidGlassPresentation()
         }
+        }
+    }
+
+    /// With no protocol to add to, the picker could only offer "Create",
+    /// so the tap goes straight to the builder.
+    private func addToProtocol() {
+        if dataStore.activeProtocols.isEmpty && dataStore.pausedProtocols.isEmpty {
+            Haptics.impact(.medium)
+            openBuilder()
+        } else {
+            showingPicker = true
+        }
+    }
+
+    private func openBuilder() {
+        if StoreService.shared.requiresPro(activeProtocolCount: dataStore.activeProtocols.count) {
+            showingPaywall = true
+        } else {
+            showingBuilder = true
         }
     }
 
