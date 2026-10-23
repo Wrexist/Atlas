@@ -58,16 +58,7 @@ enum DailyReminderScheduler {
             now: Date(),
             calendar: calendar
         ) { kind, day in
-            switch kind {
-            case .weighIn:
-                profile.weightHistory.contains { calendar.isDate($0.date, inSameDayAs: day) }
-            case .workout:
-                trainedDays.contains { calendar.isDate($0, inSameDayAs: day) }
-            case .breakfast, .lunch, .dinner:
-                profile.mealHistory.contains {
-                    $0.category == kind.mealCategory && calendar.isDate($0.date, inSameDayAs: day)
-                }
-            }
+            isAlreadyDone(kind, day: day, profile: profile, trainedDays: trainedDays, calendar: calendar)
         }
 
         for reminder in planned {
@@ -81,6 +72,28 @@ enum DailyReminderScheduler {
             }
         }
         NotificationService.shared.trackDailyReminders(Set(planned.map(\.id)))
+    }
+
+    /// Whether `kind` is already logged on the day containing `day`, so
+    /// its reminder would only nag: a weigh-in that day, a trained day,
+    /// or a meal logged under that same category.
+    static func isAlreadyDone(
+        _ kind: DailyReminderKind,
+        day: Date,
+        profile: UserProfile,
+        trainedDays: [Date],
+        calendar: Calendar
+    ) -> Bool {
+        switch kind {
+        case .weighIn:
+            profile.weightHistory.contains { calendar.isDate($0.date, inSameDayAs: day) }
+        case .workout:
+            trainedDays.contains { calendar.isDate($0, inSameDayAs: day) }
+        case .breakfast, .lunch, .dinner:
+            profile.mealHistory.contains {
+                $0.category == kind.mealCategory && calendar.isDate($0.date, inSameDayAs: day)
+            }
+        }
     }
 
     static var categories: Set<UNNotificationCategory> {
