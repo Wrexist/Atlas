@@ -121,7 +121,9 @@ struct ActiveWorkoutView: View {
     /// so anything that leaves the screen has to commit it explicitly.
     private func commitWorkoutName() {
         let trimmed = workoutName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, trimmed != sessionService.activeSession?.name else { return }
+        // A cleared field commits too: `renameWorkout` turns it into no name,
+        // the same as pressing Return does.
+        guard trimmed != (sessionService.activeSession?.name ?? "") else { return }
         sessionService.renameWorkout(trimmed)
     }
 
