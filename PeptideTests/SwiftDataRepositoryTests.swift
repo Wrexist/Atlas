@@ -191,6 +191,16 @@ final class SwiftDataRepositoryTests: XCTestCase {
         XCTAssertEqual(rows.map(\.completed), [entry.completed, entry.completed])
     }
 
+    func test_loadProtocols_withDuplicateStoredRows_returnsOneProtocol() throws {
+        let proto = MockProtocols.recoveryStack
+        let context = try XCTUnwrap(repo.contextForTesting)
+        context.insert(try StoredProtocol.make(from: proto))
+        context.insert(try StoredProtocol.make(from: proto))
+        try context.save()
+
+        XCTAssertEqual(repo.loadProtocols().map(\.id), [proto.id])
+    }
+
     // MARK: - hasAnyData
 
     func test_hasAnyData_isTrue_whenProtocolsExist() {

@@ -665,14 +665,25 @@ final class SwiftDataRepository {
             AppLog.swiftData.error("Load protocols failed: \(error.localizedDescription, privacy: .public)")
             return []
         }
-        return stored.compactMap {
+        // Duplicate rows (see `saveProtocols`) must load as one protocol:
+        // a second in-memory copy would be written back over every row
+        // after the first one is edited, reverting the edit.
+        return Self.keepingFirstPerID(stored.compactMap {
             do {
                 return try $0.toPeptideProtocol()
             } catch {
                 AppLog.swiftData.error("Decode StoredProtocol failed: \(error.localizedDescription, privacy: .public)")
                 return nil
             }
-        }
+        })
+    }
+
+    /// One value per id, in fetch order. The extra rows stay in the
+    /// store: they carry no timestamp that would let two devices agree
+    /// on which to delete, and every upsert writes all of them.
+    static func keepingFirstPerID<Item: Identifiable>(_ items: [Item]) -> [Item] {
+        var seen: Set<Item.ID> = []
+        return items.filter { seen.insert($0.id).inserted }
     }
 
     // MARK: - Entries

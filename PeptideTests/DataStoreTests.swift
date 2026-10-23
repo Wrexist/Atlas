@@ -550,6 +550,21 @@ final class DataStoreTests: XCTestCase {
         XCTAssertEqual(collapsed.first?.completed, true)
     }
 
+    func test_updateProtocolStatus_withDuplicateStoredRows_survivesSaveAndReload() throws {
+        let proto = try XCTUnwrap(store.protocols.first { $0.status == .active })
+        let context = try XCTUnwrap(SwiftDataRepository.shared.contextForTesting)
+        context.insert(try StoredProtocol.make(from: proto))
+        try context.save()
+        store.reloadFromDisk()
+        XCTAssertEqual(store.protocols.filter { $0.id == proto.id }.count, 1)
+
+        store.updateProtocolStatus(id: proto.id, to: .paused)
+        store.flushPendingSave()
+        store.reloadFromDisk()
+
+        XCTAssertEqual(store.protocols.first { $0.id == proto.id }?.status, .paused)
+    }
+
     func test_deleteProtocol_alsoDeletesItsRowsNotLoadedInMemory() throws {
         let proto = try XCTUnwrap(store.protocols.first)
         let syncedIn = ProtocolEntry(
