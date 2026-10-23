@@ -90,7 +90,9 @@ same auth, App Attest gate and limiter.
        `APP_ATTEST_ALLOW_DEVELOPMENT=1` admits Xcode-run builds in
        enforce mode. `ATTEST_CHALLENGE_RPM` (default 60) and
        `ATTEST_RPM` (default 30) cap registration challenges and
-       submissions per IP per minute.
+       submissions per IP per minute; `ATTEST_REGISTRATIONS_PER_DAY`
+       (default 10, scaled for IPv4 like the other limits) caps
+       successful registrations per IP per UTC day.
      - `FREE_SCANS_PER_WEEK` — server-side free-tier AI meal scans per
        install per ISO week. Default `3`, matching the app's
        `MealScanQuota.freeScansPerWeek` — change both together. `0`
@@ -234,6 +236,12 @@ and a VPN makes it free to change, so an IP-keyed quota is a speed
 bump for anyone deliberately working around it. An attested key is one
 physical install and can't be rotated without re-attesting to Apple,
 which is what makes a real per-user quota possible.
+
+A device can still generate new keys, and each new key starts with a
+fresh daily quota. Key records expire after 90 days without use, and
+successful registrations are capped per IP per day, but IPs rotate, so
+that cap is a speed bump. Apple's App Attest fraud-metric receipt is
+the real per-device bound if key minting ever shows up in the logs.
 
 Until `APP_ATTEST_MODE=enforce`, limits fall back to IP. The quota and
 cooldown still bound casual abuse and accidental retry storms, and the

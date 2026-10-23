@@ -222,9 +222,14 @@ export function verifyAssertion({ assertion, publicKeyPem, clientDataHash, appId
 // MARK: Key registry (Redis)
 
 const keySlot = (keyIdB64) => `attest:key:${keyIdB64}`;
+// A key unused this long belongs to a deleted install or one that has
+// since re-registered; each successful assertion pushes it back out.
+export const ATTEST_KEY_TTL_SECONDS = 90 * 24 * 60 * 60;
 
 export async function storeAttestKey(keyIdB64, record) {
-  const results = await redisPipeline([['SET', keySlot(keyIdB64), JSON.stringify(record)]]);
+  const results = await redisPipeline([
+    ['SET', keySlot(keyIdB64), JSON.stringify(record), 'EX', String(ATTEST_KEY_TTL_SECONDS)],
+  ]);
   return results?.[0]?.result === 'OK';
 }
 
@@ -264,6 +269,9 @@ const SEEN_COUNTER_TTL_SECONDS = (2 * CLIENT_DATA_MAX_AGE_MS) / 1000;
 async function claimCounter(keyIdB64, counter) {
   const results = await redisPipeline([
     ['SET', `attest:seen:${keyIdB64}:${counter}`, '1', 'NX', 'EX', String(SEEN_COUNTER_TTL_SECONDS)],
+    // Rides the same round trip: only reached once the signature
+    // verified, so a key in use never ages out.
+    ['EXPIRE', keySlot(keyIdB64), String(ATTEST_KEY_TTL_SECONDS)],
   ]);
   return results?.[0]?.result === 'OK';
 }
