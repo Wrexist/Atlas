@@ -84,6 +84,10 @@ struct HomeView: View {
     /// each successful refresh of the hero + health-range snapshots
     /// so the user gets visible confirmation the dashboard is fresh.
     @State private var showSyncToast = false
+    /// The last one-tap water glass, kept so its toast can undo it.
+    @State private var lastWaterLog: WaterLog?
+    @State private var showWaterToast = false
+    @State private var waterToastMessage: LocalizedStringResource = ""
     /// Identifies which hero-trio ring the user tapped so the
     /// detail sheet can route. Non-optional Identifiable wrapper so
     /// `.sheet(item:)` does the right thing.
@@ -127,6 +131,11 @@ struct HomeView: View {
     private struct HeroDetailItem: Identifiable {
         let kind: HeroMetricKind
         var id: HeroMetricKind { kind }
+    }
+
+    private struct WaterLog {
+        let fluidOunces: Double
+        let date: Date
     }
 
     private enum QuickLogAction: Identifiable {
@@ -728,8 +737,16 @@ struct HomeView: View {
                 // Bevel-style sync-complete pill. The toast manages
                 // its own auto-dismiss timer (2.4s) so we just bind
                 // the visibility flag and forget about it.
-                SyncToast(isShowing: $showSyncToast)
-                    .padding(.top, Spacing.sm)
+                VStack(spacing: Spacing.xs) {
+                    SyncToast(isShowing: $showSyncToast)
+                    SyncToast(
+                        isShowing: $showWaterToast,
+                        message: waterToastMessage,
+                        autoDismissAfter: AppAnimation.logSuccessAutoCloseDelay,
+                        action: .init(label: "Undo", perform: undoWaterGlass)
+                    )
+                }
+                .padding(.top, Spacing.sm)
             }
             .onChange(of: achievementService.latestUnlock?.id) { _, newId in
                 if let newId, let achievement = achievementService.achievements.first(where: { $0.id == newId }) {
@@ -910,8 +927,7 @@ struct HomeView: View {
         case .checkIn:
             handleJump(to: .wellness, proxy: proxy)
         case .water:
-            let glass = TodayChecklistEngine.glassFluidOunces(for: dataStore.profile.bodyMetrics.unit)
-            dataStore.logWater(fluidOunces: glass)
+            logWaterGlass()
         }
     }
 
@@ -941,11 +957,32 @@ struct HomeView: View {
         case .training:
             appState.selectedTab = .train
         case .water:
-            let glass = TodayChecklistEngine.glassFluidOunces(for: dataStore.profile.bodyMetrics.unit)
-            dataStore.logWater(fluidOunces: glass)
+            logWaterGlass()
         case .weight:
             showWeightSheet = true
         }
+    }
+
+    /// One glass from the checklist row or the overview tile. Both are
+    /// a single tap that a scroll can trigger by mistake, so each log
+    /// opens an Undo toast.
+    private func logWaterGlass() {
+        let glass = TodayChecklistEngine.glassFluidOunces(for: dataStore.profile.bodyMetrics.unit)
+        let date = Date()
+        dataStore.logWater(fluidOunces: glass, date: date)
+        lastWaterLog = WaterLog(fluidOunces: glass, date: date)
+        waterToastMessage = LocalizedStringResource(
+            "Added \(dataStore.profile.bodyMetrics.unit.volumeLabel(glass))",
+            comment: "Toast after a one-tap water log on Today. The value is the amount with its unit."
+        )
+        showWaterToast = true
+    }
+
+    private func undoWaterGlass() {
+        guard let log = lastWaterLog else { return }
+        dataStore.logWater(fluidOunces: -log.fluidOunces, date: log.date)
+        Haptics.impact(.light)
+        lastWaterLog = nil
     }
 
     /// Closes the quick-log menu, then mounts the picked flow once the
