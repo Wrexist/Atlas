@@ -48,10 +48,11 @@ struct WorkoutCard: View {
         if sessionCountToday == 0 {
             return isPastDay ? String(localized: "No training logged") : String(localized: "Log today's training")
         }
-        let sessionLabel = sessionCountToday == 1 ? String(localized: "1 workout") : String(localized: "\(sessionCountToday) workouts")
+        let sessionLabel = String(AttributedString(localized: "^[\(sessionCountToday) workout](inflect: true)").characters)
         if durationMinutesToday <= 0 {
             return sessionLabel
         }
-        return "\(sessionLabel) · \(durationMinutesToday) min"
+        return String(localized: "\(sessionLabel) · \(durationMinutesToday) min",
+                      comment: "Workout card subtitle: session count, then total minutes.")
     }
 }

@@ -1049,6 +1049,17 @@
         }
       }
     },
+    "%@ · %lld min": {
+      "comment": "Workout card subtitle: session count, then total minutes.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$lld min"
+          }
+        }
+      }
+    },
     "%@ · Atlas Score": {
       "localizations": {
         "sv": {
@@ -5465,6 +5476,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "@dittanvändarnamn"
+          }
+        }
+      }
+    },
+    "^[%lld workout](inflect: true)": {
+      "comment": "Workout card subtitle: number of workouts logged.",
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld träningspass"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld träningspass"
+                }
+              }
+            }
           }
         }
       }
