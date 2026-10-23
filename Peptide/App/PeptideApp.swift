@@ -765,18 +765,36 @@ private final class BackgroundTaskHandle {
 /// are no doses to report, so the workout strip stands in: an empty
 /// accessory would still draw its glass capsule, and "All doses completed"
 /// with a syringe is noise for someone who never tracks one.
+///
+/// The strip is a button, like the system's own bottom accessories: it
+/// opens the tab that acts on what it reports, so "Workout in progress"
+/// or an overdue dose is one tap from being dealt with.
 struct TabAccessoryView: View {
     let tab: AppTab
     @Environment(DataStore.self) private var dataStore
+    @Environment(AppState.self) private var appState
 
     var body: some View {
-        if tab == .train || dataStore.activeProtocols.isEmpty {
-            // Train draws its own resume banner for a workout in
-            // progress; repeating it here stacks two identical pills.
-            WorkoutAccessoryView(reportsActiveWorkout: tab != .train)
-        } else {
-            NextDoseAccessoryView()
+        let showsWorkout = tab == .train || dataStore.activeProtocols.isEmpty
+        Button {
+            open(showsWorkout ? .train : .today)
+        } label: {
+            if showsWorkout {
+                // Train draws its own resume banner for a workout in
+                // progress; repeating it here stacks two identical pills.
+                WorkoutAccessoryView(reportsActiveWorkout: tab != .train)
+            } else {
+                NextDoseAccessoryView()
+            }
         }
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        .accessibilityHint(showsWorkout ? Text("Opens Train") : Text("Opens Today"))
+    }
+
+    private func open(_ destination: AppTab) {
+        guard appState.selectedTab != destination else { return }
+        Haptics.selection()
+        appState.selectedTab = destination
     }
 }
 
@@ -830,24 +848,25 @@ struct NextDoseAccessoryView: View {
     @Environment(DataStore.self) private var dataStore
 
     var body: some View {
-        let allDone = dataStore.nextDose == nil
+        let next = dataStore.nextDose
+        // `nextDose` falls back to a missed dose once none is left ahead,
+        // so a past time here means the dose is overdue, not upcoming.
+        let isOverdue = next.map { $0.date < Date() } ?? false
 
         HStack(spacing: Spacing.sm) {
-            Image(systemName: allDone ? "checkmark.circle.fill" : "syringe.fill")
+            Image(systemName: icon(isDone: next == nil, isOverdue: isOverdue))
                 .font(.caption)
-                .foregroundStyle(AppColor.accentPrimary)
+                .foregroundStyle(isOverdue ? AppColor.warning : AppColor.accentPrimary)
                 .contentTransition(.symbolEffect(.replace))
 
-            if let next = dataStore.nextDose {
-                Text(next.dose.isEmpty
-                     ? "Next: \(next.peptide.abbreviation)"
-                     : "Next: \(next.peptide.abbreviation) \u{2022} \(next.dose)")
+            if let next {
+                Text(summary(next, isOverdue: isOverdue))
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                 Spacer()
                 Text(next.date.formatted(.dateTime.hour().minute()))
                     .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(isOverdue ? AppColor.warning : AppColor.accentLight)
                     .contentTransition(.numericText())
             } else {
                 Text("All doses completed for today")
@@ -858,16 +877,38 @@ struct NextDoseAccessoryView: View {
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.xs)
-        .appAnimation(AppAnimation.springSnappy, value: allDone)
+        .appAnimation(AppAnimation.springSnappy, value: next == nil)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityLabel)
+        .accessibilityLabel(voiceOverLabel(isOverdue: isOverdue))
+    }
+
+    private func icon(isDone: Bool, isOverdue: Bool) -> String {
+        if isDone { return "checkmark.circle.fill" }
+        return isOverdue ? "exclamationmark.circle.fill" : "syringe.fill"
+    }
+
+    private func summary(_ next: ProtocolEntry, isOverdue: Bool) -> LocalizedStringKey {
+        let name = next.peptide.abbreviation
+        if isOverdue {
+            return next.dose.isEmpty
+                ? "Overdue: \(name)"
+                : "Overdue: \(name) \u{2022} \(next.dose)"
+        }
+        return next.dose.isEmpty
+            ? "Next: \(name)"
+            : "Next: \(name) \u{2022} \(next.dose)"
     }
 
     /// One VoiceOver stop with the full name, instead of the icon,
     /// the abbreviated line with its bullet glyph, and the time.
-    private var accessibilityLabel: Text {
+    private func voiceOverLabel(isOverdue: Bool) -> Text {
         guard let next = dataStore.nextDose else { return Text("All doses completed for today") }
         let time = next.date.formatted(.dateTime.hour().minute())
+        if isOverdue {
+            return next.dose.isEmpty
+                ? Text("Overdue dose: \(next.peptide.name) at \(time)")
+                : Text("Overdue dose: \(next.peptide.name), \(next.dose) at \(time)")
+        }
         return next.dose.isEmpty
             ? Text("Next dose: \(next.peptide.name) at \(time)")
             : Text("Next dose: \(next.peptide.name), \(next.dose) at \(time)")

@@ -8645,6 +8645,56 @@
         }
       }
     },
+    "Opens Today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar Idag"
+          }
+        }
+      }
+    },
+    "Overdue dose: %@ at %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Försenad dos: %@ kl. %@"
+          }
+        }
+      }
+    },
+    "Overdue dose: %@, %@ at %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Försenad dos: %@, %@ kl. %@"
+          }
+        }
+      }
+    },
+    "Overdue: %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Försenad: %@"
+          }
+        }
+      }
+    },
+    "Overdue: %@ • %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Försenad: %@ • %@"
+          }
+        }
+      }
+    },
     "Share crash reports": {
       "localizations": {
         "sv": {
