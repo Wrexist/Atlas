@@ -165,6 +165,7 @@ struct FoodLibraryFlow: View {
                 }
             }
         }
+        .presentationSizing(.page)
         .task(id: query) { await runDebouncedSearch() }
         .task(id: debouncedQuery) { await runSearch() }
         .alert("Meal action failed", isPresented: Binding(

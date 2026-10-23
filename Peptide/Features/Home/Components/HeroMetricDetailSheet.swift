@@ -62,8 +62,7 @@ struct HeroMetricDetailSheet: View {
                     detailContent
                 }
                 .padding(Spacing.screenPadding)
-                .frame(maxWidth: 640)
-                .frame(maxWidth: .infinity)
+                .readableContentWidth()
             }
             .background(AppColor.background)
             .navigationTitle(kind.label)

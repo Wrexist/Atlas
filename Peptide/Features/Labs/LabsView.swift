@@ -160,6 +160,7 @@ struct LabsView: View {
                 Text("This can't be undone. The trend chart will skip the deleted point.")
             }
         }
+        .presentationSizing(.page)
     }
 
     /// Lab scanning reads a report with Claude, so it sits behind the same

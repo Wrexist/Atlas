@@ -38,8 +38,7 @@ struct SettingsView: View {
             }
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.xxxxl)
-            .frame(maxWidth: 640)
-            .frame(maxWidth: .infinity)
+            .readableContentWidth()
         }
         .background(AppColor.background)
         .navigationTitle("Settings")

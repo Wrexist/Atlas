@@ -87,10 +87,7 @@ struct BiologyView: View {
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxxxl)
-                // iPad content cap — Biology rows benefit from a
-                // readable measure (Phase 5.8 partial).
-                .frame(maxWidth: 640)
-                .frame(maxWidth: .infinity)
+                .readableContentWidth()
             }
             .refreshable { await reload() }
             .background {

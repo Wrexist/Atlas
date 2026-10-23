@@ -34,8 +34,7 @@ struct AtlasProgressView: View {
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.vertical, Spacing.lg)
-                .frame(maxWidth: 640)
-                .frame(maxWidth: .infinity)
+                .readableContentWidth()
             }
             .background(AppColor.background)
             .navigationTitle("Your progress")
@@ -49,6 +48,7 @@ struct AtlasProgressView: View {
             }
             .task(id: dataStore.revision) { refreshDerived() }
         }
+        .presentationSizing(.page)
     }
 
     private func refreshDerived() {

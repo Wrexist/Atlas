@@ -39,8 +39,7 @@ struct MealPlanSheet: View {
                 }
                 .padding(.horizontal, Spacing.screenPadding)
                 .padding(.vertical, Spacing.lg)
-                .frame(maxWidth: 640)
-                .frame(maxWidth: .infinity)
+                .readableContentWidth()
             }
             .background(AppColor.background.ignoresSafeArea())
             .navigationTitle("Plan my day")

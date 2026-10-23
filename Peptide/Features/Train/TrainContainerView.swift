@@ -4,11 +4,11 @@ import SwiftUI
 /// surface modes — Overview (the muscle heatmap + recent workouts),
 /// Routines (saved templates, one tap to start), Exercises (the
 /// searchable library), and History (finished workouts by month).
-/// The single `NavigationStack` lets every sub-screen push the same
-/// destination types (`TrainNavigation`) without each tab re-creating
-/// its own stack.
+/// The single `path` lets every sub-screen push the same destination
+/// types (`TrainNavigation`) without each tab re-creating its own stack.
 struct TrainContainerView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var exerciseBrowsing = ExerciseBrowsingState()
     @State private var overviewScroll = ScrollPosition(edge: .top)
     @Namespace private var exerciseTransition
@@ -17,6 +17,7 @@ struct TrainContainerView: View {
     /// programmatically — creating a routine goes straight into its
     /// builder instead of leaving the user to find the new empty row.
     @State private var path: [TrainNavigation] = []
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var sessionService = WorkoutSessionService.shared
     @State private var showActiveWorkout = false
     /// The relaunch auto-present below happens once. `onAppear` fires on
@@ -42,60 +43,15 @@ struct TrainContainerView: View {
     }
 
     var body: some View {
-        NavigationStack(path: $path) {
-            VStack(spacing: 0) {
-                sectionPicker
-                // Keyed on the section so the body moves with the pill
-                // instead of swapping under it.
-                content
-                    .id(section)
-                    .transition(.opacity.combined(with: .offset(y: 8)))
-            }
-            .background(AppColor.background.ignoresSafeArea())
-            .overlay(alignment: .top) {
-                SyncToast(
-                    isShowing: $showStaleNotice,
-                    message: staleNoticeMessage,
-                    autoDismissAfter: .seconds(4)
-                )
-                .padding(.top, Spacing.sm)
-            }
-            .navigationTitle("Train")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) { ProfileToolbarButton() }
-            }
-            .navigationDestination(for: TrainNavigation.self) { destination in
-                switch destination {
-                case .exerciseDetail(let id):
-                    if reduceMotion {
-                        ExerciseDetailView(exerciseID: id)
-                    } else {
-                        ExerciseDetailView(exerciseID: id)
-                            .navigationTransition(.zoom(sourceID: id, in: exerciseTransition))
-                    }
-                case .workoutDetail(let id):
-                    // Resolve the session lazily so the destination
-                    // works for deep-links from outside the History
-                    // list (Spotlight, Live Activity, weekly recap)
-                    // without forcing the caller to hold the value.
-                    workoutDetailDestination(for: id)
-                case .workoutHistory:
-                    // Pushed from "View all"; as a section it sits under "Train".
-                    WorkoutHistoryView()
-                        .navigationTitle("History")
-                case .routineBuilder(let id):
-                    RoutineBuilderView(routineID: id)
-                }
-            }
-            .safeAreaInset(edge: .bottom) {
-                ZStack {
-                    if showsWorkoutBanner {
-                        activeWorkoutBanner
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                    }
-                }
-                .appAnimation(AppAnimation.springSnappy, value: showsWorkoutBanner)
+        // Same split as the Library: iPad regular gets the sections in a
+        // sidebar column with pushes landing in the detail column, while
+        // compact keeps the single stack (a collapsed split view swallows
+        // value pushes from the sidebar).
+        Group {
+            if sizeClass == .regular {
+                splitLayout
+            } else {
+                stackLayout
             }
         }
         .environment(\.resumeActiveWorkout, { showActiveWorkout = true })
@@ -137,6 +93,104 @@ struct TrainContainerView: View {
             // so the cover lifecycle is owned downstream.
             if let newID, newID != oldID { showActiveWorkout = true }
         }
+    }
+
+    private var stackLayout: some View {
+        NavigationStack(path: $path) {
+            trainRoot
+                .navigationDestination(for: TrainNavigation.self) { trainDestination(for: $0) }
+                .safeAreaInset(edge: .bottom) { workoutBannerSlot }
+        }
+    }
+
+    /// A sidebar link replaces the detail stack's root and a link inside
+    /// the detail pushes onto it, so `path` drives the right column the
+    /// same way it drives the phone stack.
+    private var splitLayout: some View {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            trainRoot
+                .safeAreaInset(edge: .bottom) { workoutBannerSlot }
+        } detail: {
+            NavigationStack(path: $path) {
+                EmptyStateView(
+                    icon: "dumbbell",
+                    title: "Pick a workout",
+                    message: "Select a routine, exercise, or past session to see it here."
+                )
+                .padding(Spacing.screenPadding)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(AppColor.background)
+                .navigationDestination(for: TrainNavigation.self) { trainDestination(for: $0) }
+            }
+        }
+        .navigationSplitViewStyle(.balanced)
+    }
+
+    private var trainRoot: some View {
+        VStack(spacing: 0) {
+            sectionPicker
+            // Keyed on the section so the body moves with the pill
+            // instead of swapping under it.
+            content
+                .id(section)
+                .transition(.opacity.combined(with: .offset(y: 8)))
+        }
+        .background(AppColor.background.ignoresSafeArea())
+        .overlay(alignment: .top) {
+            SyncToast(
+                isShowing: $showStaleNotice,
+                message: staleNoticeMessage,
+                autoDismissAfter: .seconds(4)
+            )
+            .padding(.top, Spacing.sm)
+        }
+        .navigationTitle("Train")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) { ProfileToolbarButton() }
+        }
+    }
+
+    @ViewBuilder
+    private func trainDestination(for destination: TrainNavigation) -> some View {
+        switch destination {
+        case .exerciseDetail(let id):
+            if zoomsIntoExercises {
+                ExerciseDetailView(exerciseID: id)
+                    .navigationTransition(.zoom(sourceID: id, in: exerciseTransition))
+            } else {
+                ExerciseDetailView(exerciseID: id)
+            }
+        case .workoutDetail(let id):
+            // Resolve the session lazily so the destination
+            // works for deep-links from outside the History
+            // list (Spotlight, Live Activity, weekly recap)
+            // without forcing the caller to hold the value.
+            workoutDetailDestination(for: id)
+        case .workoutHistory:
+            // Pushed from "View all"; as a section it sits under "Train".
+            WorkoutHistoryView()
+                .navigationTitle("History")
+        case .routineBuilder(let id):
+            RoutineBuilderView(routineID: id)
+        }
+    }
+
+    /// The zoom grows the detail out of the tapped row, which only reads
+    /// as a push within one column. In the split view the row stays put
+    /// in the sidebar while the detail swaps in beside it.
+    private var zoomsIntoExercises: Bool {
+        !reduceMotion && sizeClass != .regular
+    }
+
+    private var workoutBannerSlot: some View {
+        ZStack {
+            if showsWorkoutBanner {
+                activeWorkoutBanner
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .appAnimation(AppAnimation.springSnappy, value: showsWorkoutBanner)
     }
 
     private func surfaceStaleClosure() {
@@ -234,7 +288,7 @@ struct TrainContainerView: View {
         case .routines:
             RoutinesView(path: $path)
         case .exercises:
-            ExerciseLibraryView(browsing: exerciseBrowsing, transitionNamespace: reduceMotion ? nil : exerciseTransition)
+            ExerciseLibraryView(browsing: exerciseBrowsing, transitionNamespace: zoomsIntoExercises ? exerciseTransition : nil)
         case .history:
             WorkoutHistoryView()
         }
