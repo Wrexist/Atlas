@@ -279,6 +279,14 @@ final class WorkoutFocusServiceTests: XCTestCase {
         WorkoutActivityActionProcessor.drain()
         XCTAssertEqual(service.activeSession?.completedSetCount, 1)
     }
+
+    func test_liveActivityTapInAppProcess_isAppliedBeforeIntentReturns() async throws {
+        start()
+        let id = try XCTUnwrap(service.activeSession?.id)
+        PendingWorkoutActionStore.applyInProcess = { WorkoutActivityActionProcessor.drain() }
+        _ = try await WorkoutActivityActionIntent(sessionId: id, action: .completeSet).perform()
+        XCTAssertEqual(service.activeSession?.completedSetCount, 1)
+    }
 }
 
 final class PendingWorkoutActionStoreTests: XCTestCase {
