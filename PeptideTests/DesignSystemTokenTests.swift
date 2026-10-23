@@ -113,6 +113,25 @@ final class DesignSystemTokenTests: XCTestCase {
         XCTAssertGreaterThan(brightness(of: dark), 0.02)
     }
 
+    /// Increase Contrast must firm up the quiet inks; nothing else in the
+    /// app reads the setting.
+    func test_secondaryInks_increaseContrast_moveAwayFromTheSurface() {
+        for (style, darkens) in [(UIUserInterfaceStyle.light, true), (.dark, false)] {
+            let normal = UITraitCollection(userInterfaceStyle: style)
+            let high = normal.modifyingTraits { $0.accessibilityContrast = .high }
+            for token in [AppColor.textSecondary, AppColor.textTertiary] {
+                let resolved = UIColor(token)
+                let normalBrightness = brightness(of: resolved.resolvedColor(with: normal))
+                let highBrightness = brightness(of: resolved.resolvedColor(with: high))
+                if darkens {
+                    XCTAssertLessThan(highBrightness, normalBrightness)
+                } else {
+                    XCTAssertGreaterThan(highBrightness, normalBrightness)
+                }
+            }
+        }
+    }
+
     // MARK: - Stored-hex palettes
 
     /// A habit's stored hex is its dark-scheme hue; light mode must print a

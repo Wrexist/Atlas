@@ -58,7 +58,7 @@ def parse_tokens(path: pathlib.Path) -> dict[str, tuple[int, int]]:
     source = path.read_text()
     tokens: dict[str, tuple[int, int]] = {}
     for m in re.finditer(
-        r"(?:static let|let)\s+(\w+)\s*(?::\s*Color\s*)?=\s*Color\(light:\s*0x([0-9A-Fa-f]{6}),\s*dark:\s*0x([0-9A-Fa-f]{6})",
+        r"(?:static let|let)\s+(\w+)\s*(?::\s*Color\s*)?=\s*Color\(\s*light:\s*0x([0-9A-Fa-f]{6}),\s*dark:\s*0x([0-9A-Fa-f]{6})",
         source,
     ):
         tokens[m.group(1)] = (int(m.group(2), 16), int(m.group(3), 16))
