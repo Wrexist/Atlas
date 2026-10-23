@@ -7,6 +7,8 @@ import SwiftUI
 /// a dashboard read.
 struct CoachingCard: View {
     let message: CoachingMessageEngine.CoachingMessage
+    /// The on-device model's rephrasing of `message.body`, when one landed.
+    var rephrasedBody: String?
 
     var body: some View {
         HStack(alignment: .top, spacing: Spacing.md) {
@@ -23,11 +25,13 @@ struct CoachingCard: View {
                     .foregroundStyle(AppColor.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                if let body = message.body {
+                if let body = rephrasedBody ?? message.body {
                     Text(body)
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .contentTransition(.opacity)
+                        .appAnimation(AppAnimation.fadeIn, value: body)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

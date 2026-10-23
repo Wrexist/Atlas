@@ -52,6 +52,24 @@ struct RecapInfoButton<Notes: View>: View {
     }
 }
 
+/// A one- or two-sentence recap written by the on-device model. The
+/// sparkle marks it as generated; every number in it came from the recap.
+struct RecapSummaryLine: View {
+    let text: String
+    var body: some View {
+        Label {
+            Text(text).fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: "sparkles").foregroundStyle(AppColor.recapAction)
+        }
+        .font(AppFont.body)
+        .foregroundStyle(AppColor.recapSecondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("Summary written on device: \(text)"))
+    }
+}
+
 struct RecapAction: View {
     let title: String
     let action: () -> Void

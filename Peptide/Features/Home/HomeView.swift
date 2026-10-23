@@ -105,6 +105,7 @@ struct HomeView: View {
     /// model `MealDaySwitcher` speaks, so the screen still means "today"
     /// after midnight and never reaches into the future.
     @State private var dayOffset = 0
+    @State private var summaryService = OnDeviceSummaryService.shared
     @Environment(\.requestReview) private var requestReview
     @Environment(\.scenePhase) private var scenePhase
 
@@ -131,6 +132,8 @@ struct HomeView: View {
         /// Habit progress for the habits hero, built once per revision and
         /// shared with `primaryReason` so habits are walked a single time.
         var habits: HabitsHeroSnapshot = .empty
+        /// Facts the on-device model may rephrase `primaryReason`'s body from.
+        var coachingFacts: OnDeviceSummaryEngine.Facts?
         /// Finished sessions this calendar week — the trio's first ring
         /// for a user with no active protocol.
         var workoutsThisWeek = 0
@@ -229,6 +232,7 @@ struct HomeView: View {
             count: daySessions.count,
             minutes: daySessions.reduce(0) { $0 + $1.elapsedSeconds() / 60 }
         )
+        let reason = isViewingToday ? buildPrimaryReason(plan: plan, habits: habits) : nil
         let next = DerivedToday(
             overview: TodayOverviewSnapshot.build(
                 from: dataStore,
@@ -237,8 +241,9 @@ struct HomeView: View {
             ),
             plan: plan,
             timeline: buildTimelineEvents(workoutSessions: daySessions, on: day),
-            primaryReason: isViewingToday ? buildPrimaryReason(plan: plan, habits: habits) : nil,
+            primaryReason: reason,
             habits: habits,
+            coachingFacts: reason.flatMap { coachingFacts(for: $0) },
             workoutsThisWeek: weekSessions.count,
             workoutSummary: workoutSummary,
             checklist: TodayChecklistEngine.state(
@@ -680,7 +685,11 @@ struct HomeView: View {
                 guard isViewingToday else { return }
                 let plan = derived.plan ?? DailyScheduleEngine.plan(for: dataStore.todayEntries)
                 let reason = buildPrimaryReason(plan: plan, habits: derived.habits)
-                AppAnimation.with(AppAnimation.springSmooth) { derived.primaryReason = reason }
+                let facts = coachingFacts(for: reason)
+                AppAnimation.with(AppAnimation.springSmooth) {
+                    derived.primaryReason = reason
+                    derived.coachingFacts = facts
+                }
             }
             .onAppear {
                 checkMilestonePrompt()
@@ -839,10 +848,16 @@ struct HomeView: View {
         if let reason = derived.primaryReason {
             // Keyed on the title so a new recommendation
             // cross-fades in rather than swapping text in place.
-            CoachingCard(message: reason.message)
+            CoachingCard(
+                message: reason.message,
+                rephrasedBody: derived.coachingFacts.flatMap { summaryService.text(for: $0) }
+            )
                 .id(reason.message.title)
                 .transition(.opacity.combined(with: .scale(0.98)))
                 .sectionAppear(index: 3)
+                .task(id: derived.coachingFacts) {
+                    if let facts = derived.coachingFacts { await summaryService.prepare(facts) }
+                }
         }
     }
 
@@ -1248,6 +1263,10 @@ struct HomeView: View {
             hourOfDay: Calendar.current.component(.hour, from: Date()),
             memberDays: memberDays
         )
+    }
+
+    private func coachingFacts(for reason: PrimaryReasonEngine.Reason) -> OnDeviceSummaryEngine.Facts? {
+        OnDeviceSummaryEngine.coaching(reason.message, context: buildCoachingContext())
     }
 
     /// Reconciles coaching, today's dose plan, habits due, and a freshly
