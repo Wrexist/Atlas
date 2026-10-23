@@ -106,6 +106,9 @@ struct AIResearchView: View {
             }
         }
         .presentationSizing(.page)
+        // A stray swipe would throw away the whole conversation; with
+        // one under way, closing goes through Done.
+        .interactiveDismissDisabled(!transcript.isEmpty)
     }
 
     // MARK: - Disclaimer
