@@ -40102,6 +40102,27 @@
           }
         }
       }
+    },
+    "Discard note?": {
+      "comment": "Protocol journal — confirm cancelling an unsaved note.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Släng anteckningen?"
+          }
+        }
+      }
+    },
+    "Your note hasn't been saved.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anteckningen har inte sparats."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
