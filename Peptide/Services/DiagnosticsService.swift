@@ -10,8 +10,8 @@ import Foundation
 ///
 ///   • lets a diagnostics screen in Profile show the developer
 ///     "yes, real users hit crash X" without leaving the device
-///   • forms the foundation for future server upload (when the
-///     backend lands) without re-instrumenting every crash path
+///   • hands each diagnostic to `CrashReportUploader`, which sends a
+///     trimmed copy to the proxy unless the user turned it off
 ///   • persists across launches so a crash signature on day 1 is
 ///     still visible when the user opens the app on day 14
 ///
@@ -112,6 +112,9 @@ final class DiagnosticsService: NSObject, MXMetricManagerSubscriber {
 
     nonisolated func didReceive(_ payloads: [MXDiagnosticPayload]) {
         let captured = payloads.map { (Date(), $0.jsonRepresentation()) }
+        for (_, json) in captured {
+            CrashReportUploader.send(diagnosticPayloadJSON: json)
+        }
         Task { @MainActor in
             for (received, json) in captured {
                 self.ingest(payloadJSON: json, kind: .diagnostic, receivedAt: received)

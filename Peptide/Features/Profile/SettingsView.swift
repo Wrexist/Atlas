@@ -19,6 +19,8 @@ struct SettingsView: View {
 
                 OnDeviceSummaryToggleRow()
 
+                CrashReportToggleRow()
+
                 AppearanceSettings()
 
                 ExportSection()

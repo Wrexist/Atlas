@@ -8645,6 +8645,16 @@
         }
       }
     },
+    "Share crash reports": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dela kraschrapporter"
+          }
+        }
+      }
+    },
     "The backup checked out but couldn't be restored. Try again.": {
       "localizations": {
         "sv": {
@@ -11761,6 +11771,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Meddelandet är för långt för assistenten. Försök med en kortare fråga."
+          }
+        }
+      }
+    },
+    "When Atlas crashes or freezes, send the technical report so it can be fixed: app version, device model and where in the code it happened. No health data, nothing that identifies you.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "När Atlas kraschar eller fryser skickas den tekniska rapporten så att felet kan rättas: appversion, enhetsmodell och var i koden det hände. Inga hälsodata, inget som identifierar dig."
           }
         }
       }
