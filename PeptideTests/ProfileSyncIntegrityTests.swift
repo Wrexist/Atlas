@@ -299,6 +299,53 @@ final class ProfileSyncIntegrityTests: XCTestCase {
         XCTAssertEqual(LifestyleDataLogic.consumption(in: merged, for: day).caloriesKcal, 3 * 550)
     }
 
+    func test_reconcile_sameHabitCheckedOnBothRowsSameDay_keepsOneEntryWithTheLargerValue() {
+        let hydrate = habit("Hydrate")
+        var primary = UserProfile.fresh
+        primary.habits = [hydrate]
+        primary.habitEntries = [HabitEntry(habitId: hydrate.id, date: day, value: 2)]
+        var other = primary
+        other.habitEntries = [HabitEntry(habitId: hydrate.id, date: day, value: 5)]
+
+        let merged = ProfileMergeEngine.reconcile(primary, with: other)
+
+        XCTAssertEqual(merged.habitEntries.map(\.value), [5])
+        XCTAssertEqual(merged.habitEntries.map(\.id), primary.habitEntries.map(\.id))
+    }
+
+    func test_reconcile_outcomeCheckInOnBothRowsSameDay_keepsTheNewerOne() {
+        var primary = UserProfile.fresh
+        primary.outcomeHistory = [OutcomeEntry(date: day, energy: 2, sleepQuality: 2, recovery: 2, mood: 2, focus: 2,
+                                               updatedAt: day)]
+        var other = UserProfile.fresh
+        other.outcomeHistory = [OutcomeEntry(date: day, energy: 4, sleepQuality: 4, recovery: 4, mood: 4, focus: 4,
+                                             updatedAt: day.addingTimeInterval(600))]
+
+        let merged = ProfileMergeEngine.reconcile(primary, with: other)
+
+        XCTAssertEqual(merged.outcomeHistory.map(\.energy), [4])
+    }
+
+    func test_reconcile_waterOnBothRowsSameDay_addsTheOtherRowsWater() {
+        var primary = UserProfile.fresh
+        LifestyleDataLogic.logWater(into: &primary, fluidOunces: 8, date: day)
+        var other = UserProfile.fresh
+        LifestyleDataLogic.logWater(into: &other, fluidOunces: 16, date: day)
+
+        let merged = ProfileMergeEngine.reconcile(primary, with: other)
+
+        XCTAssertEqual(LifestyleDataLogic.consumption(in: merged, for: day).waterFluidOunces, 24)
+    }
+
+    func test_reconcile_legacyWorkoutsOnTheOtherRow_areKept() {
+        var other = UserProfile.fresh
+        other.workoutHistory = [WorkoutEntry(date: day, name: "Run", sets: 1, reps: 1, durationMinutes: 30)]
+
+        let merged = ProfileMergeEngine.reconcile(UserProfile.fresh, with: other)
+
+        XCTAssertEqual(merged.workoutHistory.map(\.id), other.workoutHistory.map(\.id))
+    }
+
     func test_reconcile_freshWinnerAndCustomizedTodayLayout_adoptsTheCustomLayout() {
         var other = UserProfile.fresh
         other.todayLayout.setHidden(.momentum, true)

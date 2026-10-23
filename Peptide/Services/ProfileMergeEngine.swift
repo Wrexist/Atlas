@@ -28,9 +28,10 @@ enum ProfileMergeEngine {
 
         merged.weightHistory = union(primary.weightHistory, other.weightHistory).sorted { $0.date < $1.date }
         merged.labHistory = union(primary.labHistory, other.labHistory)
-        merged.outcomeHistory = union(primary.outcomeHistory, other.outcomeHistory).sorted { $0.date < $1.date }
+        merged.outcomeHistory = mergeOutcomes(primary.outcomeHistory, other.outcomeHistory)
         merged.habits = union(primary.habits, other.habits)
-        merged.habitEntries = union(primary.habitEntries, other.habitEntries)
+        merged.habitEntries = mergeHabitEntries(primary.habitEntries, other.habitEntries)
+        merged.workoutHistory = union(primary.workoutHistory, other.workoutHistory)
         merged.customFoods = union(primary.customFoods, other.customFoods)
         merged.recipes = union(primary.recipes, other.recipes)
         merged.protocolNotes = union(primary.protocolNotes, other.protocolNotes)
@@ -76,15 +77,19 @@ enum ProfileMergeEngine {
     }
 
     /// Meals the other row alone holds join the diary. A day only the
-    /// other row has keeps its whole bucket (water included); a day both
-    /// rows have gains just those meals' macros, so nothing is counted
-    /// twice.
+    /// other row has keeps its whole bucket; a day both rows have gains
+    /// just those meals' macros, so nothing is counted twice, plus the
+    /// other row's water, which has no per-glass record to match on.
     private static func mergeMeals(from other: UserProfile, into merged: inout UserProfile, primary: UserProfile) {
         let known = Set(primary.mealHistory.map(\.id))
         let otherOnly = other.mealHistory.filter { !known.contains($0.id) }
         merged.mealHistory = (primary.mealHistory + otherOnly).sorted { $0.date < $1.date }
-        for (key, bucket) in other.dailyConsumption where primary.dailyConsumption[key] == nil {
-            merged.dailyConsumption[key] = bucket
+        for (key, bucket) in other.dailyConsumption {
+            if primary.dailyConsumption[key] == nil {
+                merged.dailyConsumption[key] = bucket
+            } else {
+                merged.dailyConsumption[key]?.addWater(fluidOunces: bucket.waterFluidOunces)
+            }
         }
         for entry in otherOnly
         where primary.dailyConsumption[LifestyleDataLogic.consumptionKey(for: entry.date)] != nil {
@@ -146,6 +151,45 @@ enum ProfileMergeEngine {
     }
 
     // MARK: - Helpers
+
+    /// Check-ins carry random ids, so both rows checking one habit on one
+    /// day would otherwise leave two entries; the larger count stays.
+    private static func mergeHabitEntries(_ primary: [HabitEntry], _ other: [HabitEntry]) -> [HabitEntry] {
+        struct HabitDay: Hashable { let habitId: UUID; let day: Date }
+        let calendar = Calendar.current
+        func key(_ entry: HabitEntry) -> HabitDay {
+            HabitDay(habitId: entry.habitId, day: calendar.startOfDay(for: entry.date))
+        }
+        var merged = primary
+        var indexByKey = Dictionary(primary.indices.map { (key(primary[$0]), $0) }, uniquingKeysWith: { first, _ in first })
+        for entry in other {
+            if let index = indexByKey[key(entry)] {
+                merged[index].value = max(merged[index].value, entry.value)
+            } else {
+                indexByKey[key(entry)] = merged.count
+                merged.append(entry)
+            }
+        }
+        return merged
+    }
+
+    /// One outcome check-in per day; the more recently edited one stays.
+    private static func mergeOutcomes(_ primary: [OutcomeEntry], _ other: [OutcomeEntry]) -> [OutcomeEntry] {
+        let calendar = Calendar.current
+        var merged = primary
+        var indexByDay = Dictionary(primary.indices.map { (calendar.startOfDay(for: primary[$0].date), $0) },
+                                    uniquingKeysWith: { first, _ in first })
+        for entry in other {
+            let day = calendar.startOfDay(for: entry.date)
+            if let index = indexByDay[day] {
+                if entry.id != merged[index].id, entry.updatedAt > merged[index].updatedAt { merged[index] = entry }
+            } else {
+                indexByDay[day] = merged.count
+                merged.append(entry)
+            }
+        }
+        return merged.sorted { $0.date < $1.date }
+    }
 
     private static func union<T: Identifiable>(_ primary: [T], _ other: [T]) -> [T] {
         let known = Set(primary.map(\.id))
