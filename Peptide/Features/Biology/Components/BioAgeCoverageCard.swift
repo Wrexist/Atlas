@@ -15,6 +15,15 @@ struct BioAgeCoverageCard: View {
         PerformanceAgeEngine.drivers(for: inputs).map(\.kind)
     }
 
+    /// Missing signals first: each carries the one step that would add
+    /// it, and those steps are what this card is for. Counted ones
+    /// follow, in the engine's order.
+    private var orderedKinds: [PerformanceAgeEngine.Driver.Kind] {
+        let present = Set(presentKinds)
+        let all = PerformanceAgeEngine.Driver.Kind.allCases
+        return all.filter { !present.contains($0) } + all.filter { present.contains($0) }
+    }
+
     private var confidence: Double {
         PerformanceAgeEngine.confidenceScore(
             coverage: PerformanceAgeEngine.coverage(of: presentKinds),
@@ -33,7 +42,7 @@ struct BioAgeCoverageCard: View {
                 VStack(alignment: .leading, spacing: Spacing.lg) {
                     confidenceHeader
                     VStack(spacing: Spacing.md) {
-                        ForEach(Array(PerformanceAgeEngine.Driver.Kind.allCases.enumerated()), id: \.element) { index, kind in
+                        ForEach(Array(orderedKinds.enumerated()), id: \.element) { index, kind in
                             signalRow(kind, index: index)
                         }
                     }

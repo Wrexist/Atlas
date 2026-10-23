@@ -45,7 +45,8 @@ struct BiologyView: View {
                             && resolved?.inputs?.healthDataDays == 0,
                         metricShortcuts: visibleBiomarkers,
                         onSelectMetric: { openDetail(for: $0) },
-                        onExplainTapped: { showBioAgeExplainer = true }
+                        onExplainTapped: { showBioAgeExplainer = true },
+                        onAddAge: { appState.showProfile = true }
                     )
                     .sectionAppear(index: 0)
 
