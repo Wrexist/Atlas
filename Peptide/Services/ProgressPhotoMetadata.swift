@@ -29,6 +29,15 @@ enum ProgressPhotoMetadata {
         return Date(timeIntervalSince1970: stamp)
     }
 
+    /// Whether `a` was taken before `b`. Falls back to name order (which
+    /// is chronological for this scheme) when a date can't be parsed.
+    static func isEarlier(_ a: String, than b: String) -> Bool {
+        guard let dateA = date(forFilename: a), let dateB = date(forFilename: b), dateA != dateB else {
+            return a < b
+        }
+        return dateA < dateB
+    }
+
     /// Number of days between two photos, ignoring time of day.
     /// Powers the "5 days apart" label in the comparison view.
     /// Returns 0 when either date is unparseable.

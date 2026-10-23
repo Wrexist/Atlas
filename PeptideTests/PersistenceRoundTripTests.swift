@@ -840,6 +840,13 @@ final class PersistenceRoundTripTests: XCTestCase {
                        "Only the first letter is capitalised, not every word")
     }
 
+    func test_progressPhotoMetadata_isEarlier_ordersByEncodedDate() {
+        let older = "progress-1700000000-bbb222.jpg"
+        let newer = "progress-1800000000-aaa111.jpg"
+        XCTAssertTrue(ProgressPhotoMetadata.isEarlier(older, than: newer))
+        XCTAssertFalse(ProgressPhotoMetadata.isEarlier(newer, than: older))
+    }
+
     func test_progressPhotoMetadata_daysBetween_isAbsoluteAndDayResolution() {
         let cal = Calendar.current
         let now = cal.startOfDay(for: Date())

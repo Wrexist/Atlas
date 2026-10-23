@@ -93,20 +93,22 @@ struct ProgressPhotoCompareView: View {
     // MARK: - Photo pair
 
     private var photoPair: some View {
-        HStack(spacing: Spacing.sm) {
-            photoColumn(filename: resolvedCompare, label: olderLabel)
-            photoColumn(filename: primary, label: newerLabel)
+        let pair = orderedPair
+        return HStack(spacing: Spacing.sm) {
+            photoColumn(filename: pair.earlier, label: pair.earlier.map { ProgressPhotoMetadata.displayDate(forFilename: $0) }
+                ?? String(localized: "Before"))
+            photoColumn(filename: pair.later, label: ProgressPhotoMetadata.displayDate(forFilename: pair.later))
         }
         .frame(maxHeight: 360)
     }
 
-    private var olderLabel: String {
-        guard let compare = resolvedCompare else { return String(localized: "Before") }
-        return ProgressPhotoMetadata.displayDate(forFilename: compare)
-    }
-
-    private var newerLabel: String {
-        ProgressPhotoMetadata.displayDate(forFilename: primary)
+    /// Before on the left, after on the right, whichever photo the user
+    /// came in with.
+    private var orderedPair: (earlier: String?, later: String) {
+        if let compare = resolvedCompare, ProgressPhotoMetadata.isEarlier(primary, than: compare) {
+            return (primary, compare)
+        }
+        return (resolvedCompare, primary)
     }
 
     @ViewBuilder
