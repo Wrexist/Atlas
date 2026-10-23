@@ -23,5 +23,4 @@ enum AppLog {
     static let ai            = Logger(subsystem: subsystem, category: "AI")
     static let watch         = Logger(subsystem: subsystem, category: "Watch")
     static let spotlight     = Logger(subsystem: subsystem, category: "Spotlight")
-    static let affiliate     = Logger(subsystem: subsystem, category: "Affiliate")
 }
