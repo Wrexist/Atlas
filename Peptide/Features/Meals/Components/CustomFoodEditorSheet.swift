@@ -101,8 +101,9 @@ struct CustomFoodEditorSheet: View {
     }
 
     /// Pure fat is about 900 kcal per 100 g, 100 g of food can't hold
-    /// more than 100 g of protein, carbs and fat, and a serving is held to the same bounds as any portion —
-    /// quick log, Siri and recipes use it as the default.
+    /// more than 100 g of protein, carbs and fat, and a serving is held
+    /// to the same bounds as any portion — quick log, Siri and recipes
+    /// use it as the default.
     static func inputProblem(calories: Double?, protein: Double?, carbs: Double?, fat: Double?,
                              fiber: Double?, sugars: Double?, servingGrams: Double?) -> InputProblem? {
         if [calories, protein, carbs, fat, fiber, sugars].contains(where: { ($0 ?? 0) < 0 }) { return .negative }

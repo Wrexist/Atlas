@@ -719,7 +719,9 @@ private struct FlexibleDouble: Decodable {
         if let d = try? c.decode(Double.self) {
             value = d
         } else if let s = try? c.decode(String.self) {
+            // `Double("nan")` and `Double("inf")` parse; neither is a nutrient.
             value = Double(s.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: "."))
+                .flatMap { $0.isFinite ? $0 : nil }
         } else {
             value = nil
         }
