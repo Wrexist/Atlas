@@ -78,15 +78,8 @@ struct ProfileCustomizationSheet: View {
             .navigationTitle("Customize profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundStyle(AppColor.textSecondary)
-                }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        commit()
+                    Button("Done") {
                         dismiss()
                     }
                     .fontWeight(.semibold)
@@ -95,11 +88,15 @@ struct ProfileCustomizationSheet: View {
             }
         }
         .onAppear(perform: hydrateFromProfile)
+        // Accent, goals and preferences save as they change, so name, bio
+        // and photo do too: every way out — Done, swipe-down, or a protocol
+        // row that closes Profile — keeps what the user entered.
+        .onDisappear(perform: commit)
         .onChange(of: photoSelection) { _, newValue in
             guard let newValue else { return }
             Task { await processPickedPhoto(newValue) }
         }
-        .alert("Remove Profile Photo?", isPresented: $isConfirmingRemoveAvatar) {
+        .alert("Remove profile photo?", isPresented: $isConfirmingRemoveAvatar) {
             Button("Remove", role: .destructive) {
                 avatarData = nil
                 photoSelection = nil
@@ -109,7 +106,7 @@ struct ProfileCustomizationSheet: View {
             Text("Your initials will be shown instead.")
         }
         .alert(
-            "Couldn't Use That Photo",
+            "Couldn't use that photo",
             isPresented: Binding(
                 get: { photoError != nil },
                 set: { if !$0 { photoError = nil } }
@@ -167,7 +164,7 @@ struct ProfileCustomizationSheet: View {
                     isShowingPhotoSourceMenu = true
                 } label: {
                     Label(
-                        avatarData == nil ? "Add Photo" : "Replace",
+                        avatarData == nil ? "Add photo" : "Replace",
                         systemImage: "photo.on.rectangle.angled"
                     )
                     .font(AppFont.subheadline)
@@ -419,7 +416,7 @@ struct ProfileCustomizationSheet: View {
                     .foregroundStyle(AppColor.textPrimary)
 
                 identityField(
-                    title: "Display Name",
+                    title: "Display name",
                     placeholder: "What should we call you?",
                     text: $name
                 )
@@ -707,7 +704,7 @@ struct ProfileCustomizationSheet: View {
                         bodyStat("Age", metrics.age.map { "\($0)" } ?? "—")
                     }
                 } else {
-                    Text("Optional — add your weight, height, and age in the Profile tab to display them alongside compliance trends.")
+                    Text("Optional — add your weight, height, and age in the Body metrics card on your Profile to display them alongside compliance trends.")
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -772,7 +769,7 @@ struct ProfileCustomizationSheet: View {
 
                 preferenceToggle(
                     icon: "bell.fill",
-                    title: "Dose Reminders",
+                    title: "Dose reminders",
                     subtitle: "Get notified for scheduled doses",
                     isOn: $store.profile.doseRemindersEnabled
                 )
@@ -794,21 +791,21 @@ struct ProfileCustomizationSheet: View {
                 .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.accentPrimary)
                 .frame(width: 24)
+                .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(title)
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textPrimary)
-                Text(subtitle)
-                    .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.textTertiary)
+            // The title and subtitle are the toggle's own label, so
+            // VoiceOver names the switch it focuses.
+            Toggle(isOn: isOn) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text(title)
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text(subtitle)
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.textTertiary)
+                }
             }
-
-            Spacer()
-
-            Toggle("", isOn: isOn)
-                .labelsHidden()
-                .tint(AppColor.accentPrimary)
+            .tint(AppColor.accentPrimary)
         }
     }
 
@@ -822,7 +819,11 @@ struct ProfileCustomizationSheet: View {
     }
 
     private func commit() {
-        dataStore.updateProfileIdentity(name: name, bio: bio)
+        let profile = dataStore.profile
+        if name.trimmingCharacters(in: .whitespacesAndNewlines) != profile.name
+            || bio.trimmingCharacters(in: .whitespacesAndNewlines) != profile.bio {
+            dataStore.updateProfileIdentity(name: name, bio: bio)
+        }
         if avatarData != dataStore.profile.avatarImageData {
             dataStore.updateAvatarImageData(avatarData)
         }
@@ -833,7 +834,12 @@ struct ProfileCustomizationSheet: View {
     @MainActor
     private func processPickedPhoto(_ item: PhotosPickerItem) async {
         isProcessingPhoto = true
-        defer { isProcessingPhoto = false }
+        // Cleared after every pick so choosing the same library item again
+        // is still a change `onChange(of: photoSelection)` sees.
+        defer {
+            isProcessingPhoto = false
+            photoSelection = nil
+        }
 
         do {
             guard let raw = try await item.loadTransferable(type: Data.self) else {

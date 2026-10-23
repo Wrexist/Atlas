@@ -9125,6 +9125,26 @@
         }
       }
     },
+    "Couldn't use that photo": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kunde inte använda fotot"
+          }
+        }
+      }
+    },
+    "Create protocol": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skapa protokoll"
+          }
+        }
+      }
+    },
     "CSV": {
       "localizations": {
         "sv": {
@@ -10261,6 +10281,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cykeln klar · %lld dagar"
+          }
+        }
+      }
+    },
+    "Display name": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visningsnamn"
+          }
+        }
+      }
+    },
+    "Dose reminders": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dospåminnelser"
           }
         }
       }
@@ -24137,6 +24177,16 @@
         }
       }
     },
+    "Optional — add your weight, height, and age in the Body metrics card on your Profile to display them alongside compliance trends.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valfritt – lägg till vikt, längd och ålder i kortet Kroppsmått i din profil för att visa dem bredvid följsamhetstrenderna."
+          }
+        }
+      }
+    },
     "Optional — add your weight, height, and age in the Profile tab to display them alongside compliance trends.": {
       "localizations": {
         "sv": {
@@ -26315,6 +26365,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Påminnelser, veckosammanfattningar och vilotimer-aviseringar."
+          }
+        }
+      }
+    },
+    "Remove profile photo?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ta bort profilbild?"
           }
         }
       }
@@ -37103,6 +37163,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "DITT LAGER"
+          }
+        }
+      }
+    },
+    "Your protocols": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina protokoll"
           }
         }
       }
