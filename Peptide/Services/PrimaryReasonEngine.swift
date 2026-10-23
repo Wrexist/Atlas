@@ -178,12 +178,12 @@ enum PrimaryReasonEngine {
         if let headline = context.dailyPlanHeadline, coaching.kind == .onTrack {
             return Reason(
                 message: CoachingMessageEngine.CoachingMessage(
-                    kind: coaching.kind,
                     icon: coaching.icon,
                     eyebrow: coaching.eyebrow,
                     title: coaching.title,
                     body: headline,
-                    tone: coaching.tone
+                    tone: coaching.tone,
+                    kind: coaching.kind
                 ),
                 priority: .optionalReminder
             )
@@ -194,23 +194,23 @@ enum PrimaryReasonEngine {
     private static func habitsMessage(context: Context) -> CoachingMessageEngine.CoachingMessage {
         let remaining = max(0, context.habitsDueCount - context.habitsDoneCount)
         return CoachingMessageEngine.CoachingMessage(
-            kind: .habitsDue,
             icon: "checklist",
             eyebrow: String(localized: "HABITS"),
             title: String(localized: "\(remaining) habits due today"),
             body: String(localized: "Tap in below to check off your first one."),
-            tone: .neutral
+            tone: .neutral,
+            kind: .habitsDue
         )
     }
 
     private static func weeklyReviewMessage(headline: String) -> CoachingMessageEngine.CoachingMessage {
         CoachingMessageEngine.CoachingMessage(
-            kind: .weeklyReview,
             icon: "chart.line.uptrend.xyaxis",
             eyebrow: String(localized: "WEEKLY REVIEW"),
             title: String(localized: "Your week in review"),
             body: headline,
-            tone: .positive
+            tone: .positive,
+            kind: .weeklyReview
         )
     }
 }

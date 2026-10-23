@@ -106,28 +106,28 @@ struct CoachingCard: View {
         AppColor.background.ignoresSafeArea()
         VStack(spacing: Spacing.md) {
             CoachingCard(message: .init(
-                kind: .strongRecovery,
                 icon: "bolt.heart.fill",
                 eyebrow: "COACHING",
                 title: "Excellent recovery — 85%",
                 body: "Recovery is up — good day to nail your BPC-157 dose at 8:00 PM.",
-                tone: .positive
+                tone: .positive,
+                kind: .strongRecovery
             ))
             CoachingCard(message: .init(
-                kind: .weakRecovery,
                 icon: "moon.zzz.fill",
                 eyebrow: "COACHING",
                 title: "Lower recovery — 32%",
                 body: "Consider an easier day. Hydrate, prioritize sleep, and don't skip rest days.",
-                tone: .cautionary
+                tone: .cautionary,
+                kind: .weakRecovery
             ))
             CoachingCard(message: .init(
-                kind: .connectHealth,
                 icon: "heart.text.square.fill",
                 eyebrow: "GET STARTED",
                 title: "Connect Apple Health",
                 body: "Unlock Recovery and Sleep scores plus per-protocol HRV correlations.",
-                tone: .neutral
+                tone: .neutral,
+                kind: .connectHealth
             ), onAction: { _ in })
         }
         .padding(Spacing.lg)

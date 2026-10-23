@@ -23,23 +23,23 @@ import Foundation
 enum CoachingMessageEngine {
 
     struct CoachingMessage: Equatable, Sendable {
-        /// What the message is about. Callers branch on this, never on the
-        /// display copy, so editing or translating the copy can't move a
-        /// message to another tier.
-        let kind: Kind
         let icon: String                       // SF Symbol
         let eyebrow: String                    // "COACHING", "WELCOME", etc.
         let title: String                      // the headline line
         let body: String?                      // optional one-line detail
         let tone: Tone
-
-        enum Kind: Equatable, Sendable {
-            case welcome, connectHealth, strongRecovery, weakRecovery, shortSleep,
-                 catchUp, onTrack, habitsDue, weeklyReview
-        }
+        /// Which branch produced the message. Callers that need to know
+        /// (`PrimaryReasonEngine`) compare this, never the display copy,
+        /// which changes with wording and language.
+        var kind: Kind = .other
 
         enum Tone: Equatable, Sendable {
             case positive, neutral, cautionary, welcome
+        }
+
+        enum Kind: Equatable, Sendable {
+            case welcome, connectHealth, onTrack, other,
+                 strongRecovery, weakRecovery, shortSleep, catchUp, habitsDue, weeklyReview
         }
 
         /// What tapping the card does, for messages that ask for something.
@@ -52,7 +52,7 @@ enum CoachingMessageEngine {
             case .connectHealth: return .connectHealth
             case .habitsDue: return .scrollToHabits
             case .catchUp: return .scrollToDoses
-            case .welcome, .strongRecovery, .weakRecovery, .shortSleep, .onTrack, .weeklyReview: return nil
+            case .welcome, .onTrack, .other, .strongRecovery, .weakRecovery, .shortSleep, .weeklyReview: return nil
             }
         }
 
@@ -153,23 +153,23 @@ enum CoachingMessageEngine {
     /// for training, nutrition or recovery.
     private static func welcomeMessage() -> CoachingMessage {
         CoachingMessage(
-            kind: .welcome,
             icon: "sparkles",
             eyebrow: String(localized: "WELCOME"),
             title: String(localized: "Welcome to Atlas"),
             body: String(localized: "Log a workout, a meal, or a habit — Atlas learns your patterns as you go."),
-            tone: .welcome
+            tone: .welcome,
+            kind: .welcome
         )
     }
 
     private static func connectHealthMessage() -> CoachingMessage {
         CoachingMessage(
-            kind: .connectHealth,
             icon: "heart.text.square.fill",
             eyebrow: String(localized: "GET STARTED"),
             title: String(localized: "Connect Apple Health"),
             body: String(localized: "Unlock Recovery and Sleep scores plus per-protocol HRV correlations."),
-            tone: .neutral
+            tone: .neutral,
+            kind: .connectHealth
         )
     }
 
@@ -181,67 +181,67 @@ enum CoachingMessageEngine {
             body = String(localized: "Recovery is up. Good day to push and stay consistent.")
         }
         return CoachingMessage(
-            kind: .strongRecovery,
             icon: "bolt.heart.fill",
             eyebrow: String(localized: "COACHING"),
             title: String(localized: "Excellent recovery — \(recovery)%"),
             body: body,
-            tone: .positive
+            tone: .positive,
+            kind: .strongRecovery
         )
     }
 
     private static func weakRecoveryMessage(context: Context, recovery: Int) -> CoachingMessage {
         CoachingMessage(
-            kind: .weakRecovery,
             icon: "moon.zzz.fill",
             eyebrow: String(localized: "COACHING"),
             title: String(localized: "Lower recovery — \(recovery)%"),
             body: String(localized: "Consider an easier day. Hydrate, prioritize sleep, and don't skip rest days."),
-            tone: .cautionary
+            tone: .cautionary,
+            kind: .weakRecovery
         )
     }
 
     private static func shortSleepMessage(sleepHours: Double) -> CoachingMessage {
         let display = sleepHours.formatted(.number.precision(.fractionLength(1)))
         return CoachingMessage(
-            kind: .shortSleep,
             icon: "bed.double.fill",
             eyebrow: String(localized: "COACHING"),
             title: String(localized: "Short sleep — \(display) h"),
             body: String(localized: "Cap intensity today. A long nap or an earlier wind-down will pay back tomorrow."),
-            tone: .cautionary
+            tone: .cautionary,
+            kind: .shortSleep
         )
     }
 
     static func catchUpMessage(pending: Int) -> CoachingMessage {
         CoachingMessage(
-            kind: .catchUp,
             icon: "clock.badge.exclamationmark.fill",
             eyebrow: String(localized: "COACHING"),
             title: String(localized: "\(pending) doses left today"),
             body: String(localized: "Tap a dose below to log it."),
-            tone: .cautionary
+            tone: .cautionary,
+            kind: .catchUp
         )
     }
 
     private static func onTrackMessage(context: Context) -> CoachingMessage {
         if let dose = context.nextDoseAbbreviation, let time = context.nextDoseTimeDisplay {
             return CoachingMessage(
-                kind: .onTrack,
                 icon: "checkmark.circle.fill",
                 eyebrow: String(localized: "ON TRACK"),
                 title: String(localized: "You're on track"),
                 body: String(localized: "Next: \(dose) at \(time). Keep it steady."),
-                tone: .positive
+                tone: .positive,
+                kind: .onTrack
             )
         }
         return CoachingMessage(
-            kind: .onTrack,
             icon: "checkmark.circle.fill",
             eyebrow: String(localized: "ON TRACK"),
             title: String(localized: "You're on track"),
             body: onTrackBody(context: context),
-            tone: .positive
+            tone: .positive,
+            kind: .onTrack
         )
     }
 
