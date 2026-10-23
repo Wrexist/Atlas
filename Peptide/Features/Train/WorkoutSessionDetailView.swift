@@ -42,11 +42,24 @@ struct WorkoutSessionDetailView: View {
                     noteCard(note)
                 }
                 exercisesList
+                // Doing the same session again is what people open an old
+                // workout for, so it doesn't live only in the ⋯ menu.
+                if !session.isActive && !session.exercises.isEmpty && sessionService.activeSession == nil {
+                    GlassButton(title: "Repeat workout", icon: "arrow.clockwise", isFullWidth: true, action: repeatWorkout)
+                        .accessibilityIdentifier("session-repeat-workout")
+                }
             }
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.vertical, Spacing.lg)
         }
         .background(AppColor.background.ignoresSafeArea())
+        .overlay(alignment: .top) {
+            SyncToast(
+                isShowing: savedRoutineBinding,
+                message: LocalizedStringResource("\(savedRoutineName ?? "") is ready in Routines.")
+            )
+            .padding(.top, Spacing.sm)
+        }
         .sheet(isPresented: $showingSummary, onDismiss: {
             if let latest = SwiftDataRepository.shared.loadWorkoutSession(id: session.id) { session = latest }
         }) {
@@ -86,11 +99,6 @@ struct WorkoutSessionDetailView: View {
             TextField("Routine name", text: $routineNameDraft)
             Button("Cancel", role: .cancel) {}
             Button("Save", action: saveAsRoutine)
-        }
-        .alert("Routine saved", isPresented: savedRoutineBinding) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("\(savedRoutineName ?? "") is ready in Routines.")
         }
         .alert("Workout in progress", isPresented: $showingActiveWorkoutConflict) {
             Button("OK", role: .cancel) {}

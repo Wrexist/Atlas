@@ -32,6 +32,12 @@ struct WorkoutFinishView: View {
                 VStack(alignment: .leading, spacing: Spacing.lg) {
                     header(summary)
                         .sectionAppear(index: 0)
+                    // The peak of the workout goes straight under the
+                    // headline, not below the weekly roll-up.
+                    if !detectedPRs.isEmpty {
+                        RecapNewPRs(prs: detectedPRs, entries: summary.entries, unit: unit)
+                            .sectionAppear(index: 1)
+                    }
                     if let facts = recapFacts(summary), let text = summaryService.text(for: facts) {
                         RecapSummaryLine(text: text)
                     }
@@ -46,11 +52,7 @@ struct WorkoutFinishView: View {
                             }
                         }
                     }.buttonStyle(ScalePressStyle()).accessibilityIdentifier("recap-weekly")
-                        .sectionAppear(index: 1)
-                    if !detectedPRs.isEmpty {
-                        RecapNewPRs(prs: detectedPRs, entries: summary.entries, unit: unit)
-                            .sectionAppear(index: 2)
-                    }
+                        .sectionAppear(index: 2)
                     VStack(alignment: .trailing, spacing: 0) {
                         RecapMetrics(summary: summary, unit: unit)
                         RecapCalculationNotes(summary: summary)

@@ -68,7 +68,7 @@ struct WorkoutHistoryView: View {
                             }
                         }
                     } header: {
-                        sectionHeader(group.month.formatted(.dateTime.month(.wide).year()))
+                        sectionHeader(group.month.formatted(.dateTime.month(.wide).year()), count: group.sessions.count)
                     }
                 }
                 if hasOlderSessions {
@@ -84,14 +84,22 @@ struct WorkoutHistoryView: View {
         }
     }
 
-    private func sectionHeader(_ label: String) -> some View {
+    /// The month's workout count sits beside its name, so a long history
+    /// scans as a tally per month rather than an unbroken list.
+    private func sectionHeader(_ label: String, count: Int) -> some View {
         HStack {
             Text(label)
                 .font(AppFont.eyebrow)
                 .tracking(1.2)
                 .foregroundStyle(AppColor.textSecondary)
             Spacer()
+            Text("^[\(count) workout](inflect: true)")
+                .font(AppFont.caption2)
+                .foregroundStyle(AppColor.textTertiary)
+                .monospacedDigit()
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
         .padding(.horizontal, Spacing.xs)
         .padding(.vertical, Spacing.sm)
         .background(AppColor.background)
