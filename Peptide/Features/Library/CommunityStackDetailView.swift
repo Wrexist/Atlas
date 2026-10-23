@@ -195,7 +195,7 @@ struct CommunityStackDetailView: View {
                     .foregroundStyle(AppColor.textPrimary)
 
                 if resolvedPeptides.isEmpty {
-                    Text("Some peptides in this protocol aren't in your local database.")
+                    Text("Some peptides in this protocol aren't in your library.")
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.warning)
                 } else {

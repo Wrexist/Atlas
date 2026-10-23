@@ -81,7 +81,7 @@ struct WeeklySummaryHeroCard: View {
             }
         }
         .overlay(accentBackdrop)
-        .accessibilityLabel("Loading your weekly summary")
+        .accessibilityLabel("Loading your weekly recap")
     }
 
     // MARK: - Ready
@@ -123,7 +123,7 @@ struct WeeklySummaryHeroCard: View {
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.985))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Weekly summary, \(weekTitle(for: summary.weekStart))")
+        .accessibilityLabel("Weekly recap, \(weekTitle(for: summary.weekStart))")
         .accessibilityHint("Opens the full recap")
     }
 
@@ -194,7 +194,7 @@ struct WeeklySummaryHeroCard: View {
 
     private func eyebrowRow(badge: String?) -> some View {
         HStack(spacing: Spacing.sm) {
-            Text("Week recap")
+            Text("Weekly recap")
                 .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(1.2)
                 .textCase(.uppercase)

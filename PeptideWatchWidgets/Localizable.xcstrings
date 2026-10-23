@@ -423,7 +423,7 @@
         }
       }
     },
-    "Last night's Sleep Score and time asleep.": {
+    "Last night's sleep score and time asleep.": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -713,7 +713,7 @@
         }
       }
     },
-    "Sleep Score": {
+    "Sleep score": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -723,7 +723,7 @@
         }
       }
     },
-    "Sleep Score %lld, %@": {
+    "Sleep score %lld, %@": {
       "localizations": {
         "sv": {
           "stringUnit": {

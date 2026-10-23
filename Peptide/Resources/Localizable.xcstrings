@@ -6125,12 +6125,12 @@
         }
       }
     },
-    "Add a custom peptide to start building protocols.": {
+    "Add your own compound to start building protocols.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lägg till en egen peptid för att börja bygga protokoll."
+            "value": "Lägg till en egen substans för att börja bygga protokoll."
           }
         }
       }
@@ -11177,16 +11177,6 @@
         }
       }
     },
-    "Connect Apple Health for Recovery & Sleep scores": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Anslut Apple Hälsa för återhämtnings- och sömnpoäng"
-          }
-        }
-      }
-    },
     "Connect Apple Health for Recovery and Sleep scores": {
       "localizations": {
         "sv": {
@@ -12209,12 +12199,12 @@
         }
       }
     },
-    "Create your first protocol from your Peptide Library to start tracking doses, streaks, and adherence.": {
+    "Create your first protocol from your Library to start tracking doses, streaks, and adherence.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Skapa ditt första protokoll från ditt peptidbibliotek för att börja följa doser, sviter och följsamhet."
+            "value": "Skapa ditt första protokoll från ditt bibliotek för att börja följa doser, sviter och följsamhet."
           }
         }
       }
@@ -19057,7 +19047,7 @@
         }
       }
     },
-    "Loading your weekly summary": {
+    "Loading your weekly recap": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -25841,7 +25831,7 @@
         }
       }
     },
-    "Protocol Library": {
+    "Protocol library": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -27589,16 +27579,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Research"
-          }
-        }
-      }
-    },
-    "Research Assistant": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Researchassistent"
           }
         }
       }
@@ -30487,12 +30467,12 @@
         }
       }
     },
-    "Some peptides in this protocol aren't in your local database.": {
+    "Some peptides in this protocol aren't in your library.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vissa peptider i protokollet finns inte i din lokala databas."
+            "value": "Vissa peptider i protokollet finns inte i ditt bibliotek."
           }
         }
       }
@@ -35889,16 +35869,6 @@
         }
       }
     },
-    "Week recap": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Veckosammanfattning"
-          }
-        }
-      }
-    },
     "Weekdays": {
       "localizations": {
         "sv": {
@@ -35969,7 +35939,7 @@
         }
       }
     },
-    "Weekly summary, %@": {
+    "Weekly recap, %@": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -39827,6 +39797,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "iCloud-kontot har ändrats"
+          }
+        }
+      }
+    },
+    "Diet coach": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kostcoach"
           }
         }
       }

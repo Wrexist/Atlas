@@ -186,7 +186,7 @@ struct WatchSleepEntryView: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(sleep.map { String(localized: "Sleep Score \($0.score), \($0.band.label)") }
+        .accessibilityLabel(sleep.map { String(localized: "Sleep score \($0.score), \($0.band.label)") }
                             ?? (entry.synced
                                 ? String(localized: "No sleep recorded last night")
                                 : String(localized: "Open Atlas on iPhone")))
@@ -195,7 +195,7 @@ struct WatchSleepEntryView: View {
 
     private var rectangular: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Label("Sleep Score", systemImage: "bed.double.fill")
+            Label("Sleep score", systemImage: "bed.double.fill")
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(WatchPalette.sleepAccent)
             if let sleep {
@@ -239,8 +239,8 @@ struct WatchSleepWidget: Widget {
             WatchSleepEntryView(entry: entry)
                 .widgetURL(WatchPage.sleep.url)
         }
-        .configurationDisplayName("Sleep Score")
-        .description("Last night's Sleep Score and time asleep.")
+        .configurationDisplayName("Sleep score")
+        .description("Last night's sleep score and time asleep.")
         .supportedFamilies([.accessoryRectangular, .accessoryCircular, .accessoryInline])
     }
 }

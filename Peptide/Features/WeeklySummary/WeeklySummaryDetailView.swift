@@ -36,7 +36,7 @@ struct WeeklySummaryDetailView: View {
             .padding(.bottom, Spacing.xxxxl)
         }
         .background(AppColor.background)
-        .navigationTitle("Week recap")
+        .navigationTitle("Weekly recap")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if let onRefresh {
@@ -80,7 +80,7 @@ struct WeeklySummaryDetailView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Week recap")
+                    Text("Weekly recap")
                         .font(AppFont.scaled(11, weight: .heavy))
                         .tracking(1.2)
                         .textCase(.uppercase)
@@ -210,6 +210,6 @@ struct WeeklySummaryDetailView: View {
     // MARK: - Date helper
 
     private func weekTitle(for isoWeekStart: String) -> String {
-        WeeklySummary.weekTitle(for: isoWeekStart) ?? String(localized: "Week recap")
+        WeeklySummary.weekTitle(for: isoWeekStart) ?? String(localized: "Weekly recap")
     }
 }

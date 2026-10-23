@@ -80,7 +80,7 @@ struct StackLibraryView: View {
             .padding(.bottom, Spacing.xxxxl)
         }
         .background(AppColor.background)
-        .navigationTitle("Protocol Library")
+        .navigationTitle("Protocol library")
         // The `CommunityStack` navigation destination is declared by
         // every host stack that pushes this view (ProtocolListView,
         // ProtocolBuilderView). Declaring it again here collides on
