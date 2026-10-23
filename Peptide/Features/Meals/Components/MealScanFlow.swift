@@ -587,7 +587,7 @@ struct MealScanFlow: View {
 
                 MealCategoryPicker(selection: $category)
                 DatePicker("Log meal on", selection: Binding(
-                    get: { logDate }, set: { chosenLogDate = $0 }
+                    get: { logDate }, set: { moveLogDate(to: $0) }
                 ), in: ...Date(), displayedComponents: [.date, .hourAndMinute])
                 Text("Photo estimates can miss ingredients and portions. Review each item’s calories and amounts before logging.")
                     .font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
@@ -603,8 +603,10 @@ struct MealScanFlow: View {
             if let draftError {
                 Text(draftError).font(AppFont.caption2)
                 Button("Retry saving draft") { _ = persistDraft() }.minimumHitArea()
-            } else {
-                Text(dataStore.isEphemeral ? "Preview mode · Draft not saved" : "Draft saved on this device").font(AppFont.caption2)
+            } else if dataStore.isEphemeral {
+                // A working draft is the expected state; only say so
+                // when it is not being kept, so the CTA stands alone.
+                Text("Preview mode · Draft not saved").font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
             GlassButton(title: addButtonTitle, style: .primary, isFullWidth: true) {
@@ -1052,10 +1054,27 @@ struct MealScanFlow: View {
         return String(localized: "\(pendingEntries.count) items")
     }
 
+    /// Moving the meal to another time of day re-files it under the meal
+    /// that time belongs to, unless the user already picked one by hand.
+    private func moveLogDate(to date: Date) {
+        if category == MealCategory.auto(for: logDate) {
+            category = MealCategory.auto(for: date)
+        }
+        chosenLogDate = date
+    }
+
+    private var addedTitle: LocalizedStringKey {
+        Calendar.current.isDateInToday(logDate)
+            ? "Added to today"
+            : "Added to \(MealDaySwitcher.inlineTitle(for: logDate))"
+    }
+
     private var loggedCard: some View {
         VStack(spacing: Spacing.lg) {
             MilestoneArtwork(size: 64)
-            Text("Meal logged")
+            // Same title as the barcode and library success screens, so
+            // the three ways of logging end on the same words.
+            Text(addedTitle)
                 .font(AppFont.title2)
                 .foregroundStyle(AppColor.textPrimary)
             LoggedCaloriePanel(
@@ -1065,9 +1084,11 @@ struct MealScanFlow: View {
                 targetCalories: (dataStore.profile.nutritionTargets ?? .placeholder).calories,
                 date: logDate
             )
-            Text(dataStore.isEphemeral ? "Preview mode · No meal saved to storage." : "Saved to your food log.")
-                .font(AppFont.caption2)
-                .foregroundStyle(AppColor.textSecondary)
+            if dataStore.isEphemeral {
+                Text("Preview mode · No meal saved to storage.")
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
             if let draftError {
                 Text(draftError)
                     .font(AppFont.caption2)
