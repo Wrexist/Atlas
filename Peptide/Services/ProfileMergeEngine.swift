@@ -138,7 +138,7 @@ enum ProfileMergeEngine {
             RecordList(
                 changed: { $0[keyPath: keyPath] != $1[keyPath: keyPath] },
                 rebase: { merged, baseline, remote in
-                    merged[keyPath: keyPath] = rebasingRecords(
+                    merged[keyPath: keyPath] = ProfileMergeEngine.rebasingRecords(
                         local: merged[keyPath: keyPath],
                         baseline: baseline[keyPath: keyPath],
                         remote: remote[keyPath: keyPath]
@@ -167,9 +167,12 @@ enum ProfileMergeEngine {
         ]
     }
 
-    /// The scalar fields `ProfileExtension.residual` packs into one column.
+    /// Fields written as part of a column shared with other facts: the
+    /// food library's favourites and what `ProfileExtension.residual`
+    /// packs into one blob.
     private static var blobFields: [BlobField] {
         [
+            .of(\.favoriteFoodIDs),
             .of(\.nutritionTargets), .of(\.creatorAttribution), .of(\.affiliateApplication),
             .of(\.emailSubscription), .of(\.progressPhotoFilenames), .of(\.workoutHistory),
             .of(\.healthKitNutritionEnabled), .of(\.workoutLegacyMigrationCompleted),
