@@ -26,7 +26,7 @@ struct ScanInsightCard: View {
                             .monospacedDigit()
                             .contentTransition(.numericText())
                         Text(basisCaption(totalPrice.basis))
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textTertiary)
                     }
                     .accessibilityElement(children: .combine)
@@ -46,7 +46,7 @@ struct ScanInsightCard: View {
                         .font(AppFont.scaled(11))
                         .foregroundStyle(AppColor.warning)
                     Text(tip)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

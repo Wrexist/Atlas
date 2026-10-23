@@ -30,10 +30,13 @@ struct GlassButton: View {
             if style == .ghost {
                 label
             } else {
-                label.glassControl(.capsule, tint: tint, border: border)
+                // ScalePressStyle owns the press response; interactive
+                // glass would run a second, competing scale on iOS 26.
+                label.glassControl(.capsule, tint: tint, border: border, interactive: false)
             }
         }
         .buttonStyle(ScalePressStyle())
+        .opacity(isEnabled ? 1 : AppOpacity.disabled)
     }
 
     private var label: some View {
@@ -53,7 +56,6 @@ struct GlassButton: View {
         .padding(.vertical, Spacing.md)
         .frame(minHeight: Spacing.minimumHitTarget)
         .foregroundStyle(foregroundColor)
-        .opacity(isEnabled ? 1 : 0.4)
     }
 
     /// Kept at ~0.15–0.18. Above that the tint stops reading as coloured glass
@@ -79,7 +81,7 @@ struct GlassButton: View {
 
     private var foregroundColor: Color {
         switch style {
-        case .primary: AppColor.accentLight
+        case .primary: AppColor.accentInkOnWash
         case .secondary: AppColor.textPrimary
         case .ghost: AppColor.accentPrimary
         case .destructive: AppColor.destructive
@@ -104,7 +106,8 @@ struct GlassIconButton: View {
                 .glassControl(
                     .circle,
                     tint: tinted ? AppColor.accentPrimary.opacity(0.18) : nil,
-                    border: tinted ? AppColor.glassBorderActive : AppColor.glassBorder
+                    border: tinted ? AppColor.glassBorderActive : AppColor.glassBorder,
+                    interactive: false
                 )
         }
         .buttonStyle(ScalePressStyle())

@@ -14,6 +14,8 @@ struct BiomarkerRow: View {
     let snapshot: BiomarkerSnapshot
     var onTap: () -> Void
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: Spacing.md) {
@@ -27,7 +29,7 @@ struct BiomarkerRow: View {
                         .lineLimit(1)
 
                     Text(snapshot.changeText)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(1)
                         .contentTransition(.numericText())
@@ -80,11 +82,10 @@ struct BiomarkerRow: View {
             // tile has no series (blood pressure, etc.).
             if let arrow = trendArrow {
                 Image(systemName: arrow)
-                    .font(AppFont.scaled(8, weight: .heavy))
-                    .foregroundStyle(AppColor.onAccent)
-                    // The notch rides a fixed 40pt tile; past this size
+                    // The notch rides a fixed 40pt tile; past xxLarge
                     // it would clip the tile's corner.
-                    .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+                    .font(AppFont.scaled(8, weight: .heavy, in: min(dynamicTypeSize, .xxLarge)))
+                    .foregroundStyle(AppColor.onAccent)
                     .padding(2)
                     .background {
                         Circle().fill(badgeTint)

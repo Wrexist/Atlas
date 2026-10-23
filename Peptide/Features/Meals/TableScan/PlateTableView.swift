@@ -113,7 +113,7 @@ struct PlateTableView: View {
                             .rotationEffect(.degrees(Self.restingTilt(index)))
                         if showsLabels {
                             Text(plateLabel(dish))
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                                 .fontWeight(.semibold)
                                 .foregroundStyle(AppColor.textPrimary)
                                 .lineLimit(1)
@@ -141,7 +141,7 @@ struct PlateTableView: View {
             Image(uiImage: sticker)
                 .resizable()
                 .scaledToFit()
-                .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
+                .appShadow(AppShadow.glassSubtle)
         } else {
             Circle()
                 .fill(AppColor.background)
@@ -150,7 +150,7 @@ struct PlateTableView: View {
                         .font(AppFont.scaled(24, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                 }
-                .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
+                .appShadow(AppShadow.glassSubtle)
         }
     }
 
@@ -403,7 +403,7 @@ private struct TableStatTile: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(unit)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
                 .lineLimit(1)
         }
@@ -456,7 +456,7 @@ struct TableShareCard: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: cell.width, height: cell.height)
-                        .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
+                        .appShadow(AppShadow.glassSubtle)
                         .position(x: cell.midX, y: cell.midY)
                 }
             }
@@ -466,7 +466,7 @@ struct TableShareCard: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
                 Text("\(calories) kcal · Atlas")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
         }

@@ -80,12 +80,18 @@ struct MilestoneArtwork: View {
         }
     }
 
+    /// The bevel shade, derived from the tint so gold or orange medals
+    /// don't shade toward the theme accent.
+    private var shade: Color {
+        tint.mix(with: .black, by: 0.35)
+    }
+
     private var reliefSymbol: some View {
         Image(systemName: symbol)
             .resizable()
             .scaledToFit()
             .foregroundStyle(LinearGradient(
-                colors: [tint, tint, AppColor.accentDark],
+                colors: [tint, tint, shade],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             ))
@@ -101,7 +107,7 @@ struct MilestoneArtwork: View {
     private var ribbon: some View {
         MedalRibbon()
             .fill(LinearGradient(
-                colors: [tint, AppColor.accentDark],
+                colors: [tint, shade],
                 startPoint: .leading,
                 endPoint: .trailing
             ))

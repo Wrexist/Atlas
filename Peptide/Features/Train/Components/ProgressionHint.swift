@@ -19,7 +19,7 @@ struct ProgressionHint: View {
                     .font(AppFont.callout.weight(.semibold))
                     .foregroundStyle(AppColor.textPrimary)
                 Text(reason)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -42,7 +42,7 @@ struct ProgressionHint: View {
     private var target: String {
         suggestion.weightKg > 0
             ? "\(unit.weightValue(suggestion.weightKg, fractionDigits: 0...2)) \(unit.weightSuffix) × \(suggestion.reps)"
-            : "\(suggestion.reps) reps"
+            : String(AttributedString(localized: "^[\(suggestion.reps) rep](inflect: true)").characters)
     }
 
     private var symbolName: String {

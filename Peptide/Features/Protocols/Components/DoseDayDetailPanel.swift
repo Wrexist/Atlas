@@ -104,7 +104,7 @@ struct DoseDayDetailPanel: View {
             Spacer(minLength: 0)
             if !marks.isEmpty {
                 Text(summaryCounts)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
         }
@@ -208,13 +208,13 @@ struct DoseDayDetailPanel: View {
                     if let time = mark.time {
                         Label(time, systemImage: "clock")
                             .labelStyle(.titleAndIcon)
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textTertiary)
                     }
                     if let site = mark.injectionSite {
                         Label(site, systemImage: "mappin")
                             .labelStyle(.titleAndIcon)
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textTertiary)
                     }
                 }

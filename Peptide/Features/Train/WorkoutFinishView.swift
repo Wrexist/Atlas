@@ -220,7 +220,7 @@ struct RecapNewPRs: View {
                         VStack(alignment: .leading, spacing: Spacing.xxs) {
                             Text(exerciseName(pr.exerciseID)).font(AppFont.subheadline)
                             Text(kindLabel(pr.kind))
-                                .font(AppFont.caption).foregroundStyle(AppColor.recapSecondary)
+                                .font(AppFont.caption2).foregroundStyle(AppColor.recapSecondary)
                         }
                         Spacer(minLength: Spacing.sm)
                         Text(valueLabel(pr)).font(AppFont.headline).monospacedDigit()

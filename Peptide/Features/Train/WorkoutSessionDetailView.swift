@@ -173,7 +173,7 @@ struct WorkoutSessionDetailView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text(dateLabel)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
                 .textCase(.uppercase)
             Text(session.displayName)
@@ -228,7 +228,7 @@ struct WorkoutSessionDetailView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -242,7 +242,7 @@ struct WorkoutSessionDetailView: View {
             Image(systemName: "bolt.fill")
                 .foregroundStyle(AppColor.perceivedEffort)
             Text("Perceived effort")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
             Spacer()
             Text("\(effort) / 5")
@@ -289,7 +289,7 @@ struct WorkoutSessionDetailView: View {
             ForEach(entry.sets) { set in
                 HStack(spacing: Spacing.sm) {
                     Text("\(set.index)")
-                        .font(AppFont.caption.weight(.semibold))
+                        .font(AppFont.caption2.weight(.semibold))
                         .monospacedDigit()
                         .frame(width: 20, alignment: .leading)
                         .foregroundStyle(AppColor.textTertiary)
@@ -299,7 +299,7 @@ struct WorkoutSessionDetailView: View {
                         .foregroundStyle(AppColor.textPrimary)
                     if let rpe = set.rpe {
                         Text("RPE \(rpe.formatted(.number.precision(.fractionLength(0...1))))")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                     }
                     Spacer()
@@ -345,7 +345,7 @@ struct WorkoutSessionDetailView: View {
                 .multilineTextAlignment(.leading)
             Spacer()
             Text("^[\(entry.completedWorkingSets.count) working set](inflect: true)")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
             if exercise != nil {
                 Image(systemName: "chevron.right")

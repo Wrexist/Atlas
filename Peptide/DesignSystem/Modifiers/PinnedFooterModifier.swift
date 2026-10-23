@@ -30,14 +30,17 @@ struct PinnedFooterModifier<Footer: View>: ViewModifier {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 footer
                     .background {
-                        ZStack(alignment: .top) {
-                            AppColor.background
+                        // Stacked, not layered: an opaque fill under the
+                        // gradient would make the whole band solid and the
+                        // soft edge would never show.
+                        VStack(spacing: 0) {
                             LinearGradient(
                                 colors: [AppColor.background.opacity(0), AppColor.background],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
                             .frame(height: fadeHeight)
+                            AppColor.background
                         }
                         // Both of these are load-bearing, and dropping either
                         // one killed the CTA on every screen using this.

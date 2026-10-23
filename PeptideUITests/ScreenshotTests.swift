@@ -131,9 +131,9 @@ final class ScreenshotTests: XCTestCase {
         app.buttons["Share workout"].tap()
         XCTAssertTrue(app.navigationBars["Share workout"].waitForExistence(timeout: 10))
         for style in [("Exercise highlight", "highlight"), ("Dark summary", "summary")] {
-            app.segmentedControls["workout-share-style"].buttons[style.0].tap()
+            app.otherElements["workout-share-style"].buttons[style.0].tap()
             for format in [("Story", "story"), ("Post", "post"), ("Reel", "reel")] {
-                app.segmentedControls["workout-share-format"].buttons[format.0].tap()
+                app.otherElements["workout-share-format"].buttons[format.0].tap()
                 XCTAssertTrue(app.images["workout-share-rendered-\(style.1)-\(format.1)"].waitForExistence(timeout: 10))
                 capture(named: "social-\(style.1)-\(format.1)")
             }
@@ -170,7 +170,7 @@ final class ScreenshotTests: XCTestCase {
         muscles.tap()
         XCTAssertTrue(app.navigationBars["Muscle details"].waitForExistence(timeout: 5))
         capture(named: "completion-02-muscle-map")
-        app.segmentedControls.buttons["Muscle list"].tap()
+        app.buttons["Muscle list"].tap()
         capture(named: "completion-02b-muscle-list")
         let triceps = app.buttons["recap-muscle-triceps"]
         reveal(triceps)
@@ -439,7 +439,7 @@ final class ScreenshotTests: XCTestCase {
             if !train.isSelected { train.tap() }
             XCTAssertTrue(train.isSelected)
             discardLeftoverWorkout()
-            let period = app.segmentedControls["training-map-period"]
+            let period = app.otherElements["training-map-period"]
             XCTAssertTrue(period.waitForExistence(timeout: 10))
             period.buttons["Today"].tap()
             capture(named: "body-\(appearance)-01-today")
@@ -468,7 +468,7 @@ final class ScreenshotTests: XCTestCase {
             app.buttons["Workout overview"].tap()
             XCTAssertTrue(app.staticTexts["Muscles trained"].waitForExistence(timeout: 10))
             capture(named: "body-\(appearance)-03-session")
-            let bodySide = app.segmentedControls["training-body-side"].firstMatch
+            let bodySide = app.otherElements["training-body-side"].firstMatch
             reveal(bodySide)
             bodySide.buttons["Front"].tap()
             XCTAssertTrue(bodySide.buttons["Front"].isSelected)

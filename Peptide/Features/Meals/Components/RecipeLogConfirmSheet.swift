@@ -47,7 +47,7 @@ struct RecipeLogConfirmSheet: View {
                         unresolvedCard
                     }
                     Text("Logging on \(logDate.formatted(date: .abbreviated, time: .shortened))")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                     if saveFailed {
                         warningMessage("Couldn't save the recipe. Retry; nothing was added.")
@@ -89,7 +89,7 @@ struct RecipeLogConfirmSheet: View {
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(2)
                 Text("^[\(recipe.components.count) ingredient](inflect: true)")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
             Spacer(minLength: 0)
@@ -163,6 +163,6 @@ struct RecipeLogConfirmSheet: View {
             saveFailed = !didLog
         }
         .disabled(review.totals == nil || didLog)
-        .sensoryFeedback(.success, trigger: didLog)
+        .appSensoryFeedback(.success, trigger: didLog)
     }
 }

@@ -57,7 +57,7 @@ struct GlassChip: View {
 
     var body: some View {
         Button {
-            Haptics.selection()
+            if !isSelected { Haptics.selection() }
             action()
         } label: {
             HStack(spacing: Spacing.xs) {
@@ -77,6 +77,7 @@ struct GlassChip: View {
                 }
             }
             .glassControl(.capsule, tint: wash, border: border, interactive: false)
+            .minimumHitArea()
         }
         .buttonStyle(ScalePressStyle())
         .accessibilityAddTraits(isSelected ? .isSelected : [])

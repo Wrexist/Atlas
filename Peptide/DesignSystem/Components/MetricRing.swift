@@ -9,12 +9,15 @@ import SwiftUI
 /// Renders a track + gradient progress arc + an optional centred
 /// content view. `progress` is clamped 0…1 so the arc never wraps
 /// and out-of-bounds inputs (e.g. `score > 1.0` from a stale
-/// value) degrade cleanly.
+/// value, or NaN from a 0/0 ratio) degrade cleanly.
+///
+/// No accent halo under the arc: Craft R2 — emphasis comes from size,
+/// weight, contrast and space, never from a coloured glow.
 ///
 /// Three optional behaviours stay defaulted-off so callers like
 /// `HeroMetricTrio` opt into the simple ring, while branded
 /// surfaces like the adherence detail sheet opt in to the appear sweep +
-/// celebration pulse + accent glow. `GlassProgressBar` is the linear
+/// celebration pulse. `GlassProgressBar` is the linear
 /// counterpart for the same idea inside a row.
 struct MetricRing<Center: View>: View {
     let progress: Double
@@ -35,10 +38,7 @@ struct MetricRing<Center: View>: View {
     /// the centre content so a finished day reads as a moment, not
     /// just a number flip. Suppressed under Reduce Motion.
     let celebrateAtCompletion: Bool
-    /// Removed: this used to add an accent halo under the arc. Craft R2 —
-    /// emphasis comes from size, weight, contrast and space, never from a
-    /// coloured glow. The ring is already the largest thing on its card.
-    /// rings use it; the hero trio doesn't (the trio sits on a glass
+    /// Content centred inside the ring, typically the value and its label.
     @ViewBuilder let center: () -> Center
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -56,11 +56,11 @@ struct MetricRing<Center: View>: View {
         celebrateAtCompletion: Bool = false,
         @ViewBuilder center: @escaping () -> Center
     ) {
-        self.progress = max(0, min(1, progress))
+        self.progress = progress.unitClamped
         self.diameter = diameter
         self.strokeWidth = strokeWidth
         self.gradient = gradient
-        self.hatchedFraction = hatchedFraction.map { max(0, min(1, $0)) }
+        self.hatchedFraction = hatchedFraction.map(\.unitClamped)
         self.appearAnimated = appearAnimated
         self.celebrateAtCompletion = celebrateAtCompletion
         self.center = center
@@ -68,11 +68,10 @@ struct MetricRing<Center: View>: View {
 
     var body: some View {
         ZStack {
-            // Track — the unfilled portion of the ring. Slightly
-            // brighter than pure black so the progress arc reads even
-            // at low values.
+            // Track — the unfilled portion of the ring, so a low value
+            // still reads as part of a whole in both schemes.
             Circle()
-                .stroke(AppColor.surfaceElevated.opacity(0.7), lineWidth: strokeWidth)
+                .stroke(AppColor.track, lineWidth: strokeWidth)
 
             // Hatched capacity band (optional). Drawn on top of the
             // track but underneath the progress arc.
@@ -102,8 +101,8 @@ struct MetricRing<Center: View>: View {
                 AngularGradient(
                     gradient: Gradient(colors: gradient),
                     center: .center,
-                    startAngle: .degrees(-90),
-                    endAngle: .degrees(270)
+                    startAngle: .degrees(0),
+                    endAngle: .degrees(360)
                 ),
                 style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round)
             )
@@ -151,15 +150,25 @@ struct MetricRing<Center: View>: View {
     }
 
     private func handleProgressChange(from old: Double, to new: Double) {
-        let clamped = max(0, min(1, new))
         if appearAnimated {
             withAnimation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion)) {
-                animatedProgress = clamped
+                animatedProgress = new
             }
         }
-        if celebrateAtCompletion, old < 1.0, clamped >= 1.0, !reduceMotion {
+        if celebrateAtCompletion, old < 1.0, new >= 1.0, !reduceMotion {
             completionTrigger &+= 1
         }
+    }
+}
+
+// MARK: - Progress clamping
+
+extension Double {
+    /// Clamped to 0…1 for ring and bar fills, with NaN and infinities
+    /// mapped to 0. `min(1, .nan)` returns 1, so a plain clamp would draw
+    /// a 0/0 ratio as a full ring.
+    var unitClamped: Double {
+        isFinite ? Swift.min(Swift.max(self, 0), 1) : 0
     }
 }
 

@@ -28,7 +28,7 @@ struct CelebrationOverlayView: View {
                     .font(AppFont.subheadline)
                     .foregroundStyle(tint)
                 Text("Your consistency is paying off.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
         }

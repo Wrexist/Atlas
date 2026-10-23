@@ -197,7 +197,7 @@ struct WeeklySummaryDetailView: View {
 
     private var kindLabel: String {
         if summary.kind == .ai {
-            return String(localized: "Personalised by AI")
+            return String(localized: "Personalized by AI")
         }
         if refreshFailed {
             return String(localized: "Couldn't reach Atlas — showing the offline summary")

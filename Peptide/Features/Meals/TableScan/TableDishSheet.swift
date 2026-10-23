@@ -44,7 +44,7 @@ struct TableDishSheet: View {
                             .resizable()
                             .scaledToFit()
                             .frame(width: 96, height: 96)
-                            .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
+                            .appShadow(AppShadow.glassSubtle)
                             .accessibilityHidden(true)
                     }
                 }
@@ -74,13 +74,13 @@ struct TableDishSheet: View {
                     } label: {
                         Image(systemName: draft.isFavorite ? "heart.fill" : "heart")
                             .font(AppFont.scaled(20, weight: .semibold))
-                            .foregroundStyle(draft.isFavorite ? AppColor.destructive : AppColor.textSecondary)
+                            .foregroundStyle(draft.isFavorite ? AppColor.accentPrimary : AppColor.textSecondary)
                             .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
                             .contentTransition(.symbolEffect(.replace))
                             .symbolEffect(.bounce, value: draft.isFavorite)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Favourite")
+                    .accessibilityLabel("Favorite")
                     .accessibilityAddTraits(draft.isFavorite ? .isSelected : [])
                 }
 

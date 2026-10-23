@@ -61,7 +61,7 @@ struct CommunityStackDetailView: View {
                 peptidesList
                 useStackButton
                 Text("Research summary for education, not a recommendation or medical advice. Talk to a clinician before using any peptide.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)
             }
@@ -124,7 +124,7 @@ struct CommunityStackDetailView: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.textPrimary)
                 Text(stack.authorHandle ?? stack.authorTitle ?? "Atlas Editorial")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
         }
@@ -160,7 +160,7 @@ struct CommunityStackDetailView: View {
             }
 
             Text("Preview")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
         }
     }
@@ -196,7 +196,7 @@ struct CommunityStackDetailView: View {
 
                 if resolvedPeptides.isEmpty {
                     Text("Some peptides in this protocol aren't in your local database.")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.warning)
                 } else {
                     ForEach(Array(resolvedPeptides.enumerated()), id: \.element.id) { index, peptide in
@@ -210,7 +210,7 @@ struct CommunityStackDetailView: View {
                 let missing = stack.peptideAbbreviations.count - resolvedPeptides.count
                 if missing > 0 {
                     Text("^[\(missing) peptide](inflect: true) not in your library")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
             }
@@ -232,7 +232,7 @@ struct CommunityStackDetailView: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
                 Text(peptide.dosageRange)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
             Spacer()
@@ -262,13 +262,13 @@ struct CommunityStackDetailView: View {
 
     /// `value` is a compact abbreviation ("8w"), so VoiceOver reads
     /// `spoken` with the words in full instead.
-    private func miniStat(value: String, label: String, spoken: Text) -> some View {
+    private func miniStat(value: String, label: LocalizedStringKey, spoken: Text) -> some View {
         VStack(spacing: 2) {
             Text(value)
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.accentLight)
             Text(label)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
         }
         .frame(maxWidth: .infinity)

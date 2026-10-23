@@ -132,7 +132,7 @@ struct PeptideScheduleSheet: View {
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(peptide.dosageRange)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }
 
@@ -152,7 +152,7 @@ struct PeptideScheduleSheet: View {
                         Text(useCustom
                              ? "This peptide uses its own days and frequency"
                              : "Follows the protocol default")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textTertiary)
                     }
                 }
@@ -202,12 +202,12 @@ struct PeptideScheduleSheet: View {
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
                     Text("Range: \(peptide.dosageRange)")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
 
                 Text("Enter the dose your clinician advised. The research range above is reference only — Atlas does not recommend or calculate doses.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
 

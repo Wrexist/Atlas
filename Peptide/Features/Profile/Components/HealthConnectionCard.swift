@@ -39,7 +39,7 @@ struct HealthConnectionCard: View {
                             .frame(width: 8, height: 8)
 
                         Text(isConnected ? "Connected" : "Not Connected")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(isConnected ? AppColor.accentLight : AppColor.textTertiary)
                     }
                 }
@@ -58,7 +58,7 @@ struct HealthConnectionCard: View {
                                     .foregroundStyle(metric.color)
                                     .accessibilityHidden(true)
                                 Text(metric.title)
-                                    .font(AppFont.caption)
+                                    .font(AppFont.caption2)
                                     .foregroundStyle(AppColor.textTertiary)
                             }
                             .frame(maxWidth: .infinity)
@@ -121,7 +121,7 @@ struct HealthConnectionCard: View {
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textPrimary)
                 Text(detail)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

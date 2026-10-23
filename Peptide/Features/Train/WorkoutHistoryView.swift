@@ -101,7 +101,7 @@ struct WorkoutHistoryView: View {
         HStack(alignment: .center, spacing: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(session.displayDate)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                 Text(session.displayName)
                     .font(AppFont.headline)

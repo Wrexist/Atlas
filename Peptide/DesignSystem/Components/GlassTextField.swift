@@ -48,7 +48,7 @@ struct GlassTextField: View {
 
                 if let characterLimit {
                     Text("\(text.count)/\(characterLimit)")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textTertiary)
                 }
@@ -86,6 +86,9 @@ struct GlassTextField: View {
                        height: Spacing.minimumHitTarget)
                 .contentShape(Rectangle())
         }
+        // The 44pt target overlaps the field's vertical padding so the
+        // field keeps its height when the button appears.
+        .padding(.vertical, -Spacing.md)
         .accessibilityLabel("Clear text")
     }
 }

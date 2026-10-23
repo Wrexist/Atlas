@@ -130,7 +130,7 @@ struct MealEntryRow: View {
                     }
                     HStack(spacing: Spacing.xs) {
                         Image(systemName: entry.source.icon)
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                         Circle()
                             .fill(entry.category.tint)

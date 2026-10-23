@@ -27,14 +27,14 @@ struct DoseLogRow: View {
                     .foregroundStyle(AppColor.textPrimary)
 
                 Text(entry.dose)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
             }
 
             Spacer()
 
             Text(time)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
         }
         .padding(.vertical, Spacing.xs)

@@ -67,8 +67,8 @@ private struct PrimaryCTAChrome: ViewModifier {
             .background { fill }
             // A tinted drop under a filled shape, not a halo behind a
             // glyph — the elevation idiom the accent medallions use.
-            .shadow(color: AppColor.accentGlow, radius: 14, y: 6)
-            .opacity(isEnabled ? 1 : 0.4)
+            .shadow(color: AppColor.ctaGlow, radius: 14, y: 6)
+            .opacity(isEnabled ? 1 : AppOpacity.disabled)
     }
 
     @ViewBuilder

@@ -91,7 +91,7 @@ struct CycleCompletionPromptSheet: View {
                 .accessibilityHint("Dismisses the prompt")
             // Shown, not just spoken — sighted users need the rule too.
             Text("After 3 dismissals or 7 days, the protocol completes automatically.")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
@@ -120,7 +120,7 @@ private struct CompletionAction: View {
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(detail)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

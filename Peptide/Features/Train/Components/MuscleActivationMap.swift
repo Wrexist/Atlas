@@ -69,7 +69,7 @@ struct MuscleActivationMap: View {
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
                     Text(row.role.rawValue)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }
                 involvementBar(share: row.share, tint: tint, index: index)

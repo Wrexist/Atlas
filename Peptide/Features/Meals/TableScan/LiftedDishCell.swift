@@ -76,7 +76,7 @@ struct LiftedDishCell: View {
                             .scaledToFit()
                             .frame(height: Self.stickerHeight)
                             .matchedGeometryEffect(id: dish.id, in: namespace)
-                            .shadow(color: .black.opacity(dish.include ? 0.18 : 0.06), radius: 8, y: 4)
+                            .appShadow(AppShadow.glassSubtle)
                             .saturation(dish.include ? 1 : 0)
                             .scaleEffect(dish.include ? 1 : 0.9)
                     } else {
@@ -138,7 +138,7 @@ struct LiftedDishCell: View {
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(1)
                 }
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textPrimary)
                 .padding(.horizontal, Spacing.sm)
                 .padding(.vertical, Spacing.xs)
@@ -152,13 +152,13 @@ struct LiftedDishCell: View {
         case .failed(let message):
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(message)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
                 Button(action: onRetry) {
                     Label("Retry", systemImage: "arrow.clockwise")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.warning)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .frame(minHeight: Spacing.minimumHitTarget)
@@ -170,7 +170,7 @@ struct LiftedDishCell: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         case .notFood:
             Text("Not food — left out")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .frame(minHeight: Spacing.minimumHitTarget)
@@ -193,7 +193,7 @@ struct DishKindPicker: View {
                     Haptics.selection()
                 } label: {
                     Text(kind.label)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .fontWeight(selection == kind ? .semibold : .regular)
                         .foregroundStyle(selection == kind ? AppColor.textPrimary : AppColor.textSecondary)
                         .lineLimit(1)

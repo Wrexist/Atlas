@@ -30,9 +30,9 @@ enum BarcodeHaptics {
 
     /// Meal was successfully written to today's bucket. A heavier
     /// impact than `detected()` so the user feels the "commit"
-    /// distinctly from the "scan" earlier in the flow.
+    /// distinctly from the "scan" earlier in the flow. One pulse only:
+    /// stacking it on a `.success` notification blurs both into mush.
     static func logCommitted() {
-        Haptics.success()
         Haptics.impact(.medium)
     }
 
@@ -64,13 +64,14 @@ enum BarcodeTorch {
     }
 
     static func set(_ on: Bool) {
+        let mode: AVCaptureDevice.TorchMode = on ? .on : .off
         guard let device = AVCaptureDevice.default(for: .video),
-              device.hasTorch else { return }
-        // Best-effort: a configuration-lock failure here means another
-        // process owns the device. User can just tap again; no benefit
-        // to logging or surfacing the error.
-        try? device.lockForConfiguration()
-        device.torchMode = on ? .on : .off
-        device.unlockForConfiguration()
+              device.hasTorch, device.isTorchModeSupported(mode) else { return }
+        // Best-effort: a configuration-lock failure means another process
+        // owns the device, and setting torchMode without the lock raises.
+        // The user can just tap again.
+        guard (try? device.lockForConfiguration()) != nil else { return }
+        defer { device.unlockForConfiguration() }
+        device.torchMode = mode
     }
 }

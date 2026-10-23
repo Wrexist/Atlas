@@ -15,7 +15,7 @@ struct BenefitTag: View {
                     .font(AppFont.scaled(8, weight: .semibold))
             }
             Text(text)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .fontWeight(.semibold)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
@@ -53,7 +53,7 @@ struct BenefitTagFlow: View {
     }
 }
 
-/// A flow of "Often Paired With" tags. Tags whose label resolves to a
+/// A flow of "Often paired with" tags. Tags whose label resolves to a
 /// known peptide become NavigationLinks, so the user can jump directly to the
 /// stacked peptide's detail view. Tags that don't match any peptide
 /// (e.g. supplements like "Alpha-GPC") render as plain badges.

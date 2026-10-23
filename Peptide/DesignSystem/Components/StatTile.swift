@@ -37,6 +37,10 @@ struct StatTile: View {
     var accessibilityLabel: String?
     var action: (() -> Void)?
 
+    /// Passed to the scaled fonts so a `.dynamicTypeSize(...)` clamp on a
+    /// row of tiles actually caps them.
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         if let action {
             Button(action: action) { tile }
@@ -59,7 +63,7 @@ struct StatTile: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
             Text(label)
-                .font(AppFont.eyebrow)
+                .font(AppFont.scaled(AppFont.Scale.badge, weight: .heavy, relativeTo: .caption1, in: dynamicTypeSize))
                 .tracking(0.5)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.textSecondary)
@@ -67,7 +71,7 @@ struct StatTile: View {
                 .minimumScaleFactor(0.7)
             if let footnote {
                 Text(footnote)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .lineLimit(1)
             }
@@ -81,8 +85,8 @@ struct StatTile: View {
 
     private var valueFont: Font {
         switch size {
-        case .regular: AppFont.scaled(20, weight: .heavy, design: .rounded, relativeTo: .title1)
-        case .large: AppFont.statHeader
+        case .regular: AppFont.scaled(20, weight: .heavy, design: .rounded, relativeTo: .title1, in: dynamicTypeSize)
+        case .large: AppFont.scaled(28, weight: .bold, design: .rounded, relativeTo: .title1, in: dynamicTypeSize)
         }
     }
 
@@ -101,7 +105,7 @@ struct StatTile: View {
                     .fill(tint.opacity(0.18))
             }
             Image(systemName: icon)
-                .font(AppFont.scaled(11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .heavy, in: dynamicTypeSize))
                 .foregroundStyle(tint)
         }
         .frame(width: 28, height: 28)
@@ -117,14 +121,7 @@ private struct StatTileSurface: ViewModifier {
         case .inset:
             content
                 .padding(Spacing.md)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .fill(AppColor.cardOverlay)
-                        .overlay {
-                            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                                .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-                        }
-                }
+                .insetRowBackground(cornerRadius: Spacing.smallCornerRadius)
         case .glass:
             content
                 .padding(Spacing.md)

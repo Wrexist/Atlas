@@ -64,8 +64,8 @@ struct ReplaceScannedFoodSheet: View {
                 HStack {
                     VStack(alignment: .leading, spacing: Spacing.xs) {
                         Text(product.name).foregroundStyle(AppColor.textPrimary)
-                        if let brand = product.brand { Text(brand).font(AppFont.caption) }
-                        Text("\(product.per100g.calories.formatted()) kcal / 100 g").font(AppFont.caption)
+                        if let brand = product.brand { Text(brand).font(AppFont.caption2) }
+                        Text("\(product.per100g.calories.formatted()) kcal / 100 g").font(AppFont.caption2)
                     }
                     Spacer()
                     if selected?.barcode == product.barcode { Image(systemName: "checkmark") }

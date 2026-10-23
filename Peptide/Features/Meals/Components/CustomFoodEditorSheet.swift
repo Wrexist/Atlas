@@ -287,7 +287,7 @@ struct CustomFoodEditorSheet: View {
             .disabled(isFilling)
             if let fillError {
                 Text(fillError)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.warning)
             }
         } header: {
@@ -410,7 +410,7 @@ struct CustomFoodEditorSheet: View {
                 .monospacedDigit()
                 .frame(width: 90)
             Text(suffix)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(width: 30, alignment: .leading)
         }

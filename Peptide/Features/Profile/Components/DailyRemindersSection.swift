@@ -19,7 +19,7 @@ struct DailyRemindersSection: View {
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text("Each one stays quiet on days you've already logged it.")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
 
@@ -110,7 +110,7 @@ private struct DailyReminderRow: View {
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textPrimary)
                 Text(subtitle)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -172,7 +172,7 @@ struct NotificationsDeniedRow: View {
                     .font(AppFont.scaled(11))
                     .foregroundStyle(AppColor.warning)
                 Text("Notifications are off for Atlas. Turn them on in Settings.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.leading)
                 Spacer(minLength: 0)

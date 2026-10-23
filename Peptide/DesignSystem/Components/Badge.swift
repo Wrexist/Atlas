@@ -54,7 +54,7 @@ struct Badge: View {
 
     private var ink: Color {
         switch style {
-        case .tinted: tint ?? AppColor.accentLight
+        case .tinted: tint ?? AppColor.accentInkOnWash
         case .solid: AppColor.onAccent
         }
     }
@@ -66,7 +66,7 @@ struct Badge: View {
             Capsule()
                 .fill((tint ?? AppColor.accentPrimary).opacity(0.2))
                 .overlay {
-                    Capsule().strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
+                    Capsule().strokeBorder((tint ?? AppColor.accentPrimary).opacity(0.3), lineWidth: 0.5)
                 }
         case .solid:
             Capsule().fill(tint ?? AppColor.accentFill)

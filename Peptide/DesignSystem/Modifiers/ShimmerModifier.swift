@@ -13,12 +13,7 @@ import SwiftUI
 struct ShimmerModifier: ViewModifier {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
-    @State private var phase: CGFloat = -1.0
-
-    /// One full sweep duration. 1.4s is the same beat Health.app
-    /// + the App Store skeletons use — slow enough to read as
-    /// "still working" without feeling like the loop is stalling.
-    private let duration: Double = 1.4
+    @State private var sweeping = false
 
     /// The sweep has to move *away* from the surface it crosses: a lighter
     /// band on a dark skeleton, a darker one on a light skeleton. Pairing
@@ -48,21 +43,14 @@ struct ShimmerModifier: ViewModifier {
                         // Track the sweep across the row width
                         // plus a row-width pad either side so the
                         // gradient fully exits before looping back.
-                        .offset(x: phase * width * 1.6)
+                        .offset(x: (sweeping ? 1 : -1) * width * 1.6)
                         .blendMode(blend)
                         .allowsHitTesting(false)
                     }
                     .mask(content)
                 }
             }
-            .onAppear {
-                guard !reduceMotion else { return }
-                withAnimation(
-                    .linear(duration: duration).repeatForever(autoreverses: false)
-                ) {
-                    phase = 1.0
-                }
-            }
+            .motionAwareLoop(AppAnimation.loadingSweep, autoreverses: false, isRunning: $sweeping)
     }
 }
 

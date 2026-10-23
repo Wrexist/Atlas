@@ -170,7 +170,7 @@ struct NutritionTargetsEditor: View {
         let target = intValue(calories)
         let isOff = target > 0 && Double(abs(macroCalories - target)) > Double(target) * 0.10
         return Text("Macros = \(macroCalories) kcal")
-            .font(AppFont.caption)
+            .font(AppFont.caption2)
             .monospacedDigit()
             .foregroundStyle(isOff ? AppColor.warning : AppColor.textSecondary)
             .contentTransition(.numericText())
@@ -213,7 +213,7 @@ struct NutritionTargetsEditor: View {
                         Text(hasPersonalStats
                              ? "Based on your stats + \(goalLabel) goal"
                              : "A \(goalLabel) starting point — add stats in Profile to personalize")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                     }
                     Spacer(minLength: 0)
@@ -394,13 +394,13 @@ struct NutritionTargetsEditor: View {
                     .focused($focusedField, equals: field)
                     .frame(maxWidth: 90)
                 Text(unit)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .frame(width: 28, alignment: .leading)
             }
             if value(for: field) == nil {
                 Text(field == .calories ? "Enter 800–10,000 kcal" : "Enter 0–1,000 g")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.warning)
             }
         }

@@ -22,7 +22,7 @@ struct ExportSection: View {
                 }
 
                 Text("Export your workouts, meals, check-ins and protocols.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
 
                 // Three buttons overflow a row at large Dynamic Type.

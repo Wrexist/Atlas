@@ -29,7 +29,7 @@ struct DiagnosticsSection: View {
                                 .font(AppFont.subheadline)
                                 .foregroundStyle(AppColor.textPrimary)
                             Text(detailSummary)
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                                 .foregroundStyle(AppColor.textSecondary)
                         }
                         Spacer()
@@ -151,7 +151,7 @@ private struct DiagnosticsDetailSheet: View {
                     .foregroundStyle(record.kind == .diagnostic ? AppColor.warning : AppColor.accentLight)
                 Spacer()
                 Text(record.receivedAt.formatted(date: .abbreviated, time: .shortened))
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
             Text(payloadPreview(for: record))

@@ -30,7 +30,7 @@ struct MealCategoryPicker: View {
                 }
             }
         }
-        .sensoryFeedback(.selection, trigger: selection)
+        .appSensoryFeedback(.selection, trigger: selection)
     }
 
     private var allPills: some View {

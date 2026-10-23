@@ -34,7 +34,7 @@ struct WashoutPicker: View {
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text("Alternate on/off periods to preserve receptor sensitivity.")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

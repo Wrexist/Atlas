@@ -68,7 +68,7 @@ struct LoggedCaloriePanel: View {
                     .foregroundStyle(AppColor.accentLight)
                     .accessibilityHidden(true)
                 Text("\(deltaCalories) kcal · \(productName)")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .lineLimit(1)
                     .monospacedDigit()

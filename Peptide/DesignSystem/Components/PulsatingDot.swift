@@ -23,14 +23,8 @@ struct PulsatingDot: View {
             Circle()
                 .fill(color)
                 .frame(width: size, height: size)
-                .shadow(color: color.opacity(0.6), radius: animate ? 4 : 2)
         }
-        .onAppear {
-            guard !reduceMotion else { return }
-            withAnimation(.easeOut(duration: 1.4).repeatForever(autoreverses: false)) {
-                animate = true
-            }
-        }
+        .motionAwareLoop(AppAnimation.ripple, autoreverses: false, isRunning: $animate)
     }
 }
 

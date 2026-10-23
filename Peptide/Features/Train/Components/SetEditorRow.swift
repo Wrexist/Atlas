@@ -52,7 +52,7 @@ struct SetEditorRow: View {
             if let load = set.measurement?.load, load != .recorded {
                 Text(load == .eachPair ? "Load per hand · both counted" :
                     (load == .perSide ? "Load per side · entered reps counted once" : "Combined load"))
-                    .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
+                    .font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
             }
         }
         .padding(.vertical, Spacing.xs)
@@ -104,7 +104,7 @@ struct SetEditorRow: View {
 
     private var indexLabel: some View {
         Text("\(set.index)")
-            .font(AppFont.caption.weight(.semibold))
+            .font(AppFont.caption2.weight(.semibold))
             .monospacedDigit()
             .foregroundStyle(isCurrent ? AppColor.trainingSelection : AppColor.textPrimary)
             .frame(minWidth: 24, minHeight: 24)
@@ -121,23 +121,23 @@ struct SetEditorRow: View {
     private var previousReference: some View {
         if set.isWarmup {
             Text("Warm-up")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.streak)
         } else if let prev = previousSet {
             Button {
                 fill(from: prev)
             } label: {
                 Text("\(unit.weightValue(prev.weightKg, fractionDigits: 0...2)) × \(prev.reps)")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .minimumHitArea()
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text("Previous: \(unit.weightValue(prev.weightKg, fractionDigits: 0...2)) \(unit.weightSpokenUnit) for \(prev.reps) reps"))
+            .accessibilityLabel(Text("Previous: \(unit.weightValue(prev.weightKg, fractionDigits: 0...2)) \(unit.weightSpokenUnit) for ^[\(prev.reps) rep](inflect: true)"))
             .accessibilityHint(Text("Fills this set with the same weight and reps"))
         } else {
             Text("—")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
         }
     }
@@ -165,7 +165,7 @@ struct SetEditorRow: View {
                 .accessibilityLabel(Text("Weight for set \(set.index)"))
                 .accessibilityValue(Text("\(unit.weightValue(set.weightKg, fractionDigits: 0...2)) \(unit.weightSpokenUnit)"))
             if focusStyle {
-                Text(unit.weightSuffix).font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
+                Text(unit.weightSuffix).font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
                     .accessibilityHidden(true)
             }
         }
@@ -209,7 +209,7 @@ struct SetEditorRow: View {
                             lineWidth: repsFocused ? 1 : 0.5)
             )
             .accessibilityLabel(Text("Reps for set \(set.index)"))
-            .accessibilityValue(Text("\(set.reps) reps"))
+            .accessibilityValue(Text("^[\(set.reps) rep](inflect: true)"))
     }
 
     private var completionToggle: some View {

@@ -60,7 +60,7 @@ struct AIResearchView: View {
                     .disabled(transcript.isEmpty)
                 }
             }
-            .sensoryFeedback(.impact(weight: .light), trigger: sendCount)
+            .appSensoryFeedback(.impact(weight: .light), trigger: sendCount)
             .onDisappear {
                 // Stop any in-flight Anthropic call when the sheet
                 // closes — otherwise a 30-second response keeps
@@ -107,7 +107,7 @@ struct AIResearchView: View {
             Image(systemName: "info.circle")
                 .font(AppFont.scaled(11, weight: .semibold))
             Text("Educational only. Not medical advice.")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
             Spacer(minLength: 0)
         }
         .foregroundStyle(AppColor.textTertiary)

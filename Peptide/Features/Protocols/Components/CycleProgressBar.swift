@@ -9,13 +9,13 @@ struct CycleProgressBar: View {
 
             HStack {
                 Text(protocol_.startDate.formatted(.dateTime.month(.abbreviated).day()))
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
 
                 Spacer()
 
                 Text("\(Int(protocol_.cycleProgress * 100))%")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .fontWeight(.semibold)
                     .monospacedDigit()
                     .contentTransition(.numericText())
@@ -24,7 +24,7 @@ struct CycleProgressBar: View {
                 Spacer()
 
                 Text(protocol_.endDate.formatted(.dateTime.month(.abbreviated).day()))
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
             }
         }

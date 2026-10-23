@@ -46,7 +46,7 @@ extension StackRecommendationEngine {
             case .sharedBenefits(let count):
                 return "Shares \(count) benefits with your protocol"
             case .validatedStack(let name, _):
-                return "Part of \(name) — research-backed combination"
+                return "Part of the \(name) combination"
             case .timingComplement(let desc):
                 return desc
             case .complianceBoost(let category):
@@ -89,9 +89,16 @@ extension StackRecommendationEngine {
         let suggestion: String
         let peptides: [String]
         let icon: String
+        var kind: Kind = .general
 
         enum Severity: Comparable {
             case info, caution, danger
+        }
+
+        /// What the warning is about, so the UI can pick a follow-up
+        /// action without matching (localizable) title text.
+        enum Kind {
+            case general, cycleOverrun, desensitization, timingConflict, injectionBurden
         }
     }
 

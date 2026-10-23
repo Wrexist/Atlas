@@ -39,8 +39,8 @@ struct CycleTransitionCard: View {
                         .fontWeight(.semibold)
                         .foregroundStyle(AppColor.textPrimary)
 
-                    Text(transition.weeksRemaining == 0 ? "Cycle complete" : "\(transition.weeksRemaining)w remaining")
-                        .font(AppFont.scaled(8, weight: .bold))
+                    Text(transition.weeksRemaining == 0 ? "Cycle complete" : "^[\(transition.weeksRemaining) week](inflect: true) left")
+                        .font(AppFont.badge)
                         .foregroundStyle(transition.weeksRemaining == 0 ? AppColor.warning : AppColor.accentLight)
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
@@ -52,7 +52,7 @@ struct CycleTransitionCard: View {
                 }
 
                 Text(transition.reason)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .lineSpacing(2)
 
@@ -63,7 +63,7 @@ struct CycleTransitionCard: View {
                             .foregroundStyle(AppColor.accentLight)
 
                         Text("Switch to: \(transition.suggestedReplacements.joined(separator: " or "))")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.accentLight)
                     }
                 }

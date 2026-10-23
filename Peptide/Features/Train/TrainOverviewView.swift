@@ -268,14 +268,11 @@ struct TrainOverviewView: View {
                     }
                 }
 
-                Picker("Training period", selection: Binding(
-                    get: { selectedPeriod }, set: { selectedPeriodRaw = $0.rawValue }
-                )) {
-                    ForEach(TrainingMapPeriod.allCases, id: \.self) { period in
-                        Text(period.title).tag(period)
-                    }
-                }
-                .pickerStyle(.segmented)
+                GlassSegmentedControl(
+                    options: TrainingMapPeriod.allCases,
+                    selected: Binding(get: { selectedPeriod }, set: { selectedPeriodRaw = $0.rawValue }),
+                    label: { LocalizedStringKey($0.title) }
+                )
                 .accessibilityIdentifier("training-map-period")
 
                 TrainingBodyExplorer(
@@ -288,7 +285,7 @@ struct TrainOverviewView: View {
 
                 if selectedPeriod == .week, let trainingContextCaption {
                     Text(trainingContextCaption)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }
@@ -373,7 +370,7 @@ struct TrainOverviewView: View {
                     .font(AppFont.chipText)
                     .foregroundStyle(AppColor.textPrimary)
                 Text("Score \(score)")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .monospacedDigit()
                     .contentTransition(.numericText())
@@ -441,18 +438,18 @@ struct TrainOverviewView: View {
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(session.startedAt.formatted(date: .abbreviated, time: .shortened))
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(session.completedSetCount) sets")
+                    Text("^[\(session.completedSetCount) set](inflect: true)")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                         .monospacedDigit()
                     if session.totalVolumeKg > 0 {
                         Text(unit.weightLabel(session.totalVolumeKg))
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                             .monospacedDigit()
                     }
@@ -552,7 +549,7 @@ struct TrainingCalendarGrid: View {
         return HStack(spacing: 6) {
             ForEach(Array(rotated.enumerated()), id: \.offset) { _, letter in
                 Text(letter)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .frame(maxWidth: .infinity)
             }
@@ -566,7 +563,7 @@ struct TrainingCalendarGrid: View {
         let isFuture = date > Date()
 
         return Text("\(day)")
-            .font(AppFont.caption)
+            .font(AppFont.caption2)
             .foregroundStyle(textColor(trained: trained, isToday: isToday, isFuture: isFuture))
             .monospacedDigit()
             .frame(maxWidth: .infinity)

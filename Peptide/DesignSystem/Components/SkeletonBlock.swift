@@ -11,7 +11,7 @@ struct SkeletonBlock: View {
 
     var body: some View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(AppColor.surfaceSecondary.opacity(0.7))
+            .fill(AppColor.track)
             .frame(width: width, height: height)
             .frame(maxWidth: width == nil ? .infinity : nil, alignment: .leading)
             .shimmer()

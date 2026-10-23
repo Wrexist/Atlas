@@ -141,6 +141,27 @@ def check_exercise_fixtures() -> list[str]:
     return failures
 
 
+# Store-facing briefs must use the product names: "Protocol", not "stack",
+# and "Biological Age", not the retired "Performance Age".
+STORE_BRIEFS = ("APP_STORE_METADATA.md", "SCREENSHOT_PROMPT.md")
+RETIRED_TERMS = r"(?i)\bperformance age\b|\bstack(?:s|ing)?\b"
+
+
+def check_store_terms() -> list[str]:
+    failures = []
+    for name in STORE_BRIEFS:
+        path = REPO / name
+        if not path.exists():
+            continue
+        for number, line in enumerate(path.read_text().splitlines(), 1):
+            for m in re.finditer(RETIRED_TERMS, line):
+                print(f"  FAIL {name}:{number}: retired term {m.group(0)!r}")
+                failures.append(f"term:{name}:{number}")
+    if not failures:
+        print("  ok   store briefs use Protocol / Biological Age naming")
+    return failures
+
+
 # Copy the user reads verbatim from the bundled data: the Swift tables in
 # Peptide/Data and the JSON in Peptide/Resources. The noun for a combination
 # is Protocol, never Stack, and "gold standard" is a clinical claim the app
@@ -336,6 +357,7 @@ def main() -> int:
         print("  ok   Live Activities: declared and used")
 
     failures += check_exercise_fixtures()
+    failures += check_store_terms()
     failures += check_compatibility_wording()
 
     if failures:

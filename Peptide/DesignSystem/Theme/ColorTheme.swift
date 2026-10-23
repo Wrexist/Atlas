@@ -84,6 +84,10 @@ enum AppColor {
     /// background and elevated surfaces. The previous value sat at ~3:1.
     static let textTertiary = Color(light: 0x6E6E76, dark: 0x888888)
     static var textHighlight: Color { ThemeManager.shared.theme.highlight }
+    /// Ink for text on the accent's own translucent wash (`.tinted` badges,
+    /// `.primary` glass buttons), where `accentLight` falls below AA in light
+    /// mode.
+    static var accentInkOnWash: Color { ThemeManager.shared.theme.washInk }
 
     /// Ink for content painted **on top of** an accent-filled or photographic
     /// surface (filled buttons, vial glyphs, gradient hero cards). Constant
@@ -107,6 +111,8 @@ enum AppColor {
 
     static let destructive = Color(light: 0xD32F2F, dark: 0xFF4444)
     static let warning = Color(light: 0x9A6B00, dark: 0xFFB800)
+    /// An ink, never a fill: it is `accentPrimary`, so `onAccent` on it
+    /// drops below 3:1 in the dark scheme. Fill with `accentFill`.
     static var success: Color { ThemeManager.shared.theme.primary }
 
     // MARK: - Glass
@@ -122,6 +128,14 @@ enum AppColor {
     static let cardOverlay = Color.adaptive(
         light: Color.black.opacity(0.03),
         dark: Color.white.opacity(0.04)
+    )
+
+    /// The unfilled part of a ring or progress bar. A neutral overlay rather
+    /// than a surface colour: `surfaceElevated` is near-identical to the
+    /// light cards it sits on, so the track vanished in light mode.
+    static let track = Color.adaptive(
+        light: Color.black.opacity(0.08),
+        dark: Color.white.opacity(0.08)
     )
 
     // MARK: - Directional feedback
@@ -164,6 +178,9 @@ enum AppColor {
     /// single most important button in the app is always the same button.
     static let ctaGradientStart = Color(light: 0x4238C4, dark: 0x4F46E5)
     static let ctaGradientEnd = Color(light: 0x6620C0, dark: 0x7C3AED)
+    /// Drop shadow under the CTA gradient — violet like the fill, so a
+    /// theme-accent glow never sits under a fixed-violet button.
+    static let ctaGlow = ctaGradientEnd.opacity(0.3)
 
     /// Hero-ring identities. Adherence follows the brand accent; Recovery and
     /// Sleep get their own hues so the three rings stay tellable apart at a
@@ -227,6 +244,11 @@ enum AppColor {
     static let metricHRV = Color(light: 0x6B44A3, dark: 0x9B72CF)
     static let metricSleep = Color(light: 0x9C7714, dark: 0xD4A844)
     static let metricActivity = Color(light: 0x35603F, dark: 0x4A7C59)
+}
+
+enum AppOpacity {
+    /// Applied to a whole disabled control — surface and label together.
+    static let disabled: Double = 0.4
 }
 
 extension Color {

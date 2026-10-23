@@ -102,7 +102,7 @@ struct PortionPicker: View {
             .tint(AppColor.accentPrimary)
             if let label = product.servingSizeText {
                 Text("1 serving = \(label)")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
         }
@@ -123,7 +123,7 @@ struct PortionPicker: View {
             .frame(minHeight: Spacing.minimumHitTarget)
             if let grams = product.packageGrams {
                 Text("1 package = \(Int(grams.rounded())) g")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .monospacedDigit()
             }
@@ -152,7 +152,7 @@ struct PortionPicker: View {
             .accessibilityLabel("Grams")
             // A tick every 25 g so dragging has a feel without buzzing
             // on each 5 g step.
-            .sensoryFeedback(.selection, trigger: Int(grams / 25))
+            .appSensoryFeedback(.selection, trigger: Int(grams / 25))
             HStack(spacing: Spacing.xs) {
                 ForEach(Self.quickGrams, id: \.self) { quick in
                     quickPick(quick, isActive: grams == quick)
@@ -166,7 +166,7 @@ struct PortionPicker: View {
             AppAnimation.with(AppAnimation.quick) { portion = .grams(grams) }
         } label: {
             Text("\(Int(grams)) g")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .fontWeight(isActive ? .semibold : .regular)
                 .foregroundStyle(isActive ? AppColor.textPrimary : AppColor.textSecondary)
                 .padding(.horizontal, Spacing.sm)

@@ -121,7 +121,7 @@ struct PrivacySummaryView: View {
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text("Off by default. When on, setup-flow step timings upload once under a random ID — never your name, email, or health data.")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

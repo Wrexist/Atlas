@@ -412,7 +412,7 @@ struct TrialOfferView: View {
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textPrimary)
             Text("Check your connection and try again.")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
             Button {
@@ -474,7 +474,7 @@ struct TrialOfferView: View {
                         }
                     }
                     Text(tierSubtitle(for: tier))
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .loadingPlaceholder(!arePricesLoaded)
                 }
@@ -484,7 +484,7 @@ struct TrialOfferView: View {
                         .font(AppFont.scaled(16, weight: .bold, design: .rounded))
                         .foregroundStyle(AppColor.textPrimary)
                     Text(tierPriceUnit(for: tier))
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
                 .loadingPlaceholder(!arePricesLoaded)
@@ -545,7 +545,7 @@ struct TrialOfferView: View {
         VStack(spacing: Spacing.sm) {
             if let notice {
                 Text(notice.message)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(notice.color)
                     .multilineTextAlignment(.center)
                     .transition(.opacity)
@@ -598,7 +598,7 @@ struct TrialOfferView: View {
 
             Button(action: declineTrial) {
                 Text("Maybe later")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .padding(.vertical, Spacing.xs)
                     .minimumHitArea()

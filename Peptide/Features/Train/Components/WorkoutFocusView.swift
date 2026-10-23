@@ -137,7 +137,7 @@ struct WorkoutFocusView: View {
             }
             if let letter = session.supersetLetter(for: entry.id) {
                 Label(supersetCaption(letter: letter, entryID: entry.id), systemImage: "link")
-                    .font(AppFont.caption.weight(.semibold))
+                    .font(AppFont.caption2.weight(.semibold))
                     .foregroundStyle(AppColor.accentPrimary)
             }
             statusHeader(entry)
@@ -152,9 +152,9 @@ struct WorkoutFocusView: View {
             }
             if exercise?.equipmentKind == .dumbbell {
                 Text("Weight per dumbbell · Reps")
-                    .font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
+                    .font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
             } else {
-                Text("Weight · Reps").font(AppFont.caption).foregroundStyle(AppColor.textSecondary)
+                Text("Weight · Reps").font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
             }
             if let bar = exercise?.equipmentKind.bar, let set = entry.setToLoad, set.isWholeBarLoad {
                 PlateLoadStrip(weightKg: set.weightKg, unit: unit, bar: bar)

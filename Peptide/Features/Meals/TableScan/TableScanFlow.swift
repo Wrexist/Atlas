@@ -199,7 +199,7 @@ struct TableScanFlow: View {
                     Haptics.selection()
                 } label: {
                     Label("Grid", systemImage: "square.grid.3x3")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textPrimary)
                         .padding(.horizontal, Spacing.sm)
                         .padding(.vertical, Spacing.xs)
@@ -241,7 +241,7 @@ struct TableScanFlow: View {
                     Haptics.selection()
                 } label: {
                     Text(option.label)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .fontWeight(lens == option ? .semibold : .regular)
                         .foregroundStyle(lens == option ? AppColor.textPrimary : AppColor.textSecondary)
                         .padding(.horizontal, Spacing.md)
@@ -348,12 +348,7 @@ struct TableScanFlow: View {
         .background(AppColor.background.opacity(0.12))
         .allowsHitTesting(false)
         .accessibilityHidden(true)
-        .onAppear {
-            guard !reduceMotion else { return }
-            withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
-                isSweeping = true
-            }
-        }
+        .motionAwareLoop(AppAnimation.breathe, autoreverses: true, isRunning: $isSweeping)
         .onDisappear { isSweeping = false }
     }
 
@@ -392,7 +387,7 @@ struct TableScanFlow: View {
                         .scaledToFit()
                         .frame(width: rect.width, height: rect.height)
                         .matchedGeometryEffect(id: dish.id, in: lift)
-                        .shadow(color: .black.opacity(0.25), radius: 10, y: 6)
+                        .appShadow(AppShadow.glassElevated)
                         .position(x: rect.midX, y: rect.midY)
                 }
             }
@@ -441,7 +436,7 @@ struct TableScanFlow: View {
     private var captureControls: some View {
         VStack(spacing: Spacing.md) {
             Text("One photo of the whole table.")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(maxWidth: .infinity)
 
@@ -454,7 +449,7 @@ struct TableScanFlow: View {
                             .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
                             .glassControl(.rect(cornerRadius: Spacing.smallCornerRadius))
                         Text("Import photo")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                     }
                 }
@@ -478,7 +473,7 @@ struct TableScanFlow: View {
                         .labelsHidden()
                         .tint(AppColor.accentPrimary)
                     Text("Save original")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }
                 .frame(maxWidth: .infinity)
@@ -502,7 +497,7 @@ struct TableScanFlow: View {
                 .frame(minHeight: Spacing.minimumHitTarget)
             if !isReading && keepableCount > 0 {
                 Text("Swipe down anytime — you're done.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
             }
         }

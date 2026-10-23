@@ -146,7 +146,7 @@ struct BodyMetricsPage: View {
     private var genderPills: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Label("Sex (for calorie estimate)", systemImage: "person.crop.circle")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
 
             HStack(spacing: Spacing.xs) {
@@ -259,7 +259,7 @@ private struct WheelPickerRow<Picker: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Label(title, systemImage: icon)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
 
             picker()

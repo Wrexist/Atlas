@@ -196,7 +196,7 @@ struct PeptideSelector: View {
         if !selectedPeptides.isEmpty {
             HStack {
                 Text("\(selectedPeptides.count) selected")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.accentPrimary)
                 Spacer()
                 Button {
@@ -205,7 +205,7 @@ struct PeptideSelector: View {
                     }
                 } label: {
                     Text("Clear")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .minimumHitArea()
                 }
@@ -268,7 +268,7 @@ struct PeptideSelector: View {
                         .foregroundStyle(AppColor.textPrimary)
 
                     Text(peptide.category.localizedTitle)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
 

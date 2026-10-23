@@ -42,7 +42,7 @@ run "Checker self-tests (design lint)" python3 scripts/test_design_lint.py
 run "Checker self-tests (copy claims)" python3 scripts/test_copy_claims.py
 run "Checker self-tests (contrast)" python3 scripts/test_contrast_check.py
 run "Design system (20 rules)" python3 scripts/design-lint.py --all
-run "Colour contrast (244 token pairs, WCAG AA)" python3 scripts/contrast-check.py
+run "Colour contrast (token pairs, WCAG AA)" python3 scripts/contrast-check.py
 
 if command -v swiftlint >/dev/null 2>&1; then
   run "SwiftLint" swiftlint lint --quiet

@@ -48,7 +48,7 @@ struct DoseLoggingSheet: View {
                                     .font(AppFont.headline)
                                     .foregroundStyle(AppColor.textPrimary)
                                 Text(scheduledLine)
-                                    .font(AppFont.caption)
+                                    .font(AppFont.caption2)
                                     .foregroundStyle(AppColor.textSecondary)
                             }
                             Spacer()
@@ -110,7 +110,7 @@ struct DoseLoggingSheet: View {
                                             Haptics.selection()
                                         } label: {
                                             Text(site.displayName)
-                                                .font(AppFont.caption)
+                                                .font(AppFont.caption2)
                                                 .fontWeight(.semibold)
                                                 .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
                                                 .frame(maxWidth: .infinity)

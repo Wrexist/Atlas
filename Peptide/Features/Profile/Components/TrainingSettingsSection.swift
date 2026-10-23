@@ -18,7 +18,6 @@ struct TrainingSettingsSection: View {
 
                 MeasurementUnitRow(selection: $store.profile.bodyMetrics.unit)
                     .onChange(of: dataStore.profile.bodyMetrics.unit) { _, _ in
-                        Haptics.selection()
                         dataStore.persistProfile()
                     }
 
@@ -112,12 +111,11 @@ private struct MeasurementUnitRow: View {
             title: "Units",
             subtitle: selection == .metric ? "kg · cm · °C" : "lb · in · °F"
         ) {
-            Picker("Units", selection: $selection) {
-                Text("Metric").tag(MeasurementUnit.metric)
-                Text("Imperial").tag(MeasurementUnit.imperial)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            GlassSegmentedControl(
+                options: [MeasurementUnit.metric, .imperial],
+                selected: $selection,
+                label: { $0 == .metric ? "Metric" : "Imperial" }
+            )
         }
     }
 }
@@ -144,19 +142,20 @@ private struct RestTimerRow: View {
             // Six segments fit a phone at default sizes; at large Dynamic
             // Type or on a narrow screen they'd truncate, so fall back to a menu.
             ViewThatFits(in: .horizontal) {
-                picker.pickerStyle(.segmented)
-                picker.pickerStyle(.menu)
+                GlassSegmentedControl(
+                    options: choices,
+                    selected: $selection,
+                    label: { LocalizedStringKey(WorkoutClock.label($0)) }
+                )
+                Picker("Default rest timer", selection: $selection) {
+                    ForEach(choices, id: \.self) { seconds in
+                        Text(WorkoutClock.label(seconds)).tag(seconds)
+                    }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
             }
         }
-    }
-
-    private var picker: some View {
-        Picker("Default rest timer", selection: $selection) {
-            ForEach(choices, id: \.self) { seconds in
-                Text(WorkoutClock.label(seconds)).tag(seconds)
-            }
-        }
-        .labelsHidden()
     }
 }
 

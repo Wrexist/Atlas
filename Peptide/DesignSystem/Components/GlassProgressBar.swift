@@ -17,14 +17,14 @@ struct GlassProgressBar: View {
     @State private var hasAppeared = false
 
     private var clampedProgress: Double {
-        min(max(progress, 0), 1)
+        progress.unitClamped
     }
 
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: height / 2, style: .continuous)
-                    .fill(AppColor.surfaceElevated)
+                    .fill(AppColor.track)
 
                 RoundedRectangle(cornerRadius: height / 2, style: .continuous)
                     .fill(
@@ -50,9 +50,9 @@ struct GlassProgressBar: View {
                 }
             }
         }
-        .onChange(of: progress) { _, newValue in
+        .onChange(of: progress) {
             withAnimation(AppAnimation.motionAware(AppAnimation.springGentle, reduceMotion: reduceMotion)) {
-                animatedProgress = min(max(newValue, 0), 1)
+                animatedProgress = clampedProgress
             }
         }
     }

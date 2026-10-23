@@ -60,21 +60,21 @@ struct ResearchLinksSection: View {
 
                 HStack(spacing: Spacing.xs) {
                     Text(link.source)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                         .lineLimit(1)
                     Text("\u{2022}")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                         .accessibilityHidden(true)
                     Text(verbatim: String(link.year))
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
 
                 if !link.pmid.isEmpty {
                     Text("PMID: \(link.pmid)")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
             }

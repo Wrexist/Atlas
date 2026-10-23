@@ -369,11 +369,9 @@ def rule_curve_literal(path, source, code) -> list[Finding]:
     the opposite drift: a hand-tuned `.spring(response: 0.42, …)` that is
     *almost* `AppAnimation.step`. Sixty of those made every screen move at a
     slightly different speed. Curves are named once in
-    `AnimationConstants.swift`; everywhere else uses the name.
-
-    Looping ambient and loading motion (`repeatForever`) is exempt: its
-    duration is the effect's own period, and `rule_motion` /
-    `rule_unguarded_loop` already govern it.
+    `AnimationConstants.swift`; everywhere else uses the name. Loops are no
+    exception: their periods are the `AppAnimation` loop tokens, run through
+    `motionAwareLoop`.
     """
     if path.name == "AnimationConstants.swift":
         return []
@@ -384,12 +382,46 @@ def rule_curve_literal(path, source, code) -> list[Finding]:
         args = balanced_args(code, m.end() - 1)
         if args is None or not args.strip():
             continue
-        after = code[m.end() + len(args):m.end() + len(args) + 80]
-        if re.match(r"\)(?:\s*\.delay\([^)]*\))?\s*\.repeatForever", after):
-            continue
         out.append(Finding(path, line_of(code, m.start()), "curve-literal",
                            "hand-tuned animation curve; use (or add) an AppAnimation "
                            "token in AnimationConstants.swift", "error"))
+    return out
+
+
+def rule_motion_unaware_animation(path, source, code) -> list[Finding]:
+    """R12 — named motion still has to stop under Reduce Motion.
+
+    `.animation(AppAnimation.x, value:)` names the curve but plays it for a
+    user who asked the system to stop moving things. `.appAnimation(_:value:)`
+    is the reduce-motion-aware spelling; a raw `.animation` is only right when
+    its argument already routes through `motionAware(_:reduceMotion:)`.
+    """
+    if path.name == "AnimationConstants.swift":
+        return []
+    out = []
+    for m in re.finditer(r"\.animation\(\s*AppAnimation\.", code):
+        # `$binding.animation(_:)` is a Binding transform, not the modifier.
+        if re.search(r"\$[\w.]+$", code[max(0, m.start() - 40):m.start()]):
+            continue
+        args = balanced_args(code, code.index("(", m.start()))
+        if args is None or "reduceMotion" in args:
+            continue
+        out.append(Finding(path, line_of(code, m.start()), "motion-unaware-animation",
+                           "`.animation(AppAnimation…)` ignores Reduce Motion; use "
+                           ".appAnimation(_:value:)", "error"))
+    return out
+
+
+def rule_raw_sensory_feedback(path, source, code) -> list[Finding]:
+    """SwiftUI's `.sensoryFeedback` plays even with the user's Haptic Feedback
+    setting off. `.appSensoryFeedback` routes it through `Haptics`."""
+    if path.name == "AppSensoryFeedback.swift":
+        return []
+    out = []
+    for m in re.finditer(r"\.sensoryFeedback\(", code):
+        out.append(Finding(path, line_of(code, m.start()), "raw-sensory-feedback",
+                           "`.sensoryFeedback` ignores the Haptic Feedback setting; "
+                           "use .appSensoryFeedback", "error"))
     return out
 
 
@@ -718,8 +750,9 @@ def rule_motion(path, source, code) -> list[Finding]:
     exceptions, so only *short* repeating animations are flagged: those are
     attention-grabbing, not ambient.
     """
-    # The shimmer *is* the loading indicator; looping is the whole point.
-    if path.name == "ShimmerModifier.swift":
+    # `motionAwareLoop` repeats its caller's token; the token's period is
+    # reviewed where it is defined.
+    if path.name == "AnimationConstants.swift":
         return []
     out = []
     for m in re.finditer(r"repeatForever", code):
@@ -811,6 +844,8 @@ RULES = [
     rule_glow,
     rule_untargeted_animation,
     rule_unnamed_motion,
+    rule_motion_unaware_animation,
+    rule_raw_sensory_feedback,
     rule_curve_literal,
     rule_placeholder_copy,
     rule_placeholder_as_label,

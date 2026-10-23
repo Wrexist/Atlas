@@ -28,16 +28,16 @@ struct NutritionPage: View {
 
     private var waterOptions: [WaterOption] {
         isMetric
-            ? [.init(label: "+250mL", spoken: String(localized: "Log 250 millilitres of water"), fluidOunces: Self.fluidOunces(millilitres: 250)),
-               .init(label: "+500mL", spoken: String(localized: "Log 500 millilitres of water"), fluidOunces: Self.fluidOunces(millilitres: 500)),
-               .init(label: "+1L", spoken: String(localized: "Log 1 litre of water"), fluidOunces: Self.fluidOunces(millilitres: 1000))]
+            ? [.init(label: "+250mL", spoken: String(localized: "Log 250 milliliters of water"), fluidOunces: Self.fluidOunces(milliliters: 250)),
+               .init(label: "+500mL", spoken: String(localized: "Log 500 milliliters of water"), fluidOunces: Self.fluidOunces(milliliters: 500)),
+               .init(label: "+1L", spoken: String(localized: "Log 1 liter of water"), fluidOunces: Self.fluidOunces(milliliters: 1000))]
             : [.init(label: "+8oz", spoken: String(localized: "Log 8 ounces of water"), fluidOunces: 8),
                .init(label: "+16oz", spoken: String(localized: "Log 16 ounces of water"), fluidOunces: 16),
                .init(label: "+32oz", spoken: String(localized: "Log 32 ounces of water"), fluidOunces: 32)]
     }
 
-    private static func fluidOunces(millilitres: Double) -> Double {
-        Measurement(value: millilitres, unit: UnitVolume.milliliters).converted(to: .fluidOunces).value
+    private static func fluidOunces(milliliters: Double) -> Double {
+        Measurement(value: milliliters, unit: UnitVolume.milliliters).converted(to: .fluidOunces).value
     }
 
     /// Ring geometry. The calorie figure sits inside the protein ring's

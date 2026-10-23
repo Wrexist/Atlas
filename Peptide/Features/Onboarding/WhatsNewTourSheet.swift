@@ -187,7 +187,7 @@ struct WhatsNewTourSheet: View {
             Image(systemName: page.icon)
                 .font(AppFont.scaled(60, weight: .semibold, relativeTo: .title1))
                 .foregroundStyle(AppColor.onAccent)
-                .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
+                .appShadow(AppShadow.glassSubtle)
                 .symbolEffect(.bounce, value: currentIndex)
                 .accessibilityHidden(true)
         }

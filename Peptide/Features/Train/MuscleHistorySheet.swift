@@ -35,7 +35,7 @@ struct MuscleHistorySheet: View {
                                                 VStack(alignment: .leading, spacing: 4) {
                                                     Text(session.displayName)
                                                     Text(session.startedAt.formatted(date: .abbreviated, time: .shortened))
-                                                        .font(AppFont.caption)
+                                                        .font(AppFont.caption2)
                                                         .foregroundStyle(AppColor.textSecondary)
                                                 }
                                                 .padding(.vertical, Spacing.sm)
@@ -104,7 +104,7 @@ struct MuscleHistorySheet: View {
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(item.lastPerformed.formatted(.relative(presentation: .named)))
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }
                 Spacer(minLength: Spacing.sm)

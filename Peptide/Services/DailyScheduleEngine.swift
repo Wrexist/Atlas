@@ -210,16 +210,18 @@ enum DailyScheduleEngine {
         }
 
         var summary: String {
-            let slotCount = slots.count
-            var parts: [String] = []
-            parts.append("\(totalDoses) \(totalDoses == 1 ? "dose" : "doses") across \(slotCount) \(slotCount == 1 ? "window" : "windows")")
+            var parts = [Self.inflected("^[\(totalDoses) dose](inflect: true) across ^[\(slots.count) window](inflect: true)")]
             if combinationCount > 0 {
-                parts.append("\(combinationCount) research \(combinationCount == 1 ? "pairing" : "pairings")")
+                parts.append(Self.inflected("^[\(combinationCount) research pairing](inflect: true)"))
             }
             if conflictCount > 0 {
-                parts.append("\(conflictCount) timing \(conflictCount == 1 ? "note" : "notes")")
+                parts.append(Self.inflected("^[\(conflictCount) timing note](inflect: true)"))
             }
             return parts.joined(separator: " · ")
+        }
+
+        private static func inflected(_ resource: String.LocalizationValue) -> String {
+            String(AttributedString(localized: resource).characters)
         }
 
         private static func shortTime(_ date: Date) -> String {

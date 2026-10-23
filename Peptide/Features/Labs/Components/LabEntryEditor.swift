@@ -140,7 +140,7 @@ struct LabEntryEditor: View {
                             .fixedSize()
                         } else {
                             Text(panel.canonicalUnit)
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                                 .foregroundStyle(AppColor.textSecondary)
                         }
                     }
@@ -150,7 +150,7 @@ struct LabEntryEditor: View {
                                 .font(AppFont.scaled(11))
                                 .accessibilityHidden(true)
                             Text(rangeWarning)
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                         }
                         .foregroundStyle(AppColor.warning)
                         .transition(.opacity.combined(with: .move(edge: .top)))

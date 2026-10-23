@@ -28,7 +28,7 @@ struct ProfileStacksCard: View {
                     Spacer()
                     if !stacks.isEmpty {
                         Text("\(activeCount) active · \(stacks.count) total")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textTertiary)
                     }
                 }
@@ -97,7 +97,7 @@ struct ProfileStacksCard: View {
                 .foregroundStyle(AppColor.textSecondary)
 
             Text("Create your first protocol from your Peptide Library to start tracking doses, streaks, and compliance.")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
@@ -158,7 +158,7 @@ struct ProfileStacksCard: View {
                             .lineLimit(1)
 
                         Text(subtitle(for: stack))
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textTertiary)
                             .lineLimit(1)
                     }
@@ -166,7 +166,7 @@ struct ProfileStacksCard: View {
                     Spacer(minLength: Spacing.sm)
 
                     Text(stack.status.displayName)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .fontWeight(.semibold)
                         .foregroundStyle(color(for: stack.status))
                         .padding(.horizontal, Spacing.sm)
@@ -201,8 +201,8 @@ struct ProfileStacksCard: View {
             parts.append(abbreviations)
         }
         if stack.status == .active {
-            parts.append("Week \(stack.weekNumber) of \(stack.cycleLengthWeeks)")
-            parts.append(stack.daysRemaining == 1 ? "1 day remaining" : "\(stack.daysRemaining) days remaining")
+            parts.append(String(localized: "Week \(stack.weekNumber) of \(stack.cycleLengthWeeks)"))
+            parts.append(String(AttributedString(localized: "^[\(stack.daysRemaining) day](inflect: true) remaining").characters))
         }
         return parts.joined(separator: ". ")
     }
@@ -226,7 +226,7 @@ struct ProfileStacksCard: View {
                 Spacer()
                 Text("^[\(stack.daysRemaining) day](inflect: true) left")
             }
-            .font(AppFont.caption)
+            .font(AppFont.caption2)
             .foregroundStyle(AppColor.textTertiary)
             .monospacedDigit()
         }

@@ -93,10 +93,11 @@ struct WorkoutMuscleDetailsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                Picker("Muscle display", selection: $showsList) {
-                    Text("Muscle map").tag(false)
-                    Text("Muscle list").tag(true)
-                }.pickerStyle(.segmented).frame(minHeight: 44)
+                GlassSegmentedControl(
+                    options: [false, true],
+                    selected: $showsList,
+                    label: { $0 ? "Muscle list" : "Muscle map" }
+                )
                 if showsList {
                     muscleList
                 } else {

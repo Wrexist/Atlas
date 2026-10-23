@@ -1135,7 +1135,7 @@ struct OnboardingView: View {
             .glassSurface(cornerRadius: Spacing.smallCornerRadius)
 
             Text(goalDateSummary)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
                 .padding(.top, 2)
         }
@@ -1557,7 +1557,7 @@ struct OnboardingView: View {
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
                         Text("Chest · Barbell")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                     }
                     Spacer()
@@ -1665,7 +1665,7 @@ struct OnboardingView: View {
                 }
 
                 Text("Projections from your goal, schedule, and body metrics. Actual results vary — what matters is the consistency curve.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, Spacing.xs)
@@ -1780,7 +1780,7 @@ struct OnboardingView: View {
                 .frame(width: 28)
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                 Text(value)
                     .font(AppFont.callout.weight(.semibold))
@@ -1917,7 +1917,7 @@ struct OnboardingView: View {
                 .padding(.horizontal, Spacing.lg)
 
                 Text("Reads only by default. Optional nutrition-write turns on later from Profile.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .padding(.top, Spacing.xs)
 
@@ -1933,7 +1933,7 @@ struct OnboardingView: View {
     private var healthValuePreview: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text("Example")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
             healthPreviewCards
         }
@@ -1978,11 +1978,11 @@ struct OnboardingView: View {
                     .font(AppFont.scaled(20, weight: .bold, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                 Text(unit)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
             }
             Text(label)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -2142,7 +2142,7 @@ struct OnboardingView: View {
                 .frame(width: 28)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Pro tip")
-                    .font(AppFont.caption.weight(.bold))
+                    .font(AppFont.caption2.weight(.bold))
                     .foregroundStyle(AppColor.textSecondary)
                     .textCase(.uppercase)
                 Text("Long-press your home screen to add the Atlas widget for daily progress at a glance.")
@@ -2255,7 +2255,7 @@ struct OnboardingView: View {
                     Image(systemName: "exclamationmark.circle.fill")
                         .font(AppFont.scaled(11, weight: .semibold))
                     Text(error)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                 }
                 .foregroundStyle(AppColor.destructive)
                 .padding(.leading, Spacing.md)
@@ -2421,7 +2421,7 @@ private struct ProjectionChart: View {
                 Spacer()
                 Text(targetDate.formatted(.dateTime.month(.abbreviated).day()))
             }
-            .font(AppFont.caption)
+            .font(AppFont.caption2)
             .fontWeight(.semibold)
             .foregroundStyle(AppColor.textSecondary)
         }

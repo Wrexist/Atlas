@@ -348,7 +348,7 @@ struct ProtocolBuilderView: View {
                             GlassTextField(placeholder: "e.g., Recovery Protocol", text: $name, icon: nil)
                         } else if let target = appendTargetProtocol {
                             Text("Adding to \"\(target.name)\". The peptides you pick below will inherit \(target.schedule.summary).")
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                                 .foregroundStyle(AppColor.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -435,7 +435,7 @@ struct ProtocolBuilderView: View {
                         .fontWeight(.semibold)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(appendCardSubtitle)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(2)
                 }
@@ -533,7 +533,7 @@ struct ProtocolBuilderView: View {
                                 .fontWeight(.semibold)
                                 .foregroundStyle(AppColor.textPrimary)
                             Text(warning.detail)
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                                 .foregroundStyle(AppColor.textSecondary)
                                 .lineSpacing(2)
                         }
@@ -543,7 +543,7 @@ struct ProtocolBuilderView: View {
 
                 if hiddenCount > 0 {
                     Text("+\(hiddenCount) more")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
             }
@@ -565,13 +565,13 @@ struct ProtocolBuilderView: View {
                             Spacer()
                             if !peptideOverrides.isEmpty {
                                 Text("\(peptideOverrides.count) custom")
-                                    .font(AppFont.caption)
+                                    .font(AppFont.caption2)
                                     .foregroundStyle(AppColor.accentPrimary)
                             }
                         }
 
                         Text("Applies to peptides that don't have a custom schedule.")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textTertiary)
 
                         schedulePresetChips
@@ -602,7 +602,7 @@ struct ProtocolBuilderView: View {
                                 .foregroundStyle(AppColor.textPrimary)
 
                             Text("Tap a peptide to give it its own days and frequency.")
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                                 .foregroundStyle(AppColor.textTertiary)
 
                             VStack(spacing: Spacing.xs) {
@@ -817,14 +817,14 @@ private struct PeptideScheduleRow: View {
                     }
                     HStack(spacing: 4) {
                         Text(schedule.summary)
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(isCustom ? AppColor.accentLight : AppColor.textTertiary)
                         if let dose = schedule.customDose, !dose.isEmpty {
                             Text("·")
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                                 .foregroundStyle(AppColor.textTertiary)
                             Text(dose)
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                                 .fontWeight(.semibold)
                                 .foregroundStyle(AppColor.accentLight)
                                 .lineLimit(1)

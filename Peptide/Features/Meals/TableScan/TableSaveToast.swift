@@ -68,7 +68,7 @@ struct TableSaveToast: View {
         .padding(.vertical, Spacing.sm)
         .frame(maxWidth: .infinity)
         .glassControl(.rect(cornerRadius: Spacing.cardCornerRadius), interactive: false)
-        .shadow(color: .black.opacity(0.2), radius: 12, y: 4)
+        .appShadow(AppShadow.toast)
         .accessibilityElement(children: progress.outcome == .failed ? .contain : .combine)
         .accessibilityAddTraits(.updatesFrequently)
     }
@@ -103,7 +103,7 @@ struct TableSaveToast: View {
                 .font(AppFont.scaled(13, weight: .bold))
                 .foregroundStyle(AppColor.onAccent)
                 .frame(width: 32, height: 32)
-                .background(Circle().fill(AppColor.success))
+                .background(Circle().fill(AppColor.accentFill))
                 .completionPulse(trigger: progress.total)
                 .accessibilityHidden(true)
         case .failed:

@@ -45,12 +45,11 @@ struct MuscleGainsCard: View {
                 }
 
                 if hasHistory {
-                    Picker("View", selection: $mode) {
-                        ForEach(Mode.allCases, id: \.self) { mode in
-                            Text(mode.rawValue).tag(mode)
-                        }
-                    }
-                    .pickerStyle(.segmented)
+                    GlassSegmentedControl(
+                        options: Mode.allCases,
+                        selected: $mode,
+                        label: { LocalizedStringKey($0.rawValue) }
+                    )
                 }
 
                 TrainingBodyExplorer(
@@ -150,7 +149,7 @@ struct MuscleGainsCard: View {
                 .font(AppFont.chipText)
                 .foregroundStyle(AppColor.textPrimary)
             Text(statLabel(for: value))
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
                 .monospacedDigit()
         }

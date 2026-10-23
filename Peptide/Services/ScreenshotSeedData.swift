@@ -63,7 +63,7 @@ enum ScreenshotSeedData {
                 schedule: ProtocolSchedule(
                     daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
                     timesPerDay: 1,
-                    preferredTimes: ["08:00"]
+                    preferredTimes: ["8:00 AM"]
                 ),
                 cycleLengthWeeks: 6,
                 startDate: monthAgo,
@@ -77,7 +77,7 @@ enum ScreenshotSeedData {
                 schedule: ProtocolSchedule(
                     daysOfWeek: [1, 2, 3, 4, 5],
                     timesPerDay: 1,
-                    preferredTimes: ["22:00"]
+                    preferredTimes: ["10:00 PM"]
                 ),
                 cycleLengthWeeks: 8,
                 startDate: twoWeeksAgo,
@@ -91,7 +91,7 @@ enum ScreenshotSeedData {
                 schedule: ProtocolSchedule(
                     daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
                     timesPerDay: 2,
-                    preferredTimes: ["09:00", "14:00"]
+                    preferredTimes: ["9:00 AM", "2:00 PM"]
                 ),
                 cycleLengthWeeks: 4,
                 startDate: weekAgo,
@@ -105,7 +105,7 @@ enum ScreenshotSeedData {
                 schedule: ProtocolSchedule(
                     daysOfWeek: [1],
                     timesPerDay: 1,
-                    preferredTimes: ["08:00"]
+                    preferredTimes: ["8:00 AM"]
                 ),
                 cycleLengthWeeks: 12,
                 startDate: monthAgo,
@@ -172,7 +172,7 @@ enum ScreenshotSeedData {
 
     private static func scheduledDate(for day: Date, time: String) -> Date? {
         let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
+        formatter.dateFormat = "h:mm a"
         formatter.locale = Locale(identifier: "en_US_POSIX")
         guard let parsed = formatter.date(from: time) else { return nil }
         let components = Calendar.current.dateComponents([.hour, .minute], from: parsed)
@@ -217,7 +217,7 @@ enum ScreenshotSeedData {
             weightHistory: buildWeightHistory(referenceDate: referenceDate),
             dailyConsumption: buildConsumption(referenceDate: referenceDate),
             workoutHistory: buildWorkouts(referenceDate: referenceDate),
-            bio: "Optimising what compounds.",
+            bio: "Training for longevity.",
             primaryGoal: "Recovery",
             mealHistory: buildMealHistory(referenceDate: referenceDate),
             outcomeHistory: buildOutcomes(referenceDate: referenceDate),

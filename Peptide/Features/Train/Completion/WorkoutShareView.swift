@@ -20,12 +20,16 @@ struct WorkoutShareView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
-                    Picker("Format", selection: $options.format) {
-                        ForEach(WorkoutShareFormat.allCases) { format in Text(format.title).tag(format) }
-                    }.pickerStyle(.segmented).disabled(model.busy).accessibilityIdentifier("workout-share-format")
-                    Picker("Card style", selection: $options.style) {
-                        ForEach(WorkoutShareStyle.allCases) { style in Text(style.title).tag(style) }
-                    }.pickerStyle(.segmented).disabled(model.busy).accessibilityIdentifier("workout-share-style")
+                    GlassSegmentedControl(
+                        options: WorkoutShareFormat.allCases,
+                        selected: $options.format,
+                        label: { LocalizedStringKey($0.title) }
+                    ).disabled(model.busy).accessibilityIdentifier("workout-share-format")
+                    GlassSegmentedControl(
+                        options: WorkoutShareStyle.allCases,
+                        selected: $options.style,
+                        label: { LocalizedStringKey($0.title) }
+                    ).disabled(model.busy).accessibilityIdentifier("workout-share-style")
                     preview
                     Text(options.format.detail).font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
                     if options.style == .highlight && !summary.entries.isEmpty {

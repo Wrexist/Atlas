@@ -111,11 +111,11 @@ struct AppearanceSettings: View {
 
             if overLimit {
                 Text("\(notificationService.scheduledCount) of \(notificationService.requestedCount) reminders active (iOS limit: \(limit))")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.warning)
             } else {
                 Text("^[\(notificationService.scheduledCount) reminder](inflect: true) scheduled")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
             }
         }
@@ -183,7 +183,7 @@ struct SettingsToggleRow: View {
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(subtitle)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
             }
@@ -209,7 +209,7 @@ private struct ThemePickerRow: View {
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(selection.displayName)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
 
@@ -269,13 +269,11 @@ private struct DisplayModeRow: View {
             title: "Appearance",
             subtitle: LocalizedStringKey(selection.displayName)
         ) {
-            Picker("Appearance", selection: $selection) {
-                ForEach(DisplayMode.allCases) { mode in
-                    Text(mode.displayName).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            GlassSegmentedControl(
+                options: DisplayMode.allCases,
+                selected: $selection,
+                label: { LocalizedStringKey($0.displayName) }
+            )
         }
     }
 }
@@ -303,7 +301,7 @@ struct SettingsPickerRow<Control: View>: View {
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(subtitle)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
 

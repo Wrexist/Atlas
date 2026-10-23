@@ -64,7 +64,7 @@ struct TodayChecklistCard: View {
                         .fontWeight(.semibold)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(detail(item))
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                         .contentTransition(.numericText())
                 }
@@ -174,7 +174,7 @@ struct LogWeightSheet: View {
                     .foregroundStyle(AppColor.textPrimary)
                 if let last = dataStore.dedupedWeightHistory.last {
                     Text("Last: \(unit.weightLabel(last.kg, fractionDigits: 1))")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
             }

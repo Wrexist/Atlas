@@ -17,42 +17,33 @@ struct StackAlertDetailSheet: View {
 
     private var severityLabel: String {
         switch warning.severity {
-        case .danger: return "High Priority"
-        case .caution: return "Worth Reviewing"
-        case .info: return "For Your Awareness"
+        case .danger: return "High priority"
+        case .caution: return "Worth reviewing"
+        case .info: return "For your awareness"
         }
     }
 
     private var primaryActionLabel: LocalizedStringKey {
-        let title = warning.title.lowercased()
-        if title.contains("cycle") || title.contains("desensitization") {
-            return "Schedule Off Period"
-        }
-        if title.contains("timing") {
-            return "Adjust Schedule"
-        }
-        if title.contains("injection burden") {
-            return "Group Injections"
-        }
-        switch warning.severity {
-        case .danger: return "Review Protocol Now"
-        case .caution: return "Adjust Protocol"
-        case .info: return "Open Protocols"
+        switch warning.kind {
+        case .cycleOverrun, .desensitization: return "Schedule off period"
+        case .timingConflict: return "Adjust schedule"
+        case .injectionBurden: return "Group injections"
+        case .general:
+            switch warning.severity {
+            case .danger: return "Review Protocol now"
+            case .caution: return "Adjust Protocol"
+            case .info: return "Open Protocols"
+            }
         }
     }
 
     private var primaryActionIcon: String {
-        let title = warning.title.lowercased()
-        if title.contains("cycle") || title.contains("desensitization") {
-            return "calendar.badge.clock"
+        switch warning.kind {
+        case .cycleOverrun, .desensitization: return "calendar.badge.clock"
+        case .timingConflict: return "clock.arrow.circlepath"
+        case .injectionBurden: return "syringe"
+        case .general: return "slider.horizontal.3"
         }
-        if title.contains("timing") {
-            return "clock.arrow.circlepath"
-        }
-        if title.contains("injection burden") {
-            return "syringe"
-        }
-        return "slider.horizontal.3"
     }
 
     private var primaryButtonStyle: GlassButtonStyle {
@@ -104,13 +95,10 @@ struct StackAlertDetailSheet: View {
                     .accessibilityLabel("Close")
                 }
             }
-            .navigationTitle("Alert Details")
+            .navigationTitle("Alert details")
             .navigationBarTitleDisplayMode(.inline)
         }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
-        .presentationBackground(.thinMaterial)
-        .presentationCornerRadius(Spacing.cardCornerRadius + 8)
+        .liquidGlassPresentation(detents: [.medium, .large])
     }
 
     // MARK: - Sections
@@ -131,7 +119,7 @@ struct StackAlertDetailSheet: View {
                     .font(AppFont.scaled(30, weight: .semibold, relativeTo: .largeTitle))
                     .foregroundStyle(severityColor)
             }
-            .shadow(color: .black.opacity(0.25), radius: 10, x: 0, y: 4)
+            .appShadow(AppShadow.glassSubtle)
 
             Text(warning.title)
                 .font(AppFont.title2)

@@ -5,7 +5,7 @@ import SwiftUI
 /// show yet" reads with one premium visual rhythm instead of
 /// scattered inline VStacks. Two styles:
 ///
-///   • `.fullScreen` — hero treatment with a gradient icon medallion,
+///   • `.fullScreen` — hero treatment with a filled icon medallion,
 ///     bright title in the primary text colour, optional primary
 ///     CTA + optional secondary hint. Used at the centre of an
 ///     otherwise blank scroll.
@@ -13,7 +13,7 @@ import SwiftUI
 ///     (Daily Plan, Health Correlation, detail panels). Reads as
 ///     muted helper text, not a hero.
 ///
-/// Phase 35c rewrote the hero treatment — gradient medallion, glass
+/// Phase 35c rewrote the hero treatment — icon medallion, glass
 /// card backdrop, secondary action — so the half-dozen inline
 /// `GlassCard { VStack { Image ... } }` empty states across the app
 /// can collapse to one type without losing their warmth.
@@ -21,10 +21,12 @@ struct EmptyStateView: View {
     let icon: String
     let title: LocalizedStringKey
     let message: LocalizedStringKey
-    var accent: Color = AppColor.accentPrimary
+    /// Fills the hero medallion under an `onAccent` glyph, so pass a
+    /// fill-weight colour.
+    var accent: Color = AppColor.accentFill
     var action: Action? = nil
     /// Secondary hint or affordance below the primary CTA. Renders
-    /// as a small uppercase text button without a background, so
+    /// as an uppercase text button without a background, so
     /// it reads as a "you can also…" rather than a competing CTA.
     var secondary: Action? = nil
     var style: Style = .fullScreen
@@ -75,6 +77,7 @@ struct EmptyStateView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.horizontal, Spacing.sm)
+                .accessibilityElement(children: .combine)
 
                 if let action {
                     GlassButton(
@@ -94,6 +97,7 @@ struct EmptyStateView: View {
                             if let icon = secondary.icon {
                                 Image(systemName: icon)
                                     .font(AppFont.scaled(11, weight: .heavy))
+                                    .accessibilityHidden(true)
                             }
                             Text(secondary.title)
                                 .font(AppFont.scaled(13, weight: .heavy))
@@ -101,31 +105,30 @@ struct EmptyStateView: View {
                                 .textCase(.uppercase)
                         }
                         .foregroundStyle(AppColor.textTertiary)
+                        .minimumHitArea()
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(ScalePressStyle())
                 }
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.md)
         }
-        .accessibilityElement(children: .combine)
     }
 
-    /// Gradient-filled circle hosting the SF Symbol. The accent
-    /// glow underneath gives the hero card depth without committing
-    /// to a custom illustration per empty-state surface.
+    /// Accent-filled circle hosting the SF Symbol, so the hero card has a
+    /// focal point without a custom illustration per empty-state surface.
+    /// Decorative: the title below says what's empty.
     private var heroMedallion: some View {
         ZStack {
             Circle()
                 .fill(accent)
                 .frame(width: 72, height: 72)
-                .shadow(color: accent.opacity(0.45), radius: 12, y: 6)
             Image(systemName: icon)
                 .font(.system(size: 30, weight: .heavy))
-                .foregroundStyle(.white)
-                .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+                .foregroundStyle(AppColor.onAccent)
         }
         .padding(.top, Spacing.sm)
+        .accessibilityHidden(true)
     }
 
     // MARK: - Compact treatment (in-card)
@@ -136,6 +139,7 @@ struct EmptyStateView: View {
                 .font(.system(size: 26))
                 .foregroundStyle(AppColor.textTertiary)
                 .symbolRenderingMode(.hierarchical)
+                .accessibilityHidden(true)
 
             VStack(spacing: Spacing.xs) {
                 Text(title)
@@ -144,12 +148,13 @@ struct EmptyStateView: View {
                     .multilineTextAlignment(.center)
 
                 Text(message)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, Spacing.lg)
+            .accessibilityElement(children: .combine)
 
             if let action {
                 GlassButton(
@@ -164,7 +169,6 @@ struct EmptyStateView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, Spacing.md)
-        .accessibilityElement(children: .combine)
     }
 }
 

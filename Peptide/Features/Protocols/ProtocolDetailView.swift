@@ -107,7 +107,7 @@ struct ProtocolDetailView: View {
                             }
                             Spacer()
                             Text("Tap to edit schedule")
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                                 .foregroundStyle(AppColor.textTertiary)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
@@ -204,7 +204,7 @@ struct ProtocolDetailView: View {
                             Spacer()
                             if !recentEntries.isEmpty {
                                 Text("\(recentEntries.filter(\.completed).count)/\(recentEntries.count) done")
-                                    .font(AppFont.caption)
+                                    .font(AppFont.caption2)
                                     .foregroundStyle(AppColor.textTertiary)
                             }
                         }
@@ -349,16 +349,16 @@ struct ProtocolDetailView: View {
                         HStack(spacing: Spacing.xs) {
                             if let custom = schedule.customDose, !custom.isEmpty {
                                 Text(custom)
-                                    .font(AppFont.caption)
+                                    .font(AppFont.caption2)
                                     .fontWeight(.semibold)
                                     .foregroundStyle(AppColor.accentLight)
                                 Text("(\(peptide.dosageRange))")
-                                    .font(AppFont.caption)
+                                    .font(AppFont.caption2)
                                     .foregroundStyle(AppColor.textTertiary)
                                     .lineLimit(1)
                             } else {
                                 Text(peptide.dosageRange)
-                                    .font(AppFont.caption)
+                                    .font(AppFont.caption2)
                                     .foregroundStyle(AppColor.textSecondary)
                             }
                         }
@@ -368,12 +368,12 @@ struct ProtocolDetailView: View {
 
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(schedule.compactDaysDescription)
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .fontWeight(.semibold)
                             .foregroundStyle(isCustom ? AppColor.accentLight : AppColor.textPrimary)
                             .lineLimit(1)
                         Text(schedule.isInterval ? "\(schedule.timesPerDay)x per dose day" : "\(schedule.timesPerDay)x daily")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textTertiary)
                     }
                 }
@@ -474,7 +474,7 @@ private struct MiniStat: View {
                 .contentTransition(.numericText())
                 .foregroundStyle(AppColor.accentLight)
             Text(label)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
         }
         .frame(maxWidth: .infinity)

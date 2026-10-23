@@ -106,7 +106,7 @@ enum PeptideCompatibilityData {
             name: "Full Recovery Protocol",
             peptideAbbreviations: ["BPC-157", "TB-500", "GHK-Cu", "Ipamorelin"],
             goal: "Comprehensive injury recovery",
-            synergy: "Wolverine combination (BPC-157 + TB-500) for tissue repair, GHK-Cu for collagen remodeling, Ipamorelin for GH-mediated protein synthesis. Covers inflammation, cell migration, extracellular matrix rebuilding, and systemic recovery.",
+            synergy: "The Wolverine combination (BPC-157 + TB-500) for tissue repair, GHK-Cu for collagen remodeling, Ipamorelin for GH-mediated protein synthesis. Covers inflammation, cell migration, extracellular matrix rebuilding, and systemic recovery.",
             notes: "Appropriate for post-surgical or significant injury recovery."
         ),
         ValidatedStack(

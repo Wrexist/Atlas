@@ -669,7 +669,7 @@ struct WorkoutAccessoryView: View {
                 .foregroundStyle(AppColor.accentPrimary)
                 .contentTransition(.symbolEffect(.replace))
             Text(label)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
             Spacer()
         }
@@ -715,16 +715,16 @@ struct NextDoseAccessoryView: View {
                 Text(next.dose.isEmpty
                      ? "Next: \(next.peptide.abbreviation)"
                      : "Next: \(next.peptide.abbreviation) \u{2022} \(next.dose)")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                 Spacer()
                 Text(next.date.formatted(.dateTime.hour().minute()))
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.accentLight)
                     .contentTransition(.numericText())
             } else {
                 Text("All doses completed for today")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                 Spacer()
             }
@@ -757,7 +757,7 @@ struct PersistenceErrorBanner: View {
                     .font(.caption)
                     .foregroundStyle(AppColor.warning)
                 Text(message)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)

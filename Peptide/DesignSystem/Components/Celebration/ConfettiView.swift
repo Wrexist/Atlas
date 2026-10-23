@@ -15,6 +15,7 @@ struct ConfettiView: View {
 
     @State private var particles: [Particle] = []
     @State private var start = Date()
+    @State private var isFinished = false
 
     private struct Particle: Identifiable {
         let id: Int
@@ -27,7 +28,7 @@ struct ConfettiView: View {
     }
 
     var body: some View {
-        TimelineView(.animation) { timeline in
+        TimelineView(.animation(minimumInterval: nil, paused: isFinished)) { timeline in
             Canvas { context, size in
                 let elapsed = timeline.date.timeIntervalSince(start)
                 guard elapsed <= duration else { return }
@@ -68,6 +69,12 @@ struct ConfettiView: View {
         .ignoresSafeArea()
         .accessibilityHidden(true)
         .onAppear(perform: generate)
+        .task {
+            // Stop redrawing once the burst has faded, even if the host
+            // leaves the view mounted.
+            try? await Task.sleep(for: .seconds(duration))
+            isFinished = true
+        }
     }
 
     private func generate() {

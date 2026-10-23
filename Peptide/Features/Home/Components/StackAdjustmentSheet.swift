@@ -182,7 +182,7 @@ struct StackAdjustmentSheet: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.textPrimary)
                 Text("\(proto.peptides.count) peptides · \(hits) flagged")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
             }
             Spacer()
@@ -210,7 +210,7 @@ struct StackAdjustmentSheet: View {
 
                 if diff.added.isEmpty && diff.removed.isEmpty {
                     Text("Toggle peptides below or add a new one to preview the change.")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                         .padding(.vertical, Spacing.xs)
                 } else {
@@ -253,13 +253,13 @@ struct StackAdjustmentSheet: View {
     private func diffChip(peptide: Peptide, color: Color, removed: Bool) -> some View {
         HStack(spacing: 4) {
             Text(peptide.abbreviation)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .fontWeight(.semibold)
                 .strikethrough(removed, color: color.opacity(0.7))
             Text("·")
                 .foregroundStyle(color.opacity(0.5))
             Text(peptide.category.displayName)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(color.opacity(0.85))
         }
         .foregroundStyle(color)
@@ -278,7 +278,7 @@ struct StackAdjustmentSheet: View {
         sectionCard(icon: "pills.fill", title: "Edit peptides", tint: AppColor.accentPrimary) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text("Tap to remove. Use \"Add peptide\" to swap one in.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
 
                 FlowLayout(spacing: Spacing.xs) {
@@ -339,7 +339,7 @@ struct StackAdjustmentSheet: View {
                 Image(systemName: isIncluded ? "checkmark" : "xmark")
                     .font(AppFont.scaled(8, weight: .bold))
                 Text(peptide.abbreviation)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .fontWeight(.semibold)
                     .strikethrough(!isIncluded, color: color.opacity(0.7))
             }
@@ -383,7 +383,7 @@ struct StackAdjustmentSheet: View {
                         .fontWeight(.semibold)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(relocation.peptide.category.displayName)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
                 Spacer()
@@ -411,7 +411,7 @@ struct StackAdjustmentSheet: View {
                         Image(systemName: optionIcon(current))
                             .font(AppFont.scaled(11, weight: .semibold))
                         Text(current.label)
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .fontWeight(.semibold)
                             .lineLimit(1)
                         Image(systemName: "chevron.down")
@@ -431,7 +431,7 @@ struct StackAdjustmentSheet: View {
             }
             if let subtitle = current.subtitle {
                 Text(subtitle)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .padding(.leading, Spacing.xxl + Spacing.sm)
             }
@@ -466,7 +466,7 @@ struct StackAdjustmentSheet: View {
 
             if proposedPeptides.isEmpty {
                 Text("Keep at least one peptide in the protocol.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.destructive)
             }
         }

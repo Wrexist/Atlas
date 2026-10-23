@@ -16,7 +16,7 @@ struct ProtocolCard: View {
                             StatusBadge(status: protocol_.status)
 
                             Text("^[\(protocol_.peptides.count) peptide](inflect: true)")
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                                 .foregroundStyle(AppColor.textSecondary)
                         }
                     }
@@ -31,7 +31,7 @@ struct ProtocolCard: View {
                                 .contentTransition(.numericText())
                                 .foregroundStyle(AppColor.accentLight)
                             Text("of \(protocol_.cycleLengthWeeks)")
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                                 .foregroundStyle(AppColor.textTertiary)
                         }
                     }
@@ -61,7 +61,7 @@ struct ProtocolCard: View {
 
                     if protocol_.peptides.count > 4 {
                         Text("+\(protocol_.peptides.count - 4)")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                             .padding(.leading, Spacing.sm)
                     }
@@ -70,7 +70,7 @@ struct ProtocolCard: View {
 
                     if protocol_.status == .active {
                         Text("\(protocol_.daysRemaining)d left")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .monospacedDigit()
                             .contentTransition(.numericText())
                             .foregroundStyle(AppColor.textSecondary)
@@ -105,7 +105,7 @@ struct StatusBadge: View {
                 .font(AppFont.badge)
                 .contentTransition(.symbolEffect(.replace))
             Text(status.displayName)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .fontWeight(.semibold)
         }
         .foregroundStyle(status.color)

@@ -111,7 +111,7 @@ struct GoalCountdownCard: View {
                     .foregroundStyle(AppColor.accentLight)
                     .accessibilityHidden(true)
                 Text(label)
-                    .font(AppFont.caption.weight(.semibold))
+                    .font(AppFont.caption2.weight(.semibold))
                     .foregroundStyle(AppColor.textPrimary)
                 Spacer(minLength: 0)
             }
@@ -161,7 +161,7 @@ struct GoalCountdownCard: View {
                     .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
                     .foregroundStyle(AppColor.textPrimary)
                 Text("Time to set your next one.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
             Spacer(minLength: 0)
@@ -185,7 +185,7 @@ struct GoalCountdownCard: View {
                     .font(AppFont.subheadline.weight(.semibold))
                     .foregroundStyle(AppColor.textSecondary)
                 Text(inFinalWeek ? "remaining" : "^[\(days) day](inflect: true) remaining")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
             }
             Spacer()
@@ -203,7 +203,7 @@ struct GoalCountdownCard: View {
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textTertiary)
             Text("Target — \(targetDate.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
         }
     }

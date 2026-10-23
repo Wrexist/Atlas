@@ -93,7 +93,7 @@ struct ProfileCustomizationSheet: View {
             .scrollDismissesKeyboard(.interactively)
             .background(AppColor.background)
             .dismissKeyboardOnTap()
-            .navigationTitle("Customize Profile")
+            .navigationTitle("Customize profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -461,7 +461,7 @@ struct ProfileCustomizationSheet: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text(title)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
                 .textCase(.uppercase)
 
@@ -479,12 +479,12 @@ struct ProfileCustomizationSheet: View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             HStack {
                 Text("Bio")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .textCase(.uppercase)
                 Spacer()
                 Text("\(bio.count)/\(Self.bioCharacterLimit)")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(
                         bio.count > Self.bioCharacterLimit
                         ? AppColor.destructive
@@ -522,7 +522,7 @@ struct ProfileCustomizationSheet: View {
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
                     Text(themeManager.theme.displayName)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
 
@@ -581,13 +581,13 @@ struct ProfileCustomizationSheet: View {
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
                     Text("\(dataStore.profile.goals.count) selected")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                         .monospacedDigit()
                 }
 
                 Text("Pick what you're optimizing for. Long-press a selected goal to pin it as your primary focus.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
 
                 if let pinned = dataStore.profile.primaryGoal, !pinned.isEmpty {
@@ -596,14 +596,14 @@ struct ProfileCustomizationSheet: View {
                             .font(AppFont.scaled(11, weight: .semibold))
                             .foregroundStyle(AppColor.accentLight)
                         Text("Primary: \(pinned)")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .fontWeight(.semibold)
                             .foregroundStyle(AppColor.accentLight)
                         Spacer()
                         Button("Unpin") {
                             dataStore.setPrimaryGoal(nil)
                         }
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                     }
                     .padding(.horizontal, Spacing.md)
@@ -704,7 +704,7 @@ struct ProfileCustomizationSheet: View {
                     }
                 } else {
                     Text("Optional — add your weight, height, and age in the Profile tab to display them alongside compliance trends.")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -719,7 +719,7 @@ struct ProfileCustomizationSheet: View {
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textPrimary)
             Text(label)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -796,7 +796,7 @@ struct ProfileCustomizationSheet: View {
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textPrimary)
                 Text(subtitle)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
             }
 

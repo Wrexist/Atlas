@@ -212,7 +212,7 @@ struct BiomarkerDetailSheet: View {
             }
         }
         .chartXSelection(value: $selectedDate)
-        .sensoryFeedback(.selection, trigger: selectedSample?.date)
+        .appSensoryFeedback(.selection, trigger: selectedSample?.date)
         .chartXAxis {
             // Stride scales with the window — daily ticks
             // would be unreadable at 90 days, weekly is
@@ -256,7 +256,7 @@ struct BiomarkerDetailSheet: View {
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
             Text(dayLabel(for: sample.date))
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
         }
         .padding(.horizontal, Spacing.sm)
@@ -329,7 +329,7 @@ struct BiomarkerDetailSheet: View {
                 .font(AppFont.scaled(16, weight: .light))
                 .foregroundStyle(AppColor.textTertiary)
             Text("Need at least 4 days of data to chart a trend.")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
             Spacer()
         }

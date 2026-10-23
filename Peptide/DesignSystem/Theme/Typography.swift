@@ -53,7 +53,7 @@ enum AppFont {
     static let callout     = Font.system(.callout,                       weight: .regular)
     static let subheadline = Font.system(.subheadline,                   weight: .regular)
     static let footnote    = Font.system(.footnote,                      weight: .regular)
-    static let caption     = Font.system(.caption2,                      weight: .regular)
+    static let caption2    = Font.system(.caption2,                      weight: .regular)
 
     /// The bold rounded title under each Today section's eyebrow.
     static let sectionTitle = Font.system(.title2, design: .rounded, weight: .bold)
@@ -92,23 +92,33 @@ enum AppFont {
     /// specifies.
     ///
     /// It returns a `Font` rather than applying a `ViewModifier` so it still
-    /// composes inside `Text(…) + Text(…)` concatenations. The metrics are
-    /// read during `body` evaluation, which SwiftUI re-runs when the
-    /// content-size category changes, so the value stays current.
+    /// composes inside `Text(…) + Text(…)` concatenations. The trade-off: by
+    /// default the metrics come from UIKit's current trait collection, not
+    /// the SwiftUI environment, so a `.dynamicTypeSize(...)` clamp has no
+    /// effect on it and a view that never reads the environment can keep a
+    /// stale size until it rebuilds. A view that clamps, or must track
+    /// changes live, reads `@Environment(\.dynamicTypeSize)` and passes it
+    /// as `dynamicTypeSize`.
     ///
     /// - Parameter textStyle: the ramp the size scales *along*. The default
     ///   (`.body`) is right for labels and row copy; pass `.caption1` for
     ///   badges so they grow more gently, or `.title1` for display numbers.
+    /// - Parameter dynamicTypeSize: the size to scale for; `nil` reads
+    ///   UIKit's current content-size category.
     static func scaled(
         _ size: CGFloat,
         weight: Font.Weight = .regular,
         design: Font.Design = .default,
-        relativeTo textStyle: UIFont.TextStyle = .body
+        relativeTo textStyle: UIFont.TextStyle = .body,
+        in dynamicTypeSize: DynamicTypeSize? = nil
     ) -> Font {
-        .system(
-            size: UIFontMetrics(forTextStyle: textStyle).scaledValue(for: size),
-            weight: weight,
-            design: design
-        )
+        let metrics = UIFontMetrics(forTextStyle: textStyle)
+        let pointSize = dynamicTypeSize.map {
+            metrics.scaledValue(
+                for: size,
+                compatibleWith: UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory($0))
+            )
+        } ?? metrics.scaledValue(for: size)
+        return .system(size: pointSize, weight: weight, design: design)
     }
 }

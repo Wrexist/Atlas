@@ -243,7 +243,7 @@ struct LabPanelDetailView: View {
             }
         }
         .chartXSelection(value: $selectedDate)
-        .sensoryFeedback(.selection, trigger: selected?.id)
+        .appSensoryFeedback(.selection, trigger: selected?.id)
         .frame(height: 200)
         .chartXAxis {
             AxisMarks(values: .stride(by: xStride.component, count: xStride.count)) { _ in
@@ -283,7 +283,7 @@ struct LabPanelDetailView: View {
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
             Text(entry.date.formatted(.dateTime.day().month(.abbreviated).year()))
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
         }
         .padding(.horizontal, Spacing.sm)
@@ -382,7 +382,7 @@ struct LabPanelDetailView: View {
 
     private var emptyShim: some View {
         Text("No entries")
-            .font(AppFont.caption)
+            .font(AppFont.caption2)
             .foregroundStyle(AppColor.textSecondary)
             .padding(.top, Spacing.xxl)
     }

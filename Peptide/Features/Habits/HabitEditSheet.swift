@@ -185,8 +185,8 @@ struct HabitEditSheet: View {
                 .appAnimation(AppAnimation.springSnappy, value: iconSymbol)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Icon and colour")
-        .accessibilityHint("Opens the icon and colour pickers")
+        .accessibilityLabel("Icon and color")
+        .accessibilityHint("Opens the icon and color pickers")
     }
 
     private var nameField: some View {
@@ -290,7 +290,7 @@ struct HabitEditSheet: View {
                         .font(AppFont.body)
                         .foregroundStyle(AppColor.textPrimary)
                     Text("Icon, color, target, reminder")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
                 Spacer(minLength: 0)
@@ -346,7 +346,7 @@ struct HabitEditSheet: View {
                     .foregroundStyle(AppColor.warning)
                     .accessibilityHidden(true)
                 Text("Notifications are off for Atlas. Turn them on in Settings.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.leading)
                 Spacer(minLength: 0)

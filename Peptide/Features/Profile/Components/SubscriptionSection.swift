@@ -36,7 +36,7 @@ struct SubscriptionSection: View {
                 }
 
                 Text(planCaption)
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -107,7 +107,7 @@ struct SubscriptionSection: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Label {
                 Text("Your payment didn't go through. Update your payment method to keep Atlas Pro.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
             } icon: {

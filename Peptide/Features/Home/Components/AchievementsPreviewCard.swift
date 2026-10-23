@@ -24,14 +24,14 @@ struct AchievementsPreviewCard: View {
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
                     Text("\(service.unlockedCount)/\(service.totalCount)")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                         .monospacedDigit()
                 }
 
                 if unlocked.isEmpty {
                     Text("Finish a workout, log meals, and build habits to start unlocking badges.")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 } else {
@@ -53,7 +53,7 @@ struct AchievementsPreviewCard: View {
             MilestoneArtwork(symbol: achievement.icon, tint: AppColor.achievement, size: 48, isActive: false)
 
             Text(achievement.title)
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
@@ -70,7 +70,7 @@ struct AchievementsPreviewCard: View {
                 .font(AppFont.scaled(28, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.textTertiary)
             Text("+\(extra)")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
                 .monospacedDigit()
         }

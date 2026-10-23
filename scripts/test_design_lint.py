@@ -52,6 +52,14 @@ CASES = [
      '.onAppear { withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) { x = true } }',
      '@Environment(\\.accessibilityReduceMotion) private var reduceMotion\n.onAppear { guard !reduceMotion else { return }\nwithAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) { x = true } }'),
 
+    ("rule_motion_unaware_animation", "Foo.swift",
+     '.animation(AppAnimation.springSnappy, value: isLoading)',
+     '.animation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion), value: x)\nToggle(isOn: $flag.animation(AppAnimation.springSnappy)) { }'),
+
+    ("rule_raw_sensory_feedback", "Foo.swift",
+     '.sensoryFeedback(.selection, trigger: selection)',
+     '.appSensoryFeedback(.selection, trigger: selection)'),
+
     ("rule_raw_colour", "Foo.swift",
      '.foregroundStyle(Color(hex: 0xFF0000))',
      '.foregroundStyle(AppColor.textPrimary)'),
@@ -94,7 +102,7 @@ CASES = [
 
     ("rule_curve_literal", "Foo.swift",
      'Text("a").animation(.spring(response: 0.42, dampingFraction: 0.78), value: step)',
-     'Circle().onAppear { withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) { on = true } }'),
+     'Circle().motionAwareLoop(AppAnimation.breathe, autoreverses: true, isRunning: $on)'),
 
     ("rule_placeholder_as_label", "Foo.swift",
      'HStack {\n  Text("Sets")\n  TextField("0", text: $sets)\n    .keyboardType(.numberPad)\n}',

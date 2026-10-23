@@ -28,7 +28,7 @@ struct StackCompletenessCard: View {
 
                     if !completeness.coveredGoals.isEmpty {
                         Text("Covering: \(completeness.coveredGoals.joined(separator: ", "))")
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                             .lineLimit(2)
                     }
@@ -41,7 +41,7 @@ struct StackCompletenessCard: View {
                                 .padding(.top, 2)
 
                             Text(suggestion)
-                                .font(AppFont.caption)
+                                .font(AppFont.caption2)
                                 .foregroundStyle(AppColor.accentLight)
                                 .lineLimit(2)
                         }

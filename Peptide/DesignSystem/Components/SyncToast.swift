@@ -11,7 +11,7 @@ import SwiftUI
 /// timer so callers don't have to schedule one.
 struct SyncToast: View {
     @Binding var isShowing: Bool
-    var message: LocalizedStringKey = "Sync Complete"
+    var message: LocalizedStringResource = "Sync Complete"
     var autoDismissAfter: Duration = .milliseconds(2_400)
 
     @State private var dismissTask: Task<Void, Never>?
@@ -28,19 +28,23 @@ struct SyncToast: View {
                         .foregroundStyle(AppColor.textPrimary)
                 }
                 .padding(.horizontal, Spacing.md)
-                .padding(.vertical, 8)
+                .padding(.vertical, Spacing.sm)
                 .glassControl(
                     .capsule,
                     tint: AppColor.success.opacity(0.10),
                     border: AppColor.success.opacity(0.35),
                     interactive: false
                 )
-                .shadow(color: .black.opacity(0.25), radius: 8, y: 2)
+                .appShadow(AppShadow.toast)
                 .transition(.move(edge: .top).combined(with: .opacity))
-                .onAppear { scheduleDismiss() }
+                .onAppear {
+                    // Gone before VoiceOver focus could reach it, so say it.
+                    AccessibilityNotification.Announcement(String(localized: message)).post()
+                    scheduleDismiss()
+                }
                 .onDisappear { dismissTask?.cancel() }
                 .accessibilityElement()
-                .accessibilityLabel(message)
+                .accessibilityLabel(Text(message))
                 .accessibilityAddTraits(.isStaticText)
             }
         }

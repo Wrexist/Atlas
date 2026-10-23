@@ -218,6 +218,11 @@ final class DailyScheduleEngineTests: XCTestCase {
         XCTAssertTrue(plan.summary.contains("2 doses"))
     }
 
+    func test_dailyPlan_summary_singleDose_readsSingular() {
+        let plan = DailyScheduleEngine.plan(for: [entry("BPC-157", hour: 7)])
+        XCTAssertTrue(plan.summary.hasPrefix("1 dose across 1 window"), plan.summary)
+    }
+
     func test_dailyPlan_headline_promptsFastedPeptideFirst() {
         let plan = DailyScheduleEngine.plan(for: [entry("BPC-157", hour: 7)])
         XCTAssertTrue(plan.headline.contains("BPC-157"))

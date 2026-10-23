@@ -132,7 +132,7 @@ extension MeasurementUnit {
     /// Spelled out for VoiceOver, which reads "oz" as two letters.
     var volumeSpokenUnit: String {
         self == .metric
-            ? String(localized: "millilitres")
+            ? String(localized: "milliliters")
             : String(localized: "ounces")
     }
 

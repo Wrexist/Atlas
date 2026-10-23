@@ -53,12 +53,11 @@ struct TrainingBodyExplorer: View {
 
     private var content: some View {
         VStack(spacing: Spacing.md) {
-            Picker("Body view", selection: Binding(get: { side }, set: { pickSide($0) })) {
-                ForEach(Side.allCases, id: \.self) { side in
-                    Text(side.rawValue).tag(side)
-                }
-            }
-            .pickerStyle(.segmented)
+            GlassSegmentedControl(
+                options: Side.allCases,
+                selected: Binding(get: { side }, set: { pickSide($0) }),
+                label: { LocalizedStringKey($0.rawValue) }
+            )
             .accessibilityIdentifier("training-body-side")
 
             MuscleMapView(
@@ -77,7 +76,7 @@ struct TrainingBodyExplorer: View {
                 if side != .back { Text("Front").frame(maxWidth: .infinity) }
                 if side != .front { Text("Back").frame(maxWidth: .infinity) }
             }
-            .font(AppFont.caption)
+            .font(AppFont.caption2)
             .foregroundStyle(AppColor.textSecondary)
             .accessibilityHidden(true)
 
@@ -89,7 +88,7 @@ struct TrainingBodyExplorer: View {
                             .fixedSize(horizontal: true, vertical: false)
                         VStack(alignment: .leading, spacing: Spacing.sm) { roleLabels }
                     }
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                 case let .intensity(low, high):
                     MuscleHeatLegend(lowLabel: low, highLabel: high)
                 }
@@ -102,7 +101,7 @@ struct TrainingBodyExplorer: View {
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
                         Text(selectionDescription)
-                            .font(AppFont.caption)
+                            .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                         HStack(spacing: Spacing.xs) {
                             Text("View muscle history")

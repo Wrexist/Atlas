@@ -65,7 +65,7 @@ final class StackRecommendationEngineTests: XCTestCase {
     }
 
     func test_validatedStackScoring_findsMatchFromPartialStack() {
-        // BPC-157 is part of the Wolverine Stack (BPC-157 + TB-500)
+        // BPC-157 is part of the Wolverine combination (BPC-157 + TB-500)
         let stack = peptides(abbrevs: ["BPC-157"])
         let recs = StackRecommendationEngine.recommendations(for: stack, from: database, limit: 20)
         let hasValidated = recs.contains { rec in
@@ -76,7 +76,7 @@ final class StackRecommendationEngineTests: XCTestCase {
                 return false
             }
         }
-        XCTAssertTrue(hasValidated, "Should recommend TB-500 as part of Wolverine Stack")
+        XCTAssertTrue(hasValidated, "Should recommend TB-500 as part of the Wolverine combination")
     }
 
     func test_sharedBenefits_scoresOverlappingBenefits() {
@@ -228,7 +228,7 @@ final class StackRecommendationEngineTests: XCTestCase {
 
     func test_confidence_highForValidatedStack() {
         let reasons: [StackRecommendationEngine.RecommendationReason] = [
-            .validatedStack(name: "Wolverine Stack", synergy: "test"),
+            .validatedStack(name: "Wolverine", synergy: "test"),
             .commonStack(pairsWith: ["BPC-157"]),
         ]
         let confidence = StackRecommendationEngine.computeConfidence(reasons: reasons, score: 5)
@@ -296,7 +296,7 @@ final class StackRecommendationEngineTests: XCTestCase {
         let hasBurden = warnings.contains { $0.title.contains("injection burden") }
         // Injection burden fires when daily count > 4; depends on frequency strings
         if hasBurden {
-            XCTAssertTrue(warnings.contains { $0.icon == "syringe.fill" })
+            XCTAssertTrue(warnings.contains { $0.icon == "syringe.fill" && $0.kind == .injectionBurden })
         }
     }
 
@@ -331,7 +331,9 @@ final class StackRecommendationEngineTests: XCTestCase {
         let warnings = StackRecommendationEngine.warnings(
             for: [bpc], activeProtocols: [proto]
         )
-        let hasCycleWarning = warnings.contains { $0.title.contains("over cycle") }
+        let hasCycleWarning = warnings.contains {
+            $0.title.contains("past its cycle") && $0.kind == .cycleOverrun
+        }
         XCTAssertTrue(hasCycleWarning, "Should warn about BPC-157 being over its recommended cycle")
     }
 
@@ -348,7 +350,9 @@ final class StackRecommendationEngineTests: XCTestCase {
         let warnings = StackRecommendationEngine.warnings(
             for: [ipamorelin, bpc], activeProtocols: [proto]
         )
-        let hasDesensitization = warnings.contains { $0.title.contains("desensitization") }
+        let hasDesensitization = warnings.contains {
+            $0.title.contains("desensitization") && $0.kind == .desensitization
+        }
         XCTAssertTrue(hasDesensitization, "Should warn about GHS-R1a desensitization risk")
     }
 
@@ -358,13 +362,19 @@ final class StackRecommendationEngineTests: XCTestCase {
         let warnings = StackRecommendationEngine.warnings(for: stack)
         let hasHepato = warnings.contains { $0.title.contains("liver") }
         XCTAssertTrue(hasHepato, "Should warn about multiple hepatotoxic peptides")
+        XCTAssertTrue(
+            warnings.filter { $0.title.contains("liver") }.allSatisfy { $0.kind == .general },
+            "Warnings without a dedicated follow-up action stay general"
+        )
     }
 
     func test_timingConflicts_detectsAvoidWithPairs() {
         let stack = peptides(abbrevs: ["Semax", "Selank"])
         guard stack.count == 2 else { return XCTFail("Fixture peptides missing from the database") }
         let warnings = StackRecommendationEngine.warnings(for: stack)
-        let hasTimingConflict = warnings.contains { $0.title.contains("Timing separation") }
+        let hasTimingConflict = warnings.contains {
+            $0.title.contains("Timing separation") && $0.kind == .timingConflict
+        }
         XCTAssertTrue(hasTimingConflict, "Should detect Semax/Selank timing conflict")
     }
 

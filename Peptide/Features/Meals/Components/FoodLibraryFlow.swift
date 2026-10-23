@@ -666,7 +666,7 @@ struct FoodLibraryFlow: View {
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textPrimary)
                 Text("Try one of these — they cover the cases search can't.")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
                 HStack(spacing: Spacing.sm) {
                     quickActionButton(
@@ -1271,7 +1271,7 @@ struct FoodLibraryFlow: View {
                     .lineLimit(2)
                 if let brand = product.brand, brand != product.name {
                     Text(brand)
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }
@@ -1289,7 +1289,7 @@ struct FoodLibraryFlow: View {
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
             Text(product.barcode.hasPrefix("custom:") ? "Your custom food" : "Open Food Facts")
-                .font(AppFont.caption)
+                .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
             Spacer(minLength: 0)
         }
@@ -1308,7 +1308,7 @@ struct FoodLibraryFlow: View {
                     .minimumHitArea()
                 if let grams = FoodLibraryLogic.previousGrams(for: product, history: profile.mealHistory) {
                     Text("Last logged amount: \(grams.formatted()) g")
-                        .font(AppFont.caption)
+                        .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }

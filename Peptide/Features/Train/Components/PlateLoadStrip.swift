@@ -33,12 +33,12 @@ struct PlateLoadStrip: View {
             HStack(spacing: Spacing.sm) {
                 BarLoadDiagram(platesPerSide: platesPerSide, unit: unit, plateWidth: 4, maxPlateHeight: 24, barLength: 18)
                 Text(summary)
-                    .font(AppFont.caption.weight(.semibold))
+                    .font(AppFont.caption2.weight(.semibold))
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Image(systemName: "chevron.right")
-                    .font(AppFont.caption)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
             }
             .padding(.horizontal, Spacing.sm)
@@ -131,7 +131,7 @@ struct BarLoadDiagram: View {
 
     private func overflowBadge(_ count: Int) -> some View {
         Text("+\(count)")
-            .font(AppFont.caption.weight(.semibold))
+            .font(AppFont.caption2.weight(.semibold))
             .foregroundStyle(AppColor.textSecondary)
     }
 }

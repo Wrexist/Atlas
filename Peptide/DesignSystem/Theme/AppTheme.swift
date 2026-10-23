@@ -29,11 +29,17 @@ enum AppThemeColor: String, CaseIterable, Codable, Identifiable {
     /// same hue pushed deeper so accent *text* — `AppColor.accentLight` is
     /// used as ink in 150+ places — clears WCAG AA on a white card instead of
     /// washing out.
+    ///
+    /// `washInk` is the ink for text printed on the accent's own translucent
+    /// wash (tinted badges, primary glass buttons). The wash darkens the
+    /// light-mode backdrop enough that `light` drops below AA, so light mode
+    /// borrows the deep `dark` stop; dark mode keeps `light`.
     private struct Ramp {
         let primary: Color
         let light: Color
         let dark: Color
         let highlight: Color
+        let washInk: Color
     }
 
     // Stored, not computed. `AppColor.accentPrimary` is read many times per
@@ -43,35 +49,41 @@ enum AppThemeColor: String, CaseIterable, Codable, Identifiable {
         primary:   Color(light: 0x077A55, dark: 0x10B981),   // emerald-500
         light:     Color(light: 0x0E7490, dark: 0x22D3EE),   // cyan-400
         dark:      Color(light: 0x065F46, dark: 0x047857),   // emerald-700
-        highlight: Color(light: 0x047857, dark: 0xA7F3D0)    // emerald-200
+        highlight: Color(light: 0x047857, dark: 0xA7F3D0),   // emerald-200
+        washInk:   Color(light: 0x065F46, dark: 0x22D3EE)
     )
     private static let purpleRamp = Ramp(
         primary:   Color(light: 0x5B52B8, dark: 0x7F77DD),
         light:     Color(light: 0xB03060, dark: 0xE2769A),
-        dark:      Color(light: 0x3E3773, dark: 0x534B96),
-        highlight: Color(light: 0x534B96, dark: 0xE8D2E2)
+        dark:      Color(light: 0x3E3773, dark: 0x685EBB),
+        highlight: Color(light: 0x534B96, dark: 0xE8D2E2),
+        washInk:   Color(light: 0x3E3773, dark: 0xE2769A)
     )
     private static let oceanRamp = Ramp(
         primary:   Color(light: 0x1F6FC0, dark: 0x378ADD),
         light:     Color(light: 0x1E6AB4, dark: 0x6CA9E6),
         dark:      Color(light: 0x1A5386, dark: 0x256AAA),
-        highlight: Color(light: 0x256AAA, dark: 0xC4DCF1)
+        highlight: Color(light: 0x256AAA, dark: 0xC4DCF1),
+        washInk:   Color(light: 0x1A5386, dark: 0x6CA9E6)
     )
     private static let amberRamp = Ramp(
         primary:   Color(light: 0x9A6112, dark: 0xBA7517),
         light:     Color(light: 0x8A5F14, dark: 0xD89438),
-        dark:      Color(light: 0x714810, dark: 0x8E5A12),
-        highlight: Color(light: 0x8E5A12, dark: 0xF1D8B0)
+        dark:      Color(light: 0x714810, dark: 0x955E13),
+        highlight: Color(light: 0x8E5A12, dark: 0xF1D8B0),
+        washInk:   Color(light: 0x714810, dark: 0xD89438)
     )
     /// Graphite's ink stops have to invert like every other ramp: pinning
     /// them to one value put accent ink at 1.8:1 on the dark background,
-    /// which is what "reads on either surface" was assumed to avoid. Only
-    /// `dark` — the fill stop that carries `onAccent` — stays put.
+    /// which is what "reads on either surface" was assumed to avoid. The
+    /// `dark` fill stop inverts too: pinned near-black, accent fills
+    /// vanished into the dark background (1.15:1).
     private static let onyxRamp = Ramp(
         primary:   Color(light: 0x3F3F3D, dark: 0xC9C9C7),
         light:     Color(light: 0x5C5C5A, dark: 0xDEDEDC),
-        dark:      Color(hex: 0x1F1F1D),
-        highlight: Color(light: 0x3F3F3D, dark: 0xC9C9C7)
+        dark:      Color(light: 0x1F1F1D, dark: 0x6A6A67),
+        highlight: Color(light: 0x3F3F3D, dark: 0xC9C9C7),
+        washInk:   Color(light: 0x1F1F1D, dark: 0xDEDEDC)
     )
 
     private var ramp: Ramp {
@@ -94,6 +106,8 @@ enum AppThemeColor: String, CaseIterable, Codable, Identifiable {
     var dark: Color { ramp.dark }
 
     var highlight: Color { ramp.highlight }
+
+    var washInk: Color { ramp.washInk }
 
     /// Maps a UserDefaults rawValue to a current case, including the
     /// 6-theme palette this replaces (`forest`, `amethyst`, `sunset`,
