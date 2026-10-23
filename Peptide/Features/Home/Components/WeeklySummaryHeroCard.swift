@@ -132,7 +132,7 @@ struct WeeklySummaryHeroCard: View {
     private var emptyCard: some View {
         messageCard(
             title: String(localized: "Your weekly recap will appear here"),
-            message: String(localized: "Log workouts, meals or a check-in on a few more days to unlock it."),
+            message: "Log workouts, meals or a check-in on a few more days to unlock it.",
             showsRetry: false
         )
     }
