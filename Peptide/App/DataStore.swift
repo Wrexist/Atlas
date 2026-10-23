@@ -1773,6 +1773,18 @@ final class DataStore {
         reindexFoodLibraryInBackground()
     }
 
+    /// Fills in packshots found in the background. Leaves `updatedAt`
+    /// alone: it orders My Foods, and a found picture is not an edit.
+    func attachPictures(_ pictures: [UUID: URL]) {
+        guard !pictures.isEmpty else { return }
+        var foods = profile.customFoods
+        for index in foods.indices where foods[index].imageURL == nil {
+            foods[index].imageURL = pictures[foods[index].id]
+        }
+        profile.customFoods = foods
+        save()
+    }
+
     /// Removes a custom food and its favorite-set membership in one
     /// pass so the favorites tab can't keep a dangling reference.
     /// Reindexes Spotlight via the same full-rewrite path that
