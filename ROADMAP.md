@@ -56,7 +56,7 @@ CI/CD to TestFlight via Fastlane.
 | **Sync toast** | Complete | Top-of-screen "Sync Complete" pill auto-dismissing after fresh HealthKit pull |
 | **Localization** | English only | Strings are extracted to `Localizable.xcstrings` and `CFBundleLocalizations` declares `en` only. Draft translations live in `localization/` but are not shipped |
 | **Testing** | 150 test files, 1,904 test methods | `PeptideTests`: network services (MockURLProtocol), data integrity, recommendation/insight engines, persistence round-trip, schedule cadence, achievement service, vial palette, recovery score, coaching messages, health range percentiles |
-| **Crash reporting** | Complete | MetricKit subscriber (`DiagnosticsService`) captures crash, hang and disk-write diagnostics; surfaced in Profile → Diagnostics |
+| **Crash reporting** | Complete | MetricKit subscriber (`DiagnosticsService`) captures crash, hang and disk-write diagnostics; `CrashReportUploader` sends them through the proxy's `/api/crash-report` to Sentry (opt-out in Settings) |
 | **CI/CD** | Complete | XcodeGen, SwiftLint, build + test in GitHub Actions (macos-15 pinned), TestFlight via Fastlane, binary-size delta gate |
 
 ---

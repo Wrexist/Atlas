@@ -29,7 +29,7 @@
     <span class="eyebrow">Legal</span>
     <h1>Privacy Policy</h1>
     <p class="meta">
-      Effective date: April 30, 2026 &nbsp;·&nbsp; Last updated: August 28, 2026 &nbsp;·&nbsp;
+      Effective date: April 30, 2026 &nbsp;·&nbsp; Last updated: October 23, 2026 &nbsp;·&nbsp;
       App: Atlas (iOS) &nbsp;·&nbsp;
       Developer: Peptides AI
     </p>
@@ -157,6 +157,22 @@
       <a href="https://www.revenuecat.com/privacy/">RevenueCat's privacy policy</a>.
     </p>
 
+    <h3>Crash reports</h3>
+    <p>
+      When Atlas crashes, freezes or uses excessive CPU or storage, iOS
+      (Apple's MetricKit) hands the app a technical diagnostic report. Atlas
+      keeps a copy on your device and, unless you turn off
+      <strong>Settings → Share crash reports</strong>, sends a trimmed version
+      to our proxy server, which forwards it to our crash-reporting service,
+      <a href="https://sentry.io/privacy/">Sentry</a>, so we can find and fix
+      the bug. A report contains the app version and build, iOS version,
+      device model and the call stack (where in the code the problem
+      happened). It contains no name, email, account or advertising
+      identifier, and none of your logs or health data. Reports are not
+      linked to you and are not used for tracking or advertising. No
+      third-party crash-reporting code runs inside the app.
+    </p>
+
     <h3>Open Food Facts</h3>
     <p>
       Barcode and food-name lookups query the public Open Food Facts
@@ -206,7 +222,7 @@
     <ul>
       <li>No advertising or tracking identifiers (IDFA or otherwise)</li>
       <li>No ad networks, data brokers, or cross-app tracking SDKs</li>
-      <li>No crash-reporting or telemetry uploads (diagnostics stay on-device)</li>
+      <li>No analytics or usage telemetry; the only diagnostics sent are the anonymous crash reports described above, which you can turn off</li>
       <li>No precise or coarse location</li>
       <li>No contacts and no microphone</li>
       <li>No storage of your logs, photos, or health data on our servers</li>
@@ -214,19 +230,19 @@
     <p>
       Atlas's App Privacy manifest (<code>PrivacyInfo.xcprivacy</code>)
       declares <code>NSPrivacyTracking = false</code>. Its collected-data
-      list contains exactly two entries — Purchase History and an anonymous
-      User ID — reflecting the RevenueCat subscription infrastructure
-      described above; neither is linked to your identity or used for
-      tracking.
+      list contains four entries — Purchase History and an anonymous User
+      ID, reflecting the RevenueCat subscription infrastructure, and Crash
+      Data and Performance Data, reflecting the crash reports described
+      above; none is linked to your identity or used for tracking.
     </p>
 
     <h2>Data sharing</h2>
     <p>
       We do not sell, rent, or share your personal data. The only parties
       that process data on our behalf are the ones this policy names —
-      Anthropic (transient AI request processing) and RevenueCat
-      (subscription status) — each limited to the specific data described
-      above. Your logs and health history never leave your device or your
+      Anthropic (transient AI request processing), RevenueCat (subscription
+      status) and Sentry (crash reports) — each limited to the specific
+      data described above. Your logs and health history never leave your device or your
       private iCloud database.
     </p>
 

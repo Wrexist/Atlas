@@ -383,12 +383,10 @@ struct PeptideApp: App {
         dataStore.reindexFoodSpotlight()
         // Subscribe to MetricKit so crash + hang + disk-write
         // payloads delivered the day after a problem occurs
-        // are captured locally. Apple's TestFlight dashboard
-        // already gets these on the server side; the local
-        // copy is the foundation for a future
-        // Diagnostics-in-Profile screen and eventual backend
-        // upload. Idempotent — subscribing on every launch
-        // is the documented usage.
+        // are captured locally and, unless the user opted out,
+        // sent as crash reports (`CrashReportUploader`).
+        // Idempotent — subscribing on every launch is the
+        // documented usage.
         DiagnosticsService.shared.startCollecting()
         Task(priority: .background) { @MainActor in
             // Register the App Attest key now, so the first research

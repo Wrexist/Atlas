@@ -6,6 +6,7 @@
     "api/lab-scan.js":       { "maxDuration": 60 },
     "api/ai-research.js":    { "maxDuration": 30 },
     "api/weekly-summary.js": { "maxDuration": 30 },
-    "api/apple-revoke.js":   { "maxDuration": 20 }
+    "api/apple-revoke.js":   { "maxDuration": 20 },
+    "api/crash-report.js":   { "maxDuration": 15 }
   }
 }

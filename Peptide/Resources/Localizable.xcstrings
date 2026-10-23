@@ -8645,6 +8645,36 @@
         }
       }
     },
+    "Crash reports are anonymous.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kraschrapporter är anonyma."
+          }
+        }
+      }
+    },
+    "If Atlas crashes or freezes, a technical report (app version, device model, where in the code) goes to the developer so it can be fixed. No health data, nothing linked to you. Turn it off in Settings.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Om Atlas kraschar eller fryser skickas en teknisk rapport (appversion, enhetsmodell, var i koden) till utvecklaren så att felet kan rättas. Inga hälsodata, inget som kopplas till dig. Stäng av det i Inställningar."
+          }
+        }
+      }
+    },
+    "Share crash reports": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dela kraschrapporter"
+          }
+        }
+      }
+    },
     "The backup checked out but couldn't be restored. Try again.": {
       "localizations": {
         "sv": {
@@ -11761,6 +11791,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Meddelandet är för långt för assistenten. Försök med en kortare fråga."
+          }
+        }
+      }
+    },
+    "When Atlas crashes or freezes, send the technical report so it can be fixed: app version, device model and where in the code it happened. No health data, nothing that identifies you.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "När Atlas kraschar eller fryser skickas den tekniska rapporten så att felet kan rättas: appversion, enhetsmodell och var i koden det hände. Inga hälsodata, inget som identifierar dig."
           }
         }
       }

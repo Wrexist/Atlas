@@ -15,7 +15,12 @@
 	     Atlas AI proxy are processed transiently to service the request
 	     and are not retained, so they fall under Apple's ephemeral-
 	     processing carve-out and are not "collected" in label terms; the
-	     purpose strings and App Store privacy notes disclose them. -->
+	     purpose strings and App Store privacy notes disclose them.
+	     MetricKit crash, hang and resource diagnostics are sent to the
+	     Atlas proxy's crash-report route (CrashReportUploader, on by
+	     default, Settings → Share crash reports) and retained by the
+	     developer's crash-reporting service: Crash Data and Performance
+	     Data, not linked to identity, not tracking, App Functionality. -->
 	<key>NSPrivacyCollectedDataTypes</key>
 	<array>
 		<dict>
@@ -33,6 +38,30 @@
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypeUserID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeCrashData</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypePerformanceData</string>
 			<key>NSPrivacyCollectedDataTypeLinked</key>
 			<false/>
 			<key>NSPrivacyCollectedDataTypeTracking</key>
