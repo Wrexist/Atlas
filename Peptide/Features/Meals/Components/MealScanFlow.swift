@@ -1139,11 +1139,11 @@ struct MealScanFlow: View {
             name: item.loggedName,
             brand: item.brand,
             per100g: item.per100g,
-            // One serving = the model's depicted-portion estimate, not
-            // whatever the user dialed the portion to before saving, so
-            // the library's "Serving" mode stays accurate on re-log.
-            servingGrams: item.aiGrams > 0 ? item.aiGrams : nil,
-            servingLabel: item.quantityLabel.nilIfEmpty,
+            // One serving = the depicted portion (or the replacement food's
+            // serving), not whatever the user dialed the portion to before
+            // saving, so the library's "Serving" mode stays accurate on re-log.
+            servingGrams: item.servingGrams.flatMap { $0 > 0 ? $0 : nil },
+            servingLabel: item.servingLabel,
             pricePer100g: item.pricePer100g
         )
         dataStore.saveCustomFood(food)
@@ -1240,10 +1240,14 @@ struct EditableFoodItem: Identifiable, Hashable, Codable {
     /// was cleared, so the diary never gets a blank row.
     var loggedName: String { name.nilIfEmpty ?? aiName?.nilIfEmpty ?? String(localized: "Food") }
 
+    /// One serving: the scanner's depicted portion, or the replacement
+    /// food's own serving once the user has swapped the food.
+    var servingGrams: Double? { replacementSourceID == nil ? aiGrams : replacementServingGrams }
+    var servingLabel: String? { replacementSourceID == nil ? quantityLabel.nilIfEmpty : replacementServingLabel }
+
     var component: MealFoodComponent {
         MealFoodComponent(id: id.uuidString, name: loggedName, grams: grams,
-                          servingGrams: replacementSourceID == nil ? aiGrams : replacementServingGrams,
-                          servingLabel: replacementSourceID == nil ? quantityLabel.nilIfEmpty : replacementServingLabel,
+                          servingGrams: servingGrams, servingLabel: servingLabel,
                           per100g: per100g, sourceID: replacementSourceID)
     }
 

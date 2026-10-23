@@ -127,4 +127,19 @@ final class EditableFoodItemTests: XCTestCase {
         item.stepGrams(by: 10)
         XCTAssertEqual(item.grams, 5_000)
     }
+
+    func test_servingAfterReplace_usesReplacementFoodsServing() {
+        var item = EditableFoodItem(from: scanned(confidence: 0.9))
+        item.replace(with: ScannedProduct(
+            barcode: "7310865004703", name: "Crispbread", brand: nil, imageURL: nil,
+            servingSizeText: "1 slice (12 g)", servingGrams: 12, packageGrams: nil,
+            per100g: .init(calories: 340, proteinG: 10, carbsG: 60, fatG: 2, fiberG: 18, sugarsG: 1),
+            nutriScore: nil, novaGroup: nil, fetchedAt: Date()
+        ))
+        XCTAssertEqual(item.servingGrams, 12)
+        XCTAssertEqual(item.servingLabel, "1 slice (12 g)")
+        item.resetNutrition()
+        XCTAssertEqual(item.servingGrams, 200)
+        XCTAssertEqual(item.servingLabel, "2 slices")
+    }
 }
