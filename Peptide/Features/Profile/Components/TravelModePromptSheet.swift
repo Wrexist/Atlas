@@ -43,11 +43,11 @@ struct TravelModePromptSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    // Closing without choosing is treated as "keep
-                    // origin" — same outcome but without committing
-                    // to the user. The detector won't refire until
-                    // they cross into yet another zone.
-                    Button("Later", action: onKeep)
+                    // Closing keeps the origin times and acknowledges the
+                    // zone — the detector won't refire until the user
+                    // crosses into yet another one — so the label says
+                    // that rather than promising to ask again later.
+                    Button("Keep times", action: onKeep)
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }

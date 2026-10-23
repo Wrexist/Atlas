@@ -10635,6 +10635,16 @@
         }
       }
     },
+    "Keep times": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Behåll tider"
+          }
+        }
+      }
+    },
     "Ketosis": {
       "localizations": {
         "sv": {
