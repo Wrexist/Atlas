@@ -92,4 +92,52 @@ final class MealScanQuotaTests: XCTestCase {
         XCTAssertEqual(MealScanQuota.remainingThisWeek(isPro: false, on: wednesday, calendar: utc, defaults: defaults), 1)
         XCTAssertEqual(MealScanQuota.remainingThisWeek(isPro: false, on: nextMonday, calendar: utc, defaults: defaults), 3)
     }
+
+    func test_recordAllowanceExhausted_spendsTheWeek_butNeverLowersTheCount() {
+        let suite = "MealScanQuotaTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let wednesday = date(2026, 9, 23, in: utc)
+
+        MealScanQuota.recordAllowanceExhausted(on: wednesday, calendar: utc, defaults: defaults)
+        XCTAssertEqual(MealScanQuota.remainingThisWeek(isPro: false, on: wednesday, calendar: utc, defaults: defaults), 0)
+
+        for _ in 0..<5 { MealScanQuota.recordSuccessfulScan(on: wednesday, calendar: utc, defaults: defaults) }
+        MealScanQuota.recordAllowanceExhausted(on: wednesday, calendar: utc, defaults: defaults)
+        XCTAssertEqual(MealScanQuota.count(on: wednesday, calendar: utc, defaults: defaults), 8)
+    }
+
+    // MARK: - Proxy headers
+
+    func test_weekID_matchesTheStorageKeyWithoutItsPrefix() {
+        let sunday = date(2026, 9, 27, in: utc)
+        XCTAssertEqual(MealScanQuota.weekID(for: sunday, calendar: utc), "2026-W39")
+        XCTAssertEqual(MealScanQuota.weekKey(for: sunday, calendar: utc), "mealScanCount-" + MealScanQuota.weekID(for: sunday, calendar: utc))
+    }
+
+    func test_serverHeaders_freeUser_sendsMeteredInstallAndWeek_withoutEntitlement() {
+        let headers = MealScanQuota.serverHeaders(installID: "6F9619FF-8B86-D011-B42D-00C04FC964FF", weekID: "2026-W43", entitlementJWS: nil)
+        XCTAssertEqual(headers, [
+            "X-Atlas-Scan-Metered": "1",
+            "X-Atlas-Install-Id": "6F9619FF-8B86-D011-B42D-00C04FC964FF",
+            "X-Atlas-Scan-Week": "2026-W43",
+        ])
+    }
+
+    func test_serverHeaders_proUser_addsSignedTransaction() {
+        let headers = MealScanQuota.serverHeaders(installID: "id", weekID: "2026-W43", entitlementJWS: "header.payload.signature")
+        XCTAssertEqual(headers["X-Atlas-Entitlement"], "header.payload.signature")
+        XCTAssertEqual(headers["X-Atlas-Scan-Metered"], "1")
+    }
+
+    func test_serverHeaders_emptyEntitlement_isOmitted() {
+        let headers = MealScanQuota.serverHeaders(installID: "id", weekID: "2026-W43", entitlementJWS: "")
+        XCTAssertNil(headers["X-Atlas-Entitlement"])
+    }
+
+    func test_isAllowanceRefusal_onlyForScanQuotaCode() {
+        XCTAssertTrue(MealScanQuota.isAllowanceRefusal(Data(#"{"error":{"message":"Free scan limit reached","code":"scan_quota"}}"#.utf8)))
+        XCTAssertFalse(MealScanQuota.isAllowanceRefusal(Data(#"{"error":{"message":"Too many requests"}}"#.utf8)))
+        XCTAssertFalse(MealScanQuota.isAllowanceRefusal(Data()))
+    }
 }

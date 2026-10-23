@@ -128,24 +128,37 @@ extension TodayOverviewSnapshot {
     /// respect to the store — reads every field once and computes
     /// the bottom-insight selection on the spot so the card's
     /// render is just a flat layout pass.
+    ///
+    /// `now` picks the day the calorie, water, check-in and meal-streak
+    /// tiles read, so a browsed past day shows its own totals. The insight
+    /// is about the present, so `includesInsight: false` drops it.
     @MainActor
-    static func build(from dataStore: DataStore, now: Date = Date()) -> TodayOverviewSnapshot {
-        let consumption = dataStore.consumption()
+    static func build(
+        from dataStore: DataStore,
+        now: Date = Date(),
+        includesInsight: Bool = true
+    ) -> TodayOverviewSnapshot {
+        let consumption = dataStore.consumption(for: now)
         let targets = dataStore.profile.nutritionTargets
 
         let lab = latestLab(in: dataStore, now: now)
-        let bottom = pickBottomInsight(
-            engineInsight: dataStore.topInsight,
-            latestLab: lab,
-            mealStreak: dataStore.mealLoggingStreak,
-            hasTarget: targets != nil
-        )
+        let mealStreak = Calendar.current.isDateInToday(now)
+            ? dataStore.mealLoggingStreak
+            : LifestyleDataLogic.mealLoggingStreak(in: dataStore.profile, asOf: now)
+        let bottom = includesInsight
+            ? pickBottomInsight(
+                engineInsight: dataStore.topInsight,
+                latestLab: lab,
+                mealStreak: mealStreak,
+                hasTarget: targets != nil
+            )
+            : nil
 
         return TodayOverviewSnapshot(
             caloriesToday: consumption.caloriesKcal,
             calorieTarget: targets?.calories,
             waterToday: consumption.waterFluidOunces,
-            mealStreak: dataStore.mealLoggingStreak,
+            mealStreak: mealStreak,
             checkInScore: dataStore.outcome(for: now)?.composite,
             latestLab: lab,
             bottomInsight: bottom

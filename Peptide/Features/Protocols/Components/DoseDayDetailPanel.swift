@@ -81,8 +81,8 @@ struct DoseDayDetailPanel: View {
     }
 
     private var confirmationTitle: String {
-        guard let pending = pendingDeletion else { return "Remove this log?" }
-        return "Remove the \(pending.peptideName) log?"
+        guard let pending = pendingDeletion else { return String(localized: "Remove this log?") }
+        return String(localized: "Remove the \(pending.peptideName) log?")
     }
 
     private var confirmationBinding: Binding<Bool> {
@@ -114,9 +114,9 @@ struct DoseDayDetailPanel: View {
         let logged = marks.filter { $0.kind == .logged }.count
         let scheduled = marks.filter { $0.kind == .scheduled }.count
         switch (logged, scheduled) {
-        case (let l, 0): return "\(l) logged"
-        case (0, let s): return "\(s) scheduled"
-        default:         return "\(logged) logged · \(scheduled) scheduled"
+        case (let l, 0): return String(localized: "\(l) logged")
+        case (0, let s): return String(localized: "\(s) scheduled")
+        default:         return String(localized: "\(logged) logged · \(scheduled) scheduled")
         }
     }
 

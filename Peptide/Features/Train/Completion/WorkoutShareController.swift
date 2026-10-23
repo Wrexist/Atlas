@@ -38,7 +38,7 @@ final class WorkoutShareController {
     func cancel() { task?.cancel() }
 
     func shareFinished(error: Error?) {
-        if error != nil { self.error = "Sharing did not finish. Try again. Your saved workout is unchanged." }
+        if error != nil { self.error = String(localized: "Sharing did not finish. Try again. Your saved workout is unchanged.") }
     }
 
     func perform(_ action: Action, summary: WorkoutRecapEngine.Summary,
@@ -87,16 +87,16 @@ final class WorkoutShareController {
                 case .save:
                     savingToPhotos = true
                     try await WorkoutPhotoLibrary.save(url: url, video: options.format.isVideo)
-                    notice = options.format.isVideo ? "Video saved to Photos" : "Image saved to Photos"
+                    notice = options.format.isVideo ? String(localized: "Video saved to Photos") : String(localized: "Image saved to Photos")
                     Haptics.success()
-                    AccessibilityNotification.Announcement(notice ?? "Saved to Photos").post()
+                    AccessibilityNotification.Announcement(notice ?? String(localized: "Saved to Photos")).post()
                 }
             } catch is CancellationError {
                 // Cancellation is an ordinary user action, not a failed save.
             } catch {
                 photoPermissionDenied = (error as? WorkoutMediaError) == .photoPermission
                 self.error = error.localizedDescription
-                AccessibilityNotification.Announcement("Could not prepare or save the share file").post()
+                AccessibilityNotification.Announcement(String(localized: "Could not prepare or save the share file")).post()
             }
         }
     }

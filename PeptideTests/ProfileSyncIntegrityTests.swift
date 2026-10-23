@@ -299,6 +299,26 @@ final class ProfileSyncIntegrityTests: XCTestCase {
         XCTAssertEqual(LifestyleDataLogic.consumption(in: merged, for: day).caloriesKcal, 3 * 550)
     }
 
+    func test_reconcile_freshWinnerAndCustomizedTodayLayout_adoptsTheCustomLayout() {
+        var other = UserProfile.fresh
+        other.todayLayout.setHidden(.momentum, true)
+
+        let merged = ProfileMergeEngine.reconcile(UserProfile.fresh, with: other)
+
+        XCTAssertEqual(merged.todayLayout, other.todayLayout)
+    }
+
+    func test_reconcile_bothRowsCustomizeTodayLayout_keepsTheWinnersLayout() {
+        var primary = UserProfile.fresh
+        primary.todayLayout.setHidden(.habits, true)
+        var other = UserProfile.fresh
+        other.todayLayout.setHidden(.momentum, true)
+
+        let merged = ProfileMergeEngine.reconcile(primary, with: other)
+
+        XCTAssertEqual(merged.todayLayout, primary.todayLayout)
+    }
+
     // MARK: - Stale in-memory state
 
     func test_saveSinceBaseline_keepsAColumnAnotherDeviceChanged() throws {

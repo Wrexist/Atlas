@@ -20,6 +20,9 @@ struct TodayOverviewCard: View {
     /// Called when a stat tile is tapped. Nil keeps the tiles
     /// display-only (previews).
     var onTapTile: ((Tile) -> Void)?
+    /// False while Today browses a past day, so the water footnote
+    /// doesn't claim the day's total is today's.
+    var isToday = true
 
     enum Tile {
         case calories, mealStreak, checkIn, water
@@ -135,8 +138,8 @@ struct TodayOverviewCard: View {
             icon: "drop.fill",
             tint: AppColor.macroWater,
             footnote: snapshot.waterToday > 0
-                ? "\(unit.volumeSuffix) today"
-                : String(localized: "Tap to add")
+                ? (isToday ? String(localized: "\(unit.volumeSuffix) today") : unit.volumeSuffix)
+                : (isToday ? String(localized: "Tap to add") : String(localized: "None logged"))
         )
     }
 

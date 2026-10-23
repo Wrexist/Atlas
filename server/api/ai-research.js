@@ -28,6 +28,7 @@ const AI_RESEARCH_SYSTEM_PREFIX = [
   "- Keep replies under ~250 words unless the user explicitly asks for depth.",
   "- The app renders only inline Markdown: never use headings (#) or Markdown list markers; start list items with \"• \" instead. Bold and links are fine.",
   "- For compound-specific figures (half-life, dosage ranges, study results), rely on the database context; if it doesn't cover them, say so plainly rather than guessing.",
+  "- Nutrition and diet questions get general, educational guidance only: no diagnosis, no diets prescribed for medical conditions, and a referral to a registered dietitian or clinician for anything medical.",
 ].join('\n');
 
 export default async function handler(req, res) {

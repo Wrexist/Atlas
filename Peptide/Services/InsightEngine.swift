@@ -33,17 +33,17 @@ struct InsightEngine {
             frozenDayKeys: frozenDayKeys
         )
         if currentStreak >= 30 {
-            insights.append(Insight(icon: "flame.fill", title: "Incredible consistency!", description: "You're on a \(currentStreak)-day streak. Top-tier dedication.", type: .positive))
+            insights.append(Insight(icon: "flame.fill", title: String(localized: "Incredible consistency!"), description: String(localized: "You're on a \(currentStreak)-day streak. Top-tier dedication."), type: .positive))
         } else if currentStreak >= 7 {
-            insights.append(Insight(icon: "flame.fill", title: "Strong streak!", description: "\(currentStreak) days in a row. Keep the momentum going.", type: .positive))
+            insights.append(Insight(icon: "flame.fill", title: String(localized: "Strong streak!"), description: String(localized: "\(currentStreak) days in a row. Keep the momentum going."), type: .positive))
         }
 
         // Day-of-week analysis
         let dayMissPatterns = analyzeDayPatterns(entries: entries)
         if let worstDay = dayMissPatterns.max(by: { $0.value < $1.value }), worstDay.value > 0.3 {
-            let dayNames = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-            let dayName = worstDay.key >= 1 && worstDay.key <= 7 ? dayNames[worstDay.key] : "unknown"
-            insights.append(Insight(icon: "calendar.badge.exclamationmark", title: "Pattern detected", description: "You tend to miss doses on \(dayName)s. Consider setting an extra reminder.", type: .warning))
+            let dayNames = ["", String(localized: "Mondays"), String(localized: "Tuesdays"), String(localized: "Wednesdays"), String(localized: "Thursdays"), String(localized: "Fridays"), String(localized: "Saturdays"), String(localized: "Sundays")]
+            let dayName = worstDay.key >= 1 && worstDay.key <= 7 ? dayNames[worstDay.key] : String(localized: "certain days")
+            insights.append(Insight(icon: "calendar.badge.exclamationmark", title: String(localized: "Pattern detected"), description: String(localized: "You tend to miss doses on \(dayName). Consider setting an extra reminder."), type: .warning))
         }
 
         // Time-of-day analysis
@@ -53,22 +53,22 @@ struct InsightEngine {
         }
         let eveningMissRate = eveningEntries.isEmpty ? 0 : Double(eveningEntries.filter { !$0.completed }.count) / Double(eveningEntries.count)
         if eveningMissRate > 0.3 && eveningEntries.count > 5 {
-            insights.append(Insight(icon: "moon.fill", title: "Evening doses need attention", description: "You miss \(Int(eveningMissRate * 100))% of evening doses. Try linking them to a routine.", type: .warning))
+            insights.append(Insight(icon: "moon.fill", title: String(localized: "Evening doses need attention"), description: String(localized: "You miss \(Int(eveningMissRate * 100))% of evening doses. Try linking them to a routine."), type: .warning))
         }
 
         // Compliance trend: compare last 7 days vs preceding 8-30 days (non-overlapping)
         let recentCompliance = complianceForRange(entries: entries, days: 7)
         let olderCompliance = complianceForExclusiveRange(entries: entries, from: 30, to: 7)
         if recentCompliance > olderCompliance + 0.1 && olderCompliance > 0 {
-            insights.append(Insight(icon: "arrow.up.right", title: "Compliance improving", description: "Your 7-day compliance is \(Int(recentCompliance * 100))%, up from \(Int(olderCompliance * 100))% prior average.", type: .positive))
+            insights.append(Insight(icon: "arrow.up.right", title: String(localized: "Compliance improving"), description: String(localized: "Your 7-day compliance is \(Int(recentCompliance * 100))%, up from \(Int(olderCompliance * 100))% prior average."), type: .positive))
         } else if recentCompliance < olderCompliance - 0.15 && olderCompliance > 0 {
-            insights.append(Insight(icon: "arrow.down.right", title: "Compliance dipping", description: "Recent compliance dropped to \(Int(recentCompliance * 100))%. Prior average was \(Int(olderCompliance * 100))%.", type: .warning))
+            insights.append(Insight(icon: "arrow.down.right", title: String(localized: "Compliance dipping"), description: String(localized: "Recent compliance dropped to \(Int(recentCompliance * 100))%. Prior average was \(Int(olderCompliance * 100))%."), type: .warning))
         }
 
         // Protocol count
         let activeCount = protocols.filter { $0.status == .active }.count
         if activeCount >= 3 {
-            insights.append(Insight(icon: "exclamationmark.triangle", title: "Many active protocols", description: "Running \(activeCount) protocols. Consider focusing on fewer for better compliance.", type: .neutral))
+            insights.append(Insight(icon: "exclamationmark.triangle", title: String(localized: "Many active protocols"), description: String(localized: "Running \(activeCount) protocols. Consider focusing on fewer for better compliance."), type: .neutral))
         }
 
         // Adaptive reminders: detect a consistent drift between
@@ -79,7 +79,7 @@ struct InsightEngine {
         if let drift = detectDoseTimeDrift(entries: entries) {
             insights.append(Insight(
                 icon: "clock.badge.exclamationmark",
-                title: "Your reminders may be off",
+                title: String(localized: "Your reminders may be off"),
                 description: drift.copy,
                 type: .neutral
             ))
@@ -89,7 +89,7 @@ struct InsightEngine {
         let totalCompleted = entries.filter(\.completed).count
         let milestones = [50, 100, 250, 500, 1000]
         for milestone in milestones where totalCompleted >= milestone && totalCompleted < milestone + 10 {
-            insights.append(Insight(icon: "star.fill", title: "Milestone reached!", description: "You've logged over \(milestone) doses. Outstanding commitment.", type: .positive))
+            insights.append(Insight(icon: "star.fill", title: String(localized: "Milestone reached!"), description: String(localized: "You've logged over \(milestone) doses. Outstanding commitment."), type: .positive))
             break
         }
 
@@ -194,8 +194,8 @@ struct InsightEngine {
         guard absMedian >= 30 else { return nil }
 
         let copy = median > 0
-            ? "You log doses about \(absMedian) min later than scheduled. Consider shifting your reminder."
-            : "You log doses about \(absMedian) min earlier than scheduled. Consider shifting your reminder."
+            ? String(localized: "You log doses about \(absMedian) min later than scheduled. Consider shifting your reminder.")
+            : String(localized: "You log doses about \(absMedian) min earlier than scheduled. Consider shifting your reminder.")
         return DoseDrift(medianMinutes: median, copy: copy)
     }
 

@@ -27,26 +27,26 @@ enum WorkoutEditValidation {
     }
 
     static func issue(in draft: WorkoutSession, original: WorkoutSession) -> String? {
-        guard draft.id == original.id, draft.finishedAt != nil else { return "This saved workout is unavailable for editing." }
+        guard draft.id == original.id, draft.finishedAt != nil else { return String(localized: "This saved workout is unavailable for editing.") }
         // Name/note edits remain possible for older manual logs with no sets.
         if original.completedSetCount > 0 && draft.completedSetCount == 0 {
-            return "Keep at least one completed working set in this workout."
+            return String(localized: "Keep at least one completed working set in this workout.")
         }
         let originalSets = Dictionary(original.exercises.flatMap(\.sets).map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         for set in draft.exercises.flatMap(\.sets) where set != originalSets[set.id] {
             switch set.measurement?.kind {
             case .timed:
                 if set.completed && !((set.measurement?.seconds).map { $0.isFinite && $0 > 0 } ?? false) {
-                    return "Set \(set.index): enter a duration greater than zero."
+                    return String(localized: "Set \(set.index): enter a duration greater than zero.")
                 }
             case .distance:
                 if set.completed && !((set.measurement?.meters).map { $0.isFinite && $0 > 0 } ?? false) {
-                    return "Set \(set.index): enter a distance greater than zero."
+                    return String(localized: "Set \(set.index): enter a distance greater than zero.")
                 }
             default:
                 if !set.weightKg.isFinite || !SetEntryLimits.weightKg.contains(set.weightKg)
                     || !SetEntryLimits.reps.contains(set.reps) {
-                    return "Set \(set.index): enter a valid load and repetition count."
+                    return String(localized: "Set \(set.index): enter a valid load and repetition count.")
                 }
             }
         }

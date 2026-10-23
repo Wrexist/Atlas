@@ -298,7 +298,7 @@ struct ProgressPhotosCard: View {
         guard let item else { return }
         do {
             guard let data = try await item.loadTransferable(type: Data.self) else {
-                errorText = "Couldn't read that photo. Try a different one."
+                errorText = String(localized: "Couldn't read that photo. Try a different one.")
                 return
             }
             // Decode, downscale and encode happen off the main actor —

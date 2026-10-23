@@ -14,13 +14,13 @@ enum PeptideCategory: String, CaseIterable, Identifiable, Codable, Sendable {
 
     var displayName: String {
         switch self {
-        case .growth: "Growth"
-        case .recovery: "Recovery"
-        case .cognitive: "Cognitive"
+        case .growth: String(localized: "Growth")
+        case .recovery: String(localized: "Recovery")
+        case .cognitive: String(localized: "Cognitive")
         case .antiAging: "Anti-Aging"
-        case .immune: "Immune"
-        case .metabolic: "Metabolic"
-        case .other: "Other"
+        case .immune: String(localized: "Immune")
+        case .metabolic: String(localized: "Metabolic")
+        case .other: String(localized: "Other")
         }
     }
     // The localized title for UI lives in DesignSystem/Theme/ModelLocalization.swift

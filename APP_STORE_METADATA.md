@@ -305,17 +305,13 @@ our AI proxy to generate the recap; the request is processed transiently
 and not stored, which is why it is not a collected-data category. Meal
 photos sent to the AI meal scanner are handled the same way.
 
-### Before configuring any data drain in a shipped build
+### Before adding any upload of user data
 
-The dormant drains (`AffiliateIntakeEndpoint`, `OnboardingFunnelEndpoint`
-in Info.plist) are host-allowlisted and consent-gated in code, but the
-"No data collected" answers above are only true while those keys stay
-unset. A build that sets either key MUST first:
+The app has no data drains: onboarding funnel events and the creator-code
+attribution stay on-device. A build that starts sending anything new off
+the device MUST first:
 
-1. Update this nutrition label — affiliate intake collects **Name,
-   Email Address, Other User Content** (linked to user, App
-   Functionality); the funnel drain collects **Product Interaction**
-   (not linked, Analytics).
+1. Update this nutrition label.
 2. Update the `PrivacyInfo.xcprivacy` collected-data-types arrays.
 3. Update `PrivacySummaryView` ("no backend / data never leaves your
    phone" claims) and the screenshot deck slot that renders it.
@@ -678,14 +674,15 @@ Thank you for reviewing Atlas.
 
 SIGN-IN
 Sign in with Apple is optional. Every feature works without an account
-— tap "Continue without an account" on the onboarding sign-in screen.
+— on the onboarding name screen, enter a name and tap Continue without
+touching the Sign in with Apple button.
 If you do sign in: Profile → Account exposes Sign Out and Delete Account.
 Delete Account wipes all SwiftData records and the Keychain entry, then
 propagates the delete through the user's private CloudKit zone.
 
 HEALTHKIT
-HealthKit access is requested from the optional "Connect Health" step in
-onboarding, or later from the Profile tab — the user always initiates
+HealthKit access is requested from the optional "Connect Apple Health"
+row on the onboarding "Stay on track" screen, or later from the Profile tab — the user always initiates
 it. Atlas reads five metrics from Apple Health: HRV, resting heart
 rate, VO2 max, sleep, and step count. It
 optionally writes meal macros (calories, protein, carbs, fat) if the
@@ -701,7 +698,7 @@ stored. Denying Health access hides the recovery surfaces only — no
 other feature is blocked.
 
 NOTIFICATIONS
-Requested from the optional notifications step in onboarding, or the
+Requested from the optional "Stay on track" screen in onboarding, or the
 first time a reminder is enabled. Denying disables reminders only;
 nothing else is blocked.
 

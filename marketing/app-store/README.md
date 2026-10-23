@@ -172,7 +172,7 @@ tabular numbers. Each frame shows a *win in progress*, not an empty state.
 ### Apple Watch deck (`screens-watch/` → the four watch folders above)
 The watch app's own pages, drawn from `PeptideWatch` (watch app 2.0): true
 black with one bloom of the page colour, watchOS 10 navigation chrome, no
-captions. Colours are `WatchShared/WatchPalette.swift`; ring, stage-ring,
+captions. Colours are `Shared/WatchPalette.swift`; ring, stage-ring,
 heart and ECG geometry lives in `assets/watch.js` and mirrors the SwiftUI
 views. Uploaded under the app's **Apple Watch** screenshot section; Atlas
 ships a Watch app and complications, so this set is required.

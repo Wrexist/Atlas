@@ -107,7 +107,7 @@ enum PrimaryReasonEngine {
         // CoachingMessageEngine's own cascade (its very first two
         // branches) — nothing here outranks getting a new or
         // disconnected user set up.
-        if coaching.eyebrow == "WELCOME" || coaching.eyebrow == "GET STARTED" {
+        if coaching.eyebrow == String(localized: "WELCOME") || coaching.eyebrow == String(localized: "GET STARTED") {
             return Reason(message: coaching, priority: .optionalReminder)
         }
 
@@ -165,7 +165,7 @@ enum PrimaryReasonEngine {
         // with the dose-plan's more precise headline (fasted-first
         // ordering, conflict-aware) in place of the generic "Next: X at
         // Y" body that fallback uses.
-        if let headline = context.dailyPlanHeadline, coaching.eyebrow == "ON TRACK" {
+        if let headline = context.dailyPlanHeadline, coaching.eyebrow == String(localized: "ON TRACK") {
             return Reason(
                 message: CoachingMessageEngine.CoachingMessage(
                     icon: coaching.icon,
@@ -182,12 +182,11 @@ enum PrimaryReasonEngine {
 
     private static func habitsMessage(context: Context) -> CoachingMessageEngine.CoachingMessage {
         let remaining = max(0, context.habitsDueCount - context.habitsDoneCount)
-        let plural = remaining == 1 ? "habit" : "habits"
         return CoachingMessageEngine.CoachingMessage(
             icon: "checklist",
-            eyebrow: "HABITS",
-            title: "\(remaining) \(plural) due today",
-            body: "Tap in below to check off your first one.",
+            eyebrow: String(localized: "HABITS"),
+            title: String(localized: "\(remaining) habits due today"),
+            body: String(localized: "Tap in below to check off your first one."),
             tone: .neutral
         )
     }
@@ -195,8 +194,8 @@ enum PrimaryReasonEngine {
     private static func weeklyReviewMessage(headline: String) -> CoachingMessageEngine.CoachingMessage {
         CoachingMessageEngine.CoachingMessage(
             icon: "chart.line.uptrend.xyaxis",
-            eyebrow: "WEEKLY REVIEW",
-            title: "Your week in review",
+            eyebrow: String(localized: "WEEKLY REVIEW"),
+            title: String(localized: "Your week in review"),
             body: headline,
             tone: .positive
         )

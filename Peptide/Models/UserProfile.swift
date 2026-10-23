@@ -6,10 +6,10 @@ enum BiologicalSex: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var displayName: String {
         switch self {
-        case .male: "Male"
-        case .female: "Female"
-        case .other: "Other"
-        case .unspecified: "Prefer not to say"
+        case .male: String(localized: "Male")
+        case .female: String(localized: "Female")
+        case .other: String(localized: "Other")
+        case .unspecified: String(localized: "Prefer not to say")
         }
     }
 
@@ -17,10 +17,10 @@ enum BiologicalSex: String, Codable, CaseIterable, Identifiable, Sendable {
     /// full "Prefer not to say" wraps awkwardly.
     var shortLabel: String {
         switch self {
-        case .male: "Male"
-        case .female: "Female"
-        case .other: "Other"
-        case .unspecified: "Skip"
+        case .male: String(localized: "Male")
+        case .female: String(localized: "Female")
+        case .other: String(localized: "Other")
+        case .unspecified: String(localized: "Skip")
         }
     }
 
@@ -36,21 +36,21 @@ enum ActivityLevel: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var displayName: String {
         switch self {
-        case .sedentary: "Sedentary"
-        case .light: "Light"
-        case .moderate: "Moderate"
-        case .active: "Active"
-        case .athlete: "Athlete"
+        case .sedentary: String(localized: "Sedentary")
+        case .light: String(localized: "Light")
+        case .moderate: String(localized: "Moderate")
+        case .active: String(localized: "Active")
+        case .athlete: String(localized: "Athlete")
         }
     }
 
     var subtitle: String {
         switch self {
-        case .sedentary: "Desk work, little exercise"
-        case .light: "1–2 sessions per week"
-        case .moderate: "3–4 sessions per week"
-        case .active: "5–6 intense sessions"
-        case .athlete: "Daily training, competition"
+        case .sedentary: String(localized: "Desk work, little exercise")
+        case .light: String(localized: "1–2 sessions per week")
+        case .moderate: String(localized: "3–4 sessions per week")
+        case .active: String(localized: "5–6 intense sessions")
+        case .athlete: String(localized: "Daily training, competition")
         }
     }
 
@@ -278,25 +278,23 @@ struct CreatorAttribution: Codable, Hashable, Sendable {
     let discountPercent: Int
 }
 
-/// Application submitted via the "Apply to be an affiliate" CTA on
-/// the onboarding creator step. Stored locally until the Atlas
-/// creator-program backend ships; the same struct shape will be
-/// POSTed to the application-intake endpoint on first sync. We
-/// deliberately capture only what we need to follow up — handle,
-/// audience size band, channel URL, optional notes.
+/// Creator-program application from the retired onboarding apply
+/// form. Nothing writes it any more (there is no intake backend); the
+/// type and the profile field stay so existing local / CloudKit rows
+/// keep decoding without a schema change.
 struct AffiliateApplication: Codable, Hashable, Sendable {
     enum Channel: String, Codable, Hashable, Sendable, CaseIterable, Identifiable {
         case instagram, tiktok, youtube, podcast, newsletter, website, other
         var id: String { rawValue }
         var displayName: String {
             switch self {
-            case .instagram:  return "Instagram"
+            case .instagram:  return String(localized: "Instagram")
             case .tiktok:     return "TikTok"
             case .youtube:    return "YouTube"
-            case .podcast:    return "Podcast"
-            case .newsletter: return "Newsletter"
-            case .website:    return "Website / blog"
-            case .other:      return "Other"
+            case .podcast:    return String(localized: "Podcast")
+            case .newsletter: return String(localized: "Newsletter")
+            case .website:    return String(localized: "Website / blog")
+            case .other:      return String(localized: "Other")
             }
         }
     }
@@ -310,7 +308,7 @@ struct AffiliateApplication: Codable, Hashable, Sendable {
         var id: String { rawValue }
         var displayName: String {
             switch self {
-            case .under1k:   return "Under 1k"
+            case .under1k:   return String(localized: "Under 1k")
             case .k1to10:    return "1k – 10k"
             case .k10to50:   return "10k – 50k"
             case .k50to250:  return "50k – 250k"
@@ -441,10 +439,8 @@ struct UserProfile: Codable, Sendable {
     /// discount and (eventually) by the backend to count installs /
     /// conversions per creator.
     var creatorAttribution: CreatorAttribution?
-    /// Submitted via the "Apply to be an affiliate" button on the
-    /// onboarding creator step. Local-only until the backend ships;
-    /// the eventual sync job can replay this row to the creator-
-    /// program intake endpoint without re-prompting the user.
+    /// Legacy creator-program application; read-only, see
+    /// `AffiliateApplication`.
     var affiliateApplication: AffiliateApplication?
     /// Set when the user opts in on the onboarding email-capture step.
     /// Local-only today; will be drained into Supabase + Resend when the
@@ -579,6 +575,10 @@ struct UserProfile: Codable, Sendable {
     /// profiles decoded without this field land on
     /// `BiologyConfig.default` cleanly.
     var biologyConfig: BiologyConfig
+    /// Today screen arrangement — section order and hidden sections
+    /// from the "Edit Today" sheet. Defaults so profiles decoded
+    /// without this field land on `TodayLayout.default`.
+    var todayLayout: TodayLayout
     /// Training preferences (days/week, equipment access, plate
     /// inventory, rest-timer default, auto-progression toggle).
     /// Populated by the redesigned onboarding's "Activity & schedule"
@@ -656,6 +656,7 @@ struct UserProfile: Codable, Sendable {
         weeklySummaryOptInConfirmed: Bool = false,
         weeklySummaries: [String: WeeklySummary] = [:],
         biologyConfig: BiologyConfig = .default,
+        todayLayout: TodayLayout = .default,
         trainingPreferences: TrainingPreferences? = nil,
         goalDate: Date? = nil,
         habits: [Habit] = [],
@@ -700,6 +701,7 @@ struct UserProfile: Codable, Sendable {
         self.weeklySummaryOptInConfirmed = weeklySummaryOptInConfirmed
         self.weeklySummaries = weeklySummaries
         self.biologyConfig = biologyConfig
+        self.todayLayout = todayLayout
         self.trainingPreferences = trainingPreferences
         self.goalDate = goalDate
         self.habits = habits
@@ -752,6 +754,7 @@ struct UserProfile: Codable, Sendable {
         weeklySummaryOptInConfirmed = try container.decodeIfPresent(Bool.self, forKey: .weeklySummaryOptInConfirmed) ?? false
         weeklySummaries = try container.decodeIfPresent([String: WeeklySummary].self, forKey: .weeklySummaries) ?? [:]
         biologyConfig = try container.decodeIfPresent(BiologyConfig.self, forKey: .biologyConfig) ?? .default
+        todayLayout = try container.decodeIfPresent(TodayLayout.self, forKey: .todayLayout) ?? .default
         trainingPreferences = try container.decodeIfPresent(TrainingPreferences.self, forKey: .trainingPreferences)
         goalDate = try container.decodeIfPresent(Date.self, forKey: .goalDate)
         habits = try container.decodeIfPresent([Habit].self, forKey: .habits) ?? []

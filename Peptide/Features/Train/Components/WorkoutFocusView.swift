@@ -280,10 +280,10 @@ struct WorkoutFocusView: View {
 
     private func restTitle(_ rest: WorkoutRestContext) -> String {
         guard let target = session.exercises.first(where: { $0.id == rest.targetEntryID }),
-              let set = target.sets.first(where: { $0.id == rest.targetSetID }) else { return "Rest" }
-        if target.id == entry?.id { return "Rest before set \(set.index)" }
+              let set = target.sets.first(where: { $0.id == rest.targetSetID }) else { return String(localized: "Rest") }
+        if target.id == entry?.id { return String(localized: "Rest before set \(set.index)") }
         let name = library.displayName(for: target.exerciseID)
-        return "Up next: \(name) · Set \(set.index)"
+        return String(localized: "Up next: \(name) · Set \(set.index)")
     }
 }
 

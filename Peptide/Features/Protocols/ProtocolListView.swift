@@ -79,6 +79,20 @@ struct ProtocolListView: View {
                                 .sectionAppear(index: 2)
                             }
 
+                            // Self-silencing: the engine returns nil
+                            // until both dosing and off days have
+                            // enough check-ins and a real delta.
+                            if let headline = OutcomeCorrelationEngine.headline(
+                                outcomes: dataStore.profile.outcomeHistory,
+                                entries: dataStore.entries
+                            ) {
+                                OutcomeCorrelationCard(
+                                    headline: headline,
+                                    sampleSize: dataStore.profile.outcomeHistory.count
+                                )
+                                .sectionAppear(index: 3)
+                            }
+
                             // Stack health + Discover sections moved
                             // here from HomeView in Phase 34. They
                             // live between Active and Paused so the
@@ -117,11 +131,7 @@ struct ProtocolListView: View {
                     .appAnimation(AppAnimation.springSmooth, value: dataStore.protocols.map(\.status))
                     .padding(.horizontal, Spacing.screenPadding)
                     .padding(.bottom, Spacing.scrollBottomInset)
-                    // iPad content cap so the protocol list reads in
-                    // a comfortable measure rather than stretching
-                    // edge-to-edge (Phase 5.8 partial).
-                    .frame(maxWidth: 640)
-                    .frame(maxWidth: .infinity)
+                    .readableContentWidth()
                 }
                 .background(AppColor.background)
 
@@ -187,6 +197,7 @@ struct ProtocolListView: View {
                     .liquidGlassPresentation()
             }
         }
+        .presentationSizing(.page)
     }
 
     /// Pushes the deep-linked protocol onto the navigation path if the

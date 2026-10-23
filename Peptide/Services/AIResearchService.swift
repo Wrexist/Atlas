@@ -108,12 +108,13 @@ final class AIResearchService: Sendable {
     func replyStream(
         history: [Turn],
         newUserPrompt prompt: String,
-        in database: [Peptide]
+        in database: [Peptide],
+        coachBrief: String? = nil
     ) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             let task = Task { [self] in
                 do {
-                    let text = try await reply(history: history, newUserPrompt: prompt, in: database)
+                    let text = try await reply(history: history, newUserPrompt: prompt, in: database, coachBrief: coachBrief)
                     if !text.isEmpty { continuation.yield(text) }
                     continuation.finish()
                 } catch {
@@ -131,7 +132,8 @@ final class AIResearchService: Sendable {
     func reply(
         history: [Turn],
         newUserPrompt prompt: String,
-        in database: [Peptide]
+        in database: [Peptide],
+        coachBrief: String? = nil
     ) async throws -> String {
         guard let endpoint, let proxySecret, !proxySecret.isEmpty else {
             // Mirror MealScannerService: keep the public error generic but
@@ -158,7 +160,7 @@ final class AIResearchService: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
         request.httpBody = try JSONSerialization.data(
-            withJSONObject: payload(history: history, newPrompt: prompt, ragContext: context),
+            withJSONObject: payload(history: history, newPrompt: prompt, ragContext: context, coachBrief: coachBrief),
             options: []
         )
 
@@ -309,7 +311,8 @@ final class AIResearchService: Sendable {
     private func payload(
         history: [Turn],
         newPrompt: String,
-        ragContext: String?
+        ragContext: String?,
+        coachBrief: String?
     ) -> [String: Any] {
         // Drop the oldest turns once the conversation grows past the
         // server's per-request message cap. Without this trim, sessions
@@ -339,11 +342,27 @@ final class AIResearchService: Sendable {
             "messages": messages,
         ]
         // The proxy prepends the authoritative persona and safety rules,
-        // so the client sends only the grounding context.
-        if let ragContext {
-            body["system"] = Self.ragContextHeader + "\n" + ragContext
+        // so the client sends only grounding: the coach brief first, since
+        // the proxy cuts an over-long system from the end, then the
+        // compounds the user mentioned.
+        if let system = Self.systemContext(ragContext: ragContext, coachBrief: coachBrief) {
+            body["system"] = Self.clipped(system, to: Self.systemCharacterBudget)
         }
         return body
+    }
+
+    private static func systemContext(ragContext: String?, coachBrief: String?) -> String? {
+        var sections: [String] = []
+        if let coachBrief, !coachBrief.isEmpty {
+            sections.append(
+                (coachRules + ["", "The user's last 7 days, from their Atlas log:", coachBrief])
+                    .joined(separator: "\n")
+            )
+        }
+        if let ragContext, !ragContext.isEmpty {
+            sections.append(ragContextHeader + "\n" + ragContext)
+        }
+        return sections.isEmpty ? nil : sections.joined(separator: "\n\n")
     }
 
     /// Maps a non-2xx proxy status to the error the chat shows. Don't
@@ -369,6 +388,15 @@ final class AIResearchService: Sendable {
         }
         return (try? JSONDecoder().decode(Envelope.self, from: data))?.error.code
     }
+
+    /// Nutrition-coach mode, opened from the Meals tab with a 7-day
+    /// summary attached (`NutritionCoachEngine.brief`).
+    private static let coachRules: [String] = [
+        "Nutrition coach mode: the user opened this chat from their food log to review their week.",
+        "• Read the summary below, say plainly how the week went against their targets, and suggest one or two concrete, food-based changes.",
+        "• Keep guidance general. Don't diagnose, don't prescribe diets for medical conditions, and point to a registered dietitian or clinician for anything medical.",
+        "• If the summary is thin (few logged days), say so and encourage consistent logging before drawing conclusions.",
+    ]
 
     private func parseAssistantText(from data: Data) throws -> String {
         let envelopeObject: Any

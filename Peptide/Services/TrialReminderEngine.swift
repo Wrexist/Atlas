@@ -24,6 +24,6 @@ enum TrialReminderEngine {
     /// so the currency is always the user's own storefront.
     static func body(price: String, chargeDate: Date, locale: Locale = .current) -> String {
         let date = chargeDate.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(locale))
-        return "Your Atlas Pro trial ends in 2 days — you'll be charged \(price) on \(date) unless you cancel in Settings."
+        return String(localized: "Your Atlas Pro trial ends in 2 days — you'll be charged \(price) on \(date) unless you cancel in Settings.")
     }
 }

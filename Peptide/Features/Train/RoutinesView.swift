@@ -19,6 +19,7 @@ struct RoutinesView: View {
     @State private var renameText: String = ""
     @State private var pendingDeletion: Routine?
     @State private var pendingStart: Routine?
+    @State private var buildingProgram = false
 
     var body: some View {
         Group {
@@ -71,15 +72,23 @@ struct RoutinesView: View {
             Text("\"\(routine.name)\" will be removed. Workouts you already logged from it are kept.")
         }
         .confirmingRoutineStart(pending: $pendingStart) { store.startWorkout(from: $0) }
+        .sheet(isPresented: $buildingProgram) {
+            ProgramBuilderSheet { routines in
+                AppAnimation.with(AppAnimation.springSnappy) { store.add(routines) }
+            }
+        }
     }
 
     // MARK: - List
 
     private var routineList: some View {
         VStack(spacing: 0) {
-            newRoutineButton
-                .padding(.horizontal, Spacing.screenPadding)
-                .padding(.bottom, Spacing.sm)
+            HStack(spacing: Spacing.sm) {
+                newRoutineButton
+                buildProgramButton
+            }
+            .padding(.horizontal, Spacing.screenPadding)
+            .padding(.bottom, Spacing.sm)
 
             List {
                 ForEach(Array(summaries.enumerated()), id: \.element.id) { index, summary in
@@ -120,6 +129,12 @@ struct RoutinesView: View {
     private var newRoutineButton: some View {
         GlassButton(title: "New routine", icon: "plus", style: .secondary, isFullWidth: true) {
             open(store.create(name: RoutineStore.untitledName).id)
+        }
+    }
+
+    private var buildProgramButton: some View {
+        GlassButton(title: "Build program", icon: "wand.and.stars", style: .secondary, isFullWidth: true) {
+            buildingProgram = true
         }
     }
 
@@ -164,6 +179,10 @@ struct RoutinesView: View {
                         open(store.create(name: RoutineStore.untitledName).id)
                     }
                 )
+
+                GlassButton(title: "Build my program", icon: "wand.and.stars", isFullWidth: true) {
+                    buildingProgram = true
+                }
 
                 StarterRoutineSuggestions { create(from: $0) }
             }

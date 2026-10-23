@@ -280,6 +280,17 @@ struct MealScanFlow: View {
         }
     }
 
+    /// The proxy is the authority on free scans: its count survives a
+    /// reinstall that emptied the local one. Agree with it, then offer Pro
+    /// the same way the local gate does.
+    private func allowanceSpentOnServer() {
+        MealScanQuota.recordAllowanceExhausted()
+        refreshScansRemaining()
+        errorText = MealScannerService.ScanError.scanAllowanceSpent.localizedDescription
+        phase = .error
+        showScanLimitPaywall = !storeService.isProUser
+    }
+
     private func refreshScansRemaining() {
         scansRemaining = MealScanQuota.remainingThisWeek(isPro: storeService.isProUser)
     }
@@ -769,12 +780,12 @@ struct MealScanFlow: View {
         do {
             recovery = try MealScanDraftStore.shared.load()
             draftError = nil
-        } catch { draftError = "Couldn't read your saved scan. Retry or explicitly discard it to start again." }
+        } catch { draftError = String(localized: "Couldn't read your saved scan. Retry or explicitly discard it to start again.") }
     }
 
     @discardableResult private func persistDraft() -> Bool {
         guard draftGeneration == MealScanDraftStore.shared.generation else {
-            draftError = "The account changed. Close this scan and reopen it."
+            draftError = String(localized: "The account changed. Close this scan and reopen it.")
             return false
         }
         guard !dataStore.isEphemeral else { return true }
@@ -783,7 +794,7 @@ struct MealScanFlow: View {
             draftError = nil
             return true
         } catch {
-            draftError = "Couldn't save the latest draft edits. Keep this review open and retry."
+            draftError = String(localized: "Couldn't save the latest draft edits. Keep this review open and retry.")
             return false
         }
     }
@@ -828,7 +839,7 @@ struct MealScanFlow: View {
             pendingEntries = []
             undoRequested = false
             hasLogged = false
-        } catch { draftError = "Couldn't discard the draft. Please retry." }
+        } catch { draftError = String(localized: "Couldn't discard the draft. Please retry.") }
     }
 
     // MARK: - Actions
@@ -842,7 +853,7 @@ struct MealScanFlow: View {
             else {
                 guard !Task.isCancelled else { return }
                 await MainActor.run {
-                    errorText = "Couldn't load that photo. Try a different one."
+                    errorText = String(localized: "Couldn't load that photo. Try a different one.")
                     errorNeedsNewPhoto = true
                     phase = .error
                 }
@@ -874,7 +885,7 @@ struct MealScanFlow: View {
                 // the underlying string at .private privacy for
                 // diagnostic purposes.
                 AppLog.persistence.error("PhotosPicker loadImage failed: \(error.localizedDescription, privacy: .private)")
-                errorText = "Couldn't load that photo. Try another one."
+                errorText = String(localized: "Couldn't load that photo. Try another one.")
                 errorNeedsNewPhoto = true
                 phase = .error
             }
@@ -897,13 +908,14 @@ struct MealScanFlow: View {
     private func runAnalysis(on image: UIImage) async {
         await analyse(photo: image) {
             try await MealScannerService.shared.smartScan(
-                image: image, hint: photoScale?.hint, corrections: ScanCorrectionMemory.shared.recent)
+                image: image, hint: photoScale?.hint, corrections: ScanCorrectionMemory.shared.recent, metered: true)
         }
     }
 
     private func runAnalysis(describing text: String) async {
         await analyse(photo: nil) {
-            try await MealScannerService.shared.describeMeal(text, corrections: ScanCorrectionMemory.shared.recent)
+            try await MealScannerService.shared.describeMeal(
+                text, corrections: ScanCorrectionMemory.shared.recent, metered: true)
         }
     }
 
@@ -948,6 +960,9 @@ struct MealScanFlow: View {
                 _ = persistDraft()
                 Haptics.success()
             }
+        } catch MealScannerService.ScanError.scanAllowanceSpent {
+            guard !Task.isCancelled else { return }
+            await MainActor.run { allowanceSpentOnServer() }
         } catch {
             guard !Task.isCancelled else { return }
             await MainActor.run {
@@ -955,7 +970,7 @@ struct MealScanFlow: View {
                     errorText = described
                 } else {
                     AppLog.diagnostics.error("Meal scan failed: \(error.localizedDescription, privacy: .public)")
-                    errorText = "Couldn't analyse this meal. Check your connection and try again."
+                    errorText = String(localized: "Couldn't analyse this meal. Check your connection and try again.")
                 }
                 errorNeedsNewPhoto = (error as? MealScannerService.ScanError)?.needsDifferentPhoto ?? false
                 phase = .error
@@ -1095,7 +1110,7 @@ struct MealScanFlow: View {
             if !dataStore.isEphemeral { try MealScanDraftStore.shared.discard() }
             phase = .pickImage
             onClose()
-        } catch { draftError = "The meal is saved, but draft cleanup failed. Retry Done." }
+        } catch { draftError = String(localized: "The meal is saved, but draft cleanup failed. Retry Done.") }
     }
 
     /// Saves the item to the user's food library as a `CustomFood` so it
@@ -1558,7 +1573,7 @@ private struct FoodItemEditCard: View {
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
                 Spacer()
-                stepperButton(icon: "minus.circle.fill", label: "Fewer servings") {
+                stepperButton(icon: "minus.circle.fill", label: String(localized: "Fewer servings")) {
                     setServings(item.servings - 0.5)
                 }
                 VStack(spacing: 0) {
@@ -1573,7 +1588,7 @@ private struct FoodItemEditCard: View {
                         .foregroundStyle(AppColor.textTertiary)
                 }
                 .frame(minWidth: 80)
-                stepperButton(icon: "plus.circle.fill", label: "More servings") {
+                stepperButton(icon: "plus.circle.fill", label: String(localized: "More servings")) {
                     setServings(item.servings + 0.5)
                 }
             }
@@ -1595,7 +1610,7 @@ private struct FoodItemEditCard: View {
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
             Spacer()
-            stepperButton(icon: "minus.circle.fill", label: "Decrease grams") {
+            stepperButton(icon: "minus.circle.fill", label: String(localized: "Decrease grams")) {
                 item.grams = max(5, item.grams - 10)
             }
             Text("\(item.grams.formatted(.number.precision(.fractionLength(0...1)))) g")
@@ -1604,7 +1619,7 @@ private struct FoodItemEditCard: View {
                 .monospacedDigit()
                 .contentTransition(.numericText(value: item.grams))
                 .frame(minWidth: 64)
-            stepperButton(icon: "plus.circle.fill", label: "Increase grams") {
+            stepperButton(icon: "plus.circle.fill", label: String(localized: "Increase grams")) {
                 item.grams = min(2000, item.grams + 10)
             }
         }
@@ -1652,7 +1667,7 @@ private struct FoodItemEditCard: View {
                         chip(label: "\(formatCount(count))×", spoken: spokenServings(count), grams: count * item.aiGrams)
                     }
                 case .grams:
-                    chip(label: "1 serving", grams: item.aiGrams)
+                    chip(label: String(localized: "1 serving"), grams: item.aiGrams)
                     ForEach(Self.gramPresets, id: \.self) { grams in
                         chip(label: "\(Int(grams)) g", grams: grams)
                     }

@@ -68,48 +68,48 @@ enum AnatomicalMuscle: String, CaseIterable, Codable, Hashable, Sendable {
     /// quad heads are all "Quads"); the map's tint still distinguishes them.
     var displayName: String {
         switch self {
-        case .pecClavicular:    return "Upper chest"
-        case .pecSternal:       return "Chest"
-        case .deltAnterior:     return "Front delts"
-        case .deltLateralFront, .deltLateralBack: return "Side delts"
-        case .deltPosterior:    return "Rear delts"
-        case .biceps:           return "Biceps"
-        case .forearmFront, .forearmBack: return "Forearms"
-        case .abdominals:       return "Abs"
-        case .obliques:         return "Obliques"
-        case .quadRectus, .quadLateralis, .quadMedialis: return "Quads"
-        case .adductors:        return "Adductors"
-        case .tibialis:         return "Shins"
-        case .neck:             return "Neck"
-        case .trapsUpper:       return "Upper traps"
-        case .trapsLower:       return "Lower traps"
-        case .rhomboids:        return "Rhomboids"
-        case .tricepsLong, .tricepsLateral: return "Triceps"
-        case .lats:             return "Lats"
-        case .lowerBack:        return "Lower back"
-        case .glutes:           return "Glutes"
-        case .gluteMedius:      return "Glute medius"
-        case .hamstringLateral, .hamstringMedial: return "Hamstrings"
-        case .gastrocnemius, .soleus: return "Calves"
+        case .pecClavicular:    return String(localized: "Upper chest")
+        case .pecSternal:       return String(localized: "Chest")
+        case .deltAnterior:     return String(localized: "Front delts")
+        case .deltLateralFront, .deltLateralBack: return String(localized: "Side delts")
+        case .deltPosterior:    return String(localized: "Rear delts")
+        case .biceps:           return String(localized: "Biceps")
+        case .forearmFront, .forearmBack: return String(localized: "Forearms")
+        case .abdominals:       return String(localized: "Abs")
+        case .obliques:         return String(localized: "Obliques")
+        case .quadRectus, .quadLateralis, .quadMedialis: return String(localized: "Quads")
+        case .adductors:        return String(localized: "Adductors")
+        case .tibialis:         return String(localized: "Shins")
+        case .neck:             return String(localized: "Neck")
+        case .trapsUpper:       return String(localized: "Upper traps")
+        case .trapsLower:       return String(localized: "Lower traps")
+        case .rhomboids:        return String(localized: "Rhomboids")
+        case .tricepsLong, .tricepsLateral: return String(localized: "Triceps")
+        case .lats:             return String(localized: "Lats")
+        case .lowerBack:        return String(localized: "Lower back")
+        case .glutes:           return String(localized: "Glutes")
+        case .gluteMedius:      return String(localized: "Glute medius")
+        case .hamstringLateral, .hamstringMedial: return String(localized: "Hamstrings")
+        case .gastrocnemius, .soleus: return String(localized: "Calves")
         }
     }
 
     /// Distinguishes regions that share a simple group name in the overview.
     var regionName: String {
         switch self {
-        case .quadRectus: "Central quads"
-        case .quadLateralis: "Outer quads"
-        case .quadMedialis: "Inner quads"
-        case .tricepsLong: "Triceps — long head"
-        case .tricepsLateral: "Triceps — lateral head"
-        case .hamstringLateral: "Outer hamstrings"
-        case .hamstringMedial: "Inner hamstrings"
-        case .gastrocnemius: "Calves — gastrocnemius"
-        case .soleus: "Calves — soleus"
-        case .forearmFront: "Forearms — front"
-        case .forearmBack: "Forearms — back"
-        case .deltLateralFront: "Side delts — front view"
-        case .deltLateralBack: "Side delts — back view"
+        case .quadRectus: String(localized: "Central quads")
+        case .quadLateralis: String(localized: "Outer quads")
+        case .quadMedialis: String(localized: "Inner quads")
+        case .tricepsLong: String(localized: "Triceps — long head")
+        case .tricepsLateral: String(localized: "Triceps — lateral head")
+        case .hamstringLateral: String(localized: "Outer hamstrings")
+        case .hamstringMedial: String(localized: "Inner hamstrings")
+        case .gastrocnemius: String(localized: "Calves — gastrocnemius")
+        case .soleus: String(localized: "Calves — soleus")
+        case .forearmFront: String(localized: "Forearms — front")
+        case .forearmBack: String(localized: "Forearms — back")
+        case .deltLateralFront: String(localized: "Side delts — front view")
+        case .deltLateralBack: String(localized: "Side delts — back view")
         default: displayName
         }
     }

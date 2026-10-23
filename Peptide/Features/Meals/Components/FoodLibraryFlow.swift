@@ -165,6 +165,7 @@ struct FoodLibraryFlow: View {
                 }
             }
         }
+        .presentationSizing(.page)
         .task(id: query) { await runDebouncedSearch() }
         .task(id: debouncedQuery) { await runSearch() }
         .alert("Meal action failed", isPresented: Binding(
@@ -874,7 +875,7 @@ struct FoodLibraryFlow: View {
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Self.rowAccessibilityLabel(name: food.name, brand: food.brand ?? "Custom food", n: food.per100g))
+        .accessibilityLabel(Self.rowAccessibilityLabel(name: food.name, brand: food.brand ?? String(localized: "Custom food"), n: food.per100g))
         .accessibilityHint("Opens the portion picker to log this food. The Quick log action logs your last valid amount, or the default portion if none is saved.")
         .accessibilityAction(named: Text("Quick log")) { performQuickLog(food.toScannedProduct()) }
         .accessibilityAction(named: isFavorite ? Text("Remove from favorites") : Text("Add to favorites")) {
@@ -1225,7 +1226,7 @@ struct FoodLibraryFlow: View {
             if isZeroCalorieOFF {
                 inlineMessage(
                     icon: "exclamationmark.triangle.fill",
-                    text: "This product has no calorie data in Open Food Facts. Save it as a custom food with the values from its label."
+                    text: String(localized: "This product has no calorie data in Open Food Facts. Save it as a custom food with the values from its label.")
                 )
                 GlassButton(title: "Create custom food", icon: "plus", style: .secondary, isFullWidth: true) {
                     var food = CustomFood.blank
@@ -1407,7 +1408,7 @@ struct FoodLibraryFlow: View {
             showLogged(entry)
             return true
         } catch {
-            mealSaveError = "Couldn't save the meal. Nothing was added. Please retry."
+            mealSaveError = String(localized: "Couldn't save the meal. Nothing was added. Please retry.")
             return false
         }
     }
@@ -1439,7 +1440,7 @@ struct FoodLibraryFlow: View {
             backToBrowse()
             BarcodeHaptics.logUndone()
         } catch {
-            mealSaveError = "Couldn't undo. The meal is still saved. Please retry."
+            mealSaveError = String(localized: "Couldn't undo. The meal is still saved. Please retry.")
         }
     }
 

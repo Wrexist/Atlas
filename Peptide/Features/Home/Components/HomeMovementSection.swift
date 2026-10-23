@@ -13,9 +13,10 @@ import SwiftUI
 /// the one training home).
 struct HomeMovementSection: View {
     @Environment(AppState.self) private var appState
-    /// Today's session count and minutes, derived once per store
-    /// revision by `HomeView` rather than fetched from `body`.
+    /// The shown day's session count and minutes, derived once per
+    /// store revision by `HomeView` rather than fetched from `body`.
     let summary: (count: Int, minutes: Int)
+    var isPastDay = false
 
     var body: some View {
         VStack(spacing: Spacing.sm) {
@@ -27,7 +28,8 @@ struct HomeMovementSection: View {
                 onTap: {
                     Haptics.selection()
                     appState.selectedTab = .train
-                }
+                },
+                isPastDay: isPastDay
             )
         }
     }

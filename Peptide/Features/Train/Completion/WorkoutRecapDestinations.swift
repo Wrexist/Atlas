@@ -39,7 +39,7 @@ struct WorkoutRecapExercisesView: View {
                 }
             }.padding(Spacing.screenPadding)
         }
-        .recapScreen(title: "Exercises")
+        .recapScreen(title: String(localized: "Exercises"))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) { Button("Edit") { editing = true }.minimumHitArea() }
         }
@@ -82,7 +82,7 @@ struct WorkoutRecapExerciseDetail: View {
                     if let note = entry.note, !note.isEmpty { Text(note).font(AppFont.body) }
                 }
             }.padding(Spacing.screenPadding)
-        }.recapScreen(title: "Exercise details")
+        }.recapScreen(title: String(localized: "Exercise details"))
     }
 }
 
@@ -107,7 +107,7 @@ struct WorkoutMuscleDetailsView: View {
                 RecapMissingMapping(count: summary.missingMappings)
                 if summary.muscles.isEmpty { Text("No muscle mapping is available for these logged exercises.") }
             }.padding(Spacing.screenPadding)
-        }.recapScreen(title: "Muscle details")
+        }.recapScreen(title: String(localized: "Muscle details"))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 RecapInfoButton(title: "About muscle mapping", showsTitle: false) {
@@ -168,6 +168,7 @@ struct WorkoutMuscleContributionsView: View {
 struct WorkoutWeeklyProgressView: View {
     let store: WorkoutRecapStore
     let unit: MeasurementUnit
+    @State private var summaryService = OnDeviceSummaryService.shared
     var body: some View {
         ScrollView {
             if let week = store.week {
@@ -190,6 +191,9 @@ struct WorkoutWeeklyProgressView: View {
                     RecapInfoButton(title: "How workouts are counted", showsTitle: false) {
                         Text("Workouts are grouped by their start date in your current calendar and time zone. Finished workouts with working sets and saved manual workouts count. Warm-up-only and unfinished sessions are excluded.")
                     }
+                }
+                if let facts = OnDeviceSummaryEngine.week(week, unit: unit), let text = summaryService.text(for: facts) {
+                    RecapSummaryLine(text: text)
                 }
                 RecapCard {
                     VStack(alignment: .leading, spacing: Spacing.lg) {
@@ -221,6 +225,9 @@ struct WorkoutWeeklyProgressView: View {
                 }
                 if week.count == 0 { Text("No completed workouts this week yet.").font(AppFont.body) }
             }.padding(Spacing.screenPadding)
+                .task(id: OnDeviceSummaryEngine.week(week, unit: unit)) {
+                    if let facts = OnDeviceSummaryEngine.week(week, unit: unit) { await summaryService.prepare(facts) }
+                }
     }
 }
 

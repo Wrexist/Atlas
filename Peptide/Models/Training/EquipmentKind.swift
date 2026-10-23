@@ -31,21 +31,21 @@ enum EquipmentKind: String, CaseIterable, Codable, Identifiable, Sendable {
 
     var displayName: String {
         switch self {
-        case .barbell:      return "Barbell"
-        case .dumbbell:     return "Dumbbell"
-        case .kettlebell:   return "Kettlebell"
-        case .cable:        return "Cable"
-        case .machine:      return "Machine"
-        case .smith:        return "Smith machine"
-        case .ezBar:        return "EZ bar"
-        case .trapBar:      return "Trap bar"
-        case .band:         return "Bands"
-        case .plate:        return "Weight plate"
-        case .medicineBall: return "Medicine ball"
-        case .swissBall:    return "Swiss ball"
-        case .foamRoller:   return "Foam roller"
-        case .bodyweight:   return "Bodyweight"
-        case .other:        return "Other"
+        case .barbell:      return String(localized: "Barbell")
+        case .dumbbell:     return String(localized: "Dumbbell")
+        case .kettlebell:   return String(localized: "Kettlebell")
+        case .cable:        return String(localized: "Cable")
+        case .machine:      return String(localized: "Machine")
+        case .smith:        return String(localized: "Smith machine")
+        case .ezBar:        return String(localized: "EZ bar")
+        case .trapBar:      return String(localized: "Trap bar")
+        case .band:         return String(localized: "Bands")
+        case .plate:        return String(localized: "Weight plate")
+        case .medicineBall: return String(localized: "Medicine ball")
+        case .swissBall:    return String(localized: "Swiss ball")
+        case .foamRoller:   return String(localized: "Foam roller")
+        case .bodyweight:   return String(localized: "Bodyweight")
+        case .other:        return String(localized: "Other")
         }
     }
 
@@ -138,12 +138,21 @@ enum EquipmentAccessory: String, CaseIterable, Codable, Identifiable, Sendable {
 
     var id: String { rawValue }
 
+    /// What a set of equipment kinds vouches for. Machines, cables or a
+    /// Smith mean a gym, which has all four; a barbell is only usable with
+    /// a rack and a bench. Nothing else implies any — dumbbells at home,
+    /// or no kit at all, say nothing about a pull-up bar.
+    static func implied(by access: Set<EquipmentKind>) -> Set<EquipmentAccessory> {
+        if !access.isDisjoint(with: [.machine, .cable, .smith]) { return Set(allCases) }
+        return access.contains(.barbell) ? [.bench, .rack] : []
+    }
+
     var displayName: String {
         switch self {
-        case .bench:     return "Bench"
-        case .rack:      return "Rack"
-        case .pullUpBar: return "Pull-up bar"
-        case .box:       return "Box"
+        case .bench:     return String(localized: "Bench")
+        case .rack:      return String(localized: "Rack")
+        case .pullUpBar: return String(localized: "Pull-up bar")
+        case .box:       return String(localized: "Box")
         }
     }
 
@@ -169,10 +178,10 @@ enum BarKind: String, CaseIterable, Codable, Identifiable, Sendable {
 
     var displayName: String {
         switch self {
-        case .olympic: return "Olympic barbell"
-        case .ezBar:   return "EZ bar"
-        case .trapBar: return "Trap bar"
-        case .smith:   return "Smith machine bar"
+        case .olympic: return String(localized: "Olympic barbell")
+        case .ezBar:   return String(localized: "EZ bar")
+        case .trapBar: return String(localized: "Trap bar")
+        case .smith:   return String(localized: "Smith machine bar")
         }
     }
 

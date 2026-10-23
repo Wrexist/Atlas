@@ -678,7 +678,7 @@ struct BarcodeScanFlow: View {
                 guard let data = try? await newValue.loadTransferable(type: Data.self),
                       let image = UIImage(data: data) else {
                     packagePickerItem = nil
-                    errorText = "Couldn't load that photo. Try a different one."
+                    errorText = String(localized: "Couldn't load that photo. Try a different one.")
                     phase = .error
                     return
                 }
@@ -834,14 +834,14 @@ struct BarcodeScanFlow: View {
     /// stays inside quotation marks rather than being presented as the
     /// app's own copy.
     private var unsupportedCodeDetail: String {
-        let unreadable = "The camera read it cleanly, but there's no product code in it."
+        let unreadable = String(localized: "The camera read it cleanly, but there's no product code in it.")
         guard let unsupportedPayload else { return unreadable }
         switch unsupportedPayload {
         case .link(let url):
-            return "It's a QR code pointing to \(url.host ?? url.absoluteString)."
+            return String(localized: "It's a QR code pointing to \(url.host ?? url.absoluteString).")
         case .text(let raw):
             let shown = raw.count > 40 ? String(raw.prefix(40)) + "…" : raw
-            return "It reads “\(shown)” — a label or tracking code rather than a product."
+            return String(localized: "It reads “\(shown)” — a label or tracking code rather than a product.")
         case .gtin:
             return unreadable
         }
@@ -982,7 +982,7 @@ struct BarcodeScanFlow: View {
             phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
         case .denied, .restricted:
             cameraDenied = outcome == .denied
-            errorText = "Camera access is off. Enable it in Settings to scan barcodes, or type a code below."
+            errorText = String(localized: "Camera access is off. Enable it in Settings to scan barcodes, or type a code below.")
             phase = .manualEntry
         }
     }
@@ -1024,7 +1024,7 @@ struct BarcodeScanFlow: View {
                 let image = UIImage(data: data)
             else {
                 await MainActor.run {
-                    errorText = "Couldn't load that photo. Try a different one."
+                    errorText = String(localized: "Couldn't load that photo. Try a different one.")
                     phase = .error
                     ocrPickerItem = nil
                 }
@@ -1049,7 +1049,7 @@ struct BarcodeScanFlow: View {
         } catch {
             AppLog.diagnostics.error("Nutrition label OCR failed: \(error.localizedDescription, privacy: .public)")
             await MainActor.run {
-                errorText = "Couldn't read that label. Try a sharper photo of the nutrition panel."
+                errorText = String(localized: "Couldn't read that label. Try a sharper photo of the nutrition panel.")
                 phase = .error
                 ocrPickerItem = nil
                 BarcodeHaptics.lookupFailure()
@@ -1105,7 +1105,7 @@ struct BarcodeScanFlow: View {
             } catch {
                 AppLog.diagnostics.error("Barcode lookup failed: \(error.localizedDescription, privacy: .public)")
                 await MainActor.run {
-                    errorText = "Couldn't look up this product. Check your connection and try again."
+                    errorText = String(localized: "Couldn't look up this product. Check your connection and try again.")
                     phase = .error
                     BarcodeHaptics.lookupFailure()
                 }
@@ -1166,7 +1166,7 @@ struct BarcodeScanFlow: View {
         if outcome == .granted {
             isShowingPackageCamera = true
         } else {
-            errorText = "Allow camera access in Settings to photograph the package."
+            errorText = String(localized: "Allow camera access in Settings to photograph the package.")
             phase = .error
         }
     }
@@ -1203,7 +1203,8 @@ struct BarcodeScanFlow: View {
             let scan = try await MealScannerService.shared.smartScan(
                 image: image,
                 hint: "A packaged product whose barcode \(barcode) isn't in Open Food Facts. Read the brand, product name, net weight and nutrition panel from the package.",
-                corrections: corrections
+                corrections: corrections,
+                metered: true
             )
             guard let read = SmartFoodLogic.product(from: scan, barcode: barcode) else {
                 throw MealScannerService.ScanError.noFoodDetected
@@ -1221,9 +1222,14 @@ struct BarcodeScanFlow: View {
         } catch {
             await MainActor.run {
                 errorText = (error as? LocalizedError)?.errorDescription
-                    ?? "Couldn't read this package. Check your connection and try again."
+                    ?? String(localized: "Couldn't read this package. Check your connection and try again.")
                 phase = .error
                 BarcodeHaptics.lookupFailure()
+                // The proxy's count outlives a reinstall; agree with it.
+                if case .scanAllowanceSpent = error as? MealScannerService.ScanError {
+                    MealScanQuota.recordAllowanceExhausted()
+                    showScanLimitPaywall = !storeService.isProUser
+                }
             }
         }
     }

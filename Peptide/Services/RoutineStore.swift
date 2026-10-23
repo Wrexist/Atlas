@@ -39,6 +39,20 @@ final class RoutineStore {
         return routine
     }
 
+    /// Appends already-built routines — a generated program's days — below
+    /// the existing library, in the order given.
+    func add(_ newRoutines: [Routine]) {
+        var sortIndex = nextSortIndex
+        for routine in newRoutines {
+            var stored = RoutineEditEngine.normalized(routine)
+            stored.sortIndex = sortIndex
+            stored.updatedAt = Date()
+            repository.upsertRoutine(stored)
+            sortIndex += 1
+        }
+        load()
+    }
+
     /// Persists an edited routine and re-sorts the library around it.
     /// The builder's own edits come through here on every keystroke-free
     /// commit (add exercise, change targets, reorder slots).
@@ -93,7 +107,7 @@ final class RoutineStore {
 
     // MARK: - Internals
 
-    static let untitledName = "New routine"
+    static let untitledName = String(localized: "New routine")
 
     private var nextSortIndex: Int {
         (routines.compactMap(\.sortIndex).max() ?? routines.count - 1) + 1

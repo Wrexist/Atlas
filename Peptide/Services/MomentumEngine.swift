@@ -145,11 +145,11 @@ enum MomentumEngine {
 
         var name: String {
             switch self {
-            case .bronze:   return "Bronze"
-            case .silver:   return "Silver"
-            case .gold:     return "Gold"
-            case .platinum: return "Platinum"
-            case .diamond:  return "Diamond"
+            case .bronze:   return String(localized: "Bronze")
+            case .silver:   return String(localized: "Silver")
+            case .gold:     return String(localized: "Gold")
+            case .platinum: return String(localized: "Platinum")
+            case .diamond:  return String(localized: "Diamond")
             }
         }
 
@@ -164,15 +164,10 @@ enum MomentumEngine {
         }
 
         /// 24-bit RGB used by the UI edge (`Color(hex:)`). Distinct, warm-to-cool
-        /// progression so the band reads at a glance.
+        /// progression so the band reads at a glance; shared with the Watch
+        /// through `WatchPalette`.
         var tintHex: UInt32 {
-            switch self {
-            case .bronze:   return 0xCD7F4F
-            case .silver:   return 0xB8C0C8
-            case .gold:     return 0xD4A844
-            case .platinum: return 0x8FD0C4
-            case .diamond:  return 0x7CC5FF
-            }
+            WatchPalette.tierHex(rawValue)
         }
     }
 

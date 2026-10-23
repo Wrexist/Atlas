@@ -43,9 +43,9 @@ extension StackRecommendationEngine {
         for (effect, names) in sideEffectPeptides where names.count >= 3 {
             warnings.append(Warning(
                 severity: .caution,
-                title: "Compounding \"\(effect)\" risk",
-                detail: "\(names.count) peptides in your protocol share this side effect, which may intensify.",
-                suggestion: "Discuss this overlap with a qualified clinician before continuing the protocol.",
+                title: String(localized: "Compounding \"\(effect)\" risk"),
+                detail: String(localized: "\(names.count) peptides in your protocol share this side effect, which may intensify."),
+                suggestion: String(localized: "Discuss this overlap with a qualified clinician before continuing the protocol."),
                 peptides: names.sorted(),
                 icon: "waveform.path.ecg"
             ))
@@ -56,9 +56,9 @@ extension StackRecommendationEngine {
         for (category, peptides) in categoryGroups where peptides.count > 3 {
             warnings.append(Warning(
                 severity: .caution,
-                title: "Heavy \(category.displayName) focus",
-                detail: "\(peptides.count) peptides targeting \(category.displayName). Diminishing returns likely.",
-                suggestion: "Try swapping one for a complementary category to create synergy.",
+                title: String(localized: "Heavy \(category.displayName) focus"),
+                detail: String(localized: "\(peptides.count) peptides targeting \(category.displayName). Diminishing returns likely."),
+                suggestion: String(localized: "Try swapping one for a complementary category to create synergy."),
                 peptides: peptides.map(\.abbreviation),
                 icon: "square.stack.3d.up.trianglebadge.exclamationmark.fill"
             ))
@@ -81,9 +81,9 @@ extension StackRecommendationEngine {
                 if aRefs || bRefs {
                     warnings.append(Warning(
                         severity: .danger,
-                        title: "Potential interaction",
-                        detail: "\(a.abbreviation) and \(b.abbreviation) may have contraindications when combined.",
-                        suggestion: "Review both peptides' safety profiles and consult a professional before combining.",
+                        title: String(localized: "Potential interaction"),
+                        detail: String(localized: "\(a.abbreviation) and \(b.abbreviation) may have contraindications when combined."),
+                        suggestion: String(localized: "Review both peptides' safety profiles and consult a professional before combining."),
                         peptides: [a.abbreviation, b.abbreviation],
                         icon: "xmark.octagon.fill"
                     ))
@@ -107,27 +107,27 @@ extension StackRecommendationEngine {
             case .ghsrAgonist:
                 warnings.append(Warning(
                     severity: .caution,
-                    title: "Redundant GHS-R agonists",
+                    title: String(localized: "Redundant GHS-R agonists"),
                     detail: "\(names.joined(separator: " & ")) target the same ghrelin receptor. Risk of desensitization.",
-                    suggestion: "Research usually pairs one GHS-R agonist with one GHRH analog (e.g., CJC-1295). Discuss changes with a qualified clinician.",
+                    suggestion: String(localized: "Research usually pairs one GHS-R agonist with one GHRH analog (e.g., CJC-1295). Discuss changes with a qualified clinician."),
                     peptides: names,
                     icon: "arrow.triangle.2.circlepath"
                 ))
             case .ghrhAnalog where peptides.count >= 2:
                 warnings.append(Warning(
                     severity: .caution,
-                    title: "Multiple GHRH analogs",
-                    detail: "\(peptides.count) GHRH pathway peptides may over-stimulate growth hormone release.",
-                    suggestion: "Research usually pairs one GHRH analog with one GHS-R agonist rather than combining analogs. Discuss changes with a qualified clinician.",
+                    title: String(localized: "Multiple GHRH analogs"),
+                    detail: String(localized: "\(peptides.count) GHRH pathway peptides may over-stimulate growth hormone release."),
+                    suggestion: String(localized: "Research usually pairs one GHRH analog with one GHS-R agonist rather than combining analogs. Discuss changes with a qualified clinician."),
                     peptides: names,
                     icon: "arrow.triangle.2.circlepath"
                 ))
             case .appetiteRegulation where peptides.count >= 2:
                 warnings.append(Warning(
                     severity: .caution,
-                    title: "Multiple appetite regulators",
+                    title: String(localized: "Multiple appetite regulators"),
                     detail: "\(names.joined(separator: " & ")) both affect appetite/satiety pathways.",
-                    suggestion: "Combining GLP-1 agonists can amplify GI side effects. Discuss using one at a time with a qualified clinician.",
+                    suggestion: String(localized: "Combining GLP-1 agonists can amplify GI side effects. Discuss using one at a time with a qualified clinician."),
                     peptides: names,
                     icon: "fork.knife"
                 ))
@@ -159,9 +159,9 @@ extension StackRecommendationEngine {
             if dailyCount > 4 {
                 warnings.append(Warning(
                     severity: .caution,
-                    title: "High injection burden",
-                    detail: "Your protocol requires ~\(dailyCount) injections daily across \(injectables.count) peptides.",
-                    suggestion: "Group compatible peptides at the same injection time to reduce needle count and improve adherence.",
+                    title: String(localized: "High injection burden"),
+                    detail: String(localized: "Your protocol requires ~\(dailyCount) injections daily across \(injectables.count) peptides."),
+                    suggestion: String(localized: "Group compatible peptides at the same injection time to reduce needle count and improve adherence."),
                     peptides: injectables.map(\.abbreviation),
                     icon: "syringe.fill",
                     kind: .injectionBurden
@@ -195,7 +195,7 @@ extension StackRecommendationEngine {
 
                     warnings.append(Warning(
                         severity: warnSeverity,
-                        title: "Known interaction",
+                        title: String(localized: "Known interaction"),
                         detail: interaction.reason,
                         suggestion: interaction.recommendation,
                         peptides: [interaction.peptideA, interaction.peptideB],
@@ -218,8 +218,8 @@ extension StackRecommendationEngine {
 
             warnings.append(Warning(
                 severity: .caution,
-                title: "\(group.pathway) overload",
-                detail: "\(matching.count) peptides target the \(group.pathway) pathway (recommended max: \(group.maxSafe)).",
+                title: String(localized: "\(group.pathway) overload"),
+                detail: String(localized: "\(matching.count) peptides target the \(group.pathway) pathway (recommended max: \(group.maxSafe))."),
                 suggestion: group.warningText,
                 peptides: matching.map(\.abbreviation),
                 icon: "arrow.triangle.2.circlepath"
@@ -233,9 +233,9 @@ extension StackRecommendationEngine {
         if angiogenic.count >= 3 {
             warnings.append(Warning(
                 severity: .caution,
-                title: "High angiogenic activity",
-                detail: "\(angiogenic.count) peptides in your protocol promote blood vessel growth. Use caution if you have a history of malignancy, as angiogenesis can theoretically fuel tumor vascularization.",
-                suggestion: "If you have any cancer history, consult an oncologist before using multiple angiogenic peptides together.",
+                title: String(localized: "High angiogenic activity"),
+                detail: String(localized: "\(angiogenic.count) peptides in your protocol promote blood vessel growth. Use caution if you have a history of malignancy, as angiogenesis can theoretically fuel tumor vascularization."),
+                suggestion: String(localized: "If you have any cancer history, consult an oncologist before using multiple angiogenic peptides together."),
                 peptides: angiogenic.map(\.abbreviation),
                 icon: "staroflife.fill"
             ))
@@ -267,12 +267,12 @@ extension StackRecommendationEngine {
                 let overBy = weeksElapsed - cycle.onWeeks
                 let transitionText = cycle.transitionSuggestions.isEmpty
                     ? ""
-                    : " Consider transitioning to \(cycle.transitionSuggestions.joined(separator: " or "))."
+                    : String(localized: " Consider transitioning to \(cycle.transitionSuggestions.joined(separator: " or ")).")
                 warnings.append(Warning(
                     severity: .caution,
-                    title: String(AttributedString(localized: "\(peptide.abbreviation) is ^[\(overBy) week](inflect: true) past its cycle").characters),
-                    detail: "Recommended cycle is \(cycle.onWeeks) weeks on / \(cycle.offWeeks) weeks off. You're at week \(weeksElapsed). \(cycle.reason).",
-                    suggestion: "Schedule a \(cycle.offWeeks)-week off period.\(transitionText)",
+                    title: String(localized: "\(peptide.abbreviation) is \(overBy) weeks past its cycle"),
+                    detail: String(localized: "Recommended cycle is \(cycle.onWeeks) weeks on / \(cycle.offWeeks) weeks off. You're at week \(weeksElapsed). \(cycle.reason)."),
+                    suggestion: String(localized: "Schedule a \(cycle.offWeeks)-week off period.\(transitionText)"),
                     peptides: [peptide.abbreviation],
                     icon: "clock.arrow.circlepath",
                     kind: .cycleOverrun
@@ -294,9 +294,9 @@ extension StackRecommendationEngine {
             let offWeeks = PeptideTimingData.cycleProtocols[peptide.abbreviation]?.offWeeks ?? 4
             warnings.append(Warning(
                 severity: .caution,
-                title: "\(info.receptor) desensitization risk",
-                detail: "\(peptide.abbreviation) active for \(weeks) weeks. \(info.description) typically begins around week \(info.riskOnsetWeeks).",
-                suggestion: "Consider a \(offWeeks)-week washout period to restore receptor sensitivity.",
+                title: String(localized: "\(info.receptor) desensitization risk"),
+                detail: String(localized: "\(peptide.abbreviation) active for \(weeks) weeks. \(info.description) typically begins around week \(info.riskOnsetWeeks)."),
+                suggestion: String(localized: "Consider a \(offWeeks)-week washout period to restore receptor sensitivity."),
                 peptides: [peptide.abbreviation],
                 icon: "arrow.down.right.circle",
                 kind: .desensitization
@@ -310,9 +310,9 @@ extension StackRecommendationEngine {
         if hepatotoxic.count >= 2 {
             warnings.append(Warning(
                 severity: .caution,
-                title: "Multiple liver-stressing peptides",
-                detail: "\(hepatotoxic.count) peptides in your protocol have hepatic metabolism burden: \(hepatotoxic.map(\.abbreviation).joined(separator: ", ")).",
-                suggestion: "Monitor liver enzymes (ALT, AST) and avoid combining with alcohol or hepatotoxic supplements.",
+                title: String(localized: "Multiple liver-stressing peptides"),
+                detail: String(localized: "\(hepatotoxic.count) peptides in your protocol have hepatic metabolism burden: \(hepatotoxic.map(\.abbreviation).joined(separator: ", "))."),
+                suggestion: String(localized: "Monitor liver enzymes (ALT, AST) and avoid combining with alcohol or hepatotoxic supplements."),
                 peptides: hepatotoxic.map(\.abbreviation),
                 icon: "exclamationmark.triangle.fill"
             ))
@@ -327,8 +327,8 @@ extension StackRecommendationEngine {
                    timingA.avoidWith.contains(b.abbreviation) {
                     warnings.append(Warning(
                         severity: .info,
-                        title: "Timing separation recommended",
-                        detail: "\(a.abbreviation) and \(b.abbreviation) should be separated when administered.",
+                        title: String(localized: "Timing separation recommended"),
+                        detail: String(localized: "\(a.abbreviation) and \(b.abbreviation) should be separated when administered."),
                         suggestion: timingA.notes,
                         peptides: [a.abbreviation, b.abbreviation],
                         icon: "clock.badge.exclamationmark",
@@ -338,8 +338,8 @@ extension StackRecommendationEngine {
                           timingB.avoidWith.contains(a.abbreviation) {
                     warnings.append(Warning(
                         severity: .info,
-                        title: "Timing separation recommended",
-                        detail: "\(a.abbreviation) and \(b.abbreviation) should be separated when administered.",
+                        title: String(localized: "Timing separation recommended"),
+                        detail: String(localized: "\(a.abbreviation) and \(b.abbreviation) should be separated when administered."),
                         suggestion: timingB.notes,
                         peptides: [a.abbreviation, b.abbreviation],
                         icon: "clock.badge.exclamationmark",

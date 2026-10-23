@@ -3,20 +3,17 @@ import SwiftUI
 import UIKit
 #endif
 
-/// Onboarding for Atlas — a health & fitness app. 16 steps covering
-/// training, nutrition, biology / recovery signals, AI-assisted
-/// research, and optional supplement tracking. Lean — every step
-/// earns its place: a moment, a data ask, a permission ask, or a
-/// reveal. The personalization captured here drives a date-anchored
-/// projection that lands right before the post-Ready paywall.
-///
-/// Page indices live in the nested `Page` enum so reordering only
-/// requires renaming there.
+/// Onboarding for Atlas — a health & fitness app. Nine steps (see
+/// `OnboardingStep`) covering training, nutrition, recovery permissions
+/// and optional referral attribution. Related asks share a page, and the
+/// last page is the personalised plan — projection, daily targets and
+/// program — whose primary action opens the paywall, so the offer
+/// always follows a concrete result.
 ///
 /// State writes:
 ///
 ///   - `hasCompletedOnboarding` — final dismiss flag (set by the
-///     paywall handlers via the theme picker, not by the Ready button
+///     paywall handlers via the theme picker, not by the plan button
 ///     itself)
 ///   - `experienceLevel` — beginner / intermediate / advanced
 ///   - `disclaimerAcknowledgedAt` — Unix timestamp of the two-tap
@@ -36,12 +33,14 @@ struct OnboardingView: View {
     /// would erase the audit trail. Zero means "never acknowledged."
     @AppStorage("disclaimerAcknowledgedAt") private var disclaimerAcknowledgedAt: Double = 0
     /// Persisted so a kill mid-flow resumes where the user left off
-    /// instead of restarting at the Welcome screen. Cleared on the
-    /// final "Ready" step (which also sets `hasCompletedOnboarding`)
+    /// instead of restarting at the Welcome screen. Cleared when the
+    /// theme picker closes (which also sets `hasCompletedOnboarding`)
     /// so a future re-run of onboarding (testing path) starts at 0.
-    @AppStorage("onboarding.lastPage") private var lastPage: Int = 0
+    /// `.v2` because the 16-page indices of the old key point at
+    /// different pages in the 9-page flow.
+    @AppStorage("onboarding.lastPage.v2") private var lastPage: Int = 0
 
-    @State private var page: Int = 0
+    @State private var page: OnboardingStep = .welcome
     @State private var name: String = ""
     /// The headline goal — drives the projection chart, the goal-date
     /// tint, and the nutrition recommendation. Always one of
@@ -69,7 +68,7 @@ struct OnboardingView: View {
     @State private var requestingHealth = false
     @State private var requestingNotifications = false
     /// Pinned reference to the AuthService singleton so the
-    /// signInStep view re-renders when AuthService's @Observable
+    /// sign-in section re-renders when AuthService's @Observable
     /// state (`isSignedIn`, `isSigningIn`, `lastError`) changes.
     /// Without this @State, accessing `AuthService.shared.isSignedIn`
     /// directly inside a computed view property may not register the
@@ -80,9 +79,6 @@ struct OnboardingView: View {
     /// independently of the user's `doseRemindersEnabled` peptide-
     /// reminder preference (those are separate concerns).
     @State private var notificationsAuthorized = false
-    // Live "try a set" demo state.
-    @State private var demoSet = SetEntry(index: 1, weightKg: 60, reps: 8, completed: false)
-    @State private var demoCelebrate = false
     // Drives the post-Ready paywall full-screen cover. Decline and
     // accept both flip `hasCompleted` — the trial is optional, but the
     // user shouldn't enter the app before seeing the offer once.
@@ -95,7 +91,6 @@ struct OnboardingView: View {
     @State private var creatorCodeInput: String = ""
     @State private var creatorAttribution: CreatorAttribution?
     @State private var creatorError: String?
-    @State private var showingAffiliateApply: Bool = false
     // Projection chart "reveal" state. Drives a tasteful fade-in on
     // the chart instead of jump-cutting in fully drawn.
     @State private var projectionRevealed: Bool = false
@@ -103,9 +98,7 @@ struct OnboardingView: View {
     // user who taps Continue without touching the picker still gets a
     // meaningful projection. Persisted to dataStore.profile on
     // advance off the goalDate step.
-    @State private var goalDate: Date = Calendar.current.date(
-        byAdding: .weekOfYear, value: 12, to: Date()
-    ) ?? Date().addingTimeInterval(60 * 60 * 24 * 84)
+    @State private var goalDate: Date = OnboardingPlanEngine.defaultGoalDate()
     /// Selected marketing-attribution channel. Persisted into the funnel
     /// snapshot only — never into the user profile (the marketing-channel
     /// answer is anonymous-aggregate signal, not personal data).
@@ -116,13 +109,13 @@ struct OnboardingView: View {
         var id: String { rawValue }
         var displayName: String {
             switch self {
-            case .friend:   return "A friend"
-            case .appStore: return "App Store"
+            case .friend:   return String(localized: "A friend")
+            case .appStore: return String(localized: "App Store")
             case .tiktok:   return "TikTok"
             case .youtube:  return "YouTube"
-            case .reddit:   return "Reddit"
-            case .podcast:  return "Podcast"
-            case .other:    return "Other"
+            case .reddit:   return String(localized: "Reddit")
+            case .podcast:  return String(localized: "Podcast")
+            case .other:    return String(localized: "Other")
             }
         }
         var icon: String {
@@ -141,36 +134,7 @@ struct OnboardingView: View {
     @FocusState private var nameFocused: Bool
     @Environment(\.scenePhase) private var scenePhase
 
-    // Page indices — single source of truth for the flow. Adjusting
-    // ordering only requires renaming here; everything else reads
-    // through these constants.
-    private enum Page {
-        static let welcome          = 0
-        static let signIn           = 1
-        static let attribution      = 2
-        static let name             = 3
-        static let goal             = 4
-        static let experience       = 5
-        static let bodyMetrics      = 6
-        static let schedule         = 7
-        static let equipment        = 8
-        static let demoSet          = 9
-        static let projection       = 10
-        static let disclaimer       = 11
-        static let notifications    = 12
-        static let health           = 13
-        static let creatorCode      = 14
-        static let ready            = 15
-        static let total            = 16
-        // Removed (Product Architecture 07): `buildingPlan` — a 2.6 s
-        // synthetic ring animation with zero computation behind it
-        // (every real write happens on earlier steps); pretending to
-        // process erodes trust. And `email` — the captured address was
-        // stored on the profile and never sent or read anywhere, while
-        // the optional Sign in with Apple step already covers contact.
-    }
-
-    private var totalPages: Int { Page.total }
+    private var totalPages: Int { OnboardingStep.allCases.count }
 
     enum PrimaryGoal: String, CaseIterable, Identifiable {
         case buildMuscle, loseFat, getStronger, stayConsistent,
@@ -179,17 +143,17 @@ struct OnboardingView: View {
         var id: String { rawValue }
         var displayName: String {
             switch self {
-            case .buildMuscle:    return "Build muscle"
-            case .loseFat:        return "Lose fat"
-            case .getStronger:    return "Get stronger"
-            case .stayConsistent: return "Stay consistent"
-            case .athletic:       return "Athletic performance"
-            case .recomp:         return "Recomp"
-            case .betterSleep:    return "Better sleep"
-            case .recovery:       return "Faster recovery"
-            case .antiAging:      return "Healthy aging"
-            case .skinHair:       return "Look & feel better"
-            case .energy:         return "More energy"
+            case .buildMuscle:    return String(localized: "Build muscle")
+            case .loseFat:        return String(localized: "Lose fat")
+            case .getStronger:    return String(localized: "Get stronger")
+            case .stayConsistent: return String(localized: "Stay consistent")
+            case .athletic:       return String(localized: "Athletic performance")
+            case .recomp:         return String(localized: "Recomp")
+            case .betterSleep:    return String(localized: "Better sleep")
+            case .recovery:       return String(localized: "Faster recovery")
+            case .antiAging:      return String(localized: "Healthy aging")
+            case .skinHair:       return String(localized: "Look & feel better")
+            case .energy:         return String(localized: "More energy")
             }
         }
         var icon: String {
@@ -229,16 +193,16 @@ struct OnboardingView: View {
         var id: String { rawValue }
         var title: String {
             switch self {
-            case .beginner:     return "New to lifting"
-            case .intermediate: return "Comfortable in the gym"
-            case .advanced:     return "Years of training"
+            case .beginner:     return String(localized: "New to lifting")
+            case .intermediate: return String(localized: "Comfortable in the gym")
+            case .advanced:     return String(localized: "Years of training")
             }
         }
         var subtitle: String {
             switch self {
-            case .beginner:     return "Under a year of consistent training"
-            case .intermediate: return "1–3 years, solid technique"
-            case .advanced:     return "3+ years, dialed-in programming"
+            case .beginner:     return String(localized: "Under a year of consistent training")
+            case .intermediate: return String(localized: "1–3 years, solid technique")
+            case .advanced:     return String(localized: "3+ years, dialed-in programming")
             }
         }
         var icon: String {
@@ -256,7 +220,7 @@ struct OnboardingView: View {
     /// acknowledgment (Deep Audit II A1); a swipe would skip it.
     /// `advance()` writes `page` directly, so it never hits this gate.
     /// Backward swipes are always allowed.
-    private var gatedPage: Binding<Int> {
+    private var gatedPage: Binding<OnboardingStep> {
         Binding(
             get: { page },
             set: { newValue in
@@ -287,26 +251,18 @@ struct OnboardingView: View {
                     // left off instead of restarting from page 0 with
                     // partially-saved body metrics.
                     //
-                    // Tags use `Page.*` integer constants (see Page
-                    // namespace below) rather than literal Ints so a
-                    // step insertion doesn't silently shift every
-                    // downstream tag and re-bucket the funnel events.
-                    welcome.tag(Page.welcome)
-                    signInStep.tag(Page.signIn)
-                    attributionStep.tag(Page.attribution)
-                    nameStep.tag(Page.name)
-                    goalStep.tag(Page.goal)
-                    experienceStep.tag(Page.experience)
-                    bodyMetricsStep.tag(Page.bodyMetrics)
-                    scheduleStep.tag(Page.schedule)
-                    equipmentStep.tag(Page.equipment)
-                    demoSetStep.tag(Page.demoSet)
-                    projectionStep.tag(Page.projection)
-                    disclaimerStep.tag(Page.disclaimer)
-                    notificationsStep.tag(Page.notifications)
-                    healthStep.tag(Page.health)
-                    creatorCodeStep.tag(Page.creatorCode)
-                    readyStep.tag(Page.ready)
+                    // Tags are `OnboardingStep` cases rather than literal
+                    // Ints so a step insertion doesn't silently shift
+                    // every downstream tag and re-bucket the funnel events.
+                    welcome.tag(OnboardingStep.welcome)
+                    nameStep.tag(OnboardingStep.name)
+                    goalStep.tag(OnboardingStep.goal)
+                    bodyMetricsStep.tag(OnboardingStep.bodyMetrics)
+                    trainingStep.tag(OnboardingStep.training)
+                    permissionsStep.tag(OnboardingStep.permissions)
+                    referralStep.tag(OnboardingStep.referral)
+                    disclaimerStep.tag(OnboardingStep.disclaimer)
+                    planStep.tag(OnboardingStep.plan)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: page)
@@ -327,15 +283,15 @@ struct OnboardingView: View {
             // Resume from the last saved page so a kill / re-launch
             // mid-onboarding doesn't drop the user back at Welcome
             // with partial body metrics already written.
-            if page == 0 && lastPage > 0 && lastPage < totalPages {
-                page = lastPage
+            if page == .welcome, let saved = OnboardingStep(rawValue: lastPage) {
+                page = saved
             }
         }
         .onChange(of: page) { _, newValue in
-            lastPage = newValue
+            lastPage = newValue.rawValue
         }
         .onAppear {
-            OnboardingFunnelTracker.recordStepEntered(stepName(for: page), index: page)
+            OnboardingFunnelTracker.recordStepEntered(page.funnelName, index: page.rawValue)
             hydrateFromProfile()
             // Re-hydrate goalDate + selected-goal state from a
             // previously-saved profile in case the user re-opened
@@ -364,7 +320,7 @@ struct OnboardingView: View {
             }
         }
         .onChange(of: page) { _, newPage in
-            OnboardingFunnelTracker.recordStepEntered(stepName(for: newPage), index: newPage)
+            OnboardingFunnelTracker.recordStepEntered(newPage.funnelName, index: newPage.rawValue)
             // Focus the name field only when the name page is actually
             // the current one. Driving this from the sub-view's
             // `.onAppear` summoned the keyboard early — TabView mounts
@@ -374,7 +330,7 @@ struct OnboardingView: View {
             // otherwise the name keyboard rode along onto the goal grid
             // (and the creator-code keyboard onto its
             // neighbours), covering the lower half of the next card.
-            if newPage == Page.name {
+            if newPage == .name {
                 nameFocused = true
             } else {
                 nameFocused = false
@@ -383,13 +339,11 @@ struct OnboardingView: View {
             // Move VoiceOver to the new step instead of leaving focus
             // parked on the footer button of the step that just left.
             UIAccessibility.post(notification: .screenChanged, argument: nil)
-            if newPage == Page.ready {
-                Haptics.success()
-            }
             // Driven by the page, not the step's `.onAppear`: the paged
             // TabView mounts neighbours, so the curve used to draw while
-            // the user was still on the Demo-set page.
-            if newPage == Page.projection {
+            // the user was still on the previous page.
+            if newPage == .plan {
+                Haptics.success()
                 AppAnimation.with(AppAnimation.springSmooth.delay(0.2)) {
                     projectionRevealed = true
                 }
@@ -444,7 +398,7 @@ struct OnboardingView: View {
             // If the paywall cover dismissed without onAccept/onDecline
             // firing (system interruption — Siri, call, multi-scene
             // re-layout), advance into the theme picker anyway so the
-            // user isn't stuck on the Ready page tapping "Enter Atlas"
+            // user isn't stuck on the plan page tapping its CTA
             // re-triggering the paywall every time (audit code-review
             // #10). The funnel event "paywall_dismissed_externally"
             // lets us distinguish this from user-initiated decline.
@@ -455,36 +409,11 @@ struct OnboardingView: View {
         }
     }
 
-    /// Maps a page index to a stable string name so the funnel
-    /// snapshot is human-readable in Console / a future analytics
-    /// export. Anything past the known range falls back to "unknown_N".
-    private func stepName(for index: Int) -> String {
-        switch index {
-        case Page.welcome:        return "welcome"
-        case Page.signIn:         return "sign_in"
-        case Page.attribution:    return "attribution"
-        case Page.name:           return "name"
-        case Page.goal:           return "goal_and_date"
-        case Page.experience:     return "experience"
-        case Page.bodyMetrics:    return "body_metrics"
-        case Page.schedule:       return "schedule"
-        case Page.equipment:      return "equipment"
-        case Page.demoSet:        return "demo_set"
-        case Page.projection:     return "projection"
-        case Page.disclaimer:     return "disclaimer"
-        case Page.notifications:  return "notifications"
-        case Page.health:         return "health"
-        case Page.creatorCode:    return "creator_code"
-        case Page.ready:          return "ready"
-        default:                  return "unknown_\(index)"
-        }
-    }
-
     /// Copies whatever an earlier run already saved into the step state.
     /// Resuming mid-flow restores `page`, but without this every field
-    /// behind it fell back to its default: the Ready summary showed a
-    /// generic schedule, and Projection skipped the nutrition-target
-    /// write because `bodyMetrics` read as unspecified.
+    /// behind it fell back to its default: the plan summary showed a
+    /// generic schedule and skipped the nutrition-target write because
+    /// `bodyMetrics` read as unspecified.
     private func hydrateFromProfile() {
         guard !hasHydratedFromProfile else { return }
         hasHydratedFromProfile = true
@@ -507,10 +436,10 @@ struct OnboardingView: View {
             // progress capsule stays centred on every page, Welcome
             // included.
             ZStack {
-                if page > 0 {
+                if let previous = page.previous {
                     Button {
                         haptic()
-                        withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { page = max(0, page - 1) }
+                        withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { page = previous }
                     } label: {
                         Image(systemName: "chevron.left")
                             .font(AppFont.scaled(16, weight: .semibold))
@@ -554,40 +483,40 @@ struct OnboardingView: View {
             }
             .frame(width: 160)
 
-            Text("\(min(page + 1, totalPages)) / \(totalPages)")
+            Text("\(page.rawValue + 1) / \(totalPages)")
                 .font(AppFont.scaled(11, weight: .semibold, design: .rounded))
                 .foregroundStyle(AppColor.textTertiary)
                 .contentTransition(.numericText())
                 .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: page)
         }
-        // The capsule and the "3 / 16" counter are one fact; read as two
+        // The capsule and the "3 / 9" counter are one fact; read as two
         // stops they were meaningless on their own.
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Step \(min(page + 1, totalPages)) of \(totalPages)")
+        .accessibilityLabel("Step \(page.rawValue + 1) of \(totalPages)")
     }
 
     private var progressFraction: CGFloat {
         guard totalPages > 1 else { return 1 }
-        let pos = CGFloat(min(page, totalPages - 1)) / CGFloat(totalPages - 1)
+        let pos = CGFloat(page.rawValue) / CGFloat(totalPages - 1)
         return min(1, max(0, pos))
     }
 
     private var footer: some View {
         VStack(spacing: Spacing.xs) {
             primaryButton
-            // `showSkipOnCurrentPage` whitelists Skip on the optional
-            // steps only; the personalization-critical pages (goal,
-            // experience, body metrics, schedule, equipment,
-            // projection) are intentionally excluded — skipping body
-            // metrics silently breaks nutrition targets and skipping
-            // projection bypasses the derived-targets write.
-            if showSkipOnCurrentPage {
+            // `OnboardingStep.isSkippable` whitelists Skip on the
+            // optional steps only; the personalization-critical pages
+            // (goal, body metrics, training, plan) are intentionally
+            // excluded — skipping body metrics silently breaks
+            // nutrition targets and skipping the plan bypasses the
+            // derived-targets write.
+            if page.isSkippable {
                 Button("Skip") {
                     haptic()
                     // Record the skip with the step name so the funnel
                     // can distinguish "user advanced after engaging" vs
                     // "user tapped Skip" (audit integration M3).
-                    OnboardingFunnelTracker.recordEvent("skip_\(stepName(for: page))")
+                    OnboardingFunnelTracker.recordEvent("skip_\(page.funnelName)")
                     advance()
                 }
                 .font(AppFont.footnote)
@@ -598,26 +527,6 @@ struct OnboardingView: View {
         .padding(.horizontal, Spacing.screenPadding)
         .padding(.top, Spacing.lg)
         .padding(.bottom, Spacing.xl)
-    }
-
-    /// Skip is shown only on optional informational pages. Data-input
-    /// pages (goal, experience, body, schedule, equipment) lose Skip so
-    /// that personalization is genuinely captured — skipping these
-    /// poisons the recommendation engine and removes the sunk-cost
-    /// commitment that drives trial conversion.
-    private var showSkipOnCurrentPage: Bool {
-        // Projection deliberately omitted — that step also persists
-        // the derived nutrition targets, so a Skip would silently
-        // bypass the write (audit MED #2). Continue does the right
-        // thing whether the user lingered on the chart or not.
-        switch page {
-        case Page.signIn, Page.attribution, Page.demoSet,
-             Page.notifications, Page.health,
-             Page.creatorCode:
-            return true
-        default:
-            return false
-        }
     }
 
     private var primaryButton: some View {
@@ -631,11 +540,11 @@ struct OnboardingView: View {
 
     private var primaryTitle: String {
         switch page {
-        case Page.welcome:      return "Let's go"
-        case Page.disclaimer:   return "I understand"
-        case Page.creatorCode:  return hasCreatorCodeToApply ? "Apply" : "Continue"
-        case Page.ready:        return "Enter Atlas"
-        default:                return "Continue"
+        case .welcome:    return String(localized: "Let's go")
+        case .disclaimer: return String(localized: "I understand")
+        case .referral:   return hasCreatorCodeToApply ? String(localized: "Apply") : String(localized: "Continue")
+        case .plan:       return String(localized: "Start my plan")
+        default:          return String(localized: "Continue")
         }
     }
 
@@ -648,9 +557,9 @@ struct OnboardingView: View {
 
     private var primaryEnabled: Bool {
         switch page {
-        case Page.name:
+        case .name:
             return !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        case Page.goal:
+        case .goal:
             // Must pick a goal before Continue lights up. The date
             // picker auto-defaults to 12 weeks from today so no
             // explicit date selection is required.
@@ -663,17 +572,21 @@ struct OnboardingView: View {
     private func primaryAction() {
         haptic()
         bounceTrigger += 1
+        if page.presentsPaywall {
+            presentPaywall()
+            return
+        }
         switch page {
-        case Page.name:
+        case .name:
             dataStore.updateProfileIdentity(
                 name: name.trimmingCharacters(in: .whitespacesAndNewlines),
                 bio: dataStore.profile.bio
             )
-        case Page.goal:
-            // Merged step persists both the primary goal AND the
-            // chosen date. setPrimaryGoal guards against goals that
-            // aren't in profile.goals, so updateGoals must run first
-            // (audit C2). Flush sync so a force-quit within the
+        case .goal:
+            // Merged step persists the goals, the chosen date and the
+            // experience answer. setPrimaryGoal guards against goals
+            // that aren't in profile.goals, so updateGoals must run
+            // first (audit C2). Flush sync so a force-quit within the
             // 350ms debounce doesn't lose either field.
             let raw = primaryGoal.rawValue
             var goalSet = Set(dataStore.profile.goals)
@@ -683,59 +596,49 @@ struct OnboardingView: View {
             dataStore.setPrimaryGoal(raw)
             dataStore.profile.goalDate = goalDate
             dataStore.flushPendingSave()
-        case Page.experience:
-            // Seed `activityLevel` from the experience picker on the
-            // way OUT of the experience step. This sets a sensible
-            // default before the user lands on the body-metrics page
-            // (audit Meals L12). Anything the user changes on a later
-            // step persists — only seeding here, not overriding on
-            // save, so we never clobber an explicit choice.
-            bodyMetrics.activityLevel = activityFromExperience()
-        case Page.bodyMetrics:
+            // Seed `activityLevel` from the experience answer on the
+            // way out, before the body-metrics page derives targets
+            // from it (audit Meals L12).
+            bodyMetrics.activityLevel = OnboardingPlanEngine.activityLevel(forExperience: experienceLevel)
+        case .bodyMetrics:
+            // Untouched wheels save the values they displayed, and the
+            // derived targets persist now so the plan page shows — and
+            // the Meals tab inherits — the same numbers.
             bodyMetrics = BodyMetricsRanges.filledWithDefaults(bodyMetrics)
             dataStore.updateBodyMetrics(bodyMetrics)
-        case Page.schedule, Page.equipment:
-            // Schedule and equipment both feed the same struct.
-            // Persist on advance off either step (writes are idempotent
-            // — currentTrainingPrefs builds from the live @State) so a
-            // user who edits schedule, advances to equipment, then
-            // back-navs past schedule to bodyMetrics doesn't lose the
-            // schedule changes (audit code-review #H3).
-            dataStore.updateTrainingPreferences(currentTrainingPrefs)
-        case Page.projection:
-            // Nutrition targets derived from body metrics persist here,
-            // alongside the user seeing them on the same screen as the
-            // projection (merged from a now-deleted dedicated step).
             if let targets = NutritionMath.recommendedTargets(for: bodyMetrics, goalRaw: primaryGoal.rawValue) {
                 dataStore.updateNutritionTargets(targets)
             }
-        case Page.disclaimer:
+        case .training:
+            dataStore.updateTrainingPreferences(currentTrainingPrefs)
+        case .disclaimer:
             // One-tap acknowledge → advance. The persistent
             // @AppStorage timestamp is the legal audit trail.
             disclaimerAcknowledgedAt = Date().timeIntervalSince1970
             OnboardingFunnelTracker.recordEvent("disclaimer_acknowledged")
-        case Page.creatorCode:
+        case .referral:
             if creatorAttribution == nil {
                 applyCreatorCode()
                 return
             }
-        case Page.ready:
-            // Present the trial paywall — flow continues through the
-            // paywall and the theme picker before hasCompleted flips.
-            // The theme picker's onContinue path resets `lastPage = 0`
-            // so a future re-onboarding starts at page 0. An existing
-            // subscriber (reinstall / new device) skips the trial offer.
-            if StoreService.shared.isProUser {
-                OnboardingFunnelTracker.recordEvent("paywall_skipped_pro")
-                showThemePicker = true
-            } else {
-                showTrialOffer = true
-            }
-            return
         default:
             break
         }
         advance()
+    }
+
+    /// Opens the trial paywall from the plan page — the flow continues
+    /// through the paywall and the theme picker before hasCompleted
+    /// flips. The theme picker's onContinue path resets `lastPage = 0`
+    /// so a future re-onboarding starts at page 0. An existing
+    /// subscriber (reinstall / new device) skips the trial offer.
+    private func presentPaywall() {
+        if StoreService.shared.isProUser {
+            OnboardingFunnelTracker.recordEvent("paywall_skipped_pro")
+            showThemePicker = true
+        } else {
+            showTrialOffer = true
+        }
     }
 
     /// Looks up the typed creator code against the seeded list and
@@ -759,7 +662,7 @@ struct OnboardingView: View {
             OnboardingFunnelTracker.recordEvent("creator_code_applied")
             Haptics.success()
         } else {
-            AppAnimation.with(AppAnimation.fadeIn) { creatorError = "Code not found — double-check and try again." }
+            AppAnimation.with(AppAnimation.fadeIn) { creatorError = String(localized: "Code not found — double-check and try again.") }
             OnboardingFunnelTracker.recordEvent("creator_code_invalid")
             Haptics.error()
         }
@@ -774,22 +677,11 @@ struct OnboardingView: View {
         )
     }
 
-    /// Maps the lifting-experience picker to the closest TDEE
-    /// activity bucket. Conservative — most users land in `.moderate`
-    /// and can tune up in Profile when their training volume warrants.
-    private func activityFromExperience() -> ActivityLevel {
-        switch Experience(rawValue: experienceLevel) ?? .beginner {
-        case .beginner:     return .light
-        case .intermediate: return .moderate
-        case .advanced:     return .active
-        }
-    }
-
     private func advance() {
         // Tear down the keyboard before the page transition so it can't
         // linger over the next card mid-animation.
         dismissKeyboard()
-        withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { page = min(totalPages - 1, page + 1) }
+        withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { page = page.next ?? page }
     }
 
     /// Resigns the first responder app-wide. Covers the text fields that
@@ -821,7 +713,7 @@ struct OnboardingView: View {
                 HeroLogo(
                     size: 148,
                     bounceTrigger: bounceTrigger,
-                    isActive: page == Page.welcome
+                    isActive: page == .welcome
                 )
                 .staggeredAppear(index: 0)
                 VStack(spacing: Spacing.md) {
@@ -849,7 +741,7 @@ struct OnboardingView: View {
 
     /// A page that centres its content with `Spacer`s when it fits, and
     /// scrolls instead of pushing controls off screen when it doesn't —
-    /// the 56pt Welcome title and the Sign-in button stack both overflow
+    /// the 56pt Welcome title overflows
     /// at accessibility type sizes.
     private func centeredScroll<Content: View>(@ViewBuilder _ content: @escaping () -> Content) -> some View {
         GeometryReader { proxy in
@@ -863,53 +755,45 @@ struct OnboardingView: View {
 
     // MARK: - Sign in with Apple
 
-    /// Optional sign-in step. Skipping is genuinely fine — every feature
-    /// works without an Apple ID — but a signed-in user gets cloud sync
-    /// across devices, abandoned-onboarding retargeting hooks, and
-    /// referral credit when the backend ships.
-    private var signInStep: some View {
-        centeredScroll {
-            VStack(spacing: Spacing.xl) {
-                Spacer()
-                HeroIcon(symbol: "person.crop.circle.fill", bounceTrigger: bounceTrigger, isActive: page == Page.signIn)
-                OnboardingHeader(
-                    title: "Save your progress.",
-                    subtitle: "Optional. Back up across your devices."
-                )
-                VStack(spacing: Spacing.md) {
-                    Group {
-                        if authService.isSignedIn {
-                            signedInBadge
-                        } else if authService.isSigningIn {
-                            HStack(spacing: Spacing.sm) {
-                                ProgressView()
-                                Text("Signing in…")
-                                    .font(AppFont.callout)
-                                    .foregroundStyle(AppColor.textSecondary)
-                            }
-                            .frame(height: 50)
-                        } else {
-                            AppleSignInButton {
-                                Haptics.impact(.medium)
-                                OnboardingFunnelTracker.recordEvent("sign_in_initiated")
-                                authService.signIn()
-                            }
-                            .frame(height: 50)
-                        }
+    /// Optional sign-in, folded under the name field. Skipping it is
+    /// genuinely fine — every feature works without an Apple ID, and
+    /// Profile → Account offers the same button later — but a signed-in
+    /// user gets cloud sync across devices and their name pre-filled.
+    private var signInSection: some View {
+        VStack(spacing: Spacing.md) {
+            sectionEyebrow("Save your progress (optional)")
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Group {
+                if authService.isSignedIn {
+                    signedInBadge
+                } else if authService.isSigningIn {
+                    HStack(spacing: Spacing.sm) {
+                        ProgressView()
+                        Text("Signing in…")
+                            .font(AppFont.callout)
+                            .foregroundStyle(AppColor.textSecondary)
                     }
-                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
-
-                    signInDisclosureRow(icon: "icloud.fill", text: "Cloud sync across iPhone, iPad, and Watch.")
-                    signInDisclosureRow(icon: "lock.shield.fill", text: "Atlas never sees your email — Apple relays it.")
+                    .frame(height: 50)
+                } else {
+                    AppleSignInButton {
+                        Haptics.impact(.medium)
+                        OnboardingFunnelTracker.recordEvent("sign_in_initiated")
+                        authService.signIn()
+                    }
+                    .frame(height: 50)
                 }
-                .appAnimation(AppAnimation.springSnappy, value: authService.isSignedIn)
-                .appAnimation(AppAnimation.springSnappy, value: authService.isSigningIn)
-                Spacer()
             }
-            .padding(.horizontal, Spacing.lg)
+            .transition(.opacity.combined(with: .scale(scale: 0.96)))
+
+            signInDisclosureRow(icon: "icloud.fill", text: "Cloud sync across iPhone, iPad, and Watch.")
+            signInDisclosureRow(icon: "lock.shield.fill", text: "Atlas never sees your email — Apple relays it.")
         }
+        .appAnimation(AppAnimation.springSnappy, value: authService.isSignedIn)
+        .appAnimation(AppAnimation.springSnappy, value: authService.isSigningIn)
         .onChange(of: authService.isSignedIn) { _, signedIn in
-            if signedIn { Haptics.success() }
+            guard signedIn else { return }
+            Haptics.success()
+            prefillNameFromAppleID()
         }
         .alert(
             authService.lastError?.title ?? "Sign-in failed",
@@ -937,7 +821,7 @@ struct OnboardingView: View {
                 .foregroundStyle(AppColor.accentPrimary)
                 .symbolEffect(.bounce, value: authService.isSignedIn)
                 .accessibilityHidden(true)
-            Text(authService.userDisplayName.map { "Signed in as \($0)" } ?? "Signed in with Apple")
+            Text(authService.userDisplayName.map { String(localized: "Signed in as \($0)") } ?? String(localized: "Signed in with Apple"))
                 .font(AppFont.callout.weight(.semibold))
                 .foregroundStyle(AppColor.textPrimary)
         }
@@ -965,27 +849,39 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Attribution survey
+    // MARK: - Referral (attribution survey + creator code)
 
-    /// Marketing-channel survey. Anonymous, captured into the funnel
-    /// snapshot only — useful for allocating ad spend, never stored on
-    /// the user profile. Skippable.
-    private var attributionStep: some View {
-        VStack(spacing: Spacing.lg) {
-            OnboardingHeader(title: "Where did you hear about Atlas?", subtitle: "Optional.")
-                .padding(.horizontal, Spacing.lg)
-                .padding(.top, Spacing.xl)
+    /// Optional page pairing the two "how did you get here" asks. The
+    /// channel answer is anonymous, captured into the funnel snapshot
+    /// only — useful for allocating ad spend, never stored on the
+    /// profile. The creator code stamps attribution onto the profile
+    /// (credit only — no discount is applied at checkout).
+    private var referralStep: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Spacing.lg) {
+                OnboardingHeader(title: "How did you find Atlas?", subtitle: "Optional.")
+                    .padding(.top, Spacing.xl)
 
-            ScrollView {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())],
                           spacing: Spacing.sm) {
                     ForEach(AttributionChannel.allCases) { channel in
                         attributionChip(channel)
                     }
                 }
-                .padding(.horizontal, Spacing.lg)
-                .padding(.bottom, Spacing.xxxxl)
+
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    sectionEyebrow("Have a creator or referral code?")
+                    if let attribution = creatorAttribution {
+                        creatorSuccessCard(attribution)
+                    } else {
+                        creatorCodeField
+                    }
+                }
+                .padding(.top, Spacing.sm)
+
+                Spacer(minLength: 100)
             }
+            .padding(.horizontal, Spacing.lg)
         }
     }
 
@@ -1026,44 +922,49 @@ struct OnboardingView: View {
     // MARK: - Name
 
     private var nameStep: some View {
-        VStack(spacing: Spacing.xl) {
-            HeroIcon(symbol: "person.fill", bounceTrigger: bounceTrigger, isActive: page == Page.name)
-                .padding(.top, Spacing.xl)
-            OnboardingHeader(title: "What should we call you?")
-                .padding(.horizontal, Spacing.lg)
-            GlassTextField(placeholder: "First name", text: $name, icon: nil, focus: $nameFocused)
-                .textInputAutocapitalization(.words)
-                .submitLabel(.continue)
-                .font(AppFont.title2)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.xl)
-                .onSubmit { if primaryEnabled { primaryAction() } }
-            Spacer()
-        }
-        .onAppear {
-            // Focus is driven from the root `.onChange(of: page)` —
-            // setting it here fired while the page was still off-screen
-            // (TabView pre-mounts neighbours) and summoned the keyboard
-            // over the previous step.
-            //
-            // Pre-fill from the Apple-relayed full name if the user
-            // signed in on step 1. AppleSignInButton only forwards the
-            // name on the very first authorization — once we have it,
-            // we shouldn't ask twice (audit H2). Trim to first name so
-            // the placeholder semantic ("First name") still reads true.
-            if name.isEmpty, let display = authService.userDisplayName {
-                let first = display.split(separator: " ").first.map(String.init) ?? display
-                if !first.isEmpty { name = first }
+        ScrollView {
+            VStack(spacing: Spacing.xl) {
+                HeroIcon(symbol: "person.fill", bounceTrigger: bounceTrigger, isActive: page == .name)
+                    .padding(.top, Spacing.xl)
+                OnboardingHeader(title: "What should we call you?")
+                GlassTextField(placeholder: "First name", text: $name, icon: nil, focus: $nameFocused)
+                    .textInputAutocapitalization(.words)
+                    .submitLabel(.continue)
+                    .font(AppFont.title2)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, Spacing.lg)
+                    .onSubmit { if primaryEnabled { primaryAction() } }
+                signInSection
+                    .padding(.top, Spacing.md)
+                Spacer(minLength: 100)
             }
+            .padding(.horizontal, Spacing.lg)
         }
+        .scrollDismissesKeyboard(.interactively)
+        // Only the pre-fill runs here. Focus is driven from the root
+        // `.onChange(of: page)` — setting it on appear fired while the
+        // page was still off-screen (TabView pre-mounts neighbours) and
+        // summoned the keyboard early.
+        .onAppear { prefillNameFromAppleID() }
+    }
+
+    /// Pre-fills the first name from the Apple-relayed full name.
+    /// AppleSignInButton only forwards the name on the very first
+    /// authorization — once we have it, we shouldn't ask twice (audit
+    /// H2). Trimmed to the first name so the "First name" placeholder
+    /// semantic still reads true. Never overwrites typed input.
+    private func prefillNameFromAppleID() {
+        guard name.isEmpty, let display = authService.userDisplayName else { return }
+        let first = display.split(separator: " ").first.map(String.init) ?? display
+        if !first.isEmpty { name = first }
     }
 
     // MARK: - Primary goal
 
-    /// Merged "what's your goal + by when?" step. The user picks a
-    /// goal from the grid; the date row animates in below once a
-    /// goal is selected. Two intentions, one screen — captures
-    /// commitment without burning a full page on date-picking.
+    /// Merged "what's your goal, by when, and how experienced are
+    /// you?" step. The user picks a goal from the grid; the date row
+    /// animates in below once a goal is selected, and the experience
+    /// rows close the page. Related intentions, one screen.
     private var goalStep: some View {
         VStack(spacing: 0) {
             OnboardingHeader(title: "What are your goals?", subtitle: "Pick all that apply")
@@ -1085,11 +986,13 @@ struct OnboardingView: View {
                             .id(Self.goalDateAnchorID)
                             .padding(.horizontal, Spacing.lg)
                             .padding(.top, Spacing.lg)
-                            .padding(.bottom, Spacing.xxxxl)
                             .transition(.opacity.combined(with: .move(edge: .bottom)))
-                    } else {
-                        Color.clear.frame(height: Spacing.xxxxl)
                     }
+
+                    experienceSection
+                        .padding(.horizontal, Spacing.lg)
+                        .padding(.top, Spacing.lg)
+                        .padding(.bottom, Spacing.xxxxl)
                 }
                 .onChange(of: goalHasBeenSelected) { _, isSelected in
                     // After the date section reveals, pull it into view —
@@ -1118,9 +1021,9 @@ struct OnboardingView: View {
             sectionEyebrow("Target date")
                 .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: Spacing.sm) {
-                goalDateChip("8 wks", a11yLabel: "8 weeks", weeks: 8)
-                goalDateChip("12 wks", a11yLabel: "12 weeks", weeks: 12)
-                goalDateChip("6 mo", a11yLabel: "6 months", weeks: 26)
+                goalDateChip("8 wks", a11yLabel: String(localized: "8 weeks"), weeks: 8)
+                goalDateChip("12 wks", a11yLabel: String(localized: "12 weeks"), weeks: 12)
+                goalDateChip("6 mo", a11yLabel: String(localized: "6 months"), weeks: 26)
             }
 
             DatePicker(
@@ -1221,37 +1124,21 @@ struct OnboardingView: View {
     /// goal-and-date step. Used inside the date section underneath
     /// the picker.
     private var goalDateSummary: String {
-        "That's \(goalWeeks) week\(goalWeeks == 1 ? "" : "s") to commit."
+        String(localized: "That's \(goalWeeks) weeks to commit.")
     }
 
-    /// Weeks between today and the user's chosen goal date, clamped to
-    /// at least one week. Used by the projection step's headline and
-    /// the ProjectionChart's framing. Counted in calendar days and
-    /// rounded: truncating the raw interval read "11 weeks" a few
-    /// seconds after the user tapped "12 wks".
+    /// Weeks between today and the user's chosen goal date. Used by
+    /// the plan page's headline and the ProjectionChart's framing.
     private var goalWeeks: Int {
-        let calendar = Calendar.current
-        let days = calendar.dateComponents(
-            [.day],
-            from: calendar.startOfDay(for: Date()),
-            to: calendar.startOfDay(for: goalDate)
-        ).day ?? 0
-        return max(1, Int((Double(days) / 7).rounded()))
+        OnboardingPlanEngine.goalWeeks(until: goalDate)
     }
 
     // MARK: - Experience
 
-    private var experienceStep: some View {
-        VStack(spacing: Spacing.lg) {
-            OnboardingHeader(title: "How much experience?")
-                .padding(.horizontal, Spacing.lg)
-                .padding(.top, Spacing.xl)
-
-            VStack(spacing: Spacing.sm) {
-                ForEach(Experience.allCases) { experienceRow($0) }
-            }
-            .padding(.horizontal, Spacing.lg)
-            Spacer()
+    private var experienceSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            sectionEyebrow("Training experience")
+            ForEach(Experience.allCases) { experienceRow($0) }
         }
     }
 
@@ -1298,11 +1185,13 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Schedule
+    // MARK: - Training (schedule + equipment)
 
-    private var scheduleStep: some View {
+    /// Schedule and equipment both feed `TrainingPreferences`, so they
+    /// share one page and one write on the way out.
+    private var trainingStep: some View {
         VStack(spacing: Spacing.lg) {
-            OnboardingHeader(title: "When do you train?")
+            OnboardingHeader(title: "How do you train?")
                 .padding(.horizontal, Spacing.lg)
                 .padding(.top, Spacing.xl)
 
@@ -1311,10 +1200,18 @@ struct OnboardingView: View {
                     daysStepper
                     weekdayPicker
                     timeOfDayPicker
+                    equipmentSection
                 }
                 .padding(.horizontal, Spacing.lg)
                 .padding(.bottom, Spacing.xxxxl)
             }
+        }
+        .onAppear {
+            // `.other` and `.plate` have no card in the grid — if a
+            // re-hydrated profile carries one, it can't be deselected
+            // and skews the "keep at least one selected" count. Strip
+            // them so the step only ever holds card-backed kinds.
+            equipment.formIntersection(EquipmentKind.accessChoices)
         }
     }
 
@@ -1426,28 +1323,23 @@ struct OnboardingView: View {
 
     // MARK: - Equipment
 
-    private var equipmentStep: some View {
-        VStack(spacing: Spacing.lg) {
-            OnboardingHeader(title: "What gear do you have?", subtitle: keepOneEquipmentHint)
-                .padding(.horizontal, Spacing.lg)
-                .appAnimation(AppAnimation.fadeIn, value: keepOneEquipmentHinted)
-                .padding(.top, Spacing.xl)
-
-            ScrollView {
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())],
-                          spacing: Spacing.sm) {
-                    ForEach(EquipmentKind.accessChoices) { equipmentCard($0) }
+    private var equipmentSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            HStack {
+                sectionEyebrow("Equipment")
+                Spacer()
+                if keepOneEquipmentHinted {
+                    Text("Keep at least one")
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .transition(.opacity)
                 }
-                .padding(.horizontal, Spacing.lg)
-                .padding(.bottom, Spacing.xxxxl)
             }
-        }
-        .onAppear {
-            // `.other` and `.plate` have no card in the grid — if a
-            // re-hydrated profile carries one, it can't be deselected
-            // and skews the "keep at least one selected" count. Strip
-            // them so the step only ever holds card-backed kinds.
-            equipment.formIntersection(EquipmentKind.accessChoices)
+            .appAnimation(AppAnimation.fadeIn, value: keepOneEquipmentHinted)
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())],
+                      spacing: Spacing.sm) {
+                ForEach(EquipmentKind.accessChoices) { equipmentCard($0) }
+            }
         }
     }
 
@@ -1459,7 +1351,7 @@ struct OnboardingView: View {
                 // set makes ExerciseLibrary filters return zero hits
                 // and the program preview renders a blank list. The
                 // last deselect is refused out loud — a warning buzz,
-                // a shake, and the "Keep at least one" subtitle — so
+                // a shake, and the "Keep at least one" hint — so
                 // it doesn't read as a dead tap.
                 guard equipment.count > 1 else {
                     Haptics.warning()
@@ -1501,13 +1393,9 @@ struct OnboardingView: View {
         .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
     }
 
-    private var keepOneEquipmentHint: LocalizedStringKey? {
-        keepOneEquipmentHinted ? "Keep at least one" : nil
-    }
-
     /// Three-step horizontal shake (8 → -8 → 0), the lock screen's
     /// refusal idiom. Skipped under Reduce Motion; the warning haptic
-    /// and the subtitle already carry the message.
+    /// and the hint already carry the message.
     private func shakeEquipmentCard(_ kind: EquipmentKind) async {
         guard !reduceMotion else { return }
         shakingEquipment = kind
@@ -1518,112 +1406,22 @@ struct OnboardingView: View {
         AppAnimation.with(AppAnimation.shakeSettle) { equipmentShakeOffset = 0 }
     }
 
-    // MARK: - Try a set (interactive workout demo)
+    // MARK: - Plan (personalised result, then the paywall)
 
-    private var demoSetStep: some View {
+    /// The last page: the user's own projection, daily targets, program
+    /// and schedule, with the paywall behind its primary action. The
+    /// projection numbers are illustrative — the curve shape and the
+    /// headline adapt to the primary goal so it reads as "we built this
+    /// for you" — but the targets are the ones just saved to Meals.
+    private var planStep: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                OnboardingHeader(title: "Try logging a set.", subtitle: "Two taps. That's the whole loop.")
+                sectionEyebrow("Your plan")
                     .padding(.top, Spacing.xl)
-
-                demoCard
-                    .padding(.top, Spacing.sm)
-
-                if demoCelebrate {
-                    successBanner
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-
-                Spacer(minLength: 100)
-            }
-            .padding(.horizontal, Spacing.lg)
-        }
-    }
-
-    private var demoCard: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: Spacing.md) {
-                HStack(spacing: Spacing.md) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                            .fill(AppColor.surfaceSecondary.opacity(0.6))
-                        Image(systemName: "figure.strengthtraining.traditional")
-                            .font(AppFont.scaled(20, weight: .semibold))
-                            .foregroundStyle(AppColor.accentPrimary)
-                    }
-                    .frame(width: 56, height: 56)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Bench Press")
-                            .font(AppFont.headline)
-                            .foregroundStyle(AppColor.textPrimary)
-                        Text("Chest · Barbell")
-                            .font(AppFont.caption2)
-                            .foregroundStyle(AppColor.textSecondary)
-                    }
-                    Spacer()
-                }
-                Divider().background(AppColor.glassBorder)
-                SetEditorRow(
-                    set: $demoSet,
-                    previousSet: SetEntry(index: 0, weightKg: 55, reps: 8, completed: true),
-                    unit: bodyMetrics.unit,
-                    onDelete: {}
-                )
-                .onChange(of: demoSet.completed) { _, completed in
-                    if completed && !demoCelebrate {
-                        withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { demoCelebrate = true }
-                        // Haptics aren't motion; `Haptics` already honours
-                        // the user's own haptics toggle.
-                        Haptics.success()
-                    }
-                }
-                Text(demoCelebrate
-                     ? "Nice. That's it — your workouts are this fast."
-                     : "Tap the circle to log this set.")
-                    .font(AppFont.footnote)
-                    .foregroundStyle(demoCelebrate ? AppColor.positive : AppColor.textTertiary)
-                    .appAnimation(AppAnimation.fadeIn, value: demoCelebrate)
-            }
-        }
-    }
-
-    private var successBanner: some View {
-        HStack(spacing: Spacing.sm) {
-            MilestoneArtwork(
-                symbol: "checkmark",
-                size: 48,
-                isActive: page == Page.demoSet && demoCelebrate
-            )
-            Text("Set logged. Atlas tracks weight, reps, RPE — and lights up the muscles you trained.")
-                .font(AppFont.callout)
-                .foregroundStyle(AppColor.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .fill(AppColor.positive.opacity(0.12))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                .stroke(AppColor.positive.opacity(0.4), lineWidth: 0.5)
-        )
-    }
-
-    // MARK: - Projection (personalised plan reveal)
-
-    /// Cal-AI-style projection moment. Numbers are illustrative — the
-    /// curve shape and the headline copy adapt to the user's primary
-    /// goal so it reads as "we built this for you" instead of a
-    /// generic stock chart.
-    private var projectionStep: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Spacing.lg) {
                 OnboardingHeader(
                     title: LocalizedStringKey(projectionHeadline),
                     subtitle: LocalizedStringKey(projectionSubtitle)
                 )
-                .padding(.top, Spacing.xl)
 
                 ProjectionChart(
                     goal: primaryGoal,
@@ -1644,24 +1442,44 @@ struct OnboardingView: View {
                         tint: primaryGoal.tint
                     )
                     if let targets = NutritionMath.recommendedTargets(for: bodyMetrics, goalRaw: primaryGoal.rawValue) {
-                        // Daily nutrition targets folded in here so the
-                        // user sees the derived plan inline rather than
-                        // on a separate "Nutrition" step. Hidden when
-                        // body metrics aren't filled in enough to derive
-                        // a real Mifflin-St Jeor estimate.
+                        // Hidden only for a profile hydrated from an
+                        // older run with incomplete metrics — the
+                        // body-metrics page fills untouched wheels.
                         projectionStatRow(
-                            label: "Daily targets",
-                            value: "\(targets.calories) kcal\n\(targets.proteinG) g protein · \(targets.carbsG) g carbs · \(targets.fatG) g fat",
+                            label: String(localized: "Daily targets"),
+                            value: String(localized: "\(targets.calories) kcal\n\(targets.proteinG) g protein · \(targets.carbsG) g carbs · \(targets.fatG) g fat"),
                             icon: "fork.knife",
                             tint: AppColor.achievement
                         )
                     }
                     projectionStatRow(
-                        label: "First milestone",
-                        value: "Week 2 · habit locked in",
+                        label: String(localized: "Program"),
+                        value: OnboardingPlanEngine.programName(goal: primaryGoal, daysPerWeek: daysPerWeek),
+                        icon: "list.bullet.clipboard.fill",
+                        tint: AppColor.accentPrimary
+                    )
+                    projectionStatRow(
+                        label: String(localized: "Schedule"),
+                        value: String(localized: "\(daysPerWeek)× per week, \(timeOfDay.displayName.lowercased())"),
+                        icon: "calendar",
+                        tint: AppColor.accentPrimary
+                    )
+                    projectionStatRow(
+                        label: String(localized: "First milestone"),
+                        value: String(localized: "Week 2 · habit locked in"),
                         icon: "checkmark.seal.fill",
                         tint: AppColor.accentPrimary
                     )
+                    if let attribution = creatorAttribution {
+                        // Attribution only — no percentage; the checkout
+                        // applies no discount (see CreatorCodeService).
+                        projectionStatRow(
+                            label: "Referral",
+                            value: "via \(attribution.creatorName)",
+                            icon: "person.text.rectangle",
+                            tint: AppColor.accentPrimary
+                        )
+                    }
                 }
 
                 Text("Projections from your goal, schedule, and body metrics. Actual results vary — what matters is the consistency curve.")
@@ -1677,60 +1495,60 @@ struct OnboardingView: View {
     }
 
     private var projectionHeadline: String {
-        let weeks = goalWeeks == 1 ? "1 week" : "\(goalWeeks) weeks"
+        let weeks = goalWeeks == 1 ? String(localized: "1 week") : String(localized: "\(goalWeeks) weeks")
         switch primaryGoal {
-        case .buildMuscle:    return "+\(projectedMuscleGain) in \(weeks)"
-        case .loseFat:        return "−\(projectedFatLoss) in \(weeks)"
-        case .getStronger:    return "Build strength\nover \(weeks)"
-        case .stayConsistent: return "\(daysPerWeek * goalWeeks) sessions\nin \(weeks)"
-        case .athletic:       return "Work on conditioning\nover \(weeks)"
-        case .recomp:         return "Work toward a recomp\nover \(weeks)"
-        case .betterSleep:    return "Track your sleep\nover \(weeks)"
-        case .recovery:       return "Track your recovery\nover \(weeks)"
-        case .antiAging:      return "Track your biomarkers\nover \(weeks)"
-        case .skinHair:       return "Track how you look & feel\nover \(weeks)"
-        case .energy:         return "Track your energy\nover \(weeks)"
+        case .buildMuscle:    return String(localized: "+\(projectedMuscleGain) in \(weeks)")
+        case .loseFat:        return String(localized: "−\(projectedFatLoss) in \(weeks)")
+        case .getStronger:    return String(localized: "Build strength\nover \(weeks)")
+        case .stayConsistent: return String(localized: "\(daysPerWeek * goalWeeks) sessions\nin \(weeks)")
+        case .athletic:       return String(localized: "Work on conditioning\nover \(weeks)")
+        case .recomp:         return String(localized: "Work toward a recomp\nover \(weeks)")
+        case .betterSleep:    return String(localized: "Track your sleep\nover \(weeks)")
+        case .recovery:       return String(localized: "Track your recovery\nover \(weeks)")
+        case .antiAging:      return String(localized: "Track your biomarkers\nover \(weeks)")
+        case .skinHair:       return String(localized: "Track how you look & feel\nover \(weeks)")
+        case .energy:         return String(localized: "Track your energy\nover \(weeks)")
         }
     }
 
     private var projectionSubtitle: String {
         switch primaryGoal {
         case .buildMuscle, .recomp:
-            return "Based on your training experience and \(daysPerWeek) sessions per week."
+            return String(localized: "Based on your training experience and \(daysPerWeek) sessions per week.")
         case .loseFat:
-            return "From a moderate deficit at \(daysPerWeek) sessions per week."
+            return String(localized: "From a moderate deficit at \(daysPerWeek) sessions per week.")
         case .getStronger, .athletic:
-            return "Progressive overload at \(daysPerWeek) sessions per week."
+            return String(localized: "Progressive overload at \(daysPerWeek) sessions per week.")
         case .stayConsistent:
-            return "Consistency curve from \(daysPerWeek) sessions per week."
+            return String(localized: "Consistency curve from \(daysPerWeek) sessions per week.")
         case .betterSleep, .recovery, .antiAging, .skinHair, .energy:
-            return "Trend curve from your recovery signals."
+            return String(localized: "Trend curve from your recovery signals.")
         }
     }
 
     private var projectionStatLabel: String {
         switch primaryGoal {
-        case .buildMuscle, .recomp:                       return "Projected gain"
-        case .loseFat:                                     return "Projected loss"
-        case .getStronger:                                 return "Projected lift increase"
-        case .stayConsistent, .athletic:                   return "Projected sessions"
+        case .buildMuscle, .recomp:                       return String(localized: "Projected gain")
+        case .loseFat:                                     return String(localized: "Projected loss")
+        case .getStronger:                                 return String(localized: "Projected lift increase")
+        case .stayConsistent, .athletic:                   return String(localized: "Projected sessions")
         case .betterSleep, .recovery, .antiAging,
-             .skinHair, .energy:                           return "Projected trend"
+             .skinHair, .energy:                           return String(localized: "Projected trend")
         }
     }
 
     private var projectionStatValue: String {
         switch primaryGoal {
-        case .buildMuscle: return "+\(projectedMuscleGain) lean mass"
-        case .loseFat:     return "−\(projectedFatLoss) body weight"
-        case .getStronger: return "+10–15% on your top lifts"
-        case .stayConsistent, .athletic: return "\(daysPerWeek * goalWeeks) sessions logged"
-        case .recomp:      return "Body recomp tracked weekly"
-        case .betterSleep: return "Sleep tracked nightly"
-        case .recovery:    return "HRV trend tracked daily"
-        case .antiAging:   return "Biomarker improvement"
-        case .skinHair:    return "Tracked weekly with photos"
-        case .energy:      return "Steadier energy curve"
+        case .buildMuscle: return String(localized: "+\(projectedMuscleGain) lean mass")
+        case .loseFat:     return String(localized: "−\(projectedFatLoss) body weight")
+        case .getStronger: return String(localized: "+10–15% on your top lifts")
+        case .stayConsistent, .athletic: return String(localized: "\(daysPerWeek * goalWeeks) sessions logged")
+        case .recomp:      return String(localized: "Body recomp tracked weekly")
+        case .betterSleep: return String(localized: "Sleep tracked nightly")
+        case .recovery:    return String(localized: "HRV trend tracked daily")
+        case .antiAging:   return String(localized: "Biomarker improvement")
+        case .skinHair:    return String(localized: "Tracked weekly with photos")
+        case .energy:      return String(localized: "Steadier energy curve")
         }
     }
 
@@ -1799,7 +1617,7 @@ struct OnboardingView: View {
     private var disclaimerStep: some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
-                HeroIcon(symbol: "stethoscope", bounceTrigger: bounceTrigger, isActive: page == Page.disclaimer)
+                HeroIcon(symbol: "stethoscope", bounceTrigger: bounceTrigger, isActive: page == .disclaimer)
                     .padding(.top, Spacing.xl)
                 OnboardingHeader(
                     title: "A quick safety note.",
@@ -1809,15 +1627,15 @@ struct OnboardingView: View {
                 VStack(alignment: .leading, spacing: Spacing.md) {
                     disclaimerBullet(
                         icon: "xmark.shield.fill",
-                        text: "Atlas does **not** prescribe, recommend, or calculate doses for any supplement, medication, or training protocol."
+                        text: String(localized: "Atlas does **not** prescribe, recommend, or calculate doses for any supplement, medication, or training protocol.")
                     )
                     disclaimerBullet(
                         icon: "person.crop.circle.badge.questionmark.fill",
-                        text: "Always consult a qualified clinician before starting, changing, or stopping anything you track here."
+                        text: String(localized: "Always consult a qualified clinician before starting, changing, or stopping anything you track here.")
                     )
                     disclaimerBullet(
                         icon: "lock.fill",
-                        text: "Your data lives in your private iCloud, and you can lock the app with Face ID."
+                        text: String(localized: "Your data lives in your private iCloud, and you can lock the app with Face ID.")
                     )
                 }
                 .padding(Spacing.lg)
@@ -1844,150 +1662,59 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Notifications (with preview)
+    // MARK: - Permissions (notifications + Apple Health)
 
-    private var notificationsStep: some View {
+    /// Both OS permission asks on one page. Each is optional and stays
+    /// re-askable later — notifications from Profile → Daily reminders,
+    /// Health from Profile and the Biology tab — so the page is
+    /// skippable and nothing downstream assumes either was granted.
+    private var permissionsStep: some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
-                HeroIcon(symbol: "bell.badge.fill", bounceTrigger: bounceTrigger, isActive: page == Page.notifications)
-                    .padding(.top, Spacing.xl)
                 OnboardingHeader(
                     title: "Stay on track.",
-                    subtitle: "Workout reminders, weekly recaps,\nand rest-timer alerts."
+                    subtitle: "Workout reminders and recovery insights.\nBoth optional."
                 )
-                .padding(.horizontal, Spacing.lg)
+                .padding(.top, Spacing.xl)
 
                 NotificationPreviewCard(
                     title: "Leg day in 30 minutes",
                     subtitle: "Hit your second session of the week",
                     timestamp: "now"
                 )
-                .padding(.horizontal, Spacing.lg)
                 .padding(.top, Spacing.sm)
 
                 // Once denied, iOS never shows the prompt again — re-asking
                 // was a dead tap. Route to Settings instead.
                 permissionRow(
                     icon: "bell.fill",
-                    title: "Enable notifications",
+                    title: String(localized: "Enable notifications"),
                     subtitle: notificationsDenied
-                        ? "Turned off in Settings. Tap to open Settings."
-                        : "Tap to allow. You can change this anytime.",
+                        ? String(localized: "Turned off in Settings. Tap to open Settings.")
+                        : String(localized: "Reminders, weekly recaps, and rest-timer alerts."),
                     isLoading: requestingNotifications,
                     isOn: notificationsAuthorized,
                     action: notificationsDenied ? openAppSettings : requestNotifications
                 )
-                .padding(.horizontal, Spacing.lg)
-
-                Spacer(minLength: 100)
-            }
-        }
-    }
-
-    // MARK: - Health (with value preview)
-
-    private var healthStep: some View {
-        ScrollView {
-            VStack(spacing: Spacing.lg) {
-                HeroIcon(
-                    symbol: "heart.fill",
-                    color: AppColor.metricHeartRate,
-                    bounceTrigger: bounceTrigger,
-                    isActive: page == Page.health
-                )
-                .padding(.top, Spacing.xl)
-                OnboardingHeader(
-                    title: "Connect Apple Health.",
-                    subtitle: "Unlock Recovery, HRV trends,\nand sleep-quality insights."
-                )
-                .padding(.horizontal, Spacing.lg)
-
-                healthValuePreview
-                    .padding(.horizontal, Spacing.lg)
-                    .padding(.top, Spacing.sm)
 
                 permissionRow(
                     icon: "heart.fill",
-                    title: "Connect Apple Health",
-                    subtitle: "Reads sleep, HRV, heart rate, and weight.",
+                    title: String(localized: "Connect Apple Health"),
+                    subtitle: String(localized: "Reads sleep, HRV, heart rate, and weight for Recovery."),
                     isLoading: requestingHealth,
                     isOn: dataStore.profile.healthConnected,
                     action: requestHealth
                 )
-                .padding(.horizontal, Spacing.lg)
 
-                Text("Reads only by default. Optional nutrition-write turns on later from Profile.")
+                Text("Health is read-only by default. Optional nutrition-write turns on later from Profile.")
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
-                    .padding(.top, Spacing.xs)
+                    .multilineTextAlignment(.center)
 
                 Spacer(minLength: 100)
             }
+            .padding(.horizontal, Spacing.lg)
         }
-    }
-
-    /// Mocked Health Monitor grid — three sample biomarker cards that
-    /// preview what connecting Health unlocks. Pure presentation; the
-    /// values are illustrative, so the grid is visibly labelled as an
-    /// example to avoid reading as the user's own data.
-    private var healthValuePreview: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text("Example")
-                .font(AppFont.caption2)
-                .foregroundStyle(AppColor.textTertiary)
-            healthPreviewCards
-        }
-        .accessibilityElement(children: .combine)
-    }
-
-    private var healthPreviewCards: some View {
-        HStack(spacing: Spacing.sm) {
-            healthPreviewCard(
-                icon: "waveform.path.ecg",
-                label: "HRV",
-                value: "62",
-                unit: "ms",
-                tint: AppColor.positive
-            )
-            healthPreviewCard(
-                icon: "bed.double.fill",
-                label: "Sleep",
-                value: "7.4",
-                unit: "h",
-                tint: AppColor.metricHRV
-            )
-            healthPreviewCard(
-                icon: "heart.fill",
-                label: "Recovery",
-                value: "84",
-                unit: "%",
-                tint: AppColor.accentPrimary
-            )
-        }
-    }
-
-    private func healthPreviewCard(
-        icon: String, label: String, value: String, unit: String, tint: Color
-    ) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            Image(systemName: icon)
-                .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(tint)
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text(value)
-                    .font(AppFont.scaled(20, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppColor.textPrimary)
-                Text(unit)
-                    .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.textTertiary)
-            }
-            Text(label)
-                .font(AppFont.caption2)
-                .foregroundStyle(AppColor.textSecondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Spacing.md)
-        .glassSurface(cornerRadius: Spacing.smallCornerRadius)
     }
 
     private func permissionRow(icon: String, title: String, subtitle: String,
@@ -2088,155 +1815,7 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Ready
-
-    private var readyStep: some View {
-        ScrollView {
-            VStack(spacing: Spacing.lg) {
-                ReadyHero(bounceTrigger: bounceTrigger, isActive: page == Page.ready)
-                    .padding(.top, Spacing.xl)
-                if !name.isEmpty {
-                    OnboardingHeader(title: "You're set, \(name).")
-                }
-                // Re-identified when Ready becomes the live page so the
-                // rows stagger in on arrival, not while pre-mounted
-                // off-screen beside the Creator-code step.
-                VStack(spacing: Spacing.sm) {
-                    summaryRow(label: "Goal", value: primaryGoal.displayName)
-                        .staggeredAppear(index: 0)
-                    summaryRow(
-                        label: "Experience",
-                        value: Experience(rawValue: experienceLevel)?.title ?? experienceLevel.capitalized
-                    )
-                    .staggeredAppear(index: 1)
-                    summaryRow(label: "Schedule", value: "\(daysPerWeek)× per week, \(timeOfDay.displayName.lowercased())")
-                        .staggeredAppear(index: 2)
-                    if let attribution = creatorAttribution {
-                        // Attribution only — no percentage; the checkout
-                        // applies no discount (see CreatorCodeService).
-                        summaryRow(
-                            label: "Referral",
-                            value: "via \(attribution.creatorName)"
-                        )
-                        .staggeredAppear(index: 3)
-                    }
-                }
-                .id(page == Page.ready)
-
-                widgetTipCard
-                Spacer(minLength: 100)
-            }
-            .padding(.horizontal, Spacing.lg)
-        }
-    }
-
-    /// Subtle "add the widget" tip on Ready. iOS doesn't expose a
-    /// public deep link to the widget gallery, so this is a tip card,
-    /// not a button — but the visual cue is enough to lift widget-
-    /// install rate on comparable apps.
-    private var widgetTipCard: some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: "square.grid.2x2.fill")
-                .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(AppColor.accentLight)
-                .frame(width: 28)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Pro tip")
-                    .font(AppFont.caption2.weight(.bold))
-                    .foregroundStyle(AppColor.textSecondary)
-                    .textCase(.uppercase)
-                Text("Long-press your home screen to add the Atlas widget for daily progress at a glance.")
-                    .font(AppFont.footnote)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(Spacing.md)
-        .glassSurface(cornerRadius: Spacing.smallCornerRadius, tinted: true)
-        .accessibilityElement(children: .combine)
-        .padding(.top, Spacing.sm)
-    }
-
-    /// Label and value side by side while both fit on one line; at large
-    /// Dynamic Type sizes the value drops under the label instead of
-    /// truncating either.
-    private func summaryRow(label: String, value: String) -> some View {
-        let labelText = Text(label)
-            .font(AppFont.footnote)
-            .foregroundStyle(AppColor.textSecondary)
-        let valueText = Text(value)
-            .font(AppFont.callout.weight(.semibold))
-            .foregroundStyle(AppColor.textPrimary)
-        return ViewThatFits(in: .horizontal) {
-            HStack {
-                labelText
-                    .lineLimit(1)
-                    .frame(minWidth: 100, alignment: .leading)
-                valueText
-                    .lineLimit(1)
-                Spacer(minLength: 0)
-            }
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                labelText
-                valueText
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(Spacing.md)
-        .glassSurface(cornerRadius: Spacing.smallCornerRadius)
-        .accessibilityElement(children: .combine)
-    }
-
-    // MARK: - Creator code / affiliate apply
-
-    /// Dual-purpose step. For users with a code: enter it and we
-    /// stamp the attribution onto the profile (credit only — no
-    /// discount is applied at checkout). For users
-    /// without a code: tap "Apply to be an affiliate" to surface a
-    /// short form (handle, audience, channel link). Either path
-    /// advances the onboarding; the step is skippable.
-    private var creatorCodeStep: some View {
-        ScrollView {
-            VStack(spacing: Spacing.lg) {
-                HeroIcon(symbol: "person.text.rectangle", bounceTrigger: bounceTrigger, isActive: page == Page.creatorCode)
-                    .padding(.top, Spacing.xl)
-
-                OnboardingHeader(
-                    title: "Have a code?",
-                    subtitle: "Enter a creator or referral code below."
-                )
-
-                if let attribution = creatorAttribution {
-                    creatorSuccessCard(attribution)
-                } else {
-                    creatorCodeField
-                }
-
-                if AffiliateIntakeService.drainConfigured {
-                    affiliateApplyButton
-                }
-
-                Spacer(minLength: 100)
-            }
-            .padding(.horizontal, Spacing.lg)
-        }
-        .sheet(isPresented: $showingAffiliateApply) {
-            AffiliateApplySheet(
-                userName: dataStore.profile.name,
-                userEmail: dataStore.profile.emailSubscription?.email,
-                onSubmit: { application in
-                    OnboardingFunnelTracker.recordEvent("creator_program_application_submitted")
-                    // Persist the application onto the profile so a
-                    // future Supabase drain can replay it 1:1. Backend
-                    // wiring is a follow-up; local-only today.
-                    dataStore.profile.affiliateApplication = application
-                    dataStore.flushPendingSave()
-                }
-            )
-        }
-    }
+    // MARK: - Creator code
 
     private var creatorCodeField: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
@@ -2294,31 +1873,6 @@ struct OnboardingView: View {
         )
         .transition(.scale(scale: 0.94).combined(with: .opacity))
     }
-
-    /// Secondary "Join the creator program" link below the code
-    /// field. Toned-down chrome (no sparkle, neutral text colour) so
-    /// it reads as the secondary it is — the primary path on this
-    /// step is still entering a code and tapping Continue (audit
-    /// LOW: affiliate CTA was competing visually with the primary).
-    private var affiliateApplyButton: some View {
-        Button {
-            Haptics.impact(.soft)
-            OnboardingFunnelTracker.recordEvent("creator_program_apply_opened")
-            showingAffiliateApply = true
-        } label: {
-            HStack(spacing: Spacing.xs) {
-                Text("Join the creator program")
-                    .font(AppFont.footnote.weight(.semibold))
-                Image(systemName: "arrow.up.right")
-                    .font(AppFont.scaled(11, weight: .bold))
-            }
-            .foregroundStyle(AppColor.textSecondary)
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.sm)
-        }
-        .buttonStyle(.plain)
-    }
-
 }
 
 /// Compact trust pill under the welcome headline — the first trust

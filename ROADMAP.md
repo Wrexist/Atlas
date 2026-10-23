@@ -10,7 +10,8 @@ For advanced users, a peptide-protocol tracker rides alongside the
 fitness surfaces — the legacy peptide name lives on in the bundle
 ID and StoreKit product IDs (`com.peptidesai.app`) so existing
 subscribers keep working through the rebrand. iOS 18+, Swift 6.0,
-SwiftData (CloudKit-backed). 5-tab navigation, companion Watch
+SwiftData (CloudKit-backed). 5-tab navigation (Today / Train / Meals /
+Biology / Habits), companion Watch
 app, two widget targets, Live Activities, biometric lock, and
 CI/CD to TestFlight via Fastlane.
 
@@ -20,6 +21,7 @@ CI/CD to TestFlight via Fastlane.
 |------|--------|---------|
 | **UI/UX** | Complete | Glass material design, dark mode, haptic feedback, scale-press affordances, Bevel-style hero rings + coaching + Health Monitor grid + context pills + sync toast |
 | **Today screen** | Complete | WelcomeHeader → context pills → quick-jump chip bar → hero metric trio → coaching → meals/wellness/movement → Health Monitor grid → daily insight |
+| **Today timeline** | Complete | `TodayTimelineCard`: meals, the daily check-in and workouts merged into one chronological feed (doses stay in their own section) |
 | **Peptide database** | Complete | 208 peptides across 6 categories, bundled JSON, research links |
 | **Protocol management** | Complete | Create, edit, pause, complete protocols with schedule builder and per-peptide overrides |
 | **Dose tracking** | Complete | Daily entries, toggle completion, rich logging (actual dose, time, injection site, notes) |
@@ -41,8 +43,8 @@ CI/CD to TestFlight via Fastlane.
 | **Live Activities** | Complete | Dose-window Dynamic Island + lock-screen UI with category-aware tint |
 | **Watch app** | Redesigned | watchOS 10-style vertical pages (Today rings, Recovery, Sleep Score, Nutrition, Protocol) plus Recovery and Sleep complications. Vitals are computed on the phone (no watch HealthKit entitlement). **Needs a manual Xcode build and on-device check** |
 | **Achievements** | Complete | 14 achievements (dose milestones, streaks, protocol, logging), toast notifications |
-| **Export** | CSV + JSON | PDF planned (see v1.1) |
-| **Onboarding** | Complete | 17-page flow: review prompt → creator code → email → paywall → theme → add-medication → ready |
+| **Export** | Complete | CSV, JSON and a paginated PDF report (`ExportService.exportPDF`) |
+| **Onboarding** | Complete | 16-page flow: welcome → Sign in with Apple → attribution → name → goal → experience → body metrics → schedule → equipment → demo set → projection → disclaimer → notifications → Health → creator code → ready |
 | **HealthKit** | Complete | Reads 7 data types (HR, HRV, sleep, weight, steps, energy); observer-based background delivery wired; daily-series helpers for HRV / RHR / Sleep used by Health Monitor grid |
 | **Biometric lock** | Complete | LocalAuthentication-backed lock screen with auto-Face-ID on appear, scene-phase re-lock on background, Reduce-Motion respect, haptic feedback, toggle in AppearanceSettings, `NSFaceIDUsageDescription` in project.yml |
 | **Persistence** | Complete | SwiftData @Model classes, CloudKit-backed private container with local + in-memory fallbacks |
@@ -52,8 +54,9 @@ CI/CD to TestFlight via Fastlane.
 | **Siri shortcuts** | Complete | AppIntents bundle including "Log my BPC-157" and "What are my macros today?" |
 | **Premium promo card** | Complete | Cosmic-backdrop reusable component for Pro upsells (used by future Bio Age tab, etc.) |
 | **Sync toast** | Complete | Top-of-screen "Sync Complete" pill auto-dismissing after fresh HealthKit pull |
-| **Localization** | Complete | 9 locales fully translated (en, es, zh-Hans, ja, de, fr, pt-BR, ko, ru, ar) |
-| **Testing** | ~45 test files | Network services (MockURLProtocol), data integrity, recommendation/insight engines, persistence round-trip, schedule cadence, achievement service, vial palette, recovery score, coaching messages, health range percentiles |
+| **Localization** | English only | Strings are extracted to `Localizable.xcstrings` and `CFBundleLocalizations` declares `en` only. Draft translations live in `localization/` but are not shipped |
+| **Testing** | 150 test files, 1,904 test methods | `PeptideTests`: network services (MockURLProtocol), data integrity, recommendation/insight engines, persistence round-trip, schedule cadence, achievement service, vial palette, recovery score, coaching messages, health range percentiles |
+| **Crash reporting** | Complete | MetricKit subscriber (`DiagnosticsService`) captures crash, hang and disk-write diagnostics; surfaced in Profile → Diagnostics |
 | **CI/CD** | Complete | XcodeGen, SwiftLint, build + test in GitHub Actions (macos-15 pinned), TestFlight via Fastlane, binary-size delta gate |
 
 ---
@@ -64,8 +67,6 @@ CI/CD to TestFlight via Fastlane.
 
 | # | Feature | Effort | Description |
 |---|---------|--------|-------------|
-| 1.1 | **Crash reporting** | 1 day | Sentry or MetricKit for TestFlight crash visibility. Currently flying blind |
-| 1.2 | **PDF export** | Half day | Add PDF report generation to existing export service (CSV + JSON already work) |
 | 1.3 | **Watch app verification** | 1–2 days | The scaffold exists; needs Xcode build + complication + manual dose-toggle round-trip on real hardware |
 | 1.4 | **Smooth-everywhere animation pass** | 1 day | Spring transitions on every section reveal, haptic on ring tap / chip tap / pill expansion, no instant cuts |
 | 1.5 | **Today reorder polish** | Half day | Audit redundancy between HeroMetricTrio and TodayOverviewCard (both currently show adherence in a ring); consolidate TodayOverviewCard's ring section once the trio proves out in TestFlight |
@@ -78,7 +79,6 @@ CI/CD to TestFlight via Fastlane.
 
 | # | Feature | Effort | Description |
 |---|---------|--------|-------------|
-| 2.1 | **Today timeline** | 2 days | Chronological vertical list of today's events (doses + meals + check-ins + workouts + sleep) merged from 4 stores into one sorted feed |
 | 2.2 | **Date scrubber** | 2 days | Tap the date pill → date picker → render Today's snapshot for any historical day. Requires HomeView to support past-state rendering |
 | 2.3 | **Edit Home customization** | 1 day | Section visibility toggles in Profile → Customize Today, with drag-to-reorder; stored on `UserProfile.todaySectionOrder: [SectionID]` |
 | 2.4 | **MetricRing consolidation** | 1 day | Migrate `GlassProgressRing` and `SegmentedCalorieRing` to the unified `MetricRing` primitive; port the celebration-at-100% animation in once, not twice |
@@ -92,8 +92,8 @@ CI/CD to TestFlight via Fastlane.
 
 | # | Feature | Effort | Description |
 |---|---------|--------|-------------|
-| 3.1 | **Tab restructure** | Half day | Today / Stack / Insights / Biology / Profile (merges Library + Protocols under "Stack" with internal tabs) |
-| 3.2 | **Performance Age engine** | 3 days | Pure-function bio-age estimate from HRV + RHR + sleep + weight trend + lab markers; confidence-gated UI (hide if confidence < 60%) |
+| 3.1 | **Tab restructure** | Shipped | Shipped as Today / Train / Meals / Biology / Habits; Library + Protocols open as a modal |
+| 3.2 | **Performance Age engine** | Shipped (`PerformanceAgeEngine`) | Pure-function bio-age estimate from HRV + RHR + sleep + weight trend + lab markers; confidence-gated UI (hide if confidence < 60%) |
 | 3.3 | **Biomarker trend cards** | 2 days | 90-day charts for HRV / RHR / Sleep efficiency on the Biology tab |
 | 3.4 | **Lab photo OCR ingestion** | 3 days | Snap bloodwork PDF → Claude vision extracts markers → writes to existing Labs feature |
 | 3.5 | **Stack-effectiveness score** | 2 days | Atlas-unique: map each lab marker movement to active compounds in the cycle; surfaces "BPC-157 may be helping your IGF-1 trend" |
@@ -106,9 +106,9 @@ CI/CD to TestFlight via Fastlane.
 
 | # | Feature | Effort | Description |
 |---|---------|--------|-------------|
-| 4.1 | **SwiftData migration** (feature-flagged) | 3–5 days | Replace JSON persistence with `@Model` classes via opt-in flag for one TestFlight cycle, then promote to default |
-| 4.2 | **CloudKit sync** | 3–5 days | `CKSyncEngine` for automatic sync + conflict resolution; requires SwiftData; entitlement already declared |
-| 4.3 | **Sign in with Apple** | 1–2 days | `AuthenticationServices`. Identifier in Keychain. Optional — app works without sign-in |
+| 4.1 | **SwiftData migration** (feature-flagged) | Shipped | Replace JSON persistence with `@Model` classes via opt-in flag for one TestFlight cycle, then promote to default |
+| 4.2 | **CloudKit sync** | Shipped | SwiftData's CloudKit-backed private container (not `CKSyncEngine`) |
+| 4.3 | **Sign in with Apple** | Shipped | `AuthenticationServices`. Identifier in Keychain. Optional — app works without sign-in |
 | 4.4 | **iPad pass** | 2 days | `NavigationSplitView` treatment on Home / Lifestyle / Profile (PeptideListView already done) |
 
 ---
@@ -118,7 +118,7 @@ CI/CD to TestFlight via Fastlane.
 | # | Feature | Effort | Description |
 |---|---------|--------|-------------|
 | 5.1 | **Promo-offer JWT signing** | 1–2 days | Creator-code banner currently shows a discount that isn't applied; sign promo offers server-side via `Product.PurchaseOption.promotionalOffer` |
-| 5.2 | **Onboarding compression** | 2 days | 17 pages → ≤9. Show first-dose value before paywall |
+| 5.2 | **Onboarding compression** | 2 days | 16 pages → ≤9. Show first-dose value before paywall |
 | 5.3 | **Empty-state day 0** | 1 day | First-install dashboard ("0/4, 0%, 0 days") reads as failure; replace with curiosity copy + first-dose preview |
 | 5.4 | **Referrals via Universal Links** | 2 days | Share Atlas → personal link → recipient signs in with creator credit |
 | 5.5 | **Streak recovery** | 1 day | Streak-freeze Pro perk: 1 per week, auto-applied to a missed day |

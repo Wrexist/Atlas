@@ -18,7 +18,7 @@ enum WorkoutConsistencyEngine {
     static func callout(sessionsInTrailingWeek count: Int) -> String? {
         guard count >= 2 else { return nil }
         let ordinal = Self.ordinalFormatter.string(from: NSNumber(value: count)) ?? "\(count)"
-        return "\(ordinal) workout this week — you're building consistency."
+        return String(localized: "\(ordinal) workout this week — you're building consistency.")
     }
 
     private static let ordinalFormatter: NumberFormatter = {

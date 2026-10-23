@@ -104,7 +104,7 @@ struct WatchAccessoryRectangularView: View {
                     .widgetAccentable()
             }
             Text(entry.nextPeptide.isEmpty
-                 ? (entry.totalToday == 0 ? "No doses today" : "All complete")
+                 ? (entry.totalToday == 0 ? String(localized: "No doses today") : String(localized: "All complete"))
                  : entry.nextDose.isEmpty
                     ? "\(entry.nextPeptide)"
                     : "\(entry.nextPeptide) · \(entry.nextDose)")
@@ -452,7 +452,7 @@ struct WatchHealthEntryView: View {
                  ? String(localized: "Health \(entry.healthDone)/\(entry.healthTotal)")
                  : String(localized: "Health —"))
         default:
-            WatchHabitRectangularView(title: "Health", icon: "heart.fill",
+            WatchHabitRectangularView(title: String(localized: "Health"), icon: "heart.fill",
                                       tint: WatchPalette.health, synced: entry.synced,
                                       done: entry.healthDone, total: entry.healthTotal)
         }
@@ -472,7 +472,7 @@ struct WatchTrainingEntryView: View {
                  ? String(localized: "Training \(entry.trainingDone)/\(entry.trainingTotal)")
                  : String(localized: "Training —"))
         default:
-            WatchHabitRectangularView(title: "Training", icon: "figure.run",
+            WatchHabitRectangularView(title: String(localized: "Training"), icon: "figure.run",
                                       tint: WatchPalette.training, synced: entry.synced,
                                       done: entry.trainingDone, total: entry.trainingTotal)
         }

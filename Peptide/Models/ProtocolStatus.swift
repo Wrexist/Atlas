@@ -9,9 +9,9 @@ enum ProtocolStatus: String, CaseIterable, Identifiable, Codable, Sendable {
 
     var displayName: String {
         switch self {
-        case .active: "Active"
-        case .paused: "Paused"
-        case .completed: "Completed"
+        case .active: String(localized: "Active")
+        case .paused: String(localized: "Paused")
+        case .completed: String(localized: "Completed")
         }
     }
 

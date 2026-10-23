@@ -88,25 +88,28 @@ enum NutritionMath {
     /// This is the value behind the editor's "Recommended for you" card:
     /// it folds in everything the profile knows (weight, height, age,
     /// sex, activity level) plus the user's stated goal.
+    ///
+    /// `maintenanceKcal` replaces the formula TDEE with a measured one
+    /// (`AdaptiveTDEEEngine`) — the goal's deficit / surplus then applies
+    /// to what the user actually burns.
     static func recommendedTargets(
         for metrics: BodyMetrics,
-        goalRaw: String?
+        goalRaw: String?,
+        maintenanceKcal: Double? = nil
     ) -> NutritionTargets? {
         guard
             let weightKg = metrics.weightKg, weightKg > 0,
-            let heightCm = metrics.heightCm, heightCm > 0,
-            let age = metrics.age, age > 0
+            let tdee = maintenanceKcal ?? formulaTDEE(for: metrics)
         else {
             return nil
         }
 
         let intent = GoalIntent(goalRaw: goalRaw)
-        let bmr = mifflinStJeor(weightKg: weightKg, heightCm: heightCm, age: age, sex: metrics.sex)
-        let tdee = bmr * metrics.activityLevel.tdeeMultiplier
         // A deficit never drops below the common clinical floor (or BMR,
         // when that is higher), capped at maintenance so the floor itself
         // can't become a surplus for a very small, sedentary user.
-        let safetyFloor = min(tdee, max(minimumDailyCalories(for: metrics.sex), bmr))
+        let basal = bmr(for: metrics) ?? 0
+        let safetyFloor = min(tdee, max(minimumDailyCalories(for: metrics.sex), basal))
         let targetCalories = max(tdee * intent.calorieMultiplier, safetyFloor)
 
         let fatCalories = targetCalories * fatCalorieFraction
@@ -201,8 +204,32 @@ enum NutritionMath {
     /// Targets for a one-tap preset. Personalised from body metrics when
     /// they're complete; otherwise the preset's fixed fallback. Never nil,
     /// so the editor can always apply a tapped preset.
-    static func presetTargets(_ preset: Preset, for metrics: BodyMetrics) -> NutritionTargets {
-        recommendedTargets(for: metrics, goalRaw: preset.goalRaw) ?? preset.fallback
+    static func presetTargets(
+        _ preset: Preset,
+        for metrics: BodyMetrics,
+        maintenanceKcal: Double? = nil
+    ) -> NutritionTargets {
+        recommendedTargets(for: metrics, goalRaw: preset.goalRaw, maintenanceKcal: maintenanceKcal)
+            ?? preset.fallback
+    }
+
+    /// Static maintenance estimate: Mifflin-St Jeor BMR × the user's
+    /// activity multiplier. Nil when weight, height or age is missing.
+    static func formulaTDEE(for metrics: BodyMetrics) -> Double? {
+        bmr(for: metrics).map { $0 * metrics.activityLevel.tdeeMultiplier }
+    }
+
+    /// Mifflin-St Jeor BMR from the profile. Nil when weight, height or
+    /// age is missing.
+    static func bmr(for metrics: BodyMetrics) -> Double? {
+        guard
+            let weightKg = metrics.weightKg, weightKg > 0,
+            let heightCm = metrics.heightCm, heightCm > 0,
+            let age = metrics.age, age > 0
+        else {
+            return nil
+        }
+        return mifflinStJeor(weightKg: weightKg, heightCm: heightCm, age: age, sex: metrics.sex)
     }
 
     /// Lowest daily intake a recommendation may suggest without medical

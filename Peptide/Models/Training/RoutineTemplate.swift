@@ -41,8 +41,8 @@ struct RoutineTemplate: Identifiable, Sendable {
     static let starters: [RoutineTemplate] = [
         RoutineTemplate(
             id: "full-body",
-            name: "Full body",
-            summary: "One session, everything trained",
+            name: String(localized: "Full body"),
+            summary: String(localized: "One session, everything trained"),
             symbolName: "figure.strengthtraining.traditional",
             slots: [
                 Slot(exerciseID: "Barbell_Squat", sets: 3, reps: 8),
@@ -54,8 +54,8 @@ struct RoutineTemplate: Identifiable, Sendable {
         ),
         RoutineTemplate(
             id: "upper-body",
-            name: "Upper body",
-            summary: "Chest, back, shoulders, arms",
+            name: String(localized: "Upper body"),
+            summary: String(localized: "Chest, back, shoulders, arms"),
             symbolName: "figure.arms.open",
             slots: [
                 Slot(exerciseID: "Barbell_Bench_Press_-_Medium_Grip", sets: 4, reps: 8),
@@ -68,8 +68,8 @@ struct RoutineTemplate: Identifiable, Sendable {
         ),
         RoutineTemplate(
             id: "lower-body",
-            name: "Lower body",
-            summary: "Quads, hamstrings, glutes, calves",
+            name: String(localized: "Lower body"),
+            summary: String(localized: "Quads, hamstrings, glutes, calves"),
             symbolName: "figure.strengthtraining.functional",
             slots: [
                 Slot(exerciseID: "Barbell_Squat", sets: 4, reps: 8),
@@ -81,8 +81,8 @@ struct RoutineTemplate: Identifiable, Sendable {
         ),
         RoutineTemplate(
             id: "push-day",
-            name: "Push day",
-            summary: "Chest, shoulders, triceps",
+            name: String(localized: "Push day"),
+            summary: String(localized: "Chest, shoulders, triceps"),
             symbolName: "figure.mixed.cardio",
             slots: [
                 Slot(exerciseID: "Barbell_Bench_Press_-_Medium_Grip", sets: 4, reps: 8),
@@ -94,8 +94,8 @@ struct RoutineTemplate: Identifiable, Sendable {
         ),
         RoutineTemplate(
             id: "pull-day",
-            name: "Pull day",
-            summary: "Back and biceps",
+            name: String(localized: "Pull day"),
+            summary: String(localized: "Back and biceps"),
             symbolName: "figure.archery",
             slots: [
                 Slot(exerciseID: "Bent_Over_Barbell_Row", sets: 4, reps: 8),
@@ -107,8 +107,8 @@ struct RoutineTemplate: Identifiable, Sendable {
         ),
         RoutineTemplate(
             id: "strong-5x5",
-            name: "5×5 strength",
-            summary: "Three compounds, heavy, low reps",
+            name: String(localized: "5×5 strength"),
+            summary: String(localized: "Three compounds, heavy, low reps"),
             symbolName: "dumbbell.fill",
             slots: [
                 Slot(exerciseID: "Barbell_Squat", sets: 5, reps: 5),

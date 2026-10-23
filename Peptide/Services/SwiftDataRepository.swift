@@ -543,6 +543,7 @@ final class SwiftDataRepository {
             try context.delete(model: StoredCustomExercise.self)
             try context.delete(model: StoredRoutine.self)
             try context.delete(model: StoredPersonalRecord.self)
+            try context.delete(model: StoredFast.self)
             try context.save()
             summaryStore.deleteAll()
             healthWeightStore.deleteAll()
@@ -1047,8 +1048,8 @@ final class SwiftDataRepository {
         case unavailable, failed
         var errorDescription: String? {
             switch self {
-            case .unavailable: "Device storage is unavailable. The workout has not been saved."
-            case .failed: "The workout could not be written to device storage. Try again."
+            case .unavailable: String(localized: "Device storage is unavailable. The workout has not been saved.")
+            case .failed: String(localized: "The workout could not be written to device storage. Try again.")
             }
         }
     }
@@ -1525,6 +1526,56 @@ final class SwiftDataRepository {
         }
     }
 
+    // MARK: - Fasting
+
+    func upsertFast(_ fast: FastSession) {
+        guard let context else { return }
+        let fastID = fast.id
+        let descriptor = FetchDescriptor<StoredFast>(
+            predicate: #Predicate { $0.id == fastID }
+        )
+        do {
+            if let existing = try context.fetch(descriptor).first {
+                existing.update(from: fast)
+            } else {
+                context.insert(StoredFast.make(from: fast))
+            }
+            commit()
+        } catch {
+            AppLog.swiftData.error("upsert fast failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func deleteFast(id: UUID) {
+        guard let context else { return }
+        let targetID = id
+        let descriptor = FetchDescriptor<StoredFast>(
+            predicate: #Predicate { $0.id == targetID }
+        )
+        do {
+            for stored in try context.fetch(descriptor) {
+                context.delete(stored)
+            }
+            commit()
+        } catch {
+            AppLog.swiftData.error("delete fast failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Every fast, newest start first.
+    func loadFasts() -> [FastSession] {
+        guard let context else { return [] }
+        let descriptor = FetchDescriptor<StoredFast>(
+            sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
+        )
+        do {
+            return try context.fetch(descriptor).map { $0.toFastSession() }
+        } catch {
+            AppLog.swiftData.error("Load fasts failed: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
     // MARK: - State
 
     /// Whether a profile row exists, without decoding or reconciling it.
@@ -1554,6 +1605,7 @@ final class SwiftDataRepository {
             { try context.fetchCount(FetchDescriptor<StoredCustomExercise>()) },
             { try context.fetchCount(FetchDescriptor<StoredRoutine>()) },
             { try context.fetchCount(FetchDescriptor<StoredPersonalRecord>()) },
+            { try context.fetchCount(FetchDescriptor<StoredFast>()) },
         ]
         for descriptor in descriptors {
             do {

@@ -266,6 +266,30 @@ final class MealScannerServiceTests: XCTestCase {
         XCTAssertFalse(AppAttestService.isAttestRejection(Data()))
     }
 
+    func test_analyze_scanQuota429_throwsScanAllowanceSpent() async {
+        MockURLProtocol.handler = { request in
+            (Self.response(for: request, status: 429), Data(#"{"error":{"message":"Free scan limit reached","code":"scan_quota"}}"#.utf8))
+        }
+        await XCTAssertThrowsErrorAsync(try await service.analyze(image: tinyImage())) { error in
+            guard case .scanAllowanceSpent = error as? MealScannerService.ScanError else {
+                XCTFail("Expected .scanAllowanceSpent, got \(error)")
+                return
+            }
+        }
+    }
+
+    func test_analyze_plain429_staysRateLimited() async {
+        MockURLProtocol.handler = { request in
+            (Self.response(for: request, status: 429), Data(#"{"error":{"message":"Too many requests"}}"#.utf8))
+        }
+        await XCTAssertThrowsErrorAsync(try await service.analyze(image: tinyImage())) { error in
+            guard case .rateLimited = error as? MealScannerService.ScanError else {
+                XCTFail("Expected .rateLimited, got \(error)")
+                return
+            }
+        }
+    }
+
     // MARK: - Malformed responses
 
     func test_analyze_throwsInvalidResponseOnNonAnthropicEnvelope() async {

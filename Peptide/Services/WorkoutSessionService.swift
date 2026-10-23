@@ -122,7 +122,7 @@ final class WorkoutSessionService {
     func finishWorkout(perceivedEffort: Int? = nil, note: String? = nil, at end: Date = Date()) -> FinishedWorkout? {
         guard var session = activeSession else { return nil }
         guard session.completedSetCount > 0 else {
-            lastFinishError = "Complete at least one working set before finishing."
+            lastFinishError = String(localized: "Complete at least one working set before finishing.")
             return nil
         }
         session.focus?.resume(at: end)

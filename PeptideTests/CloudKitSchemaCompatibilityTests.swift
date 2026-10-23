@@ -49,7 +49,7 @@ final class CloudKitSchemaCompatibilityTests: XCTestCase {
         let names = Set(schema.entities.map(\.name))
         for expected in ["StoredProtocol", "StoredEntry", "StoredProfile",
                          "StoredWorkoutSession", "StoredCustomExercise",
-                         "StoredRoutine", "StoredPersonalRecord"] {
+                         "StoredRoutine", "StoredPersonalRecord", "StoredFast"] {
             XCTAssertTrue(names.contains(expected),
                           "\(expected) missing from the versioned schema — its data would stop persisting")
         }

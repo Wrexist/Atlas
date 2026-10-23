@@ -89,7 +89,7 @@ struct AtlasScoreCard: View {
     }
 
     private func progressLine(_ momentum: MomentumEngine.Snapshot) -> String {
-        let toNext = "\(momentum.pointsToNextLevel) to level \(momentum.level + 1)"
-        return momentum.todayEarned > 0 ? "+\(momentum.todayEarned) today · \(toNext)" : toNext
+        let toNext = String(localized: "\(momentum.pointsToNextLevel) to level \(momentum.level + 1)")
+        return momentum.todayEarned > 0 ? String(localized: "+\(momentum.todayEarned) today · \(toNext)") : toNext
     }
 }

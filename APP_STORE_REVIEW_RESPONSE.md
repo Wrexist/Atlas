@@ -274,7 +274,7 @@ listed for completeness because the App Store listing links to them):
 ### 4.1 Verify the claim before sending
 
 - [ ] `git grep -nE "Firebase|Sentry|AppsFlyer|Amplitude|Segment|Mixpanel|GoogleService"` returns zero matches (ad/analytics SDKs stay absent).
-- [ ] The only networking call sites in `Peptide/` are the ones §4 lists: `MealScannerService` / `AIResearchService` / `WeeklySummaryService` (Atlas AI proxy), `OpenFoodFactsService`, `AppAttestService`, RevenueCat configuration in `PeptideApp.swift`, and the dormant consent-gated drains (`AffiliateIntakeService`, `OnboardingFunnelTracker`).
+- [ ] The only networking call sites in `Peptide/` are the ones §4 lists: `MealScannerService` / `AIResearchService` / `WeeklySummaryService` (Atlas AI proxy), `OpenFoodFactsService`, `AppAttestService`, and RevenueCat configuration in `PeptideApp.swift`.
 - [ ] `git grep -n "advertisingIdentifier\|ASIdentifierManager"` returns zero matches.
 
 ---

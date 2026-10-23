@@ -30,28 +30,24 @@ options:
     iOS: "18.0"
   generateEmptyDirectories: true
   developmentLanguage: en
-  # English only, deliberately.
+  # English and Swedish.
   #
-  # `Localizable.xcstrings` carries 170 keys translated into nine languages,
-  # but only 45 of the app's 349 UI sentences are in the catalog at all — 13%.
-  # The other 87% render in English whatever the device is set to, and that
-  # includes dosing and safety copy.
-  #
-  # Shipping the nine anyway would put those languages on the App Store
-  # listing and hand, say, a Japanese user a mostly-English medical app. So
-  # the build compiles English only until coverage is real.
+  # A language ships only when the app is actually in it. Swedish covers every
+  # UI sentence in the catalog (`scripts/check-localization.py` gates it), so
+  # it ships. The other nine languages stay withheld: their catalog covers 170
+  # keys — about 13% of the UI — and shipping them would put them on the App
+  # Store listing while handing those users a mostly-English medical app.
   #
   # What actually decides this is the *catalog*, not any setting here.
   # Xcode derives the project's known regions from the localizations it finds,
-  # so `Localizable.xcstrings` having nine languages is what would compile nine
-  # `.lproj` folders — and those folders, not `CFBundleLocalizations`, are what
-  # the App Store reads for the listing.
+  # so the languages in each target's `Localizable.xcstrings` are what compile
+  # into `.lproj` folders — and those folders, not `CFBundleLocalizations`, are
+  # what the App Store reads for the listing.
   #
-  # So the shipped catalog carries its 170 keys with no non-English
-  # localizations. The full nine-language version is preserved verbatim at
+  # The nine-language version of the old 170 keys is preserved verbatim at
   # `localization/Localizable.translated.xcstrings`, outside every target's
-  # source path: withheld, not discarded. Restoring a language means copying
-  # its block back and adding it to CFBundleLocalizations below.
+  # source path: withheld, not discarded. Restoring a language means
+  # translating the full catalog, then adding it to CFBundleLocalizations below.
 packages:
   RevenueCat:
     url: https://github.com/RevenueCat/purchases-ios
@@ -102,11 +98,12 @@ targets:
         CFBundleDisplayName: Atlas
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        # Matches `options.knownRegions`. Declaring a language here that the
-        # binary does not actually localize advertises it on the App Store
-        # listing regardless. See the note on knownRegions above.
+        # Matches the languages in the string catalogs. Declaring a language
+        # here that the binary does not actually localize advertises it on the
+        # App Store listing regardless. See the note on languages above.
         CFBundleLocalizations:
           - en
+          - sv
         ITSAppUsesNonExemptEncryption: false
         NSSupportsLiveActivities: true
         # The peptidex:// scheme predates this registration — widget and
@@ -197,6 +194,7 @@ targets:
       # watch drains, so a Shortcuts run there would be silently lost.
       - path: Shared/AppGroup.swift
       - path: Shared/WatchData.swift
+      - path: Shared/WatchPalette.swift
       - path: Shared/WatchWorkout.swift
       - path: Shared/WidgetWorkoutSummary.swift
       - path: WatchShared
@@ -235,6 +233,7 @@ targets:
           - Info.plist
       - path: Shared/AppGroup.swift
       - path: Shared/WatchData.swift
+      - path: Shared/WatchPalette.swift
       - path: Shared/WatchWorkout.swift
       - path: Shared/WidgetWorkoutSummary.swift
       - path: WatchShared

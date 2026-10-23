@@ -909,7 +909,7 @@ final class DataStore {
         let mondayOffset = weekday == 1 ? -6 : -(weekday - 2)
         guard let monday = calendar.date(byAdding: .day, value: mondayOffset, to: todayStart) else { return [] }
 
-        let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        let dayLabels = [String(localized: "Mon"), String(localized: "Tue"), String(localized: "Wed"), String(localized: "Thu"), String(localized: "Fri"), String(localized: "Sat"), String(localized: "Sun")]
         let grouped = entriesByDay
 
         let result = (0..<7).map { offset -> WeekDayStatus in
@@ -1129,6 +1129,42 @@ final class DataStore {
     func updateNutritionTargets(_ targets: NutritionTargets?) {
         profile.nutritionTargets = targets
         save()
+    }
+
+    /// Expenditure estimate from logged intake + weight trend, or the
+    /// formula when there isn't enough data yet. Nil only when there's
+    /// neither logging history nor complete body stats.
+    func expenditureEstimate(asOf now: Date = Date()) -> AdaptiveTDEEEngine.Estimate? {
+        AdaptiveTDEEEngine.estimate(
+            weights: dedupedWeightHistory,
+            intake: Array(profile.dailyConsumption.values),
+            formulaTDEE: NutritionMath.formulaTDEE(for: profile.bodyMetrics),
+            asOf: now
+        )
+    }
+
+    /// Moves the saved targets with the adaptive estimate, MacroFactor-style,
+    /// but only while they're still the recommendation the user accepted —
+    /// hand-entered numbers are never overwritten.
+    func refreshAdaptiveTargets(asOf now: Date = Date()) {
+        guard
+            AdaptiveTDEESettings.isEnabled,
+            let current = profile.nutritionTargets,
+            let estimate = expenditureEstimate(asOf: now),
+            estimate.source == .adaptive,
+            let next = NutritionMath.recommendedTargets(
+                for: profile.bodyMetrics,
+                goalRaw: profile.primaryGoal,
+                maintenanceKcal: Double(estimate.kcal)
+            ),
+            AdaptiveTDEEEngine.shouldFollow(
+                current: current,
+                followed: AdaptiveTDEESettings.followedTargets,
+                next: next
+            )
+        else { return }
+        AdaptiveTDEESettings.followedTargets = next
+        updateNutritionTargets(next)
     }
 
     // MARK: - Lifestyle data
@@ -1789,7 +1825,7 @@ final class DataStore {
             startedAt: entry.date,
             finishedAt: finishedAt,
             exercises: [],
-            note: "Quick-log · \(entry.sets) sets × \(entry.reps) reps",
+            note: String(localized: "Quick-log · \(entry.sets) sets × \(entry.reps) reps"),
             perceivedEffort: nil,
             focus: WorkoutFocusState(timing: entry.durationMinutes > 0 ? .tracked : .notTracked)
         )
@@ -2248,7 +2284,7 @@ final class DataStore {
     @discardableResult
     func adoptStarterProtocol(
         peptides: [Peptide],
-        name: String = "Starter Protocol"
+        name: String = String(localized: "Starter Protocol")
     ) -> PeptideProtocol? {
         guard !peptides.isEmpty else { return nil }
         let schedule = ProtocolSchedule(
@@ -2264,7 +2300,7 @@ final class DataStore {
             cycleLengthWeeks: 8,
             startDate: Date(),
             status: .active,
-            notes: "Generated from your onboarding goals. Review and adjust before starting."
+            notes: String(localized: "Generated from your onboarding goals. Review and adjust before starting.")
         )
         addProtocol(proto)
         return proto
@@ -2848,9 +2884,12 @@ final class DataStore {
         protocolsNeedSave = false
         entriesNeedSave = false
         regenerateTodayEntries()
-        // Routines from another device (or the new iCloud account) would
-        // otherwise show only once the routine list is next opened.
+        // Routines and fasts from another device (or the new iCloud
+        // account) would otherwise show only once their screen next
+        // appears — a fast started or ended elsewhere would leave the
+        // Meals card, and its end-of-fast reminder, stale.
         RoutineStore.shared.load()
+        FastingStore.shared.load()
         // CloudKit-driven pulls land here; without these the lock-
         // screen widget and the Watch tab would stay stale until the
         // next user mutation or the widget's 15-min auto-timer.

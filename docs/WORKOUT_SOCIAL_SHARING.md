@@ -17,6 +17,10 @@ If volume is hidden/unavailable, the highlight shows working sets instead.
 
 - Story: 1080×1920 opaque PNG.
 - Post: 1080×1350 opaque PNG.
+- Square: 1080×1080 opaque PNG for feed posts.
+- Wide: 1200×630 opaque PNG for link previews and X. Hero on the left, totals
+  on the right; rendered at 2.5× from a 480×252pt canvas.
+- The picker remembers the last format chosen (`ShareFormatMemory`).
 - Reel: 1080×1920 H.264 MP4, 30 fps, exactly six seconds, without audio. A brief
   reveal and 1.5% push use final recorded totals throughout. Reduce Motion exports
   a still composition for the full video. Preview video plays only when requested.
@@ -83,7 +87,7 @@ Info.plist parses. Swift syntax checks are not native compilation.
 On a Mac: generate the project using `xcodegen generate`, run
 `PeptideTests/WorkoutSocialShareTests` in the Peptide scheme, then
 `ScreenshotTests/test_captureWorkoutSocialSharing` in PeptideUICapture.
-The unit tests attach all six exported style/format combinations and a decoded
+The unit tests attach all ten exported style/format combinations and a decoded
 video frame. UI tests attach `social-highlight-*`, `social-summary-*`,
 `social-reel-video-preview`, and `social-native-share-sheet`.
 

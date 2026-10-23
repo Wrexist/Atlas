@@ -56,7 +56,7 @@ jobs:
     outputs:
       ios: ${{ steps.scope.outputs.ios }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -129,7 +129,7 @@ jobs:
     timeout-minutes: 75
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
         with:
@@ -139,7 +139,7 @@ jobs:
         run: xcodebuild -version
 
       - name: Cache Homebrew packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/Library/Caches/Homebrew
@@ -153,7 +153,7 @@ jobs:
         # Hash every file that influences build output, not just
         # project.yml — a Fastfile/Gemfile/.swiftlint.yml change with
         # no project.yml diff would otherwise restore a stale cache.
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/Library/Developer/Xcode/DerivedData
           key: derived-data-${{ runner.os }}-${{ hashFiles('project.yml', 'Gemfile.lock', 'fastlane/Fastfile', '.swiftlint.yml') }}
@@ -462,7 +462,7 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Guard against committed proxy secrets
         # ios-testflight injects every *_SECRET key into Info.plist at
@@ -520,6 +520,14 @@ jobs:
         # the links again.
         run: python3 scripts/check-store-metadata.py
 
+      - name: Localization gate
+        # A missing or broken translation is not a build error: a missing
+        # key silently renders English, a translation with the wrong
+        # format specifiers crashes or prints garbage, in that language
+        # only. Holds every shipped language to 80% of the UI and every
+        # translation to its key's specifiers.
+        run: python3 scripts/check-localization.py
+
       - name: Colour contrast check
         # The design tokens ship two schemes, and light mode has never been
         # rendered on a device. Contrast is the part of "is it legible" that
@@ -547,7 +555,7 @@ jobs:
           PY
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '20'
 

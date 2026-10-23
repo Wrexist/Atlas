@@ -36,6 +36,10 @@ final class StoreService {
     /// `resolvedProStatus()` anywhere a wrong `false` would act on a
     /// paying user.
     @ObservationIgnored private var hasResolvedEntitlements = false
+    /// StoreKit's signed transaction (JWS) for the Pro entitlement that
+    /// runs longest, sent with metered AI scans so the proxy can verify
+    /// Pro against Apple's signature instead of trusting the app.
+    @ObservationIgnored private(set) var proEntitlementJWS: String?
 
     static let monthlyID = "com.peptidesai.app.pro.monthly"
     static let annualID = "com.peptidesai.app.pro.annual"
@@ -166,15 +170,15 @@ final class StoreService {
         let unit = intro.period.unit
         let count = intro.period.value * intro.periodCount
         switch unit {
-        case .day: return count == 1 ? "1 day free" : "\(count) days free"
+        case .day: return count == 1 ? String(localized: "1 day free") : String(localized: "\(count) days free")
         case .week:
             // "2 weeks free" reads worse on a paywall than "14 days free"
             // even though they're the same length. Prefer days for ≤4
             // weeks so it parses as a recognisable trial length.
             let days = count * 7
-            return count <= 4 ? "\(days) days free" : "\(count) weeks free"
-        case .month: return count == 1 ? "1 month free" : "\(count) months free"
-        case .year: return count == 1 ? "1 year free" : "\(count) years free"
+            return count <= 4 ? String(localized: "\(days) days free") : String(localized: "\(count) weeks free")
+        case .month: return count == 1 ? String(localized: "1 month free") : String(localized: "\(count) months free")
+        case .year: return count == 1 ? String(localized: "1 year free") : String(localized: "\(count) years free")
         @unknown default: return nil
         }
     }
@@ -278,6 +282,13 @@ final class StoreService {
         return isProUser
     }
 
+    /// `proEntitlementJWS` once entitlements are known, so a Pro user's
+    /// scan right after launch isn't counted as a free one.
+    func resolvedProEntitlementJWS() async -> String? {
+        _ = await resolvedProStatus()
+        return proEntitlementJWS
+    }
+
     /// True when Pro came from the non-consumable lifetime IAP rather than a
     /// subscription. Nothing renews for these users, so any copy about
     /// renewal, cancellation, or a billing period is wrong for them —
@@ -321,7 +332,9 @@ final class StoreService {
     }
 
     private func updatePurchasedProducts() async {
+        let proIDs: Set<String> = [Self.monthlyID, Self.annualID, Self.lifetimeID]
         var purchased: Set<String> = []
+        var proJWS: (expiry: Date, jws: String)?
         for await result in Transaction.currentEntitlements {
             do {
                 let transaction = try checkVerified(result)
@@ -345,15 +358,20 @@ final class StoreService {
                           await isInGracePeriod(groupID: groupID) else { continue }
                 }
                 purchased.insert(transaction.productID)
+                // Lifetime never expires, so it always wins.
+                let expiry = transaction.expirationDate ?? .distantFuture
+                if proIDs.contains(transaction.productID), expiry > (proJWS?.expiry ?? .distantPast) {
+                    proJWS = (expiry, result.jwsRepresentation)
+                }
             } catch {
                 AppLog.storeKit.error("Entitlement verification failed: \(error.localizedDescription, privacy: .public)")
             }
         }
-        let proIDs: Set<String> = [Self.monthlyID, Self.annualID, Self.lifetimeID]
         purchasedProductIDs = purchased
         isProUser = !purchased.isDisjoint(with: proIDs)
         UserDefaults.standard.set(isProUser, forKey: Self.lastKnownProKey)
         hasResolvedEntitlements = true
+        proEntitlementJWS = proJWS?.jws
         await refreshTrialEligibility()
         await refreshBillingRetryState()
     }

@@ -8,7 +8,14 @@ import SwiftUI
 /// Pro-gated entry point: surfaced from `PeptideListView` and from a
 /// floating action button on Home for users with `storeService.isProUser`.
 /// Free tier sees the upsell sheet.
+///
+/// With a `coachBrief` (the Meals tab's "Ask the diet coach") the same
+/// chat becomes the nutrition coach: the 7-day summary rides along in
+/// the system prompt and the copy and starter prompts are about food.
 struct AIResearchView: View {
+    /// `NutritionCoachEngine.brief` output; nil for the research chat.
+    var coachBrief: String?
+
     @Environment(\.dismiss) private var dismiss
     @Environment(DataStore.self) private var dataStore
     @State private var input: String = ""
@@ -45,7 +52,7 @@ struct AIResearchView: View {
                 composer
             }
             .background(AppColor.background.ignoresSafeArea())
-            .navigationTitle("Research Assistant")
+            .navigationTitle(isCoach ? "Diet Coach" : "Research Assistant")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -70,7 +77,7 @@ struct AIResearchView: View {
                 inflight = nil
             }
             .sheet(isPresented: $showConsent, onDismiss: sendIfConsented) {
-                AIConsentSheet(whatIsSent: "Your messages in this chat, including earlier ones in the conversation.")
+                consentSheet
                     .liquidGlassPresentation()
             }
             .alert(
@@ -98,6 +105,7 @@ struct AIResearchView: View {
                 Text(errorText ?? "Something went wrong reaching the research assistant. Check your connection and try again.")
             }
         }
+        .presentationSizing(.page)
     }
 
     // MARK: - Disclaimer
@@ -175,17 +183,39 @@ struct AIResearchView: View {
         }
     }
 
+    private var isCoach: Bool { coachBrief != nil }
+
+    private var hasConsent: Bool {
+        AIDataConsent.allowsSend(includesCoachSummary: isCoach)
+    }
+
+    @ViewBuilder
+    private var consentSheet: some View {
+        if isCoach {
+            AIConsentSheet(
+                whatIsSent: "Your messages in this chat, plus a 7-day nutrition summary: your targets, average intake, protein days and weight trend.",
+                grant: AIDataConsent.grantCoachSummary
+            )
+        } else {
+            AIConsentSheet(whatIsSent: "Your messages in this chat, including earlier ones in the conversation.")
+        }
+    }
+
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            Text("Ask about training, nutrition, recovery, or a compound you track.")
+            Text(isCoach
+                 ? "Review your week of eating with the coach."
+                 : "Ask about training, nutrition, recovery, or a compound you track.")
                 .font(AppFont.title2)
                 .foregroundStyle(AppColor.textPrimary)
-            Text("Mention a compound by name and the assistant will pull half-life, dosage range, mechanism, and citations from Atlas's compound library before answering.")
+            Text(isCoach
+                 ? "The coach sees your targets, average intake, protein days and weight trend from the last 7 days — not your individual meals."
+                 : "Mention a compound by name and the assistant will pull half-life, dosage range, mechanism, and citations from Atlas's compound library before answering.")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
 
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                ForEach(Array(Self.suggestedPrompts.enumerated()), id: \.element) { index, prompt in
+                ForEach(Array(suggestedPrompts.enumerated()), id: \.element) { index, prompt in
                     Button {
                         input = prompt
                         send()
@@ -216,7 +246,7 @@ struct AIResearchView: View {
     private var composer: some View {
         HStack(spacing: Spacing.sm) {
             GlassTextField(
-                placeholder: "Ask about a compound, protocol, or study…",
+                placeholder: isCoach ? "Ask about your eating this week…" : "Ask about a compound, protocol, or study…",
                 text: $input,
                 icon: nil,
                 axis: .vertical,
@@ -259,9 +289,10 @@ struct AIResearchView: View {
         let prompt = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !prompt.isEmpty, !isStreaming else { return }
         // Nothing leaves the device until the user has agreed to share it
-        // with Anthropic. The prompt stays in `input` so it sends as soon
-        // as they tap Allow.
-        guard AIDataConsent.isGranted else {
+        // with Anthropic — and the coach summary needs its own consent even
+        // when the research chat was already allowed. The prompt stays in
+        // `input` so it sends as soon as they tap Allow.
+        guard hasConsent else {
             input = prompt
             showConsent = true
             return
@@ -277,6 +308,7 @@ struct AIResearchView: View {
 
         let priorHistory = Array(transcript.dropLast()) // exclude the user turn we just appended
         let database = dataStore.peptideDatabase
+        let brief = AIDataConsent.isCoachSummaryGranted ? coachBrief : nil
 
         // Empty assistant turn — the reply lands in this turn's content,
         // and until then the bubble shows the typing indicator.
@@ -294,7 +326,8 @@ struct AIResearchView: View {
             let stream = AIResearchService.shared.replyStream(
                 history: priorHistory,
                 newUserPrompt: prompt,
-                in: database
+                in: database,
+                coachBrief: brief
             )
             do {
                 for try await chunk in stream {
@@ -348,7 +381,7 @@ struct AIResearchView: View {
     }
 
     private func sendIfConsented() {
-        if AIDataConsent.isGranted { send() }
+        if hasConsent { send() }
     }
 
     private func startNewChat() {
@@ -360,10 +393,20 @@ struct AIResearchView: View {
         input = ""
     }
 
-    private static let suggestedPrompts: [String] = [
-        "How does sleep affect HRV recovery?",
-        "How much protein do I need for hypertrophy?",
-        "What does the research say about BPC-157 half-life?",
+    private var suggestedPrompts: [String] {
+        isCoach ? Self.coachPrompts : Self.researchPrompts
+    }
+
+    private static let researchPrompts: [String] = [
+        String(localized: "How does sleep affect HRV recovery?"),
+        String(localized: "How much protein do I need for hypertrophy?"),
+        String(localized: "What does the research say about BPC-157 half-life?"),
+    ]
+
+    private static let coachPrompts: [String] = [
+        "How did my week go against my targets?",
+        "How can I hit my protein target more often?",
+        "What simple swaps would keep me within my calories?",
     ]
 }
 
@@ -417,7 +460,7 @@ private struct TurnBubble: View {
     }
 
     private var accessibilityLabel: String {
-        let speaker = turn.role == .user ? "You" : "Assistant"
+        let speaker = turn.role == .user ? String(localized: "You") : String(localized: "Assistant")
         let body = isStreaming && turn.content.isEmpty ? "typing" : turn.content
         return "\(speaker): \(body)"
     }

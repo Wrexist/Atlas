@@ -191,7 +191,7 @@ struct RecommendedPeptidesCard: View {
                         reasons: [
                             .commonStack(pairsWith: ["TB-500", "GHK-Cu"]),
                             .goalMatch(goal: "recovery"),
-                            .categorySynergy(description: "Growth + Recovery amplify tissue repair"),
+                            .categorySynergy(description: String(localized: "Growth + Recovery amplify tissue repair")),
                         ],
                         confidence: .high
                     ),

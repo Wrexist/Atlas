@@ -184,7 +184,7 @@ struct GoalCountdownCard: View {
                 Text(heroUnit(weeks: weeks, days: days))
                     .font(AppFont.subheadline.weight(.semibold))
                     .foregroundStyle(AppColor.textSecondary)
-                Text(inFinalWeek ? "remaining" : "^[\(days) day](inflect: true) remaining")
+                Text(inFinalWeek ? "remaining" : "\(days) days remaining")
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
             }

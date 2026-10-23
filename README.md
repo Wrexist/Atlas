@@ -35,9 +35,10 @@ PeptideWidgets/          iOS widgets (next dose, compliance ring,
                          nutrition, training) + Live Activities
 PeptideWatchWidgets/     watchOS complications (next dose, Atlas Score,
                          habits, Recovery, Sleep Score)
-WatchShared/             Watch palette + sleep-stage ring, compiled into
-                         both watch targets only
-Shared/                  WatchData, WidgetData, DoseWindowAttributes
+WatchShared/             Sleep-stage ring + watch formatting, compiled
+                         into both watch targets only
+Shared/                  WatchData, WidgetData, DoseWindowAttributes,
+                         WatchPalette (compiled into every target)
 server/                  Vercel proxy (Anthropic key holder)
 scripts/peptide-dataset/ Python pipeline that generates peptide JSON
 fastlane/                Beta lane → TestFlight
@@ -94,6 +95,12 @@ there being exactly one primitive to reach for:
   `Spacing.concentric(in:inset:)` for a shape nested inside another rather
   than guessing a second literal, and `.minimumHitArea()` on any control
   whose artwork is smaller than 44pt.
+- **iPad** — a single-column scroll caps its content with
+  `.readableContentWidth()` (`Spacing.readableContentWidth`). A list that
+  pushes a detail splits on `horizontalSizeClass == .regular` into a
+  `NavigationSplitView` and keeps its `NavigationStack` in compact
+  (`PeptideListView`, `TrainContainerView`). A content-heavy sheet sets
+  `.presentationSizing(.page)`; forms keep the default form size.
 - **Motion** — curves come from `AppAnimation` (`springSnappy`, `step`,
   `quick`, `toast`, `settle`, …); add a named token to
   `AnimationConstants.swift` rather than tuning a spring inline. Animate

@@ -251,7 +251,7 @@ struct RoutineBuilderView: View {
     }
 
     private func detail(of exerciseID: String) -> String {
-        guard let exercise = library.lookup(id: exerciseID) else { return "Not in your library" }
+        guard let exercise = library.lookup(id: exerciseID) else { return String(localized: "Not in your library") }
         return [exercise.muscleGroup.displayName, exercise.equipmentKind.displayName]
             .joined(separator: " · ")
     }

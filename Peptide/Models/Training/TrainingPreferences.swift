@@ -92,13 +92,13 @@ enum Weekday: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var shortName: String {
         switch self {
-        case .monday:    return "Mon"
-        case .tuesday:   return "Tue"
-        case .wednesday: return "Wed"
-        case .thursday:  return "Thu"
-        case .friday:    return "Fri"
-        case .saturday:  return "Sat"
-        case .sunday:    return "Sun"
+        case .monday:    return String(localized: "Mon")
+        case .tuesday:   return String(localized: "Tue")
+        case .wednesday: return String(localized: "Wed")
+        case .thursday:  return String(localized: "Thu")
+        case .friday:    return String(localized: "Fri")
+        case .saturday:  return String(localized: "Sat")
+        case .sunday:    return String(localized: "Sun")
         }
     }
 
@@ -126,10 +126,10 @@ enum PreferredTimeOfDay: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var displayName: String {
         switch self {
-        case .morning:  return "Morning"
-        case .midday:   return "Midday"
-        case .evening:  return "Evening"
-        case .anytime:  return "Anytime"
+        case .morning:  return String(localized: "Morning")
+        case .midday:   return String(localized: "Midday")
+        case .evening:  return String(localized: "Evening")
+        case .anytime:  return String(localized: "Anytime")
         }
     }
 }

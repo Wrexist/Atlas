@@ -117,8 +117,8 @@ enum SmartCyclePlanner {
         return Suggestion(
             protocolID: proto.id,
             kind: .cycleWrappingUp(daysRemaining: remaining),
-            title: "\(proto.name) wraps up in \(remaining) day\(remaining == 1 ? "" : "s")",
-            rationale: "Plan whether to extend, take an off-cycle break, or transition to your next protocol while it's still fresh.",
+            title: String(localized: "\(proto.name) wraps up in \(remaining) days"),
+            rationale: String(localized: "Plan whether to extend, take an off-cycle break, or transition to your next protocol while it's still fresh."),
             confidence: remaining <= 2 ? .high : .medium
         )
     }
@@ -155,8 +155,8 @@ enum SmartCyclePlanner {
         return Suggestion(
             protocolID: proto.id,
             kind: .considerPausing(daysIdle: idleDays),
-            title: "Pause \(proto.name)?",
-            rationale: "No doses logged for \(idleDays) days. Pausing keeps your stats clean and stops misleading streak alerts.",
+            title: String(localized: "Pause \(proto.name)?"),
+            rationale: String(localized: "No doses logged for \(idleDays) days. Pausing keeps your stats clean and stops misleading streak alerts."),
             confidence: idleDays >= 14 ? .high : .medium
         )
     }
@@ -194,8 +194,8 @@ enum SmartCyclePlanner {
         return Suggestion(
             protocolID: proto.id,
             kind: .shortenNextCycle(currentWeeks: weeks, suggestedWeeks: suggested),
-            title: "Try a \(suggested)-week cycle next time",
-            rationale: "Adherence dropped from \(Int(firstRate * 100))% in week 1-\(weeks/2) to \(Int(secondRate * 100))% after. A shorter cycle tends to land more doses.",
+            title: String(localized: "Try a \(suggested)-week cycle next time"),
+            rationale: String(localized: "Adherence dropped from \(Int(firstRate * 100))% in week 1-\(weeks/2) to \(Int(secondRate * 100))% after. A shorter cycle tends to land more doses."),
             confidence: secondRate + 0.30 < firstRate ? .high : .medium
         )
     }
@@ -230,8 +230,8 @@ enum SmartCyclePlanner {
         return Suggestion(
             protocolID: proto.id,
             kind: .shiftDoseTime(from: worst.time, to: best.time),
-            title: "Shift the \(worst.time) dose",
-            rationale: "You take it \(Int(worst.rate * 100))% of the time vs \(Int(best.rate * 100))% at \(best.time). Moving it closer to a slot you nail might lift adherence.",
+            title: String(localized: "Shift the \(worst.time) dose"),
+            rationale: String(localized: "You take it \(Int(worst.rate * 100))% of the time vs \(Int(best.rate * 100))% at \(best.time). Moving it closer to a slot you nail might lift adherence."),
             confidence: best.rate - worst.rate >= 0.40 ? .high : .medium
         )
     }
@@ -255,8 +255,8 @@ enum SmartCyclePlanner {
         return Suggestion(
             protocolID: proto.id,
             kind: .offCycleReady(daysSinceLast: elapsed),
-            title: "Ready to start a new \(proto.name) cycle?",
-            rationale: "It's been \(elapsed) days off-cycle — past the typical \(offWindowDays)-day rest window for this protocol length.",
+            title: String(localized: "Ready to start a new \(proto.name) cycle?"),
+            rationale: String(localized: "It's been \(elapsed) days off-cycle — past the typical \(offWindowDays)-day rest window for this protocol length."),
             confidence: .medium
         )
     }

@@ -11,7 +11,7 @@
  * the old route when this one is missing.
  */
 import { forwardToAnthropic } from './_lib/anthropic-proxy.js';
-import { buildFoodScanRequest, readFoodScanResult, FOOD_SCAN_BETAS } from './_lib/food-scan.js';
+import { buildFoodScanRequest, readFoodScanResult, isFoodScanHit, FOOD_SCAN_BETAS } from './_lib/food-scan.js';
 
 export default async function handler(req, res) {
   await forwardToAnthropic(req, res, {
@@ -19,6 +19,9 @@ export default async function handler(req, res) {
     buildBody: buildFoodScanRequest,
     readResponse: readFoodScanResult,
     betas: FOOD_SCAN_BETAS,
+    // Meal photos and described meals the app marks as metered spend
+    // the free weekly allowance; see `_lib/scan-quota.js`.
+    scanSucceeded: isFoodScanHit,
     // Opus reading a busy plate can take longer than a pass-through
     // chat turn; the function's maxDuration in vercel.json covers this.
     timeoutMs: 50_000,

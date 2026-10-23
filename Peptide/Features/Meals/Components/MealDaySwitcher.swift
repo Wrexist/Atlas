@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Day picker for the Meals tab: a week strip to tap any day, chevrons
+/// Day picker for the Meals tab and Today: a week strip to tap any day, chevrons
 /// to page a week back or forward, and a title that jumps back to today.
 /// Driven by a day offset (0 = today, -1 = yesterday) so a screen left
 /// open past midnight keeps meaning "today". Never selects the future.

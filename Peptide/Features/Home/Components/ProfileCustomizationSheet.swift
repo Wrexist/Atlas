@@ -355,12 +355,12 @@ struct ProfileCustomizationSheet: View {
 
     private var avatarAccessibilityLabel: String {
         if avatarData != nil {
-            return "Profile photo"
+            return String(localized: "Profile photo")
         }
         if let name = trimmedName, !name.isEmpty {
-            return "Profile avatar showing initial \(String(name.prefix(1)).uppercased())"
+            return String(localized: "Profile avatar showing initial \(String(name.prefix(1)).uppercased())")
         }
-        return "Profile avatar"
+        return String(localized: "Profile avatar")
     }
 
     private var displayInitial: String? {
@@ -384,7 +384,7 @@ struct ProfileCustomizationSheet: View {
                 icon: "flame.fill",
                 tint: AppColor.warning,
                 surface: .glass,
-                accessibilityLabel: "Current streak: \(dataStore.currentStreak) days"
+                accessibilityLabel: String(localized: "Current streak: \(dataStore.currentStreak) days")
             )
             StatTile(
                 label: "Days",
@@ -392,7 +392,7 @@ struct ProfileCustomizationSheet: View {
                 icon: "calendar",
                 tint: AppColor.accentPrimary,
                 surface: .glass,
-                accessibilityLabel: "Days logged: \(dataStore.totalDaysLogged)"
+                accessibilityLabel: String(localized: "Days logged: \(dataStore.totalDaysLogged)")
             )
             StatTile(
                 label: "Protocols",
@@ -400,7 +400,7 @@ struct ProfileCustomizationSheet: View {
                 icon: "square.stack.3d.up.fill",
                 tint: AppColor.accentLight,
                 surface: .glass,
-                accessibilityLabel: "Protocols created: \(dataStore.protocols.count)"
+                accessibilityLabel: String(localized: "Protocols created: \(dataStore.protocols.count)")
             )
             StatTile(
                 label: "Member",
@@ -408,7 +408,7 @@ struct ProfileCustomizationSheet: View {
                 icon: "calendar.badge.clock",
                 tint: AppColor.textSecondary,
                 surface: .glass,
-                accessibilityLabel: "Member duration: \(memberShortDuration)"
+                accessibilityLabel: String(localized: "Member duration: \(memberShortDuration)")
             )
         }
         .dynamicTypeSize(...DynamicTypeSize.accessibility2)
@@ -833,7 +833,7 @@ struct ProfileCustomizationSheet: View {
 
         do {
             guard let raw = try await item.loadTransferable(type: Data.self) else {
-                photoError = "We couldn't read that photo. Try a different image."
+                photoError = String(localized: "We couldn't read that photo. Try a different image.")
                 return
             }
 
@@ -844,10 +844,10 @@ struct ProfileCustomizationSheet: View {
             if let processed {
                 avatarData = processed
             } else {
-                photoError = "That image format isn't supported. Try a JPEG or PNG."
+                photoError = String(localized: "That image format isn't supported. Try a JPEG or PNG.")
             }
         } catch {
-            photoError = "We couldn't load that photo. Please try again."
+            photoError = String(localized: "We couldn't load that photo. Please try again.")
         }
     }
 
@@ -861,7 +861,7 @@ struct ProfileCustomizationSheet: View {
         if let processed {
             avatarData = processed
         } else {
-            photoError = "We couldn't process that photo. Try a different image."
+            photoError = String(localized: "We couldn't process that photo. Try a different image.")
         }
     }
 

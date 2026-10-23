@@ -58,7 +58,7 @@ enum HealthRangeService {
             case .establishedBaseline, .insufficientHistory:
                 return nil
             case .emergingBaseline:
-                return "Early read — still learning your range"
+                return String(localized: "Early read — still learning your range")
             }
         }
 

@@ -98,7 +98,7 @@ struct PeptideApp: App {
         WindowGroup {
             if ProcessInfo.processInfo.isRunningUnitTests {
                 // Unit tests are hosted in the app. A bare window keeps
-                // them clear of `appRoot`'s launch tasks — network drains,
+                // them clear of `appRoot`'s launch tasks — App Attest,
                 // MetricKit, Spotlight and notification prompts.
                 Color.clear
             } else {
@@ -350,24 +350,6 @@ struct PeptideApp: App {
         // upload. Idempotent — subscribing on every launch
         // is the documented usage.
         DiagnosticsService.shared.startCollecting()
-        Task { @MainActor in
-            // Drain any completed onboarding funnel snapshot to the
-            // analytics endpoint configured via Info.plist. No-op
-            // unless the endpoint is configured, the user opted in
-            // via the Profile diagnostics toggle, AND onboarding
-            // finished — partial in-flight runs stay local.
-            await OnboardingFunnelTracker.drainIfReady()
-        }
-        Task { @MainActor in
-            // Drain any local affiliate application to the creator-
-            // program intake endpoint. Same opt-in shape as the
-            // funnel drain — gated on AffiliateIntakeEndpoint in
-            // Info.plist, no-op otherwise. The local copy stays
-            // on disk regardless so the user can re-edit.
-            await AffiliateIntakeService.drainIfReady(
-                dataStore.profile.affiliateApplication
-            )
-        }
         Task(priority: .background) { @MainActor in
             // Register the App Attest key now, so the first research
             // question or meal scan doesn't wait on it.
@@ -544,6 +526,9 @@ struct PeptideApp: App {
                 HabitsView()
             }
         }
+        // A tab bar on iPhone; on iPad, a top tab bar that expands into a
+        // sidebar, so the wide screen isn't framed by a phone-style bar.
+        .tabViewStyle(.sidebarAdaptable)
         .onChange(of: appState.selectedTab) { _, _ in
             Haptics.selection()
         }

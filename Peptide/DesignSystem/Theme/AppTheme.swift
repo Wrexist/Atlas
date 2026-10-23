@@ -16,11 +16,11 @@ enum AppThemeColor: String, CaseIterable, Codable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .teal: "Emerald"
-        case .purpleGradient: "Iris"
-        case .ocean: "Ocean"
-        case .amber: "Amber"
-        case .onyx: "Graphite"
+        case .teal: String(localized: "Emerald")
+        case .purpleGradient: String(localized: "Iris")
+        case .ocean: String(localized: "Ocean")
+        case .amber: String(localized: "Amber")
+        case .onyx: String(localized: "Graphite")
         }
     }
 
@@ -132,9 +132,9 @@ enum DisplayMode: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .system: "Auto"
-        case .light: "Light"
-        case .dark: "Dark"
+        case .system: String(localized: "Auto")
+        case .light: String(localized: "Light")
+        case .dark: String(localized: "Dark")
         }
     }
 

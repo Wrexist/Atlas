@@ -9,6 +9,7 @@ struct WorkoutFinishView: View {
     /// stored records, so these could name a set the user just corrected.
     @State private var detectedPRs: [PRDetectionEngine.DetectedPR]
     @State private var store: WorkoutRecapStore
+    @State private var summaryService = OnDeviceSummaryService.shared
     @State private var editing = false
     @State private var sharing = false
     @State private var announced = false
@@ -32,6 +33,9 @@ struct WorkoutFinishView: View {
                 VStack(alignment: .leading, spacing: Spacing.lg) {
                     header(summary)
                         .sectionAppear(index: 0)
+                    if let facts = recapFacts(summary), let text = summaryService.text(for: facts) {
+                        RecapSummaryLine(text: text)
+                    }
                     NavigationLink {
                         WorkoutWeeklyProgressView(store: store, unit: unit)
                     } label: {
@@ -92,6 +96,9 @@ struct WorkoutFinishView: View {
                         Button("Retry exercise metadata") { Task { await store.load() } }.frame(minHeight: Spacing.minimumHitTarget)
                     }
                 }.padding(Spacing.screenPadding)
+                    .task(id: recapFacts(summary)) {
+                        if let facts = recapFacts(summary) { await summaryService.prepare(facts) }
+                    }
             } else { ProgressView("Loading workout…").padding(Spacing.xxl) }
         }
         .background(AppColor.recapBackground.ignoresSafeArea())
@@ -104,7 +111,7 @@ struct WorkoutFinishView: View {
         }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: Spacing.xs) {
-                RecapAction(title: "Done", action: onClose).accessibilityIdentifier("recap-done")
+                RecapAction(title: String(localized: "Done"), action: onClose).accessibilityIdentifier("recap-done")
                 Button { sharing = true } label: {
                     Label("Share workout", systemImage: "square.and.arrow.up")
                         .font(AppFont.subheadline).frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
@@ -127,7 +134,7 @@ struct WorkoutFinishView: View {
                 announced = true
                 celebrated = true
                 Haptics.success()
-                AccessibilityNotification.Announcement("Workout saved").post()
+                AccessibilityNotification.Announcement(String(localized: "Workout saved")).post()
                 await celebratePRs()
             }
         }
@@ -138,6 +145,13 @@ struct WorkoutFinishView: View {
                     .ignoresSafeArea()
             }
         }
+    }
+
+    /// The week count only reads as "this week" when the recap charts the
+    /// current week, not a past session's own week.
+    private func recapFacts(_ summary: WorkoutRecapEngine.Summary) -> OnDeviceSummaryEngine.Facts? {
+        let weekCount = store.week.flatMap { $0.isCurrent ? $0.count : nil }
+        return OnDeviceSummaryEngine.workout(summary, newPRCount: detectedPRs.count, weekCount: weekCount, unit: unit)
     }
 
     /// A fresh save celebrates; reopening an old session from history

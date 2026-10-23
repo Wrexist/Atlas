@@ -80,11 +80,11 @@ enum HabitSchedule: Codable, Hashable, Sendable {
 
     var displayName: String {
         switch self {
-        case .daily:                          return "Daily"
+        case .daily:                          return String(localized: "Daily")
         case .weekdays(let days):
-            if days.count == 7 { return "Daily" }
-            if days == Set(HabitWeekday.weekdays) { return "Weekdays" }
-            if days == Set(HabitWeekday.weekend) { return "Weekends" }
+            if days.count == 7 { return String(localized: "Daily") }
+            if days == Set(HabitWeekday.weekdays) { return String(localized: "Weekdays") }
+            if days == Set(HabitWeekday.weekend) { return String(localized: "Weekends") }
             return days
                 .sorted(by: { $0.calendarOrder < $1.calendarOrder })
                 .map(\.shortName)
@@ -136,13 +136,13 @@ enum HabitWeekday: Int, Codable, Hashable, Sendable, CaseIterable {
 
     var fullName: String {
         switch self {
-        case .sunday:    return "Sunday"
-        case .monday:    return "Monday"
-        case .tuesday:   return "Tuesday"
-        case .wednesday: return "Wednesday"
-        case .thursday:  return "Thursday"
-        case .friday:    return "Friday"
-        case .saturday:  return "Saturday"
+        case .sunday:    return String(localized: "Sunday")
+        case .monday:    return String(localized: "Monday")
+        case .tuesday:   return String(localized: "Tuesday")
+        case .wednesday: return String(localized: "Wednesday")
+        case .thursday:  return String(localized: "Thursday")
+        case .friday:    return String(localized: "Friday")
+        case .saturday:  return String(localized: "Saturday")
         }
     }
 
@@ -166,12 +166,12 @@ enum HabitCategory: String, Codable, Hashable, Sendable, CaseIterable, Identifia
 
     var displayName: String {
         switch self {
-        case .health:        return "Health"
-        case .fitness:       return "Fitness"
-        case .mindfulness:   return "Mindfulness"
-        case .learning:      return "Learning"
-        case .productivity:  return "Productivity"
-        case .custom:        return "Custom"
+        case .health:        return String(localized: "Health")
+        case .fitness:       return String(localized: "Fitness")
+        case .mindfulness:   return String(localized: "Mindfulness")
+        case .learning:      return String(localized: "Learning")
+        case .productivity:  return String(localized: "Productivity")
+        case .custom:        return String(localized: "Custom")
         }
     }
 
@@ -204,13 +204,16 @@ struct HabitEntry: Codable, Identifiable, Hashable, Sendable {
         habitId: UUID,
         date: Date,
         value: Int = 1,
-        notes: String? = nil
+        notes: String? = nil,
+        calendar: Calendar = .current
     ) {
         self.id = id
         self.habitId = habitId
         // Honor the documented start-of-day contract so a caller that
         // forgets to normalize can't create duplicate same-day entries.
-        self.date = Calendar.current.startOfDay(for: date)
+        // Takes the reader's calendar so the day matches the one
+        // `HabitsService` later buckets it into.
+        self.date = calendar.startOfDay(for: date)
         self.value = value
         self.notes = notes
     }

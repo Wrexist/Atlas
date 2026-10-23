@@ -43,8 +43,8 @@ struct TrialOfferView: View {
         var id: String { rawValue }
         var displayName: String {
             switch self {
-            case .annual:  return "Yearly"
-            case .monthly: return "Monthly"
+            case .annual:  return String(localized: "Yearly")
+            case .monthly: return String(localized: "Monthly")
             }
         }
     }
@@ -204,12 +204,12 @@ struct TrialOfferView: View {
     /// at rest. A paywall you have to scroll to find the price on converts
     /// worse, and one that shows the *wrong* price converts worse still.
     private var headlineEyebrow: String {
-        guard let days = trialDays else { return "YOUR WELCOME OFFER" }
-        return "YOUR \(days)-DAY FREE TRIAL"
+        guard let days = trialDays else { return String(localized: "YOUR WELCOME OFFER") }
+        return String(localized: "YOUR \(days)-DAY FREE TRIAL")
     }
 
     private var headlineHero: String {
-        if let days = trialDays { return "\(days) days free" }
+        if let days = trialDays { return String(localized: "\(days) days free") }
         guard arePricesLoaded else { return "Atlas Pro" }
         return selectedTier == .annual ? annualPrice : monthlyPrice
     }
@@ -220,16 +220,16 @@ struct TrialOfferView: View {
         guard arePricesLoaded else { return plansStatus }
         // "Then …" only reads correctly when something comes first. Once the
         // trial is spent it's just the price, so the lead-in has to go.
-        let lead = trialDays == nil ? "" : "Then "
+        let lead = trialDays == nil ? "" : String(localized: "Then ")
         switch selectedTier {
         case .annual:
             // Guideline 3.1.2(c): the billed amount leads; the per-month
             // equivalent is the secondary figure.
-            let billed = "\(lead)\(annualPrice)/year · \(annualPerMonthPrice)/mo"
+            let billed = String(localized: "\(lead)\(annualPrice)/year · \(annualPerMonthPrice)/mo")
             guard let saved = annualSavingsPercent else { return billed }
-            return "\(billed) — save \(saved)%"
+            return String(localized: "\(billed) — save \(saved)%")
         case .monthly:
-            return "\(lead)\(monthlyPrice)/month — cancel anytime"
+            return String(localized: "\(lead)\(monthlyPrice)/month — cancel anytime")
         }
     }
 
@@ -310,10 +310,10 @@ struct TrialOfferView: View {
         // only describes annual, so Monthly gets the offer alone.
         let caption: String
         switch (selectedTier == .annual, trialDays != nil) {
-        case (true, true):   caption = "Best value — start with a free trial"
-        case (true, false):  caption = "Best value — full access, cancel anytime"
-        case (false, true):  caption = "Start with a free trial"
-        case (false, false): caption = "Full access, cancel anytime"
+        case (true, true):   caption = String(localized: "Best value — start with a free trial")
+        case (true, false):  caption = String(localized: "Best value — full access, cancel anytime")
+        case (false, true):  caption = String(localized: "Start with a free trial")
+        case (false, false): caption = String(localized: "Full access, cancel anytime")
         }
         return HStack(spacing: Spacing.xs) {
             Image(systemName: "bolt.fill")
@@ -462,7 +462,7 @@ struct TrialOfferView: View {
                             // when the A/B order put yearly second. "Best
                             // value" is what the savings maths supports;
                             // "most popular" was an unverified claim.
-                            Text(annualSavingsPercent.map { "BEST VALUE · SAVE \($0)%" } ?? "BEST VALUE")
+                            Text(annualSavingsPercent.map { String(localized: "BEST VALUE · SAVE \($0)%") } ?? String(localized: "BEST VALUE"))
                                 .font(AppFont.badge)
                                 .tracking(0.6)
                                 .foregroundStyle(AppColor.onAccent)
@@ -530,12 +530,12 @@ struct TrialOfferView: View {
         switch tier {
         case .annual:
             let perMonth = "\(annualPerMonthPrice)/mo"
-            guard let days else { return "Just \(perMonth)" }
-            return "\(days) days free · \(perMonth)"
+            guard let days else { return String(localized: "Just \(perMonth)") }
+            return String(localized: "\(days) days free · \(perMonth)")
         case .monthly:
             let billed = "\(monthlyPrice)/mo"
-            guard let days else { return "Billed \(billed)" }
-            return "\(days) days free, then \(billed)"
+            guard let days else { return String(localized: "Billed \(billed)") }
+            return String(localized: "\(days) days free, then \(billed)")
         }
     }
 
@@ -657,9 +657,9 @@ struct TrialOfferView: View {
     /// Top line of the CTA: what the tap gets you, never "Continue".
     private var ctaTitle: String {
         guard let days = trialDays else {
-            return "Get \(headlinePlan)"
+            return String(localized: "Get \(headlinePlan)")
         }
-        return "Start My \(days)-Day Free Trial"
+        return String(localized: "Start My \(days)-Day Free Trial")
     }
 
     /// Second line of the CTA: the charge, in the user's own currency. A
@@ -671,8 +671,8 @@ struct TrialOfferView: View {
         let price = selectedTier == .annual
             ? "\(annualPrice)/yr"
             : "\(monthlyPrice)/mo"
-        guard trialDays != nil else { return "\(price) · cancel anytime" }
-        return "\(zeroPriceToday) today, then \(price)"
+        guard trialDays != nil else { return String(localized: "\(price) · cancel anytime") }
+        return String(localized: "\(zeroPriceToday) today, then \(price)")
     }
 
     /// A localised zero in the selected plan's currency — "$0.00", "0,00 kr".
@@ -685,27 +685,27 @@ struct TrialOfferView: View {
     /// not on the tier: "no charge today" is a promise about this Apple ID,
     /// and it stops being true the moment the shared intro offer is spent.
     private var reassuranceCopy: String {
-        guard trialDays != nil else { return "Cancel anytime · Secured by the App Store" }
-        return "No charge today · Cancel anytime"
+        guard trialDays != nil else { return String(localized: "Cancel anytime · Secured by the App Store") }
+        return String(localized: "No charge today · Cancel anytime")
     }
 
     private var plansStatus: String {
-        isLoadingProducts ? "Loading plans…" : "Plans unavailable"
+        isLoadingProducts ? String(localized: "Loading plans…") : String(localized: "Plans unavailable")
     }
 
     /// Guideline 3.1.2 terms. Before StoreKit answers there is no price in
     /// the storefront's currency to quote, but the plan names, lengths and
     /// auto-renewal still have to be on the purchase surface.
     private var legalCopy: String {
-        let renewal = "Auto-renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → your name → Subscriptions."
+        let renewal = String(localized: "Auto-renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → your name → Subscriptions.")
         guard arePricesLoaded else {
-            return "\(planName(for: .monthly)) (billed monthly) and \(planName(for: .annual)) (billed yearly) are auto-renewable subscriptions. \(renewal)"
+            return String(localized: "\(planName(for: .monthly)) (billed monthly) and \(planName(for: .annual)) (billed yearly) are auto-renewable subscriptions. \(renewal)")
         }
         let plan = selectedTier == .annual
-            ? "\(annualPrice) per year for the \(planName(for: .annual)) subscription"
-            : "\(monthlyPrice) per month for the \(planName(for: .monthly)) subscription"
-        guard let days = trialDays else { return "Billed \(plan). \(renewal)" }
-        return "No charge for \(days) days. Then \(plan). \(renewal)"
+            ? String(localized: "\(annualPrice) per year for the \(planName(for: .annual)) subscription")
+            : String(localized: "\(monthlyPrice) per month for the \(planName(for: .monthly)) subscription")
+        guard let days = trialDays else { return String(localized: "Billed \(plan). \(renewal)") }
+        return String(localized: "No charge for \(days) days. Then \(plan). \(renewal)")
     }
 
     // MARK: - Actions
@@ -715,7 +715,7 @@ struct TrialOfferView: View {
         Haptics.impact(.medium)
         notice = nil
         guard let product = productForSelectedTier else {
-            AppAnimation.with(AppAnimation.fadeIn) { notice = .failed("Plan still loading. Try again in a moment.") }
+            AppAnimation.with(AppAnimation.fadeIn) { notice = .failed(String(localized: "Plan still loading. Try again in a moment.")) }
             return
         }
         isPurchasing = true
@@ -741,7 +741,7 @@ struct TrialOfferView: View {
                     break // no UI noise on explicit cancel
                 }
             } catch {
-                AppAnimation.with(AppAnimation.fadeIn) { notice = .failed("Couldn't complete the purchase. Please try again.") }
+                AppAnimation.with(AppAnimation.fadeIn) { notice = .failed(String(localized: "Couldn't complete the purchase. Please try again.")) }
             }
         }
     }
@@ -763,7 +763,7 @@ struct TrialOfferView: View {
                     AppAnimation.with(AppAnimation.fadeIn) { notice = .nothingToRestore }
                 }
             } catch {
-                AppAnimation.with(AppAnimation.fadeIn) { notice = .failed("Restore failed. Check your internet connection and try again.") }
+                AppAnimation.with(AppAnimation.fadeIn) { notice = .failed(String(localized: "Restore failed. Check your internet connection and try again.")) }
             }
         }
     }
@@ -791,8 +791,8 @@ private enum PurchaseNotice {
     var message: String {
         switch self {
         case .failed(let message): return message
-        case .pending:             return "Purchase pending approval. We'll unlock Pro as soon as it's approved."
-        case .nothingToRestore:    return "No previous purchase found to restore."
+        case .pending:             return String(localized: "Purchase pending approval. We'll unlock Pro as soon as it's approved.")
+        case .nothingToRestore:    return String(localized: "No previous purchase found to restore.")
         }
     }
 

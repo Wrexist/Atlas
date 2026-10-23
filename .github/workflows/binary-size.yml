@@ -43,7 +43,7 @@ jobs:
       # something is genuinely wrong with the runner, and a green
       # tick here would be misleading.
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -52,7 +52,7 @@ jobs:
           xcode-version: latest-stable
 
       - name: Cache Homebrew packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/Library/Caches/Homebrew

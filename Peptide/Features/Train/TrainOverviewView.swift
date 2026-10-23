@@ -41,7 +41,7 @@ struct TrainOverviewView: View {
     @SceneStorage("train.overview.period") private var selectedPeriodRaw = 7
     private var selectedPeriod: TrainingMapPeriod { TrainingMapPeriod(rawValue: selectedPeriodRaw) ?? .week }
     @State private var inspectedDays: Int? = 7
-    @State private var inspectedPeriodLabel = "Last 7 days"
+    @State private var inspectedPeriodLabel = String(localized: "Last 7 days")
     @SceneStorage("train.overview.details") private var showsTrainingDetails = false
     @State private var showsMapInfo = false
 
@@ -49,12 +49,12 @@ struct TrainOverviewView: View {
         case today = 1, week = 7, month = 30
         var title: String {
             switch self {
-            case .today: "Today"
-            case .week: "7 days"
-            case .month: "30 days"
+            case .today: String(localized: "Today")
+            case .week: String(localized: "7 days")
+            case .month: String(localized: "30 days")
             }
         }
-        var detail: String { self == .today ? "Today" : "Last \(rawValue) days" }
+        var detail: String { self == .today ? String(localized: "Today") : String(localized: "Last \(rawValue) days") }
     }
     /// Personalization brief Phase 9/10: a one-line read on how this
     /// week's session count compares to this user's own recent training
@@ -128,7 +128,7 @@ struct TrainOverviewView: View {
                         regularity: regularity,
                         onIdentify: { muscle, days in
                             inspectedDays = days
-                            inspectedPeriodLabel = days == nil ? "All workouts" : "Last 12 calendar weeks"
+                            inspectedPeriodLabel = days == nil ? String(localized: "All workouts") : String(localized: "Last 12 calendar weeks")
                             inspectedMuscle = muscle
                         }
                     )
@@ -226,24 +226,23 @@ struct TrainOverviewView: View {
         guard let result = ChangeDetectionEngine.evaluate(current: Double(thisWeek), against: baseline)
         else { return nil }
 
-        let sessionWord = thisWeek == 1 ? "session" : "sessions"
         let tail: String
         switch result.change {
         case .stable:
-            tail = "right in line with your usual pace"
+            tail = String(localized: "right in line with your usual pace")
         case .notablyHigher:
-            tail = "more than your usual pace"
+            tail = String(localized: "more than your usual pace")
         case .notablyLower:
-            tail = "fewer than your usual pace"
+            tail = String(localized: "fewer than your usual pace")
         case .unusual:
-            tail = Double(thisWeek) > baseline.mean ? "well above your usual pace" : "well below your usual pace"
+            tail = Double(thisWeek) > baseline.mean ? String(localized: "well above your usual pace") : String(localized: "well below your usual pace")
         }
 
         // Emerging confidence still gets to speak personally (Phase 3
         // says hedge, not stay silent) — just flagged as an early read
         // rather than stated as flatly as an established baseline would be.
-        let prefix = baseline.confidence == .emergingBaseline ? "Early read: " : ""
-        return "\(prefix)\(thisWeek) \(sessionWord) this week — \(tail)."
+        let prefix = baseline.confidence == .emergingBaseline ? String(localized: "Early read: ") : ""
+        return String(localized: "\(prefix)\(thisWeek) sessions this week — \(tail).")
     }
 
     // MARK: - Weekly muscle map
@@ -277,7 +276,7 @@ struct TrainOverviewView: View {
 
                 TrainingBodyExplorer(
                     highlights: MuscleMapView.intensityHighlights(from: frequencies),
-                    legend: .intensity(low: "Less", high: "Most"),
+                    legend: .intensity(low: String(localized: "Less"), high: String(localized: "Most")),
                     onIdentify: { inspectRecentMuscle($0) }
                 )
                 .frame(maxWidth: .infinity)
@@ -467,7 +466,7 @@ struct TrainOverviewView: View {
 
     private func defaultSessionName(for session: WorkoutSession) -> String {
         let dayName = session.startedAt.formatted(.dateTime.weekday(.wide))
-        return "\(dayName) workout"
+        return String(localized: "\(dayName) workout")
     }
 
     // MARK: - Calendar

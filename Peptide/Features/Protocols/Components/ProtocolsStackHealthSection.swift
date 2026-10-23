@@ -144,13 +144,13 @@ struct ProtocolsStackHealthSection: View {
                 }
                 let newStack = PeptideProtocol(
                     id: UUID(),
-                    name: "\(move.peptide.abbreviation) Solo",
+                    name: String(localized: "\(move.peptide.abbreviation) Solo"),
                     peptides: [move.peptide],
                     schedule: source.schedule,
                     cycleLengthWeeks: source.cycleLengthWeeks,
                     startDate: Date(),
                     status: .active,
-                    notes: "Spun off from \(source.name) to reduce compounding side effects."
+                    notes: String(localized: "Spun off from \(source.name) to reduce compounding side effects.")
                 )
                 dataStore.addProtocol(newStack)
             }

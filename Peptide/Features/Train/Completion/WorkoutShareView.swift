@@ -8,7 +8,10 @@ struct WorkoutShareView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var options = WorkoutShareOptions()
+    /// Opens on the format the user last shared in.
+    @State private var options = WorkoutShareOptions(
+        format: ShareFormatMemory.load(ShareFormatMemory.workoutKey, default: .story)
+    )
     @State private var model = WorkoutShareController()
     @State private var previewImage: UIImage?
     @State private var previewError: String?
@@ -20,11 +23,8 @@ struct WorkoutShareView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
-                    GlassSegmentedControl(
-                        options: WorkoutShareFormat.allCases,
-                        selected: $options.format,
-                        label: { LocalizedStringKey($0.title) }
-                    ).disabled(model.busy).accessibilityIdentifier("workout-share-format")
+                    ShareFormatPicker(options: WorkoutShareFormat.allCases, selection: $options.format)
+                        .disabled(model.busy)
                     GlassSegmentedControl(
                         options: WorkoutShareStyle.allCases,
                         selected: $options.style,
@@ -48,7 +48,7 @@ struct WorkoutShareView: View {
                 }.padding(Spacing.screenPadding)
             }
             .safeAreaInset(edge: .bottom) { actions }
-            .recapScreen(title: "Share workout")
+            .recapScreen(title: String(localized: "Share workout"))
             .toolbar { ToolbarItem(placement: .cancellationAction) {
                 Button("Close") { model.cancel(); dismiss() }.minimumHitArea().disabled(model.savingToPhotos)
             } }
@@ -57,6 +57,9 @@ struct WorkoutShareView: View {
             }
             .interactiveDismissDisabled(model.busy)
             .onChange(of: renderKey) { _, _ in model.optionsChanged() }
+            .onChange(of: options.format) { _, newValue in
+                ShareFormatMemory.save(newValue, ShareFormatMemory.workoutKey)
+            }
             // The previous card stays up until the new one is ready, then
             // cross-fades — clearing it first flashed a blank frame on
             // every option change.
@@ -72,7 +75,7 @@ struct WorkoutShareView: View {
                     }
                 } catch {
                     previewImage = nil
-                    previewError = "Could not prepare the preview. Change a format or try Share again."
+                    previewError = String(localized: "Could not prepare the preview. Change a format or try Share again.")
                 }
             }
             .onDisappear { model.cancel(); model.player?.pause() }
@@ -95,7 +98,7 @@ struct WorkoutShareView: View {
                 Text(model.savingToPhotos ? "Saving to Photos…" : "Preparing share file…").font(AppFont.subheadline)
                 if !model.savingToPhotos { Button("Cancel export") { model.cancel() }.minimumHitArea() }
             } else {
-                RecapAction(title: "Share") { perform(.share) }
+                RecapAction(title: String(localized: "Share")) { perform(.share) }
                     .accessibilityIdentifier("workout-share-send")
                 Button(options.format.isVideo ? "Save video to Photos" : "Save image to Photos") { perform(.save) }
                     .minimumHitArea().accessibilityIdentifier("workout-share-save")

@@ -1,10 +1,10 @@
 import SwiftUI
 import UIKit
 
-/// Renders a `CycleCardView` to a 1080×1920 PNG file in the export
-/// directory. The watermark is part of the same view tree, so a single
-/// `ImageRenderer` pass produces one composited image — there is no
-/// detachable layer for the brand mark.
+/// Renders a `CycleCardView` to a PNG file in the export directory, at
+/// the exact pixel size of the requested `ShareFormat`. The watermark is
+/// part of the same view tree, so a single `ImageRenderer` pass produces
+/// one composited image — there is no detachable layer for the brand mark.
 @MainActor
 enum ShareCardRenderer {
     enum Failure: LocalizedError {
@@ -14,23 +14,23 @@ enum ShareCardRenderer {
 
         var errorDescription: String? {
             switch self {
-            case .render: "Couldn't render the share card."
-            case .encoding: "Couldn't encode the share card as a PNG."
-            case .write: "Couldn't save the share card. Check your free storage and try again."
+            case .render: String(localized: "Couldn't render the share card.")
+            case .encoding: String(localized: "Couldn't encode the share card as a PNG.")
+            case .write: String(localized: "Couldn't save the share card. Check your free storage and try again.")
             }
         }
     }
 
-    /// Instagram Stories canvas — 9:16, 1080 wide. Same dimension every
-    /// caller uses so previews and exports share one tuning.
-    static let canvasSize = CGSize(width: 1080, height: 1920)
-
-    /// Renders `model` as a 1080×1920 PNG and writes it to the export directory.
-    /// Returns the file URL for use with `UIActivityViewController`.
+    /// Renders `model` as a PNG in `format` and writes it to the export
+    /// directory. Returns the file URL for use with `UIActivityViewController`.
     /// `maskCompoundNames` swaps real peptide names for "Compound A/B/C"
     /// so a user can share without publishing their exact stack.
-    static func renderPNG(for model: CycleCardModel, maskCompoundNames: Bool = false) throws -> URL {
-        let image = try renderImage(for: model, maskCompoundNames: maskCompoundNames)
+    static func renderPNG(
+        for model: CycleCardModel,
+        format: ShareFormat = .story,
+        maskCompoundNames: Bool = false
+    ) throws -> URL {
+        let image = try renderImage(for: model, format: format, maskCompoundNames: maskCompoundNames)
         guard let data = image.pngData() else { throw Failure.encoding }
 
         // Shares go in the export folder so "Delete All Data" and the next
@@ -54,17 +54,19 @@ enum ShareCardRenderer {
     /// `scale` below 1 renders a smaller bitmap for an on-screen preview.
     static func renderImage(
         for model: CycleCardModel,
+        format: ShareFormat = .story,
         maskCompoundNames: Bool = false,
         scale: CGFloat = 1
     ) throws -> UIImage {
-        let view = CycleCardView(model: model, maskCompoundNames: maskCompoundNames)
+        let canvasSize = format.pixelSize
+        let view = CycleCardView(model: model, maskCompoundNames: maskCompoundNames, format: format)
             .frame(width: canvasSize.width, height: canvasSize.height)
 
         let renderer = ImageRenderer(content: view)
         renderer.proposedSize = ProposedViewSize(width: canvasSize.width, height: canvasSize.height)
         // The view is authored at exact target pixel dimensions, so exports
         // render at scale 1. Bumping it would explode memory and produce a
-        // 3240×5760 image that no Stories surface expects.
+        // 3× image that no destination expects.
         renderer.scale = scale
         renderer.isOpaque = true
 
