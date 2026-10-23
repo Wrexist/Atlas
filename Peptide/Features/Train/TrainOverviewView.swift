@@ -106,7 +106,6 @@ struct TrainOverviewView: View {
             refresh()
         }
         .onChange(of: selectedPeriod) { _, _ in
-            Haptics.selection()
             AppAnimation.with(AppAnimation.springSmooth) { refreshFrequencies() }
         }
         .sheet(item: $inspectedMuscle) { muscle in
