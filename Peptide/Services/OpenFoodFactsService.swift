@@ -541,11 +541,6 @@ final class OpenFoodFactsService: Sendable {
     /// request.
     private static let decoder = JSONDecoder()
 
-    /// Treat the standard "no path to the server" `URLError` codes as
-    /// offline rather than as generic request failures. Airplane
-    /// Mode, captive portals, mid-flight signal drop, and DNS-down
-    /// all surface through these codes; the UI pivots into "showing
-    /// cached results" mode rather than "lookup failed, try again".
     /// Allow-listed host suffixes for product image URLs. OFF data is
     /// community-edited, so the `image_front_small_url` field is
     /// effectively user-controlled — accepting arbitrary HTTPS hosts
