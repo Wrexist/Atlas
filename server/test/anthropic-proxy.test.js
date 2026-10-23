@@ -357,6 +357,15 @@ test('test_mealScanAndAiResearch_sendThinkingDisabledUpstream', async (t) => {
   }
 });
 
+test('test_thinkingOff_isOmittedForModelThatRejectsDisabled', async (t) => {
+  setEnv(t, { ...BASE_ENV, ALLOWED_MODELS: 'claude-sonnet-5-5' });
+  const upstream = stubUpstream(t);
+  assert.equal((await callRoute(aiResearch, withContent('10.0.9.6', 'What is HRV?'))).statusCode, 200);
+  const sent = JSON.parse(upstream[0][1].body);
+  assert.equal(sent.model, 'claude-sonnet-5-5');
+  assert.equal(sent.thinking, undefined);
+});
+
 test('test_routeWithoutThinkingOption_dropsClientThinkingField', async (t) => {
   setEnv(t, BASE_ENV);
   const upstream = stubUpstream(t);
