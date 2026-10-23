@@ -84,14 +84,15 @@ final class TableCamera: NSObject, AVCapturePhotoCaptureDelegate {
     }
 
     /// The ultra-wide is zoom factor 1 on a virtual device; the main lens
-    /// starts at its first switch-over factor.
+    /// starts at its first switch-over factor. A single wide lens has no
+    /// switch-over, so the three framings step through 1x, 1.5x and 2x.
     func frame(_ lens: Lens) {
         guard let device else { return }
-        let main = device.virtualDeviceSwitchOverVideoZoomFactors.first.map { CGFloat(truncating: $0) } ?? 1
+        let main = device.virtualDeviceSwitchOverVideoZoomFactors.first.map { CGFloat(truncating: $0) }
         let factor: CGFloat = switch lens {
         case .table: 1
-        case .plate: main
-        case .dish:  main * 2
+        case .plate: main ?? 1.5
+        case .dish:  main.map { $0 * 2 } ?? 2
         }
         do {
             try device.lockForConfiguration()
