@@ -10,6 +10,10 @@ import SwiftUI
 /// on the review card so the override stays a focused correction,
 /// not a free-form meal builder.
 struct EditNutritionSheet: View {
+    // Number fields and unit labels hold scaling text, so their widths
+    // scale with Dynamic Type instead of clipping "kcal" or "2500".
+    @ScaledMetric(relativeTo: .body) private var fieldWidth: CGFloat = 100
+    @ScaledMetric(relativeTo: .caption2) private var unitWidth: CGFloat = 32
     let productName: String
     let initial: LoggableMeal?
     let onSave: (LoggableMeal) -> Void
@@ -79,12 +83,12 @@ struct EditNutritionSheet: View {
                 .accessibilityLabel(Text(title))
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.trailing)
-                .frame(maxWidth: 100)
+                .frame(maxWidth: fieldWidth)
                 .monospacedDigit()
             Text(unit)
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
-                .frame(width: 32, alignment: .leading)
+                .frame(width: unitWidth, alignment: .leading)
         }
     }
 

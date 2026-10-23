@@ -8,6 +8,10 @@ import SwiftUI
 /// bucket (audit Meals MED 9), so a user trying to fix yesterday's
 /// entry would silently move it to today. Full edit closes that loop.
 struct MealEntryEditorSheet: View {
+    // Number fields and unit labels hold scaling text, so their widths
+    // scale with Dynamic Type instead of clipping "kcal" or "2500".
+    @ScaledMetric(relativeTo: .body) private var fieldWidth: CGFloat = 100
+    @ScaledMetric(relativeTo: .caption2) private var unitWidth: CGFloat = 32
     let initial: MealEntry
     let onSave: (MealEntry) -> Void
     let onDelete: (UUID) -> Void
@@ -326,12 +330,12 @@ struct MealEntryEditorSheet: View {
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
-                .frame(maxWidth: 100)
+                .frame(maxWidth: fieldWidth)
                 .frame(minHeight: Spacing.minimumHitTarget)
             Text(unit)
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
-                .frame(width: 32, alignment: .leading)
+                .frame(width: unitWidth, alignment: .leading)
         }
     }
 

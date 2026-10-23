@@ -19,6 +19,10 @@ import PhotosUI
 /// coffee, water), but nothing passes 900 kcal or 100 g of macros per
 /// 100 g.
 struct CustomFoodEditorSheet: View {
+    // Number fields and unit labels hold scaling text, so their widths
+    // scale with Dynamic Type instead of clipping "kcal" or "2500".
+    @ScaledMetric(relativeTo: .body) private var fieldWidth: CGFloat = 90
+    @ScaledMetric(relativeTo: .caption2) private var unitWidth: CGFloat = 30
     @Environment(DataStore.self) private var dataStore
     let initial: CustomFood
     let onSave: (CustomFood) -> Void
@@ -413,11 +417,11 @@ struct CustomFoodEditorSheet: View {
                 .multilineTextAlignment(.trailing)
                 .focused($focused, equals: focus)
                 .monospacedDigit()
-                .frame(width: 90)
+                .frame(width: fieldWidth)
             Text(suffix)
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
-                .frame(width: 30, alignment: .leading)
+                .frame(width: unitWidth, alignment: .leading)
         }
     }
 

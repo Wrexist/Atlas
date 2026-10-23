@@ -20,6 +20,10 @@ import SwiftUI
 /// hasn't computed targets yet, render with sensible bounds", and
 /// `.zero` as the initial seed when the editor opens without values.
 struct NutritionTargetsEditor: View {
+    // Number fields and unit labels hold scaling text, so their widths
+    // scale with Dynamic Type instead of clipping "kcal" or "2500".
+    @ScaledMetric(relativeTo: .body) private var fieldWidth: CGFloat = 90
+    @ScaledMetric(relativeTo: .caption2) private var unitWidth: CGFloat = 28
     let initial: NutritionTargets
     /// Body metrics + goal used to compute the recommendation. Passed in
     /// from the call site's `dataStore.profile` so the editor stays free
@@ -465,11 +469,11 @@ struct NutritionTargetsEditor: View {
                     .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
                     .focused($focusedField, equals: field)
-                    .frame(maxWidth: 90)
+                    .frame(maxWidth: fieldWidth)
                 Text(unit)
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
-                    .frame(width: 28, alignment: .leading)
+                    .frame(width: unitWidth, alignment: .leading)
             }
             if value(for: field) == nil {
                 Text(field == .calories ? "Enter 800–10,000 kcal" : "Enter 0–1,000 g")
