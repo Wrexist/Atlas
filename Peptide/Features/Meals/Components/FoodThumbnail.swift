@@ -123,16 +123,21 @@ struct FoodArtwork: Equatable {
 /// A food's picture at a fixed size: the product cut out of its photo on
 /// the food's own tint, the whole photo on a white card when Vision found
 /// no clean edge, else its `FoodArtwork`.
+///
+/// A diary entry only remembers its barcode, so `barcode` looks the
+/// packshot up in the scan cache when no `imageURL` is given.
 struct FoodThumbnail: View {
     let name: String
     let imageURL: URL?
+    let barcode: String?
     let size: CGFloat
 
     @State private var photo: ProductPhoto?
 
-    init(name: String, imageURL: URL? = nil, size: CGFloat = 44) {
+    init(name: String, imageURL: URL? = nil, barcode: String? = nil, size: CGFloat = 44) {
         self.name = name
         self.imageURL = imageURL
+        self.barcode = barcode
         self.size = size
         _photo = State(initialValue: imageURL.flatMap(ProductPhotoStore.shared.cached))
     }
@@ -148,18 +153,24 @@ struct FoodThumbnail: View {
         .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous))
         .appAnimation(AppAnimation.fadeIn, value: photo?.isCutout)
-        .task(id: imageURL) {
-            guard let imageURL else {
+        .task(id: [imageURL?.absoluteString, barcode]) {
+            guard let url = await resolvedURL() else {
                 photo = nil
                 return
             }
-            let loaded = await ProductPhotoStore.shared.photo(for: imageURL)
+            let loaded = await ProductPhotoStore.shared.photo(for: url)
             // A shared load ignores this task's cancellation, so a
             // superseded URL could otherwise land after the current one.
             guard !Task.isCancelled else { return }
             photo = loaded
         }
         .accessibilityHidden(true)
+    }
+
+    private func resolvedURL() async -> URL? {
+        if let imageURL { return imageURL }
+        guard let barcode else { return nil }
+        return await BarcodeProductCache.shared.read(barcode: barcode)?.imageURL
     }
 
     /// A cut-out sits on the same tint as the artwork so a row of them

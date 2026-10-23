@@ -82,7 +82,8 @@ enum SmartFoodLogic {
                 ?? (product.servingGrams == nil && serving != nil
                     ? String(localized: "1 package", comment: "Serving label for a custom food whose serving is the whole package.")
                     : nil),
-            pricePer100g: pricePer100g
+            pricePer100g: pricePer100g,
+            imageURL: product.imageURL
         )
     }
 

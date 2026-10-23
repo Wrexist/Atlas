@@ -355,7 +355,7 @@ struct CustomFoodEditorSheet: View {
     private var draftFood: CustomFood {
         CustomFood(id: initial.id, name: trimmedName, per100g: initial.per100g,
                    servingGrams: Self.parseDecimal(servingGrams).flatMap { $0 > 0 ? $0 : nil },
-                   pricePer100g: pricePer100g)
+                   pricePer100g: pricePer100g, imageURL: initial.imageURL)
     }
 
     private func resumePendingFill() {
@@ -535,6 +535,7 @@ struct CustomFoodEditorSheet: View {
             servingGrams: Self.parseDecimal(servingGrams).flatMap { $0 > 0 ? $0 : nil },
             servingLabel: servingLabel.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
             pricePer100g: pricePer100g,
+            imageURL: initial.imageURL,
             updatedAt: Date()
         )
         onSave(saved)

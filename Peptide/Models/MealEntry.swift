@@ -184,3 +184,18 @@ extension MealEntry {
         )
     }
 }
+
+extension MealEntry {
+    /// The Open Food Facts barcode this meal was logged from, if any.
+    /// Package reads carry a synthetic `ai:` code that no cache knows.
+    var productBarcode: String? {
+        guard source == .openFoodFacts, let sourceID, !sourceID.hasPrefix("ai:") else { return nil }
+        return sourceID
+    }
+
+    /// The packshot of the My Foods entry this meal was logged from.
+    func pictureURL(in customFoods: [CustomFood]) -> URL? {
+        guard source == .custom, let sourceID else { return nil }
+        return customFoods.first { $0.foodID == sourceID }?.imageURL
+    }
+}
