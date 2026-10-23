@@ -5862,72 +5862,42 @@
         }
       }
     },
-    "Already added": {
+    "AI & privacy": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Redan tillagd"
+            "value": "AI och integritet"
           }
         }
       }
     },
-    "Delete routine": {
+    "Delete your data": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Radera rutin"
+            "value": "Radera dina data"
           }
         }
       }
     },
-    "Finish early": {
+    "Private by design — no ads, no tracking": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Avsluta i förtid"
+            "value": "Privat från grunden – ingen reklam, ingen spårning"
           }
         }
       }
     },
-    "Paused — resume to edit sets.": {
+    "These can't be undone.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pausat — återuppta för att ändra set."
-          }
-        }
-      }
-    },
-    "Save your lifts once — start every session in one tap.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Spara dina övningar en gång — starta varje pass med ett tryck."
-          }
-        }
-      }
-    },
-    "Sets done: %lld of %lld": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Klara set: %1$lld av %2$lld"
-          }
-        }
-      }
-    },
-    "Training days this week": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Träningsdagar den här veckan"
+            "value": "Det här går inte att ångra."
           }
         }
       }
@@ -41891,6 +41861,180 @@
           "stringUnit": {
             "state": "translated",
             "value": "Labbskanning ingår i Atlas Pro. Om du prenumererar, återställ ditt köp och försök igen, eller ange värdena för hand."
+          }
+        }
+      }
+    },
+    "Open Profile": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppna profil"
+          }
+        }
+      }
+    },
+    "%lld outside the typical range": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld utanför typiskt intervall"
+          }
+        }
+      }
+    },
+    "^[%lld marker](inflect: true) tracked": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld markör följs"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld markörer följs"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Log another result to see a trend.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga ett resultat till för att se en trend."
+          }
+        }
+      }
+    },
+    "This can take up to a minute. Keep this screen open.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det kan ta upp till en minut. Låt skärmen vara öppen."
+          }
+        }
+      }
+    },
+    "Reading ^[%lld page](inflect: true)…": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Läser %lld sida…"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Läser %lld sidor…"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Personal best": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personbästa"
+          }
+        }
+      }
+    },
+    "Share recap": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dela sammanfattningen"
+          }
+        }
+      }
+    },
+    "Already added": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redan tillagd"
+          }
+        }
+      }
+    },
+    "Delete routine": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Radera rutin"
+          }
+        }
+      }
+    },
+    "Finish early": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avsluta i förtid"
+          }
+        }
+      }
+    },
+    "Paused — resume to edit sets.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausat — återuppta för att ändra set."
+          }
+        }
+      }
+    },
+    "Save your lifts once — start every session in one tap.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spara dina övningar en gång — starta varje pass med ett tryck."
+          }
+        }
+      }
+    },
+    "Sets done: %lld of %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klara set: %1$lld av %2$lld"
+          }
+        }
+      }
+    },
+    "Training days this week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Träningsdagar den här veckan"
           }
         }
       }

@@ -78,9 +78,9 @@ struct AboutSection: View {
                     Divider().overlay(AppColor.glassBorder)
                     Button { showWhatsNewReplay = true } label: {
                         HStack {
-                            Label("Replay What's New tour", systemImage: "sparkles")
+                            Text("Replay What's New tour")
                                 .font(AppFont.subheadline)
-                                .foregroundStyle(AppColor.accentLight)
+                                .foregroundStyle(AppColor.textSecondary)
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .font(AppFont.scaled(11, weight: .semibold))
