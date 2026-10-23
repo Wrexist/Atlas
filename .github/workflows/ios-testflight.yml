@@ -11,7 +11,9 @@ on:
 
 concurrency:
   group: ios-testflight-${{ github.ref }}
-  cancel-in-progress: true
+  # Queue, never cancel: a second dispatch must not kill a run that is
+  # mid-upload or inside match (audit B343).
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -81,8 +83,11 @@ jobs:
         # for us; with it disabled we must pin it ourselves, otherwise
         # `bundle install` and `bundle exec` disagree on the gem path and
         # fastlane fails with "Could not find … in locally installed gems".
+        # Frozen, so a Gemfile/Gemfile.lock mismatch fails here instead of
+        # silently re-resolving fastlane to an untested version.
         run: |
           bundle config set --local path vendor/bundle
+          bundle config set --local frozen true
           bundle install --jobs 4 --retry 3
 
       - uses: webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555 # v0.10.0
