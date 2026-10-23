@@ -216,6 +216,7 @@ struct LabsView: View {
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.textTertiary)
                 .padding(.horizontal, Spacing.xs)
+                .accessibilityAddTraits(.isHeader)
 
             VStack(spacing: Spacing.xs) {
                 ForEach(rows) { summary in

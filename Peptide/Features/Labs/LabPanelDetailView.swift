@@ -129,6 +129,7 @@ struct LabPanelDetailView: View {
                             .tracking(0.6)
                             .textCase(.uppercase)
                             .foregroundStyle(AppColor.textSecondary)
+                            .accessibilityAddTraits(.isHeader)
                         HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                             Text(LabValueFormat.string(latest.value))
                                 .font(AppFont.scaled(34, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
@@ -192,6 +193,7 @@ struct LabPanelDetailView: View {
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityAddTraits(.isHeader)
                 chart(entries)
             }
         }
@@ -216,6 +218,8 @@ struct LabPanelDetailView: View {
                         .foregroundStyle(AppColor.textTertiary)
                         .padding(Spacing.xs)
                 }
+                // Each point already says whether it's in range.
+                .accessibilityHidden(true)
             }
 
             ForEach(entries) { entry in
@@ -225,6 +229,8 @@ struct LabPanelDetailView: View {
                 )
                 .foregroundStyle(panel.tint)
                 .interpolationMethod(.monotone)
+                // Same draw as the point — VoiceOver would read it twice.
+                .accessibilityHidden(true)
 
                 PointMark(
                     x: .value("Date", entry.date),
@@ -232,6 +238,8 @@ struct LabPanelDetailView: View {
                 )
                 .foregroundStyle(pointTint(for: entry))
                 .symbolSize(60)
+                .accessibilityLabel(entry.date.formatted(date: .abbreviated, time: .omitted))
+                .accessibilityValue(spokenValue(for: entry))
             }
 
             if let selected {
@@ -274,6 +282,13 @@ struct LabPanelDetailView: View {
         }
         let scale = values.map { abs($0) }.max() ?? 0
         return ChartYDomain.padded(values, minimumPadding: scale * 0.05) ?? 0...1
+    }
+
+    /// "720 ng/dL, In range" for VoiceOver.
+    private func spokenValue(for entry: LabValue) -> Text {
+        let reading = Text(verbatim: "\(LabValueFormat.string(entry.value)) \(panel.canonicalUnit)")
+        guard let status = LabRangeStatus(value: entry.value, panel: panel, sex: userSex) else { return reading }
+        return reading + Text(verbatim: ", ") + Text(status.label)
     }
 
     /// Colours a draw by where it sits against the typical range, so an
@@ -326,6 +341,7 @@ struct LabPanelDetailView: View {
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityAddTraits(.isHeader)
                 VStack(spacing: Spacing.xs) {
                     ForEach(entries.reversed()) { entry in
                         historyRow(entry)
