@@ -55,7 +55,8 @@ struct BiometricCard: View {
 
                 statusPill
 
-                if let caption = sample?.confidenceCaption {
+                // An old reading matters more than an early range.
+                if let caption = sample?.staleCaption() ?? sample?.confidenceCaption {
                     Text(caption)
                         .font(AppFont.badgeSmall)
                         .foregroundStyle(AppColor.textSecondary)
