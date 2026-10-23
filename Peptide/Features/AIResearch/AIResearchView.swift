@@ -264,7 +264,7 @@ struct AIResearchView: View {
                 }
             } label: {
                 Image(systemName: isStreaming ? "stop.circle.fill" : "arrow.up.circle.fill")
-                    .font(AppFont.scaled(32, weight: .semibold))
+                    .font(AppFont.scaled(32, weight: .semibold, relativeTo: .title2))
                     .foregroundStyle(isStreaming || canSend ? AppColor.accentPrimary : AppColor.textTertiary)
                     .contentTransition(.symbolEffect(.replace))
                     .minimumHitArea()

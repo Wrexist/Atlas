@@ -148,6 +148,10 @@ CASES = [
      'Text("8:14").font(AppFont.scaled(34, weight: .heavy, relativeTo: .title))',
      'Text("8:14").font(AppFont.scaled(34, weight: .heavy, relativeTo: .title1))'),
 
+    ("rule_display_scale_ramp", "Foo.swift",
+     'Image(systemName: "camera").font(AppFont.scaled(56,\n    weight: .light))',
+     'Image(systemName: "camera").font(AppFont.scaled(56, weight: .light, relativeTo: .largeTitle))\nText("a").font(AppFont.scaled(16))'),
+
     ("rule_pure_neutral", "ColorTheme.swift",
      'static let ink = Color(light: 0x000000, dark: 0xFFFFFF)',
      'static let ink = Color(light: 0x111114, dark: 0xF7F7FA)'),

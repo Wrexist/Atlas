@@ -248,6 +248,29 @@ def rule_system_font_modifier(path, source, code) -> list[Finding]:
             for m in re.finditer(r"\.font\(\s*\.system\(size:", code)]
 
 
+def rule_display_scale_ramp(path, source, code) -> list[Finding]:
+    """A display size must say how it scales.
+
+    `AppFont.scaled` defaults to the `.body` ramp, which roughly triples at
+    AX5: a 56pt placeholder glyph becomes ~170pt and pushes real content
+    off screen. Above `AppFont.Scale.heading` (24pt) pass a gentler
+    `relativeTo:` (`.largeTitle`, `.title1`) or pin with `in:`.
+    """
+    if path.name == "Typography.swift":
+        return []
+    out = []
+    for m in re.finditer(r"AppFont\.scaled\(\s*(\d+(?:\.\d+)?)", code):
+        if float(m.group(1)) <= 24:
+            continue
+        args = balanced_args(code, m.start() + len("AppFont.scaled"))
+        if args is None or re.search(r"\b(?:relativeTo|in):", args):
+            continue
+        out.append(Finding(path, line_of(code, m.start()), "display-scale-ramp",
+                           f"{m.group(1)}pt scales along .body and triples at AX5; pass "
+                           "relativeTo: .largeTitle/.title1, or pin with in:", "error"))
+    return out
+
+
 def rule_glow(path, source, code) -> list[Finding]:
     """A coloured shadow behind a *glyph* is a halo — the neon look the
     craft rules exist to prevent.
@@ -884,6 +907,7 @@ RULES = [
     rule_pure_neutral,
     rule_motion,
     rule_fixed_font,
+    rule_display_scale_ramp,
     rule_system_font_modifier,
     rule_glow,
     rule_untargeted_animation,

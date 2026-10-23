@@ -160,7 +160,7 @@ struct WorkoutFinishView: View {
         VStack(spacing: Spacing.sm) {
             if celebratesSave {
                 Image(systemName: "checkmark.circle")
-                    .font(AppFont.scaled(52, weight: .regular))
+                    .font(AppFont.scaled(52, weight: .regular, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.recapSuccess).accessibilityHidden(true)
                     .symbolEffect(.bounce, value: celebrated)
                 Text("Workout saved").font(AppFont.title)

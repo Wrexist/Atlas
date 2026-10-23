@@ -12,7 +12,7 @@ struct WorkoutSaveStatusView: View {
                     ProgressView().controlSize(.large).tint(AppColor.recapAction)
                     Text("Saving workout…").font(AppFont.title2)
                 } else {
-                    Image(systemName: "exclamationmark.circle").font(AppFont.scaled(52, weight: .regular))
+                    Image(systemName: "exclamationmark.circle").font(AppFont.scaled(52, weight: .regular, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.destructive).accessibilityHidden(true)
                     Text("Couldn’t save workout").font(AppFont.title2)
                     Text(error ?? "Please try again.").font(AppFont.body)

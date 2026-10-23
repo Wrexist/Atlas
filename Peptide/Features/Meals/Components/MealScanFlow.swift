@@ -412,7 +412,7 @@ struct MealScanFlow: View {
                 } else {
                     VStack(spacing: Spacing.sm) {
                         Image(systemName: "camera.viewfinder")
-                            .font(AppFont.scaled(56, weight: .light))
+                            .font(AppFont.scaled(56, weight: .light, relativeTo: .largeTitle))
                             .foregroundStyle(AppColor.accentLight)
                         Text("No photo selected")
                             .font(AppFont.caption2)

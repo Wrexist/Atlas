@@ -158,7 +158,7 @@ struct LabScanFlow: View {
             .frame(height: 160)
             .overlay {
                 Image(systemName: "doc.text.viewfinder")
-                    .font(AppFont.scaled(48, weight: .light))
+                    .font(AppFont.scaled(48, weight: .light, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.accentLight)
                     .accessibilityHidden(true)
             }
