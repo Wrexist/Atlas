@@ -131,7 +131,7 @@ struct WorkoutMuscleDetailsView: View {
                             .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: Spacing.xs) {
                             Text(muscle.displayName).font(AppFont.headline)
-                            Text("\(muscle.role.rawValue) · ^[\(muscle.setCount) contributing set](inflect: true)")
+                            Text("\(muscle.role.displayName) · ^[\(muscle.setCount) contributing set](inflect: true)")
                                 .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
                         }
                         Spacer(minLength: 0)
@@ -154,7 +154,7 @@ struct WorkoutMuscleContributionsView: View {
                     RecapCard {
                         VStack(alignment: .leading, spacing: Spacing.md) {
                             Text(contribution.name).font(AppFont.headline)
-                            Text(contribution.role.rawValue).font(AppFont.subheadline)
+                            Text(contribution.role.displayName).font(AppFont.subheadline)
                             ForEach(contribution.sets) { set in RecapSetRow(set: set, unit: unit) }
                         }
                     }

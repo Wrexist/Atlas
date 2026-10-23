@@ -125,7 +125,7 @@ struct WorkoutFocusView: View {
         )
         return VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack(alignment: .top) {
-                Text(exercise?.name ?? "Unknown exercise")
+                Text(exercise?.name ?? String(localized: "Unknown exercise"))
                     .font(AppFont.title3)
                     .foregroundStyle(AppColor.textPrimary)
                 Spacer(minLength: Spacing.xs)

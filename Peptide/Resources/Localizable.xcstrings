@@ -11,6 +11,26 @@
         }
       }
     },
+    " added": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " extra"
+          }
+        }
+      }
+    },
+    " assistance": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " assistans"
+          }
+        }
+      }
+    },
     " Consider transitioning to %@.": {
       "localizations": {
         "sv": {
@@ -47,6 +67,16 @@
           "stringUnit": {
             "state": "translated",
             "value": " per sida · registrerad sida"
+          }
+        }
+      }
+    },
+    " total": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " totalt"
           }
         }
       }
@@ -8760,7 +8790,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kroppsvikt ×"
+            "value": "Kroppsvikt × "
           }
         }
       }

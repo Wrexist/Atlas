@@ -345,7 +345,7 @@ struct WorkoutSessionDetailView: View {
         let label = HStack {
             ExerciseImageView(exercise: exercise)
                 .frame(width: 44, height: 44)
-            Text(exercise?.name ?? "Unknown exercise")
+            Text(exercise?.name ?? String(localized: "Unknown exercise"))
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.leading)

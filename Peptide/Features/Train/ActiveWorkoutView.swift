@@ -491,7 +491,7 @@ private struct FinishWorkoutSheet: View {
                 }
             }
             .appAnimation(AppAnimation.springSnappy, value: effort)
-            Text(effort.map { Self.effortLabels[$0 - 1] } ?? "1 is easy, 5 is everything you had")
+            Text(effort.map { Self.effortLabels[$0 - 1] } ?? String(localized: "1 is easy, 5 is everything you had"))
                 .font(AppFont.footnote)
                 .foregroundStyle(effort == nil ? AppColor.textTertiary : AppColor.textPrimary)
                 .frame(maxWidth: .infinity)
