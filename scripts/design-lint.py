@@ -863,6 +863,15 @@ def rule_accent_gradient_fill(path, source, code) -> list[Finding]:
         out.append(Finding(path, line_of(code, m.start()), "accent-gradient-fill",
                            "accent gradient under onAccent ink drops below 4:1 in the "
                            "dark scheme; fill with AppColor.accentFill", "error"))
+    # The same failure with a solid fill: a selected chip that paints
+    # `accentPrimary` behind `onAccent` is 1.6-3.7:1 in the dark scheme.
+    for m in re.finditer(r"\.fill\(\s*(?:[^\n)]*?\?\s*)?AppColor\.accentPrimary\b(?![)\s]*\.opacity)", code):
+        before = code[max(0, m.start() - 500):m.start()]
+        if "AppColor.onAccent" not in before:
+            continue
+        out.append(Finding(path, line_of(code, m.start()), "accent-gradient-fill",
+                           "accentPrimary fill under onAccent ink drops below 4:1 in the "
+                           "dark scheme; fill with AppColor.accentFill", "error"))
     return out
 
 

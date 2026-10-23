@@ -372,20 +372,20 @@ struct NutritionTargetsEditor: View {
                 Text("\(targets.calories)")
                     .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
                     .monospacedDigit()
-                    .foregroundStyle(isSelected ? AppColor.onAccent.opacity(0.8) : AppColor.textSecondary)
+                    .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textSecondary)
                 if isRecommended {
                     Text("Recommended")
                         .font(AppFont.badge)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
-                        .foregroundStyle(isSelected ? AppColor.onAccent.opacity(0.8) : AppColor.accentLight)
+                        .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.accentLight)
                 }
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.md)
             .background {
                 RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .fill(isSelected ? AppColor.accentPrimary : AppColor.accentPrimary.opacity(0.10))
+                    .fill(isSelected ? AppColor.accentFill : AppColor.accentPrimary.opacity(0.10))
                     .overlay {
                         RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                             .strokeBorder(

@@ -289,7 +289,7 @@ struct MealEntryEditorSheet: View {
                 .padding(.horizontal, Spacing.sm)
                 .padding(.vertical, 6)
                 .background {
-                    Capsule().fill(isActive ? AppColor.accentPrimary : AppColor.surfaceSecondary.opacity(0.6))
+                    Capsule().fill(isActive ? AppColor.accentFill : AppColor.surfaceSecondary.opacity(0.6))
                 }
                 .minimumHitArea()
         }

@@ -1015,7 +1015,7 @@ struct FoodLibraryFlow: View {
                 .foregroundStyle(AppColor.onAccent)
                 .frame(width: 32, height: 32)
                 .background {
-                    Circle().fill(AppColor.accentPrimary)
+                    Circle().fill(AppColor.accentFill)
                 }
                 .minimumHitArea()
         }
