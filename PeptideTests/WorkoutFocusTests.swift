@@ -289,6 +289,38 @@ final class WorkoutFocusServiceTests: XCTestCase {
         XCTAssertEqual(service.activeSession?.completedSetCount, 1)
     }
 
+    func test_liveActivitySkipTappedBeforeThisRest_leavesTheRestRunning() throws {
+        start()
+        service.completeNextSet()
+        let id = try XCTUnwrap(service.activeSession?.id)
+
+        PendingWorkoutActionStore.enqueue(.init(sessionId: id, action: .skipRest, tappedAt: Date().addingTimeInterval(-60)))
+        WorkoutActivityActionProcessor.drain()
+        XCTAssertNotNil(service.activeSession?.focus?.rest)
+
+        PendingWorkoutActionStore.enqueue(.init(sessionId: id, action: .skipRest, tappedAt: Date()))
+        WorkoutActivityActionProcessor.drain()
+        XCTAssertNil(service.activeSession?.focus?.rest)
+    }
+
+    func test_adjustRest_movesTheRingWithTheTimeLeft() throws {
+        start()
+        let started = Date()
+        service.completeNextSet(now: started)
+        let total = try XCTUnwrap(service.activeSession?.focus?.rest?.totalSeconds)
+        let midway = started.addingTimeInterval(total / 2)
+        let before = try XCTUnwrap(service.activeSession?.focus?.rest?.remainingFraction(at: midway))
+
+        service.adjustRest(by: -15, now: midway)
+        let shortened = try XCTUnwrap(service.activeSession?.focus?.rest?.remainingFraction(at: midway))
+        service.adjustRest(by: 15, now: midway)
+        let restored = try XCTUnwrap(service.activeSession?.focus?.rest?.remainingFraction(at: midway))
+
+        XCTAssertLessThan(shortened, before)
+        XCTAssertGreaterThan(restored, shortened)
+        XCTAssertLessThanOrEqual(restored, 1)
+    }
+
     func test_liveActivityTapInAppProcess_isAppliedBeforeIntentReturns() async throws {
         start()
         let id = try XCTUnwrap(service.activeSession?.id)

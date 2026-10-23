@@ -143,6 +143,36 @@ final class PRDetectionEngineTests: XCTestCase {
         )
     }
 
+    /// After a relaunch the custom lift must resolve from the library, or
+    /// the engine falls back to treating its unknown id as bodyweight.
+    func test_customLoadedLiftAtZeroKg_afterRelaunch_doesNotRecordRepsPR() async {
+        let repo = SwiftDataRepository.shared
+        let custom = CustomExercise(name: "Zqx Barbell Row", primaryMuscles: ["lats"], equipment: "barbell")
+        repo.upsertCustomExercise(custom)
+        defer {
+            repo.deleteCustomExercise(id: custom.id)
+            repo.deletePersonalRecord(exerciseID: custom.id)
+            ExerciseLibrary.shared.attachCustomExercises([])
+        }
+        ExerciseLibrary.shared.attachCustomExercises([])
+        ExerciseLibrary.shared.reset()
+        await ExerciseLibrary.shared.load()
+
+        _ = PRDetectionEngine.shared.ingest(session: session(
+            exerciseID: custom.id,
+            sets: [completedSet(weightKg: 0, reps: 3)]
+        ))
+        let detections = PRDetectionEngine.shared.ingest(session: session(
+            exerciseID: custom.id,
+            sets: [completedSet(weightKg: 0, reps: 8)]
+        ))
+
+        XCTAssertFalse(
+            detections.contains { $0.kind == .bodyweightReps },
+            "A custom barbell lift at 0 kg isn't a bodyweight rep PR"
+        )
+    }
+
     // MARK: - Weighted PRs (smoke test for the existing tracks)
 
     func test_weightedSquat_recordsAllThreeWeightedKinds() {

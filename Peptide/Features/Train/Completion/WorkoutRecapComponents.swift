@@ -103,19 +103,20 @@ enum RecapFormat {
             let distance = unit == .imperial ? meters / 0.3048 : meters
             return distance.formatted(.number.precision(.fractionLength(0...1))) + (unit == .imperial ? " ft" : " m")
         default:
-            let reps = set.reps.formatted() + " reps"
+            let reps = String(localized: "\(set.reps) reps")
             guard set.reps >= 0 else { return String(localized: "Repetitions unavailable") }
             guard set.weightKg.isFinite, set.weightKg >= 0 else { return String(localized: "Load unavailable · ") + reps }
             guard set.weightKg > 0 else { return m?.kind == .bodyweight ? String(localized: "Bodyweight × ") + reps : reps }
-            let load = unit.weightForDisplay(set.weightKg).formatted(.number.precision(.fractionLength(0...1)))
+            let load = unit.weightValue(set.weightKg, fractionDigits: 0...2)
             let convention: String
             switch m?.load {
             case .eachPair: convention = String(localized: " each · both counted")
-            case .total: convention = " total"
+            case .total: convention = String(localized: " total")
             case .perSide: convention = String(localized: " per side · recorded side")
             default: convention = ""
             }
-            let role = m?.kind == .assisted ? " assistance" : (m?.kind == .bodyweight ? " added" : "")
+            let role = m?.kind == .assisted ? String(localized: " assistance")
+                : (m?.kind == .bodyweight ? String(localized: " added") : "")
             return "\(load) \(unit.weightSuffix)\(role)\(convention) × \(reps)"
         }
     }
@@ -215,7 +216,7 @@ struct RecapMuscleNames: View {
         let names = muscles.filter { $0.role == role }.map { $0.displayName }
         if !names.isEmpty {
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                Label(role.rawValue, systemImage: role == .primary ? "circle.fill" : "circle.lefthalf.filled")
+                Label(role.displayName, systemImage: role == .primary ? "circle.fill" : "circle.lefthalf.filled")
                     .foregroundStyle(role == .primary ? AppColor.trainingPrimaryMuscle : AppColor.trainingSecondaryMuscle)
                 Text(names.joined(separator: ", ")).foregroundStyle(AppColor.recapText)
             }.font(AppFont.subheadline)

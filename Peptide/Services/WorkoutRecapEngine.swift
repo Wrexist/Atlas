@@ -17,7 +17,16 @@ enum WorkoutRecapEngine {
             }
         }
     }
-    enum Role: String, Sendable { case primary = "Primary", supporting = "Supporting" }
+    enum Role: String, Sendable {
+        case primary = "Primary", supporting = "Supporting"
+
+        var displayName: String {
+            switch self {
+            case .primary: String(localized: "Primary")
+            case .supporting: String(localized: "Supporting")
+            }
+        }
+    }
     struct Contribution: Identifiable, Sendable {
         var id: UUID { entryID }
         let entryID: UUID

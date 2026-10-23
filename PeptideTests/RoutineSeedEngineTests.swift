@@ -171,6 +171,16 @@ final class RoutineSeedEngineTests: XCTestCase {
         XCTAssertEqual(RoutineSeedEngine.estimatedMinutes(for: Routine(name: "Empty")), 0)
     }
 
+    func test_estimatedMinutes_noRestSet_usesTheUsersDefaultRest() {
+        // 5 sets × 40s = 200s work, plus 4 rests: 360s at 90s, 720s at 180s.
+        let routine = Routine(name: "One lift", exercises: [
+            slot("Barbell_Squat", index: 0, sets: 5, rest: nil),
+        ])
+
+        XCTAssertEqual(RoutineSeedEngine.estimatedMinutes(for: routine, defaultRestSeconds: 90), 10)
+        XCTAssertEqual(RoutineSeedEngine.estimatedMinutes(for: routine, defaultRestSeconds: 180), 15)
+    }
+
     func test_estimatedMinutes_countsWorkPlusRestBetweenSets() {
         // 3 sets × 40s work = 120s, plus 2 rests × 90s = 180s → 300s → 5 min.
         let routine = Routine(name: "One lift", exercises: [

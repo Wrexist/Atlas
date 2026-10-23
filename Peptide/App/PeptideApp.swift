@@ -169,6 +169,9 @@ struct PeptideApp: App {
                 // After the drain, so a set ticked on the lock screen
                 // counts as activity before staleness is judged.
                 WorkoutSessionService.shared.closeIfStale()
+                // Starts the workout's activity if Live Activities were
+                // switched on, or a start failed, since the workout began.
+                WorkoutLiveActivityService.shared.reconcile(active: WorkoutSessionService.shared.activeSession)
                 // Re-evaluate which scheduled doses are in their
                 // active window so the lock-screen Live Activities
                 // start / end without needing the user to open the

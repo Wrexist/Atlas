@@ -21,7 +21,12 @@ struct TrainOverviewView: View {
     @Binding var scrollPosition: ScrollPosition
     @Environment(DataStore.self) private var dataStore
     @State private var library = ExerciseLibrary.shared
+    /// Finished sessions, newest first, capped like the History list:
+    /// the recent row, calendar, period maps and regularity.
     @State private var sessions: [WorkoutSession] = []
+    /// Every finished session. The all-time Total map and the "All
+    /// workouts" sheet promise every session, which the cap would break.
+    @State private var allSessions: [WorkoutSession] = []
     @State private var sessionService = WorkoutSessionService.shared
     /// Memoised result of `WeeklyMuscleHeatmap.frequencies` — the
     /// underlying scan is O(sessions × exercises × muscles) and was
@@ -101,17 +106,16 @@ struct TrainOverviewView: View {
             refresh()
         }
         .onChange(of: selectedPeriod) { _, _ in
-            Haptics.selection()
             AppAnimation.with(AppAnimation.springSmooth) { refreshFrequencies() }
         }
         .sheet(item: $inspectedMuscle) { muscle in
             MuscleHistorySheet(
                 muscle: muscle,
                 history: WeeklyMuscleHeatmap.history(
-                    for: muscle, from: sessions, library: library, days: inspectedDays
+                    for: muscle, from: inspectedSessions, library: library, days: inspectedDays
                 ),
                 periodLabel: inspectedPeriodLabel,
-                sessions: sessions
+                sessions: inspectedSessions
             )
         }
     }
@@ -190,10 +194,11 @@ struct TrainOverviewView: View {
     /// which `recordWorkoutFinished` does on every workout finish, so
     /// the heatmap, recents, and calendar update live.
     private func refresh() {
-        sessions = SwiftDataRepository.shared.loadWorkoutSessions()
+        allSessions = Self.finishedHistory(SwiftDataRepository.shared.loadAllWorkoutSessions())
+        sessions = Array(allSessions.prefix(SwiftDataRepository.workoutHistoryFetchLimit))
         refreshFrequencies()
         totalFrequencies = MuscleGainsEngine.totalFrequencies(
-            from: sessions,
+            from: allSessions,
             library: library
         )
         regularity = MuscleGainsEngine.weeklyRegularity(
@@ -201,6 +206,17 @@ struct TrainOverviewView: View {
             library: library
         )
         trainingContextCaption = Self.trainingContextCaption(for: sessions)
+    }
+
+    /// Newest first, without the in-progress workout: a minimized
+    /// session would otherwise show as the latest workout, mark today as
+    /// trained and count toward the week before it's finished.
+    static func finishedHistory(_ sessions: [WorkoutSession]) -> [WorkoutSession] {
+        sessions.filter { !$0.isActive }.sorted { $0.startedAt > $1.startedAt }
+    }
+
+    private var inspectedSessions: [WorkoutSession] {
+        inspectedDays == nil ? allSessions : sessions
     }
 
     private func refreshFrequencies() {
@@ -433,7 +449,7 @@ struct TrainOverviewView: View {
         NavigationLink(value: TrainNavigation.workoutDetail(session.id)) {
             HStack(spacing: Spacing.md) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(session.name ?? defaultSessionName(for: session))
+                    Text(session.displayName)
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(session.startedAt.formatted(date: .abbreviated, time: .shortened))
@@ -456,17 +472,13 @@ struct TrainOverviewView: View {
                 Image(systemName: "chevron.right")
                     .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityHidden(true)
             }
             .padding(.vertical, Spacing.sm)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
-    }
-
-    private func defaultSessionName(for session: WorkoutSession) -> String {
-        let dayName = session.startedAt.formatted(.dateTime.weekday(.wide))
-        return String(localized: "\(dayName) workout")
     }
 
     // MARK: - Calendar

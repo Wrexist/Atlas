@@ -5,9 +5,8 @@ struct WorkoutFinishView: View {
     let unit: MeasurementUnit
     let onClose: () -> Void
     let celebratesSave: Bool
-    /// Records this save set. Cleared after an edit: the edit re-derives
-    /// stored records, so these could name a set the user just corrected.
-    @State private var detectedPRs: [PRDetectionEngine.DetectedPR]
+    /// Records this save set.
+    private let savedPRs: [PRDetectionEngine.DetectedPR]
     @State private var store: WorkoutRecapStore
     @State private var summaryService = OnDeviceSummaryService.shared
     @State private var editing = false
@@ -23,7 +22,7 @@ struct WorkoutFinishView: View {
         self.unit = unit
         self.onClose = onClose
         self.celebratesSave = celebratesSave
-        _detectedPRs = State(initialValue: detectedPRs)
+        self.savedPRs = detectedPRs
         _store = State(initialValue: WorkoutRecapStore(session: session, anchorsWeekOnSession: !celebratesSave))
     }
 
@@ -122,7 +121,6 @@ struct WorkoutFinishView: View {
         .sheet(isPresented: $editing) {
             WorkoutSavedEditor(session: store.session, unit: unit) { edited in
                 try store.saveEdits(edited)
-                detectedPRs = []
             }
         }
         .sheet(isPresented: $sharing) {
@@ -145,6 +143,13 @@ struct WorkoutFinishView: View {
                     .ignoresSafeArea()
             }
         }
+    }
+
+    /// Hidden once the workout is edited, from here or from the exercise
+    /// list: the edit re-derives stored records, so these could name a set
+    /// the user just corrected.
+    private var detectedPRs: [PRDetectionEngine.DetectedPR] {
+        store.wasEdited ? [] : savedPRs
     }
 
     /// The week count only reads as "this week" when the recap charts the
@@ -263,7 +268,7 @@ struct RecapNewPRs: View {
             let reps = Int(pr.value)
             return reps == 1 ? String(localized: "1 rep") : String(localized: "\(reps) reps")
         }
-        let load = unit.weightForDisplay(pr.value).formatted(.number.precision(.fractionLength(0...1)))
+        let load = unit.weightValue(pr.value, fractionDigits: 0...2)
         return load + " " + unit.weightSuffix
     }
 }

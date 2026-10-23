@@ -86,7 +86,7 @@ struct ExercisePickerSheet: View {
                     SwiftDataRepository.shared.upsertCustomExercise(custom)
                     // Attach before committing so the workout resolves the
                     // new lift's id instead of showing "Unknown exercise".
-                    library.attachCustomExercises(SwiftDataRepository.shared.loadCustomExercises())
+                    library.reloadCustomExercises()
                     // Add the newly created exercise (after anything
                     // already picked) so the user goes straight back
                     // into their workout with the new lift added.

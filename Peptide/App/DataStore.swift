@@ -2898,6 +2898,7 @@ final class DataStore {
         // Meals card, and its end-of-fast reminder, stale.
         RoutineStore.shared.load()
         FastingStore.shared.load()
+        ExerciseLibrary.shared.reloadCustomExercises()
         // CloudKit-driven pulls land here; without these the lock-
         // screen widget and the Watch tab would stay stale until the
         // next user mutation or the widget's 15-min auto-timer.
@@ -3019,6 +3020,7 @@ final class DataStore {
             customPeptides = training.customPeptides
             PersistenceService.shared.saveCustomPeptides(training.customPeptides)
             RoutineStore.shared.load()
+            ExerciseLibrary.shared.reloadCustomExercises()
 
             // Training rows bypass the `protocols`/`entries`/`profile`
             // didSet bumps, same as recordWorkoutFinished — bump so

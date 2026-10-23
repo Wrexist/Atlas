@@ -11,6 +11,26 @@
         }
       }
     },
+    " added": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " extra"
+          }
+        }
+      }
+    },
+    " assistance": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " assistans"
+          }
+        }
+      }
+    },
     " Consider transitioning to %@.": {
       "localizations": {
         "sv": {
@@ -47,6 +67,16 @@
           "stringUnit": {
             "state": "translated",
             "value": " per sida · registrerad sida"
+          }
+        }
+      }
+    },
+    " total": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " totalt"
           }
         }
       }
@@ -827,6 +857,38 @@
         }
       }
     },
+    "%@ target: ^[%lld set](inflect: true) of ^[%lld rep](inflect: true)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ mål: %2$lld set à %#@arg3@"
+          },
+          "substitutions": {
+            "arg3": {
+              "argNum": 3,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg rep"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg reps"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%@ tier": {
       "localizations": {
         "sv": {
@@ -1583,6 +1645,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@, relativ träningspoäng %lld av 100"
+          }
+        }
+      }
+    },
+    "%@, set %lld: enter a distance greater than zero.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, set %2$lld: ange en distans större än noll."
+          }
+        }
+      }
+    },
+    "%@, set %lld: enter a duration greater than zero.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, set %2$lld: ange en tid större än noll."
+          }
+        }
+      }
+    },
+    "%@, set %lld: enter a valid load and repetition count.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, set %2$lld: ange en giltig vikt och ett giltigt antal repetitioner."
           }
         }
       }
@@ -3409,6 +3501,16 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "%lld out of 5": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld av 5"
           }
         }
       }
@@ -8808,7 +8910,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kroppsvikt ×"
+            "value": "Kroppsvikt × "
           }
         }
       }
@@ -10381,6 +10483,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tidig fasta"
+          }
+        }
+      }
+    },
+    "Enter a bar weight.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ange stångens vikt."
+          }
+        }
+      }
+    },
+    "Enter a target above zero and up to %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ange ett mål över noll och högst %@."
           }
         }
       }
@@ -26609,6 +26731,16 @@
         }
       }
     },
+    "Rest before warm-up": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vila före uppvärmning"
+          }
+        }
+      }
+    },
     "Review Protocol now": {
       "localizations": {
         "sv": {
@@ -31373,6 +31505,58 @@
         }
       }
     },
+    "Starting this routine seeds ^[%lld empty set](inflect: true), each aiming for ^[%lld rep](inflect: true) at the weight you last lifted.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rutinen startar med %#@arg1@, vart och ett med målet %#@arg2@ på vikten du senast lyfte."
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg tomt set"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg tomma set"
+                    }
+                  }
+                }
+              }
+            },
+            "arg2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg rep"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg reps"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Starts %@": {
       "localizations": {
         "sv": {
@@ -35185,6 +35369,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Härnäst: %@ · Set %lld"
+          }
+        }
+      }
+    },
+    "Up next: %@ · Warm-up": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Härnäst: %@ · Uppvärmning"
           }
         }
       }
