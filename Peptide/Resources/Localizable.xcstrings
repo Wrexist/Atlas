@@ -18041,16 +18041,6 @@
         }
       }
     },
-    "Isolate %@ from the \"%@\" cluster": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Isolera %@ från klustret ”%@”"
-          }
-        }
-      }
-    },
     "It also comes off your meal log and calorie totals.": {
       "localizations": {
         "sv": {
@@ -19967,16 +19957,6 @@
         }
       }
     },
-    "Lower \"%@\" overlap in %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mindre ”%@”-överlapp i %@"
-          }
-        }
-      }
-    },
     "Lower back": {
       "localizations": {
         "sv": {
@@ -21797,16 +21777,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Snyggt. Det var allt – så snabbt går dina pass."
-          }
-        }
-      }
-    },
-    "No \"%@\" overlap in %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ingen ”%@”-överlapp i %@"
           }
         }
       }

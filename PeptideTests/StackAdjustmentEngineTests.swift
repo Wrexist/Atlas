@@ -171,54 +171,21 @@ final class StackAdjustmentEngineTests: XCTestCase {
         XCTAssertTrue(hasDiscard, "discard option must be present")
     }
 
-    /// A target protocol that already shares the same compounding cluster (≥2
-    /// existing peptides with the same side effect) should NOT be offered as a
-    /// relocation home — moving there would just recreate the warning.
-    func test_relocations_skipsProtocolsThatWouldRecreateCluster() {
-        let dropped = peptide(abbr: "DropMe", sideEffects: ["headache"])
-        let bp1 = peptide(abbr: "Bp1", sideEffects: ["headache"])
-        let bp2 = peptide(abbr: "Bp2", sideEffects: ["headache"])
-
-        let crowded = makeProtocol(name: "CrowdedHeadaches", peptides: [bp1, bp2])
-        let sourceId = UUID()
-
-        let result = StackAdjustmentEngine.relocations(
-            for: [dropped],
-            sourceProtocolId: sourceId,
-            sideEffectKey: "headache",
-            in: [crowded]
-        )
-
-        let firstOptions = result.first?.options ?? []
-        let movedToCrowded = firstOptions.contains {
-            if case .moveTo(let id, _, _) = $0 { return id == crowded.id }
-            return false
-        }
-        XCTAssertFalse(movedToCrowded, "Should not offer to move into a protocol that already has 2+ matching side-effect peptides")
-    }
-
-    /// A target protocol with no overlap on the offending side effect should be
-    /// offered — the move is genuinely safer.
-    func test_relocations_offersCleanProtocolAsTarget() {
+    /// Compounding warnings are computed over every active protocol at
+    /// once, so a move can't clear them — only Discard is offered.
+    func test_relocations_compoundingWarning_offersOnlyDiscard() {
         let dropped = peptide(abbr: "DropMe", sideEffects: ["headache"])
         let clean = peptide(abbr: "Clean", sideEffects: ["fatigue"])
-
         let cleanProtocol = makeProtocol(name: "CleanStack", peptides: [clean])
-        let sourceId = UUID()
 
         let result = StackAdjustmentEngine.relocations(
             for: [dropped],
-            sourceProtocolId: sourceId,
+            sourceProtocolId: UUID(),
             sideEffectKey: "headache",
             in: [cleanProtocol]
         )
 
-        let firstOptions = result.first?.options ?? []
-        let movedToClean = firstOptions.contains {
-            if case .moveTo(let id, _, _) = $0 { return id == cleanProtocol.id }
-            return false
-        }
-        XCTAssertTrue(movedToClean)
+        XCTAssertEqual(result.first?.options, [.discard])
     }
 
     /// Inactive protocols are never offered as relocation targets.
