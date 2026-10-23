@@ -107,6 +107,28 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         XCTAssertEqual(product.novaGroup, 3)
     }
 
+    func test_fetch_unreadableNumericStrings_stillReturnsProduct() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.unreadableNumerics.utf8))
+        }
+        let product = try await service.fetch(barcode: "9999999999999")
+        XCTAssertEqual(product.name, "Messy record")
+        XCTAssertNil(product.servingGrams)
+        XCTAssertNil(product.novaGroup)
+        XCTAssertEqual(product.per100g.fatG, 0)
+        XCTAssertEqual(product.per100g.proteinG, 1.5, accuracy: 0.001)
+        XCTAssertEqual(product.per100g.calories, 120, accuracy: 0.001)
+    }
+
+    func test_search_oneUnreadableProduct_keepsTheRestOfThePage() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.searchWithBadFat.utf8))
+        }
+        let results = try await service.search(query: "lenient-decode-\(UUID().uuidString)")
+        XCTAssertEqual(results.map(\.name), ["Good oats", "Odd oats"])
+        XCTAssertEqual(results.last?.per100g.fatG, 0)
+    }
+
     // MARK: - fetch: OFF data quirks
 
     func test_fetch_fallsBackToKilojoules_whenKcalAbsent() async throws {
@@ -520,6 +542,40 @@ private enum Fixtures {
           "fat_100g": "1"
         }
       }
+    }
+    """
+
+    static let unreadableNumerics = """
+    {
+      "status": 1,
+      "code": "9999999999999",
+      "product": {
+        "product_name": "Messy record",
+        "serving_quantity": "",
+        "nova_group": "unknown",
+        "nutriments": {
+          "energy-kcal_100g": " 120 ",
+          "proteins_100g": "1,5",
+          "fat_100g": "n/a"
+        }
+      }
+    }
+    """
+
+    static let searchWithBadFat = """
+    {
+      "products": [
+        {
+          "code": "1000000000001",
+          "product_name": "Good oats",
+          "nutriments": { "energy-kcal_100g": 370, "fat_100g": 7 }
+        },
+        {
+          "code": "1000000000002",
+          "product_name": "Odd oats",
+          "nutriments": { "energy-kcal_100g": 360, "fat_100g": "n/a" }
+        }
+      ]
     }
     """
 

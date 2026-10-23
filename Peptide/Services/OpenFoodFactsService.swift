@@ -639,7 +639,7 @@ private extension OpenFoodFactsService {
             // describes their entry, not this field), so it always
             // converts.
             let calories = n?.energyKcal100g?.value
-                ?? n?.energy100g.map { $0.value / 4.184 }
+                ?? n?.energy100g?.value.map { $0 / 4.184 }
                 ?? 0
 
             let per100 = ScannedProduct.Nutriments(
@@ -662,8 +662,8 @@ private extension OpenFoodFactsService {
                 // OFF occasionally serializes 0 for unknown weights —
                 // collapse to nil so `defaultPortion` correctly skips
                 // the .servings branch and the "Add" button stays live.
-                servingGrams: servingQuantity?.value.positiveOrNil,
-                packageGrams: productQuantity?.value.positiveOrNil
+                servingGrams: servingQuantity?.value?.positiveOrNil,
+                packageGrams: productQuantity?.value?.positiveOrNil
                     ?? quantity.flatMap(OpenFoodFactsService.packageGrams(fromQuantity:)),
                 per100g: per100,
                 nutriScore: nutriscoreGrade?.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -705,46 +705,42 @@ private extension OpenFoodFactsService {
 
         /// Whether the record states energy or any macro, zero included.
         var hasEnergyOrMacros: Bool {
-            [energyKcal100g, energy100g, proteins100g, carbohydrates100g, fat100g].contains { $0 != nil }
+            [energyKcal100g, energy100g, proteins100g, carbohydrates100g, fat100g].contains { $0?.value != nil }
         }
     }
 }
 
 /// Open Food Facts inconsistently serializes numeric fields as numbers
-/// or as strings ("330" vs 330). These wrappers absorb the variance so
-/// the rest of the codebase only deals with `Double` / `Int`.
+/// or as strings ("330", "1,5", "", "n/a"). These wrappers absorb the
+/// variance: anything unreadable decodes to a nil `value` instead of
+/// throwing, so one bad field can't fail the whole product or a whole
+/// search page.
 private struct FlexibleDouble: Decodable {
-    let value: Double
+    let value: Double?
     init(from decoder: Decoder) throws {
         let c = try decoder.singleValueContainer()
         if let d = try? c.decode(Double.self) {
             value = d
-        } else if let s = try? c.decode(String.self), let d = Double(s) {
-            value = d
+        } else if let s = try? c.decode(String.self) {
+            value = Double(s.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: "."))
         } else {
-            throw DecodingError.typeMismatch(
-                Double.self,
-                .init(codingPath: decoder.codingPath, debugDescription: "Expected Double or numeric String")
-            )
+            value = nil
         }
     }
 }
 
 private struct FlexibleInt: Decodable {
-    let value: Int
+    let value: Int?
     init(from decoder: Decoder) throws {
         let c = try decoder.singleValueContainer()
         if let i = try? c.decode(Int.self) {
             value = i
-        } else if let d = try? c.decode(Double.self) {
+        } else if let d = try? c.decode(Double.self), d.isFinite {
             value = Int(d)
-        } else if let s = try? c.decode(String.self), let i = Int(s) {
-            value = i
+        } else if let s = try? c.decode(String.self) {
+            value = Int(s.trimmingCharacters(in: .whitespacesAndNewlines))
         } else {
-            throw DecodingError.typeMismatch(
-                Int.self,
-                .init(codingPath: decoder.codingPath, debugDescription: "Expected Int, Double, or numeric String")
-            )
+            value = nil
         }
     }
 }
