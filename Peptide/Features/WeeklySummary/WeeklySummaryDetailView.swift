@@ -28,6 +28,9 @@ struct WeeklySummaryDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.xl) {
                 hero
+                if refreshFailed {
+                    refreshFailedNotice
+                }
                 statsGrid
                 bodyText
                 metadataRow
@@ -38,7 +41,15 @@ struct WeeklySummaryDetailView: View {
         .background(AppColor.background)
         .navigationTitle("Weekly recap")
         .navigationBarTitleDisplayMode(.inline)
+        .appAnimation(AppAnimation.springSnappy, value: refreshFailed)
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                ShareLink(item: shareText) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(AppFont.scaled(16, weight: .semibold))
+                }
+                .accessibilityLabel("Share recap")
+            }
             if let onRefresh {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -92,6 +103,20 @@ struct WeeklySummaryDetailView: View {
                 Spacer(minLength: 0)
             }
         }
+    }
+
+    /// Right under the title, where the eye is after tapping refresh —
+    /// not only in the footer at the bottom of the page.
+    private var refreshFailedNotice: some View {
+        Label("Couldn't reach Atlas — showing the offline summary", systemImage: "wifi.slash")
+            .font(AppFont.caption2.weight(.semibold))
+            .foregroundStyle(AppColor.warning)
+            .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+
+    /// The week's title and the recap itself, for the share sheet.
+    private var shareText: String {
+        "\(weekTitle(for: summary.weekStart))\n\n\(summary.text)"
     }
 
     // MARK: - Stats grid
@@ -193,10 +218,8 @@ struct WeeklySummaryDetailView: View {
         if summary.kind == .ai {
             return String(localized: "Personalized by AI")
         }
-        if refreshFailed {
-            return String(localized: "Couldn't reach Atlas — showing the offline summary")
-        }
-        return onRefresh == nil
+        // The notice under the title already says the refresh failed.
+        return onRefresh == nil || refreshFailed
             ? String(localized: "Offline summary")
             : String(localized: "Offline summary — try refreshing")
     }
