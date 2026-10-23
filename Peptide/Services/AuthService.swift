@@ -118,10 +118,12 @@ final class AuthService {
         timeoutTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: Self.signInTimeout)
             guard let self, !Task.isCancelled, self.isSigningIn else { return }
-            self.isSigningIn = false
-            self.coordinator = nil
-            self.lastError = .timedOut
             AppLog.auth.error("Sign in with Apple timed out (no callback within timeout window)")
+            // Cancelling, not just dropping, the coordinator dismisses
+            // Apple's sheet and resolves the request once through
+            // `finishSignIn`, so a late completion can't sign the user in
+            // behind the timeout alert.
+            self.coordinator?.cancel(reporting: SignInTimedOut())
         }
     }
 
@@ -190,6 +192,8 @@ final class AuthService {
             if !handleAuthorization(result) {
                 lastError = .failed("Could not read your Apple ID credential.")
             }
+        case .failure(let error) where error is SignInTimedOut:
+            lastError = .timedOut
         case .failure(let error):
             let asCode = (error as? ASAuthorizationError)?.code
             switch asCode {
@@ -524,6 +528,9 @@ final class AuthService {
     }
 }
 
+/// What `signIn()`'s watchdog reports when it cancels a hung request.
+private struct SignInTimedOut: Error {}
+
 // MARK: - ASAuthorizationController Coordinator
 
 /// Drives `ASAuthorizationController` directly so we can supply an explicit
@@ -560,12 +567,12 @@ private final class AppleSignInCoordinator: NSObject {
         controller.performRequests()
     }
 
-    /// Resolves as `.failed` and dismisses Apple's sheet. `finish` resolves
+    /// Resolves with `error` and dismisses Apple's sheet. `finish` resolves
     /// once, so the controller's own cancel callback afterwards is a no-op,
     /// and so is this after a real callback.
-    func cancel() {
+    func cancel(reporting error: any Error = ASAuthorizationError(.failed)) {
         let controller = self.controller
-        finish(.failure(ASAuthorizationError(.failed)))
+        finish(.failure(error))
         controller?.cancel()
     }
 
