@@ -255,4 +255,31 @@ final class StackAdjustmentEngineTests: XCTestCase {
             XCTFail("recommended must not default to .discard when other options exist")
         }
     }
+
+    // MARK: - proposedPeptides
+
+    func test_proposedPeptides_peptideMissingFromDatabase_isKeptNotRemoved() {
+        let custom = peptide(abbr: "Custom-1")
+        let bpc = peptide(abbr: "BPC")
+        let original = [custom, bpc]
+        let proposed = StackAdjustmentEngine.proposedPeptides(
+            original: original,
+            selectedIds: Set(original.map(\.id)),
+            database: [bpc]
+        )
+        XCTAssertEqual(proposed.map(\.id), [custom.id, bpc.id])
+        XCTAssertTrue(StackAdjustmentEngine.diff(original: original, proposed: proposed).removed.isEmpty)
+    }
+
+    func test_proposedPeptides_keepsUserOrderAndAppendsAdditions() {
+        let tb = peptide(abbr: "TB")
+        let bpc = peptide(abbr: "BPC")
+        let ghk = peptide(abbr: "GHK")
+        let proposed = StackAdjustmentEngine.proposedPeptides(
+            original: [tb, bpc],
+            selectedIds: [tb.id, bpc.id, ghk.id],
+            database: [bpc, ghk, tb]
+        )
+        XCTAssertEqual(proposed.map(\.abbreviation), ["TB", "BPC", "GHK"])
+    }
 }

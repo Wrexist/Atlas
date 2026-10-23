@@ -1435,16 +1435,6 @@
         }
       }
     },
-    "%@, %lld percent remaining": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@, %lld procent kvar"
-          }
-        }
-      }
-    },
     "%@, ^[%lld workout](inflect: true)": {
       "localizations": {
         "sv": {
@@ -3525,10 +3515,60 @@
     },
     "%lld peptides · %lld flagged": {
       "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%#@arg1@ · %2$lld flagged"
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg peptide"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg peptides"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld peptider · %lld flaggade"
+            "value": "%#@arg1@ · %2$lld flaggade"
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg peptid"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg peptider"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -5785,6 +5825,16 @@
         }
       }
     },
+    "Adjust protocol": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Justera protokoll"
+          }
+        }
+      }
+    },
     "Adjust schedule": {
       "localizations": {
         "sv": {
@@ -5801,6 +5851,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "ANPASSAR FÖR"
+          }
+        }
+      }
+    },
+    "Adjusting for": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anpassar för"
           }
         }
       }
@@ -5841,6 +5901,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "ALT"
+          }
+        }
+      }
+    },
+    "Apply changes": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tillämpa ändringar"
           }
         }
       }
@@ -10465,6 +10535,26 @@
         }
       }
     },
+    "Double-tap to remove": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dubbeltryck för att ta bort"
+          }
+        }
+      }
+    },
+    "Double-tap to restore": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dubbeltryck för att återställa"
+          }
+        }
+      }
+    },
     "Drag to reorder. Switch a section off to hide it from Today.": {
       "localizations": {
         "sv": {
@@ -10511,6 +10601,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Redigera vana"
+          }
+        }
+      }
+    },
+    "Edit protocol": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redigera protokoll"
           }
         }
       }
@@ -10961,6 +11061,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ny vana"
+          }
+        }
+      }
+    },
+    "No changes": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga ändringar"
           }
         }
       }
@@ -18066,7 +18176,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ingår"
+            "value": "Inkluderad"
           }
         }
       }
@@ -24737,6 +24847,26 @@
         }
       }
     },
+    "Protocol alerts": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protokollvarningar"
+          }
+        }
+      }
+    },
+    "Protocol completeness": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protokollets fullständighet"
+          }
+        }
+      }
+    },
     "PROTOCOL SCORE": {
       "localizations": {
         "sv": {
@@ -26575,6 +26705,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Senaste trend"
+          }
+        }
+      }
+    },
+    "Recommended for your protocol": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rekommenderat för ditt protokoll"
           }
         }
       }
@@ -30843,6 +30983,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Små vinster, varje dag. Se din svit – och din Atlas-poäng – klättra."
+          }
+        }
+      }
+    },
+    "Smart planner": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Smart planerare"
           }
         }
       }
@@ -36971,6 +37121,16 @@
         }
       }
     },
+    "Will be removed": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tas bort"
+          }
+        }
+      }
+    },
     "Wipes your current workouts, meals, protocols and profile, then restores from the backup. A snapshot is taken first.": {
       "localizations": {
         "sv": {
@@ -37443,6 +37603,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "DITT LAGER"
+          }
+        }
+      }
+    },
+    "Your protocol compounds": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina protokollsubstanser"
           }
         }
       }

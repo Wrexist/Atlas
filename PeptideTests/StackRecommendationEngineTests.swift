@@ -296,7 +296,7 @@ final class StackRecommendationEngineTests: XCTestCase {
         let hasBurden = warnings.contains { $0.title.contains("injection burden") }
         // Injection burden fires when daily count > 4; depends on frequency strings
         if hasBurden {
-            XCTAssertTrue(warnings.contains { $0.icon == "syringe.fill" && $0.kind == .injectionBurden })
+            XCTAssertTrue(warnings.contains { $0.icon == "syringe.fill" })
         }
     }
 

@@ -68,23 +68,17 @@ struct ProtocolsStackHealthSection: View {
                 StackAlertDetailSheet(
                     warning: warning,
                     peptideDatabase: dataStore.peptideDatabase,
-                    onPrimaryAction: {
-                        if canAdjustStack(for: warning) {
-                            // Defer until the detail sheet finishes
-                            // dismissing — SwiftUI can't chain two
-                            // sheets in the same runloop tick.
-                            Task { @MainActor in
-                                try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
-                                adjustingAlert = warning
-                            }
-                        } else {
-                            // No adjustable protocol — the warning
-                            // is informational only. Already on the
-                            // Protocols tab so we just dismiss and
-                            // let the user navigate.
-                            selectedAlert = nil
+                    // No adjustable protocol: the warning is informational
+                    // and the sheet offers only "Got it".
+                    onEditProtocol: canAdjustStack(for: warning) ? {
+                        // Defer until the detail sheet finishes
+                        // dismissing — SwiftUI can't chain two
+                        // sheets in the same runloop tick.
+                        Task { @MainActor in
+                            try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
+                            adjustingAlert = warning
                         }
-                    }
+                    } : nil
                 )
             }
             .sheet(item: $adjustingAlert) { warning in

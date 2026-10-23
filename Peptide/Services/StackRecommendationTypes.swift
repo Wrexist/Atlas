@@ -89,16 +89,9 @@ extension StackRecommendationEngine {
         let suggestion: String
         let peptides: [String]
         let icon: String
-        var kind: Kind = .general
 
         enum Severity: Comparable {
             case info, caution, danger
-        }
-
-        /// What the warning is about, so the UI can pick a follow-up
-        /// action without matching (localizable) title text.
-        enum Kind {
-            case general, cycleOverrun, desensitization, timingConflict, injectionBurden
         }
     }
 

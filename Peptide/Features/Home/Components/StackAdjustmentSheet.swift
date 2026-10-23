@@ -60,7 +60,11 @@ struct StackAdjustmentSheet: View {
     }
 
     private var proposedPeptides: [Peptide] {
-        peptideDatabase.filter { selectedPeptideIds.contains($0.id) }
+        StackAdjustmentEngine.proposedPeptides(
+            original: originalPeptides,
+            selectedIds: selectedPeptideIds,
+            database: peptideDatabase
+        )
     }
 
     private var diff: StackAdjustmentEngine.Diff {
@@ -102,7 +106,7 @@ struct StackAdjustmentSheet: View {
             }
             .background(AppColor.background)
             .safeAreaInset(edge: .bottom) { applyFooter }
-            .navigationTitle("Adjust Protocol")
+            .navigationTitle("Adjust protocol")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -132,9 +136,11 @@ struct StackAdjustmentSheet: View {
                 Image(systemName: "slider.horizontal.3")
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.accentPrimary)
-                Text("ADJUSTING FOR")
-                    .font(AppFont.scaled(11, weight: .bold))
-                    .tracking(0.6)
+                    .accessibilityHidden(true)
+                Text("Adjusting for")
+                    .font(AppFont.eyebrow)
+                    .tracking(0.8)
+                    .textCase(.uppercase)
                     .foregroundStyle(AppColor.textSecondary)
             }
             Text(warning.title)
@@ -163,6 +169,7 @@ struct StackAdjustmentSheet: View {
                         stackPickerRow(proto)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityAddTraits(proto.id == selectedProtocolId ? .isSelected : [])
                 }
             }
         }
@@ -176,6 +183,7 @@ struct StackAdjustmentSheet: View {
             Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                 .font(AppFont.scaled(16))
                 .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textTertiary)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(proto.name)
                     .font(AppFont.subheadline)
@@ -189,6 +197,8 @@ struct StackAdjustmentSheet: View {
         }
         .padding(.horizontal, Spacing.sm)
         .padding(.vertical, Spacing.xs)
+        // The whole row is the target, not just its text and glyph.
+        .contentShape(Rectangle())
         .background {
             if isSelected {
                 RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
@@ -237,9 +247,10 @@ struct StackAdjustmentSheet: View {
             .padding(.top, 2)
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text("\(label.uppercased()) (\(peptides.count))")
-                    .font(AppFont.scaled(11, weight: .bold))
-                    .tracking(0.5)
+                Text("\(label) (\(peptides.count))")
+                    .font(AppFont.eyebrow)
+                    .tracking(0.8)
+                    .textCase(.uppercase)
                     .foregroundStyle(color)
                 FlowLayout(spacing: Spacing.xs) {
                     ForEach(peptides) { peptide in
@@ -338,6 +349,7 @@ struct StackAdjustmentSheet: View {
             HStack(spacing: 4) {
                 Image(systemName: isIncluded ? "checkmark" : "xmark")
                     .font(AppFont.scaled(8, weight: .bold))
+                    .accessibilityHidden(true)
                 Text(peptide.abbreviation)
                     .font(AppFont.caption2)
                     .fontWeight(.semibold)
@@ -351,8 +363,11 @@ struct StackAdjustmentSheet: View {
                     .fill(color.opacity(isIncluded ? 0.14 : 0.10))
                     .overlay { Capsule().strokeBorder(color.opacity(0.3), lineWidth: 0.5) }
             }
+            .minimumHitArea()
         }
         .buttonStyle(.plain)
+        .accessibilityValue(isIncluded ? Text("Included") : Text("Will be removed"))
+        .accessibilityHint(isIncluded ? Text("Double-tap to remove") : Text("Double-tap to restore"))
     }
 
     private var relocationCard: some View {
@@ -441,7 +456,7 @@ struct StackAdjustmentSheet: View {
     private var applyFooter: some View {
         VStack(spacing: Spacing.xs) {
             GlassButton(
-                title: diff.hasChanges ? "Apply Changes" : "No Changes",
+                title: diff.hasChanges ? "Apply changes" : "No changes",
                 icon: diff.hasChanges ? "checkmark" : nil,
                 style: diff.hasChanges ? .primary : .ghost,
                 isFullWidth: true
@@ -509,9 +524,10 @@ struct StackAdjustmentSheet: View {
                 Image(systemName: icon)
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(tint)
-                Text(title.uppercased())
-                    .font(AppFont.scaled(11, weight: .bold))
-                    .tracking(0.6)
+                Text(title)
+                    .font(AppFont.eyebrow)
+                    .tracking(0.8)
+                    .textCase(.uppercase)
                     .foregroundStyle(AppColor.textSecondary)
             }
             content()
