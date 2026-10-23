@@ -59,7 +59,7 @@ enum PlateCalculatorEngine {
     /// reachable load rather than filling greedily, so an odd plate set
     /// (only 25s and 20s) still finds 20 + 20 for 40 a side.
     static func calculate(target: Double, barWeight: Double, plates: [Double]) -> Outcome {
-        guard isPlausible(target), barWeight == 0 || isPlausible(barWeight) else { return .invalid }
+        guard isPlausible(target), isValidBar(barWeight) else { return .invalid }
         let targetUnits = hundredths(target)
         let barUnits = hundredths(barWeight)
         guard targetUnits >= barUnits else { return .belowBar }
@@ -79,6 +79,11 @@ enum PlateCalculatorEngine {
             loadedTotal: value(loadedUnits),
             remainder: value(targetUnits - loadedUnits)
         ))
+    }
+
+    /// A bar may weigh zero: some Smith machines are counterbalanced.
+    static func isValidBar(_ weight: Double) -> Bool {
+        weight == 0 || isPlausible(weight)
     }
 
     /// The smallest change in total load the plates allow — one of the

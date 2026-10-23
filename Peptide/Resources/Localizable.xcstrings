@@ -10357,6 +10357,26 @@
         }
       }
     },
+    "Enter a bar weight.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ange stångens vikt."
+          }
+        }
+      }
+    },
+    "Enter a target above zero and up to %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ange ett mål över noll och högst %@."
+          }
+        }
+      }
+    },
     "Estimated expenditure: %lld kcal": {
       "localizations": {
         "sv": {
