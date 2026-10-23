@@ -169,7 +169,8 @@ struct PeptideScheduleSheet: View {
                     .foregroundStyle(AppColor.textPrimary)
 
                 HStack {
-                    Text("Days")
+                    // Same label the protocol detail uses for an every-N-days plan.
+                    Text(defaultSchedule.isInterval ? "Cadence" : "Days")
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
                     Spacer()
