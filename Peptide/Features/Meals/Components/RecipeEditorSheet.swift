@@ -132,13 +132,12 @@ struct RecipeEditorSheet: View {
     }
 
     private var macrosPreview: some View {
-        let totals = RecipeDataLogic.totals(
-            for: livePreview,
-            customFoods: availableCustomFoods
-        )
+        let review = RecipeDataLogic.review(for: livePreview, customFoods: availableCustomFoods)
+        let totals = review.totals ?? RecipeDataLogic.totals(for: livePreview, customFoods: availableCustomFoods)
+        // An empty new recipe has nothing to fix yet, so it isn't partial.
+        let isPartial = !components.isEmpty && review.totals == nil
         return GlassCard(tinted: true, padding: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                let isPartial = RecipeDataLogic.review(for: livePreview, customFoods: availableCustomFoods).totals == nil
                 Text(isPartial ? "Partial" : "Logs as")
                     .font(AppFont.eyebrow)
                     .tracking(0.8)
