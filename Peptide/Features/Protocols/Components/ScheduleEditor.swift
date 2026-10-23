@@ -142,20 +142,18 @@ struct ScheduleEditor: View {
 
     private func intervalStepper(binding: Binding<Int>) -> some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            HStack {
-                Text("Every")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-
-                Spacer()
-
-                LiquidGlassStepper(
+            StepperRow(
+                stepper: LiquidGlassStepper(
                     label: "Dose interval",
                     value: binding,
                     range: 1...30,
                     formatter: { $0 == 1 ? String(localized: "1 day") : String(localized: "\($0) days") },
                     width: 88
                 )
+            ) {
+                Text("Every")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
             }
 
             Text(intervalHint(for: binding.wrappedValue))
@@ -178,18 +176,18 @@ struct ScheduleEditor: View {
     // MARK: - Times per day
 
     private var timesPerDayStepper: some View {
-        HStack {
-            Text("Times per Day")
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-            Spacer()
-            LiquidGlassStepper(
+        StepperRow(
+            stepper: LiquidGlassStepper(
                 label: "Times per day",
                 value: $timesPerDay,
                 range: 1...4,
                 formatter: { "\($0)" },
                 width: 36
             )
+        ) {
+            Text("Times per Day")
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
         }
     }
 
@@ -271,18 +269,18 @@ struct ScheduleEditor: View {
     // MARK: - Cycle length
 
     private func cycleLengthStepper(binding: Binding<Int>) -> some View {
-        HStack {
-            Text("Cycle Length")
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-            Spacer()
-            LiquidGlassStepper(
+        StepperRow(
+            stepper: LiquidGlassStepper(
                 label: "Cycle length",
                 value: binding,
                 range: 1...24,
                 formatter: { String(localized: "\($0) wk") },
                 width: 64
             )
+        ) {
+            Text("Cycle Length")
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
         }
     }
 
@@ -339,6 +337,29 @@ private extension View {
     }
 }
 
+// MARK: - StepperRow
+
+/// A label beside its stepper, stacked under it when large text no longer
+/// fits on one line.
+struct StepperRow<Content: View>: View {
+    let stepper: LiquidGlassStepper
+    @ViewBuilder let label: () -> Content
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack {
+                label()
+                Spacer()
+                stepper
+            }
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                label()
+                stepper
+            }
+        }
+    }
+}
+
 // MARK: - LiquidGlassStepper
 
 /// Compact "−  value  +" control with the app's liquid-glass styling. Used
@@ -364,10 +385,14 @@ struct LiquidGlassStepper: View {
                 AppAnimation.with(AppAnimation.springSnappy) { value -= 1 }
             }
 
+            // `width` is a floor that keeps the control steady at default
+            // sizes; the value grows past it at large Dynamic Type rather
+            // than truncating — it's the one thing the control shows.
             Text(formatter(value))
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.accentLight)
-                .frame(width: width)
+                .fixedSize()
+                .frame(minWidth: width)
                 .monospacedDigit()
                 .contentTransition(.numericText())
                 .appAnimation(AppAnimation.quick, value: value)
