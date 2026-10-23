@@ -428,38 +428,48 @@ final class WorkoutSessionService {
     /// that logged this exercise — the source of each row's "previous"
     /// hint (see `PreviousSetEngine`). Empty when there is no history.
     ///
-    /// Read from a memo of every exercise built in one history pass: a
-    /// lookup deserializes the stored workouts, and seeding a routine plus
-    /// the exercise stack's re-renders ask once per exercise. Only finished
-    /// sessions count — not the active one, nor one still open on another
-    /// device — so editing sets can't change the answer; only a start,
-    /// finish, discard, orphan closure or history edit can, and those
-    /// clear the memo. The whole history is read, so a lift last done
-    /// hundreds of workouts ago still has a previous. An exercise logged twice in one session contributes
-    /// both entries' sets, in entry order.
+    /// Read from a memo of every exercise built in one pass over the recent
+    /// history window: a lookup deserializes the stored workouts, and
+    /// seeding a routine plus the exercise stack's re-renders ask once per
+    /// exercise. Only finished sessions count — not the active one, nor one
+    /// still open on another device — so editing sets can't change the
+    /// answer; only a start, finish, discard, orphan closure or history
+    /// edit can, and those clear the memo. A lift missing from the window
+    /// is looked up once in the rest of the history, decoding only the
+    /// workouts that log it, so one last done hundreds of workouts ago
+    /// still has a previous without decoding every workout at start. An
+    /// exercise logged twice in one session contributes both entries'
+    /// sets, in entry order.
     func previousSessionSets(forExerciseID id: String) -> [SetEntry] {
-        previousSetsByExercise()[id] ?? []
+        if let sets = previousSetsByExercise()[id] { return sets }
+        let older = SwiftDataRepository.shared.loadFinishedWorkoutSessions(touching: [id])
+            .reversed()
+            .lazy
+            .map { Self.completedSets(of: id, in: $0) }
+            .first { !$0.isEmpty } ?? []
+        previousSetCache?[id] = older
+        return older
     }
 
     private func previousSetsByExercise() -> [String: [SetEntry]] {
         if let cached = previousSetCache { return cached }
         var byExercise: [String: [SetEntry]] = [:]
         // Newest first, so each exercise keeps its most recent session.
-        let sessions = SwiftDataRepository.shared.loadAllWorkoutSessions()
-            .sorted { $0.startedAt > $1.startedAt }
-        for session in sessions where session.finishedAt != nil {
-            var sessionSets: [String: [SetEntry]] = [:]
-            for entry in session.exercises.sorted(by: { $0.index < $1.index })
-            where byExercise[entry.exerciseID] == nil {
-                sessionSets[entry.exerciseID, default: []]
-                    += entry.sets.filter { $0.completed && $0.supportsRepLogging }
-            }
-            for (exerciseID, completed) in sessionSets where !completed.isEmpty {
-                byExercise[exerciseID] = completed
+        for session in SwiftDataRepository.shared.loadWorkoutSessions() where session.finishedAt != nil {
+            for exerciseID in Set(session.exercises.map(\.exerciseID)) where byExercise[exerciseID] == nil {
+                let completed = Self.completedSets(of: exerciseID, in: session)
+                if !completed.isEmpty { byExercise[exerciseID] = completed }
             }
         }
         previousSetCache = byExercise
         return byExercise
+    }
+
+    nonisolated private static func completedSets(of exerciseID: String, in session: WorkoutSession) -> [SetEntry] {
+        session.exercises
+            .filter { $0.exerciseID == exerciseID }
+            .sorted { $0.index < $1.index }
+            .flatMap { $0.sets.filter { $0.completed && $0.supportsRepLogging } }
     }
 
     // MARK: - Progression
