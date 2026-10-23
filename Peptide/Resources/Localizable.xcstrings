@@ -41946,6 +41946,26 @@
           }
         }
       }
+    },
+    "Today, meals logged": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idag, måltider loggade"
+          }
+        }
+      }
+    },
+    "Meals logged": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Måltider loggade"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
