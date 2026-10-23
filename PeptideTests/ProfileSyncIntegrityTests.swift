@@ -337,6 +337,20 @@ final class ProfileSyncIntegrityTests: XCTestCase {
         XCTAssertEqual(LifestyleDataLogic.consumption(in: merged, for: day).waterFluidOunces, 24)
     }
 
+    func test_reconcile_rowsCopiedFromOneHistory_doNotDoubleTheirWater() {
+        var primary = UserProfile.fresh
+        LifestyleDataLogic.logMealEntry(into: &primary, entry: meal("Shared lunch"))
+        LifestyleDataLogic.logWater(into: &primary, fluidOunces: 8, date: day)
+        var other = primary
+        LifestyleDataLogic.logWater(into: &other, fluidOunces: 4, date: day)
+
+        let identical = ProfileMergeEngine.reconcile(primary, with: primary)
+        let diverged = ProfileMergeEngine.reconcile(primary, with: other)
+
+        XCTAssertEqual(LifestyleDataLogic.consumption(in: identical, for: day).waterFluidOunces, 8)
+        XCTAssertEqual(LifestyleDataLogic.consumption(in: diverged, for: day).waterFluidOunces, 12)
+    }
+
     func test_reconcile_legacyWorkoutsOnTheOtherRow_areKept() {
         var other = UserProfile.fresh
         other.workoutHistory = [WorkoutEntry(date: day, name: "Run", sets: 1, reps: 1, durationMinutes: 30)]

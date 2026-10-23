@@ -79,17 +79,24 @@ enum ProfileMergeEngine {
     /// Meals the other row alone holds join the diary. A day only the
     /// other row has keeps its whole bucket; a day both rows have gains
     /// just those meals' macros, so nothing is counted twice, plus the
-    /// other row's water, which has no per-glass record to match on.
+    /// other row's water, which has no per-glass record to match on
+    /// (an identical bucket is the same day twice and adds nothing).
     private static func mergeMeals(from other: UserProfile, into merged: inout UserProfile, primary: UserProfile) {
         let known = Set(primary.mealHistory.map(\.id))
         let otherOnly = other.mealHistory.filter { !known.contains($0.id) }
         merged.mealHistory = (primary.mealHistory + otherOnly).sorted { $0.date < $1.date }
+        // Rows sharing a meal are copies of one history (a backup restored
+        // on two devices), so their water is the same water: the larger
+        // total stays rather than the sum.
+        let copies = otherOnly.count < other.mealHistory.count
         for (key, bucket) in other.dailyConsumption {
-            if primary.dailyConsumption[key] == nil {
+            guard let own = primary.dailyConsumption[key] else {
                 merged.dailyConsumption[key] = bucket
-            } else {
-                merged.dailyConsumption[key]?.addWater(fluidOunces: bucket.waterFluidOunces)
+                continue
             }
+            guard own != bucket else { continue }
+            let water = copies ? max(0, bucket.waterFluidOunces - own.waterFluidOunces) : bucket.waterFluidOunces
+            merged.dailyConsumption[key]?.addWater(fluidOunces: water)
         }
         for entry in otherOnly
         where primary.dailyConsumption[LifestyleDataLogic.consumptionKey(for: entry.date)] != nil {
