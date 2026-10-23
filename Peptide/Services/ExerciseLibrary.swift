@@ -84,7 +84,9 @@ final class ExerciseLibrary {
         // Move the read + decode off the main actor. The bundled JSON is
         // ~800 KB; on older devices the synchronous Data(contentsOf:) +
         // JSONDecoder runs visibly stalled the first Train tab open.
-        let languages = Bundle.main.localizations
+        // A Set: the bundle can list a localization twice ("en" does), and
+        // a duplicate key traps in Dictionary(uniqueKeysWithValues:).
+        let languages = Set(Bundle.main.localizations)
         let parsed: ([Exercise], [String: [String: [String]]])? = await Task.detached(priority: .userInitiated) {
             do {
                 let data = try Data(contentsOf: url)
