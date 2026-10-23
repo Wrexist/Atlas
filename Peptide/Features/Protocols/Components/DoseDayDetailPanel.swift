@@ -206,7 +206,9 @@ struct DoseDayDetailPanel: View {
 
                 HStack(spacing: Spacing.sm) {
                     if let time = mark.time {
-                        Label(time, systemImage: "clock")
+                        // Scheduled marks carry the raw "h:mm a" storage
+                        // key; render it in the user's clock format.
+                        Label(ProtocolSchedule.displayTime(time), systemImage: "clock")
                             .labelStyle(.titleAndIcon)
                             .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textTertiary)

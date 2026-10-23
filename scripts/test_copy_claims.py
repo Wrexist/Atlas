@@ -1,4 +1,4 @@
-"""Regression checks for add-only vs read/write Photos purpose strings."""
+"""Regression checks for check-copy-claims.py."""
 import importlib.util
 from pathlib import Path
 import re
@@ -7,6 +7,32 @@ import unittest
 spec = importlib.util.spec_from_file_location("claims", Path(__file__).with_name("check-copy-claims.py"))
 claims = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(claims)
+
+
+class StoreFacingCopyTests(unittest.TestCase):
+    def test_marketing_page_and_social_images_are_scanned_for_retired_terms(self):
+        scanned = {str(p.relative_to(claims.REPO)) for p in claims.store_facing_files()}
+        self.assertIn("docs/index.html", scanned)
+        self.assertIn("marketing/app-store/social/square-biology.html", scanned)
+        self.assertIn("marketing/app-store/screens/07-biology.html", scanned)
+
+    def test_retired_terms_match_performance_age_and_stack(self):
+        for text in ["Track your Performance Age.", "your stack", "stacking"]:
+            with self.subTest(text=text):
+                self.assertRegex(text, claims.RETIRED_TERMS)
+        self.assertNotRegex("Track your Biological Age.", claims.RETIRED_TERMS)
+
+    def test_offer_countdown_copy_is_flagged(self):
+        self.assertRegex("⚡ WELCOME OFFER ENDS IN", claims.COUNTDOWN_COPY)
+        self.assertNotRegex("7 days free, then choose a plan", claims.COUNTDOWN_COPY)
+
+    def test_dosing_directives_are_flagged_and_neutral_copy_is_not(self):
+        for text in ["(recommended max: 2)", "Monitor liver enzymes (ALT, AST)",
+                     "Growth + Recovery amplify tissue repair",
+                     "don't eat for 30 min after injection"]:
+            with self.subTest(text=text):
+                self.assertRegex(text, claims.HEALTH_DIRECTIVES)
+        self.assertNotRegex("Discuss liver monitoring with your clinician.", claims.HEALTH_DIRECTIVES)
 
 
 class PhotosPurposeTests(unittest.TestCase):
@@ -33,6 +59,24 @@ class PhotosPurposeTests(unittest.TestCase):
     def test_mixed_read_and_add_requires_both(self):
         self.assertEqual(self.required("PHAsset.fetchAssets(); PHAssetCreationRequest.forAsset()"),
                          set(claims.PHOTO_USAGE_PATTERNS))
+
+
+class HealthWriteTests(unittest.TestCase):
+    def writes(self, source):
+        return re.search(claims.HEALTH_WRITE_PATTERN, source) is not None
+
+    def test_empty_share_set_is_read_only(self):
+        for source in ["requestAuthorization(toShare: [], read: readTypes)",
+                       "getRequestStatusForAuthorization(toShare: [ ], read: types)",
+                       "requestAuthorization(toShare: nil, read: readTypes)"]:
+            with self.subTest(source=source):
+                self.assertFalse(self.writes(source))
+
+    def test_non_empty_share_set_is_a_write(self):
+        for source in ["requestAuthorization(toShare: nutritionWriteTypes, read: [])",
+                       "requestAuthorization(\n    toShare: [HKQuantityType(.bodyMass)],\n    read: [])"]:
+            with self.subTest(source=source):
+                self.assertTrue(self.writes(source))
 
 
 if __name__ == "__main__":

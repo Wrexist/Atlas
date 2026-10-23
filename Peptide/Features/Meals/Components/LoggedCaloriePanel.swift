@@ -21,6 +21,8 @@ struct LoggedCaloriePanel: View {
     /// value on appear, locking the user's eye to the change they
     /// just caused.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Grows with Dynamic Type so the scaled numbers stay inside the stroke.
+    @ScaledMetric(relativeTo: .title2) private var ringDiameter: CGFloat = 110
     @State private var hasRevealed = false
 
     // State records presentation, never a copy of the caller's calorie total.
@@ -50,14 +52,19 @@ struct LoggedCaloriePanel: View {
                         .font(AppFont.scaled(20, weight: .heavy))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
                         .contentTransition(.numericText())
                     Text("of \(targetCalories) kcal")
                         .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                         .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
                 }
+                .padding(.horizontal, Spacing.md)
             }
-            .frame(width: 110, height: 110)
+            .frame(width: ringDiameter, height: ringDiameter)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Calories for \(date.formatted(date: .abbreviated, time: .omitted)): \(totalCalories) of \(targetCalories)")
             .accessibilityValue("\(Int(finalProgress * 100)) percent")

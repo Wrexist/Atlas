@@ -295,6 +295,13 @@ final class StoreService {
     /// App Store guideline 3.1.2(a) is specific about that.
     var hasLifetimeAccess: Bool { purchasedProductIDs.contains(Self.lifetimeID) }
 
+    /// True while a monthly or annual subscription is active. Deleting the
+    /// account or data doesn't stop Apple billing it, so erase flows must
+    /// say so (App Store guideline 5.1.1(v)).
+    var hasAutoRenewingSubscription: Bool {
+        !purchasedProductIDs.isDisjoint(with: [Self.monthlyID, Self.annualID])
+    }
+
     /// Gates the Pro weekly AI recap — enforced in
     /// `WeeklySummaryService.isAvailable(profile:)`.
     ///

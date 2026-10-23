@@ -51,6 +51,12 @@ struct ScannedProduct: Codable, Hashable, Sendable {
     /// real zero-calorie label (water, plain tea). Set at mapping time
     /// because the values alone cannot tell the two apart.
     var nutritionMissing = false
+
+    /// True when Atlas AI read this product off its package because the
+    /// database had no record, so a re-scan served from the cache keeps
+    /// its "Read from the package" badge. Optional so cache entries
+    /// written before it existed still decode.
+    var readFromPackage: Bool?
 }
 
 extension ScannedProduct {
@@ -119,8 +125,20 @@ extension ScannedProduct {
     /// reasonable single-meal size, else 100 g as the safe default.
     var defaultPortion: Portion {
         if servingGrams != nil { return .servings(1) }
-        if let pkg = packageGrams, pkg <= 500 { return .wholePackage }
+        if wholePackageIsOneMeal { return .wholePackage }
         return .grams(100)
+    }
+
+    /// Grams in one serving, or in the whole package when that is a
+    /// reasonable single meal. Nil for a 1 kg bag with no serving size,
+    /// so nothing defaults to logging the entire package.
+    var oneServingGrams: Double? {
+        servingGrams ?? (wholePackageIsOneMeal ? packageGrams : nil)
+    }
+
+    private var wholePackageIsOneMeal: Bool {
+        guard let pkg = packageGrams else { return false }
+        return pkg <= 500
     }
 
     /// False when the record has no energy and no macros at all. Crowd

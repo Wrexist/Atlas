@@ -42,6 +42,24 @@ final class PrimaryReasonEngineTests: XCTestCase {
         let reason = PrimaryReasonEngine.pick(context: context)
         XCTAssertEqual(reason.priority, .optionalReminder)
         XCTAssertEqual(reason.message.body, "Start with BPC-157 — fasted, on waking")
+        // The enriched copy keeps its kind, so nothing downstream has to
+        // recognise it by its localised eyebrow.
+        XCTAssertEqual(reason.message.kind, .onTrack)
+    }
+
+    /// The tiering keys on which branch produced the message, so the eyebrow
+    /// copy can be reworded or translated without moving a message to a
+    /// different tier.
+    func test_pick_classifiesByMessageKind_notDisplayCopy() {
+        let welcome = PrimaryReasonEngine.pick(context: .init(coaching: coachingContext(hasProtocols: false, memberDays: 1)))
+        XCTAssertEqual(welcome.message.kind, .welcome)
+        XCTAssertEqual(welcome.priority, .optionalReminder)
+
+        let onTrack = PrimaryReasonEngine.pick(context: .init(
+            coaching: coachingContext(), dailyPlanHeadline: "Plan headline"
+        ))
+        XCTAssertEqual(onTrack.message.kind, .onTrack)
+        XCTAssertEqual(onTrack.message.body, "Plan headline")
     }
 
     // MARK: - Multiple candidates → exactly one clear primary, by priority
@@ -151,5 +169,43 @@ final class PrimaryReasonEngineTests: XCTestCase {
         let reason = PrimaryReasonEngine.pick(context: context)
         XCTAssertEqual(reason.priority, .optionalReminder)
         XCTAssertEqual(reason.message.eyebrow, "WELCOME")
+    }
+
+    // MARK: - Onboarding messages yield to concrete tasks
+
+    func test_pick_healthNotConnectedWithHabitsDue_returnsHabitsReason() {
+        let context = PrimaryReasonEngine.Context(
+            coaching: coachingContext(healthConnected: false),
+            habitsDueCount: 2,
+            habitsDoneCount: 0
+        )
+        let reason = PrimaryReasonEngine.pick(context: context)
+        XCTAssertEqual(reason.priority, .highValueAction)
+        XCTAssertEqual(reason.message.kind, .habitsDue)
+    }
+
+    func test_pick_healthNotConnectedLateWithPendingDoses_returnsCatchUp() {
+        let context = PrimaryReasonEngine.Context(
+            coaching: coachingContext(healthConnected: false, pendingDoseCount: 3, hourOfDay: 20)
+        )
+        let reason = PrimaryReasonEngine.pick(context: context)
+        XCTAssertEqual(reason.priority, .timeSensitive)
+        XCTAssertEqual(reason.message.kind, .catchUp)
+    }
+
+    func test_pick_newMemberWithHabitsDue_habitsOutrankWelcome() {
+        let context = PrimaryReasonEngine.Context(
+            coaching: coachingContext(hasProtocols: false, memberDays: 1),
+            habitsDueCount: 1,
+            habitsDoneCount: 0
+        )
+        XCTAssertEqual(PrimaryReasonEngine.pick(context: context).message.kind, .habitsDue)
+    }
+
+    func test_pick_healthNotConnectedNothingDue_fallsBackToConnectHealth() {
+        let context = PrimaryReasonEngine.Context(coaching: coachingContext(healthConnected: false))
+        let reason = PrimaryReasonEngine.pick(context: context)
+        XCTAssertEqual(reason.priority, .optionalReminder)
+        XCTAssertEqual(reason.message.kind, .connectHealth)
     }
 }

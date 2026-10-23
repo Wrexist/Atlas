@@ -112,13 +112,24 @@ enum AppFont {
         relativeTo textStyle: UIFont.TextStyle = .body,
         in dynamicTypeSize: DynamicTypeSize? = nil
     ) -> Font {
-        let metrics = UIFontMetrics(forTextStyle: textStyle)
-        let pointSize = dynamicTypeSize.map {
-            metrics.scaledValue(
-                for: size,
-                compatibleWith: UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory($0))
-            )
-        } ?? metrics.scaledValue(for: size)
+        let pointSize = scaledValue(size, relativeTo: textStyle, in: dynamicTypeSize)
         return .system(size: pointSize, weight: weight, design: design)
+    }
+
+    /// `value` scaled exactly as `scaled(_:)` scales a point size, for a
+    /// frame that has to grow with the glyph inside it (an icon tile, a
+    /// selection circle). Pass the same `textStyle` and `dynamicTypeSize`
+    /// as the glyph's font so the two stay in proportion.
+    static func scaledValue(
+        _ value: CGFloat,
+        relativeTo textStyle: UIFont.TextStyle = .body,
+        in dynamicTypeSize: DynamicTypeSize? = nil
+    ) -> CGFloat {
+        let metrics = UIFontMetrics(forTextStyle: textStyle)
+        guard let dynamicTypeSize else { return metrics.scaledValue(for: value) }
+        return metrics.scaledValue(
+            for: value,
+            compatibleWith: UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(dynamicTypeSize))
+        )
     }
 }

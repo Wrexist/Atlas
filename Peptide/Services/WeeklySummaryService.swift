@@ -22,15 +22,26 @@ final class WeeklySummaryService {
 
     private let session: URLSession
     private let endpointOverride: URL?
+    private let secretOverride: String?
+    /// The recap uploads weekly totals and the HRV trend, so it honours
+    /// the same AI data-sharing consent the Privacy screen revokes.
+    private let isConsentGranted: () -> Bool
 
     /// Maximum cached weekly summaries before older ones are
     /// trimmed. 26 weeks × ~500 bytes per summary = ~13 KB JSON,
     /// well within the comfortable bound for the profile sidecar.
     static let maxCachedSummaries: Int = 26
 
-    init(session: URLSession = .shared, endpointOverride: URL? = nil) {
+    init(
+        session: URLSession = .shared,
+        endpointOverride: URL? = nil,
+        secretOverride: String? = nil,
+        isConsentGranted: @escaping () -> Bool = { AIDataConsent.isGranted }
+    ) {
         self.session = session
         self.endpointOverride = endpointOverride
+        self.secretOverride = secretOverride
+        self.isConsentGranted = isConsentGranted
     }
 
     // MARK: - Gates
@@ -216,8 +227,13 @@ final class WeeklySummaryService {
     /// summary when the network is unreachable. Both branches
     /// produce a `WeeklySummary` with the same shape so the UI
     /// renders identically; only the `kind` field distinguishes.
-    private func fetchOrFallback(aggregate: WeeklyAggregate) async -> WeeklySummary {
+    /// Without AI data-sharing consent nothing is sent; the offline
+    /// recap is built on device instead. Internal for tests.
+    func fetchOrFallback(aggregate: WeeklyAggregate) async -> WeeklySummary {
         let fingerprint = Self.sourceFingerprint(of: aggregate)
+        guard isConsentGranted() else {
+            return offlineSummary(for: aggregate, fingerprint: fingerprint)
+        }
         do {
             let text = try await fetchAISummary(aggregate: aggregate)
             return WeeklySummary(
@@ -236,15 +252,19 @@ final class WeeklySummaryService {
             AppLog.persistence.error(
                 "Weekly summary fetch failed: \(String(describing: error), privacy: .private)"
             )
-            return WeeklySummary(
-                weekStart: aggregate.weekStart,
-                text: OfflineWeeklySummaryFormatter.summary(from: aggregate),
-                keyStats: keyStats(from: aggregate),
-                kind: .offline,
-                generatedAt: Date(),
-                sourceFingerprint: fingerprint
-            )
+            return offlineSummary(for: aggregate, fingerprint: fingerprint)
         }
+    }
+
+    private func offlineSummary(for aggregate: WeeklyAggregate, fingerprint: String) -> WeeklySummary {
+        WeeklySummary(
+            weekStart: aggregate.weekStart,
+            text: OfflineWeeklySummaryFormatter.summary(from: aggregate),
+            keyStats: keyStats(from: aggregate),
+            kind: .offline,
+            generatedAt: Date(),
+            sourceFingerprint: fingerprint
+        )
     }
 
     private func fetchAISummary(aggregate: WeeklyAggregate) async throws -> String {
@@ -263,10 +283,13 @@ final class WeeklySummaryService {
         request.httpBody = try JSONEncoder().encode(RequestEnvelope(aggregate: aggregate))
 
         var (data, response) = try await session.data(for: attested(request))
-        if (response as? HTTPURLResponse)?.statusCode == 401, AppAttestService.isAttestRejection(data) {
-            // The proxy lost this install's key: register a fresh one
-            // and send once more rather than stay on the offline recap.
-            await AppAttestService.shared.invalidateRegistration()
+        if let http = response as? HTTPURLResponse, http.statusCode == 401,
+           await AppAttestService.shared.recover(
+               fromRejection: data, serverDate: http.value(forHTTPHeaderField: "Date")
+           ) {
+            // The proxy lost this install's key or refused the device
+            // clock: recover and send once more rather than stay on the
+            // offline recap.
             (data, response) = try await session.data(for: attested(request, waitForRegistration: true))
         }
         guard let http = response as? HTTPURLResponse else {
@@ -322,7 +345,7 @@ final class WeeklySummaryService {
     /// (AEDT, JST) the key wrote the previous Sunday's date and
     /// cache lookups missed (audit Biology H8). Now stamps with the
     /// calendar's timezone so the key round-trips locally.
-    private static func weekStartString(for date: Date) -> String {
+    nonisolated static func weekStartString(for date: Date) -> String {
         var calendar = Calendar(identifier: .iso8601)
         calendar.firstWeekday = 2
         // Fall back to the date itself (not `DateInterval()`, whose
@@ -356,7 +379,7 @@ final class WeeklySummaryService {
     }
 
     private var proxySecret: String? {
-        MealScannerService.stringSetting(forKey: "WEEKLY_SUMMARY_SECRET")
+        secretOverride ?? MealScannerService.stringSetting(forKey: "WEEKLY_SUMMARY_SECRET")
     }
 
     // MARK: - Wire formats

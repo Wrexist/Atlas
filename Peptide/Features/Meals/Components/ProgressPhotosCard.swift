@@ -36,10 +36,16 @@ struct ProgressPhotosCard: View {
 
     private static let slotCount = 4
 
+    /// Photos with a file on this device, oldest first. The synced profile
+    /// can name photos taken on another device, whose files never arrive.
+    private var localFilenames: [String] {
+        ProgressPhotoMetadata.onDevice(dataStore.profile.progressPhotoFilenames, exists: ProgressPhotoStorage.exists)
+    }
+
     /// Newest-first slice of the most recent four filenames so the grid
     /// fills top-left → bottom-right with the latest photos.
     private var recentFilenames: [String] {
-        Array(dataStore.profile.progressPhotoFilenames.suffix(Self.slotCount).reversed())
+        Array(localFilenames.suffix(Self.slotCount).reversed())
     }
 
     var body: some View {
@@ -93,7 +99,7 @@ struct ProgressPhotosCard: View {
         }
         .fullScreenCover(item: $viewerSelection) { selection in
             ProgressPhotoViewer(
-                filenames: dataStore.profile.progressPhotoFilenames,
+                filenames: localFilenames,
                 initialFilename: selection.filename,
                 onCompare: { picked in
                     viewerSelection = nil
@@ -105,15 +111,20 @@ struct ProgressPhotosCard: View {
                     }
                 },
                 onDelete: { filename in
-                    pendingDelete = filename
                     viewerSelection = nil
+                    // The alert lives on this card, which can't present
+                    // it while the viewer cover is still dismissing.
+                    Task { @MainActor in
+                        try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
+                        pendingDelete = filename
+                    }
                 },
                 onClose: { viewerSelection = nil }
             )
         }
         .fullScreenCover(item: $compareSelection) { selection in
             ProgressPhotoCompareView(
-                allFilenames: dataStore.profile.progressPhotoFilenames,
+                allFilenames: localFilenames,
                 primary: selection.filename,
                 onClose: { compareSelection = nil }
             )
@@ -123,7 +134,7 @@ struct ProgressPhotosCard: View {
     private var header: some View {
         HStack(spacing: Spacing.sm) {
             Label {
-                Text("Progress Photos")
+                Text("Progress photos")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
             } icon: {
@@ -133,12 +144,12 @@ struct ProgressPhotosCard: View {
 
             Spacer(minLength: 0)
 
-            if dataStore.profile.progressPhotoFilenames.count >= 2 {
+            if localFilenames.count >= 2 {
                 Button {
                     // Default to comparing the newest photo first —
                     // most users open compare to "see my progress
                     // against the earliest photo".
-                    if let newest = dataStore.profile.progressPhotoFilenames.last {
+                    if let newest = localFilenames.last {
                         compareSelection = PhotoSelection(filename: newest)
                     }
                 } label: {
@@ -211,67 +222,68 @@ struct ProgressPhotosCard: View {
 
     private func populatedSlot(filename: String, image: UIImage) -> some View {
         let isRevealed = revealedFilename == filename
-        return Image(uiImage: image)
-            .resizable()
-            .scaledToFill()
-            .blur(radius: isRevealed ? 0 : 18)
-            .overlay(alignment: .topTrailing) {
-                if !isRevealed {
-                    Image(systemName: "eye.slash.fill")
-                        .font(AppFont.scaled(11, weight: .bold))
-                        .foregroundStyle(AppColor.onAccent.opacity(0.7))
-                        .padding(6)
+        return Button {
+            // Two-phase tap: first tap unblurs (privacy-by-default),
+            // second tap on an unblurred photo opens the full-screen
+            // viewer. Long-press still surfaces delete + "open in viewer"
+            // via the context menu.
+            if isRevealed {
+                viewerSelection = PhotoSelection(filename: filename)
+            } else {
+                AppAnimation.with(AppAnimation.springSnappy) {
+                    revealedFilename = filename
                 }
             }
-            .frame(maxWidth: .infinity)
-            .aspectRatio(1, contentMode: .fit)
-            .clipShape(RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-            }
-            .contentShape(Rectangle())
-            // Wrap the tappable surface in a `Button` so VoiceOver
-            // announces it as interactive — `.onTapGesture` alone is
-            // invisible to assistive tech. The label changes between
-            // the two-phase states so a screen-reader user knows
-            // whether they're about to reveal or open.
-            .accessibilityElement(children: .ignore)
-            .accessibilityAddTraits(.isButton)
-            .accessibilityLabel(isRevealed ? Text("Open progress photo viewer") : Text("Show progress photo"))
-            .onTapGesture {
-                // Two-phase tap: first tap unblurs (privacy-by-
-                // default), second tap on an unblurred photo opens
-                // the full-screen viewer. Long-press still surfaces
-                // delete + "open in viewer" via the context menu.
-                if isRevealed {
-                    viewerSelection = PhotoSelection(filename: filename)
-                } else {
-                    AppAnimation.with(AppAnimation.springSnappy) {
-                        revealedFilename = filename
+            Haptics.impact(.light)
+        } label: {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .blur(radius: isRevealed ? 0 : 18)
+                .overlay(alignment: .topTrailing) {
+                    if !isRevealed {
+                        Image(systemName: "eye.slash.fill")
+                            .font(AppFont.scaled(11, weight: .bold))
+                            .foregroundStyle(AppColor.onAccent.opacity(0.7))
+                            .padding(6)
                     }
                 }
-                Haptics.impact(.light)
+                .frame(maxWidth: .infinity)
+                .aspectRatio(1, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                }
+                .contentShape(Rectangle())
+        }
+        // A real Button, so Full Keyboard Access and Switch Control can
+        // reach it and it presses like every other tile. The label changes
+        // between the two phases so a screen-reader user knows whether
+        // they're about to reveal or open.
+        .buttonStyle(ScalePressStyle())
+        .accessibilityLabel(isRevealed
+            ? Text("Open progress photo from \(ProgressPhotoMetadata.displayDate(forFilename: filename))")
+            : Text("Show progress photo from \(ProgressPhotoMetadata.displayDate(forFilename: filename))"))
+        .contextMenu {
+            Button {
+                viewerSelection = PhotoSelection(filename: filename)
+            } label: {
+                Label("Open viewer", systemImage: "rectangle.expand.vertical")
             }
-            .contextMenu {
+            if localFilenames.count >= 2 {
                 Button {
-                    viewerSelection = PhotoSelection(filename: filename)
+                    compareSelection = PhotoSelection(filename: filename)
                 } label: {
-                    Label("Open viewer", systemImage: "rectangle.expand.vertical")
-                }
-                if dataStore.profile.progressPhotoFilenames.count >= 2 {
-                    Button {
-                        compareSelection = PhotoSelection(filename: filename)
-                    } label: {
-                        Label("Compare", systemImage: "rectangle.split.2x1")
-                    }
-                }
-                Button(role: .destructive) {
-                    pendingDelete = filename
-                } label: {
-                    Label("Delete photo", systemImage: "trash")
+                    Label("Compare", systemImage: "rectangle.split.2x1")
                 }
             }
+            Button(role: .destructive) {
+                pendingDelete = filename
+            } label: {
+                Label("Delete photo", systemImage: "trash")
+            }
+        }
     }
 
     private var emptySlot: some View {
@@ -307,7 +319,8 @@ struct ProgressPhotosCard: View {
             dataStore.addProgressPhotoFilename(filename)
             Haptics.success()
         } catch {
-            errorText = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            errorText = (error as? LocalizedError)?.errorDescription
+                ?? String(localized: "Couldn't save the photo. Try again.")
             Haptics.error()
         }
     }

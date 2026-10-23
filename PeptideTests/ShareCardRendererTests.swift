@@ -66,9 +66,24 @@ final class ShareCardRendererTests: XCTestCase {
             XCTAssertEqual(CGFloat(cgImage.height), format.pixelSize.height, "\(format) height")
             let attachment = XCTAttachment(image: UIImage(cgImage: cgImage))
             attachment.name = "cycle-card-\(format.rawValue)"
-            attachment.lifetime = .keepAlways
+            attachment.lifetime = .deleteOnSuccess
             add(attachment)
         }
+    }
+
+    func test_renderPNG_maskedCompoundNames_fileNameOmitsProtocolName() throws {
+        let url = try ShareCardRenderer.renderPNG(for: Self.makeModel(titled: "BPC-157 Stack"), maskCompoundNames: true)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        XCTAssertFalse(url.lastPathComponent.lowercased().contains("bpc"))
+        XCTAssertTrue(url.lastPathComponent.hasPrefix("atlas-cycle-"))
+    }
+
+    func test_renderPNG_unmasked_fileNameUsesProtocolName() throws {
+        let url = try ShareCardRenderer.renderPNG(for: Self.makeModel(titled: "BPC-157 Stack"))
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        XCTAssertTrue(url.lastPathComponent.hasPrefix("atlas-bpc-157-stack-"))
     }
 
     func testWatermarkBakedInWhenSinglePeptideStack() throws {
@@ -97,13 +112,17 @@ final class ShareCardRendererTests: XCTestCase {
         XCTAssertEqual(image.size.height, ShareFormat.story.pixelSize.height, accuracy: 0.5)
     }
 
+    private static func makeModel(titled title: String) -> CycleCardModel {
+        makeModel(from: MockProtocols.recoveryStack, titled: title)
+    }
+
     /// Builds a CycleCardModel for a given protocol with deterministic
     /// stats — these tests only assert dimensions / size, so the exact
     /// numbers don't matter; we just need a populated model the renderer
     /// can lay out.
-    private static func makeModel(from proto: PeptideProtocol) -> CycleCardModel {
+    private static func makeModel(from proto: PeptideProtocol, titled title: String? = nil) -> CycleCardModel {
         CycleCardModel(
-            subjectTitle: proto.name,
+            subjectTitle: title ?? proto.name,
             peptides: proto.peptides,
             activeSinceDate: proto.startDate,
             cycleDay: 1,

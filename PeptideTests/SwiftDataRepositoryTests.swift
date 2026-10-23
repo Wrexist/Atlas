@@ -191,6 +191,49 @@ final class SwiftDataRepositoryTests: XCTestCase {
         XCTAssertEqual(rows.map(\.completed), [entry.completed, entry.completed])
     }
 
+    func test_loadProtocols_withDuplicateStoredRows_returnsOneProtocol() throws {
+        let proto = MockProtocols.recoveryStack
+        let context = try XCTUnwrap(repo.contextForTesting)
+        context.insert(try StoredProtocol.make(from: proto))
+        context.insert(try StoredProtocol.make(from: proto))
+        try context.save()
+
+        XCTAssertEqual(repo.loadProtocols().map(\.id), [proto.id])
+    }
+
+    // MARK: - Rows deleted on another device
+
+    func test_upsertEntries_rowDeletedElsewhere_isNotReinserted() throws {
+        let entry = try XCTUnwrap(sampleEntries().first)
+        repo.upsertEntries([entry])
+        let context = try XCTUnwrap(repo.contextForTesting)
+        try context.delete(model: StoredEntry.self)
+        try context.save()
+
+        let skipped = repo.upsertEntries([entry])
+
+        XCTAssertEqual(skipped, [entry.id])
+        XCTAssertEqual(repo.loadEntries(), [])
+    }
+
+    func test_upsertEntries_neverStoredEntry_isInserted() throws {
+        let entry = try XCTUnwrap(sampleEntries().first)
+
+        XCTAssertEqual(repo.upsertEntries([entry]), [])
+        XCTAssertEqual(repo.loadEntries().map(\.id), [entry.id])
+    }
+
+    func test_protocolIDsDeletedElsewhere_reportsOnlyLoadedThenMissingRows() throws {
+        let deleted = MockProtocols.recoveryStack
+        let unsaved = MockProtocols.all.first { $0.id != deleted.id }!
+        repo.upsertProtocols([deleted])
+        let context = try XCTUnwrap(repo.contextForTesting)
+        try context.delete(model: StoredProtocol.self)
+        try context.save()
+
+        XCTAssertEqual(repo.protocolIDsDeletedElsewhere(among: [deleted.id, unsaved.id]), [deleted.id])
+    }
+
     // MARK: - hasAnyData
 
     func test_hasAnyData_isTrue_whenProtocolsExist() {

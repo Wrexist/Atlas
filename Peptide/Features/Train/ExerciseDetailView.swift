@@ -4,6 +4,8 @@ import SwiftUI
 struct ExerciseDetailView: View {
     let exerciseID: String
     @State private var library = ExerciseLibrary.shared
+    /// Step-number column, scaled with the text so "10" never wraps.
+    @ScaledMetric(relativeTo: .headline) private var stepNumberWidth: CGFloat = 22
     @State private var loading = true
 
     private var exercise: Exercise? {
@@ -161,7 +163,8 @@ struct ExerciseDetailView: View {
                                 Text("\(index + 1)")
                                     .font(AppFont.headline)
                                     .foregroundStyle(AppColor.accentPrimary)
-                                    .frame(width: 22, alignment: .leading)
+                                    .frame(minWidth: stepNumberWidth, alignment: .leading)
+                                    .fixedSize()
                                 Text(step)
                                     .font(AppFont.callout)
                                     .foregroundStyle(AppColor.textPrimary)

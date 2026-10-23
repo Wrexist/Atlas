@@ -53,4 +53,14 @@ final class AvatarPresetTests: XCTestCase {
         }
         XCTAssertLessThan(small.count, large.count)
     }
+
+    func test_renderJPEGData_side_isPixelsNotPoints() {
+        guard let data = AvatarPreset.all[0].renderJPEGData(side: 200),
+              let cgImage = UIImage(data: data)?.cgImage else {
+            XCTFail("Preset must render to a decodable image")
+            return
+        }
+        XCTAssertEqual(cgImage.width, 200)
+        XCTAssertEqual(cgImage.height, 200)
+    }
 }

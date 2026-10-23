@@ -228,13 +228,14 @@ export function costForBody(body, bytes) {
 export async function withinDeviceQuota({ principal, cost = 1 }) {
   const quota = intEnv('DEVICE_DAILY_QUOTA', 300);
   if (quota <= 0) return true;
-  return allowRate({
-    name: 'quota:device',
-    key: principal,
-    limit: principalLimit(principal, quota),
-    windowSeconds: DAY_SECONDS,
-    cost,
-  });
+  const counter = { name: 'quota:device', key: principal, windowSeconds: DAY_SECONDS, cost };
+  if (await allowRate({ ...counter, limit: principalLimit(principal, quota) })) return true;
+  // A refused request never reaches Anthropic, so it gives its units
+  // back. Kept charged, one large photo scan would park the counter
+  // above the quota and every later request — even one that fits —
+  // would be refused for the rest of the day.
+  await refundRate(counter);
+  return false;
 }
 
 /**

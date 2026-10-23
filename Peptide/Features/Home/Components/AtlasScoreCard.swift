@@ -23,7 +23,7 @@ struct AtlasScoreCard: View {
 
     private var card: some View {
         let momentum = dataStore.momentum
-        let tint = Color(hex: UInt(momentum.tier.tintHex))
+        let tint = momentum.tier.tint
 
         return HStack(spacing: Spacing.lg) {
             MetricRing(
@@ -82,10 +82,9 @@ struct AtlasScoreCard: View {
                 .stroke(tint.opacity(0.25), lineWidth: 0.5)
         )
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(
-            "Atlas Score: level \(momentum.level), \(momentum.tier.name) tier, "
-            + "\(momentum.score) points. \(momentum.pointsToNextLevel) to the next level."
-        )
+        .accessibilityLabel(String(
+            localized: "Atlas Score: level \(momentum.level), \(momentum.tier.name) tier, \(momentum.score) points. \(momentum.pointsToNextLevel) to the next level."
+        ))
     }
 
     private func progressLine(_ momentum: MomentumEngine.Snapshot) -> String {

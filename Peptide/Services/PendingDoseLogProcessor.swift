@@ -44,12 +44,7 @@ enum PendingDoseLogProcessor {
             observer,
             { _, _, _, _, _ in
                 Task { @MainActor in
-                    // Resolved per tap: on a background launch for the
-                    // intent, no scene has built and the store may not
-                    // exist yet.
-                    let store = IntentDataStore.resolve()
-                    PendingDoseLogProcessor.drain(into: store)
-                    store.reconcileDoseLiveActivities()
+                    PendingDoseLogProcessor.drainAndReconcile()
                 }
             },
             CrossProcessNotification.pendingDoseLogQueued as CFString,
@@ -57,6 +52,16 @@ enum PendingDoseLogProcessor {
             .deliverImmediately
         )
         return token
+    }
+
+    /// Drains the inbox into the app's store and brings the Live
+    /// Activities in line with it. The store is resolved per call: on a
+    /// background launch for the intent, no scene has built and the
+    /// store may not exist yet.
+    static func drainAndReconcile() {
+        let store = IntentDataStore.resolve()
+        drain(into: store)
+        store.reconcileDoseLiveActivities()
     }
 
     /// Drains every queued log and toggles the matching entry on

@@ -10,6 +10,7 @@ struct SleepPage: View {
 
     @Environment(\.watchPageIsActive) private var isActive
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .largeTitle) private var scoreSize: CGFloat = 34
 
     private var nightDates: String {
@@ -40,7 +41,7 @@ struct SleepPage: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .navigationTitle("Sleep Score")
+        .navigationTitle("Sleep score")
         .pageBackground(WatchPalette.stageCore)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -79,9 +80,10 @@ struct SleepPage: View {
         .accessibilityLabel("Sleep score \(sleep.score), \(sleep.band.label)")
     }
 
-    /// Two columns of stage dots and durations, the ring's key.
+    /// Two columns of stage dots and durations, the ring's key; one column
+    /// at accessibility text sizes, where two would truncate.
     private var legend: some View {
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible())], alignment: .leading, spacing: 2) {
+        LazyVGrid(columns: legendColumns, alignment: .leading, spacing: 2) {
             ForEach(sleep.slices) { slice in
                 HStack(spacing: 4) {
                     Circle()
@@ -99,6 +101,12 @@ struct SleepPage: View {
                 .accessibilityElement(children: .combine)
             }
         }
+    }
+
+    private var legendColumns: [GridItem] {
+        dynamicTypeSize.isAccessibilitySize
+            ? [GridItem(.flexible())]
+            : [GridItem(.flexible(), spacing: 6), GridItem(.flexible())]
     }
 
     private func animateReveal() {

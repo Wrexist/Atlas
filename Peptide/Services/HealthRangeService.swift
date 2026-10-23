@@ -44,6 +44,28 @@ enum HealthRangeService {
         /// compiling; `sample(from:direction:)` always computes the real
         /// value from the series it was given.
         var confidence: BaselineConfidence = .establishedBaseline
+        /// Day of the `latest` reading. Nil only for samples built
+        /// without one (previews).
+        var latestDate: Date? = nil
+
+        /// Days old at which the latest reading is labelled with its day.
+        static let staleAfterDays: Int = 2
+
+        /// "Last reading Mon" when `latest` is from two or more days
+        /// ago — the watch wasn't worn — so the pill isn't read as
+        /// today's. Nil while it's current.
+        func staleCaption(now: Date = Date(), calendar: Calendar = .current) -> String? {
+            guard let latestDate,
+                  let age = calendar.dateComponents([.day],
+                                                    from: calendar.startOfDay(for: latestDate),
+                                                    to: calendar.startOfDay(for: now)).day,
+                  age >= Self.staleAfterDays
+            else { return nil }
+            let day = age < 7
+                ? latestDate.formatted(.dateTime.weekday(.abbreviated))
+                : latestDate.formatted(.dateTime.day().month(.abbreviated))
+            return String(localized: "Last reading \(day)")
+        }
 
         /// A short, honest hedge to pair with the status pill — `nil`
         /// when the pill already says everything worth saying.
@@ -119,7 +141,7 @@ enum HealthRangeService {
     ) -> Sample? {
         guard series.count >= minSampleCount else { return nil }
 
-        let latest = series.max(by: { $0.date < $1.date })?.value ?? series.last?.value ?? 0
+        guard let newest = series.max(by: { $0.date < $1.date }) else { return nil }
 
         // `emergingAt` is deliberately the same `minSampleCount` gate this
         // function already required to return non-nil at all — a snapshot
@@ -133,13 +155,14 @@ enum HealthRangeService {
         ) else { return nil }
 
         return Sample(
-            latest: latest,
+            latest: newest.value,
             p10: baseline.p10,
             p25: baseline.p25,
             p75: baseline.p75,
             p90: baseline.p90,
             direction: direction,
-            confidence: baseline.confidence
+            confidence: baseline.confidence,
+            latestDate: newest.date
         )
     }
 

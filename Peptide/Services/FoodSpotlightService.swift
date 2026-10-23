@@ -110,7 +110,7 @@ final class FoodSpotlightService: Sendable {
     }
 
     /// Drops every food-library entry from Spotlight. Used when the index
-    /// should be empty and by "Delete All Data", which must not leave the
+    /// should be empty and by "Delete all data", which must not leave the
     /// user's foods and recipes searchable system-wide.
     func removeAll() async {
         guard isAvailable else { return }
@@ -221,7 +221,7 @@ final class FoodSpotlightService: Sendable {
         // sniff so the user knows which entry is which when two have
         // similar names.
         String(
-            localized: "\(Int(n.calories.rounded())) kcal, \(Int(n.proteinG.rounded()))g protein per 100g",
+            localized: "\(Int(n.calories.rounded())) kcal, \(Int(n.proteinG.rounded())) g protein per 100 g",
             comment: "Spotlight result subtitle. Surfaces calories + protein per 100 grams."
         )
     }

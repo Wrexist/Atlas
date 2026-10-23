@@ -17,15 +17,22 @@
  * them onto the shared-IP principal. The single-use challenge and the
  * attestation check are the real gate.
  *
+ * Successful registrations are also capped per IP per UTC day
+ * (ATTEST_REGISTRATIONS_PER_DAY, default 10, scaled like every other
+ * IPv4 limit by SHARED_IP_LIMIT_SCALE). Once enforce mode keys quotas
+ * on the attest key, minting keys is how one device would reset its
+ * daily quota; IPs rotate, so this is a speed bump, not a bound.
+ *
  * Env vars: APP_ATTEST_APP_ID (required), Redis pair (required —
  * key records must survive cold starts), ATTEST_CHALLENGE_RPM (GET,
- * default 60), ATTEST_RPM (POST, default 30).
+ * default 60), ATTEST_RPM (POST, default 30),
+ * ATTEST_REGISTRATIONS_PER_DAY (default 10).
  */
 import { randomBytes } from 'node:crypto';
 import { clientKey } from './_lib/anthropic-proxy.js';
 import { storeAttestKey, verifyAttestation } from './_lib/app-attest.js';
 import { authorize } from './_lib/auth.js';
-import { allowRate } from './_lib/rate-limit.js';
+import { allowRate, principalLimit } from './_lib/rate-limit.js';
 import { redisConfigured, redisPipeline } from './_lib/redis.js';
 
 const CHALLENGE_TTL_SECONDS = 300;
@@ -37,6 +44,19 @@ function checkRateLimit(req) {
     ? ['attest-challenge', parseInt(process.env.ATTEST_CHALLENGE_RPM || '60', 10)]
     : ['attest-register', parseInt(process.env.ATTEST_RPM || '30', 10)];
   return allowRate({ name, key: clientKey(req), limit, windowSeconds: 60 });
+}
+
+// Charged only for an attestation that verified, so failed attempts
+// never use up an address's allowance.
+function withinDailyRegistrations(req) {
+  const ip = clientKey(req);
+  const limit = parseInt(process.env.ATTEST_REGISTRATIONS_PER_DAY || '10', 10);
+  return allowRate({
+    name: 'attest-register-day',
+    key: ip,
+    limit: principalLimit(`ip:${ip}`, limit),
+    windowSeconds: 86_400,
+  });
 }
 
 async function issueChallenge(res) {
@@ -90,6 +110,11 @@ async function register(req, res) {
       challenge,
       appId: process.env.APP_ATTEST_APP_ID,
     });
+    if (!(await withinDailyRegistrations(req))) {
+      console.warn('[attest-register] address over its daily registration cap');
+      res.status(429).json({ error: { message: 'Too many requests' } });
+      return;
+    }
     const stored = await storeAttestKey(keyId, {
       publicKeyPem,
       counter: 0,

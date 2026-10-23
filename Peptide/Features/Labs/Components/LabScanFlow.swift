@@ -96,7 +96,7 @@ struct LabScanFlow: View {
             )
             .ignoresSafeArea()
         }
-        .alert("Camera Access Off", isPresented: $cameraDenied) {
+        .alert("Camera access off", isPresented: $cameraDenied) {
             Button("Open Settings") {
                 if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
             }
@@ -158,7 +158,7 @@ struct LabScanFlow: View {
             .frame(height: 160)
             .overlay {
                 Image(systemName: "doc.text.viewfinder")
-                    .font(AppFont.scaled(48, weight: .light))
+                    .font(AppFont.scaled(48, weight: .light, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.accentLight)
                     .accessibilityHidden(true)
             }

@@ -5,6 +5,10 @@ import SwiftUI
 /// edit/delete. Hosted as the Habits tab root.
 struct HabitsView: View {
     @Environment(DataStore.self) private var dataStore
+    @Environment(\.scenePhase) private var scenePhase
+    /// The day the rows were built for; rolling it over rebuilds them so
+    /// "done today" and the heatmap follow midnight.
+    @State private var day = Calendar.current.startOfDay(for: .now)
     @State private var editing: HabitEditTarget?
     /// Memoized per-row payload. Rebuilt only when the habit list or
     /// entry list changes — without this, every body invalidation
@@ -53,6 +57,8 @@ struct HabitsView: View {
     private struct ChangeToken: Equatable {
         let habits: [Habit]
         let entries: [HabitEntry]
+        let frozenDayKeys: Set<String>
+        let day: Date
     }
 
     var body: some View {
@@ -107,8 +113,23 @@ struct HabitsView: View {
                 .padding(.bottom, Spacing.xxxl)
                 .readableContentWidth()
             }
-            .task(id: ChangeToken(habits: habits, entries: dataStore.profile.habitEntries)) {
+            .task(id: ChangeToken(
+                habits: habits,
+                entries: dataStore.profile.habitEntries,
+                frozenDayKeys: dataStore.profile.streakFreezeDays,
+                day: day
+            )) {
                 rebuildRows()
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { day = Calendar.current.startOfDay(for: .now) }
+            }
+            // The notification doesn't promise main-thread delivery.
+            .onReceive(
+                NotificationCenter.default.publisher(for: .NSCalendarDayChanged)
+                    .receive(on: DispatchQueue.main)
+            ) { _ in
+                day = Calendar.current.startOfDay(for: .now)
             }
             .background(AppColor.background.ignoresSafeArea())
             .navigationTitle("Habits")
@@ -188,7 +209,8 @@ struct HabitsView: View {
     private func habitsSummaryHeader(rows: [Row]) -> some View {
         let due = rows.filter { $0.summary.isDueToday }.count
         let done = rows.filter { $0.summary.isDueToday && $0.summary.isCompletedToday }.count
-        let best = rows.map { $0.summary.currentStreak }.max() ?? 0
+        // Weekly habits count weeks; the header's figure is days.
+        let best = rows.filter { !$0.habit.schedule.countsStreakInWeeks }.map(\.summary.currentStreak).max() ?? 0
         let progress = due > 0 ? min(1, Double(done) / Double(due)) : 0
         let momentum = dataStore.momentum
 

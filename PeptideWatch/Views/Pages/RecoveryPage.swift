@@ -43,7 +43,7 @@ struct RecoveryPage: View {
     private var chips: [String] {
         var chips: [String] = []
         if hero?.kind == .restingHeartRate, let score = vitals.recoveryScore {
-            chips.append(String(localized: "Recovery \(score)"))
+            chips.append(String(localized: "Recovery \(WatchFormat.recovery(score))"))
         }
         if hero?.kind != .hrv, let hrv = vitals.hrv {
             chips.append(String(localized: "HRV \(hrv) ms"))
@@ -123,7 +123,7 @@ private struct RecoveryDetailView: View {
     var body: some View {
         List {
             if let score = vitals.recoveryScore {
-                row("Recovery", value: "\(score)", baseline: nil)
+                row("Recovery", value: WatchFormat.recovery(score), baseline: nil)
             }
             if let hrv = vitals.hrv {
                 row("HRV", value: "\(hrv) ms", baseline: vitals.hrvBaseline.map { "\($0) ms" })

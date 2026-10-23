@@ -55,7 +55,8 @@ struct BiometricCard: View {
 
                 statusPill
 
-                if let caption = sample?.confidenceCaption {
+                // An old reading matters more than an early range.
+                if let caption = sample?.staleCaption() ?? sample?.confidenceCaption {
                     Text(caption)
                         .font(AppFont.badgeSmall)
                         .foregroundStyle(AppColor.textSecondary)
@@ -75,7 +76,9 @@ struct BiometricCard: View {
             }
         }
         .padding(Spacing.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // Fills the row's height so a tile without a confidence caption
+        // matches its neighbour (the grid row pins the height).
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 

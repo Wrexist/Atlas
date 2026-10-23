@@ -63,6 +63,7 @@ struct MuscleHistorySheet: View {
                 }
             }
         }
+        .environment(\.dismissWorkoutHistorySheet, { dismiss() })
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
     }

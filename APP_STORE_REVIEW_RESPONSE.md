@@ -505,7 +505,7 @@ the trial lengths but no links.
    yearly) are auto-renewable. Atlas Pro Lifetime ($169) is a one-time purchase and
    does not renew. Payment is charged to your Apple Account at confirmation.
    Subscriptions renew unless auto-renew is turned off at least 24 hours before the
-   period ends. Manage or cancel in Settings > Apple Account > Subscriptions.
+   period ends. Manage or cancel in Settings → your name → Subscriptions.
    Unused free-trial time is forfeited on purchase.
 
    Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/

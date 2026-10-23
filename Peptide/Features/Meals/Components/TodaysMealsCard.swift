@@ -180,8 +180,9 @@ struct MealEntryRow: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Self.accessibilityLabel(for: entry))
-        .accessibilityHint("Opens the entry to edit or delete it. Long-press to log it again.")
+        .accessibilityHint("Opens the entry to edit or delete it.")
         .accessibilityAction(named: Text("Log again"), onLogAgain)
+        .accessibilityAction(named: Text("Delete"), onDelete)
     }
 
     @ViewBuilder

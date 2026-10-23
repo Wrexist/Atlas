@@ -59,6 +59,44 @@ final class SmartScanTests: XCTestCase {
         XCTAssertNil(scan.items.first?.price)
     }
 
+    func test_smartScan_legacyFallback_dropsSubGramAndDenserThanFatItems() async throws {
+        MockURLProtocol.handler = { request in
+            if request.url?.path == "/api/food-scan" {
+                return (Self.response(request, 404), Data())
+            }
+            return (Self.response(request, 200), Data(SmartFixtures.legacyImplausibleItems.utf8))
+        }
+        let scan = try await service.smartScan(image: tinyImage())
+
+        XCTAssertEqual(scan.items.map(\.name), ["Banana", "Olive oil"], "label-rounded oil stays")
+    }
+
+    func test_parseSmartScan_onlyItemOverFiveThousandKcal_throwsImplausibleResult() {
+        XCTAssertThrowsError(try service.parseSmartScan(from: Data(SmartFixtures.hugeTray.utf8))) { error in
+            if case .implausibleResult = error as? MealScannerService.ScanError {} else {
+                XCTFail("Expected implausibleResult, got \(error)")
+            }
+        }
+    }
+
+    func test_parseSmartScan_wholePackageOverItemTotals_keepsItem() throws {
+        let scan = try service.parseSmartScan(from: Data(SmartFixtures.sugarBag.utf8))
+        XCTAssertEqual(scan.items.first?.per100g?.carbsG, 100)
+    }
+
+    func test_parseSmartScan_labelRoundedMacrosJustOver100g_keepsItem() throws {
+        let scan = try service.parseSmartScan(from: Data(SmartFixtures.roundedSeeds.utf8))
+        XCTAssertEqual(scan.items.map(\.name), ["Chia seeds"])
+    }
+
+    func test_parseSmartScan_macrosOverOneHundredGramsPer100g_dropsItem() {
+        XCTAssertThrowsError(try service.parseSmartScan(from: Data(SmartFixtures.impossibleMacros.utf8))) { error in
+            if case .implausibleResult = error as? MealScannerService.ScanError {} else {
+                XCTFail("Expected implausibleResult, got \(error)")
+            }
+        }
+    }
+
     func test_smartScan_notFood_throwsNoFoodDetected() async {
         MockURLProtocol.handler = { request in
             (Self.response(request, 200), Data(SmartFixtures.notFood.utf8))
@@ -200,6 +238,25 @@ final class SmartScanTests: XCTestCase {
         XCTAssertEqual(food.typicalPrice?.high ?? 0, 6.5, accuracy: 0.001, "one 250 g serving")
     }
 
+    private func barcodeProduct(servingGrams: Double?, packageGrams: Double?) -> ScannedProduct {
+        ScannedProduct(barcode: "7310865000000", name: "Oats", brand: nil, imageURL: nil,
+                       servingSizeText: nil, servingGrams: servingGrams, packageGrams: packageGrams,
+                       per100g: .zero, nutriScore: nil, novaGroup: nil, fetchedAt: Date())
+    }
+
+    func test_customFoodFromProduct_largePackageWithoutServing_keepsServingEmpty() {
+        let food = SmartFoodLogic.customFood(from: barcodeProduct(servingGrams: nil, packageGrams: 1000), pricePer100g: nil)
+        XCTAssertNil(food.servingGrams)
+        XCTAssertNil(food.servingLabel)
+        XCTAssertEqual(food.toScannedProduct().defaultPortion, .grams(100))
+    }
+
+    func test_customFoodFromProduct_smallPackageWithoutServing_servesWholePackage() {
+        let food = SmartFoodLogic.customFood(from: barcodeProduct(servingGrams: nil, packageGrams: 330), pricePer100g: nil)
+        XCTAssertEqual(food.servingGrams, 330)
+        XCTAssertEqual(food.servingLabel, String(localized: "1 package"))
+    }
+
     func test_productFillingFromScan_neverOverwritesDatabaseValues() throws {
         let scan = try service.parseSmartScan(from: Data(SmartFixtures.product.utf8))
         let known = ScannedProduct(barcode: "7394376616228", name: "Barista", brand: "Oatly", imageURL: nil,
@@ -242,6 +299,7 @@ final class SmartScanTests: XCTestCase {
         let product = try XCTUnwrap(SmartFoodLogic.product(from: scan, barcode: "7394376616228"))
 
         XCTAssertEqual(product.barcode, "7394376616228")
+        XCTAssertEqual(product.readFromPackage, true)
         XCTAssertEqual(product.defaultPortion, .servings(1))
         XCTAssertEqual(product.loggable(for: .wholePackage)?.calories, 590)
     }
@@ -339,6 +397,51 @@ private enum SmartFixtures {
     static let notFood = """
     {"model":"claude-opus-5-5","result":{
       "kind":"not_food","title":"Book","summary":"This is a book.","tips":[],"package":null,"items":[]}}
+    """
+
+    static let hugeTray = """
+    {"model":"claude-opus-5-5","result":{
+      "kind":"meal","title":"Tray","summary":"A tray.","tips":[],"package":null,
+      "items":[
+        {"name":"Butter tray","brand":null,"portion_label":"1 tray","grams":5000,"portion_options":[],
+         "per_100g":{"calories":900,"protein_g":0,"carbs_g":0,"fat_g":100,"fiber_g":0,"sugars_g":0},
+         "confidence":0.9,"price":null}
+      ]}}
+    """
+
+    static let impossibleMacros = """
+    {"model":"claude-opus-5-5","result":{
+      "kind":"meal","title":"Bar","summary":"A bar.","tips":[],"package":null,
+      "items":[
+        {"name":"Protein bar","brand":null,"portion_label":"1 bar","grams":60,"portion_options":[],
+         "per_100g":{"calories":500,"protein_g":60,"carbs_g":60,"fat_g":20,"fiber_g":0,"sugars_g":0},
+         "confidence":0.9,"price":null}
+      ]}}
+    """
+
+    static let sugarBag = """
+    {"model":"claude-opus-5-5","result":{
+      "kind":"packaged_product","title":"Strösocker","summary":"A bag of sugar.","tips":[],
+      "package":{"total_grams":2000,"serving_grams":null,"serving_label":null},
+      "items":[
+        {"name":"Strösocker","brand":"Dansukker","portion_label":"1 bag","grams":2000,"portion_options":[],
+         "per_100g":{"calories":400,"protein_g":0,"carbs_g":100,"fat_g":0,"fiber_g":0,"sugars_g":100},
+         "confidence":0.95,"price":null}
+      ]}}
+    """
+
+    static let roundedSeeds = """
+    {"model":"claude-opus-5-5","result":{
+      "kind":"ingredient","title":"Chia","summary":"Chia seeds.","tips":[],"package":null,
+      "items":[
+        {"name":"Chia seeds","brand":null,"portion_label":"1 tbsp","grams":12,"portion_options":[],
+         "per_100g":{"calories":486,"protein_g":17,"carbs_g":42,"fat_g":42,"fiber_g":34,"sugars_g":0},
+         "confidence":0.9,"price":null}
+      ]}}
+    """
+
+    static let legacyImplausibleItems = """
+    {"content":[{"type":"text","text":"{\\"meal_name\\":null,\\"items\\":[{\\"name\\":\\"Crumb\\",\\"quantity_label\\":\\"a crumb\\",\\"grams\\":0.4,\\"calories\\":50,\\"protein_g\\":1,\\"carbs_g\\":5,\\"fat_g\\":2,\\"confidence\\":0.9},{\\"name\\":\\"Dense\\",\\"quantity_label\\":\\"1 spoon\\",\\"grams\\":10,\\"calories\\":500,\\"protein_g\\":0,\\"carbs_g\\":0,\\"fat_g\\":10,\\"confidence\\":0.9},{\\"name\\":\\"Banana\\",\\"quantity_label\\":\\"1 banana\\",\\"grams\\":120,\\"calories\\":105,\\"protein_g\\":1,\\"carbs_g\\":27,\\"fat_g\\":0,\\"confidence\\":0.9},{\\"name\\":\\"Olive oil\\",\\"quantity_label\\":\\"1 tsp\\",\\"grams\\":4,\\"calories\\":40,\\"protein_g\\":0,\\"carbs_g\\":0,\\"fat_g\\":4,\\"confidence\\":0.9}]}"}]}
     """
 
     static let legacyItems = """

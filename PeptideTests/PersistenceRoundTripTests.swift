@@ -405,11 +405,11 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertEqual(MealCategory.auto(for: lateNight), .snack)
     }
 
-    func test_updateMealEntry_changesCategoryWithoutShiftingAggregate() throws {
+    func test_applyMealEntryEdit_categoryChange_keepsAggregate() {
         var profile = UserProfile.fresh
-        let now = Date()
+        let noon = Self.todayAtNoon
         let original = MealEntry(
-            date: now,
+            date: noon,
             category: .lunch,
             name: "Chicken",
             calories: 400,
@@ -419,21 +419,110 @@ final class PersistenceRoundTripTests: XCTestCase {
             source: .openFoodFacts
         )
         LifestyleDataLogic.logMealEntry(into: &profile, entry: original)
-        let before = LifestyleDataLogic.consumption(in: profile, for: now)
+        let before = LifestyleDataLogic.consumption(in: profile, for: noon)
 
-        // Recategorize same entry — aggregate must not move because
-        // only the category bucket changed.
         var updated = original
         updated.category = .dinner
-        if let index = profile.mealHistory.firstIndex(where: { $0.id == original.id }) {
-            profile.mealHistory[index] = updated
-        }
-        let after = LifestyleDataLogic.consumption(in: profile, for: now)
-        XCTAssertEqual(before.caloriesKcal, after.caloriesKcal)
+        LifestyleDataLogic.applyMealEntryEdit(into: &profile, updated: updated)
 
-        let breakdown = LifestyleDataLogic.mealsByCategory(in: profile, for: now)
+        XCTAssertEqual(LifestyleDataLogic.consumption(in: profile, for: noon), before)
+        let breakdown = LifestyleDataLogic.mealsByCategory(in: profile, for: noon)
         XCTAssertEqual(breakdown.lunch.calories, 0)
         XCTAssertEqual(breakdown.dinner.calories, 400)
+    }
+
+    func test_applyMealEntryEdit_calorieChange_movesAggregateByDelta() {
+        var profile = UserProfile.fresh
+        let noon = Self.todayAtNoon
+        let original = Self.meal(on: noon, calories: 500)
+        LifestyleDataLogic.logMealEntry(into: &profile, entry: original)
+        let before = LifestyleDataLogic.consumption(in: profile, for: noon).caloriesKcal
+
+        var updated = original
+        updated.calories = 800
+        LifestyleDataLogic.applyMealEntryEdit(into: &profile, updated: updated)
+
+        XCTAssertEqual(LifestyleDataLogic.consumption(in: profile, for: noon).caloriesKcal, before + 300)
+        XCTAssertEqual(profile.mealHistory.map(\.calories), [800])
+    }
+
+    func test_applyMealEntryEdit_dateMovedToYesterday_movesMacrosBetweenDays() throws {
+        var profile = UserProfile.fresh
+        let noon = Self.todayAtNoon
+        let yesterday = try XCTUnwrap(Calendar.current.date(byAdding: .day, value: -1, to: noon))
+        let original = Self.meal(on: noon, calories: 600)
+        LifestyleDataLogic.logMealEntry(into: &profile, entry: original)
+
+        var updated = original
+        updated.date = yesterday
+        LifestyleDataLogic.applyMealEntryEdit(into: &profile, updated: updated)
+
+        let today = LifestyleDataLogic.consumption(in: profile, for: noon)
+        let moved = LifestyleDataLogic.consumption(in: profile, for: yesterday)
+        XCTAssertEqual([today.caloriesKcal, today.proteinG, today.carbsG, today.fatG], [0, 0, 0, 0])
+        XCTAssertEqual([moved.caloriesKcal, moved.proteinG, moved.carbsG, moved.fatG], [600, 30, 50, 20])
+    }
+
+    func test_applyMealEntryEdit_unknownID_isNoOp() {
+        var profile = UserProfile.fresh
+        let noon = Self.todayAtNoon
+        LifestyleDataLogic.logMealEntry(into: &profile, entry: Self.meal(on: noon, calories: 500))
+        let history = profile.mealHistory
+        let consumption = profile.dailyConsumption
+
+        LifestyleDataLogic.applyMealEntryEdit(into: &profile, updated: Self.meal(on: noon, calories: 900))
+
+        XCTAssertEqual(profile.mealHistory, history)
+        XCTAssertEqual(profile.dailyConsumption, consumption)
+    }
+
+    func test_logMealEntry_overCap_keepsEveryEntryFromToday() throws {
+        var profile = UserProfile.fresh
+        let noon = Self.todayAtNoon
+        let lastWeek = try XCTUnwrap(Calendar.current.date(byAdding: .day, value: -7, to: noon))
+        let todays = (0..<3).map { _ in Self.meal(on: noon, calories: 100) }
+        profile.mealHistory = todays
+            + (0..<LifestyleDataLogic.maxMealHistoryEntries).map { _ in Self.meal(on: lastWeek, calories: 100) }
+
+        let latest = Self.meal(on: noon, calories: 200)
+        LifestyleDataLogic.logMealEntry(into: &profile, entry: latest)
+
+        XCTAssertEqual(profile.mealHistory.count, LifestyleDataLogic.maxMealHistoryEntries)
+        let kept = Set(profile.mealHistory.map(\.id))
+        XCTAssertTrue((todays + [latest]).allSatisfy { kept.contains($0.id) },
+                      "the cap trims older days, never today")
+    }
+
+    func test_dedupedWeightHistory_twoEntriesSameDay_keepsLatest() throws {
+        var profile = UserProfile.fresh
+        let noon = Self.todayAtNoon
+        let morning = try XCTUnwrap(Calendar.current.date(byAdding: .hour, value: -4, to: noon))
+        let otherDevice = WeightEntry(date: noon, kg: 80.4)
+        profile.weightHistory = [otherDevice, WeightEntry(date: morning, kg: 81.0)]
+
+        let deduped = LifestyleDataLogic.dedupedWeightHistory(profile)
+
+        XCTAssertEqual(deduped, [otherDevice])
+    }
+
+    func test_dedupedWeightHistory_isSortedAscending() throws {
+        var profile = UserProfile.fresh
+        let noon = Self.todayAtNoon
+        let dates = try [0, -3, -1].map { try XCTUnwrap(Calendar.current.date(byAdding: .day, value: $0, to: noon)) }
+        profile.weightHistory = dates.map { WeightEntry(date: $0, kg: 80) }
+
+        let deduped = LifestyleDataLogic.dedupedWeightHistory(profile)
+
+        XCTAssertEqual(deduped.map(\.date), dates.sorted())
+    }
+
+    private static var todayAtNoon: Date {
+        Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: Date())!
+    }
+
+    private static func meal(on date: Date, calories: Int) -> MealEntry {
+        MealEntry(date: date, category: .lunch, name: "Meal", calories: calories,
+                  proteinG: 30, carbsG: 50, fatG: 20, source: .custom)
     }
 
     func test_mealLoggingStreak_countsConsecutiveDaysEndingToday() {
@@ -508,6 +597,26 @@ final class PersistenceRoundTripTests: XCTestCase {
                 )
             }
         }
+        XCTAssertEqual(LifestyleDataLogic.bestMealLoggingStreak(in: profile, asOf: today), 11)
+    }
+
+    /// A past run bridged by a freeze keeps its full length in "Best"
+    /// after it ends, as the live streak counted it.
+    func test_bestMealLoggingStreak_freezeInsidePastRun_countsAsOneRun() {
+        var profile = UserProfile.fresh
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        // Logged 20–16 and 14–10 days ago; 15 days ago frozen → 11 days.
+        for daysAgo in Array(10...14) + Array(16...20) {
+            let date = calendar.date(byAdding: .day, value: -daysAgo, to: today)!
+            profile.mealHistory.append(
+                MealEntry(date: date, category: .snack, name: "Snack",
+                          calories: 100, proteinG: 5, carbsG: 15, fatG: 3,
+                          source: .openFoodFacts)
+            )
+        }
+        let frozen = calendar.date(byAdding: .day, value: -15, to: today)!
+        profile.streakFreezeDays.insert(StreakFreezeService.dayKey(for: frozen))
         XCTAssertEqual(LifestyleDataLogic.bestMealLoggingStreak(in: profile, asOf: today), 11)
     }
 
@@ -676,7 +785,7 @@ final class PersistenceRoundTripTests: XCTestCase {
         let nextRising = LabValue(
             date: today, panel: .totalTestosterone, value: 720   // 20% delta
         )
-        if case .rising(let delta) = LabDataLogic.computeTrend(entries: [prev, nextRising]) {
+        if case .rising(let delta)? = LabDataLogic.computeTrend(entries: [prev, nextRising]) {
             XCTAssertEqual(delta, 120, accuracy: 0.01)
         } else {
             XCTFail("Expected rising trend for +20% delta")
@@ -692,6 +801,14 @@ final class PersistenceRoundTripTests: XCTestCase {
         )
         let next = LabValue(date: today, panel: .crp, value: 0)
         XCTAssertEqual(LabDataLogic.computeTrend(entries: [prev, next]), .stable)
+    }
+
+    /// One draw has nothing to compare against, so no direction — not
+    /// "stable" — is reported.
+    func test_labTrend_singleEntry_isNil() {
+        let only = LabValue(date: Date(), panel: .totalTestosterone, value: 600)
+        XCTAssertNil(LabDataLogic.computeTrend(entries: [only]))
+        XCTAssertNil(LabDataLogic.computeTrend(entries: []))
     }
 
     func test_latestPerPanel_returnsMostRecentPerPanelAndPreservesCategoryOrder() {
@@ -830,6 +947,34 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertNil(ProgressPhotoMetadata.date(forFilename: "progress-not-a-number-abc.jpg"))
     }
 
+    func test_progressPhotoMetadata_displayDate_recentPhoto_capitalisesOnlyFirstLetter() {
+        let now = Date()
+        let fiveHoursAgo = now.addingTimeInterval(-5 * 60 * 60)
+        let filename = "progress-\(Int(fiveHoursAgo.timeIntervalSince1970))-aaa111.jpg"
+        let label = ProgressPhotoMetadata.displayDate(forFilename: filename, now: now)
+        XCTAssertEqual(label.first.map(String.init), label.first.map { String($0).uppercased() })
+        XCTAssertEqual(String(label.dropFirst()), String(label.dropFirst()).lowercased(),
+                       "Only the first letter is capitalised, not every word")
+    }
+
+    func test_progressPhotoMetadata_isEarlier_ordersByEncodedDate() {
+        let older = "progress-1700000000-bbb222.jpg"
+        let newer = "progress-1800000000-aaa111.jpg"
+        XCTAssertTrue(ProgressPhotoMetadata.isEarlier(older, than: newer))
+        XCTAssertFalse(ProgressPhotoMetadata.isEarlier(newer, than: older))
+    }
+
+    func test_progressPhotoMetadata_onDevice_dropsMissingFilesAndSortsOldestFirst() {
+        let local = "progress-1700000000-aaa111.jpg"
+        let newerLocal = "progress-1750000000-ccc333.jpg"
+        let otherDevice = "progress-1800000000-bbb222.jpg"
+        // Merge order: this device's names, then the other device's.
+        let synced = [newerLocal, local, otherDevice, local]
+        let onDisk: Set<String> = [local, newerLocal]
+
+        XCTAssertEqual(ProgressPhotoMetadata.onDevice(synced, exists: onDisk.contains), [local, newerLocal])
+    }
+
     func test_progressPhotoMetadata_daysBetween_isAbsoluteAndDayResolution() {
         let cal = Calendar.current
         let now = cal.startOfDay(for: Date())
@@ -924,6 +1069,24 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertEqual(west.daysOfWeek, [7])
     }
 
+    func test_travelShift_anchorlessIntervalAcrossMidnight_anchorsOnShiftedStart() {
+        let start = Calendar.current.date(from: DateComponents(year: 2026, month: 3, day: 2))!
+        let schedule = ProtocolSchedule(
+            daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
+            timesPerDay: 1,
+            preferredTimes: ["11:00 PM"],
+            intervalDays: 2
+        )
+
+        let shifted = TravelModeLogic.shiftSchedule(schedule, byMinutes: 180, protocolStart: start)
+
+        XCTAssertEqual(shifted.preferredTimes, ["2:00 AM"])
+        XCTAssertEqual(shifted.intervalAnchor, Calendar.current.date(byAdding: .day, value: 1, to: start))
+        // The 11 PM dose on Mar 4 is now the 2 AM dose on Mar 5.
+        let mar5 = Calendar.current.date(from: DateComponents(year: 2026, month: 3, day: 5))!
+        XCTAssertTrue(shifted.isActive(on: mar5, protocolStart: start))
+    }
+
     func test_travelShift_halfHourZone_keepsTheMinutes() {
         XCTAssertEqual(TravelModeLogic.shiftTime("8:00 AM", byMinutes: 330), "1:30 PM")
     }
@@ -952,12 +1115,12 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertTrue(StreakFreezeService.hasFreezeAvailable(in: profile, now: today))
 
         let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: today)!
-        XCTAssertTrue(StreakFreezeService.applyFreeze(in: &profile, for: yesterday, now: today))
+        XCTAssertTrue(StreakFreezeService.applyFreeze(in: &profile, for: yesterday))
         XCTAssertFalse(StreakFreezeService.hasFreezeAvailable(in: profile, now: today))
 
         // Second freeze in the same month is rejected.
         let twoDaysAgo = Calendar.current.date(byAdding: .day, value: -2, to: today)!
-        XCTAssertFalse(StreakFreezeService.applyFreeze(in: &profile, for: twoDaysAgo, now: today))
+        XCTAssertFalse(StreakFreezeService.applyFreeze(in: &profile, for: twoDaysAgo))
     }
 
     func test_streakFreeze_onTheFirstEastOfUTC_countsInItsOwnMonth() {
@@ -1001,7 +1164,7 @@ final class PersistenceRoundTripTests: XCTestCase {
                        "Yesterday gap should break the streak when no freeze is applied")
 
         let yesterday = cal.date(byAdding: .day, value: -1, to: today)!
-        _ = StreakFreezeService.applyFreeze(in: &profile, for: yesterday, now: today)
+        _ = StreakFreezeService.applyFreeze(in: &profile, for: yesterday)
         XCTAssertEqual(LifestyleDataLogic.mealLoggingStreak(in: profile, asOf: today), 3,
                        "Freeze should bridge the gap and extend the streak across 3 days")
     }
@@ -1145,6 +1308,19 @@ final class PersistenceRoundTripTests: XCTestCase {
 
         // Marking seen suppresses the next launch.
         service.markCurrentTourSeen()
+        XCTAssertFalse(service.shouldShowTour(hasCompletedOnboarding: true))
+    }
+
+    func test_whatsNewService_updateMidOnboarding_skipsTourAfterFinishing() {
+        let suiteName = "whatsNewServiceTest.midOnboarding.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let service = WhatsNewService(defaults: defaults)
+
+        // Onboarding started on an older build, which stamped its own
+        // version; the update lands before the user finishes.
+        defaults.set("old", forKey: "com.peptidesai.app.whatsNew.lastSeenVersion")
+        service.bootstrapForFreshInstallIfNeeded(hasCompletedOnboarding: false)
         XCTAssertFalse(service.shouldShowTour(hasCompletedOnboarding: true))
     }
 
@@ -1609,5 +1785,27 @@ final class PersistenceRoundTripTests: XCTestCase {
     /// the date rather than the zone is what removes the flakiness.
     private static func localDate(hour: Int) -> Date {
         Calendar.current.date(from: DateComponents(year: 2026, month: 3, day: 15, hour: hour))!
+    }
+
+    // MARK: - Schedule override keys
+
+    func test_decodeProtocol_overrideKeysDifferingOnlyInCase_keepsOneOverride() throws {
+        let peptide = MockPeptides.bpc157
+        let schedule = ProtocolSchedule(daysOfWeek: [1, 4], timesPerDay: 1, preferredTimes: ["8:00 AM"])
+        let proto = PeptideProtocol(
+            id: UUID(), name: "Hand-edited backup", peptides: [peptide], schedule: schedule,
+            peptideSchedules: [peptide.id: schedule], cycleLengthWeeks: 8,
+            startDate: Date(timeIntervalSince1970: 1_760_000_000), status: .active, notes: ""
+        )
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(proto)) as? [String: Any])
+        var overrides = try XCTUnwrap(json["peptideSchedules"] as? [String: Any])
+        overrides[peptide.id.uuidString.lowercased()] = overrides[peptide.id.uuidString]
+        json["peptideSchedules"] = overrides
+
+        let decoded = try JSONDecoder().decode(
+            PeptideProtocol.self, from: JSONSerialization.data(withJSONObject: json)
+        )
+
+        XCTAssertEqual(Array(decoded.peptideSchedules.keys), [peptide.id])
     }
 }

@@ -82,7 +82,13 @@ struct MetricRing<Center: View>: View {
             // Progress arc.
             progressArc
 
+            // Centres hold a short number, and `AppFont.scaled` has no
+            // cap, so at accessibility sizes they shrink to fit inside the
+            // stroke instead of spilling over it.
             center()
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+                .frame(maxWidth: centerSide, maxHeight: centerSide)
                 .completionPulse(trigger: completionTrigger, isActive: celebrateAtCompletion && progress >= 1)
         }
         .frame(width: diameter, height: diameter)
@@ -90,6 +96,11 @@ struct MetricRing<Center: View>: View {
         .onChange(of: progress) { oldValue, newValue in
             handleProgressChange(from: oldValue, to: newValue)
         }
+    }
+
+    /// The square that fits inside the ring's inner edge.
+    private var centerSide: CGFloat {
+        max(0, (diameter - 2 * strokeWidth) * 0.75)
     }
 
     @ViewBuilder

@@ -45,6 +45,9 @@ struct ProtocolBuilderView: View {
     /// only cost the user a prompt once they've actually entered something.
     @State private var initialForm: FormSnapshot?
     @State private var isConfirmingDiscard = false
+    /// Recomputed when the selection changes, not on every keystroke in
+    /// the name field.
+    @State private var inlineWarnings: [StackRecommendationEngine.Warning] = []
 
     private let dayNames = ScheduleEditor.isoWeekdayNames
     private let totalSteps = 2
@@ -125,27 +128,42 @@ struct ProtocolBuilderView: View {
     }
 
     private var orderedSelectedPeptides: [Peptide] {
-        dataStore.peptideDatabase.filter { selectedPeptides.contains($0.id) }
+        selectablePeptides.filter { selectedPeptides.contains($0.id) }
+    }
+
+    private var selectablePeptides: [Peptide] {
+        Self.selectablePeptides(
+            catalogue: dataStore.peptideDatabase,
+            protocolPeptides: editingProtocol?.peptides ?? []
+        )
+    }
+
+    /// The catalogue plus the edited protocol's own peptides. Custom
+    /// peptides don't sync, so a protocol from another device can hold
+    /// one this catalogue lacks — saving must not silently drop it.
+    static func selectablePeptides(catalogue: [Peptide], protocolPeptides: [Peptide]) -> [Peptide] {
+        let known = Set(catalogue.map(\.id))
+        return catalogue + protocolPeptides.filter { !known.contains($0.id) }
     }
 
     private var defaultSchedule: ProtocolSchedule {
         ProtocolSchedule(
             daysOfWeek: cadenceMode == .weekly ? selectedDays.sorted() : [1, 2, 3, 4, 5, 6, 7],
-            timesPerDay: timesPerDay,
+            timesPerDay: resolvedTimes.count,
             preferredTimes: resolvedTimes,
             intervalDays: cadenceMode == .interval ? intervalDays : nil,
             intervalAnchor: cadenceMode == .interval ? intervalAnchor : nil
         )
     }
 
-    /// Always returns exactly `timesPerDay` strings — pads from the user's
-    /// edits if available, otherwise falls back to the default presets.
+    /// `timesPerDay` slots — padded from the default presets — with
+    /// duplicates dropped and sorted through the day.
     private var resolvedTimes: [String] {
         var times = preferredTimes
         while times.count < timesPerDay {
             times.append(ScheduleEditor.defaultTimeString(for: times.count))
         }
-        return Array(times.prefix(timesPerDay))
+        return ProtocolSchedule.normalizedTimes(Array(times.prefix(timesPerDay)))
     }
 
     /// Non-persisted protocol used to drive the live preview share-card render.
@@ -195,8 +213,8 @@ struct ProtocolBuilderView: View {
         return profileName.isEmpty ? nil : profileName
     }
 
-    private var inlineWarnings: [StackRecommendationEngine.Warning] {
-        StackRecommendationEngine.warnings(
+    private func refreshInlineWarnings() {
+        inlineWarnings = StackRecommendationEngine.warnings(
             for: orderedSelectedPeptides,
             activeProtocols: dataStore.activeProtocols
         )
@@ -305,7 +323,7 @@ struct ProtocolBuilderView: View {
                 titleVisibility: .visible
             ) {
                 Button("Discard", role: .destructive) { dismiss() }
-                Button("Keep Editing", role: .cancel) {}
+                Button("Keep editing", role: .cancel) {}
             } message: {
                 Text("What you've entered for this protocol will be lost.")
             }
@@ -364,16 +382,15 @@ struct ProtocolBuilderView: View {
 
                         PeptideSelector(
                             selectedPeptides: $selectedPeptides,
-                            allPeptides: dataStore.peptideDatabase,
+                            allPeptides: selectablePeptides,
                             onAddCustomPeptide: { dataStore.addCustomPeptide($0) }
                         )
                     }
                 }
                 .sectionAppear(index: 2)
 
-                let warnings = inlineWarnings
-                if !warnings.isEmpty {
-                    warningsCard(warnings)
+                if !inlineWarnings.isEmpty {
+                    warningsCard(inlineWarnings)
                         .sectionAppear(index: 3)
                 }
             }
@@ -381,7 +398,8 @@ struct ProtocolBuilderView: View {
             .padding(.bottom, Spacing.xxxxl)
         }
         .scrollDismissesKeyboard(.interactively)
-        .dismissKeyboardOnTap()
+        .keyboardDoneButton()
+        .task(id: selectedPeptides) { refreshInlineWarnings() }
     }
 
     private func hydrate(from proto: PeptideProtocol) {
@@ -509,9 +527,6 @@ struct ProtocolBuilderView: View {
     }
 
     private func warningsCard(_ warnings: [StackRecommendationEngine.Warning]) -> some View {
-        // `Warning.id` is a fresh UUID per instance, which would churn SwiftUI
-        // identity on every keystroke. Key on `title` instead — it's stable
-        // across renders for the same warning content.
         let topWarnings = Array(warnings.prefix(3))
         let hiddenCount = warnings.count - topWarnings.count
         return GlassCard {
@@ -520,7 +535,7 @@ struct ProtocolBuilderView: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.warning)
 
-                ForEach(topWarnings, id: \.title) { warning in
+                ForEach(topWarnings) { warning in
                     HStack(alignment: .top, spacing: Spacing.sm) {
                         Image(systemName: warning.icon)
                             .font(AppFont.subheadline.weight(.semibold))

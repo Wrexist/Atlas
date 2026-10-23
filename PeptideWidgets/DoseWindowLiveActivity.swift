@@ -1,7 +1,6 @@
 import ActivityKit
 import AppIntents
 import SwiftUI
-import UIKit
 import WidgetKit
 
 /// Lock-screen + Dynamic Island Live Activity for an in-progress
@@ -16,7 +15,8 @@ import WidgetKit
 ///   • late     — amber accent, "Late" pill. An unlogged dose stays
 ///                here: the one stale-date redraw is spent moving into
 ///                Late, and the app ends the activity once the window
-///                closes.
+///                closes, from its background refresh task if it isn't
+///                otherwise running.
 ///   • completed— green pill with a checkmark, auto-dismissing
 ///
 /// The activity is started by `DoseLiveActivityService` from the
@@ -188,7 +188,6 @@ private struct DoseWindowLockView: View {
             .padding(14)
         }
         .activityBackgroundTint(Color.black.opacity(0.05))
-        .activitySystemActionForegroundColor(.white)
     }
 
     private var topRow: some View {
@@ -199,6 +198,8 @@ private struct DoseWindowLockView: View {
                 glyph: statusGlyph(for: state)
             )
             .frame(width: 56, height: 56)
+            // The status pill and the timer say what the ring shows.
+            .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(attributes.peptideName)
@@ -213,6 +214,7 @@ private struct DoseWindowLockView: View {
                             .foregroundStyle(.secondary)
                         Text("·")
                             .foregroundStyle(.secondary)
+                            .accessibilityHidden(true)
                     }
                     Text(attributes.peptideAbbreviation)
                         .font(.system(size: 12, weight: .semibold))
@@ -226,6 +228,7 @@ private struct DoseWindowLockView: View {
 
             StatusPill(state: state, accent: accent)
         }
+        .accessibilityElement(children: .combine)
     }
 
     private var bottomRow: some View {
@@ -257,7 +260,9 @@ private struct DoseWindowLockView: View {
             }
         case .late:
             HStack(spacing: 6) {
-                Text(state.doseTime, style: .relative)
+                // A count-up timer stays "1:12:00" however late it gets,
+                // where the relative style grows to "1 hr, 12 min".
+                Text(state.doseTime, style: .timer)
                     .font(.system(size: 22, weight: .heavy, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(accent)
@@ -275,12 +280,15 @@ private struct DoseWindowLockView: View {
                     .foregroundStyle(.secondary)
             }
         case .upcoming:
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
+            // A suspended app's activity skips the due-now beat and sits
+            // here until the late redraw, so the layout must still read
+            // right once the countdown has stopped at 0:00.
+            VStack(alignment: .leading, spacing: 0) {
                 Text(timerInterval: state.countdownInterval(), countsDown: true)
                     .font(.system(size: 22, weight: .heavy, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(.primary)
-                Text("to dose")
+                Text("Due at \(Text(state.doseTime, style: .time))")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.secondary)
             }
@@ -296,6 +304,7 @@ private struct DoseWindowLockView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark")
                         .font(.system(size: 12, weight: .heavy))
+                        .accessibilityHidden(true)
                     Text("Log")
                         .font(.system(size: 14, weight: .heavy))
                 }
@@ -376,12 +385,19 @@ private struct StatusPill: View {
     let state: DoseWindowAttributes.ContentState
     let accent: Color
 
+    /// The dose time is already under the lock-screen countdown, so the
+    /// pill doesn't repeat it.
+    private var label: String {
+        if case .upcoming = state.status() { return String(localized: "Upcoming") }
+        return statusShortLabel(for: state)
+    }
+
     var body: some View {
-        let label = statusShortLabel(for: state)
         HStack(spacing: 5) {
             Circle()
                 .fill(accent)
                 .frame(width: 6, height: 6)
+                .accessibilityHidden(true)
             Text(label)
                 .font(.system(size: 11, weight: .heavy))
                 .textCase(.uppercase)
@@ -572,6 +588,7 @@ private struct IslandBottomBar: View {
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 13, weight: .heavy))
+                        .accessibilityHidden(true)
                     Text("Log dose")
                         .font(.system(size: 13, weight: .heavy))
                 }
@@ -618,24 +635,6 @@ private struct ProgressLabel: View {
 }
 
 // MARK: - Colour helpers
-
-/// Black or white, whichever reads better on `fill`. Vial tints run from
-/// deep to pale, and the late amber is light, so a fixed white label
-/// fails contrast on some of the fills the Log button takes. The late
-/// amber is a light/dark pair, so it is resolved against the scheme the
-/// view draws in, not whatever trait collection is current.
-private func labelColor(on fill: Color, in colorScheme: ColorScheme) -> Color {
-    let traits = UITraitCollection(userInterfaceStyle: colorScheme == .dark ? .dark : .light)
-    var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-    guard UIColor(fill).resolvedColor(with: traits).getRed(&r, green: &g, blue: &b, alpha: &a) else { return .white }
-    func linear(_ channel: CGFloat) -> Double {
-        let c = Double(channel)
-        return c <= 0.03928 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
-    }
-    let luminance = 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
-    // Above this, black text out-contrasts white (WCAG relative luminance).
-    return luminance > 0.179 ? .black : .white
-}
 
 private extension Color {
     init(hex: UInt) {

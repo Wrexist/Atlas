@@ -193,6 +193,22 @@ final class PlateCalculatorEngineTests: XCTestCase {
         XCTAssertEqual(PlateCalculatorEngine.calculate(target: 60, barWeight: .infinity, plates: plates), .invalid)
     }
 
+    func test_isValidBar_zeroOrPlausible_acceptsOnlyThose() {
+        XCTAssertTrue(PlateCalculatorEngine.isValidBar(0))
+        XCTAssertTrue(PlateCalculatorEngine.isValidBar(20))
+        XCTAssertFalse(PlateCalculatorEngine.isValidBar(-5))
+        XCTAssertFalse(PlateCalculatorEngine.isValidBar(.nan))
+        XCTAssertFalse(PlateCalculatorEngine.isValidBar(PlateCalculatorEngine.maximumWeight + 1))
+    }
+
+    /// The sheet passes NaN for an empty Bar field, which must not load as a 0 kg bar.
+    func test_unreadableBar_isInvalid() {
+        XCTAssertEqual(
+            PlateCalculatorEngine.calculate(target: 60, barWeight: .nan, plates: PlateCalculatorEngine.kilogramPlates),
+            .invalid
+        )
+    }
+
     func test_absurdTarget_isInvalidRatherThanOverflowing() {
         XCTAssertEqual(
             PlateCalculatorEngine.calculate(target: 1e300, barWeight: 20, plates: PlateCalculatorEngine.kilogramPlates),

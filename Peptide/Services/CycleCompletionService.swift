@@ -53,6 +53,7 @@ final class CycleCompletionService {
     private let calendar: Calendar
     private static let dismissCountKey = "cycle.completion.dismissCount"
     private static let autoCompletedKey = "cycle.completion.autoCompleted"
+    private static let graceStartKey = "cycle.completion.graceStart"
 
     init(defaults: UserDefaults = .standard, calendar: Calendar = .current) {
         self.defaults = defaults
@@ -84,7 +85,7 @@ final class CycleCompletionService {
             guard hasCycleEnded(proto) else { return false }
             guard !wasAutoCompleted(proto) else { return false }
             if dismissCount(for: proto) >= Self.autoCompleteDismissThreshold { return true }
-            if daysPastCycleEnd(of: proto) >= Self.autoCompleteGraceDays { return true }
+            if daysIntoGraceWindow(of: proto) >= Self.autoCompleteGraceDays { return true }
             return false
         }
     }
@@ -109,6 +110,17 @@ final class CycleCompletionService {
         persistDismissCounts(map)
     }
 
+    /// Restarts the grace window from today and forgets dismissals. Called
+    /// when a protocol is resumed or its cycle end moves: a protocol
+    /// resumed 10 days past its end would otherwise flip straight to
+    /// completed without the user ever seeing the prompt.
+    func restartGraceWindow(for proto: PeptideProtocol, at date: Date = Date()) {
+        resetDismissals(for: proto)
+        var map = graceStarts
+        map[key(for: proto)] = calendar.startOfDay(for: date).timeIntervalSince1970
+        defaults.set(map, forKey: Self.graceStartKey)
+    }
+
     /// Records that the user (or the auto-completion sweep) marked
     /// the protocol completed. Prevents the prompt from re-firing.
     func markAutoCompleted(_ proto: PeptideProtocol) {
@@ -117,10 +129,23 @@ final class CycleCompletionService {
         defaults.set(Array(set), forKey: Self.autoCompletedKey)
     }
 
+    /// Drops dismiss counts, grace starts and auto-complete marks for
+    /// protocols that no longer exist. Skipped for an empty list (a
+    /// store that hasn't loaded).
+    func pruneState(keeping protocols: [PeptideProtocol]) {
+        guard !protocols.isEmpty else { return }
+        let ids = Set(protocols.map(\.id.uuidString))
+        let isKept: (String) -> Bool = { ids.contains(String($0.prefix { $0 != ":" })) }
+        persistDismissCounts(dismissCounts.filter { isKept($0.key) })
+        defaults.set(graceStarts.filter { isKept($0.key) }, forKey: Self.graceStartKey)
+        defaults.set(Array(autoCompletedIdentifiers.filter(isKept)), forKey: Self.autoCompletedKey)
+    }
+
     /// Test-only reset hook.
     func resetForTesting() {
         defaults.removeObject(forKey: Self.dismissCountKey)
         defaults.removeObject(forKey: Self.autoCompletedKey)
+        defaults.removeObject(forKey: Self.graceStartKey)
     }
 
     // MARK: - Predicates
@@ -137,9 +162,14 @@ final class CycleCompletionService {
         proto.washoutWeeks <= 0 && calendar.startOfDay(for: Date()) >= proto.cycleEndDay
     }
 
-    private func daysPastCycleEnd(of proto: PeptideProtocol) -> Int {
+    /// Days since the later of the cycle end and the last resume or
+    /// cycle-end change, so the prompt always gets its grace window.
+    private func daysIntoGraceWindow(of proto: PeptideProtocol) -> Int {
         let today = calendar.startOfDay(for: Date())
-        return calendar.dateComponents([.day], from: proto.cycleEndDay, to: today).day ?? 0
+        let windowStart = graceStarts[key(for: proto)]
+            .map { max(proto.cycleEndDay, Date(timeIntervalSince1970: $0)) }
+            ?? proto.cycleEndDay
+        return calendar.dateComponents([.day], from: windowStart, to: today).day ?? 0
     }
 
     private func dismissCount(for proto: PeptideProtocol) -> Int {
@@ -158,6 +188,10 @@ final class CycleCompletionService {
 
     private func persistDismissCounts(_ map: [String: Int]) {
         defaults.set(map, forKey: Self.dismissCountKey)
+    }
+
+    private var graceStarts: [String: Double] {
+        defaults.dictionary(forKey: Self.graceStartKey) as? [String: Double] ?? [:]
     }
 
     private var autoCompletedIdentifiers: Set<String> {

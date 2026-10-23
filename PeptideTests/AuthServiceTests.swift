@@ -1,3 +1,4 @@
+import AuthenticationServices
 import XCTest
 @testable import Peptide
 
@@ -57,6 +58,23 @@ final class AuthServiceTests: XCTestCase {
         auth.handleAuthorization(.failure(NSError(domain: "test", code: -2)))
         XCTAssertFalse(auth.isSignedIn)
         XCTAssertNil(auth.userIdentifier)
+    }
+
+    // MARK: - Sign-in completion
+
+    func test_finishSignIn_userCanceled_raisesNoError() {
+        auth.clearLastError()
+        auth.finishSignIn(result: .failure(ASAuthorizationError(.canceled)))
+        XCTAssertNil(auth.lastError)
+    }
+
+    func test_finishSignIn_failure_raisesFailedError() {
+        auth.clearLastError()
+        defer { auth.clearLastError() }
+        auth.finishSignIn(result: .failure(ASAuthorizationError(.failed)))
+        guard case .failed? = auth.lastError else {
+            return XCTFail("Expected .failed, got \(String(describing: auth.lastError))")
+        }
     }
 
     // MARK: - Sign Out idempotency
@@ -152,6 +170,34 @@ final class AuthServiceTests: XCTestCase {
 
         XCTAssertNil(WorkoutSessionService.shared.activeSession)
         XCTAssertTrue(SwiftDataRepository.shared.loadAllWorkoutSessions().isEmpty)
+    }
+
+    /// The next AI request after an erase must ask for consent again.
+    func test_deleteAllData_revokesAIConsent() {
+        SwiftDataRepository.shared.configureForTesting()
+        _ = DataStore(seedSampleData: true)
+        AIDataConsent.grantCoachSummary()
+        XCTAssertTrue(AIDataConsent.isGranted)
+
+        auth.deleteAllData()
+
+        XCTAssertFalse(AIDataConsent.isGranted)
+        XCTAssertFalse(AIDataConsent.isCoachSummaryGranted)
+    }
+
+    func test_deleteAllData_clearsOnboardingAnswersButKeepsDisclaimerRecord() {
+        SwiftDataRepository.shared.configureForTesting()
+        _ = DataStore(seedSampleData: true)
+        OnboardingFunnelTracker.recordEvent("attribution_friend")
+        UserDefaults.standard.set("advanced", forKey: "experienceLevel")
+        UserDefaults.standard.set(1_800_000_000.0, forKey: "disclaimerAcknowledgedAt")
+        defer { UserDefaults.standard.removeObject(forKey: "disclaimerAcknowledgedAt") }
+
+        auth.deleteAllData()
+
+        XCTAssertTrue(OnboardingFunnelTracker.snapshot.events.isEmpty)
+        XCTAssertNil(UserDefaults.standard.string(forKey: "experienceLevel"))
+        XCTAssertEqual(UserDefaults.standard.double(forKey: "disclaimerAcknowledgedAt"), 1_800_000_000)
     }
 
     func test_deleteAllData_resetsAchievements() {

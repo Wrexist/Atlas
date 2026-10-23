@@ -7,8 +7,8 @@ import Foundation
 /// automatically — so it can't be silently spent.
 ///
 /// Pure-function over the profile's `streakFreezeDays` set, which
-/// stores the start-of-day ISO strings the streak engine treats
-/// as counted-as-completed.
+/// stores the local calendar dates (`yyyyMMdd`) the streak engine
+/// treats as counted-as-completed.
 enum StreakFreezeService {
 
     /// How many freezes the user gets per calendar month. Single-
@@ -48,18 +48,37 @@ enum StreakFreezeService {
         return profile.streakFreezeDays.intersection(monthKeys).count
     }
 
-    /// Returns the ISO key for a given calendar date. Used by the
-    /// streak engine to check membership.
+    /// The key for the local calendar day containing `date`, e.g.
+    /// "20261023". Built from the calendar's own year/month/day so it
+    /// names the day the user saw, in any time zone.
     static func dayKey(for date: Date, calendar: Calendar = .current) -> String {
-        let day = calendar.startOfDay(for: date)
-        return isoFormatter.string(from: day)
+        let parts = calendar.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d%02d%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
     }
 
     /// True when the given date has a freeze applied. Streak
     /// engine treats these the same as completed days for the
     /// purpose of consecutive-day counting.
-    static func isFrozen(_ date: Date, in profile: UserProfile) -> Bool {
-        profile.streakFreezeDays.contains(dayKey(for: date))
+    static func isFrozen(_ date: Date, in profile: UserProfile, calendar: Calendar = .current) -> Bool {
+        profile.streakFreezeDays.contains(dayKey(for: date, calendar: calendar))
+    }
+
+    /// Rewrites keys stored by builds that formatted local midnight in
+    /// GMT ("2026-10-22" for a 23 October freeze east of UTC) as local
+    /// `dayKey`s. The two formats differ, so this is idempotent and safe
+    /// to run on keys merged in from another device. Assumes the legacy
+    /// key was written in `calendar`'s time zone: east of UTC local
+    /// midnight falls on the previous GMT date, elsewhere on the same one.
+    static func migratingLegacyKeys(_ keys: Set<String>, calendar: Calendar = .current) -> Set<String> {
+        Set(keys.map { key in
+            guard key.contains("-"), let gmtMidnight = legacyFormatter.date(from: key) else { return key }
+            let gmtNoon = gmtMidnight.addingTimeInterval(12 * 3600)
+            let shift = calendar.timeZone.secondsFromGMT(for: gmtNoon) > 0 ? 1 : 0
+            var gmt = Calendar(identifier: .gregorian)
+            gmt.timeZone = TimeZone(identifier: "GMT")!
+            let localDay = gmt.date(byAdding: .day, value: shift, to: gmtMidnight) ?? gmtMidnight
+            return dayKey(for: localDay, calendar: gmt)
+        })
     }
 
     /// Spends one freeze on the most recent at-risk day. Idempotent
@@ -70,22 +89,22 @@ enum StreakFreezeService {
     static func applyFreeze(
         in profile: inout UserProfile,
         for date: Date,
-        now: Date = Date()
+        calendar: Calendar = .current
     ) -> Bool {
-        let key = dayKey(for: date)
+        let key = dayKey(for: date, calendar: calendar)
         guard !profile.streakFreezeDays.contains(key) else { return false }
-        guard hasFreezeAvailable(in: profile, now: now) else { return false }
+        // The budget is the frozen day's month, not today's: on the 1st,
+        // freezing the 31st must spend the previous month's freeze.
+        guard hasFreezeAvailable(in: profile, now: date, calendar: calendar) else { return false }
         profile.streakFreezeDays.insert(key)
         return true
     }
 
-    // ISO8601DateFormatter is documented as thread-safe by Apple but
-    // not marked Sendable, so Swift 6 strict concurrency rejects it
-    // as global shared state. `nonisolated(unsafe)` opts out of the
-    // check — the underlying type's documented thread safety holds,
-    // and the formatter is only ever read (never mutated) after the
-    // closure that builds it.
-    nonisolated(unsafe) private static let isoFormatter: ISO8601DateFormatter = {
+    // Parses the legacy "yyyy-MM-dd" GMT keys. ISO8601DateFormatter is
+    // documented as thread-safe but not marked Sendable, so
+    // `nonisolated(unsafe)` opts out of the global-state check; the
+    // formatter is only read after the closure that builds it.
+    nonisolated(unsafe) private static let legacyFormatter: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withFullDate]
         return f

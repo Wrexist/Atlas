@@ -1,5 +1,6 @@
 import Foundation
 import ActivityKit
+import BackgroundTasks
 import SwiftUI
 import UIKit
 
@@ -26,6 +27,12 @@ final class DoseLiveActivityService {
     /// hours. Also where `DoseWindowAttributes` closes the window.
     private static let stalenessMinutes = DoseWindowAttributes.ContentState.windowCloseMinutes
 
+    /// Background refresh that ends an unlogged dose's activity once its
+    /// window closes. Without it nothing ends the card until the user
+    /// opens Atlas, and it sits on Late with a Log button for hours.
+    /// Listed under `BGTaskSchedulerPermittedIdentifiers`.
+    nonisolated static let windowCloseTaskIdentifier = "com.peptidesai.app.doseWindowClose"
+
     private init() {}
 
     // MARK: - Public surface
@@ -38,8 +45,10 @@ final class DoseLiveActivityService {
     /// edited (static attributes can't be updated, so those restart).
     /// Ending runs even with Live Activities switched off, so a card
     /// left up when the user disabled them still clears. Call on app
-    /// foreground + after every entry mutation.
-    func reconcile(entries: [ProtocolEntry]) {
+    /// foreground + after every entry mutation. Returns the end
+    /// requests, for a background run that must not finish first.
+    @discardableResult
+    func reconcile(entries: [ProtocolEntry]) -> [Task<Void, Never>] {
         let now = Date()
         let inWindow = entries.filter { entry in
             Self.isInActiveWindow(entry, at: now)
@@ -47,30 +56,38 @@ final class DoseLiveActivityService {
         let inWindowByID = Dictionary(inWindow.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
 
         var openIDs = Set<UUID>()
+        var ends: [Task<Void, Never>] = []
         // An ended activity still showing its Logged badge already has a
         // system-owned dismissal; ending it again would cut the badge.
         for activity in Activity<DoseWindowAttributes>.activities
         where [.active, .stale].contains(activity.activityState) {
             guard let entry = inWindowByID[activity.attributes.entryId],
                   Self.attributesMatch(activity.attributes, entry) else {
-                Task { await activity.end(nil, dismissalPolicy: .immediate) }
+                ends.append(Task { await activity.end(nil, dismissalPolicy: .immediate) })
                 continue
             }
             openIDs.insert(entry.id)
-            if activity.content.state.doseTime != entry.date {
+            // Status is read from the clock at draw time, and the only
+            // scheduled redraw is the late boundary, so the due-now beat
+            // shows only if something redraws inside it: this pass does
+            // whenever the app happens to run then.
+            if activity.content.state.doseTime != entry.date
+                || activity.content.state.status(at: now) == .dueNow {
                 let state = Self.initialState(for: entry)
                 Task { await activity.update(ActivityContent(state: state, staleDate: state.lateBoundary)) }
             }
         }
+        // Nothing to end when Live Activities are off; the pass above
+        // already cleared any left over.
+        scheduleWindowCloseRefresh(for: areLiveActivitiesEnabled ? inWindow : [], now: now)
 
         // Start activities for in-window entries that don't have one
-        // yet. If the user has 4+ open activities (the system soft
-        // cap on most devices), skip the rest — better to leave the
-        // earliest few than fail silently.
-        guard areLiveActivitiesEnabled else { return }
+        // yet. A start the system refuses is logged by `startActivity`.
+        guard areLiveActivitiesEnabled else { return ends }
         for entry in inWindow where !openIDs.contains(entry.id) {
             startActivity(for: entry)
         }
+        return ends
     }
 
     /// Ends the matching activity on its `completed = true` state. The
@@ -109,6 +126,29 @@ final class DoseLiveActivityService {
     }
 
     // MARK: - Internals
+
+    /// Asks for a background refresh just after the earliest open window
+    /// closes, replacing any earlier request; cancels it when no window
+    /// is open. Best effort: iOS decides when, or whether, it runs.
+    private func scheduleWindowCloseRefresh(for inWindow: [ProtocolEntry], now: Date) {
+        let scheduler = BGTaskScheduler.shared
+        guard let closesAt = inWindow.compactMap({ Self.windowEnd(of: $0) }).min() else {
+            scheduler.cancel(taskRequestWithIdentifier: Self.windowCloseTaskIdentifier)
+            return
+        }
+        let request = BGAppRefreshTaskRequest(identifier: Self.windowCloseTaskIdentifier)
+        // A minute past the close, so the pass sees the entry outside it.
+        request.earliestBeginDate = max(now, closesAt).addingTimeInterval(60)
+        do {
+            try scheduler.submit(request)
+        } catch {
+            AppLog.live.error("Window-close refresh not scheduled: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    private static func windowEnd(of entry: ProtocolEntry) -> Date? {
+        Calendar.current.date(byAdding: .minute, value: stalenessMinutes, to: entry.date)
+    }
 
     private var areLiveActivitiesEnabled: Bool {
         ActivityAuthorizationInfo().areActivitiesEnabled
@@ -165,8 +205,8 @@ final class DoseLiveActivityService {
     static func isInActiveWindow(_ entry: ProtocolEntry, at now: Date) -> Bool {
         guard !entry.completed else { return false }
         let windowStart = Calendar.current.date(byAdding: .minute, value: -startLeadMinutes, to: entry.date) ?? entry.date
-        let windowEnd = Calendar.current.date(byAdding: .minute, value: stalenessMinutes, to: entry.date) ?? entry.date
-        return now >= windowStart && now <= windowEnd
+        let windowClose = Self.windowEnd(of: entry) ?? entry.date
+        return now >= windowStart && now <= windowClose
     }
 
     /// Extracts a packed RGB UInt from a SwiftUI Color so the widget

@@ -69,6 +69,57 @@ final class WeeklySummaryServiceTests: XCTestCase {
         return summary
     }
 
+    // MARK: - AI data-sharing consent
+
+    func test_weeklySummary_consentRevoked_doesNotCallProxy() async throws {
+        let requested = SendableBox<Bool>(false)
+        let service = makeProxiedService(consentGranted: false, requested: requested)
+
+        let summary = await service.fetchOrFallback(aggregate: try fixtureAggregate())
+
+        XCTAssertFalse(requested.value, "No data may leave the device without AI consent")
+        XCTAssertEqual(summary.kind, .offline)
+    }
+
+    func test_weeklySummary_consentGranted_callsProxy() async throws {
+        let requested = SendableBox<Bool>(false)
+        let service = makeProxiedService(consentGranted: true, requested: requested)
+
+        let summary = await service.fetchOrFallback(aggregate: try fixtureAggregate())
+
+        XCTAssertTrue(requested.value)
+        XCTAssertEqual(summary.kind, .ai)
+    }
+
+    private func makeProxiedService(consentGranted: Bool, requested: SendableBox<Bool>) -> WeeklySummaryService {
+        MockURLProtocol.handler = { request in
+            requested.set(true)
+            let response = HTTPURLResponse(
+                url: request.url!, statusCode: 200, httpVersion: "HTTP/1.1",
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, Data(#"{"text":"AI recap"}"#.utf8))
+        }
+        addTeardownBlock { MockURLProtocol.reset() }
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [MockURLProtocol.self]
+        return WeeklySummaryService(
+            session: URLSession(configuration: config),
+            endpointOverride: URL(string: "https://test-proxy.peptidesai.com/api/weekly-summary")!,
+            secretOverride: "test-shared-secret",
+            isConsentGranted: { consentGranted }
+        )
+    }
+
+    private func fixtureAggregate() throws -> WeeklyAggregate {
+        try XCTUnwrap(WeeklySummaryEngine.build(
+            profile: .fresh,
+            protocols: [],
+            entries: (0..<4).map { entry(daysFromMonday: $0, completed: true) },
+            referenceDate: weekMonday
+        ))
+    }
+
     func test_weeklySummaryCache_invalidatedOnSourceEdit() throws {
         var profile = UserProfile.fresh
         var entries = [

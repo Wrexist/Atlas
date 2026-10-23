@@ -242,11 +242,18 @@ struct ProtocolNoteEditorSheet: View {
     @State private var mood: Int?
     @State private var date: Date = Date()
     @State private var showDeleteConfirm: Bool = false
+    @State private var showDiscardConfirm: Bool = false
+    /// Set once `onAppear` has copied `initial` in, so the empty first
+    /// frame doesn't read as an edit.
+    @State private var hasLoaded: Bool = false
     @FocusState private var focused: Bool
 
     private var isEditing: Bool { onDelete != nil }
     private var canSave: Bool {
         !noteBody.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+    private var isDirty: Bool {
+        hasLoaded && (noteBody != initial.body || mood != initial.mood || date != initial.date)
     }
 
     var body: some View {
@@ -289,7 +296,9 @@ struct ProtocolNoteEditorSheet: View {
             .glassFormStyle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", action: onCancel)
+                    Button("Cancel") {
+                        if isDirty { showDiscardConfirm = true } else { onCancel() }
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: commit)
@@ -308,11 +317,23 @@ struct ProtocolNoteEditorSheet: View {
             } message: {
                 Text("This can't be undone.")
             }
+            .confirmationDialog(
+                "Discard note?",
+                isPresented: $showDiscardConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Discard", role: .destructive, action: onCancel)
+                Button("Keep editing", role: .cancel) {}
+            } message: {
+                Text("Your note hasn't been saved.")
+            }
         }
+        .interactiveDismissDisabled(isDirty)
         .onAppear {
             self.noteBody = initial.body
             self.mood = initial.mood
             self.date = initial.date
+            self.hasLoaded = true
             // Auto-focus the body field on a fresh note so the
             // user starts typing immediately. Existing edits skip
             // the focus to avoid an unwanted keyboard pop.

@@ -294,18 +294,18 @@ final class WidgetSnapshotTrainingTests: XCTestCase {
         )
     }
 
-    func test_activeWorkoutStart_recentPayload_reportsTheRunningWorkout() {
+    func test_forDisplay_recentPayload_keepsTheRunningWorkout() {
         let start = now.addingTimeInterval(-3_600)
         let data = payload(startedAt: start, writtenAt: now.addingTimeInterval(-600))
-        XCTAssertEqual(data.activeWorkoutStart(at: now), start)
+        XCTAssertEqual(data.forDisplay(at: now).activeWorkoutStartedAt, start)
     }
 
-    func test_activeWorkoutStart_payloadPastTheIdleLimit_dropsTheWorkout() {
+    func test_forDisplay_payloadPastTheIdleLimit_dropsTheWorkout() {
         let data = payload(
             startedAt: now.addingTimeInterval(-3 * 86_400),
             writtenAt: now.addingTimeInterval(-(WidgetData.abandonedWorkoutAge + 60))
         )
-        XCTAssertNil(data.activeWorkoutStart(at: now))
+        XCTAssertNil(data.forDisplay(at: now).activeWorkoutStartedAt)
     }
 
     func test_abandonedWorkoutAge_matchesTheStalenessEngine() {

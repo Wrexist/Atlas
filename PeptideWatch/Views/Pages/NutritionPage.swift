@@ -28,12 +28,12 @@ struct NutritionPage: View {
 
     private var waterOptions: [WaterOption] {
         isMetric
-            ? [.init(label: "+250mL", spoken: String(localized: "Log 250 milliliters of water"), fluidOunces: Self.fluidOunces(milliliters: 250)),
-               .init(label: "+500mL", spoken: String(localized: "Log 500 milliliters of water"), fluidOunces: Self.fluidOunces(milliliters: 500)),
-               .init(label: "+1L", spoken: String(localized: "Log 1 liter of water"), fluidOunces: Self.fluidOunces(milliliters: 1000))]
-            : [.init(label: "+8oz", spoken: String(localized: "Log 8 ounces of water"), fluidOunces: 8),
-               .init(label: "+16oz", spoken: String(localized: "Log 16 ounces of water"), fluidOunces: 16),
-               .init(label: "+32oz", spoken: String(localized: "Log 32 ounces of water"), fluidOunces: 32)]
+            ? [.init(label: "+250 mL", spoken: String(localized: "Log 250 milliliters of water"), fluidOunces: Self.fluidOunces(milliliters: 250)),
+               .init(label: "+500 mL", spoken: String(localized: "Log 500 milliliters of water"), fluidOunces: Self.fluidOunces(milliliters: 500)),
+               .init(label: "+1 L", spoken: String(localized: "Log 1 liter of water"), fluidOunces: Self.fluidOunces(milliliters: 1000))]
+            : [.init(label: "+8 oz", spoken: String(localized: "Log 8 ounces of water"), fluidOunces: 8),
+               .init(label: "+16 oz", spoken: String(localized: "Log 16 ounces of water"), fluidOunces: 16),
+               .init(label: "+32 oz", spoken: String(localized: "Log 32 ounces of water"), fluidOunces: 32)]
     }
 
     private static func fluidOunces(milliliters: Double) -> Double {

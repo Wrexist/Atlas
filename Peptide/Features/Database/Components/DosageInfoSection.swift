@@ -19,7 +19,7 @@ struct DosageInfoSection: View {
                     Image(systemName: "chart.bar.doc.horizontal")
                         .foregroundStyle(peptide.category.color)
                         .accessibilityHidden(true)
-                    Text("Reported in Research")
+                    Text("Reported in research")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                 }
@@ -96,31 +96,46 @@ private struct DosageRow: View {
     let value: String
     let icon: String
 
+    /// Short values sit beside the label; a long reported value (up to
+    /// ~190 characters in the dataset) stacks under it at full width so
+    /// none of it is cut off.
     var body: some View {
-        HStack(alignment: .top) {
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: icon)
-                    .font(AppFont.scaled(11))
-                    .foregroundStyle(AppColor.accentPrimary)
-                    .frame(width: 20)
-                    .accessibilityHidden(true)
-
-                Text(label)
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .layoutPriority(1)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top) {
+                labelRow
+                Spacer(minLength: Spacing.sm)
+                valueText
+                    .multilineTextAlignment(.trailing)
             }
-
-            Spacer(minLength: Spacing.sm)
-
-            Text(value)
-                .font(AppFont.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(AppColor.textPrimary)
-                .multilineTextAlignment(.trailing)
-                .lineLimit(3)
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                labelRow
+                valueText
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .accessibilityElement(children: .combine)
+    }
+
+    private var labelRow: some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: icon)
+                .font(AppFont.scaled(11))
+                .foregroundStyle(AppColor.accentPrimary)
+                .frame(width: 20)
+                .accessibilityHidden(true)
+
+            Text(label)
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+        }
+    }
+
+    private var valueText: some View {
+        Text(value)
+            .font(AppFont.subheadline)
+            .fontWeight(.semibold)
+            .foregroundStyle(AppColor.textPrimary)
     }
 }
 

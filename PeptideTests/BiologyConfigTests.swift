@@ -102,6 +102,14 @@ final class BiologyConfigTests: XCTestCase {
         XCTAssertFalse(available.contains(.bodyFat))
     }
 
+    /// The Edit sheet offers exactly the rows BiomarkerSeriesService can
+    /// fill — steps included, manual-entry slots without a surface not.
+    func test_availableBiomarkers_matchesSeriesServiceSources() {
+        let available = BiologyConfig(visibleBiomarkers: [], hiddenBiomarkers: []).availableBiomarkers
+        XCTAssertEqual(Set(available), [.weight, .hrvBaseline, .rhrBaseline,
+                                        .sleepBaseline, .stepsBaseline, .latestLabPanel])
+    }
+
     // MARK: - Codable round-trip
 
     func test_codable_roundTripPreservesAllFields() throws {

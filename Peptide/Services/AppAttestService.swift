@@ -28,6 +28,12 @@ actor AppAttestService {
     /// failing backend can't add a round trip to every AI call.
     private var registration: Task<String?, Never>?
 
+    /// Server time minus device time, learned from an `attest_clock`
+    /// refusal, so a device whose clock is off still stamps assertions
+    /// inside the proxy's freshness window. Not persisted: a clock the
+    /// user fixes mid-session would otherwise be pushed off again.
+    private var serverClockOffset: TimeInterval = 0
+
     private init() {}
 
     private var endpoint: URL? {
@@ -65,7 +71,8 @@ actor AppAttestService {
         // server bounds staleness; the assertion counter handles
         // replay. This blob authenticates the caller, not the body.
         var clientData = Data((0..<16).map { _ in UInt8.random(in: .min ... .max) })
-        withUnsafeBytes(of: UInt64(Date().timeIntervalSince1970 * 1000).bigEndian) {
+        let stampedAt = Date().addingTimeInterval(serverClockOffset)
+        withUnsafeBytes(of: UInt64(stampedAt.timeIntervalSince1970 * 1000).bigEndian) {
             clientData.append(contentsOf: $0)
         }
 
@@ -98,11 +105,49 @@ actor AppAttestService {
     /// it no longer knows this install's key (a store flush, a moved
     /// database), so the caller should invalidate and retry once.
     nonisolated static func isAttestRejection(_ body: Data) -> Bool {
+        rejectionCode(body) == "attest_required"
+    }
+
+    /// True when a 401 body is the proxy's `attest_clock` answer: the
+    /// key is fine but the device clock is outside the freshness window.
+    nonisolated static func isClockRejection(_ body: Data) -> Bool {
+        rejectionCode(body) == "attest_clock"
+    }
+
+    private nonisolated static func rejectionCode(_ body: Data) -> String? {
         struct Envelope: Decodable {
             struct Detail: Decodable { let code: String? }
             let error: Detail
         }
-        return (try? JSONDecoder().decode(Envelope.self, from: body))?.error.code == "attest_required"
+        return (try? JSONDecoder().decode(Envelope.self, from: body))?.error.code
+    }
+
+    /// Acts on a proxy 401 and reports whether one retry can succeed:
+    /// `attest_required` drops the key so the retry registers a fresh
+    /// one; `attest_clock` keeps the key and adopts the server's clock
+    /// from the response's `Date` header (`serverDate`). Re-registering
+    /// on a clock refusal would mint a new key that fails the same way.
+    func recover(fromRejection body: Data, serverDate: String?) -> Bool {
+        if Self.isAttestRejection(body) {
+            invalidateRegistration()
+            return true
+        }
+        guard Self.isClockRejection(body),
+              let serverDate,
+              let offset = Self.clockOffset(serverDate: serverDate, now: Date()) else { return false }
+        serverClockOffset = offset
+        return true
+    }
+
+    /// Server time minus `now`, from an HTTP `Date` header
+    /// (`Sun, 06 Nov 1994 08:49:37 GMT`), or nil when it doesn't parse.
+    nonisolated static func clockOffset(serverDate: String, now: Date) -> TimeInterval? {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "GMT")
+        formatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss zzz"
+        guard let server = formatter.date(from: serverDate) else { return nil }
+        return server.timeIntervalSince(now)
     }
 
     /// Forgets the key and its registration, so the next

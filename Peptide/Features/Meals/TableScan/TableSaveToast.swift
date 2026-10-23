@@ -126,7 +126,9 @@ struct TableSaveToast: View {
         case .failed:
             String(localized: "Couldn't save the table.")
         case nil:
-            String(localized: "Adding \(min(progress.saved + 1, progress.total)) of \(progress.total) dishes…")
+            progress.total == 1
+                ? String(localized: "Adding your dish…")
+                : String(localized: "Adding \(min(progress.saved + 1, progress.total)) of \(progress.total) dishes…")
         }
     }
 }

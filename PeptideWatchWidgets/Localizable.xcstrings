@@ -21,6 +21,36 @@
         }
       }
     },
+    "%@, %lld of %lld done": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, %lld av %lld klara"
+          }
+        }
+      }
+    },
+    "%@, no habits today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, inga vanor idag"
+          }
+        }
+      }
+    },
+    "%@, open Atlas on iPhone": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, öppna Atlas på iPhone"
+          }
+        }
+      }
+    },
     "%lld": {
       "localizations": {
         "sv": {
@@ -106,6 +136,24 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld pass den här veckan"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld workout this week"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld workouts this week"
                 }
               }
             }
@@ -423,7 +471,7 @@
         }
       }
     },
-    "Last night's Sleep Score and time asleep.": {
+    "Last night's sleep score and time asleep.": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -623,12 +671,12 @@
         }
       }
     },
-    "Recovery %lld": {
+    "Recovery %@": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Återhämtning %lld"
+            "value": "Återhämtning %@"
           }
         }
       }
@@ -713,7 +761,7 @@
         }
       }
     },
-    "Sleep Score": {
+    "Sleep score": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -723,7 +771,7 @@
         }
       }
     },
-    "Sleep Score %lld, %@": {
+    "Sleep score %lld, %@": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -809,6 +857,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Träning –"
+          }
+        }
+      }
+    },
+    "Updated %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppdaterad %@"
           }
         }
       }

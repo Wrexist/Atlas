@@ -131,6 +131,21 @@ final class StoredWorkoutSession {
     }
 }
 
+extension StoredWorkoutSession {
+    /// Each id as it appears inside `exercisesData`, encoded by the same
+    /// encoder so escaping matches byte for byte.
+    static func exerciseIDNeedles(_ exerciseIDs: Set<String>) -> [Data] {
+        exerciseIDs.compactMap { try? trainingEncoder.encode($0) }
+    }
+
+    /// A byte scan of the raw JSON that never misses a session logging
+    /// one of the ids; a stray match elsewhere in the blob only costs a
+    /// decode, so callers still check the decoded entries.
+    func mayLog(anyOf needles: [Data]) -> Bool {
+        needles.contains { exercisesData.range(of: $0) != nil }
+    }
+}
+
 // MARK: - StoredCustomExercise
 
 @Model

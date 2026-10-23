@@ -215,7 +215,13 @@ struct FoodLibraryFlow: View {
                 onSave: { saved in
                     dataStore.saveCustomFood(saved)
                     editingCustomFood = nil
-                    tab = .myFoods
+                    // From the blocked review, land on a loggable review
+                    // of the new food instead of the dead end.
+                    if phase == .review {
+                        select(saved.toScannedProduct())
+                    } else {
+                        tab = .myFoods
+                    }
                 },
                 onCancel: { editingCustomFood = nil },
                 onDelete: profile.customFoods.contains(where: { $0.id == food.id }) ? { id in
@@ -239,8 +245,9 @@ struct FoodLibraryFlow: View {
                 pendingDelete = nil
             }
             Button("Cancel", role: .cancel) { pendingDelete = nil }
-        } message: { _ in
-            Text("Past logs aren't affected — only the food itself disappears from your library.")
+        } message: { food in
+            CustomFoodEditorSheet.deleteMessage(recipeCount: RecipeDataLogic.recipeCount(
+                using: food.foodID, in: profile.recipes))
         }
         .sheet(item: $editingRecipe) { recipe in
             RecipeEditorSheet(
@@ -406,12 +413,14 @@ struct FoodLibraryFlow: View {
                     Image(systemName: "xmark.circle.fill")
                         .font(AppFont.scaled(16))
                         .foregroundStyle(AppColor.textSecondary)
+                        .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
+                        .contentShape(Rectangle())
                 }
                 .accessibilityLabel("Clear search")
             }
         }
         .padding(.horizontal, Spacing.md)
-        .frame(height: 48)
+        .frame(minHeight: 48)
         .background {
             RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                 .fill(AppColor.surfaceSecondary.opacity(0.6))
@@ -684,7 +693,8 @@ struct FoodLibraryFlow: View {
                     .foregroundStyle(AppColor.textPrimary)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 64)
+            .padding(.vertical, Spacing.sm)
+            .frame(minHeight: 64)
             .background {
                 RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                     .fill(AppColor.accentPrimary.opacity(0.12))
@@ -943,10 +953,10 @@ struct FoodLibraryFlow: View {
 
     private func macroPreview(_ n: ScannedProduct.Nutriments) -> some View {
         macroPreview(
-            calories: Int(n.calories.rounded()),
-            protein: Int(n.proteinG.rounded()),
-            carbs: Int(n.carbsG.rounded()),
-            fat: Int(n.fatG.rounded())
+            calories: FoodLibraryLogic.wholeNumber(n.calories),
+            protein: FoodLibraryLogic.wholeNumber(n.proteinG),
+            carbs: FoodLibraryLogic.wholeNumber(n.carbsG),
+            fat: FoodLibraryLogic.wholeNumber(n.fatG)
         )
     }
 
@@ -989,7 +999,7 @@ struct FoodLibraryFlow: View {
                     .fill(tint)
                     .frame(width: 6, height: 6)
             }
-            Text("\(grams)g")
+            Text("\(grams) g")
                 .font(AppFont.scaled(11, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textSecondary)
@@ -1012,12 +1022,12 @@ struct FoodLibraryFlow: View {
                 .foregroundStyle(AppColor.onAccent)
                 .frame(width: 32, height: 32)
                 .background {
-                    Circle().fill(AppColor.accentPrimary)
+                    Circle().fill(AppColor.accentFill)
                 }
                 .minimumHitArea()
         }
         .buttonStyle(.plain)
-        .disabled(product.loggable(for: preferredPortion(for: product)) == nil)
+        .disabled(product.loggable(for: preferredPortion(for: product)) == nil || !FoodLibraryLogic.hasUsableNutrition(product))
         .accessibilityLabel("Quick log \(product.name)")
         .accessibilityHint("Logs your last valid amount, or the default portion if none is saved. Undo is available after saving.")
     }
@@ -1029,7 +1039,8 @@ struct FoodLibraryFlow: View {
     /// macro effects without the extra taps.
     private func performQuickLog(_ product: ScannedProduct) {
         let chosen = preferredPortion(for: product)
-        guard phase == .browse, let meal = product.loggable(for: chosen) else { return }
+        guard phase == .browse, FoodLibraryLogic.hasUsableNutrition(product),
+              let meal = product.loggable(for: chosen) else { return }
         let now = Date()
         let loggedAt = logTimestamp()
         let loggedCategory = MealCategory.auto(for: loggedAt)
@@ -1204,18 +1215,9 @@ struct FoodLibraryFlow: View {
         }
     }
 
-    /// OFF entries with incomplete data report 0 kcal/100g for the whole
-    /// product — distinct from a legitimate zero-calorie item like black
-    /// coffee, which a user saves as a custom food. We surface the
-    /// ambiguity (and block the log) instead of silently logging zeros
-    /// into the user's rings.
-    private func zeroCaloriesPer100g(_ product: ScannedProduct) -> Bool {
-        product.per100g.calories <= 0 && !product.barcode.hasPrefix("custom:")
-    }
-
     private func reviewMacros(_ product: ScannedProduct) -> some View {
         let meal = product.loggable(for: portion)
-        let isZeroCalorieOFF = zeroCaloriesPer100g(product)
+        let lacksNutrition = !FoodLibraryLogic.hasUsableNutrition(product)
         return VStack(spacing: Spacing.sm) {
             MealScanTotalsCard(
                 calories: meal?.calories ?? 0,
@@ -1223,15 +1225,13 @@ struct FoodLibraryFlow: View {
                 carbsG: meal?.carbsG ?? 0,
                 fatG: meal?.fatG ?? 0
             )
-            if isZeroCalorieOFF {
+            if lacksNutrition {
                 inlineMessage(
                     icon: "exclamationmark.triangle.fill",
                     text: String(localized: "This product has no calorie data in Open Food Facts. Save it as a custom food with the values from its label.")
                 )
                 GlassButton(title: "Create custom food", icon: "plus", style: .secondary, isFullWidth: true) {
-                    var food = CustomFood.blank
-                    food.name = product.name
-                    editingCustomFood = food
+                    editingCustomFood = SmartFoodLogic.customFood(from: product, pricePer100g: nil)
                 }
             }
         }
@@ -1244,9 +1244,9 @@ struct FoodLibraryFlow: View {
             GlassButton(title: addButtonTitle, style: .primary) {
                 confirmLog(for: product)
             }
-            // Block logging a 0-kcal OFF product despite the warning above —
-            // it would push an all-zero entry into today's totals/rings.
-            .disabled(product.loggable(for: portion) == nil || zeroCaloriesPer100g(product))
+            // Block logging an OFF product without usable nutrition despite
+            // the warning above — it would push zeros into today's rings.
+            .disabled(product.loggable(for: portion) == nil || !FoodLibraryLogic.hasUsableNutrition(product))
         }
     }
 
@@ -1703,19 +1703,19 @@ struct FoodLibraryFlow: View {
             )
         }
         let kcal = String(
-            localized: "\(Int(n.calories.rounded())) kilocalories",
+            localized: "\(FoodLibraryLogic.wholeNumber(n.calories)) kilocalories",
             comment: "VoiceOver readout of calories per serving."
         )
         let protein = String(
-            localized: "\(Int(n.proteinG.rounded())) grams protein",
+            localized: "\(FoodLibraryLogic.wholeNumber(n.proteinG)) grams protein",
             comment: "VoiceOver readout of protein grams."
         )
         let carbs = String(
-            localized: "\(Int(n.carbsG.rounded())) grams carbs",
+            localized: "\(FoodLibraryLogic.wholeNumber(n.carbsG)) grams carbs",
             comment: "VoiceOver readout of carbohydrate grams."
         )
         let fat = String(
-            localized: "\(Int(n.fatG.rounded())) grams fat",
+            localized: "\(FoodLibraryLogic.wholeNumber(n.fatG)) grams fat",
             comment: "VoiceOver readout of fat grams."
         )
         return "\(header) \(kcal), \(protein), \(carbs), \(fat)."

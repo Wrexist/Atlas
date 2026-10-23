@@ -68,13 +68,15 @@ curl -sI https://wrexist.github.io/Atlas/terms.html   | head -1
 ## Promotional Text *(170 chars — update anytime without a new build)*
 
 ```
-New in 1.3: train one exercise at a time with a muscle map, get a recap after every session, and log food on any day in exact grams. Free to start, no ads.
+Train one exercise at a time, log sets from your Apple Watch, and scan a meal in one photo. Wake up to your recovery score. Free to start, no ads.
 ```
-*(155 / 170)*
+*(146 / 170)*
 
 > Swap this out for launch events, seasonal campaigns, or new-feature
 > announcements without needing a build review. Keep the hook punchy
-> and lead with a free-tier action so the preview isn't gated.
+> and lead with a free-tier action so the preview isn't gated. Leave the
+> version number out: What's New already carries it, and a "New in 1.x"
+> here goes stale the day the next build ships.
 
 ---
 
@@ -192,7 +194,7 @@ Atlas Pro Monthly ($9.99, renews monthly) and Atlas Pro Annual ($49.99, renews
 yearly) are auto-renewable. Atlas Pro Lifetime ($169) is a one-time purchase and
 does not renew. Payment is charged to your Apple Account at confirmation.
 Subscriptions renew unless auto-renew is turned off at least 24 hours before the
-period ends. Manage or cancel in Settings > Apple Account > Subscriptions.
+period ends. Manage or cancel in Settings → your name → Subscriptions.
 Unused free-trial time is forfeited on purchase.
 
 Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
@@ -216,7 +218,7 @@ provider before starting, changing, or stopping any training, nutrition,
 supplement, or peptide protocol.
 ```
 
-*(3 981 / 4 000 — 19 chars of headroom. The SUBSCRIPTION TERMS block and
+*(3 977 / 4 000 — 23 chars of headroom. The SUBSCRIPTION TERMS block and
 both links are required by Guideline 3.1.2 — do not trim them to make room
 for copy.)*
 
@@ -528,7 +530,7 @@ Enable Pro in debug settings. Have at least 7 days of HealthKit data
 displayed value from real data.
 
 **Overlay copy**
-- Headline: `See your biological age.`
+- Headline: `See your Biological Age.`
 - Sub-caption: `HRV · Sleep · Resting HR · Biological Age`
 - Pro badge: `Atlas Pro — subscription required`
 
@@ -545,8 +547,8 @@ height. This is the biggest Pro conversion screenshot.
 Nutrition targets editor open. Hero calorie display: "2,340 kcal".
 Proportional macro bar below it (protein orange, carbs blue, fat yellow
 at roughly 35/45/20 split). "Recommended for you" banner showing
-goal-derived suggestion. Three glass input cards: Protein 195g, Carbs
-265g, Fat 52g. Goal chip "Build Muscle" lit at the top.
+goal-derived suggestion. Three glass input cards: Protein 195 g, Carbs
+265 g, Fat 52 g. Goal chip "Build Muscle" lit at the top.
 
 **App state to set up**
 Open Profile → Nutrition Targets. Body metrics set (male, 80 kg, 178 cm,

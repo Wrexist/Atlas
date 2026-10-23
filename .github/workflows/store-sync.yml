@@ -45,6 +45,21 @@ jobs:
           python-version: '3.12'
       - name: Install API client dependencies
         run: pip install 'pyjwt[crypto]==2.10.1' 'requests==2.32.3'
+      - name: App Store metadata check
+        # Guideline 3.1.2: the description must carry the EULA and privacy
+        # links and every subscription's title, length and price. Build
+        # 1.2.0 (135) was rejected without them, so never upload a listing
+        # that fails the same gate pr-checks runs (audit B127).
+        run: python3 scripts/check-store-metadata.py
+      - name: Require main for writes
+        # A dry run may come from any branch; a write may only publish
+        # what main holds, mirroring the ios-testflight gate.
+        if: inputs.apply
+        run: |
+          if [ "$GITHUB_REF" != refs/heads/main ]; then
+            echo "::error::Store sync writes only from main (got $GITHUB_REF). Untick apply for a dry run."
+            exit 1
+          fi
       - name: Sync listing
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}

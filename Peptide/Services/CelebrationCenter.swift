@@ -48,8 +48,9 @@ struct CelebrationEvent: Identifiable, Equatable {
         /// match the habit; `allHabitsDone` upgrades the burst when this
         /// completion finished every habit due today.
         case habitComplete(tintHex: UInt32, allHabitsDone: Bool)
-        /// The Atlas Score crossed into a new level.
-        case levelUp(level: Int, tierName: String, tierSymbol: String, tintHex: UInt32)
+        /// The Atlas Score crossed into a new level. Carries the tier, not
+        /// its hex, so the host resolves the scheme-adaptive tint.
+        case levelUp(level: Int, tier: MomentumEngine.Tier)
     }
 
     static func == (lhs: CelebrationEvent, rhs: CelebrationEvent) -> Bool {

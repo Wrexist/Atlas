@@ -122,7 +122,10 @@ extension DoseWindowAttributes.ContentState {
     static let dueNowToleranceMinutes: Int = 5
 
     /// How long after `doseTime` the window stays open. Past it the
-    /// app ends the activity for an unlogged dose.
+    /// app ends the activity for an unlogged dose the next time it runs:
+    /// on launch or foreground, or from the background refresh
+    /// `DoseLiveActivityService` schedules for the window's close, which
+    /// iOS runs at its own discretion.
     static let windowCloseMinutes: Int = 90
 
     /// How long the "Logged" badge stays up before the activity
@@ -134,7 +137,8 @@ extension DoseWindowAttributes.ContentState {
     /// stale date, and status is read from the clock at draw time, so
     /// this redraw is what moves a suspended app's activity into
     /// `.late`. It is the only redraw a suspended app gets, so an
-    /// unlogged dose stays on Late until the app ends the activity.
+    /// unlogged dose stays on Late until the app ends the activity
+    /// (see `windowCloseMinutes`).
     var lateBoundary: Date {
         doseTime.addingTimeInterval(Double((Self.dueNowToleranceMinutes + 1) * 60))
     }

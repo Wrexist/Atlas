@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import importlib.util
 import pathlib
+import subprocess
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -40,6 +41,10 @@ contrast = _load("contrast_check", "contrast-check.py")
 # (rule, filename it must be judged as, source that MUST fire,
 #                                       source that MUST NOT)
 CASES = [
+    ("rule_title_case_copy", "Foo.swift",
+     'Text("Days of Week")\n.alert("Remove Profile Photo?", isPresented: $x) { }',
+     'Text("Days of week")\nButton("Connect Apple Health") { }\nText("Terms of Use")'),
+
     ("rule_forced_color_scheme", "Foo.swift",
      'var body: some View { Text("hi").preferredColorScheme(.dark) }',
      'var body: some View { Text("hi").preferredColorScheme(theme.displayMode.preferredScheme) }'),
@@ -63,6 +68,14 @@ CASES = [
     ("rule_raw_colour", "Foo.swift",
      '.foregroundStyle(Color(hex: 0xFF0000))',
      '.foregroundStyle(AppColor.textPrimary)'),
+
+    ("rule_raw_colour", "Foo.swift",
+     'let tint = Color(hex: UInt(habit.tintHex))',
+     'let tint = HabitTintCatalog.color(for: habit.tintHex)'),
+
+    ("rule_accent_gradient_fill", "Foo.swift",
+     '.foregroundStyle(isActive ? AppColor.onAccent : AppColor.textPrimary)\n.background { Capsule().fill(isActive ? AppColor.accentPrimary : AppColor.surfaceSecondary) }',
+     'case .solid: AppColor.onAccent\nCapsule().fill((tint ?? AppColor.accentPrimary).opacity(0.2))'),
 
     ("rule_fixed_font", "Foo.swift",
      'Text("a").font(.system(size: 13, weight: .bold))',
@@ -140,6 +153,10 @@ CASES = [
      'Text("8:14").font(AppFont.scaled(34, weight: .heavy, relativeTo: .title))',
      'Text("8:14").font(AppFont.scaled(34, weight: .heavy, relativeTo: .title1))'),
 
+    ("rule_display_scale_ramp", "Foo.swift",
+     'Image(systemName: "camera").font(AppFont.scaled(56,\n    weight: .light))',
+     'Image(systemName: "camera").font(AppFont.scaled(56, weight: .light, relativeTo: .largeTitle))\nText("a").font(AppFont.scaled(16))'),
+
     ("rule_pure_neutral", "ColorTheme.swift",
      'static let ink = Color(light: 0x000000, dark: 0xFFFFFF)',
      'static let ink = Color(light: 0x111114, dark: 0xF7F7FA)'),
@@ -167,6 +184,15 @@ def run() -> int:
     if lint.rule_forced_color_scheme(lint.FEATURES / "Foo.swift", preview, code):
         failures.append("blank_previews: a #Preview body was judged as shipping code")
 
+    # Services and Models are in scope for SwiftUI colours, but a UIKit
+    # canvas (PDF export, sticker renders) is not a themed view.
+    services = lint.SERVICES / "FooEngine.swift"
+    for source, want_hit in (("return Color(red: 0.55, green: 0.5, blue: 0.85)", True),
+                             ("let ink = UIColor(red: 0.38, green: 0.6, blue: 1, alpha: 1)\nUIColor.white.setFill()", False)):
+        code = lint.blank_previews(lint.strip_comments(source))
+        if bool(lint.rule_raw_colour(services, source, code)) != want_hit:
+            failures.append(f"rule_raw_colour [Services] expected {'a finding' if want_hit else 'no finding'}")
+
     # Contrast maths, against values checkable by hand.
     for fg, bg, expected in ((0xFFFFFF, 0x000000, 21.0),
                              (0x000000, 0x000000, 1.0),
@@ -182,13 +208,30 @@ def run() -> int:
         failures.append(f"parse_tokens found only {len(tokens)} tokens")
     if len(ramps) < 5:
         failures.append(f"parse_ramps found only {len(ramps)} ramps")
+    if len(contrast.parse_categories(contrast.MODEL_COLORS)) != 7:
+        failures.append("parse_categories did not find all 7 categories")
+    if len(contrast.parse_tiers()) != 5:
+        failures.append("parse_tiers did not find all 5 tiers")
+    if len(contrast.parse_habit_tints()) < 10:
+        failures.append("parse_habit_tints found too few swatches")
 
     for f in failures:
         print(f"FAIL  {f}")
-    total = len(CASES) * 2 + 1 + 3 + 2
+    total = len(CASES) * 2 + 2 + 1 + 3 + 5
     print(f"\n{total - len(failures)}/{total} passed")
     return 1 if failures else 0
 
 
+def unknown_rule_fails() -> int:
+    """A mistyped --rule must fail loudly, never report a clean pass."""
+    typo = subprocess.run([sys.executable, str(HERE / "design-lint.py"), "--rule", "no-such-rule"],
+                          capture_output=True, text=True)
+    if typo.returncode != 2 or "valid rules" not in typo.stderr:
+        print(f"FAIL  --rule no-such-rule exited {typo.returncode}, expected 2 with the valid names")
+        return 1
+    print("--rule no-such-rule rejected")
+    return 0
+
+
 if __name__ == "__main__":
-    sys.exit(run())
+    sys.exit(max(run(), unknown_rule_fails()))

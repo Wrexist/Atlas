@@ -75,7 +75,7 @@ struct BodyMusclePicker: View {
                             .foregroundStyle(picked == group ? AppColor.onAccent : AppColor.textPrimary)
                             .padding(.horizontal, Spacing.md)
                             .frame(minHeight: Spacing.minimumHitTarget)
-                            .background(Capsule().fill(picked == group ? AppColor.accentPrimary : AppColor.surfaceSecondary))
+                            .background(Capsule().fill(picked == group ? AppColor.accentFill : AppColor.surfaceSecondary))
                     }
                     .buttonStyle(.plain)
                     .accessibilityAddTraits(picked == group ? .isSelected : [])

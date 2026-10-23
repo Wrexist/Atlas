@@ -22,7 +22,7 @@ struct ProfileStacksCard: View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 HStack(alignment: .firstTextBaseline) {
-                    Label("Your Protocols", systemImage: "square.stack.3d.up.fill")
+                    Label("Your protocols", systemImage: "square.stack.3d.up.fill")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
@@ -51,7 +51,7 @@ struct ProfileStacksCard: View {
                         openLibraryAfterDismiss()
                     } label: {
                         HStack(spacing: Spacing.xs) {
-                            Text("Manage Protocols")
+                            Text("Manage protocols")
                             Image(systemName: "arrow.up.right")
                                 .font(AppFont.scaled(11, weight: .semibold))
                         }
@@ -96,7 +96,7 @@ struct ProfileStacksCard: View {
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textSecondary)
 
-            Text("Create your first protocol from your Peptide Library to start tracking doses, streaks, and compliance.")
+            Text("Create your first protocol from your Library to start tracking doses, streaks, and adherence.")
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
                 .multilineTextAlignment(.center)
@@ -106,7 +106,7 @@ struct ProfileStacksCard: View {
                 dismiss()
                 openLibraryAfterDismiss()
             } label: {
-                Label("Create Protocol", systemImage: "plus")
+                Label("Create protocol", systemImage: "plus")
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.accentLight)

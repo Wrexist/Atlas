@@ -3,7 +3,9 @@ import SwiftUI
 struct StackAlertDetailSheet: View {
     let warning: StackRecommendationEngine.Warning
     let peptideDatabase: [Peptide]
-    let onPrimaryAction: () -> Void
+    /// Opens the protocol editor. Nil when no protocol can be adjusted for
+    /// this warning — the sheet then only offers "Got it".
+    let onEditProtocol: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
 
@@ -20,29 +22,6 @@ struct StackAlertDetailSheet: View {
         case .danger: return String(localized: "High priority")
         case .caution: return String(localized: "Worth reviewing")
         case .info: return String(localized: "For your awareness")
-        }
-    }
-
-    private var primaryActionLabel: LocalizedStringKey {
-        switch warning.kind {
-        case .cycleOverrun, .desensitization: return "Schedule off period"
-        case .timingConflict: return "Adjust schedule"
-        case .injectionBurden: return "Group injections"
-        case .general:
-            switch warning.severity {
-            case .danger: return "Review Protocol now"
-            case .caution: return "Adjust Protocol"
-            case .info: return "Open Protocols"
-            }
-        }
-    }
-
-    private var primaryActionIcon: String {
-        switch warning.kind {
-        case .cycleOverrun, .desensitization: return "calendar.badge.clock"
-        case .timingConflict: return "clock.arrow.circlepath"
-        case .injectionBurden: return "syringe"
-        case .general: return "slider.horizontal.3"
         }
     }
 
@@ -138,9 +117,10 @@ struct StackAlertDetailSheet: View {
                 .fill(severityColor)
                 .frame(width: 6, height: 6)
 
-            Text(severityLabel.uppercased())
-                .font(AppFont.scaled(11, weight: .bold))
+            Text(severityLabel)
+                .font(AppFont.eyebrow)
                 .tracking(0.8)
+                .textCase(.uppercase)
                 .foregroundStyle(severityColor)
         }
         .padding(.horizontal, Spacing.md)
@@ -235,9 +215,10 @@ struct StackAlertDetailSheet: View {
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(tint)
 
-                Text(title.uppercased())
-                    .font(AppFont.scaled(11, weight: .bold))
-                    .tracking(0.6)
+                Text(title)
+                    .font(AppFont.eyebrow)
+                    .tracking(0.8)
+                    .textCase(.uppercase)
                     .foregroundStyle(AppColor.textSecondary)
             }
 
@@ -250,19 +231,19 @@ struct StackAlertDetailSheet: View {
 
     private var actionFooter: some View {
         VStack(spacing: Spacing.sm) {
-            GlassButton(
-                title: primaryActionLabel,
-                icon: primaryActionIcon,
-                style: primaryButtonStyle,
-                isFullWidth: true
-            ) {
-                Haptics.success()
-                dismiss()
-                // Let this sheet finish dismissing first — a modal chained
-                // in the same tick can be dropped.
-                Task { @MainActor in
-                    try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
-                    onPrimaryAction()
+            // One honest label: the editor adds and removes peptides, so
+            // the button doesn't promise a kind-specific fix. The host
+            // waits for this sheet to finish dismissing before presenting.
+            if let onEditProtocol {
+                GlassButton(
+                    title: "Edit protocol",
+                    icon: "slider.horizontal.3",
+                    style: primaryButtonStyle,
+                    isFullWidth: true
+                ) {
+                    Haptics.impact(.light)
+                    dismiss()
+                    onEditProtocol()
                 }
             }
 
@@ -317,7 +298,7 @@ struct StackAlertDetailSheet: View {
             icon: "xmark.octagon.fill"
         ),
         peptideDatabase: [],
-        onPrimaryAction: {}
+        onEditProtocol: {}
     )
     .preferredColorScheme(.dark)
 }

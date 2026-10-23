@@ -278,7 +278,13 @@ export function readFoodScanResult(message) {
     if (!Array.isArray(result?.items)) throw new Error('missing items');
     return { status: 200, body: { result, model: message.model } };
   } catch (err) {
-    console.error('[food-scan] unreadable structured output', err.message);
+    // Metadata only: V8's JSON.parse message quotes the input, which
+    // is the model's reading of the user's meal.
+    console.error('[food-scan] unreadable structured output', {
+      error: err.name,
+      length: text.length,
+      stop_reason: message?.stop_reason,
+    });
     return { status: 502, body: { error: { message: 'Upstream error' } } };
   }
 }

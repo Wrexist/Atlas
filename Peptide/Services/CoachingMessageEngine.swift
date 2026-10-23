@@ -13,7 +13,7 @@ import Foundation
 /// the values, the engine picks the message.
 ///
 /// Priority cascade (first match wins):
-///   1. New install → welcome
+///   1. New install with no protocols → goal-neutral welcome
 ///   2. No health connection → invite to connect
 ///   3. Strong recovery + protocols active → push-today nudge
 ///   4. Weak recovery → take-it-easy nudge
@@ -28,10 +28,36 @@ enum CoachingMessageEngine {
         let title: String                      // the headline line
         let body: String?                      // optional one-line detail
         let tone: Tone
+        /// Which branch produced the message. Callers that need to know
+        /// (`PrimaryReasonEngine`) compare this, never the display copy,
+        /// which changes with wording and language.
+        var kind: Kind = .other
 
         enum Tone: Equatable, Sendable {
             case positive, neutral, cautionary, welcome
         }
+
+        enum Kind: Equatable, Sendable {
+            case welcome, connectHealth, onTrack, other,
+                 strongRecovery, weakRecovery, shortSleep, catchUp, habitsDue, weeklyReview
+        }
+
+        /// What tapping the card does, for messages that ask for something.
+        enum Action: Equatable, Sendable {
+            case connectHealth, scrollToHabits, scrollToDoses
+        }
+
+        var action: Action? {
+            switch kind {
+            case .connectHealth: return .connectHealth
+            case .habitsDue: return .scrollToHabits
+            case .catchUp: return .scrollToDoses
+            case .welcome, .onTrack, .other, .strongRecovery, .weakRecovery, .shortSleep, .weeklyReview: return nil
+            }
+        }
+
+        /// True for the get-set-up messages a concrete task should outrank.
+        var isOnboarding: Bool { kind == .welcome || kind == .connectHealth }
     }
 
     struct Context: Equatable, Sendable {
@@ -123,13 +149,16 @@ enum CoachingMessageEngine {
         return days <= welcomeMemberDayThreshold
     }
 
+    /// Goal-neutral: protocols are optional, and most new members come
+    /// for training, nutrition or recovery.
     private static func welcomeMessage() -> CoachingMessage {
         CoachingMessage(
             icon: "sparkles",
             eyebrow: String(localized: "WELCOME"),
-            title: String(localized: "Set up your first protocol"),
-            body: String(localized: "Atlas builds your schedule, tracks every dose, and learns your patterns."),
-            tone: .welcome
+            title: String(localized: "Welcome to Atlas"),
+            body: String(localized: "Log a workout, a meal, or a habit — Atlas learns your patterns as you go."),
+            tone: .welcome,
+            kind: .welcome
         )
     }
 
@@ -139,14 +168,15 @@ enum CoachingMessageEngine {
             eyebrow: String(localized: "GET STARTED"),
             title: String(localized: "Connect Apple Health"),
             body: String(localized: "Unlock Recovery and Sleep scores plus per-protocol HRV correlations."),
-            tone: .neutral
+            tone: .neutral,
+            kind: .connectHealth
         )
     }
 
     private static func strongRecoveryMessage(context: Context, recovery: Int) -> CoachingMessage {
         let body: String
         if let dose = context.nextDoseAbbreviation, let time = context.nextDoseTimeDisplay {
-            body = String(localized: "Recovery is up — good day to nail your \(dose) dose at \(time).")
+            body = String(localized: "Recovery is up. Your \(dose) dose is scheduled for \(time).")
         } else {
             body = String(localized: "Recovery is up. Good day to push and stay consistent.")
         }
@@ -155,7 +185,8 @@ enum CoachingMessageEngine {
             eyebrow: String(localized: "COACHING"),
             title: String(localized: "Excellent recovery — \(recovery)%"),
             body: body,
-            tone: .positive
+            tone: .positive,
+            kind: .strongRecovery
         )
     }
 
@@ -164,29 +195,32 @@ enum CoachingMessageEngine {
             icon: "moon.zzz.fill",
             eyebrow: String(localized: "COACHING"),
             title: String(localized: "Lower recovery — \(recovery)%"),
-            body: String(localized: "Consider an easier day. Hydrate, prioritize sleep, and don't skip rest doses."),
-            tone: .cautionary
+            body: String(localized: "Consider an easier day. Hydrate and prioritize sleep."),
+            tone: .cautionary,
+            kind: .weakRecovery
         )
     }
 
     private static func shortSleepMessage(sleepHours: Double) -> CoachingMessage {
-        let display = String(format: "%.1f", sleepHours)
+        let display = sleepHours.formatted(.number.precision(.fractionLength(1)))
         return CoachingMessage(
             icon: "bed.double.fill",
             eyebrow: String(localized: "COACHING"),
             title: String(localized: "Short sleep — \(display) h"),
             body: String(localized: "Cap intensity today. A long nap or an earlier wind-down will pay back tomorrow."),
-            tone: .cautionary
+            tone: .cautionary,
+            kind: .shortSleep
         )
     }
 
-    private static func catchUpMessage(pending: Int) -> CoachingMessage {
-        return CoachingMessage(
+    static func catchUpMessage(pending: Int) -> CoachingMessage {
+        CoachingMessage(
             icon: "clock.badge.exclamationmark.fill",
             eyebrow: String(localized: "COACHING"),
             title: String(localized: "\(pending) doses left today"),
-            body: String(localized: "Tap a dose card below — Atlas logs the actual time, not the scheduled one."),
-            tone: .cautionary
+            body: String(localized: "Tap a dose below to log it."),
+            tone: .cautionary,
+            kind: .catchUp
         )
     }
 
@@ -197,15 +231,29 @@ enum CoachingMessageEngine {
                 eyebrow: String(localized: "ON TRACK"),
                 title: String(localized: "You're on track"),
                 body: String(localized: "Next: \(dose) at \(time). Keep it steady."),
-                tone: .positive
+                tone: .positive,
+                kind: .onTrack
             )
         }
         return CoachingMessage(
             icon: "checkmark.circle.fill",
             eyebrow: String(localized: "ON TRACK"),
             title: String(localized: "You're on track"),
-            body: String(localized: "No pending doses right now — enjoy the gap."),
-            tone: .positive
+            body: onTrackBody(context: context),
+            tone: .positive,
+            kind: .onTrack
         )
+    }
+
+    /// Only a protocol user has doses to talk about; anyone else hears about
+    /// recovery when there's a score, or the day's logging otherwise.
+    private static func onTrackBody(context: Context) -> String {
+        if context.hasProtocols {
+            return String(localized: "No pending doses right now — enjoy the gap.")
+        }
+        if context.recoveryScore != nil {
+            return String(localized: "Recovery is steady — a normal training day.")
+        }
+        return String(localized: "Log a workout, a meal, or a habit to keep the day moving.")
     }
 }

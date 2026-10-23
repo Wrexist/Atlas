@@ -19,6 +19,18 @@ final class WatchStore: NSObject, ObservableObject {
     /// can't clear `isSending` out from under a newer in-flight send.
     private var sendToken = 0
 
+    /// Long enough for activation and a queued context to land.
+    private static let drainTimeout: TimeInterval = 10
+
+    /// Commands tapped before the session finished activating. Neither
+    /// send path works until then, so they wait here and go out in order.
+    private var awaitingActivation: [[String: Any]] = []
+
+    /// Marks a command already re-queued once after a failed transfer, so
+    /// a transfer that keeps failing is not retried forever. The phone
+    /// ignores the key.
+    nonisolated private static let retriedKey = "retried"
+
     /// How long a guarded tap holds the controls after it is delivered or
     /// queued, so a double tap can't log the next set or a second glass
     /// even when the phone answers at once or is out of reach.
@@ -66,12 +78,17 @@ final class WatchStore: NSObject, ObservableObject {
 
     /// Keeps a WatchConnectivity background launch alive until the phone's
     /// queued context has arrived, then adopts it, so the complications
-    /// update without the app being opened.
+    /// update without the app being opened. Bounded, so a session that
+    /// never activates ends the task promptly instead of at expiry, which
+    /// counts against the background budget.
     func drainPendingContent() async {
         let session = WCSession.default
-        while !Task.isCancelled, session.activationState != .activated || session.hasContentPending {
+        let deadline = Date.now.addingTimeInterval(Self.drainTimeout)
+        while !Task.isCancelled, Date.now < deadline,
+              session.activationState != .activated || session.hasContentPending {
             try? await Task.sleep(for: .milliseconds(200))
         }
+        guard session.activationState == .activated else { return }
         if let decoded = Self.decodeWatchData(from: session.receivedApplicationContext) {
             adoptIfNewer(decoded)
         }
@@ -236,8 +253,17 @@ final class WatchStore: NSObject, ObservableObject {
             WatchMessage.issuedAtKey: Date().timeIntervalSince1970,
         ]) { _, stamped in stamped }
         let token = guarded ? beginGuardedSend() : nil
+        let session = WCSession.default
 
-        if WCSession.default.isReachable {
+        guard session.activationState == .activated else {
+            awaitingActivation.append(message)
+            releaseSending(token)
+            return
+        }
+        // A live message can overtake commands still queued as transfers,
+        // so an undo would reach the phone before the tap it undoes. While
+        // any transfer is outstanding, queue behind it to keep one order.
+        if session.isReachable, session.outstandingUserInfoTransfers.isEmpty {
             WCSession.default.sendMessage(message, replyHandler: { [weak self] _ in
                 Task { @MainActor in self?.releaseSending(token) }
             }, errorHandler: { [weak self] _ in
@@ -248,6 +274,14 @@ final class WatchStore: NSObject, ObservableObject {
             WCSession.default.transferUserInfo(message)
             releaseSending(token)
         }
+    }
+
+    /// Sends the commands tapped before activation, oldest first, through
+    /// the queued channel that keeps their order.
+    private func flushAwaitingActivation() {
+        let queued = awaitingActivation
+        awaitingActivation.removeAll()
+        queued.forEach { WCSession.default.transferUserInfo($0) }
     }
 
     /// Starts a guarded send's watchdog. WCSession can hang if the phone
@@ -282,9 +316,30 @@ extension WatchStore: WCSessionDelegate {
     /// arrive after activation, so without this a cold launch showed the
     /// disk cache until the phone happened to push again.
     nonisolated func session(_ session: WCSession, activationDidCompleteWith state: WCSessionActivationState, error: Error?) {
-        guard state == .activated,
-              let decoded = Self.decodeWatchData(from: session.receivedApplicationContext) else { return }
+        guard state == .activated else { return }
+        let decoded = Self.decodeWatchData(from: session.receivedApplicationContext)
+        Task { @MainActor in
+            self.flushAwaitingActivation()
+            if let decoded { self.adoptIfNewer(decoded) }
+        }
+    }
+
+    /// The phone's complication transfer: the same snapshot as its
+    /// application context, sent so a suspended app is woken to refresh
+    /// the complications.
+    nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        guard let decoded = Self.decodeWatchData(from: userInfo) else { return }
         Task { @MainActor in self.adoptIfNewer(decoded) }
+    }
+
+    /// A failed transfer would otherwise be lost while the optimistic tap
+    /// stays on the wrist. Re-queued once; the message id keeps a late
+    /// duplicate from applying twice on the phone.
+    nonisolated func session(_ session: WCSession, didFinish userInfoTransfer: WCSessionUserInfoTransfer, error: Error?) {
+        guard error != nil,
+              userInfoTransfer.userInfo[Self.retriedKey] == nil,
+              session.activationState == .activated else { return }
+        session.transferUserInfo(userInfoTransfer.userInfo.merging([Self.retriedKey: true]) { _, retried in retried })
     }
 
     /// A live push of the same second as the shown snapshot is still

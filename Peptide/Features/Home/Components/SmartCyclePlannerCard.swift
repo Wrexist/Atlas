@@ -38,10 +38,13 @@ struct SmartCyclePlannerCard: View {
             Image(systemName: "sparkles")
                 .font(AppFont.scaled(13, weight: .bold))
                 .foregroundStyle(AppColor.accentLight)
-            Text("SMART PLANNER")
-                .font(AppFont.scaled(11, weight: .heavy))
-                .tracking(1.5)
+                .accessibilityHidden(true)
+            Text("Smart planner")
+                .font(AppFont.eyebrow)
+                .tracking(0.8)
+                .textCase(.uppercase)
                 .foregroundStyle(AppColor.textSecondary)
+                .accessibilityAddTraits(.isHeader)
             Spacer(minLength: 0)
         }
     }
@@ -55,6 +58,7 @@ struct SmartCyclePlannerCard: View {
                 .background {
                     Circle().fill(AppColor.accentPrimary.opacity(0.15))
                 }
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(suggestion.title)
@@ -69,6 +73,7 @@ struct SmartCyclePlannerCard: View {
 
             Spacer(minLength: 0)
         }
+        .accessibilityElement(children: .combine)
     }
 
     private func glyph(for kind: SmartCyclePlanner.Kind) -> String {
@@ -78,6 +83,7 @@ struct SmartCyclePlannerCard: View {
         case .cycleWrappingUp:   "flag.checkered"
         case .offCycleReady:     "arrow.clockwise.circle.fill"
         case .considerPausing:   "pause.circle.fill"
+        case .washoutStarting:   "moon.stars.fill"
         }
     }
 }

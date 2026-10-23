@@ -17,6 +17,8 @@ struct ExpandableText: View {
 
     private static let gradientHeight: CGFloat = 24
 
+    /// Highlighting scans the text for every keyword, so `body` builds this
+    /// once and reuses it for the visible copy and both measuring copies.
     private var renderedText: Text {
         if highlightKeywords {
             return Text(KeywordHighlighter.highlight(text, accentColor: accentColor))
@@ -27,8 +29,9 @@ struct ExpandableText: View {
     }
 
     var body: some View {
+        let rendered = renderedText
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            renderedText
+            rendered
                 .lineSpacing(4)
                 .lineLimit(isExpanded ? nil : lineLimit)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -72,7 +75,7 @@ struct ExpandableText: View {
         }
         .background(
             ZStack {
-                renderedText
+                rendered
                     .lineSpacing(4)
                     .lineLimit(lineLimit)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -80,7 +83,7 @@ struct ExpandableText: View {
                         collapsedHeight = $0
                     }
 
-                renderedText
+                rendered
                     .lineSpacing(4)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)

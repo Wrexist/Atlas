@@ -4,8 +4,10 @@ import Foundation
 /// a workout that has since finished or been replaced are dropped.
 @MainActor
 enum WorkoutActivityActionProcessor {
-    static func drain() {
-        let queued = PendingWorkoutActionStore.drain()
+    /// `defaults` overrides the shared App Group inbox; tests pass an
+    /// isolated suite so a tap never lands where the widget reads.
+    static func drain(defaults: UserDefaults? = nil) {
+        let queued = PendingWorkoutActionStore.drain(defaults: defaults)
         // Touch the service only when there is work, so the launch-time
         // drain doesn't load the workout store for nothing.
         guard !queued.isEmpty else { return }
@@ -13,7 +15,10 @@ enum WorkoutActivityActionProcessor {
         for pending in queued {
             guard service.activeSession?.id == pending.sessionId else { continue }
             switch pending.action {
-            case .skipRest:    service.skipRest()
+            case .skipRest:
+                // A tap drained late must not cancel a newer rest that a
+                // later set started, same as the Watch's skip.
+                if service.activeSession?.restWasRunning(at: pending.tappedAt) == true { service.skipRest() }
             case .completeSet: service.completeNextSet(now: pending.tappedAt)
             }
         }

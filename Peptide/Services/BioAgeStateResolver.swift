@@ -8,11 +8,6 @@ import Foundation
 @MainActor
 enum BioAgeStateResolver {
 
-    /// Days of HealthKit history required before the engine even
-    /// attempts an estimate. Matches `PerformanceAgeEngine`'s density
-    /// curve — below 7 days the engine returns nil.
-    static let minBaselineDays: Int = 7
-
     /// Default chronological age fallback when the user hasn't entered
     /// their age yet. Picks the midpoint of the typical cohort so the
     /// dial's scale labels (±5 years) read as recognisable numbers. Only
@@ -23,9 +18,12 @@ enum BioAgeStateResolver {
     /// computed below this age.
     static let minimumAge: Int = 18
 
-    /// How far back HealthKit is read: the 90-day trend plus the 30-day
-    /// window its oldest point looks back over.
-    static let historyDays: Int = 90 + PerformanceAgeEngine.windowDays
+    /// How far back HealthKit is read: the trend plus the window its
+    /// oldest point looks back over.
+    static let historyDays: Int = PerformanceAgeEngine.trendDays + PerformanceAgeEngine.windowDays
+    /// VO2 max is read over its own, longer window, so its read reaches
+    /// further back.
+    static let vo2HistoryDays: Int = PerformanceAgeEngine.trendDays + PerformanceAgeEngine.vo2WindowDays
 
     /// Resolves the Biological Age state for the current moment. The Pro
     /// check + HealthKit reads happen inside; callers pass only what lives
@@ -72,11 +70,18 @@ enum BioAgeStateResolver {
             )
         }
 
-        // Pro user without enough data yet. Progress tracks real days of
-        // recovery data against the 7-day baseline; the view separately
-        // explains when days are there but signals are missing.
-        let progress = min(1.0, Double(inputs.healthDataDays) / Double(minBaselineDays))
-        return Resolved(state: .building(progress: progress), chronologicalAge: age, inputs: inputs)
+        return Resolved(state: buildingState(for: inputs), chronologicalAge: age, inputs: inputs)
+    }
+
+    /// Pro user without enough data yet. The day target comes from the
+    /// engine's own confidence gate for the signals present, so the count
+    /// shown is the day the estimate actually unlocks; nil when only more
+    /// signals can unlock it.
+    static func buildingState(for inputs: PerformanceAgeEngine.Inputs) -> BioAgeHeroSection.BioAgeState {
+        let kinds = PerformanceAgeEngine.drivers(for: inputs).map(\.kind)
+        let coverage = PerformanceAgeEngine.coverage(of: kinds)
+        return .building(days: inputs.healthDataDays,
+                         requiredDays: PerformanceAgeEngine.minimumDays(forCoverage: coverage))
     }
 
     /// Fans the HealthKit reads out in parallel. Coverage is the union of
@@ -90,7 +95,7 @@ enum BioAgeStateResolver {
         async let rhr = kit.dailyRestingHeartRate(days: days)
         async let sleep = kit.dailySleepHours(days: days)
         async let steps = kit.dailySteps(days: days)
-        async let vo2 = kit.dailyVO2Max(days: days)
+        async let vo2 = kit.dailyVO2Max(days: vo2HistoryDays)
         // Bound one at a time because Swift rejects `await` to the right of
         // a non-assignment operator. All five are already in flight.
         let hrvDays = await hrv

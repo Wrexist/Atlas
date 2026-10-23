@@ -1,3 +1,4 @@
+import BackgroundTasks
 import SwiftUI
 import UIKit
 
@@ -8,8 +9,7 @@ import UIKit
 enum QuickActionRouter {
     static func perform(_ action: QuickAction, appState: AppState, dataStore: DataStore) {
         // Sheets present from the root and can't stack on an open modal.
-        appState.showProfile = false
-        appState.showLibrary = false
+        appState.dismissModalsForRouting()
 
         switch action {
         case .scanMeal:
@@ -29,12 +29,15 @@ enum QuickActionRouter {
     }
 
     /// Long-press menu on the app icon. Set at runtime rather than in
-    /// Info.plist so the titles follow the in-app language.
-    static func installHomeScreenShortcuts() {
-        UIApplication.shared.shortcutItems = QuickAction.allCases.map { action in
-            UIApplicationShortcutItem(
+    /// Info.plist so the titles follow the in-app language, which only
+    /// the views' locale carries; a plain lookup uses the system one.
+    static func installHomeScreenShortcuts(locale: Locale = LocalizationManager.shared.effectiveLocale) {
+        UIApplication.shared.shortcutItems = QuickAction.allCases.map { action -> UIApplicationShortcutItem in
+            var title = action.title
+            title.locale = locale
+            return UIApplicationShortcutItem(
                 type: action.rawValue,
-                localizedTitle: String(localized: action.title),
+                localizedTitle: String(localized: title),
                 localizedSubtitle: nil,
                 icon: UIApplicationShortcutIcon(systemImageName: action.systemImage)
             )
@@ -105,6 +108,8 @@ final class AtlasAppDelegate: NSObject, UIApplicationDelegate {
     ) -> Bool {
         MainActor.assumeIsolated {
             PendingWorkoutActionStore.applyInProcess = { WorkoutActivityActionProcessor.drain() }
+            PendingDoseLogStore.applyInProcess = { PendingDoseLogProcessor.drainAndReconcile() }
+            registerDoseWindowCloseTask()
             workoutActionToken = WorkoutActivityActionProcessor.startObserving()
             doseLogToken = PendingDoseLogProcessor.startObserving()
             waterToken = QuickActionRouter.observePendingWater()
@@ -115,6 +120,26 @@ final class AtlasAppDelegate: NSObject, UIApplicationDelegate {
             store.reconcileDoseLiveActivities()
         }
         return true
+    }
+
+    /// Ends dose Live Activities whose window has closed when iOS wakes
+    /// the app for the refresh `DoseLiveActivityService` scheduled. Must
+    /// be registered before launch finishes.
+    private func registerDoseWindowCloseTask() {
+        BGTaskScheduler.shared.register(
+            forTaskWithIdentifier: DoseLiveActivityService.windowCloseTaskIdentifier,
+            using: .main
+        ) { task in
+            MainActor.assumeIsolated {
+                let ends = IntentDataStore.resolve().reconcileDoseLiveActivities()
+                // The app may be suspended once the task completes, so
+                // the end requests have to land first.
+                Task {
+                    for end in ends { await end.value }
+                    task.setTaskCompleted(success: true)
+                }
+            }
+        }
     }
 
     func application(

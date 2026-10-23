@@ -48,7 +48,10 @@ struct BarcodeScannerView: UIViewControllerRepresentable {
         do {
             try controller.startScanning()
         } catch {
-            onError(error.localizedDescription)
+            // VisionKit's text names its own types ("ScanningUnavailable"),
+            // so the user gets app copy and the detail goes to the log.
+            AppLog.diagnostics.error("Barcode scanner failed to start: \(error.localizedDescription, privacy: .public)")
+            onError(String(localized: "The camera couldn't start. Close and reopen the scanner, or type the code."))
         }
     }
 

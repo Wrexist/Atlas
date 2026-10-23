@@ -8,8 +8,9 @@ final class PeptideUITests: XCTestCase {
         super.setUp()
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = XCUIApplication.returningUserArguments
+        app.launchArguments = XCUIApplication.demoDataArguments
         app.launch()
+        app.dismissOverlaysIfNeeded()
     }
 
     private static let tabs = ["Today", "Train", "Meals", "Biology", "Habits"]
@@ -26,28 +27,9 @@ final class PeptideUITests: XCTestCase {
     func test_allTabsAreReachable() {
         for tab in Self.tabs {
             app.tabBars.buttons[tab].tap()
+            app.dismissOverlaysIfNeeded()
             XCTAssertTrue(app.tabBars.buttons[tab].isSelected, "\(tab) tab should be selected")
         }
-    }
-
-    func test_habitsTab_loads() {
-        app.tabBars.buttons["Habits"].tap()
-        XCTAssertTrue(app.tabBars.buttons["Habits"].isSelected)
-    }
-
-    func test_trainTab_loads() {
-        app.tabBars.buttons["Train"].tap()
-        XCTAssertTrue(app.tabBars.buttons["Train"].isSelected)
-    }
-
-    func test_mealsTab_loads() {
-        app.tabBars.buttons["Meals"].tap()
-        XCTAssertTrue(app.tabBars.buttons["Meals"].isSelected)
-    }
-
-    func test_biologyTab_loads() {
-        app.tabBars.buttons["Biology"].tap()
-        XCTAssertTrue(app.tabBars.buttons["Biology"].isSelected)
     }
 
     func test_accessibilityAudit_allTabs() throws {
@@ -58,6 +40,7 @@ final class PeptideUITests: XCTestCase {
         app.terminate()
         app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
         app.launch()
+        app.dismissOverlaysIfNeeded()
         try auditAllTabs()
     }
 
@@ -66,6 +49,7 @@ final class PeptideUITests: XCTestCase {
             let button = app.tabBars.buttons[tab]
             XCTAssertTrue(button.waitForExistence(timeout: 5), "\(tab) tab missing")
             button.tap()
+            app.dismissOverlaysIfNeeded()
             try app.performAccessibilityAudit(
                 for: [.dynamicType, .contrast, .hitRegion, .sufficientElementDescription, .textClipped]
             )

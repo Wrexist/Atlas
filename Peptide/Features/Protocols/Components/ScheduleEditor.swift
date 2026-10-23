@@ -96,7 +96,7 @@ struct ScheduleEditor: View {
     private var weeklyDaySelector: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack {
-                Text("Days of Week")
+                Text("Days of week")
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
                 Spacer()
@@ -142,20 +142,18 @@ struct ScheduleEditor: View {
 
     private func intervalStepper(binding: Binding<Int>) -> some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            HStack {
-                Text("Every")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-
-                Spacer()
-
-                LiquidGlassStepper(
+            StepperRow(
+                stepper: LiquidGlassStepper(
                     label: "Dose interval",
                     value: binding,
                     range: 1...30,
                     formatter: { $0 == 1 ? String(localized: "1 day") : String(localized: "\($0) days") },
                     width: 88
                 )
+            ) {
+                Text("Every")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
             }
 
             Text(intervalHint(for: binding.wrappedValue))
@@ -178,18 +176,18 @@ struct ScheduleEditor: View {
     // MARK: - Times per day
 
     private var timesPerDayStepper: some View {
-        HStack {
-            Text("Times per Day")
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-            Spacer()
-            LiquidGlassStepper(
+        StepperRow(
+            stepper: LiquidGlassStepper(
                 label: "Times per day",
                 value: $timesPerDay,
                 range: 1...4,
                 formatter: { "\($0)" },
                 width: 36
             )
+        ) {
+            Text("Times per day")
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
         }
     }
 
@@ -202,13 +200,21 @@ struct ScheduleEditor: View {
                 .foregroundStyle(AppColor.textTertiary)
                 .textCase(.uppercase)
 
+            let times = binding.wrappedValue
             VStack(spacing: Spacing.xs) {
                 ForEach(0..<timesPerDay, id: \.self) { index in
                     TimeSlotRow(
                         index: index,
-                        timeString: timeStringBinding(for: index, in: binding)
+                        timeString: timeStringBinding(for: index, in: binding),
+                        isDuplicate: Self.repeatsEarlierSlot(index, in: times)
                     )
                 }
+            }
+
+            if (0..<min(timesPerDay, times.count)).contains(where: { Self.repeatsEarlierSlot($0, in: times) }) {
+                Label("Repeated times are saved once.", systemImage: "exclamationmark.triangle.fill")
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.warning)
             }
         }
         .onChange(of: timesPerDay) { _, newCount in
@@ -248,6 +254,12 @@ struct ScheduleEditor: View {
         )
     }
 
+    /// True when slot `index` holds the same time as an earlier slot.
+    static func repeatsEarlierSlot(_ index: Int, in times: [String]) -> Bool {
+        guard index < times.count else { return false }
+        return times[..<index].contains(times[index])
+    }
+
     static func defaultTimeString(for index: Int) -> String {
         let presets = ["8:00 AM", "1:00 PM", "6:00 PM", "9:00 PM"]
         if index < presets.count { return presets[index] }
@@ -257,18 +269,18 @@ struct ScheduleEditor: View {
     // MARK: - Cycle length
 
     private func cycleLengthStepper(binding: Binding<Int>) -> some View {
-        HStack {
-            Text("Cycle Length")
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-            Spacer()
-            LiquidGlassStepper(
+        StepperRow(
+            stepper: LiquidGlassStepper(
                 label: "Cycle length",
                 value: binding,
                 range: 1...24,
                 formatter: { String(localized: "\($0) wk") },
                 width: 64
             )
+        ) {
+            Text("Cycle length")
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
         }
     }
 
@@ -325,6 +337,29 @@ private extension View {
     }
 }
 
+// MARK: - StepperRow
+
+/// A label beside its stepper, stacked under it when large text no longer
+/// fits on one line.
+struct StepperRow<Content: View>: View {
+    let stepper: LiquidGlassStepper
+    @ViewBuilder let label: () -> Content
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack {
+                label()
+                Spacer()
+                stepper
+            }
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                label()
+                stepper
+            }
+        }
+    }
+}
+
 // MARK: - LiquidGlassStepper
 
 /// Compact "−  value  +" control with the app's liquid-glass styling. Used
@@ -350,10 +385,14 @@ struct LiquidGlassStepper: View {
                 AppAnimation.with(AppAnimation.springSnappy) { value -= 1 }
             }
 
+            // `width` is a floor that keeps the control steady at default
+            // sizes; the value grows past it at large Dynamic Type rather
+            // than truncating — it's the one thing the control shows.
             Text(formatter(value))
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.accentLight)
-                .frame(width: width)
+                .fixedSize()
+                .frame(minWidth: width)
                 .monospacedDigit()
                 .contentTransition(.numericText())
                 .appAnimation(AppAnimation.quick, value: value)
@@ -413,6 +452,7 @@ struct LiquidGlassStepper: View {
 private struct TimeSlotRow: View {
     let index: Int
     @Binding var timeString: String
+    let isDuplicate: Bool
 
     @State private var pickerDate: Date = Date()
     @State private var isShowingPicker = false
@@ -447,6 +487,13 @@ private struct TimeSlotRow: View {
                     .foregroundStyle(AppColor.textSecondary)
 
                 Spacer()
+
+                if isDuplicate {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.warning)
+                        .accessibilityLabel("Repeated time")
+                }
 
                 Text(ProtocolSchedule.displayTime(timeString))
                     .font(AppFont.subheadline)

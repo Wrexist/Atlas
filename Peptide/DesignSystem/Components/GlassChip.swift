@@ -2,7 +2,9 @@ import SwiftUI
 
 enum GlassChipStyle {
     /// Selected chips take a tinted glass wash and tinted ink — filter rows
-    /// where the tint carries meaning (a peptide category's colour).
+    /// where the tint carries meaning (a peptide category's colour). A
+    /// custom tint must be an ink stop that holds 4.5:1 on its own 0.18
+    /// wash; the theme accent uses `AppColor.accentInkOnWash` for that.
     case glass
     /// Selected chips fill solid with the tint and print `AppColor.background`
     /// on top, so `tint` must be an ink-weight colour (`accentPrimary`,
@@ -17,7 +19,8 @@ enum GlassChipStyle {
 struct GlassChip: View {
     private let title: LocalizedStringKey
     private let glyph: AppGlyph?
-    private let tint: Color
+    /// `nil` means the theme accent.
+    private let tint: Color?
     private let style: GlassChipStyle
     private let isSelected: Bool
     private let action: () -> Void
@@ -25,7 +28,7 @@ struct GlassChip: View {
     init(
         _ title: LocalizedStringKey,
         icon: String? = nil,
-        tint: Color = AppColor.accentPrimary,
+        tint: Color? = nil,
         style: GlassChipStyle = .glass,
         isSelected: Bool,
         action: @escaping () -> Void
@@ -42,7 +45,7 @@ struct GlassChip: View {
     init(
         _ title: LocalizedStringKey,
         glyph: AppGlyph,
-        tint: Color = AppColor.accentPrimary,
+        tint: Color? = nil,
         style: GlassChipStyle = .glass,
         isSelected: Bool,
         action: @escaping () -> Void
@@ -73,7 +76,7 @@ struct GlassChip: View {
             .padding(.vertical, Spacing.xs + Spacing.xxs)
             .background {
                 if isFilled {
-                    Capsule(style: .continuous).fill(tint)
+                    Capsule(style: .continuous).fill(hue)
                 }
             }
             .glassControl(.capsule, tint: wash, border: border, interactive: false)
@@ -85,18 +88,20 @@ struct GlassChip: View {
 
     private var isFilled: Bool { isSelected && style == .prominent }
 
+    private var hue: Color { tint ?? AppColor.accentPrimary }
+
     private var ink: Color {
         guard isSelected else { return AppColor.textSecondary }
-        return style == .prominent ? AppColor.background : tint
+        return style == .prominent ? AppColor.background : tint ?? AppColor.accentInkOnWash
     }
 
     private var wash: Color? {
-        isSelected && style == .glass ? tint.opacity(0.18) : nil
+        isSelected && style == .glass ? hue.opacity(0.18) : nil
     }
 
     private var border: Color {
         guard isSelected else { return AppColor.glassBorder }
-        return style == .prominent ? .clear : tint.opacity(0.4)
+        return style == .prominent ? .clear : hue.opacity(0.4)
     }
 }
 

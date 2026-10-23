@@ -212,6 +212,19 @@ final class WorkoutRecapTests: XCTestCase {
         XCTAssertNotNil(WorkoutEditValidation.issue(in: draft, original: original))
     }
 
+    func test_editorIssue_invalidSecondExerciseSet_namesThatExercise() async throws {
+        await ExerciseLibrary.shared.load()
+        let original = WorkoutRecapFixture.push()
+        XCTAssertGreaterThan(original.exercises.count, 1)
+        var draft = original
+        draft.exercises[1].sets[0].weightKg = -1
+        let name = ExerciseLibrary.shared.displayName(for: draft.exercises[1].exerciseID)
+
+        let issue = try XCTUnwrap(WorkoutEditValidation.issue(in: draft, original: original))
+
+        XCTAssertTrue(issue.hasPrefix(name + ", "), issue)
+    }
+
     func test_editorNumberParsingRejectsBlankPartialAndAmbiguousInput() {
         let english = Locale(identifier: "en_US")
         let swedish = Locale(identifier: "sv_SE")
@@ -280,7 +293,7 @@ final class WorkoutRecapTests: XCTestCase {
         guard let image = renderer.uiImage else { XCTFail("Image rendering failed: \(name)"); return }
         let attachment = XCTAttachment(image: image)
         attachment.name = "completion-\(name)"
-        attachment.lifetime = .keepAlways
+        attachment.lifetime = .deleteOnSuccess
         add(attachment)
     }
 }
@@ -385,5 +398,34 @@ final class WorkoutCompletionPersistenceTests: XCTestCase {
         edited.exercises[0].sets[0].reps = 99
         XCTAssertThrowsError(try store.saveEdits(edited))
         XCTAssertEqual(repo.loadWorkoutSession(id: started.id)?.exercises[0].sets[0].reps, 8)
+    }
+
+    func test_saveEdits_marksTheRecapEdited() throws {
+        let repo = SwiftDataRepository.shared
+        repo.configureForTesting()
+        defer { repo.deleteAll() }
+        let finished = WorkoutSession(
+            startedAt: Date(timeIntervalSince1970: 1_700_000_000),
+            finishedAt: Date(timeIntervalSince1970: 1_700_003_600),
+            exercises: [WorkoutExerciseEntry(exerciseID: "Barbell_Squat", index: 0, sets: [
+                SetEntry(index: 1, weightKg: 500, reps: 5, completed: true),
+            ])]
+        )
+        try repo.saveWorkoutDurably(finished)
+        let store = WorkoutRecapStore(session: finished)
+        XCTAssertFalse(store.wasEdited)
+        var edited = finished
+        edited.exercises[0].sets[0].weightKg = 50
+
+        try store.saveEdits(edited)
+
+        XCTAssertTrue(store.wasEdited)
+    }
+
+    func test_recapSetFormat_quarterKiloLoad_keepsBothDecimals() {
+        let set = SetEntry(index: 1, weightKg: 61.25, reps: 5, completed: true)
+        let expected = 61.25.formatted(.number.precision(.fractionLength(2)).grouping(.never))
+
+        XCTAssertTrue(RecapFormat.set(set, unit: .metric).hasPrefix(expected + " "))
     }
 }

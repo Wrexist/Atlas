@@ -135,7 +135,7 @@ struct WorkoutHighlightCanvas: View {
     private var footer: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(options.includeName ? summary.name : "Workout")
+                Text(options.includeName ? summary.name : String(localized: "Workout"))
                     .font(.subheadline.weight(.semibold)).lineLimit(compact ? 1 : 2)
                 if options.includeDate, let date = summary.session.finishedAt {
                     Text(date.formatted(date: .abbreviated, time: .omitted)).font(.caption2)

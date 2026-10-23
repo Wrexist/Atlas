@@ -74,9 +74,9 @@ SLOT 1 — TODAY / RECOVERY DASHBOARD
         Right: "Start" pill button in violet #7B5CFF
     • Macro progress row:
         Calorie ring (60px): 1840/2400 kcal — 77%
-        Protein: 142/195g bar (orange, 73%)
-        Carbs: 198/265g bar (blue, 75%)
-        Fat: 38/52g bar (yellow, 73%)
+        Protein: 142/195 g bar (orange, 73%)
+        Carbs: 198/265 g bar (blue, 75%)
+        Fat: 38/52 g bar (yellow, 73%)
   Overlay:
     Headline: "Know if you're ready to train."
     Sub-caption: "Recovery Score · HRV · Sleep · Resting HR"
@@ -149,7 +149,7 @@ SLOT 4 — BIOLOGY TAB: BIOLOGICAL AGE  [PRO]
     • Footnote: "Estimates based on your personal biometrics — not medical advice"
       in 11px #505060 centred
   Overlay:
-    Headline: "See your biological age."
+    Headline: "See your Biological Age."
     Sub-caption: "HRV · Sleep · Resting HR · Biological Age"
     Pro badge: YES — "Atlas Pro — subscription required"
 

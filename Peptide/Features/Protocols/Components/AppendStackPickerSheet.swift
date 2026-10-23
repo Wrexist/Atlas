@@ -37,7 +37,7 @@ struct AppendStackPickerSheet: View {
                 .padding(.bottom, Spacing.xxxxl)
             }
             .background(AppColor.background)
-            .navigationTitle("Pick a Protocol")
+            .navigationTitle("Pick a protocol")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

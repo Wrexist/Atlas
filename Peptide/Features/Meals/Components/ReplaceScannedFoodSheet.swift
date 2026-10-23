@@ -13,6 +13,8 @@ struct ReplaceScannedFoodSheet: View {
     @State private var errorText: String?
     @State private var retry = 0
 
+    private var gramsText: String { grams.formatted(.number.precision(.fractionLength(0...1))) }
+
     private var local: [ScannedProduct] {
         dataStore.profile.customFoods.filter {
             query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || $0.name.localizedCaseInsensitiveContains(query)
@@ -23,7 +25,7 @@ struct ReplaceScannedFoodSheet: View {
         NavigationStack {
             List {
                 Section {
-                    Text("Choose the correct food. Your current \(grams.formatted()) g portion stays the same; nutrition is replaced.")
+                    Text("Choose the correct food. Your current \(gramsText) g portion stays the same; nutrition is replaced.")
                         .font(AppFont.callout)
                 }
                 if !local.isEmpty { Section("Your foods") { rows(local) } }
@@ -43,9 +45,9 @@ struct ReplaceScannedFoodSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
             .safeAreaInset(edge: .bottom) {
-                if let selected, let meal = selected.loggable(for: .grams(grams)) {
+                if let selected, selected.hasNutrition, let meal = selected.loggable(for: .grams(grams)) {
                     VStack(spacing: Spacing.sm) {
-                        Text("\(selected.name) · \(meal.calories) kcal for \(grams.formatted()) g")
+                        Text("\(selected.name) · \(meal.calories) kcal for \(gramsText) g")
                             .font(AppFont.callout).multilineTextAlignment(.center)
                         GlassButton(title: "Replace food", isFullWidth: true) {
                             onReplace(selected)
@@ -65,7 +67,7 @@ struct ReplaceScannedFoodSheet: View {
                     VStack(alignment: .leading, spacing: Spacing.xs) {
                         Text(product.name).foregroundStyle(AppColor.textPrimary)
                         if let brand = product.brand { Text(brand).font(AppFont.caption2) }
-                        Text("\(product.per100g.calories.formatted()) kcal / 100 g").font(AppFont.caption2)
+                        Text("\(product.per100g.calories.formatted(.number.precision(.fractionLength(0)))) kcal / 100 g").font(AppFont.caption2)
                     }
                     Spacer()
                     if selected?.barcode == product.barcode { Image(systemName: "checkmark") }
@@ -85,13 +87,18 @@ struct ReplaceScannedFoodSheet: View {
             try await Task.sleep(for: AppAnimation.searchDebounceDelay)
             let found = try await OpenFoodFactsService.shared.search(query: value)
             try Task.checkCancellation()
+            // A crowd record with no energy or macros would replace the
+            // item with a silent 0 kcal, as the barcode review refuses to.
             var seen = Set<String>()
-            results = found.filter { seen.insert($0.barcode).inserted }
+            results = found.filter { $0.hasNutrition && seen.insert($0.barcode).inserted }
             loading = false
         } catch {
             guard !Task.isCancelled else { return }
             loading = false
-            errorText = String(localized: "Couldn't search the food database. Retry, or choose one of your saved foods.")
+            // The local throttle and rate limits carry their own "try
+            // again in Ns" copy; an immediate Retry would just fail again.
+            errorText = (error as? OpenFoodFactsService.LookupError)?.errorDescription
+                ?? String(localized: "Couldn't search the food database. Retry, or choose one of your saved foods.")
         }
     }
 }

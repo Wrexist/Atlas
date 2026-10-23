@@ -107,6 +107,29 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         XCTAssertEqual(product.novaGroup, 3)
     }
 
+    func test_fetch_unreadableNumericStrings_stillReturnsProduct() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.unreadableNumerics.utf8))
+        }
+        let product = try await service.fetch(barcode: "9999999999999")
+        XCTAssertEqual(product.name, "Messy record")
+        XCTAssertNil(product.servingGrams)
+        XCTAssertNil(product.novaGroup)
+        XCTAssertEqual(product.per100g.fatG, 0)
+        XCTAssertEqual(product.per100g.carbsG, 0, "a \"nan\" string is missing, not NaN")
+        XCTAssertEqual(product.per100g.proteinG, 1.5, accuracy: 0.001)
+        XCTAssertEqual(product.per100g.calories, 120, accuracy: 0.001)
+    }
+
+    func test_search_oneUnreadableProduct_keepsTheRestOfThePage() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.searchWithBadFat.utf8))
+        }
+        let results = try await service.search(query: "lenient-decode-\(UUID().uuidString)")
+        XCTAssertEqual(results.map(\.name), ["Good oats", "Odd oats"])
+        XCTAssertEqual(results.last?.per100g.fatG, 0)
+    }
+
     // MARK: - fetch: OFF data quirks
 
     func test_fetch_fallsBackToKilojoules_whenKcalAbsent() async throws {
@@ -162,6 +185,28 @@ final class OpenFoodFactsServiceTests: XCTestCase {
             (Self.ok(for: request), Data(Fixtures.noNutriments.utf8))
         }
         let product = try await service.fetch(barcode: "8888888888888")
+        XCTAssertFalse(product.hasNutrition)
+    }
+
+    func test_fetch_nonFiniteOrHugeNutriments_areDroppedAsMissing() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.malformedNutriments.utf8))
+        }
+        let product = try await service.fetch(barcode: "9999999999999")
+        XCTAssertEqual(product.per100g.calories, 0)
+        XCTAssertEqual(product.per100g.proteinG, 0)
+        XCTAssertEqual(product.per100g.carbsG, 12)
+        XCTAssertEqual(product.per100g.fatG, 0)
+        XCTAssertNil(product.per100g.fiberG)
+        XCTAssertNil(product.novaGroup)
+        XCTAssertTrue(product.hasNutrition)
+    }
+
+    func test_fetch_onlyMalformedNutriments_hasNoNutrition() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.onlyMalformedNutriments.utf8))
+        }
+        let product = try await service.fetch(barcode: "9999999999998")
         XCTAssertFalse(product.hasNutrition)
     }
 
@@ -322,6 +367,39 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         XCTAssertEqual(callCount.value, 0, "Cache hit must not touch network")
     }
 
+    func test_remember_packageReadProduct_isServedOnRescanWithoutNetwork() async throws {
+        var read = ScannedProduct(
+            barcode: "7394376616228", name: "Barista", brand: "Oatly", imageURL: nil,
+            servingSizeText: nil, servingGrams: 250, packageGrams: 1000,
+            per100g: .init(calories: 59, proteinG: 1, carbsG: 6.6, fatG: 3, fiberG: nil, sugarsG: nil),
+            nutriScore: nil, novaGroup: nil, fetchedAt: Date()
+        )
+        read.readFromPackage = true
+        let callCount = SendableBox<Int>(0)
+        MockURLProtocol.handler = { request in
+            callCount.set(callCount.value + 1)
+            return (Self.ok(for: request), Data(Fixtures.notFound.utf8))
+        }
+
+        await service.remember(read)
+        let rescanned = try await service.fetch(barcode: "7394376616228")
+
+        XCTAssertEqual(rescanned.name, "Barista")
+        XCTAssertEqual(rescanned.readFromPackage, true)
+        XCTAssertEqual(callCount.value, 0)
+    }
+
+    func test_remember_syntheticBarcode_isNotCached() async {
+        let read = ScannedProduct(
+            barcode: "ai:\(UUID().uuidString)", name: "Unlabelled bar", brand: nil, imageURL: nil,
+            servingSizeText: nil, servingGrams: nil, packageGrams: nil,
+            per100g: .zero, nutriScore: nil, novaGroup: nil, fetchedAt: Date()
+        )
+        await service.remember(read)
+        let recent = await cache.recent(limit: 5)
+        XCTAssertTrue(recent.isEmpty)
+    }
+
     // MARK: - Package weight from printed quantity
 
     func test_packageGrams_readsPlainWeight() {
@@ -387,6 +465,44 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         }
         XCTAssertEqual(callCount.value, 1, "Stale hit should trigger exactly one background refresh")
         XCTAssertEqual(refreshed?.name, "Coca-Cola", "Background refresh must overwrite the cached entry")
+    }
+
+    func test_needsPackageWeightRefresh_freshEntryWithoutWeight_isFalse() {
+        let fresh = ScannedProduct(
+            barcode: "1", name: "x", brand: nil, imageURL: nil,
+            servingSizeText: nil, servingGrams: nil, packageGrams: nil,
+            per100g: .zero, nutriScore: nil, novaGroup: nil,
+            fetchedAt: Date()
+        )
+        XCTAssertFalse(OpenFoodFactsService.needsPackageWeightRefresh(fresh))
+    }
+
+    func test_needsPackageWeightRefresh_dayOldEntryWithoutWeight_isTrue() {
+        let old = ScannedProduct(
+            barcode: "1", name: "x", brand: nil, imageURL: nil,
+            servingSizeText: nil, servingGrams: nil, packageGrams: nil,
+            per100g: .zero, nutriScore: nil, novaGroup: nil,
+            fetchedAt: Date().addingTimeInterval(-OpenFoodFactsService.missingPackageRefreshAfter - 1)
+        )
+        XCTAssertTrue(OpenFoodFactsService.needsPackageWeightRefresh(old))
+    }
+
+    func test_fetch_freshCachedEntryWithoutWeight_doesNotRefetch() async throws {
+        await cache.write(ScannedProduct(
+            barcode: "5449000000996", name: "Cached Cola", brand: nil, imageURL: nil,
+            servingSizeText: nil, servingGrams: nil, packageGrams: nil,
+            per100g: .zero, nutriScore: nil, novaGroup: nil, fetchedAt: Date()
+        ))
+        let callCount = SendableBox<Int>(0)
+        MockURLProtocol.handler = { request in
+            callCount.set(callCount.value + 1)
+            return (Self.ok(for: request), Data(Fixtures.cocaCola.utf8))
+        }
+
+        _ = try await service.fetch(barcode: "5449000000996")
+        try await Task.sleep(for: .milliseconds(300))
+
+        XCTAssertEqual(callCount.value, 0)
     }
 
     func test_isStale_returnsFalse_forFreshFetchedAt() {
@@ -523,6 +639,41 @@ private enum Fixtures {
     }
     """
 
+    static let unreadableNumerics = """
+    {
+      "status": 1,
+      "code": "9999999999999",
+      "product": {
+        "product_name": "Messy record",
+        "serving_quantity": "",
+        "nova_group": "unknown",
+        "nutriments": {
+          "energy-kcal_100g": " 120 ",
+          "proteins_100g": "1,5",
+          "carbohydrates_100g": "nan",
+          "fat_100g": "n/a"
+        }
+      }
+    }
+    """
+
+    static let searchWithBadFat = """
+    {
+      "products": [
+        {
+          "code": "1000000000001",
+          "product_name": "Good oats",
+          "nutriments": { "energy-kcal_100g": 370, "fat_100g": 7 }
+        },
+        {
+          "code": "1000000000002",
+          "product_name": "Odd oats",
+          "nutriments": { "energy-kcal_100g": 360, "fat_100g": "n/a" }
+        }
+      ]
+    }
+    """
+
     static let kilojoulesOnly = """
     {
       "status": 1,
@@ -582,6 +733,38 @@ private enum Fixtures {
         "product_name": "Sparse",
         "nutriments": {
           "energy-kcal_100g": 100
+        }
+      }
+    }
+    """
+
+    static let malformedNutriments = """
+    {
+      "status": 1,
+      "code": "9999999999999",
+      "product": {
+        "product_name": "Malformed",
+        "nova_group": 1e30,
+        "nutriments": {
+          "energy-kcal_100g": "nan",
+          "proteins_100g": "inf",
+          "carbohydrates_100g": "12",
+          "fat_100g": "1e30",
+          "fiber_100g": -4
+        }
+      }
+    }
+    """
+
+    static let onlyMalformedNutriments = """
+    {
+      "status": 1,
+      "code": "9999999999998",
+      "product": {
+        "product_name": "Garbage",
+        "nutriments": {
+          "energy-kcal_100g": "nan",
+          "proteins_100g": "-inf"
         }
       }
     }

@@ -26,9 +26,14 @@ from dataclasses import dataclass
 REPO = pathlib.Path(__file__).resolve().parent.parent
 FEATURES = REPO / "Peptide" / "Features"
 DESIGN_SYSTEM = REPO / "Peptide" / "DesignSystem"
+# Services and models hand colours to views too (phase tints, habit and tier
+# palettes), so the raw-colour rule covers them alongside Features.
+SERVICES = REPO / "Peptide" / "Services"
+MODELS = REPO / "Peptide" / "Models"
+COLOUR_ROOTS = (FEATURES, SERVICES, MODELS)
 # The widget and watch targets are deliberately out of scope: they do not
 # compile Peptide/DesignSystem, so AppFont and AppAnimation are unavailable.
-SCANNED_ROOTS = (REPO / "Peptide" / "App", FEATURES, DESIGN_SYSTEM)
+SCANNED_ROOTS = (REPO / "Peptide" / "App", FEATURES, DESIGN_SYSTEM, SERVICES, MODELS)
 
 # Surfaces whose palette encodes a real-world concept rather than the brand,
 # or which are composited onto a permanently dark backdrop (share cards,
@@ -148,13 +153,25 @@ def enclosing_block(code: str, index: int) -> tuple[int, str]:
 def rule_raw_colour(path, source, code) -> list[Finding]:
     """Feature views must resolve colour through AppColor, or light mode and
     the brand themes silently skip that screen."""
-    if path.name in DOMAIN_PALETTE_FILES or FEATURES not in path.parents:
+    if path.name in DOMAIN_PALETTE_FILES or not any(root in path.parents for root in COLOUR_ROOTS):
         return []
+    in_features = FEATURES in path.parents
+    # Services also draw UIKit images (PDF export, sticker canvases) whose
+    # fixed UIColor never reaches a themed view; only SwiftUI Color counts.
+    colour = "Color" if in_features else r"(?<!UI)Color"
     out = []
-    for m in re.finditer(r"Color\((?:hex:\s*0x|red:\s*[\d.])", code):
+    for m in re.finditer(colour + r"\((?:hex:\s*0x|red:\s*[\d.])", code):
         out.append(Finding(path, line_of(code, m.start()), "raw-colour",
                            "raw Color literal; use an AppColor token", "error"))
-    for m in re.finditer(r"Color\.(?:white|black)\b", code):
+    if in_features:
+        # A stored hex (habit, tier) wrapped straight into a colour renders
+        # its dark-scheme value in light mode too.
+        for m in re.finditer(r"Color\(hex:\s*UInt\(", code):
+            out.append(Finding(path, line_of(code, m.start()), "raw-colour",
+                               "stored hex wrapped in Color(hex:) is not adaptive; resolve it "
+                               "through its palette (HabitTintCatalog.color(for:), Tier.tint)",
+                               "error"))
+    for m in re.finditer(colour + r"\.(?:white|black)\b", code):
         # A drop shadow and a modal dimming scrim are black in both schemes —
         # that's what a shadow *is*. Only ink and fills need to adapt.
         context = code[max(0, m.start() - 60):m.start()]
@@ -229,6 +246,29 @@ def rule_system_font_modifier(path, source, code) -> list[Finding]:
                     ".font(.system(size:)) ignores Dynamic Type; use "
                     "AppFont.scaled(_:relativeTo:), or pin with in: .large", "error")
             for m in re.finditer(r"\.font\(\s*\.system\(size:", code)]
+
+
+def rule_display_scale_ramp(path, source, code) -> list[Finding]:
+    """A display size must say how it scales.
+
+    `AppFont.scaled` defaults to the `.body` ramp, which roughly triples at
+    AX5: a 56pt placeholder glyph becomes ~170pt and pushes real content
+    off screen. Above `AppFont.Scale.heading` (24pt) pass a gentler
+    `relativeTo:` (`.largeTitle`, `.title1`) or pin with `in:`.
+    """
+    if path.name == "Typography.swift":
+        return []
+    out = []
+    for m in re.finditer(r"AppFont\.scaled\(\s*(\d+(?:\.\d+)?)", code):
+        if float(m.group(1)) <= 24:
+            continue
+        args = balanced_args(code, m.start() + len("AppFont.scaled"))
+        if args is None or re.search(r"\b(?:relativeTo|in):", args):
+            continue
+        out.append(Finding(path, line_of(code, m.start()), "display-scale-ramp",
+                           f"{m.group(1)}pt scales along .body and triples at AX5; pass "
+                           "relativeTo: .largeTitle/.title1, or pin with in:", "error"))
+    return out
 
 
 def rule_glow(path, source, code) -> list[Finding]:
@@ -447,6 +487,44 @@ def rule_placeholder_copy(path, source, code) -> list[Finding]:
     for m in PLACEHOLDER_COPY.finditer(code):
         out.append(Finding(path, line_of(code, m.start()), "placeholder-copy",
                            f"placeholder string ships to users: {m.group(0)[:50]}", "error"))
+    return out
+
+
+UI_LITERAL = re.compile(
+    r'(?:\bText|\bButton|\bLabel|\.alert|\.confirmationDialog|\.navigationTitle)'
+    r'\(\s*"((?:[^"\\]|\\.)*)"'
+)
+# Names that keep their capitals inside a sentence-case string.
+PROPER_NAMES = re.compile(
+    r"Apple (?:Health|Watch|Account)|Atlas (?:Pro|Score)|Biological Age|(?:Face|Touch|Optic) ID"
+    r"|Sign in with Apple|Open Food Facts|App Store|Live Activit(?:y|ies)|Lock Screen"
+    r"|Home Screen|Control Center|Recovery Score|Sleep Score|Terms of Use|Privacy Policy"
+)
+MINOR_WORDS = {"a", "an", "the", "and", "or", "of", "to", "in", "on", "for", "per",
+               "with", "vs", "at", "by", "from", "your", "my"}
+
+
+def is_title_case(text: str) -> bool:
+    """Three or more words with every word after the first capitalised,
+    ignoring short connecting words, interpolations and product names."""
+    text = PROPER_NAMES.sub("x", re.sub(r"\\\(.*?\)", "x", text))
+    words = re.findall(r"[A-Za-z][A-Za-z'’-]*", text)
+    if len(words) < 3:
+        return False
+    content = [w for w in words[1:] if w.lower() not in MINOR_WORDS]
+    return bool(content) and all(w[0].isupper() and not w.isupper() for w in content)
+
+
+def rule_title_case_copy(path, source, code) -> list[Finding]:
+    """Titles, buttons and alerts are sentence case, Apple's current iOS
+    guidance and the app's dominant style. Mixed casing made the same kind
+    of control read as if different people wrote it ("Sign out?" over a
+    "Sign Out" button)."""
+    out = []
+    for m in UI_LITERAL.finditer(code):
+        if is_title_case(m.group(1)):
+            out.append(Finding(path, line_of(code, m.start()), "title-case-copy",
+                               f"use sentence case: {m.group(1)[:50]!r}", "warning"))
     return out
 
 
@@ -846,6 +924,15 @@ def rule_accent_gradient_fill(path, source, code) -> list[Finding]:
         out.append(Finding(path, line_of(code, m.start()), "accent-gradient-fill",
                            "accent gradient under onAccent ink drops below 4:1 in the "
                            "dark scheme; fill with AppColor.accentFill", "error"))
+    # The same failure with a solid fill: a selected chip that paints
+    # `accentPrimary` behind `onAccent` is 1.6-3.7:1 in the dark scheme.
+    for m in re.finditer(r"\.fill\(\s*(?:[^\n)]*?\?\s*)?AppColor\.accentPrimary\b(?![)\s]*\.opacity)", code):
+        before = code[max(0, m.start() - 500):m.start()]
+        if "AppColor.onAccent" not in before:
+            continue
+        out.append(Finding(path, line_of(code, m.start()), "accent-gradient-fill",
+                           "accentPrimary fill under onAccent ink drops below 4:1 in the "
+                           "dark scheme; fill with AppColor.accentFill", "error"))
     return out
 
 
@@ -858,6 +945,7 @@ RULES = [
     rule_pure_neutral,
     rule_motion,
     rule_fixed_font,
+    rule_display_scale_ramp,
     rule_system_font_modifier,
     rule_glow,
     rule_untargeted_animation,
@@ -866,6 +954,7 @@ RULES = [
     rule_raw_sensory_feedback,
     rule_curve_literal,
     rule_placeholder_copy,
+    rule_title_case_copy,
     rule_placeholder_as_label,
     rule_hit_target,
     rule_off_grid_spacing,
@@ -886,13 +975,17 @@ def main() -> int:
     parser.add_argument("--rule", help="run a single rule by name")
     args = parser.parse_args()
 
+    # A mistyped --rule used to skip every rule and report a clean pass.
+    names = {rule.__name__.removeprefix("rule_").replace("_", "-"): rule for rule in RULES}
+    if args.rule and args.rule.replace("_", "-") not in names:
+        parser.error(f"unknown rule '{args.rule}'; valid rules: {', '.join(sorted(names))}")
+    rules = [names[args.rule.replace("_", "-")]] if args.rule else RULES
+
     findings: list[Finding] = []
     for root in SCANNED_ROOTS:
         for path, source in swift_files(root):
             code = blank_previews(strip_comments(source))
-            for rule in RULES:
-                if args.rule and rule.__name__ != f"rule_{args.rule.replace('-', '_')}":
-                    continue
+            for rule in rules:
                 findings.extend(rule(path, source, code))
 
     errors = [f for f in findings if f.severity == "error"]

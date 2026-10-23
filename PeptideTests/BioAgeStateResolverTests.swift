@@ -36,7 +36,15 @@ final class BioAgeStateResolverTests: XCTestCase {
     /// The HealthKit read has to reach back far enough for the oldest
     /// trend point's own 30-day window.
     func test_historyDays_coversTrendPlusWindow() {
-        XCTAssertGreaterThanOrEqual(BioAgeStateResolver.historyDays, 90 + PerformanceAgeEngine.windowDays)
+        XCTAssertGreaterThanOrEqual(BioAgeStateResolver.historyDays,
+                                    PerformanceAgeEngine.trendDays + PerformanceAgeEngine.windowDays)
+    }
+
+    /// VO2 max has a 90-day window, so its read reaches further back than
+    /// the other signals' or the oldest trend point loses most of it.
+    func test_vo2HistoryDays_coversTrendPlusVO2Window() {
+        XCTAssertGreaterThanOrEqual(BioAgeStateResolver.vo2HistoryDays,
+                                    PerformanceAgeEngine.trendDays + PerformanceAgeEngine.vo2WindowDays)
     }
 
     /// The fallback constant exists so locked-state screenshots
@@ -65,12 +73,24 @@ final class BioAgeStateResolverTests: XCTestCase {
         XCTAssertEqual(resolved.chronologicalAge, 16)
     }
 
-    /// The minimum-baseline-days constant gates the Pro-tier
-    /// "building" state. Locked here only because we forced
-    /// isPro=false; in a real run with isPro=true + no HealthKit
-    /// data, the resolver returns .building(progress: 0).
-    func test_minBaselineDays_isAtLeastOneWeek() {
-        XCTAssertGreaterThanOrEqual(BioAgeStateResolver.minBaselineDays, 7)
+    /// Full coverage at 14 days is still short of the gate, so the
+    /// building state must not read as complete.
+    func test_buildingState_fullCoverageFourteenDays_isNotComplete() {
+        let inputs = PerformanceAgeEngine.Inputs(
+            chronologicalAge: 35, hrvMedian30d: 50, rhrMedian30d: 60,
+            sleepHoursMedian30d: 7.5, vo2MaxRecent: 40, healthDataDays: 14
+        )
+        XCTAssertEqual(BioAgeStateResolver.buildingState(for: inputs),
+                       .building(days: 14, requiredDays: 15))
+        XCTAssertLessThan(BioAgeHeroSection.buildingProgress(days: 14, requiredDays: 15), 1)
+    }
+
+    /// When the signals present can never clear the gate, the state says
+    /// so instead of counting towards a day that won't unlock anything.
+    func test_buildingState_stepsOnly_hasNoDayTarget() {
+        let inputs = PerformanceAgeEngine.Inputs(chronologicalAge: 35, stepsMedian30d: 8_000, healthDataDays: 30)
+        XCTAssertEqual(BioAgeStateResolver.buildingState(for: inputs),
+                       .building(days: 30, requiredDays: nil))
     }
 
     // MARK: - BioAgeState Equatable
@@ -79,11 +99,11 @@ final class BioAgeStateResolverTests: XCTestCase {
         XCTAssertEqual(BioAgeHeroSection.BioAgeState.locked,
                        BioAgeHeroSection.BioAgeState.locked)
         XCTAssertNotEqual(BioAgeHeroSection.BioAgeState.locked,
-                          BioAgeHeroSection.BioAgeState.building(progress: 0))
-        XCTAssertEqual(BioAgeHeroSection.BioAgeState.building(progress: 0.5),
-                       BioAgeHeroSection.BioAgeState.building(progress: 0.5))
-        XCTAssertNotEqual(BioAgeHeroSection.BioAgeState.building(progress: 0.5),
-                          BioAgeHeroSection.BioAgeState.building(progress: 0.6))
+                          BioAgeHeroSection.BioAgeState.building(days: 0, requiredDays: 15))
+        XCTAssertEqual(BioAgeHeroSection.BioAgeState.building(days: 5, requiredDays: 15),
+                       BioAgeHeroSection.BioAgeState.building(days: 5, requiredDays: 15))
+        XCTAssertNotEqual(BioAgeHeroSection.BioAgeState.building(days: 5, requiredDays: 15),
+                          BioAgeHeroSection.BioAgeState.building(days: 6, requiredDays: 15))
     }
 
     func test_bioAgeState_unlocked_equalityComparesByEstimate() {

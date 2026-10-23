@@ -30,11 +30,12 @@ struct PlateCalculatorSheet: View {
     }
 
     private var plates: [Double] { preferences.plates(for: unit) }
-    private var target: Double { Self.parse(targetText) }
-    private var barWeight: Double { Self.parse(barText) }
+    private var target: Double? { Self.parse(targetText) }
+    private var barWeight: Double? { Self.parse(barText) }
 
     private var outcome: PlateCalculatorEngine.Outcome {
-        PlateCalculatorEngine.calculate(target: target, barWeight: barWeight, plates: plates)
+        // An empty or unreadable field is invalid, never a 0 kg bar.
+        PlateCalculatorEngine.calculate(target: target ?? .nan, barWeight: barWeight ?? .nan, plates: plates)
     }
 
     var body: some View {
@@ -133,9 +134,13 @@ struct PlateCalculatorSheet: View {
         case .loaded(let loadout):
             loadoutCard(loadout)
         case .belowBar:
-            message("The bar alone weighs \(label(barWeight)). Enter a heavier target.")
+            message("The bar alone weighs \(label(barWeight ?? 0)). Enter a heavier target.")
         case .invalid:
-            message("Enter a target above zero.")
+            if let barWeight, PlateCalculatorEngine.isValidBar(barWeight) {
+                message("Enter a target above zero and up to \(label(PlateCalculatorEngine.maximumWeight)).")
+            } else {
+                message("Enter a bar weight.")
+            }
         }
     }
 
@@ -212,9 +217,11 @@ struct PlateCalculatorSheet: View {
     /// 100 lb) and swaps in that unit's standard bar.
     private func switchUnit(to newUnit: MeasurementUnit) {
         guard newUnit != unit else { return }
-        let targetKg = unit.kilograms(fromDisplayed: target)
+        if let target {
+            let targetKg = unit.kilograms(fromDisplayed: target)
+            targetText = Self.format((newUnit.weightForDisplay(targetKg) * 10).rounded() / 10)
+        }
         unit = newUnit
-        targetText = Self.format((newUnit.weightForDisplay(targetKg) * 10).rounded() / 10)
         barText = Self.format(preferences.barWeight(selectedBar, unit: newUnit))
     }
 
@@ -236,8 +243,8 @@ struct PlateCalculatorSheet: View {
 
     /// Tries "." first so a pasted "62.5" isn't read as 625 where "." is
     /// the grouping separator, then the locale's own decimal separator.
-    private static func parse(_ text: String) -> Double {
-        Double(text) ?? (try? Double(text, format: FloatingPointFormatStyle<Double>())) ?? 0
+    private static func parse(_ text: String) -> Double? {
+        Double(text) ?? (try? Double(text, format: FloatingPointFormatStyle<Double>()))
     }
 
     private static func format(_ weight: Double) -> String {

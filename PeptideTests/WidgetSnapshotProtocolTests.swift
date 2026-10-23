@@ -44,4 +44,14 @@ final class WidgetSnapshotProtocolTests: XCTestCase {
 
         XCTAssertEqual(data.upcoming.map(\.time), [today[1].date, today[0].date])
     }
+
+    /// A three-times-a-week protocol on a rest day: nothing due today,
+    /// but the widget must still know a protocol is running.
+    func test_build_activeProtocolWithNoDosesToday_reportsActiveProtocolAndNoDoses() {
+        let data = WidgetSnapshotBuilder.build(today: [], next: nil, hasActiveProtocol: true, now: morning)
+
+        XCTAssertTrue(data.hasActiveProtocol)
+        XCTAssertEqual(data.totalToday, 0)
+        XCTAssertNil(data.nextDoseTime)
+    }
 }

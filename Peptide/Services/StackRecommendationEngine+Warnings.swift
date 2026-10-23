@@ -24,7 +24,7 @@ extension StackRecommendationEngine {
         guard currentPeptides.count >= 2 else {
             // Skip to per-peptide warnings below
             return perPeptideWarnings(for: currentPeptides, activeProtocols: activeProtocols)
-                .sorted { $0.severity > $1.severity }
+                .sorted(by: Warning.displayOrder)
         }
 
         // 1. Compounding side effects
@@ -219,7 +219,7 @@ extension StackRecommendationEngine {
             warnings.append(Warning(
                 severity: .caution,
                 title: String(localized: "\(group.pathway) overload"),
-                detail: String(localized: "\(matching.count) peptides target the \(group.pathway) pathway (recommended max: \(group.maxSafe))."),
+                detail: String(localized: "\(matching.count) peptides in your protocol target the \(group.pathway) pathway. Some sources describe using no more than \(group.maxSafe) together."),
                 suggestion: group.warningText,
                 peptides: matching.map(\.abbreviation),
                 icon: "arrow.triangle.2.circlepath"
@@ -234,8 +234,8 @@ extension StackRecommendationEngine {
             warnings.append(Warning(
                 severity: .caution,
                 title: String(localized: "High angiogenic activity"),
-                detail: String(localized: "\(angiogenic.count) peptides in your protocol promote blood vessel growth. Use caution if you have a history of malignancy, as angiogenesis can theoretically fuel tumor vascularization."),
-                suggestion: String(localized: "If you have any cancer history, consult an oncologist before using multiple angiogenic peptides together."),
+                detail: String(localized: "\(angiogenic.count) peptides in your protocol are described in research as promoting blood vessel growth. Some sources flag this for people with a history of cancer."),
+                suggestion: String(localized: "Discuss this combination with your clinician, especially if you have any cancer history."),
                 peptides: angiogenic.map(\.abbreviation),
                 icon: "staroflife.fill"
             ))
@@ -244,7 +244,7 @@ extension StackRecommendationEngine {
         // 9-12. Per-peptide warnings (also fire for single-peptide stacks)
         warnings.append(contentsOf: perPeptideWarnings(for: currentPeptides, activeProtocols: activeProtocols))
 
-        return warnings.sorted { $0.severity > $1.severity }
+        return warnings.sorted(by: Warning.displayOrder)
     }
 
     /// Warnings that apply per-peptide (cycle length, desensitization, hepatotoxicity, timing).
@@ -254,25 +254,24 @@ extension StackRecommendationEngine {
         activeProtocols: [PeptideProtocol]
     ) -> [Warning] {
         var warnings: [Warning] = []
-        let calendar = Calendar.current
+        let selected = Set(currentPeptides.map(\.abbreviation))
 
-        // 9. Cycle length warning
+        // 9. Cycle length warning — only for the peptides being checked, and
+        // measured within the current on-phase so a planned wash-out (or a
+        // later cycle) doesn't read as an overrun.
+        var overrunWarned: Set<String> = []
         for proto in activeProtocols {
-            for peptide in proto.peptides {
-                guard let cycle = PeptideTimingData.cycleProtocols[peptide.abbreviation] else { continue }
-                let weeksElapsed = calendar.dateComponents(
-                    [.weekOfYear], from: proto.startDate, to: Date()
-                ).weekOfYear ?? 0
-                guard weeksElapsed > cycle.onWeeks else { continue }
+            guard let weeksElapsed = weeksIntoCurrentRun(of: proto) else { continue }
+            for peptide in proto.peptides where selected.contains(peptide.abbreviation) {
+                guard let cycle = PeptideTimingData.cycleProtocols[peptide.abbreviation],
+                      weeksElapsed > cycle.onWeeks,
+                      overrunWarned.insert(peptide.abbreviation).inserted else { continue }
                 let overBy = weeksElapsed - cycle.onWeeks
-                let transitionText = cycle.transitionSuggestions.isEmpty
-                    ? ""
-                    : String(localized: " Consider transitioning to \(cycle.transitionSuggestions.joined(separator: " or ")).")
                 warnings.append(Warning(
                     severity: .caution,
                     title: String(localized: "\(peptide.abbreviation) is \(overBy) weeks past its cycle"),
-                    detail: String(localized: "Recommended cycle is \(cycle.onWeeks) weeks on / \(cycle.offWeeks) weeks off. You're at week \(weeksElapsed). \(cycle.reason)."),
-                    suggestion: String(localized: "Schedule a \(cycle.offWeeks)-week off period.\(transitionText)"),
+                    detail: String(localized: "Sources commonly describe \(cycle.onWeeks) weeks on and \(cycle.offWeeks) weeks off. You're at week \(weeksElapsed). \(cycle.reason)."),
+                    suggestion: String(localized: "Review your cycle plan with your clinician."),
                     peptides: [peptide.abbreviation],
                     icon: "clock.arrow.circlepath",
                     kind: .cycleOverrun
@@ -280,23 +279,22 @@ extension StackRecommendationEngine {
             }
         }
 
-        // 10. Desensitization risk
+        // 10. Desensitization risk — nothing is dosed during a wash-out.
+        var desensitizationWarned: Set<String> = []
         for peptide in currentPeptides {
-            guard let info = PeptideTimingData.desensitizationRisks[peptide.abbreviation] else { continue }
-            let matchingProtocol = activeProtocols.first { proto in
-                proto.peptides.contains(where: { $0.abbreviation == peptide.abbreviation })
-            }
-            guard let proto = matchingProtocol else { continue }
-            let weeks = calendar.dateComponents(
-                [.weekOfYear], from: proto.startDate, to: Date()
-            ).weekOfYear ?? 0
-            guard weeks >= info.riskOnsetWeeks else { continue }
+            guard let info = PeptideTimingData.desensitizationRisks[peptide.abbreviation],
+                  desensitizationWarned.insert(peptide.abbreviation).inserted else { continue }
+            let weeks = activeProtocols
+                .filter { proto in proto.peptides.contains { $0.abbreviation == peptide.abbreviation } }
+                .compactMap { weeksIntoCurrentRun(of: $0) }
+                .max()
+            guard let weeks, weeks >= info.riskOnsetWeeks else { continue }
             let offWeeks = PeptideTimingData.cycleProtocols[peptide.abbreviation]?.offWeeks ?? 4
             warnings.append(Warning(
                 severity: .caution,
                 title: String(localized: "\(info.receptor) desensitization risk"),
                 detail: String(localized: "\(peptide.abbreviation) active for \(weeks) weeks. \(info.description) typically begins around week \(info.riskOnsetWeeks)."),
-                suggestion: String(localized: "Consider a \(offWeeks)-week washout period to restore receptor sensitivity."),
+                suggestion: String(localized: "Some sources describe a \(offWeeks)-week break at this point. Discuss timing with your clinician."),
                 peptides: [peptide.abbreviation],
                 icon: "arrow.down.right.circle",
                 kind: .desensitization
@@ -312,7 +310,7 @@ extension StackRecommendationEngine {
                 severity: .caution,
                 title: String(localized: "Multiple liver-stressing peptides"),
                 detail: String(localized: "\(hepatotoxic.count) peptides in your protocol have hepatic metabolism burden: \(hepatotoxic.map(\.abbreviation).joined(separator: ", "))."),
-                suggestion: String(localized: "Monitor liver enzymes (ALT, AST) and avoid combining with alcohol or hepatotoxic supplements."),
+                suggestion: String(localized: "Discuss liver monitoring with your clinician. Alcohol and some supplements also affect the liver."),
                 peptides: hepatotoxic.map(\.abbreviation),
                 icon: "exclamationmark.triangle.fill"
             ))

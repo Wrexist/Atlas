@@ -27,6 +27,11 @@ final class DataStore {
         didSet { peptideDatabaseCache = nil }
     }
 
+    /// False while custom-peptides.json exists but couldn't be read.
+    /// Saving then would replace the unread library with only what this
+    /// session added.
+    @ObservationIgnored private var customPeptidesReadable = true
+
     /// Observable counterpart to the private `cacheVersion`. Views key
     /// `.task(id:)` / `.onChange(of:)` off this to recompute a derived
     /// snapshot exactly once per mutation, instead of doing the work inline
@@ -108,6 +113,7 @@ final class DataStore {
     @ObservationIgnored private var _stackPeptides: (version: Int, value: [Peptide])?
     @ObservationIgnored private var _stackWarnings: (version: Int, value: [StackRecommendationEngine.Warning])?
     @ObservationIgnored private var _stackRecommendations: (version: Int, value: [StackRecommendationEngine.Recommendation])?
+    @ObservationIgnored private var _smartCycleSuggestions: (version: Int, value: [SmartCyclePlanner.Suggestion])?
     @ObservationIgnored private var _stackCompleteness: (version: Int, value: StackRecommendationEngine.StackCompleteness?)?
     @ObservationIgnored private var _cycleTransitions: (version: Int, value: [StackRecommendationEngine.CycleTransition])?
     @ObservationIgnored private var _topInsight: (version: Int, value: InsightEngine.Insight?)?
@@ -160,7 +166,9 @@ final class DataStore {
         self.protocols = []
         self.entries   = []
         self.profile   = .fresh
-        self.customPeptides = PersistenceService.shared.loadCustomPeptides() ?? []
+        let storedCustomPeptides = DataStore.readCustomPeptides()
+        self.customPeptides = storedCustomPeptides ?? []
+        self.customPeptidesReadable = storedCustomPeptides != nil
 
         // Phase 2: self is fully initialized — safe to call methods.
         if repo.isAwaitingAccountDecision {
@@ -188,7 +196,8 @@ final class DataStore {
         let savedProfile   = repo.loadProfile()
         let hasOlderEntries = repo.entryCount() > savedEntries.count
 
-        if !savedProtocols.isEmpty || !savedEntries.isEmpty || hasOlderEntries || savedProfile != nil {
+        let isReturningUser = !savedProtocols.isEmpty || !savedEntries.isEmpty || hasOlderEntries || savedProfile != nil
+        if isReturningUser {
             // Returning user: recover what we can. Using || (not &&) so a single
             // corrupt record doesn't erase the user's entire dataset.
             self.protocols = savedProtocols
@@ -197,6 +206,7 @@ final class DataStore {
             self.persistedProfile = savedProfile
             if let savedProfile {
                 HealthSyncSettings.adoptSyncedNutritionFlag(savedProfile.healthKitNutritionEnabled)
+                adoptDeviceHealthConnection()
             }
             // Everything above came off disk and is already persisted.
             // A synthesised `.fresh` profile is the exception: there's no
@@ -224,6 +234,16 @@ final class DataStore {
                 repo.saveProfile(profile)
                 persistedProfile = profile
             }
+            let goals = LegacyGoalMigration.migrate(goals: profile.goals, primaryGoal: profile.primaryGoal)
+            let freezeDays = StreakFreezeService.migratingLegacyKeys(profile.streakFreezeDays)
+            if goals.goals != profile.goals || goals.primaryGoal != profile.primaryGoal
+                || freezeDays != profile.streakFreezeDays {
+                profile.goals = goals.goals
+                profile.primaryGoal = goals.primaryGoal
+                profile.streakFreezeDays = freezeDays
+                repo.saveProfile(profile)
+                persistedProfile = profile
+            }
         } else if seedSampleData {
             // Tests/previews: seed mock data
             let sampleProtocols = MockProtocols.all
@@ -240,6 +260,11 @@ final class DataStore {
 
         if hasOlderEntries {
             scheduleEntryBackfill(before: entryWindowStart)
+        }
+        if isReturningUser {
+            seedAchievementsIfNeeded()
+        } else if !seedSampleData {
+            AchievementService.shared.markSeeded()
         }
 
         // If screenshot mode is currently enabled (set in
@@ -266,6 +291,18 @@ final class DataStore {
         ) { [weak self] _ in
             Task { @MainActor in
                 self?.handleIdentityChange()
+            }
+        }
+
+        // A launch while the device was locked (notification action,
+        // Siri intent) may not have been able to read the library.
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.protectedDataDidBecomeAvailableNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.retryUnreadableCustomPeptides()
             }
         }
 
@@ -428,8 +465,35 @@ final class DataStore {
 
     func addCustomPeptide(_ peptide: Peptide) {
         customPeptides.append(peptide)
+        retryUnreadableCustomPeptides()
+        guard customPeptidesReadable else {
+            lastError = Self.saveFailureMessage
+            return
+        }
         PersistenceService.shared.saveCustomPeptides(customPeptides)
         Haptics.success()
+    }
+
+    private static func readCustomPeptides() -> [Peptide]? {
+        do {
+            return try PersistenceService.shared.loadCustomPeptides()
+        } catch {
+            AppLog.persistence.error("Custom peptides unreadable: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
+    /// Re-reads a library that was unreadable at launch and keeps any
+    /// peptide added since, writing the merge back.
+    private func retryUnreadableCustomPeptides() {
+        guard !customPeptidesReadable, let stored = Self.readCustomPeptides() else { return }
+        let storedIDs = Set(stored.map(\.id))
+        let addedSince = customPeptides.filter { !storedIDs.contains($0.id) }
+        customPeptides = stored + addedSince
+        customPeptidesReadable = true
+        if !addedSince.isEmpty {
+            PersistenceService.shared.saveCustomPeptides(customPeptides)
+        }
     }
 
     // MARK: - Protocols
@@ -479,8 +543,12 @@ final class DataStore {
         if status == .active, protocols[index].status != .active, activationExceedsFreeCap(id: id) {
             return false
         }
+        let wasActive = protocols[index].status == .active
         protocols[index].status = status
         if status == .active {
+            if !wasActive {
+                CycleCompletionService.shared.restartGraceWindow(for: protocols[index])
+            }
             appendTodayEntries(for: protocols[index])
         }
         save()
@@ -599,9 +667,10 @@ final class DataStore {
     /// Starts and ends lock-screen dose activities for active protocols
     /// only — the same set `todayEntries` shows — so a paused or
     /// completed protocol's dose never raises a "Time for X" activity.
-    func reconcileDoseLiveActivities() {
+    @discardableResult
+    func reconcileDoseLiveActivities() -> [Task<Void, Never>] {
         let activeIds = Set(activeProtocols.map(\.id))
-        DoseLiveActivityService.shared.reconcile(
+        return DoseLiveActivityService.shared.reconcile(
             entries: entries.filter { activeIds.contains($0.protocolId) }
         )
     }
@@ -682,24 +751,24 @@ final class DataStore {
         }
     }
 
+    /// `schedule` keeps a moved peptide's own dose, times and cadence;
+    /// it's stored as an override only when it differs from the
+    /// destination's default.
     @discardableResult
-    func addPeptide(_ peptide: Peptide, toProtocolId protocolId: UUID) -> Bool {
+    func addPeptide(
+        _ peptide: Peptide,
+        toProtocolId protocolId: UUID,
+        schedule: ProtocolSchedule? = nil
+    ) -> Bool {
         guard let index = protocols.firstIndex(where: { $0.id == protocolId }) else { return false }
         if protocols[index].peptides.contains(where: { $0.id == peptide.id }) { return false }
 
         let existing = protocols[index]
-        let updated = PeptideProtocol(
-            id: existing.id,
-            name: existing.name,
-            peptides: existing.peptides + [peptide],
-            schedule: existing.schedule,
-            peptideSchedules: existing.peptideSchedules,
-            cycleLengthWeeks: existing.cycleLengthWeeks,
-            washoutWeeks: existing.washoutWeeks,
-            startDate: existing.startDate,
-            status: existing.status,
-            notes: existing.notes
-        )
+        var overrides = existing.peptideSchedules
+        if let schedule, schedule != existing.schedule {
+            overrides[peptide.id] = schedule
+        }
+        let updated = existing.with(peptides: existing.peptides + [peptide], peptideSchedules: overrides)
         protocols[index] = updated
 
         if updated.status == .active {
@@ -757,6 +826,9 @@ final class DataStore {
             createdAt: existing.createdAt
         )
         protocols[index] = updated
+        if updated.status == .active, updated.cycleEndDay != existing.cycleEndDay {
+            CycleCompletionService.shared.restartGraceWindow(for: updated)
+        }
 
         // Regenerate today's entries, preserving any the user already
         // logged — see regenerateTodayEntriesPreservingLogs.
@@ -823,22 +895,7 @@ final class DataStore {
             overrides.removeValue(forKey: peptideId)
         }
 
-        let updated = PeptideProtocol(
-            id: existing.id,
-            name: existing.name,
-            peptides: existing.peptides,
-            schedule: existing.schedule,
-            peptideSchedules: overrides,
-            cycleLengthWeeks: existing.cycleLengthWeeks,
-            washoutWeeks: existing.washoutWeeks,
-            startDate: existing.startDate,
-            status: existing.status,
-            notes: existing.notes,
-            authorName: existing.authorName,
-            authorHandle: existing.authorHandle,
-            forkedFromStackId: existing.forkedFromStackId,
-            createdAt: existing.createdAt
-        )
+        let updated = existing.with(peptideSchedules: overrides)
         protocols[index] = updated
 
         // Regenerate today's entries for this protocol so the change
@@ -966,18 +1023,18 @@ final class DataStore {
     /// previous implementation used the global averageCompliance and
     /// shipped a misleading number when the user had multiple stacks
     /// (audit Sharing P1.6).
+    ///
+    /// Same definition as the protocol screen (`PeptideProtocol.adherence`),
+    /// over the whole run since the protocol's start.
     func adherence(forProtocol id: UUID) -> Double {
-        let now = Date()
-        let protocolEntries = entries.filter { $0.protocolId == id && $0.date <= now }
-        let grouped = protocolEntries.groupedByDay
-        guard !grouped.isEmpty else { return 0 }
-
-        let dailyCompliance = grouped.map { _, dayEntries in
-            let completed = dayEntries.filter(\.completed).count
-            return Double(completed) / Double(dayEntries.count)
-        }
-
-        return dailyCompliance.reduce(0, +) / Double(dailyCompliance.count)
+        guard let proto = protocols.first(where: { $0.id == id }) else { return 0 }
+        let calendar = Calendar.current
+        let daysSinceStart = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: proto.startDate),
+            to: calendar.startOfDay(for: Date())
+        ).day ?? 0
+        return proto.adherence(entries: entries, days: max(1, daysSinceStart + 1)) ?? 0
     }
 
     func complianceTrend(for range: Int) -> Double {
@@ -1050,6 +1107,15 @@ final class DataStore {
         )
         let result = StackRecommendationEngine.recommendations(context: context)
         _stackRecommendations = (cacheVersion, result)
+        return result
+    }
+
+    /// Smart Planner nudges, cached like the other engines so the
+    /// Protocols tab doesn't re-filter every entry on each render.
+    var smartCycleSuggestions: [SmartCyclePlanner.Suggestion] {
+        if let cached = _smartCycleSuggestions, cached.version == cacheVersion { return cached.value }
+        let result = SmartCyclePlanner.suggestions(protocols: protocols, entries: entries)
+        _smartCycleSuggestions = (cacheVersion, result)
         return result
     }
 
@@ -1214,18 +1280,18 @@ final class DataStore {
         guard let deleted, HealthSyncSettings.isEnabled else { return }
         let day = deleted.date
         if !wasRecordedImport {
-            Task { await self.dismissExternalWeights(onDayOf: day) }
+            Task { await self.dismissLegacyImports(of: deleted) }
         }
         enqueueBodyMassHealthWrite { await HealthKitService.shared.deleteBodyMass(onDayOf: day) }
     }
 
     /// Earlier builds imported Health weigh-ins under random ids, so
-    /// deleting one can't dismiss its sample by id. Dismissing every
-    /// outside sample on that day keeps the next pass from re-importing it.
-    private func dismissExternalWeights(onDayOf day: Date) async {
+    /// deleting one can't dismiss its sample by id; dismissing the
+    /// matching outside sample keeps the next pass from re-importing it.
+    private func dismissLegacyImports(of deleted: WeightEntry) async {
         let external = await HealthKitService.shared.externalWeights(days: HealthSyncEngine.importWindowDays)
-        let sameDay = external.filter { Calendar.current.isDate($0.date, inSameDayAs: day) }
-        repo.dismissHealthWeights(ids: Set(sameDay.map(\.id)))
+        let imports = HealthSyncEngine.legacyImports(of: deleted, in: external)
+        repo.dismissHealthWeights(ids: Set(imports.map(\.id)))
     }
 
     /// Exact-amount water log behind every entry point (quick-adds,
@@ -1374,16 +1440,11 @@ final class DataStore {
     }
 
     /// Flips the Apple Health write toggle. When turning ON, requests
-    /// HK write permission first — if that fails (sim, denied, no
-    /// HealthKit on iPad), the toggle stays off and we surface the
-    /// failure via the returned Bool so the caller can show an
-    /// error pill or revert the switch.
-    ///
-    /// Apple's privacy model doesn't tell us whether the user
-    /// approved or denied; we treat "permission prompt completed
-    /// without throwing" as success. The user can revoke any time in
-    /// the Settings → Health pane, which is the right level of
-    /// indirection for a delete-everything action.
+    /// HK write permission first — if that fails (sim, every type
+    /// denied, no HealthKit on iPad), the toggle stays off and we
+    /// surface the failure via the returned Bool so the caller can
+    /// point the user to Settings. A later revocation in Settings is
+    /// picked up on the next foreground (`turnOffDeniedHealthWrites`).
     @discardableResult
     func setHealthKitNutritionEnabled(_ enabled: Bool) async -> Bool {
         if enabled {
@@ -1398,7 +1459,7 @@ final class DataStore {
     }
 
     /// Turns "Sync workouts, weight and water" on or off. Like the meal
-    /// toggle, it only stays on once the permission prompt completed.
+    /// toggle, it only stays on while some write type is allowed.
     @discardableResult
     func setHealthActivitySyncEnabled(_ enabled: Bool) async -> Bool {
         if enabled {
@@ -1785,25 +1846,6 @@ final class DataStore {
         profile.favoriteFoodIDs.contains(id)
     }
 
-    // MARK: - Vial inventory (derived)
-
-    /// Default doses per vial when the user hasn't told us otherwise.
-    /// Picked because most short-acting research peptides come as 5 mg
-    /// vials reconstituted to deliver ~20–30 doses, and the modulo wrap
-    /// reads as a believable "vial swap" cadence in the Home shelf.
-    static let defaultDosesPerVial = 30
-
-    /// Liquid-fill fraction for a compound's vial. Math lives in
-    /// `VialInventoryLogic.liquidLevel(for:in:dosesPerVial:)` so it's
-    /// unit-testable in isolation; this method only forwards.
-    func liquidLevel(for peptide: Peptide) -> Double {
-        VialInventoryLogic.liquidLevel(
-            for: peptide,
-            in: entries,
-            dosesPerVial: Self.defaultDosesPerVial
-        )
-    }
-
     /// Quick-log workout entry — kept for the freeform "Movement"
     /// surface on the Today scroll. Plan C reconciled the dual store
     /// split: this method no longer writes to the legacy
@@ -1893,7 +1935,7 @@ final class DataStore {
         // the ephemeral guard: screenshot mode still has to redraw.
         cacheVersion &+= 1
         revision &+= 1
-        guard !isEphemeral else { return }
+        guard !isEphemeral, !AchievementService.shared.needsSilentSeed else { return }
         AchievementService.shared.checkTrainingAchievements(
             workoutCount: repo.workoutSessionCount(),
             prDetected: detectedPRCount > 0
@@ -1981,14 +2023,15 @@ final class DataStore {
     }
 
     /// Toggle off (revoke local link) is unconditional. Toggle ON
-    /// only succeeds after the user has actually granted at least
-    /// one HealthKit type — previously we'd flip the bool to true
-    /// regardless and downstream UI showed "connected" with empty
-    /// cards (audit Biology H9). Caller can `await` the result and
-    /// surface a permissions prompt when this returns false.
+    /// succeeds once Health's permission sheet completes. HealthKit
+    /// never reveals denied read access, so a user who allowed nothing
+    /// still connects; `HealthKitService.hasReadableData` is how the
+    /// Profile card tells them nothing is visible. Returns false when
+    /// the request itself failed (no HealthKit, or it threw).
     @discardableResult
     func toggleHealthConnection() async -> Bool {
         if profile.healthConnected {
+            HealthSyncSettings.setConnected(false)
             profile.healthConnected = false
             save()
             await refreshWatchVitals()
@@ -1999,10 +2042,33 @@ final class DataStore {
             AppLog.healthKit.warning("toggleHealthConnection blocked — no HealthKit grant")
             return false
         }
+        HealthSyncSettings.setConnected(true)
         profile.healthConnected = true
         save()
         await refreshWatchVitals()
         return true
+    }
+
+    /// Health permission is granted per device, so a just-loaded profile
+    /// shows this device's connection, not the synced column another
+    /// device set. Applied to the baseline too, so the column is only
+    /// written when the user toggles here. A device that predates the
+    /// local flag adopts the synced value only if Health has asked it.
+    private func adoptDeviceHealthConnection() {
+        let synced = profile.healthConnected
+        let local = HealthSyncSettings.isConnected
+        profile.healthConnected = local ?? false
+        persistedProfile?.healthConnected = local ?? false
+        guard local == nil, synced else { return }
+        Task { @MainActor [weak self] in
+            let askedHere = await HealthKitService.shared.hasRequestedReadAuthorization()
+            guard HealthSyncSettings.isConnected == nil else { return }
+            HealthSyncSettings.setConnected(askedHere)
+            guard askedHere, let self else { return }
+            self.profile.healthConnected = true
+            self.persistedProfile?.healthConnected = true
+            await self.refreshWatchVitals()
+        }
     }
 
     /// Atomically updates the user-customizable identity fields shown on the
@@ -2046,14 +2112,14 @@ final class DataStore {
         }
         profile.habits.append(copy)
         save()
-        rescheduleHabitReminders()
+        Task { await rescheduleHabitReminders() }
     }
 
     func updateHabit(_ habit: Habit) {
         guard let idx = profile.habits.firstIndex(where: { $0.id == habit.id }) else { return }
         profile.habits[idx] = habit
         save()
-        rescheduleHabitReminders()
+        Task { await rescheduleHabitReminders() }
     }
 
     /// Removes the habit and every entry logged against it. The delete
@@ -2063,7 +2129,7 @@ final class DataStore {
         profile.habits.removeAll { $0.id == id }
         profile.habitEntries.removeAll { $0.habitId == id }
         save()
-        rescheduleHabitReminders()
+        Task { await rescheduleHabitReminders() }
     }
 
     func reorderHabits(_ ordered: [Habit]) {
@@ -2118,6 +2184,8 @@ final class DataStore {
         }
         save()
         registerHabitCompletionCelebration(habit: habit, wasCompleted: wasCompleted, on: date)
+        // Ticking a habit off drops today's reminder; un-ticking restores it.
+        Task { await rescheduleHabitReminders() }
     }
 
     /// Set the exact value for a given day. Use for countable habits
@@ -2144,6 +2212,7 @@ final class DataStore {
         if let habit {
             registerHabitCompletionCelebration(habit: habit, wasCompleted: wasCompleted, on: date)
         }
+        Task { await rescheduleHabitReminders() }
     }
 
     // MARK: - Momentum / Atlas Score
@@ -2178,11 +2247,13 @@ final class DataStore {
     /// True when every habit due today is completed (and at least one was
     /// due). Drives the "perfect day" celebration + achievement.
     func allHabitsDoneToday(on date: Date = Date()) -> Bool {
-        let due = activeHabits.filter { $0.schedule.isDue(on: date) }
+        // The summary's due flag, not the schedule's: a times-per-week
+        // habit that met its target stops holding the perfect day open.
+        let due = activeHabits
+            .map { HabitsService.summary(for: $0, entries: profile.habitEntries, on: date) }
+            .filter(\.isDueToday)
         guard !due.isEmpty else { return false }
-        return due.allSatisfy {
-            HabitsService.summary(for: $0, entries: profile.habitEntries, on: date).isCompletedToday
-        }
+        return due.allSatisfy(\.isCompletedToday)
     }
 
     /// Fires the habit-completion celebration on the not-complete → complete
@@ -2238,7 +2309,7 @@ final class DataStore {
             profile.atlasLevel = newLevel
             let tier = MomentumEngine.Tier.forLevel(newLevel)
             CelebrationCenter.shared.celebrate(
-                .levelUp(level: newLevel, tierName: tier.name, tierSymbol: tier.symbol, tintHex: tier.tintHex)
+                .levelUp(level: newLevel, tier: tier)
             )
         } else {
             profile.atlasLevel = max(profile.atlasLevel, newLevel)
@@ -2247,10 +2318,10 @@ final class DataStore {
     }
 
     private func momentumInputs() -> MomentumEngine.Inputs {
-        let dueHabits = activeHabits.filter { $0.schedule.isDue(on: Date()) }
-        let doneHabits = dueHabits.filter {
-            HabitsService.summary(for: $0, entries: profile.habitEntries).isCompletedToday
-        }
+        let dueHabits = activeHabits
+            .map { HabitsService.summary(for: $0, entries: profile.habitEntries) }
+            .filter(\.isDueToday)
+        let doneHabits = dueHabits.filter(\.isCompletedToday)
         let today = todayEntries
         return MomentumEngine.Inputs(
             habitsDone: doneHabits.count,
@@ -2329,17 +2400,18 @@ final class DataStore {
         return protocols.filter { dropped.contains($0.id) }.map(\.name).sorted()
     }
 
-    private func rescheduleNotificationsIfEnabled() {
+    func rescheduleNotificationsIfEnabled() {
         guard profile.doseRemindersEnabled else { return }
         NotificationService.shared.scheduleNotifications(for: activeProtocols)
     }
 
-    /// Re-stamps habit reminders against the current habit list. Habit
-    /// reminders are per-habit opt-in (gated on `Habit.reminderTime != nil`)
-    /// rather than the global `doseRemindersEnabled` switch — setting a
-    /// reminder time on a habit is already an explicit opt-in.
-    private func rescheduleHabitReminders() {
-        NotificationService.shared.scheduleHabitReminders(for: activeHabits)
+    /// Re-plans habit reminders against the current habits and today's
+    /// completions. Habit reminders are per-habit opt-in (gated on
+    /// `Habit.reminderTime != nil`) rather than the global
+    /// `doseRemindersEnabled` switch — setting a reminder time on a habit
+    /// is already an explicit opt-in.
+    func rescheduleHabitReminders() async {
+        await NotificationService.shared.scheduleHabitReminders(for: activeHabits, entries: profile.habitEntries)
     }
 
     // MARK: - Persistence
@@ -2459,8 +2531,12 @@ final class DataStore {
         else { return }
 
         repo.beginSaveBatch()
+        if protocolsNeedSave || entriesNeedSave { dropProtocolsDeletedElsewhere() }
         if protocolsNeedSave { repo.upsertProtocols(protocols) }
-        if entriesNeedSave { repo.upsertEntries(entries) }
+        if entriesNeedSave {
+            let deletedElsewhere = repo.upsertEntries(entries)
+            if !deletedElsewhere.isEmpty { entries.removeAll { deletedElsewhere.contains($0.id) } }
+        }
         for id in pendingProtocolDeletions {
             repo.deleteProtocol(id: id)
             // Includes rows outside the in-memory window or synced in
@@ -2514,6 +2590,16 @@ final class DataStore {
 
         updateWidgetData()
         updateWatchData()
+    }
+
+    /// A protocol another device deleted, whose CloudKit import landed
+    /// before this device reloaded, leaves memory here instead of being
+    /// re-inserted (with today's doses) by this save.
+    private func dropProtocolsDeletedElsewhere() {
+        let deletedElsewhere = repo.protocolIDsDeletedElsewhere(among: Set(protocols.map(\.id)))
+        guard !deletedElsewhere.isEmpty else { return }
+        protocols.removeAll { deletedElsewhere.contains($0.id) }
+        entries.removeAll { deletedElsewhere.contains($0.protocolId) }
     }
 
     /// Banner copy for a transient live-save failure. Kept as a
@@ -2665,6 +2751,7 @@ final class DataStore {
         let data = WidgetSnapshotBuilder.build(
             today: todayEntries,
             next: nextDose,
+            hasActiveProtocol: !activeProtocols.isEmpty,
             consumption: LifestyleDataLogic.consumption(in: profile, for: Date()),
             targets: profile.nutritionTargets,
             breakdown: LifestyleDataLogic.mealsByCategory(in: profile, for: Date()),
@@ -2673,8 +2760,10 @@ final class DataStore {
             unit: profile.bodyMetrics.unit
         )
         if let lastWidgetData, data.hasSameContent(as: lastWidgetData) { return }
+        // Remembered only once written: a failed write must not make the
+        // next identical payload look like a no-op.
+        guard PersistenceService.shared.updateWidgetData(data) else { return }
         lastWidgetData = data
-        PersistenceService.shared.updateWidgetData(data)
         WidgetCenter.shared.reloadAllTimelines()
     }
 
@@ -2715,7 +2804,7 @@ final class DataStore {
             entries: entries,
             protocols: protocols,
             currentStreak: currentStreak,
-            weeklyCompliance: EntryAnalytics.weeklyComplianceFraction(in: entries),
+            weeklyCompliance: EntryAnalytics.weeklyComplianceFraction(in: entries, protocols: protocols),
             totalDosesLogged: EntryAnalytics.totalDosesLogged(in: entries),
             nutrition: nutritionSnapshotForWatch(),
             atlasScore: snap.score,
@@ -2731,7 +2820,7 @@ final class DataStore {
             healthConnected: profile.healthConnected,
             vitals: watchVitals,
             workout: watchWorkout,
-            training: WatchWorkoutSnapshotBuilder.training(from: repo.loadWorkoutSessions(limit: 30)),
+            training: WatchWorkoutSnapshotBuilder.training(from: recentWidgetWorkouts()),
             hapticsEnabled: profile.hapticFeedbackEnabled
         )
     }
@@ -2768,49 +2857,72 @@ final class DataStore {
     }
 
 
+    /// Achievements are stored per install while the records they count
+    /// come back from iCloud, so a reinstall's first check would replay
+    /// every earned unlock as a toast. Seeds silently once, after the
+    /// entry backfill so lifetime totals are complete.
+    private func seedAchievementsIfNeeded() {
+        guard AchievementService.shared.needsSilentSeed else { return }
+        let backfill = entryBackfillTask
+        Task { @MainActor [weak self] in
+            await backfill?.value
+            guard let self, !self.isEphemeral else { return }
+            AchievementService.shared.seedSilently {
+                self.runAchievementChecks()
+                AchievementService.shared.checkTrainingAchievements(
+                    workoutCount: self.repo.workoutSessionCount(),
+                    prDetected: false
+                )
+            }
+        }
+    }
+
     private func scheduleAchievementCheck() {
         guard !achievementCheckPending else { return }
         achievementCheckPending = true
         Task { @MainActor [weak self] in
             guard let self else { return }
             self.achievementCheckPending = false
-            AchievementService.shared.checkAchievements(
-                totalDoses: self.totalDoses,
-                currentStreak: self.currentStreak,
-                bestStreak: self.bestStreak,
-                protocolCount: self.protocols.count,
-                daysLogged: self.totalDaysLogged
-            )
-            // Lifestyle milestones run on the same hook so the
-            // achievement toast pipeline doesn't fire twice for
-            // unrelated mutations. The two `checkAchievements`
-            // calls each manage their own `latestUnlock` — only
-            // the second one's value survives, but in practice
-            // the two domains rarely cross a threshold on the
-            // same mutation.
-            AchievementService.shared.checkLifestyleAchievements(
-                mealsLogged: self.profile.mealHistory.count,
-                mealStreak: self.mealLoggingStreak,
-                labsLogged: self.profile.labHistory.count,
-                labPanelCount: Set(self.profile.labHistory.map(\.panel)).count,
-                recipesCount: self.profile.recipes.count,
-                checkInsLogged: self.profile.outcomeHistory.count
-            )
-            AchievementService.shared.checkHabitAchievements(
-                habitCount: self.activeHabits.count,
-                bestHabitStreak: self.bestHabitStreak,
-                totalCompletions: self.totalHabitCompletions,
-                perfectDayToday: self.allHabitsDoneToday(),
-                perfectWeek: (HabitsService.completionRate(
-                    habits: self.activeHabits,
-                    entries: self.profile.habitEntries,
-                    days: 7
-                ) ?? 0) >= 1.0
-            )
+            // The silent seed covers the current state; checking first
+            // would toast everything it is about to absorb.
+            if !AchievementService.shared.needsSilentSeed {
+                self.runAchievementChecks()
+            }
             // Bank today's Atlas Score from the same coalesced hook. Mutates
             // the profile in memory; the debounced save persists it.
             self.accrueMomentumIfNeeded()
         }
+    }
+
+    private func runAchievementChecks() {
+        AchievementService.shared.checkAchievements(
+            totalDoses: self.totalDoses,
+            currentStreak: self.currentStreak,
+            bestStreak: self.bestStreak,
+            protocolCount: self.protocols.count,
+            daysLogged: self.totalDaysLogged
+        )
+        // Lifestyle and habit milestones run on the same hook; every
+        // unlock joins one FIFO toast queue.
+        AchievementService.shared.checkLifestyleAchievements(
+            mealsLogged: self.profile.mealHistory.count,
+            mealStreak: self.mealLoggingStreak,
+            labsLogged: self.profile.labHistory.count,
+            labPanelCount: Set(self.profile.labHistory.map(\.panel)).count,
+            recipesCount: self.profile.recipes.count,
+            checkInsLogged: self.profile.outcomeHistory.count
+        )
+        AchievementService.shared.checkHabitAchievements(
+            habitCount: self.activeHabits.count,
+            bestHabitStreak: self.bestHabitStreak,
+            totalCompletions: self.totalHabitCompletions,
+            perfectDayToday: self.allHabitsDoneToday(),
+            perfectWeek: (HabitsService.completionRate(
+                habits: self.activeHabits,
+                entries: self.profile.habitEntries,
+                days: 7
+            ) ?? 0) >= 1.0
+        )
     }
 
     /// Idempotent: appends today's scheduled entries for any active protocol that
@@ -2840,6 +2952,21 @@ final class DataStore {
         performCycleAutoCompletion()
         regenerateTodayEntries()
         refreshHealthIfDue()
+        turnOffDeniedHealthWrites()
+        // The unlock notification isn't delivered to a suspended app.
+        retryUnreadableCustomPeptides()
+    }
+
+    /// Write access can be withdrawn in Settings at any time; a toggle
+    /// left on would only make every write fail in the log.
+    private func turnOffDeniedHealthWrites() {
+        let health = HealthKitService.shared
+        if HealthSyncSettings.isNutritionEnabled, health.isNutritionWriteDenied {
+            UserDefaults.standard.set(false, forKey: HealthSyncSettings.nutritionEnabledKey)
+        }
+        if HealthSyncSettings.isEnabled, health.isActivityWriteDenied {
+            UserDefaults.standard.set(false, forKey: HealthSyncSettings.enabledKey)
+        }
     }
 
     private func refreshHealthIfDue() {
@@ -2852,10 +2979,20 @@ final class DataStore {
         Task { await importHealthWeights() }
     }
 
-    /// Re-pulls protocols / entries / profile from the repository — used by
-    /// the Protocols list's pull-to-refresh so a CloudKit sync from another
-    /// device shows up without an app relaunch. Falls back to the existing
-    /// in-memory state if the repo returns nil for that resource.
+    /// Pull-to-refresh. Lands pending edits first, so the reload can't
+    /// discard them or bring back a protocol whose deletion is still
+    /// queued; while they can't be saved, memory stays as it is.
+    func refreshFromStore() {
+        flushPendingSave()
+        guard !hasUnsavedChanges else { return }
+        reloadFromDisk()
+    }
+
+    /// Re-pulls protocols / entries / profile from the repository so a
+    /// CloudKit sync from another device shows up without an app
+    /// relaunch. Falls back to the existing in-memory state if the repo
+    /// returns nil for that resource. Replaces unsaved in-memory edits;
+    /// user-triggered refreshes go through `refreshFromStore`.
     func reloadFromDisk() {
         // Same two-phase shape as init: the recent window synchronously
         // (this runs on pull-to-refresh and CloudKit pulls, where a
@@ -2871,6 +3008,7 @@ final class DataStore {
         persistedProfile = saved
         if let saved {
             profile = saved
+            adoptDeviceHealthConnection()
             // Only clear the profile flag when a row actually replaced
             // it — otherwise an unsaved in-memory profile edit would be
             // marked clean without ever reaching disk.
@@ -2890,10 +3028,16 @@ final class DataStore {
         // Meals card, and its end-of-fast reminder, stale.
         RoutineStore.shared.load()
         FastingStore.shared.load()
+        ExerciseLibrary.shared.reloadCustomExercises()
         // CloudKit-driven pulls land here; without these the lock-
         // screen widget and the Watch tab would stay stale until the
         // next user mutation or the widget's 15-min auto-timer.
         refreshTrainingGlanceables()
+        // A protocol added, paused or re-timed on another device, or a
+        // habit reminder changed there, would otherwise keep this
+        // device's old reminders until the next local edit.
+        rescheduleNotificationsIfEnabled()
+        Task { await rescheduleHabitReminders() }
     }
 
     /// Transactionally applies a backup import — the user has
@@ -2957,6 +3101,7 @@ final class DataStore {
         let importEntryIDs = Set(newEntries.map(\.id))
 
         repo.beginSaveBatch()
+        repo.forgetPersistedIDs()
         repo.upsertProtocols(newProtocols)
         repo.upsertEntries(newEntries)
 
@@ -3006,6 +3151,7 @@ final class DataStore {
             customPeptides = training.customPeptides
             PersistenceService.shared.saveCustomPeptides(training.customPeptides)
             RoutineStore.shared.load()
+            ExerciseLibrary.shared.reloadCustomExercises()
 
             // Training rows bypass the `protocols`/`entries`/`profile`
             // didSet bumps, same as recordWorkoutFinished — bump so
@@ -3074,7 +3220,11 @@ final class DataStore {
 
         let schedule = proto.schedule(for: peptide.id)
         let calendar = Calendar.current
-        guard schedule.isActive(on: Date(), calendar: calendar) else { return [] }
+        // Wash-out days have nothing due — the calendar, cycle bands and
+        // adherence already agree on that, so Today must not generate them.
+        guard CyclePhaseEngine.isOnCycle(Date(), protocol: proto, calendar: calendar),
+              schedule.isActive(on: Date(), protocolStart: proto.startDate, calendar: calendar)
+        else { return [] }
 
         return schedule.preferredTimes.compactMap { timeString in
             guard let time = timeStringParser.date(from: timeString) else { return nil }

@@ -58,20 +58,11 @@ enum DailyReminderScheduler {
             now: Date(),
             calendar: calendar
         ) { kind, day in
-            switch kind {
-            case .weighIn:
-                profile.weightHistory.contains { calendar.isDate($0.date, inSameDayAs: day) }
-            case .workout:
-                trainedDays.contains { calendar.isDate($0, inSameDayAs: day) }
-            case .breakfast, .lunch, .dinner:
-                profile.mealHistory.contains {
-                    $0.category == kind.mealCategory && calendar.isDate($0.date, inSameDayAs: day)
-                }
-            }
+            isAlreadyDone(kind, day: day, profile: profile, trainedDays: trainedDays, calendar: calendar)
         }
 
         for reminder in planned {
-            let content = content(for: reminder, mealHistory: profile.mealHistory, calendar: calendar)
+            let content = content(for: reminder, profile: profile, calendar: calendar)
             let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: reminder.fireDate)
             let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
             do {
@@ -81,6 +72,28 @@ enum DailyReminderScheduler {
             }
         }
         NotificationService.shared.trackDailyReminders(Set(planned.map(\.id)))
+    }
+
+    /// Whether `kind` is already logged on the day containing `day`, so
+    /// its reminder would only nag: a weigh-in that day, a trained day,
+    /// or a meal logged under that same category.
+    static func isAlreadyDone(
+        _ kind: DailyReminderKind,
+        day: Date,
+        profile: UserProfile,
+        trainedDays: [Date],
+        calendar: Calendar
+    ) -> Bool {
+        switch kind {
+        case .weighIn:
+            profile.weightHistory.contains { calendar.isDate($0.date, inSameDayAs: day) }
+        case .workout:
+            trainedDays.contains { calendar.isDate($0, inSameDayAs: day) }
+        case .breakfast, .lunch, .dinner:
+            profile.mealHistory.contains {
+                $0.category == kind.mealCategory && calendar.isDate($0.date, inSameDayAs: day)
+            }
+        }
     }
 
     static var categories: Set<UNNotificationCategory> {
@@ -93,7 +106,7 @@ enum DailyReminderScheduler {
         let repeatMeal = UNNotificationAction(
             identifier: repeatMealAction,
             title: String(localized: "Same as yesterday", comment: "Meal reminder action — re-logs yesterday's meal"),
-            options: [],
+            options: [.authenticationRequired],
             icon: UNNotificationActionIcon(systemImageName: "arrow.uturn.backward")
         )
         let startWorkout = UNNotificationAction(
@@ -105,7 +118,7 @@ enum DailyReminderScheduler {
         let logWeight = UNTextInputNotificationAction(
             identifier: logWeightAction,
             title: String(localized: "Log weight", comment: "Weigh-in reminder action"),
-            options: [],
+            options: [.authenticationRequired],
             icon: UNNotificationActionIcon(systemImageName: "scalemass.fill"),
             textInputButtonTitle: String(localized: "Save"),
             textInputPlaceholder: String(localized: "Today's weight", comment: "Weigh-in reply field placeholder")
@@ -122,7 +135,7 @@ enum DailyReminderScheduler {
 
     private static func content(
         for reminder: DailyReminderEngine.Planned,
-        mealHistory: [MealEntry],
+        profile: UserProfile,
         calendar: Calendar
     ) -> UNMutableNotificationContent {
         let content = UNMutableNotificationContent()
@@ -132,7 +145,9 @@ enum DailyReminderScheduler {
 
         switch reminder.kind {
         case .weighIn:
-            content.body = String(localized: "Step on the scale, then reply with today's number.")
+            // Names the unit the reply is read in, unless one is typed.
+            let unit = profile.bodyMetrics.unit.weightSuffix
+            content.body = String(localized: "Step on the scale, then reply with today's weight in \(unit).")
             content.categoryIdentifier = weighInCategoryID
             content.userInfo = ["deeplink": "peptidex://today"]
         case .workout:
@@ -143,7 +158,7 @@ enum DailyReminderScheduler {
         case .breakfast, .lunch, .dinner:
             guard let category = reminder.kind.mealCategory else { break }
             content.userInfo = ["deeplink": "peptidex://meals", "mealCategory": category.rawValue]
-            let previous = DailyReminderEngine.previousDayMeals(category, before: reminder.fireDate, in: mealHistory, calendar: calendar)
+            let previous = DailyReminderEngine.previousDayMeals(category, before: reminder.fireDate, in: profile.mealHistory, calendar: calendar)
             if previous.isEmpty {
                 content.body = String(localized: "Snap your plate — logging takes a few seconds.")
                 content.categoryIdentifier = mealCategoryID

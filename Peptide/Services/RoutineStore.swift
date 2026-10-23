@@ -12,6 +12,11 @@ final class RoutineStore {
 
     private(set) var routines: [Routine] = []
 
+    /// Blank routines this device opened from "New routine". Only these may
+    /// be discarded as abandoned: an empty "New routine" synced from
+    /// another device may still be open in that device's builder.
+    private var untitledDrafts: Set<UUID> = []
+
     private var repository: SwiftDataRepository { .shared }
 
     private init() {}
@@ -37,6 +42,23 @@ final class RoutineStore {
         repository.upsertRoutine(routine)
         load()
         return routine
+    }
+
+    /// A blank routine for the builder, discarded by
+    /// `discardAbandonedDrafts()` if the user leaves it untouched.
+    func createDraft() -> Routine {
+        let routine = create(name: Self.untitledName)
+        untitledDrafts.insert(routine.id)
+        return routine
+    }
+
+    /// Deletes drafts still blank and unnamed once the builder is left.
+    func discardAbandonedDrafts() {
+        for routine in routines
+        where untitledDrafts.contains(routine.id) && routine.exercises.isEmpty && routine.name == Self.untitledName {
+            delete(id: routine.id)
+        }
+        untitledDrafts.removeAll()
     }
 
     /// Appends already-built routines — a generated program's days — below

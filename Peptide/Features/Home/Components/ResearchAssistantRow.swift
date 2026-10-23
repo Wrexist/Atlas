@@ -5,6 +5,8 @@ import SwiftUI
 /// never open. Same shape as `ProtocolsDiscoverRow`: one labeled row, no
 /// tutorial. The caller decides whether a tap opens the chat or the paywall.
 struct ResearchAssistantRow: View {
+    /// True when the tap opens the paywall instead of the chat.
+    var isLocked = false
     let onTap: () -> Void
 
     var body: some View {
@@ -43,12 +45,12 @@ struct ResearchAssistantRow: View {
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Research assistant. Ask about a compound or a study and get answers with citations.")
-        .accessibilityHint("Opens the AI research assistant")
+        .accessibilityHint(isLocked ? "Opens Atlas Pro" : "Opens the AI research assistant")
     }
 }
 
 #Preview {
-    ResearchAssistantRow(onTap: {})
+    ResearchAssistantRow(isLocked: true, onTap: {})
         .padding()
         .background(AppColor.background)
         .preferredColorScheme(.dark)

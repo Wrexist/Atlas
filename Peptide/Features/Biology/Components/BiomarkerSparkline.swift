@@ -10,7 +10,9 @@ import SwiftUI
 /// width and respects Dynamic Type without redrawing a chart
 /// library at every accessibility size.
 struct BiomarkerSparkline: View {
-    let points: [Double]
+    /// Dated readings, oldest first. Plotted by date, so a week without
+    /// readings shows as a week, not one step.
+    let samples: [BiomarkerSnapshot.Sample]
     let tint: Color
     var height: CGFloat = 24
 
@@ -53,32 +55,26 @@ struct BiomarkerSparkline: View {
         .accessibilityHidden(true)  // value + trend are on the row's text
     }
 
-    /// Normalises raw values into the rendering rect. y-axis
-    /// flipped because SwiftUI's coordinate space has y growing
-    /// downward; we want higher values to render higher on the
-    /// chart.
+    /// Normalises the samples into the rendering rect: x by date
+    /// between the first and last reading, y flipped because SwiftUI's
+    /// coordinate space grows downward and higher values should render
+    /// higher.
     private func normalizedPoints(in size: CGSize) -> [CGPoint] {
-        guard points.count >= 2 else { return [] }
-        let minValue = points.min() ?? 0
-        let maxValue = points.max() ?? 1
-        let range = maxValue - minValue
-        let stepX = size.width / CGFloat(points.count - 1)
-        // When every sample is identical (flat HRV at 50 ms for 14
-        // days) the range collapses to 0. Render the line through
-        // the vertical middle instead of jamming it to the floor —
-        // a flat-mid line reads as "steady," a flat-bottom line
-        // read as "your HRV is at zero" (audit Biology follow-up).
-        guard range > 0 else {
-            let midY = size.height / 2
-            return points.enumerated().map { idx, _ in
-                CGPoint(x: CGFloat(idx) * stepX, y: midY)
-            }
-        }
-        return points.enumerated().map { idx, value in
-            let x = CGFloat(idx) * stepX
-            let normalized = (value - minValue) / range
-            let y = size.height - (CGFloat(normalized) * size.height)
-            return CGPoint(x: x, y: y)
+        guard samples.count >= 2, let first = samples.first, let last = samples.last else { return [] }
+        let values = samples.map(\.value)
+        let minValue = values.min() ?? 0
+        let range = (values.max() ?? 1) - minValue
+        let span = last.date.timeIntervalSince(first.date)
+        return samples.map { sample in
+            let x = span > 0 ? CGFloat(sample.date.timeIntervalSince(first.date) / span) * size.width : 0
+            // When every sample is identical (flat HRV at 50 ms for 14
+            // days) the range collapses to 0. Render the line through
+            // the vertical middle instead of jamming it to the floor —
+            // a flat-mid line reads as "steady," a flat-bottom line
+            // read as "your HRV is at zero" (audit Biology follow-up).
+            guard range > 0 else { return CGPoint(x: x, y: size.height / 2) }
+            let normalized = (sample.value - minValue) / range
+            return CGPoint(x: x, y: size.height - CGFloat(normalized) * size.height)
         }
     }
 
@@ -110,16 +106,25 @@ struct BiomarkerSparkline: View {
         AppColor.background.ignoresSafeArea()
         VStack(spacing: Spacing.lg) {
             BiomarkerSparkline(
-                points: [70.0, 70.2, 70.3, 70.5, 71.0, 71.5, 71.8, 72.0],
+                samples: previewSamples([70.0, 70.2, 70.3, 70.5, 71.0, 71.5, 71.8, 72.0]),
                 tint: AppColor.macroProtein
             )
             .frame(width: 80)
             BiomarkerSparkline(
-                points: [58, 56, 54, 53, 51, 53, 50, 49, 51, 50],
+                samples: previewSamples([58, 56, 54, 53, 51, 53, 50, 49, 51, 50]),
                 tint: AppColor.metricHRV
             )
             .frame(width: 80)
         }
     }
     .preferredColorScheme(.dark)
+}
+
+private func previewSamples(_ values: [Double]) -> [BiomarkerSnapshot.Sample] {
+    values.enumerated().map { index, value in
+        BiomarkerSnapshot.Sample(
+            date: Calendar.current.date(byAdding: .day, value: index - values.count, to: .now) ?? .now,
+            value: value
+        )
+    }
 }
