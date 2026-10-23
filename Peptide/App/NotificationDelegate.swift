@@ -97,6 +97,7 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
                     unit: dataStore.profile.bodyMetrics.unit
                 ) else {
                     AppLog.notifications.warning("Weigh-in reply was not a usable weight")
+                    await Self.reportUnreadableWeight()
                     return
                 }
                 dataStore.logWeight(kg: kilograms)
@@ -145,6 +146,29 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
             // announcement; a banner over it on top of that is noise.
             let workoutOnScreen = isRestEnd && appState.isActiveWorkoutVisible
             completionHandler(workoutOnScreen ? [] : [.banner, .sound])
+        }
+    }
+
+    /// The reply was typed from the notification, so the user would
+    /// otherwise believe it was saved. Says so at once, and a tap opens
+    /// the weight sheet.
+    private static func reportUnreadableWeight() async {
+        let content = UNMutableNotificationContent()
+        content.title = String(localized: "Weight not saved", comment: "Notification title when a weigh-in reply could not be read")
+        content.body = String(localized: "Couldn't read that weight. Open Atlas to log it.", comment: "Notification body when a weigh-in reply could not be read")
+        content.sound = .default
+        if let link = QuickAction.logWeight.url?.absoluteString {
+            content.userInfo = ["deeplink": link]
+        }
+        let request = UNNotificationRequest(
+            identifier: NotificationService.adHocIDPrefix + "weigh-in-unread",
+            content: content,
+            trigger: nil
+        )
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+        } catch {
+            AppLog.notifications.error("Weigh-in failure notice failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 

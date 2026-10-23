@@ -71,7 +71,7 @@ enum DailyReminderScheduler {
         }
 
         for reminder in planned {
-            let content = content(for: reminder, mealHistory: profile.mealHistory, calendar: calendar)
+            let content = content(for: reminder, profile: profile, calendar: calendar)
             let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: reminder.fireDate)
             let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
             do {
@@ -122,7 +122,7 @@ enum DailyReminderScheduler {
 
     private static func content(
         for reminder: DailyReminderEngine.Planned,
-        mealHistory: [MealEntry],
+        profile: UserProfile,
         calendar: Calendar
     ) -> UNMutableNotificationContent {
         let content = UNMutableNotificationContent()
@@ -132,7 +132,9 @@ enum DailyReminderScheduler {
 
         switch reminder.kind {
         case .weighIn:
-            content.body = String(localized: "Step on the scale, then reply with today's number.")
+            // Names the unit the reply is read in, unless one is typed.
+            let unit = profile.bodyMetrics.unit.weightSuffix
+            content.body = String(localized: "Step on the scale, then reply with today's weight in \(unit).")
             content.categoryIdentifier = weighInCategoryID
             content.userInfo = ["deeplink": "peptidex://today"]
         case .workout:
@@ -143,7 +145,7 @@ enum DailyReminderScheduler {
         case .breakfast, .lunch, .dinner:
             guard let category = reminder.kind.mealCategory else { break }
             content.userInfo = ["deeplink": "peptidex://meals", "mealCategory": category.rawValue]
-            let previous = DailyReminderEngine.previousDayMeals(category, before: reminder.fireDate, in: mealHistory, calendar: calendar)
+            let previous = DailyReminderEngine.previousDayMeals(category, before: reminder.fireDate, in: profile.mealHistory, calendar: calendar)
             if previous.isEmpty {
                 content.body = String(localized: "Snap your plate — logging takes a few seconds.")
                 content.categoryIdentifier = mealCategoryID

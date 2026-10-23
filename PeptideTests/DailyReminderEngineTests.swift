@@ -89,6 +89,22 @@ final class DailyReminderEngineTests: XCTestCase {
         XCTAssertEqual(pounds ?? 0, 82.1, accuracy: 0.1)
     }
 
+    func test_parsedWeight_dictatedTrailingPeriod_isRead() {
+        XCTAssertEqual(DailyReminderEngine.parsedWeightKilograms("82.4.", unit: .metric), 82.4)
+    }
+
+    func test_parsedWeight_typedUnit_winsOverDisplayUnit() {
+        let pounds = DailyReminderEngine.parsedWeightKilograms("181 lb", unit: .metric)
+        XCTAssertEqual(pounds ?? 0, 82.1, accuracy: 0.1)
+        XCTAssertEqual(DailyReminderEngine.parsedWeightKilograms("82 kg", unit: .imperial), 82)
+        XCTAssertEqual(DailyReminderEngine.parsedWeightKilograms("180 Pounds", unit: .metric) ?? 0, 81.6, accuracy: 0.1)
+    }
+
+    func test_parsedWeight_noUnit_usesDisplayUnit() {
+        XCTAssertEqual(DailyReminderEngine.parsedWeightKilograms("181", unit: .imperial) ?? 0, 82.1, accuracy: 0.1)
+        XCTAssertEqual(DailyReminderEngine.parsedWeightKilograms("82", unit: .metric), 82)
+    }
+
     func test_parsedWeight_rejectsImplausibleValues() {
         XCTAssertNil(DailyReminderEngine.parsedWeightKilograms("8.24", unit: .metric))
         XCTAssertNil(DailyReminderEngine.parsedWeightKilograms("", unit: .metric))
