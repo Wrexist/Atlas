@@ -57,6 +57,10 @@ final class AuthService {
         }
     }
 
+    /// The onboarding experience answer, kept in UserDefaults by
+    /// `OnboardingView` and `ProgramBuilderSheet`.
+    private static let experienceLevelKey = "experienceLevel"
+
     private static let keychainService = "com.peptidesai.app.auth"
     private static let keychainAccountID = "apple-user-id"
     private static let keychainAccountEmail = "apple-user-email"
@@ -378,6 +382,14 @@ final class AuthService {
             await FoodSpotlightService.shared.removeAll()
         }
         ScanCorrectionMemory.shared.eraseAll()
+        // After an erase the next meal scan or research question has to
+        // ask again before anything reaches the AI proxy.
+        AIDataConsent.revoke()
+        // Onboarding answers kept outside the profile. The disclaimer
+        // timestamp stays: it records an acknowledgment, not user data
+        // (see docs/DATA_ERASURE_POLICY.md).
+        OnboardingFunnelTracker.eraseAll()
+        UserDefaults.standard.removeObject(forKey: Self.experienceLevelKey)
         if let store { resetInMemoryState(of: store) }
     }
 

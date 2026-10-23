@@ -154,6 +154,34 @@ final class AuthServiceTests: XCTestCase {
         XCTAssertTrue(SwiftDataRepository.shared.loadAllWorkoutSessions().isEmpty)
     }
 
+    /// The next AI request after an erase must ask for consent again.
+    func test_deleteAllData_revokesAIConsent() {
+        SwiftDataRepository.shared.configureForTesting()
+        _ = DataStore(seedSampleData: true)
+        AIDataConsent.grantCoachSummary()
+        XCTAssertTrue(AIDataConsent.isGranted)
+
+        auth.deleteAllData()
+
+        XCTAssertFalse(AIDataConsent.isGranted)
+        XCTAssertFalse(AIDataConsent.isCoachSummaryGranted)
+    }
+
+    func test_deleteAllData_clearsOnboardingAnswersButKeepsDisclaimerRecord() {
+        SwiftDataRepository.shared.configureForTesting()
+        _ = DataStore(seedSampleData: true)
+        OnboardingFunnelTracker.recordEvent("attribution_friend")
+        UserDefaults.standard.set("advanced", forKey: "experienceLevel")
+        UserDefaults.standard.set(1_800_000_000.0, forKey: "disclaimerAcknowledgedAt")
+        defer { UserDefaults.standard.removeObject(forKey: "disclaimerAcknowledgedAt") }
+
+        auth.deleteAllData()
+
+        XCTAssertTrue(OnboardingFunnelTracker.snapshot.events.isEmpty)
+        XCTAssertNil(UserDefaults.standard.string(forKey: "experienceLevel"))
+        XCTAssertEqual(UserDefaults.standard.double(forKey: "disclaimerAcknowledgedAt"), 1_800_000_000)
+    }
+
     func test_deleteAllData_resetsAchievements() {
         SwiftDataRepository.shared.configureForTesting()
         _ = DataStore(seedSampleData: true)
