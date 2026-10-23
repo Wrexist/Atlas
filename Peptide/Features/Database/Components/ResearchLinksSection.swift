@@ -32,7 +32,7 @@ struct ResearchLinksSection: View {
 
     @ViewBuilder
     private func researchRow(link: ResearchLink) -> some View {
-        if !link.url.isEmpty, let url = URL(string: link.url) {
+        if let url = link.resolvedURL {
             Link(destination: url) {
                 researchRowContent(link: link, tappable: true)
             }

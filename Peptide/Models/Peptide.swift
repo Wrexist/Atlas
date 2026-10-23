@@ -24,6 +24,23 @@ struct ResearchLink: Identifiable, Hashable, Codable, Sendable {
         self.url = url
     }
 
+    /// Where the citation opens: its URL, else its DOI resolver, else its
+    /// PubMed page. Nil when it carries none of the three.
+    var resolvedURL: URL? {
+        if !url.isEmpty, let direct = URL(string: url) { return direct }
+        let trimmedDOI = doi.trimmingCharacters(in: .whitespaces)
+        if !trimmedDOI.isEmpty,
+           let path = trimmedDOI.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+           let viaDOI = URL(string: "https://doi.org/\(path)") {
+            return viaDOI
+        }
+        let trimmedPMID = pmid.trimmingCharacters(in: .whitespaces)
+        if !trimmedPMID.isEmpty, trimmedPMID.allSatisfy(\.isNumber) {
+            return URL(string: "https://pubmed.ncbi.nlm.nih.gov/\(trimmedPMID)/")
+        }
+        return nil
+    }
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
