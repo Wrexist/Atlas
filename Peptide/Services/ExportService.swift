@@ -11,16 +11,19 @@ final class ExportService {
     /// `pdfRecentEntryLimit` and references the CSV for the rest.
     /// 90 fits ~3 months of daily dosing in a single PDF section
     /// without the medical-report becoming unreadable.
-    static let pdfFullDetailLimit: Int = 90
+    nonisolated static let pdfFullDetailLimit: Int = 90
 
     /// How many recent entries to keep when total > pdfFullDetailLimit.
     /// 30 ≈ one screen / one printed page; the monthly summary above
     /// covers the missing window.
-    static let pdfRecentEntryLimit: Int = 30
+    nonisolated static let pdfRecentEntryLimit: Int = 30
 
     /// Hoisted out of `monthlyBuckets` — allocating a DateFormatter per
     /// call is the expensive part of an otherwise cheap reduce.
-    private static let monthFormatter: DateFormatter = {
+    /// `nonisolated(unsafe)`: the PDF renders off the main actor, and
+    /// DateFormatter is thread-safe for formatting; it is never mutated
+    /// after this initializer.
+    nonisolated(unsafe) private static let monthFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "LLLL yyyy"
         return f
@@ -31,7 +34,7 @@ final class ExportService {
     /// monthly-summary block to give the reader a trend view that
     /// stays complete regardless of how many entry rows the body
     /// truncates.
-    static func monthlyBuckets(for entries: [ProtocolEntry]) -> [PDFMonthlyBucket] {
+    nonisolated static func monthlyBuckets(for entries: [ProtocolEntry]) -> [PDFMonthlyBucket] {
         guard !entries.isEmpty else { return [] }
         let cal = Calendar.current
         // Drop entries whose month-start can't be derived (would only
@@ -260,8 +263,10 @@ final class ExportService {
 
     // MARK: - PDF Export
 
+    /// `nonisolated` so the export flow can render many protocols off the
+    /// main thread; it reads only its value-type arguments.
     // swiftlint:disable:next function_body_length
-    func exportPDF(protocols: [PeptideProtocol], entries: [ProtocolEntry], profile: UserProfile) throws -> Data {
+    nonisolated func exportPDF(protocols: [PeptideProtocol], entries: [ProtocolEntry], profile: UserProfile) throws -> Data {
         let pageWidth: CGFloat = 612
         let pageHeight: CGFloat = 792
         let margin: CGFloat = 48

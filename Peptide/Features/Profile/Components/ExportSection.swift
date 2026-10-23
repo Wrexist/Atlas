@@ -7,6 +7,7 @@ struct ExportSection: View {
     @State private var exportURL: URL?
     @State private var exportError: String?
     @State private var isPreparingBackup = false
+    @State private var isPreparingPDF = false
     private var isPro: Bool { StoreService.shared.isProUser }
 
     var body: some View {
@@ -74,9 +75,10 @@ struct ExportSection: View {
         }
         .disabled(isPreparingBackup)
 
-        GlassButton(title: "PDF", icon: "doc.richtext", style: .secondary) {
+        GlassButton(title: isPreparingPDF ? "Preparing…" : "PDF", icon: "doc.richtext", style: .secondary) {
             isPro ? exportPDF() : (showPaywall = true)
         }
+        .disabled(isPreparingPDF)
     }
 
     private var dateStamp: String {
@@ -218,21 +220,29 @@ struct ExportSection: View {
         }
     }
 
+    /// Snapshots the value types here, then renders off the main thread:
+    /// many protocols otherwise froze Settings after the tap.
     private func exportPDF() {
-        do {
-            let data = try ExportService.shared.exportPDF(
-                protocols: dataStore.protocols,
-                entries: dataStore.entries,
-                profile: dataStore.profile
-            )
-                if let url = ExportService.shared.writePDF(data, filename: "atlas-report-\(dateStamp).pdf") {
-                exportURL = url
-                showShareSheet = true
-            } else {
-                exportError = String(localized: "Couldn't write the PDF to disk.")
+        let service = ExportService.shared
+        let protocols = dataStore.protocols
+        let entries = dataStore.entries
+        let profile = dataStore.profile
+        isPreparingPDF = true
+        Task {
+            defer { isPreparingPDF = false }
+            do {
+                let data = try await Task.detached(priority: .userInitiated) {
+                    try service.exportPDF(protocols: protocols, entries: entries, profile: profile)
+                }.value
+                if let url = service.writePDF(data, filename: "atlas-report-\(dateStamp).pdf") {
+                    exportURL = url
+                    showShareSheet = true
+                } else {
+                    exportError = String(localized: "Couldn't write the PDF to disk.")
+                }
+            } catch {
+                exportError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             }
-        } catch {
-            exportError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
     }
 }
