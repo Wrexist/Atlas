@@ -4755,6 +4755,17 @@
         }
       }
     },
+    "1 package": {
+      "comment": "Serving label for a custom food whose serving is the whole package.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 förpackning"
+          }
+        }
+      }
+    },
     "1 package = %lld g": {
       "localizations": {
         "sv": {

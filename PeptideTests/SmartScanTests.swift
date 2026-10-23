@@ -200,6 +200,25 @@ final class SmartScanTests: XCTestCase {
         XCTAssertEqual(food.typicalPrice?.high ?? 0, 6.5, accuracy: 0.001, "one 250 g serving")
     }
 
+    private func barcodeProduct(servingGrams: Double?, packageGrams: Double?) -> ScannedProduct {
+        ScannedProduct(barcode: "7310865000000", name: "Oats", brand: nil, imageURL: nil,
+                       servingSizeText: nil, servingGrams: servingGrams, packageGrams: packageGrams,
+                       per100g: .zero, nutriScore: nil, novaGroup: nil, fetchedAt: Date())
+    }
+
+    func test_customFoodFromProduct_largePackageWithoutServing_keepsServingEmpty() {
+        let food = SmartFoodLogic.customFood(from: barcodeProduct(servingGrams: nil, packageGrams: 1000), pricePer100g: nil)
+        XCTAssertNil(food.servingGrams)
+        XCTAssertNil(food.servingLabel)
+        XCTAssertEqual(food.toScannedProduct().defaultPortion, .grams(100))
+    }
+
+    func test_customFoodFromProduct_smallPackageWithoutServing_servesWholePackage() {
+        let food = SmartFoodLogic.customFood(from: barcodeProduct(servingGrams: nil, packageGrams: 330), pricePer100g: nil)
+        XCTAssertEqual(food.servingGrams, 330)
+        XCTAssertEqual(food.servingLabel, String(localized: "1 package"))
+    }
+
     func test_productFillingFromScan_neverOverwritesDatabaseValues() throws {
         let scan = try service.parseSmartScan(from: Data(SmartFixtures.product.utf8))
         let known = ScannedProduct(barcode: "7394376616228", name: "Barista", brand: "Oatly", imageURL: nil,

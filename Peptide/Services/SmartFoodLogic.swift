@@ -70,13 +70,16 @@ enum SmartFoodLogic {
     /// A barcode product saved to My Foods, so it can be found and
     /// re-logged from the library without the barcode or the network.
     static func customFood(from product: ScannedProduct, pricePer100g: FoodPriceEstimate?) -> CustomFood {
-        CustomFood(
+        let serving = product.oneServingGrams
+        return CustomFood(
             name: product.name,
             brand: product.brand,
             per100g: product.per100g,
-            servingGrams: product.servingGrams ?? product.packageGrams,
+            servingGrams: serving,
             servingLabel: product.servingSizeText
-                ?? (product.servingGrams == nil && product.packageGrams != nil ? "1 package" : nil),
+                ?? (product.servingGrams == nil && serving != nil
+                    ? String(localized: "1 package", comment: "Serving label for a custom food whose serving is the whole package.")
+                    : nil),
             pricePer100g: pricePer100g
         )
     }
