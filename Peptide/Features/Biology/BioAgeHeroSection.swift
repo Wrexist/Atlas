@@ -29,6 +29,8 @@ struct BioAgeHeroSection: View {
     var metricShortcuts: [Biomarker] = []
     var onSelectMetric: (Biomarker) -> Void = { _ in }
     var onExplainTapped: () -> Void = {}
+    /// Opens where the age is entered. Nil hides the button.
+    var onAddAge: (() -> Void)?
 
     enum BioAgeState: Equatable, Sendable {
         case locked
@@ -254,13 +256,23 @@ struct BioAgeHeroSection: View {
 
     private var needsAgeLabel: some View {
         let isUnderage = (1..<BioAgeStateResolver.minimumAge).contains(chronologicalAge)
-        return Text(isUnderage
-            ? String(localized: "Biological Age is available for users 18+.")
-            : String(localized: "Add your age in Profile to see your Biological Age."))
-            .font(AppFont.scaled(13, weight: .semibold))
-            .foregroundStyle(AppColor.textSecondary)
-            .multilineTextAlignment(.center)
-            .padding(.horizontal, Spacing.xl)
+        return VStack(spacing: Spacing.md) {
+            Text(isUnderage
+                ? String(localized: "Biological Age is available for users 18+.")
+                : String(localized: "Add your age in Profile to see your Biological Age."))
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Spacing.xl)
+            // The one step between the user and the estimate, one tap
+            // away instead of a hunt through Profile.
+            if !isUnderage, let onAddAge {
+                GlassButton(title: "Open Profile", icon: "person.crop.circle", style: .secondary) {
+                    Haptics.impact(.light)
+                    onAddAge()
+                }
+            }
+        }
     }
 
     @ViewBuilder

@@ -199,7 +199,13 @@ struct LabScanFlow: View {
             Text("Reading ^[\(pages.count) page](inflect: true)…")
                 .font(AppFont.callout)
                 .foregroundStyle(AppColor.textSecondary)
+            // Sets the wait up front, so a long read doesn't look stuck.
+            Text("This can take up to a minute. Keep this screen open.")
+                .font(AppFont.caption2)
+                .foregroundStyle(AppColor.textTertiary)
+                .multilineTextAlignment(.center)
         }
+        .padding(.horizontal, Spacing.xl)
         .padding(.top, Spacing.xxxxl)
     }
 
