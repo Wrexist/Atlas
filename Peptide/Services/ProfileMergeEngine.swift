@@ -106,6 +106,99 @@ enum ProfileMergeEngine {
 
     // MARK: - Concurrent edits to one row
 
+    /// True when this device changed, since `baseline`, anything a save
+    /// writes as a whole column holding more than one fact: the meal
+    /// diary, a record list, or a field in the shared residual blob.
+    static func needsRebase(from baseline: UserProfile, to local: UserProfile) -> Bool {
+        mealsChanged(from: baseline, to: local)
+            || recordLists.contains { $0.changed(baseline, local) }
+            || blobFields.contains { $0.changed(baseline, local) }
+    }
+
+    /// Replays this device's edits since `baseline` onto `remote`, the
+    /// row as the store holds it now: meals as `rebasingMeals` does,
+    /// record lists by id (adds, edits and deletes), and each residual
+    /// blob field this device left alone taken from `remote`. Otherwise
+    /// a column written here would replace whatever another device
+    /// changed in it since this device last read the row.
+    static func rebasing(local: UserProfile, baseline: UserProfile, remote: UserProfile) -> UserProfile {
+        var merged = rebasingMeals(local: local, baseline: baseline, remote: remote)
+        for list in recordLists { list.rebase(&merged, baseline, remote) }
+        for field in blobFields where !field.changed(baseline, local) { field.adopt(&merged, remote) }
+        merged.weightHistory.sort { $0.date < $1.date }
+        merged.outcomeHistory.sort { $0.date < $1.date }
+        return merged
+    }
+
+    private struct RecordList {
+        let changed: (UserProfile, UserProfile) -> Bool
+        let rebase: (inout UserProfile, UserProfile, UserProfile) -> Void
+
+        static func of<Record: Identifiable & Equatable>(_ keyPath: WritableKeyPath<UserProfile, [Record]>) -> RecordList {
+            RecordList(
+                changed: { $0[keyPath: keyPath] != $1[keyPath: keyPath] },
+                rebase: { merged, baseline, remote in
+                    merged[keyPath: keyPath] = rebasingRecords(
+                        local: merged[keyPath: keyPath],
+                        baseline: baseline[keyPath: keyPath],
+                        remote: remote[keyPath: keyPath]
+                    )
+                }
+            )
+        }
+    }
+
+    private struct BlobField {
+        let changed: (UserProfile, UserProfile) -> Bool
+        let adopt: (inout UserProfile, UserProfile) -> Void
+
+        static func of<Value: Equatable>(_ keyPath: WritableKeyPath<UserProfile, Value>) -> BlobField {
+            BlobField(
+                changed: { $0[keyPath: keyPath] != $1[keyPath: keyPath] },
+                adopt: { merged, remote in merged[keyPath: keyPath] = remote[keyPath: keyPath] }
+            )
+        }
+    }
+
+    private static var recordLists: [RecordList] {
+        [
+            .of(\.habits), .of(\.habitEntries), .of(\.weightHistory), .of(\.labHistory),
+            .of(\.outcomeHistory), .of(\.customFoods), .of(\.recipes), .of(\.protocolNotes),
+        ]
+    }
+
+    /// The scalar fields `ProfileExtension.residual` packs into one column.
+    private static var blobFields: [BlobField] {
+        [
+            .of(\.nutritionTargets), .of(\.creatorAttribution), .of(\.affiliateApplication),
+            .of(\.emailSubscription), .of(\.progressPhotoFilenames), .of(\.workoutHistory),
+            .of(\.healthKitNutritionEnabled), .of(\.workoutLegacyMigrationCompleted),
+            .of(\.lastKnownTimezoneIdentifier), .of(\.streakFreezeDays), .of(\.biologyConfig),
+            .of(\.todayLayout), .of(\.trainingPreferences), .of(\.weeklySummaryEnabled),
+            .of(\.weeklySummaryOptInConfirmed), .of(\.goalDate),
+        ]
+    }
+
+    /// `remote`'s records with this device's adds, edits and deletes
+    /// since `baseline` applied, in `remote`'s order with new ones last.
+    private static func rebasingRecords<Record: Identifiable & Equatable>(
+        local: [Record], baseline: [Record], remote: [Record]
+    ) -> [Record] {
+        let baseByID = Dictionary(baseline.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let localIDs = Set(local.map(\.id))
+        var records = remote.filter { baseByID[$0.id] == nil || localIDs.contains($0.id) }
+        var indexByID = Dictionary(records.indices.map { (records[$0].id, $0) }, uniquingKeysWith: { first, _ in first })
+        for record in local where baseByID[record.id] != record {
+            if let index = indexByID[record.id] {
+                records[index] = record
+            } else {
+                indexByID[record.id] = records.count
+                records.append(record)
+            }
+        }
+        return records
+    }
+
     /// True when this device changed the meal diary since `baseline`.
     static func mealsChanged(from baseline: UserProfile, to local: UserProfile) -> Bool {
         local.mealHistory != baseline.mealHistory || local.dailyConsumption != baseline.dailyConsumption

@@ -402,6 +402,58 @@ final class ProfileSyncIntegrityTests: XCTestCase {
         XCTAssertEqual(LifestyleDataLogic.consumption(in: loaded, for: day).caloriesKcal, 3 * 550)
     }
 
+    func test_saveSinceBaseline_keepsAnotherDevicesWeighInAndHabitCheckIn() throws {
+        let base = baseProfile()
+        repo.saveProfile(base)
+        let nextDay = day.addingTimeInterval(86_400)
+        var remote = base
+        remote.weightHistory.append(WeightEntry(date: day, kg: 80))
+        remote.habitEntries.append(HabitEntry(habitId: base.habits[0].id, date: day))
+        repo.saveProfile(remote)
+
+        var local = base
+        local.weightHistory.append(WeightEntry(date: nextDay, kg: 79))
+        local.habitEntries.append(HabitEntry(habitId: base.habits[0].id, date: nextDay))
+        repo.saveProfile(local, since: base)
+
+        let loaded = try XCTUnwrap(repo.loadProfile())
+        XCTAssertEqual(loaded.weightHistory.map(\.kg), [80, 79])
+        XCTAssertEqual(loaded.habitEntries.count, 2)
+    }
+
+    func test_saveSinceBaseline_newRecipeHereKeepsTargetsChangedElsewhere() throws {
+        let base = baseProfile()
+        repo.saveProfile(base)
+        var remote = base
+        remote.nutritionTargets = NutritionTargets(calories: 2400, proteinG: 180, carbsG: 240, fatG: 80, fiberG: 30)
+        repo.saveProfile(remote)
+
+        var local = base
+        local.recipes.append(Recipe(name: "Overnight oats", updatedAt: day))
+        repo.saveProfile(local, since: base)
+
+        let loaded = try XCTUnwrap(repo.loadProfile())
+        XCTAssertEqual(loaded.nutritionTargets, remote.nutritionTargets)
+        XCTAssertEqual(loaded.recipes.map(\.name), ["Overnight oats"])
+    }
+
+    func test_saveSinceBaseline_deletingALabHereKeepsALabAddedElsewhere() throws {
+        var base = baseProfile()
+        let old = LabValue(date: day, panel: .tsh, value: 2.1)
+        base.labHistory = [old]
+        repo.saveProfile(base)
+        var remote = base
+        let added = LabValue(date: day, panel: .hba1c, value: 5.2)
+        remote.labHistory.append(added)
+        repo.saveProfile(remote)
+
+        var local = base
+        local.labHistory.removeAll()
+        repo.saveProfile(local, since: base)
+
+        XCTAssertEqual(try XCTUnwrap(repo.loadProfile()).labHistory.map(\.id), [added.id])
+    }
+
     // MARK: - Unreadable columns
 
     func test_unreadableSliceColumn_isLeftUntouchedBySave() throws {

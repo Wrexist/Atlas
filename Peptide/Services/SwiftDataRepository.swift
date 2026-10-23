@@ -1079,8 +1079,8 @@ final class SwiftDataRepository {
     private func write(_ profile: UserProfile, into row: StoredProfile, since baseline: UserProfile?) throws -> Bool {
         guard let baseline else { return try row.update(from: profile) }
         var rebased = profile
-        if ProfileMergeEngine.mealsChanged(from: baseline, to: profile) {
-            rebased = ProfileMergeEngine.rebasingMeals(local: profile, baseline: baseline, remote: try row.toUserProfile())
+        if ProfileMergeEngine.needsRebase(from: baseline, to: profile) {
+            rebased = ProfileMergeEngine.rebasing(local: profile, baseline: baseline, remote: try row.toUserProfile())
         }
         return try row.update(from: rebased, since: baseline)
     }
