@@ -96,7 +96,7 @@ struct WeeklySummaryHeroCard: View {
                         aiBadge: summary.kind == .ai
                     )
 
-                    Text(truncated(summary.text, to: 280))
+                    Text(WeeklySummary.preview(of: summary.text, limit: 280))
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textPrimary)
                         .multilineTextAlignment(.leading)
@@ -132,7 +132,8 @@ struct WeeklySummaryHeroCard: View {
     private var emptyCard: some View {
         messageCard(
             title: String(localized: "Your weekly recap will appear here"),
-            message: "Log workouts, meals or a check-in on a few more days to unlock it."
+            message: "Log workouts, meals or a check-in on a few more days to unlock it.",
+            showsRetry: false
         )
     }
 
@@ -141,11 +142,14 @@ struct WeeklySummaryHeroCard: View {
     private var failedCard: some View {
         messageCard(
             title: String(localized: "Couldn't reach the recap service"),
-            message: "Your data is safe. Check your connection and try again."
+            message: "Your data is safe. Check your connection and try again.",
+            showsRetry: true
         )
     }
 
-    private func messageCard(title: String, message: LocalizedStringKey) -> some View {
+    /// Retry only helps when the service failed; an empty week would
+    /// just reload into the same card.
+    private func messageCard(title: String, message: LocalizedStringKey, showsRetry: Bool) -> some View {
         GlassCard(tinted: true) {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 eyebrowRow(badge: nil)
@@ -155,7 +159,7 @@ struct WeeklySummaryHeroCard: View {
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, Spacing.xs)
-                if let onRetry {
+                if showsRetry, let onRetry {
                     Button(action: onRetry) {
                         HStack(spacing: Spacing.xs) {
                             Image(systemName: "arrow.clockwise")
@@ -267,19 +271,20 @@ struct WeeklySummaryHeroCard: View {
             ],
             spacing: Spacing.sm
         ) {
-            // Fitness-only weeks have no doses; "0%" would read as failure.
+            // Fitness-only weeks have no doses; "0%" or a 0-day dose
+            // streak would read as failure.
             if stats.dosesTotal > 0 {
                 StatTile(
                     label: "Adherence",
                     value: "\(Int((stats.compliancePct * 100).rounded()))%",
                     tint: accent
                 )
+                StatTile(
+                    label: "Dose streak",
+                    value: stats.currentStreak == 1 ? String(localized: "1 day") : String(localized: "\(stats.currentStreak) days"),
+                    tint: AppColor.streak
+                )
             }
-            StatTile(
-                label: "Streak",
-                value: stats.currentStreak == 1 ? String(localized: "1 day") : String(localized: "\(stats.currentStreak) days"),
-                tint: AppColor.streak
-            )
             if let composite = stats.avgCheckInScore {
                 StatTile(
                     label: "Check-in",
@@ -297,11 +302,12 @@ struct WeeklySummaryHeroCard: View {
             if let delta = stats.hrvDelta {
                 let prefix = delta > 0 ? "+" : ""
                 StatTile(
-                    label: "HRV Δ",
+                    label: "HRV change",
                     value: "\(prefix)\(delta) ms",
                     tint: delta >= 0
                         ? AppColor.positive
-                        : AppColor.negative
+                        : AppColor.negative,
+                    accessibilityLabel: WeeklySummary.hrvChangeAccessibilityLabel(delta)
                 )
             }
         }
@@ -315,17 +321,6 @@ struct WeeklySummaryHeroCard: View {
         WeeklySummary.weekTitle(for: isoWeekStart) ?? String(localized: "This week")
     }
 
-    /// Truncates the AI paragraph for the card preview. Splits on
-    /// sentence boundary when possible so the cut doesn't fall
-    /// mid-word — the detail view has the full text.
-    private func truncated(_ text: String, to limit: Int) -> String {
-        guard text.count > limit else { return text }
-        let prefix = text.prefix(limit)
-        if let lastPeriod = prefix.lastIndex(of: ".") {
-            return String(prefix[..<lastPeriod]) + "…"
-        }
-        return String(prefix) + "…"
-    }
 }
 
 #Preview("Ready (AI)") {

@@ -104,7 +104,8 @@ struct WeeklySummaryDetailView: View {
             ],
             spacing: Spacing.sm
         ) {
-            // A week with no scheduled doses has nothing to adhere to.
+            // A week with no scheduled doses has nothing to adhere to, and
+            // no dose streak — "0 days" would read as failure.
             if summary.keyStats.dosesTotal > 0 {
                 StatTile(
                     label: "Adherence",
@@ -113,14 +114,14 @@ struct WeeklySummaryDetailView: View {
                     footnote: String(localized: "\(summary.keyStats.dosesCompleted) of \(summary.keyStats.dosesTotal) doses"),
                     size: .large
                 )
+                StatTile(
+                    label: "Dose streak",
+                    value: "\(summary.keyStats.currentStreak)",
+                    tint: AppColor.streak,
+                    footnote: summary.keyStats.currentStreak == 1 ? String(localized: "day") : String(localized: "days"),
+                    size: .large
+                )
             }
-            StatTile(
-                label: "Streak",
-                value: "\(summary.keyStats.currentStreak)",
-                tint: AppColor.streak,
-                footnote: summary.keyStats.currentStreak == 1 ? String(localized: "day") : String(localized: "days"),
-                size: .large
-            )
             if let composite = summary.keyStats.avgCheckInScore {
                 StatTile(
                     label: "Check-in",
@@ -149,17 +150,10 @@ struct WeeklySummaryDetailView: View {
                         : AppColor.negative,
                     footnote: String(localized: "ms vs prior week"),
                     size: .large,
-                    accessibilityLabel: hrvChangeAccessibilityLabel(delta)
+                    accessibilityLabel: WeeklySummary.hrvChangeAccessibilityLabel(delta)
                 )
             }
         }
-    }
-
-    private func hrvChangeAccessibilityLabel(_ delta: Int) -> String {
-        let ms = abs(delta)
-        if delta > 0 { return String(localized: "HRV change, up \(ms) milliseconds versus prior week") }
-        if delta < 0 { return String(localized: "HRV change, down \(ms) milliseconds versus prior week") }
-        return String(localized: "HRV change, no change versus prior week")
     }
 
     // MARK: - Body

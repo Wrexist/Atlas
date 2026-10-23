@@ -13,7 +13,7 @@ struct StackCompletenessCard: View {
                     gradient: [AppColor.accentDark, AppColor.accentPrimary, AppColor.accentLight],
                     appearAnimated: true
                 ) {
-                    Text("\(Int(completeness.score * 100))%")
+                    Text(completeness.score.formatted(.percent.precision(.fractionLength(0))))
                         .font(AppFont.subheadline)
                         .fontWeight(.bold)
                         .foregroundStyle(AppColor.textPrimary)
@@ -21,13 +21,13 @@ struct StackCompletenessCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: Spacing.xs) {
-                    Text("Protocol Completeness")
+                    Text("Protocol completeness")
                         .font(AppFont.subheadline)
                         .fontWeight(.semibold)
                         .foregroundStyle(AppColor.textPrimary)
 
                     if !completeness.coveredGoals.isEmpty {
-                        Text("Covering: \(completeness.coveredGoals.joined(separator: ", "))")
+                        Text("Covering: \(coveredGoalNames)")
                             .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
                             .lineLimit(2)
@@ -50,7 +50,15 @@ struct StackCompletenessCard: View {
 
                 Spacer()
             }
+            .accessibilityElement(children: .combine)
         }
+    }
+
+    /// Goals are stored as onboarding keys; show their names.
+    private var coveredGoalNames: String {
+        completeness.coveredGoals
+            .map { OnboardingView.PrimaryGoal(rawValue: $0)?.displayName ?? $0 }
+            .formatted(.list(type: .and))
     }
 }
 

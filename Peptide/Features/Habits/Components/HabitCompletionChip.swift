@@ -89,7 +89,11 @@ struct HabitCompletionChip: View {
         if let weeklyCount, let weeklyTarget {
             parts.append(String(localized: "\(weeklyCount) of \(weeklyTarget) this week"))
         }
-        if currentStreak >= 3 { parts.append(String(localized: "\(currentStreak) day streak")) }
+        if currentStreak >= 3 {
+            parts.append(habit.schedule.countsStreakInWeeks
+                ? String(localized: "\(currentStreak) week streak")
+                : String(localized: "\(currentStreak) day streak"))
+        }
         return parts.joined(separator: ", ")
     }
 }

@@ -412,7 +412,9 @@ struct HeroMetricDetailSheet: View {
                     tipCard(tip)
                 }
             } else {
-                Text("Connect Apple Health and wear your Apple Watch to start tracking these signals.")
+                Text(snapshot.healthConnected
+                     ? "Not enough recent data — wear your Apple Watch overnight to build a baseline."
+                     : "Connect Apple Health and wear your Apple Watch to start tracking these signals.")
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
                     .padding(.vertical, Spacing.sm)

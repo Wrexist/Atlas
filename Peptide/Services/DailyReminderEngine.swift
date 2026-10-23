@@ -75,6 +75,8 @@ enum DailyReminderEngine {
             .sorted { $0.date < $1.date }
     }
 
+    static let plausibleWeightKilograms: ClosedRange<Double> = 25...350
+
     /// Parses the weight typed into the notification's reply field. Takes
     /// "82,4", "82.4 kg", "181 lb" or a dictated "82.4." alike. A typed
     /// unit wins over the user's display unit, so "181 lb" from a metric
@@ -87,7 +89,7 @@ enum DailyReminderEngine {
         while numeric.hasSuffix(".") { numeric.removeLast() }
         guard let value = Double(numeric) else { return nil }
         let kilograms = (typedUnit(in: text) ?? unit).kilograms(fromDisplayed: value)
-        guard (25...350).contains(kilograms) else { return nil }
+        guard plausibleWeightKilograms.contains(kilograms) else { return nil }
         return kilograms
     }
 

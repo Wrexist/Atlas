@@ -39,10 +39,14 @@ struct HealthSummaryCard: View {
                     noDataState
                 } else {
                     HStack(spacing: Spacing.md) {
-                        metricView(icon: "heart.fill", value: restingHR.map { "\(Int($0))" }, unit: "bpm", label: "Resting HR")
-                        metricView(icon: "waveform.path.ecg", value: hrv.map { "\(Int($0))" }, unit: "ms", label: "HRV")
-                        metricView(icon: "moon.fill", value: sleepHours.map { $0.formatted(.number.precision(.fractionLength(1))) }, unit: "hrs", label: "Sleep")
-                        metricView(icon: "figure.walk", value: steps.map { Int($0).formatted(.number.notation(.compactName)) }, unit: "", label: "Steps")
+                        metricView(icon: "heart.fill", value: restingHR.map(Self.wholeNumber), unit: "bpm",
+                                   spokenUnit: String(localized: "beats per minute"), label: "Resting HR")
+                        metricView(icon: "waveform.path.ecg", value: hrv.map(Self.wholeNumber), unit: "ms",
+                                   spokenUnit: String(localized: "milliseconds"), label: "HRV")
+                        metricView(icon: "moon.fill", value: sleepHours.map { $0.formatted(.number.precision(.fractionLength(1))) }, unit: "h",
+                                   spokenUnit: String(localized: "hours"), label: "Sleep")
+                        metricView(icon: "figure.walk", value: steps.map { Int($0).formatted(.number.notation(.compactName)) }, unit: "",
+                                   spokenUnit: String(localized: "steps"), label: "Steps")
                     }
                 }
             }
@@ -82,7 +86,18 @@ struct HealthSummaryCard: View {
         .padding(.vertical, Spacing.sm)
     }
 
-    private func metricView(icon: String, value: String?, unit: String, label: LocalizedStringKey) -> some View {
+    /// Rounded, not truncated: a 57.9 bpm average reads 58, as on Today.
+    private static func wholeNumber(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(0)))
+    }
+
+    private func metricView(
+        icon: String,
+        value: String?,
+        unit: String,
+        spokenUnit: String,
+        label: LocalizedStringKey
+    ) -> some View {
         let reading = value.map { unit.isEmpty ? $0 : "\($0) \(unit)" }
         return VStack(spacing: Spacing.xs) {
             Image(systemName: icon)
@@ -101,7 +116,7 @@ struct HealthSummaryCard: View {
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("\(Text(label)): \(reading ?? String(localized: "no data"))"))
+        .accessibilityLabel(Text("\(Text(label)): \(value.map { "\($0) \(spokenUnit)" } ?? String(localized: "no data"))"))
     }
 
     private func loadHealthData() async {

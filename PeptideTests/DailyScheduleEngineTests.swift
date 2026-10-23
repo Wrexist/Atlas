@@ -224,8 +224,48 @@ final class DailyScheduleEngineTests: XCTestCase {
     }
 
     func test_dailyPlan_headline_promptsFastedPeptideFirst() {
-        let plan = DailyScheduleEngine.plan(for: [entry("BPC-157", hour: 7)])
-        XCTAssertTrue(plan.headline.contains("BPC-157"))
+        let plan = DailyScheduleEngine.plan(for: [entry("AOD-9604", hour: 7)])
+        XCTAssertTrue(plan.headline.contains("AOD-9604"))
         XCTAssertTrue(plan.headline.lowercased().contains("fasted"))
+    }
+
+    // MARK: - Clock-derived slots don't claim fasting
+
+    func test_plan_unknownPeptideAtEight_landsInMorningWithoutFastedHeadline() {
+        let plan = DailyScheduleEngine.plan(for: [entry("UnknownXYZ", hour: 8)])
+        XCTAssertEqual(plan.slots.first?.slot, .morning)
+        XCTAssertFalse(plan.headline.lowercased().contains("fasted"), plan.headline)
+    }
+
+    func test_plan_morningPreferredPeptideAtTwoPM_staysInMiddayInClockOrder() {
+        let plan = DailyScheduleEngine.plan(for: [entry("AOD-9604", hour: 14), entry("UnknownXYZ", hour: 9)])
+        XCTAssertEqual(plan.slots.map(\.slot), [.morning, .midday])
+        let late = plan.slots.last?.doses.first
+        XCTAssertEqual(late?.entry.peptide.abbreviation, "AOD-9604")
+        XCTAssertTrue(late?.timingNote.contains("Usually taken") == true, late?.timingNote ?? "")
+    }
+
+    // MARK: - Headline follows what's left to take
+
+    func test_dailyPlan_headline_skipsCompletedDoses() {
+        let plan = DailyScheduleEngine.plan(for: [
+            entry("AOD-9604", hour: 7, completed: true),
+            entry("Epitalon", hour: 22)
+        ])
+        XCTAssertTrue(plan.headline.contains("Epitalon"), plan.headline)
+    }
+
+    func test_dailyPlan_headline_allCompleted_saysAllLogged() {
+        let plan = DailyScheduleEngine.plan(for: [entry("AOD-9604", hour: 7, completed: true)])
+        XCTAssertEqual(plan.headline, "All doses logged today")
+    }
+
+    // MARK: - Fasted notes
+
+    func test_plan_twoFastedPeptidesInOneSlot_oneStayFastedNoteAndNoConflictCount() {
+        let plan = DailyScheduleEngine.plan(for: [entry("AOD-9604", hour: 7), entry("Ipamorelin", hour: 7)])
+        let notes = plan.slots.flatMap(\.doses).flatMap(\.conflicts).filter { $0.severity == .info }
+        XCTAssertEqual(notes.count, 1)
+        XCTAssertEqual(plan.conflictCount, 0)
     }
 }

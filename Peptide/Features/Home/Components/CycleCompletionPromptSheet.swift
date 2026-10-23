@@ -16,15 +16,27 @@ struct CycleCompletionPromptSheet: View {
     let onStartNewCycle: () -> Void
     let onDismiss: () -> Void
 
+    /// Scrolls so every choice is reachable at the medium detent and at
+    /// large text sizes; "Decide later" and the auto-complete rule stay
+    /// pinned below it.
     var body: some View {
-        VStack(spacing: Spacing.lg) {
-            header
-            actionStack
-            dismissButton
+        ScrollView {
+            VStack(spacing: Spacing.lg) {
+                header
+                actionStack
+            }
+            .padding(.horizontal, Spacing.screenPadding)
+            .padding(.top, Spacing.xl)
+            .padding(.bottom, Spacing.md)
         }
-        .padding(.horizontal, Spacing.screenPadding)
-        .padding(.vertical, Spacing.xl)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .scrollBounceBehavior(.basedOnSize)
+        .safeAreaInset(edge: .bottom) {
+            dismissButton
+                .padding(.horizontal, Spacing.screenPadding)
+                .padding(.bottom, Spacing.md)
+                .frame(maxWidth: .infinity)
+                .background(AppColor.background)
+        }
         .background(AppColor.background.ignoresSafeArea())
     }
 

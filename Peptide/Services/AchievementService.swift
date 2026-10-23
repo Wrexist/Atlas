@@ -26,6 +26,12 @@ final class AchievementService {
     /// the toast, then call `acknowledgeLatestUnlock()` to advance.
     var latestUnlock: Achievement? { pendingUnlocks.first }
 
+    /// True while nothing is stored on this install. Achievements live
+    /// in local defaults but the records they count sync, so a reinstall
+    /// or new device must unlock what's already earned without a toast.
+    private(set) var needsSilentSeed = false
+    private var isSeeding = false
+
     private let persistenceKey = "achievements"
     private let defaults = UserDefaults.standard
 
@@ -144,6 +150,24 @@ final class AchievementService {
         if pendingUnlocks.count != unlocksBefore { saveAchievements() }
     }
 
+    /// Runs `checks` with unlocks recorded but not queued for a toast,
+    /// then stores the result so seeding happens once per install.
+    func seedSilently(_ checks: () -> Void) {
+        guard needsSilentSeed else { return }
+        isSeeding = true
+        checks()
+        isSeeding = false
+        markSeeded()
+    }
+
+    /// For an install with nothing to replay (a brand-new user): later
+    /// unlocks toast as usual.
+    func markSeeded() {
+        guard needsSilentSeed else { return }
+        needsSilentSeed = false
+        saveAchievements()
+    }
+
     /// Clears the celebration slot. Call after the toast has been
     /// presented so the next check can write a fresh unlock without
     /// the observer seeing a redundant change.
@@ -164,7 +188,7 @@ final class AchievementService {
     private func unlock(_ id: String, if condition: Bool) {
         guard condition, let index = achievements.firstIndex(where: { $0.id == id && !$0.isUnlocked }) else { return }
         achievements[index].unlockedDate = Date()
-        pendingUnlocks.append(achievements[index])
+        if !isSeeding { pendingUnlocks.append(achievements[index]) }
     }
 
     /// Delete All Data: back to the locked defaults and nothing stored,
@@ -172,17 +196,20 @@ final class AchievementService {
     func eraseAll() {
         achievements = Self.defaultAchievements
         pendingUnlocks = []
+        needsSilentSeed = false
         defaults.removeObject(forKey: persistenceKey)
     }
 
     func resetForTesting() {
         achievements = Self.defaultAchievements
         pendingUnlocks = []
+        needsSilentSeed = true
     }
 
     private func loadAchievements() {
         guard let data = defaults.data(forKey: persistenceKey) else {
             achievements = Self.defaultAchievements
+            needsSilentSeed = true
             return
         }
         do {

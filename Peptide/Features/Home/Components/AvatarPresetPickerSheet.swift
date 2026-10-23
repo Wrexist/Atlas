@@ -1,5 +1,4 @@
 import SwiftUI
-import PhotosUI
 
 /// Compact grid picker for the built-in symbol-on-gradient avatars.
 /// Lives in its own file (split out from `ProfileCustomizationSheet`)
@@ -24,6 +23,7 @@ struct AvatarPresetPickerSheet: View {
                             tile(for: preset)
                         }
                         .buttonStyle(ScalePressStyle())
+                        .accessibilityLabel(Text("Avatar: \(preset.name)"))
                     }
                 }
                 .padding(Spacing.lg)

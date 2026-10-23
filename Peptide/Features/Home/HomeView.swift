@@ -4,10 +4,7 @@ struct HomeView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
     @State private var selectedEntry: ProtocolEntry?
-    @State private var showAchievementToast = false
-    @State private var toastAchievement: Achievement?
     @State private var achievementService = AchievementService.shared
-    @State private var celebrationCenter = CelebrationCenter.shared
     @State private var showProgress = false
     /// Observed directly so the notification banner reacts to a fresh
     /// schedule report. DataStore exposes `notificationReport` as a passthrough,
@@ -85,6 +82,9 @@ struct HomeView: View {
     /// each successful refresh of the hero + health-range snapshots
     /// so the user gets visible confirmation the dashboard is fresh.
     @State private var showSyncToast = false
+    /// The first successful range build of a HomeView only fills an
+    /// empty snapshot — that's a launch, not a sync worth announcing.
+    @State private var hasLoadedHealthRange = false
     /// The last one-tap water glass, kept so its toast can undo it.
     @State private var lastWaterLog: WaterLog?
     @State private var showWaterToast = false
@@ -167,12 +167,6 @@ struct HomeView: View {
         }
     }
 
-    private static let reviewWorthyAchievements: Set<String> = [
-        "streak_7", "streak_14", "streak_30", "streak_90",
-        "fifty_doses", "hundred_doses", "five_hundred_doses",
-        "month_logged"
-    ]
-
     private var todayStats: (entries: [ProtocolEntry], score: Double, completed: Int, total: Int) {
         let entries = dataStore.todayEntries
         let completed = entries.filter(\.completed).count
@@ -231,7 +225,9 @@ struct HomeView: View {
         let daySessions = finishedWorkoutSessions(on: day, thisWeek: weekSessions)
         let workoutSummary = (
             count: daySessions.count,
-            minutes: daySessions.reduce(0) { $0 + $1.elapsedSeconds() / 60 }
+            // Sum seconds, then round once: per-session integer minutes
+            // dropped up to a minute per workout.
+            minutes: (daySessions.reduce(0) { $0 + $1.elapsedSeconds() } + 30) / 60
         )
         let reason = isViewingToday ? buildPrimaryReason(plan: plan, habits: habits) : nil
         let next = DerivedToday(
@@ -594,11 +590,6 @@ struct HomeView: View {
                     .environment(dataStore)
                     .liquidGlassPresentation()
             }
-            .overlay {
-                if celebrationCenter.current == nil, let achievement = toastAchievement {
-                    AchievementToastView(achievement: achievement, isShowing: $showAchievementToast)
-                }
-            }
             .overlay(alignment: .top) {
                 // Bevel-style sync-complete pill. The toast manages
                 // its own auto-dismiss timer (2.4s) so we just bind
@@ -614,25 +605,6 @@ struct HomeView: View {
                     )
                 }
                 .padding(.top, Spacing.sm)
-            }
-            .onChange(of: achievementService.latestUnlock?.id) { _, newId in
-                if let newId, let achievement = achievementService.achievements.first(where: { $0.id == newId }) {
-                    toastAchievement = achievement
-                    AppAnimation.with(AppAnimation.springBouncy) { showAchievementToast = true }
-                    if Self.reviewWorthyAchievements.contains(newId) {
-                        Task { @MainActor in
-                            try? await Task.sleep(for: .seconds(2))
-                            ReviewPromptService.shared.requestReviewIfEligible(using: requestReview)
-                        }
-                    }
-                }
-            }
-            .onChange(of: showAchievementToast) { _, isShowing in
-                // Drain one queued unlock when its toast finishes —
-                // this surfaces the next pending unlock (if a single
-                // save crossed several milestones) instead of all but
-                // the last being dropped.
-                if !isShowing { achievementService.acknowledgeLatestUnlock() }
             }
             // Single handler for adherence-ratio changes: update only the
             // trio's Adherence ring so a logged/unlogged dose shows
@@ -786,7 +758,7 @@ struct HomeView: View {
     private func todaySectionContent(_ section: TodaySection, proxy: ScrollViewProxy) -> some View {
         switch section {
         case .atAGlance: atAGlanceSection
-        case .coaching: coachingSection
+        case .coaching: coachingSection(proxy: proxy)
         case .weeklyRecap: weeklyRecapSection
         case .habits: habitsSection
         case .checklist: checklistSection
@@ -840,13 +812,14 @@ struct HomeView: View {
     /// sleep, cap intensity") — just reconciled across more signals
     /// than coaching alone used to see.
     @ViewBuilder
-    private var coachingSection: some View {
+    private func coachingSection(proxy: ScrollViewProxy) -> some View {
         if let reason = derived.primaryReason {
             // Keyed on the title so a new recommendation
             // cross-fades in rather than swapping text in place.
             CoachingCard(
                 message: reason.message,
-                rephrasedBody: derived.coachingFacts.flatMap { summaryService.text(for: $0) }
+                rephrasedBody: derived.coachingFacts.flatMap { summaryService.text(for: $0) },
+                onAction: isViewingToday ? { handleCoachingAction($0, proxy: proxy) } : nil
             )
                 .id(reason.message.title)
                 .transition(.opacity.combined(with: .scale(0.98)))
@@ -885,6 +858,7 @@ struct HomeView: View {
         if isViewingToday || !dataStore.activeHabits.isEmpty {
             TodayHabitsHero(snapshot: derived.habits, day: isViewingToday ? nil : selectedDay)
                 .sectionAppear(index: 4)
+                .id(TodaySection.habits)
         }
     }
 
@@ -1023,7 +997,7 @@ struct HomeView: View {
     /// rows — still one labeled row, so the Library stays findable.
     @ViewBuilder
     private var exploreSection: some View {
-        ResearchAssistantRow {
+        ResearchAssistantRow(isLocked: !StoreService.shared.isProUser) {
             if StoreService.shared.isProUser {
                 showResearchAssistant = true
             } else {
@@ -1097,6 +1071,21 @@ struct HomeView: View {
         }
         pendingJumpAnchor = anchor
         activeJumpAnchor = anchor
+    }
+
+    private func handleCoachingAction(_ action: CoachingMessageEngine.CoachingMessage.Action, proxy: ScrollViewProxy) {
+        switch action {
+        case .connectHealth:
+            connectHealth()
+        case .scrollToHabits:
+            Haptics.impact(.light)
+            AppAnimation.with(AppAnimation.settle) {
+                proxy.scrollTo(TodaySection.habits, anchor: .top)
+            }
+        case .scrollToDoses:
+            Haptics.impact(.light)
+            handleJump(to: .doses, proxy: proxy)
+        }
     }
 
     private func backToToday() {
@@ -1226,7 +1215,7 @@ struct HomeView: View {
                     name: session.displayName,
                     sets: sets.count,
                     reps: avgReps,
-                    durationMinutes: session.elapsedSeconds() / 60
+                    durationMinutes: (session.elapsedSeconds() + 30) / 60
                 )
             }
         return TodayTimelineEvent.build(
@@ -1326,7 +1315,8 @@ struct HomeView: View {
         // Firing on any non-empty result announced a sync on every tab
         // return, and stacked on top of an achievement toast.
         let hasData = healthRange.hrv != nil || healthRange.rhr != nil || healthRange.sleep != nil
-        if hasData && healthRange != previous && !showAchievementToast {
+        defer { if hasData { hasLoadedHealthRange = true } }
+        if hasData && hasLoadedHealthRange && healthRange != previous && achievementService.latestUnlock == nil {
             showSyncToast = true
         }
     }

@@ -103,11 +103,21 @@ enum PrimaryReasonEngine {
         let cc = context.coaching
         let coaching = CoachingMessageEngine.pick(context: cc)
 
-        // Onboarding states take absolute precedence in
-        // CoachingMessageEngine's own cascade (its very first two
-        // branches) — nothing here outranks getting a new or
-        // disconnected user set up.
-        if coaching.kind == .welcome || coaching.kind == .getStarted {
+        // Onboarding messages lead CoachingMessageEngine's cascade, but a
+        // concrete task today outranks them: habits due, then doses still
+        // open late in the day. Recovery and sleep are unknown on these
+        // paths (no Health, or a brand-new member), so nothing else here
+        // applies. Otherwise the onboarding message is the quiet fallback.
+        if coaching.isOnboarding {
+            if context.habitsDueCount > 0, context.habitsDoneCount == 0 {
+                return Reason(message: habitsMessage(context: context), priority: .highValueAction)
+            }
+            if cc.hourOfDay >= lateInDayHour, cc.pendingDoseCount > 0 {
+                return Reason(
+                    message: CoachingMessageEngine.catchUpMessage(pending: cc.pendingDoseCount),
+                    priority: .timeSensitive
+                )
+            }
             return Reason(message: coaching, priority: .optionalReminder)
         }
 
@@ -189,7 +199,7 @@ enum PrimaryReasonEngine {
             title: String(localized: "\(remaining) habits due today"),
             body: String(localized: "Tap in below to check off your first one."),
             tone: .neutral,
-            kind: .habits
+            kind: .habitsDue
         )
     }
 

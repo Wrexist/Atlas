@@ -7,7 +7,7 @@ struct RecommendedPeptidesCard: View {
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                Label("Recommended for Your Protocol", systemImage: "sparkles")
+                Label("Recommended for your protocol", systemImage: "sparkles")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
 
@@ -130,14 +130,14 @@ struct RecommendedPeptidesCard: View {
                     stackPill(proto.name)
                     if index < min(stacks.count, 2) - 1 {
                         Text("·")
-                            .font(AppFont.scaled(8, weight: .bold))
+                            .font(AppFont.badgeSmall)
                             .foregroundStyle(AppColor.textTertiary)
                     }
                 }
 
                 if stacks.count > 2 {
                     Text("+\(stacks.count - 2)")
-                        .font(AppFont.scaled(8, weight: .bold))
+                        .font(AppFont.badgeSmall)
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }

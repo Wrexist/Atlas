@@ -22,10 +22,12 @@ struct InsightEngine {
     static func generateInsights(
         from entries: [ProtocolEntry],
         protocols: [PeptideProtocol],
-        frozenDayKeys: Set<String> = []
+        frozenDayKeys: Set<String> = [],
+        now: Date = Date()
     ) -> [Insight] {
         var insights: [Insight] = []
         let calendar = Calendar.current
+        let rated = ratedEntries(entries, protocols: protocols, now: now, calendar: calendar)
 
         // Streak insights
         let currentStreak = StreakEngine.currentStreak(
@@ -39,7 +41,7 @@ struct InsightEngine {
         }
 
         // Day-of-week analysis
-        let dayMissPatterns = analyzeDayPatterns(entries: entries)
+        let dayMissPatterns = analyzeDayPatterns(entries: rated)
         if let worstDay = dayMissPatterns.max(by: { $0.value < $1.value }), worstDay.value > 0.3 {
             let dayNames = ["", String(localized: "Mondays"), String(localized: "Tuesdays"), String(localized: "Wednesdays"), String(localized: "Thursdays"), String(localized: "Fridays"), String(localized: "Saturdays"), String(localized: "Sundays")]
             let dayName = worstDay.key >= 1 && worstDay.key <= 7 ? dayNames[worstDay.key] : String(localized: "certain days")
@@ -47,7 +49,7 @@ struct InsightEngine {
         }
 
         // Time-of-day analysis
-        let eveningEntries = entries.filter {
+        let eveningEntries = rated.filter {
             let hour = calendar.component(.hour, from: $0.date)
             return hour >= 18
         }
@@ -57,8 +59,8 @@ struct InsightEngine {
         }
 
         // Compliance trend: compare last 7 days vs preceding 8-30 days (non-overlapping)
-        let recentCompliance = complianceForRange(entries: entries, days: 7)
-        let olderCompliance = complianceForExclusiveRange(entries: entries, from: 30, to: 7)
+        let recentCompliance = complianceForRange(entries: rated, days: 7, now: now)
+        let olderCompliance = complianceForExclusiveRange(entries: rated, from: 30, to: 7, now: now)
         if recentCompliance > olderCompliance + 0.1 && olderCompliance > 0 {
             insights.append(Insight(icon: "arrow.up.right", title: String(localized: "Compliance improving"), description: String(localized: "Your 7-day compliance is \(Int(recentCompliance * 100))%, up from \(Int(olderCompliance * 100))% prior average."), type: .positive))
         } else if recentCompliance < olderCompliance - 0.15 && olderCompliance > 0 {
@@ -96,6 +98,23 @@ struct InsightEngine {
         return insights
     }
 
+    /// The entries miss rates are computed over: active protocols only (a
+    /// paused protocol's misses aren't a pattern the user is living), and
+    /// without today's still-open doses, which aren't missed yet — an
+    /// evening dose would otherwise count as a miss at 09:00.
+    private static func ratedEntries(
+        _ entries: [ProtocolEntry],
+        protocols: [PeptideProtocol],
+        now: Date,
+        calendar: Calendar
+    ) -> [ProtocolEntry] {
+        let activeIDs = Set(protocols.filter { $0.status == .active }.map(\.id))
+        let startOfToday = calendar.startOfDay(for: now)
+        return entries.filter { entry in
+            activeIDs.contains(entry.protocolId) && (entry.completed || entry.date < startOfToday)
+        }
+    }
+
     /// Per-weekday miss rate. Gate at minimum 4 observations per day
     /// so a user who missed their first Tuesday dose (1/1 = 100%)
     /// doesn't trigger a "you tend to miss Tuesdays" false pattern
@@ -122,18 +141,18 @@ struct InsightEngine {
         }
     }
 
-    private static func complianceForRange(entries: [ProtocolEntry], days: Int) -> Double {
+    private static func complianceForRange(entries: [ProtocolEntry], days: Int, now: Date) -> Double {
         let calendar = Calendar.current
-        guard let cutoff = calendar.date(byAdding: .day, value: -days, to: Date()) else { return 0 }
+        guard let cutoff = calendar.date(byAdding: .day, value: -days, to: now) else { return 0 }
         let rangeEntries = entries.filter { $0.date >= cutoff }
         guard !rangeEntries.isEmpty else { return 0 }
         return Double(rangeEntries.filter(\.completed).count) / Double(rangeEntries.count)
     }
 
-    private static func complianceForExclusiveRange(entries: [ProtocolEntry], from outerDays: Int, to innerDays: Int) -> Double {
+    private static func complianceForExclusiveRange(entries: [ProtocolEntry], from outerDays: Int, to innerDays: Int, now: Date) -> Double {
         let calendar = Calendar.current
-        guard let outerCutoff = calendar.date(byAdding: .day, value: -outerDays, to: Date()),
-              let innerCutoff = calendar.date(byAdding: .day, value: -innerDays, to: Date()) else { return 0 }
+        guard let outerCutoff = calendar.date(byAdding: .day, value: -outerDays, to: now),
+              let innerCutoff = calendar.date(byAdding: .day, value: -innerDays, to: now) else { return 0 }
         let rangeEntries = entries.filter { $0.date >= outerCutoff && $0.date < innerCutoff }
         guard !rangeEntries.isEmpty else { return 0 }
         return Double(rangeEntries.filter(\.completed).count) / Double(rangeEntries.count)

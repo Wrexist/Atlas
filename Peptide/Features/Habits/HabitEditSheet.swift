@@ -79,7 +79,10 @@ struct HabitEditSheet: View {
         }
 
         _enableTarget = State(initialValue: base.targetValue != nil)
-        _targetValue = State(initialValue: base.targetValue ?? 8)
+        // Targets saved before the 1...50 cap would leave the stepper out
+        // of range, so its first tap would jump to the bound.
+        let range = HabitCustomizeView.targetRange
+        _targetValue = State(initialValue: min(max(base.targetValue ?? 8, range.lowerBound), range.upperBound))
         _enableReminder = State(initialValue: base.reminderTime != nil)
         _reminderTime = State(initialValue: base.reminderTime ?? HabitReminderSlot.morning.time())
     }
@@ -109,7 +112,7 @@ struct HabitEditSheet: View {
                 }
                 .disabled(!canSave)
             }
-            .navigationTitle(editing == nil ? "New Habit" : "Edit Habit")
+            .navigationTitle(editing == nil ? "New habit" : "Edit habit")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: CustomizeRoute.self) { _ in
                 HabitCustomizeView(

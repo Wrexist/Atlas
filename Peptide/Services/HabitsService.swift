@@ -54,20 +54,45 @@ enum HabitsService {
         let target = habit.targetValue ?? 1
         let isCompletedToday = todayValue >= target
         let progress = min(1.0, Double(todayValue) / Double(target))
+        let completed = completedDays(habit: habit, entries: habitEntries, calendar: calendar)
 
-        return Summary(
-            habitId: habit.id,
-            currentStreak: currentStreak(
+        let streaks: (current: Int, best: Int)
+        let isDueToday: Bool
+        if case .timesPerWeek(let weeklyTarget) = habit.schedule {
+            streaks = weeklyStreaks(
+                target: weeklyTarget,
+                completedDays: completed,
+                on: today,
+                allowsMissingWeek: allowsMissingDay,
+                calendar: calendar
+            )
+            // Once the week's target is met the habit stops asking for
+            // more, so it no longer holds the daily ring open. A day it
+            // was ticked still counts as due-and-done.
+            let doneThisWeek = completedCount(in: today, completedDays: completed, calendar: calendar)
+            isDueToday = isCompletedToday || doneThisWeek < weeklyTarget
+        } else {
+            let current = currentStreak(
                 for: habit,
-                entries: habitEntries,
+                completedDays: completed,
                 frozenDayKeys: frozenDayKeys,
                 on: today,
                 allowsMissingDay: allowsMissingDay,
                 calendar: calendar
-            ),
-            bestStreak: bestStreak(for: habit, entries: habitEntries, frozenDayKeys: frozenDayKeys, calendar: calendar),
-            totalCompletedDays: completedDays(habit: habit, entries: habitEntries).count,
-            isDueToday: habit.schedule.isDue(on: today, calendar: calendar),
+            )
+            // A freeze after the last completion extends the live run
+            // but not the completion-to-completion walk.
+            let best = bestStreak(for: habit, completedDays: completed, frozenDayKeys: frozenDayKeys, calendar: calendar)
+            streaks = (current, max(best, current))
+            isDueToday = habit.schedule.isDue(on: today, calendar: calendar)
+        }
+
+        return Summary(
+            habitId: habit.id,
+            currentStreak: streaks.current,
+            bestStreak: streaks.best,
+            totalCompletedDays: completed.count,
+            isDueToday: isDueToday,
             isCompletedToday: isCompletedToday,
             todayValue: todayValue,
             todayProgress: progress
@@ -156,19 +181,15 @@ enum HabitsService {
 
     // MARK: - Streak math
 
+    /// Daily and weekday schedules count due days in a row.
     private static func currentStreak(
         for habit: Habit,
-        entries: [HabitEntry],
+        completedDays: Set<Date>,
         frozenDayKeys: Set<String>,
         on today: Date,
         allowsMissingDay: Bool,
         calendar: Calendar
     ) -> Int {
-        let completedDays = Set(
-            entries
-                .filter { $0.value >= (habit.targetValue ?? 1) }
-                .map { calendar.startOfDay(for: $0.date) }
-        )
         guard !completedDays.isEmpty else { return 0 }
 
         var streak = 0
@@ -187,7 +208,7 @@ enum HabitsService {
             if completedDays.contains(cursor) {
                 streak += 1
             } else if isDue {
-                if !frozenDayKeys.isEmpty, frozenDayKeys.contains(StreakFreezeService.dayKey(for: cursor)) {
+                if !frozenDayKeys.isEmpty, frozenDayKeys.contains(StreakFreezeService.dayKey(for: cursor, calendar: calendar)) {
                     // A used streak-freeze shields this missed due day — it
                     // counts as covered, matching the dose-streak behavior.
                     streak += 1
@@ -201,74 +222,114 @@ enum HabitsService {
             }
             // else: not due and not completed → silently skip
             guard let prev = calendar.date(byAdding: .day, value: -1, to: cursor) else { break }
-            cursor = prev
+            cursor = calendar.startOfDay(for: prev)
         }
         return streak
     }
 
+    /// One pass over the completed days in order: a run continues to the
+    /// next completion when every due day in between was frozen. Non-due
+    /// rest days don't break the chain, so a perfect Mon → Wed → Fri on a
+    /// M/W/F habit returns 3, not 1.
     private static func bestStreak(
         for habit: Habit,
-        entries: [HabitEntry],
+        completedDays: Set<Date>,
         frozenDayKeys: Set<String>,
         calendar: Calendar
     ) -> Int {
-        let target = habit.targetValue ?? 1
-        let completed = Set(
-            entries
-                .filter { $0.value >= target }
-                .map { calendar.startOfDay(for: $0.date) }
-        )
-        guard !completed.isEmpty else { return 0 }
-
-        // Walk each completed day forward across due days only —
-        // non-due rest days don't break the chain (matching
-        // currentStreak's semantic). For a M/W/F habit a perfect
-        // Mon → Wed → Fri pattern returns 3, not 1.
+        let ordered = completedDays.sorted()
+        guard var previous = ordered.first else { return 0 }
         var best = 1
-        for start in completed {
-            var run = 1
-            var cursor = start
-            // Bounded loop so a corrupted blob can't spin forever.
-            for _ in 0..<3650 {
-                guard let next = nextDueDay(after: cursor, schedule: habit.schedule, calendar: calendar) else { break }
-                if completed.contains(next)
-                    || (!frozenDayKeys.isEmpty && frozenDayKeys.contains(StreakFreezeService.dayKey(for: next))) {
-                    run += 1
-                    cursor = next
-                } else {
-                    break
-                }
-            }
+        var run = 1
+        for day in ordered.dropFirst() {
+            let covered = coveredGap(
+                after: previous, before: day,
+                schedule: habit.schedule, frozenDayKeys: frozenDayKeys, calendar: calendar
+            )
+            run = covered.map { run + $0 + 1 } ?? 1
             best = max(best, run)
+            previous = day
         }
         return best
     }
 
-    /// Returns the next calendar day strictly after `from` where the
-    /// schedule says the habit is due. Daily and `.timesPerWeek`
-    /// return tomorrow; `.weekdays(Set)` walks forward up to 7 days
-    /// to find the next match. Returns nil only on a `.weekdays`
-    /// schedule with an empty day set (defensive — the editor
-    /// substitutes all-days, but a corrupted blob could land here).
-    private static func nextDueDay(
-        after from: Date,
+    /// The number of frozen due days strictly between two completions, or
+    /// nil when a due day in the gap was missed without a freeze.
+    private static func coveredGap(
+        after start: Date,
+        before end: Date,
         schedule: HabitSchedule,
+        frozenDayKeys: Set<String>,
         calendar: Calendar
-    ) -> Date? {
-        switch schedule {
-        case .daily, .timesPerWeek:
-            return calendar.date(byAdding: .day, value: 1, to: from)
-        case .weekdays(let days):
-            guard !days.isEmpty else { return nil }
-            for offset in 1...7 {
-                guard let candidate = calendar.date(byAdding: .day, value: offset, to: from) else { return nil }
-                if let weekday = HabitWeekday.from(date: candidate, calendar: calendar),
-                   days.contains(weekday) {
-                    return candidate
-                }
-            }
-            return nil
+    ) -> Int? {
+        var frozen = 0
+        var cursor = start
+        // Bounded so a corrupted date or an empty weekday set can't spin.
+        for _ in 0..<3650 {
+            guard let next = calendar.date(byAdding: .day, value: 1, to: cursor) else { return nil }
+            cursor = calendar.startOfDay(for: next)
+            if cursor >= end { return frozen }
+            guard schedule.isDue(on: cursor, calendar: calendar) else { continue }
+            guard frozenDayKeys.contains(StreakFreezeService.dayKey(for: cursor, calendar: calendar)) else { return nil }
+            frozen += 1
         }
+        return nil
+    }
+
+    /// `.timesPerWeek` habits count weeks in a row that reached the target.
+    /// The week in progress adds once it's met and, when
+    /// `allowsMissingWeek`, doesn't break the streak before then.
+    private static func weeklyStreaks(
+        target: Int,
+        completedDays: Set<Date>,
+        on today: Date,
+        allowsMissingWeek: Bool,
+        calendar: Calendar
+    ) -> (current: Int, best: Int) {
+        var countsByWeek: [Date: Int] = [:]
+        for day in completedDays {
+            guard let week = calendar.dateInterval(of: .weekOfYear, for: day)?.start else { continue }
+            countsByWeek[week, default: 0] += 1
+        }
+        let metWeeks = Set(countsByWeek.filter { $0.value >= max(target, 1) }.keys)
+
+        var best = 0
+        var run = 0
+        var previous: Date?
+        for week in metWeeks.sorted() {
+            let followsPrevious = previous.flatMap { weekStart(after: $0, calendar: calendar) } == week
+            run = followsPrevious ? run + 1 : 1
+            best = max(best, run)
+            previous = week
+        }
+
+        guard let thisWeek = calendar.dateInterval(of: .weekOfYear, for: today)?.start else { return (0, best) }
+        var current = 0
+        var cursor: Date? = thisWeek
+        if !metWeeks.contains(thisWeek) {
+            guard allowsMissingWeek else { return (0, best) }
+            cursor = weekStart(before: thisWeek, calendar: calendar)
+        }
+        while let week = cursor, metWeeks.contains(week) {
+            current += 1
+            cursor = weekStart(before: week, calendar: calendar)
+        }
+        return (current, best)
+    }
+
+    private static func weekStart(after week: Date, calendar: Calendar) -> Date? {
+        calendar.date(byAdding: .weekOfYear, value: 1, to: week)
+            .flatMap { calendar.dateInterval(of: .weekOfYear, for: $0)?.start }
+    }
+
+    private static func weekStart(before week: Date, calendar: Calendar) -> Date? {
+        calendar.date(byAdding: .weekOfYear, value: -1, to: week)
+            .flatMap { calendar.dateInterval(of: .weekOfYear, for: $0)?.start }
+    }
+
+    private static func completedCount(in date: Date, completedDays: Set<Date>, calendar: Calendar) -> Int {
+        guard let interval = calendar.dateInterval(of: .weekOfYear, for: date) else { return 0 }
+        return completedDays.filter { $0 >= interval.start && $0 < interval.end }.count
     }
 
     /// De-duplicated set of calendar days on which the habit hit
@@ -280,7 +341,7 @@ enum HabitsService {
     private static func completedDays(
         habit: Habit,
         entries: [HabitEntry],
-        calendar: Calendar = .current
+        calendar: Calendar
     ) -> Set<Date> {
         let target = habit.targetValue ?? 1
         return Set(
@@ -302,9 +363,11 @@ enum HabitsService {
     ) -> (count: Int, target: Int)? {
         guard case .timesPerWeek(let target) = habit.schedule else { return nil }
         guard let interval = calendar.dateInterval(of: .weekOfYear, for: date) else { return nil }
-        let count = completedDays(habit: habit, entries: entries, calendar: calendar)
-            .filter { $0 >= interval.start && $0 < interval.end }
-            .count
+        let count = completedCount(
+            in: date,
+            completedDays: completedDays(habit: habit, entries: entries, calendar: calendar),
+            calendar: calendar
+        )
         return (count: min(count, target), target: max(target, 0))
     }
 

@@ -14,7 +14,7 @@ struct DoseLoggingSheet: View {
         self.entry = entry
         self.onLog = onLog
         _actualDose = State(initialValue: entry.actualDose ?? entry.dose)
-        _actualTime = State(initialValue: entry.actualTime ?? entry.date)
+        _actualTime = State(initialValue: entry.defaultLoggedTime())
         _selectedSite = State(initialValue: entry.injectionSite)
         _notes = State(initialValue: entry.notes)
     }
@@ -85,7 +85,16 @@ struct DoseLoggingSheet: View {
                                 .font(AppFont.headline)
                                 .foregroundStyle(AppColor.textPrimary)
 
-                            DatePicker("Time taken", selection: $actualTime, displayedComponents: .hourAndMinute)
+                            // Never in the future; a dose from an earlier day can
+                            // also move across midnight.
+                            DatePicker(
+                                "Time taken",
+                                selection: $actualTime,
+                                in: ...Date.now,
+                                displayedComponents: Calendar.current.isDateInToday(entry.date)
+                                    ? .hourAndMinute
+                                    : [.date, .hourAndMinute]
+                            )
                                 .datePickerStyle(.compact)
                                 .labelsHidden()
                                 .tint(AppColor.accentPrimary)
@@ -189,5 +198,17 @@ struct DoseLoggingSheet: View {
     private var isInjectable: Bool {
         let route = entry.peptide.adminRoute.lowercased()
         return route.contains("subcutaneous") || route.contains("intramuscular")
+    }
+}
+
+extension ProtocolEntry {
+    /// What the logging sheet's time picker starts on. A dose being logged
+    /// on its own day starts at now — the actual time, which dose-timing
+    /// insights read — rather than the scheduled time, which may still be
+    /// ahead. An edit keeps the recorded time; a past day keeps its slot.
+    func defaultLoggedTime(now: Date = Date(), calendar: Calendar = .current) -> Date {
+        if let actualTime { return actualTime }
+        if !completed, calendar.isDate(date, inSameDayAs: now) { return now }
+        return min(date, now)
     }
 }

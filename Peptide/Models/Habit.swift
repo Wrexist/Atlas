@@ -93,6 +93,12 @@ enum HabitSchedule: Codable, Hashable, Sendable {
         }
     }
 
+    /// `.timesPerWeek` streaks count weeks that met the target, not days.
+    var countsStreakInWeeks: Bool {
+        if case .timesPerWeek = self { return true }
+        return false
+    }
+
     /// True when the schedule wants the user to tick this habit on
     /// the given calendar day. `.timesPerWeek` always returns true —
     /// the engagement gate is the weekly count, not the specific day.

@@ -101,9 +101,7 @@ struct DailyPlanCard: View {
                         icon: "link",
                         count: plan.combinationCount,
                         color: AppColor.accentPrimary,
-                        accessibilityLabel: plan.combinationCount == 1
-                            ? "1 research pairing"
-                            : "\(plan.combinationCount) research pairings"
+                        accessibilityLabel: String(localized: "\(plan.combinationCount) research pairings")
                     )
                 }
                 if plan.conflictCount > 0 {
@@ -111,9 +109,7 @@ struct DailyPlanCard: View {
                         icon: "exclamationmark.triangle.fill",
                         count: plan.conflictCount,
                         color: AppColor.warning,
-                        accessibilityLabel: plan.conflictCount == 1
-                            ? "1 timing conflict"
-                            : "\(plan.conflictCount) timing conflicts"
+                        accessibilityLabel: String(localized: "\(plan.conflictCount) timing notes")
                     )
                 }
             }
@@ -263,7 +259,7 @@ private struct DailyPlanDoseRow: View {
                     Text(dose.timingNote)
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
-                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                         .multilineTextAlignment(.leading)
                 }
                 ForEach(dose.combinations, id: \.self) { combo in
@@ -376,10 +372,12 @@ private struct DailyPlanDoseRow: View {
                     .font(AppFont.caption2)
                     .fontWeight(.semibold)
                     .foregroundStyle(severityColor(conflict.severity))
+                // Unclipped: the logging sheet doesn't repeat interaction
+                // reasons, so this is the only place they can be read.
                 Text(conflict.detail)
                     .font(AppFont.scaled(11))
                     .foregroundStyle(AppColor.textSecondary)
-                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

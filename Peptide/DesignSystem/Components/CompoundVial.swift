@@ -234,10 +234,10 @@ struct CompoundVial: View {
         }
     }
 
+    /// The fill is decorative (Atlas has no vial inventory), so only the
+    /// compound is spoken — never a "percent remaining" it can't know.
     private var accessibilityLabel: String {
-        let nameSpoken = labelText ?? compoundName
-        let percent = Int((liquidLevel * 100).rounded())
-        return String(localized: "\(nameSpoken), \(percent) percent remaining")
+        compoundName
     }
 }
 

@@ -1,13 +1,6 @@
 import PhotosUI
 import SwiftUI
 
-/// File-scope so the off-main-actor `normalize`/`downscale` helpers below
-/// can read them without crossing actor boundaries. The enclosing
-/// SwiftUI View is @MainActor-isolated, which would otherwise pull
-/// these along with it.
-private let avatarMaxDimension: CGFloat = 1024
-private let avatarJPEGQuality: CGFloat = 0.82
-
 /// Detailed profile customization surface presented from `ProfileView` when the
 /// user taps the avatar or the pencil in `ProfileHeader`. Lets the user upload a profile
 /// image, edit identity (name, bio), pick an accent color, review goals, see
@@ -20,17 +13,6 @@ struct ProfileCustomizationSheet: View {
 
     private static let nameCharacterLimit = 40
     private static let bioCharacterLimit = 280
-
-    private static let availableGoals = [
-        "Muscle Recovery",
-        "Better Sleep",
-        "Cognitive Edge",
-        "Anti-Aging",
-        "Fat Loss",
-        "Immune Support",
-        "Joint Health",
-        "Stress Reduction",
-    ]
 
     @State private var themeManager = ThemeManager.shared
 
@@ -96,15 +78,8 @@ struct ProfileCustomizationSheet: View {
             .navigationTitle("Customize profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundStyle(AppColor.textSecondary)
-                }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        commit()
+                    Button("Done") {
                         dismiss()
                     }
                     .fontWeight(.semibold)
@@ -113,11 +88,15 @@ struct ProfileCustomizationSheet: View {
             }
         }
         .onAppear(perform: hydrateFromProfile)
+        // Accent, goals and preferences save as they change, so name, bio
+        // and photo do too: every way out — Done, swipe-down, or a protocol
+        // row that closes Profile — keeps what the user entered.
+        .onDisappear(perform: commit)
         .onChange(of: photoSelection) { _, newValue in
             guard let newValue else { return }
             Task { await processPickedPhoto(newValue) }
         }
-        .alert("Remove Profile Photo?", isPresented: $isConfirmingRemoveAvatar) {
+        .alert("Remove profile photo?", isPresented: $isConfirmingRemoveAvatar) {
             Button("Remove", role: .destructive) {
                 avatarData = nil
                 photoSelection = nil
@@ -127,7 +106,7 @@ struct ProfileCustomizationSheet: View {
             Text("Your initials will be shown instead.")
         }
         .alert(
-            "Couldn't Use That Photo",
+            "Couldn't use that photo",
             isPresented: Binding(
                 get: { photoError != nil },
                 set: { if !$0 { photoError = nil } }
@@ -185,7 +164,7 @@ struct ProfileCustomizationSheet: View {
                     isShowingPhotoSourceMenu = true
                 } label: {
                     Label(
-                        avatarData == nil ? "Add Photo" : "Replace",
+                        avatarData == nil ? "Add photo" : "Replace",
                         systemImage: "photo.on.rectangle.angled"
                     )
                     .font(AppFont.subheadline)
@@ -378,14 +357,18 @@ struct ProfileCustomizationSheet: View {
 
     private var statsRow: some View {
         HStack(spacing: Spacing.sm) {
-            StatTile(
-                label: "Streak",
-                value: "\(dataStore.currentStreak)",
-                icon: "flame.fill",
-                tint: AppColor.warning,
-                surface: .glass,
-                accessibilityLabel: String(localized: "Current streak: \(dataStore.currentStreak) days")
-            )
+            // The streak counts doses, so it means nothing without a
+            // protocol running — a training-only user would see 0 forever.
+            if dataStore.protocols.contains(where: { $0.status == .active }) {
+                StatTile(
+                    label: "Dose streak",
+                    value: "\(dataStore.currentStreak)",
+                    icon: "flame.fill",
+                    tint: AppColor.warning,
+                    surface: .glass,
+                    accessibilityLabel: String(localized: "Dose streak: \(dataStore.currentStreak) days")
+                )
+            }
             StatTile(
                 label: "Days",
                 value: "\(dataStore.totalDaysLogged)",
@@ -437,7 +420,7 @@ struct ProfileCustomizationSheet: View {
                     .foregroundStyle(AppColor.textPrimary)
 
                 identityField(
-                    title: "Display Name",
+                    title: "Display name",
                     placeholder: "What should we call you?",
                     text: $name
                 )
@@ -573,6 +556,10 @@ struct ProfileCustomizationSheet: View {
 
     // MARK: - Goals
 
+    private var selectedGoalCount: Int {
+        OnboardingView.PrimaryGoal.allCases.filter { dataStore.profile.goals.contains($0.rawValue) }.count
+    }
+
     private var goalsCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
@@ -581,7 +568,7 @@ struct ProfileCustomizationSheet: View {
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
-                    Text("\(dataStore.profile.goals.count) selected")
+                    Text("\(selectedGoalCount) selected")
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                         .monospacedDigit()
@@ -591,12 +578,13 @@ struct ProfileCustomizationSheet: View {
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
 
-                if let pinned = dataStore.profile.primaryGoal, !pinned.isEmpty {
+                if let pinned = dataStore.profile.primaryGoal.flatMap(OnboardingView.PrimaryGoal.init(rawValue:)) {
                     HStack(spacing: Spacing.xs) {
                         Image(systemName: "pin.fill")
                             .font(AppFont.scaled(11, weight: .semibold))
                             .foregroundStyle(AppColor.accentLight)
-                        Text("Primary: \(pinned)")
+                            .accessibilityHidden(true)
+                        Text("Primary: \(pinned.displayName)")
                             .font(AppFont.caption2)
                             .fontWeight(.semibold)
                             .foregroundStyle(AppColor.accentLight)
@@ -620,7 +608,7 @@ struct ProfileCustomizationSheet: View {
                 }
 
                 FlowLayout(spacing: Spacing.sm) {
-                    ForEach(Self.availableGoals, id: \.self) { goal in
+                    ForEach(OnboardingView.PrimaryGoal.allCases) { goal in
                         goalChip(goal)
                     }
                 }
@@ -628,16 +616,17 @@ struct ProfileCustomizationSheet: View {
         }
     }
 
-    private func goalChip(_ goal: String) -> some View {
-        let selected = dataStore.profile.goals.contains(goal)
-        let pinned = dataStore.profile.primaryGoal == goal
+    private func goalChip(_ goal: OnboardingView.PrimaryGoal) -> some View {
+        let key = goal.rawValue
+        let selected = dataStore.profile.goals.contains(key)
+        let pinned = dataStore.profile.primaryGoal == key
         return Button {
-            toggleGoal(goal)
+            toggleGoal(key)
         } label: {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: pinned ? "pin.fill" : (selected ? "checkmark.circle.fill" : "circle"))
                     .font(AppFont.scaled(11, weight: .semibold))
-                Text(goal)
+                Text(goal.displayName)
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
             }
@@ -656,6 +645,18 @@ struct ProfileCustomizationSheet: View {
             }
         }
         .buttonStyle(ScalePressStyle())
+        .accessibilityLabel(goal.displayName)
+        .accessibilityValue(pinned ? Text("Primary goal") : Text(""))
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityActions {
+            if selected {
+                if pinned {
+                    Button("Unpin") { dataStore.setPrimaryGoal(nil) }
+                } else {
+                    Button("Pin as primary") { pin(key) }
+                }
+            }
+        }
         .contextMenu {
             if selected {
                 if pinned {
@@ -666,14 +667,18 @@ struct ProfileCustomizationSheet: View {
                     }
                 } else {
                     Button {
-                        dataStore.setPrimaryGoal(goal)
-                        Haptics.success()
+                        pin(key)
                     } label: {
-                        Label("Pin as Primary", systemImage: "pin")
+                        Label("Pin as primary", systemImage: "pin")
                     }
                 }
             }
         }
+    }
+
+    private func pin(_ key: String) {
+        dataStore.setPrimaryGoal(key)
+        Haptics.success()
     }
 
     private func toggleGoal(_ goal: String) {
@@ -704,7 +709,7 @@ struct ProfileCustomizationSheet: View {
                         bodyStat("Age", metrics.age.map { "\($0)" } ?? "—")
                     }
                 } else {
-                    Text("Optional — add your weight, height, and age in the Profile tab to display them alongside compliance trends.")
+                    Text("Optional — add your weight, height, and age in the Body metrics card on your Profile to display them alongside compliance trends.")
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -755,7 +760,7 @@ struct ProfileCustomizationSheet: View {
                     .foregroundStyle(AppColor.textPrimary)
                     .padding(.bottom, Spacing.xs)
 
-                preferenceToggle(
+                SettingsToggleRow(
                     icon: "hand.tap.fill",
                     title: "Haptic feedback",
                     subtitle: "Vibrate on taps and toggles",
@@ -767,9 +772,9 @@ struct ProfileCustomizationSheet: View {
 
                 Divider().overlay(AppColor.glassBorder)
 
-                preferenceToggle(
+                SettingsToggleRow(
                     icon: "bell.fill",
-                    title: "Dose Reminders",
+                    title: "Dose reminders",
                     subtitle: "Get notified for scheduled doses",
                     isOn: $store.profile.doseRemindersEnabled
                 )
@@ -777,35 +782,6 @@ struct ProfileCustomizationSheet: View {
                     dataStore.persistProfile()
                 }
             }
-        }
-    }
-
-    private func preferenceToggle(
-        icon: String,
-        title: LocalizedStringKey,
-        subtitle: LocalizedStringKey,
-        isOn: Binding<Bool>
-    ) -> some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: icon)
-                .font(AppFont.scaled(13))
-                .foregroundStyle(AppColor.accentPrimary)
-                .frame(width: 24)
-
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(title)
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textPrimary)
-                Text(subtitle)
-                    .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.textTertiary)
-            }
-
-            Spacer()
-
-            Toggle("", isOn: isOn)
-                .labelsHidden()
-                .tint(AppColor.accentPrimary)
         }
     }
 
@@ -819,7 +795,11 @@ struct ProfileCustomizationSheet: View {
     }
 
     private func commit() {
-        dataStore.updateProfileIdentity(name: name, bio: bio)
+        let profile = dataStore.profile
+        if name.trimmingCharacters(in: .whitespacesAndNewlines) != profile.name
+            || bio.trimmingCharacters(in: .whitespacesAndNewlines) != profile.bio {
+            dataStore.updateProfileIdentity(name: name, bio: bio)
+        }
         if avatarData != dataStore.profile.avatarImageData {
             dataStore.updateAvatarImageData(avatarData)
         }
@@ -830,7 +810,12 @@ struct ProfileCustomizationSheet: View {
     @MainActor
     private func processPickedPhoto(_ item: PhotosPickerItem) async {
         isProcessingPhoto = true
-        defer { isProcessingPhoto = false }
+        // Cleared after every pick so choosing the same library item again
+        // is still a change `onChange(of: photoSelection)` sees.
+        defer {
+            isProcessingPhoto = false
+            photoSelection = nil
+        }
 
         do {
             guard let raw = try await item.loadTransferable(type: Data.self) else {
@@ -839,7 +824,7 @@ struct ProfileCustomizationSheet: View {
             }
 
             let processed = await Task.detached(priority: .userInitiated) {
-                Self.normalize(rawImageData: raw)
+                AvatarImageNormalizer.normalize(rawImageData: raw)
             }.value
 
             if let processed {
@@ -857,7 +842,7 @@ struct ProfileCustomizationSheet: View {
         isProcessingPhoto = true
         defer { isProcessingPhoto = false }
         let processed = await Task.detached(priority: .userInitiated) {
-            Self.normalize(image: image)
+            AvatarImageNormalizer.normalize(image: image)
         }.value
         if let processed {
             avatarData = processed
@@ -874,48 +859,6 @@ struct ProfileCustomizationSheet: View {
             preset.renderJPEGData()
         }.value
         avatarData = data
-    }
-
-    /// Decodes, square-crops to the largest centered square, downscales to
-    /// `avatarMaxDimension`, and JPEG-encodes. Performed off the main actor —
-    /// large photos can otherwise cause a perceptible UI hitch.
-    nonisolated private static func normalize(rawImageData: Data) -> Data? {
-        guard let source = UIImage(data: rawImageData) else { return nil }
-        return normalize(image: source)
-    }
-
-    nonisolated private static func normalize(image: UIImage) -> Data? {
-        let cropped = squareCenterCrop(image)
-        let downsampled = downscale(cropped, maxDimension: avatarMaxDimension)
-        return downsampled.jpegData(compressionQuality: avatarJPEGQuality)
-    }
-
-    /// Returns the largest centered square from the image, accounting for
-    /// `imageOrientation` so portrait shots aren't sliced sideways.
-    nonisolated private static func squareCenterCrop(_ image: UIImage) -> UIImage {
-        let size = image.size
-        let side = min(size.width, size.height)
-        guard side > 0, size.width != size.height else { return image }
-        let originX = (size.width - side) / 2
-        let originY = (size.height - side) / 2
-        let renderer = UIGraphicsImageRenderer(size: CGSize(width: side, height: side))
-        return renderer.image { _ in
-            image.draw(in: CGRect(x: -originX, y: -originY, width: size.width, height: size.height))
-        }
-    }
-
-    nonisolated private static func downscale(_ image: UIImage, maxDimension: CGFloat) -> UIImage {
-        let largest = max(image.size.width, image.size.height)
-        guard largest > maxDimension, largest > 0 else { return image }
-        let scale = maxDimension / largest
-        let newSize = CGSize(
-            width: (image.size.width * scale).rounded(),
-            height: (image.size.height * scale).rounded()
-        )
-        let renderer = UIGraphicsImageRenderer(size: newSize)
-        return renderer.image { _ in
-            image.draw(in: CGRect(origin: .zero, size: newSize))
-        }
     }
 }
 

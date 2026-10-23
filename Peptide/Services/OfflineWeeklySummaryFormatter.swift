@@ -27,25 +27,46 @@ enum OfflineWeeklySummaryFormatter {
         return paragraphs.joined(separator: "\n\n")
     }
 
+    // MARK: - Compliance band
+
+    private enum Band {
+        case strong, solid, mixed, quiet
+    }
+
+    /// The displayed percentage, rounded once so the opener's figure,
+    /// the opener's wording and the closer's advice all agree at 89.6%.
+    private static func compliancePercent(_ aggregate: WeeklyAggregate) -> Int {
+        Int((aggregate.compliance.pct * 100).rounded())
+    }
+
+    private static func band(forPercent pct: Int) -> Band {
+        switch pct {
+        case 90...: return .strong
+        case 70..<90: return .solid
+        case 40..<70: return .mixed
+        default: return .quiet
+        }
+    }
+
     // MARK: - Opener
 
     private static func opener(for aggregate: WeeklyAggregate) -> String {
         guard aggregate.compliance.total > 0 else { return dosesFreeOpener(for: aggregate) }
 
-        let pct = Int((aggregate.compliance.pct * 100).rounded())
+        let pct = compliancePercent(aggregate)
         let completed = aggregate.compliance.completed
         let total = aggregate.compliance.total
 
-        if pct >= 90 {
+        switch band(forPercent: pct) {
+        case .strong:
             return String(localized: "Strong week — \(completed) of \(total) doses logged (\(pct)% compliance).")
-        }
-        if pct >= 70 {
+        case .solid:
             return String(localized: "Solid week — \(completed) of \(total) doses logged (\(pct)% compliance).")
-        }
-        if pct >= 40 {
+        case .mixed:
             return String(localized: "Mixed week — \(completed) of \(total) doses logged (\(pct)%).")
+        case .quiet:
+            return String(localized: "Quiet week — \(completed) of \(total) doses logged (\(pct)%).")
         }
-        return String(localized: "Quiet week — \(completed) of \(total) doses logged (\(pct)%).")
     }
 
     /// For a week with nothing scheduled — a training- or nutrition-only
@@ -136,17 +157,15 @@ enum OfflineWeeklySummaryFormatter {
         guard aggregate.compliance.total > 0 else {
             return String(localized: "Keep logging next week — every day of data sharpens the picture.")
         }
-        let pct = aggregate.compliance.pct
-
-        if pct >= 0.9 {
+        switch band(forPercent: compliancePercent(aggregate)) {
+        case .strong:
             return String(localized: "Keep the cadence steady next week — consistency at this level compounds.")
-        }
-        if pct >= 0.7 {
+        case .solid:
             return String(localized: "Aim to tighten one missed dose next week — small gains add up.")
-        }
-        if pct >= 0.4 {
+        case .mixed:
             return String(localized: "Pick one consistent time block next week and protect it.")
+        case .quiet:
+            return String(localized: "Start with one dose tomorrow. Streaks rebuild faster than they look.")
         }
-        return String(localized: "Start with one dose tomorrow. Streaks rebuild faster than they look.")
     }
 }

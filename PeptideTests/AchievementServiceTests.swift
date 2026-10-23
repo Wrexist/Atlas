@@ -36,6 +36,37 @@ final class AchievementServiceTests: XCTestCase {
         XCTAssertTrue(ids.contains("month_logged"))
     }
 
+    // MARK: - Silent seed (reinstall / new device)
+
+    func test_seedSilently_with120Doses_unlocksWithoutQueueingToasts() {
+        service.seedSilently {
+            service.checkAchievements(totalDoses: 120, currentStreak: 0, bestStreak: 0, protocolCount: 1, daysLogged: 40)
+        }
+
+        XCTAssertTrue(service.pendingUnlocks.isEmpty)
+        XCTAssertTrue(service.achievements.first { $0.id == "hundred_doses" }?.isUnlocked == true)
+        XCTAssertFalse(service.needsSilentSeed)
+    }
+
+    func test_seedSilently_afterSeeding_laterUnlocksStillToast() {
+        service.seedSilently {
+            service.checkAchievements(totalDoses: 120, currentStreak: 0, bestStreak: 0, protocolCount: 1, daysLogged: 40)
+        }
+        service.seedSilently {
+            service.checkAchievements(totalDoses: 600, currentStreak: 0, bestStreak: 0, protocolCount: 1, daysLogged: 40)
+        }
+        XCTAssertTrue(service.pendingUnlocks.isEmpty, "A second seed must not run")
+
+        service.checkAchievements(totalDoses: 600, currentStreak: 0, bestStreak: 0, protocolCount: 1, daysLogged: 40)
+        XCTAssertEqual(service.pendingUnlocks.map(\.id), ["five_hundred_doses"])
+    }
+
+    func test_markSeeded_newUser_firstUnlockToasts() {
+        service.markSeeded()
+        service.checkAchievements(totalDoses: 1, currentStreak: 0, bestStreak: 0, protocolCount: 0, daysLogged: 1)
+        XCTAssertEqual(service.latestUnlock?.id, "first_dose")
+    }
+
     // MARK: - Dose milestones
 
     func test_checkAchievements_oneDose_unlocksFirstDose() {

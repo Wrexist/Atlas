@@ -1,17 +1,13 @@
 import SwiftUI
 
-/// Horizontal scroll of vials representing the user's active stack —
-/// surfaced on the Home tab between the schedule card and the quick
-/// stats row. Caps at four entries so the row stays readable on small
-/// screens; if the stack is empty, the card hides itself entirely.
+/// Horizontal scroll of vials representing the compounds in the user's
+/// active protocols. Caps at four entries so the row stays readable on
+/// small screens; if there are none, the card hides itself entirely.
 ///
-/// Liquid level for each compound is now derived from
-/// `DataStore.liquidLevel(for:)` which counts completed entries and
-/// wraps modulo a default 30-doses-per-vial. The spec'd 800 ms drain
-/// animation inside `CompoundVial` reacts to that fraction changing,
-/// so the next dose log visibly nudges the meniscus down.
+/// The vials are illustrations, not inventory: Atlas doesn't know the
+/// user's vial size, reconstitution or purchases, so every vial is drawn
+/// full rather than with a level that could be read as "what's left".
 struct VialShelfCard: View {
-    @Environment(DataStore.self) private var dataStore
     let peptides: [Peptide]
 
     private static let maxVials = 4
@@ -34,7 +30,6 @@ struct VialShelfCard: View {
                                 CompoundVial(
                                     compoundName: peptide.name,
                                     category: peptide.category,
-                                    liquidLevel: dataStore.liquidLevel(for: peptide),
                                     labelText: peptide.abbreviation,
                                     size: .md
                                 )
@@ -50,13 +45,16 @@ struct VialShelfCard: View {
 
     private var header: some View {
         HStack(spacing: Spacing.xs) {
-            Image(systemName: "tray.full.fill")
+            Image(systemName: "flask.fill")
                 .font(AppFont.scaled(13, weight: .bold))
                 .foregroundStyle(AppColor.accentLight)
-            Text("YOUR INVENTORY")
-                .font(AppFont.scaled(11, weight: .heavy))
-                .tracking(1.5)
+                .accessibilityHidden(true)
+            Text("Your protocol compounds")
+                .font(AppFont.eyebrow)
+                .tracking(0.8)
+                .textCase(.uppercase)
                 .foregroundStyle(AppColor.textSecondary)
+                .accessibilityAddTraits(.isHeader)
 
             Spacer(minLength: 0)
 

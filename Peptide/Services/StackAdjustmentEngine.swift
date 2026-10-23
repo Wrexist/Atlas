@@ -55,6 +55,16 @@ enum StackAdjustmentEngine {
         }
     }
 
+    /// The protocol as the user has edited it: the original peptides they
+    /// kept, in their order, then any they added from the catalog. Built
+    /// from the original list so a peptide missing from this device's
+    /// catalog (a custom peptide made on another device) isn't dropped.
+    static func proposedPeptides(original: [Peptide], selectedIds: Set<UUID>, database: [Peptide]) -> [Peptide] {
+        let originalIds = Set(original.map(\.id))
+        return original.filter { selectedIds.contains($0.id) }
+            + database.filter { selectedIds.contains($0.id) && !originalIds.contains($0.id) }
+    }
+
     static func diff(original: [Peptide], proposed: [Peptide]) -> Diff {
         let originalIds = Set(original.map(\.id))
         let proposedIds = Set(proposed.map(\.id))
