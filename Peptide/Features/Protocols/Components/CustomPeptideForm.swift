@@ -45,7 +45,7 @@ struct CustomPeptideForm: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
             }
-            .dismissKeyboardOnTap()
+            .keyboardDoneButton()
             .navigationTitle("Add a Compound")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -1,41 +1,37 @@
 import SwiftUI
-#if canImport(UIKit)
 import UIKit
-#endif
 
-/// Adds a tap-anywhere-outside-text-fields gesture that resigns the first
-/// responder. Use on sheet roots that contain `TextField`s — without it the
-/// keyboard sticks around when the user taps the surrounding card area,
-/// blocking the bottom of the sheet on small devices.
-struct DismissKeyboardOnTapModifier: ViewModifier {
+/// A "Done" button above the keyboard that resigns the first responder.
+/// Use on sheet roots that contain `TextField`s — without it the keyboard
+/// sticks around and blocks the bottom of the sheet on small devices.
+///
+/// A tap catcher behind the content can't do this job: the full-screen
+/// scroll view these sheets use takes every tap, so a background gesture
+/// never fires. Must sit inside a `NavigationStack`.
+struct KeyboardDoneButtonModifier: ViewModifier {
     func body(content: Content) -> some View {
-        content
-            .background(
-                // contentShape on a clear color makes the entire surrounding
-                // area tappable without breaking child hit-testing — taps
-                // that hit a TextField, Button, or other interactive view
-                // still go through to those targets.
-                Color.clear
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        #if canImport(UIKit)
-                        UIApplication.shared.sendAction(
-                            #selector(UIResponder.resignFirstResponder),
-                            to: nil,
-                            from: nil,
-                            for: nil
-                        )
-                        #endif
-                    }
-            )
+        content.toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    UIApplication.shared.sendAction(
+                        #selector(UIResponder.resignFirstResponder),
+                        to: nil,
+                        from: nil,
+                        for: nil
+                    )
+                }
+                .fontWeight(.semibold)
+            }
+        }
     }
 }
 
 extension View {
-    /// Tap any non-interactive area to dismiss the keyboard. Pair with
+    /// Adds a keyboard "Done" button. Pair with
     /// `.scrollDismissesKeyboard(.interactively)` on scroll views inside
     /// the same sheet for the full set of dismissal affordances.
-    func dismissKeyboardOnTap() -> some View {
-        modifier(DismissKeyboardOnTapModifier())
+    func keyboardDoneButton() -> some View {
+        modifier(KeyboardDoneButtonModifier())
     }
 }

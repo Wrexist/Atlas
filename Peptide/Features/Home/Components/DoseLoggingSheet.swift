@@ -171,7 +171,7 @@ struct DoseLoggingSheet: View {
                 .padding(.top, Spacing.lg)
                 .padding(.bottom, Spacing.md)
             }
-            .dismissKeyboardOnTap()
+            .keyboardDoneButton()
             .background(AppColor.background)
             .navigationTitle(entry.completed ? "Edit dose" : "Log dose")
             .navigationBarTitleDisplayMode(.inline)
