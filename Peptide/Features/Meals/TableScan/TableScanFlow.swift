@@ -42,6 +42,7 @@ struct TableScanFlow: View {
 
     @State private var camera = TableCamera()
     @State private var cameraState: CameraState = .starting
+    @State private var isCameraInterrupted = false
     @State private var lens: TableCamera.Lens = .table
     @State private var showsGrid = false
     @AppStorage("tableScan.saveOriginal") private var saveOriginal = false
@@ -93,6 +94,7 @@ struct TableScanFlow: View {
         .task { await startCamera() }
         .onDisappear(perform: finishOnDismiss)
         .onChange(of: lens) { _, lens in camera.frame(lens) }
+        .onReceive(camera.interruptions) { isCameraInterrupted = $0 }
         .onChange(of: saveOriginal) { _, on in
             if on { Task { _ = await confirmPhotosAccess() } }
         }
@@ -462,10 +464,10 @@ struct TableScanFlow: View {
                         .padding(Spacing.xs)
                         .overlay { Circle().strokeBorder(AppColor.accentPrimary, lineWidth: 3) }
                         .frame(width: 72, height: 72)
-                        .opacity(cameraState == .live && phase == .capture ? 1 : 0.4)
+                        .opacity(canShoot ? 1 : 0.4)
                 }
                 .buttonStyle(ScalePressStyle(pressedScale: 0.9))
-                .disabled(cameraState != .live || phase != .capture)
+                .disabled(!canShoot)
                 .accessibilityLabel("Take photo")
 
                 VStack(spacing: Spacing.xs) {
@@ -512,6 +514,8 @@ struct TableScanFlow: View {
 
     private var isReading: Bool { dishes.contains { $0.reading == .pending } }
 
+    private var canShoot: Bool { cameraState == .live && !isCameraInterrupted && phase == .capture }
+
     // MARK: - Camera
 
     private func startCamera() async {
@@ -527,8 +531,7 @@ struct TableScanFlow: View {
         }
         switch await CameraAuthorization.resolve() {
         case .granted:
-            camera.start()
-            cameraState = .live
+            cameraState = camera.start() ? .live : .unavailable
         case .denied, .restricted:
             cameraState = .denied
         }
