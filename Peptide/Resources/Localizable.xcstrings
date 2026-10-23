@@ -10442,6 +10442,17 @@
         }
       }
     },
+    "Fiber and sugars can't be more than 100 g per 100 g.": {
+      "comment": "Custom food validation error.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fiber och socker kan inte vara mer än 100 g per 100 g."
+          }
+        }
+      }
+    },
     "Finished fasts show up here. A day counts toward your streak when a fast reaches its goal.": {
       "localizations": {
         "sv": {
@@ -28697,6 +28708,17 @@
         }
       }
     },
+    "Serving size must be %@–%@ g.": {
+      "comment": "Custom food validation error; the values are the allowed gram range.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Portionsstorleken måste vara %1$@–%2$@ g."
+          }
+        }
+      }
+    },
     "SHBG": {
       "localizations": {
         "sv": {
@@ -31746,6 +31768,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sockerarter"
+          }
+        }
+      }
+    },
+    "Sugars can't be more than carbs.": {
+      "comment": "Custom food validation error.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Socker kan inte vara mer än kolhydrater."
           }
         }
       }

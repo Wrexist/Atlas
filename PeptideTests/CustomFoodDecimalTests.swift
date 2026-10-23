@@ -31,4 +31,27 @@ final class CustomFoodDecimalTests: XCTestCase {
         XCTAssertEqual(text, "1200")
         XCTAssertEqual(CustomFoodEditorSheet.parseDecimal(text, locale: german), 1200)
     }
+
+    private func problem(calories: Double? = 100, protein: Double? = 5, carbs: Double? = 20, fat: Double? = 1,
+                         fiber: Double? = nil, sugars: Double? = nil,
+                         servingGrams: Double? = nil) -> CustomFoodEditorSheet.InputProblem? {
+        CustomFoodEditorSheet.inputProblem(calories: calories, protein: protein, carbs: carbs, fat: fat,
+                                           fiber: fiber, sugars: sugars, servingGrams: servingGrams)
+    }
+
+    func test_inputProblem_plausibleFood_isValid() {
+        XCTAssertNil(problem(fiber: 3, sugars: 10, servingGrams: 250))
+    }
+
+    func test_inputProblem_hugeServing_isOutOfRange() {
+        XCTAssertEqual(problem(servingGrams: 10_000), .servingOutOfRange)
+    }
+
+    func test_inputProblem_fiberOver100g_isRejected() {
+        XCTAssertEqual(problem(fiber: 500), .fiberOrSugarsOver100g)
+    }
+
+    func test_inputProblem_sugarsAboveCarbs_isRejected() {
+        XCTAssertEqual(problem(carbs: 10, sugars: 12), .sugarsOverCarbs)
+    }
 }
