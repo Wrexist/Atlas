@@ -26431,6 +26431,16 @@
         }
       }
     },
+    "Rest before warm-up": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vila före uppvärmning"
+          }
+        }
+      }
+    },
     "Review Protocol now": {
       "localizations": {
         "sv": {
@@ -35029,6 +35039,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Härnäst: %@ · Set %lld"
+          }
+        }
+      }
+    },
+    "Up next: %@ · Warm-up": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Härnäst: %@ · Uppvärmning"
           }
         }
       }
