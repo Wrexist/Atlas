@@ -35,6 +35,7 @@ enum PeptideAtlasSchemaV2: VersionedSchema {
             StoredCustomExercise.self,
             StoredRoutine.self,
             StoredPersonalRecord.self,
+            StoredFast.self,
         ]
     }
 }

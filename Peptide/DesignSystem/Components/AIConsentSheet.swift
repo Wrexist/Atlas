@@ -2,7 +2,7 @@ import SwiftUI
 
 /// One-time disclosure shown before anything the user submits leaves the
 /// device for a third-party AI (App Store Guideline 5.1.2(i)). "Allow"
-/// records consent in `AIDataConsent`; "Not now" and swipe-down both leave
+/// records consent in `AIDataConsent` (via `grant`); "Not now" and swipe-down both leave
 /// it unset. Presenters check `AIDataConsent.isGranted` in the sheet's
 /// `onDismiss` to decide whether to carry on with the request.
 ///
@@ -12,6 +12,9 @@ struct AIConsentSheet: View {
     /// What this feature sends, in the user's terms — "Your messages in
     /// this chat", "The meal photo you take or pick".
     let whatIsSent: LocalizedStringKey
+    /// Records consent on "Allow". The diet coach passes
+    /// `AIDataConsent.grantCoachSummary` for its wider disclosure.
+    var grant: () -> Void = AIDataConsent.grant
 
     @Environment(\.dismiss) private var dismiss
 
@@ -48,7 +51,7 @@ struct AIConsentSheet: View {
 
             VStack(spacing: Spacing.sm) {
                 PrimaryCTAButton(title: "Allow") {
-                    AIDataConsent.grant()
+                    grant()
                     dismiss()
                 }
                 GlassButton(title: "Not now", style: .ghost, isFullWidth: true) {
