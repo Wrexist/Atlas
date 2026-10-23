@@ -39922,6 +39922,66 @@
           }
         }
       }
+    },
+    "Log every meal from a photo, with no weekly cap": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga varje måltid från ett foto, utan veckogräns"
+          }
+        }
+      }
+    },
+    "See your Biological Age and the full Biology tab": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se din biologiska ålder och hela fliken Biologi"
+          }
+        }
+      }
+    },
+    "Ask anything, get cited research — not guesswork": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fråga vad som helst och få forskning med källor – inte gissningar"
+          }
+        }
+      }
+    },
+    "Get a Sunday AI recap of your week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Få en AI-sammanfattning av veckan varje söndag"
+          }
+        }
+      }
+    },
+    "Unlimited protocols with schedules and reminders": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obegränsat antal protokoll med scheman och påminnelser"
+          }
+        }
+      }
+    },
+    "Export your full history as CSV, JSON or PDF": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportera hela din historik som CSV, JSON eller PDF"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

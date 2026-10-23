@@ -354,11 +354,7 @@ struct PaywallView: View {
 
     // MARK: - Feature list
 
-    /// Outcomes, not machinery, and in the order the product is positioned:
-    /// training, nutrition and recovery lead; protocol tracking stays for the
-    /// advanced audience it was built for. The old list opened on "Unlimited
-    /// peptide stacks & cycles" and never mentioned a workout or a meal, so
-    /// the paywall was selling a different app than the one onboarding sold.
+    /// Only what Pro actually unlocks; see `ProBenefits` for why.
     private var featureList: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             Text("What you get")
@@ -367,21 +363,10 @@ struct PaywallView: View {
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            ForEach(features, id: \.icon) { feature in
+            ForEach(ProBenefits.all, id: \.icon) { feature in
                 featureRow(icon: feature.icon, title: feature.title)
             }
         }
-    }
-
-    private var features: [(icon: String, title: LocalizedStringKey)] {
-        [
-            ("figure.strengthtraining.traditional", "Lift more every week — plans that progress you automatically"),
-            ("camera.viewfinder", "Log a meal in one photo — no weighing, no searching"),
-            ("heart.text.square.fill", "Know before you train — recovery, HRV and Biological Age"),
-            ("brain.head.profile.fill", "Ask anything, get cited research — not guesswork"),
-            ("chart.line.uptrend.xyaxis", "Unlimited protocols — half-life, dosing and reconstitution"),
-            ("icloud.fill", "Never lose a session — synced across iPhone, Watch and widgets"),
-        ]
     }
 
     private func featureRow(icon: String, title: LocalizedStringKey) -> some View {

@@ -268,30 +268,12 @@ struct TrialOfferView: View {
     private var benefitsCard: some View {
         GlassCard(tinted: true) {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                ForEach(benefits, id: \.0) { benefit in
-                    benefitRow(icon: benefit.0, title: benefit.1)
+                ForEach(ProBenefits.all, id: \.icon) { benefit in
+                    benefitRow(icon: benefit.icon, title: benefit.title)
                 }
             }
         }
     }
-
-    /// Outcomes, not features. The previous list named the machinery —
-    /// "AI photo + barcode meal scanner", "Cloud sync across all your
-    /// devices" — which tells someone what they are buying but not what
-    /// changes for them. Each line now leads with the result and keeps the
-    /// mechanism as the short half, so the column scans as a list of things
-    /// that get better.
-    ///
-    /// Nothing here promises an outcome the app does not measure: every
-    /// claim maps to a surface that exists (auto-progression, the scanner,
-    /// Biological Age, the cited-research chat, CloudKit sync).
-    private let benefits: [(String, LocalizedStringKey)] = [
-        ("figure.strengthtraining.traditional", "Lift more every week — plans that progress you automatically"),
-        ("camera.viewfinder", "Log a meal in one photo — no weighing, no searching"),
-        ("heart.text.square.fill", "Know before you train — recovery, HRV and Biological Age"),
-        ("brain.head.profile.fill", "Ask anything, get cited research — not guesswork"),
-        ("icloud.fill", "Never lose a session — synced across every device"),
-    ]
 
     // MARK: - Value banner
 
