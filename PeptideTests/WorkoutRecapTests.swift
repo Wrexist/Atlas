@@ -212,6 +212,19 @@ final class WorkoutRecapTests: XCTestCase {
         XCTAssertNotNil(WorkoutEditValidation.issue(in: draft, original: original))
     }
 
+    func test_editorIssue_invalidSecondExerciseSet_namesThatExercise() async throws {
+        await ExerciseLibrary.shared.load()
+        let original = WorkoutRecapFixture.push()
+        XCTAssertGreaterThan(original.exercises.count, 1)
+        var draft = original
+        draft.exercises[1].sets[0].weightKg = -1
+        let name = ExerciseLibrary.shared.displayName(for: draft.exercises[1].exerciseID)
+
+        let issue = try XCTUnwrap(WorkoutEditValidation.issue(in: draft, original: original))
+
+        XCTAssertTrue(issue.hasPrefix(name + ", "), issue)
+    }
+
     func test_editorNumberParsingRejectsBlankPartialAndAmbiguousInput() {
         let english = Locale(identifier: "en_US")
         let swedish = Locale(identifier: "sv_SE")

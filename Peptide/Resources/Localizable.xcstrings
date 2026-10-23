@@ -1619,6 +1619,36 @@
         }
       }
     },
+    "%@, set %lld: enter a distance greater than zero.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, set %2$lld: ange en distans större än noll."
+          }
+        }
+      }
+    },
+    "%@, set %lld: enter a duration greater than zero.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, set %2$lld: ange en tid större än noll."
+          }
+        }
+      }
+    },
+    "%@, set %lld: enter a valid load and repetition count.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, set %2$lld: ange en giltig vikt och ett giltigt antal repetitioner."
+          }
+        }
+      }
+    },
     "%@, supporting": {
       "localizations": {
         "sv": {
