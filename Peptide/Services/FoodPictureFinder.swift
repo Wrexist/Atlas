@@ -8,9 +8,15 @@ enum FoodPictureFinder {
     /// Searches one library visit may spend; the rest wait for the next.
     static let maxLookups = 3
 
-    /// Foods already looked up this launch, matched or not, so a food
-    /// with no packshot never holds the queue.
+    /// Foods whose search finished this launch, matched or not, so a food
+    /// with no packshot never holds the queue. A search that was
+    /// cancelled or throttled leaves its food eligible for the next visit.
     @MainActor static var tried: Set<UUID> = []
+
+    struct Lookup: Equatable {
+        var pictures: [UUID: URL] = [:]
+        var searched: Set<UUID> = []
+    }
 
     static func candidates(in foods: [CustomFood], skipping tried: Set<UUID>) -> [CustomFood] {
         Array(foods.lazy.filter { food in
@@ -25,16 +31,15 @@ enum FoodPictureFinder {
         search: FoodGrounding.Search = {
             try await OpenFoodFactsService.shared.search(query: $0, leavingFree: FoodGrounding.slotsKeptForUser)
         }
-    ) async -> [UUID: URL] {
-        var found: [UUID: URL] = [:]
+    ) async -> Lookup {
+        var lookup = Lookup()
         for food in foods {
             let query = [food.brand, food.name].compactMap { $0 }.joined(separator: " ")
-            guard let results = try? await search(query),
-                  let url = packshot(for: food, in: results)
-            else { continue }
-            found[food.id] = url
+            guard !Task.isCancelled, let results = try? await search(query) else { continue }
+            lookup.searched.insert(food.id)
+            lookup.pictures[food.id] = packshot(for: food, in: results)
         }
-        return found
+        return lookup
     }
 
     /// The image of the hit that is clearly the same product: the same

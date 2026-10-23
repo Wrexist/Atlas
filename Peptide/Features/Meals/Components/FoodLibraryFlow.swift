@@ -860,8 +860,9 @@ struct FoodLibraryFlow: View {
     private func findMissingPictures() async {
         let lookups = FoodPictureFinder.candidates(in: profile.customFoods, skipping: FoodPictureFinder.tried)
         guard !lookups.isEmpty else { return }
-        FoodPictureFinder.tried.formUnion(lookups.map(\.id))
-        dataStore.attachPictures(await FoodPictureFinder.find(for: lookups))
+        let lookup = await FoodPictureFinder.find(for: lookups)
+        FoodPictureFinder.tried.formUnion(lookup.searched)
+        dataStore.attachPictures(lookup.pictures)
     }
 
     private func customFoodRow(_ food: CustomFood) -> some View {

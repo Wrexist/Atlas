@@ -61,7 +61,15 @@ final class FoodPictureFinderTests: XCTestCase {
         let found = await FoodPictureFinder.find(for: [kvarg, bar]) { query in
             query == "Arla Kvarg" ? [hit] : []
         }
-        XCTAssertEqual(found, [kvarg.id: packshot])
+        XCTAssertEqual(found.pictures, [kvarg.id: packshot])
+        XCTAssertEqual(found.searched, [kvarg.id, bar.id])
+    }
+
+    func test_find_throttledSearch_staysEligibleForRetry() async {
+        let kvarg = food("Kvarg", brand: "Arla", kcal: 60)
+        let found = await FoodPictureFinder.find(for: [kvarg]) { _ in throw URLError(.cancelled) }
+        XCTAssertTrue(found.searched.isEmpty)
+        XCTAssertTrue(found.pictures.isEmpty)
     }
 
     private func food(_ name: String, brand: String?, kcal: Double) -> CustomFood {
