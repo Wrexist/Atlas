@@ -42,6 +42,12 @@ final class FoodArtworkTests: XCTestCase {
         XCTAssertEqual(FoodArtwork.match("Kolsyrat vatten").emoji, "💧")
     }
 
+    func test_englishWatermelon_isFruit_whileWaterStaysWater() {
+        XCTAssertEqual(FoodArtwork.match("Watermelon").emoji, "🍍")
+        XCTAssertEqual(FoodArtwork.match("watermelon slices").emoji, "🍍")
+        XCTAssertEqual(FoodArtwork.match("Sparkling water").emoji, "💧")
+    }
+
     func test_unknownFood_getsPlate() {
         XCTAssertEqual(FoodArtwork.match("Xyz 123"), .fallback)
     }
