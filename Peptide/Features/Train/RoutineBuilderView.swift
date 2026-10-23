@@ -297,7 +297,7 @@ private struct RoutineSlotRow: View {
                     .background(Capsule().fill(AppColor.accentPrimary.opacity(0.15)))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("\(name) target: \(sets) sets of \(reps) reps")
+            .accessibilityLabel(Text("\(name) target: ^[\(sets) set](inflect: true) of ^[\(reps) rep](inflect: true)"))
             .accessibilityHint("Opens the set and rep picker")
         }
         .padding(.horizontal, Spacing.md)
@@ -320,6 +320,7 @@ private struct RoutineTargetSheet: View {
     let onSave: (_ sets: Int, _ reps: Int, _ restSeconds: Int?) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(
         exerciseName: String,
@@ -337,34 +338,34 @@ private struct RoutineTargetSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: Spacing.xl) {
-                GlassCard {
-                    VStack(spacing: Spacing.lg) {
-                        Stepper(value: $sets, in: RoutineEditEngine.targetSets) {
-                            field("Sets", value: "\(sets)")
-                                .appAnimation(AppAnimation.springSnappy, value: sets)
+            ScrollView {
+                VStack(spacing: Spacing.xl) {
+                    GlassCard {
+                        VStack(spacing: Spacing.lg) {
+                            Stepper(value: $sets, in: RoutineEditEngine.targetSets) {
+                                field("Sets", value: "\(sets)")
+                                    .appAnimation(AppAnimation.springSnappy, value: sets)
+                            }
+                            .appSensoryFeedback(.selection, trigger: sets)
+                            Divider().background(AppColor.glassBorder)
+                            Stepper(value: $reps, in: RoutineEditEngine.targetReps) {
+                                field("Reps", value: "\(reps)")
+                                    .appAnimation(AppAnimation.springSnappy, value: reps)
+                            }
+                            .appSensoryFeedback(.selection, trigger: reps)
+                            Divider().background(AppColor.glassBorder)
+                            restPicker
                         }
-                        .appSensoryFeedback(.selection, trigger: sets)
-                        Divider().background(AppColor.glassBorder)
-                        Stepper(value: $reps, in: RoutineEditEngine.targetReps) {
-                            field("Reps", value: "\(reps)")
-                                .appAnimation(AppAnimation.springSnappy, value: reps)
-                        }
-                        .appSensoryFeedback(.selection, trigger: reps)
-                        Divider().background(AppColor.glassBorder)
-                        restPicker
                     }
+
+                    Text("Starting this routine seeds ^[\(sets) empty set](inflect: true), each aiming for ^[\(reps) rep](inflect: true) at the weight you last lifted.")
+                        .font(AppFont.scaled(13))
+                        .foregroundStyle(AppColor.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-
-                Text("Starting this routine seeds \(sets) empty sets, each aiming for \(reps) reps at the weight you last lifted.")
-                    .font(AppFont.scaled(13))
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Spacer(minLength: 0)
+                .padding(Spacing.screenPadding)
             }
-            .padding(Spacing.screenPadding)
             .background(AppColor.background.ignoresSafeArea())
             .navigationTitle(exerciseName)
             .navigationBarTitleDisplayMode(.inline)
@@ -381,7 +382,13 @@ private struct RoutineTargetSheet: View {
                 }
             }
         }
-        .liquidGlassPresentation(detents: [.medium])
+        .liquidGlassPresentation(detents: detents)
+    }
+
+    /// At accessibility text sizes the steppers, rest picker and note
+    /// don't fit in half a screen, so the sheet opens full height.
+    private var detents: Set<PresentationDetent> {
+        dynamicTypeSize.isAccessibilitySize ? [.large] : [.medium, .large]
     }
 
     private var restPicker: some View {

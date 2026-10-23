@@ -807,6 +807,38 @@
         }
       }
     },
+    "%@ target: ^[%lld set](inflect: true) of ^[%lld rep](inflect: true)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ mål: %2$lld set à %#@arg3@"
+          },
+          "substitutions": {
+            "arg3": {
+              "argNum": 3,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg rep"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg reps"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%@ tier": {
       "localizations": {
         "sv": {
@@ -31084,6 +31116,58 @@
                     "stringUnit": {
                       "state": "translated",
                       "value": "%arg tomma set"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Starting this routine seeds ^[%lld empty set](inflect: true), each aiming for ^[%lld rep](inflect: true) at the weight you last lifted.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rutinen startar med %#@arg1@, vart och ett med målet %#@arg2@ på vikten du senast lyfte."
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg tomt set"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg tomma set"
+                    }
+                  }
+                }
+              }
+            },
+            "arg2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg rep"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg reps"
                     }
                   }
                 }
