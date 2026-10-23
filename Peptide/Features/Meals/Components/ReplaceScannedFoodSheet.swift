@@ -13,6 +13,8 @@ struct ReplaceScannedFoodSheet: View {
     @State private var errorText: String?
     @State private var retry = 0
 
+    private var gramsText: String { grams.formatted(.number.precision(.fractionLength(0...1))) }
+
     private var local: [ScannedProduct] {
         dataStore.profile.customFoods.filter {
             query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || $0.name.localizedCaseInsensitiveContains(query)
@@ -23,7 +25,7 @@ struct ReplaceScannedFoodSheet: View {
         NavigationStack {
             List {
                 Section {
-                    Text("Choose the correct food. Your current \(grams.formatted()) g portion stays the same; nutrition is replaced.")
+                    Text("Choose the correct food. Your current \(gramsText) g portion stays the same; nutrition is replaced.")
                         .font(AppFont.callout)
                 }
                 if !local.isEmpty { Section("Your foods") { rows(local) } }
@@ -45,7 +47,7 @@ struct ReplaceScannedFoodSheet: View {
             .safeAreaInset(edge: .bottom) {
                 if let selected, selected.hasNutrition, let meal = selected.loggable(for: .grams(grams)) {
                     VStack(spacing: Spacing.sm) {
-                        Text("\(selected.name) · \(meal.calories) kcal for \(grams.formatted()) g")
+                        Text("\(selected.name) · \(meal.calories) kcal for \(gramsText) g")
                             .font(AppFont.callout).multilineTextAlignment(.center)
                         GlassButton(title: "Replace food", isFullWidth: true) {
                             onReplace(selected)
@@ -65,7 +67,7 @@ struct ReplaceScannedFoodSheet: View {
                     VStack(alignment: .leading, spacing: Spacing.xs) {
                         Text(product.name).foregroundStyle(AppColor.textPrimary)
                         if let brand = product.brand { Text(brand).font(AppFont.caption2) }
-                        Text("\(product.per100g.calories.formatted()) kcal / 100 g").font(AppFont.caption2)
+                        Text("\(product.per100g.calories.formatted(.number.precision(.fractionLength(0)))) kcal / 100 g").font(AppFont.caption2)
                     }
                     Spacer()
                     if selected?.barcode == product.barcode { Image(systemName: "checkmark") }
