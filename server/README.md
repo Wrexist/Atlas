@@ -23,11 +23,20 @@ real Anthropic API is reached one hop away.
 | `POST /api/weekly-summary`   | AI weekly recap (prompt-cached)    | WeeklySummaryService  |
 | `GET/POST /api/attest-register` | App Attest key registration     | AppAttestService      |
 | `POST /api/apple-revoke`     | Revoke Sign in with Apple on account deletion | AuthService |
+| `POST /api/crash-report`     | MetricKit crash / hang diagnostics → Sentry events | CrashReportUploader |
 
 `apple-revoke` needs `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`
 (the Sign in with Apple `.p8`, `\n` escapes allowed) and `APPLE_CLIENT_ID`
 (the bundle ID); without them it answers 503 and the app tells the user to
 remove Atlas under Settings → Apple ID → Sign in with Apple.
+
+`crash-report` forwards each diagnostic to Sentry's envelope API using
+`SENTRY_DSN` (the project's DSN; never commit it). Without it reports are
+accepted and dropped with 204. The app derives the URL from
+`MEAL_SCANNER_ENDPOINT` and reuses its secret, so no new iOS setting is
+needed; the payload carries app/OS version, device model and call stacks
+only — no user identifier, no health data. Per-IP limit `CRASH_REPORT_RPM`
+(default 10), 256 KB body cap.
 
 meal-scan, food-scan and ai-research share `_lib/anthropic-proxy.js` —
 auth, App Attest gate, per-principal limits, body sanitisation, model
