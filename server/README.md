@@ -209,6 +209,11 @@ Verification ships **report-only by default** — it logs
    verification logic is tested against synthetic openssl-minted
    fixtures, not yet a real device blob — the report phase is what
    validates it against Apple's real formats.
+4. The App Store build in users' hands handles `401 attest_clock`: a
+   device clock more than 5 minutes off is refused with that code, and
+   the app corrects its stamp from the response's `Date` header and
+   keeps its key. Older builds treat every 401 as `attest_required`
+   and re-register on each request, which never fixes a wrong clock.
 
 iOS client config: `APP_ATTEST_ENDPOINT` = the attest-register URL,
 `APP_ATTEST_SECRET` = the `PROXY_SHARED_SECRET` value (inject via CI

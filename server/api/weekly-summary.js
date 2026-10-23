@@ -213,7 +213,7 @@ export default async function handler(req, res) {
   // the limits count against. Same semantics as the main proxy routes.
   const attest = await checkAppAttest(req, { logLabel: 'weekly-summary' });
   if (!attest.ok) {
-    res.status(401).json({ error: { message: 'Unauthorised', code: 'attest_required' } });
+    res.status(401).json({ error: { message: 'Unauthorised', code: attest.code } });
     return;
   }
 

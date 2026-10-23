@@ -312,10 +312,11 @@ export async function forwardToAnthropic(req, res, {
   // Only rejects in enforce mode; report mode verifies + logs so the
   // rollout can be validated from production logs before anything is
   // blocked. The `attest_required` code tells a genuine client to
-  // (re-)register its key rather than treat this as a secret failure.
+  // (re-)register its key rather than treat this as a secret failure;
+  // `attest_clock` tells it to correct its clock and keep the key.
   const attest = await checkAppAttest(req, { logLabel });
   if (!attest.ok) {
-    res.status(401).json({ error: { message: 'Unauthorised', code: 'attest_required' } });
+    res.status(401).json({ error: { message: 'Unauthorised', code: attest.code } });
     return;
   }
 

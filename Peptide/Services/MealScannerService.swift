@@ -492,10 +492,11 @@ final class MealScannerService: Sendable {
                     continue
                 }
                 if http.statusCode == 401, attempt < maxAttempts,
-                   AppAttestService.isAttestRejection(data) {
-                    // The proxy lost this install's key; the next
-                    // attempt waits for a fresh one to register.
-                    await AppAttestService.shared.invalidateRegistration()
+                   await AppAttestService.shared.recover(
+                       fromRejection: data, serverDate: http.value(forHTTPHeaderField: "Date")
+                   ) {
+                    // The proxy lost this install's key or refused the
+                    // device clock; the next attempt waits for a key.
                     waitForRegistration = true
                     continue
                 }
