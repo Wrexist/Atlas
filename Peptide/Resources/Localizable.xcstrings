@@ -2941,12 +2941,12 @@
         }
       }
     },
-    "%lld kcal / 100g": {
+    "%lld kcal / 100 g": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld kcal / 100g"
+            "value": "%lld kcal / 100 g"
           }
         }
       }
@@ -2971,7 +2971,7 @@
         }
       }
     },
-    "%lld kcal · %lldg protein": {
+    "%lld kcal · %lld g protein": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -2991,7 +2991,7 @@
         }
       }
     },
-    "%lld kcal, %lldg protein per 100g": {
+    "%lld kcal, %lld g protein per 100 g": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -4263,16 +4263,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lldd kvar"
-          }
-        }
-      }
-    },
-    "%lldg": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld g"
           }
         }
       }
@@ -28551,7 +28541,7 @@
         }
       }
     },
-    "Sleep vs %@h target": {
+    "Sleep vs %@ h target": {
       "localizations": {
         "sv": {
           "stringUnit": {

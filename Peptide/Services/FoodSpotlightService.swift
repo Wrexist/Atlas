@@ -221,7 +221,7 @@ final class FoodSpotlightService: Sendable {
         // sniff so the user knows which entry is which when two have
         // similar names.
         String(
-            localized: "\(Int(n.calories.rounded())) kcal, \(Int(n.proteinG.rounded()))g protein per 100g",
+            localized: "\(Int(n.calories.rounded())) kcal, \(Int(n.proteinG.rounded())) g protein per 100 g",
             comment: "Spotlight result subtitle. Surfaces calories + protein per 100 grams."
         )
     }

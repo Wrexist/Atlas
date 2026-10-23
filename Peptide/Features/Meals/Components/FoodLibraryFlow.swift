@@ -989,7 +989,7 @@ struct FoodLibraryFlow: View {
                     .fill(tint)
                     .frame(width: 6, height: 6)
             }
-            Text("\(grams)g")
+            Text("\(grams) g")
                 .font(AppFont.scaled(11, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textSecondary)

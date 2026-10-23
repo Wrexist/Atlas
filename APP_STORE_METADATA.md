@@ -530,7 +530,7 @@ Enable Pro in debug settings. Have at least 7 days of HealthKit data
 displayed value from real data.
 
 **Overlay copy**
-- Headline: `See your biological age.`
+- Headline: `See your Biological Age.`
 - Sub-caption: `HRV · Sleep · Resting HR · Biological Age`
 - Pro badge: `Atlas Pro — subscription required`
 
@@ -547,8 +547,8 @@ height. This is the biggest Pro conversion screenshot.
 Nutrition targets editor open. Hero calorie display: "2,340 kcal".
 Proportional macro bar below it (protein orange, carbs blue, fat yellow
 at roughly 35/45/20 split). "Recommended for you" banner showing
-goal-derived suggestion. Three glass input cards: Protein 195g, Carbs
-265g, Fat 52g. Goal chip "Build Muscle" lit at the top.
+goal-derived suggestion. Three glass input cards: Protein 195 g, Carbs
+265 g, Fat 52 g. Goal chip "Build Muscle" lit at the top.
 
 **App state to set up**
 Open Profile → Nutrition Targets. Body metrics set (male, 80 kg, 178 cm,

@@ -151,9 +151,9 @@ struct RecipeEditorSheet: View {
                 }
                 HStack(spacing: Spacing.lg) {
                     macroPill(value: "\(totals.calories)", label: "kcal", tint: AppColor.accentLight)
-                    macroPill(value: "\(totals.proteinG)g", label: "protein", tint: AppColor.macroProtein)
-                    macroPill(value: "\(totals.carbsG)g", label: "carbs", tint: AppColor.macroCarbs)
-                    macroPill(value: "\(totals.fatG)g", label: "fat", tint: AppColor.macroFat)
+                    macroPill(value: "\(totals.proteinG) g", label: "protein", tint: AppColor.macroProtein)
+                    macroPill(value: "\(totals.carbsG) g", label: "carbs", tint: AppColor.macroCarbs)
+                    macroPill(value: "\(totals.fatG) g", label: "fat", tint: AppColor.macroFat)
                 }
             }
         }
@@ -265,7 +265,7 @@ struct RecipeEditorSheet: View {
 
     private func portionDescription(_ portion: ScannedProduct.Portion) -> String {
         switch portion {
-        case .grams(let g):    return "\(Int(g.rounded()))g"
+        case .grams(let g):    return "\(Int(g.rounded())) g"
         case .servings(let s):
             return s == 1 ? String(localized: "1 serving")
                 : String(localized: "\(s.formatted(.number.precision(.fractionLength(0...1)))) servings")
@@ -338,7 +338,7 @@ struct RecipeFoodPickerSheet: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(food.name)
                                         .foregroundStyle(AppColor.textPrimary)
-                                    Text("\(Int(food.per100g.calories.rounded())) kcal / 100g")
+                                    Text("\(Int(food.per100g.calories.rounded())) kcal / 100 g")
                                         .font(AppFont.caption2)
                                         .foregroundStyle(AppColor.textSecondary)
                                 }

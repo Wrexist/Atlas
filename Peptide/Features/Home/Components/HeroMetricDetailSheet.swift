@@ -429,7 +429,7 @@ struct HeroMetricDetailSheet: View {
         func label(sleepTargetHours: Double) -> LocalizedStringKey {
             switch self {
             case .hrv:   String(localized: "HRV vs baseline")
-            case .sleep: String(localized: "Sleep vs \(sleepTargetHours.formatted(.number.precision(.fractionLength(0))))h target")
+            case .sleep: String(localized: "Sleep vs \(sleepTargetHours.formatted(.number.precision(.fractionLength(0)))) h target")
             case .rhr:   String(localized: "Resting HR vs baseline")
             }
         }
