@@ -112,11 +112,14 @@ platform :ios do
       "PeptideWatchWidgets" => "com.peptidesai.app.watchkitapp.widgets"
     }
 
+    # Read-only in CI: a TestFlight run must never mint certificates or
+    # profiles and push them to the match repo (team certificate limit,
+    # profiles used elsewhere). Regenerate from a maintainer machine.
     match(
       type:           "appstore",
       app_identifier: target_to_bundle.values,
       git_url:        ENV["MATCH_GIT_URL"],
-      readonly:       false,
+      readonly:       is_ci,
       api_key:        api_key
     )
 
