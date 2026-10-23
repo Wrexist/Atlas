@@ -43,7 +43,7 @@ struct ReplaceScannedFoodSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
             .safeAreaInset(edge: .bottom) {
-                if let selected, let meal = selected.loggable(for: .grams(grams)) {
+                if let selected, selected.hasNutrition, let meal = selected.loggable(for: .grams(grams)) {
                     VStack(spacing: Spacing.sm) {
                         Text("\(selected.name) · \(meal.calories) kcal for \(grams.formatted()) g")
                             .font(AppFont.callout).multilineTextAlignment(.center)
@@ -85,8 +85,10 @@ struct ReplaceScannedFoodSheet: View {
             try await Task.sleep(for: AppAnimation.searchDebounceDelay)
             let found = try await OpenFoodFactsService.shared.search(query: value)
             try Task.checkCancellation()
+            // A crowd record with no energy or macros would replace the
+            // item with a silent 0 kcal, as the barcode review refuses to.
             var seen = Set<String>()
-            results = found.filter { seen.insert($0.barcode).inserted }
+            results = found.filter { $0.hasNutrition && seen.insert($0.barcode).inserted }
             loading = false
         } catch {
             guard !Task.isCancelled else { return }
