@@ -15,6 +15,8 @@ enum DailyScheduleEngine {
 
     enum DaySlot: Int, CaseIterable, Comparable, Hashable {
         case morningFasted
+        /// Clock-derived morning: no fasted claim without timing data.
+        case morning
         case morningWithFood
         case midday
         case preWorkout
@@ -25,6 +27,7 @@ enum DailyScheduleEngine {
         var title: String {
             switch self {
             case .morningFasted:    return String(localized: "Morning · Fasted")
+            case .morning:          return String(localized: "Morning")
             case .morningWithFood:  return String(localized: "Morning · With Food")
             case .midday:           return String(localized: "Midday")
             case .preWorkout:       return "Pre-Workout"
@@ -37,6 +40,7 @@ enum DailyScheduleEngine {
         var iconName: String {
             switch self {
             case .morningFasted:    return "sunrise.fill"
+            case .morning:          return "sun.horizon.fill"
             case .morningWithFood:  return "fork.knife"
             case .midday:           return "sun.max.fill"
             case .preWorkout:       return "figure.run"
@@ -49,6 +53,7 @@ enum DailyScheduleEngine {
         var caption: String {
             switch self {
             case .morningFasted:    return String(localized: "On waking, empty stomach")
+            case .morning:          return String(localized: "Early in the day")
             case .morningWithFood:  return String(localized: "After breakfast")
             case .midday:           return "Mid-day"
             case .preWorkout:       return String(localized: "30–45 min before training")
@@ -87,7 +92,7 @@ enum DailyScheduleEngine {
             // and a 6 PM dose landed in the same slot and got analysed
             // as co-administered (spurious conflict/combination hints).
             case 0..<5:    return .preBed
-            case 5..<10:   return .morningFasted
+            case 5..<10:   return .morning
             case 10..<12:  return .morningWithFood
             case 12..<16:  return .midday
             case 16..<20:  return .evening
@@ -159,13 +164,14 @@ enum DailyScheduleEngine {
 
         /// Counts unique (peptide, counterpart) conflict pairs so the badge
         /// shows pairs, not per-dose chips (which would double for symmetrical
-        /// warnings like Semax↔Selank spacing).
+        /// warnings like Semax↔Selank spacing). Informational notes such as
+        /// "Stay fasted" aren't conflicts and don't count.
         var conflictCount: Int {
             var pairs = Set<UnorderedPair>()
             var unpaired = 0
             for slot in slots {
                 for dose in slot.doses {
-                    for conflict in dose.conflicts {
+                    for conflict in dose.conflicts where conflict.severity > .info {
                         if let counterpart = conflict.counterpart {
                             pairs.insert(UnorderedPair(dose.entry.peptide.abbreviation, counterpart))
                         } else {
@@ -191,13 +197,20 @@ enum DailyScheduleEngine {
         }
 
         /// Short, user-facing summary used as the card subtitle.
-        /// Phrased to highlight the first action the user should take.
+        /// Phrased around the next dose still to take, so a logged morning
+        /// dose doesn't keep leading the evening.
         var headline: String {
-            guard let first = slots.first?.doses.first else { return String(localized: "Nothing scheduled today") }
+            let doses = slots.flatMap(\.doses)
+            guard !doses.isEmpty else { return String(localized: "Nothing scheduled today") }
+            guard let first = doses.first(where: { !$0.entry.completed }) else {
+                return String(localized: "All doses logged today")
+            }
             let abbrev = first.entry.peptide.abbreviation
             switch first.slot {
-            case .morningFasted:
+            case .morningFasted where first.mustBeFasted:
                 return String(localized: "Start with \(abbrev) — fasted, on waking")
+            case .morningFasted:
+                return String(localized: "Start with \(abbrev) on waking")
             case .preBed:
                 return String(localized: "End the day with \(abbrev) before bed")
             case .postWorkout:
@@ -229,21 +242,22 @@ enum DailyScheduleEngine {
 
     // MARK: - Public API
 
-    /// Builds a fully-ordered plan from today's entries.
-    /// `now` is injected so tests can drive deterministic output.
-    static func plan(for entries: [ProtocolEntry], now: Date = Date()) -> DailyPlan {
+    /// Builds a fully-ordered plan from today's entries. `calendar` reads
+    /// each dose's clock hour; tests pass a fixed one.
+    static func plan(for entries: [ProtocolEntry], calendar: Calendar = .current) -> DailyPlan {
         guard !entries.isEmpty else {
             return DailyPlan(slots: [], totalDoses: 0)
         }
 
-        let calendar = Calendar.current
         let assignments: [(entry: ProtocolEntry, slot: DaySlot, fasted: Bool, note: String)] = entries.map { entry in
             let info = PeptideTimingData.timingRecommendations[entry.peptide.abbreviation]
-            let slot = resolveSlot(for: entry, timing: info, calendar: calendar)
+            let placement = resolveSlot(for: entry, timing: info, calendar: calendar)
             let fasted = info?.preferredWindows.contains(.morningFasted) == true
                 && (info?.notes.lowercased().contains("fasted") == true
                     || info?.notes.lowercased().contains("empty stomach") == true)
-            return (entry, slot, fasted, info?.notes ?? "")
+            let usualWindow = placement.usualSlot.map { String(localized: "Usually taken: \($0.title).") }
+            let note = [usualWindow, info?.notes].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
+            return (entry, placement.slot, fasted, note)
         }
 
         let grouped = Dictionary(grouping: assignments, by: \.slot)
@@ -252,6 +266,8 @@ enum DailyScheduleEngine {
             let bucket = grouped[slot] ?? []
             let abbrevsInSlot = bucket.map(\.entry.peptide.abbreviation)
             let ordered = orderWithinSlot(bucket)
+            // One "Stay fasted" note per window, on its first fasted dose.
+            let firstFastedID = ordered.first(where: \.fasted)?.entry.id
 
             let doses: [PlannedDose] = ordered.enumerated().map { index, item in
                 let combinations = combinationHints(
@@ -262,7 +278,7 @@ enum DailyScheduleEngine {
                     for: item.entry.peptide.abbreviation,
                     others: abbrevsInSlot,
                     timing: PeptideTimingData.timingRecommendations[item.entry.peptide.abbreviation],
-                    fastedRequired: item.fasted
+                    noteFasted: item.entry.id == firstFastedID
                 )
                 return PlannedDose(
                     entry: item.entry,
@@ -283,45 +299,27 @@ enum DailyScheduleEngine {
 
     // MARK: - Slot resolution
 
+    /// The dose's clock time decides its slot — the user's schedule is the
+    /// truth, so the list keeps clock order and only doses that really share
+    /// a window are analysed together. A morning dose takes the peptide's
+    /// own morning window so knowledge-base timing (fasted or with food)
+    /// shows. `usualSlot` names the preferred window when the schedule
+    /// sits outside every one of them.
     private static func resolveSlot(
         for entry: ProtocolEntry,
         timing: PeptideTimingData.PeptideTiming?,
         calendar: Calendar
-    ) -> DaySlot {
-        let hour = calendar.component(.hour, from: entry.date)
-        let userSlot = DaySlot.from(hour: hour)
-
-        if let timing {
-            let preferred = timing.preferredWindows
-                .compactMap(DaySlot.from(_:))
-
-            // 1. Best case: the user's scheduled clock time matches one
-            //    of the peptide's preferred windows. Honor the user's
-            //    choice — a peptide with `[.preBed, .morningFasted]`
-            //    scheduled at 22:00 belongs in pre-bed, not morning.
-            if preferred.contains(userSlot) {
-                return userSlot
-            }
-
-            // 2. Workout-window slots (.preBed, .preWorkout, .postWorkout)
-            //    carry a specific cue beyond the raw clock hour, so when
-            //    the user explicitly schedules into one we respect it
-            //    even if the peptide's timing knowledge base doesn't
-            //    list that slot. Common case: a user takes an anti-
-            //    inflammatory peptide right after the gym.
-            if userSlot == .preBed || userSlot == .preWorkout || userSlot == .postWorkout {
-                return userSlot
-            }
-
-            // 3. Fall back to the earliest preferred window. Hits when
-            //    the user picked an ambiguous time (e.g. 14:00) for a
-            //    peptide that prefers morning + evening — we surface
-            //    the morning slot so the day's ordering stays clean.
-            if let earliest = preferred.sorted().first {
-                return earliest
-            }
+    ) -> (slot: DaySlot, usualSlot: DaySlot?) {
+        let clockSlot = DaySlot.from(hour: calendar.component(.hour, from: entry.date))
+        let preferred = (timing?.preferredWindows ?? []).compactMap(DaySlot.from(_:)).sorted()
+        if clockSlot == .morning,
+           let morning = preferred.first(where: { $0 == .morningFasted || $0 == .morningWithFood }) {
+            return (morning, nil)
         }
-        return userSlot
+        if preferred.isEmpty || preferred.contains(clockSlot) {
+            return (clockSlot, nil)
+        }
+        return (clockSlot, preferred.first)
     }
 
     // MARK: - Ordering within a slot
@@ -390,7 +388,7 @@ enum DailyScheduleEngine {
         for abbreviation: String,
         others: [String],
         timing: PeptideTimingData.PeptideTiming?,
-        fastedRequired: Bool
+        noteFasted: Bool
     ) -> [ConflictHint] {
         var hints: [ConflictHint] = []
         let companions = Array(Set(others).subtracting([abbreviation]))
@@ -443,18 +441,14 @@ enum DailyScheduleEngine {
 
         // Fasted reminder if at least one other dose lands in the same slot,
         // so the user knows not to break the fast for the second injection.
-        if fastedRequired && !companions.isEmpty {
-            let fastedNote = String(localized: "Stay fasted — don't eat for 30 min after injection. Other doses in this window can be taken back-to-back without breaking the fast.")
-            // Only add if this is the first fasted-required peptide we see;
-            // otherwise the note becomes redundant noise.
-            if !hints.contains(where: { $0.title.hasPrefix("Stay fasted") }) {
-                hints.append(ConflictHint(
-                    severity: .info,
-                    title: String(localized: "Stay fasted"),
-                    detail: fastedNote,
-                    counterpart: nil
-                ))
-            }
+        // The caller asks for it once per slot.
+        if noteFasted && !companions.isEmpty {
+            hints.append(ConflictHint(
+                severity: .info,
+                title: String(localized: "Stay fasted"),
+                detail: String(localized: "Stay fasted — don't eat for 30 min after injection. Other doses in this window can be taken back-to-back without breaking the fast."),
+                counterpart: nil
+            ))
         }
 
         // Deduplicate while preserving severity order (danger > caution > info).

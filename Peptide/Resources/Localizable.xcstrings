@@ -5825,6 +5825,16 @@
         }
       }
     },
+    "All doses logged today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alla doser loggade idag"
+          }
+        }
+      }
+    },
     "ALT": {
       "localizations": {
         "sv": {
@@ -10471,6 +10481,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tidig fasta"
+          }
+        }
+      }
+    },
+    "Early in the day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tidigt på dagen"
           }
         }
       }
@@ -31281,6 +31301,16 @@
         }
       }
     },
+    "Start with %@ on waking": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Börja med %@ vid uppvaknandet"
+          }
+        }
+      }
+    },
     "Start with %@ — fasted, on waking": {
       "localizations": {
         "sv": {
@@ -35455,6 +35485,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "vanlig portion"
+          }
+        }
+      }
+    },
+    "Usually taken: %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tas vanligtvis: %@."
           }
         }
       }
