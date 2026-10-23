@@ -450,7 +450,7 @@ struct TrainOverviewView: View {
         NavigationLink(value: TrainNavigation.workoutDetail(session.id)) {
             HStack(spacing: Spacing.md) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(session.name ?? defaultSessionName(for: session))
+                    Text(session.displayName)
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text(session.startedAt.formatted(date: .abbreviated, time: .shortened))
@@ -473,17 +473,13 @@ struct TrainOverviewView: View {
                 Image(systemName: "chevron.right")
                     .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityHidden(true)
             }
             .padding(.vertical, Spacing.sm)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
-    }
-
-    private func defaultSessionName(for session: WorkoutSession) -> String {
-        let dayName = session.startedAt.formatted(.dateTime.weekday(.wide))
-        return String(localized: "\(dayName) workout")
     }
 
     // MARK: - Calendar
