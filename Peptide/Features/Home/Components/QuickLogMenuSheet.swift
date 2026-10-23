@@ -107,7 +107,7 @@ struct QuickLogMenuSheet: View {
             .contentShape(.rect(cornerRadius: Spacing.cardCornerRadius))
             .glassControl(.rect(cornerRadius: Spacing.cardCornerRadius))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityLabel(Text(title))
         .accessibilityHint(subtitle)
         .staggeredAppear(index: index)

@@ -131,16 +131,20 @@ struct TodayOverviewCard: View {
         )
     }
 
+    /// Fills toward the same daily goal the checklist's water row counts
+    /// to, so the two read as one target.
     private var waterTile: some View {
-        StatTile(
+        let target = Double(TodayChecklistEngine.waterTargetOz)
+        return StatTile(
             label: "Water",
             // Same label as the checklist row ("1.4 L", not "1420").
             value: snapshot.waterToday > 0 ? unit.volumeLabel(snapshot.waterToday) : "—",
             icon: "drop.fill",
             tint: AppColor.macroWater,
             footnote: snapshot.waterToday > 0
-                ? (isToday ? String(localized: "logged today") : String(localized: "logged"))
-                : (isToday ? String(localized: "Tap to add") : String(localized: "None logged"))
+                ? String(localized: "of \(unit.volumeLabel(target)) goal")
+                : (isToday ? String(localized: "Tap to add") : String(localized: "None logged")),
+            progress: snapshot.waterToday > 0 ? min(snapshot.waterToday / target, 1.0) : nil
         )
     }
 

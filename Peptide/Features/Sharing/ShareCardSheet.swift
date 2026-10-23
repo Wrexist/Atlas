@@ -88,26 +88,36 @@ struct ShareCardSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Spacing.xl) {
-                    ShareFormatPicker(options: ShareFormat.allCases, selection: $format)
-                        .disabled(isRendering)
-                        .padding(.horizontal, Spacing.screenPadding)
+                    // The format's description sits with the picker it
+                    // describes, not below the privacy switches.
+                    VStack(spacing: Spacing.sm) {
+                        ShareFormatPicker(options: ShareFormat.allCases, selection: $format)
+                            .disabled(isRendering)
+                            .padding(.horizontal, Spacing.screenPadding)
+                        pitch
+                    }
                     preview
                     privacyToggle
-                    pitch
-                    GlassButton(
-                        title: isRendering ? "Preparing…" : "Share card",
-                        icon: "square.and.arrow.up",
-                        style: .primary,
-                        isFullWidth: true
-                    ) {
-                        renderAndShare()
-                    }
-                    // Until HealthKit answers, a render would drop the
-                    // health row the toggle says is included.
-                    .disabled(isRendering || isLoadingHealth)
-                    .padding(.horizontal, Spacing.screenPadding)
                 }
                 .padding(.vertical, Spacing.xl)
+            }
+            // The one action this sheet exists for stays in reach under the
+            // thumb instead of below a 426pt preview and the toggles.
+            .pinnedFooter {
+                GlassButton(
+                    title: isRendering ? "Preparing…" : "Share card",
+                    icon: "square.and.arrow.up",
+                    style: .primary,
+                    isFullWidth: true
+                ) {
+                    renderAndShare()
+                }
+                // Until HealthKit answers, a render would drop the
+                // health row the toggle says is included.
+                .disabled(isRendering || isLoadingHealth)
+                .padding(.horizontal, Spacing.screenPadding)
+                .padding(.top, Spacing.lg)
+                .padding(.bottom, Spacing.sm)
             }
             .background(AppColor.background)
             .navigationTitle("Share")
@@ -233,7 +243,7 @@ struct ShareCardSheet: View {
     // MARK: - Privacy toggle
 
     private var privacyToggle: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
             Toggle(isOn: $includeHealth) {
                 HStack(spacing: Spacing.sm) {
                     Image(systemName: "heart.text.square.fill")
@@ -256,6 +266,17 @@ struct ShareCardSheet: View {
             }
             .toggleStyle(.switch)
             .tint(AppColor.accentPrimary)
+
+            if isLoadingHealth {
+                HStack(spacing: Spacing.xs) {
+                    ProgressView().controlSize(.mini)
+                    Text("Loading health data…")
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.textTertiary)
+                }
+            }
+
+            Divider().overlay(AppColor.glassBorder)
 
             Toggle(isOn: $maskCompoundNames) {
                 HStack(spacing: Spacing.sm) {
@@ -282,14 +303,6 @@ struct ShareCardSheet: View {
             }
             .foregroundStyle(AppColor.textTertiary)
 
-            if isLoadingHealth {
-                HStack(spacing: Spacing.xs) {
-                    ProgressView().controlSize(.mini)
-                    Text("Loading health data…")
-                        .font(AppFont.caption2)
-                        .foregroundStyle(AppColor.textTertiary)
-                }
-            }
         }
         .padding(Spacing.md)
         .background {
