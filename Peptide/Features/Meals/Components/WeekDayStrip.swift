@@ -53,7 +53,8 @@ struct WeekDayStrip: View {
         let isSelected = dayOffset == offset
         let isSelectable = Self.selectableOffsets.contains(dayOffset)
         let isToday = dayOffset == 0
-        let hasMeals = isSelectable && dataStore.consumption(for: day).caloriesKcal > 0
+        let hasMeals = isSelectable
+            && (!dataStore.mealEntries(for: day).isEmpty || dataStore.consumption(for: day).caloriesKcal > 0)
         return Button { select(dayOffset) } label: {
             VStack(spacing: Spacing.xxs) {
                 Text(day, format: .dateTime.weekday(.abbreviated))

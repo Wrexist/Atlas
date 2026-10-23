@@ -29,6 +29,9 @@ struct MealScanFlow: View {
     /// photo instead of retrying this one.
     @State private var errorNeedsNewPhoto = false
     @State private var category: MealCategory = MealCategory.auto(for: Date())
+    /// Set once the user taps the category picker, so a later time change
+    /// never overrides their choice, even when it matches the time's default.
+    @State private var categoryPickedByHand = false
     /// The dish the model thinks these items add up to, when they add up to
     /// one. Nil for a tray of unrelated things, which is what keeps the
     /// combine control from appearing where it would make no sense.
@@ -585,7 +588,9 @@ struct MealScanFlow: View {
                     combineControl
                 }
 
-                MealCategoryPicker(selection: $category)
+                MealCategoryPicker(selection: Binding(
+                    get: { category }, set: { category = $0; categoryPickedByHand = true }
+                ))
                 DatePicker("Log meal on", selection: Binding(
                     get: { logDate }, set: { moveLogDate(to: $0) }
                 ), in: ...Date(), displayedComponents: [.date, .hourAndMinute])
@@ -808,6 +813,7 @@ struct MealScanFlow: View {
         photoScale = nil
         chosenLogDate = draft.date
         category = draft.category
+        categoryPickedByHand = draft.category != MealCategory.auto(for: draft.date)
         suggestedMealName = draft.suggestedName
         insight = draft.insight
         mealName = draft.name
@@ -957,6 +963,7 @@ struct MealScanFlow: View {
                 // dinner photo picked at 10am gets bucketed as snack
                 // (audit Meals M1).
                 category = MealCategory.auto(for: logDate)
+                categoryPickedByHand = false
                 chosenLogDate = logDate
                 phase = .review
                 _ = persistDraft()
@@ -1057,7 +1064,7 @@ struct MealScanFlow: View {
     /// Moving the meal to another time of day re-files it under the meal
     /// that time belongs to, unless the user already picked one by hand.
     private func moveLogDate(to date: Date) {
-        if category == MealCategory.auto(for: logDate) {
+        if !categoryPickedByHand {
             category = MealCategory.auto(for: date)
         }
         chosenLogDate = date
