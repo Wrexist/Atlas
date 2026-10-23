@@ -676,7 +676,7 @@ final class PersistenceRoundTripTests: XCTestCase {
         let nextRising = LabValue(
             date: today, panel: .totalTestosterone, value: 720   // 20% delta
         )
-        if case .rising(let delta) = LabDataLogic.computeTrend(entries: [prev, nextRising]) {
+        if case .rising(let delta)? = LabDataLogic.computeTrend(entries: [prev, nextRising]) {
             XCTAssertEqual(delta, 120, accuracy: 0.01)
         } else {
             XCTFail("Expected rising trend for +20% delta")
@@ -692,6 +692,14 @@ final class PersistenceRoundTripTests: XCTestCase {
         )
         let next = LabValue(date: today, panel: .crp, value: 0)
         XCTAssertEqual(LabDataLogic.computeTrend(entries: [prev, next]), .stable)
+    }
+
+    /// One draw has nothing to compare against, so no direction — not
+    /// "stable" — is reported.
+    func test_labTrend_singleEntry_isNil() {
+        let only = LabValue(date: Date(), panel: .totalTestosterone, value: 600)
+        XCTAssertNil(LabDataLogic.computeTrend(entries: [only]))
+        XCTAssertNil(LabDataLogic.computeTrend(entries: []))
     }
 
     func test_latestPerPanel_returnsMostRecentPerPanelAndPreservesCategoryOrder() {

@@ -366,16 +366,19 @@ struct LabSummaryRow: View {
                         .foregroundStyle(rangeStatus.tint)
                 }
             }
-            Image(systemName: trendSymbol)
-                .font(AppFont.scaled(11, weight: .heavy))
-                .foregroundStyle(AppColor.textSecondary)
-                .padding(Spacing.xs)
-                .background { Circle().fill(AppColor.textSecondary.opacity(0.12)) }
+            // A single draw has nothing to compare against.
+            if let trend = summary.trend {
+                Image(systemName: trendSymbol(trend))
+                    .font(AppFont.scaled(11, weight: .heavy))
+                    .foregroundStyle(AppColor.textSecondary)
+                    .padding(Spacing.xs)
+                    .background { Circle().fill(AppColor.textSecondary.opacity(0.12)) }
+            }
         }
     }
 
-    private var trendSymbol: String {
-        switch summary.trend {
+    private func trendSymbol(_ trend: LabTrend) -> String {
+        switch trend {
         case .rising:  "arrow.up.right"
         case .falling: "arrow.down.right"
         case .stable:  "minus"
@@ -386,9 +389,10 @@ struct LabSummaryRow: View {
         let v = LabValueFormat.string(summary.latest.value)
         let trendDesc: String
         switch summary.trend {
-        case .rising:  trendDesc = String(localized: "trending up")
-        case .falling: trendDesc = String(localized: "trending down")
-        case .stable:  trendDesc = String(localized: "stable")
+        case .rising?:  trendDesc = String(localized: "trending up")
+        case .falling?: trendDesc = String(localized: "trending down")
+        case .stable?:  trendDesc = String(localized: "stable")
+        case nil:       trendDesc = ""
         }
         let status: String
         switch rangeStatus {
