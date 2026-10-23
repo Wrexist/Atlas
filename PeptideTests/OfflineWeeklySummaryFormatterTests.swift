@@ -106,11 +106,11 @@ final class OfflineWeeklySummaryFormatterTests: XCTestCase {
     }
 
     func test_summary_nutritionUnderTarget_isUnder() {
-        XCTAssertTrue(summary(aggregate(nutrition: nutrition(avgCalories: 1849))).contains("under target at 1849 kcal/day"))
+        XCTAssertTrue(summary(aggregate(nutrition: nutrition(avgCalories: 1849))).contains("under target at \(1849.formatted()) kcal/day"))
     }
 
     func test_summary_nutritionOverTarget_isOver() {
-        XCTAssertTrue(summary(aggregate(nutrition: nutrition(avgCalories: 2151))).contains("over target at 2151 kcal/day"))
+        XCTAssertTrue(summary(aggregate(nutrition: nutrition(avgCalories: 2151))).contains("over target at \(2151.formatted()) kcal/day"))
     }
 
     func test_summary_labPanels_pluralisesPanelWord() {
