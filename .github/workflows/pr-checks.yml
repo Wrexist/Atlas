@@ -127,6 +127,12 @@ jobs:
     # took 14 min with ten tests failing early and pushed a labelled run
     # to 38m41s of the old 40 min ceiling; a passing suite takes longer.
     timeout-minutes: 75
+    env:
+      # Pinned so a tool upgrade is a reviewed diff, not a runner-image
+      # or cache accident (.swiftlint.yml records one that changed the
+      # gate). Bump both here and the cache key follows.
+      XCODEGEN_VERSION: 2.46.0
+      SWIFTLINT_VERSION: 0.65.1
 
     steps:
       - uses: actions/checkout@v7
@@ -138,43 +144,43 @@ jobs:
       - name: Verify Xcode version
         run: xcodebuild -version
 
-      - name: Cache Homebrew packages
+      - name: Cache pinned tools
+        # Keyed on the job's pinned versions, so bumping one is a recorded
+        # diff that refreshes the cache. The old Homebrew cache had a
+        # constant key and froze whatever version it first saw (B344).
         uses: actions/cache@v6
         with:
-          path: |
-            ~/Library/Caches/Homebrew
-            /usr/local/Cellar/xcodegen
-            /opt/homebrew/Cellar/xcodegen
-            /usr/local/Cellar/swiftlint
-            /opt/homebrew/Cellar/swiftlint
-          key: brew-tools-${{ runner.os }}-${{ runner.arch }}
+          path: ~/.ci-tools
+          key: ci-tools-${{ runner.os }}-${{ runner.arch }}-xcodegen-${{ env.XCODEGEN_VERSION }}-swiftlint-${{ env.SWIFTLINT_VERSION }}
 
-      - name: Cache DerivedData
-        # Hash every file that influences build output, not just
-        # project.yml — a Fastfile/Gemfile/.swiftlint.yml change with
-        # no project.yml diff would otherwise restore a stale cache.
-        uses: actions/cache@v6
+      - name: Restore DerivedData
+        # Keyed per commit and restored from the newest prefix match.
+        # actions/cache only saves on a key miss, so a config-hash key
+        # was saved once and then restored ever staler; main pushes now
+        # save a fresh copy (see "Save DerivedData" below).
+        uses: actions/cache/restore@v6
         with:
           path: ~/Library/Developer/Xcode/DerivedData
-          key: derived-data-${{ runner.os }}-${{ hashFiles('project.yml', 'Gemfile.lock', 'fastlane/Fastfile', '.swiftlint.yml') }}
+          key: derived-data-${{ runner.os }}-${{ github.sha }}
           restore-keys: derived-data-${{ runner.os }}-
 
-      - name: Install XcodeGen
+      - name: Install XcodeGen and SwiftLint
         run: |
-          if brew list xcodegen &>/dev/null 2>&1; then
-            brew unlink xcodegen 2>/dev/null || true
-            brew link --overwrite xcodegen 2>/dev/null || true
-          else
-            brew install xcodegen || brew reinstall xcodegen
+          TOOLS="$HOME/.ci-tools"
+          if [ ! -x "$TOOLS/xcodegen/bin/xcodegen" ]; then
+            mkdir -p "$TOOLS"
+            curl -fsSL -o "$RUNNER_TEMP/xcodegen.zip" \
+              "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
+            unzip -q -o "$RUNNER_TEMP/xcodegen.zip" -d "$TOOLS"
           fi
-          echo "$(brew --prefix)/bin" >> $GITHUB_PATH
-          export PATH="$(brew --prefix)/bin:$PATH"
-          if ! command -v xcodegen &> /dev/null; then
-            echo "FATAL: xcodegen still not on PATH after install"
-            ls -la "$(brew --prefix)/Cellar/xcodegen/" 2>/dev/null || echo "No xcodegen in Cellar"
-            exit 1
+          if [ ! -x "$TOOLS/swiftlint/swiftlint" ]; then
+            curl -fsSL -o "$RUNNER_TEMP/swiftlint.zip" \
+              "https://github.com/realm/SwiftLint/releases/download/${SWIFTLINT_VERSION}/portable_swiftlint.zip"
+            unzip -q -o "$RUNNER_TEMP/swiftlint.zip" -d "$TOOLS/swiftlint"
           fi
-          echo "XcodeGen ready: $(xcodegen --version)"
+          echo "$TOOLS/xcodegen/bin" >> "$GITHUB_PATH"
+          echo "$TOOLS/swiftlint" >> "$GITHUB_PATH"
+          echo "XcodeGen $("$TOOLS/xcodegen/bin/xcodegen" --version), SwiftLint $("$TOOLS/swiftlint/swiftlint" version)"
 
       - name: Generate Xcode project
         run: xcodegen generate
@@ -281,16 +287,6 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
 
-      - name: Install SwiftLint
-        run: |
-          if brew list swiftlint &>/dev/null 2>&1; then
-            brew unlink swiftlint 2>/dev/null || true
-            brew link --overwrite swiftlint 2>/dev/null || true
-          else
-            brew install swiftlint || brew reinstall swiftlint
-          fi
-          echo "SwiftLint ready: $(swiftlint version)"
-
       - name: Lint
         # `force_unwrapping` and `implicitly_unwrapped_optional` are
         # already configured at error severity, so they gate every PR
@@ -345,6 +341,15 @@ jobs:
             -only-testing:PeptideTests \
             -resultBundlePath UnitTestResults.xcresult \
             2>&1 | tee test-output.log
+
+      - name: Save DerivedData
+        # Only main pushes save, so every main build refreshes the cache
+        # PRs restore from, and PR runs cannot evict it with their own.
+        if: "!cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main'"
+        uses: actions/cache/save@v6
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: derived-data-${{ runner.os }}-${{ github.sha }}
 
       - name: Coverage report
         if: always()
