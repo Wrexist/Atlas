@@ -348,7 +348,12 @@ struct SyringeDiagram: View {
     }
 
     private var accessibilityLabel: String {
-        let units = Int(unitsToFill.rounded())
+        guard unitsToFill > 0, let units = ReconstitutionEngine.roundedUnits(unitsToFill) else {
+            return String(
+                localized: "Syringe diagram. No amount entered.",
+                comment: "VoiceOver readout for the reconstitution calculator's syringe diagram when there is no result to show."
+            )
+        }
         return String(
             localized: "Syringe diagram. Equivalent volume: \(units) units on a 100-unit syringe.",
             comment: "VoiceOver readout for the reconstitution calculator's syringe diagram."

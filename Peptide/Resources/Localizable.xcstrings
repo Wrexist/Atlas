@@ -10695,6 +10695,16 @@
         }
       }
     },
+    "Syringe diagram. No amount entered.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprutdiagram. Ingen mängd angiven."
+          }
+        }
+      }
+    },
     "milliliters": {
       "localizations": {
         "sv": {

@@ -111,6 +111,10 @@ final class ReconstitutionEngineTests: XCTestCase {
         XCTAssertNil(ReconstitutionEngine.roundedUnits(1e300))
     }
 
+    func test_roundedUnits_hugeValue_returnsNil() {
+        XCTAssertNil(ReconstitutionEngine.roundedUnits(1e19))
+    }
+
     func test_hasFractionalUnits_wholeNumber_isFalse() {
         XCTAssertFalse(ReconstitutionEngine.hasFractionalUnits(10))
     }
