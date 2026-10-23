@@ -20,14 +20,6 @@ struct AppearanceSettings: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
 
-                // Protocol reminders only mean something to someone
-                // running a protocol.
-                if !dataStore.activeProtocols.isEmpty {
-                    ProtocolRemindersRow()
-
-                    Divider().overlay(AppColor.glassBorder)
-                }
-
                 SettingsToggleRow(
                     icon: "hand.tap.fill",
                     title: "Haptic feedback",

@@ -10,10 +10,21 @@ struct ThemeChoicePage: View {
 
     var body: some View {
         VStack(spacing: Spacing.xxl) {
-            OnboardingHeader(
-                title: "Make it yours.",
-                subtitle: "Choose your look. You can change this any time in Profile → Settings."
-            )
+            // A section heading, not a page title: the cover above it
+            // leads with the finish ("You're all set"), and the look is
+            // an optional extra under it.
+            VStack(spacing: Spacing.xs) {
+                Text("Make it yours.")
+                    .font(AppFont.title3)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .accessibilityAddTraits(.isHeader)
+                Text("Choose your look. You can change this any time in Profile → Settings.")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity)
 
             displayModeSection
 

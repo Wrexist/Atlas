@@ -258,16 +258,14 @@ struct PaywallView: View {
             Image(systemName: "lock.shield.fill")
                 .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.accentPrimary)
-            Text(isOneTimePurchaseSelected
-                 ? "Private by design — no ads, no tracking"
-                 : "Private by design — no ads, no tracking, cancel anytime")
+            // "Cancel anytime" already sits in the offer line and the CTA;
+            // repeating it here made the trust line read as boilerplate.
+            Text("Private by design — no ads, no tracking")
                 .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(isOneTimePurchaseSelected
-                            ? "Private by design. No ads, no tracking."
-                            : "Private by design. No ads, no tracking. Cancel anytime.")
+        .accessibilityLabel("Private by design. No ads, no tracking.")
     }
 
     /// Lifetime is a one-time purchase: "cancel anytime" copy would
@@ -591,7 +589,10 @@ struct PaywallView: View {
                     // "BEST VALUE" is two words and it was pushing the
                     // title into a mid-word wrap ("Lifet / ime") on the
                     // narrowest phones. One word, same promise.
-                    badge: String(localized: "FOREVER")
+                    badge: String(localized: "FOREVER"),
+                    // Only the recommended plan's pill is lit, so the eye
+                    // has one place to land instead of two glowing badges.
+                    isBadgeEmphasized: false
                 )
             }
         }
@@ -641,7 +642,8 @@ struct PaywallView: View {
         primaryPrice: String,
         primaryUnit: String,
         subtitle: String,
-        badge: String?
+        badge: String?,
+        isBadgeEmphasized: Bool = true
     ) -> some View {
         let isSelected = selectedProductID == product.id
         return Button {
@@ -666,7 +668,7 @@ struct PaywallView: View {
                                 // word that has to stay readable — wraps mid-word.
                                 .fixedSize()
                             if let badge {
-                                savingsPill(badge)
+                                savingsPill(badge, isEmphasized: isBadgeEmphasized)
                             }
                         }
 
@@ -690,7 +692,7 @@ struct PaywallView: View {
                         planTitle(title)
                             .minimumScaleFactor(0.7)
                         if let badge {
-                            savingsPill(badge)
+                            savingsPill(badge, isEmphasized: isBadgeEmphasized)
                         }
                         Text(subtitle)
                             .font(AppFont.caption2)
@@ -765,19 +767,30 @@ struct PaywallView: View {
         }
     }
 
-    private func savingsPill(_ text: String) -> some View {
-        Text(text)
+    @ViewBuilder
+    private func savingsPill(_ text: String, isEmphasized: Bool) -> some View {
+        let label = Text(text)
             .font(AppFont.scaled(11, weight: .heavy))
-            .foregroundStyle(AppColor.onAccent)
             .lineLimit(1)
             .fixedSize()
             .padding(.horizontal, Spacing.sm)
             .padding(.vertical, 2)
-            .background {
-                Capsule()
-                    .fill(AppColor.accentFill)
-            }
-            .shadow(color: AppColor.accentGlow, radius: 6, y: 2)
+        if isEmphasized {
+            label
+                .foregroundStyle(AppColor.onAccent)
+                .background {
+                    Capsule()
+                        .fill(AppColor.accentFill)
+                }
+                .shadow(color: AppColor.accentGlow, radius: 6, y: 2)
+        } else {
+            label
+                .foregroundStyle(AppColor.textSecondary)
+                .background {
+                    Capsule()
+                        .strokeBorder(AppColor.glassBorder, lineWidth: 1)
+                }
+        }
     }
 
     /// Secondary line under the billed yearly price: "7 days free · €2.08/mo"

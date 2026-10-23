@@ -141,6 +141,21 @@ struct OnboardingView: View {
              athletic, recomp, betterSleep, recovery, antiAging,
              skinHair, energy
         var id: String { rawValue }
+
+        /// The goals the grid opens with — one per pillar the app leads
+        /// with (train, eat, recover). The rest wait behind "More goals",
+        /// so the first look is six cards instead of eleven.
+        static let featured: Set<PrimaryGoal> = [
+            .buildMuscle, .loseFat, .getStronger, .stayConsistent, .betterSleep, .recovery,
+        ]
+
+        /// Cards the goal grid shows, in case order. Expands on its own
+        /// when a saved selection includes a goal outside `featured`, so
+        /// nothing picked is ever hidden.
+        static func visible(showingAll: Bool, selected: Set<PrimaryGoal>) -> [PrimaryGoal] {
+            guard !showingAll, selected.isSubset(of: featured) else { return allCases }
+            return allCases.filter(featured.contains)
+        }
         var displayName: String {
             switch self {
             case .buildMuscle:    return String(localized: "Build muscle")
@@ -383,7 +398,7 @@ struct OnboardingView: View {
             )
         }
         .fullScreenCover(isPresented: $showThemePicker) {
-            ThemePickerCover(onContinue: {
+            ThemePickerCover(name: name.trimmingCharacters(in: .whitespacesAndNewlines), onContinue: {
                 OnboardingFunnelTracker.recordCompletion()
                 showThemePicker = false
                 hasCompleted = true
@@ -496,9 +511,7 @@ struct OnboardingView: View {
     }
 
     private var progressFraction: CGFloat {
-        guard totalPages > 1 else { return 1 }
-        let pos = CGFloat(page.rawValue) / CGFloat(totalPages - 1)
-        return min(1, max(0, pos))
+        CGFloat(page.progressFraction)
     }
 
     private var footer: some View {
@@ -703,6 +716,12 @@ struct OnboardingView: View {
                 SocialProofPill()
                     .padding(.top, Spacing.sm)
                     .staggeredAppear(index: 3)
+                // Sets the length up front, so the progress bar above
+                // reads as a short run rather than an open-ended form.
+                Label("Takes about 2 minutes", systemImage: "clock")
+                    .font(AppFont.footnote)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .staggeredAppear(index: 4)
                 Spacer()
                 Spacer()
             }
@@ -852,10 +871,22 @@ struct OnboardingView: View {
             Haptics.selection()
             AppAnimation.with(AppAnimation.springSnappy) { attributionChannel = channel }
             OnboardingFunnelTracker.recordEvent("attribution_\(channel.rawValue)")
+            advanceAfterAttribution(channel)
         } label: { chipLabel(channel: channel, isSelected: isSelected) }
         .buttonStyle(ScalePressStyle())
         .accessibilityLabel(channel.displayName)
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+    }
+
+    /// A single-answer survey is done the moment it's answered, so the
+    /// page moves on by itself once the check has landed. A second tap
+    /// inside the pause re-targets the answer instead of advancing twice.
+    private func advanceAfterAttribution(_ channel: AttributionChannel) {
+        Task {
+            try? await Task.sleep(for: .milliseconds(450))
+            guard page == .referral, attributionChannel == channel else { return }
+            advance()
+        }
     }
 
     @ViewBuilder
@@ -937,10 +968,15 @@ struct OnboardingView: View {
                 ScrollView {
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())],
                               spacing: Spacing.sm) {
-                        ForEach(PrimaryGoal.allCases) { goalCard($0) }
+                        ForEach(visibleGoals) { goalCard($0) }
                     }
                     .padding(.horizontal, Spacing.lg)
                     .padding(.top, Spacing.sm)
+
+                    if visibleGoals.count < PrimaryGoal.allCases.count {
+                        moreGoalsButton
+                            .padding(.top, Spacing.xs)
+                    }
 
                     if goalHasBeenSelected {
                         goalDateSection
@@ -976,6 +1012,24 @@ struct OnboardingView: View {
     /// Drives the date-section reveal so the picker only appears
     /// once there's an intention to anchor it to.
     @State private var goalHasBeenSelected: Bool = false
+    @State private var showsAllGoals = false
+
+    private var visibleGoals: [PrimaryGoal] {
+        PrimaryGoal.visible(showingAll: showsAllGoals, selected: selectedGoals)
+    }
+
+    private var moreGoalsButton: some View {
+        Button {
+            Haptics.selection()
+            AppAnimation.with(AppAnimation.springSmooth) { showsAllGoals = true }
+        } label: {
+            Label("More goals", systemImage: "chevron.down")
+                .font(AppFont.subheadline.weight(.semibold))
+                .foregroundStyle(AppColor.accentLight)
+                .minimumHitArea()
+        }
+        .buttonStyle(.plain)
+    }
 
     private var goalDateSection: some View {
         VStack(spacing: Spacing.sm) {
@@ -1060,6 +1114,10 @@ struct OnboardingView: View {
 
     /// See `OnboardingPlanEngine.toggling` for the primary-goal rules.
     private func toggleGoal(_ goal: PrimaryGoal) {
+        // A goal outside the featured six is only on screen because the
+        // grid is expanded; pin it open so deselecting it can't collapse
+        // the grid under the user's finger.
+        if !PrimaryGoal.featured.contains(goal) { showsAllGoals = true }
         let result = OnboardingPlanEngine.toggling(goal, in: selectedGoals, primary: primaryGoal)
         selectedGoals = result.selected
         primaryGoal = result.primary
@@ -1932,18 +1990,31 @@ private struct ProjectionChart: View {
     }
 }
 
-/// Theme picker presented as the second full-screen cover in the
-/// onboarding tail. Wraps `ThemeChoicePage` with a chrome bar so the
-/// user can confirm and finally enter the app.
+/// The last screen of onboarding, after the paywall closes either way.
+/// It opens on the finish — "You're all set" with a success beat — so
+/// the flow ends on its payoff rather than on a settings form; the
+/// optional theme choice sits underneath it.
 private struct ThemePickerCover: View {
+    let name: String
     let onContinue: () -> Void
     @State private var themeManager = ThemeManager.shared
+    @State private var arrival = 0
 
     var body: some View {
         ScrollView {
-            ThemeChoicePage(theme: themeManager)
-                .padding(.horizontal, Spacing.screenPadding)
-                .padding(.top, Spacing.xxl)
+            VStack(spacing: Spacing.xl) {
+                VStack(spacing: Spacing.md) {
+                    HeroIcon(symbol: "checkmark.seal.fill", color: AppColor.positive, size: 72, bounceTrigger: arrival)
+                    OnboardingHeader(title: finishTitle, subtitle: "Your plan, targets and schedule are saved.")
+                }
+                ThemeChoicePage(theme: themeManager)
+            }
+            .padding(.horizontal, Spacing.screenPadding)
+            .padding(.top, Spacing.xxl)
+        }
+        .onAppear {
+            Haptics.success()
+            arrival += 1
         }
         .pinnedFooter {
             PrimaryCTAButton(title: "Enter Atlas") {
@@ -1956,6 +2027,11 @@ private struct ThemePickerCover: View {
         }
         .background(AppColor.background.ignoresSafeArea())
         .preferredColorScheme(themeManager.displayMode.preferredScheme)
+    }
+
+    private var finishTitle: LocalizedStringKey {
+        if name.isEmpty { return "You're all set." }
+        return "You're all set, \(name)."
     }
 }
 

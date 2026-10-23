@@ -44,7 +44,7 @@ struct LabsView: View {
                     if summaries.isEmpty {
                         emptyState
                     } else {
-                        introHeader(count: summaries.count)
+                        introHeader(summaries)
                         ForEach(Array(byCategory(summaries).enumerated()), id: \.element.0) { index, group in
                             section(for: group.0, rows: group.1)
                                 .sectionAppear(index: index)
@@ -94,6 +94,7 @@ struct LabsView: View {
                 LabEntryEditor(
                     initial: nil,
                     defaultPanel: mostRecentPanel(in: summaries),
+                    carryOver: LabEntryEditor.carryOverEntry(from: dataStore.profile.labHistory, now: Date()),
                     sex: dataStore.profile.bodyMetrics.sex,
                     onSave: { value in
                         AppAnimation.with(AppAnimation.springSnappy) { dataStore.saveLabValue(value) }
@@ -197,12 +198,28 @@ struct LabsView: View {
 
     // MARK: - Sections
 
-    private func introHeader(count: Int) -> some View {
-        Text("^[\(count) marker](inflect: true) tracked")
-            .font(AppFont.subheadline)
-            .foregroundStyle(AppColor.textSecondary)
-            .contentTransition(.numericText())
-            .frame(maxWidth: .infinity, alignment: .leading)
+    /// The count, then how many latest results sit outside their typical
+    /// range — the rows worth a look, which the category sections
+    /// otherwise scatter down the page.
+    private func introHeader(_ summaries: [LabDataLogic.LatestSummary]) -> some View {
+        let sex = dataStore.profile.bodyMetrics.sex
+        let outside = summaries.filter { summary in
+            let status = LabRangeStatus(value: summary.latest.value, panel: summary.latest.panel, sex: sex)
+            return status == .below || status == .above
+        }.count
+        return VStack(alignment: .leading, spacing: Spacing.xxs) {
+            Text("^[\(summaries.count) marker](inflect: true) tracked")
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+                .contentTransition(.numericText())
+            if outside > 0 {
+                Label("\(outside) outside the typical range", systemImage: "exclamationmark.circle.fill")
+                    .font(AppFont.subheadline.weight(.semibold))
+                    .foregroundStyle(AppColor.warning)
+                    .contentTransition(.numericText())
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func section(

@@ -66,6 +66,7 @@ struct LabPanelDetailView: View {
             LabEntryEditor(
                 initial: nil,
                 defaultPanel: panel,
+                carryOver: LabEntryEditor.carryOverEntry(from: dataStore.profile.labHistory, now: Date()),
                 sex: userSex,
                 onSave: { value in
                     AppAnimation.with(AppAnimation.springSnappy) { dataStore.saveLabValue(value) }
@@ -194,7 +195,15 @@ struct LabPanelDetailView: View {
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.textTertiary)
                     .accessibilityAddTraits(.isHeader)
-                chart(entries)
+                // One draw is a dot, not a trend: say what completes it.
+                if entries.count >= 2 {
+                    chart(entries)
+                } else {
+                    Text("Log another result to see a trend.")
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
         }
     }
@@ -375,10 +384,11 @@ struct LabPanelDetailView: View {
                 }
                 Spacer(minLength: 0)
                 HStack(alignment: .firstTextBaseline, spacing: Spacing.xxs) {
+                    // Coloured by range, as on the Labs list and the chart.
                     Text(LabValueFormat.string(entry.value))
                         .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
                         .monospacedDigit()
-                        .foregroundStyle(AppColor.textPrimary)
+                        .foregroundStyle(LabRangeStatus(value: entry.value, panel: panel, sex: userSex)?.tint ?? AppColor.textPrimary)
                     Text(panel.canonicalUnit)
                         .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)

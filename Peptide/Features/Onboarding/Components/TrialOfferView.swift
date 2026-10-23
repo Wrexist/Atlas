@@ -138,7 +138,6 @@ struct TrialOfferView: View {
                     heroBadge
                     headline
                     tierPicker
-                    valueBanner
                     benefitsCard
                     socialProof
 
@@ -284,51 +283,6 @@ struct TrialOfferView: View {
                 }
             }
         }
-    }
-
-    // MARK: - Value banner
-
-    /// Static value banner. This used to be a live 10-minute
-    /// "WELCOME OFFER ENDS IN mm:ss" countdown with a draining bar — but
-    /// nothing actually changed at 0:00: the price, the trial, and the
-    /// products were identical before and after, which makes it exactly the
-    /// misleading-urgency pattern App Review has been rejecting under
-    /// Guidelines 2.3.1/3.1.2, and dishonest besides. If a real
-    /// time-limited offer ever ships (a genuine promotional offer with a
-    /// server/StoreKit-enforced expiry), a countdown can return — driven by
-    /// that offer's actual deadline, never a synthetic one.
-    private var valueBanner: some View {
-        // "Free trial" only while this Apple ID can still redeem one —
-        // same eligibility gate as the headline and the CTA. "Best value"
-        // only describes annual, so Monthly gets the offer alone.
-        let caption: String
-        switch (selectedTier == .annual, trialDays != nil) {
-        case (true, true):   caption = String(localized: "Best value — start with a free trial")
-        case (true, false):  caption = String(localized: "Best value — full access, cancel anytime")
-        case (false, true):  caption = String(localized: "Start with a free trial")
-        case (false, false): caption = String(localized: "Full access, cancel anytime")
-        }
-        return HStack(spacing: Spacing.xs) {
-            Image(systemName: "bolt.fill")
-                .font(AppFont.scaled(13, weight: .bold))
-                .foregroundStyle(AppColor.warning)
-            Text(caption)
-                .font(AppFont.scaled(13, weight: .semibold))
-                .foregroundStyle(AppColor.textPrimary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, Spacing.lg)
-        .padding(.vertical, Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
-                .fill(AppColor.warning.opacity(0.14))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
-                        .strokeBorder(AppColor.warning.opacity(0.35), lineWidth: 1)
-                }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(caption)
     }
 
     // MARK: - Trust line
@@ -591,19 +545,13 @@ struct TrialOfferView: View {
                     }
                 }
                 .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity, minHeight: 40)
-                .padding(.vertical, Spacing.md + 2)
-                .padding(.horizontal, Spacing.xl)
-                .foregroundStyle(AppColor.onAccent)
-                .background {
-                    Capsule()
-                        .fill(AppColor.accentFill)
-                        .overlay(Capsule().strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5))
-                }
+                // The same painted CTA the nine onboarding pages just
+                // used, so the purchase button reads as the next step of
+                // that flow, not a different control.
+                .primaryCTAChrome()
             }
             .buttonStyle(ScalePressStyle(pressedScale: 0.97))
             .disabled(isPurchasing || isRestoring || !arePricesLoaded)
-            .opacity(arePricesLoaded ? 1 : 0.5)
             .accessibilityLabel("\(ctaTitle). \(ctaDetail)")
 
             if pinsTerms {

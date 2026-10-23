@@ -5862,6 +5862,46 @@
         }
       }
     },
+    "AI & privacy": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI och integritet"
+          }
+        }
+      }
+    },
+    "Delete your data": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Radera dina data"
+          }
+        }
+      }
+    },
+    "Private by design — no ads, no tracking": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privat från grunden – ingen reklam, ingen spårning"
+          }
+        }
+      }
+    },
+    "These can't be undone.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det här går inte att ångra."
+          }
+        }
+      }
+    },
     "^[%lld workout](inflect: true)": {
       "comment": "Workout card subtitle: number of workouts logged.",
       "localizations": {
@@ -8625,6 +8665,16 @@
         }
       }
     },
+    "Choose your look. You can change this any time in Profile → Settings.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj ditt utseende. Du kan ändra det när du vill under Profil → Inställningar."
+          }
+        }
+      }
+    },
     "Crash reports are anonymous.": {
       "localizations": {
         "sv": {
@@ -8645,52 +8695,12 @@
         }
       }
     },
-    "Opens Today": {
+    "More goals": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Öppnar Idag"
-          }
-        }
-      }
-    },
-    "Overdue dose: %@ at %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Försenad dos: %@ kl. %@"
-          }
-        }
-      }
-    },
-    "Overdue dose: %@, %@ at %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Försenad dos: %@, %@ kl. %@"
-          }
-        }
-      }
-    },
-    "Overdue: %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Försenad: %@"
-          }
-        }
-      }
-    },
-    "Overdue: %@ • %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Försenad: %@ • %@"
+            "value": "Fler mål"
           }
         }
       }
@@ -8701,6 +8711,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dela kraschrapporter"
+          }
+        }
+      }
+    },
+    "Takes about 2 minutes": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tar ungefär 2 minuter"
           }
         }
       }
@@ -11815,6 +11835,26 @@
         }
       }
     },
+    "You're all set, %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allt är klart, %@."
+          }
+        }
+      }
+    },
+    "You're all set.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allt är klart."
+          }
+        }
+      }
+    },
     "Your Atlas Pro subscription is billed by Apple and keeps renewing until you cancel it in Settings → your name → Subscriptions.": {
       "localizations": {
         "sv": {
@@ -11831,6 +11871,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dina data är tillbaka. En säkerhetskopia av dina tidigare data kunde inte sparas."
+          }
+        }
+      }
+    },
+    "Your plan, targets and schedule are saved.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Din plan, dina dagliga mål och ditt schema är sparade."
           }
         }
       }
@@ -41871,6 +41921,160 @@
           "stringUnit": {
             "state": "translated",
             "value": "Labbskanning ingår i Atlas Pro. Om du prenumererar, återställ ditt köp och försök igen, eller ange värdena för hand."
+          }
+        }
+      }
+    },
+    "Open Profile": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppna profil"
+          }
+        }
+      }
+    },
+    "%lld outside the typical range": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld utanför typiskt intervall"
+          }
+        }
+      }
+    },
+    "^[%lld marker](inflect: true) tracked": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld markör följs"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld markörer följs"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Log another result to see a trend.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga ett resultat till för att se en trend."
+          }
+        }
+      }
+    },
+    "This can take up to a minute. Keep this screen open.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det kan ta upp till en minut. Låt skärmen vara öppen."
+          }
+        }
+      }
+    },
+    "Reading ^[%lld page](inflect: true)…": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Läser %lld sida…"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Läser %lld sidor…"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Personal best": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personbästa"
+          }
+        }
+      }
+    },
+    "Share recap": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dela sammanfattningen"
+          }
+        }
+      }
+    },
+    "Opens Today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar Idag"
+          }
+        }
+      }
+    },
+    "Overdue dose: %@ at %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Försenad dos: %@ kl. %@"
+          }
+        }
+      }
+    },
+    "Overdue dose: %@, %@ at %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Försenad dos: %@, %@ kl. %@"
+          }
+        }
+      }
+    },
+    "Overdue: %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Försenad: %@"
+          }
+        }
+      }
+    },
+    "Overdue: %@ • %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Försenad: %@ • %@"
           }
         }
       }
