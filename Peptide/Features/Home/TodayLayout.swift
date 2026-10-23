@@ -61,6 +61,28 @@ enum TodaySection: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+extension TodaySection {
+    /// The same block in `TodayDayEngine`'s terms, which decides whether
+    /// it shows on a browsed past day.
+    var dayEngineSection: TodayDayEngine.Section {
+        switch self {
+        case .atAGlance: .atAGlance
+        case .coaching: .coaching
+        case .weeklyRecap: .weeklyRecap
+        case .habits: .habits
+        case .checklist: .checklist
+        case .doses: .doses
+        case .wellness: .wellness
+        case .movement: .movement
+        case .overview: .overview
+        case .momentum: .momentum
+        case .explore: .explore
+        case .timeline: .timeline
+        case .healthMonitor: .healthMonitor
+        }
+    }
+}
+
 /// The user's Today arrangement. Lives on `UserProfile` beside
 /// `BiologyConfig` so it follows the user across devices.
 ///

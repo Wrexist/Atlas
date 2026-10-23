@@ -36,6 +36,27 @@ final class TodayOverviewSnapshotTests: XCTestCase {
         XCTAssertTrue(snapshot.hasAnySignal)
     }
 
+    // MARK: - Meal streak on a past day
+
+    func test_build_pastDay_mealStreakIgnoresLaterLogs() {
+        let store = DataStore(seedSampleData: false)
+        let calendar = Calendar.current
+        let now = Date()
+        let today = calendar.startOfDay(for: now)
+        for daysAgo in [0, 1, 2] {
+            let date = calendar.date(byAdding: .day, value: -daysAgo, to: today)!.addingTimeInterval(12 * 3600)
+            store.logMealEntry(
+                MealEntry(date: date, category: .lunch, name: "Lunch",
+                          calories: 400, proteinG: 30, carbsG: 40, fatG: 10,
+                          source: .custom)
+            )
+        }
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: now)!
+
+        XCTAssertEqual(TodayOverviewSnapshot.build(from: store, now: now).mealStreak, 3)
+        XCTAssertEqual(TodayOverviewSnapshot.build(from: store, now: yesterday).mealStreak, 2)
+    }
+
     // MARK: - Check-in
 
     func test_build_withTodayOutcome_populatesCompositeScore() throws {
@@ -60,6 +81,30 @@ final class TodayOverviewSnapshotTests: XCTestCase {
         )
         let snapshot = TodayOverviewSnapshot.build(from: store, now: now)
         XCTAssertNil(snapshot.checkInScore)
+    }
+
+    // MARK: - Browsing a past day
+
+    func test_build_pastDay_readsThatDaysWaterAndCheckIn() throws {
+        let store = DataStore(seedSampleData: false)
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+        store.logWater(fluidOunces: 24, date: yesterday)
+        store.logWater(fluidOunces: 40)
+        store.logOutcome(
+            OutcomeEntry(date: yesterday, energy: 2, sleepQuality: 2, recovery: 2, mood: 2, focus: 2)
+        )
+
+        let snapshot = TodayOverviewSnapshot.build(from: store, now: yesterday)
+
+        XCTAssertEqual(snapshot.waterToday, 24)
+        XCTAssertEqual(try XCTUnwrap(snapshot.checkInScore), 2.0, accuracy: 0.001)
+    }
+
+    func test_build_withoutInsight_dropsBottomInsight() {
+        let store = DataStore(seedSampleData: false)
+        // No target → the build would otherwise pick the calorie nudge.
+        let snapshot = TodayOverviewSnapshot.build(from: store, includesInsight: false)
+        XCTAssertNil(snapshot.bottomInsight)
     }
 
     // MARK: - Lab summary

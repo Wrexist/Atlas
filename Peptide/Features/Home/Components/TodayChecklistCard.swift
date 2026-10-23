@@ -4,14 +4,20 @@ import SwiftUI
 /// Every open row is also its own shortcut — tap meals to scan, training
 /// to start, water to add a glass, weight to type today's number — so the
 /// card answers "what's left" and closes the gap in the same place.
+/// Without `onAction` it's a read-only record of a past day.
 struct TodayChecklistCard: View {
     let state: TodayChecklistEngine.State
     let unit: MeasurementUnit
-    let onAction: (TodayChecklistEngine.Item) -> Void
+    /// Nil makes the rows display-only.
+    var onAction: ((TodayChecklistEngine.Item) -> Void)?
+    /// Names a browsed past day in the eyebrow. Nil means today.
+    var dayTitle: String?
+
+    private var isReadOnly: Bool { onAction == nil }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            HomeSectionHeader(eyebrow: "Today", title: "Daily checklist") {
+            HomeSectionHeader(eyebrow: dayTitle.map { LocalizedStringKey($0) } ?? "Today", title: "Daily checklist") {
                 Text("\(state.completedCount)/\(TodayChecklistEngine.Item.allCases.count)")
                     .font(AppFont.scaled(16, weight: .semibold, design: .rounded))
                     .monospacedDigit()
@@ -40,46 +46,59 @@ struct TodayChecklistCard: View {
         state.completedCount == TodayChecklistEngine.Item.allCases.count
     }
 
+    @ViewBuilder
     private func row(_ item: TodayChecklistEngine.Item) -> some View {
         let done = state.isDone(item)
-        return Button {
-            Haptics.impact(.light)
-            onAction(item)
-        } label: {
-            HStack(spacing: Spacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(done ? AppColor.accentFill : AppColor.surfaceSecondary.opacity(0.6))
-                    Image(systemName: done ? "checkmark" : icon(item))
-                        .font(AppFont.scaled(13, weight: .bold))
-                        .foregroundStyle(done ? AppColor.onAccent : AppColor.textSecondary)
-                        .contentTransition(.symbolEffect(.replace))
-                }
-                .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
-                .accessibilityHidden(true)
+        if let onAction {
+            Button {
+                Haptics.impact(.light)
+                onAction(item)
+            } label: {
+                rowContent(item, done: done)
+            }
+            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+            .accessibilityElement(children: .combine)
+            .accessibilityValue(done ? Text("Done") : Text("Not done"))
+            .accessibilityHint(hint(item))
+        } else {
+            rowContent(item, done: done)
+                .accessibilityElement(children: .combine)
+                .accessibilityValue(done ? Text("Done") : Text("Not done"))
+        }
+    }
 
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text(title(item))
-                        .font(AppFont.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(AppColor.textPrimary)
-                    Text(detail(item))
-                        .font(AppFont.caption2)
-                        .foregroundStyle(AppColor.textTertiary)
-                        .contentTransition(.numericText())
-                }
+    private func rowContent(_ item: TodayChecklistEngine.Item, done: Bool) -> some View {
+        HStack(spacing: Spacing.md) {
+            ZStack {
+                Circle()
+                    .fill(done ? AppColor.accentFill : AppColor.surfaceSecondary.opacity(0.6))
+                Image(systemName: done ? "checkmark" : icon(item))
+                    .font(AppFont.scaled(13, weight: .bold))
+                    .foregroundStyle(done ? AppColor.onAccent : AppColor.textSecondary)
+                    .contentTransition(.symbolEffect(.replace))
+            }
+            .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
+            .accessibilityHidden(true)
 
-                Spacer(minLength: Spacing.sm)
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(title(item))
+                    .font(AppFont.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(AppColor.textPrimary)
+                Text(detail(item))
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.textTertiary)
+                    .contentTransition(.numericText())
+            }
 
+            Spacer(minLength: Spacing.sm)
+
+            if !isReadOnly {
                 trailing(item, done: done)
             }
-            .padding(.vertical, Spacing.sm)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
-        .accessibilityElement(children: .combine)
-        .accessibilityValue(done ? Text("Done") : Text("Not done"))
-        .accessibilityHint(hint(item))
+        .padding(.vertical, Spacing.sm)
+        .contentShape(Rectangle())
     }
 
     @ViewBuilder
@@ -125,12 +144,14 @@ struct TodayChecklistCard: View {
             if state.isDone(.meals) {
                 return String(localized: "Breakfast, lunch and dinner logged")
             }
+            if isReadOnly { return String(localized: "\(state.loggedMainMealCount) of 3 logged") }
             guard let next = state.nextMeal else {
                 return String(localized: "\(state.loggedMainMealCount) of 3 logged")
             }
             return String(localized: "\(state.loggedMainMealCount) of 3 logged · \(next.displayName) next")
         case .training:
             if state.trainedToday { return String(localized: "Workout logged") }
+            if isReadOnly, state.isTrainingDay { return String(localized: "No workout logged") }
             return state.isTrainingDay
                 ? String(localized: "On the plan today — tap to start")
                 : String(localized: "Recovery counts too")
@@ -138,7 +159,9 @@ struct TodayChecklistCard: View {
             let target = Double(TodayChecklistEngine.waterTargetOz)
             return String(localized: "\(unit.volumeLabel(state.waterFluidOunces)) of \(unit.volumeLabel(target))")
         case .weight:
-            guard let kg = state.weightTodayKg else { return String(localized: "Tap to log today's weight") }
+            guard let kg = state.weightTodayKg else {
+                return isReadOnly ? String(localized: "No weigh-in logged") : String(localized: "Tap to log today's weight")
+            }
             return unit.weightLabel(kg, fractionDigits: 1)
         }
     }

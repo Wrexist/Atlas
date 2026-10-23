@@ -5,6 +5,8 @@ struct WorkoutCard: View {
     let sessionCountToday: Int
     let durationMinutesToday: Int
     let onTap: () -> Void
+    /// A browsed past day: an empty day reads as a record, not a prompt.
+    var isPastDay = false
 
     var body: some View {
         Button(action: onTap) {
@@ -44,7 +46,7 @@ struct WorkoutCard: View {
 
     private var subtitle: String {
         if sessionCountToday == 0 {
-            return "Log today's training"
+            return isPastDay ? "No training logged" : "Log today's training"
         }
         let sessionLabel = sessionCountToday == 1 ? "1 workout" : "\(sessionCountToday) workouts"
         if durationMinutesToday <= 0 {
