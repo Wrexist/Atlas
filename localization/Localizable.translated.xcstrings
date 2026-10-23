@@ -813,7 +813,7 @@
         }
       }
     },
-    "Add to Protocol": {
+    "Add to protocol": {
       "localizations": {
         "ar": {
           "stringUnit": {
@@ -824,7 +824,7 @@
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Zum Stack hinzufügen"
+            "value": "Zum Protokoll hinzufügen"
           }
         },
         "es": {
@@ -854,7 +854,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Adicionar ao stack"
+            "value": "Adicionar ao protocolo"
           }
         },
         "ru": {
@@ -882,7 +882,7 @@
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Stack anpassen"
+            "value": "Protokoll anpassen"
           }
         },
         "es": {
@@ -912,7 +912,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Ajustar stack"
+            "value": "Ajustar protocolo"
           }
         },
         "ru": {
@@ -4293,7 +4293,7 @@
         }
       }
     },
-    "In Your Protocols": {
+    "In your protocols": {
       "localizations": {
         "ar": {
           "stringUnit": {
@@ -4304,19 +4304,19 @@
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "In deinen Stacks"
+            "value": "In deinen Protokollen"
           }
         },
         "es": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "En tus Stacks"
+            "value": "En tus protocolos"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Dans vos Stacks"
+            "value": "Dans vos protocoles"
           }
         },
         "ja": {
@@ -4334,7 +4334,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Em seus Stacks"
+            "value": "Em seus protocolos"
           }
         },
         "ru": {
@@ -4478,19 +4478,19 @@
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Behalte mindestens ein Peptid im Stack."
+            "value": "Behalte mindestens ein Peptid im Protokoll."
           }
         },
         "es": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Mantén al menos un péptido en el stack."
+            "value": "Mantén al menos un péptido en el protocolo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Gardez au moins un peptide dans le stack."
+            "value": "Gardez au moins un peptide dans le protocole."
           }
         },
         "ja": {
@@ -4508,7 +4508,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Mantenha pelo menos um peptídeo no stack."
+            "value": "Mantenha pelo menos um peptídeo no protocolo."
           }
         },
         "ru": {
@@ -5406,19 +5406,19 @@
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Noch keine Stacks"
+            "value": "Noch keine Protokolle"
           }
         },
         "es": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Sin stacks aún"
+            "value": "Aún no hay protocolos"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Aucun Stack Encore"
+            "value": "Aucun protocole pour l’instant"
           }
         },
         "ja": {
@@ -5436,7 +5436,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Nenhum Stack Ainda"
+            "value": "Nenhum protocolo ainda"
           }
         },
         "ru": {
@@ -6102,19 +6102,19 @@
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Wähle einen Stack, um dieses Peptid hinzuzufügen"
+            "value": "Wähle ein Protokoll, um dieses Peptid hinzuzufügen"
           }
         },
         "es": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Elige un stack para agregar este péptido"
+            "value": "Elige un protocolo para agregar este péptido"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Choisissez un stack pour ajouter ce peptide"
+            "value": "Choisissez un protocole auquel ajouter ce peptide"
           }
         },
         "ja": {
@@ -6132,7 +6132,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Escolha um stack para adicionar este peptídeo"
+            "value": "Escolha um protocolo para adicionar este peptídeo"
           }
         },
         "ru": {
@@ -6265,7 +6265,7 @@
         }
       }
     },
-    "Protocol Alerts": {
+    "Protocol alerts": {
       "localizations": {
         "ar": {
           "stringUnit": {
@@ -6276,7 +6276,7 @@
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Stack-Benachrichtigungen"
+            "value": "Protokoll-Hinweise"
           }
         },
         "es": {
@@ -6334,7 +6334,7 @@
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Stack-Vollständigkeit"
+            "value": "Protokoll-Vollständigkeit"
           }
         },
         "es": {
@@ -6613,7 +6613,7 @@
         }
       }
     },
-    "Recommended for Your Protocol": {
+    "Recommended for your protocol": {
       "localizations": {
         "ar": {
           "stringUnit": {
@@ -6624,19 +6624,19 @@
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Für deinen Stack empfohlen"
+            "value": "Für dein Protokoll empfohlen"
           }
         },
         "es": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Recomendado para tu Stack"
+            "value": "Recomendado para tu protocolo"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Recommandé pour votre Stack"
+            "value": "Recommandé pour votre protocole"
           }
         },
         "ja": {
@@ -6654,7 +6654,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Recomendado para seu Stack"
+            "value": "Recomendado para seu protocolo"
           }
         },
         "ru": {
@@ -9460,55 +9460,55 @@
         "ar": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "على سبيل المثال، Recovery Stack"
+            "value": "على سبيل المثال، بروتوكول التعافي"
           }
         },
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "z.B. Recovery Stack"
+            "value": "z. B. Erholungsprotokoll"
           }
         },
         "es": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "p.ej., Recovery Stack"
+            "value": "p. ej., Protocolo de recuperación"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "p.ex., Recovery Stack"
+            "value": "p. ex., Protocole de récupération"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "例：Recovery Stack"
+            "value": "例：リカバリープロトコル"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "예: Recovery Stack"
+            "value": "예: 회복 프로토콜"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "p.ex., Recovery Stack"
+            "value": "p. ex., Protocolo de recuperação"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "например, Recovery Stack"
+            "value": "например, протокол восстановления"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "例如，Recovery Stack"
+            "value": "例如，恢复方案"
           }
         }
       }

@@ -14,7 +14,7 @@
  *
  * Returns: `{ text: string, generatedAt: ISOString }`.
  */
-import { principalFor, refuse } from './_lib/anthropic-proxy.js';
+import { principalFor, refuse, THINKING_OFF } from './_lib/anthropic-proxy.js';
 import { checkAppAttest } from './_lib/app-attest.js';
 import { authorize } from './_lib/auth.js';
 import {
@@ -213,7 +213,7 @@ export default async function handler(req, res) {
   // the limits count against. Same semantics as the main proxy routes.
   const attest = await checkAppAttest(req, { logLabel: 'weekly-summary' });
   if (!attest.ok) {
-    res.status(401).json({ error: { message: 'Unauthorised', code: 'attest_required' } });
+    res.status(401).json({ error: { message: 'Unauthorised', code: attest.code } });
     return;
   }
 
@@ -279,6 +279,8 @@ export default async function handler(req, res) {
   const body = {
     model: MODEL,
     max_tokens: MAX_TOKENS,
+    // MAX_TOKENS is sized for the recap alone; see THINKING_OFF.
+    thinking: THINKING_OFF,
     system: SYSTEM_PROMPT,
     messages: [
       {

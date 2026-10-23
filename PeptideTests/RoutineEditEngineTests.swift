@@ -89,6 +89,27 @@ final class RoutineEditEngineTests: XCTestCase {
         )
     }
 
+    func test_duplicate_nameAtTheLimit_keepsTheCopySuffix() {
+        let name = String(repeating: "a", count: RoutineEditEngine.nameLimit)
+
+        let copy = RoutineEditEngine.duplicate(routine(name), existingNames: [name]).name
+
+        XCTAssertNotEqual(copy, name)
+        XCTAssertTrue(copy.hasSuffix(" copy"))
+        XCTAssertLessThanOrEqual(copy.count, RoutineEditEngine.nameLimit)
+    }
+
+    func test_duplicate_longNameTwice_givesDistinctNames() {
+        let name = String(repeating: "b", count: 55)
+        let first = RoutineEditEngine.duplicate(routine(name), existingNames: [name]).name
+
+        let second = RoutineEditEngine.duplicate(routine(name), existingNames: [name, first]).name
+
+        XCTAssertFalse([name, first].contains(second))
+        XCTAssertTrue(second.hasSuffix(" copy 2"))
+        XCTAssertLessThanOrEqual(second.count, RoutineEditEngine.nameLimit)
+    }
+
     func test_duplicate_preservesTargetSchemeAndRest() {
         let original = Routine(
             name: "5×5",

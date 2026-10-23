@@ -46,7 +46,7 @@ final class LabScanService: Sendable {
             throw MealScannerService.ScanError.imageTooLarge
         }
         let payload: [String: Any] = ["images": images, "locale": MealScannerService.localeIdentifier]
-        let data = try await transport.post(payload, toSiblingRoute: "lab-scan")
+        let data = try await transport.post(payload, toSiblingRoute: "lab-scan", proOnly: true)
         let scan: LabReportEngine.Scan
         do {
             scan = try LabReportEngine.decode(data)
@@ -69,13 +69,15 @@ final class LabScanService: Sendable {
         case .parseFailure?, .invalidResponse?, .implausibleResult?, .noFoodDetected?:
             return String(localized: "Couldn't read the results from the scanner. Try again, or enter the values by hand.")
         case .declined?:
-            return String(localized: "The scanner couldn't analyse this report. Try a different photo.")
+            return String(localized: "The scanner couldn't analyze this report. Try a different photo.")
         case .routeMissing?:
             return String(localized: "Lab scanning isn't available on this server yet. Enter the values by hand for now.")
         case .serviceUnavailable?:
             return String(localized: "Lab scanning is temporarily unavailable. Try again later, or enter the values by hand.")
         case .offline?:
             return String(localized: "You're offline — lab scanning needs an internet connection. Reconnect and try again.")
+        case .proRequired?:
+            return String(localized: "Lab scanning is part of Atlas Pro. If you've subscribed, restore your purchase and try again, or enter the values by hand.")
         case .proxyNotConfigured?, .unauthorised?, .requestFailed?, .scanAllowanceSpent?:
             return error.localizedDescription
         case nil:

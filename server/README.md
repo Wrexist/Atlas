@@ -23,11 +23,20 @@ real Anthropic API is reached one hop away.
 | `POST /api/weekly-summary`   | AI weekly recap (prompt-cached)    | WeeklySummaryService  |
 | `GET/POST /api/attest-register` | App Attest key registration     | AppAttestService      |
 | `POST /api/apple-revoke`     | Revoke Sign in with Apple on account deletion | AuthService |
+| `POST /api/crash-report`     | MetricKit crash / hang diagnostics → Sentry events | CrashReportUploader |
 
 `apple-revoke` needs `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`
 (the Sign in with Apple `.p8`, `\n` escapes allowed) and `APPLE_CLIENT_ID`
 (the bundle ID); without them it answers 503 and the app tells the user to
 remove Atlas under Settings → Apple ID → Sign in with Apple.
+
+`crash-report` forwards each diagnostic to Sentry's envelope API using
+`SENTRY_DSN` (the project's DSN; never commit it). Without it reports are
+accepted and dropped with 204. The app derives the URL from
+`MEAL_SCANNER_ENDPOINT` and reuses its secret, so no new iOS setting is
+needed; the payload carries app/OS version, device model and call stacks
+only — no user identifier, no health data. Per-IP limit `CRASH_REPORT_RPM`
+(default 10), 256 KB body cap.
 
 meal-scan, food-scan and ai-research share `_lib/anthropic-proxy.js` —
 auth, App Attest gate, per-principal limits, body sanitisation, model
@@ -90,7 +99,9 @@ same auth, App Attest gate and limiter.
        `APP_ATTEST_ALLOW_DEVELOPMENT=1` admits Xcode-run builds in
        enforce mode. `ATTEST_CHALLENGE_RPM` (default 60) and
        `ATTEST_RPM` (default 30) cap registration challenges and
-       submissions per IP per minute.
+       submissions per IP per minute; `ATTEST_REGISTRATIONS_PER_DAY`
+       (default 10, scaled for IPv4 like the other limits) caps
+       successful registrations per IP per UTC day.
      - `FREE_SCANS_PER_WEEK` — server-side free-tier AI meal scans per
        install per ISO week. Default `3`, matching the app's
        `MealScanQuota.freeScansPerWeek` — change both together. `0`
@@ -98,6 +109,8 @@ same auth, App Attest gate and limiter.
        "Free scan quota" below.
      - `STOREKIT_BUNDLE_ID` — bundle ID a Pro transaction must carry.
        Default `com.peptidesai.app`; only set it for a different app.
+     - `PRO_GATE_MODE` — `enforce` (default) or `report`; see "Free scan
+       quota" below for the Pro-only lab-scan route.
 4. Note the deploy URL (e.g. `https://peptidex-proxy.vercel.app`).
 
 ## Wire the iOS app
@@ -209,6 +222,13 @@ Verification ships **report-only by default** — it logs
    verification logic is tested against synthetic openssl-minted
    fixtures, not yet a real device blob — the report phase is what
    validates it against Apple's real formats.
+4. The App Store build in users' hands handles `401 attest_clock`: a
+   device clock more than 5 minutes off is refused with that code, and
+   the app corrects its stamp from the response's `Date` header and
+   keeps its key. Older builds re-register only on `attest_required`,
+   so they show their "secret no longer matches" error for
+   `attest_clock` — still locked out until the clock is fixed, but no
+   longer minting a new key on every request.
 
 iOS client config: `APP_ATTEST_ENDPOINT` = the attest-register URL,
 `APP_ATTEST_SECRET` = the `PROXY_SHARED_SECRET` value (inject via CI
@@ -229,6 +249,12 @@ and a VPN makes it free to change, so an IP-keyed quota is a speed
 bump for anyone deliberately working around it. An attested key is one
 physical install and can't be rotated without re-attesting to Apple,
 which is what makes a real per-user quota possible.
+
+A device can still generate new keys, and each new key starts with a
+fresh daily quota. Key records expire after 90 days without use, and
+successful registrations are capped per IP per day, but IPs rotate, so
+that cap is a speed bump. Apple's App Attest fraud-metric receipt is
+the real per-device bound if key minting ever shows up in the logs.
 
 Until `APP_ATTEST_MODE=enforce`, limits fall back to IP. The quota and
 cooldown still bound casual abuse and accidental retry storms, and the
@@ -295,6 +321,18 @@ which a reinstall wipes. The proxy keeps the authoritative count:
   **Fails open**: with no Upstash vars, or Upstash unreachable, every
   scan is allowed. This is a product allowance, not a spend ceiling —
   `ANTHROPIC_DAILY_REQUEST_BUDGET` is that.
+
+`/api/lab-scan` is Pro-only, as it is in the app, and uses the same
+check without a free allowance: no `X-Atlas-Entitlement` that verifies
+means `403 { error: { code: "pro_required" } }` before any quota or
+budget is spent. The check needs no env vars in production — it pins
+Apple Root CA - G3 and defaults to `com.peptidesai.app` (leave
+`STOREKIT_ROOT_CA_FINGERPRINT` unset there, or every real subscriber
+is refused). Unlike the free allowance it does not fail open on its
+own, so `PRO_GATE_MODE=report` is the switch: it logs
+`pro gate report` and lets the scan through. Flip it if
+`entitlement rejected` lines show up for real subscribers, since the
+verifier has so far only been tested against synthetic fixtures.
 
 The install ID and the metered flag are client-asserted, the same trust
 level as the shared secret: they stop a reinstall from resetting the

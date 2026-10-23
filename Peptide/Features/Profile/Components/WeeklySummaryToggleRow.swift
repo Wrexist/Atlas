@@ -10,6 +10,7 @@ struct WeeklySummaryToggleRow: View {
     @Environment(DataStore.self) private var dataStore
     @State private var storeService = StoreService.shared
     @State private var showPaywall = false
+    @State private var showConsent = false
 
     /// The next Sunday 9:00 delivery — matches
     /// `WeeklySummaryNotificationScheduler` — formatted per locale so
@@ -59,6 +60,10 @@ struct WeeklySummaryToggleRow: View {
             PaywallView(source: .weeklyRecap)
                 .liquidGlassPresentation()
         }
+        .sheet(isPresented: $showConsent, onDismiss: enableIfConsented) {
+            AIConsentSheet(whatIsSent: "Your weekly totals and HRV trend, once a week.")
+                .liquidGlassPresentation()
+        }
     }
 
     private func label(isPro: Bool) -> some View {
@@ -86,7 +91,6 @@ struct WeeklySummaryToggleRow: View {
                 subtitle(isPro: isPro)
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
-                    .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
                     .contentTransition(.opacity)
                     .appAnimation(AppAnimation.fadeIn, value: dataStore.profile.weeklySummaryEnabled)
@@ -103,7 +107,13 @@ struct WeeklySummaryToggleRow: View {
             : Text("Off. Turning it on sends weekly totals and your HRV trend to Anthropic's Claude to write the recap.")
     }
 
+    /// The recap sends data to Anthropic, so turning it on goes through
+    /// the same AI data-sharing consent the Privacy screen revokes.
     private func setEnabled(_ enabled: Bool) {
+        if enabled, !AIDataConsent.isGranted {
+            showConsent = true
+            return
+        }
         dataStore.profile.weeklySummaryEnabled = enabled
         if enabled { dataStore.profile.weeklySummaryOptInConfirmed = true }
         dataStore.persistProfile()
@@ -113,5 +123,9 @@ struct WeeklySummaryToggleRow: View {
                 isPro: storeService.isProUser
             )
         }
+    }
+
+    private func enableIfConsented() {
+        if AIDataConsent.isGranted { setEnabled(true) }
     }
 }

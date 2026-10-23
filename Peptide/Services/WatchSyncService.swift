@@ -77,33 +77,7 @@ final class WatchSyncService: NSObject {
         training: WatchTrainingSnapshot? = nil,
         hapticsEnabled: Bool? = nil
     ) {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-
-        let todayEntries = entries.filter { calendar.isDate($0.date, inSameDayAs: today) }
-
-        let watchEntries = todayEntries.compactMap { entry -> WatchEntry? in
-            guard protocols.contains(where: { $0.id == entry.protocolId }) else { return nil }
-            return WatchEntry(
-                id: entry.id,
-                protocolId: entry.protocolId,
-                peptideName: entry.peptide.name,
-                abbreviation: entry.peptide.abbreviation,
-                dose: entry.actualDose ?? entry.dose,
-                scheduledTime: entry.actualTime ?? entry.date,
-                completed: entry.completed
-            )
-        }
-        // Strict-weak-ordering comparator: incomplete doses first,
-        // then by scheduled time within each group. The old
-        // `!$0.completed && $1.completed` predicate isn't a valid
-        // ordering and left same-group entries in arbitrary order.
-        .sorted { lhs, rhs in
-            lhs.completed == rhs.completed
-                ? lhs.scheduledTime < rhs.scheduledTime
-                : !lhs.completed
-        }
-
+        let watchEntries = Self.todayWatchEntries(from: entries, protocols: protocols, now: Date())
         let completed = watchEntries.filter(\.completed).count
         let data = WatchData(
             todayEntries: watchEntries,
@@ -133,6 +107,39 @@ final class WatchSyncService: NSObject {
         publish(data)
     }
 
+    /// Today's doses of the protocols still running, as the Watch lists
+    /// them: a paused or completed protocol keeps its entries, but the
+    /// phone no longer shows them as due, so neither may the wrist.
+    /// Incomplete doses come first, then by time within each group.
+    static func todayWatchEntries(
+        from entries: [ProtocolEntry],
+        protocols: [PeptideProtocol],
+        now: Date
+    ) -> [WatchEntry] {
+        let calendar = Calendar.current
+        let activeIds = Set(protocols.filter { $0.status == .active }.map(\.id))
+        return entries.compactMap { entry -> WatchEntry? in
+            guard calendar.isDate(entry.date, inSameDayAs: now),
+                  activeIds.contains(entry.protocolId) else { return nil }
+            return WatchEntry(
+                id: entry.id,
+                protocolId: entry.protocolId,
+                peptideName: entry.peptide.name,
+                abbreviation: entry.peptide.abbreviation,
+                dose: entry.actualDose ?? entry.dose,
+                scheduledTime: entry.actualTime ?? entry.date,
+                completed: entry.completed
+            )
+        }
+        // Strict-weak-ordering comparator: `!$0.completed && $1.completed`
+        // isn't a valid ordering and left same-group entries in arbitrary order.
+        .sorted { lhs, rhs in
+            lhs.completed == rhs.completed
+                ? lhs.scheduledTime < rhs.scheduledTime
+                : !lhs.completed
+        }
+    }
+
     /// Re-sends the last snapshot with a new workout state. Set edits
     /// arrive many times a minute mid-workout; rebuilding the whole
     /// snapshot for each would redo the dose, habit and score math.
@@ -158,8 +165,35 @@ final class WatchSyncService: NSObject {
     /// the other fields forward.
     private var lastPublished: WatchData?
 
+    /// Set while a Watch command waits for the push that answers it. The
+    /// Watch shows its guess at once; only a push replaces the guess, so a
+    /// command the phone treated as a no-op must still be answered.
+    private var commandAwaitingEcho = false
+
+    /// Longer than `DataStore`'s save debounce, so a command that changed
+    /// something is answered by the save's own push first.
+    private static let echoFallbackDelay: Duration = .seconds(2)
+
+    #if DEBUG
+    private(set) var publishCountForTesting = 0
+    var lastPublishedForTesting: WatchData? { lastPublished }
+    #endif
+
+    /// Writes and sends a snapshot unless it matches the last one. Most
+    /// saves change nothing the Watch shows, and every adopted push
+    /// reloads all of the Watch's complications, which the system budgets.
+    /// A new day or a Watch command awaiting its answer always goes out.
     private func publish(_ data: WatchData) {
+        let previous = lastPublished
+        if let previous, !commandAwaitingEcho, data.hasSameContent(as: previous),
+           Calendar.current.isDate(previous.lastUpdated, inSameDayAs: data.lastUpdated) {
+            return
+        }
+        commandAwaitingEcho = false
         lastPublished = data
+        #if DEBUG
+        publishCountForTesting += 1
+        #endif
         guard let url = watchDataURL else { return }
         do {
             let encoded = try encoder.encode(data)
@@ -171,10 +205,26 @@ final class WatchSyncService: NSObject {
             AppLog.watch.error("WatchSyncService: failed to write WatchData: \(error.localizedDescription, privacy: .public)")
         }
 
-        sendWatchDataIfReachable(data)
+        sendWatchDataIfReachable(data, wakesComplications: previous.map { data.changesComplications(from: $0) } ?? true)
     }
 
-    private func sendWatchDataIfReachable(_ data: WatchData) {
+    /// Answers a Watch command after the save debounce, unless a push has
+    /// answered it already.
+    private func awaitEcho() {
+        commandAwaitingEcho = true
+        Task { [weak self] in
+            try? await Task.sleep(for: Self.echoFallbackDelay)
+            self?.echoIfStillAwaited()
+        }
+    }
+
+    private func echoIfStillAwaited() {
+        guard commandAwaitingEcho, let last = lastPublished ?? Self.readLastWritten() else { return }
+        let now = Date()
+        publish(last.forDisplay(at: now).stamped(now))
+    }
+
+    private func sendWatchDataIfReachable(_ data: WatchData, wakesComplications: Bool = false) {
         guard WCSession.isSupported(),
               WCSession.default.activationState == .activated,
               WCSession.default.isWatchAppInstalled else { return }
@@ -194,6 +244,15 @@ final class WatchSyncService: NSObject {
             // exactly the right semantics for "here's the current
             // snapshot."
             try WCSession.default.updateApplicationContext(["watchData": dict])
+            // Application context gets no guaranteed background wake, so a
+            // suspended Watch app would leave the complications stale until
+            // opened. The complication transfer wakes it, from a daily budget,
+            // so it is spent only on what the faces show at a glance.
+            if wakesComplications,
+               WCSession.default.isComplicationEnabled,
+               WCSession.default.remainingComplicationUserInfoTransfers > 0 {
+                WCSession.default.transferCurrentComplicationUserInfo(["watchData": dict])
+            }
         } catch {
             AppLog.watch.error("WatchSyncService: WCSession send failed: \(error.localizedDescription, privacy: .public)")
         }
@@ -286,15 +345,15 @@ extension WatchSyncService: WCSessionDelegate {
     }
 }
 
-private extension WatchSyncService {
-    static let handledMessageIDsKey = "watchSync.handledMessageIDs"
-    static let handledMessageIDsLimit = 50
+extension WatchSyncService {
+    private static let handledMessageIDsKey = "watchSync.handledMessageIDs"
+    private static let handledMessageIDsLimit = 50
 
     /// Records a Watch command's id and reports whether this is its first
     /// delivery. Kept across launches because the `transferUserInfo`
     /// duplicate can land long after the live send. Commands from an older
     /// Watch build carry no id and always pass.
-    func isFirstDelivery(_ messageID: String?) -> Bool {
+    private func isFirstDelivery(_ messageID: String?) -> Bool {
         guard let messageID else { return true }
         let defaults = UserDefaults.standard
         var handled = defaults.stringArray(forKey: Self.handledMessageIDsKey) ?? []
@@ -306,6 +365,7 @@ private extension WatchSyncService {
 
     func handleWorkoutRequest(_ request: WatchWorkoutRequest, messageID: String?) {
         guard isFirstDelivery(messageID) else { return }
+        awaitEcho()
         WorkoutSessionService.shared.apply(request)
     }
 
@@ -313,6 +373,7 @@ private extension WatchSyncService {
     /// phone was away still lands on the day it was made.
     func handleWaterMessage(fluidOunces: Double, issuedAt: Date?, messageID: String?) {
         guard isFirstDelivery(messageID) else { return }
+        awaitEcho()
         let now = Date()
         onLogWater?(fluidOunces, min(issuedAt ?? now, now))
     }
@@ -321,6 +382,7 @@ private extension WatchSyncService {
     /// time, not the delivery time.
     func handleWatchMessage(action: String, entryId: UUID, protocolId: UUID, issuedAt: Date?, messageID: String?) {
         guard isFirstDelivery(messageID) else { return }
+        awaitEcho()
         switch action {
         case WatchMessage.markComplete:
             let now = Date()

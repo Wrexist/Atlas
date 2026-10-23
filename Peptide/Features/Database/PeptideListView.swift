@@ -9,7 +9,9 @@ struct PeptideListView: View {
     /// pill or a Profile entry via `AppState.showLibrary`) — adds a Done
     /// button. False when hosted directly.
     var presentedModally = false
-    @State private var viewModel = PeptideListViewModel(peptides: PeptideDatabase.shared)
+    /// Starts empty: `@State`'s initializer runs on every struct re-init,
+    /// and `refreshPeptides` fills it on appear anyway.
+    @State private var viewModel = PeptideListViewModel()
     @State private var showCustomForm = false
     /// Ties each row to the detail view it pushes, so the push grows out of
     /// the tapped row instead of sliding in over it. Only the iPhone stack
@@ -199,7 +201,7 @@ struct PeptideListView: View {
                         icon: "magnifyingglass",
                         title: "No peptides found",
                         message: viewModel.searchText.isEmpty
-                            ? "Add a custom peptide to start building protocols."
+                            ? "Add your own compound to start building protocols."
                             : "Try a different search term.",
                         // The copy already tells the user what to do next;
                         // without this it was the only way to do it.

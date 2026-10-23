@@ -173,9 +173,11 @@ private struct EncodedSchedule: Codable {
 
     var decodedOverrides: [UUID: ProtocolSchedule] {
         guard let overrides else { return [:] }
-        return Dictionary(uniqueKeysWithValues: overrides.compactMap { key, value in
+        // UUID(uuidString:) ignores case, so two spellings of one id can
+        // collide; keep the first rather than trap.
+        return Dictionary(overrides.compactMap { key, value in
             UUID(uuidString: key).map { ($0, value) }
-        })
+        }, uniquingKeysWith: { first, _ in first })
     }
 
     var decodedWashoutWeeks: Int { washoutWeeks ?? 0 }
@@ -407,8 +409,10 @@ final class StoredProfile {
     /// device synced into it meanwhile instead of being reverted by
     /// stale in-memory state. Comparing values rather than encoded bytes
     /// also skips encoding the slices a save didn't touch. Without a
-    /// baseline every column is written.
-    func update(from profile: UserProfile, since baseline: UserProfile? = nil) throws {
+    /// baseline every column is written. Returns false when a column this
+    /// build can't read kept an edit from being written.
+    @discardableResult
+    func update(from profile: UserProfile, since baseline: UserProfile? = nil) throws -> Bool {
         // Assign only what actually changed. Every property assignment
         // marks its CloudKit record field dirty and ships it on the next
         // sync — and an untouched field is exactly what lets CloudKit
@@ -440,41 +444,57 @@ final class StoredProfile {
         let residualEdited = try baseline.map {
             try sdEncoder.encode(ProfileExtension.residual(of: $0)) != residual
         } ?? true
-        if residualEdited, !holdsUnreadable(ProfileExtension.self, at: \.extensionData, replacingWith: residual) {
-            assign(\.extensionData, residual)
+        var residualWritten = true
+        if residualEdited {
+            if holdsUnreadable(ProfileExtension.self, at: \.extensionData, arrays: Self.residualArrays, replacingWith: residual) {
+                residualWritten = false
+            } else {
+                assign(\.extensionData, ProfileColumnCompat.preserving(
+                    residual, stored: extensionData, arrays: Self.residualArrays
+                ))
+            }
         }
-        try writeSlices(from: profile, since: baseline, assign: { keyPath, value in
+        let slicesWritten = try writeSlices(from: profile, since: baseline, assign: { keyPath, value in
             assign(keyPath, value)
         })
         assign(\.singletonKey, Self.canonicalSingletonKey)
         if contentChanged { updatedAt = Date() }
+        return residualWritten && slicesWritten
     }
 
     /// Encodes each split feature area into its own column. A slice equal
     /// to `baseline`'s wasn't edited here and is neither encoded nor
     /// written. On the update path a column this build can't read is left
-    /// untouched.
+    /// untouched (returning false), and records a newer build wrote keep
+    /// what this build can't represent (`ProfileColumnCompat.preserving`).
+    @discardableResult
     private func writeSlices(
         from profile: UserProfile,
         since baseline: UserProfile? = nil,
         assign: ((ReferenceWritableKeyPath<StoredProfile, Data?>, Data?) -> Void)? = nil
-    ) throws {
+    ) throws -> Bool {
         let set: (ReferenceWritableKeyPath<StoredProfile, Data?>, Data?) -> Void =
             assign ?? { self[keyPath: $0] = $1 }
+        var wroteAll = true
         func write<T: Codable & Equatable>(
             _ keyPath: ReferenceWritableKeyPath<StoredProfile, Data?>,
+            arrays: [ProfileArrayField] = [],
             _ slice: (UserProfile) -> T
         ) throws {
             let value = slice(profile)
             if let baseline, slice(baseline) == value { return }
             let data = try sdEncoder.encode(value)
-            if assign != nil, holdsUnreadable(T.self, at: keyPath, replacingWith: data) { return }
-            set(keyPath, data)
+            guard assign != nil else { return set(keyPath, data) }
+            if holdsUnreadable(T.self, at: keyPath, arrays: arrays, replacingWith: data) {
+                wroteAll = false
+                return
+            }
+            set(keyPath, ProfileColumnCompat.preserving(data, stored: self[keyPath: keyPath], arrays: arrays))
         }
-        try write(\.mealsData) {
+        try write(\.mealsData, arrays: Self.mealsArrays) {
             MealsSlice(mealHistory: $0.mealHistory, dailyConsumption: $0.dailyConsumption)
         }
-        try write(\.habitsData) {
+        try write(\.habitsData, arrays: Self.habitsArrays) {
             HabitsSlice(habits: $0.habits, habitEntries: $0.habitEntries)
         }
         try write(\.momentumData) {
@@ -486,14 +506,32 @@ final class StoredProfile {
                 momentumHistory: $0.momentumHistory
             )
         }
-        try write(\.weightHistoryData) { $0.weightHistory }
-        try write(\.labsData) { $0.labHistory }
-        try write(\.outcomesData) { $0.outcomeHistory }
-        try write(\.foodLibraryData) {
+        try write(\.weightHistoryData, arrays: Self.weightArrays) { $0.weightHistory }
+        try write(\.labsData, arrays: Self.labsArrays) { $0.labHistory }
+        try write(\.outcomesData, arrays: Self.outcomesArrays) { $0.outcomeHistory }
+        try write(\.foodLibraryData, arrays: Self.foodLibraryArrays) {
             FoodLibrarySlice(customFoods: $0.customFoods, favoriteFoodIDs: Array($0.favoriteFoodIDs).sorted())
         }
         // Never synced — see `summariesData`.
         set(\.summariesData, nil)
+        return wroteAll
+    }
+
+    // Record arrays decoded element by element (see `ProfileArrayField`).
+    private static var mealsArrays: [ProfileArrayField] { [.of(MealEntry.self, at: "mealHistory")] }
+    private static var habitsArrays: [ProfileArrayField] {
+        [.of(Habit.self, at: "habits"), .of(HabitEntry.self, at: "habitEntries")]
+    }
+    private static var weightArrays: [ProfileArrayField] { [.of(WeightEntry.self)] }
+    private static var labsArrays: [ProfileArrayField] { [.of(LabValue.self)] }
+    private static var outcomesArrays: [ProfileArrayField] { [.of(OutcomeEntry.self)] }
+    private static var foodLibraryArrays: [ProfileArrayField] { [.of(CustomFood.self, at: "customFoods")] }
+    private static var residualArrays: [ProfileArrayField] {
+        [
+            .of(Recipe.self, at: "recipes"),
+            .of(ProtocolNote.self, at: "protocolNotes"),
+            .of(WorkoutEntry.self, at: "workoutHistory"),
+        ]
     }
 
     /// Takes each slice column of `other` that this build can't decode,
@@ -534,18 +572,20 @@ final class StoredProfile {
         return adoptedAll
     }
 
-    /// True when the column holds bytes this build can't decode as `T` —
-    /// corrupt, or written by a newer build with a case this one doesn't
-    /// know. Reads fall back to empty for such a column, so writing that
-    /// empty value back would wipe the data on every device; the column
-    /// stays as it is until a build that can read it saves.
+    /// True when the column holds bytes this build can't decode as `T`,
+    /// even with its unreadable records left out — corrupt, or reshaped
+    /// by a newer build. Reads fall back to empty for such a column, so
+    /// writing that empty value back would wipe the data on every
+    /// device; the column stays as it is until a build that can read it
+    /// saves.
     private func holdsUnreadable<T: Decodable>(
         _ type: T.Type,
         at keyPath: KeyPath<StoredProfile, Data?>,
+        arrays: [ProfileArrayField],
         replacingWith data: Data
     ) -> Bool {
         guard let stored = self[keyPath: keyPath], stored != data,
-              (try? sdDecoder.decode(T.self, from: stored)) == nil
+              (try? ProfileColumnCompat.decode(T.self, from: stored, arrays: arrays)) == nil
         else { return false }
         AppLog.swiftData.error(
             "Profile column \(String(describing: T.self), privacy: .public) is unreadable by this build; leaving it untouched"
@@ -556,10 +596,14 @@ final class StoredProfile {
     /// Decodes an optional slice column, falling back to the legacy
     /// blob's value when the column is nil (a row written before the
     /// split) and logging — never silently wiping — on corruption.
-    private func slice<T: Decodable>(_ data: Data?, legacy: @autoclosure () -> T) -> T {
+    private func slice<T: Decodable>(
+        _ data: Data?,
+        arrays: [ProfileArrayField] = [],
+        legacy: @autoclosure () -> T
+    ) -> T {
         guard let data else { return legacy() }
         do {
-            return try sdDecoder.decode(T.self, from: data)
+            return try ProfileColumnCompat.decode(T.self, from: data, arrays: arrays)
         } catch {
             AppLog.swiftData.error(
                 "Profile slice decode failed (\(String(describing: T.self), privacy: .public)); falling back to legacy blob: \(error.localizedDescription, privacy: .public)"
@@ -569,7 +613,15 @@ final class StoredProfile {
     }
 
     func toUserProfile() throws -> UserProfile {
-        let goals = try sdDecoder.decode([String].self, from: goalsData)
+        let goals: [String]
+        do {
+            goals = try sdDecoder.decode([String].self, from: goalsData)
+        } catch {
+            // Throwing here made the whole row read as "no profile", and
+            // the launch save then wrote a blank profile over it.
+            AppLog.swiftData.error("Goals decode failed; falling back to none: \(error.localizedDescription, privacy: .public)")
+            goals = []
+        }
         let metrics: BodyMetrics
         if let data = bodyMetricsData {
             do {
@@ -593,7 +645,7 @@ final class StoredProfile {
         let ext: ProfileExtension
         if let data = extensionData {
             do {
-                ext = try sdDecoder.decode(ProfileExtension.self, from: data)
+                ext = try ProfileColumnCompat.decode(ProfileExtension.self, from: data, arrays: Self.residualArrays)
             } catch {
                 // ProfileExtension is the catch-all blob for everything
                 // not in the @Model columns (biology config, meal
@@ -615,10 +667,10 @@ final class StoredProfile {
         // Split columns take precedence; a nil column means the row was
         // written before the split, so the legacy blob's value carries
         // through untouched.
-        let meals = slice(mealsData, legacy: MealsSlice(
+        let meals = slice(mealsData, arrays: Self.mealsArrays, legacy: MealsSlice(
             mealHistory: ext.mealHistory, dailyConsumption: ext.dailyConsumption
         ))
-        let habitsSlice = slice(habitsData, legacy: HabitsSlice(
+        let habitsSlice = slice(habitsData, arrays: Self.habitsArrays, legacy: HabitsSlice(
             habits: ext.habits, habitEntries: ext.habitEntries
         ))
         let momentum = slice(momentumData, legacy: MomentumSlice(
@@ -628,7 +680,7 @@ final class StoredProfile {
             lastMomentumAwardDay: ext.lastMomentumAwardDay,
             momentumHistory: ext.momentumHistory
         ))
-        let foodLibrary = slice(foodLibraryData, legacy: FoodLibrarySlice(
+        let foodLibrary = slice(foodLibraryData, arrays: Self.foodLibraryArrays, legacy: FoodLibrarySlice(
             customFoods: ext.customFoods, favoriteFoodIDs: ext.favoriteFoodIDs
         ))
         return UserProfile(
@@ -642,7 +694,7 @@ final class StoredProfile {
             bodyMetrics: metrics,
             nutritionTargets: ext.nutritionTargets,
             emailSubscription: ext.emailSubscription,
-            weightHistory: slice(weightHistoryData, legacy: ext.weightHistory),
+            weightHistory: slice(weightHistoryData, arrays: Self.weightArrays, legacy: ext.weightHistory),
             progressPhotoFilenames: ext.progressPhotoFilenames,
             dailyConsumption: meals.dailyConsumption,
             workoutHistory: ext.workoutHistory,
@@ -654,8 +706,8 @@ final class StoredProfile {
             favoriteFoodIDs: Set(foodLibrary.favoriteFoodIDs),
             mealHistory: meals.mealHistory,
             healthKitNutritionEnabled: ext.healthKitNutritionEnabled,
-            outcomeHistory: slice(outcomesData, legacy: ext.outcomeHistory),
-            labHistory: slice(labsData, legacy: ext.labHistory),
+            outcomeHistory: slice(outcomesData, arrays: Self.outcomesArrays, legacy: ext.outcomeHistory),
+            labHistory: slice(labsData, arrays: Self.labsArrays, legacy: ext.labHistory),
             lastKnownTimezoneIdentifier: ext.lastKnownTimezoneIdentifier,
             streakFreezeDays: Set(ext.streakFreezeDays),
             recipes: ext.recipes,
@@ -675,6 +727,133 @@ final class StoredProfile {
             lastMomentumAwardDay: momentum.lastMomentumAwardDay,
             momentumHistory: momentum.momentumHistory
         )
+    }
+}
+
+// MARK: - Records from other builds
+
+/// An array of records inside a profile column, decoded one record at a
+/// time so a record this build can't decode — a newer build's enum case,
+/// say — hides only itself rather than the whole column. `key` names the
+/// array inside the column's object; nil means the column is the array.
+struct ProfileArrayField {
+    let key: String?
+    let decodes: (Data) -> Bool
+    let sameValue: (Data, Data) -> Bool
+
+    static func of<Element: Decodable & Equatable>(_: Element.Type, at key: String? = nil) -> ProfileArrayField {
+        ProfileArrayField(
+            key: key,
+            decodes: { (try? sdDecoder.decode(Element.self, from: $0)) != nil },
+            sameValue: { lhs, rhs in
+                guard let left = try? sdDecoder.decode(Element.self, from: lhs),
+                      let right = try? sdDecoder.decode(Element.self, from: rhs)
+                else { return false }
+                return left == right
+            }
+        )
+    }
+}
+
+/// Lets an older build read and write profile columns a newer build also
+/// writes. Reads skip records this build can't decode instead of failing
+/// the column; writes keep those records, and keep fields this build
+/// doesn't know on records it didn't change, instead of re-encoding them
+/// away and syncing the loss to the newer device.
+enum ProfileColumnCompat {
+    static func decode<T: Decodable>(_ type: T.Type, from data: Data, arrays: [ProfileArrayField]) throws -> T {
+        do {
+            return try sdDecoder.decode(T.self, from: data)
+        } catch {
+            guard let readable = droppingUndecodable(data, arrays: arrays) else { throw error }
+            AppLog.swiftData.warning("Skipped profile records this build can't read (\(String(describing: T.self), privacy: .public))")
+            return try sdDecoder.decode(T.self, from: readable)
+        }
+    }
+
+    /// `encoded` with each record whose stored copy decodes to the same
+    /// value replaced by that stored copy, and with stored records this
+    /// build can't decode added back. Returns `encoded` untouched when
+    /// nothing needed keeping.
+    static func preserving(_ encoded: Data, stored: Data?, arrays: [ProfileArrayField]) -> Data {
+        guard let stored, !arrays.isEmpty,
+              let storedRoot = try? JSONSerialization.jsonObject(with: stored),
+              var root = try? JSONSerialization.jsonObject(with: encoded)
+        else { return encoded }
+        var kept = false
+        for field in arrays {
+            guard let fresh = records(in: root, at: field.key),
+                  let previous = records(in: storedRoot, at: field.key)
+            else { continue }
+            let previousByID = Dictionary(
+                previous.compactMap { record in id(of: record).map { ($0, record) } },
+                uniquingKeysWith: { first, _ in first }
+            )
+            var merged: [Any] = fresh.map { record in
+                guard let recordID = id(of: record), let old = previousByID[recordID],
+                      carriesUnknownKeys(old, beyond: record),
+                      let oldData = jsonData(of: old), let newData = jsonData(of: record),
+                      field.sameValue(oldData, newData)
+                else { return record }
+                kept = true
+                return old
+            }
+            let freshIDs = Set(fresh.compactMap { id(of: $0) })
+            let unreadable = previous.filter { record in
+                guard let recordID = id(of: record), !freshIDs.contains(recordID),
+                      let recordData = jsonData(of: record)
+                else { return false }
+                return !field.decodes(recordData)
+            }
+            if !unreadable.isEmpty {
+                merged += unreadable
+                kept = true
+            }
+            root = replacing(field.key, in: root, with: merged)
+        }
+        guard kept, let output = try? JSONSerialization.data(withJSONObject: root, options: [.sortedKeys]) else {
+            return encoded
+        }
+        return output
+    }
+
+    private static func droppingUndecodable(_ data: Data, arrays: [ProfileArrayField]) -> Data? {
+        guard !arrays.isEmpty, var root = try? JSONSerialization.jsonObject(with: data) else { return nil }
+        var dropped = false
+        for field in arrays {
+            guard let all = records(in: root, at: field.key) else { continue }
+            let readable = all.filter { record in jsonData(of: record).map(field.decodes) ?? false }
+            guard readable.count < all.count else { continue }
+            dropped = true
+            root = replacing(field.key, in: root, with: readable)
+        }
+        guard dropped else { return nil }
+        return try? JSONSerialization.data(withJSONObject: root)
+    }
+
+    private static func records(in root: Any, at key: String?) -> [Any]? {
+        guard let key else { return root as? [Any] }
+        return (root as? [String: Any])?[key] as? [Any]
+    }
+
+    private static func replacing(_ key: String?, in root: Any, with records: [Any]) -> Any {
+        guard let key, var object = root as? [String: Any] else { return records }
+        object[key] = records
+        return object
+    }
+
+    private static func id(of record: Any) -> String? {
+        (record as? [String: Any])?["id"] as? String
+    }
+
+    private static func jsonData(of record: Any) -> Data? {
+        guard JSONSerialization.isValidJSONObject(record) else { return nil }
+        return try? JSONSerialization.data(withJSONObject: record)
+    }
+
+    private static func carriesUnknownKeys(_ old: Any, beyond record: Any) -> Bool {
+        guard let old = old as? [String: Any], let record = record as? [String: Any] else { return false }
+        return !Set(old.keys).isSubset(of: record.keys)
     }
 }
 

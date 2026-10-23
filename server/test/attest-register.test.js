@@ -156,3 +156,49 @@ test('POST rejects malformed and oversized registrations', async (t) => {
   }), oversized);
   assert.equal(oversized.statusCode, 413);
 });
+
+// One full challenge → attestation → POST round from `ip`.
+async function registerFresh(t, ip) {
+  const challengeRes = makeRes();
+  await handler(makeReq({ method: 'GET', ip }), challengeRes);
+  const { challengeId, challenge } = challengeRes.body;
+  const fixture = makeAttestationFixture({ appId: APP_ID, challenge: Buffer.from(challenge, 'base64') });
+  setEnv(t, { APP_ATTEST_ROOT_CA_PEM: fixture.rootPem });
+  const body = {
+    keyId: fixture.keyId.toString('base64'),
+    challengeId,
+    attestation: fixture.attestation.toString('base64'),
+  };
+  const res = makeRes();
+  await handler(makeReq({ method: 'POST', ip, body }), res);
+  return { res, keyId: body.keyId };
+}
+
+test('test_registeredKey_isStoredWithExpiry', async (t) => {
+  setEnv(t, BASE_ENV);
+  fakeUpstash(t);
+  const fake = globalThis.fetch;
+  const commands = [];
+  globalThis.fetch = async (url, init) => {
+    commands.push(...JSON.parse(init.body));
+    return fake(url, init);
+  };
+
+  const { res, keyId } = await registerFresh(t, '10.2.1.1');
+  assert.equal(res.statusCode, 200);
+  const set = commands.find(([cmd, key]) => cmd === 'SET' && key === `attest:key:${keyId}`);
+  assert.deepEqual(set.slice(3), ['EX', String(90 * 24 * 60 * 60)]);
+});
+
+test('test_registrationsOverDailyCapFromOneAddress_areRefused429', async (t) => {
+  setEnv(t, { ...BASE_ENV, ATTEST_REGISTRATIONS_PER_DAY: '2', SHARED_IP_LIMIT_SCALE: '1' });
+  const store = fakeUpstash(t);
+
+  assert.equal((await registerFresh(t, '10.2.1.2')).res.statusCode, 200);
+  assert.equal((await registerFresh(t, '10.2.1.2')).res.statusCode, 200);
+  const third = await registerFresh(t, '10.2.1.2');
+  assert.equal(third.res.statusCode, 429);
+  assert.equal(store.has(`attest:key:${third.keyId}`), false);
+  // Another address keeps its own allowance.
+  assert.equal((await registerFresh(t, '10.2.1.3')).res.statusCode, 200);
+});

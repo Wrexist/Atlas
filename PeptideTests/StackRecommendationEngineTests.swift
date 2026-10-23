@@ -224,6 +224,26 @@ final class StackRecommendationEngineTests: XCTestCase {
         }
     }
 
+    func test_seasonalScoring_southernHemisphereJuly_isWinter() {
+        let stack = peptides(abbrevs: ["BPC-157"])
+        guard !stack.isEmpty, let ta1 = peptide(abbrev: "TA1") else {
+            return XCTFail("Fixture peptides missing from the database")
+        }
+        let july = Calendar.current.date(from: DateComponents(year: 2026, month: 7, day: 15))!
+        let context = StackRecommendationEngine.RecommendationContext(
+            currentPeptides: stack, database: database, goals: [],
+            activeProtocols: [], entries: [], currentDate: july
+        )
+        let (australia, _) = StackRecommendationEngine.scoreSeasonal(
+            candidate: ta1, context: context, region: Locale.Region("AU")
+        )
+        let (sweden, _) = StackRecommendationEngine.scoreSeasonal(
+            candidate: ta1, context: context, region: Locale.Region("SE")
+        )
+        XCTAssertGreaterThan(australia, 0, "July is winter in Australia")
+        XCTAssertEqual(sweden, 0, "July is summer in Sweden")
+    }
+
     // MARK: - Confidence
 
     func test_confidence_highForValidatedStack() {
@@ -354,6 +374,66 @@ final class StackRecommendationEngineTests: XCTestCase {
             $0.title.contains("desensitization") && $0.kind == .desensitization
         }
         XCTAssertTrue(hasDesensitization, "Should warn about GHS-R1a desensitization risk")
+    }
+
+    func test_cycleLengthWarning_overrunPeptideNotSelected_isNotWarned() {
+        guard let bpc = peptide(abbrev: "BPC-157"), let tb = peptide(abbrev: "TB-500") else {
+            return XCTFail("Fixture peptides missing from the database")
+        }
+        let proto = cycledProtocol([bpc], startedWeeksAgo: 10, onWeeks: 12)
+        let warnings = StackRecommendationEngine.warnings(for: [tb], activeProtocols: [proto])
+        XCTAssertFalse(warnings.contains { $0.kind == .cycleOverrun && $0.peptides == ["BPC-157"] })
+    }
+
+    func test_cycleWarnings_protocolInPlannedWashout_areNotRaised() {
+        guard let ipamorelin = peptide(abbrev: "Ipamorelin") else { return XCTFail("Fixture peptides missing from the database") }
+        // 8 on / 4 off, started 10 weeks ago: week 3 of the wash-out.
+        let proto = cycledProtocol([ipamorelin], startedWeeksAgo: 10, onWeeks: 8, washoutWeeks: 4)
+        let warnings = StackRecommendationEngine.warnings(for: [ipamorelin], activeProtocols: [proto])
+        XCTAssertFalse(warnings.contains { $0.kind == .cycleOverrun || $0.kind == .desensitization })
+    }
+
+    func test_cycleLengthWarning_secondCycleEarlyWeeks_isNotRaised() {
+        guard let ipamorelin = peptide(abbrev: "Ipamorelin") else { return XCTFail("Fixture peptides missing from the database") }
+        // 8 on / 4 off, started 14 weeks ago: week 3 of cycle 2.
+        let proto = cycledProtocol([ipamorelin], startedWeeksAgo: 14, onWeeks: 8, washoutWeeks: 4)
+        let warnings = StackRecommendationEngine.warnings(for: [ipamorelin], activeProtocols: [proto])
+        XCTAssertFalse(warnings.contains { $0.kind == .cycleOverrun })
+    }
+
+    func test_cycleLengthWarning_peptideInTwoProtocols_warnsOnce() {
+        guard let bpc = peptide(abbrev: "BPC-157") else { return XCTFail("Fixture peptides missing from the database") }
+        let first = cycledProtocol([bpc], startedWeeksAgo: 10, onWeeks: 12)
+        let second = cycledProtocol([bpc], startedWeeksAgo: 9, onWeeks: 12)
+        let warnings = StackRecommendationEngine.warnings(for: [bpc], activeProtocols: [first, second])
+        XCTAssertEqual(warnings.filter { $0.kind == .cycleOverrun }.count, 1)
+    }
+
+    func test_warnings_sameStackInAnyOrder_comeBackInTheSameOrder() {
+        let stack = Array(database.prefix(10))
+        let forward = StackRecommendationEngine.warnings(for: stack, activeProtocols: [])
+        let reversed = StackRecommendationEngine.warnings(for: stack.reversed(), activeProtocols: [])
+        XCTAssertEqual(forward.map(\.id), reversed.map(\.id))
+        XCTAssertEqual(Set(forward.map(\.id)).count, forward.count, "Warning ids must be unique")
+    }
+
+    private func cycledProtocol(
+        _ peptides: [Peptide],
+        startedWeeksAgo: Int,
+        onWeeks: Int,
+        washoutWeeks: Int = 0
+    ) -> PeptideProtocol {
+        let start = Calendar.current.date(
+            byAdding: .day,
+            value: -startedWeeksAgo * 7,
+            to: Calendar.current.startOfDay(for: Date())
+        )!
+        return PeptideProtocol(
+            id: UUID(), name: "Cycled", peptides: peptides,
+            schedule: ProtocolSchedule(daysOfWeek: [1, 2, 3, 4, 5, 6, 7], timesPerDay: 1, preferredTimes: ["8:00 AM"]),
+            cycleLengthWeeks: onWeeks, washoutWeeks: washoutWeeks,
+            startDate: start, status: .active, notes: ""
+        )
     }
 
     func test_hepatotoxicityStacking_triggersAt2() {

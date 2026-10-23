@@ -194,9 +194,11 @@ private struct SetLogger: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Weight")
             .accessibilityValue("\(unit.format(weightKg)) \(unit.symbol)")
+            // Snapped to the Crown's grid, so a swipe logs the same load
+            // a Crown detent would rather than an off-plate weight.
             .accessibilityAdjustableAction { direction in
-                let delta = direction == .increment ? unit.step : -unit.step
-                weightBinding.wrappedValue = unit.display(weightKg) + delta
+                let steps = (unit.display(weightKg) / unit.step).rounded() + (direction == .increment ? 1 : -1)
+                weightBinding.wrappedValue = steps * unit.step
             }
     }
 

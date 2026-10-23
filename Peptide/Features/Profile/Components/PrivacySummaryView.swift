@@ -53,12 +53,12 @@ struct PrivacySummaryView: View {
                 .padding(.top, Spacing.md)
                 .accessibilityHidden(true)
 
-            Text("Your logs stay on your phone")
+            Text("Your logs stay on your device and in your private iCloud")
                 .font(AppFont.title2)
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.center)
 
-            Text("No ads. No tracking. No data sold. Verified by privacy manifest.")
+            Text("No ads. No tracking. No data sold. Declared in the app's privacy manifest.")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
@@ -134,6 +134,11 @@ struct PrivacySummaryView: View {
             icon: "network.slash",
             title: "No user-data backend.",
             detail: "Atlas runs no server that stores your logs. AI features you invoke send only what they need — a meal photo, weekly averages — to answer your request."
+        ),
+        .init(
+            icon: "ladybug.fill",
+            title: "Crash reports are anonymous.",
+            detail: "If Atlas crashes or freezes, a technical report (app version, device model, where in the code) goes to the developer so it can be fixed. No health data, nothing linked to you. Turn it off in Settings."
         ),
         .init(
             icon: "creditcard.fill",

@@ -21,6 +21,7 @@ struct GlassSegmentedControl<T: Hashable>: View {
 
     @Namespace private var pillNamespace
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         track
@@ -68,7 +69,11 @@ struct GlassSegmentedControl<T: Hashable>: View {
                 Text(label(option))
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
-                    .lineLimit(1)
+                    // Equal-width segments can't fit a grown label on one
+                    // line; at accessibility sizes it wraps instead of
+                    // shrinking into an ellipsis.
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                    .multilineTextAlignment(.center)
                     .minimumScaleFactor(0.75)
             }
             .foregroundStyle(foreground(isSelected: isSelected))

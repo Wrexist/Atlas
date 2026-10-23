@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
     inputs:
       simulator:
-        description: "Simulator device to capture on (blank = first available iPhone)"
+        description: "Simulator device to capture on (blank = iPhone 17 Pro, else iPhone 16 Pro, each on its newest iOS runtime)"
         required: false
         default: ""
         type: string
@@ -69,11 +69,22 @@ jobs:
         env:
           WANT: ${{ inputs.simulator }}
         run: |
+          # The fallback is a named model on its newest iOS runtime, not
+          # whichever iPhone the list happens to end with, so captures stay
+          # comparable from run to run.
           DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c "
-          import json, os, sys
-          devs = [x for r in json.load(sys.stdin)['devices'].values() for x in r if 'iPhone' in x.get('name', '')]
-          want = [x for x in devs if x['name'] == os.environ.get('WANT')]
-          pick = (want or devs[-1:] or [{}])[0]
+          import json, os, re, sys
+          def version(runtime):
+              return tuple(int(n) for n in re.findall(r'\d+', runtime.rsplit('.', 1)[-1]))
+          runtimes = sorted(json.load(sys.stdin)['devices'].items(), key=lambda kv: version(kv[0]), reverse=True)
+          devs = [x for rt, r in runtimes if '.iOS-' in rt for x in r if 'iPhone' in x.get('name', '')]
+          for name in [os.environ.get('WANT'), 'iPhone 17 Pro', 'iPhone 16 Pro']:
+              pick = next((x for x in devs if name and x['name'] == name), None)
+              if pick:
+                  break
+          else:
+              pick = (sorted(devs, key=lambda x: x['name'])[-1:] or [{}])[0]
+              print(f'::warning::No pinned iPhone model found; using {pick.get(\"name\")}.', file=sys.stderr)
           print(pick.get('udid', ''))
           ")
           if [ -z "$DEVICE_ID" ]; then

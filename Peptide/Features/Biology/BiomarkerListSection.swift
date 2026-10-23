@@ -129,6 +129,8 @@ struct BiomarkerListSection: View {
             latestLab: latestLab,
             unit: dataStore.profile.bodyMetrics.unit
         )
+        // A superseded refresh must not overwrite a newer row list.
+        guard !Task.isCancelled else { return }
         AppAnimation.with(AppAnimation.fadeIn) {
             snapshots = fresh
             isLoading = false

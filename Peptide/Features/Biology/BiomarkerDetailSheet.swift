@@ -83,20 +83,46 @@ struct BiomarkerDetailSheet: View {
     // MARK: - Hero
 
     private var heroBlock: some View {
-        HStack(alignment: .lastTextBaseline, spacing: Spacing.sm) {
-            Text(latestValueString)
-                .font(AppFont.scaled(48, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
-                .foregroundStyle(AppColor.textPrimary)
-                .monospacedDigit()
-                .contentTransition(.numericText())
-            if let unitString = biomarker.displayUnit(for: unit) {
-                Text(unitString)
-                    .font(AppFont.scaled(16, weight: .heavy))
-                    .foregroundStyle(AppColor.textSecondary)
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
+            HStack(alignment: .lastTextBaseline, spacing: Spacing.sm) {
+                Text(latestValueString)
+                    .font(AppFont.scaled(48, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                if let unitString = biomarker.displayUnit(for: unit) {
+                    Text(unitString)
+                        .font(AppFont.scaled(16, weight: .heavy))
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+                Spacer(minLength: 0)
+                trendChip
             }
-            Spacer(minLength: 0)
-            trendChip
+            HStack(spacing: Spacing.sm) {
+                if let latestCaption {
+                    Text(latestCaption)
+                }
+                Spacer(minLength: 0)
+                // The sheet upgrades from the row's 14-day snapshot to
+                // 90 days, so the chip says which window it reads.
+                if snapshot.trend != .insufficient {
+                    Text("Last \(trendWindowDays) days")
+                }
+            }
+            .font(AppFont.caption2)
+            .foregroundStyle(AppColor.textSecondary)
         }
+    }
+
+    /// When the hero number was recorded, so an old reading never
+    /// passes for today's.
+    private var latestCaption: String? {
+        guard let latestDate = snapshot.latestDate else { return nil }
+        return snapshot.staleNote() ?? dayLabel(for: latestDate)
+    }
+
+    private var trendWindowDays: Int {
+        historicalSnapshot == nil ? BiomarkerSeriesService.windowDays : BiomarkerSeriesService.detailWindowDays
     }
 
     private var latestValueString: String {
@@ -198,10 +224,18 @@ struct BiomarkerDetailSheet: View {
         }
     }
 
+    /// Display-unit domain around the plotted values, so the line uses
+    /// the plot's height instead of hugging the top of a zero-based axis.
+    private var chartDomain: ClosedRange<Double> {
+        let values = snapshot.samples.map { biomarker.displayValue($0.value, for: unit) }
+        return ChartYDomain.padded(values, minimumPadding: biomarker.chartMinimumPadding) ?? 0...1
+    }
+
     private var trendChart: some View {
-        Chart {
+        let domain = chartDomain
+        return Chart {
             ForEach(snapshot.samples, id: \.date) { sample in
-                trendMarks(for: sample)
+                trendMarks(for: sample, floor: domain.lowerBound)
             }
             if let selectedSample {
                 RuleMark(x: .value("Date", selectedSample.date, unit: .day))
@@ -230,6 +264,7 @@ struct BiomarkerDetailSheet: View {
                 AxisGridLine().foregroundStyle(AppColor.glassBorder)
             }
         }
+        .chartYScale(domain: domain)
         .chartYAxis {
             AxisMarks(position: .leading) { _ in
                 AxisValueLabel()
@@ -272,7 +307,7 @@ struct BiomarkerDetailSheet: View {
     }
 
     @ChartContentBuilder
-    private func trendMarks(for sample: BiomarkerSnapshot.Sample) -> some ChartContent {
+    private func trendMarks(for sample: BiomarkerSnapshot.Sample, floor: Double) -> some ChartContent {
         // Sample values are canonical metric — convert so the chart's
         // Y axis matches the imperial hero number above it.
         let displayValue = biomarker.displayValue(sample.value, for: unit)
@@ -286,9 +321,12 @@ struct BiomarkerDetailSheet: View {
         .accessibilityLabel(dayLabel(for: sample.date))
         .accessibilityValue(formattedWithUnit(displayValue))
 
+        // Filled down to the axis floor, not to zero, which now sits
+        // outside the plot.
         AreaMark(
             x: .value("Date", sample.date, unit: .day),
-            y: .value(biomarker.displayName, displayValue)
+            yStart: .value(biomarker.displayName, floor),
+            yEnd: .value(biomarker.displayName, displayValue)
         )
         .interpolationMethod(.monotone)
         .foregroundStyle(
@@ -305,10 +343,11 @@ struct BiomarkerDetailSheet: View {
         .accessibilityHidden(true)
     }
 
-    /// "Today", else the calendar date ("12 Mar"), so ticks read in the
-    /// user's locale rather than as English abbreviations.
+    /// "Today", "Yesterday", else the calendar date ("12 Mar"), so ticks
+    /// read in the user's locale rather than as English abbreviations.
     private func dayLabel(for date: Date) -> String {
         if Calendar.current.isDateInToday(date) { return String(localized: "Today") }
+        if Calendar.current.isDateInYesterday(date) { return String(localized: "Yesterday") }
         return date.formatted(.dateTime.day().month(.abbreviated))
     }
 

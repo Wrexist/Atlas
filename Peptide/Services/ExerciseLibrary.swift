@@ -19,9 +19,10 @@ final class ExerciseLibrary {
     /// first read).
     private(set) var bundled: [Exercise] = []
 
-    /// User-created exercises, merged on top of `bundled`. Mutated via
-    /// `attachCustomExercises(_:)`; the Train tab pulls them out of
-    /// SwiftData on appear and pushes them in.
+    /// User-created exercises, merged on top of `bundled`. Read from
+    /// SwiftData by `load()` and again by `reloadCustomExercises()`
+    /// whenever the store changes underneath (CloudKit pull, backup
+    /// restore, iCloud account switch).
     private(set) var custom: [CustomExercise] = []
 
     private var byID: [String: Exercise] = [:]
@@ -70,7 +71,10 @@ final class ExerciseLibrary {
         // a duplicate id in a bad exercises.json edit/OTA would otherwise
         // trap and crash the app on launch.
         byID = Dictionary(decoded.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        rebuildCatalog()
+        // Rebuilds the catalog too. Without it a relaunch leaves every
+        // custom exercise resolving to "Unknown exercise" until the user
+        // happens to open a recap or create another one.
+        reloadCustomExercises()
         isLoaded = true
         AppLog.training.info(
             "ExerciseLibrary loaded \(decoded.count, privacy: .public) exercises in \(Int(Date().timeIntervalSince(started) * 1000), privacy: .public)ms"
@@ -87,8 +91,12 @@ final class ExerciseLibrary {
         rebuildCatalog()
     }
 
-    /// Replaces the custom-exercise overlay. Called by the Train tab
-    /// after fetching the user's `StoredCustomExercise` rows.
+    /// Re-reads the user's `StoredCustomExercise` rows into the overlay.
+    func reloadCustomExercises() {
+        attachCustomExercises(SwiftDataRepository.shared.loadCustomExercises())
+    }
+
+    /// Replaces the custom-exercise overlay.
     func attachCustomExercises(_ exercises: [CustomExercise]) {
         custom = exercises
         rebuildCatalog()

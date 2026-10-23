@@ -30,14 +30,8 @@ struct PeptideSelector: View {
             result = result.filter { $0.category == category }
         }
 
-        if !searchText.isEmpty {
-            let query = searchText.lowercased()
-            result = result.filter {
-                $0.name.lowercased().contains(query) ||
-                $0.abbreviation.lowercased().contains(query) ||
-                $0.category.displayName.lowercased().contains(query)
-            }
-        }
+        let query = searchText
+        result = result.filter { $0.matchesSearch(query) }
 
         return result
     }

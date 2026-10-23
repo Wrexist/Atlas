@@ -19,6 +19,7 @@ extension StackRecommendationEngine {
         let categoryCounts: [PeptideCategory: Int]
         let currentBenefits: Set<String>
         let currentRoutes: [String]
+        let currentHalfLives: [Double]
         let dbByName: [String: Peptide]
         let resolvedGoals: [ResolvedGoal]
         let categoryCompliance: [PeptideCategory: Double]
@@ -46,6 +47,9 @@ extension StackRecommendationEngine {
                 .mapValues(\.count)
             self.currentBenefits = Set(currentPeptides.flatMap(\.benefits).map { $0.lowercased() })
             self.currentRoutes = currentPeptides.map { $0.adminRoute.lowercased() }
+            self.currentHalfLives = currentPeptides.compactMap {
+                StackRecommendationEngine.parseHalfLifeHours($0.halfLife)
+            }
             self.dbByName = database.reduce(into: [:]) { dict, p in
                 dict[p.abbreviation.lowercased()] = p
                 dict[p.name.lowercased()] = p

@@ -31,7 +31,7 @@ struct ProtocolListView: View {
                         if dataStore.protocols.isEmpty {
                             EmptyStateView(
                                 icon: "list.clipboard",
-                                title: "No Protocols Yet",
+                                title: "No protocols yet",
                                 message: "Build a protocol to track what you take, when, and how it's going.",
                                 action: .init(title: "Create Protocol", icon: "plus") {
                                     Haptics.impact(.medium)
@@ -154,10 +154,8 @@ struct ProtocolListView: View {
             }
             .refreshable {
                 // Re-load from disk via the repo so a CloudKit sync from
-                // another device shows up without restarting the app. The
-                // repo loads are fast (single JSON read per file) so this
-                // can happen on every pull-to-refresh.
-                dataStore.reloadFromDisk()
+                // another device shows up without restarting the app.
+                dataStore.refreshFromStore()
             }
             .navigationTitle("Protocols")
             .toolbar {
@@ -239,7 +237,7 @@ private struct ProtocolSection: View {
                     Button {
                         onShare(protocol_)
                     } label: {
-                        Label("Share Cycle Card", systemImage: "square.and.arrow.up")
+                        Label("Share cycle card", systemImage: "square.and.arrow.up")
                     }
                 }
                 // Status changes animate at the list root, so a paused or

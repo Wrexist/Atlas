@@ -43,11 +43,9 @@ final class PRDetectionEngine {
         // once at the end — upserting per session committed the store
         // once per exercise per workout across the whole history.
         var records: [String: PersonalRecord] = [:]
-        // Full history, oldest first, so "achieved at" lands on the
-        // earliest session that set each surviving best.
-        for session in repo.loadAllWorkoutSessions() where session.finishedAt != nil {
-            guard session.exercises.contains(where: { exerciseIDs.contains($0.exerciseID) })
-            else { continue }
+        // Oldest first, so "achieved at" lands on the earliest session
+        // that set each surviving best.
+        for session in repo.loadFinishedWorkoutSessions(touching: exerciseIDs) {
             apply(session: session, restrictTo: exerciseIDs, records: &records)
         }
         for exerciseID in exerciseIDs {

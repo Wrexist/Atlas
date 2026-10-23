@@ -38,4 +38,22 @@ final class HealthKitServiceTests: XCTestCase {
         XCTAssertFalse(read)
         XCTAssertFalse(write)
     }
+
+    func test_averageOfCompletedDays_leavesOutTodaysPartialBucket() {
+        let today = Calendar.current.startOfDay(for: Date(timeIntervalSince1970: 1_760_000_000))
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: today)!
+        let twoDaysAgo = Calendar.current.date(byAdding: .day, value: -2, to: today)!
+
+        let average = HealthKitService.averageOfCompletedDays(
+            [(twoDaysAgo, 8_000), (yesterday, 10_000), (today, 1_200)],
+            startOfToday: today
+        )
+
+        XCTAssertEqual(average, 9_000)
+    }
+
+    func test_averageOfCompletedDays_onlyToday_isNil() {
+        let today = Calendar.current.startOfDay(for: Date(timeIntervalSince1970: 1_760_000_000))
+        XCTAssertNil(HealthKitService.averageOfCompletedDays([(today, 1_200)], startOfToday: today))
+    }
 }

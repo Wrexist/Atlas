@@ -90,8 +90,12 @@ struct StatTile: View {
         }
     }
 
+    /// The icon ring grows with its glyph, up to AX1 so it stays a chip.
+    private var iconTypeSize: DynamicTypeSize { min(dynamicTypeSize, .accessibility1) }
+
     private func iconChip(_ icon: String) -> some View {
-        ZStack {
+        let ringSize = AppFont.scaledValue(28, in: iconTypeSize)
+        return ZStack {
             if let progress {
                 Circle()
                     .stroke(tint.opacity(0.18), lineWidth: 3)
@@ -105,10 +109,10 @@ struct StatTile: View {
                     .fill(tint.opacity(0.18))
             }
             Image(systemName: icon)
-                .font(AppFont.scaled(11, weight: .heavy, in: dynamicTypeSize))
+                .font(AppFont.scaled(11, weight: .heavy, in: iconTypeSize))
                 .foregroundStyle(tint)
         }
-        .frame(width: 28, height: 28)
+        .frame(width: ringSize, height: ringSize)
         .accessibilityHidden(true)
     }
 }
@@ -152,7 +156,7 @@ private struct StatTileAccessibilityLabel: ViewModifier {
                          tint: AppColor.macroProtein, footnote: "of 2400 kcal", progress: 0.53)
                 StatTile(label: "Water", value: "48", icon: "drop.fill",
                          tint: AppColor.macroWater, footnote: "oz today")
-                StatTile(label: "Compliance", value: "86%", tint: AppColor.accentPrimary,
+                StatTile(label: "Adherence", value: "86%", tint: AppColor.accentPrimary,
                          footnote: "12 of 14 doses", size: .large)
                 StatTile(label: "HRV Δ", value: "-4 ms", tint: AppColor.negative)
             }

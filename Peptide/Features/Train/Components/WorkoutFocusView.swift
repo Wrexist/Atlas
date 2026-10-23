@@ -125,7 +125,7 @@ struct WorkoutFocusView: View {
         )
         return VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack(alignment: .top) {
-                Text(exercise?.name ?? "Unknown exercise")
+                Text(exercise?.name ?? String(localized: "Unknown exercise"))
                     .font(AppFont.title3)
                     .foregroundStyle(AppColor.textPrimary)
                 Spacer(minLength: Spacing.xs)
@@ -273,17 +273,28 @@ struct WorkoutFocusView: View {
             return entry.sets.isEmpty ? String(localized: "Add your first set") : String(localized: "Exercise complete")
         }
         if next.isWarmup { return String(localized: "Warm-up") }
-        let working = entry.sets.filter { !$0.isWarmup }
-        let position = (working.firstIndex { $0.id == next.id } ?? 0) + 1
-        return String(localized: "Set \(position) of \(working.count)")
+        let position = Self.workingPosition(of: next, in: entry)
+        let workingCount = entry.sets.filter { !$0.isWarmup }.count
+        return String(localized: "Set \(position) of \(workingCount)")
+    }
+
+    /// 1-based position among the entry's working sets, so warm-ups never
+    /// shift the number the user sees.
+    private static func workingPosition(of set: SetEntry, in entry: WorkoutExerciseEntry) -> Int {
+        (entry.sets.filter { !$0.isWarmup }.firstIndex { $0.id == set.id } ?? 0) + 1
     }
 
     private func restTitle(_ rest: WorkoutRestContext) -> String {
         guard let target = session.exercises.first(where: { $0.id == rest.targetEntryID }),
               let set = target.sets.first(where: { $0.id == rest.targetSetID }) else { return String(localized: "Rest") }
-        if target.id == entry?.id { return String(localized: "Rest before set \(set.index)") }
         let name = library.displayName(for: target.exerciseID)
-        return String(localized: "Up next: \(name) · Set \(set.index)")
+        if set.isWarmup {
+            if target.id == entry?.id { return String(localized: "Rest before warm-up") }
+            return String(localized: "Up next: \(name) · Warm-up")
+        }
+        let position = Self.workingPosition(of: set, in: target)
+        if target.id == entry?.id { return String(localized: "Rest before set \(position)") }
+        return String(localized: "Up next: \(name) · Set \(position)")
     }
 }
 

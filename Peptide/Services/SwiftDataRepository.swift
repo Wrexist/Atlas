@@ -20,7 +20,23 @@ enum CloudSyncState: Sendable {
 final class SwiftDataRepository {
     static let shared = SwiftDataRepository()
 
-    private var container: ModelContainer?
+    private var container: ModelContainer? {
+        didSet { forgetPersistedIDs() }
+    }
+
+    /// Protocol and entry ids this device has read from or written to
+    /// the current store. One that is no longer there was deleted on
+    /// another device: the live save must not re-insert it from
+    /// in-memory state that predates the CloudKit import.
+    private var persistedProtocolIDs: Set<UUID> = []
+    private var persistedEntryIDs: Set<UUID> = []
+
+    /// Lets the next upserts insert every id again — for a backup
+    /// restore, which brings back rows deleted anywhere on purpose.
+    func forgetPersistedIDs() {
+        persistedProtocolIDs.removeAll()
+        persistedEntryIDs.removeAll()
+    }
 
     /// True when the on-disk store could not be opened and we fell back to an
     /// in-memory container. The app remains usable, but mutations won't persist
@@ -174,14 +190,10 @@ final class SwiftDataRepository {
         isInoperable = true
         container = nil
         isUsingFallbackStore = false
-        // Weekly recaps and Apple Health weigh-ins (with their dismissed
-        // sample ids) are device-local and never synced, so a first
-        // sign-in (no previous token) keeps them: only a sign-out or a
-        // switch to another account hands them to someone else.
-        if prev != nil {
-            summaryStore.deleteAll()
-            healthWeightStore.deleteAll()
-        }
+        // A first sign-in (no previous token) keeps the device-local
+        // records: only a sign-out or a switch to another account hands
+        // them to someone else.
+        if prev != nil { forgetDeviceLocalRecords() }
         mealDraftStore.resetForAccountChange()
         cloudSyncState = current != nil ? .unavailable : .noAccount
 
@@ -442,6 +454,20 @@ final class SwiftDataRepository {
         }
     }
 
+    /// Weekly recaps, Apple Health weigh-ins (with their dismissed sample
+    /// ids), scan corrections — sent to the proxy with every scan — barcode
+    /// history and the "Recently scanned" product cache are device-local
+    /// and never synced, so they belong to whoever was signed in.
+    func forgetDeviceLocalRecords() {
+        summaryStore.deleteAll()
+        healthWeightStore.deleteAll()
+        ScanCorrectionMemory.shared.eraseAll()
+        Task {
+            await BarcodeScanHistory.shared.removeAll()
+            await BarcodeProductCache.shared.clear()
+        }
+    }
+
     // MARK: - Test Support
 
     #if DEBUG
@@ -521,6 +547,8 @@ final class SwiftDataRepository {
                     context.delete(stored)
                 }
             }
+            persistedProtocolIDs.subtract(protocolIDs)
+            persistedEntryIDs.subtract(entryIDs)
             if includingProfile {
                 for stored in try context.fetch(FetchDescriptor<StoredProfile>()) {
                     context.delete(stored)
@@ -545,6 +573,7 @@ final class SwiftDataRepository {
             try context.delete(model: StoredPersonalRecord.self)
             try context.delete(model: StoredFast.self)
             try context.save()
+            forgetPersistedIDs()
             summaryStore.deleteAll()
             healthWeightStore.deleteAll()
             mealDraftStore.resetForAccountChange()
@@ -579,6 +608,7 @@ final class SwiftDataRepository {
         let inputIds = Set(protocols.map(\.id))
 
         for stored in existing where !inputIds.contains(stored.id) {
+            persistedProtocolIDs.remove(stored.id)
             context.delete(stored)
         }
 
@@ -588,6 +618,7 @@ final class SwiftDataRepository {
                     for stored in rows { try stored.update(from: proto) }
                 } catch {
                     AppLog.swiftData.error("Update StoredProtocol failed: \(error.localizedDescription, privacy: .public)")
+                    commitDidFail = true
                 }
             } else {
                 do {
@@ -595,6 +626,7 @@ final class SwiftDataRepository {
                     context.insert(stored)
                 } catch {
                     AppLog.swiftData.error("Insert StoredProtocol failed: \(error.localizedDescription, privacy: .public)")
+                    commitDidFail = true
                 }
             }
         }
@@ -632,9 +664,31 @@ final class SwiftDataRepository {
                 }
             } catch {
                 AppLog.swiftData.error("Upsert StoredProtocol failed: \(error.localizedDescription, privacy: .public)")
+                commitDidFail = true
             }
         }
-        commit()
+        if commit() { persistedProtocolIDs.formUnion(protocols.map(\.id)) }
+    }
+
+    /// The ids among `ids` this device has seen in the store that are no
+    /// longer there — protocols deleted on another device whose import
+    /// landed after this device loaded them.
+    func protocolIDsDeletedElsewhere(among ids: Set<UUID>) -> Set<UUID> {
+        let candidates = Array(ids.intersection(persistedProtocolIDs))
+        guard let context, !candidates.isEmpty else { return [] }
+        var present: Set<UUID> = []
+        do {
+            for chunk in Self.predicateChunks(candidates) {
+                var descriptor = FetchDescriptor<StoredProtocol>(predicate: #Predicate { chunk.contains($0.id) })
+                descriptor.propertiesToFetch = [\.id]
+                present.formUnion(try context.fetch(descriptor).map(\.id))
+            }
+        } catch {
+            // Unknown is not deleted: keep the in-memory protocols.
+            AppLog.swiftData.error("Fetch protocol ids failed: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+        return Set(candidates).subtracting(present)
     }
 
     func deleteProtocol(id: UUID) {
@@ -647,9 +701,11 @@ final class SwiftDataRepository {
             for stored in try context.fetch(descriptor) {
                 context.delete(stored)
             }
+            persistedProtocolIDs.remove(id)
             commit()
         } catch {
             AppLog.swiftData.error("Delete StoredProtocol failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -665,14 +721,26 @@ final class SwiftDataRepository {
             AppLog.swiftData.error("Load protocols failed: \(error.localizedDescription, privacy: .public)")
             return []
         }
-        return stored.compactMap {
+        // Duplicate rows (see `saveProtocols`) must load as one protocol:
+        // a second in-memory copy would be written back over every row
+        // after the first one is edited, reverting the edit.
+        persistedProtocolIDs.formUnion(stored.map(\.id))
+        return Self.keepingFirstPerID(stored.compactMap {
             do {
                 return try $0.toPeptideProtocol()
             } catch {
                 AppLog.swiftData.error("Decode StoredProtocol failed: \(error.localizedDescription, privacy: .public)")
                 return nil
             }
-        }
+        })
+    }
+
+    /// One value per id, in fetch order. The extra rows stay in the
+    /// store: they carry no timestamp that would let two devices agree
+    /// on which to delete, and every upsert writes all of them.
+    static func keepingFirstPerID<Item: Identifiable>(_ items: [Item]) -> [Item] {
+        var seen: Set<Item.ID> = []
+        return items.filter { seen.insert($0.id).inserted }
     }
 
     // MARK: - Entries
@@ -692,6 +760,7 @@ final class SwiftDataRepository {
         let inputIds = Set(entries.map(\.id))
 
         for stored in existing where !inputIds.contains(stored.id) {
+            persistedEntryIDs.remove(stored.id)
             context.delete(stored)
         }
 
@@ -701,6 +770,7 @@ final class SwiftDataRepository {
                     for stored in rows { try stored.update(from: entry) }
                 } catch {
                     AppLog.swiftData.error("Update StoredEntry failed: \(error.localizedDescription, privacy: .public)")
+                    commitDidFail = true
                 }
             } else {
                 do {
@@ -708,6 +778,7 @@ final class SwiftDataRepository {
                     context.insert(stored)
                 } catch {
                     AppLog.swiftData.error("Insert StoredEntry failed: \(error.localizedDescription, privacy: .public)")
+                    commitDidFail = true
                 }
             }
         }
@@ -717,9 +788,11 @@ final class SwiftDataRepository {
 
     /// Upsert-only entry save — never deletes. Used by the live save
     /// path; pair with explicit `deleteEntries(ids:)` calls at the
-    /// removal sites.
-    func upsertEntries(_ entries: [ProtocolEntry]) {
-        guard let context, !entries.isEmpty else { return }
+    /// removal sites. Returns the ids it skipped because another
+    /// device deleted their rows (see `persistedEntryIDs`).
+    @discardableResult
+    func upsertEntries(_ entries: [ProtocolEntry]) -> Set<UUID> {
+        guard let context, !entries.isEmpty else { return [] }
         var existing: [StoredEntry] = []
         do {
             for chunk in Self.predicateChunks(entries.map(\.id)) {
@@ -732,23 +805,30 @@ final class SwiftDataRepository {
             // exists; leave the batch dirty so the next save retries.
             AppLog.swiftData.error("Fetch (upsert) entries failed: \(error.localizedDescription, privacy: .public)")
             commitDidFail = true
-            return
+            return []
         }
         // Grouped, not unique: two devices that generated the same
         // scheduled dose each synced a row with its id.
         let existingById = Dictionary(grouping: existing, by: \.id)
+        var deletedElsewhere: Set<UUID> = []
         for entry in entries {
             do {
                 if let rows = existingById[entry.id] {
                     for stored in rows { try stored.update(from: entry) }
+                } else if persistedEntryIDs.contains(entry.id) {
+                    deletedElsewhere.insert(entry.id)
                 } else {
                     context.insert(try StoredEntry.make(from: entry))
                 }
             } catch {
                 AppLog.swiftData.error("Upsert StoredEntry failed: \(error.localizedDescription, privacy: .public)")
+                commitDidFail = true
             }
         }
-        commit()
+        if commit() {
+            persistedEntryIDs.formUnion(entries.lazy.map(\.id).filter { !deletedElsewhere.contains($0) })
+        }
+        return deletedElsewhere
     }
 
     func deleteEntries(ids: Set<UUID>) {
@@ -761,9 +841,11 @@ final class SwiftDataRepository {
             for stored in try context.fetch(descriptor) {
                 context.delete(stored)
             }
+            persistedEntryIDs.subtract(ids)
             commit()
         } catch {
             AppLog.swiftData.error("Delete StoredEntries failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -776,11 +858,13 @@ final class SwiftDataRepository {
         )
         do {
             for stored in try context.fetch(descriptor) {
+                persistedEntryIDs.remove(stored.id)
                 context.delete(stored)
             }
             commit()
         } catch {
             AppLog.swiftData.error("Delete protocol entries failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -849,6 +933,7 @@ final class SwiftDataRepository {
             AppLog.swiftData.error("Load entries failed: \(error.localizedDescription, privacy: .public)")
             return []
         }
+        persistedEntryIDs.formUnion(stored.map(\.id))
         return Self.collapsingDuplicateIDs(stored.compactMap {
             do {
                 return try $0.toProtocolEntry(resolvingFrom: known)
@@ -936,15 +1021,21 @@ final class SwiftDataRepository {
         do {
             existing = try canonicalProfileRow(in: context)
         } catch {
+            // Inserting now would add a second, newer row that wins the
+            // next reconciliation; stay dirty so the next save retries.
             AppLog.swiftData.error("Fetch profile failed: \(error.localizedDescription, privacy: .public)")
-            existing = nil
+            commitDidFail = true
+            return
         }
 
         if let existing {
             do {
-                try write(synced, into: existing, since: syncedBaseline)
+                // An edit an unreadable column refused must not be reported
+                // as saved: it would vanish on the next reload.
+                if try !write(synced, into: existing, since: syncedBaseline) { commitDidFail = true }
             } catch {
                 AppLog.swiftData.error("Update StoredProfile failed: \(error.localizedDescription, privacy: .public)")
+                commitDidFail = true
             }
         } else {
             do {
@@ -952,6 +1043,7 @@ final class SwiftDataRepository {
                 context.insert(stored)
             } catch {
                 AppLog.swiftData.error("Insert StoredProfile failed: \(error.localizedDescription, privacy: .public)")
+                commitDidFail = true
             }
         }
         commit()
@@ -993,13 +1085,14 @@ final class SwiftDataRepository {
         healthWeightStore.dismiss(ids: ids)
     }
 
-    private func write(_ profile: UserProfile, into row: StoredProfile, since baseline: UserProfile?) throws {
+    /// False when a column this build can't read kept an edit out.
+    private func write(_ profile: UserProfile, into row: StoredProfile, since baseline: UserProfile?) throws -> Bool {
         guard let baseline else { return try row.update(from: profile) }
         var rebased = profile
-        if ProfileMergeEngine.mealsChanged(from: baseline, to: profile) {
-            rebased = ProfileMergeEngine.rebasingMeals(local: profile, baseline: baseline, remote: try row.toUserProfile())
+        if ProfileMergeEngine.needsRebase(from: baseline, to: profile) {
+            rebased = ProfileMergeEngine.rebasing(local: profile, baseline: baseline, remote: try row.toUserProfile())
         }
-        try row.update(from: rebased, since: baseline)
+        return try row.update(from: rebased, since: baseline)
     }
 
     func loadProfile() -> UserProfile? {
@@ -1067,8 +1160,9 @@ final class SwiftDataRepository {
         let previous = try existing?.toUserProfile()
         var inserted: StoredProfile?
         do {
-            if let existing { try write(synced, into: existing, since: syncedBaseline) }
-            else {
+            if let existing {
+                guard try write(synced, into: existing, since: syncedBaseline) else { throw MealSaveError.unavailable }
+            } else {
                 let row = try StoredProfile.make(from: synced)
                 context.insert(row)
                 inserted = row
@@ -1078,7 +1172,7 @@ final class SwiftDataRepository {
             #endif
             try context.save()
         } catch {
-            if let existing, let previous { try? existing.update(from: previous) }
+            if let existing, let previous { _ = try? existing.update(from: previous) }
             if let inserted { context.delete(inserted) }
             throw error
         }
@@ -1096,16 +1190,16 @@ final class SwiftDataRepository {
         guard !isUsingFallbackStore, let context else { throw WorkoutSaveError.unavailable }
         let sessionID = session.id
         let descriptor = FetchDescriptor<StoredWorkoutSession>(predicate: #Predicate { $0.id == sessionID })
-        let existing = try context.fetch(descriptor).first
-        let previous = try existing?.toWorkoutSession()
+        let existing = try context.fetch(descriptor)
+        let previous = try existing.map { try $0.toWorkoutSession() }
         let prepared = try StoredWorkoutSession.make(from: session)
         do {
-            if let existing { try existing.update(from: session) }
-            else { context.insert(prepared) }
+            for row in existing { try row.update(from: session) }
+            if existing.isEmpty { context.insert(prepared) }
             guard commit() else { throw WorkoutSaveError.failed }
         } catch {
-            if let existing, let previous { try? existing.update(from: previous) }
-            else { context.delete(prepared) }
+            for (row, prior) in zip(existing, previous) { try? row.update(from: prior) }
+            if existing.isEmpty { context.delete(prepared) }
             throw error
         }
     }
@@ -1121,12 +1215,11 @@ final class SwiftDataRepository {
             predicate: #Predicate { $0.id == sessionID }
         )
         do {
-            if let existing = try context.fetch(descriptor).first {
-                try existing.update(from: session)
-            } else {
-                let stored = try StoredWorkoutSession.make(from: session)
-                context.insert(stored)
-            }
+            // Every copy CloudKit synced for the id, so a stale twin
+            // can't come back; loads keep one per id.
+            let rows = try context.fetch(descriptor)
+            for existing in rows { try existing.update(from: session) }
+            if rows.isEmpty { context.insert(try StoredWorkoutSession.make(from: session)) }
             commit()
         } catch {
             AppLog.swiftData.error("upsert workout session failed: \(error.localizedDescription, privacy: .public)")
@@ -1147,6 +1240,7 @@ final class SwiftDataRepository {
             commit()
         } catch {
             AppLog.swiftData.error("delete workout session failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -1165,14 +1259,14 @@ final class SwiftDataRepository {
         descriptor.fetchLimit = max(1, limit)
         do {
             let stored = try context.fetch(descriptor)
-            return stored.compactMap {
+            return Self.keepingFirstPerID(stored.compactMap {
                 do {
                     return try $0.toWorkoutSession()
                 } catch {
                     AppLog.swiftData.error("Decode StoredWorkoutSession failed: \(error.localizedDescription, privacy: .public)")
                     return nil
                 }
-            }
+            })
         } catch {
             AppLog.swiftData.error("Load workout sessions failed: \(error.localizedDescription, privacy: .public)")
             return []
@@ -1205,14 +1299,14 @@ final class SwiftDataRepository {
         let descriptor = FetchDescriptor<StoredWorkoutSession>(
             predicate: #Predicate { $0.startedAt >= start && $0.startedAt < end },
             sortBy: [SortDescriptor(\.startedAt)])
-        return try context.fetch(descriptor).compactMap {
+        return Self.keepingFirstPerID(try context.fetch(descriptor).compactMap {
             do {
                 return try $0.toWorkoutSession()
             } catch {
                 AppLog.swiftData.error("Decode StoredWorkoutSession (recap) failed: \(error.localizedDescription, privacy: .public)")
                 return nil
             }
-        }
+        })
     }
 
     /// Uncapped full-history fetch, oldest first. Exists for correctness
@@ -1227,16 +1321,46 @@ final class SwiftDataRepository {
         )
         do {
             let stored = try context.fetch(descriptor)
-            return stored.compactMap {
+            return Self.keepingFirstPerID(stored.compactMap {
                 do {
                     return try $0.toWorkoutSession()
                 } catch {
                     AppLog.swiftData.error("Decode StoredWorkoutSession (full) failed: \(error.localizedDescription, privacy: .public)")
                     return nil
                 }
-            }
+            })
         } catch {
             AppLog.swiftData.error("Load all workout sessions failed: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
+    /// Finished sessions, oldest first, that log any of `exerciseIDs`.
+    /// Rows are screened on their raw JSON first, so a history edit no
+    /// longer decodes every workout the user has ever logged.
+    func loadFinishedWorkoutSessions(touching exerciseIDs: Set<String>) -> [WorkoutSession] {
+        guard let context, !exerciseIDs.isEmpty else { return [] }
+        let descriptor = FetchDescriptor<StoredWorkoutSession>(
+            sortBy: [SortDescriptor(\.startedAt, order: .forward)]
+        )
+        let needles = StoredWorkoutSession.exerciseIDNeedles(exerciseIDs)
+        do {
+            let sessions = try context.fetch(descriptor)
+                .filter { $0.finishedAt != nil && $0.mayLog(anyOf: needles) }
+                .compactMap {
+                    do {
+                        return try $0.toWorkoutSession()
+                    } catch {
+                        AppLog.swiftData.error("Decode StoredWorkoutSession (touching) failed: \(error.localizedDescription, privacy: .public)")
+                        return nil
+                    }
+                }
+                .filter { $0.exercises.contains { exerciseIDs.contains($0.exerciseID) } }
+            // CloudKit can sync twin rows for one id; keep one, as the
+            // other session loads do.
+            return Self.keepingFirstPerID(sessions)
+        } catch {
+            AppLog.swiftData.error("Load workout sessions touching exercises failed: \(error.localizedDescription, privacy: .public)")
             return []
         }
     }
@@ -1272,14 +1396,14 @@ final class SwiftDataRepository {
         descriptor.fetchLimit = SwiftDataRepository.workoutHistoryFetchLimit
         do {
             let stored = try context.fetch(descriptor)
-            return stored.compactMap {
+            return Self.keepingFirstPerID(stored.compactMap {
                 do {
                     return try $0.toWorkoutSession()
                 } catch {
                     AppLog.swiftData.error("Decode StoredWorkoutSession (windowed) failed: \(error.localizedDescription, privacy: .public)")
                     return nil
                 }
-            }
+            })
         } catch {
             AppLog.swiftData.error("Load windowed workout sessions failed: \(error.localizedDescription, privacy: .public)")
             return []
@@ -1303,14 +1427,14 @@ final class SwiftDataRepository {
             sortBy: [SortDescriptor(\.startedAt, order: .reverse)]
         )
         do {
-            return try context.fetch(descriptor).compactMap {
+            return Self.keepingFirstPerID(try context.fetch(descriptor).compactMap {
                 do {
                     return try $0.toWorkoutSession()
                 } catch {
                     AppLog.swiftData.error("Decode StoredWorkoutSession (unfinished) failed: \(error.localizedDescription, privacy: .public)")
                     return nil
                 }
-            }
+            })
         } catch {
             AppLog.swiftData.error("Load unfinished workouts failed: \(error.localizedDescription, privacy: .public)")
             return []
@@ -1326,15 +1450,15 @@ final class SwiftDataRepository {
             predicate: #Predicate { $0.id == id }
         )
         do {
-            if let existing = try context.fetch(descriptor).first {
-                try existing.update(from: exercise)
-            } else {
-                let stored = try StoredCustomExercise.make(from: exercise)
-                context.insert(stored)
-            }
+            // Every copy CloudKit synced for the id, so a stale twin
+            // can't come back; loads keep one per id.
+            let rows = try context.fetch(descriptor)
+            for existing in rows { try existing.update(from: exercise) }
+            if rows.isEmpty { context.insert(try StoredCustomExercise.make(from: exercise)) }
             commit()
         } catch {
             AppLog.swiftData.error("upsert custom exercise failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -1351,6 +1475,7 @@ final class SwiftDataRepository {
             commit()
         } catch {
             AppLog.swiftData.error("delete custom exercise failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -1360,14 +1485,14 @@ final class SwiftDataRepository {
             sortBy: [SortDescriptor(\.name, order: .forward)]
         )
         do {
-            return try context.fetch(descriptor).compactMap {
+            return Self.keepingFirstPerID(try context.fetch(descriptor).compactMap {
                 do {
                     return try $0.toCustomExercise()
                 } catch {
                     AppLog.swiftData.error("Decode StoredCustomExercise failed: \(error.localizedDescription, privacy: .public)")
                     return nil
                 }
-            }
+            })
         } catch {
             AppLog.swiftData.error("Load custom exercises failed: \(error.localizedDescription, privacy: .public)")
             return []
@@ -1383,15 +1508,15 @@ final class SwiftDataRepository {
             predicate: #Predicate { $0.id == routineID }
         )
         do {
-            if let existing = try context.fetch(descriptor).first {
-                try existing.update(from: routine)
-            } else {
-                let stored = try StoredRoutine.make(from: routine)
-                context.insert(stored)
-            }
+            // Every copy CloudKit synced for the id, so a stale twin
+            // can't come back; loads keep one per id.
+            let rows = try context.fetch(descriptor)
+            for existing in rows { try existing.update(from: routine) }
+            if rows.isEmpty { context.insert(try StoredRoutine.make(from: routine)) }
             commit()
         } catch {
             AppLog.swiftData.error("upsert routine failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -1409,6 +1534,7 @@ final class SwiftDataRepository {
         } catch {
             // Inserting blind would duplicate every routine that exists.
             AppLog.swiftData.error("Fetch (upsert) routines failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
             return
         }
         let existingByID = Dictionary(grouping: existing, by: \.id)
@@ -1421,6 +1547,7 @@ final class SwiftDataRepository {
                 }
             } catch {
                 AppLog.swiftData.error("upsert routine failed: \(error.localizedDescription, privacy: .public)")
+                commitDidFail = true
             }
         }
         commit()
@@ -1439,6 +1566,7 @@ final class SwiftDataRepository {
             commit()
         } catch {
             AppLog.swiftData.error("delete routine failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -1454,14 +1582,14 @@ final class SwiftDataRepository {
             ]
         )
         do {
-            return try context.fetch(descriptor).compactMap {
+            return Self.keepingFirstPerID(try context.fetch(descriptor).compactMap {
                 do {
                     return try $0.toRoutine()
                 } catch {
                     AppLog.swiftData.error("Decode StoredRoutine failed: \(error.localizedDescription, privacy: .public)")
                     return nil
                 }
-            }
+            })
         } catch {
             AppLog.swiftData.error("Load routines failed: \(error.localizedDescription, privacy: .public)")
             return []
@@ -1492,6 +1620,7 @@ final class SwiftDataRepository {
             commit()
         } catch {
             AppLog.swiftData.error("upsert PR failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -1523,6 +1652,7 @@ final class SwiftDataRepository {
             commit()
         } catch {
             AppLog.swiftData.error("delete PR failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -1543,6 +1673,7 @@ final class SwiftDataRepository {
             commit()
         } catch {
             AppLog.swiftData.error("upsert fast failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -1559,6 +1690,7 @@ final class SwiftDataRepository {
             commit()
         } catch {
             AppLog.swiftData.error("delete fast failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 

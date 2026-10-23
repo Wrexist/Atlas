@@ -186,6 +186,16 @@ test('test_refusalAndTruncation_mapToErrors', () => {
   assert.equal(readFoodScanResult({ stop_reason: 'end_turn', content: [{ type: 'text', text: '{"nope":1}' }] }).status, 502);
 });
 
+test('test_unparseableReply_logsNoReplyText', (t) => {
+  const logged = [];
+  t.mock.method(console, 'error', (...args) => logged.push(args));
+  const reply = 'Here is the chicken salad I see on the plate';
+  const out = readFoodScanResult({ stop_reason: 'end_turn', content: [{ type: 'text', text: reply }] });
+  assert.equal(out.status, 502);
+  assert.equal(logged.length, 1);
+  assert.doesNotMatch(JSON.stringify(logged), /Here is|chicken/);
+});
+
 test('test_fallbackBlocks_areSkippedWhenReadingText', () => {
   const out = readFoodScanResult({
     stop_reason: 'end_turn',

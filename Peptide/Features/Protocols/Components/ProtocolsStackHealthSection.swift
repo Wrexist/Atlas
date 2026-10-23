@@ -68,23 +68,17 @@ struct ProtocolsStackHealthSection: View {
                 StackAlertDetailSheet(
                     warning: warning,
                     peptideDatabase: dataStore.peptideDatabase,
-                    onPrimaryAction: {
-                        if canAdjustStack(for: warning) {
-                            // Defer until the detail sheet finishes
-                            // dismissing — SwiftUI can't chain two
-                            // sheets in the same runloop tick.
-                            Task { @MainActor in
-                                try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
-                                adjustingAlert = warning
-                            }
-                        } else {
-                            // No adjustable protocol — the warning
-                            // is informational only. Already on the
-                            // Protocols tab so we just dismiss and
-                            // let the user navigate.
-                            selectedAlert = nil
+                    // No adjustable protocol: the warning is informational
+                    // and the sheet offers only "Got it".
+                    onEditProtocol: canAdjustStack(for: warning) ? {
+                        // Defer until the detail sheet finishes
+                        // dismissing — SwiftUI can't chain two
+                        // sheets in the same runloop tick.
+                        Task { @MainActor in
+                            try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
+                            adjustingAlert = warning
                         }
-                    }
+                    } : nil
                 )
             }
             .sheet(item: $adjustingAlert) { warning in
@@ -136,7 +130,11 @@ struct ProtocolsStackHealthSection: View {
             case .discard:
                 continue
             case .moveTo(let protocolId, _, _):
-                dataStore.addPeptide(move.peptide, toProtocolId: protocolId)
+                dataStore.addPeptide(
+                    move.peptide,
+                    toProtocolId: protocolId,
+                    schedule: source.schedule(for: move.peptide.id)
+                )
             case .createStack:
                 if StoreService.shared.requiresPro(activeProtocolCount: dataStore.activeProtocols.count) {
                     deferredPaywall = true
@@ -146,8 +144,9 @@ struct ProtocolsStackHealthSection: View {
                     id: UUID(),
                     name: String(localized: "\(move.peptide.abbreviation) Solo"),
                     peptides: [move.peptide],
-                    schedule: source.schedule,
+                    schedule: source.schedule(for: move.peptide.id),
                     cycleLengthWeeks: source.cycleLengthWeeks,
+                    washoutWeeks: source.washoutWeeks,
                     startDate: Date(),
                     status: .active,
                     notes: String(localized: "Spun off from \(source.name) to reduce compounding side effects.")

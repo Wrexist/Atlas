@@ -67,6 +67,7 @@ struct HealthMonitorGrid: View {
                             )
                         }
                     }
+                    .fixedSize(horizontal: false, vertical: true)
                 }
             }
         } else {

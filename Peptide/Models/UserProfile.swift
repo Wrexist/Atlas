@@ -24,10 +24,11 @@ enum BiologicalSex: String, Codable, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Pills shown on the body-stats step. Excludes `.unspecified` because
-    /// the step expects an explicit choice — `.other` covers gender-neutral
-    /// users without forcing them into a binary.
-    static let onboardingChoices: [BiologicalSex] = [.male, .female, .other]
+    /// Pills shown on the body-stats step. `.unspecified` is the default
+    /// and stays a visible pill, so users can see they haven't chosen and
+    /// can go back to not saying after tapping another; `.other` covers
+    /// gender-neutral users without forcing them into a binary.
+    static let onboardingChoices: [BiologicalSex] = [.male, .female, .other, .unspecified]
 }
 
 enum ActivityLevel: String, Codable, CaseIterable, Identifiable, Sendable {

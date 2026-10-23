@@ -163,7 +163,7 @@ private enum WorkoutActivityStyle {
             if !state.currentExercise.isEmpty { return "\(state.currentExercise)" }
             return state.exerciseCount == 0
                 ? "Add your first exercise"
-                : "\(state.completedSets)/\(state.totalSets) sets"
+                : "\(state.completedSets)/^[\(state.totalSets) set](inflect: true)"
         }
     }
 }
@@ -200,7 +200,6 @@ private struct WorkoutLockView: View {
             }
         }
         .activityBackgroundTint(Color.black.opacity(0.05))
-        .activitySystemActionForegroundColor(.white)
     }
 
     /// Neutral layout for a forgotten workout. The whole view still
@@ -231,6 +230,8 @@ private struct WorkoutLockView: View {
         HStack(alignment: .center, spacing: 14) {
             LockRing(state: state, accent: accent)
                 .frame(width: 56, height: 56)
+                // The subtitle and the set bar say what the ring shows.
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(state.displayName)
@@ -242,6 +243,7 @@ private struct WorkoutLockView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
+            .accessibilityElement(children: .combine)
 
             Spacer(minLength: 0)
 
@@ -363,6 +365,7 @@ private struct WorkoutActionButton: View {
     let sessionId: UUID
     let state: WorkoutActivityAttributes.ContentState
     let accent: Color
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         switch state.status() {
@@ -380,13 +383,16 @@ private struct WorkoutActionButton: View {
             HStack(spacing: 6) {
                 Image(systemName: systemImage)
                     .font(.system(size: 12, weight: .heavy))
+                    .accessibilityHidden(true)
                 Text(title)
                     .font(.system(size: 14, weight: .heavy, design: .rounded))
             }
-            .foregroundStyle(.white)
+            // White fails contrast on the resting amber, which is light
+            // in the dark scheme the Dynamic Island always draws in.
+            .foregroundStyle(labelColor(on: accent, in: colorScheme))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
-            .background(Capsule().fill(accent.opacity(0.85)))
+            .background(Capsule().fill(accent))
         }
         .buttonStyle(.plain)
     }
@@ -407,9 +413,7 @@ private struct SetProgressBar: View {
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 0)
                 if state.exerciseCount > 0 {
-                    Text(state.exerciseCount == 1
-                         ? "1 exercise"
-                         : "\(state.exerciseCount) exercises")
+                    Text("^[\(state.exerciseCount) exercise](inflect: true)")
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(.secondary)
                 }

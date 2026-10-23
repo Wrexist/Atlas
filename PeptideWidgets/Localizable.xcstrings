@@ -1,6 +1,26 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%@ %lld grams": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ %lld gram"
+          }
+        }
+      }
+    },
+    "%@ %lld of %lld grams": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ %lld av %lld gram"
+          }
+        }
+      }
+    },
     "%@ at %@": {
       "localizations": {
         "sv": {
@@ -47,28 +67,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld"
-          }
-        }
-      }
-    },
-    "%lld exercises": {
-      "localizations": {
-        "sv": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld övning"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld övningar"
-                }
-              }
-            }
           }
         }
       }
@@ -154,6 +152,24 @@
               }
             }
           }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld workout this week"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld workouts this week"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -167,22 +183,12 @@
         }
       }
     },
-    "%lld/%lld sets": {
+    "%lld/^[%lld set](inflect: true)": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "%lld/%lld set"
-          }
-        }
-      }
-    },
-    "1 exercise": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1 övning"
           }
         }
       }
@@ -233,6 +239,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lägger till ett glas vatten för idag utan att öppna Atlas."
+          }
+        }
+      }
+    },
+    "Adherence": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Följsamhet"
           }
         }
       }
@@ -313,6 +329,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ska tas %@"
+          }
+        }
+      }
+    },
+    "Due at %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ska tas kl. %@"
           }
         }
       }
@@ -527,6 +553,16 @@
         }
       }
     },
+    "No doses today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga doser i dag"
+          }
+        }
+      }
+    },
     "No meals logged yet": {
       "localizations": {
         "sv": {
@@ -653,6 +689,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Försenad"
+          }
+        }
+      }
+    },
+    "Overdue · %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Försenad · %@"
+          }
+        }
+      }
+    },
+    "Overdue · %@ · %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Försenad · %@ · %@"
+          }
+        }
+      }
+    },
+    "Overdue: %@ at %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Försenad: %@ kl. %@"
           }
         }
       }
@@ -867,6 +933,16 @@
         }
       }
     },
+    "Upcoming": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kommande"
+          }
+        }
+      }
+    },
     "Very High": {
       "localizations": {
         "sv": {
@@ -947,6 +1023,16 @@
         }
       }
     },
+    "Workout time": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Träningstid"
+          }
+        }
+      }
+    },
     "Your first finished session lands here.": {
       "localizations": {
         "sv": {
@@ -973,6 +1059,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Din vecka med en blick, ditt senaste pass och en live-timer medan du tränar."
+          }
+        }
+      }
+    },
+    "^[%lld exercise](inflect: true)": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld övning"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld övningar"
+                }
+              }
+            }
           }
         }
       }
@@ -1160,17 +1268,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "gång"
-          }
-        }
-      }
-    },
-    "to dose": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "att dosera"
+            "value": "tid"
           }
         }
       }

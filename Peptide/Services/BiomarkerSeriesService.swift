@@ -135,14 +135,15 @@ enum BiomarkerSeriesService {
         let recent = latestPerDay.values
             .sorted { $0.date < $1.date }
             .map { BiomarkerSnapshot.Sample(date: $0.date, value: $0.kg) }
-        guard let latest = recent.last?.value else { return .empty(.weight) }
+        guard let newest = recent.last else { return .empty(.weight) }
         let trend = inferTrend(samples: recent.map(\.value))
         return BiomarkerSnapshot(
             biomarker: .weight,
-            latest: latest,
+            latest: newest.value,
             trend: trend,
             samples: recent.count >= sparklineMinSamples ? recent : [],
-            changeText: changeText(for: .weight, trend: trend, latest: latest, unit: unit)
+            changeText: changeText(for: .weight, trend: trend, latest: newest.value, unit: unit),
+            latestDate: newest.date
         )
     }
 
@@ -155,16 +156,17 @@ enum BiomarkerSeriesService {
         series: [(date: Date, value: Double)],
         unit: MeasurementUnit = .metric
     ) -> BiomarkerSnapshot {
-        guard let latest = series.last?.value else { return .empty(biomarker) }
+        guard let newest = series.last else { return .empty(biomarker) }
         let trend = inferTrend(samples: series.map(\.value))
         return BiomarkerSnapshot(
             biomarker: biomarker,
-            latest: latest,
+            latest: newest.value,
             trend: trend,
             samples: series.count >= sparklineMinSamples
                 ? series.map { BiomarkerSnapshot.Sample(date: $0.date, value: $0.value) }
                 : [],
-            changeText: changeText(for: biomarker, trend: trend, latest: latest, unit: unit)
+            changeText: changeText(for: biomarker, trend: trend, latest: newest.value, unit: unit),
+            latestDate: newest.date
         )
     }
 
@@ -194,7 +196,8 @@ enum BiomarkerSeriesService {
             latest: lab.value,
             trend: .insufficient,
             samples: [],
-            changeText: "\(lab.panel.displayName) · \(valueStr) \(unit)"
+            changeText: "\(lab.panel.displayName) · \(valueStr) \(unit)",
+            latestDate: lab.date
         )
     }
 

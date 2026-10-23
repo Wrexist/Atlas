@@ -45,7 +45,9 @@ struct WatchRootView: View {
             if session != nil { selection = .workout }
         }
         .onOpenURL { url in
-            if let page = WatchPage(url: url), pages.contains(page) { selection = page }
+            // A complication for a page that isn't shown (the Workout one
+            // between workouts) opens Today rather than the last page.
+            if let page = WatchPage(url: url) { selection = pages.contains(page) ? page : .today }
         }
         .onChange(of: pages) { _, pages in
             if !pages.contains(selection) { selection = .today }

@@ -50,7 +50,7 @@ final class AIResearchService: Sendable {
         case rateLimited
         case dailyLimitReached
         case serviceUnavailable
-        case requestFailed(String)
+        case questionTooLong
         case invalidResponse
 
         var errorDescription: String? {
@@ -58,13 +58,34 @@ final class AIResearchService: Sendable {
             // Build-config detail belongs in the log, not in front of
             // customers; they only need to know the assistant is down.
             case .proxyNotConfigured:   String(localized: "The research assistant isn't available right now. Update Atlas or try again later.")
-            case .unauthorised:         String(localized: "Couldn't sign in to the research assistant. This build's credentials were rejected — update to the latest version from TestFlight or the App Store, or contact support if you're already on the newest build.")
+            case .unauthorised:         String(localized: "Couldn't connect to the research assistant. Update Atlas to the latest version, or contact support if you're already up to date.")
             case .offline:              String(localized: "You're offline — the research assistant needs an internet connection. Reconnect and try again.")
             case .rateLimited:          String(localized: "You're sending questions faster than the assistant can answer. Wait a minute and try again.")
             case .dailyLimitReached:    String(localized: "You've reached today's research limit. It resets tomorrow.")
             case .serviceUnavailable:   String(localized: "The research assistant is temporarily offline. Try again in a few minutes.")
-            case .requestFailed(let m): m
+            case .questionTooLong:      String(localized: "That message is too long for the assistant. Try a shorter question.")
             case .invalidResponse:      String(localized: "The assistant returned an unexpected response.")
+            }
+        }
+
+        /// The assistant was reached for these, so the alert must not say
+        /// it wasn't.
+        var alertTitle: String {
+            switch self {
+            case .dailyLimitReached:                  String(localized: "Daily limit reached")
+            case .questionTooLong:                    String(localized: "Message too long")
+            case .proxyNotConfigured, .unauthorised:  String(localized: "Assistant unavailable")
+            case .offline, .rateLimited, .serviceUnavailable, .invalidResponse:
+                String(localized: "Couldn't reach the assistant")
+            }
+        }
+
+        /// Sending the same question again can't succeed for these, so
+        /// Retry would only burn a request into the same error.
+        var isRetryable: Bool {
+            switch self {
+            case .dailyLimitReached, .questionTooLong, .proxyNotConfigured, .unauthorised: false
+            case .offline, .rateLimited, .serviceUnavailable, .invalidResponse: true
             }
         }
     }
@@ -194,13 +215,15 @@ final class AIResearchService: Sendable {
     }
 
     /// Sends with a fresh assertion. When the proxy has lost this
-    /// install's key (401 `attest_required`), re-registers and sends
-    /// once more instead of failing until the next reinstall.
+    /// install's key (401 `attest_required`) or refused the device
+    /// clock (401 `attest_clock`), recovers and sends once more instead
+    /// of failing until the next reinstall.
     private func sendAttested(_ request: URLRequest) async throws -> (Data, URLResponse) {
         let first = try await session.data(for: attested(request))
-        guard (first.1 as? HTTPURLResponse)?.statusCode == 401,
-              AppAttestService.isAttestRejection(first.0) else { return first }
-        await AppAttestService.shared.invalidateRegistration()
+        guard let http = first.1 as? HTTPURLResponse, http.statusCode == 401,
+              await AppAttestService.shared.recover(
+                  fromRejection: first.0, serverDate: http.value(forHTTPHeaderField: "Date")
+              ) else { return first }
         return try await session.data(for: attested(request, waitForRegistration: true))
     }
 
@@ -369,13 +392,16 @@ final class AIResearchService: Sendable {
     /// echo the upstream body — Anthropic auth-failure responses include
     /// masked-key fingerprints that the user shouldn't see. 401 is broken
     /// out so the user sees an actionable message rather than a bare HTTP
-    /// status code.
+    /// status code; any status without its own copy keeps the number in
+    /// the log only.
     private static func chatError(status: Int, body: Data) -> ChatError {
         switch status {
-        case 401:           return .unauthorised
-        case 429:           return proxyErrorCode(in: body) == "daily_quota" ? .dailyLimitReached : .rateLimited
-        case 502, 503, 504: return .serviceUnavailable
-        default:            return .requestFailed("AI research returned HTTP \(status).")
+        case 401:      return .unauthorised
+        case 400, 413: return .questionTooLong
+        case 429:      return proxyErrorCode(in: body) == "daily_quota" ? .dailyLimitReached : .rateLimited
+        default:
+            AppLog.ai.error("AI research returned HTTP \(status, privacy: .public)")
+            return .serviceUnavailable
         }
     }
 
@@ -398,6 +424,10 @@ final class AIResearchService: Sendable {
         "• If the summary is thin (few logged days), say so and encourage consistent logging before drawing conclusions.",
     ]
 
+    static var truncationNote: String {
+        String(localized: "Answer was cut short. Ask me to continue.")
+    }
+
     private func parseAssistantText(from data: Data) throws -> String {
         let envelopeObject: Any
         do {
@@ -417,6 +447,10 @@ final class AIResearchService: Sendable {
         else {
             throw ChatError.invalidResponse
         }
-        return text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let answer = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        // A reply that hit the token cap ends mid-sentence; say so rather
+        // than let it read as the whole answer.
+        guard envelope["stop_reason"] as? String == "max_tokens", !answer.isEmpty else { return answer }
+        return answer + "\n\n" + Self.truncationNote
     }
 }

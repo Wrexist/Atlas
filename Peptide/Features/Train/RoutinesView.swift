@@ -12,6 +12,7 @@ struct RoutinesView: View {
     @Binding var path: [TrainNavigation]
 
     @State private var store = RoutineStore.shared
+    @Environment(DataStore.self) private var dataStore
     @State private var library = ExerciseLibrary.shared
     /// Library lookups resolved off the render path — see `RoutineSummary`.
     @State private var summaries: [RoutineSummary] = []
@@ -20,6 +21,11 @@ struct RoutinesView: View {
     @State private var pendingDeletion: Routine?
     @State private var pendingStart: Routine?
     @State private var buildingProgram = false
+
+    /// The rest the timer runs for a slot and routine that set none.
+    private var defaultRestSeconds: Int {
+        dataStore.profile.trainingPreferences?.restTimerDefault ?? RoutineSeedEngine.fallbackRestSeconds
+    }
 
     var body: some View {
         Group {
@@ -47,7 +53,7 @@ struct RoutinesView: View {
             rebuildSummaries()
         }
         .task(id: store.routines) { rebuildSummaries() }
-        .onAppear(perform: discardUntouchedRoutines)
+        .onAppear { store.discardAbandonedDrafts() }
         .alert("Rename routine", isPresented: renameBinding) {
             TextField("Routine name", text: $renameText)
             Button("Cancel", role: .cancel) { renaming = nil }
@@ -107,12 +113,15 @@ struct RoutinesView: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .contextMenu { menu(for: summary.routine) }
+                    // No destructive role: the alert confirms first, and the
+                    // role would start List's row-removal animation early.
                     .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) {
+                        Button {
                             pendingDeletion = summary.routine
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
+                        .tint(AppColor.destructive)
                     }
                 }
                 .onMove { source, destination in
@@ -128,7 +137,7 @@ struct RoutinesView: View {
 
     private var newRoutineButton: some View {
         GlassButton(title: "New routine", icon: "plus", style: .secondary, isFullWidth: true) {
-            open(store.create(name: RoutineStore.untitledName).id)
+            open(store.createDraft().id)
         }
     }
 
@@ -176,7 +185,7 @@ struct RoutinesView: View {
                     title: "No routines yet",
                     message: "A routine is your workout written down — the lifts, in order, with the sets and reps you're aiming for. Save one and every session after this starts with a single tap.",
                     action: .init(title: "Build a routine", icon: "plus") {
-                        open(store.create(name: RoutineStore.untitledName).id)
+                        open(store.createDraft().id)
                     }
                 )
 
@@ -201,13 +210,6 @@ struct RoutinesView: View {
     /// "New routine" saves an empty routine before pushing its builder.
     /// Coming back here without adding an exercise or renaming it
     /// shouldn't leave that empty card behind.
-    private func discardUntouchedRoutines() {
-        for routine in store.routines
-        where routine.exercises.isEmpty && routine.name == RoutineStore.untitledName {
-            store.delete(id: routine.id)
-        }
-    }
-
     private func open(_ id: UUID) {
         path.append(.routineBuilder(id))
     }
@@ -222,7 +224,7 @@ struct RoutinesView: View {
 
     private func rebuildSummaries() {
         summaries = store.routines.map { routine in
-            RoutineSummary.make(routine: routine) { library.lookup(id: $0) }
+            RoutineSummary.make(routine: routine, defaultRestSeconds: defaultRestSeconds) { library.lookup(id: $0) }
         }
     }
 
@@ -285,5 +287,6 @@ extension View {
         RoutinesView(path: $path)
             .navigationTitle("Train")
     }
+    .environment(DataStore(seedSampleData: true))
     .preferredColorScheme(.dark)
 }

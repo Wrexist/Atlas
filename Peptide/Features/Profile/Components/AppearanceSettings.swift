@@ -7,13 +7,8 @@ let settingsIconColumnWidth: CGFloat = 24
 
 struct AppearanceSettings: View {
     @Environment(DataStore.self) private var dataStore
-    @Environment(\.scenePhase) private var scenePhase
-    @State private var notificationService = NotificationService.shared
     @State private var biometricService = BiometricService.shared
     @State private var themeManager = ThemeManager.shared
-    /// Set when turning protocol reminders on hits a denied permission, so
-    /// the toggle bouncing back comes with a route to Settings.
-    @State private var notificationsDenied = false
 
     var body: some View {
         @Bindable var store = dataStore
@@ -28,26 +23,7 @@ struct AppearanceSettings: View {
                 // Protocol reminders only mean something to someone
                 // running a protocol.
                 if !dataStore.activeProtocols.isEmpty {
-                    VStack(alignment: .leading, spacing: Spacing.xs) {
-                        SettingsToggleRow(
-                            icon: "bell.fill",
-                            title: "Protocol reminders",
-                            subtitle: "Get notified for scheduled doses",
-                            isOn: $store.profile.doseRemindersEnabled
-                        )
-                        .onChange(of: dataStore.profile.doseRemindersEnabled) { _, enabled in
-                            handleDoseRemindersToggle(enabled)
-                        }
-
-                        if dataStore.profile.doseRemindersEnabled, notificationService.requestedCount > 0 {
-                            notificationStatusRow
-                        }
-
-                        if notificationsDenied {
-                            NotificationsDeniedRow()
-                                .padding(.leading, settingsIconColumnWidth + Spacing.md)
-                        }
-                    }
+                    ProtocolRemindersRow()
 
                     Divider().overlay(AppColor.glassBorder)
                 }
@@ -93,33 +69,6 @@ struct AppearanceSettings: View {
                 }
             }
         }
-        .task(id: scenePhase) {
-            // Re-checked on return from iOS Settings, so the row clears as
-            // soon as the user grants notifications there.
-            guard scenePhase == .active, notificationsDenied else { return }
-            notificationsDenied = await NotificationService.shared.checkAuthorization() == .denied
-        }
-    }
-
-    private var notificationStatusRow: some View {
-        let limit = NotificationService.pendingRequestLimit
-        let overLimit = notificationService.requestedCount > limit
-        return HStack(spacing: Spacing.sm) {
-            Image(systemName: overLimit ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
-                .font(AppFont.scaled(11))
-                .foregroundStyle(overLimit ? AppColor.warning : AppColor.accentPrimary)
-
-            if overLimit {
-                Text("\(notificationService.scheduledCount) of \(notificationService.requestedCount) reminders active (iOS limit: \(limit))")
-                    .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.warning)
-            } else {
-                Text("^[\(notificationService.scheduledCount) reminder](inflect: true) scheduled")
-                    .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.textTertiary)
-            }
-        }
-        .padding(.leading, settingsIconColumnWidth + Spacing.md)
     }
 
     /// Turning the lock on proves the user can pass it first, so nobody
@@ -130,33 +79,11 @@ struct AppearanceSettings: View {
             return
         }
         Task {
-            if await biometricService.authenticate() {
+            if await biometricService.authenticate() == .success {
                 dataStore.persistProfile()
             } else {
                 dataStore.profile.biometricLockEnabled = false
             }
-        }
-    }
-
-    private func handleDoseRemindersToggle(_ enabled: Bool) {
-        dataStore.persistProfile()
-        if enabled {
-            Task {
-                let authorized = await NotificationService.shared.requestAuthorization()
-                notificationsDenied = !authorized
-                if authorized {
-                    NotificationService.shared.scheduleNotifications(for: dataStore.activeProtocols)
-                } else {
-                    // Flip back to false; this triggers onChange again with enabled=false,
-                    // which calls cancelAll() -- redundant but harmless since nothing is scheduled.
-                    dataStore.profile.doseRemindersEnabled = false
-                    dataStore.persistProfile()
-                }
-            }
-        } else {
-            // Habit reminders survive a dose-reminder toggle-off — they're
-            // opted into separately on each habit.
-            NotificationService.shared.cancelProtocolReminders()
         }
     }
 }

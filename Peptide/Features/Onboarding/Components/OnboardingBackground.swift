@@ -18,8 +18,10 @@ struct OnboardingBackground: View {
 
             // Positions are computed from the timeline date rather than
             // animated, so each orb follows its curved path with no snap
-            // when a loop restarts.
-            TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { timeline in
+            // when a loop restarts. Ten ticks a second is plenty: the
+            // drift moves well under a point per tick behind a 90pt blur,
+            // and every tick re-blurs both orbs on the GPU.
+            TimelineView(.animation(minimumInterval: 1.0 / 10, paused: reduceMotion)) { timeline in
                 let phase = reduceMotion ? 0 : CGFloat(timeline.date.timeIntervalSinceReferenceDate / Self.driftPeriod * 2 * .pi)
                 GeometryReader { geo in
                     let w = geo.size.width

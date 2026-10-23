@@ -113,6 +113,104 @@ final class DesignSystemTokenTests: XCTestCase {
         XCTAssertGreaterThan(brightness(of: dark), 0.02)
     }
 
+    /// Increase Contrast must firm up the quiet inks; nothing else in the
+    /// app reads the setting.
+    func test_secondaryInks_increaseContrast_moveAwayFromTheSurface() {
+        for (style, darkens) in [(UIUserInterfaceStyle.light, true), (.dark, false)] {
+            let normal = UITraitCollection(userInterfaceStyle: style)
+            let high = normal.modifyingTraits { $0.accessibilityContrast = .high }
+            for token in [AppColor.textSecondary, AppColor.textTertiary] {
+                let resolved = UIColor(token)
+                let normalBrightness = brightness(of: resolved.resolvedColor(with: normal))
+                let highBrightness = brightness(of: resolved.resolvedColor(with: high))
+                if darkens {
+                    XCTAssertLessThan(highBrightness, normalBrightness)
+                } else {
+                    XCTAssertGreaterThan(highBrightness, normalBrightness)
+                }
+            }
+        }
+    }
+
+    // MARK: - Stored-hex palettes
+
+    /// A habit's stored hex is its dark-scheme hue; light mode must print a
+    /// deeper stop, or the 11pt weekly count fades to under 2:1 on white.
+    func test_habitTint_catalogSwatch_isDeeperInLightMode() {
+        let light = UITraitCollection(userInterfaceStyle: .light)
+        let dark = UITraitCollection(userInterfaceStyle: .dark)
+        for hex in HabitTintCatalog.all {
+            let resolved = UIColor(HabitTintCatalog.color(for: hex))
+            XCTAssertLessThan(
+                brightness(of: resolved.resolvedColor(with: light)),
+                brightness(of: resolved.resolvedColor(with: dark)),
+                String(format: "Habit tint 0x%06X needs a deeper light stop", hex)
+            )
+        }
+    }
+
+    /// Older data may carry a hex outside today's catalog; it must still
+    /// render as that colour rather than disappear.
+    func test_habitTint_unknownHex_rendersAsStored() {
+        let resolved = UIColor(HabitTintCatalog.color(for: 0x33AAFF))
+            .resolvedColor(with: UITraitCollection(userInterfaceStyle: .light))
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        resolved.getRed(&r, green: &g, blue: &b, alpha: &a)
+        XCTAssertEqual(r, 0x33 / 255, accuracy: 0.01)
+        XCTAssertEqual(g, 0xAA / 255, accuracy: 0.01)
+        XCTAssertEqual(b, 0xFF / 255, accuracy: 0.01)
+    }
+
+    func test_tierTint_isDeeperInLightMode() {
+        let light = UITraitCollection(userInterfaceStyle: .light)
+        let dark = UITraitCollection(userInterfaceStyle: .dark)
+        for tier in MomentumEngine.Tier.allCases {
+            let resolved = UIColor(tier.tint)
+            XCTAssertLessThan(
+                brightness(of: resolved.resolvedColor(with: light)),
+                brightness(of: resolved.resolvedColor(with: dark)),
+                "\(tier) needs a deeper light stop"
+            )
+        }
+    }
+
+    // MARK: - AppFont.scaledValue
+
+    /// Icon tiles size themselves with this, so it must match the glyph's
+    /// font exactly: unchanged at the default size, larger at AX sizes.
+    func test_scaledValue_defaultSize_isUnchanged() {
+        XCTAssertEqual(AppFont.scaledValue(40, in: .large), 40, accuracy: 0.5)
+    }
+
+    func test_scaledValue_accessibilitySize_growsMonotonically() {
+        let ax1 = AppFont.scaledValue(40, in: .accessibility1)
+        let ax5 = AppFont.scaledValue(40, in: .accessibility5)
+        XCTAssertGreaterThan(ax1, 40)
+        XCTAssertGreaterThan(ax5, ax1)
+    }
+
+    // MARK: - SyncToast
+
+    /// An Undo toast is a time-limited control: under VoiceOver or Switch
+    /// Control it has to stay long enough to reach the button.
+    @MainActor
+    func test_syncToastDelay_actionWithAssistiveTech_isExtended() {
+        let delay = SyncToast.dismissDelay(base: .seconds(5), hasAction: true, assistiveTechRunning: true)
+        XCTAssertEqual(delay, .seconds(30))
+    }
+
+    @MainActor
+    func test_syncToastDelay_withoutActionOrAssistiveTech_keepsBase() {
+        XCTAssertEqual(
+            SyncToast.dismissDelay(base: .seconds(5), hasAction: true, assistiveTechRunning: false),
+            .seconds(5)
+        )
+        XCTAssertEqual(
+            SyncToast.dismissDelay(base: .seconds(5), hasAction: false, assistiveTechRunning: true),
+            .seconds(5)
+        )
+    }
+
     // MARK: - BenefitStyleMap
 
     func test_dnaRepairBenefit_getsTheImmuneStyleNotGenericRepair() {

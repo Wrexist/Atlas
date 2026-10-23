@@ -45,8 +45,8 @@ struct CustomPeptideForm: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
             }
-            .dismissKeyboardOnTap()
-            .navigationTitle("Add a Compound")
+            .keyboardDoneButton()
+            .navigationTitle("Add a compound")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -114,7 +114,7 @@ struct CustomPeptideForm: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
 
-                fieldLabel("Dosage Range")
+                fieldLabel("Dosage range")
                 styledTextField("e.g., 200-300 mcg", label: "Dosage range", text: $dosageRange)
 
                 fieldLabel("Frequency")

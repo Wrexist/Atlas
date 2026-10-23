@@ -75,17 +75,30 @@ enum DailyReminderEngine {
             .sorted { $0.date < $1.date }
     }
 
+    static let plausibleWeightKilograms: ClosedRange<Double> = 25...350
+
     /// Parses the weight typed into the notification's reply field. Takes
-    /// "82,4", "82.4 kg" or "181 lb" alike; the unit suffix is ignored in
-    /// favour of the user's display unit. Out-of-range values return nil
-    /// so a slip of the thumb ("8.24") never lands in the weight history.
+    /// "82,4", "82.4 kg", "181 lb" or a dictated "82.4." alike. A typed
+    /// unit wins over the user's display unit, so "181 lb" from a metric
+    /// user is 82 kg, not 181. Out-of-range values return nil so a slip of
+    /// the thumb ("8.24") never lands in the weight history.
     static func parsedWeightKilograms(_ text: String, unit: MeasurementUnit) -> Double? {
-        let numeric = text
+        var numeric = text
             .replacingOccurrences(of: ",", with: ".")
             .filter { $0.isNumber || $0 == "." }
+        while numeric.hasSuffix(".") { numeric.removeLast() }
         guard let value = Double(numeric) else { return nil }
-        let kilograms = unit.kilograms(fromDisplayed: value)
-        guard (25...350).contains(kilograms) else { return nil }
+        let kilograms = (typedUnit(in: text) ?? unit).kilograms(fromDisplayed: value)
+        guard plausibleWeightKilograms.contains(kilograms) else { return nil }
         return kilograms
+    }
+
+    /// The unit written after the number, if any: kg / kilo, or lb / lbs /
+    /// pound, plus the Swedish "pund".
+    private static func typedUnit(in text: String) -> MeasurementUnit? {
+        let lowered = text.lowercased()
+        if lowered.contains("kg") || lowered.contains("kilo") { return .metric }
+        if lowered.contains("lb") || lowered.contains("pound") || lowered.contains("pund") { return .imperial }
+        return nil
     }
 }

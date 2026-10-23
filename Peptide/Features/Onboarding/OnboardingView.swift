@@ -41,6 +41,8 @@ struct OnboardingView: View {
     @AppStorage("onboarding.lastPage.v2") private var lastPage: Int = 0
 
     @State private var page: OnboardingStep = .welcome
+    /// Sets which way the step transition slides.
+    @State private var isGoingBack = false
     @State private var name: String = ""
     /// The headline goal — drives the projection chart, the goal-date
     /// tint, and the nutrition recommendation. Always one of
@@ -83,6 +85,9 @@ struct OnboardingView: View {
     // accept both flip `hasCompleted` — the trial is optional, but the
     // user shouldn't enter the app before seeing the offer once.
     @State private var showTrialOffer: Bool = false
+    /// The plan page's CTA waits on the entitlement scan before choosing
+    /// between the paywall and the theme picker.
+    @State private var isResolvingProStatus = false
     // Theme picker presented after the paywall closes. Persisted via
     // ThemeManager.shared inside the page itself.
     @State private var showThemePicker: Bool = false
@@ -209,23 +214,36 @@ struct OnboardingView: View {
         }
     }
 
-    /// Blocks forward swipes on every page so the only way forward is
-    /// the footer button. `primaryAction()` is what persists each step
-    /// (name, goal, nutrition targets) and records the disclaimer
-    /// acknowledgment (Deep Audit II A1); a swipe would skip it.
-    /// `advance()` writes `page` directly, so it never hits this gate.
-    /// Backward swipes are always allowed.
-    private var gatedPage: Binding<OnboardingStep> {
-        Binding(
-            get: { page },
-            set: { newValue in
-                // A blocked forward swipe just settles back — no
-                // warning buzz, which read as an error for a gesture
-                // the user had every reason to try.
-                guard newValue <= page else { return }
-                page = newValue
-            }
+    /// The incoming step slides in from the side it's heading toward
+    /// while the outgoing one fades. The outgoing step keeps the
+    /// transition it rendered with, from before `isGoingBack` changed, so
+    /// a direction-dependent removal would slide the wrong way.
+    private var stepTransition: AnyTransition {
+        guard !reduceMotion else { return .opacity }
+        return .asymmetric(
+            insertion: .opacity.combined(with: .move(edge: isGoingBack ? .leading : .trailing)),
+            removal: .opacity
         )
+    }
+
+    /// Only the current step is mounted. A swipeable pager let a swipe
+    /// skip `primaryAction()`, which persists each step (name, goal,
+    /// nutrition targets) and records the disclaimer acknowledgment (Deep
+    /// Audit II A1), and a rejected swipe left the pager showing the next
+    /// page with no state change to drive it back (B094). Forward is the
+    /// footer button, back the top-bar button.
+    @ViewBuilder private var currentStep: some View {
+        switch page {
+        case .welcome: welcome
+        case .name: nameStep
+        case .goal: goalStep
+        case .bodyMetrics: bodyMetricsStep
+        case .training: trainingStep
+        case .permissions: permissionsStep
+        case .referral: referralStep
+        case .disclaimer: disclaimerStep
+        case .plan: planStep
+        }
     }
 
     var body: some View {
@@ -238,28 +256,16 @@ struct OnboardingView: View {
                     .padding(.top, Spacing.lg)
                     .padding(.bottom, Spacing.sm)
 
-                TabView(selection: gatedPage) {
-                    // Note: page-resume + bookmark wiring lives on the
-                    // ZStack below — `.onAppear` restores from
-                    // `lastPage`, `.onChange(of: page)` writes it
-                    // back. A kill mid-flow resumes where the user
-                    // left off instead of restarting from page 0 with
-                    // partially-saved body metrics.
-                    //
-                    // Tags are `OnboardingStep` cases rather than literal
-                    // Ints so a step insertion doesn't silently shift
-                    // every downstream tag and re-bucket the funnel events.
-                    welcome.tag(OnboardingStep.welcome)
-                    nameStep.tag(OnboardingStep.name)
-                    goalStep.tag(OnboardingStep.goal)
-                    bodyMetricsStep.tag(OnboardingStep.bodyMetrics)
-                    trainingStep.tag(OnboardingStep.training)
-                    permissionsStep.tag(OnboardingStep.permissions)
-                    referralStep.tag(OnboardingStep.referral)
-                    disclaimerStep.tag(OnboardingStep.disclaimer)
-                    planStep.tag(OnboardingStep.plan)
+                // Page-resume + bookmark wiring lives on the ZStack below:
+                // `.onAppear` restores from `lastPage`, `.onChange(of: page)`
+                // writes it back, so a kill mid-flow resumes where the user
+                // left off.
+                ZStack {
+                    currentStep
+                        .id(page)
+                        .transition(stepTransition)
                 }
-                .tabViewStyle(.page(indexDisplayMode: .never))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: page)
                 // `pinnedFooter`, not a floating overlay. The footer used
                 // to be `VStack { Spacer(); footer }` layered in this
@@ -316,26 +322,18 @@ struct OnboardingView: View {
         }
         .onChange(of: page) { _, newPage in
             OnboardingFunnelTracker.recordStepEntered(newPage.funnelName, index: newPage.rawValue)
-            // Focus the name field only when the name page is actually
-            // the current one. Driving this from the sub-view's
-            // `.onAppear` summoned the keyboard early — TabView mounts
-            // adjacent pages, so `.onAppear` fired on the prior page.
-            //
             // Leaving the name step must put the keyboard away —
             // otherwise it rode along onto the goal grid, covering the
             // lower half of the next card.
-            if newPage == .name {
-                nameFocused = true
-            } else {
+            // The name step focuses its own field once it's mounted.
+            if newPage != .name {
                 nameFocused = false
                 dismissKeyboard()
             }
             // Move VoiceOver to the new step instead of leaving focus
             // parked on the footer button of the step that just left.
             UIAccessibility.post(notification: .screenChanged, argument: nil)
-            // Driven by the page, not the step's `.onAppear`: the paged
-            // TabView mounts neighbours, so the curve used to draw while
-            // the user was still on the previous page.
+            // Driven by the page so the curve draws after the step lands.
             if newPage == .plan {
                 Haptics.success()
                 AppAnimation.with(AppAnimation.springSmooth.delay(0.2)) {
@@ -355,7 +353,14 @@ struct OnboardingView: View {
             // code-review #14).
             guard scenePhase == .active else { return }
             let status = await NotificationService.shared.checkAuthorization()
-            notificationsAuthorized = (status == .authorized || status == .provisional)
+            let granted = status == .authorized || status == .provisional
+            // A grant made in iOS Settings after a denial switches on what
+            // this step promised, the same as a grant from the prompt.
+            // Keyed on the denial, not on `!notificationsAuthorized`, which
+            // is also false on the first check of a launch and would flip
+            // reminders on for anyone who had granted already.
+            if granted && notificationsDenied { applyNotificationGrant() }
+            notificationsAuthorized = granted
             notificationsDenied = status == .denied
         }
         .fullScreenCover(isPresented: $showTrialOffer) {
@@ -433,6 +438,7 @@ struct OnboardingView: View {
                 if let previous = page.previous {
                     Button {
                         haptic()
+                        isGoingBack = true
                         withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { page = previous }
                     } label: {
                         Image(systemName: "chevron.left")
@@ -550,6 +556,8 @@ struct OnboardingView: View {
             // picker auto-defaults to 12 weeks from today so no
             // explicit date selection is required.
             return goalHasBeenSelected
+        case .plan:
+            return !isResolvingProStatus
         default:
             return true
         }
@@ -612,13 +620,21 @@ struct OnboardingView: View {
     /// through the paywall and the theme picker before hasCompleted
     /// flips. The theme picker's onContinue path resets `lastPage = 0`
     /// so a future re-onboarding starts at page 0. An existing
-    /// subscriber (reinstall / new device) skips the trial offer.
+    /// subscriber (reinstall / new device) skips the trial offer — after
+    /// the first entitlement scan, since `isProUser` reads false until it
+    /// finishes and a reinstalling subscriber would see the trial.
     private func presentPaywall() {
-        if StoreService.shared.isProUser {
-            OnboardingFunnelTracker.recordEvent("paywall_skipped_pro")
-            showThemePicker = true
-        } else {
-            showTrialOffer = true
+        guard !isResolvingProStatus else { return }
+        isResolvingProStatus = true
+        Task {
+            let isPro = await StoreService.shared.resolvedProStatus()
+            isResolvingProStatus = false
+            if isPro {
+                OnboardingFunnelTracker.recordEvent("paywall_skipped_pro")
+                showThemePicker = true
+            } else {
+                showTrialOffer = true
+            }
         }
     }
 
@@ -635,6 +651,7 @@ struct OnboardingView: View {
         // Tear down the keyboard before the page transition so it can't
         // linger over the next card mid-animation.
         dismissKeyboard()
+        isGoingBack = false
         withAnimation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion)) { page = page.next ?? page }
     }
 
@@ -711,11 +728,13 @@ struct OnboardingView: View {
 
     /// Optional sign-in, folded under the name field. Skipping it is
     /// genuinely fine — every feature works without an Apple ID, and
-    /// Profile → Account offers the same button later — but a signed-in
-    /// user gets cloud sync across devices and their name pre-filled.
+    /// Profile → Account offers the same button later. Today it only
+    /// pre-fills the name: sync runs through iCloud for everyone, and the
+    /// Apple ID link is reserved for future server features, so the copy
+    /// must not suggest that skipping it loses a backup.
     private var signInSection: some View {
         VStack(spacing: Spacing.md) {
-            sectionEyebrow("Save your progress (optional)")
+            sectionEyebrow("Sign in with Apple (optional)")
                 .frame(maxWidth: .infinity, alignment: .leading)
             Group {
                 if authService.isSignedIn {
@@ -739,8 +758,8 @@ struct OnboardingView: View {
             }
             .transition(.opacity.combined(with: .scale(scale: 0.96)))
 
-            signInDisclosureRow(icon: "icloud.fill", text: "Cloud sync across iPhone, iPad, and Watch.")
-            signInDisclosureRow(icon: "lock.shield.fill", text: "Atlas never sees your email — Apple relays it.")
+            signInDisclosureRow(icon: "icloud.fill", text: "Your data syncs through iCloud when it's on, signed in or not.")
+            signInDisclosureRow(icon: "lock.shield.fill", text: "You can hide your email — Apple will relay it.")
         }
         .appAnimation(AppAnimation.springSnappy, value: authService.isSignedIn)
         .appAnimation(AppAnimation.springSnappy, value: authService.isSigningIn)
@@ -789,7 +808,7 @@ struct OnboardingView: View {
         )
     }
 
-    private func signInDisclosureRow(icon: String, text: String) -> some View {
+    private func signInDisclosureRow(icon: String, text: LocalizedStringKey) -> some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: icon)
                 .font(AppFont.scaled(13, weight: .semibold))
@@ -883,11 +902,11 @@ struct OnboardingView: View {
             .padding(.horizontal, Spacing.lg)
         }
         .scrollDismissesKeyboard(.interactively)
-        // Only the pre-fill runs here. Focus is driven from the root
-        // `.onChange(of: page)` — setting it on appear fired while the
-        // page was still off-screen (TabView pre-mounts neighbours) and
-        // summoned the keyboard early.
+        // Only the current step is mounted, so appearing means the user
+        // is on it. Focus waits for the field to exist; set from the
+        // page change, it raced the field's insertion.
         .onAppear { prefillNameFromAppleID() }
+        .task { nameFocused = true }
     }
 
     /// Pre-fills the first name from the Apple-relayed full name.
@@ -1039,21 +1058,11 @@ struct OnboardingView: View {
         .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
     }
 
-    /// Toggles a goal in/out of the multi-select set and keeps
-    /// `primaryGoal` pointing at a still-selected goal. The first goal
-    /// the user picks becomes primary; removing the primary promotes the
-    /// next selected goal (in stable `allCases` order) so the projection
-    /// and date tint never reference a deselected goal.
+    /// See `OnboardingPlanEngine.toggling` for the primary-goal rules.
     private func toggleGoal(_ goal: PrimaryGoal) {
-        if selectedGoals.contains(goal) {
-            selectedGoals.remove(goal)
-            if primaryGoal == goal {
-                primaryGoal = PrimaryGoal.allCases.first { selectedGoals.contains($0) } ?? primaryGoal
-            }
-        } else {
-            if selectedGoals.isEmpty { primaryGoal = goal }
-            selectedGoals.insert(goal)
-        }
+        let result = OnboardingPlanEngine.toggling(goal, in: selectedGoals, primary: primaryGoal)
+        selectedGoals = result.selected
+        primaryGoal = result.primary
         goalHasBeenSelected = !selectedGoals.isEmpty
     }
 
@@ -1157,23 +1166,17 @@ struct OnboardingView: View {
         }
     }
 
-    private static let daysPerWeekRange = 2...6
+    private static let daysPerWeekRange = OnboardingPlanEngine.daysPerWeekRange
 
-    /// Keeps the preferred days within the weekly count, dropping the
-    /// latest days of the week first.
     private func setDaysPerWeek(_ count: Int) {
         daysPerWeek = count
-        if preferredDays.count > count {
-            preferredDays = Set(Weekday.allCases.filter(preferredDays.contains).prefix(count))
-        }
+        preferredDays = OnboardingPlanEngine.preferredDays(preferredDays, cappedAt: count)
     }
 
-    /// Picking more preferred days than the weekly count raises the count.
     private func togglePreferredDay(_ day: Weekday) {
-        if preferredDays.remove(day) == nil {
-            preferredDays.insert(day)
-            daysPerWeek = max(daysPerWeek, preferredDays.count)
-        }
+        let result = OnboardingPlanEngine.togglingPreferredDay(day, in: preferredDays, daysPerWeek: daysPerWeek)
+        preferredDays = result.days
+        daysPerWeek = result.daysPerWeek
     }
 
     private var daysStepper: some View {
@@ -1427,7 +1430,7 @@ struct OnboardingView: View {
     }
 
     private var projectionHeadline: String {
-        let weeks = goalWeeks == 1 ? String(localized: "1 week") : String(localized: "\(goalWeeks) weeks")
+        let weeks = String(localized: "\(goalWeeks) weeks")
         switch primaryGoal {
         case .buildMuscle:    return String(localized: "+\(projectedMuscleGain) in \(weeks)")
         case .loseFat:        return String(localized: "−\(projectedFatLoss) in \(weeks)")
@@ -1489,37 +1492,18 @@ struct OnboardingView: View {
     // Both scale with the chosen span, so "8 weeks" and "26 weeks"
     // don't promise the same number.
 
-    /// A range rather than a single number, from half the typical rate
-    /// for the user's experience up to it — a personal projection shown
-    /// before the paywall shouldn't promise more than training delivers.
+    /// A range, not a single number — see
+    /// `OnboardingPlanEngine.projectedLeanGainKg`.
     private var projectedMuscleGain: String {
-        let months = Double(goalWeeks) * 12 / 52
-        let upperKg = monthlyLeanGainKg * months
+        let gain = OnboardingPlanEngine.projectedLeanGainKg(experience: experienceLevel, weeks: goalWeeks)
         let unit = bodyMetrics.unit
-        let lower = String(format: "%.1f", unit.weightForDisplay(upperKg / 2))
-        return "\(lower)–\(unit.weightLabel(upperKg, fractionDigits: 1))"
+        let lower = unit.weightValue(gain.lowerBound, fractionDigits: 1...1)
+        return "\(lower)–\(unit.weightLabel(gain.upperBound, fractionDigits: 1))"
     }
 
     private var projectedFatLoss: String {
-        bodyMetrics.unit.weightLabel(min(10, max(1, (estimatedFatLossKg * goalSpanFactor).rounded())))
-    }
-
-    private var goalSpanFactor: Double {
-        Double(goalWeeks) / 12
-    }
-
-    /// Typical lean-mass gain per month on a good program, which falls
-    /// steeply with training age.
-    private var monthlyLeanGainKg: Double {
-        switch Experience(rawValue: experienceLevel) ?? .beginner {
-        case .beginner:     return 0.75
-        case .intermediate: return 0.4
-        case .advanced:     return 0.2
-        }
-    }
-
-    private var estimatedFatLossKg: Double {
-        (bodyMetrics.weightKg ?? 75) * 0.05
+        let lossKg = OnboardingPlanEngine.projectedFatLossKg(weightKg: bodyMetrics.weightKg, weeks: goalWeeks)
+        return bodyMetrics.unit.weightLabel(lossKg)
     }
 
     private func projectionStatRow(label: String, value: String, icon: String, tint: Color) -> some View {
@@ -1567,7 +1551,7 @@ struct OnboardingView: View {
                     )
                     disclaimerBullet(
                         icon: "lock.fill",
-                        text: String(localized: "Your data lives in your private iCloud, and you can lock the app with Face ID.")
+                        text: privacyBulletText
                     )
                 }
                 .padding(Spacing.lg)
@@ -1578,6 +1562,16 @@ struct OnboardingView: View {
             }
             .padding(.horizontal, Spacing.lg)
         }
+    }
+
+    /// Names the lock this device actually offers, and only when it offers
+    /// one — the Profile toggle is hidden without enrolled biometrics.
+    private var privacyBulletText: String {
+        let biometrics = BiometricService.shared
+        guard biometrics.isAvailable else {
+            return String(localized: "Your data syncs through your private iCloud when iCloud is on.")
+        }
+        return String(localized: "Your data syncs through your private iCloud when iCloud is on, and you can lock the app with \(biometrics.biometryName).")
     }
 
     private func disclaimerBullet(icon: String, text: String) -> some View {
@@ -1638,7 +1632,7 @@ struct OnboardingView: View {
                     action: requestHealth
                 )
 
-                Text("Health is read-only by default. Optional nutrition-write turns on later from Profile.")
+                Text("Health is read-only by default. You can give Atlas permission to save nutrition to Health later in Profile.")
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .multilineTextAlignment(.center)
@@ -1697,21 +1691,17 @@ struct OnboardingView: View {
     }
 
     private func requestHealth() {
+        guard !dataStore.profile.healthConnected else { return }
         haptic()
         requestingHealth = true
         Task {
-            let granted = await HealthKitService.shared.requestAuthorization()
+            // HealthKit never tells an app which reads were denied, so a
+            // completed sheet — even a deny-all — is all this can confirm:
+            // the row and the funnel record that the user was asked, not
+            // that access was granted. The toggle makes the one request.
+            let sheetCompleted = await dataStore.toggleHealthConnection()
             requestingHealth = false
-            // Note: HealthKit deliberately doesn't tell apps when the
-            // user denies a specific type — `granted == true` only
-            // confirms the user saw the dialog. The toggleHealthConnection
-            // path re-runs the auth request anyway and only flips the
-            // flag when the system reports success, so a deny-all
-            // still leaves healthConnected false.
-            if granted, !dataStore.profile.healthConnected {
-                _ = await dataStore.toggleHealthConnection()
-            }
-            OnboardingFunnelTracker.recordEvent(granted ? "health_granted" : "health_denied")
+            OnboardingFunnelTracker.recordEvent(sheetCompleted ? "health_sheet_completed" : "health_request_failed")
         }
     }
 
@@ -1721,30 +1711,30 @@ struct OnboardingView: View {
         Task {
             let granted = await NotificationService.shared.requestAuthorization()
             requestingNotifications = false
+            if granted { applyNotificationGrant() }
             notificationsAuthorized = granted
             notificationsDenied = !granted
-            // Surface the OS grant on the user's dose-reminders flag too
-            // so peptide-protocol reminders fire by default the first time
-            // the user adds a protocol. Independent of the OS auth state
-            // tracked above — the user can still toggle this flag off
-            // later from Profile without revoking notification permission.
-            if granted, !dataStore.profile.doseRemindersEnabled {
-                dataStore.profile.doseRemindersEnabled = true
-                // Persist so a crash / quick backgrounding between here
-                // and the next onboarding-driven save doesn't lose the
-                // toggle. Settings-side `onChange` handlers do this same
-                // belt-and-braces persist.
-                dataStore.persistProfile()
-            }
-            // This step promises workout reminders, so a grant switches
-            // the training-day nudge on at the time picked earlier.
-            if granted {
-                var reminders = DailyReminderSettings.load(training: dataStore.profile.trainingPreferences)
-                reminders.slots[.workout]?.isEnabled = true
-                reminders.save()
-            }
             OnboardingFunnelTracker.recordEvent(granted ? "notifications_granted" : "notifications_denied")
         }
+    }
+
+    /// What a notification grant switches on, whether it came from the
+    /// prompt or from iOS Settings after a denial.
+    private func applyNotificationGrant() {
+        // Dose reminders default on so Protocol reminders fire the first
+        // time the user adds one; Profile can still turn the flag off
+        // without revoking the OS permission.
+        if !dataStore.profile.doseRemindersEnabled {
+            dataStore.profile.doseRemindersEnabled = true
+            // Persisted now so a quick backgrounding before the next
+            // onboarding save doesn't lose it.
+            dataStore.persistProfile()
+        }
+        // This step promises workout reminders, so a grant switches the
+        // training-day nudge on at the time picked earlier.
+        var reminders = DailyReminderSettings.load(training: dataStore.profile.trainingPreferences)
+        reminders.slots[.workout]?.isEnabled = true
+        reminders.save()
     }
 }
 

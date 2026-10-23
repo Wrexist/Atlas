@@ -34,6 +34,21 @@ final class CyclePhaseEngineTests: XCTestCase {
         )
     }
 
+    // MARK: - Days until the phase ends
+
+    func test_daysUntilPhaseEnd_secondWashoutDay_countsToNextCycle() {
+        // 2 weeks on, 1 week off: day 15 is wash-out day 2, and the next
+        // cycle opens on day 21.
+        let status = CyclePhaseEngine.status(for: makeProtocol(startDate: anchor), at: day(15))
+        XCTAssertEqual(status.phase, .washout(day: 2, totalDays: 7))
+        XCTAssertEqual(CyclePhaseEngine.daysUntilPhaseEnd(status, from: day(15), calendar: calendar), 6)
+    }
+
+    func test_daysUntilPhaseEnd_lastWashoutDay_isOne() {
+        let status = CyclePhaseEngine.status(for: makeProtocol(startDate: anchor), at: day(20))
+        XCTAssertEqual(CyclePhaseEngine.daysUntilPhaseEnd(status, from: day(20), calendar: calendar), 1)
+    }
+
     // MARK: - On-cycle phase (2 weeks on / 1 week wash-out)
 
     func test_status_startDay_isOnCycleDayOne() {

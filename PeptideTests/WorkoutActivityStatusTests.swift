@@ -137,12 +137,12 @@ final class WorkoutActivityStatusTests: XCTestCase {
             name: "Pull B",
             startedAt: now,
             exercises: [
-                WorkoutExerciseEntry(exerciseID: "a", index: 0, sets: [
+                WorkoutExerciseEntry(exerciseID: "Pullups", index: 0, sets: [
                     SetEntry(index: 1, weightKg: 60, reps: 10, completed: true, isWarmup: true),
                     SetEntry(index: 2, weightKg: 100, reps: 5, completed: true),
                     SetEntry(index: 3, weightKg: 100, reps: 5),
                 ]),
-                WorkoutExerciseEntry(exerciseID: "b", index: 1, sets: [
+                WorkoutExerciseEntry(exerciseID: "Barbell_Deadlift", index: 1, sets: [
                     SetEntry(index: 1, weightKg: 40, reps: 12),
                 ]),
             ]
@@ -168,6 +168,36 @@ final class WorkoutActivityStatusTests: XCTestCase {
         XCTAssertNil(mapped.restEndsAt)
         XCTAssertEqual(mapped.restTotalSeconds, 0)
         XCTAssertEqual(mapped.displayName, "Workout")
+    }
+
+    @MainActor
+    func test_stateForSession_beforeLibraryLoads_keepsThePreviousExerciseName() async {
+        let session = WorkoutSession(startedAt: now, exercises: [
+            WorkoutExerciseEntry(exerciseID: "Barbell_Squat", index: 0, sets: [
+                SetEntry(index: 1, weightKg: 100, reps: 5),
+            ]),
+        ])
+        ExerciseLibrary.shared.reset()
+
+        let mapped = WorkoutLiveActivityService.state(for: session, previous: state())
+        await ExerciseLibrary.shared.load()
+
+        XCTAssertEqual(mapped.currentExercise, "Bench Press")
+    }
+
+    @MainActor
+    func test_stateForSession_afterLibraryLoads_namesTheSelectedExercise() async {
+        await ExerciseLibrary.shared.load()
+        let session = WorkoutSession(startedAt: now, exercises: [
+            WorkoutExerciseEntry(exerciseID: "Barbell_Squat", index: 0, sets: [
+                SetEntry(index: 1, weightKg: 100, reps: 5),
+            ]),
+        ])
+
+        let mapped = WorkoutLiveActivityService.state(for: session, previous: state())
+
+        XCTAssertEqual(mapped.currentExercise, ExerciseLibrary.shared.lookup(id: "Barbell_Squat")?.name)
+        XCTAssertNotEqual(mapped.currentExercise, "Bench Press")
     }
 
     // MARK: - Stale date

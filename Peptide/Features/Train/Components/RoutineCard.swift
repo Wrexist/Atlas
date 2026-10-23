@@ -16,7 +16,7 @@ struct RoutineSummary: Identifiable, Hashable {
 
     var id: UUID { routine.id }
 
-    static func make(routine: Routine, lookup: (String) -> Exercise?) -> RoutineSummary {
+    static func make(routine: Routine, defaultRestSeconds: Int, lookup: (String) -> Exercise?) -> RoutineSummary {
         let resolved = routine.exercises
             .sorted { $0.index < $1.index }
             .compactMap { lookup($0.exerciseID) }
@@ -24,7 +24,7 @@ struct RoutineSummary: Identifiable, Hashable {
             routine: routine,
             exerciseNames: resolved.map(\.name),
             totalSets: RoutineSeedEngine.totalSets(in: routine),
-            estimatedMinutes: RoutineSeedEngine.estimatedMinutes(for: routine),
+            estimatedMinutes: RoutineSeedEngine.estimatedMinutes(for: routine, defaultRestSeconds: defaultRestSeconds),
             muscleGroup: dominantGroup(of: resolved)
         )
     }
@@ -61,6 +61,7 @@ struct RoutineCard: View {
     let onStart: () -> Void
 
     @State private var startTaps = 0
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var routine: Routine { summary.routine }
 
@@ -99,12 +100,15 @@ struct RoutineCard: View {
             Text(routine.name)
                 .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.textPrimary)
-                .lineLimit(1)
+                .lineLimit(2)
 
+            // The set count and duration are what the card exists to
+            // compare, so at accessibility sizes the line wraps rather
+            // than truncating them away.
             Text(metaLine)
                 .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.textSecondary)
-                .lineLimit(1)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
 
             if !exerciseLine.isEmpty {
                 Text(exerciseLine)

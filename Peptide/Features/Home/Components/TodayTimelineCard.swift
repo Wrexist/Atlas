@@ -47,7 +47,7 @@ struct TodayTimelineCard: View {
         }
     }
 
-    /// One VoiceOver stop per row: "7:15 AM, Oats and berries, 420 kcal · 28g protein".
+    /// One VoiceOver stop per row: "7:15 AM, Oats and berries, 420 kcal · 28 g protein".
     private func accessibilityLabel(for event: TodayTimelineEvent) -> String {
         var parts = [event.date.formatted(date: .omitted, time: .shortened), event.title]
         if let subtitle = event.subtitle { parts.append(subtitle) }
@@ -144,7 +144,7 @@ struct TodayTimelineEvent: Identifiable, Equatable, Sendable {
                 icon: meal.category.icon,
                 tint: .meal,
                 title: meal.name,
-                subtitle: String(localized: "\(meal.calories) kcal · \(meal.proteinG)g protein")
+                subtitle: String(localized: "\(meal.calories) kcal · \(meal.proteinG) g protein")
             ))
         }
 
@@ -192,7 +192,7 @@ struct TodayTimelineEvent: Identifiable, Equatable, Sendable {
     }
     let events: [TodayTimelineEvent] = [
         .init(id: "2", date: at(7, 15), icon: "sun.horizon.fill", tint: .meal,
-              title: "Oats and berries", subtitle: "420 kcal · 28g protein"),
+              title: "Oats and berries", subtitle: "420 kcal · 28 g protein"),
         .init(id: "3", date: at(8, 0), icon: "figure.run", tint: .workout,
               title: "Push day", subtitle: "45 min · 5×5"),
         .init(id: "4", date: at(18, 30), icon: "heart.text.square.fill", tint: .checkIn,

@@ -20,6 +20,10 @@ import SwiftUI
 /// hasn't computed targets yet, render with sensible bounds", and
 /// `.zero` as the initial seed when the editor opens without values.
 struct NutritionTargetsEditor: View {
+    // Number fields and unit labels hold scaling text, so their widths
+    // scale with Dynamic Type instead of clipping "kcal" or "2500".
+    @ScaledMetric(relativeTo: .body) private var fieldWidth: CGFloat = 90
+    @ScaledMetric(relativeTo: .caption2) private var unitWidth: CGFloat = 28
     let initial: NutritionTargets
     /// Body metrics + goal used to compute the recommendation. Passed in
     /// from the call site's `dataStore.profile` so the editor stays free
@@ -66,11 +70,6 @@ struct NutritionTargetsEditor: View {
     /// True once full body stats exist — decides whether the recommendation
     /// is personalised or a generic starting point.
     private var hasPersonalStats: Bool { bodyMetrics.isComplete }
-
-    /// Preset that matches the user's stated goal, flagged in the chip row.
-    private var recommendedPreset: NutritionMath.Preset {
-        NutritionMath.Preset.matching(goalRaw: goalRaw)
-    }
 
     private var goalLabel: String {
         NutritionMath.GoalIntent(goalRaw: goalRaw).shortLabel
@@ -232,10 +231,10 @@ struct NutritionTargetsEditor: View {
                 }
 
                 HStack(spacing: Spacing.sm) {
-                    recChip("\(rec.calories)", "kcal", tint: AppColor.accentLight)
-                    recChip("\(rec.proteinG)", "P", tint: AppColor.macroProtein)
-                    recChip("\(rec.carbsG)", "C", tint: AppColor.macroCarbs)
-                    recChip("\(rec.fatG)", "F", tint: AppColor.macroFat)
+                    recChip("\(rec.calories)", "kcal", spoken: Text("\(rec.calories) kilocalories"), tint: AppColor.accentLight)
+                    recChip("\(rec.proteinG)", "P", spoken: Text("\(rec.proteinG) grams protein"), tint: AppColor.macroProtein)
+                    recChip("\(rec.carbsG)", "C", spoken: Text("\(rec.carbsG) grams carbs"), tint: AppColor.macroCarbs)
+                    recChip("\(rec.fatG)", "F", spoken: Text("\(rec.fatG) grams fat"), tint: AppColor.macroFat)
                 }
 
                 GlassButton(
@@ -313,7 +312,7 @@ struct NutritionTargetsEditor: View {
         }
     }
 
-    private func recChip(_ value: String, _ unit: LocalizedStringKey, tint: Color) -> some View {
+    private func recChip(_ value: String, _ unit: LocalizedStringKey, spoken: Text, tint: Color) -> some View {
         VStack(spacing: 1) {
             Text(value)
                 .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
@@ -329,13 +328,15 @@ struct NutritionTargetsEditor: View {
             RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                 .fill(tint.opacity(0.12))
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(spoken)
     }
 
     // MARK: - Goal presets
 
     /// Three one-tap goal presets. Each applies a ready-made calorie + macro
     /// split so a user who doesn't want to think about numbers can pick a
-    /// goal and be done. The chip matching their stated goal is marked.
+    /// goal and be done. The chip matching the recommendation is marked.
     private var presetsCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -355,7 +356,9 @@ struct NutritionTargetsEditor: View {
     private func presetChip(_ preset: NutritionMath.Preset) -> some View {
         let targets = NutritionMath.presetTargets(preset, for: bodyMetrics, maintenanceKcal: adaptiveMaintenance)
         let isSelected = matchesDraft(targets)
-        let isRecommended = preset == recommendedPreset
+        // Only a chip whose numbers match the "Recommended for you" card
+        // is flagged, so the screen never shows two different plans.
+        let isRecommended = targets == recommended
         return Button {
             Haptics.impact(.soft)
             apply(targets)
@@ -372,20 +375,20 @@ struct NutritionTargetsEditor: View {
                 Text("\(targets.calories)")
                     .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
                     .monospacedDigit()
-                    .foregroundStyle(isSelected ? AppColor.onAccent.opacity(0.8) : AppColor.textSecondary)
+                    .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textSecondary)
                 if isRecommended {
                     Text("Recommended")
                         .font(AppFont.badge)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
-                        .foregroundStyle(isSelected ? AppColor.onAccent.opacity(0.8) : AppColor.accentLight)
+                        .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.accentLight)
                 }
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.md)
             .background {
                 RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .fill(isSelected ? AppColor.accentPrimary : AppColor.accentPrimary.opacity(0.10))
+                    .fill(isSelected ? AppColor.accentFill : AppColor.accentPrimary.opacity(0.10))
                     .overlay {
                         RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                             .strokeBorder(
@@ -398,6 +401,10 @@ struct NutritionTargetsEditor: View {
             }
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(isRecommended
+            ? Text("\(preset.title), \(targets.calories) kilocalories, recommended")
+            : Text("\(preset.title), \(targets.calories) kilocalories"))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     // MARK: - Input cards
@@ -465,11 +472,11 @@ struct NutritionTargetsEditor: View {
                     .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
                     .focused($focusedField, equals: field)
-                    .frame(maxWidth: 90)
+                    .frame(maxWidth: fieldWidth)
                 Text(unit)
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
-                    .frame(width: 28, alignment: .leading)
+                    .frame(width: unitWidth, alignment: .leading)
             }
             if value(for: field) == nil {
                 Text(field == .calories ? "Enter 800–10,000 kcal" : "Enter 0–1,000 g")

@@ -82,7 +82,6 @@ extension StackRecommendationEngine {
     }
 
     struct Warning: Identifiable {
-        let id = UUID()
         let severity: Severity
         let title: String
         let detail: String
@@ -99,6 +98,19 @@ extension StackRecommendationEngine {
         /// action without matching (localizable) title text.
         enum Kind {
             case general, cycleOverrun, desensitization, timingConflict, injectionBurden
+        }
+
+        /// Stable across renders and unique per warning: several kinds
+        /// share one fixed title ("Known interaction") for different pairs.
+        var id: String {
+            "\(kind)|\(title)|\(peptides.sorted().joined(separator: "+"))"
+        }
+
+        /// Most severe first; ties break on content so the order (and the
+        /// builder's top three) is the same on every launch.
+        static func displayOrder(_ lhs: Warning, _ rhs: Warning) -> Bool {
+            if lhs.severity != rhs.severity { return lhs.severity > rhs.severity }
+            return lhs.id < rhs.id
         }
     }
 

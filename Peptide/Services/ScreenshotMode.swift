@@ -90,16 +90,18 @@ final class ScreenshotMode {
 
     // MARK: - Internals
 
+    /// The demo seed is compiled into debug builds only; release can
+    /// never enable the mode (see `init`), so there it does nothing.
     private func applyDemo(to dataStore: DataStore) {
+        #if DEBUG
         let seed = ScreenshotSeedData.build()
         var profile = seed.profile
-        #if DEBUG
         if WorkoutRecapFixture.isRequested { profile.bodyMetrics.unit = .imperial }
-        #endif
         dataStore.enterEphemeralMode(
             profile: profile,
             protocols: seed.protocols,
             entries: seed.entries
         )
+        #endif
     }
 }

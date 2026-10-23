@@ -93,6 +93,23 @@ final class AIResearchServiceTests: XCTestCase {
         XCTAssertEqual(text, "Trimmed answer.")
     }
 
+    func test_reply_maxTokensStop_marksAnswerTruncated() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.truncatedReply.utf8))
+        }
+        let text = try await service.reply(history: [], newUserPrompt: "hi", in: [])
+        XCTAssertTrue(text.hasPrefix("BPC-157 has been studied in"))
+        XCTAssertTrue(text.hasSuffix(AIResearchService.truncationNote))
+    }
+
+    func test_reply_endTurnStop_isNotMarkedTruncated() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.helloReply.utf8))
+        }
+        let text = try await service.reply(history: [], newUserPrompt: "hi", in: [])
+        XCTAssertFalse(text.contains(AIResearchService.truncationNote))
+    }
+
     // MARK: - Headers
 
     func test_reply_sendsSharedSecretHeader() async throws {
@@ -273,21 +290,52 @@ final class AIResearchServiceTests: XCTestCase {
         XCTAssertTrue(system.hasSuffix("Active malignancy"), "Entries are kept whole or not at all")
     }
 
+    // MARK: - Error presentation
+
+    func test_chatError_dailyLimit_isNotRetryableAndSaysSo() {
+        let error = AIResearchService.ChatError.dailyLimitReached
+        XCTAssertFalse(error.isRetryable)
+        XCTAssertEqual(error.alertTitle, String(localized: "Daily limit reached"))
+    }
+
+    func test_chatError_rejectedBuild_isNotRetryable() {
+        XCTAssertFalse(AIResearchService.ChatError.unauthorised.isRetryable)
+        XCTAssertFalse(AIResearchService.ChatError.proxyNotConfigured.isRetryable)
+        XCTAssertFalse(AIResearchService.ChatError.questionTooLong.isRetryable)
+    }
+
+    func test_chatError_transientFailures_areRetryable() {
+        for error in [AIResearchService.ChatError.offline, .rateLimited, .serviceUnavailable, .invalidResponse] {
+            XCTAssertTrue(error.isRetryable, "\(error)")
+            XCTAssertEqual(error.alertTitle, String(localized: "Couldn't reach the assistant"), "\(error)")
+        }
+    }
+
     // MARK: - HTTP failures
 
-    /// 500 rather than 502. The gateway codes were broken out of the generic
-    /// envelope so a transient upstream outage reads as "try again in a few
-    /// minutes" instead of a bare status code — this test kept using 502 and
-    /// so was asserting against the case it no longer lands in.
-    func test_reply_throwsRequestFailedOnNon2xx() async {
+    func test_reply_unmappedStatus_throwsServiceUnavailable() async {
         MockURLProtocol.handler = { request in
             (Self.response(for: request, status: 500), Data())
         }
         await XCTAssertThrowsErrorAsyncResearch(try await service.reply(history: [], newUserPrompt: "hi", in: [])) { error in
-            if case .requestFailed(let message) = error as? AIResearchService.ChatError {
-                XCTAssertTrue(message.contains("500"))
-            } else {
-                XCTFail("Expected .requestFailed, got \(error)")
+            guard case .serviceUnavailable = error as? AIResearchService.ChatError else {
+                return XCTFail("Expected .serviceUnavailable, got \(error)")
+            }
+            XCTAssertFalse(error.localizedDescription.contains("500"))
+        }
+    }
+
+    /// A pasted question over the proxy's body cap (413) or a malformed
+    /// body (400) gets copy the user can act on.
+    func test_reply_oversizedOrMalformedBody_throwsQuestionTooLong() async {
+        for status in [400, 413] {
+            MockURLProtocol.handler = { request in
+                (Self.response(for: request, status: status), Data())
+            }
+            await XCTAssertThrowsErrorAsyncResearch(try await service.reply(history: [], newUserPrompt: "hi", in: [])) { error in
+                guard case .questionTooLong = error as? AIResearchService.ChatError else {
+                    return XCTFail("Expected .questionTooLong for HTTP \(status), got \(error)")
+                }
             }
         }
     }
@@ -441,6 +489,15 @@ private enum Fixtures {
       "content": [
         { "type": "text", "text": "Hello! How can I help with peptide research today?" }
       ]
+    }
+    """
+
+    static let truncatedReply = """
+    {
+      "content": [
+        { "type": "text", "text": "BPC-157 has been studied in" }
+      ],
+      "stop_reason": "max_tokens"
     }
     """
 

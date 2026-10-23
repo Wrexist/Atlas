@@ -56,8 +56,22 @@ final class HealthKitService {
     /// so this is the honest test for whether asking again does anything.
     func hasUnrequestedReadTypes() async -> Bool {
         guard isAvailable else { return false }
-        let types = readTypes
-        let status: HKAuthorizationRequestStatus = await withCheckedContinuation { continuation in
+        return await requestStatus(read: readTypes) == .shouldRequest
+    }
+
+    /// True when this device has already put Health's read sheet to the
+    /// user for at least one read type — the sign that Health was
+    /// connected here rather than on another device of the account.
+    func hasRequestedReadAuthorization() async -> Bool {
+        guard isAvailable else { return false }
+        for type in readTypes {
+            if await requestStatus(read: [type]) == .unnecessary { return true }
+        }
+        return false
+    }
+
+    private func requestStatus(read types: Set<HKObjectType>) async -> HKAuthorizationRequestStatus {
+        await withCheckedContinuation { continuation in
             // `@Sendable` keeps the closure nonisolated: HealthKit calls it
             // on its own queue, and an inferred main-actor closure would
             // trap there under Swift 6.
@@ -65,7 +79,30 @@ final class HealthKitService {
                 continuation.resume(returning: error == nil ? status : .unknown)
             }
         }
-        return status == .shouldRequest
+    }
+
+    /// Whether any read type has a sample in the last `days` days. A
+    /// denied read looks exactly like no data, so this is the only way
+    /// to tell a connection that can see nothing. A failed query counts
+    /// as visible rather than raising a false alarm.
+    func hasReadableData(days: Int) async -> Bool {
+        guard isAvailable else { return false }
+        let end = Date()
+        let start = Calendar.current.date(byAdding: .day, value: -days, to: end) ?? end
+        let window = HKQuery.predicateForSamples(withStart: start, end: end)
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: readTypes.compactMap { $0 as? HKSampleType }.map {
+                HKSamplePredicate<HKSample>.sample(type: $0, predicate: window)
+            },
+            sortDescriptors: [],
+            limit: 1
+        )
+        do {
+            return try await !descriptor.result(for: store).isEmpty
+        } catch {
+            AppLog.healthKit.error("Readable-data probe failed: \(error.localizedDescription, privacy: .private)")
+            return true
+        }
     }
 
     // MARK: - Nutrition write authorization
@@ -93,10 +130,8 @@ final class HealthKitService {
     /// every fresh install — matches the Lifesum/MFP pattern where
     /// nutrition sync is a deliberate setting toggle.
     ///
-    /// HKHealthStore intentionally won't tell us whether the user
-    /// granted or denied — Apple's privacy model is "your app should
-    /// behave the same either way". We return `true` on success of
-    /// the request itself (i.e. the prompt was shown without throwing).
+    /// Unlike read access, write access is reported, so this is true
+    /// only when the user allowed at least one of the types.
     func requestNutritionWriteAuthorization() async -> Bool {
         guard isAvailable else { return false }
         do {
@@ -104,13 +139,27 @@ final class HealthKitService {
                 toShare: nutritionWriteTypes,
                 read: []
             )
-            return true
+            return canWriteAny(of: nutritionWriteTypes)
         } catch {
             AppLog.healthKit.error(
                 "Nutrition write authorization failed: \(error.localizedDescription, privacy: .private)"
             )
             return false
         }
+    }
+
+    /// True once the user has denied every type a write toggle needs,
+    /// at its prompt or later in Settings. Undetermined types don't
+    /// count: the toggle's own request asks for them.
+    var isNutritionWriteDenied: Bool { isWriteDenied(for: nutritionWriteTypes) }
+    var isActivityWriteDenied: Bool { isWriteDenied(for: activityWriteTypes) }
+
+    private func isWriteDenied(for types: Set<HKSampleType>) -> Bool {
+        isAvailable && types.allSatisfy { store.authorizationStatus(for: $0) == .sharingDenied }
+    }
+
+    private func canWriteAny(of types: Set<HKSampleType>) -> Bool {
+        types.contains { store.authorizationStatus(for: $0) == .sharingAuthorized }
     }
 
     // MARK: - Nutrition write
@@ -181,7 +230,10 @@ final class HealthKitService {
             date: entry.date,
             metadata: baseMetadata
         ))
-        // Fiber not written — see `nutritionWriteTypes`.
+        // Fiber not written — see `nutritionWriteTypes`. HealthKit
+        // rejects a whole batch holding one type the user didn't allow,
+        // so only allowed types are sent.
+        samples.removeAll { store.authorizationStatus(for: $0.sampleType) != .sharingAuthorized }
         guard !samples.isEmpty else { return }
 
         do {
@@ -215,12 +267,12 @@ final class HealthKitService {
                 try await store.deleteObjects(of: type, predicate: predicate)
             } catch let hkError as HKError where hkError.code == .errorAuthorizationDenied
                                               || hkError.code == .errorAuthorizationNotDetermined {
-                // User hasn't granted delete permission. Logging once
-                // is enough — no point hammering on every undo.
+                // Permission is per type, so the other types' samples
+                // are still deleted.
                 AppLog.healthKit.debug(
                     "deleteSamples denied for \(type.identifier, privacy: .public)"
                 )
-                return
+                continue
             } catch {
                 AppLog.healthKit.error(
                     "deleteSamples \(type.identifier, privacy: .public) failed: \(error.localizedDescription, privacy: .private)"
@@ -267,7 +319,7 @@ final class HealthKitService {
                 toShare: activityWriteTypes,
                 read: [HKQuantityType(.bodyMass)]
             )
-            return true
+            return canWriteAny(of: activityWriteTypes)
         } catch {
             AppLog.healthKit.error(
                 "Activity sync authorization failed: \(error.localizedDescription, privacy: .private)"
@@ -539,17 +591,22 @@ final class HealthKitService {
         )
     }
 
+    /// Mean of the last `days` completed days. One extra day is fetched
+    /// so the window still spans `days` once today is left out.
     func averageSteps(days: Int) async -> Double? {
         guard isAvailable, days > 0 else { return nil }
+        let daily = await dailySteps(days: days + 1)
+        return Self.averageOfCompletedDays(daily, startOfToday: Calendar.current.startOfDay(for: Date()))
+    }
 
-        // Average over days that actually have step data, not the full
-        // window — a user who synced steps on 3 of 7 days shouldn't see
-        // their daily average halved by dividing the total by 7.
-        // `dailyQuantity` buckets per day and skips empty days.
-        let daily = await dailySteps(days: days)
-        guard !daily.isEmpty else { return nil }
-        let total = daily.reduce(0.0) { $0 + $1.value }
-        return total / Double(daily.count)
+    /// Averages over days that actually have data, not the full window —
+    /// a user who synced steps on 3 of 7 days shouldn't see their average
+    /// divided by 7 — and leaves out today's bucket, which is still
+    /// filling and would pull the average down every morning.
+    static func averageOfCompletedDays(_ daily: [(date: Date, value: Double)], startOfToday: Date) -> Double? {
+        let completed = daily.filter { $0.date < startOfToday }
+        guard !completed.isEmpty else { return nil }
+        return completed.reduce(0.0) { $0 + $1.value } / Double(completed.count)
     }
 
     // MARK: - Sleep

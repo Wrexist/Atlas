@@ -13,7 +13,9 @@ struct ProtocolPage: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 6) {
                 if data.todayEntries.isEmpty {
-                    Text("No doses today.")
+                    Text(data.awaitsToday(at: .now)
+                         ? LocalizedStringKey("Open Atlas on your iPhone to load today.")
+                         : LocalizedStringKey("No doses today."))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 } else {

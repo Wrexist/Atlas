@@ -266,6 +266,23 @@ final class MealScannerServiceTests: XCTestCase {
         XCTAssertFalse(AppAttestService.isAttestRejection(Data()))
     }
 
+    func test_clockRejection_isNotTreatedAsLostKey() {
+        let body = Data(#"{"error":{"message":"Unauthorised","code":"attest_clock"}}"#.utf8)
+        XCTAssertTrue(AppAttestService.isClockRejection(body))
+        XCTAssertFalse(AppAttestService.isAttestRejection(body))
+    }
+
+    func test_clockOffset_httpDateHeader_isServerMinusDevice() throws {
+        // Sun, 06 Nov 1994 08:49:37 GMT
+        let server = Date(timeIntervalSince1970: 784_111_777)
+        let deviceTenMinutesAhead = server.addingTimeInterval(600)
+        let offset = try XCTUnwrap(AppAttestService.clockOffset(
+            serverDate: "Sun, 06 Nov 1994 08:49:37 GMT", now: deviceTenMinutesAhead
+        ))
+        XCTAssertEqual(offset, -600, accuracy: 0.001)
+        XCTAssertNil(AppAttestService.clockOffset(serverDate: "yesterday", now: server))
+    }
+
     func test_analyze_scanQuota429_throwsScanAllowanceSpent() async {
         MockURLProtocol.handler = { request in
             (Self.response(for: request, status: 429), Data(#"{"error":{"message":"Free scan limit reached","code":"scan_quota"}}"#.utf8))

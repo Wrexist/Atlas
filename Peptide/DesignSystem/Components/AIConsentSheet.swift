@@ -36,7 +36,7 @@ struct AIConsentSheet: View {
                         )
                         ConsentRow(
                             icon: "hand.raised",
-                            text: "Nothing is sent until you allow it. You can turn this off in Profile › About › Privacy at a glance."
+                            text: "Nothing is sent until you allow it. You can turn this off in Profile → Settings → About → Privacy at a glance."
                         )
                     }
 
@@ -85,12 +85,15 @@ private struct ConsentRow: View {
     let icon: String
     let text: LocalizedStringKey
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         HStack(alignment: .top, spacing: Spacing.md) {
             Image(systemName: icon)
-                .font(AppFont.scaled(16, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold, in: dynamicTypeSize))
                 .foregroundStyle(AppColor.accentPrimary)
-                .frame(width: 24)
+                // The column grows with the glyph so it never overlaps the text.
+                .frame(width: AppFont.scaledValue(24, in: dynamicTypeSize))
                 .accessibilityHidden(true)
             Text(text)
                 .font(AppFont.body)

@@ -19,11 +19,13 @@ struct StatColumn: View {
                 .animation(WatchMotion.update, value: value)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
+            // Three columns leave under 50 pt each on a 40/41 mm watch,
+            // so the label shrinks rather than truncating.
             Text(label.uppercased())
                 .font(.system(.caption2, design: .rounded, weight: .semibold))
-                .tracking(0.6)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+                .minimumScaleFactor(0.6)
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .ignore)

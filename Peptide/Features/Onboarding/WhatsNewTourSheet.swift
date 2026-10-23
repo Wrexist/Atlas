@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Paginated "What's New" tour. Surfaces the major features
 /// shipped in v2.0 to existing users who installed before this
@@ -49,6 +50,9 @@ struct WhatsNewTourSheet: View {
         // toggle, so the page tick isn't gated on Reduce Motion.
         .onChange(of: currentIndex) { _, _ in
             Haptics.selection()
+            // Move VoiceOver to the new page instead of leaving it parked
+            // on the Continue button, as onboarding does.
+            UIAccessibility.post(notification: .screenChanged, argument: nil)
         }
     }
 

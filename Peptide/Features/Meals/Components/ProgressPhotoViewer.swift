@@ -135,6 +135,7 @@ struct ProgressPhotoViewer: View {
                 .blur(radius: blurEnabled ? 22 : 0)
                 .appAnimation(AppAnimation.quick, value: blurEnabled)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityLabel(Text("Progress photo, \(ProgressPhotoMetadata.displayDate(forFilename: filename))"))
         } else if !resolved.contains(filename) {
             // Decode in flight. The viewport is already black, so an
             // empty frame reads as the photo arriving rather than as an

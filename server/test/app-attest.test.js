@@ -220,6 +220,32 @@ test('checkAppAttest gate: stale client data is rejected in enforce mode', async
   assert.match(denied.reason, /stale/);
 });
 
+test('test_staleClientStampInEnforce_returnsAttestClockNotAttestRequired', async (t) => {
+  setEnv(t, {
+    ...REDIS_ENV,
+    APP_ATTEST_MODE: 'enforce',
+    APP_ATTEST_APP_ID: fixture.appId,
+  });
+  fakeUpstash(t);
+  const stale = await checkAppAttest({
+    headers: {
+      'x-attest-key-id': 'any',
+      'x-attest-assertion': 'any',
+      'x-attest-client-data': makeClientData(-10 * 60 * 1000).toString('base64'),
+    },
+  }, { logLabel: 'test' });
+  assert.equal(stale.code, 'attest_clock');
+
+  const unknownKey = await checkAppAttest({
+    headers: {
+      'x-attest-key-id': 'unknown',
+      'x-attest-assertion': 'any',
+      'x-attest-client-data': makeClientData(0).toString('base64'),
+    },
+  }, { logLabel: 'test' });
+  assert.equal(unknownKey.code, 'attest_required');
+});
+
 test('checkAppAttest gate: missing config refuses in enforce mode and passes in report', async (t) => {
   const headers = {
     'x-attest-key-id': 'any',

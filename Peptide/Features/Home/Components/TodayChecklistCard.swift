@@ -105,7 +105,7 @@ struct TodayChecklistCard: View {
     private func trailing(_ item: TodayChecklistEngine.Item, done: Bool) -> some View {
         switch item {
         case .water:
-            Text("+\(unit == .metric ? "250 mL" : "8 oz")")
+            Text("+\(unit.volumeLabel(TodayChecklistEngine.glassFluidOunces(for: unit)))")
                 .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.accentPrimary)
                 .padding(.horizontal, Spacing.sm)
@@ -182,8 +182,18 @@ struct LogWeightSheet: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(\.dismiss) private var dismiss
     @State private var text = ""
+    @FocusState private var isFieldFocused: Bool
 
     private var unit: MeasurementUnit { dataStore.profile.bodyMetrics.unit }
+
+    /// Says why Save is disabled once something has been typed.
+    private var rangeHint: String? {
+        guard parsedKg == nil, !text.trimmingCharacters(in: .whitespaces).isEmpty else { return nil }
+        let range = DailyReminderEngine.plausibleWeightKilograms
+        let low = unit.weightLabel(range.lowerBound, fractionDigits: 0)
+        let high = unit.weightLabel(range.upperBound, fractionDigits: 0)
+        return String(localized: "Enter a weight between \(low) and \(high).")
+    }
 
     private var parsedKg: Double? {
         DailyReminderEngine.parsedWeightKilograms(text, unit: unit)
@@ -202,8 +212,20 @@ struct LogWeightSheet: View {
                 }
             }
 
-            GlassTextField(placeholder: "Weight in \(unit.weightSuffix)", text: $text, icon: "scalemass.fill")
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                GlassTextField(
+                    placeholder: "Weight in \(unit.weightSuffix)",
+                    text: $text,
+                    icon: "scalemass.fill",
+                    focus: $isFieldFocused
+                )
                 .keyboardType(.decimalPad)
+                if let rangeHint {
+                    Text(rangeHint)
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.warning)
+                }
+            }
 
             GlassButton(title: "Save", icon: "checkmark", isFullWidth: true) {
                 guard let kg = parsedKg else { return }
@@ -214,7 +236,8 @@ struct LogWeightSheet: View {
             .disabled(parsedKg == nil)
         }
         .padding(Spacing.screenPadding)
-        .presentationDetents([.medium])
+        .onAppear { isFieldFocused = true }
+        .liquidGlassPresentation(detents: [.medium])
     }
 }
 

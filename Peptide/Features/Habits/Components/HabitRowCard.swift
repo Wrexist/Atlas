@@ -51,7 +51,7 @@ struct HabitRowCard: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(habit.name). \(todayStatus). \(summary.currentStreak) day streak, \(totalDaysLabel) total.")
+        .accessibilityLabel("\(habit.name). \(todayStatus). \(streakLabel), \(totalDaysLabel).")
         .accessibilityAddTraits(.isButton)
         // The combined card swallows `todayButton`, so expose its toggle
         // as a custom action or VoiceOver can only open the editor.
@@ -92,8 +92,14 @@ struct HabitRowCard: View {
             : String(localized: "Not done today")
     }
 
+    private var streakLabel: String {
+        habit.schedule.countsStreakInWeeks
+            ? String(localized: "\(summary.currentStreak) week streak")
+            : String(localized: "\(summary.currentStreak) day streak")
+    }
+
     private var totalDaysLabel: String {
-        summary.totalCompletedDays == 1 ? "1 day" : "\(summary.totalCompletedDays) days"
+        String(localized: "\(summary.totalCompletedDays) days total")
     }
 
     private var scheduleBadge: some View {
@@ -129,7 +135,7 @@ struct HabitRowCard: View {
                         .transition(.scale.combined(with: .opacity))
                     Image(systemName: "checkmark")
                         .font(AppFont.scaled(11, weight: .bold))
-                        .foregroundStyle(AppColor.onAccent)
+                        .foregroundStyle(AppColor.background)
                         .symbolEffect(.bounce, value: summary.isCompletedToday)
                         .transition(.scale.combined(with: .opacity))
                 } else if summary.todayProgress > 0 {
@@ -144,7 +150,20 @@ struct HabitRowCard: View {
             .contentShape(Circle().inset(by: -(Spacing.minimumHitTarget - Self.todayButtonSize) / 2))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(summary.isCompletedToday ? "Completed today" : "Mark complete for today")
+        .accessibilityLabel(todayButtonLabel)
+        .accessibilityValue(todayButtonValue)
+    }
+
+    /// A tap on a countable habit adds one toward the target rather than
+    /// completing it, so say so.
+    private var todayButtonLabel: Text {
+        if summary.isCompletedToday { return Text("Completed today") }
+        return habit.isCountable ? Text("Add one") : Text("Mark complete for today")
+    }
+
+    private var todayButtonValue: Text {
+        guard let target = habit.targetValue else { return Text("") }
+        return Text("\(summary.todayValue) of \(target)")
     }
 
     private var statRow: some View {

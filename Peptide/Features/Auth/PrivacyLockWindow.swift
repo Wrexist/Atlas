@@ -26,11 +26,16 @@ final class PrivacyLockWindow {
         guard cover != shown,
               let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first
         else { return }
+        // The cover never becomes key, so a focused field underneath would
+        // keep the keyboard up over it and keep taking keystrokes (B092).
+        for appWindow in scene.windows where appWindow !== self.window {
+            appWindow.endEditing(true)
+        }
         let window = window ?? UIWindow(windowScene: scene)
         window.windowLevel = UIWindow.Level(rawValue: UIWindow.Level.alert.rawValue + 1)
         window.rootViewController = UIHostingController(rootView: content)
-        // The app stays mounted underneath; modal keeps VoiceOver, Switch
-        // Control and keyboard focus from reaching it through the cover.
+        // The app stays mounted underneath; modal keeps VoiceOver and
+        // Switch Control from reaching it through the cover.
         window.accessibilityViewIsModal = true
         // Visible but never key, so the app's own window keeps key status
         // and its presentation checks keep working after unlock.

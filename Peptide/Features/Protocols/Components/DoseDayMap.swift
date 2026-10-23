@@ -59,7 +59,8 @@ enum DoseDayMap {
         // current status to each logged mark. Used by the detail panel
         // to render historical/paused entries with a muted style.
         let protocolStatusByID = Dictionary(
-            uniqueKeysWithValues: protocols.map { ($0.id, $0.status) }
+            protocols.map { ($0.id, $0.status) },
+            uniquingKeysWith: { first, _ in first }
         )
 
         // Real entries inside the visible window, grouped by day. Only a

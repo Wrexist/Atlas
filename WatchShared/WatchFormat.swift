@@ -8,6 +8,11 @@ enum WatchFormat {
             .formatted(.units(allowed: [.hours, .minutes], width: .narrow))
     }
 
+    /// "82%": Recovery as the phone shows it, a percent of full recovery.
+    static func recovery(_ score: Int) -> String {
+        (Double(score) / 100).formatted(.percent.precision(.fractionLength(0)))
+    }
+
     /// Mirrors `MomentumEngine.Tier.name` for the raw tier the phone
     /// sends; anything unknown reads as the entry tier, like its colour.
     static func tierName(_ raw: String?) -> String {

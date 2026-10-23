@@ -33,6 +33,13 @@ enum PendingDoseLogStore {
     /// so taps queued before an update still land.
     private static let legacyInboxKey = "com.peptidesai.app.pendingDoseLogs"
 
+    /// The app's drain, registered at launch. iOS runs the Live Activity
+    /// intent in the app's process and may suspend a background launch
+    /// as soon as `perform()` returns, before the Darwin-notification
+    /// drain gets its turn, so the intent applies the tap through this
+    /// first. Nil in the widget extension, where the inbox is the path.
+    @MainActor static var applyInProcess: (@MainActor () -> Void)?
+
     /// One queued log. Carries `loggedAt` so when the app drains
     /// the inbox it can stamp the entry's `actualTime` with the
     /// moment the user actually tapped, not the moment the app

@@ -127,21 +127,42 @@ final class WatchDataTests: XCTestCase {
     }
 
     /// After midnight, yesterday's doses must not be listed or tappable,
-    /// and the habit and score counts start the new day at zero.
-    func test_forDisplay_snapshotFromEarlierDay_clearsDayProgressButKeepsTotals() {
+    /// the score starts the new day at zero, and yesterday's habit due
+    /// counts are not passed off as today's: habits due on set weekdays
+    /// differ from day to day.
+    func test_forDisplay_snapshotFromEarlierDay_clearsDayProgressAndHabitCounts() {
         let shown = fullDay().forDisplay(at: now.addingTimeInterval(24 * 3600))
         XCTAssertTrue(shown.todayEntries.isEmpty)
         XCTAssertEqual(shown.completedToday, 0)
         XCTAssertEqual(shown.totalToday, 0)
         XCTAssertEqual(shown.atlasTodayEarned, 0)
-        XCTAssertEqual(shown.healthHabitsDone, 0)
-        XCTAssertEqual(shown.trainingHabitsDone, 0)
-        XCTAssertEqual(shown.healthHabitsTotal, 3)
+        XCTAssertNil(shown.healthHabitsDone)
+        XCTAssertNil(shown.healthHabitsTotal)
+        XCTAssertNil(shown.trainingHabitsDone)
+        XCTAssertNil(shown.trainingHabitsTotal)
         XCTAssertEqual(shown.nutrition?.caloriesToday, 0)
         XCTAssertEqual(shown.nutrition?.calorieTarget, 2400)
         XCTAssertEqual(shown.currentStreak, 5)
         XCTAssertEqual(shown.atlasScore, 142)
         XCTAssertEqual(shown.vitals, vitals)
+    }
+
+    func test_awaitsToday_snapshotFromEarlierDay_isTrue() {
+        XCTAssertTrue(fullDay().awaitsToday(at: now.addingTimeInterval(24 * 3600)))
+        XCTAssertTrue(fullDay().forDisplay(at: now.addingTimeInterval(24 * 3600))
+            .awaitsToday(at: now.addingTimeInterval(24 * 3600)))
+    }
+
+    func test_awaitsToday_sameDayOrNeverSynced_isFalse() {
+        XCTAssertFalse(fullDay().awaitsToday(at: now.addingTimeInterval(60)))
+        XCTAssertFalse(WatchData.empty.awaitsToday(at: now))
+    }
+
+    /// The phone re-reads vitals only when its app is opened, so a score
+    /// from days ago must not read as this morning's recovery.
+    func test_vitalsIsStale_pastTwentyFourHours_isTrue() {
+        XCTAssertFalse(vitals.isStale(at: now.addingTimeInterval(WatchData.vitalsStaleAfter - 60)))
+        XCTAssertTrue(vitals.isStale(at: now.addingTimeInterval(WatchData.vitalsStaleAfter + 60)))
     }
 
     func test_forDisplay_workoutPushedHoursAgo_dropsTheWorkout() {
@@ -159,6 +180,38 @@ final class WatchDataTests: XCTestCase {
         XCTAssertNil(shown.vitals?.sleep)
         XCTAssertEqual(shown.vitals?.recoveryScore, 82)
         XCTAssertEqual(shown.vitals?.measuredAt, now)
+    }
+
+    // MARK: - Push change detection
+
+    func test_hasSameContent_differentStampOnly_isTrue() {
+        let data = fullDay()
+        XCTAssertTrue(data.stamped(now.addingTimeInterval(300)).hasSameContent(as: data))
+    }
+
+    func test_hasSameContent_doseToggled_isFalse() {
+        let data = fullDay()
+        var entries = data.todayEntries
+        entries[1].completed = true
+        XCTAssertFalse(data.replacingEntries(entries).hasSameContent(as: data))
+    }
+
+    func test_changesComplications_doseCountOrWorkoutStartChanges_isTrue() {
+        let data = fullDay()
+        var entries = data.todayEntries
+        entries[1].completed = true
+        XCTAssertTrue(data.replacingEntries(entries).changesComplications(from: data))
+        XCTAssertTrue(data.replacingWorkout(workout).changesComplications(from: data))
+    }
+
+    /// Set edits arrive many times a minute and must not spend the daily
+    /// complication-transfer budget.
+    func test_changesComplications_sameWorkoutEdited_isFalse() {
+        let started = workout
+        let running = fullDay(workout: started)
+        let edited = WatchWorkoutSnapshot(sessionId: started.sessionId, name: "Push day", timerStartedAt: now,
+                                          pausedElapsedSeconds: 30, exercises: [], selectedExerciseID: nil, rest: nil)
+        XCTAssertFalse(running.replacingWorkout(edited).changesComplications(from: running))
     }
 
     /// The phone stamps each workout push so the Watch can tell it from an

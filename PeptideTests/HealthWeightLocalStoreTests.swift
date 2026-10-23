@@ -40,6 +40,23 @@ final class HealthWeightLocalStoreTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: fileURL), corrupt)
     }
 
+    func test_entries_afterAFailedRead_retryOnceTheFileIsReadable() throws {
+        try FileManager.default.createDirectory(
+            at: fileURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try Data("not json".utf8).write(to: fileURL)
+        let store = HealthWeightLocalStore(fileURL: fileURL)
+        XCTAssertTrue(store.entries.isEmpty)
+
+        let entry = WeightEntry(date: Date(), kg: 80)
+        try FileManager.default.removeItem(at: fileURL)
+        XCTAssertTrue(HealthWeightLocalStore(fileURL: fileURL).record([entry]))
+
+        XCTAssertEqual(store.entries.map(\.id), [entry.id])
+        XCTAssertTrue(store.record([WeightEntry(date: Date(), kg: 81)]))
+    }
+
     func test_dismissIDs_forUnrecordedSamples_marksThemDismissed() {
         let legacySample = UUID()
 

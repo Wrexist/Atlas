@@ -21,9 +21,14 @@ enum WatchPalette {
 
     // MARK: Recovery
 
+    /// Apple's Heart Rate red, not `AppColor.metricHeartRate`: the wrist
+    /// follows the system Health apps it sits beside.
     static let heart = hex(0xFF375F)
 
     // MARK: Sleep
+
+    /// Apple's Sleep blues, not `AppColor.metricSleep`'s amber, for the
+    /// same reason as `heart`.
 
     static let sleepAccent = hex(0x8DB6FF)
     static let stageAwake = hex(0xFF8A65)
@@ -35,11 +40,11 @@ enum WatchPalette {
 
     /// The iPhone's own nutrition colours (dark variants), so a calorie
     /// ring reads the same on the wrist as on the Meals tab: the default
-    /// brand emerald (`AppTheme.teal`, which the calorie ring takes) and
-    /// `AppColor.macroProtein`'s amber.
+    /// brand emerald (`AppTheme.teal`, which the calorie ring takes),
+    /// `AppColor.macroProtein`'s amber and `AppColor.macroWater`'s blue.
     static let calories = hex(0x10B981)
     static let protein = hex(0xEF9F27)
-    static let water = hex(0x4FA3FF)
+    static let water = hex(0x378ADD)
 
     /// Ring and progress-bar track behind a coloured fill.
     static let track = Color.white.opacity(0.12)

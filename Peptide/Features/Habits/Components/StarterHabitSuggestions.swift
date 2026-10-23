@@ -69,7 +69,7 @@ struct StarterHabitSuggestions: View {
             HStack(spacing: 6) {
                 Image(systemName: template.iconSymbol)
                     .font(AppFont.scaled(11, weight: .semibold))
-                    .foregroundStyle(Color(hex: UInt(template.tintHex)))
+                    .foregroundStyle(HabitTintCatalog.color(for: template.tintHex))
                     .accessibilityHidden(true)
                 Text(template.name)
                     .font(AppFont.scaled(13, weight: .semibold))

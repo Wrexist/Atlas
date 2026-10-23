@@ -124,6 +124,31 @@ final class StreakEngineTests: XCTestCase {
         XCTAssertEqual(streak(entries, frozen: frozen), 3)
     }
 
+    func test_bestStreak_acrossMidnightDSTStart_countsEveryDay() {
+        // Santiago springs forward at midnight on 6 Sep 2026, so that
+        // day starts at 01:00.
+        var santiago = Calendar(identifier: .gregorian)
+        santiago.timeZone = TimeZone(identifier: "America/Santiago")!
+        let entries = (3...10).map { dayOfMonth in
+            ProtocolEntry(
+                id: UUID(),
+                protocolId: protocolID,
+                peptide: MockPeptides.bpc157,
+                date: santiago.date(from: DateComponents(year: 2026, month: 9, day: dayOfMonth, hour: 9))!,
+                dose: "250mcg",
+                notes: "",
+                completed: true
+            )
+        }
+        let byDay = StreakEngine.activeEntriesByDay(entries: entries, protocols: [activeProtocol()], calendar: santiago)
+        let today = santiago.date(from: DateComponents(year: 2026, month: 9, day: 10, hour: 12))!
+
+        XCTAssertEqual(
+            StreakEngine.bestStreak(entriesByDay: byDay, frozenDayKeys: [], today: today, calendar: santiago),
+            8
+        )
+    }
+
     // MARK: - Today grace
 
     func test_currentStreak_todayNotYetLogged_keepsYesterdaysStreak() {

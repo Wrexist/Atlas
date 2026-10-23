@@ -76,7 +76,7 @@ struct WorkoutSocialCanvas: View {
 
     private var titleBlock: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(options.includeName ? summary.name : "Workout")
+            Text(options.includeName ? summary.name : String(localized: "Workout"))
                 .font(.title2.weight(.bold)).lineLimit(layout == .wide ? 1 : 2)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if options.includeDate, let date = summary.session.finishedAt {
@@ -130,7 +130,7 @@ struct WorkoutSocialCanvas: View {
         return Group {
             if !names.isEmpty {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    Text(role.rawValue).foregroundStyle(color).fontWeight(.semibold)
+                    Text(role.displayName).foregroundStyle(color).fontWeight(.semibold)
                     Text(names.joined(separator: ", ")).lineLimit(1)
                 }.font(.caption)
             }

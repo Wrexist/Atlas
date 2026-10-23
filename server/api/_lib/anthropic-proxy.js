@@ -20,6 +20,8 @@
  *                          list every model the app sends, or the
  *                          sanitiser rewrites the missing ones to the
  *                          first entry — silently, with no client error.
+ *                          meal-scan and ai-research send THINKING_OFF
+ *                          only to models that accept it; see there.
  *   RATE_LIMIT_RPM       — requests per minute per principal per
  *                          route. Default 20.
  *   DEVICE_DAILY_QUOTA   — upstream cost units per principal per UTC
@@ -50,6 +52,12 @@
  *                          _lib/app-attest.js for modes and rollout.
  *   FREE_SCANS_PER_WEEK  — free-tier scan allowance on routes that
  *                          pass `scanSucceeded`; see _lib/scan-quota.js.
+ *   STOREKIT_BUNDLE_ID   — checked on the Pro entitlement that routes
+ *                          with `requirePro` demand; see storekit-jws.js.
+ *   PRO_GATE_MODE        — `enforce` (default) refuses those routes
+ *                          without a verified entitlement; `report` only
+ *                          logs and lets them through, the switch to
+ *                          flip if real Pro users are being refused.
  *
  * iOS clients pull the proxy URL and the matching secret from
  * Info.plist (or scheme env): `MEAL_SCANNER_ENDPOINT` +
@@ -62,7 +70,7 @@
  */
 import { checkAppAttest } from './app-attest.js';
 import { authorize } from './auth.js';
-import { chargeScan } from './scan-quota.js';
+import { chargeScan, hasVerifiedPro } from './scan-quota.js';
 import {
   abuseBlockSeconds,
   allowRate,
@@ -94,6 +102,20 @@ const MAX_BODY_BYTES = 4_400_000;
 // The client-supplied part of a route's system prompt is cut to this
 // unless the route allows more (`maxClientSystemChars`).
 const MAX_CLIENT_SYSTEM_CHARS = 4000;
+
+/**
+ * Thinking off, for the routes whose `max_tokens` was sized for the
+ * answer alone. Claude Sonnet 5 runs adaptive thinking at effort high
+ * when `thinking` is omitted, and `max_tokens` caps thinking plus text
+ * together, so those small caps truncated replies.
+ *
+ * Claude Sonnet 5.5 and Opus 5.5 reject `{ type: 'disabled' }` with a
+ * 400, so the sanitiser only sends it to a model listed in
+ * `ACCEPTS_THINKING_DISABLED`; an `ALLOWED_MODELS` that rewrites to any
+ * other model gets no `thinking` field rather than a 400 on every call.
+ */
+export const THINKING_OFF = Object.freeze({ type: 'disabled' });
+const ACCEPTS_THINKING_DISABLED = new Set(['claude-sonnet-5', 'claude-sonnet-4-6']);
 
 function getAllowedModels() {
   const raw = process.env.ALLOWED_MODELS;
@@ -155,6 +177,9 @@ const REFUSALS = {
   // The free weekly scan allowance (scan-quota.js); no Retry-After,
   // since the app answers it with the paywall, not a retry.
   scan_quota: { status: 429, message: 'Free scan limit reached' },
+  // A Pro-only route called without a verified Pro entitlement; the app
+  // answers it with the paywall, not a retry.
+  pro_required: { status: 403, message: 'Pro subscription required' },
   unavailable: { status: 503, message: 'Service unavailable' },
 };
 
@@ -244,6 +269,7 @@ function sanitiseBody(raw, options) {
   if (!fitsShape(messages, options?.shape)) return null;
 
   const out = { model, max_tokens, messages };
+  if (options?.thinking && ACCEPTS_THINKING_DISABLED.has(model)) out.thinking = options.thinking;
 
   // System-prompt handling. Routes that don't expect a client system
   // (`allowClientSystem: false`) drop any client-supplied value
@@ -270,10 +296,12 @@ export async function forwardToAnthropic(req, res, {
   maxBodyBytes,
   shape,
   maxTokens,
+  thinking,
   buildBody,
   readResponse,
   betas,
   requireJson = false,
+  requirePro = false,
   scanSucceeded,
   timeoutMs = 25_000,
 }) {
@@ -295,10 +323,11 @@ export async function forwardToAnthropic(req, res, {
   // Only rejects in enforce mode; report mode verifies + logs so the
   // rollout can be validated from production logs before anything is
   // blocked. The `attest_required` code tells a genuine client to
-  // (re-)register its key rather than treat this as a secret failure.
+  // (re-)register its key rather than treat this as a secret failure;
+  // `attest_clock` tells it to correct its clock and keep the key.
   const attest = await checkAppAttest(req, { logLabel });
   if (!attest.ok) {
-    res.status(401).json({ error: { message: 'Unauthorised', code: 'attest_required' } });
+    res.status(401).json({ error: { message: 'Unauthorised', code: attest.code } });
     return;
   }
 
@@ -366,10 +395,27 @@ export async function forwardToAnthropic(req, res, {
   // sanitised pass-through of the Messages shape the app sends.
   const clean = buildBody
     ? buildBody(req.body)
-    : sanitiseBody(req.body, { systemPrefix, allowClientSystem, maxClientSystemChars, shape, maxTokens });
+    : sanitiseBody(req.body, { systemPrefix, allowClientSystem, maxClientSystemChars, shape, maxTokens, thinking });
   if (!clean) {
     res.status(400).json({ error: { message: 'Malformed request body' } });
     return;
+  }
+
+  // Pro-only routes (`requirePro`) need the same StoreKit proof that
+  // lifts the free scan allowance. The app gates them behind the
+  // paywall; this is what stops a client holding only the shared
+  // secret from running them for free.
+  // Verification needs no configuration (it pins Apple's root and
+  // defaults to this app's bundle ID), but it has only met synthetic
+  // fixtures, so `PRO_GATE_MODE=report` turns the gate into a log line
+  // rather than a redeploy if a real subscriber's JWS is ever refused.
+  if (requirePro && !hasVerifiedPro(req, logLabel)) {
+    if (process.env.PRO_GATE_MODE === 'report') {
+      console.warn(`[${logLabel}] pro gate report: no verified entitlement`);
+    } else {
+      refuse(res, 'pro_required');
+      return;
+    }
   }
 
   // Charged on the parsed body, never on `content-length`, which a

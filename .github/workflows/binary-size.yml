@@ -97,13 +97,17 @@ jobs:
         id: main_size
         continue-on-error: true
         if: steps.pr_size.outputs.pr_bytes != ''
+        # A separate worktree, not `git checkout origin/main -- .`: that
+        # overwrote tracked files but left PR-added ones in place, and
+        # XcodeGen globs source folders, so PR-only files leaked into the
+        # "main" build (audit B342).
         run: |
-          git stash --include-untracked --quiet || true
-          if ! git checkout origin/main -- . 2>/dev/null; then
+          if ! git worktree add "$RUNNER_TEMP/base" origin/main 2>/dev/null; then
             echo "Could not check out origin/main — skipping comparison."
             echo "main_bytes=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          cd "$RUNNER_TEMP/base"
           xcodegen generate
 
           if ! xcodebuild build \
@@ -154,11 +158,11 @@ jobs:
 
           DELTA=$((PR_BYTES - MAIN_BYTES))
           PCT_X10=$(( (DELTA * 1000) / MAIN_BYTES ))
-          PCT_INT=$((PCT_X10 / 10))
-          PCT_FRAC=$((PCT_X10 % 10))
-          [ "$PCT_FRAC" -lt 0 ] && PCT_FRAC=$((-PCT_FRAC))
-          SIGN="+"; [ "$DELTA" -lt 0 ] && SIGN=""
-          PCT_HUMAN="${SIGN}${PCT_INT}.${PCT_FRAC}%"
+          # Sign from DELTA, digits from the absolute value: a shrink
+          # under 1% has PCT_INT 0, which carries no minus sign of its own.
+          SIGN="+"; [ "$DELTA" -lt 0 ] && SIGN="-"
+          ABS_X10=${PCT_X10#-}
+          PCT_HUMAN="${SIGN}$((ABS_X10 / 10)).$((ABS_X10 % 10))%"
 
           {
             echo "## Binary size"

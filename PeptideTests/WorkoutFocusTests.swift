@@ -72,6 +72,10 @@ final class WorkoutFocusStateTests: XCTestCase {
 final class WorkoutFocusServiceTests: XCTestCase {
     private var service: WorkoutSessionService!
     private var repo: SwiftDataRepository!
+    /// Live Activity taps go here, never the App Group inbox the widget
+    /// extension shares with the real app.
+    private var inbox: UserDefaults!
+    private var savedApplyInProcess: (@MainActor () -> Void)?
 
     override func setUp() {
         super.setUp()
@@ -79,9 +83,14 @@ final class WorkoutFocusServiceTests: XCTestCase {
         repo.configureForTesting()
         service = WorkoutSessionService.shared
         service.discardWorkout()
+        let suite = "WorkoutFocusServiceTests.\(UUID().uuidString)"
+        addTeardownBlock { UserDefaults().removePersistentDomain(forName: suite) }
+        inbox = UserDefaults(suiteName: suite)
+        savedApplyInProcess = PendingWorkoutActionStore.applyInProcess
     }
 
     override func tearDown() {
+        PendingWorkoutActionStore.applyInProcess = savedApplyInProcess
         service.discardWorkout()
         repo.deleteAll()
         super.tearDown()
@@ -270,14 +279,46 @@ final class WorkoutFocusServiceTests: XCTestCase {
 
     func test_liveActivityTapForAnotherWorkout_isDropped() throws {
         start()
-        PendingWorkoutActionStore.enqueue(.init(sessionId: UUID(), action: .completeSet, tappedAt: Date()))
-        WorkoutActivityActionProcessor.drain()
+        PendingWorkoutActionStore.enqueue(.init(sessionId: UUID(), action: .completeSet, tappedAt: Date()), defaults: inbox)
+        WorkoutActivityActionProcessor.drain(defaults: inbox)
         XCTAssertEqual(service.activeSession?.completedSetCount, 0)
 
         let id = try XCTUnwrap(service.activeSession?.id)
-        PendingWorkoutActionStore.enqueue(.init(sessionId: id, action: .completeSet, tappedAt: Date()))
-        WorkoutActivityActionProcessor.drain()
+        PendingWorkoutActionStore.enqueue(.init(sessionId: id, action: .completeSet, tappedAt: Date()), defaults: inbox)
+        WorkoutActivityActionProcessor.drain(defaults: inbox)
         XCTAssertEqual(service.activeSession?.completedSetCount, 1)
+    }
+
+    func test_liveActivitySkipTappedBeforeThisRest_leavesTheRestRunning() throws {
+        start()
+        service.completeNextSet()
+        let id = try XCTUnwrap(service.activeSession?.id)
+
+        PendingWorkoutActionStore.enqueue(.init(sessionId: id, action: .skipRest, tappedAt: Date().addingTimeInterval(-60)))
+        WorkoutActivityActionProcessor.drain()
+        XCTAssertNotNil(service.activeSession?.focus?.rest)
+
+        PendingWorkoutActionStore.enqueue(.init(sessionId: id, action: .skipRest, tappedAt: Date()))
+        WorkoutActivityActionProcessor.drain()
+        XCTAssertNil(service.activeSession?.focus?.rest)
+    }
+
+    func test_adjustRest_movesTheRingWithTheTimeLeft() throws {
+        start()
+        let started = Date()
+        service.completeNextSet(now: started)
+        let total = try XCTUnwrap(service.activeSession?.focus?.rest?.totalSeconds)
+        let midway = started.addingTimeInterval(total / 2)
+        let before = try XCTUnwrap(service.activeSession?.focus?.rest?.remainingFraction(at: midway))
+
+        service.adjustRest(by: -15, now: midway)
+        let shortened = try XCTUnwrap(service.activeSession?.focus?.rest?.remainingFraction(at: midway))
+        service.adjustRest(by: 15, now: midway)
+        let restored = try XCTUnwrap(service.activeSession?.focus?.rest?.remainingFraction(at: midway))
+
+        XCTAssertLessThan(shortened, before)
+        XCTAssertGreaterThan(restored, shortened)
+        XCTAssertLessThanOrEqual(restored, 1)
     }
 
     func test_liveActivityTapInAppProcess_isAppliedBeforeIntentReturns() async throws {

@@ -199,6 +199,15 @@ test('device quota charges the request cost, not one per call', async (t) => {
   assert.equal(await withinDeviceQuota({ principal, cost: 8 }), false);
 });
 
+test('test_refusedDeviceQuotaRequest_givesUnitsBackSoSmallerRequestFits', async (t) => {
+  setEnv(t, { ...NO_REDIS, DEVICE_DAILY_QUOTA: '10' });
+  const principal = 'quota-refund-test';
+  assert.equal(await withinDeviceQuota({ principal, cost: 8 }), true);
+  assert.equal(await withinDeviceQuota({ principal, cost: 5 }), false);
+  assert.equal(await withinDeviceQuota({ principal, cost: 5 }), false, 'a retry is refused the same way');
+  assert.equal(await withinDeviceQuota({ principal, cost: 2 }), true, 'the refused charges were given back');
+});
+
 test('device quota disabled at 0', async (t) => {
   setEnv(t, { ...NO_REDIS, DEVICE_DAILY_QUOTA: '0' });
   for (let i = 0; i < 50; i += 1) {

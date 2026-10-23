@@ -28,6 +28,8 @@ REPO = pathlib.Path(__file__).resolve().parent.parent
 COLOR_THEME = REPO / "Peptide" / "DesignSystem" / "Theme" / "ColorTheme.swift"
 APP_THEME = REPO / "Peptide" / "DesignSystem" / "Theme" / "AppTheme.swift"
 MODEL_COLORS = REPO / "Peptide" / "DesignSystem" / "Theme" / "ModelColors.swift"
+HABIT = REPO / "Peptide" / "Models" / "Habit.swift"
+WATCH_PALETTE = REPO / "Shared" / "WatchPalette.swift"
 
 AA_TEXT = 4.5
 AA_LARGE = 3.0
@@ -56,7 +58,7 @@ def parse_tokens(path: pathlib.Path) -> dict[str, tuple[int, int]]:
     source = path.read_text()
     tokens: dict[str, tuple[int, int]] = {}
     for m in re.finditer(
-        r"(?:static let|let)\s+(\w+)\s*(?::\s*Color\s*)?=\s*Color\(light:\s*0x([0-9A-Fa-f]{6}),\s*dark:\s*0x([0-9A-Fa-f]{6})",
+        r"(?:static let|let)\s+(\w+)\s*(?::\s*Color\s*)?=\s*Color\(\s*light:\s*0x([0-9A-Fa-f]{6}),\s*dark:\s*0x([0-9A-Fa-f]{6})",
         source,
     ):
         tokens[m.group(1)] = (int(m.group(2), 16), int(m.group(3), 16))
@@ -83,13 +85,49 @@ def parse_ramps(path: pathlib.Path) -> dict[str, dict[str, tuple[int, int]]]:
     return ramps
 
 
+def extension_block(path: pathlib.Path, type_name: str) -> str:
+    """The body of `extension <type_name> {` up to the next top-level brace."""
+    source = path.read_text()
+    start = source.index(f"extension {type_name} {{")
+    end = source.find("\n}\n", start)
+    return source[start:end]
+
+
 def parse_categories(path: pathlib.Path) -> dict[str, tuple[int, int]]:
     """PeptideCategory case -> (light, dark)."""
     return {
         m.group(1): (int(m.group(2), 16), int(m.group(3), 16))
         for m in re.finditer(
             r"case \.(\w+):\s*Color\(light:\s*0x([0-9A-Fa-f]{6}),\s*dark:\s*0x([0-9A-Fa-f]{6})",
-            path.read_text(),
+            extension_block(path, "PeptideCategory"),
+        )
+    }
+
+
+def parse_tiers() -> dict[str, tuple[int, int]]:
+    """Momentum tier -> (light, dark). The dark half is the Watch's shared hex."""
+    dark = {
+        m.group(1): int(m.group(2), 16)
+        for m in re.finditer(r'case "(\w+)": return 0x([0-9A-Fa-f]{6})', WATCH_PALETTE.read_text())
+    }
+    bronze = re.search(r"default: return 0x([0-9A-Fa-f]{6})", WATCH_PALETTE.read_text())
+    dark["bronze"] = int(bronze.group(1), 16)
+    return {
+        m.group(1): (int(m.group(2), 16), dark[m.group(1)])
+        for m in re.finditer(
+            r"case \.(\w+):\s*Color\(light:\s*0x([0-9A-Fa-f]{6}),\s*dark:\s*UInt\(tintHex\)",
+            extension_block(MODEL_COLORS, "MomentumEngine.Tier"),
+        )
+    }
+
+
+def parse_habit_tints() -> dict[str, tuple[int, int]]:
+    """Habit swatch identity hex -> (light, dark)."""
+    return {
+        f"0x{m.group(1).upper()}": (int(m.group(2), 16), int(m.group(3), 16))
+        for m in re.finditer(
+            r"Swatch\(hex:\s*0x([0-9A-Fa-f]{6}),\s*light:\s*0x([0-9A-Fa-f]{6}),\s*dark:\s*0x([0-9A-Fa-f]{6})\)",
+            HABIT.read_text(),
         )
     }
 
@@ -106,7 +144,7 @@ def blend(fg: int, bg: int, alpha: float) -> int:
 # Ink tokens and the threshold each is held to. Tokens that only ever colour a
 # glyph, chart stroke or border are non-text under WCAG and get the 3:1 bar;
 # anything that sets running text gets 4.5:1.
-TEXT_INKS = ["textPrimary", "textSecondary", "textTertiary"]
+TEXT_INKS = ["textPrimary", "textSecondary", "textTertiary", "cycleWashout"]
 UI_INKS = [
     "destructive", "warning", "positive", "negative", "belowRange", "recap",
     "streak", "achievement", "perceivedEffort",
@@ -114,6 +152,13 @@ UI_INKS = [
     "macroCarbs", "macroFat",
     "metricHeartRate", "metricHRV", "metricSleep", "metricActivity",
     "ringRecoveryStart", "ringRecoveryEnd", "ringSleepStart", "ringSleepEnd",
+    "mealBreakfast", "mealLunch", "mealDinner", "mealSnack",
+    "outcomeEnergy", "outcomeSleepQuality", "outcomeRecovery", "outcomeMood", "outcomeFocus",
+]
+# Lab category inks set the 11pt short name on their own 0.2 tile.
+LAB_INKS = [
+    "labSexHormones", "labGrowth", "labThyroid", "labMetabolic",
+    "labLipids", "labOrganHealth", "labOther",
 ]
 SURFACES = ["background", "surfaceElevated", "surfaceSecondary"]
 
@@ -125,7 +170,7 @@ def main() -> int:
 
     tokens = parse_tokens(COLOR_THEME)
     ramps = parse_ramps(APP_THEME)
-    missing = [n for n in TEXT_INKS + UI_INKS + SURFACES if n not in tokens]
+    missing = [n for n in TEXT_INKS + UI_INKS + LAB_INKS + SURFACES if n not in tokens]
     if missing:
         print(f"could not parse tokens: {', '.join(missing)}", file=sys.stderr)
         return 2
@@ -148,7 +193,8 @@ def main() -> int:
                                  ratio, AA_TEXT, ratio >= AA_TEXT))
 
     # washInk is the ink on the accent's own wash: `.tinted` Badge fills at
-    # 0.2, `.primary` GlassButton at 0.18. Test the heavier one.
+    # 0.2, `.primary` GlassButton and selected `.glass` GlassChip at 0.18.
+    # Test the heavier one.
     for scheme_index, scheme in enumerate(("light", "dark")):
         for ramp, stops in ramps.items():
             for surface in SURFACES:
@@ -157,18 +203,31 @@ def main() -> int:
                 rows.append((scheme, f"{ramp}.washInk", "on", f"{surface}+wash",
                              ratio, AA_TEXT, ratio >= AA_TEXT))
 
-    # PeptideCategory colours set 13pt badge text on their own 0.15 wash. The
-    # light values are held to running-text AA there; the dark values are the
-    # original domain hues and get the 3:1 domain-colour bar.
-    for category, pair in parse_categories(MODEL_COLORS).items():
+    # Tinted text on its own wash: PeptideCategory colours set 11-13pt badge
+    # and chip text on a 0.15-0.2 wash, lab inks the 11pt short name on a 0.2
+    # tile, habit tints the 11pt weekly count on a 0.12 wash. All of it is
+    # small text, so both schemes are held to 4.5:1 on the heaviest wash.
+    washed_inks = (
+        [(f"category.{n}", pair, 0.2) for n, pair in parse_categories(MODEL_COLORS).items()]
+        + [(n, tokens[n], 0.2) for n in LAB_INKS]
+        + [(f"habit.{n}", pair, 0.12) for n, pair in parse_habit_tints().items()]
+    )
+    for name, pair, alpha in washed_inks:
         for scheme_index, scheme in enumerate(("light", "dark")):
-            threshold = AA_TEXT if scheme == "light" else AA_LARGE
             ink = pair[scheme_index]
             for surface in SURFACES:
-                wash = blend(ink, tokens[surface][scheme_index], 0.15)
+                wash = blend(ink, tokens[surface][scheme_index], alpha)
                 ratio = contrast(ink, wash)
-                rows.append((scheme, f"category.{category}", "on", f"{surface}+wash",
-                             ratio, threshold, ratio >= threshold))
+                rows.append((scheme, name, "on", f"{surface}+wash",
+                             ratio, AA_TEXT, ratio >= AA_TEXT))
+
+    # Momentum tier tints print the "Level N · Gold" line straight on a surface.
+    for tier, pair in parse_tiers().items():
+        for scheme_index, scheme in enumerate(("light", "dark")):
+            for surface in SURFACES:
+                ratio = contrast(pair[scheme_index], tokens[surface][scheme_index])
+                rows.append((scheme, f"tier.{tier}", "on", surface,
+                             ratio, AA_TEXT, ratio >= AA_TEXT))
 
     # onAccent is the ink printed on a filled accent surface. That fill is
     # `AppColor.accentFill`, which maps to the ramp's `dark` stop — `primary`

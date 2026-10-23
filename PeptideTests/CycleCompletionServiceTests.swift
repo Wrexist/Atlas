@@ -76,6 +76,24 @@ final class CycleCompletionServiceTests: XCTestCase {
         XCTAssertEqual(due.count, 1, "Three dismissals should trigger auto-completion")
     }
 
+    func test_resumedTenDaysPastEnd_isPromptedNotAutoCompleted() {
+        // 8-week cycle started 10 weeks ago → ended 14 days ago, well past
+        // the 7-day grace, but the user resumes it today.
+        let proto = makeProtocol(weeksAgo: 10, cycleLengthWeeks: 8)
+        service.restartGraceWindow(for: proto)
+
+        XCTAssertTrue(service.protocolsDueForAutoCompletion(in: [proto]).isEmpty)
+        XCTAssertEqual(service.pendingCompletion(in: [proto])?.id, proto.id)
+    }
+
+    func test_resumedLongAgo_graceWindowStillRunsOut() {
+        let proto = makeProtocol(weeksAgo: 12, cycleLengthWeeks: 8)
+        let resumed = Calendar.current.date(byAdding: .day, value: -8, to: Date())!
+        service.restartGraceWindow(for: proto, at: resumed)
+
+        XCTAssertEqual(service.protocolsDueForAutoCompletion(in: [proto]).map(\.id), [proto.id])
+    }
+
     func test_washoutProtocolOneWeekIntoWashout_isNeitherPromptedNorAutoCompleted() {
         let proto = makeProtocol(weeksAgo: 9, cycleLengthWeeks: 8, washoutWeeks: 4)
         XCTAssertNil(service.pendingCompletion(in: [proto]))

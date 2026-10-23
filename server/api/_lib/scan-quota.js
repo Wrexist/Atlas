@@ -71,7 +71,12 @@ function weeklyLimit() {
   return Number.isFinite(parsed) ? parsed : 3;
 }
 
-function isPro(req, logLabel) {
+/**
+ * Whether the request carries a StoreKit Pro transaction that verifies.
+ * Also the server-side gate on Pro-only routes (`requirePro` in
+ * anthropic-proxy.js).
+ */
+export function hasVerifiedPro(req, logLabel) {
   const jws = req.headers['x-atlas-entitlement'];
   if (!jws) return false;
   try {
@@ -92,7 +97,7 @@ export async function chargeScan(req, { principal, logLabel, now = Date.now() })
   if (req.headers['x-atlas-scan-metered'] !== '1') return ALLOW;
   const limit = weeklyLimit();
   if (limit <= 0 || !redisConfigured()) return ALLOW;
-  if (isPro(req, logLabel)) return ALLOW;
+  if (hasVerifiedPro(req, logLabel)) return ALLOW;
 
   const installId = String(req.headers['x-atlas-install-id'] ?? '');
   const subject = UUID_PATTERN.test(installId) ? `i:${installId.toLowerCase()}` : principal;

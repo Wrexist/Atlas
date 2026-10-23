@@ -127,7 +127,7 @@ struct PlateTableView: View {
                 .buttonStyle(ScalePressStyle(pressedScale: 0.95))
                 .staggeredAppear(index: index)
                 .position(x: cell.midX, y: cell.midY + topInset)
-                .accessibilityLabel(Text(plateLabel(dish)))
+                .accessibilityLabel(spokenPlateLabel(dish))
                 .accessibilityHint("Opens this dish.")
             }
         }
@@ -162,6 +162,11 @@ struct PlateTableView: View {
 
     private func plateLabel(_ dish: TableDish) -> String {
         dish.rating > 0 ? "\(dish.name) ★\(dish.rating)" : dish.name
+    }
+
+    /// VoiceOver reads the ★ glyph as "black star".
+    private func spokenPlateLabel(_ dish: TableDish) -> Text {
+        dish.rating > 0 ? Text("\(dish.name), rated \(dish.rating) of 5 stars") : Text(dish.name)
     }
 
     /// Room under the floating controls, so a plate at rest never sits
@@ -203,6 +208,7 @@ struct PlateTableView: View {
                             .padding(.horizontal, Spacing.md)
                             .frame(minHeight: 36)
                             .glassControl(.capsule)
+                            .minimumHitArea()
                     }
                     GlassIconButton(icon: "arrow.counterclockwise", accessibilityLabel: "Toss the plates", size: 36) {
                         scene.toss()

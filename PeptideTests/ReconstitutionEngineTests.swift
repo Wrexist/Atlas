@@ -111,6 +111,21 @@ final class ReconstitutionEngineTests: XCTestCase {
         XCTAssertNil(ReconstitutionEngine.roundedUnits(1e300))
     }
 
+    func test_roundedUnits_hugeValue_returnsNil() {
+        XCTAssertNil(ReconstitutionEngine.roundedUnits(1e19))
+    }
+
+    func test_unitsAbove100_flaggedAsExceedingSyringe() {
+        XCTAssertTrue(ReconstitutionEngine.exceedsSyringe(units: 100.5))
+        XCTAssertTrue(ReconstitutionEngine.exceedsSyringe(units: 250))
+    }
+
+    func test_unitsAtOrBelow100_notFlaggedAsExceedingSyringe() {
+        XCTAssertFalse(ReconstitutionEngine.exceedsSyringe(units: 100))
+        XCTAssertFalse(ReconstitutionEngine.exceedsSyringe(units: 10))
+        XCTAssertFalse(ReconstitutionEngine.exceedsSyringe(units: .infinity))
+    }
+
     func test_hasFractionalUnits_wholeNumber_isFalse() {
         XCTAssertFalse(ReconstitutionEngine.hasFractionalUnits(10))
     }
@@ -136,6 +151,13 @@ final class ReconstitutionEngineTests: XCTestCase {
 
     func test_amountsPerVial_partialRemainder_roundsDown() {
         XCTAssertEqual(ReconstitutionEngine.amountsPerVial(amountMcg: 300, vialMg: 5), 16)
+    }
+
+    func test_amountsPerVial_quotientJustBelowWhole_countsTheWholeAmount() {
+        XCTAssertEqual(ReconstitutionEngine.amountsPerVial(amountMcg: 140, vialMg: 7), 50)
+        XCTAssertEqual(ReconstitutionEngine.amountsPerVial(amountMcg: 70, vialMg: 3.5), 50)
+        XCTAssertEqual(ReconstitutionEngine.amountsPerVial(amountMcg: 170, vialMg: 8.5), 50)
+        XCTAssertEqual(ReconstitutionEngine.amountsPerVial(amountMcg: 140, vialMg: 10.5), 75)
     }
 
     func test_amountsPerVial_amountLargerThanVial_isZero() {

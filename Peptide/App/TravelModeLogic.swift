@@ -29,25 +29,12 @@ enum TravelModeLogic {
         for index in protocols.indices {
             let original = protocols[index]
             guard original.status != .completed else { continue }
-            let updated = PeptideProtocol(
-                id: original.id,
-                name: original.name,
-                peptides: original.peptides,
-                schedule: shiftSchedule(original.schedule, byMinutes: minutes),
+            protocols[index] = original.with(
+                schedule: shiftSchedule(original.schedule, byMinutes: minutes, protocolStart: original.startDate),
                 peptideSchedules: original.peptideSchedules.mapValues {
-                    shiftSchedule($0, byMinutes: minutes)
-                },
-                cycleLengthWeeks: original.cycleLengthWeeks,
-                washoutWeeks: original.washoutWeeks,
-                startDate: original.startDate,
-                status: original.status,
-                notes: original.notes,
-                authorName: original.authorName,
-                authorHandle: original.authorHandle,
-                forkedFromStackId: original.forkedFromStackId,
-                createdAt: original.createdAt
+                    shiftSchedule($0, byMinutes: minutes, protocolStart: original.startDate)
+                }
             )
-            protocols[index] = updated
         }
     }
 
@@ -70,7 +57,16 @@ enum TravelModeLogic {
     /// weekdays and interval anchor move by that day. A schedule
     /// whose times straddle midnight (8:00 AM and 11:00 PM, +3 h)
     /// can't be expressed with one set of days, so its days stay.
-    static func shiftSchedule(_ schedule: ProtocolSchedule, byMinutes minutes: Int) -> ProtocolSchedule {
+    ///
+    /// An interval schedule with no stored anchor counts from the
+    /// protocol's start (`isActive(on:protocolStart:)`), so that start
+    /// becomes the anchor and shifts with the times — otherwise the dose
+    /// days would slip by one when the times cross midnight.
+    static func shiftSchedule(
+        _ schedule: ProtocolSchedule,
+        byMinutes minutes: Int,
+        protocolStart: Date? = nil
+    ) -> ProtocolSchedule {
         let shifted = schedule.preferredTimes.map { shiftedTime($0, byMinutes: minutes) }
         let dayOffsets = Set(shifted.compactMap { $0.dayOffset })
         let dayOffset = dayOffsets.count == 1 ? dayOffsets.first ?? 0 : 0
@@ -80,7 +76,7 @@ enum TravelModeLogic {
             preferredTimes: shifted.map { $0.time },
             customDose: schedule.customDose,
             intervalDays: schedule.intervalDays,
-            intervalAnchor: schedule.intervalAnchor.flatMap {
+            intervalAnchor: (schedule.intervalAnchor ?? (schedule.isInterval ? protocolStart : nil)).flatMap {
                 Calendar.current.date(byAdding: .day, value: dayOffset, to: $0)
             }
         )

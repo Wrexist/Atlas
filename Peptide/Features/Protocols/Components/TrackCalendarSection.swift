@@ -93,6 +93,14 @@ struct TrackCalendarSection: View {
             }
             .liquidGlassPresentation()
         }
+        // A filtered peptide whose protocol is paused or completed drops
+        // out of the shelf; clear the filter with it so the calendar
+        // can't stay stuck on a peptide with no pill (or no shelf) left.
+        .onChange(of: activePeptides.map(\.id)) { _, ids in
+            if let id = filterPeptideID, !ids.contains(id) {
+                filterPeptideID = nil
+            }
+        }
     }
 
     // MARK: - Schedule / Cycle toggle

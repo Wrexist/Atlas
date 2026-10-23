@@ -121,7 +121,9 @@ struct ActiveWorkoutView: View {
     /// so anything that leaves the screen has to commit it explicitly.
     private func commitWorkoutName() {
         let trimmed = workoutName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, trimmed != sessionService.activeSession?.name else { return }
+        // A cleared field commits too: `renameWorkout` turns it into no name,
+        // the same as pressing Return does.
+        guard trimmed != (sessionService.activeSession?.name ?? "") else { return }
         sessionService.renameWorkout(trimmed)
     }
 
@@ -489,7 +491,7 @@ private struct FinishWorkoutSheet: View {
                 }
             }
             .appAnimation(AppAnimation.springSnappy, value: effort)
-            Text(effort.map { Self.effortLabels[$0 - 1] } ?? "1 is easy, 5 is everything you had")
+            Text(effort.map { Self.effortLabels[$0 - 1] } ?? String(localized: "1 is easy, 5 is everything you had"))
                 .font(AppFont.footnote)
                 .foregroundStyle(effort == nil ? AppColor.textTertiary : AppColor.textPrimary)
                 .frame(maxWidth: .infinity)

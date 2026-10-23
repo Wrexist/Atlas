@@ -43,8 +43,26 @@ final class OfflineWeeklySummaryFormatterTests: XCTestCase {
 
     func test_summary_pctAtNinety_isStrongWeek() {
         let text = summary(aggregate(pct: 0.9))
-        XCTAssertTrue(text.hasPrefix("Strong week — 9 of 10 doses logged (90% compliance)."))
+        XCTAssertTrue(text.hasPrefix("Strong week — 9 of 10 doses logged (90% adherence)."))
         XCTAssertTrue(text.contains("consistency at this level compounds"))
+    }
+
+    func test_summary_pctJustUnderNinety_opensAndClosesAsStrongWeek() {
+        let text = summary(aggregate(pct: 0.896, total: 29))
+        XCTAssertTrue(text.hasPrefix("Strong week"))
+        XCTAssertTrue(text.contains("consistency at this level compounds"))
+    }
+
+    func test_summary_pctJustUnderSeventy_opensAndClosesAsSolidWeek() {
+        let text = summary(aggregate(pct: 0.696, total: 23))
+        XCTAssertTrue(text.hasPrefix("Solid week"))
+        XCTAssertTrue(text.contains("tighten one missed dose"))
+    }
+
+    func test_summary_pctJustUnderForty_opensAndClosesAsMixedWeek() {
+        let text = summary(aggregate(pct: 0.396, total: 48))
+        XCTAssertTrue(text.hasPrefix("Mixed week"))
+        XCTAssertTrue(text.contains("one consistent time block"))
     }
 
     func test_summary_pctAtSeventy_isSolidWeek() {

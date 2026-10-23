@@ -55,6 +55,17 @@ final class WeeklySummaryLocalStoreTests: XCTestCase {
 
     // MARK: - Repository
 
+    func test_forgetDeviceLocalRecords_afterAccountChange_emptiesScanCorrections() {
+        let memory = ScanCorrectionMemory.shared
+        memory.record(seen: "spaghetti", seenGrams: 250, loggedAs: "Fullkornspasta", grams: 180, brand: nil)
+        XCTAssertFalse(memory.corrections.isEmpty)
+
+        repo.forgetDeviceLocalRecords()
+
+        XCTAssertTrue(memory.corrections.isEmpty)
+        XCTAssertTrue(ScanCorrectionMemory().corrections.isEmpty, "erased from disk too")
+    }
+
     func test_saveProfile_neverWritesSummariesToSyncedRow_butLoadsThemBack() throws {
         var profile = UserProfile.fresh
         profile.weeklySummaries = [summary().weekStart: summary()]

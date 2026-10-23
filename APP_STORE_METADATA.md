@@ -68,13 +68,15 @@ curl -sI https://wrexist.github.io/Atlas/terms.html   | head -1
 ## Promotional Text *(170 chars — update anytime without a new build)*
 
 ```
-New in 1.3: train one exercise at a time with a muscle map, get a recap after every session, and log food on any day in exact grams. Free to start, no ads.
+Train one exercise at a time, log sets from your Apple Watch, and scan a meal in one photo. Wake up to your recovery score. Free to start, no ads.
 ```
-*(155 / 170)*
+*(146 / 170)*
 
 > Swap this out for launch events, seasonal campaigns, or new-feature
 > announcements without needing a build review. Keep the hook punchy
-> and lead with a free-tier action so the preview isn't gated.
+> and lead with a free-tier action so the preview isn't gated. Leave the
+> version number out: What's New already carries it, and a "New in 1.x"
+> here goes stale the day the next build ships.
 
 ---
 
@@ -192,7 +194,7 @@ Atlas Pro Monthly ($9.99, renews monthly) and Atlas Pro Annual ($49.99, renews
 yearly) are auto-renewable. Atlas Pro Lifetime ($169) is a one-time purchase and
 does not renew. Payment is charged to your Apple Account at confirmation.
 Subscriptions renew unless auto-renew is turned off at least 24 hours before the
-period ends. Manage or cancel in Settings > Apple Account > Subscriptions.
+period ends. Manage or cancel in Settings → your name → Subscriptions.
 Unused free-trial time is forfeited on purchase.
 
 Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
@@ -216,7 +218,7 @@ provider before starting, changing, or stopping any training, nutrition,
 supplement, or peptide protocol.
 ```
 
-*(3 981 / 4 000 — 19 chars of headroom. The SUBSCRIPTION TERMS block and
+*(3 977 / 4 000 — 23 chars of headroom. The SUBSCRIPTION TERMS block and
 both links are required by Guideline 3.1.2 — do not trim them to make room
 for copy.)*
 
@@ -288,14 +290,18 @@ Feedback → support@peptidesai.com
 | Do you or your third-party partners collect data from this app? | **Yes** |
 | Tracking (ATT)? | **No** |
 
-Declare exactly two categories, both collected by the RevenueCat SDK
+Declare exactly four data types: two collected by the RevenueCat SDK
 (observer mode, subscription infrastructure — configured in
-`PeptideApp.swift`):
+`PeptideApp.swift`), and two by the crash reports `CrashReportUploader`
+posts to the Atlas proxy, which forwards them to Sentry (MetricKit
+diagnostics; on by default, Settings → Share crash reports):
 
 | Category | Data type | Linked to identity | Tracking | Purpose |
 |---|---|---|---|---|
 | Purchases | Purchase History | No | No | App Functionality |
 | Identifiers | User ID (anonymous RevenueCat app-user ID) | No | No | App Functionality |
+| Diagnostics | Crash Data | No | No | App Functionality |
+| Diagnostics | Performance Data (hangs, CPU / disk-write exceptions, slow launches) | No | No | App Functionality |
 
 If App Review questions the HealthKit entitlement: HealthKit data is
 analyzed on-device and is not retained off-device. The one exception is
@@ -307,8 +313,9 @@ photos sent to the AI meal scanner are handled the same way.
 
 ### Before adding any upload of user data
 
-The app has no data drains: onboarding funnel events and the referral
-survey answer stay on-device. A build that starts sending anything new off
+The app's only upload outside user-invoked AI features is the crash
+report above: onboarding funnel events and the referral survey answer
+stay on-device. A build that starts sending anything new off
 the device MUST first:
 
 1. Update this nutrition label.
@@ -528,7 +535,7 @@ Enable Pro in debug settings. Have at least 7 days of HealthKit data
 displayed value from real data.
 
 **Overlay copy**
-- Headline: `See your biological age.`
+- Headline: `See your Biological Age.`
 - Sub-caption: `HRV · Sleep · Resting HR · Biological Age`
 - Pro badge: `Atlas Pro — subscription required`
 
@@ -545,8 +552,8 @@ height. This is the biggest Pro conversion screenshot.
 Nutrition targets editor open. Hero calorie display: "2,340 kcal".
 Proportional macro bar below it (protein orange, carbs blue, fat yellow
 at roughly 35/45/20 split). "Recommended for you" banner showing
-goal-derived suggestion. Three glass input cards: Protein 195g, Carbs
-265g, Fat 52g. Goal chip "Build Muscle" lit at the top.
+goal-derived suggestion. Three glass input cards: Protein 195 g, Carbs
+265 g, Fat 52 g. Goal chip "Build Muscle" lit at the top.
 
 **App state to set up**
 Open Profile → Nutrition Targets. Body metrics set (male, 80 kg, 178 cm,
@@ -719,7 +726,7 @@ Store Connect before submission.
 
 PRIVACY
 No developer-operated backend for user data; no advertising or tracking
-SDKs, no crash reporters, no advertising identifiers. Three optional AI
+SDKs, no third-party crash-reporting SDK, no advertising identifiers. Three optional AI
 features (meal photo scanning, the Pro research assistant, the Pro
 weekly summary) call our proxy server, which forwards the request to
 Anthropic's Claude API — the proxy holds the API key, requests are
@@ -730,8 +737,12 @@ StoreKit transaction data under an anonymous ID; the app's privacy
 label and PrivacyInfo.xcprivacy declare Purchase History and User ID
 (not linked to identity, no tracking). Other network use: StoreKit 2,
 Sign in with Apple (optional), CloudKit (user's private zone, developer
-cannot access), and Open Food Facts for barcode lookups. Each binary
-ships its own PrivacyInfo.xcprivacy with NSPrivacyTracking = false.
+cannot access), Open Food Facts for barcode lookups, and MetricKit crash
+reports (app/OS version, device model, where in the code the fault
+occurred; no identifiers or health data) sent through our proxy, on by
+default and switchable in Settings — declared as Crash Data and
+Performance Data, not linked. Each binary ships its own
+PrivacyInfo.xcprivacy with NSPrivacyTracking = false.
 
 Support: support@peptidesai.com
 ```
@@ -770,7 +781,7 @@ Run through every item before hitting Submit in App Store Connect.
 - [ ] Description pasted (3 983 chars)
 - [ ] What's New pasted
 - [ ] Age rating set to 17+
-- [ ] App Privacy questionnaire: Yes, the two RevenueCat categories in "App Privacy" above, no tracking
+- [ ] App Privacy questionnaire: Yes, the four data types in "App Privacy" above (RevenueCat + Diagnostics), no tracking
 - [ ] Review Notes pasted verbatim from above
 
 **Screenshots**

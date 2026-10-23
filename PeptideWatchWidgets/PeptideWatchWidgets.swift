@@ -10,6 +10,9 @@ struct WatchDoseEntry: TimelineEntry {
     let nextDoseTime: Date?
     let completedToday: Int
     let totalToday: Int
+    /// The last push is from an earlier day, so today's doses are unknown
+    /// rather than none.
+    var awaitsToday = false
 
     var compliance: Double {
         totalToday > 0 ? Double(completedToday) / Double(totalToday) : 0
@@ -76,7 +79,8 @@ struct WatchDoseProvider: TimelineProvider {
             nextDose: next?.dose ?? "",
             nextDoseTime: next?.scheduledTime,
             completedToday: watchData.completedToday,
-            totalToday: watchData.totalToday
+            totalToday: watchData.totalToday,
+            awaitsToday: watchData.awaitsToday(at: date)
         )
     }
 }
@@ -103,13 +107,20 @@ struct WatchAccessoryRectangularView: View {
                     .font(.title3.weight(.bold))
                     .widgetAccentable()
             }
-            Text(entry.nextPeptide.isEmpty
-                 ? (entry.totalToday == 0 ? String(localized: "No doses today") : String(localized: "All complete"))
-                 : entry.nextDose.isEmpty
-                    ? "\(entry.nextPeptide)"
-                    : "\(entry.nextPeptide) · \(entry.nextDose)")
-                .font(.caption2)
-                .lineLimit(1)
+            if entry.nextPeptide.isEmpty {
+                Text(entry.awaitsToday ? String(localized: "Open Atlas on iPhone")
+                     : entry.totalToday == 0 ? String(localized: "No doses today")
+                     : String(localized: "All complete"))
+                    .font(.caption2)
+                    .lineLimit(1)
+            } else {
+                // Dosing is health information: redacted on a lowered
+                // wrist and while the watch is locked.
+                Text(entry.nextDose.isEmpty ? entry.nextPeptide : "\(entry.nextPeptide) · \(entry.nextDose)")
+                    .font(.caption2)
+                    .lineLimit(1)
+                    .privacySensitive()
+            }
         }
         .containerBackground(for: .widget) { Color.clear }
     }
@@ -140,7 +151,8 @@ struct WatchAccessoryCircularView: View {
     }
 
     private var spoken: String {
-        entry.totalToday == 0
+        entry.awaitsToday ? String(localized: "Open Atlas on iPhone")
+            : entry.totalToday == 0
             ? String(localized: "No doses today")
             : String(localized: "\(entry.completedToday) of \(entry.totalToday) doses taken")
     }
@@ -152,6 +164,7 @@ struct WatchAccessoryInlineView: View {
     var body: some View {
         if let time = entry.nextDoseTime, !entry.nextPeptide.isEmpty {
             Text("\(entry.nextPeptide) · \(time.formatted(.dateTime.hour().minute()))")
+                .privacySensitive()
         } else if entry.totalToday > 0 {
             Text("\(entry.completedToday)/\(entry.totalToday) doses today")
         } else {
@@ -206,6 +219,12 @@ struct WatchMomentumEntry: TimelineEntry {
     let healthTotal: Int
     let trainingDone: Int
     let trainingTotal: Int
+    /// The last push is from an earlier day: the score still stands, but
+    /// today's habits are unknown until the phone pushes again.
+    var awaitsToday = false
+
+    /// Whether the habit complications have today's counts to show.
+    var habitsKnown: Bool { synced && !awaitsToday }
 
     static func unsynced(at date: Date) -> WatchMomentumEntry {
         WatchMomentumEntry(
@@ -266,7 +285,8 @@ struct WatchMomentumProvider: TimelineProvider {
             healthDone: wd.healthHabitsDone ?? 0,
             healthTotal: wd.healthHabitsTotal ?? 0,
             trainingDone: wd.trainingHabitsDone ?? 0,
-            trainingTotal: wd.trainingHabitsTotal ?? 0
+            trainingTotal: wd.trainingHabitsTotal ?? 0,
+            awaitsToday: wd.awaitsToday(at: date)
         )
     }
 }
@@ -289,7 +309,7 @@ struct WatchAtlasCircularView: View {
                     Text("\(entry.score)")
                         .font(.title3.weight(.bold))
                         .widgetAccentable()
-                    Text("Lv\(entry.level)")
+                    Text("Lv \(entry.level)")
                         .font(.system(size: 10))
                         .foregroundStyle(.secondary)
                 }
@@ -375,8 +395,10 @@ struct WatchAtlasScoreWidget: Widget {
 // MARK: Health / Training habit views (shared, color-parameterized)
 
 struct WatchHabitCircularView: View {
+    let title: String
     let icon: String
     let tint: Color
+    let known: Bool
     let done: Int
     let total: Int
     private var progress: Double { total > 0 ? min(1, Double(done) / Double(total)) : 0 }
@@ -399,7 +421,16 @@ struct WatchHabitCircularView: View {
                     .widgetAccentable()
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(spoken)
         .containerBackground(for: .widget) { Color.clear }
+    }
+
+    /// Matches the Today page's stat wording.
+    private var spoken: String {
+        !known ? String(localized: "\(title), open Atlas on iPhone")
+            : total > 0 ? String(localized: "\(title), \(done) of \(total) done")
+            : String(localized: "\(title), no habits today")
     }
 }
 
@@ -445,7 +476,8 @@ struct WatchHealthEntryView: View {
     var body: some View {
         switch family {
         case .accessoryCircular:
-            WatchHabitCircularView(icon: "heart.fill", tint: WatchPalette.health,
+            WatchHabitCircularView(title: String(localized: "Health"), icon: "heart.fill",
+                                   tint: WatchPalette.health, known: entry.habitsKnown,
                                    done: entry.healthDone, total: entry.healthTotal)
         case .accessoryInline:
             Text(entry.healthTotal > 0
@@ -453,7 +485,7 @@ struct WatchHealthEntryView: View {
                  : String(localized: "Health —"))
         default:
             WatchHabitRectangularView(title: String(localized: "Health"), icon: "heart.fill",
-                                      tint: WatchPalette.health, synced: entry.synced,
+                                      tint: WatchPalette.health, synced: entry.habitsKnown,
                                       done: entry.healthDone, total: entry.healthTotal)
         }
     }
@@ -465,7 +497,8 @@ struct WatchTrainingEntryView: View {
     var body: some View {
         switch family {
         case .accessoryCircular:
-            WatchHabitCircularView(icon: "figure.run", tint: WatchPalette.training,
+            WatchHabitCircularView(title: String(localized: "Training"), icon: "figure.run",
+                                   tint: WatchPalette.training, known: entry.habitsKnown,
                                    done: entry.trainingDone, total: entry.trainingTotal)
         case .accessoryInline:
             Text(entry.trainingTotal > 0
@@ -473,7 +506,7 @@ struct WatchTrainingEntryView: View {
                  : String(localized: "Training —"))
         default:
             WatchHabitRectangularView(title: String(localized: "Training"), icon: "figure.run",
-                                      tint: WatchPalette.training, synced: entry.synced,
+                                      tint: WatchPalette.training, synced: entry.habitsKnown,
                                       done: entry.trainingDone, total: entry.trainingTotal)
         }
     }

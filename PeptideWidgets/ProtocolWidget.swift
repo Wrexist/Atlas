@@ -16,11 +16,25 @@ struct DoseEntry: TimelineEntry {
     /// are yesterday's, and today's schedule isn't known until the app
     /// writes it, so the views show a neutral prompt instead.
     var isOutdated = false
+    /// A protocol is active, whether or not it doses today.
+    var hasActiveProtocol = false
+    /// The payload couldn't be read (still protected before the first
+    /// unlock, or undecodable): the views draw redacted, not empty.
+    var isUnavailable = false
 
+    /// Doses are scheduled today.
     var hasProtocol: Bool { total > 0 }
+    /// A protocol is running but has nothing on today, such as the rest
+    /// day of a three-times-a-week schedule.
+    var isRestDay: Bool { !hasProtocol && hasActiveProtocol }
     var allDone: Bool { hasProtocol && peptideName.isEmpty }
     /// The next dose's time has passed without it being logged.
     var isOverdue: Bool { nextDoseDate.map { date >= $0 } ?? false }
+
+    /// "2/4" for a header; nil with no doses today.
+    var doseCount: String? { hasProtocol ? "\(completed)/\(total)" : nil }
+    /// The same count as it should be spoken.
+    var spokenDoseCount: Text { Text("\(completed) of \(total) doses logged") }
 
     static let empty = DoseEntry(
         date: .now, peptideName: "", dose: "", nextDoseDate: nil,
@@ -51,29 +65,40 @@ struct DoseTimelineProvider: TimelineProvider {
     func placeholder(in context: Context) -> DoseEntry { .placeholder }
 
     func getSnapshot(in context: Context, completion: @escaping (DoseEntry) -> Void) {
-        completion(context.isPreview ? .placeholder : currentEntry())
+        completion(context.isPreview ? .placeholder : entry(from: WidgetStore.load(), at: .now))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<DoseEntry>) -> Void) {
         let now = Date.now
-        let next = WidgetStore.nextRefresh(after: now)
-        var entries = [currentEntry(at: now)]
-        // An imminent dose: add an entry at its time, so the widget
-        // flags it overdue if it passes unlogged. Logging it reloads the
-        // timeline from the app.
-        if let due = entries[0].nextDoseDate, due > now, due < next {
-            entries.append(currentEntry(at: due))
+        let payload = WidgetStore.load()
+        let next = payload.reloadDate(after: now)
+        var entries = [entry(from: payload, at: now)]
+        if payload.isLoaded {
+            // An imminent dose: add an entry at its time, so the widget
+            // flags it overdue if it passes unlogged. Logging it reloads
+            // the timeline from the app.
+            if let due = entries[0].nextDoseDate, due > now, due < next {
+                entries.append(entry(from: payload, at: due))
+            }
+            // WidgetKit may run the reload late; this entry turns
+            // yesterday's doses into the outdated prompt at midnight
+            // regardless.
+            entries.append(entry(from: payload, at: WidgetData.nextMidnight(after: now)))
         }
         completion(Timeline(entries: entries, policy: .after(next)))
     }
 
-    private func currentEntry(at date: Date = .now) -> DoseEntry {
-        guard let data = WidgetStore.load() else { return .empty }
-        // Only a payload that carried a protocol can be out of date; one
-        // without falls through to the no-protocol state rather than
-        // nagging a user who has nothing to load.
-        let carriedProtocol = data.totalToday > 0 || data.nextDoseTime != nil
-        guard !carriedProtocol || Calendar.current.isDate(data.lastUpdated, inSameDayAs: date) else {
+    private func entry(from payload: WidgetPayload, at date: Date) -> DoseEntry {
+        let data: WidgetData
+        switch payload {
+        case .missing: return .empty
+        case .unreadable:
+            var entry = DoseEntry.placeholder
+            entry.isUnavailable = true
+            return entry
+        case .loaded(let loaded): data = loaded
+        }
+        guard !data.isProtocolOutdated(at: date) else {
             return DoseEntry(
                 date: date, peptideName: "", dose: "", nextDoseDate: nil,
                 completed: 0, total: 0, compliance: 0, upcoming: [],
@@ -88,7 +113,8 @@ struct DoseTimelineProvider: TimelineProvider {
             completed: data.completedToday,
             total: data.totalToday,
             compliance: data.compliance,
-            upcoming: data.upcoming
+            upcoming: data.upcoming,
+            hasActiveProtocol: data.hasActiveProtocol
         )
     }
 }
@@ -153,6 +179,16 @@ private struct NoProtocolLabel: View {
     }
 }
 
+/// A protocol is running but schedules nothing today: a calm note, not
+/// a prompt to add one.
+private struct RestDayLabel: View {
+    var body: some View {
+        Label("No doses today", systemImage: "moon.zzz")
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.secondary)
+    }
+}
+
 // MARK: - Home screen
 
 private struct SmallProtocolView: View {
@@ -164,7 +200,8 @@ private struct SmallProtocolView: View {
                 glyph: "checklist",
                 title: "Protocol",
                 tint: protocolTint,
-                trailing: entry.hasProtocol ? "\(entry.completed)/\(entry.total)" : nil
+                trailing: entry.doseCount,
+                trailingAccessibilityLabel: entry.spokenDoseCount
             )
             Spacer(minLength: 6)
             content
@@ -180,6 +217,8 @@ private struct SmallProtocolView: View {
     private var content: some View {
         if entry.isOutdated {
             OutdatedLabel()
+        } else if entry.isRestDay {
+            RestDayLabel()
         } else if !entry.hasProtocol {
             NoProtocolLabel()
         } else if entry.allDone {
@@ -224,10 +263,13 @@ private struct MediumProtocolView: View {
                     glyph: "checklist",
                     title: "Today's protocol",
                     tint: protocolTint,
-                    trailing: entry.hasProtocol ? "\(entry.completed)/\(entry.total)" : nil
+                    trailing: entry.doseCount,
+                    trailingAccessibilityLabel: entry.spokenDoseCount
                 )
                 if entry.isOutdated {
                     OutdatedLabel()
+                } else if entry.isRestDay {
+                    RestDayLabel()
                 } else if !entry.hasProtocol {
                     NoProtocolLabel()
                 } else if entry.allDone || entry.upcoming.isEmpty {
@@ -237,7 +279,7 @@ private struct MediumProtocolView: View {
                         // Keyed by position: two doses at the same minute
                         // share a timestamp, and a time id would drop one.
                         ForEach(Array(rows.enumerated()), id: \.offset) { _, slot in
-                            DoseRow(slot: slot)
+                            DoseRow(slot: slot, now: entry.date)
                         }
                     }
                 }
@@ -280,6 +322,11 @@ private struct MediumProtocolView: View {
 
 private struct DoseRow: View {
     let slot: WidgetDoseSlot
+    /// The entry's date, so a row turns overdue on the timeline entry
+    /// scheduled at its time, as the small widget's "Overdue" does.
+    let now: Date
+
+    private var isOverdue: Bool { !slot.completed && slot.time <= now }
 
     var body: some View {
         HStack(spacing: 6) {
@@ -301,9 +348,78 @@ private struct DoseRow: View {
             Spacer(minLength: 4)
             Text(slot.time, style: .time)
                 .font(.caption2.monospacedDigit())
-                .foregroundStyle(.secondary)
+                .foregroundStyle(isOverdue ? AnyShapeStyle(WidgetPalette.over) : AnyShapeStyle(.secondary))
         }
         .lineLimit(1)
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(isOverdue ? Text("Overdue") : Text(verbatim: ""))
+    }
+}
+
+/// Protocol Adherence's medium layout: the day's adherence as a large
+/// ring and a count, without the dose list Today's Protocol shows, so
+/// the gallery's two medium protocol widgets don't look the same.
+private struct AdherenceMediumView: View {
+    let entry: DoseEntry
+
+    var body: some View {
+        HStack(spacing: 16) {
+            WidgetRing(progress: entry.compliance, tint: protocolTint, lineWidth: 10)
+                .overlay { ringCenter }
+                .frame(width: 96, height: 96)
+                // The count beside it says the same thing in words.
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 8) {
+                WidgetHeader(
+                    glyph: "checklist",
+                    title: "Adherence",
+                    tint: protocolTint,
+                    trailing: entry.doseCount,
+                    trailingAccessibilityLabel: entry.spokenDoseCount
+                )
+                status
+                Spacer(minLength: 0)
+                if entry.hasProtocol {
+                    DosePips(completed: entry.completed, total: entry.total)
+                }
+            }
+        }
+        .widgetBackdrop(protocolTint)
+    }
+
+    @ViewBuilder
+    private var ringCenter: some View {
+        if entry.hasProtocol {
+            Text(entry.compliance.formatted(.percent.precision(.fractionLength(0))))
+                .font(.system(.title3, design: .rounded, weight: .bold))
+                .monospacedDigit()
+                .contentTransition(.numericText(value: entry.compliance))
+                .widgetAccentable()
+        } else {
+            Image(systemName: "checklist")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(protocolTint)
+                .widgetAccentable()
+        }
+    }
+
+    @ViewBuilder
+    private var status: some View {
+        if entry.isOutdated {
+            OutdatedLabel()
+        } else if entry.isRestDay {
+            RestDayLabel()
+        } else if !entry.hasProtocol {
+            NoProtocolLabel()
+        } else if entry.allDone {
+            AllDoneLabel()
+        } else {
+            entry.spokenDoseCount
+                .font(.headline)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+        }
     }
 }
 
@@ -335,8 +451,9 @@ private struct CircularProtocolView: View {
     /// "2/3" reads as "two slash three"; say what the gauge counts.
     private var accessibilityText: Text {
         if entry.isOutdated { return Text("Open Atlas to update") }
+        if entry.isRestDay { return Text("No doses today") }
         if !entry.hasProtocol { return Text("No protocol yet") }
-        return Text("\(entry.completed) of \(entry.total) doses logged")
+        return entry.spokenDoseCount
     }
 }
 
@@ -352,6 +469,9 @@ private struct RectangularProtocolView: View {
             if entry.isOutdated {
                 Text("Open Atlas to update")
                     .font(.headline)
+            } else if entry.isRestDay {
+                Text("No doses today")
+                    .font(.headline)
             } else if !entry.hasProtocol {
                 Text("No protocol yet")
                     .font(.headline)
@@ -363,15 +483,25 @@ private struct RectangularProtocolView: View {
                     .font(.headline)
                     .privacySensitive()
                 if let due = entry.nextDoseDate {
-                    (entry.dose.isEmpty
-                        ? Text(due, style: .time)
-                        : Text("\(entry.dose) · \(Text(due, style: .time))"))
+                    dueLine(due)
                         .font(.caption)
                         .privacySensitive()
                 }
             }
         }
         .lineLimit(1)
+    }
+
+    /// The dose and its time, led by "Overdue" once the time has passed
+    /// unlogged — the monochrome lock screen can't carry the amber.
+    private func dueLine(_ due: Date) -> Text {
+        let time = Text(due, style: .time)
+        switch (entry.isOverdue, entry.dose.isEmpty) {
+        case (true, true): return Text("Overdue · \(time)")
+        case (true, false): return Text("Overdue · \(entry.dose) · \(time)")
+        case (false, true): return time
+        case (false, false): return Text("\(entry.dose) · \(time)")
+        }
     }
 }
 
@@ -381,13 +511,17 @@ private struct InlineProtocolView: View {
     var body: some View {
         if entry.isOutdated {
             Label("Open Atlas to update", systemImage: "checklist")
+        } else if entry.isRestDay {
+            Label("No doses today", systemImage: "checklist")
         } else if !entry.hasProtocol {
             Label("No protocol yet", systemImage: "checklist")
         } else if entry.allDone {
             Label("All done today", systemImage: "checklist")
         } else if let due = entry.nextDoseDate {
             Label {
-                Text("\(entry.peptideName) at \(Text(due, style: .time))")
+                entry.isOverdue
+                    ? Text("Overdue: \(entry.peptideName) at \(Text(due, style: .time))")
+                    : Text("\(entry.peptideName) at \(Text(due, style: .time))")
             } icon: {
                 Image(systemName: "checklist")
             }
@@ -400,6 +534,20 @@ private struct InlineProtocolView: View {
 }
 
 // MARK: - Widgets
+
+/// Protocol Adherence: its own medium layout, the shared views otherwise.
+struct ComplianceWidgetView: View {
+    @Environment(\.widgetFamily) private var family
+    let entry: DoseEntry
+
+    var body: some View {
+        if family == .systemMedium {
+            AdherenceMediumView(entry: entry)
+        } else {
+            NextDoseWidgetView(entry: entry)
+        }
+    }
+}
 
 struct NextDoseWidgetView: View {
     @Environment(\.widgetFamily) private var family
@@ -424,6 +572,7 @@ struct NextDoseWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: DoseTimelineProvider()) { entry in
             NextDoseWidgetView(entry: entry)
+                .redacted(reason: entry.isUnavailable ? .placeholder : [])
                 .widgetURL(WidgetDeepLink.today)
         }
         .configurationDisplayName("Today's Protocol")
@@ -437,7 +586,8 @@ struct ComplianceWidget: Widget {
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: DoseTimelineProvider()) { entry in
-            NextDoseWidgetView(entry: entry)
+            ComplianceWidgetView(entry: entry)
+                .redacted(reason: entry.isUnavailable ? .placeholder : [])
                 .widgetURL(WidgetDeepLink.today)
         }
         .configurationDisplayName("Protocol Adherence")

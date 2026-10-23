@@ -15,6 +15,7 @@ struct TrialOfferView: View {
     let onDecline: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var storeService = StoreService.shared
     @State private var isPurchasing = false
     @State private var isRestoring = false
@@ -121,6 +122,11 @@ struct TrialOfferView: View {
         return storeService.redeemableTrialDays(for: product)
     }
 
+    /// At accessibility text sizes the terms and links outgrow a pinned
+    /// footer and get pushed off screen, so they move to the end of the
+    /// scrolling content, where they can always be reached (B015).
+    private var pinsTerms: Bool { !dynamicTypeSize.isAccessibilitySize }
+
     var body: some View {
         ZStack {
             AppColor.background.ignoresSafeArea()
@@ -135,6 +141,11 @@ struct TrialOfferView: View {
                     valueBanner
                     benefitsCard
                     socialProof
+
+                    if !pinsTerms {
+                        terms
+                            .padding(.top, Spacing.md)
+                    }
 
                     Spacer(minLength: Spacing.md)
                 }
@@ -268,30 +279,12 @@ struct TrialOfferView: View {
     private var benefitsCard: some View {
         GlassCard(tinted: true) {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                ForEach(benefits, id: \.0) { benefit in
-                    benefitRow(icon: benefit.0, title: benefit.1)
+                ForEach(ProBenefits.all, id: \.icon) { benefit in
+                    benefitRow(icon: benefit.icon, title: benefit.title)
                 }
             }
         }
     }
-
-    /// Outcomes, not features. The previous list named the machinery —
-    /// "AI photo + barcode meal scanner", "Cloud sync across all your
-    /// devices" — which tells someone what they are buying but not what
-    /// changes for them. Each line now leads with the result and keeps the
-    /// mechanism as the short half, so the column scans as a list of things
-    /// that get better.
-    ///
-    /// Nothing here promises an outcome the app does not measure: every
-    /// claim maps to a surface that exists (auto-progression, the scanner,
-    /// Biological Age, the cited-research chat, CloudKit sync).
-    private let benefits: [(String, LocalizedStringKey)] = [
-        ("figure.strengthtraining.traditional", "Lift more every week — plans that progress you automatically"),
-        ("camera.viewfinder", "Log a meal in one photo — no weighing, no searching"),
-        ("heart.text.square.fill", "Know before you train — recovery, HRV and Biological Age"),
-        ("brain.head.profile.fill", "Ask anything, get cited research — not guesswork"),
-        ("icloud.fill", "Never lose a session — synced across every device"),
-    ]
 
     // MARK: - Value banner
 
@@ -506,7 +499,32 @@ struct TrialOfferView: View {
         }
         .buttonStyle(ScalePressStyle())
         .appAnimation(AppAnimation.fadeIn, value: arePricesLoaded)
+        .accessibilityLabel(tierAccessibilityLabel(for: tier))
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+    }
+
+    /// Spoken in place of the card's visual fragments ("/yr", "·"), which
+    /// VoiceOver otherwise reads out as "slash y r" and "middle dot".
+    private func tierAccessibilityLabel(for tier: Tier) -> String {
+        guard arePricesLoaded else { return "\(tier.displayName), \(plansStatus)" }
+        var parts = [tier.displayName]
+        switch tier {
+        case .annual:
+            parts.append(String(localized: "\(annualPrice) per year"))
+            parts.append(String(localized: "\(annualPerMonthPrice) per month"))
+        case .monthly:
+            parts.append(String(localized: "\(monthlyPrice) per month"))
+        }
+        if let days = trialDays(for: tier) {
+            parts.append(String(localized: "\(days) days free"))
+        }
+        if tier == .annual {
+            parts.append(String(localized: "Best value"))
+            if let saved = annualSavingsPercent {
+                parts.append(String(localized: "Save \(saved) percent"))
+            }
+        }
+        return parts.joined(separator: ", ")
     }
 
     /// The billed amount per period — never the per-month equivalent of the
@@ -526,16 +544,18 @@ struct TrialOfferView: View {
     }
 
     private func tierSubtitle(for tier: Tier) -> String {
-        let days = trialDays(for: tier)
+        // "%lld days free" carries the plural variants, so a one-day
+        // trial reads "1 day free" rather than "1 days free".
+        let free = trialDays(for: tier).map { String(localized: "\($0) days free") }
         switch tier {
         case .annual:
             let perMonth = "\(annualPerMonthPrice)/mo"
-            guard let days else { return String(localized: "Just \(perMonth)") }
-            return String(localized: "\(days) days free · \(perMonth)")
+            guard let free else { return String(localized: "Just \(perMonth)") }
+            return String(localized: "\(free) · \(perMonth)")
         case .monthly:
             let billed = "\(monthlyPrice)/mo"
-            guard let days else { return String(localized: "Billed \(billed)") }
-            return String(localized: "\(days) days free, then \(billed)")
+            guard let free else { return String(localized: "Billed \(billed)") }
+            return String(localized: "\(free), then \(billed)")
         }
     }
 
@@ -562,16 +582,15 @@ struct TrialOfferView: View {
                                 .font(AppFont.scaled(16, weight: .bold))
                             Text(ctaTitle)
                                 .font(AppFont.headline)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.75)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         Text(ctaDetail)
                             .font(AppFont.scaled(11, weight: .semibold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.75)
+                            .fixedSize(horizontal: false, vertical: true)
                             .opacity(0.85)
                     }
                 }
+                .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity, minHeight: 40)
                 .padding(.vertical, Spacing.md + 2)
                 .padding(.horizontal, Spacing.xl)
@@ -587,13 +606,8 @@ struct TrialOfferView: View {
             .opacity(arePricesLoaded ? 1 : 0.5)
             .accessibilityLabel("\(ctaTitle). \(ctaDetail)")
 
-            HStack(spacing: Spacing.xs) {
-                Image(systemName: "checkmark.shield.fill")
-                    .font(AppFont.scaled(11, weight: .semibold))
-                    .foregroundStyle(AppColor.accentLight)
-                Text(reassuranceCopy)
-                    .font(AppFont.scaled(11, weight: .semibold))
-                    .foregroundStyle(AppColor.textSecondary)
+            if pinsTerms {
+                reassurance
             }
 
             Button(action: declineTrial) {
@@ -604,7 +618,35 @@ struct TrialOfferView: View {
                     .minimumHitArea()
             }
             .buttonStyle(.plain)
-            .disabled(isPurchasing)
+            // A restore that finishes after declining would call onAccept
+            // on a page onboarding has already left.
+            .disabled(isPurchasing || isRestoring)
+
+            if pinsTerms {
+                terms
+            }
+        }
+    }
+
+    private var reassurance: some View {
+        HStack(spacing: Spacing.xs) {
+            Image(systemName: "checkmark.shield.fill")
+                .font(AppFont.scaled(11, weight: .semibold))
+                .foregroundStyle(AppColor.accentLight)
+            Text(reassuranceCopy)
+                .font(AppFont.scaled(11, weight: .semibold))
+                .foregroundStyle(AppColor.textSecondary)
+        }
+    }
+
+    /// The Guideline 3.1.2 terms and the Restore / Terms of Use / Privacy
+    /// Policy links. Pinned under the CTA at regular text sizes; at the end
+    /// of the scroll content at accessibility sizes (see `pinsTerms`).
+    private var terms: some View {
+        VStack(spacing: Spacing.sm) {
+            if !pinsTerms {
+                reassurance
+            }
 
             Text(legalCopy)
                 .font(AppFont.scaled(11))
@@ -612,24 +654,55 @@ struct TrialOfferView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.md)
 
-            HStack(spacing: Spacing.md) {
-                Button(action: restore) {
-                    Text("Restore Purchases").minimumHitArea()
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Spacing.md) {
+                    restoreButton
+                    linkSeparator
+                    termsLink
+                    linkSeparator
+                    privacyLink
                 }
-                .buttonStyle(.plain)
-                .disabled(isPurchasing || isRestoring)
-                Text("·").foregroundStyle(AppColor.textTertiary)
-                Link(destination: URL.staticHTTPS("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")) {
-                    Text("Terms of Use").minimumHitArea()
-                }
-                Text("·").foregroundStyle(AppColor.textTertiary)
-                Link(destination: URL.staticHTTPS("https://wrexist.github.io/Atlas/privacy.html")) {
-                    Text("Privacy Policy").minimumHitArea()
+                VStack(spacing: Spacing.xs) {
+                    restoreButton
+                    termsLink
+                    privacyLink
                 }
             }
             .font(AppFont.scaled(11))
             .foregroundStyle(AppColor.accentLight)
         }
+        // VoiceOver focus returns to the CTA after the purchase sheet
+        // closes, so the notice has to be spoken to be noticed.
+        .onChange(of: notice?.message) { _, message in
+            guard let message else { return }
+            AccessibilityNotification.Announcement(message).post()
+        }
+    }
+
+    private var restoreButton: some View {
+        Button(action: restore) {
+            Text("Restore purchases").minimumHitArea()
+        }
+        .buttonStyle(.plain)
+        .disabled(isPurchasing || isRestoring)
+    }
+
+    private var termsLink: some View {
+        Link(destination: URL.staticHTTPS("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")) {
+            Text("Terms of Use").minimumHitArea()
+        }
+    }
+
+    private var privacyLink: some View {
+        Link(destination: URL.staticHTTPS("https://wrexist.github.io/Atlas/privacy.html")) {
+            Text("Privacy Policy").minimumHitArea()
+        }
+    }
+
+    private var linkSeparator: some View {
+        Text("·")
+            .foregroundStyle(AppColor.textTertiary)
+            .accessibilityHidden(true)
     }
 
     private var productForSelectedTier: Product? { product(for: selectedTier) }
@@ -659,7 +732,7 @@ struct TrialOfferView: View {
         guard let days = trialDays else {
             return String(localized: "Get \(headlinePlan)")
         }
-        return String(localized: "Start My \(days)-Day Free Trial")
+        return String(localized: "Start my \(days)-day free trial")
     }
 
     /// Second line of the CTA: the charge, in the user's own currency. A
@@ -697,7 +770,7 @@ struct TrialOfferView: View {
     /// the storefront's currency to quote, but the plan names, lengths and
     /// auto-renewal still have to be on the purchase surface.
     private var legalCopy: String {
-        let renewal = String(localized: "Auto-renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → your name → Subscriptions.")
+        let renewal = String(localized: "Auto-renews unless canceled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings → your name → Subscriptions.")
         guard arePricesLoaded else {
             return String(localized: "\(planName(for: .monthly)) (billed monthly) and \(planName(for: .annual)) (billed yearly) are auto-renewable subscriptions. \(renewal)")
         }

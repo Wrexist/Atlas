@@ -1,0 +1,4 @@
+{
+  "concurrency_warnings": {"baseline": null, "better": "lower"},
+  "line_coverage_pct": {"baseline": null, "better": "higher"}
+}

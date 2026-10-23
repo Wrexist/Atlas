@@ -349,11 +349,7 @@ struct PaywallView: View {
 
     // MARK: - Feature list
 
-    /// Outcomes, not machinery, and in the order the product is positioned:
-    /// training, nutrition and recovery lead; protocol tracking stays for the
-    /// advanced audience it was built for. The old list opened on "Unlimited
-    /// peptide stacks & cycles" and never mentioned a workout or a meal, so
-    /// the paywall was selling a different app than the one onboarding sold.
+    /// Only what Pro actually unlocks; see `ProBenefits` for why.
     private var featureList: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             Text("What you get")
@@ -362,21 +358,10 @@ struct PaywallView: View {
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            ForEach(features, id: \.icon) { feature in
+            ForEach(ProBenefits.all, id: \.icon) { feature in
                 featureRow(icon: feature.icon, title: feature.title)
             }
         }
-    }
-
-    private var features: [(icon: String, title: LocalizedStringKey)] {
-        [
-            ("figure.strengthtraining.traditional", "Lift more every week — plans that progress you automatically"),
-            ("camera.viewfinder", "Log a meal in one photo — no weighing, no searching"),
-            ("heart.text.square.fill", "Know before you train — recovery, HRV and Biological Age"),
-            ("brain.head.profile.fill", "Ask anything, get cited research — not guesswork"),
-            ("chart.line.uptrend.xyaxis", "Unlimited protocols — half-life, dosing and reconstitution"),
-            ("icloud.fill", "Never lose a session — synced across iPhone, Watch and widgets"),
-        ]
     }
 
     private func featureRow(icon: String, title: LocalizedStringKey) -> some View {
@@ -902,6 +887,12 @@ struct PaywallView: View {
             footerLinks
         }
         .appAnimation(AppAnimation.springSnappy, value: notice)
+        // VoiceOver focus returns to the CTA after the purchase sheet
+        // closes, so the notice has to be spoken to be noticed.
+        .onChange(of: notice) { _, newNotice in
+            guard let newNotice else { return }
+            AccessibilityNotification.Announcement(newNotice.announcement).post()
+        }
     }
 
     /// Two-line CTA: the action on top, the money underneath.
@@ -909,14 +900,16 @@ struct PaywallView: View {
     /// The old label was "Continue", which is the weakest thing a paywall
     /// button can say — it names the gesture, not what the user gets, and it
     /// hides the one fact that removes the risk of tapping it. The top line
-    /// now states the offer ("Start My 7-Day Free Trial") and the bottom line
+    /// now states the offer ("Start my 7-day free trial") and the bottom line
     /// states the charge in the user's own currency ("$0.00 today, then
     /// $49.99/yr"). Both halves matter: trial-first framing is what lifts
     /// tap-through, and the explicit price is what stops the day-0 cancel
     /// from someone who tapped without knowing what came next.
     private var primaryCTA: some View {
         Button {
-            guard let product = selectedProduct, !isPurchasing else { return }
+            // A running restore may dismiss or set its own notice; don't
+            // race a purchase against it.
+            guard let product = selectedProduct, !isPurchasing, !isRestoring else { return }
             Task { await purchase(product) }
         } label: {
             VStack(spacing: 2) {
@@ -952,13 +945,13 @@ struct PaywallView: View {
         .accessibilityLabel(ctaAccessibilityLabel)
     }
 
-    private var ctaTitle: LocalizedStringKey {
-        guard let product = selectedProduct else { return "Choose a plan" }
-        guard product.type == .autoRenewable else { return "Get Lifetime Access" }
+    private var ctaTitle: String {
+        guard let product = selectedProduct else { return String(localized: "Choose a plan") }
+        guard product.type == .autoRenewable else { return String(localized: "Get lifetime access") }
         if let days = storeService.redeemableTrialDays(for: product) {
-            return "Start My \(days)-Day Free Trial"
+            return String(localized: "Start my \(days)-day free trial")
         }
-        return "Unlock Atlas Pro"
+        return String(localized: "Unlock Atlas Pro")
     }
 
     /// The money line. Never promises a free trial the user can't redeem —
@@ -976,18 +969,11 @@ struct PaywallView: View {
         return String(localized: "\(price) · cancel anytime")
     }
 
+    /// The visible title, then the money line, so VoiceOver reads the
+    /// same words the button shows.
     private var ctaAccessibilityLabel: String {
-        guard let product = selectedProduct else { return String(localized: "Choose a plan") }
-        let action: String
-        if product.type != .autoRenewable {
-            action = String(localized: "Get lifetime access")
-        } else if let days = storeService.redeemableTrialDays(for: product) {
-            action = String(localized: "Start my \(days) day free trial")
-        } else {
-            action = String(localized: "Unlock Atlas Pro")
-        }
-        guard let ctaDetail else { return action }
-        return "\(action). \(ctaDetail)"
+        guard let ctaDetail else { return ctaTitle }
+        return "\(ctaTitle). \(ctaDetail)"
     }
 
     // MARK: - Footer
@@ -1024,18 +1010,19 @@ struct PaywallView: View {
                         .controlSize(.mini)
                         .accessibilityLabel("Restoring purchases")
                 } else {
-                    Text("Restore")
+                    Text("Restore purchases")
                 }
             }
             .minimumHitArea()
         }
-        .disabled(isRestoring)
+        .disabled(isRestoring || isPurchasing)
 
         Button {
             isRedeemingCode = true
         } label: {
             Text("Redeem code").minimumHitArea()
         }
+        .disabled(isPurchasing)
     }
 
     @ViewBuilder
@@ -1059,7 +1046,7 @@ struct PaywallView: View {
     @ViewBuilder
     private var autoRenewDisclosure: some View {
         if isOneTimePurchaseSelected {
-            Text("One-time purchase, charged to your Apple ID. No subscription — nothing to renew or cancel.")
+            Text("One-time purchase, charged to your Apple Account. No subscription — nothing to renew or cancel.")
                 .font(AppFont.scaled(11))
                 .foregroundStyle(AppColor.textTertiary)
                 .multilineTextAlignment(.center)
@@ -1086,10 +1073,10 @@ struct PaywallView: View {
     /// the user sees them without opening the Details sheet.
     private var autoRenewLine: String {
         guard let product = selectedProduct else {
-            return String(localized: "Auto-renews unless cancelled at least 24 hours before the period ends.")
+            return String(localized: "Auto-renews unless canceled at least 24 hours before the period ends.")
         }
         let price = "\(product.displayPrice)\(periodSuffix(for: product))"
-        return String(localized: "Auto-renews at \(price) unless cancelled at least 24 hours before the period ends.")
+        return String(localized: "Auto-renews at \(price) unless canceled at least 24 hours before the period ends.")
     }
 
     private var disclosureSheet: some View {
@@ -1100,7 +1087,7 @@ struct PaywallView: View {
                         .font(AppFont.title2)
                         .foregroundStyle(AppColor.textPrimary)
 
-                    Text("Payment is charged to your Apple ID. Subscription auto-renews at the same price unless cancelled at least 24 hours before the end of the current period. You can manage or cancel your subscription in Settings → your name → Subscriptions.")
+                    Text("Payment is charged to your Apple Account. Subscription auto-renews at the same price unless canceled at least 24 hours before the end of the current period. You can manage or cancel your subscription in Settings → your name → Subscriptions.")
                         .font(AppFont.body)
                         .foregroundStyle(AppColor.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1205,7 +1192,7 @@ struct PaywallView: View {
     private func restore() {
         // Guard against concurrent restores: the footer button and the
         // error-banner "Restore purchases" shortcut can both fire AppStore.sync().
-        guard !isRestoring else { return }
+        guard !isRestoring, !isPurchasing else { return }
         isRestoring = true
         Task {
             defer { isRestoring = false }
@@ -1247,4 +1234,18 @@ private enum PurchaseNotice: Equatable {
     case restoreFailed(String)
     case pending
     case nothingToRestore
+
+    var announcement: String {
+        switch self {
+        case .purchaseFailed(let message):
+            String(localized: "Purchase didn't go through") + ". " + message
+        case .restoreFailed(let message):
+            String(localized: "Restore didn't go through") + ". " + message
+        case .pending:
+            String(localized: "Waiting for approval") + ". "
+                + String(localized: "We'll unlock Pro automatically when the purchase is approved.")
+        case .nothingToRestore:
+            String(localized: "No previous purchase found to restore.")
+        }
+    }
 }

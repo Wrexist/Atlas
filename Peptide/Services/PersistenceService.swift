@@ -89,9 +89,12 @@ final class PersistenceService: @unchecked Sendable {
     }
     #endif
 
+    /// Compound names, not secrets: readable after first unlock so a
+    /// launch in the background on a locked device (a notification
+    /// action, a Siri intent) still sees the library.
     func saveCustomPeptides(_ peptides: [Peptide]) {
         guard let url = customPeptidesURL else { return }
-        save(peptides, to: url)
+        save(peptides, to: url, protection: .completeFileProtectionUntilFirstUserAuthentication)
     }
 
     // MARK: - Load
@@ -111,19 +114,35 @@ final class PersistenceService: @unchecked Sendable {
         return load(UserProfile.self, from: url)
     }
 
-    func loadCustomPeptides() -> [Peptide]? {
-        guard let url = customPeptidesURL else { return nil }
-        return load([Peptide].self, from: url)
+    /// `[]` when there is no library yet. Throws when the file exists
+    /// but can't be read — still locked by an older build's file
+    /// protection, or corrupt — so the caller never mistakes it for an
+    /// empty library and overwrites it.
+    func loadCustomPeptides() throws -> [Peptide] {
+        guard let url = customPeptidesURL else { return [] }
+        return try queue.sync {
+            guard fileManager.fileExists(atPath: url.path) else { return [] }
+            let peptides = try decoder.decode([Peptide].self, from: Data(contentsOf: url))
+            // Files written before the protection change keep the
+            // locked-device class until their next rewrite.
+            try? fileManager.setAttributes(
+                [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
+                ofItemAtPath: url.path
+            )
+            return peptides
+        }
     }
 
     // MARK: - Widget Data (Shared Container)
 
-    func updateWidgetData(_ data: WidgetData) {
-        guard let url = widgetDataURL else { return }
+    /// Writes the widget payload; false when it couldn't be written.
+    func updateWidgetData(_ data: WidgetData) -> Bool {
+        guard let url = widgetDataURL else { return false }
         // The widget extension reads this on the Lock Screen and at its
         // midnight reload — while the device is locked.
-        save(data, to: url, protection: .completeFileProtectionUntilFirstUserAuthentication)
+        guard save(data, to: url, protection: .completeFileProtectionUntilFirstUserAuthentication) else { return false }
         Self.excludeFromBackup(url)
+        return true
     }
 
     /// Marks regenerated-cache files (widget / watch payloads) so

@@ -267,30 +267,59 @@ enum NutritionLabelParser {
     }
 
     private static func parseCalories(in lines: [String]) -> Double? {
+        let rows = lines.filter { !isFootnote($0) }
         // Try the explicit "calories" keyword first — most US labels
         // surface a stand-alone "Calories 250" header above the
-        // macro rows.
-        for line in lines {
-            guard line.contains("calories") else { continue }
-            if let value = firstNumber(in: line) { return value }
+        // macro rows. Vision often returns the large FDA value as its
+        // own observation, so a bare "Calories" row reads the next one.
+        for (index, line) in rows.enumerated() where line.contains("calories") {
+            if let value = energyNumber(in: line) { return value }
+            let next = index + 1
+            if next < rows.count, isBareNumber(rows[next]), let value = energyNumber(in: rows[next]) {
+                return value
+            }
         }
         // EU labels often write it as "Energy 1050 kJ / 250 kcal".
         // Prefer the kcal value if both are present.
-        for line in lines where line.contains("kcal") {
+        for line in rows where line.contains("kcal") {
             // Pull the number immediately preceding "kcal".
             let pieces = line.components(separatedBy: "kcal")
-            if let head = pieces.first, let value = firstNumber(in: head, preferringLast: true) {
+            if let head = pieces.first, let value = energyNumber(in: head, preferringLast: true) {
                 return value
             }
         }
         // Last resort: kJ → kcal conversion. Same divisor the OFF
         // mapper uses (4.184 J/cal).
-        for line in lines where line.contains("kj") || line.contains("energy") {
-            if let value = firstNumber(in: line) {
+        for line in rows where line.contains("kj") || line.contains("energy") {
+            if let value = energyNumber(in: line) {
                 return value / 4.184
             }
         }
         return nil
+    }
+
+    /// The FDA "2,000 calories a day is used for general nutrition
+    /// advice" footnote and the EU "Reference intake of an average adult
+    /// (8400 kJ / 2000 kcal)" line both carry an energy figure that
+    /// isn't the product's.
+    private static func isFootnote(_ line: String) -> Bool {
+        line.trimmingCharacters(in: .whitespaces).hasPrefix("*")
+            || line.contains("a day")
+            || line.contains("daily value")
+            || line.contains("reference intake")
+    }
+
+    /// "230" or "230 kcal" — a value row with no label of its own.
+    private static func isBareNumber(_ line: String) -> Bool {
+        line.replacingOccurrences(of: "kcal", with: "")
+            .unicodeScalars
+            .allSatisfy { !CharacterSet.letters.contains($0) }
+    }
+
+    /// Energy is never written with three decimals, so "1,050 kJ" is a
+    /// thousands separator, not 1.05.
+    private static func energyNumber(in text: String, preferringLast: Bool = false) -> Double? {
+        firstNumber(in: text, preferringLast: preferringLast, commaGroupsThousands: true)
     }
 
     /// The number attached to a gram unit, not the first number on the line.
@@ -355,11 +384,13 @@ enum NutritionLabelParser {
     /// First numeric value in a line, optionally preferring the last
     /// match (for "1050 kJ / 250 kcal" we want 250, not 1050).
     /// Skips numbers immediately followed by `%` so we don't pick up
-    /// the percent-daily-value column.
+    /// the percent-daily-value column. A comma is a decimal mark unless
+    /// `commaGroupsThousands` is set and three digits follow it.
     static func firstNumber(
         in text: String,
         allowingDecimals: Bool = true,
-        preferringLast: Bool = false
+        preferringLast: Bool = false,
+        commaGroupsThousands: Bool = false
     ) -> Double? {
         // Hoisted: this is called 30-50× per label scan, and recompiling
         // the regex each time was the bulk of the cost.
@@ -372,8 +403,11 @@ enum NutritionLabelParser {
             if endIndex < nsText.length, nsText.character(at: endIndex) == 37 /* % */ {
                 return nil
             }
-            let raw = nsText.substring(with: match.range).replacingOccurrences(of: ",", with: ".")
-            return Double(raw)
+            let raw = nsText.substring(with: match.range)
+            if commaGroupsThousands, raw.range(of: #"^[1-9][0-9]{0,2},[0-9]{3}$"#, options: .regularExpression) != nil {
+                return Double(raw.replacingOccurrences(of: ",", with: ""))
+            }
+            return Double(raw.replacingOccurrences(of: ",", with: "."))
         }
         return preferringLast ? candidates.last : candidates.first
     }

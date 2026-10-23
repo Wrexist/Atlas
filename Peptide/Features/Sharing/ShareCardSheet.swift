@@ -102,7 +102,9 @@ struct ShareCardSheet: View {
                     ) {
                         renderAndShare()
                     }
-                    .disabled(isRendering)
+                    // Until HealthKit answers, a render would drop the
+                    // health row the toggle says is included.
+                    .disabled(isRendering || isLoadingHealth)
                     .padding(.horizontal, Spacing.screenPadding)
                 }
                 .padding(.vertical, Spacing.xl)
@@ -342,7 +344,7 @@ struct ShareCardSheet: View {
         healthSummary = CycleCardModel.HealthSummary(
             weightDeltaKg: weightDeltaSinceCycleStart(),
             avgSleepHours: sleepHours,
-            hrvTrendDescription: hrvAvg.map { String(format: String(localized: "%.0f ms avg"), $0) },
+            hrvTrendDescription: hrvAvg.map { String(localized: "\(Int($0.rounded())) ms avg") },
             weightUnit: dataStore.profile.bodyMetrics.unit
         )
     }

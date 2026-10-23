@@ -66,4 +66,17 @@ final class HealthSyncEngineTests: XCTestCase {
 
         XCTAssertTrue(HealthSyncSettings.isNutritionEnabled)
     }
+
+    func test_legacyImports_matchOnlyTheSameDayAndValue() {
+        let deleted = WeightEntry(date: october(9, 12), kg: 80.0)
+        let legacyImport = WeightEntry(date: october(9, 7), kg: 80.0)
+        let scaleReading = WeightEntry(date: october(9, 8), kg: 81.4)
+        let otherDay = WeightEntry(date: october(7, 12), kg: 80.0)
+
+        let matches = HealthSyncEngine.legacyImports(
+            of: deleted, in: [legacyImport, scaleReading, otherDay], calendar: calendar
+        )
+
+        XCTAssertEqual(matches.map(\.id), [legacyImport.id])
+    }
 }

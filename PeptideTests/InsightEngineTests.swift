@@ -92,7 +92,7 @@ final class InsightEngineTests: XCTestCase {
             dc.minute = 0
             let eveningDate = Calendar.current.date(from: dc) ?? date
             entries.append(ProtocolEntry(
-                id: UUID(), protocolId: UUID(), peptide: MockPeptides.bpc157,
+                id: UUID(), protocolId: Self.protocolID, peptide: MockPeptides.bpc157,
                 date: eveningDate, dose: "250mcg", notes: "", completed: i >= 4
             ))
         }
@@ -153,8 +153,8 @@ final class InsightEngineTests: XCTestCase {
         for i in 8..<30 {
             entries.append(makeEntry(daysAgo: Double(i), completed: i % 5 == 0))
         }
-        let insights = InsightEngine.generateInsights(from: entries, protocols: [])
-        XCTAssertTrue(insights.contains { $0.title == "Compliance improving" })
+        let insights = InsightEngine.generateInsights(from: entries, protocols: [makeProtocol()])
+        XCTAssertTrue(insights.contains { $0.title == "Adherence improving" })
     }
 
     func test_generateInsights_decliningCompliance_returnsWarningInsight() {
@@ -167,8 +167,37 @@ final class InsightEngineTests: XCTestCase {
         for i in 8..<30 {
             entries.append(makeEntry(daysAgo: Double(i), completed: true))
         }
-        let insights = InsightEngine.generateInsights(from: entries, protocols: [])
-        XCTAssertTrue(insights.contains { $0.title == "Compliance dipping" })
+        let insights = InsightEngine.generateInsights(from: entries, protocols: [makeProtocol()])
+        XCTAssertTrue(insights.contains { $0.title == "Adherence dipping" })
+    }
+
+    func test_generateInsights_morningWithPendingEveningDose_doesNotReportDip() {
+        let calendar = Calendar.current
+        let morning = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: Date())!
+        func entry(daysAgo: Int, hour: Int, completed: Bool) -> ProtocolEntry {
+            let day = calendar.date(byAdding: .day, value: -daysAgo, to: morning)!
+            return ProtocolEntry(
+                id: UUID(), protocolId: Self.protocolID, peptide: MockPeptides.bpc157,
+                date: calendar.date(bySettingHour: hour, minute: 0, second: 0, of: day)!,
+                dose: "250mcg", notes: "", completed: completed
+            )
+        }
+        // Every past dose taken; today's morning dose taken, three later
+        // doses not due yet.
+        var entries = (1..<30).map { entry(daysAgo: $0, hour: 8, completed: true) }
+        entries.append(entry(daysAgo: 0, hour: 8, completed: true))
+        entries += [13, 18, 21].map { entry(daysAgo: 0, hour: $0, completed: false) }
+
+        let insights = InsightEngine.generateInsights(from: entries, protocols: [makeProtocol()], now: morning)
+
+        XCTAssertFalse(insights.contains { $0.title == "Adherence dipping" })
+    }
+
+    func test_generateInsights_pausedProtocolMisses_doNotReportDip() {
+        var entries = (0..<7).map { makeEntry(daysAgo: Double($0) + 1, completed: false) }
+        entries += (8..<30).map { makeEntry(daysAgo: Double($0), completed: true) }
+        let insights = InsightEngine.generateInsights(from: entries, protocols: [makeProtocol(status: .paused)])
+        XCTAssertFalse(insights.contains { $0.title == "Adherence dipping" })
     }
 
     // MARK: - Empty / no crash

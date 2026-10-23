@@ -18,6 +18,19 @@ enum HealthSyncSettings {
         UserDefaults.standard.bool(forKey: nutritionEnabledKey)
     }
 
+    /// "Connected to Apple Health". Device-local for the same reason; the
+    /// profile's synced `healthConnected` column now only mirrors it for
+    /// older builds. Nil until this device has decided.
+    static let connectedKey = "atlas.healthSync.connected.v1"
+
+    static var isConnected: Bool? {
+        UserDefaults.standard.object(forKey: connectedKey) as? Bool
+    }
+
+    static func setConnected(_ connected: Bool) {
+        UserDefaults.standard.set(connected, forKey: connectedKey)
+    }
+
     /// Earlier builds kept the meal toggle in the synced profile. Takes
     /// that value once, so the device that opted in stays opted in.
     static func adoptSyncedNutritionFlag(_ synced: Bool) {
@@ -53,4 +66,21 @@ enum HealthSyncEngine {
         }
         return latestByDay.values.sorted { $0.date < $1.date }
     }
+
+    /// The outside readings that are an earlier build's import of
+    /// `deleted`. Those builds imported under random ids, so the match is
+    /// by day and value; a different value that day is the scale's own
+    /// reading, which comes back once the user's entry is gone.
+    static func legacyImports(
+        of deleted: WeightEntry,
+        in external: [WeightEntry],
+        calendar: Calendar = .current
+    ) -> [WeightEntry] {
+        external.filter {
+            calendar.isDate($0.date, inSameDayAs: deleted.date) && abs($0.kg - deleted.kg) < legacyImportToleranceKg
+        }
+    }
+
+    /// Half the diary's 0.1 kg display step.
+    private static let legacyImportToleranceKg = 0.05
 }

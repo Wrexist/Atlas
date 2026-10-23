@@ -18,6 +18,47 @@ final class ExportServiceTests: XCTestCase {
         super.tearDown()
     }
 
+    // MARK: - CSV
+
+    func test_csvDate_lateEveningInNegativeOffset_usesLocalCalendarDay() throws {
+        let losAngeles = try XCTUnwrap(TimeZone(identifier: "America/Los_Angeles"))
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = losAngeles
+        let lateEvening = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 3, day: 14, hour: 23, minute: 30)))
+
+        XCTAssertEqual(ExportService.calendarDay(lateEvening, timeZone: losAngeles), "2026-03-14")
+    }
+
+    func test_monthlyBuckets_roundsCompliance() {
+        let day = Date()
+        let entries = [true, true, false].map { completed in
+            ProtocolEntry(
+                id: UUID(), protocolId: UUID(), peptide: MockPeptides.bpc157,
+                date: day, dose: "250 mcg", notes: "", completed: completed
+            )
+        }
+
+        let buckets = ExportService.monthlyBuckets(for: entries)
+
+        XCTAssertEqual(buckets.map(\.compliancePct), [67])
+    }
+
+    func test_protocolCSV_usesActualTimeWhenPresent() throws {
+        let scheduled = try XCTUnwrap(Calendar.current.date(from: DateComponents(year: 2026, month: 3, day: 14, hour: 8)))
+        let taken = scheduled.addingTimeInterval(2 * 60 * 60 + 15 * 60)
+        var entry = ProtocolEntry(
+            id: UUID(), protocolId: UUID(), peptide: MockPeptides.bpc157,
+            date: scheduled, dose: "250 mcg", notes: "", completed: true
+        )
+        entry.actualTime = taken
+
+        let csv = ExportService.shared.exportProtocolsCSV(protocols: [], entries: [entry])
+
+        let row = try XCTUnwrap(csv.split(separator: "\n").dropFirst().first)
+        XCTAssertTrue(row.contains(taken.formatted(.dateTime.hour().minute())), "Got \(row)")
+        XCTAssertFalse(row.contains(scheduled.formatted(.dateTime.hour().minute())), "Got \(row)")
+    }
+
     // MARK: - PDF
 
     func test_pdfExport_producesNonEmptyData() throws {

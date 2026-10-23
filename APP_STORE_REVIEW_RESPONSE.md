@@ -209,8 +209,9 @@ vague. Be exhaustive. Paste verbatim:
 EXTERNAL SERVICES USED BY ATLAS
 
 Atlas has NO developer-operated backend for user data. No ad or
-tracking SDKs, no crash reporters, no advertising identifiers, no
-remote config. The full list of external systems the app talks to:
+tracking SDKs, no third-party crash-reporting SDK, no advertising
+identifiers, no remote config. The full list of external systems the
+app talks to:
 
 1. Apple StoreKit 2 — in-app purchases (Monthly, Annual, Lifetime).
    Used for purchase, restore, transaction verification.
@@ -253,6 +254,14 @@ remote config. The full list of external systems the app talks to:
    updates; all reminders are local notifications scheduled on-device
    via UNUserNotificationCenter.
 
+9. Crash reports — Apple MetricKit crash, hang and resource
+   diagnostics (app version, OS version, device model, call stack; no
+   identifiers, no health data) are posted to the same Atlas proxy,
+   which forwards them to the developer's crash-reporting service. On
+   by default; Settings → "Share crash reports" turns it off. Declared
+   on the privacy label as Crash Data and Performance Data (not linked
+   to identity, no tracking).
+
 "AI Insights" clarification:
 The daily insight/recommendation cards are a deterministic, on-device
 rule engine (InsightEngine / StackRecommendationEngine in the source)
@@ -273,8 +282,8 @@ listed for completeness because the App Store listing links to them):
 
 ### 4.1 Verify the claim before sending
 
-- [ ] `git grep -nE "Firebase|Sentry|AppsFlyer|Amplitude|Segment|Mixpanel|GoogleService"` returns zero matches (ad/analytics SDKs stay absent).
-- [ ] The only networking call sites in `Peptide/` are the ones §4 lists: `MealScannerService` / `AIResearchService` / `WeeklySummaryService` (Atlas AI proxy), `OpenFoodFactsService`, `AppAttestService`, and RevenueCat configuration in `PeptideApp.swift`.
+- [ ] `git grep -nE "Firebase|Sentry|AppsFlyer|Amplitude|Segment|Mixpanel|GoogleService" -- Peptide Shared PeptideWatch PeptideWidgets PeptideWatchWidgets WatchShared project.yml` returns zero matches (ad/analytics SDKs stay absent from the app; the proxy in `server/` forwards crash reports to Sentry server-side).
+- [ ] The only networking call sites in `Peptide/` are the ones §4 lists: `MealScannerService` / `AIResearchService` / `WeeklySummaryService` / `CrashReportUploader` (Atlas proxy), `OpenFoodFactsService`, `AppAttestService`, and RevenueCat configuration in `PeptideApp.swift`.
 - [ ] `git grep -n "advertisingIdentifier\|ASIdentifierManager"` returns zero matches.
 
 ---
@@ -505,7 +514,7 @@ the trial lengths but no links.
    yearly) are auto-renewable. Atlas Pro Lifetime ($169) is a one-time purchase and
    does not renew. Payment is charged to your Apple Account at confirmation.
    Subscriptions renew unless auto-renew is turned off at least 24 hours before the
-   period ends. Manage or cancel in Settings > Apple Account > Subscriptions.
+   period ends. Manage or cancel in Settings → your name → Subscriptions.
    Unused free-trial time is forfeited on purchase.
 
    Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/

@@ -6,7 +6,7 @@ struct CycleTransitionCard: View {
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                Label("Cycle Transitions", systemImage: "arrow.triangle.2.circlepath")
+                Label("Cycle transitions", systemImage: "arrow.triangle.2.circlepath")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
 
@@ -56,15 +56,19 @@ struct CycleTransitionCard: View {
                     .foregroundStyle(AppColor.textSecondary)
                     .lineSpacing(2)
 
+                // Information, not an instruction: Atlas doesn't
+                // recommend or prescribe compounds.
                 if !transition.suggestedReplacements.isEmpty {
-                    HStack(spacing: Spacing.xs) {
-                        Image(systemName: "arrow.right.circle")
-                            .font(AppFont.scaled(8))
+                    HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
+                        Image(systemName: "info.circle")
+                            .font(AppFont.scaled(11))
                             .foregroundStyle(AppColor.accentLight)
+                            .accessibilityHidden(true)
 
-                        Text("Switch to: \(transition.suggestedReplacements.joined(separator: " or "))")
+                        Text("Often rotated with \(transition.suggestedReplacements.formatted(.list(type: .or))). Discuss changes with a qualified clinician.")
                             .font(AppFont.caption2)
                             .foregroundStyle(AppColor.accentLight)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }

@@ -12,6 +12,10 @@ import SwiftUI
 ///
 /// An optional `action` adds one trailing button — "Undo" after a
 /// one-tap log — which runs and dismisses the toast.
+///
+/// Re-showing a toast that is still on screen (a second one-tap log)
+/// needs a new `presentationID`: that restarts the timer and repeats the
+/// VoiceOver announcement, which a mounted view would otherwise skip.
 struct SyncToast: View {
     struct Action {
         let label: LocalizedStringResource
@@ -22,8 +26,21 @@ struct SyncToast: View {
     var message: LocalizedStringResource = "Sync Complete"
     var autoDismissAfter: Duration = .milliseconds(2_400)
     var action: Action?
+    var presentationID: Int = 0
 
-    @State private var dismissTask: Task<Void, Never>?
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
+    @Environment(\.accessibilitySwitchControlEnabled) private var switchControlEnabled
+
+    /// How long the toast stays up. An action is a time-limited control
+    /// (WCAG 2.2.1): a VoiceOver or Switch Control user needs far longer to
+    /// reach the button than a glance, so it stays six times as long.
+    static func dismissDelay(
+        base: Duration,
+        hasAction: Bool,
+        assistiveTechRunning: Bool
+    ) -> Duration {
+        hasAction && assistiveTechRunning ? base * 6 : base
+    }
 
     var body: some View {
         Group {
@@ -40,6 +57,11 @@ struct SyncToast: View {
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(Text(message))
                     .accessibilityAddTraits(.isStaticText)
+                    .accessibilityActions {
+                        if let action {
+                            Button(String(localized: action.label)) { run(action) }
+                        }
+                    }
                     if let action {
                         actionButton(action)
                     }
@@ -55,12 +77,7 @@ struct SyncToast: View {
                 )
                 .appShadow(AppShadow.toast)
                 .transition(.move(edge: .top).combined(with: .opacity))
-                .onAppear {
-                    // Gone before VoiceOver focus could reach it, so say it.
-                    AccessibilityNotification.Announcement(String(localized: message)).post()
-                    scheduleDismiss()
-                }
-                .onDisappear { dismissTask?.cancel() }
+                .task(id: presentationID) { await announceThenDismiss() }
                 .accessibilityElement(children: .contain)
             }
         }
@@ -69,9 +86,7 @@ struct SyncToast: View {
 
     private func actionButton(_ action: Action) -> some View {
         Button {
-            dismissTask?.cancel()
-            action.perform()
-            isShowing = false
+            run(action)
         } label: {
             Label {
                 Text(action.label)
@@ -86,13 +101,25 @@ struct SyncToast: View {
         .buttonStyle(.plain)
     }
 
-    private func scheduleDismiss() {
-        dismissTask?.cancel()
-        dismissTask = Task { @MainActor in
-            try? await Task.sleep(for: autoDismissAfter)
-            guard !Task.isCancelled else { return }
-            isShowing = false
-        }
+    private func run(_ action: Action) {
+        action.perform()
+        isShowing = false
+    }
+
+    /// Keyed on `presentationID`, so a re-show restarts it; unmounting the
+    /// toast cancels it.
+    private func announceThenDismiss() async {
+        // Gone before VoiceOver focus could reach it, so say it.
+        AccessibilityNotification.Announcement(String(localized: message)).post()
+        let delay = Self.dismissDelay(
+            base: autoDismissAfter,
+            hasAction: action != nil,
+            assistiveTechRunning: voiceOverEnabled || switchControlEnabled
+        )
+        do {
+            try await Task.sleep(for: delay)
+        } catch { return }
+        isShowing = false
     }
 }
 

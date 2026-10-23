@@ -10,7 +10,7 @@
  *                          client env-var slots so each surface can
  *                          point at a different deployment if needed)
  */
-import { forwardToAnthropic } from './_lib/anthropic-proxy.js';
+import { forwardToAnthropic, THINKING_OFF } from './_lib/anthropic-proxy.js';
 
 // Pinned safety prefix. The client legitimately sends a `system`
 // value that carries dynamic RAG context — we keep that, but
@@ -49,5 +49,7 @@ export default async function handler(req, res) {
     // The research chat never sends a photo; an image part here is a
     // tampered client spending vision tokens on the text route.
     shape: { maxImages: 0 },
+    // The 800-token cap is sized for a ~250-word reply; see THINKING_OFF.
+    thinking: THINKING_OFF,
   });
 }

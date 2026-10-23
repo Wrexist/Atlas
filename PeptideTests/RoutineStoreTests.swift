@@ -44,6 +44,34 @@ final class RoutineStoreTests: XCTestCase {
                        "A nameless row would be unreadable in the list")
     }
 
+    func test_discardAbandonedDrafts_untouchedDraft_isDeleted() {
+        _ = store.createDraft()
+
+        store.discardAbandonedDrafts()
+
+        XCTAssertTrue(store.routines.isEmpty)
+    }
+
+    func test_discardAbandonedDrafts_blankRoutineFromAnotherDevice_isKept() {
+        let synced = Routine(name: RoutineStore.untitledName)
+        repo.upsertRoutine(synced)
+        store.load()
+
+        store.discardAbandonedDrafts()
+
+        XCTAssertEqual(store.routines.map(\.id), [synced.id])
+    }
+
+    func test_discardAbandonedDrafts_draftWithExercises_isKept() {
+        var draft = store.createDraft()
+        draft.exercises = [RoutineExercise(exerciseID: "Barbell_Squat", index: 0, targetSets: 3, targetReps: 5)]
+        store.save(draft)
+
+        store.discardAbandonedDrafts()
+
+        XCTAssertEqual(store.routines.map(\.id), [draft.id])
+    }
+
     func test_create_assignsAnIncreasingSortKey() {
         store.create(name: "A")
         store.create(name: "B")

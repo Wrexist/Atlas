@@ -71,13 +71,22 @@ enum RoutineEditEngine {
 
     /// "Push day" → "Push day copy" → "Push day copy 2", Finder-style.
     private static func copyName(of name: String, avoiding taken: Set<String>) -> String {
-        let base = truncated(String(localized: "\(name) copy"))
+        let base = fitted(name) { String(localized: "\($0) copy") }
         guard taken.contains(base) else { return base }
         for suffix in 2...99 {
-            let candidate = truncated(String(localized: "\(name) copy \(suffix)"))
+            let candidate = fitted(name) { String(localized: "\($0) copy \(suffix)") }
             if !taken.contains(candidate) { return candidate }
         }
         return base
+    }
+
+    /// Shortens the name, not the suffix, so a long name's copy keeps
+    /// its "copy N" and can't collapse back onto the original.
+    private static func fitted(_ name: String, _ decorate: (String) -> String) -> String {
+        let overflow = decorate(name).count - nameLimit
+        guard overflow > 0 else { return decorate(name) }
+        let stem = String(name.prefix(max(0, name.count - overflow)))
+        return truncated(decorate(stem.trimmingCharacters(in: .whitespaces)))
     }
 
     /// Trims and length-caps a name typed into the editor. Returns nil

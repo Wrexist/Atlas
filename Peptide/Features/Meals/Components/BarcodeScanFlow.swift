@@ -312,6 +312,7 @@ struct BarcodeScanFlow: View {
             }
 
             TextField("e.g. 5449000000996", text: $manualBarcode)
+                .accessibilityLabel("Barcode number")
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.center)
                 .font(AppFont.scaled(20, weight: .semibold, design: .monospaced))
@@ -455,6 +456,7 @@ struct BarcodeScanFlow: View {
             }
             .font(AppFont.subheadline)
             .foregroundStyle(AppColor.textSecondary)
+            .minimumHitArea()
         }
         .padding(Spacing.md)
         .background {
@@ -749,7 +751,7 @@ struct BarcodeScanFlow: View {
         HStack(spacing: Spacing.xs) {
             ProgressView()
                 .controlSize(.small)
-            Text("Checking non-food catalogues…")
+            Text("Checking non-food catalogs…")
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
         }
@@ -918,6 +920,15 @@ struct BarcodeScanFlow: View {
                     manualBarcode = ""
                     resetScanResults()
                     phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
+                }
+
+                if BarcodeScannerView.canScan {
+                    GlassButton(title: "Type the code", icon: "keyboard", style: .secondary) {
+                        errorText = nil
+                        product = nil
+                        resetScanResults()
+                        phase = .manualEntry
+                    }
                 }
 
                 // Network / rate-limit / decode failures shouldn't trap
@@ -1127,6 +1138,7 @@ struct BarcodeScanFlow: View {
         try Task.checkCancellation()
         await MainActor.run {
             product = result
+            productReadByAI = result.readFromPackage == true
             portion = remembered ?? result.defaultPortion
             category = MealCategory.auto(for: LifestyleDataLogic.logTimestamp(on: logDay))
             phase = .review
@@ -1209,6 +1221,7 @@ struct BarcodeScanFlow: View {
             guard let read = SmartFoodLogic.product(from: scan, barcode: barcode) else {
                 throw MealScannerService.ScanError.noFoodDetected
             }
+            await OpenFoodFactsService.shared.remember(read)
             await MainActor.run {
                 if !storeService.isProUser { MealScanQuota.recordSuccessfulScan() }
                 product = read
@@ -1309,15 +1322,15 @@ struct BarcodeScanFlow: View {
     private func commitMealEntry(product: ScannedProduct, meal: LoggableMeal) {
         let now = Date()
         let loggedAt = LifestyleDataLogic.logTimestamp(on: logDay, now: now)
-        // OCR-synthesised products carry an `ocr:<uuid>` barcode and come
-        // from on-device Vision, not Open Food Facts — tagging them
-        // `.openFoodFacts` mis-attributes the source, and feeding that
-        // synthetic barcode to scan history corrupts the actor (recordLog
-        // expects an 8-14 digit code). Manual-override edits are likewise
-        // not OFF data. Tag both `.manual` and skip history.
-        let isOCR = product.barcode.hasPrefix("ocr:") || product.barcode.hasPrefix("ai:")
-        let source: MealSource = (manualOverride != nil || isOCR) ? .manual
-            : productReadByAI ? .photo : .openFoodFacts
+        // A package read by Atlas AI is a photo scan whether or not it
+        // was filed under a real barcode. OCR-synthesised products carry
+        // an `ocr:<uuid>` barcode and come from on-device Vision, not
+        // Open Food Facts, and manual-override edits are likewise not OFF
+        // data — both are `.manual`. Synthetic `ocr:`/`ai:` barcodes skip
+        // history: recordLog expects an 8-14 digit code.
+        let hasSyntheticBarcode = product.barcode.hasPrefix("ocr:") || product.barcode.hasPrefix("ai:")
+        let source: MealSource = productReadByAI ? .photo
+            : (manualOverride != nil || hasSyntheticBarcode) ? .manual : .openFoodFacts
         let entry = MealEntry(
             loggable: meal,
             name: product.name,
@@ -1344,7 +1357,7 @@ struct BarcodeScanFlow: View {
         // the same portion. Fire-and-forget — UI doesn't need to wait.
         // Skip OCR scans: each carries a unique synthetic barcode, so a
         // history record would never re-match and would corrupt the actor.
-        if !isOCR {
+        if !hasSyntheticBarcode {
             let recordedBarcode = product.barcode
             let recordedPortion = portion
             Task {

@@ -9,6 +9,7 @@ struct WorkoutSessionDetailView: View {
     @State private var session: WorkoutSession
     @Environment(DataStore.self) private var dataStore
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismissWorkoutHistorySheet) private var dismissHistorySheet
     @State private var sessionService = WorkoutSessionService.shared
 
     @State private var confirmingDelete = false
@@ -21,6 +22,8 @@ struct WorkoutSessionDetailView: View {
 
     private var unit: MeasurementUnit { dataStore.profile.bodyMetrics.unit }
     @State private var library = ExerciseLibrary.shared
+    /// Set-number column, scaled with the text so two digits never wrap.
+    @ScaledMetric(relativeTo: .caption2) private var setNumberWidth: CGFloat = 20
 
     init(session: WorkoutSession) {
         _session = State(initialValue: session)
@@ -149,7 +152,8 @@ struct WorkoutSessionDetailView: View {
 
     /// Starts a fresh session seeded from this one. The Train tab's
     /// container presents the active workout as soon as `activeSession`
-    /// appears, so popping back here is all the hand-off needed.
+    /// appears. Pushed inside a sheet, the whole sheet goes: the workout's
+    /// full-screen cover can't present over it.
     private func repeatWorkout() {
         guard sessionService.activeSession == nil else {
             Haptics.warning()
@@ -162,8 +166,12 @@ struct WorkoutSessionDetailView: View {
             id: session.routineID ?? UUID()
         )
         Haptics.impact(.medium)
+        if let dismissHistorySheet {
+            dismissHistorySheet()
+        } else {
+            dismiss()
+        }
         sessionService.startWorkout(routine: template, linksRoutine: session.routineID != nil)
-        dismiss()
     }
 
     private var savedRoutineBinding: Binding<Bool> {
@@ -241,6 +249,7 @@ struct WorkoutSessionDetailView: View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "bolt.fill")
                 .foregroundStyle(AppColor.perceivedEffort)
+                .accessibilityHidden(true)
             Text("Perceived effort")
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
@@ -251,6 +260,9 @@ struct WorkoutSessionDetailView: View {
         }
         .padding(Spacing.md)
         .glassSurface(cornerRadius: Spacing.smallCornerRadius)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Perceived effort")
+        .accessibilityValue("\(effort) out of 5")
     }
 
     private func noteCard(_ note: String) -> some View {
@@ -291,7 +303,8 @@ struct WorkoutSessionDetailView: View {
                     Text("\(set.index)")
                         .font(AppFont.caption2.weight(.semibold))
                         .monospacedDigit()
-                        .frame(width: 20, alignment: .leading)
+                        .frame(minWidth: setNumberWidth, alignment: .leading)
+                        .fixedSize()
                         .foregroundStyle(AppColor.textTertiary)
                         .accessibilityLabel("Set \(set.index)")
                     Text(RecapFormat.set(set, unit: unit))
@@ -339,7 +352,7 @@ struct WorkoutSessionDetailView: View {
         let label = HStack {
             ExerciseImageView(exercise: exercise)
                 .frame(width: 44, height: 44)
-            Text(exercise?.name ?? "Unknown exercise")
+            Text(exercise?.name ?? String(localized: "Unknown exercise"))
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.leading)
@@ -428,4 +441,10 @@ extension RoutineExercise {
     private static func clamped(_ value: Int, to range: ClosedRange<Int>) -> Int {
         min(max(value, range.lowerBound), range.upperBound)
     }
+}
+
+extension EnvironmentValues {
+    /// Dismisses the sheet a workout detail was pushed inside, set by
+    /// `MuscleHistorySheet`. Nil when the detail lives in the Train stack.
+    @Entry var dismissWorkoutHistorySheet: (() -> Void)? = nil
 }

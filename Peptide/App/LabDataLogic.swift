@@ -61,17 +61,17 @@ enum LabDataLogic {
         }
     }
 
-    /// Direction between the two most-recent values for a panel.
-    /// Returns `.stable` when only one entry exists (no comparison
-    /// possible), when the value didn't move (0 → 0 has a zero noise
-    /// floor), or when the delta is below the 5%-of-value noise
-    /// floor — saves the user from over-reading single-point drift.
-    static func computeTrend(entries: [LabValue]) -> LabTrend {
-        guard entries.count >= 2 else { return .stable }
+    /// Direction between the two most-recent values for a panel. Nil
+    /// with fewer than two entries — there is nothing to compare, so no
+    /// direction is claimed. `.stable` when the value didn't move (0 → 0
+    /// has a zero noise floor) or the delta is below the 5%-of-value
+    /// noise floor — saves the user from over-reading single-point drift.
+    static func computeTrend(entries: [LabValue]) -> LabTrend? {
         let sorted = entries.sorted { $0.date < $1.date }
-        guard let latest = sorted.last,
+        guard sorted.count >= 2,
+              let latest = sorted.last,
               let previous = sorted.dropLast().last
-        else { return .stable }
+        else { return nil }
         let delta = latest.value - previous.value
         let threshold = abs(previous.value) * 0.05
         if delta == 0 || abs(delta) < threshold {
@@ -85,7 +85,8 @@ enum LabDataLogic {
     struct LatestSummary: Identifiable {
         var id: UUID { latest.id }
         let latest: LabValue
-        let trend: LabTrend
+        /// Nil for a panel with a single draw.
+        let trend: LabTrend?
     }
 }
 

@@ -15,6 +15,7 @@ final class CoachingMessageEngineTests: XCTestCase {
         ))
         XCTAssertEqual(msg.tone, .welcome)
         XCTAssertEqual(msg.eyebrow, "WELCOME")
+        XCTAssertEqual(msg.kind, .welcome)
     }
 
     func test_pick_noHealthConnection_returnsConnectPrompt() {
@@ -23,6 +24,7 @@ final class CoachingMessageEngineTests: XCTestCase {
             healthConnected: false
         ))
         XCTAssertEqual(msg.eyebrow, "GET STARTED")
+        XCTAssertEqual(msg.kind, .connectHealth)
         XCTAssertEqual(msg.icon, "heart.text.square.fill")
     }
 
@@ -119,5 +121,42 @@ final class CoachingMessageEngineTests: XCTestCase {
             hourOfDay: 22
         ))
         XCTAssertEqual(msg.eyebrow, "ON TRACK")
+    }
+
+    // MARK: - Goal-neutral copy
+
+    func test_pick_newMemberWithoutProtocols_welcomeDoesNotAskForProtocol() {
+        let msg = CoachingMessageEngine.pick(context: .init(hasProtocols: false, healthConnected: true, memberDays: 1))
+        XCTAssertEqual(msg.kind, .welcome)
+        XCTAssertFalse(msg.title.localizedCaseInsensitiveContains("protocol"))
+        XCTAssertNil(msg.action)
+    }
+
+    func test_pick_noProtocolsHealthConnectedNormalRecovery_doesNotMentionDoses() {
+        let msg = CoachingMessageEngine.pick(context: .init(
+            hasProtocols: false,
+            healthConnected: true,
+            recoveryScore: 60,
+            sleepHours: 7.5,
+            hourOfDay: 10,
+            memberDays: 60
+        ))
+        XCTAssertEqual(msg.kind, .onTrack)
+        XCTAssertFalse(msg.body?.localizedCaseInsensitiveContains("dose") ?? false)
+    }
+
+    func test_pick_catchUp_doesNotClaimActualTimeLogging() {
+        let msg = CoachingMessageEngine.pick(context: .init(
+            hasProtocols: true, healthConnected: true, recoveryScore: 60, pendingDoseCount: 2, hourOfDay: 20
+        ))
+        XCTAssertEqual(msg.kind, .catchUp)
+        XCTAssertEqual(msg.action, .scrollToDoses)
+        XCTAssertFalse(msg.body?.contains("actual time") ?? true)
+    }
+
+    func test_pick_noHealthConnection_offersConnectAction() {
+        let msg = CoachingMessageEngine.pick(context: .init(hasProtocols: true, healthConnected: false))
+        XCTAssertEqual(msg.kind, .connectHealth)
+        XCTAssertEqual(msg.action, .connectHealth)
     }
 }

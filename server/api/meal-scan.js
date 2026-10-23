@@ -7,7 +7,7 @@
  *   MEAL_SCANNER_ENDPOINT  = https://<deploy>/api/meal-scan
  *   MEAL_SCANNER_SECRET    = the PROXY_SHARED_SECRET value
  */
-import { forwardToAnthropic } from './_lib/anthropic-proxy.js';
+import { forwardToAnthropic, THINKING_OFF } from './_lib/anthropic-proxy.js';
 
 // Pinned safety prefix. The iOS meal scanner doesn't send `system`
 // today, so we drop any client-supplied system entirely — a tampered
@@ -32,5 +32,7 @@ export default async function handler(req, res) {
     // A busy plate's multi-item JSON array outgrows the default 800-token
     // cap and would come back truncated.
     maxTokens: 1200,
+    // The cap above is sized for the JSON alone; see THINKING_OFF.
+    thinking: THINKING_OFF,
   });
 }

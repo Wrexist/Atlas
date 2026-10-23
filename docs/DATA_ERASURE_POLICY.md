@@ -18,6 +18,9 @@ future storage surface must be added to.
 | Pending and delivered reminders | Notification Center | `NotificationService.cancelAll()` |
 | Recently scanned products | Caches | `BarcodeProductCache.clear()` |
 | Custom foods and recipes in system search | CoreSpotlight index | `FoodSpotlightService.removeAll()` |
+| AI data-sharing consent (chat and coach summary) | UserDefaults | `AIDataConsent.revoke()` — the next scan or question asks again |
+| Onboarding funnel snapshot (step times, events, attribution channel) | UserDefaults | `OnboardingFunnelTracker.eraseAll()` |
+| Onboarding training-experience answer | UserDefaults (`experienceLevel`) | removed in `eraseAllLocalData()` |
 
 ## Retained deliberately
 
@@ -29,6 +32,10 @@ future storage surface must be added to.
   remove Atlas-written samples in Health → Profile → Apps → Atlas →
   Delete All Data. If product ever wants in-app deletion, it must be a
   separate, explicit opt-in at deletion time — never automatic.
+- **Medical-disclaimer acknowledgment** (`disclaimerAcknowledgedAt`). A
+  timestamp that the user accepted the disclaimer, with no health or
+  personal data in it; it is the record that the safety note was shown,
+  so it outlives an erase.
 - **iCloud backups** of the device are Apple-managed; files deleted above
   disappear from future backups.
 
