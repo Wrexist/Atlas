@@ -120,7 +120,10 @@ struct ProtocolCard: View {
         parts.append(protocol_.peptides.count == 1 ? String(localized: "1 peptide") : String(localized: "\(protocol_.peptides.count) peptides"))
         if let washout {
             parts.append(String(localized: "wash-out, day \(washout.day) of \(washout.total)"))
-            parts.append(String(localized: "\(CyclePhaseEngine.daysUntilPhaseEnd(washout.status)) days until the next cycle"))
+            let daysToNext = CyclePhaseEngine.daysUntilPhaseEnd(washout.status)
+            parts.append(daysToNext <= 1
+                ? String(localized: "Next cycle starts tomorrow")
+                : String(localized: "\(daysToNext) days until the next cycle"))
         } else if protocol_.status == .active {
             parts.append(String(localized: "week \(protocol_.weekNumber) of \(protocol_.cycleLengthWeeks)"))
             parts.append(String(localized: "\(protocol_.daysRemaining) days left"))

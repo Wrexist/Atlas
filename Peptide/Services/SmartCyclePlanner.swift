@@ -136,7 +136,9 @@ enum SmartCyclePlanner {
             return Suggestion(
                 protocolID: proto.id,
                 kind: .washoutStarting(daysRemaining: remaining),
-                title: String(localized: "\(proto.name) wash-out begins in \(remaining) days"),
+                title: remaining <= 1
+                    ? String(localized: "\(proto.name) wash-out begins tomorrow", comment: "Smart planner — a wash-out protocol's last on-cycle day is today.")
+                    : String(localized: "\(proto.name) wash-out begins in \(remaining) days"),
                 rationale: String(localized: "Doses pause automatically during the wash-out and resume when the next cycle starts."),
                 confidence: .medium
             )

@@ -40167,6 +40167,17 @@
           }
         }
       }
+    },
+    "%@ wash-out begins tomorrow": {
+      "comment": "Smart planner — a wash-out protocol's last on-cycle day is today.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppehållet för %@ börjar i morgon"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
