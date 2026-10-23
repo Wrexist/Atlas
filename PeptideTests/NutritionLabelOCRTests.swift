@@ -245,4 +245,42 @@ final class NutritionLabelOCRTests: XCTestCase {
     func test_firstNumber_returnsNil_forNonNumericText() {
         XCTAssertNil(NutritionLabelParser.firstNumber(in: "calories per serving"))
     }
+
+    // MARK: - Calories split from its value
+
+    func test_parse_caloriesValueOnNextLine_ignoresDailyValueFootnote() {
+        let lines = [
+            "Nutrition Facts",
+            "Calories",
+            "230",
+            "Total Fat 8g",
+            "Protein 3g",
+            "* The % Daily Value (DV) tells you how much a nutrient in a serving of food contributes to a daily diet.",
+            "2,000 calories a day is used for general nutrition advice.",
+        ]
+        XCTAssertEqual(NutritionLabelParser.parse(lines: lines)?.nutriments.calories, 230)
+    }
+
+    func test_parse_caloriesHeaderWithoutValue_doesNotReadNextMacroRow() {
+        let lines = ["Calories", "Total Fat 8g", "Energy 1046 kJ / 250 kcal"]
+        XCTAssertEqual(NutritionLabelParser.parse(lines: lines)?.nutriments.calories, 250)
+    }
+
+    func test_parse_kilojoulesWithThousandsComma_convertsToKcal() throws {
+        let calories = try XCTUnwrap(NutritionLabelParser.parse(lines: ["Energy 1,050 kJ"])?.nutriments.calories)
+        XCTAssertEqual(calories, 1050 / 4.184, accuracy: 0.01)
+    }
+
+    func test_parse_referenceIntakeLine_isNotTheProductEnergy() {
+        let lines = [
+            "Reference intake of an average adult (8400 kJ / 2000 kcal)",
+            "Energy 420 kJ / 100 kcal",
+        ]
+        XCTAssertEqual(NutritionLabelParser.parse(lines: lines)?.nutriments.calories, 100)
+    }
+
+    func test_firstNumber_commaDecimal_staysDecimalWithoutThousandsGrouping() {
+        XCTAssertEqual(NutritionLabelParser.firstNumber(in: "salt 0,125 g", commaGroupsThousands: true), 0.125)
+        XCTAssertEqual(NutritionLabelParser.firstNumber(in: "1,050"), 1.05)
+    }
 }
