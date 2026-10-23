@@ -608,6 +608,7 @@ final class SwiftDataRepository {
                     for stored in rows { try stored.update(from: proto) }
                 } catch {
                     AppLog.swiftData.error("Update StoredProtocol failed: \(error.localizedDescription, privacy: .public)")
+                    commitDidFail = true
                 }
             } else {
                 do {
@@ -615,6 +616,7 @@ final class SwiftDataRepository {
                     context.insert(stored)
                 } catch {
                     AppLog.swiftData.error("Insert StoredProtocol failed: \(error.localizedDescription, privacy: .public)")
+                    commitDidFail = true
                 }
             }
         }
@@ -652,6 +654,7 @@ final class SwiftDataRepository {
                 }
             } catch {
                 AppLog.swiftData.error("Upsert StoredProtocol failed: \(error.localizedDescription, privacy: .public)")
+                commitDidFail = true
             }
         }
         if commit() { persistedProtocolIDs.formUnion(protocols.map(\.id)) }
@@ -692,6 +695,7 @@ final class SwiftDataRepository {
             commit()
         } catch {
             AppLog.swiftData.error("Delete StoredProtocol failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -756,6 +760,7 @@ final class SwiftDataRepository {
                     for stored in rows { try stored.update(from: entry) }
                 } catch {
                     AppLog.swiftData.error("Update StoredEntry failed: \(error.localizedDescription, privacy: .public)")
+                    commitDidFail = true
                 }
             } else {
                 do {
@@ -763,6 +768,7 @@ final class SwiftDataRepository {
                     context.insert(stored)
                 } catch {
                     AppLog.swiftData.error("Insert StoredEntry failed: \(error.localizedDescription, privacy: .public)")
+                    commitDidFail = true
                 }
             }
         }
@@ -806,6 +812,7 @@ final class SwiftDataRepository {
                 }
             } catch {
                 AppLog.swiftData.error("Upsert StoredEntry failed: \(error.localizedDescription, privacy: .public)")
+                commitDidFail = true
             }
         }
         if commit() {
@@ -828,6 +835,7 @@ final class SwiftDataRepository {
             commit()
         } catch {
             AppLog.swiftData.error("Delete StoredEntries failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -846,6 +854,7 @@ final class SwiftDataRepository {
             commit()
         } catch {
             AppLog.swiftData.error("Delete protocol entries failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -1014,6 +1023,7 @@ final class SwiftDataRepository {
                 try write(synced, into: existing, since: syncedBaseline)
             } catch {
                 AppLog.swiftData.error("Update StoredProfile failed: \(error.localizedDescription, privacy: .public)")
+                commitDidFail = true
             }
         } else {
             do {
@@ -1021,6 +1031,7 @@ final class SwiftDataRepository {
                 context.insert(stored)
             } catch {
                 AppLog.swiftData.error("Insert StoredProfile failed: \(error.localizedDescription, privacy: .public)")
+                commitDidFail = true
             }
         }
         commit()
@@ -1215,6 +1226,7 @@ final class SwiftDataRepository {
             commit()
         } catch {
             AppLog.swiftData.error("delete workout session failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -1402,6 +1414,7 @@ final class SwiftDataRepository {
             commit()
         } catch {
             AppLog.swiftData.error("upsert custom exercise failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -1418,6 +1431,7 @@ final class SwiftDataRepository {
             commit()
         } catch {
             AppLog.swiftData.error("delete custom exercise failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -1458,6 +1472,7 @@ final class SwiftDataRepository {
             commit()
         } catch {
             AppLog.swiftData.error("upsert routine failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -1475,6 +1490,7 @@ final class SwiftDataRepository {
         } catch {
             // Inserting blind would duplicate every routine that exists.
             AppLog.swiftData.error("Fetch (upsert) routines failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
             return
         }
         let existingByID = Dictionary(grouping: existing, by: \.id)
@@ -1487,6 +1503,7 @@ final class SwiftDataRepository {
                 }
             } catch {
                 AppLog.swiftData.error("upsert routine failed: \(error.localizedDescription, privacy: .public)")
+                commitDidFail = true
             }
         }
         commit()
@@ -1505,6 +1522,7 @@ final class SwiftDataRepository {
             commit()
         } catch {
             AppLog.swiftData.error("delete routine failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -1558,6 +1576,7 @@ final class SwiftDataRepository {
             commit()
         } catch {
             AppLog.swiftData.error("upsert PR failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -1589,6 +1608,7 @@ final class SwiftDataRepository {
             commit()
         } catch {
             AppLog.swiftData.error("delete PR failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -1609,6 +1629,7 @@ final class SwiftDataRepository {
             commit()
         } catch {
             AppLog.swiftData.error("upsert fast failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
@@ -1625,6 +1646,7 @@ final class SwiftDataRepository {
             commit()
         } catch {
             AppLog.swiftData.error("delete fast failed: \(error.localizedDescription, privacy: .public)")
+            commitDidFail = true
         }
     }
 
