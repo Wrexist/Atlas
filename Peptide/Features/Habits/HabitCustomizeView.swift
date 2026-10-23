@@ -18,7 +18,7 @@ struct HabitCustomizeView: View {
     @Binding var enableReminder: Bool
     @Binding var reminderTime: Date
 
-    private var tint: Color { Color(hex: UInt(tintHex)) }
+    private var tint: Color { HabitTintCatalog.color(for: tintHex) }
 
     var body: some View {
         Form {
@@ -121,12 +121,12 @@ struct HabitCustomizeView: View {
                 } label: {
                     ZStack {
                         Circle()
-                            .fill(Color(hex: UInt(hex)))
+                            .fill(HabitTintCatalog.color(for: hex))
                             .frame(width: 32, height: 32)
                         if tintHex == hex {
                             Image(systemName: "checkmark")
                                 .font(AppFont.scaled(13, weight: .bold))
-                                .foregroundStyle(AppColor.onAccent)
+                                .foregroundStyle(AppColor.background)
                         }
                     }
                     .overlay {

@@ -381,7 +381,7 @@ struct ProtocolBuilderView: View {
             .padding(.bottom, Spacing.xxxxl)
         }
         .scrollDismissesKeyboard(.interactively)
-        .dismissKeyboardOnTap()
+        .keyboardDoneButton()
     }
 
     private func hydrate(from proto: PeptideProtocol) {

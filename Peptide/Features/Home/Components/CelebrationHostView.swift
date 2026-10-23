@@ -76,7 +76,7 @@ struct CelebrationHostView: View {
             // No haptic here — `DataStore.toggleHabitEntry` already fires
             // the success notification at the tap site.
             triggerBurst(
-                colors: [Color(hex: UInt(tintHex)), AppColor.accentLight],
+                colors: [HabitTintCatalog.color(for: tintHex), AppColor.accentLight],
                 intensity: allHabitsDone ? 90 : 36
             )
             // Brief pace so a flurry of completions doesn't stack overlays;
@@ -86,8 +86,8 @@ struct CelebrationHostView: View {
             } catch { return }
             center.acknowledgeCurrent()
 
-        case let .levelUp(level, tierName, tierSymbol, tintHex):
-            let tint = Color(hex: UInt(tintHex))
+        case let .levelUp(level, tier):
+            let tint = tier.tint
             Haptics.success()
             triggerBurst(
                 colors: [tint, AppColor.accentLight, AppColor.accentPrimary],
@@ -97,8 +97,8 @@ struct CelebrationHostView: View {
                 levelUp = LevelUpPresentation(
                     id: event.id,
                     level: level,
-                    tierName: tierName,
-                    tierSymbol: tierSymbol,
+                    tierName: tier.name,
+                    tierSymbol: tier.symbol,
                     tint: tint
                 )
             }

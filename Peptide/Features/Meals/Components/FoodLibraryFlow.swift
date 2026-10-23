@@ -406,12 +406,14 @@ struct FoodLibraryFlow: View {
                     Image(systemName: "xmark.circle.fill")
                         .font(AppFont.scaled(16))
                         .foregroundStyle(AppColor.textSecondary)
+                        .frame(width: Spacing.minimumHitTarget, height: Spacing.minimumHitTarget)
+                        .contentShape(Rectangle())
                 }
                 .accessibilityLabel("Clear search")
             }
         }
         .padding(.horizontal, Spacing.md)
-        .frame(height: 48)
+        .frame(minHeight: 48)
         .background {
             RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                 .fill(AppColor.surfaceSecondary.opacity(0.6))
@@ -684,7 +686,8 @@ struct FoodLibraryFlow: View {
                     .foregroundStyle(AppColor.textPrimary)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 64)
+            .padding(.vertical, Spacing.sm)
+            .frame(minHeight: 64)
             .background {
                 RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                     .fill(AppColor.accentPrimary.opacity(0.12))
@@ -1012,7 +1015,7 @@ struct FoodLibraryFlow: View {
                 .foregroundStyle(AppColor.onAccent)
                 .frame(width: 32, height: 32)
                 .background {
-                    Circle().fill(AppColor.accentPrimary)
+                    Circle().fill(AppColor.accentFill)
                 }
                 .minimumHitArea()
         }

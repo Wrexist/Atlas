@@ -89,7 +89,7 @@ struct ProductInsightCard: View {
                             .padding(.horizontal, Spacing.sm)
                             .padding(.vertical, Spacing.xs)
                             .background {
-                                Capsule().fill(isActive ? AppColor.accentPrimary : AppColor.surfaceElevated)
+                                Capsule().fill(isActive ? AppColor.accentFill : AppColor.surfaceElevated)
                             }
                     }
                     .buttonStyle(.plain)

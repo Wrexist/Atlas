@@ -146,7 +146,7 @@ struct MealPlanSheet: View {
     private func notEnoughFoods(found: Int) -> some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Image(systemName: "fork.knife.circle")
-                .font(AppFont.scaled(40, weight: .semibold))
+                .font(AppFont.scaled(40, weight: .semibold, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.accentLight)
                 .accessibilityHidden(true)
             Text("Log a few more foods first")

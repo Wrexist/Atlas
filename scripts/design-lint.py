@@ -26,9 +26,14 @@ from dataclasses import dataclass
 REPO = pathlib.Path(__file__).resolve().parent.parent
 FEATURES = REPO / "Peptide" / "Features"
 DESIGN_SYSTEM = REPO / "Peptide" / "DesignSystem"
+# Services and models hand colours to views too (phase tints, habit and tier
+# palettes), so the raw-colour rule covers them alongside Features.
+SERVICES = REPO / "Peptide" / "Services"
+MODELS = REPO / "Peptide" / "Models"
+COLOUR_ROOTS = (FEATURES, SERVICES, MODELS)
 # The widget and watch targets are deliberately out of scope: they do not
 # compile Peptide/DesignSystem, so AppFont and AppAnimation are unavailable.
-SCANNED_ROOTS = (REPO / "Peptide" / "App", FEATURES, DESIGN_SYSTEM)
+SCANNED_ROOTS = (REPO / "Peptide" / "App", FEATURES, DESIGN_SYSTEM, SERVICES, MODELS)
 
 # Surfaces whose palette encodes a real-world concept rather than the brand,
 # or which are composited onto a permanently dark backdrop (share cards,
@@ -148,13 +153,25 @@ def enclosing_block(code: str, index: int) -> tuple[int, str]:
 def rule_raw_colour(path, source, code) -> list[Finding]:
     """Feature views must resolve colour through AppColor, or light mode and
     the brand themes silently skip that screen."""
-    if path.name in DOMAIN_PALETTE_FILES or FEATURES not in path.parents:
+    if path.name in DOMAIN_PALETTE_FILES or not any(root in path.parents for root in COLOUR_ROOTS):
         return []
+    in_features = FEATURES in path.parents
+    # Services also draw UIKit images (PDF export, sticker canvases) whose
+    # fixed UIColor never reaches a themed view; only SwiftUI Color counts.
+    colour = "Color" if in_features else r"(?<!UI)Color"
     out = []
-    for m in re.finditer(r"Color\((?:hex:\s*0x|red:\s*[\d.])", code):
+    for m in re.finditer(colour + r"\((?:hex:\s*0x|red:\s*[\d.])", code):
         out.append(Finding(path, line_of(code, m.start()), "raw-colour",
                            "raw Color literal; use an AppColor token", "error"))
-    for m in re.finditer(r"Color\.(?:white|black)\b", code):
+    if in_features:
+        # A stored hex (habit, tier) wrapped straight into a colour renders
+        # its dark-scheme value in light mode too.
+        for m in re.finditer(r"Color\(hex:\s*UInt\(", code):
+            out.append(Finding(path, line_of(code, m.start()), "raw-colour",
+                               "stored hex wrapped in Color(hex:) is not adaptive; resolve it "
+                               "through its palette (HabitTintCatalog.color(for:), Tier.tint)",
+                               "error"))
+    for m in re.finditer(colour + r"\.(?:white|black)\b", code):
         # A drop shadow and a modal dimming scrim are black in both schemes —
         # that's what a shadow *is*. Only ink and fills need to adapt.
         context = code[max(0, m.start() - 60):m.start()]
@@ -229,6 +246,29 @@ def rule_system_font_modifier(path, source, code) -> list[Finding]:
                     ".font(.system(size:)) ignores Dynamic Type; use "
                     "AppFont.scaled(_:relativeTo:), or pin with in: .large", "error")
             for m in re.finditer(r"\.font\(\s*\.system\(size:", code)]
+
+
+def rule_display_scale_ramp(path, source, code) -> list[Finding]:
+    """A display size must say how it scales.
+
+    `AppFont.scaled` defaults to the `.body` ramp, which roughly triples at
+    AX5: a 56pt placeholder glyph becomes ~170pt and pushes real content
+    off screen. Above `AppFont.Scale.heading` (24pt) pass a gentler
+    `relativeTo:` (`.largeTitle`, `.title1`) or pin with `in:`.
+    """
+    if path.name == "Typography.swift":
+        return []
+    out = []
+    for m in re.finditer(r"AppFont\.scaled\(\s*(\d+(?:\.\d+)?)", code):
+        if float(m.group(1)) <= 24:
+            continue
+        args = balanced_args(code, m.start() + len("AppFont.scaled"))
+        if args is None or re.search(r"\b(?:relativeTo|in):", args):
+            continue
+        out.append(Finding(path, line_of(code, m.start()), "display-scale-ramp",
+                           f"{m.group(1)}pt scales along .body and triples at AX5; pass "
+                           "relativeTo: .largeTitle/.title1, or pin with in:", "error"))
+    return out
 
 
 def rule_glow(path, source, code) -> list[Finding]:
@@ -846,6 +886,15 @@ def rule_accent_gradient_fill(path, source, code) -> list[Finding]:
         out.append(Finding(path, line_of(code, m.start()), "accent-gradient-fill",
                            "accent gradient under onAccent ink drops below 4:1 in the "
                            "dark scheme; fill with AppColor.accentFill", "error"))
+    # The same failure with a solid fill: a selected chip that paints
+    # `accentPrimary` behind `onAccent` is 1.6-3.7:1 in the dark scheme.
+    for m in re.finditer(r"\.fill\(\s*(?:[^\n)]*?\?\s*)?AppColor\.accentPrimary\b(?![)\s]*\.opacity)", code):
+        before = code[max(0, m.start() - 500):m.start()]
+        if "AppColor.onAccent" not in before:
+            continue
+        out.append(Finding(path, line_of(code, m.start()), "accent-gradient-fill",
+                           "accentPrimary fill under onAccent ink drops below 4:1 in the "
+                           "dark scheme; fill with AppColor.accentFill", "error"))
     return out
 
 
@@ -858,6 +907,7 @@ RULES = [
     rule_pure_neutral,
     rule_motion,
     rule_fixed_font,
+    rule_display_scale_ramp,
     rule_system_font_modifier,
     rule_glow,
     rule_untargeted_animation,

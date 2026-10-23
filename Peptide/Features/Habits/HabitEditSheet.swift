@@ -161,7 +161,7 @@ struct HabitEditSheet: View {
         editing == nil ? "Add habit" : "Save changes"
     }
 
-    private var tint: Color { Color(hex: UInt(tintHex)) }
+    private var tint: Color { HabitTintCatalog.color(for: tintHex) }
 
     // MARK: - Identity
 
@@ -260,7 +260,7 @@ struct HabitEditSheet: View {
                 } label: {
                     Text(day.shortName)
                         .font(AppFont.scaled(13, weight: .bold))
-                        .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textPrimary)
+                        .foregroundStyle(isSelected ? AppColor.background : AppColor.textPrimary)
                         .frame(maxWidth: .infinity)
                         .frame(height: Spacing.minimumHitTarget)
                         .background {

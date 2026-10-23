@@ -63,7 +63,7 @@ struct Habit: Codable, Identifiable, Hashable, Sendable {
         self.archived = archived
     }
 
-    var tint: Color { Color(hex: UInt(tintHex)) }
+    var tint: Color { HabitTintCatalog.color(for: tintHex) }
 
     /// True for habits with a numeric target (8 glasses, 10k steps).
     /// Drives the editor UI's value-input visibility.
@@ -281,20 +281,40 @@ enum HabitIconCatalog {
     }
 }
 
-/// Hand-curated tint set surfaced in the editor's color picker. Hex
-/// values are stored as UInt32 on the `Habit` struct.
+/// Hand-curated tint set surfaced in the editor's color picker. The
+/// stored `UInt32` is the habit's identity and its dark-scheme hue; each
+/// swatch also carries a deepened light stop, because the habit prints its
+/// tint as 11pt text and fills behind a checkmark on light surfaces too.
+/// Light stops hold 4.5:1 on every surface and on the habit's 12% wash.
 enum HabitTintCatalog {
-    static let all: [UInt32] = [
-        0xCF7272, // red
-        0xE89BC4, // pink
-        0xC59FFF, // violet
-        0x9B72CF, // purple
-        0x6B8AFF, // blue
-        0x4CB8C4, // cyan
-        0x5BC489, // green
-        0xD4A844, // amber
-        0xFFB347, // orange
-        0xCFA68B, // brown
-        0x8E9499, // graphite
+    private struct Swatch {
+        let hex: UInt32
+        let light: UInt
+        let dark: UInt
+    }
+
+    private static let swatches: [Swatch] = [
+        Swatch(hex: 0xCF7272, light: 0xAD3B3B, dark: 0xD27A7A), // red
+        Swatch(hex: 0xE89BC4, light: 0xB22972, dark: 0xE89BC4), // pink
+        Swatch(hex: 0xC59FFF, light: 0x7340C8, dark: 0xC59FFF), // violet
+        Swatch(hex: 0x9B72CF, light: 0x7C46C0, dark: 0xA783D5), // purple
+        Swatch(hex: 0x6B8AFF, light: 0x2F55D4, dark: 0x6B8AFF), // blue
+        Swatch(hex: 0x4CB8C4, light: 0x266D74, dark: 0x4CB8C4), // cyan
+        Swatch(hex: 0x5BC489, light: 0x287047, dark: 0x5BC489), // green
+        Swatch(hex: 0xD4A844, light: 0x7C5F1D, dark: 0xD4A844), // amber
+        Swatch(hex: 0xFFB347, light: 0x915500, dark: 0xFFB347), // orange
+        Swatch(hex: 0xCFA68B, light: 0x895838, dark: 0xCFA68B), // brown
+        Swatch(hex: 0x8E9499, light: 0x5F6569, dark: 0x8E9499), // graphite
     ]
+
+    static let all: [UInt32] = swatches.map(\.hex)
+
+    /// The adaptive colour for a stored tint. A hex outside the catalog
+    /// (older data) renders as-is in both schemes.
+    static func color(for hex: UInt32) -> Color {
+        guard let swatch = swatches.first(where: { $0.hex == hex }) else {
+            return Color(hex: UInt(hex))
+        }
+        return Color(light: swatch.light, dark: swatch.dark)
+    }
 }

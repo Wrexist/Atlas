@@ -211,67 +211,66 @@ struct ProgressPhotosCard: View {
 
     private func populatedSlot(filename: String, image: UIImage) -> some View {
         let isRevealed = revealedFilename == filename
-        return Image(uiImage: image)
-            .resizable()
-            .scaledToFill()
-            .blur(radius: isRevealed ? 0 : 18)
-            .overlay(alignment: .topTrailing) {
-                if !isRevealed {
-                    Image(systemName: "eye.slash.fill")
-                        .font(AppFont.scaled(11, weight: .bold))
-                        .foregroundStyle(AppColor.onAccent.opacity(0.7))
-                        .padding(6)
+        return Button {
+            // Two-phase tap: first tap unblurs (privacy-by-default),
+            // second tap on an unblurred photo opens the full-screen
+            // viewer. Long-press still surfaces delete + "open in viewer"
+            // via the context menu.
+            if isRevealed {
+                viewerSelection = PhotoSelection(filename: filename)
+            } else {
+                AppAnimation.with(AppAnimation.springSnappy) {
+                    revealedFilename = filename
                 }
             }
-            .frame(maxWidth: .infinity)
-            .aspectRatio(1, contentMode: .fit)
-            .clipShape(RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                    .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
-            }
-            .contentShape(Rectangle())
-            // Wrap the tappable surface in a `Button` so VoiceOver
-            // announces it as interactive — `.onTapGesture` alone is
-            // invisible to assistive tech. The label changes between
-            // the two-phase states so a screen-reader user knows
-            // whether they're about to reveal or open.
-            .accessibilityElement(children: .ignore)
-            .accessibilityAddTraits(.isButton)
-            .accessibilityLabel(isRevealed ? Text("Open progress photo viewer") : Text("Show progress photo"))
-            .onTapGesture {
-                // Two-phase tap: first tap unblurs (privacy-by-
-                // default), second tap on an unblurred photo opens
-                // the full-screen viewer. Long-press still surfaces
-                // delete + "open in viewer" via the context menu.
-                if isRevealed {
-                    viewerSelection = PhotoSelection(filename: filename)
-                } else {
-                    AppAnimation.with(AppAnimation.springSnappy) {
-                        revealedFilename = filename
+            Haptics.impact(.light)
+        } label: {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .blur(radius: isRevealed ? 0 : 18)
+                .overlay(alignment: .topTrailing) {
+                    if !isRevealed {
+                        Image(systemName: "eye.slash.fill")
+                            .font(AppFont.scaled(11, weight: .bold))
+                            .foregroundStyle(AppColor.onAccent.opacity(0.7))
+                            .padding(6)
                     }
                 }
-                Haptics.impact(.light)
+                .frame(maxWidth: .infinity)
+                .aspectRatio(1, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                        .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                }
+                .contentShape(Rectangle())
+        }
+        // A real Button, so Full Keyboard Access and Switch Control can
+        // reach it and it presses like every other tile. The label changes
+        // between the two phases so a screen-reader user knows whether
+        // they're about to reveal or open.
+        .buttonStyle(ScalePressStyle())
+        .accessibilityLabel(isRevealed ? Text("Open progress photo viewer") : Text("Show progress photo"))
+        .contextMenu {
+            Button {
+                viewerSelection = PhotoSelection(filename: filename)
+            } label: {
+                Label("Open viewer", systemImage: "rectangle.expand.vertical")
             }
-            .contextMenu {
+            if dataStore.profile.progressPhotoFilenames.count >= 2 {
                 Button {
-                    viewerSelection = PhotoSelection(filename: filename)
+                    compareSelection = PhotoSelection(filename: filename)
                 } label: {
-                    Label("Open viewer", systemImage: "rectangle.expand.vertical")
-                }
-                if dataStore.profile.progressPhotoFilenames.count >= 2 {
-                    Button {
-                        compareSelection = PhotoSelection(filename: filename)
-                    } label: {
-                        Label("Compare", systemImage: "rectangle.split.2x1")
-                    }
-                }
-                Button(role: .destructive) {
-                    pendingDelete = filename
-                } label: {
-                    Label("Delete photo", systemImage: "trash")
+                    Label("Compare", systemImage: "rectangle.split.2x1")
                 }
             }
+            Button(role: .destructive) {
+                pendingDelete = filename
+            } label: {
+                Label("Delete photo", systemImage: "trash")
+            }
+        }
     }
 
     private var emptySlot: some View {

@@ -79,10 +79,16 @@ enum AppColor {
     // MARK: - Ink
 
     static let textPrimary = Color(light: 0x111114, dark: 0xF7F7FA)
-    static let textSecondary = Color(light: 0x5B5B63, dark: 0xA0A0A0)
+    static let textSecondary = Color(
+        light: 0x5B5B63, dark: 0xA0A0A0,
+        highContrastLight: 0x45454C, highContrastDark: 0xC4C4C4
+    )
     /// Deepened from `#666666` to clear WCAG AA (4.5:1) against the dark
     /// background and elevated surfaces. The previous value sat at ~3:1.
-    static let textTertiary = Color(light: 0x6E6E76, dark: 0x888888)
+    static let textTertiary = Color(
+        light: 0x6E6E76, dark: 0x888888,
+        highContrastLight: 0x52525A, highContrastDark: 0xADADAD
+    )
     static var textHighlight: Color { ThemeManager.shared.theme.highlight }
     /// Ink for text on the accent's own translucent wash (`.tinted` badges,
     /// `.primary` glass buttons), where `accentLight` falls below AA in light
@@ -118,10 +124,13 @@ enum AppColor {
     // MARK: - Glass
 
     /// Hairline separating a glass surface from the backdrop. Light mode
-    /// borrows a dark hairline; dark mode a light one.
+    /// borrows a dark hairline; dark mode a light one. Under Increase
+    /// Contrast it is the only edge a card has, so it firms up.
     static let glassBorder = Color.adaptive(
         light: Color.black.opacity(0.10),
-        dark: Color.white.opacity(0.08)
+        dark: Color.white.opacity(0.08),
+        highContrastLight: Color.black.opacity(0.25),
+        highContrastDark: Color.white.opacity(0.25)
     )
     static var glassBorderActive: Color { ThemeManager.shared.theme.primary.opacity(0.3) }
     /// The faint wash that lifts a card off the backdrop on pre-iOS-26 OSes.
@@ -135,7 +144,9 @@ enum AppColor {
     /// light cards it sits on, so the track vanished in light mode.
     static let track = Color.adaptive(
         light: Color.black.opacity(0.08),
-        dark: Color.white.opacity(0.08)
+        dark: Color.white.opacity(0.08),
+        highContrastLight: Color.black.opacity(0.2),
+        highContrastDark: Color.white.opacity(0.2)
     )
 
     // MARK: - Directional feedback
@@ -160,12 +171,12 @@ enum AppColor {
     // 11pt short-name label drawn in the tint on a 20% tint tile.
 
     static let labSexHormones = Color(light: 0xA02A50, dark: 0xF080AA)
-    static let labGrowth = Color(light: 0x186A3B, dark: 0x66C78C)
-    static let labThyroid = Color(light: 0x4A4FC4, dark: 0x9AA0F4)
+    static let labGrowth = Color(light: 0x15603A, dark: 0x66C78C)
+    static let labThyroid = Color(light: 0x4448B8, dark: 0x9AA0F4)
     static let labMetabolic = Color(light: 0x874705, dark: 0xF2A64C)
     static let labLipids = Color(light: 0xA32A2A, dark: 0xF07C7C)
     static let labOrganHealth = Color(light: 0x1A5F85, dark: 0x8CC7EB)
-    static let labOther = Color(light: 0x5D5D78, dark: 0xBFBFD9)
+    static let labOther = Color(light: 0x55556E, dark: 0xBFBFD9)
 
     // MARK: - Feature accents
 
@@ -190,6 +201,10 @@ enum AppColor {
     static let ringRecoveryEnd = Color(light: 0x2F7A3B, dark: 0x47C75C)
     static let ringSleepStart = Color(light: 0x6B63C4, dark: 0xA89EF5)
     static let ringSleepEnd = Color(light: 0x453FA8, dark: 0x7366D9)
+
+    /// Cool purple for a protocol's wash-out phase. Printed as the
+    /// cycle card's eyebrow, so the light value is deepened to 4.5:1.
+    static let cycleWashout = Color(light: 0x5A50B0, dark: 0x8C80D9)
 
     // MARK: - Semantic accents
     //
@@ -269,11 +284,33 @@ extension Color {
         })
     }
 
+    /// A token with stronger stops for Increase Contrast — for the inks
+    /// and hairlines that are deliberately quiet by default.
+    init(light: UInt, dark: UInt, highContrastLight: UInt, highContrastDark: UInt) {
+        self.init(uiColor: UIColor { traits in
+            let highContrast = traits.accessibilityContrast == .high
+            let hex = traits.userInterfaceStyle == .light
+                ? (highContrast ? highContrastLight : light)
+                : (highContrast ? highContrastDark : dark)
+            return UIColor(hex: hex, alpha: 1)
+        })
+    }
+
     /// Trait-resolving pair for tokens whose two halves aren't plain hexes
-    /// (translucent overlays, hairlines).
-    static func adaptive(light: Color, dark: Color) -> Color {
+    /// (translucent overlays, hairlines). The optional high-contrast halves
+    /// apply under Increase Contrast.
+    static func adaptive(
+        light: Color,
+        dark: Color,
+        highContrastLight: Color? = nil,
+        highContrastDark: Color? = nil
+    ) -> Color {
         Color(uiColor: UIColor { traits in
-            UIColor(traits.userInterfaceStyle == .light ? light : dark)
+            let highContrast = traits.accessibilityContrast == .high
+            if traits.userInterfaceStyle == .light {
+                return UIColor(highContrast ? highContrastLight ?? light : light)
+            }
+            return UIColor(highContrast ? highContrastDark ?? dark : dark)
         })
     }
 }
