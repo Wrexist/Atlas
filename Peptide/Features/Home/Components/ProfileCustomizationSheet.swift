@@ -563,7 +563,8 @@ struct ProfileCustomizationSheet: View {
                         .foregroundStyle(AppColor.textPrimary)
                 }
             }
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
+            .contentShape(Rectangle())
         }
         .buttonStyle(ScalePressStyle())
         .accessibilityLabel(color.displayName)
