@@ -41824,6 +41824,96 @@
           }
         }
       }
+    },
+    "Every item was logged that day.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allt loggades den dagen."
+          }
+        }
+      }
+    },
+    "Day logged — every item is checked off.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagen är loggad — allt är avbockat."
+          }
+        }
+      }
+    },
+    "of %@ goal": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "av målet %@"
+          }
+        }
+      }
+    },
+    "%lld/%lld taken": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld tagna"
+          }
+        }
+      }
+    },
+    "%lld of %lld doses taken": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld av %lld doser tagna"
+          }
+        }
+      }
+    },
+    "Lifestyle": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Livsstil"
+          }
+        }
+      }
+    },
+    "Last used: %@ — pick another to rotate.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senast använd: %@ — välj ett annat för att rotera."
+          }
+        }
+      }
+    },
+    "Last used": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senast använd"
+          }
+        }
+      }
+    },
+    "Start from %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utgå från %@"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

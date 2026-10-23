@@ -2,6 +2,9 @@ import SwiftUI
 
 struct DoseLoggingSheet: View {
     let entry: ProtocolEntry
+    /// The site of the previous injection, tagged on its chip so the user
+    /// can rotate away from it without remembering where it was.
+    let lastInjectionSite: String?
     let onLog: (String?, Date?, String?, String) -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -10,8 +13,13 @@ struct DoseLoggingSheet: View {
     @State private var selectedSite: String?
     @State private var notes: String
 
-    init(entry: ProtocolEntry, onLog: @escaping (String?, Date?, String?, String) -> Void) {
+    init(
+        entry: ProtocolEntry,
+        lastInjectionSite: String? = nil,
+        onLog: @escaping (String?, Date?, String?, String) -> Void
+    ) {
         self.entry = entry
+        self.lastInjectionSite = lastInjectionSite
         self.onLog = onLog
         _actualDose = State(initialValue: entry.actualDose ?? entry.dose)
         _actualTime = State(initialValue: entry.defaultLoggedTime())
@@ -105,34 +113,51 @@ struct DoseLoggingSheet: View {
                     if isInjectable {
                         GlassCard {
                             VStack(alignment: .leading, spacing: Spacing.md) {
-                                Label("Injection site", systemImage: "figure.arms.open")
-                                    .font(AppFont.headline)
-                                    .foregroundStyle(AppColor.textPrimary)
+                                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                                    Label("Injection site", systemImage: "figure.arms.open")
+                                        .font(AppFont.headline)
+                                        .foregroundStyle(AppColor.textPrimary)
+                                    if let lastSiteName {
+                                        Text("Last used: \(lastSiteName) — pick another to rotate.")
+                                            .font(AppFont.caption2)
+                                            .foregroundStyle(AppColor.textSecondary)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                }
 
                                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Spacing.sm) {
                                     ForEach(InjectionSite.allCases, id: \.rawValue) { site in
                                         let isSelected = selectedSite == site.rawValue
+                                        let isLastUsed = lastInjectionSite == site.rawValue
                                         Button {
                                             AppAnimation.with(AppAnimation.springBouncy) {
                                                 selectedSite = isSelected ? nil : site.rawValue
                                             }
                                             Haptics.selection()
                                         } label: {
-                                            Text(site.displayName)
-                                                .font(AppFont.caption2)
-                                                .fontWeight(.semibold)
-                                                .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
-                                                .frame(maxWidth: .infinity)
-                                                .padding(.vertical, Spacing.sm)
-                                                .frame(minHeight: Spacing.minimumHitTarget)
-                                                .glassControl(
-                                                    .rect(cornerRadius: Spacing.chipCornerRadius),
-                                                    tint: isSelected ? AppColor.accentPrimary.opacity(0.25) : AppColor.surfaceElevated,
-                                                    border: isSelected ? AppColor.glassBorderActive : AppColor.glassBorder
-                                                )
+                                            HStack(spacing: Spacing.xs) {
+                                                if isLastUsed {
+                                                    Image(systemName: "clock.arrow.circlepath")
+                                                        .font(AppFont.badgeSmall)
+                                                        .accessibilityHidden(true)
+                                                }
+                                                Text(site.displayName)
+                                            }
+                                            .font(AppFont.caption2)
+                                            .fontWeight(.semibold)
+                                            .foregroundStyle(isSelected ? AppColor.accentLight : AppColor.textSecondary)
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, Spacing.sm)
+                                            .frame(minHeight: Spacing.minimumHitTarget)
+                                            .glassControl(
+                                                .rect(cornerRadius: Spacing.chipCornerRadius),
+                                                tint: isSelected ? AppColor.accentPrimary.opacity(0.25) : AppColor.surfaceElevated,
+                                                border: isSelected ? AppColor.glassBorderActive : AppColor.glassBorder
+                                            )
                                         }
                                         .buttonStyle(ScalePressStyle())
                                         .accessibilityAddTraits(isSelected ? .isSelected : [])
+                                        .accessibilityValue(isLastUsed ? Text("Last used") : Text(verbatim: ""))
                                     }
                                 }
                             }
@@ -193,6 +218,12 @@ struct DoseLoggingSheet: View {
         }
     }
 
+    private var lastSiteName: String? {
+        guard let lastInjectionSite else { return nil }
+        guard let site = InjectionSite(rawValue: lastInjectionSite) else { return lastInjectionSite }
+        return String(localized: site.displayName)
+    }
+
     /// Routes that take an injection site — intramuscular as well as
     /// subcutaneous, which the old substring check left out.
     private var isInjectable: Bool {
@@ -210,5 +241,19 @@ extension ProtocolEntry {
         if let actualTime { return actualTime }
         if !completed, calendar.isDate(date, inSameDayAs: now) { return now }
         return min(date, now)
+    }
+
+    /// The site of the most recent injection logged at or before `now`,
+    /// other than this dose — what the logging sheet tags for rotation.
+    func lastInjectionSite(in entries: [ProtocolEntry], now: Date = Date()) -> String? {
+        entries
+            .filter { $0.id != id }
+            .compactMap { other -> (site: String, time: Date)? in
+                guard let site = other.injectionSite, !site.isEmpty else { return nil }
+                return (site, other.actualTime ?? other.date)
+            }
+            .filter { $0.time <= now }
+            .max { $0.time < $1.time }?
+            .site
     }
 }
