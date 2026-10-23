@@ -352,7 +352,7 @@ private struct DoseRow: View {
         }
         .lineLimit(1)
         .accessibilityElement(children: .combine)
-        .accessibilityValue(isOverdue ? Text("Overdue") : Text(""))
+        .accessibilityValue(isOverdue ? Text("Overdue") : Text(verbatim: ""))
     }
 }
 

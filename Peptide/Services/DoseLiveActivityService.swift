@@ -45,8 +45,10 @@ final class DoseLiveActivityService {
     /// edited (static attributes can't be updated, so those restart).
     /// Ending runs even with Live Activities switched off, so a card
     /// left up when the user disabled them still clears. Call on app
-    /// foreground + after every entry mutation.
-    func reconcile(entries: [ProtocolEntry]) {
+    /// foreground + after every entry mutation. Returns the end
+    /// requests, for a background run that must not finish first.
+    @discardableResult
+    func reconcile(entries: [ProtocolEntry]) -> [Task<Void, Never>] {
         let now = Date()
         let inWindow = entries.filter { entry in
             Self.isInActiveWindow(entry, at: now)
@@ -54,13 +56,14 @@ final class DoseLiveActivityService {
         let inWindowByID = Dictionary(inWindow.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
 
         var openIDs = Set<UUID>()
+        var ends: [Task<Void, Never>] = []
         // An ended activity still showing its Logged badge already has a
         // system-owned dismissal; ending it again would cut the badge.
         for activity in Activity<DoseWindowAttributes>.activities
         where [.active, .stale].contains(activity.activityState) {
             guard let entry = inWindowByID[activity.attributes.entryId],
                   Self.attributesMatch(activity.attributes, entry) else {
-                Task { await activity.end(nil, dismissalPolicy: .immediate) }
+                ends.append(Task { await activity.end(nil, dismissalPolicy: .immediate) })
                 continue
             }
             openIDs.insert(entry.id)
@@ -82,10 +85,11 @@ final class DoseLiveActivityService {
         // yet. If the user has 4+ open activities (the system soft
         // cap on most devices), skip the rest — better to leave the
         // earliest few than fail silently.
-        guard areLiveActivitiesEnabled else { return }
+        guard areLiveActivitiesEnabled else { return ends }
         for entry in inWindow where !openIDs.contains(entry.id) {
             startActivity(for: entry)
         }
+        return ends
     }
 
     /// Ends the matching activity on its `completed = true` state. The
@@ -203,8 +207,8 @@ final class DoseLiveActivityService {
     static func isInActiveWindow(_ entry: ProtocolEntry, at now: Date) -> Bool {
         guard !entry.completed else { return false }
         let windowStart = Calendar.current.date(byAdding: .minute, value: -startLeadMinutes, to: entry.date) ?? entry.date
-        let windowEnd = windowEnd(of: entry) ?? entry.date
-        return now >= windowStart && now <= windowEnd
+        let windowClose = Self.windowEnd(of: entry) ?? entry.date
+        return now >= windowStart && now <= windowClose
     }
 
     /// Extracts a packed RGB UInt from a SwiftUI Color so the widget

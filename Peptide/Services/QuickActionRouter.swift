@@ -129,9 +129,14 @@ final class AtlasAppDelegate: NSObject, UIApplicationDelegate {
             using: .main
         ) { task in
             MainActor.assumeIsolated {
-                IntentDataStore.resolve().reconcileDoseLiveActivities()
+                let ends = IntentDataStore.resolve().reconcileDoseLiveActivities()
+                // The app may be suspended once the task completes, so
+                // the end requests have to land first.
+                Task {
+                    for end in ends { await end.value }
+                    task.setTaskCompleted(success: true)
+                }
             }
-            task.setTaskCompleted(success: true)
         }
     }
 

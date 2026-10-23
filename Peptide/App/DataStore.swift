@@ -599,9 +599,10 @@ final class DataStore {
     /// Starts and ends lock-screen dose activities for active protocols
     /// only — the same set `todayEntries` shows — so a paused or
     /// completed protocol's dose never raises a "Time for X" activity.
-    func reconcileDoseLiveActivities() {
+    @discardableResult
+    func reconcileDoseLiveActivities() -> [Task<Void, Never>] {
         let activeIds = Set(activeProtocols.map(\.id))
-        DoseLiveActivityService.shared.reconcile(
+        return DoseLiveActivityService.shared.reconcile(
             entries: entries.filter { activeIds.contains($0.protocolId) }
         )
     }
