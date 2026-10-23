@@ -25,6 +25,8 @@ struct TrainingEntry: TimelineEntry {
     let lastSets: Int
     let lastVolume: Double
     let lastDurationMinutes: Int
+    /// The payload couldn't be read: the views draw redacted, not empty.
+    var isUnavailable = false
 
     var isActive: Bool { clockStart != nil }
 
@@ -109,38 +111,46 @@ struct TrainingTimelineProvider: TimelineProvider {
     func placeholder(in context: Context) -> TrainingEntry { .placeholder }
 
     func getSnapshot(in context: Context, completion: @escaping (TrainingEntry) -> Void) {
-        completion(context.isPreview ? .placeholder : currentEntry())
+        completion(context.isPreview ? .placeholder : entry(from: WidgetStore.load(), at: .now))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<TrainingEntry>) -> Void) {
-        let entry = currentEntry()
+        let now = Date.now
+        let payload = WidgetStore.load()
+        let current = entry(from: payload, at: now)
+        var entries = [current]
+        // WidgetKit may run the reload late; this entry moves today's
+        // dot along at midnight, and on a new week resets the week's
+        // figures, regardless.
+        if payload.isLoaded {
+            entries.append(entry(from: payload, at: WidgetData.nextMidnight(after: now)))
+        }
         // A running workout's timer ticks on its own; the reload is only
         // there to catch the finish, so it stays cheap either way.
-        let next = WidgetStore.nextRefresh(after: .now, minutes: entry.isActive ? 15 : 30)
-        completion(Timeline(entries: [entry], policy: .after(next)))
+        let next = payload.reloadDate(after: now, minutes: current.isActive ? 15 : 30)
+        completion(Timeline(entries: entries, policy: .after(next)))
     }
 
-    private func currentEntry() -> TrainingEntry {
-        guard let data = WidgetStore.load() else { return .empty }
-        let last = data.lastWorkout
-        // The weekly figures belong to the week the app last wrote them
-        // in. Past a Monday with no app launch they would be last week's,
-        // so the widget starts the new week at zero instead.
-        let sameWeek = Calendar.current.isDate(data.lastUpdated, equalTo: .now, toGranularity: .weekOfYear)
-        let start = data.activeWorkoutStart(at: .now)
-        var pausedElapsed: Int?
-        if let start, let pausedAt = data.activeWorkoutPausedAt {
-            pausedElapsed = max(0, Int(pausedAt.timeIntervalSince(start) - data.activeWorkoutPausedSeconds))
+    private func entry(from payload: WidgetPayload, at date: Date) -> TrainingEntry {
+        let data: WidgetData
+        switch payload {
+        case .missing: return .empty
+        case .unreadable:
+            var entry = TrainingEntry.placeholder
+            entry.isUnavailable = true
+            return entry
+        case .loaded(let loaded): data = loaded.forDisplay(at: date)
         }
+        let last = data.lastWorkout
         return TrainingEntry(
-            date: .now,
-            clockStart: start?.addingTimeInterval(data.activeWorkoutPausedSeconds),
-            pausedElapsed: pausedElapsed,
-            workoutsThisWeek: sameWeek ? data.workoutsThisWeek : 0,
-            weeklySets: sameWeek ? data.weeklySetCount : 0,
-            weeklyVolume: sameWeek ? data.volumeInUserUnit(data.weeklyVolumeKg) : 0,
+            date: date,
+            clockStart: data.activeWorkoutClockStart,
+            pausedElapsed: data.activeWorkoutPausedElapsed,
+            workoutsThisWeek: data.workoutsThisWeek,
+            weeklySets: data.weeklySetCount,
+            weeklyVolume: data.volumeInUserUnit(data.weeklyVolumeKg),
             unitSuffix: data.weightSuffix,
-            week: TrainingDay.week(containing: .now, trained: sameWeek ? data.trainingDaysThisWeek : []),
+            week: TrainingDay.week(containing: date, trained: data.trainingDaysThisWeek),
             lastName: last?.name ?? "",
             lastFinishedAt: last?.finishedAt,
             lastSets: last?.setCount ?? 0,
@@ -298,6 +308,9 @@ private struct FirstWorkoutPrompt: View {
 private struct StatPair: View {
     let value: String
     let label: LocalizedStringKey
+    /// `value` as it should be spoken, where the shown form is
+    /// ambiguous aloud ("58m" can be read as "58 meters").
+    var spokenValue: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -310,6 +323,9 @@ private struct StatPair: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(label))
+        .accessibilityValue(Text(spokenValue ?? value))
     }
 }
 
@@ -415,7 +431,11 @@ private struct MediumTrainingView: View {
                 Spacer(minLength: 4)
                 HStack(spacing: 10) {
                     StatPair(value: "\(entry.lastSets)", label: "sets")
-                    StatPair(value: WidgetFormat.duration(minutes: entry.lastDurationMinutes), label: "time")
+                    StatPair(
+                        value: WidgetFormat.duration(minutes: entry.lastDurationMinutes),
+                        label: "time",
+                        spokenValue: WidgetFormat.spokenDuration(minutes: entry.lastDurationMinutes)
+                    )
                     StatPair(value: WidgetFormat.volume(entry.lastVolume, suffix: entry.unitSuffix), label: "volume")
                 }
             } else {
@@ -438,9 +458,12 @@ private struct CircularTrainingView: View {
         ZStack {
             AccessoryWidgetBackground()
             VStack(spacing: 0) {
+                // While a workout runs the glyph names the clock beside
+                // it; otherwise the count carries its own label.
                 Image(systemName: entry.pausedElapsed == nil ? trainingGlyph : "pause.fill")
                     .font(.caption)
-                    .accessibilityHidden(true)
+                    .accessibilityLabel(entry.pausedElapsed == nil ? Text("Workout time") : Text("Workout paused"))
+                    .accessibilityHidden(!entry.isActive)
                 if entry.isActive {
                     WorkoutClock(entry: entry, font: .caption.weight(.bold))
                         .multilineTextAlignment(.center)
@@ -453,6 +476,7 @@ private struct CircularTrainingView: View {
                 }
             }
             .widgetAccentable()
+            .accessibilityElement(children: .combine)
         }
     }
 }
@@ -526,6 +550,7 @@ struct TrainingWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: TrainingTimelineProvider()) { entry in
             TrainingWidgetView(entry: entry)
+                .redacted(reason: entry.isUnavailable ? .placeholder : [])
                 .widgetURL(WidgetDeepLink.train)
         }
         .configurationDisplayName("Training")

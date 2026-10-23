@@ -21,6 +21,7 @@ enum WidgetSnapshotBuilder {
     static func build(
         today: [ProtocolEntry],
         next: ProtocolEntry?,
+        hasActiveProtocol: Bool = false,
         consumption: DailyConsumption = .empty(on: Date()),
         targets: NutritionTargets? = nil,
         breakdown: LifestyleDataLogic.CategoryBreakdown? = nil,
@@ -78,6 +79,7 @@ enum WidgetSnapshotBuilder {
             totalToday: today.count,
             lastUpdated: now,
             upcoming: Array(upcoming),
+            hasActiveProtocol: hasActiveProtocol,
             caloriesToday: consumption.caloriesKcal,
             calorieTarget: targets?.calories ?? 0,
             proteinToday: consumption.proteinG,

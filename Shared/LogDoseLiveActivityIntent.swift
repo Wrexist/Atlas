@@ -8,22 +8,19 @@ import AppIntents
 /// on the Dynamic Island / Lock-Screen live activity (iOS 17+).
 ///
 /// Lives in /Shared so both the app target and the widget extension
-/// reference the same type. iOS runs this intent **in the live
-/// activity's host process** — usually the widget extension — for
-/// sub-second latency. Two side effects fire on each tap:
+/// reference the same type. iOS runs a `LiveActivityIntent` in the
+/// app's process, launching it in the background if needed. Three side
+/// effects fire on each tap:
 ///
-///   1. End the activity on its `completed = true` state so the user
-///      sees an instant "Logged" badge that dismisses itself, without
-///      waiting on the main app to wake up.
-///   2. Drop a `PendingDoseLogStore.PendingLog` marker in the App
-///      Group inbox. The main app drains it on next foreground via
-///      `PendingDoseLogProcessor` and toggles the real
-///      `ProtocolEntry`.
-///
-/// This split keeps the widget extension's memory budget tiny — it
-/// never touches SwiftData / CloudKit / VialPalette / the full
-/// `DataStore` — while still giving the user the immediate visual
-/// confirmation an interactive button needs.
+///   1. Drop a `PendingDoseLogStore.PendingLog` marker in the App
+///      Group inbox, so the tap survives whatever happens next.
+///   2. End the activity on its `completed = true` state so the user
+///      sees an instant "Logged" badge that dismisses itself.
+///   3. Apply the marker through `PendingDoseLogStore.applyInProcess`
+///      before returning: iOS may suspend a background launch as soon
+///      as `perform()` returns, before the Darwin-notification drain
+///      gets its turn, which would leave the dose due on the widgets
+///      and its reminder armed until the next foreground.
 @available(iOS 17.0, *)
 struct LogDoseLiveActivityIntent: LiveActivityIntent {
     static let title: LocalizedStringResource = "Log dose"
@@ -81,6 +78,7 @@ struct LogDoseLiveActivityIntent: LiveActivityIntent {
                 dismissalPolicy: .after(dismissAt)
             )
         }
+        await MainActor.run { PendingDoseLogStore.applyInProcess?() }
         return .result()
     }
 }

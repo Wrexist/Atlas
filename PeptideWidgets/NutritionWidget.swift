@@ -16,6 +16,8 @@ struct NutritionEntry: TimelineEntry {
     let carbsTarget: Int
     let fatTarget: Int
     let meals: [WidgetMealSlot]
+    /// The payload couldn't be read: the views draw redacted, not zero.
+    var isUnavailable = false
 
     var progress: Double {
         guard target > 0 else { return 0 }
@@ -80,35 +82,42 @@ struct NutritionTimelineProvider: TimelineProvider {
     func placeholder(in context: Context) -> NutritionEntry { .placeholder }
 
     func getSnapshot(in context: Context, completion: @escaping (NutritionEntry) -> Void) {
-        completion(context.isPreview ? .placeholder : currentEntry())
+        completion(context.isPreview ? .placeholder : entry(from: WidgetStore.load(), at: .now))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<NutritionEntry>) -> Void) {
-        completion(Timeline(
-            entries: [currentEntry()],
-            policy: .after(WidgetStore.nextRefresh(after: .now))
-        ))
+        let now = Date.now
+        let payload = WidgetStore.load()
+        var entries = [entry(from: payload, at: now)]
+        // WidgetKit may run the reload late; this entry starts the new
+        // day at zero at midnight regardless.
+        if payload.isLoaded {
+            entries.append(entry(from: payload, at: WidgetData.nextMidnight(after: now)))
+        }
+        completion(Timeline(entries: entries, policy: .after(payload.reloadDate(after: now))))
     }
 
-    private func currentEntry() -> NutritionEntry {
-        guard let data = WidgetStore.load() else { return .empty }
-        // The intake belongs to the day the app last wrote it. Past
-        // midnight with no app launch it would be yesterday's, so the
-        // widget starts the new day at zero against the same targets.
-        let today = Calendar.current.isDateInToday(data.lastUpdated)
+    private func entry(from payload: WidgetPayload, at date: Date) -> NutritionEntry {
+        let data: WidgetData
+        switch payload {
+        case .missing: return .empty
+        case .unreadable:
+            var entry = NutritionEntry.placeholder
+            entry.isUnavailable = true
+            return entry
+        case .loaded(let loaded): data = loaded.forDisplay(at: date)
+        }
         return NutritionEntry(
-            date: .now,
-            calories: today ? data.caloriesToday : 0,
+            date: date,
+            calories: data.caloriesToday,
             target: data.calorieTarget,
-            protein: today ? data.proteinToday : 0,
-            carbs: today ? data.carbsToday : 0,
-            fat: today ? data.fatToday : 0,
+            protein: data.proteinToday,
+            carbs: data.carbsToday,
+            fat: data.fatToday,
             proteinTarget: data.proteinTarget,
             carbsTarget: data.carbsTarget,
             fatTarget: data.fatTarget,
-            meals: today ? data.mealsByCategory : data.mealsByCategory.map {
-                WidgetMealSlot(category: $0.category, calories: 0, entryCount: 0)
-            }
+            meals: data.mealsByCategory
         )
     }
 }
@@ -209,6 +218,13 @@ private struct Macro: Identifiable {
 
     var amount: String { target > 0 ? "\(grams) / \(target) g" : "\(grams) g" }
 
+    /// "Protein 95 of 150 grams" — `amount` reads as "95 slash 150 g".
+    var spokenAmount: Text {
+        target > 0
+            ? Text("\(Text(name)) \(grams) of \(target) grams")
+            : Text("\(Text(name)) \(grams) grams")
+    }
+
     static func all(_ entry: NutritionEntry) -> [Macro] {
         [
             Macro(id: "p", name: "Protein", letter: "P", grams: entry.protein,
@@ -240,6 +256,8 @@ private struct CompactMacro: View {
             .lineLimit(1)
             .minimumScaleFactor(0.8)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("\(Text(macro.name)) \(macro.grams) grams"))
     }
 }
 
@@ -260,6 +278,8 @@ private struct MacroRow: View {
             .lineLimit(1)
             WidgetBar(progress: macro.progress, tint: macro.tint)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(macro.spokenAmount)
     }
 }
 
@@ -322,13 +342,17 @@ private struct MediumNutritionView: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            // Ring + gap + 44pt targets fill the same 126pt column the
-            // 86pt ring and 32pt glyphs did, so the right side keeps its room.
-            VStack(spacing: 4) {
+            // The 44pt targets keep their size and the ring takes what
+            // height is left, up to 78pt: a medium widget on a 375pt-wide
+            // phone has about 116pt inside its margins, less than a fixed
+            // 78pt ring plus the targets.
+            VStack(spacing: 0) {
                 CalorieRing(entry: entry, lineWidth: 9)
                     .overlay { CalorieCenter(entry: entry, large: true) }
                     .calorieAccessibility(entry)
-                    .frame(width: 78, height: 78)
+                    .aspectRatio(1, contentMode: .fit)
+                    .frame(maxWidth: 78, maxHeight: 78)
+                    .layoutPriority(-1)
                 // The 44pt hit frames sit edge to edge; the 32pt circles
                 // inside them still read as two separate buttons.
                 HStack(spacing: 0) {
@@ -351,7 +375,10 @@ private struct MediumNutritionView: View {
                     glyph: "fork.knife",
                     title: "Nutrition",
                     tint: WidgetPalette.brand,
-                    trailing: totalLabel
+                    trailing: totalLabel,
+                    trailingAccessibilityLabel: entry.target > 0
+                        ? Text("\(entry.calories) of \(entry.target) calories")
+                        : nil
                 )
                 VStack(spacing: 4) {
                     ForEach(Macro.all(entry)) { MacroRow(macro: $0) }
@@ -477,6 +504,7 @@ struct NutritionWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: NutritionTimelineProvider()) { entry in
             NutritionWidgetView(entry: entry)
+                .redacted(reason: entry.isUnavailable ? .placeholder : [])
                 .widgetURL(WidgetDeepLink.meals)
         }
         .configurationDisplayName("Nutrition")

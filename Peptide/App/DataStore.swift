@@ -599,9 +599,10 @@ final class DataStore {
     /// Starts and ends lock-screen dose activities for active protocols
     /// only — the same set `todayEntries` shows — so a paused or
     /// completed protocol's dose never raises a "Time for X" activity.
-    func reconcileDoseLiveActivities() {
+    @discardableResult
+    func reconcileDoseLiveActivities() -> [Task<Void, Never>] {
         let activeIds = Set(activeProtocols.map(\.id))
-        DoseLiveActivityService.shared.reconcile(
+        return DoseLiveActivityService.shared.reconcile(
             entries: entries.filter { activeIds.contains($0.protocolId) }
         )
     }
@@ -2665,6 +2666,7 @@ final class DataStore {
         let data = WidgetSnapshotBuilder.build(
             today: todayEntries,
             next: nextDose,
+            hasActiveProtocol: !activeProtocols.isEmpty,
             consumption: LifestyleDataLogic.consumption(in: profile, for: Date()),
             targets: profile.nutritionTargets,
             breakdown: LifestyleDataLogic.mealsByCategory(in: profile, for: Date()),
@@ -2673,8 +2675,10 @@ final class DataStore {
             unit: profile.bodyMetrics.unit
         )
         if let lastWidgetData, data.hasSameContent(as: lastWidgetData) { return }
+        // Remembered only once written: a failed write must not make the
+        // next identical payload look like a no-op.
+        guard PersistenceService.shared.updateWidgetData(data) else { return }
         lastWidgetData = data
-        PersistenceService.shared.updateWidgetData(data)
         WidgetCenter.shared.reloadAllTimelines()
     }
 
