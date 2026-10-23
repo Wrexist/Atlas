@@ -258,7 +258,7 @@ does not seed, so those pages never appear. The store set is therefore
 HTML renders of the watch app's own pages in
 `marketing/app-store/screens-watch/`. The geometry is drawn by
 `assets/watch.js`, which mirrors the SwiftUI views, and the colours
-come from `WatchShared/WatchPalette.swift`.
+come from `Shared/WatchPalette.swift`.
 
 - `node render.mjs --watch` in `marketing/app-store/` renders all six
   screens natively at every App Store Connect watch slot: Ultra 3

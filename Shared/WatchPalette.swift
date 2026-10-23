@@ -3,6 +3,9 @@ import SwiftUI
 /// Colour tokens for the Watch app and its complications. Neither watch
 /// target compiles the iPhone design system, so the brand values that
 /// matter on the wrist are reproduced here, once, instead of per file.
+/// It lives in `Shared/` so the iPhone app and its widgets read the same
+/// values (tier tints, the widgets' dark-mode accents) instead of copying
+/// the hex.
 ///
 /// The Watch is dark-only, so these are single values rather than
 /// light/dark pairs. Each page blooms its accent over true black (see
@@ -41,15 +44,21 @@ enum WatchPalette {
     /// Ring and progress-bar track behind a coloured fill.
     static let track = Color.white.opacity(0.12)
 
-    /// Mirrors `MomentumEngine.Tier.tintHex` so the Atlas Score reads in
-    /// the same prestige colour the phone shows.
+    /// The Atlas Score prestige colour for a `MomentumEngine.Tier` raw
+    /// value, so the wrist and the phone show the same band.
     static func tier(_ raw: String?) -> Color {
+        hex(tierHex(raw))
+    }
+
+    /// 24-bit RGB behind `tier(_:)`; `MomentumEngine.Tier.tintHex` reads it.
+    /// Unknown or missing tiers fall back to bronze.
+    static func tierHex(_ raw: String?) -> UInt32 {
         switch raw {
-        case "silver": return hex(0xB8C0C8)
-        case "gold": return hex(0xD4A844)
-        case "platinum": return hex(0x8FD0C4)
-        case "diamond": return hex(0x7CC5FF)
-        default: return hex(0xCD7F4F)
+        case "silver": return 0xB8C0C8
+        case "gold": return 0xD4A844
+        case "platinum": return 0x8FD0C4
+        case "diamond": return 0x7CC5FF
+        default: return 0xCD7F4F
         }
     }
 

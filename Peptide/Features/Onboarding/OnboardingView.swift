@@ -95,7 +95,6 @@ struct OnboardingView: View {
     @State private var creatorCodeInput: String = ""
     @State private var creatorAttribution: CreatorAttribution?
     @State private var creatorError: String?
-    @State private var showingAffiliateApply: Bool = false
     // Projection chart "reveal" state. Drives a tasteful fade-in on
     // the chart instead of jump-cutting in fully drawn.
     @State private var projectionRevealed: Bool = false
@@ -2189,14 +2188,11 @@ struct OnboardingView: View {
         .accessibilityElement(children: .combine)
     }
 
-    // MARK: - Creator code / affiliate apply
+    // MARK: - Creator code
 
-    /// Dual-purpose step. For users with a code: enter it and we
-    /// stamp the attribution onto the profile (credit only — no
-    /// discount is applied at checkout). For users
-    /// without a code: tap "Apply to be an affiliate" to surface a
-    /// short form (handle, audience, channel link). Either path
-    /// advances the onboarding; the step is skippable.
+    /// Users with a code enter it and we stamp the attribution onto
+    /// the profile (credit only — no discount is applied at
+    /// checkout). The step is skippable.
     private var creatorCodeStep: some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
@@ -2214,27 +2210,9 @@ struct OnboardingView: View {
                     creatorCodeField
                 }
 
-                if AffiliateIntakeService.drainConfigured {
-                    affiliateApplyButton
-                }
-
                 Spacer(minLength: 100)
             }
             .padding(.horizontal, Spacing.lg)
-        }
-        .sheet(isPresented: $showingAffiliateApply) {
-            AffiliateApplySheet(
-                userName: dataStore.profile.name,
-                userEmail: dataStore.profile.emailSubscription?.email,
-                onSubmit: { application in
-                    OnboardingFunnelTracker.recordEvent("creator_program_application_submitted")
-                    // Persist the application onto the profile so a
-                    // future Supabase drain can replay it 1:1. Backend
-                    // wiring is a follow-up; local-only today.
-                    dataStore.profile.affiliateApplication = application
-                    dataStore.flushPendingSave()
-                }
-            )
         }
     }
 
@@ -2294,31 +2272,6 @@ struct OnboardingView: View {
         )
         .transition(.scale(scale: 0.94).combined(with: .opacity))
     }
-
-    /// Secondary "Join the creator program" link below the code
-    /// field. Toned-down chrome (no sparkle, neutral text colour) so
-    /// it reads as the secondary it is — the primary path on this
-    /// step is still entering a code and tapping Continue (audit
-    /// LOW: affiliate CTA was competing visually with the primary).
-    private var affiliateApplyButton: some View {
-        Button {
-            Haptics.impact(.soft)
-            OnboardingFunnelTracker.recordEvent("creator_program_apply_opened")
-            showingAffiliateApply = true
-        } label: {
-            HStack(spacing: Spacing.xs) {
-                Text("Join the creator program")
-                    .font(AppFont.footnote.weight(.semibold))
-                Image(systemName: "arrow.up.right")
-                    .font(AppFont.scaled(11, weight: .bold))
-            }
-            .foregroundStyle(AppColor.textSecondary)
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.sm)
-        }
-        .buttonStyle(.plain)
-    }
-
 }
 
 /// Compact trust pill under the welcome headline — the first trust

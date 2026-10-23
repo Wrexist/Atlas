@@ -11,7 +11,6 @@ import SwiftUI
 struct PrivacySummaryView: View {
     @Environment(DataStore.self) private var dataStore
     @State private var aiConsentGranted = AIDataConsent.isGranted
-    @AppStorage(OnboardingFunnelTracker.consentKey) private var shareOnboardingFunnel = false
 
     var body: some View {
         ScrollView {
@@ -33,12 +32,6 @@ struct PrivacySummaryView: View {
 
                 aiSharingCard
                     .sectionAppear(index: 2)
-
-                // Only rendered when the build carries a drain endpoint —
-                // current builds don't, so the claims above hold.
-                if OnboardingFunnelTracker.drainConfigured {
-                    funnelConsentCard
-                }
 
                 manifestChip
                     .sectionAppear(index: 3)
@@ -110,23 +103,6 @@ struct PrivacySummaryView: View {
                 dataStore: dataStore,
                 isPro: StoreService.shared.isProUser
             )
-        }
-    }
-
-    private var funnelConsentCard: some View {
-        GlassCard {
-            Toggle(isOn: $shareOnboardingFunnel) {
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text("Share onboarding diagnostics")
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textPrimary)
-                    Text("Off by default. When on, setup-flow step timings upload once under a random ID — never your name, email, or health data.")
-                        .font(AppFont.caption2)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .tint(AppColor.accentPrimary)
         }
     }
 

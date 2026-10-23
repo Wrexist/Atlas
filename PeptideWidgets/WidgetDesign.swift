@@ -12,18 +12,18 @@ import UIKit
 /// home screen's appearance, not the app's Display setting.
 enum WidgetPalette {
     /// `AppTheme.teal.primary`, the default brand emerald.
-    static let brand = dynamic(light: 0x077A55, dark: 0x10B981)
+    static let brand = dynamic(light: 0x077A55, dark: WatchPalette.calories)
     /// `AppColor.macroWater` — the same blue the Watch uses for training.
-    static let training = dynamic(light: 0x1F6FC0, dark: 0x378ADD)
+    static let training = dynamic(light: 0x1F6FC0, dark: WatchPalette.training)
     /// `WatchPalette.protocolDose`, darkened in light mode for contrast.
-    static let protocolDose = dynamic(light: 0x6D4FD1, dark: 0xA78BFA)
+    static let protocolDose = dynamic(light: 0x6D4FD1, dark: WatchPalette.protocolDose)
     /// `AppColor.positive`.
     static let done = dynamic(light: 0x2F8F5B, dark: 0x66C78C)
     /// `AppColor.warning`.
     static let over = dynamic(light: 0x9A6B00, dark: 0xFFB800)
 
     /// `AppColor.macroProtein`, `.macroCarbs`, `.macroFat`.
-    static let protein = dynamic(light: 0xB56F0B, dark: 0xEF9F27)
+    static let protein = dynamic(light: 0xB56F0B, dark: WatchPalette.protein)
     static let carbs = dynamic(light: 0x2A6F55, dark: 0x5FD3A0)
     static let fat = dynamic(light: 0x9E4055, dark: 0xE8899F)
 
@@ -33,6 +33,14 @@ enum WidgetPalette {
     private static func dynamic(light: UInt32, dark: UInt32) -> Color {
         Color(uiColor: UIColor { traits in
             UIColor(hex: traits.userInterfaceStyle == .dark ? dark : light)
+        })
+    }
+
+    /// Dark value taken from `WatchPalette` where the wrist already
+    /// defines the same colour, so the hex lives in one place.
+    private static func dynamic(light: UInt32, dark: Color) -> Color {
+        Color(uiColor: UIColor { traits in
+            traits.userInterfaceStyle == .dark ? UIColor(dark) : UIColor(hex: light)
         })
     }
 }
