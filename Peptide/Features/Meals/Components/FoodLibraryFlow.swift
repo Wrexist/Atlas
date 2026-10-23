@@ -215,7 +215,13 @@ struct FoodLibraryFlow: View {
                 onSave: { saved in
                     dataStore.saveCustomFood(saved)
                     editingCustomFood = nil
-                    tab = .myFoods
+                    // From the blocked review, land on a loggable review
+                    // of the new food instead of the dead end.
+                    if phase == .review {
+                        select(saved.toScannedProduct())
+                    } else {
+                        tab = .myFoods
+                    }
                 },
                 onCancel: { editingCustomFood = nil },
                 onDelete: profile.customFoods.contains(where: { $0.id == food.id }) ? { id in
@@ -1221,9 +1227,7 @@ struct FoodLibraryFlow: View {
                     text: String(localized: "This product has no calorie data in Open Food Facts. Save it as a custom food with the values from its label.")
                 )
                 GlassButton(title: "Create custom food", icon: "plus", style: .secondary, isFullWidth: true) {
-                    var food = CustomFood.blank
-                    food.name = product.name
-                    editingCustomFood = food
+                    editingCustomFood = SmartFoodLogic.customFood(from: product, pricePer100g: nil)
                 }
             }
         }
