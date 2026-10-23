@@ -1,3 +1,4 @@
+import AuthenticationServices
 import XCTest
 @testable import Peptide
 
@@ -65,6 +66,21 @@ final class AuthServiceTests: XCTestCase {
     /// as one call — the second invocation can't crash on the absent
     /// Keychain items. This is the only post-signOut state the unit
     /// test target can verify without faking a real authorization.
+    func test_finishSignIn_userCanceled_raisesNoError() {
+        auth.clearLastError()
+        auth.finishSignIn(result: .failure(ASAuthorizationError(.canceled)))
+        XCTAssertNil(auth.lastError)
+    }
+
+    func test_finishSignIn_failure_raisesFailedError() {
+        auth.clearLastError()
+        defer { auth.clearLastError() }
+        auth.finishSignIn(result: .failure(ASAuthorizationError(.failed)))
+        guard case .failed? = auth.lastError else {
+            return XCTFail("Expected .failed, got \(String(describing: auth.lastError))")
+        }
+    }
+
     func test_signOut_isIdempotent() {
         auth.signOut()
         auth.signOut()
