@@ -922,6 +922,15 @@ struct BarcodeScanFlow: View {
                     phase = BarcodeScannerView.canScan ? .scanning : .manualEntry
                 }
 
+                if BarcodeScannerView.canScan {
+                    GlassButton(title: "Type the code", icon: "keyboard", style: .secondary) {
+                        errorText = nil
+                        product = nil
+                        resetScanResults()
+                        phase = .manualEntry
+                    }
+                }
+
                 // Network / rate-limit / decode failures shouldn't trap
                 // the user — give them the same photo escape hatch the
                 // notFound card offers.

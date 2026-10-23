@@ -39932,6 +39932,26 @@
           }
         }
       }
+    },
+    "The camera couldn't start. Close and reopen the scanner, or type the code.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kameran kunde inte starta. Stäng och öppna skannern igen, eller skriv in koden."
+          }
+        }
+      }
+    },
+    "Type the code": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skriv in koden"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
