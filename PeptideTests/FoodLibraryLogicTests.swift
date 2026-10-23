@@ -22,6 +22,52 @@ final class FoodLibraryLogicTests: XCTestCase {
         XCTAssertNil(oats.toScannedProduct().loggable(for: .grams(.nan)))
     }
 
+    private func offProduct(_ per100g: ScannedProduct.Nutriments, nutritionMissing: Bool = false) -> ScannedProduct {
+        ScannedProduct(barcode: "7310070000000", name: "Water", brand: nil, imageURL: nil,
+                       servingSizeText: nil, servingGrams: nil, packageGrams: 500,
+                       per100g: per100g, nutriScore: nil, novaGroup: nil, fetchedAt: Date(),
+                       nutritionMissing: nutritionMissing)
+    }
+
+    func test_hasUsableNutrition_statedZeroCalorieProduct_isLoggable() {
+        XCTAssertTrue(FoodLibraryLogic.hasUsableNutrition(offProduct(.zero)))
+    }
+
+    func test_hasUsableNutrition_missingNutrition_isBlocked() {
+        XCTAssertFalse(FoodLibraryLogic.hasUsableNutrition(offProduct(.zero, nutritionMissing: true)))
+    }
+
+    func test_hasUsableNutrition_macrosWithoutEnergy_isBlocked() {
+        let proteinOnly = ScannedProduct.Nutriments(calories: 0, proteinG: 20, carbsG: 0, fatG: 0, fiberG: nil, sugarsG: nil)
+        XCTAssertFalse(FoodLibraryLogic.hasUsableNutrition(offProduct(proteinOnly)))
+    }
+
+    func test_hasUsableNutrition_customFood_isAlwaysLoggable() {
+        let custom = CustomFood(name: "Tea", per100g: .zero).toScannedProduct()
+        XCTAssertTrue(FoodLibraryLogic.hasUsableNutrition(custom))
+    }
+
+    func test_wholeNumber_nonFiniteOrHugeValue_doesNotTrap() {
+        XCTAssertEqual(FoodLibraryLogic.wholeNumber(.nan), 0)
+        XCTAssertEqual(FoodLibraryLogic.wholeNumber(.infinity), 0)
+        XCTAssertEqual(FoodLibraryLogic.wholeNumber(1e30), 99_999)
+        XCTAssertEqual(FoodLibraryLogic.wholeNumber(-3), 0)
+        XCTAssertEqual(FoodLibraryLogic.wholeNumber(12.6), 13)
+    }
+
+    func test_recipeCount_foodUsedInSomeRecipes_countsOnlyThose() {
+        let oats = food(), rice = food("Rice")
+        let bowl = Recipe(name: "Bowl", components: [
+            Recipe.Component(foodID: oats.foodID, cachedName: "Oats", portion: .grams(80)),
+            Recipe.Component(foodID: oats.foodID, cachedName: "Oats", portion: .grams(20)),
+        ])
+        let plate = Recipe(name: "Plate", components: [
+            Recipe.Component(foodID: rice.foodID, cachedName: "Rice", portion: .grams(150)),
+        ])
+        XCTAssertEqual(RecipeDataLogic.recipeCount(using: oats.foodID, in: [bowl, plate]), 1)
+        XCTAssertEqual(RecipeDataLogic.recipeCount(using: food("Unused").foodID, in: [bowl, plate]), 0)
+    }
+
     func testSearchRankingDeduplicatesAndPreservesTies() {
         let exact = food("Oats").toScannedProduct()
         let prefix = food("Oats rolled").toScannedProduct()
@@ -95,5 +141,78 @@ final class FoodLibraryLogicTests: XCTestCase {
         let entry = try XCTUnwrap(store.logRecipe(recipe))
         XCTAssertEqual(entry.calories, 0)
         XCTAssertTrue(store.profile.mealHistory.contains { $0.id == entry.id })
+    }
+
+    @MainActor
+    func test_logRecipeIntent_zeroCalorieRecipe_logs() {
+        let repo = SwiftDataRepository.shared
+        repo.configureForTesting()
+        let store = DataStore(seedSampleData: false)
+        defer {
+            store.flushPendingSave()
+            DataStore.current = nil
+            repo.configureForTesting()
+        }
+        store.profile.healthKitNutritionEnabled = false
+        let tea = CustomFood(name: "Tea", per100g: .zero)
+        let recipe = Recipe(name: "Tea", components: [.init(foodID: tea.foodID, cachedName: "Tea", portion: .grams(250))])
+        store.profile.customFoods = [tea]
+        store.profile.recipes = [recipe]
+        store.flushPendingSave()
+        let now = Date()
+
+        let outcome = LogRecipeIntent.log(recipeID: recipe.id.uuidString, in: store, at: now)
+
+        XCTAssertEqual(outcome, .logged(name: "Tea", calories: 0, category: MealCategory.auto(for: now)))
+        XCTAssertTrue(store.profile.mealHistory.contains { $0.name == "Tea" })
+    }
+
+    @MainActor
+    func test_logRecipeIntent_missingFood_reportsEmptyAndLogsNothing() {
+        let repo = SwiftDataRepository.shared
+        repo.configureForTesting()
+        let store = DataStore(seedSampleData: false)
+        defer {
+            store.flushPendingSave()
+            DataStore.current = nil
+            repo.configureForTesting()
+        }
+        store.profile.healthKitNutritionEnabled = false
+        let recipe = Recipe(name: "Bowl", components: [.init(foodID: "custom:missing", cachedName: "Gone", portion: .grams(80))])
+        store.profile.recipes = [recipe]
+        store.flushPendingSave()
+        let before = store.profile.mealHistory.count
+
+        XCTAssertEqual(LogRecipeIntent.log(recipeID: recipe.id.uuidString, in: store, at: Date()), .empty)
+        XCTAssertEqual(store.profile.mealHistory.count, before)
+        XCTAssertEqual(LogRecipeIntent.log(recipeID: UUID().uuidString, in: store, at: Date()), .notFound)
+    }
+
+    @MainActor
+    func test_logMealIntent_saveFails_reportsFailureAndLogsNothing() {
+        let repo = SwiftDataRepository.shared
+        repo.configureForTesting()
+        let store = DataStore(seedSampleData: false)
+        defer {
+            repo.forceCommitFailureForTesting = false
+            store.flushPendingSave()
+            DataStore.current = nil
+            repo.configureForTesting()
+        }
+        UserDefaults.standard.set(false, forKey: HealthSyncSettings.nutritionEnabledKey)
+        let oats = food()
+        store.profile.customFoods = [oats]
+        store.flushPendingSave()
+        let before = store.profile.mealHistory.count
+
+        repo.forceCommitFailureForTesting = true
+        XCTAssertEqual(LogMealIntent.log(foodID: oats.foodID, in: store, at: Date()), .saveFailed)
+        XCTAssertEqual(store.profile.mealHistory.count, before)
+
+        repo.forceCommitFailureForTesting = false
+        guard case .logged = LogMealIntent.log(foodID: oats.foodID, in: store, at: Date()) else {
+            return XCTFail("Expected the meal to be logged once saving works")
+        }
+        XCTAssertEqual(store.profile.mealHistory.count, before + 1)
     }
 }

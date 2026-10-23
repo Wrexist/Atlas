@@ -30,27 +30,8 @@ struct LogRecipeIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let recipeID = recipe.id
-
-        let outcome: Outcome = await MainActor.run {
-            let store = IntentDataStore.resolve()
-            guard let uuid = UUID(uuidString: recipeID),
-                  let target = store.profile.recipes.first(where: { $0.id == uuid })
-            else {
-                return .notFound
-            }
-
-            guard let totals = RecipeDataLogic.review(
-                for: target,
-                customFoods: store.profile.customFoods
-            ).totals, totals.calories > 0 else {
-                return .empty
-            }
-
-            let now = Date()
-            let category = MealCategory.auto(for: now)
-            guard store.logRecipe(target, category: category, at: now) != nil else { return .saveFailed }
-            store.flushPendingSave()
-            return .logged(name: target.name, calories: totals.calories, category: category)
+        let outcome = await MainActor.run {
+            Self.log(recipeID: recipeID, in: IntentDataStore.resolve(), at: Date())
         }
 
         switch outcome {
@@ -66,8 +47,8 @@ struct LogRecipeIntent: AppIntent {
         case .empty:
             return .result(dialog: IntentDialog(
                 LocalizedStringResource(
-                    "That recipe has missing foods, invalid portions, or no calories — open Atlas to fix the ingredient list.",
-                    comment: "Siri response when a recipe sums to zero (every component food was deleted)."
+                    "That recipe has missing foods or invalid portions — open Atlas to fix the ingredient list.",
+                    comment: "Siri response when a recipe has deleted foods or unloggable portions."
                 )
             ))
         case .logged(let name, let calories, let category):
@@ -80,7 +61,26 @@ struct LogRecipeIntent: AppIntent {
         }
     }
 
-    private enum Outcome {
+    /// Logs the recipe under the auto-detected category and flushes the
+    /// save. A zero-calorie recipe (tea, water) logs like in the app; only
+    /// unresolved foods or portions refuse.
+    @MainActor
+    static func log(recipeID: String, in store: DataStore, at now: Date) -> Outcome {
+        guard let uuid = UUID(uuidString: recipeID),
+              let target = store.profile.recipes.first(where: { $0.id == uuid })
+        else {
+            return .notFound
+        }
+        guard RecipeDataLogic.review(for: target, customFoods: store.profile.customFoods).totals != nil else {
+            return .empty
+        }
+        let category = MealCategory.auto(for: now)
+        guard let entry = store.logRecipe(target, category: category, at: now) else { return .saveFailed }
+        store.flushPendingSave()
+        return .logged(name: target.name, calories: entry.calories, category: category)
+    }
+
+    enum Outcome: Equatable {
         case logged(name: String, calories: Int, category: MealCategory)
         case notFound
         case empty

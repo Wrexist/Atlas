@@ -19,6 +19,10 @@ import PhotosUI
 /// coffee, water), but nothing passes 900 kcal or 100 g of macros per
 /// 100 g.
 struct CustomFoodEditorSheet: View {
+    // Number fields and unit labels hold scaling text, so their widths
+    // scale with Dynamic Type instead of clipping "kcal" or "2500".
+    @ScaledMetric(relativeTo: .body) private var fieldWidth: CGFloat = 90
+    @ScaledMetric(relativeTo: .caption2) private var unitWidth: CGFloat = 30
     @Environment(DataStore.self) private var dataStore
     let initial: CustomFood
     let onSave: (CustomFood) -> Void
@@ -70,23 +74,58 @@ struct CustomFoodEditorSheet: View {
     }
 
     private var caloriesValue: Double? { Self.parseDecimal(calories) }
-    private var canSave: Bool { !trimmedName.isEmpty && caloriesValue != nil && rangeProblem == nil }
+    private var canSave: Bool { !trimmedName.isEmpty && caloriesValue != nil && inputProblem == nil }
 
-    /// Pure fat is about 900 kcal per 100 g, and 100 g of food can't hold
-    /// more than 100 g of protein, carbs and fat.
-    private var rangeProblem: LocalizedStringKey? {
-        let entered = [calories, protein, carbs, fat, fiber, sugars].compactMap { Self.parseDecimal($0) }
-        if entered.contains(where: { $0 < 0 }) {
-            return "Values can't be negative."
+    private var inputProblem: InputProblem? {
+        Self.inputProblem(
+            calories: caloriesValue, protein: Self.parseDecimal(protein), carbs: Self.parseDecimal(carbs),
+            fat: Self.parseDecimal(fat), fiber: Self.parseDecimal(fiber), sugars: Self.parseDecimal(sugars),
+            servingGrams: Self.parseDecimal(servingGrams)
+        )
+    }
+
+    /// Why the entered values can't be saved.
+    enum InputProblem: Equatable {
+        case negative, caloriesOver900, macrosOver100g, fiberOrSugarsOver100g, servingOutOfRange
+
+        var message: LocalizedStringKey {
+            switch self {
+            case .negative: "Values can't be negative."
+            case .caloriesOver900: "Calories can't be more than 900 kcal per 100 g."
+            case .macrosOver100g: "Protein, carbs and fat can't add up to more than 100 g per 100 g."
+            case .fiberOrSugarsOver100g: "Fiber and sugars can't be more than 100 g per 100 g."
+            case .servingOutOfRange:
+                "Serving size must be \(FoodPortionInput.gramsRange.lowerBound.formatted())–\(FoodPortionInput.gramsRange.upperBound.formatted()) g."
+            }
         }
-        if (caloriesValue ?? 0) > 900 {
-            return "Calories can't be more than 900 kcal per 100 g."
-        }
-        let macros = [protein, carbs, fat].compactMap { Self.parseDecimal($0) }.reduce(0, +)
-        if macros > 100 {
-            return "Protein, carbs and fat can't add up to more than 100 g per 100 g."
+    }
+
+    /// Pure fat is about 900 kcal per 100 g, 100 g of food can't hold
+    /// more than 100 g of protein, carbs and fat, and a serving is held
+    /// to the same bounds as any portion — quick log, Siri and recipes
+    /// use it as the default.
+    static func inputProblem(calories: Double?, protein: Double?, carbs: Double?, fat: Double?,
+                             fiber: Double?, sugars: Double?, servingGrams: Double?) -> InputProblem? {
+        if [calories, protein, carbs, fat, fiber, sugars].contains(where: { ($0 ?? 0) < 0 }) { return .negative }
+        if (calories ?? 0) > 900 { return .caloriesOver900 }
+        if (protein ?? 0) + (carbs ?? 0) + (fat ?? 0) > 100 { return .macrosOver100g }
+        if (fiber ?? 0) > 100 || (sugars ?? 0) > 100 { return .fiberOrSugarsOver100g }
+        if let servingGrams, servingGrams > 0, !FoodPortionInput.gramsRange.contains(servingGrams) {
+            return .servingOutOfRange
         }
         return nil
+    }
+
+    /// Sugars are part of the carbs, so more sugars than carbs is likely a
+    /// typo. Only a warning: label rounding and older or AI-filled foods
+    /// can carry it, and blocking would trap an edit to an unrelated field.
+    static func sugarsExceedCarbs(carbs: Double?, sugars: Double?) -> Bool {
+        guard let carbs, let sugars else { return false }
+        return sugars > carbs
+    }
+
+    private var sugarsWarning: Bool {
+        Self.sugarsExceedCarbs(carbs: Self.parseDecimal(carbs), sugars: Self.parseDecimal(sugars))
     }
     private var isEditing: Bool { onDelete != nil }
 
@@ -155,8 +194,11 @@ struct CustomFoodEditorSheet: View {
                 } footer: {
                     VStack(alignment: .leading, spacing: Spacing.xs) {
                         Text("Enter the nutrition values per 100 grams of this food. Portion math at log time scales these up or down automatically.")
-                        if let rangeProblem {
-                            Text(rangeProblem)
+                        if let inputProblem, inputProblem != .servingOutOfRange {
+                            Text(inputProblem.message)
+                                .foregroundStyle(AppColor.warning)
+                        } else if sugarsWarning {
+                            Text("Sugars are higher than carbs. Check both values.")
                                 .foregroundStyle(AppColor.warning)
                         }
                     }
@@ -170,7 +212,13 @@ struct CustomFoodEditorSheet: View {
                 } header: {
                     Text("Default serving (optional)")
                 } footer: {
-                    Text("Adds a one-tap \"1 serving\" portion to the review sheet — handy if this food has a natural serving size.")
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        Text("Adds a one-tap \"1 serving\" portion to the review sheet — handy if this food has a natural serving size.")
+                        if inputProblem == .servingOutOfRange {
+                            Text(InputProblem.servingOutOfRange.message)
+                                .foregroundStyle(AppColor.warning)
+                        }
+                    }
                 }
 
                 if let typicalPrice = draftFood.typicalPrice {
@@ -229,7 +277,8 @@ struct CustomFoodEditorSheet: View {
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("This won't remove past logs — only the food itself disappears from your library.")
+                Self.deleteMessage(recipeCount: RecipeDataLogic.recipeCount(
+                    using: initial.foodID, in: dataStore.profile.recipes))
             }
         }
         // `.onAppear` fires once per presentation, where `.task` would
@@ -413,12 +462,21 @@ struct CustomFoodEditorSheet: View {
                 .multilineTextAlignment(.trailing)
                 .focused($focused, equals: focus)
                 .monospacedDigit()
-                .frame(width: 90)
+                .frame(width: fieldWidth)
             Text(suffix)
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
-                .frame(width: 30, alignment: .leading)
+                .frame(width: unitWidth, alignment: .leading)
         }
+    }
+
+    /// Confirmation copy for deleting a custom food. Names the recipes
+    /// that will need a replacement ingredient, since deleting silently
+    /// leaves them unloggable.
+    static func deleteMessage(recipeCount: Int) -> Text {
+        recipeCount > 0
+            ? Text("Past logs stay. It's used in ^[\(recipeCount) recipe](inflect: true), which will need a replacement ingredient before logging.")
+            : Text("This won't remove past logs — only the food itself disappears from your library.")
     }
 
     // MARK: - State plumbing

@@ -120,7 +120,7 @@ struct DailyCheckInCard: View {
         guard let todayEntry else {
             return String(localized: "Daily check-in not done yet today")
         }
-        let parts = OutcomeDimension.allCases.map { "\($0.displayName) \($0.value(in: todayEntry))" }
+        let parts = OutcomeDimension.allCases.map { String(localized: "\($0.displayName) \($0.value(in: todayEntry)) of 5") }
         return String(localized: "Today's check-in: \(parts.joined(separator: ", "))")
     }
 }

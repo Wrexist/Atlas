@@ -24,6 +24,9 @@ struct ProgressPhotoCompareView: View {
     /// The filmstrip, decoded at strip size — a 56×70pt thumbnail has no
     /// use for an 800 px bitmap.
     @State private var thumbnails: [String: UIImage] = [:]
+    /// Filmstrip date width, scaled so "Jan 15, 2026" wraps to two
+    /// readable lines instead of shrinking below the caption floor.
+    @ScaledMetric(relativeTo: .caption2) private var dateLabelWidth: CGFloat = 64
 
     /// Default the comparison target to the photo furthest from
     /// `primary` chronologically — the most striking comparison
@@ -93,20 +96,22 @@ struct ProgressPhotoCompareView: View {
     // MARK: - Photo pair
 
     private var photoPair: some View {
-        HStack(spacing: Spacing.sm) {
-            photoColumn(filename: resolvedCompare, label: olderLabel)
-            photoColumn(filename: primary, label: newerLabel)
+        let pair = orderedPair
+        return HStack(spacing: Spacing.sm) {
+            photoColumn(filename: pair.earlier, label: pair.earlier.map { ProgressPhotoMetadata.displayDate(forFilename: $0) }
+                ?? String(localized: "Before"))
+            photoColumn(filename: pair.later, label: ProgressPhotoMetadata.displayDate(forFilename: pair.later))
         }
         .frame(maxHeight: 360)
     }
 
-    private var olderLabel: String {
-        guard let compare = resolvedCompare else { return String(localized: "Before") }
-        return ProgressPhotoMetadata.displayDate(forFilename: compare)
-    }
-
-    private var newerLabel: String {
-        ProgressPhotoMetadata.displayDate(forFilename: primary)
+    /// Before on the left, after on the right, whichever photo the user
+    /// came in with.
+    private var orderedPair: (earlier: String?, later: String) {
+        if let compare = resolvedCompare, ProgressPhotoMetadata.isEarlier(primary, than: compare) {
+            return (primary, compare)
+        }
+        return (resolvedCompare, primary)
     }
 
     @ViewBuilder
@@ -130,6 +135,7 @@ struct ProgressPhotoCompareView: View {
                         RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                             .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                     }
+                    .accessibilityLabel(Text("Progress photo, \(label)"))
             } else {
                 placeholder
             }
@@ -252,11 +258,11 @@ struct ProgressPhotoCompareView: View {
                     placeholder.frame(width: 56, height: 70)
                 }
                 Text(ProgressPhotoMetadata.displayDate(forFilename: filename))
-                    .font(AppFont.scaled(8, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(active ? AppColor.accentLight : AppColor.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .frame(width: 60)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .frame(width: dateLabelWidth)
             }
         }
         .buttonStyle(.plain)

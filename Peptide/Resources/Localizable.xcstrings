@@ -1141,6 +1141,17 @@
         }
       }
     },
+    "%@ · %lld min": {
+      "comment": "Workout card subtitle: session count, then total minutes.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$lld min"
+          }
+        }
+      }
+    },
     "%@ · Atlas Score": {
       "localizations": {
         "sv": {
@@ -1507,6 +1518,28 @@
         }
       }
     },
+    "%@, %lld kilocalories": {
+      "comment": "VoiceOver label for a goal preset chip: preset name, calories.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$lld kilokalorier"
+          }
+        }
+      }
+    },
+    "%@, %lld kilocalories, recommended": {
+      "comment": "VoiceOver label for the recommended goal preset chip: preset name, calories.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$lld kilokalorier, rekommenderas"
+          }
+        }
+      }
+    },
     "%@, %lld logged, %lld scheduled": {
       "localizations": {
         "sv": {
@@ -1789,6 +1822,17 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "%@–%@ g": {
+      "comment": "Allowed portion range in grams, e.g. 5–2,000 g.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@–%2$@ g"
           }
         }
       }
@@ -4897,6 +4941,17 @@
         }
       }
     },
+    "1 package": {
+      "comment": "Serving label for a custom food whose serving is the whole package.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 förpackning"
+          }
+        }
+      }
+    },
     "1 package = %lld g": {
       "localizations": {
         "sv": {
@@ -5563,6 +5618,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "@dittanvändarnamn"
+          }
+        }
+      }
+    },
+    "^[%lld workout](inflect: true)": {
+      "comment": "Workout card subtitle: number of workouts logged.",
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld träningspass"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld träningspass"
+                }
+              }
+            }
           }
         }
       }
@@ -9267,12 +9345,34 @@
         }
       }
     },
+    "Couldn't find the folder for progress photos.": {
+      "comment": "Progress photo save error when the Documents directory is unavailable.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hittade inte mappen för framstegsbilder."
+          }
+        }
+      }
+    },
     "Couldn't open that PDF. Try a screenshot of the page instead.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Kunde inte öppna den PDF:en. Prova en skärmbild av sidan i stället."
+          }
+        }
+      }
+    },
+    "Couldn't prepare the photo for saving. Try a different one.": {
+      "comment": "Progress photo save error when JPEG encoding fails.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kunde inte förbereda bilden för att sparas. Prova en annan."
           }
         }
       }
@@ -9303,6 +9403,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kunde inte läsa resultaten från skannern. Försök igen eller ange värdena för hand."
+          }
+        }
+      }
+    },
+    "Couldn't save the photo. Try again.": {
+      "comment": "Generic progress photo save error.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kunde inte spara bilden. Försök igen."
           }
         }
       }
@@ -10577,6 +10688,17 @@
         }
       }
     },
+    "Fiber and sugars can't be more than 100 g per 100 g.": {
+      "comment": "Custom food validation error.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fiber och socker kan inte vara mer än 100 g per 100 g."
+          }
+        }
+      }
+    },
     "Finished fasts show up here. A day counts toward your streak when a fast reaches its goal.": {
       "localizations": {
         "sv": {
@@ -10727,6 +10849,17 @@
         }
       }
     },
+    "How much water to log, in milliliters. Used instead of ounces when both are set.": {
+      "comment": "Log water intent parameter description.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hur mycket vatten som ska loggas, i milliliter. Används i stället för ounces när båda är angivna."
+          }
+        }
+      }
+    },
     "HRV change, down %lld milliseconds versus prior week": {
       "localizations": {
         "sv": {
@@ -10783,6 +10916,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Periodisk fasta"
+          }
+        }
+      }
+    },
+    "Invalid portion": {
+      "comment": "Recipe ingredient whose portion cannot be logged.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ogiltig portion"
           }
         }
       }
@@ -11055,6 +11199,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "milliliter"
+          }
+        }
+      }
+    },
+    "Milliliters": {
+      "comment": "Log water intent parameter title.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Milliliter"
+          }
+        }
+      }
+    },
+    "Missing food": {
+      "comment": "Recipe ingredient whose food was deleted.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Livsmedel saknas"
           }
         }
       }
@@ -23949,6 +24115,17 @@
         }
       }
     },
+    "Open progress photo from %@": {
+      "comment": "VoiceOver label for a revealed progress photo tile; the value is its date.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppna framstegsbild från %@"
+          }
+        }
+      }
+    },
     "Open Protocols": {
       "localizations": {
         "sv": {
@@ -24045,6 +24222,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Öppnar Måltider"
+          }
+        }
+      }
+    },
+    "Opens the entry to edit or delete it.": {
+      "comment": "VoiceOver hint for a logged meal row.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar posten så att du kan redigera eller radera den."
           }
         }
       }
@@ -24719,6 +24907,39 @@
         }
       }
     },
+    "Past logs stay. It's used in ^[%lld recipe](inflect: true), which will need a replacement ingredient before logging.": {
+      "comment": "Delete-food confirmation when recipes use the food.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tidigare loggar påverkas inte. Livsmedlet används i %#@arg1@."
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg recept, som behöver en ny ingrediens innan det kan loggas"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg recept, som behöver en ny ingrediens innan de kan loggas"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Paused without Pro": {
       "localizations": {
         "sv": {
@@ -24825,6 +25046,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "PRO"
+          }
+        }
+      }
+    },
+    "Progress photo, %@": {
+      "comment": "VoiceOver label for a progress photo; the value is its date.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Framstegsbild, %@"
           }
         }
       }
@@ -28951,6 +29183,17 @@
         }
       }
     },
+    "Serving size must be %@–%@ g.": {
+      "comment": "Custom food validation error; the values are the allowed gram range.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Portionsstorleken måste vara %1$@–%2$@ g."
+          }
+        }
+      }
+    },
     "SHBG": {
       "localizations": {
         "sv": {
@@ -28967,6 +29210,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Korta tränings- och coachningssammanfattningar skrivna av Apple Intelligence på den här enheten. Inget skickas någonstans."
+          }
+        }
+      }
+    },
+    "Show progress photo from %@": {
+      "comment": "VoiceOver label for a blurred progress photo tile; the value is its date.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visa framstegsbild från %@"
           }
         }
       }
@@ -32055,6 +32309,17 @@
         }
       }
     },
+    "Sugars are higher than carbs. Check both values.": {
+      "comment": "Custom food editor warning that does not block saving.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Socker är högre än kolhydrater. Kontrollera båda värdena."
+          }
+        }
+      }
+    },
     "Suggested": {
       "localizations": {
         "sv": {
@@ -32363,6 +32628,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Det ser inte ut som en labbrapport. Fotografera sidan med din resultattabell."
+          }
+        }
+      }
+    },
+    "That recipe has missing foods or invalid portions — open Atlas to fix the ingredient list.": {
+      "comment": "Siri response when a recipe has deleted foods or unloggable portions.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Receptet har saknade livsmedel eller ogiltiga portioner – öppna Atlas för att rätta ingredienslistan."
           }
         }
       }

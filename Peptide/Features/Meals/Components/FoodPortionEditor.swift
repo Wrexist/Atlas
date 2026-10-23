@@ -54,7 +54,7 @@ struct FoodPortionEditor: View {
                         Text("g").foregroundStyle(AppColor.textSecondary)
                     }
                 } footer: {
-                    Text("5–2,000 g")
+                    Text("\(FoodPortionInput.gramsRange.lowerBound.formatted())–\(FoodPortionInput.gramsRange.upperBound.formatted()) g")
                 }
                 Section("For this portion") {
                     if let preview {

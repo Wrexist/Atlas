@@ -29,6 +29,28 @@ enum ProgressPhotoMetadata {
         return Date(timeIntervalSince1970: stamp)
     }
 
+    /// The photos this device can show, oldest first and without
+    /// duplicates. Filenames sync through the profile but the JPEGs stay
+    /// on the device that took them, so names whose file isn't here (another
+    /// device, or a reinstall) are dropped instead of becoming ghost tiles.
+    /// The profile keeps them: pruning would sync the loss to the device
+    /// that still has the file.
+    static func onDevice(_ filenames: [String], exists: (String) -> Bool) -> [String] {
+        var seen = Set<String>()
+        return filenames
+            .filter { seen.insert($0).inserted && exists($0) }
+            .sorted { isEarlier($0, than: $1) }
+    }
+
+    /// Whether `a` was taken before `b`. Falls back to name order (which
+    /// is chronological for this scheme) when a date can't be parsed.
+    static func isEarlier(_ a: String, than b: String) -> Bool {
+        guard let dateA = date(forFilename: a), let dateB = date(forFilename: b), dateA != dateB else {
+            return a < b
+        }
+        return dateA < dateB
+    }
+
     /// Number of days between two photos, ignoring time of day.
     /// Powers the "5 days apart" label in the comparison view.
     /// Returns 0 when either date is unparseable.
@@ -45,8 +67,8 @@ enum ProgressPhotoMetadata {
 
     /// Pretty date string for the viewer's overlay label. Uses
     /// medium style for "Jan 15, 2026"; switches to relative
-    /// phrasing for the most recent week so a today-photo reads
-    /// as "Today" rather than the full date.
+    /// phrasing within two days so a this-morning photo reads
+    /// "5 hours ago" and yesterday's reads "Yesterday".
     static func displayDate(forFilename filename: String, now: Date = Date()) -> String {
         guard let date = date(forFilename: filename) else {
             return String(localized: "Unknown date")
@@ -54,13 +76,21 @@ enum ProgressPhotoMetadata {
         let interval = now.timeIntervalSince(date)
         let twoDays: TimeInterval = 2 * 24 * 60 * 60
         if interval < twoDays {
-            let formatter = RelativeDateTimeFormatter()
-            formatter.dateTimeStyle = .named
-            formatter.unitsStyle = .full
-            return formatter.localizedString(for: date, relativeTo: now).capitalized
+            // Only the first letter: `.capitalized` title-cases every
+            // word ("5 Hours Ago").
+            let relative = relativeFormatter.localizedString(for: date, relativeTo: now)
+            return relative.prefix(1).uppercased() + relative.dropFirst()
         }
         return Self.mediumFormatter.string(from: date)
     }
+
+    /// Shared: the compare filmstrip formats a date per thumbnail per render.
+    nonisolated(unsafe) private static let relativeFormatter: RelativeDateTimeFormatter = {
+        let f = RelativeDateTimeFormatter()
+        f.dateTimeStyle = .named
+        f.unitsStyle = .full
+        return f
+    }()
 
     private static let mediumFormatter: DateFormatter = {
         let f = DateFormatter()

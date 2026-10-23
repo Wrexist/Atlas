@@ -8,6 +8,10 @@ import SwiftUI
 /// bucket (audit Meals MED 9), so a user trying to fix yesterday's
 /// entry would silently move it to today. Full edit closes that loop.
 struct MealEntryEditorSheet: View {
+    // Number fields and unit labels hold scaling text, so their widths
+    // scale with Dynamic Type instead of clipping "kcal" or "2500".
+    @ScaledMetric(relativeTo: .body) private var fieldWidth: CGFloat = 100
+    @ScaledMetric(relativeTo: .caption2) private var unitWidth: CGFloat = 32
     let initial: MealEntry
     let onSave: (MealEntry) -> Void
     let onDelete: (UUID) -> Void
@@ -58,14 +62,14 @@ struct MealEntryEditorSheet: View {
         _appliedMacros = State(initialValue: LifestyleDataLogic.scaledMacros(of: initial, by: 1))
     }
 
-    /// The typed macros, or nil while any field is blank or not a
-    /// whole number.
+    /// The typed macros, or nil while any field is blank, not a whole
+    /// number, or out of range.
     private var editedMacros: LoggableMeal? {
         guard
-            let kcal = Self.parse(calories),
-            let protein = Self.parse(proteinG),
-            let carbs = Self.parse(carbsG),
-            let fat = Self.parse(fatG)
+            let kcal = MacroInput.parse(calories),
+            let protein = MacroInput.parse(proteinG),
+            let carbs = MacroInput.parse(carbsG),
+            let fat = MacroInput.parse(fatG)
         else { return nil }
         return LoggableMeal(calories: kcal, proteinG: protein, carbsG: carbs, fatG: fat)
     }
@@ -80,10 +84,6 @@ struct MealEntryEditorSheet: View {
             || name.trimmingCharacters(in: .whitespacesAndNewlines) != initial.name
             || editedMacros != originalMacros
             || !Calendar.current.isDate(date, equalTo: initial.date, toGranularity: .minute)
-    }
-
-    private static func parse(_ text: String) -> Int? {
-        Int(text.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { $0 >= 0 ? $0 : nil }
     }
 
     var body: some View {
@@ -238,6 +238,11 @@ struct MealEntryEditorSheet: View {
                 macroField(label: "Protein",  unit: "g",    text: $proteinG, field: .protein)
                 macroField(label: "Carbs",    unit: "g",    text: $carbsG,   field: .carbs)
                 macroField(label: "Fat",      unit: "g",    text: $fatG,     field: .fat)
+                if editedMacros == nil {
+                    Text("Enter whole numbers from 0 to 100,000 in every field.")
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.warning)
+                }
                 Divider().overlay(AppColor.glassBorder)
                 DatePicker("Logged at", selection: $date, in: dateRange, displayedComponents: [.date, .hourAndMinute])
                     .font(AppFont.subheadline)
@@ -326,12 +331,12 @@ struct MealEntryEditorSheet: View {
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
-                .frame(maxWidth: 100)
+                .frame(maxWidth: fieldWidth)
                 .frame(minHeight: Spacing.minimumHitTarget)
             Text(unit)
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
-                .frame(width: 32, alignment: .leading)
+                .frame(width: unitWidth, alignment: .leading)
         }
     }
 

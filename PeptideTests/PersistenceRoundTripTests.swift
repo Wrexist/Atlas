@@ -919,6 +919,34 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertNil(ProgressPhotoMetadata.date(forFilename: "progress-not-a-number-abc.jpg"))
     }
 
+    func test_progressPhotoMetadata_displayDate_recentPhoto_capitalisesOnlyFirstLetter() {
+        let now = Date()
+        let fiveHoursAgo = now.addingTimeInterval(-5 * 60 * 60)
+        let filename = "progress-\(Int(fiveHoursAgo.timeIntervalSince1970))-aaa111.jpg"
+        let label = ProgressPhotoMetadata.displayDate(forFilename: filename, now: now)
+        XCTAssertEqual(label.first.map(String.init), label.first.map { String($0).uppercased() })
+        XCTAssertEqual(String(label.dropFirst()), String(label.dropFirst()).lowercased(),
+                       "Only the first letter is capitalised, not every word")
+    }
+
+    func test_progressPhotoMetadata_isEarlier_ordersByEncodedDate() {
+        let older = "progress-1700000000-bbb222.jpg"
+        let newer = "progress-1800000000-aaa111.jpg"
+        XCTAssertTrue(ProgressPhotoMetadata.isEarlier(older, than: newer))
+        XCTAssertFalse(ProgressPhotoMetadata.isEarlier(newer, than: older))
+    }
+
+    func test_progressPhotoMetadata_onDevice_dropsMissingFilesAndSortsOldestFirst() {
+        let local = "progress-1700000000-aaa111.jpg"
+        let newerLocal = "progress-1750000000-ccc333.jpg"
+        let otherDevice = "progress-1800000000-bbb222.jpg"
+        // Merge order: this device's names, then the other device's.
+        let synced = [newerLocal, local, otherDevice, local]
+        let onDisk: Set<String> = [local, newerLocal]
+
+        XCTAssertEqual(ProgressPhotoMetadata.onDevice(synced, exists: onDisk.contains), [local, newerLocal])
+    }
+
     func test_progressPhotoMetadata_daysBetween_isAbsoluteAndDayResolution() {
         let cal = Calendar.current
         let now = cal.startOfDay(for: Date())

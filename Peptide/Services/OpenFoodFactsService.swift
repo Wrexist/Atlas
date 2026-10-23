@@ -648,17 +648,19 @@ private extension OpenFoodFactsService {
             // kJ whatever unit the contributor typed (`energy_unit`
             // describes their entry, not this field), so it always
             // converts.
-            let calories = n?.energyKcal100g?.value
-                ?? n?.energy100g?.value.map { $0 / 4.184 }
-                ?? 0
+            let calories = n?.energyKcal100g.plausiblePer100g
+                ?? n?.energy100g.plausiblePer100g.map { $0 / 4.184 }
+            let protein = n?.proteins100g.plausiblePer100g
+            let carbs = n?.carbohydrates100g.plausiblePer100g
+            let fat = n?.fat100g.plausiblePer100g
 
             let per100 = ScannedProduct.Nutriments(
-                calories: calories,
-                proteinG: n?.proteins100g?.value ?? 0,
-                carbsG:   n?.carbohydrates100g?.value ?? 0,
-                fatG:     n?.fat100g?.value ?? 0,
-                fiberG:   n?.fiber100g?.value,
-                sugarsG:  n?.sugars100g?.value
+                calories: calories ?? 0,
+                proteinG: protein ?? 0,
+                carbsG:   carbs ?? 0,
+                fatG:     fat ?? 0,
+                fiberG:   n?.fiber100g.plausiblePer100g,
+                sugarsG:  n?.sugars100g.plausiblePer100g
             )
 
             return ScannedProduct(
@@ -680,7 +682,7 @@ private extension OpenFoodFactsService {
                     .nilIfEmpty,
                 novaGroup: novaGroup?.value,
                 fetchedAt: fetchedAt,
-                nutritionMissing: n?.hasEnergyOrMacros != true
+                nutritionMissing: [calories, protein, carbs, fat].allSatisfy { $0 == nil }
             )
         }
     }
@@ -711,11 +713,6 @@ private extension OpenFoodFactsService {
             case fat100g            = "fat_100g"
             case fiber100g          = "fiber_100g"
             case sugars100g         = "sugars_100g"
-        }
-
-        /// Whether the record states energy or any macro, zero included.
-        var hasEnergyOrMacros: Bool {
-            [energyKcal100g, energy100g, proteins100g, carbohydrates100g, fat100g].contains { $0?.value != nil }
         }
     }
 }
@@ -754,6 +751,17 @@ private struct FlexibleInt: Decodable {
         } else {
             value = nil
         }
+    }
+}
+
+private extension Optional where Wrapped == FlexibleDouble {
+    /// The per-100 g value when OFF states a usable one. Crowd-sourced
+    /// records can carry "nan", "inf" or "1e30", which would trap the
+    /// `Int(...)` conversions that render and log them, so anything
+    /// non-finite, negative or above 10 000 per 100 g counts as absent.
+    var plausiblePer100g: Double? {
+        guard let value = self?.value, value.isFinite, (0...10_000).contains(value) else { return nil }
+        return value
     }
 }
 
