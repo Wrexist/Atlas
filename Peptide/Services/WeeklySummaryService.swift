@@ -325,7 +325,7 @@ final class WeeklySummaryService {
     /// (AEDT, JST) the key wrote the previous Sunday's date and
     /// cache lookups missed (audit Biology H8). Now stamps with the
     /// calendar's timezone so the key round-trips locally.
-    private static func weekStartString(for date: Date) -> String {
+    nonisolated static func weekStartString(for date: Date) -> String {
         var calendar = Calendar(identifier: .iso8601)
         calendar.firstWeekday = 2
         // Fall back to the date itself (not `DateInterval()`, whose

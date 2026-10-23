@@ -55,16 +55,24 @@ struct PeptideEntityQuery: EntityQuery {
     }
 
     /// String-search resolver. Siri's NL pipeline calls this when the
-    /// user says "BPC" — we match name OR abbreviation, case-
-    /// insensitively, so the matching is forgiving of casing /
-    /// hyphenation differences.
+    /// user says "BPC" — we match name OR abbreviation.
     func entities(matching string: String) async throws -> [PeptideEntity] {
-        let needle = string.lowercased()
         let all = await MainActor.run { Self.allEntities(in: IntentDataStore.resolve()) }
-        return all.filter { entity in
-            entity.displayName.lowercased().contains(needle)
-                || entity.abbreviation.lowercased().contains(needle)
-        }
+        return all.filter { Self.matches($0, query: string) }
+    }
+
+    /// Siri transcribes "BPC-157" as "BPC 157" or "BPC157", neither a
+    /// substring of the name as written, so both sides are compared with
+    /// case, accents, spaces and punctuation removed.
+    static func matches(_ entity: PeptideEntity, query: String) -> Bool {
+        let needle = searchKey(query)
+        guard !needle.isEmpty else { return false }
+        return searchKey(entity.displayName).contains(needle)
+            || searchKey(entity.abbreviation).contains(needle)
+    }
+
+    private static func searchKey(_ text: String) -> String {
+        FoodLibraryLogic.normalized(text).replacingOccurrences(of: " ", with: "")
     }
 
     /// Walks the live protocol list, deduplicates by peptide id, and

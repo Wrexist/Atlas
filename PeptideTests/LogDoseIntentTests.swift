@@ -62,7 +62,10 @@ final class LogDoseIntentTests: XCTestCase {
 
         let morning = store.todayEntries.first { $0.dose == "800mcg" }
         let evening = store.todayEntries.first { $0.dose == "2000mcg" }
-        XCTAssertEqual(result, .logged(at: morning!.date, dose: "800mcg"))
+        guard case .logged(_, let dose) = result else {
+            return XCTFail("Expected the morning dose to be logged")
+        }
+        XCTAssertEqual(dose, "800mcg")
         XCTAssertEqual(morning?.completed, true)
         XCTAssertEqual(evening?.completed, false)
     }
@@ -76,6 +79,16 @@ final class LogDoseIntentTests: XCTestCase {
             return XCTFail("Expected the evening dose to be logged")
         }
         XCTAssertEqual(dose, "2000mcg")
+    }
+
+    func test_logEarliestDose_stampsAndReportsTheTimeItWasLogged() {
+        let store = makeStore(hours: [8])
+        let loggedAt = Calendar.current.startOfDay(for: Date()).addingTimeInterval(10 * 3600 + 40 * 60)
+
+        let result = LogDoseIntent.logEarliestDose(of: peptideID, in: store, at: loggedAt)
+
+        XCTAssertEqual(result, .logged(at: loggedAt, dose: "800mcg"))
+        XCTAssertEqual(store.todayEntries.first?.actualTime, loggedAt)
     }
 
     func test_logEarliestDose_allLogged_reportsNothingToLog() {

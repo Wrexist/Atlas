@@ -116,17 +116,16 @@ struct PeptideApp: App {
                 // get lost.
                 dataStore.flushPendingSave()
                 // Leaving the app is the moment a just-logged meal, weigh-
-                // in or workout should cancel today's matching reminder.
+                // in, workout or habit should cancel today's matching
+                // reminder, and the rolling one-shot window moves forward.
                 // Held open as a background task: reconcile removes stale
                 // reminders before adding their replacements, and a
                 // suspension in between would leave none until next open.
-                let backgroundTask = UIApplication.shared.beginBackgroundTask(
-                    withName: "Reminder reconcile",
-                    expirationHandler: nil
-                )
+                let backgroundTask = BackgroundTaskHandle(name: "Reminder reconcile")
                 Task { @MainActor in
                     await DailyReminderScheduler.reconcile(dataStore: dataStore)
-                    UIApplication.shared.endBackgroundTask(backgroundTask)
+                    await dataStore.rescheduleHabitReminders()
+                    backgroundTask.end()
                 }
             }
             if phase == .active {
@@ -137,13 +136,19 @@ struct PeptideApp: App {
                 // was suspended, the local `doseRemindersEnabled`
                 // flag stays true and `scheduleNotifications` would
                 // silently no-op forever. Flip the flag so the UI
-                // surfaces the inconsistency.
+                // surfaces the inconsistency. Otherwise re-plan doses,
+                // which refills the every-N-days lookahead as its
+                // one-shots fire, then habits, which roll their window
+                // forward and step past the fresh dose slots.
                 Task { @MainActor in
                     let status = await NotificationService.shared.checkAuthorization()
                     if status == .denied && dataStore.profile.doseRemindersEnabled {
                         dataStore.profile.doseRemindersEnabled = false
                         dataStore.persistProfile()
+                    } else if status != .denied {
+                        dataStore.rescheduleNotificationsIfEnabled()
                     }
+                    await dataStore.rescheduleHabitReminders()
                 }
                 // Drain any "user tapped Log on the Live Activity"
                 // markers the widget extension queued while we were
@@ -206,8 +211,21 @@ struct PeptideApp: App {
         .environment(\.locale, localization.effectiveLocale)
         .environment(\.layoutDirection, localization.layoutDirection)
         .id(localization.selectedCode ?? "system")
+        .onChange(of: localization.selectedCode) { _, _ in
+            // The long-press menu is set at runtime to follow the in-app
+            // language; without this it kept the old one until relaunch.
+            QuickActionRouter.installHomeScreenShortcuts()
+        }
         .onChange(of: privacyCover, initial: true) { _, cover in
             syncPrivacyCover(cover)
+        }
+        .onChange(of: isUnlocked) { _, unlocked in
+            // The launch prompts wait for the lock to clear, and the Face
+            // ID answer can land after the scene is already active again.
+            guard unlocked, scenePhase == .active else { return }
+            detectTimezoneChange()
+            maybePresentWhatsNewTour()
+            maybePresentWinBack()
         }
         // A116: after an iCloud sign-out or account switch the store
         // stays closed until the user says what happens to the data the
@@ -270,6 +288,7 @@ struct PeptideApp: App {
             // Meals tab so the receiver of `pendingFoodLogID`
             // (the meals section's `.onChange`) doesn't race the
             // mirror mount still on Today.
+            appState.dismissModalsForRouting()
             appState.selectedTab = .meals
             appState.pendingFoodLogID = deepLink
         }
@@ -424,10 +443,12 @@ struct PeptideApp: App {
         else { return }
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(450))
-            // Re-check inside the Task — another launch in the
-            // same scene tick could have already presented the
-            // sheet, and we don't want a double-present race.
-            guard !showWhatsNewTour else { return }
+            // Checked after the delay, when the sheet would present: a
+            // sheet already up (a tab's own, Profile, the travel prompt)
+            // makes SwiftUI refuse this one while the flag stays set,
+            // which would block every retry. Left unset, the next
+            // `.active` tries again.
+            guard canPresentRootModal else { return }
             showWhatsNewTour = true
         }
     }
@@ -486,12 +507,16 @@ struct PeptideApp: App {
             return
         }
         // Not over onboarding: the prompt is about protocols the user
-        // hasn't set up yet. Over the lock it's harmless — it presents
-        // beneath the lock window and can't be answered until unlock.
-        if hasCompletedOnboarding,
-           let change = TimezoneChangeDetector.detect(previousIdentifier: stored) {
-            travelChange = change
-        }
+        // hasn't set up yet. Nor over another presentation, which would
+        // refuse it and leave `travelChange` set, blocking the prompt
+        // and the win-back for the session. The stored zone is only
+        // updated once the user answers, so the next `.active` detects
+        // the same change again.
+        guard hasCompletedOnboarding,
+              canPresentRootModal,
+              let change = TimezoneChangeDetector.detect(previousIdentifier: stored)
+        else { return }
+        travelChange = change
     }
 
     /// First active protocol's first preferred time, paired with
@@ -508,8 +533,21 @@ struct PeptideApp: App {
         return (firstTime, shifted)
     }
 
+    /// Ticks only for a tab the user picked. Routers, deep links and
+    /// Spotlight set `selectedTab` directly, so they never buzz — often at
+    /// launch, for a change the user didn't make.
+    private var userTabSelection: Binding<AppTab> {
+        Binding(
+            get: { appState.selectedTab },
+            set: { tab in
+                if tab != appState.selectedTab { Haptics.selection() }
+                appState.selectedTab = tab
+            }
+        )
+    }
+
     private var coreTabView: some View {
-        TabView(selection: $appState.selectedTab) {
+        TabView(selection: userTabSelection) {
             Tab("Today", systemImage: "house.fill", value: .today) {
                 HomeContainerView()
             }
@@ -529,9 +567,6 @@ struct PeptideApp: App {
         // A tab bar on iPhone; on iPad, a top tab bar that expands into a
         // sidebar, so the wide screen isn't framed by a phone-style bar.
         .tabViewStyle(.sidebarAdaptable)
-        .onChange(of: appState.selectedTab) { _, _ in
-            Haptics.selection()
-        }
     }
 
     @ViewBuilder
@@ -641,9 +676,9 @@ struct PeptideApp: App {
         await NotificationService.shared.reconcilePendingState()
 
         // Habit reminders are gated per-habit (Habit.reminderTime), not
-        // by `doseRemindersEnabled`. Re-stamp them every activation so a
-        // reminderTime change made on another device propagates.
-        NotificationService.shared.scheduleHabitReminders(for: dataStore.activeHabits)
+        // by `doseRemindersEnabled`. Re-planned once the tracker above
+        // knows what is pending; every activation re-plans them too.
+        await dataStore.rescheduleHabitReminders()
         await DailyReminderScheduler.reconcile(dataStore: dataStore)
 
         guard dataStore.profile.doseRemindersEnabled else {
@@ -668,6 +703,26 @@ struct PeptideApp: App {
         }
 
         NotificationService.shared.scheduleNotifications(for: dataStore.activeProtocols)
+    }
+}
+
+/// A UIKit background task that is ended exactly once: when the work
+/// finishes, or when iOS's budget runs out first. An unended task at
+/// expiry gets the app terminated rather than suspended.
+@MainActor
+private final class BackgroundTaskHandle {
+    private var identifier: UIBackgroundTaskIdentifier = .invalid
+
+    init(name: String) {
+        identifier = UIApplication.shared.beginBackgroundTask(withName: name) { [weak self] in
+            MainActor.assumeIsolated { self?.end() }
+        }
+    }
+
+    func end() {
+        guard identifier != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(identifier)
+        identifier = .invalid
     }
 }
 
@@ -781,7 +836,9 @@ struct NextDoseAccessoryView: View {
     private var accessibilityLabel: Text {
         guard let next = dataStore.nextDose else { return Text("All doses completed for today") }
         let time = next.date.formatted(.dateTime.hour().minute())
-        return Text("Next dose: \(next.peptide.name), \(next.dose) at \(time)")
+        return next.dose.isEmpty
+            ? Text("Next dose: \(next.peptide.name) at \(time)")
+            : Text("Next dose: \(next.peptide.name), \(next.dose) at \(time)")
     }
 }
 

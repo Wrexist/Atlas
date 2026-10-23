@@ -48,15 +48,10 @@ final class NotificationService {
     /// `crossTypeCooldownMinutes` of a dose reminder — see
     /// `resolvedHabitFireTime`.
     ///
-    /// On app activation, habits currently re-stamp *before* doses do
-    /// (`PeptideApp` re-stamps habit reminders unconditionally, then walks
-    /// through dose-reminder authorization, which can early-return), so
-    /// this is usually the dose schedule from the *previous* activation
-    /// rather than the one about to be (re)computed this launch. That's an
-    /// acceptable approximation — dose schedules rarely change between two
-    /// consecutive app opens — and it self-corrects on the very next
-    /// reschedule after any change, rather than requiring a riskier
-    /// reordering of `PeptideApp`'s authorization flow just for this.
+    /// Each app activation plans doses before habits, so this is normally
+    /// the current dose schedule. A habit pass that runs first (a habit
+    /// edit, the once-per-launch sync) reads the previous one, and the
+    /// next activation corrects it.
     @ObservationIgnored private var doseReminderSlots: [(weekday: Int, hour: Int, minute: Int)] = []
 
     /// iOS limit on pending notification requests per app.
@@ -67,7 +62,7 @@ final class NotificationService {
     /// budget; capping habits here (and reserving the remainder for
     /// doses in `scheduleNotifications`) stops a habit-heavy user from
     /// silently evicting dose reminders past the limit.
-    static let habitRequestLimit = 32
+    nonisolated static let habitRequestLimit = 32
 
     /// Prefix used by user-initiated snoozes. scheduleNotifications preserves
     /// IDs starting with this prefix when computing stale-dose removal.
@@ -105,7 +100,7 @@ final class NotificationService {
     /// habit reminder and any already-scheduled dose reminder on the same
     /// weekday. Dose reminders schedule first each launch, so habits are
     /// the side that yields — see `resolvedHabitFireTime`.
-    static let crossTypeCooldownMinutes = 10
+    nonisolated static let crossTypeCooldownMinutes = 10
 
     private init() {}
 
@@ -152,7 +147,7 @@ final class NotificationService {
     /// categories — the existing 64-slot budget split prevents overflow,
     /// but two reminders firing in the same minute is a UX problem the
     /// budget alone doesn't catch (retention audit, Phase 16).
-    static func resolvedHabitFireTime(
+    nonisolated static func resolvedHabitFireTime(
         hour: Int,
         minute: Int,
         weekday: Int?,
@@ -337,80 +332,71 @@ final class NotificationService {
         currentIDs = Set(pending.map(\.identifier))
     }
 
-    /// Schedules one calendar reminder per scheduled day per habit. Only
-    /// habits with a non-nil `reminderTime` produce requests; the rest are
-    /// silently skipped. Uses the `habit-` ID namespace so the peptide
-    /// scheduler's set-diff leaves them alone.
-    ///
-    /// Schedule mapping:
-    ///   - `.daily` and `.timesPerWeek` → one repeating request that fires
-    ///     every day at the chosen hour:minute. Flexible cadences nudge the
-    ///     user daily; if they've already hit the week's count, they just
-    ///     dismiss.
-    ///   - `.weekdays(set)` → one repeating request per weekday so the
-    ///     reminder only fires on the days the habit is actually due.
-    @discardableResult
-    func scheduleHabitReminders(for habits: [Habit]) -> Int {
-        let stale = currentIDs.filter { $0.hasPrefix(Self.habitIDPrefix) }
-        if !stale.isEmpty {
-            center.removePendingNotificationRequests(withIdentifiers: Array(stale))
-            currentIDs.subtract(stale)
-        }
+    /// The habit pass in flight, so two passes never interleave their
+    /// remove and add steps and drop each other's reminders.
+    @ObservationIgnored private var habitReminderPass: Task<Void, Never>?
 
-        var scheduled = 0
+    /// Replaces every pending habit reminder with `HabitReminderEngine`'s
+    /// plan: one-shot requests for the next few days, skipping a day the
+    /// habit is already done. Only habits with a `reminderTime` produce
+    /// requests. Uses the `habit-` ID namespace so the dose scheduler's
+    /// set-diff leaves them alone. Runs after any pass already in flight.
+    func scheduleHabitReminders(for habits: [Habit], entries: [HabitEntry]) async {
+        let previous = habitReminderPass
+        let pass = Task {
+            await previous?.value
+            await replaceHabitReminders(habits: habits, entries: entries)
+        }
+        habitReminderPass = pass
+        await pass.value
+    }
+
+    private func replaceHabitReminders(habits: [Habit], entries: [HabitEntry]) async {
+        // Read from iOS rather than `currentIDs`, which is empty until
+        // `reconcilePendingState` runs and would miss requests from an
+        // earlier launch, including the repeating ones older builds made.
+        let stale = await center.pendingNotificationRequests()
+            .map(\.identifier)
+            .filter { $0.hasPrefix(Self.habitIDPrefix) }
+        center.removePendingNotificationRequests(withIdentifiers: stale)
+        currentIDs = currentIDs.filter { !$0.hasPrefix(Self.habitIDPrefix) }
+
         let calendar = Calendar.current
-
-        for habit in habits where !habit.archived {
-            if scheduled >= Self.habitRequestLimit { break }
-            guard let reminderTime = habit.reminderTime else { continue }
-            let hour = calendar.component(.hour, from: reminderTime)
-            let minute = calendar.component(.minute, from: reminderTime)
-
-            let content = UNMutableNotificationContent()
-            content.title = habit.name
-            if let target = habit.targetValue {
-                content.body = String(localized: "Today's goal: \(target)", comment: "Habit reminder body — countable habits, value is the target.")
-            } else {
-                content.body = String(localized: "Time to check in.", comment: "Habit reminder body — boolean habits.")
-            }
-            content.sound = .default
-            content.userInfo = ["habitId": habit.id.uuidString]
-
-            let weekdays: [Int?]
-            switch habit.schedule {
-            case .daily, .timesPerWeek:
-                // nil weekday → matches every day.
-                weekdays = [nil]
-            case .weekdays(let days):
-                weekdays = days.map { Optional($0.rawValue) }
-            }
-
-            for weekday in weekdays {
-                if scheduled >= Self.habitRequestLimit { break }
-                // Nudge past any dose reminder within `crossTypeCooldownMinutes`
-                // on the same weekday (or, for a "daily" habit, any weekday) —
-                // habits yield to doses, matching the existing 64-slot budget's
-                // stance that dose reminders are the priority.
-                let resolved = Self.resolvedHabitFireTime(
-                    hour: hour,
-                    minute: minute,
-                    weekday: weekday,
-                    avoiding: doseReminderSlots
-                )
-                var components = DateComponents()
-                components.hour = resolved.hour
-                components.minute = resolved.minute
-                if let weekday { components.weekday = weekday }
-                let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
-                let suffix = weekday.map(String.init) ?? "daily"
-                let id = "\(Self.habitIDPrefix)\(habit.id)-\(suffix)"
-                let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
-                center.add(request)
-                currentIDs.insert(id)
-                scheduled += 1
+        let planned = HabitReminderEngine.plan(
+            habits: habits,
+            entries: entries,
+            now: Date(),
+            calendar: calendar,
+            occupied: doseReminderSlots
+        )
+        for reminder in planned {
+            let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: reminder.fireDate)
+            let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            let request = UNNotificationRequest(
+                identifier: reminder.id,
+                content: habitReminderContent(for: reminder.habit),
+                trigger: trigger
+            )
+            do {
+                try await center.add(request)
+                currentIDs.insert(reminder.id)
+            } catch {
+                AppLog.notifications.error("Habit reminder add failed: \(error.localizedDescription, privacy: .public)")
             }
         }
-        return scheduled
+    }
+
+    private func habitReminderContent(for habit: Habit) -> UNMutableNotificationContent {
+        let content = UNMutableNotificationContent()
+        content.title = habit.name
+        if let target = habit.targetValue {
+            content.body = String(localized: "Today's goal: \(target)", comment: "Habit reminder body — countable habits, value is the target.")
+        } else {
+            content.body = String(localized: "Time to check in.", comment: "Habit reminder body — boolean habits.")
+        }
+        content.sound = .default
+        content.userInfo = ["habitId": habit.id.uuidString, "deeplink": "peptidex://habits"]
+        return content
     }
 
     /// Withdraws what still nags about a dose the user just logged: any
@@ -493,10 +479,13 @@ final class NotificationService {
     }
 
     func registerCategories() {
+        // Logs in place: the delegate marks the doses and flushes the
+        // save without UI, so launching the app only added friction. An
+        // unlocked device is still required to write to the log.
         let markAction = UNNotificationAction(
             identifier: "MARK_TAKEN",
             title: String(localized: "Mark as taken", comment: "Dose reminder action — logs the dose."),
-            options: [.foreground]
+            options: [.authenticationRequired]
         )
         // Three snooze options instead of one — long-press on the
         // notification banner reveals up to 4 actions on iOS, so
@@ -606,8 +595,8 @@ final class NotificationService {
     /// How many future occurrences to pre-schedule for an every-N-days
     /// protocol. iOS caps total pending requests at 64; this leaves
     /// breathing room for multiple interval protocols + weekly ones.
-    /// `rescheduleNotificationsIfEnabled` runs on every app activation, so
-    /// the queue gets topped up as occurrences fire.
+    /// `PeptideApp` re-plans doses on every activation, so the queue gets
+    /// topped up as occurrences fire.
     private static let intervalLookahead: Int = 12
 
     private func makeContent(
@@ -636,10 +625,12 @@ final class NotificationService {
         // showing N flat entries. Cuts visual fatigue for users on
         // a multi-dose-per-day schedule.
         content.threadIdentifier = proto.id.uuidString
+        // A plain tap lands on Today, where the dose is logged.
         content.userInfo = [
             "protocolId": proto.id.uuidString,
             "hour": hour,
             "minute": minute,
+            "deeplink": "peptidex://today",
         ]
         return content
     }

@@ -1,8 +1,10 @@
+#if DEBUG
 import Foundation
 
-/// Deterministic demo state for App Store screenshots. Every value
+/// Deterministic demo state for App Store screenshots. Debug-only, like
+/// the Settings row that turns `ScreenshotMode` on. Every value
 /// here is hand-tuned to make a single tab read as "successful
-/// long-running user" — high compliance (~91 %), 14-day streak,
+/// long-running user" — high compliance, a 14-day streak,
 /// outcome check-ins on a gradual upward trend, an HRV uptrend,
 /// a fresh AI weekly recap, several lab draws, and a believable
 /// food log.
@@ -26,20 +28,9 @@ enum ScreenshotSeedData {
     }
 
     static func build(referenceDate: Date = Date()) -> Seed {
-        var calendar = Calendar(identifier: .iso8601)
-        calendar.firstWeekday = 2 // Monday
-
         let protocols = buildProtocols(referenceDate: referenceDate)
-        let entries = buildEntries(
-            protocols: protocols,
-            referenceDate: referenceDate,
-            calendar: calendar
-        )
-        let profile = buildProfile(
-            referenceDate: referenceDate,
-            calendar: calendar,
-            entries: entries
-        )
+        let entries = buildEntries(protocols: protocols, referenceDate: referenceDate)
+        let profile = buildProfile(referenceDate: referenceDate, entries: entries)
 
         return Seed(profile: profile, protocols: protocols, entries: entries)
     }
@@ -117,14 +108,29 @@ enum ScreenshotSeedData {
 
     // MARK: - Entries
 
-    /// 30 days of entries with ~91 % compliance and a clean
+    /// What each demo peptide shows as its dose, with a unit — a dosage
+    /// range's lower bound ("250" of "250-500 mcg") has none.
+    private static let demoDoses: [UUID: String] = [
+        MockPeptides.bpc157.id: "250 mcg",
+        MockPeptides.tb500.id: "2 mg",
+        MockPeptides.cjc1295.id: "1 mg",
+        MockPeptides.igf1lr3.id: "40 mcg",
+        MockPeptides.selank.id: "250 mcg",
+        MockPeptides.epitalon.id: "5 mg",
+        MockPeptides.ghkCu.id: "1 mg",
+    ]
+
+    /// The one fully missed day. Every day after it is complete, so the
+    /// streak reads 14 days; misses before it give the history texture.
+    private static let streakBreakOffset = 15
+
+    /// 30 days of entries, one per peptide per slot, with a clean
     /// 14-day streak. Today gets one logged + one pending so the
     /// Today Overview Card reads as "halfway through the day,
     /// in flow".
     private static func buildEntries(
         protocols: [PeptideProtocol],
-        referenceDate: Date,
-        calendar: Calendar
+        referenceDate: Date
     ) -> [ProtocolEntry] {
         var entries: [ProtocolEntry] = []
         let stdCalendar = Calendar.current
@@ -133,37 +139,39 @@ enum ScreenshotSeedData {
             guard let day = stdCalendar.date(byAdding: .day, value: -dayOffset, to: referenceDate)
             else { continue }
             for proto in protocols where proto.schedule.isActive(on: day) {
-                guard let firstPeptide = proto.peptides.first else { continue }
-                for (slotIndex, time) in proto.schedule.preferredTimes.enumerated() {
-                    let entryTime = scheduledDate(for: day, time: time)
-                        ?? day.addingTimeInterval(TimeInterval(8 + slotIndex) * 3600)
-                    let isToday = stdCalendar.isDate(entryTime, inSameDayAs: referenceDate)
-                    // Today's later slots stay pending so the Today
-                    // hero can render a "1 of 2 logged" state.
-                    let completed: Bool
-                    if isToday {
-                        completed = slotIndex == 0 && entryTime <= referenceDate
-                    } else {
-                        // 91 % overall compliance — fake one missed
-                        // dose every ~12 entries using a stable
-                        // deterministic skip pattern.
-                        completed = ((dayOffset + slotIndex) % 12) != 7
-                    }
-                    let dose = proto.peptides.first?.dosageRange.components(separatedBy: "-").first ?? "250 mcg"
-                    entries.append(
-                        ProtocolEntry(
-                            id: UUID(),
-                            protocolId: proto.id,
-                            peptide: firstPeptide,
-                            date: entryTime,
-                            dose: dose.trimmingCharacters(in: .whitespaces),
-                            notes: "",
-                            completed: completed,
-                            actualDose: completed ? dose.trimmingCharacters(in: .whitespaces) : nil,
-                            actualTime: completed ? entryTime : nil,
-                            injectionSite: completed ? "Left Abdomen" : nil
+                for peptide in proto.peptides {
+                    for (slotIndex, time) in proto.schedule.preferredTimes.enumerated() {
+                        let entryTime = scheduledDate(for: day, time: time)
+                            ?? day.addingTimeInterval(TimeInterval(8 + slotIndex) * 3600)
+                        let isToday = stdCalendar.isDate(entryTime, inSameDayAs: referenceDate)
+                        // Today's later slots stay pending so the Today
+                        // hero can render a "1 of 2 logged" state.
+                        let completed: Bool
+                        if isToday {
+                            completed = slotIndex == 0 && entryTime <= referenceDate
+                        } else if dayOffset < streakBreakOffset {
+                            completed = true
+                        } else {
+                            // Before the streak: the break day, plus a stable
+                            // deterministic miss every ~12 entries.
+                            completed = dayOffset != streakBreakOffset && ((dayOffset + slotIndex) % 12) != 7
+                        }
+                        let dose = demoDoses[peptide.id] ?? "250 mcg"
+                        entries.append(
+                            ProtocolEntry(
+                                id: UUID(),
+                                protocolId: proto.id,
+                                peptide: peptide,
+                                date: entryTime,
+                                dose: dose,
+                                notes: "",
+                                completed: completed,
+                                actualDose: completed ? dose : nil,
+                                actualTime: completed ? entryTime : nil,
+                                injectionSite: completed ? "Left Abdomen" : nil
+                            )
                         )
-                    )
+                    }
                 }
             }
         }
@@ -188,10 +196,9 @@ enum ScreenshotSeedData {
 
     private static func buildProfile(
         referenceDate: Date,
-        calendar: Calendar,
         entries: [ProtocolEntry]
     ) -> UserProfile {
-        var profile = UserProfile(
+        UserProfile(
             name: "Alex",
             goals: ["Recovery", "Better Sleep", "Cognitive Edge", "Anti-Aging"],
             memberSince: Calendar.current.date(byAdding: .month, value: -6, to: referenceDate) ?? referenceDate,
@@ -225,8 +232,6 @@ enum ScreenshotSeedData {
             weeklySummaryEnabled: true,
             weeklySummaries: buildWeeklySummaries(referenceDate: referenceDate, entries: entries)
         )
-
-        return profile
     }
 
     // MARK: - Weight
@@ -251,12 +256,9 @@ enum ScreenshotSeedData {
 
     // MARK: - Consumption
 
-    /// Per-day macro buckets keyed by start-of-day strings. Six
-    /// days of logging hovering around the 2400 kcal target.
+    /// Per-day macro buckets keyed the way the app keys them, by local
+    /// day. Six days of logging hovering around the 2400 kcal target.
     private static func buildConsumption(referenceDate: Date) -> [String: DailyConsumption] {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withFullDate]
-
         let templates: [(cal: Int, protein: Int, carbs: Int, fat: Int, water: Int)] = [
             (2380, 178, 235, 82, 64),
             (2410, 184, 241, 78, 80),
@@ -272,8 +274,7 @@ enum ScreenshotSeedData {
             guard let day = Calendar.current.date(
                 byAdding: .day, value: -(templates.count - 1 - offset), to: referenceDate
             ) else { continue }
-            let key = formatter.string(from: Calendar.current.startOfDay(for: day))
-            buckets[key] = DailyConsumption(
+            buckets[LifestyleDataLogic.consumptionKey(for: day)] = DailyConsumption(
                 date: Calendar.current.startOfDay(for: day),
                 caloriesKcal: t.cal,
                 proteinG: t.protein,
@@ -390,19 +391,19 @@ enum ScreenshotSeedData {
 
         return [
             // Sex hormones
-            LabValue(date: recent, panel: .totalTestosterone, value: 782, source: "Quest"),
-            LabValue(date: prior,  panel: .totalTestosterone, value: 718, source: "Quest"),
-            LabValue(date: recent, panel: .freeTestosterone, value: 18.4, source: "Quest"),
-            LabValue(date: prior,  panel: .freeTestosterone, value: 16.9, source: "Quest"),
+            LabValue(date: recent, panel: .totalTestosterone, value: 782, source: "Lab panel"),
+            LabValue(date: prior,  panel: .totalTestosterone, value: 718, source: "Lab panel"),
+            LabValue(date: recent, panel: .freeTestosterone, value: 18.4, source: "Lab panel"),
+            LabValue(date: prior,  panel: .freeTestosterone, value: 16.9, source: "Lab panel"),
             // Growth
-            LabValue(date: recent, panel: .igf1, value: 218, source: "Marek Health"),
-            LabValue(date: prior,  panel: .igf1, value: 196, source: "Marek Health"),
+            LabValue(date: recent, panel: .igf1, value: 218, source: "Lab panel"),
+            LabValue(date: prior,  panel: .igf1, value: 196, source: "Lab panel"),
             // Metabolic
-            LabValue(date: recent, panel: .hba1c, value: 5.2, source: "Quest"),
-            LabValue(date: recent, panel: .fastingGlucose, value: 86, source: "Quest"),
+            LabValue(date: recent, panel: .hba1c, value: 5.2, source: "Lab panel"),
+            LabValue(date: recent, panel: .fastingGlucose, value: 86, source: "Lab panel"),
             // Lipids
-            LabValue(date: recent, panel: .hdl, value: 58, source: "Quest"),
-            LabValue(date: recent, panel: .triglycerides, value: 78, source: "Quest"),
+            LabValue(date: recent, panel: .hdl, value: 58, source: "Lab panel"),
+            LabValue(date: recent, panel: .triglycerides, value: 78, source: "Lab panel"),
         ]
     }
 
@@ -436,8 +437,9 @@ enum ScreenshotSeedData {
 
     /// Pre-generated recap for the current ISO week so the
     /// Today hero card lands in `.ready` state immediately.
-    /// Keyed by the Monday's ISO date so the
-    /// `WeeklySummaryService` cache lookup hits on first read.
+    /// Keyed with `WeeklySummaryService`'s own week key so its cache
+    /// lookup hits on first read, and counted from the seeded entries so
+    /// the recap agrees with the screens around it.
     private static func buildWeeklySummaries(
         referenceDate: Date,
         entries: [ProtocolEntry]
@@ -446,12 +448,14 @@ enum ScreenshotSeedData {
         calendar.firstWeekday = 2
         guard let interval = calendar.dateInterval(of: .weekOfYear, for: referenceDate)
         else { return [:] }
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withFullDate]
-        let weekStart = formatter.string(from: interval.start)
+        let weekStart = WeeklySummaryService.weekStartString(for: referenceDate)
+        let thisWeek = entries.filter { $0.date >= interval.start && $0.date <= referenceDate }
+        let dosesCompleted = thisWeek.filter(\.completed).count
+        let dosesTotal = thisWeek.count
+        let compliance = dosesTotal == 0 ? 0 : Double(dosesCompleted) / Double(dosesTotal)
 
         let text = """
-        Strong week — 19 of 21 doses logged, a 14-day streak holding through the weekend, and your daily check-ins climbed to a 4.4 of 5 composite. Sleep quality led the rebound at 4.6, recovery followed at 4.4, and focus settled at 4.0 after a midweek dip.
+        Strong week — \(dosesCompleted) of \(dosesTotal) doses logged, a 14-day streak holding through the weekend, and your daily check-ins climbed to a 4.4 of 5 composite. Sleep quality led the rebound at 4.6, recovery followed at 4.4, and focus settled at 4.0 after a midweek dip.
 
         Biometrics moved alongside the cadence: HRV averaged 62 ms (up 5 ms versus last week) and resting heart rate held at 58 bpm. Nutrition stayed on target — 2,380 kcal average across six logging days, well inside your 2,400 kcal goal.
 
@@ -462,9 +466,9 @@ enum ScreenshotSeedData {
             weekStart: weekStart,
             text: text,
             keyStats: WeeklySummary.KeyStats(
-                compliancePct: 0.905,
-                dosesCompleted: 19,
-                dosesTotal: 21,
+                compliancePct: compliance,
+                dosesCompleted: dosesCompleted,
+                dosesTotal: dosesTotal,
                 currentStreak: 14,
                 avgCheckInScore: 4.4,
                 avgCalories: 2380,
@@ -477,3 +481,4 @@ enum ScreenshotSeedData {
         return [weekStart: summary]
     }
 }
+#endif

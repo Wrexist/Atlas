@@ -521,6 +521,30 @@ final class DataStoreTests: XCTestCase {
                       "A finished debounced save must not block the import refresh for the rest of the session")
     }
 
+    func test_reloadFromDisk_withProtocolAddedElsewhere_schedulesItsReminders() {
+        store.profile.doseRemindersEnabled = true
+        store.persistProfile()
+        store.flushPendingSave()
+        store.reloadFromDisk()
+        let before = NotificationService.shared.requestedCount
+        let synced = PeptideProtocol(
+            id: UUID(),
+            name: "Added on iPad",
+            peptides: [MockPeptides.bpc157],
+            schedule: ProtocolSchedule(daysOfWeek: [1, 2, 3, 4, 5, 6, 7], timesPerDay: 1, preferredTimes: ["6:15 AM"]),
+            cycleLengthWeeks: 4,
+            startDate: Date(),
+            status: .active,
+            notes: ""
+        )
+        SwiftDataRepository.shared.upsertProtocols([synced])
+
+        store.reloadFromDisk()
+
+        XCTAssertEqual(NotificationService.shared.requestedCount, before + 7,
+                       "A protocol synced in from another device must get one weekly reminder per scheduled day")
+    }
+
     func test_scheduledID_sameDoseSlot_isIdenticalOnEveryDevice() {
         let protocolId = UUID()
         let peptideId = UUID()

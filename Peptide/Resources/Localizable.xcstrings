@@ -39923,6 +39923,136 @@
         }
       }
     },
+    "Step on the scale, then reply with today's weight in %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ställ dig på vågen och svara sedan med dagens vikt i %@."
+          }
+        }
+      }
+    },
+    "Weight not saved": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vikten sparades inte"
+          }
+        }
+      }
+    },
+    "Couldn't read that weight. Open Atlas to log it.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kunde inte läsa vikten. Öppna Atlas för att logga den."
+          }
+        }
+      }
+    },
+    "Next dose: %@ at %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nästa dos: %@ kl. %@"
+          }
+        }
+      }
+    },
+    "Meal streak paused, best was %lld days.": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Meal streak paused, best was %lld day."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Meal streak paused, best was %lld days."
+                }
+              }
+            }
+          }
+        },
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Måltidssviten är pausad, bästa var %lld dag."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Måltidssviten är pausad, bästa var %lld dagar."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Dose streak paused, best was %lld days.": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Dose streak paused, best was %lld day."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Dose streak paused, best was %lld days."
+                }
+              }
+            }
+          }
+        },
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Dossviten är pausad, bästa var %lld dag."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Dossviten är pausad, bästa var %lld dagar."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "No active streaks yet.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga aktiva sviter än."
+          }
+        }
+      }
+    },
     "This needs Atlas Pro. If you've subscribed, restore your purchase and try again.": {
       "localizations": {
         "sv": {

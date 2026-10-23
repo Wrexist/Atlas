@@ -2047,14 +2047,14 @@ final class DataStore {
         }
         profile.habits.append(copy)
         save()
-        rescheduleHabitReminders()
+        Task { await rescheduleHabitReminders() }
     }
 
     func updateHabit(_ habit: Habit) {
         guard let idx = profile.habits.firstIndex(where: { $0.id == habit.id }) else { return }
         profile.habits[idx] = habit
         save()
-        rescheduleHabitReminders()
+        Task { await rescheduleHabitReminders() }
     }
 
     /// Removes the habit and every entry logged against it. The delete
@@ -2064,7 +2064,7 @@ final class DataStore {
         profile.habits.removeAll { $0.id == id }
         profile.habitEntries.removeAll { $0.habitId == id }
         save()
-        rescheduleHabitReminders()
+        Task { await rescheduleHabitReminders() }
     }
 
     func reorderHabits(_ ordered: [Habit]) {
@@ -2119,6 +2119,8 @@ final class DataStore {
         }
         save()
         registerHabitCompletionCelebration(habit: habit, wasCompleted: wasCompleted, on: date)
+        // Ticking a habit off drops today's reminder; un-ticking restores it.
+        Task { await rescheduleHabitReminders() }
     }
 
     /// Set the exact value for a given day. Use for countable habits
@@ -2145,6 +2147,7 @@ final class DataStore {
         if let habit {
             registerHabitCompletionCelebration(habit: habit, wasCompleted: wasCompleted, on: date)
         }
+        Task { await rescheduleHabitReminders() }
     }
 
     // MARK: - Momentum / Atlas Score
@@ -2330,17 +2333,18 @@ final class DataStore {
         return protocols.filter { dropped.contains($0.id) }.map(\.name).sorted()
     }
 
-    private func rescheduleNotificationsIfEnabled() {
+    func rescheduleNotificationsIfEnabled() {
         guard profile.doseRemindersEnabled else { return }
         NotificationService.shared.scheduleNotifications(for: activeProtocols)
     }
 
-    /// Re-stamps habit reminders against the current habit list. Habit
-    /// reminders are per-habit opt-in (gated on `Habit.reminderTime != nil`)
-    /// rather than the global `doseRemindersEnabled` switch — setting a
-    /// reminder time on a habit is already an explicit opt-in.
-    private func rescheduleHabitReminders() {
-        NotificationService.shared.scheduleHabitReminders(for: activeHabits)
+    /// Re-plans habit reminders against the current habits and today's
+    /// completions. Habit reminders are per-habit opt-in (gated on
+    /// `Habit.reminderTime != nil`) rather than the global
+    /// `doseRemindersEnabled` switch — setting a reminder time on a habit
+    /// is already an explicit opt-in.
+    func rescheduleHabitReminders() async {
+        await NotificationService.shared.scheduleHabitReminders(for: activeHabits, entries: profile.habitEntries)
     }
 
     // MARK: - Persistence
@@ -2898,6 +2902,11 @@ final class DataStore {
         // screen widget and the Watch tab would stay stale until the
         // next user mutation or the widget's 15-min auto-timer.
         refreshTrainingGlanceables()
+        // A protocol added, paused or re-timed on another device, or a
+        // habit reminder changed there, would otherwise keep this
+        // device's old reminders until the next local edit.
+        rescheduleNotificationsIfEnabled()
+        Task { await rescheduleHabitReminders() }
     }
 
     /// Transactionally applies a backup import — the user has
