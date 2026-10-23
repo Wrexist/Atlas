@@ -61,9 +61,9 @@ struct RecommendedPeptidesCard: View {
         case .high:
             reasonBadge("Research-backed", color: AppColor.accentLight, bgOpacity: 0.2)
         case .medium:
-            reasonBadge(String(localized: "Suggested"), color: AppColor.accentPrimary, bgOpacity: 0.15)
+            reasonBadge("Suggested", color: AppColor.accentPrimary, bgOpacity: 0.15)
         case .low:
-            reasonBadge(String(localized: "Exploratory"), color: AppColor.textSecondary, bgOpacity: 0.1)
+            reasonBadge("Exploratory", color: AppColor.textSecondary, bgOpacity: 0.1)
         }
     }
 
