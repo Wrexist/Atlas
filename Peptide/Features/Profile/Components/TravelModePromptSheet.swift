@@ -81,20 +81,28 @@ struct TravelModePromptSheet: View {
     private var deltaCard: some View {
         GlassCard(padding: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                row(
-                    eyebrow: String(localized: "From"),
-                    title: change.previousDisplayName,
-                    tint: AppColor.textSecondary
-                )
-                Image(systemName: "arrow.down")
-                    .font(AppFont.scaled(11, weight: .heavy))
-                    .foregroundStyle(AppColor.textTertiary)
-                    .padding(.leading, 6)
-                row(
-                    eyebrow: String(localized: "To"),
-                    title: change.currentDisplayName,
-                    tint: AppColor.accentLight
-                )
+                // A Grid sizes the label column to its widest eyebrow, so
+                // "From" and "To" line up without a fixed width that
+                // clips them at large Dynamic Type.
+                Grid(alignment: .leading, horizontalSpacing: Spacing.sm, verticalSpacing: Spacing.sm) {
+                    row(
+                        eyebrow: String(localized: "From"),
+                        title: change.previousDisplayName,
+                        tint: AppColor.textSecondary
+                    )
+                    GridRow {
+                        Image(systemName: "arrow.down")
+                            .font(AppFont.scaled(11, weight: .heavy))
+                            .foregroundStyle(AppColor.textTertiary)
+                            .padding(.leading, 6)
+                    }
+                    row(
+                        eyebrow: String(localized: "To"),
+                        title: change.currentDisplayName,
+                        tint: AppColor.accentLight
+                    )
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 Divider().overlay(AppColor.glassBorder)
                 HStack(spacing: 4) {
                     Image(systemName: "clock.arrow.2.circlepath")
@@ -110,18 +118,17 @@ struct TravelModePromptSheet: View {
     }
 
     private func row(eyebrow: String, title: String, tint: Color) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
+        GridRow(alignment: .firstTextBaseline) {
             Text(eyebrow)
                 .font(AppFont.scaled(11, weight: .heavy))
                 .tracking(0.6)
                 .textCase(.uppercase)
                 .foregroundStyle(tint.opacity(0.85))
-                .frame(width: 44, alignment: .leading)
+                .fixedSize()
             Text(title)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textPrimary)
                 .lineLimit(1)
-            Spacer(minLength: 0)
         }
     }
 
