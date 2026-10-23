@@ -59,6 +59,34 @@ final class SmartScanTests: XCTestCase {
         XCTAssertNil(scan.items.first?.price)
     }
 
+    func test_smartScan_legacyFallback_dropsSubGramAndDenserThanFatItems() async throws {
+        MockURLProtocol.handler = { request in
+            if request.url?.path == "/api/food-scan" {
+                return (Self.response(request, 404), Data())
+            }
+            return (Self.response(request, 200), Data(SmartFixtures.legacyImplausibleItems.utf8))
+        }
+        let scan = try await service.smartScan(image: tinyImage())
+
+        XCTAssertEqual(scan.items.map(\.name), ["Banana"])
+    }
+
+    func test_parseSmartScan_onlyItemOverFiveThousandKcal_throwsImplausibleResult() {
+        XCTAssertThrowsError(try service.parseSmartScan(from: Data(SmartFixtures.hugeTray.utf8))) { error in
+            if case .implausibleResult = error as? MealScannerService.ScanError {} else {
+                XCTFail("Expected implausibleResult, got \(error)")
+            }
+        }
+    }
+
+    func test_parseSmartScan_macrosOverOneHundredGramsPer100g_dropsItem() {
+        XCTAssertThrowsError(try service.parseSmartScan(from: Data(SmartFixtures.impossibleMacros.utf8))) { error in
+            if case .implausibleResult = error as? MealScannerService.ScanError {} else {
+                XCTFail("Expected implausibleResult, got \(error)")
+            }
+        }
+    }
+
     func test_smartScan_notFood_throwsNoFoodDetected() async {
         MockURLProtocol.handler = { request in
             (Self.response(request, 200), Data(SmartFixtures.notFood.utf8))
@@ -340,6 +368,30 @@ private enum SmartFixtures {
     static let notFood = """
     {"model":"claude-opus-5-5","result":{
       "kind":"not_food","title":"Book","summary":"This is a book.","tips":[],"package":null,"items":[]}}
+    """
+
+    static let hugeTray = """
+    {"model":"claude-opus-5-5","result":{
+      "kind":"meal","title":"Tray","summary":"A tray.","tips":[],"package":null,
+      "items":[
+        {"name":"Butter tray","brand":null,"portion_label":"1 tray","grams":5000,"portion_options":[],
+         "per_100g":{"calories":900,"protein_g":0,"carbs_g":0,"fat_g":100,"fiber_g":0,"sugars_g":0},
+         "confidence":0.9,"price":null}
+      ]}}
+    """
+
+    static let impossibleMacros = """
+    {"model":"claude-opus-5-5","result":{
+      "kind":"meal","title":"Bar","summary":"A bar.","tips":[],"package":null,
+      "items":[
+        {"name":"Protein bar","brand":null,"portion_label":"1 bar","grams":60,"portion_options":[],
+         "per_100g":{"calories":500,"protein_g":60,"carbs_g":60,"fat_g":20,"fiber_g":0,"sugars_g":0},
+         "confidence":0.9,"price":null}
+      ]}}
+    """
+
+    static let legacyImplausibleItems = """
+    {"content":[{"type":"text","text":"{\\"meal_name\\":null,\\"items\\":[{\\"name\\":\\"Crumb\\",\\"quantity_label\\":\\"a crumb\\",\\"grams\\":0.4,\\"calories\\":50,\\"protein_g\\":1,\\"carbs_g\\":5,\\"fat_g\\":2,\\"confidence\\":0.9},{\\"name\\":\\"Dense\\",\\"quantity_label\\":\\"1 spoon\\",\\"grams\\":10,\\"calories\\":500,\\"protein_g\\":0,\\"carbs_g\\":0,\\"fat_g\\":10,\\"confidence\\":0.9},{\\"name\\":\\"Banana\\",\\"quantity_label\\":\\"1 banana\\",\\"grams\\":120,\\"calories\\":105,\\"protein_g\\":1,\\"carbs_g\\":27,\\"fat_g\\":0,\\"confidence\\":0.9}]}"}]}
     """
 
     static let legacyItems = """

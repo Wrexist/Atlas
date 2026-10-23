@@ -748,7 +748,7 @@ final class MealScannerService: Sendable {
 
     /// Sanity bounds shared by both parsers — a prompt-injected or
     /// non-food response can't write absurd values into daily totals.
-    private func isPlausible(calories: Int, proteinG: Int, carbsG: Int, fatG: Int) -> Bool {
+    private static func isPlausible(calories: Int, proteinG: Int, carbsG: Int, fatG: Int) -> Bool {
         (0...5_000).contains(calories)
             && (0...500).contains(proteinG)
             && (0...500).contains(carbsG)
@@ -775,9 +775,10 @@ final class MealScannerService: Sendable {
             let name = item.name.trimmingCharacters(in: .whitespacesAndNewlines)
             return !name.isEmpty
                 && name.lowercased() != "unknown"
-                && (0...5_000).contains(Int(item.grams.rounded()))
+                && Self.plausibleItemGrams(item.grams)
+                && Double(item.calories) / item.grams * 100 <= Self.maxCaloriesPer100g
                 && (0.0...1.0).contains(item.confidence)
-                && isPlausible(
+                && Self.isPlausible(
                     calories: item.calories,
                     proteinG: item.proteinG,
                     carbsG: item.carbsG,
@@ -918,6 +919,11 @@ final class MealScannerService: Sendable {
               let per100g = plausible(wire.per100g)
         else { return nil }
         let scale = wire.grams / 100
+        let calories = Int((per100g.calories * scale).rounded())
+        let proteinG = Int((per100g.proteinG * scale).rounded())
+        let carbsG = Int((per100g.carbsG * scale).rounded())
+        let fatG = Int((per100g.fatG * scale).rounded())
+        guard isPlausible(calories: calories, proteinG: proteinG, carbsG: carbsG, fatG: fatG) else { return nil }
         let options = wire.portionOptions
             .filter { plausibleItemGrams($0.grams) && !$0.label.isEmpty }
             .prefix(4)
@@ -925,10 +931,10 @@ final class MealScannerService: Sendable {
             name: name,
             quantityLabel: wire.portionLabel,
             grams: wire.grams,
-            calories: Int((per100g.calories * scale).rounded()),
-            proteinG: Int((per100g.proteinG * scale).rounded()),
-            carbsG: Int((per100g.carbsG * scale).rounded()),
-            fatG: Int((per100g.fatG * scale).rounded()),
+            calories: calories,
+            proteinG: proteinG,
+            carbsG: carbsG,
+            fatG: fatG,
             confidence: wire.confidence,
             brand: wire.brand?.nilIfEmpty,
             per100g: per100g,
@@ -963,12 +969,17 @@ final class MealScannerService: Sendable {
         grams.isFinite && itemGramRange.contains(grams)
     }
 
+    /// Pure fat, the most energy 100 g of anything holds.
+    private static let maxCaloriesPer100g: Double = 900
+
     /// Per-100g values can't exceed what 100 g of anything holds: 900 kcal
-    /// (pure fat) and 100 g of any one macro.
+    /// (pure fat), 100 g of any one macro, and 100 g of the three together
+    /// (half a gram of slack for rounding).
     private static func plausible(_ n: SmartScanEnvelope.Nutrients) -> ScannedProduct.Nutriments? {
         let macros = [n.proteinG, n.carbsG, n.fatG, n.fiberG, n.sugarsG]
-        guard n.calories.isFinite, (0...900).contains(n.calories),
-              macros.allSatisfy({ $0.isFinite && (0...100).contains($0) })
+        guard n.calories.isFinite, (0...maxCaloriesPer100g).contains(n.calories),
+              macros.allSatisfy({ $0.isFinite && (0...100).contains($0) }),
+              n.proteinG + n.carbsG + n.fatG <= 100.5
         else { return nil }
         return ScannedProduct.Nutriments(calories: n.calories, proteinG: n.proteinG, carbsG: n.carbsG,
                                          fatG: n.fatG, fiberG: n.fiberG, sugarsG: n.sugarsG)
