@@ -196,14 +196,14 @@ struct PeptideScheduleSheet: View {
     private var doseSection: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: Spacing.xs) {
                     Label("Dose", systemImage: "scalemass.fill")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
-                    Spacer()
                     Text("Range: \(peptide.dosageRange)")
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 Text("Enter the dose your clinician advised. The research range above is reference only — Atlas does not recommend or calculate doses.")
