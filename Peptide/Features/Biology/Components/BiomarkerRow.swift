@@ -28,7 +28,7 @@ struct BiomarkerRow: View {
                         .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(1)
 
-                    Text(snapshot.changeText)
+                    Text(subtitle)
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(1)
@@ -57,6 +57,13 @@ struct BiomarkerRow: View {
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .combine)
+    }
+
+    /// The change line, plus when the reading was taken once it's old
+    /// enough that "latest" would mislead.
+    private var subtitle: String {
+        guard let note = snapshot.staleNote() else { return snapshot.changeText }
+        return "\(snapshot.changeText) · \(note)"
     }
 
     // MARK: - Trend badge

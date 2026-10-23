@@ -83,20 +83,46 @@ struct BiomarkerDetailSheet: View {
     // MARK: - Hero
 
     private var heroBlock: some View {
-        HStack(alignment: .lastTextBaseline, spacing: Spacing.sm) {
-            Text(latestValueString)
-                .font(AppFont.scaled(48, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
-                .foregroundStyle(AppColor.textPrimary)
-                .monospacedDigit()
-                .contentTransition(.numericText())
-            if let unitString = biomarker.displayUnit(for: unit) {
-                Text(unitString)
-                    .font(AppFont.scaled(16, weight: .heavy))
-                    .foregroundStyle(AppColor.textSecondary)
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
+            HStack(alignment: .lastTextBaseline, spacing: Spacing.sm) {
+                Text(latestValueString)
+                    .font(AppFont.scaled(48, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                if let unitString = biomarker.displayUnit(for: unit) {
+                    Text(unitString)
+                        .font(AppFont.scaled(16, weight: .heavy))
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+                Spacer(minLength: 0)
+                trendChip
             }
-            Spacer(minLength: 0)
-            trendChip
+            HStack(spacing: Spacing.sm) {
+                if let latestCaption {
+                    Text(latestCaption)
+                }
+                Spacer(minLength: 0)
+                // The sheet upgrades from the row's 14-day snapshot to
+                // 90 days, so the chip says which window it reads.
+                if snapshot.trend != .insufficient {
+                    Text("Last \(trendWindowDays) days")
+                }
+            }
+            .font(AppFont.caption2)
+            .foregroundStyle(AppColor.textSecondary)
         }
+    }
+
+    /// When the hero number was recorded, so an old reading never
+    /// passes for today's.
+    private var latestCaption: String? {
+        guard let latestDate = snapshot.latestDate else { return nil }
+        return snapshot.staleNote() ?? dayLabel(for: latestDate)
+    }
+
+    private var trendWindowDays: Int {
+        historicalSnapshot == nil ? BiomarkerSeriesService.windowDays : BiomarkerSeriesService.detailWindowDays
     }
 
     private var latestValueString: String {
@@ -305,10 +331,11 @@ struct BiomarkerDetailSheet: View {
         .accessibilityHidden(true)
     }
 
-    /// "Today", else the calendar date ("12 Mar"), so ticks read in the
-    /// user's locale rather than as English abbreviations.
+    /// "Today", "Yesterday", else the calendar date ("12 Mar"), so ticks
+    /// read in the user's locale rather than as English abbreviations.
     private func dayLabel(for date: Date) -> String {
         if Calendar.current.isDateInToday(date) { return String(localized: "Today") }
+        if Calendar.current.isDateInYesterday(date) { return String(localized: "Yesterday") }
         return date.formatted(.dateTime.day().month(.abbreviated))
     }
 

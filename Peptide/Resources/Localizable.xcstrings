@@ -10615,6 +10615,16 @@
         }
       }
     },
+    "Last reading %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senaste mätning %@"
+          }
+        }
+      }
+    },
     "Log a few more foods first": {
       "localizations": {
         "sv": {

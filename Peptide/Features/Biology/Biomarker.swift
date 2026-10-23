@@ -155,6 +155,25 @@ struct BiomarkerSnapshot: Equatable, Sendable, Identifiable {
     /// e.g. "Increasing · 72.0 kg". Localized in this layer so
     /// the view doesn't redo the formatting.
     let changeText: String
+    /// When `latest` was recorded. `nil` when there is no reading.
+    var latestDate: Date? = nil
+
+    /// Past this many days the latest reading is called out as old
+    /// rather than shown as if it were current.
+    static let staleAfterDays: Int = 3
+
+    /// "Last reading 12 Mar" once the latest reading is older than
+    /// `staleAfterDays`; nil while it's recent or undated.
+    func staleNote(now: Date = Date(), calendar: Calendar = .current) -> String? {
+        guard let latestDate,
+              let age = calendar.dateComponents([.day],
+                                                from: calendar.startOfDay(for: latestDate),
+                                                to: calendar.startOfDay(for: now)).day,
+              age > Self.staleAfterDays
+        else { return nil }
+        let day = latestDate.formatted(.dateTime.day().month(.abbreviated))
+        return String(localized: "Last reading \(day)")
+    }
 
     struct Sample: Equatable, Sendable {
         let date: Date

@@ -190,6 +190,43 @@ final class BiomarkerSeriesServiceTests: XCTestCase {
         XCTAssertEqual(snapshot.samples.map(\.value), [71.0, 71.5])
     }
 
+    // MARK: - Latest reading date
+
+    func test_weightSnapshot_carriesLatestWeighInDate() {
+        let base = Date(timeIntervalSince1970: 1_700_000_000)
+        let latestDate = base.addingTimeInterval(2 * 86_400)
+        let snapshot = BiomarkerSeriesService.weightSnapshot(
+            weightHistory: [WeightEntry(date: base, kg: 70), WeightEntry(date: latestDate, kg: 71)],
+            now: base.addingTimeInterval(9 * 86_400),
+            calendar: utc
+        )
+        XCTAssertEqual(snapshot.latestDate, latestDate)
+    }
+
+    /// A single-sample series drops its sparkline, but the hero still
+    /// needs to know when that one reading was taken.
+    func test_seriesSnapshot_singleReading_keepsItsDate() {
+        let date = Date(timeIntervalSince1970: 1_700_000_000)
+        let snapshot = BiomarkerSeriesService.seriesSnapshot(.hrvBaseline, series: [(date: date, value: 55)])
+        XCTAssertTrue(snapshot.samples.isEmpty)
+        XCTAssertEqual(snapshot.latestDate, date)
+    }
+
+    func test_staleNote_recentReading_isNil() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let snapshot = BiomarkerSeriesService.seriesSnapshot(
+            .rhrBaseline, series: [(date: now.addingTimeInterval(-86_400), value: 58)]
+        )
+        XCTAssertNil(snapshot.staleNote(now: now, calendar: utc))
+    }
+
+    func test_staleNote_readingOlderThanThreshold_namesItsDay() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let old = now.addingTimeInterval(-Double(BiomarkerSnapshot.staleAfterDays + 1) * 86_400)
+        let snapshot = BiomarkerSeriesService.seriesSnapshot(.rhrBaseline, series: [(date: old, value: 58)])
+        XCTAssertNotNil(snapshot.staleNote(now: now, calendar: utc))
+    }
+
     // MARK: - completedDays
 
     func test_completedDays_partialTodayBucket_isDropped() {
