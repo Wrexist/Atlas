@@ -107,14 +107,24 @@ extension View {
         cornerRadius: CGFloat = Spacing.cardCornerRadius,
         border: Color = AppColor.glassBorder
     ) -> some View {
-        background {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(AppColor.surfaceSecondary.opacity(0.55))
-                .overlay {
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .strokeBorder(border, lineWidth: 0.5)
-                }
-        }
+        background { InsetRowFill(cornerRadius: cornerRadius, border: border) }
+    }
+}
+
+/// Opaque under Reduce Transparency, like the legacy glass fill.
+private struct InsetRowFill: View {
+    let cornerRadius: CGFloat
+    let border: Color
+
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(AppColor.surfaceSecondary.opacity(reduceTransparency ? 1 : 0.55))
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(border, lineWidth: 0.5)
+            }
     }
 }
 
