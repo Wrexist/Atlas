@@ -503,7 +503,7 @@ final class ExportService {
                 if protoEntries.count > entriesToRender.count {
                     let hidden = protoEntries.count - entriesToRender.count
                     let moreH = drawText(
-                        "… \(hidden) earlier entries · use the CSV export in Profile → Export Data for the complete log",
+                        "… \(hidden) earlier entries · use the CSV export in Profile → Settings → Data Export for the complete log",
                         font: captionFont, color: mutedColor
                     )
                     y += moreH + 3

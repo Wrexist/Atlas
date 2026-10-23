@@ -20109,12 +20109,12 @@
         }
       }
     },
-    "Make sure Atlas has access in Settings → Health → Data Access.": {
+    "Make sure Atlas has access in Settings → Privacy & Security → Health → Atlas.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kontrollera att Atlas har åtkomst under Inställningar → Hälsa → Dataåtkomst."
+            "value": "Kontrollera att Atlas har åtkomst under Inställningar → Integritet och säkerhet → Hälsa → Atlas."
           }
         }
       }

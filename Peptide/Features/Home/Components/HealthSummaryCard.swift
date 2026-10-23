@@ -73,7 +73,7 @@ struct HealthSummaryCard: View {
                 .font(AppFont.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.textPrimary)
-            Text("Make sure Atlas has access in Settings → Health → Data Access.")
+            Text("Make sure Atlas has access in Settings → Privacy & Security → Health → Atlas.")
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
