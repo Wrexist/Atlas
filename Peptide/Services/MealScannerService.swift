@@ -954,8 +954,13 @@ final class MealScannerService: Sendable {
         return ScanQuestion(question: text, answers: Array(answers))
     }
 
+    /// The weights a scanned item may have. The review card's portion
+    /// controls use the same range, so they can always reach and keep
+    /// the scanner's own estimate.
+    static let itemGramRange: ClosedRange<Double> = 1...5_000
+
     private static func plausibleItemGrams(_ grams: Double) -> Bool {
-        grams.isFinite && (1...5_000).contains(grams)
+        grams.isFinite && itemGramRange.contains(grams)
     }
 
     /// Per-100g values can't exceed what 100 g of anything holds: 900 kcal

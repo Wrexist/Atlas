@@ -61,11 +61,11 @@ final class EditableFoodItemTests: XCTestCase {
         XCTAssertEqual(item.loggedName, "Honeydew")
     }
 
-    private func scanned(confidence: Double) -> MealScannerService.ScannedFoodItem {
+    private func scanned(confidence: Double, grams: Double = 200) -> MealScannerService.ScannedFoodItem {
         MealScannerService.ScannedFoodItem(
             name: "watermelon",
             quantityLabel: "2 slices",
-            grams: 200,
+            grams: grams,
             calories: 200,
             proteinG: 4,
             carbsG: 50,
@@ -99,5 +99,32 @@ final class EditableFoodItemTests: XCTestCase {
         item.grams = 0
         item.correctNutrition(.init(calories: 100, proteinG: 1, carbsG: 1, fatG: 1))
         XCTAssertFalse(item.nutritionEdited)
+    }
+
+    func test_stepGrams_onPortionAboveTwoKilos_increasesGrams() {
+        var item = EditableFoodItem(from: scanned(confidence: 0.9, grams: 2_500))
+        item.stepGrams(by: 10)
+        XCTAssertEqual(item.grams, 2_510)
+    }
+
+    func test_clampedGrams_oneServingOfLargePortion_restoresScannedAmount() {
+        var item = EditableFoodItem(from: scanned(confidence: 0.9, grams: 2_500))
+        item.grams = 1_000
+        item.grams = EditableFoodItem.clampedGrams(item.aiGrams.rounded())
+        XCTAssertEqual(item.grams, 2_500)
+    }
+
+    func test_stepGrams_downFromTinyPortion_neverIncreasesGrams() {
+        var item = EditableFoodItem(from: scanned(confidence: 0.9, grams: 2))
+        item.stepGrams(by: -10)
+        XCTAssertEqual(item.grams, 1)
+        item.stepGrams(by: -10)
+        XCTAssertEqual(item.grams, 1)
+    }
+
+    func test_stepGrams_atScannerCeiling_staysPut() {
+        var item = EditableFoodItem(from: scanned(confidence: 0.9, grams: 5_000))
+        item.stepGrams(by: 10)
+        XCTAssertEqual(item.grams, 5_000)
     }
 }
