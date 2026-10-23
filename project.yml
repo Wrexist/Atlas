@@ -1,7 +1,7 @@
 # Auto-version contract (see .github/workflows/ios-testflight.yml):
 #
 # Every shipping target MUST declare these four keys so the TestFlight
-# pipeline can stamp a fresh `1.0.<run_number>` (or a manual override)
+# pipeline can stamp a fresh auto version (or a manual override)
 # across the whole archive:
 #
 #   settings.base:

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       marketing_version:
-        description: 'Marketing version, e.g. 1.2.5. Must be higher than the last approved App Store version (Apple closes a train once it ships). Leave blank to auto-generate 1.2.<run_number> so every upload is unique.'
+        description: 'Marketing version, e.g. 1.2.5. Must be higher than the last approved App Store version (Apple closes a train once it ships). Leave blank to auto-generate <major>.<minor>.<run_number> above every version Apple already has (fastlane/auto_version.rb).'
         required: false
         type: string
         default: ''
@@ -99,9 +99,9 @@ jobs:
 
       # ─── Auto-version pipeline ────────────────────────────────────
       #
-      # Single source of truth: the workflow input, OR 1.2.<run_number>
-      # when the input is blank. From here every layer is forced to
-      # the same value:
+      # Single source of truth: the workflow input, OR the auto version
+      # from fastlane/auto_version.rb when the input is blank. From here
+      # every layer is forced to the same value:
       #   1. sed → project.yml MARKETING_VERSION (every target)
       #   2. sed → project.yml CURRENT_PROJECT_VERSION (every target)
       #   3. xcodegen reads those settings + writes Info.plist files
@@ -117,21 +117,24 @@ jobs:
       # `settings.base` block (and CFBundleShortVersionString /
       # CFBundleVersion in `info.properties` if it has an Info.plist).
       # The sed + glob steps below pick up the rest automatically.
-      - name: Resolve marketing version (input or auto 1.2.<run_number>)
+      - name: Resolve marketing version (input or auto above Apple's highest)
         env:
           INPUT_VERSION: ${{ github.event.inputs.marketing_version }}
           BUILD: ${{ github.run_number }}
+          # Lowest major.minor the auto line may use. Raise it to start a
+          # new minor on purpose; it never needs lowering, because the
+          # script also climbs above anything already at Apple.
+          AUTO_VERSION_FLOOR: '1.6'
+          ASC_KEY_ID:     ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID:  ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8:     ${{ secrets.ASC_KEY_P8 }}
         run: |
           if [ -z "$INPUT_VERSION" ]; then
-            # Auto line lives on 1.2.x: run_number only ever increases, so
-            # 1.2.<run_number> is always > the approved 1.2.0 (whose train
-            # Apple closed on release) and > the stranded 1.0.x / 1.1.x
-            # history. When the next App Store release ships (e.g. 1.3.0),
-            # move this default up to that minor — a blank input left here
-            # would fall below the approved version and Apple rejects the
-            # train outright.
-            NEW_VERSION="1.2.$BUILD"
-            echo "No marketing_version input — defaulting to $NEW_VERSION so the build is unique."
+            # Derived from what Apple already has, so a version uploaded by
+            # hand (1.5.0 stranded the old fixed 1.2.<run_number> line) can
+            # never leave blank-input runs below it.
+            NEW_VERSION=$(bundle exec ruby fastlane/auto_version.rb | tail -n 1)
+            echo "No marketing_version input — auto version $NEW_VERSION."
           else
             NEW_VERSION="$INPUT_VERSION"
             echo "Using marketing_version input: $NEW_VERSION"
