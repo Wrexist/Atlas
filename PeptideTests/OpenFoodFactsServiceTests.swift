@@ -444,6 +444,44 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         XCTAssertEqual(refreshed?.name, "Coca-Cola", "Background refresh must overwrite the cached entry")
     }
 
+    func test_needsPackageWeightRefresh_freshEntryWithoutWeight_isFalse() {
+        let fresh = ScannedProduct(
+            barcode: "1", name: "x", brand: nil, imageURL: nil,
+            servingSizeText: nil, servingGrams: nil, packageGrams: nil,
+            per100g: .zero, nutriScore: nil, novaGroup: nil,
+            fetchedAt: Date()
+        )
+        XCTAssertFalse(OpenFoodFactsService.needsPackageWeightRefresh(fresh))
+    }
+
+    func test_needsPackageWeightRefresh_dayOldEntryWithoutWeight_isTrue() {
+        let old = ScannedProduct(
+            barcode: "1", name: "x", brand: nil, imageURL: nil,
+            servingSizeText: nil, servingGrams: nil, packageGrams: nil,
+            per100g: .zero, nutriScore: nil, novaGroup: nil,
+            fetchedAt: Date().addingTimeInterval(-OpenFoodFactsService.missingPackageRefreshAfter - 1)
+        )
+        XCTAssertTrue(OpenFoodFactsService.needsPackageWeightRefresh(old))
+    }
+
+    func test_fetch_freshCachedEntryWithoutWeight_doesNotRefetch() async throws {
+        await cache.write(ScannedProduct(
+            barcode: "5449000000996", name: "Cached Cola", brand: nil, imageURL: nil,
+            servingSizeText: nil, servingGrams: nil, packageGrams: nil,
+            per100g: .zero, nutriScore: nil, novaGroup: nil, fetchedAt: Date()
+        ))
+        let callCount = SendableBox<Int>(0)
+        MockURLProtocol.handler = { request in
+            callCount.set(callCount.value + 1)
+            return (Self.ok(for: request), Data(Fixtures.cocaCola.utf8))
+        }
+
+        _ = try await service.fetch(barcode: "5449000000996")
+        try await Task.sleep(for: .milliseconds(300))
+
+        XCTAssertEqual(callCount.value, 0)
+    }
+
     func test_isStale_returnsFalse_forFreshFetchedAt() {
         let fresh = ScannedProduct(
             barcode: "1", name: "x", brand: nil, imageURL: nil,

@@ -25,6 +25,9 @@ final class OpenFoodFactsService: Sendable {
     /// product entries are amended slowly by volunteer editors, so a
     /// weekly check is plenty to stay current without thrashing.
     static let staleAfter: TimeInterval = 60 * 60 * 24 * 7
+    /// A cached product with no package weight is re-checked at most this
+    /// often: many records have no quantity at all and never gain one.
+    static let missingPackageRefreshAfter: TimeInterval = 60 * 60 * 24
 
     /// `fields=` trims the response from ~80 KB to ~3 KB by only asking
     /// for the keys we actually map. Listed once here so the wire shape
@@ -182,8 +185,8 @@ final class OpenFoodFactsService: Sendable {
         if let cached = await cache.read(barcode: normalized, markingUsed: true) {
             // Entries cached before the printed `quantity` was read have
             // no package weight; refresh those too so the Package tab
-            // shows up on the next scan.
-            if Self.isStale(cached) || cached.packageGrams == nil {
+            // shows up on a later scan — once a day, not on every scan.
+            if Self.isStale(cached) || Self.needsPackageWeightRefresh(cached) {
                 // No [weak self] — the service is a long-lived shared
                 // instance, so a strong capture for the refresh task
                 // is correct and avoids silently dropping work if a
@@ -394,6 +397,10 @@ final class OpenFoodFactsService: Sendable {
 
     static func isStale(_ product: ScannedProduct) -> Bool {
         Date().timeIntervalSince(product.fetchedAt) > staleAfter
+    }
+
+    static func needsPackageWeightRefresh(_ product: ScannedProduct) -> Bool {
+        product.packageGrams == nil && Date().timeIntervalSince(product.fetchedAt) > missingPackageRefreshAfter
     }
 
     /// Net weight in grams from OFF's free-text `quantity`: "130 g",
