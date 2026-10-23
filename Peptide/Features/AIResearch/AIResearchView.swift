@@ -348,6 +348,10 @@ struct AIResearchView: View {
                 if removeIfUnanswered(userTurn, assistantTurn) {
                     errorText = AIResearchService.ChatError.invalidResponse.errorDescription
                     lastFailedPrompt = prompt
+                } else {
+                    // Focus stays on the composer, so tell VoiceOver the
+                    // answer is in rather than leaving it to hunt.
+                    AccessibilityNotification.Announcement(String(localized: "Assistant answered")).post()
                 }
             } catch is CancellationError {
                 // User stopped, fired a new question or closed the sheet
