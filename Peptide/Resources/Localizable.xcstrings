@@ -6405,16 +6405,6 @@
         }
       }
     },
-    "Add to your protocol": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lägg till i ditt protokoll"
-          }
-        }
-      }
-    },
     "Add your first exercise": {
       "localizations": {
         "sv": {
@@ -40066,6 +40056,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Doserna pausas automatiskt under uppehållet och fortsätter när nästa cykel börjar."
+          }
+        }
+      }
+    },
+    "Suggestions for your protocols": {
+      "comment": "Protocols tab — header over Smart Planner nudges and peptide recommendations.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Förslag för dina protokoll"
           }
         }
       }

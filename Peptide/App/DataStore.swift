@@ -108,6 +108,7 @@ final class DataStore {
     @ObservationIgnored private var _stackPeptides: (version: Int, value: [Peptide])?
     @ObservationIgnored private var _stackWarnings: (version: Int, value: [StackRecommendationEngine.Warning])?
     @ObservationIgnored private var _stackRecommendations: (version: Int, value: [StackRecommendationEngine.Recommendation])?
+    @ObservationIgnored private var _smartCycleSuggestions: (version: Int, value: [SmartCyclePlanner.Suggestion])?
     @ObservationIgnored private var _stackCompleteness: (version: Int, value: StackRecommendationEngine.StackCompleteness?)?
     @ObservationIgnored private var _cycleTransitions: (version: Int, value: [StackRecommendationEngine.CycleTransition])?
     @ObservationIgnored private var _topInsight: (version: Int, value: InsightEngine.Insight?)?
@@ -1042,6 +1043,15 @@ final class DataStore {
         )
         let result = StackRecommendationEngine.recommendations(context: context)
         _stackRecommendations = (cacheVersion, result)
+        return result
+    }
+
+    /// Smart Planner nudges, cached like the other engines so the
+    /// Protocols tab doesn't re-filter every entry on each render.
+    var smartCycleSuggestions: [SmartCyclePlanner.Suggestion] {
+        if let cached = _smartCycleSuggestions, cached.version == cacheVersion { return cached.value }
+        let result = SmartCyclePlanner.suggestions(protocols: protocols, entries: entries)
+        _smartCycleSuggestions = (cacheVersion, result)
         return result
     }
 
