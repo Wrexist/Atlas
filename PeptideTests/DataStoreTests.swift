@@ -161,6 +161,60 @@ final class DataStoreTests: XCTestCase {
         XCTAssertFalse(store.entries.contains { $0.protocolId == proto.id })
     }
 
+    func test_addPeptide_toForkedProtocol_keepsAttributionAndCreationDate() {
+        let createdAt = Date(timeIntervalSince1970: 1_700_000_000)
+        let templateID = UUID()
+        let forked = PeptideProtocol(
+            id: UUID(),
+            name: "From template",
+            peptides: [MockPeptides.bpc157],
+            schedule: ProtocolSchedule(daysOfWeek: [1, 3, 5], timesPerDay: 1, preferredTimes: ["8:00 AM"]),
+            cycleLengthWeeks: 8,
+            startDate: Date(),
+            status: .paused,
+            notes: "",
+            authorName: "Atlas Editorial",
+            authorHandle: "@atlas",
+            forkedFromStackId: templateID,
+            createdAt: createdAt
+        )
+        store.addProtocol(forked)
+
+        store.addPeptide(MockPeptides.tb500, toProtocolId: forked.id)
+
+        let updated = store.protocols.first { $0.id == forked.id }
+        XCTAssertEqual(updated?.peptides.count, 2)
+        XCTAssertEqual(updated?.forkedFromStackId, templateID)
+        XCTAssertEqual(updated?.authorName, "Atlas Editorial")
+        XCTAssertEqual(updated?.authorHandle, "@atlas")
+        XCTAssertEqual(updated?.createdAt, createdAt)
+    }
+
+    func test_addPeptide_withMovedPeptidesSchedule_keepsItsCustomDose() {
+        let destination = PeptideProtocol(
+            id: UUID(),
+            name: "Destination",
+            peptides: [MockPeptides.bpc157],
+            schedule: ProtocolSchedule(daysOfWeek: [1, 3, 5], timesPerDay: 1, preferredTimes: ["8:00 AM"]),
+            cycleLengthWeeks: 8,
+            startDate: Date(),
+            status: .paused,
+            notes: ""
+        )
+        store.addProtocol(destination)
+        let moved = ProtocolSchedule(
+            daysOfWeek: [2, 4],
+            timesPerDay: 1,
+            preferredTimes: ["9:00 PM"],
+            customDose: "250 mcg"
+        )
+
+        store.addPeptide(MockPeptides.tb500, toProtocolId: destination.id, schedule: moved)
+
+        let updated = store.protocols.first { $0.id == destination.id }
+        XCTAssertEqual(updated?.schedule(for: MockPeptides.tb500.id), moved)
+    }
+
     func test_todayEntries_areSortedByDate() {
         let today = store.todayEntries
         for (earlier, later) in zip(today, today.dropFirst()) {

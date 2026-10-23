@@ -214,6 +214,32 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
         self.createdAt = createdAt
     }
 
+    /// A copy with its dosing content replaced. Identity, attribution,
+    /// cycle and status carry over, so a rebuild can't silently reset
+    /// the template link or creation date.
+    func with(
+        peptides: [Peptide]? = nil,
+        schedule: ProtocolSchedule? = nil,
+        peptideSchedules: [UUID: ProtocolSchedule]? = nil
+    ) -> PeptideProtocol {
+        PeptideProtocol(
+            id: id,
+            name: name,
+            peptides: peptides ?? self.peptides,
+            schedule: schedule ?? self.schedule,
+            peptideSchedules: peptideSchedules ?? self.peptideSchedules,
+            cycleLengthWeeks: cycleLengthWeeks,
+            washoutWeeks: washoutWeeks,
+            startDate: startDate,
+            status: status,
+            notes: notes,
+            authorName: authorName,
+            authorHandle: authorHandle,
+            forkedFromStackId: forkedFromStackId,
+            createdAt: createdAt
+        )
+    }
+
     /// Returns the override schedule for a peptide, falling back to the protocol default.
     func schedule(for peptideId: UUID) -> ProtocolSchedule {
         peptideSchedules[peptideId] ?? schedule

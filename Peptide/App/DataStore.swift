@@ -682,24 +682,24 @@ final class DataStore {
         }
     }
 
+    /// `schedule` keeps a moved peptide's own dose, times and cadence;
+    /// it's stored as an override only when it differs from the
+    /// destination's default.
     @discardableResult
-    func addPeptide(_ peptide: Peptide, toProtocolId protocolId: UUID) -> Bool {
+    func addPeptide(
+        _ peptide: Peptide,
+        toProtocolId protocolId: UUID,
+        schedule: ProtocolSchedule? = nil
+    ) -> Bool {
         guard let index = protocols.firstIndex(where: { $0.id == protocolId }) else { return false }
         if protocols[index].peptides.contains(where: { $0.id == peptide.id }) { return false }
 
         let existing = protocols[index]
-        let updated = PeptideProtocol(
-            id: existing.id,
-            name: existing.name,
-            peptides: existing.peptides + [peptide],
-            schedule: existing.schedule,
-            peptideSchedules: existing.peptideSchedules,
-            cycleLengthWeeks: existing.cycleLengthWeeks,
-            washoutWeeks: existing.washoutWeeks,
-            startDate: existing.startDate,
-            status: existing.status,
-            notes: existing.notes
-        )
+        var overrides = existing.peptideSchedules
+        if let schedule, schedule != existing.schedule {
+            overrides[peptide.id] = schedule
+        }
+        let updated = existing.with(peptides: existing.peptides + [peptide], peptideSchedules: overrides)
         protocols[index] = updated
 
         if updated.status == .active {
@@ -823,22 +823,7 @@ final class DataStore {
             overrides.removeValue(forKey: peptideId)
         }
 
-        let updated = PeptideProtocol(
-            id: existing.id,
-            name: existing.name,
-            peptides: existing.peptides,
-            schedule: existing.schedule,
-            peptideSchedules: overrides,
-            cycleLengthWeeks: existing.cycleLengthWeeks,
-            washoutWeeks: existing.washoutWeeks,
-            startDate: existing.startDate,
-            status: existing.status,
-            notes: existing.notes,
-            authorName: existing.authorName,
-            authorHandle: existing.authorHandle,
-            forkedFromStackId: existing.forkedFromStackId,
-            createdAt: existing.createdAt
-        )
+        let updated = existing.with(peptideSchedules: overrides)
         protocols[index] = updated
 
         // Regenerate today's entries for this protocol so the change

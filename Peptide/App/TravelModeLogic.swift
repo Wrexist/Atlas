@@ -29,25 +29,12 @@ enum TravelModeLogic {
         for index in protocols.indices {
             let original = protocols[index]
             guard original.status != .completed else { continue }
-            let updated = PeptideProtocol(
-                id: original.id,
-                name: original.name,
-                peptides: original.peptides,
+            protocols[index] = original.with(
                 schedule: shiftSchedule(original.schedule, byMinutes: minutes),
                 peptideSchedules: original.peptideSchedules.mapValues {
                     shiftSchedule($0, byMinutes: minutes)
-                },
-                cycleLengthWeeks: original.cycleLengthWeeks,
-                washoutWeeks: original.washoutWeeks,
-                startDate: original.startDate,
-                status: original.status,
-                notes: original.notes,
-                authorName: original.authorName,
-                authorHandle: original.authorHandle,
-                forkedFromStackId: original.forkedFromStackId,
-                createdAt: original.createdAt
+                }
             )
-            protocols[index] = updated
         }
     }
 
