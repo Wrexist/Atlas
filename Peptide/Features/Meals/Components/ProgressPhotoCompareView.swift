@@ -24,6 +24,9 @@ struct ProgressPhotoCompareView: View {
     /// The filmstrip, decoded at strip size — a 56×70pt thumbnail has no
     /// use for an 800 px bitmap.
     @State private var thumbnails: [String: UIImage] = [:]
+    /// Filmstrip date width, scaled so "Jan 15, 2026" wraps to two
+    /// readable lines instead of shrinking below the caption floor.
+    @ScaledMetric(relativeTo: .caption2) private var dateLabelWidth: CGFloat = 64
 
     /// Default the comparison target to the photo furthest from
     /// `primary` chronologically — the most striking comparison
@@ -254,11 +257,11 @@ struct ProgressPhotoCompareView: View {
                     placeholder.frame(width: 56, height: 70)
                 }
                 Text(ProgressPhotoMetadata.displayDate(forFilename: filename))
-                    .font(AppFont.scaled(8, weight: .semibold))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(active ? AppColor.accentLight : AppColor.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .frame(width: 60)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .frame(width: dateLabelWidth)
             }
         }
         .buttonStyle(.plain)
