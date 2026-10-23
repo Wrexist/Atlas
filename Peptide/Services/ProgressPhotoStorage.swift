@@ -23,9 +23,11 @@ enum ProgressPhotoStorage {
 
         var errorDescription: String? {
             switch self {
-            case .missingDirectory: "Couldn't find the Documents directory."
+            case .missingDirectory: String(localized: "Couldn't find the folder for progress photos.",
+                                           comment: "Progress photo save error when the Documents directory is unavailable.")
             case .decoding:         String(localized: "Couldn't read that photo. Try a different one.")
-            case .encoding:         "Couldn't encode the photo as a JPEG."
+            case .encoding:         String(localized: "Couldn't prepare the photo for saving. Try a different one.",
+                                           comment: "Progress photo save error when JPEG encoding fails.")
             case .write(let err):   String(localized: "Couldn't save the photo: \(err.localizedDescription)")
             }
         }

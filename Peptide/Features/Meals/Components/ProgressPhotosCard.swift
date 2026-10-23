@@ -320,7 +320,8 @@ struct ProgressPhotosCard: View {
             dataStore.addProgressPhotoFilename(filename)
             Haptics.success()
         } catch {
-            errorText = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            errorText = (error as? LocalizedError)?.errorDescription
+                ?? String(localized: "Couldn't save the photo. Try again.")
             Haptics.error()
         }
     }
