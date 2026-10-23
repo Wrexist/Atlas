@@ -34,12 +34,15 @@ struct BioAgeTrendCard: View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             HStack(alignment: .firstTextBaseline) {
                 BiologySectionHeader(title: "Trend")
-                GlassSegmentedControl(
-                    options: Window.allCases,
-                    selected: $range,
-                    label: { $0.label }
-                )
-                .fixedSize()
+                // A range choice means nothing until there is a line.
+                if points.count >= 2 {
+                    GlassSegmentedControl(
+                        options: Window.allCases,
+                        selected: $range,
+                        label: { $0.label }
+                    )
+                    .fixedSize()
+                }
             }
 
             GlassCard {

@@ -40,9 +40,12 @@ struct LabEntryEditor: View {
 
     /// `defaultPanel` pre-selects the panel for a new entry — the panel
     /// being viewed, or the one the user logged most recently.
+    /// `carryOver` pre-fills a new entry's draw date and lab from the
+    /// entry just saved (see `carryOverEntry(from:now:)`).
     init(
         initial: LabValue?,
         defaultPanel: LabPanel? = nil,
+        carryOver: LabValue? = nil,
         sex: BiologicalSex,
         onSave: @escaping (LabValue) -> Void,
         onDelete: ((UUID) -> Void)?,
@@ -55,9 +58,23 @@ struct LabEntryEditor: View {
         self.onCancel = onCancel
         _panel = State(initialValue: initial?.panel ?? defaultPanel.flatMap { $0 == .other ? nil : $0 } ?? .vitaminD)
         _valueText = State(initialValue: initial.map { LabValueFormat.string($0.value) } ?? "")
-        _drawDate = State(initialValue: initial?.date ?? Date())
-        _source = State(initialValue: initial?.source ?? "")
+        let prefill = initial ?? carryOver
+        _drawDate = State(initialValue: prefill?.date ?? Date())
+        _source = State(initialValue: prefill?.source ?? "")
         _note = State(initialValue: initial?.note ?? "")
+    }
+
+    /// How recently an entry must have been saved for the next new one to
+    /// be treated as part of the same report.
+    static let carryOverWindow: TimeInterval = 60 * 60
+
+    /// The entry saved last, when that was within `carryOverWindow` of
+    /// `now`. One report carries many markers with one draw date and one
+    /// lab, so the next entry starts from those instead of today and blank.
+    static func carryOverEntry(from entries: [LabValue], now: Date) -> LabValue? {
+        guard let last = entries.max(by: { $0.updatedAt < $1.updatedAt }) else { return nil }
+        let elapsed = now.timeIntervalSince(last.updatedAt)
+        return elapsed >= 0 && elapsed <= carryOverWindow ? last : nil
     }
 
     private var usesSI: Bool { reportedInSI && panel.siUnit != nil }

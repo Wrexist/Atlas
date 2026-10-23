@@ -41825,6 +41825,110 @@
         }
       }
     },
+    "Open Profile": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppna profil"
+          }
+        }
+      }
+    },
+    "%lld outside the typical range": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld utanför typiskt intervall"
+          }
+        }
+      }
+    },
+    "^[%lld marker](inflect: true) tracked": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld markör följs"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld markörer följs"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Log another result to see a trend.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga ett resultat till för att se en trend."
+          }
+        }
+      }
+    },
+    "This can take up to a minute. Keep this screen open.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det kan ta upp till en minut. Låt skärmen vara öppen."
+          }
+        }
+      }
+    },
+    "Reading ^[%lld page](inflect: true)…": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Läser %lld sida…"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Läser %lld sidor…"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Personal best": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personbästa"
+          }
+        }
+      }
+    },
+    "Share recap": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dela sammanfattningen"
+          }
+        }
+      }
+    },
     "Every item was logged that day.": {
       "localizations": {
         "sv": {
