@@ -58,6 +58,37 @@ final class OnboardingFlowTests: XCTestCase {
         XCTAssertEqual(OnboardingStep.allCases.filter(\.isSkippable), [.permissions, .referral])
     }
 
+    // MARK: - Progress and choice load
+
+    func test_progressFraction_welcomeAlreadyBegun_planComplete() {
+        XCTAssertGreaterThan(OnboardingStep.welcome.progressFraction, 0)
+        XCTAssertEqual(OnboardingStep.plan.progressFraction, 1, accuracy: 0.0001)
+    }
+
+    func test_progressFraction_risesOnEveryStep() {
+        let fractions = OnboardingStep.allCases.map(\.progressFraction)
+        XCTAssertEqual(fractions, fractions.sorted())
+        XCTAssertEqual(Set(fractions).count, fractions.count)
+    }
+
+    func test_visibleGoals_collapsed_showsSixFeaturedInCaseOrder() {
+        let visible = OnboardingView.PrimaryGoal.visible(showingAll: false, selected: [])
+        XCTAssertEqual(visible.count, 6)
+        XCTAssertEqual(visible, OnboardingView.PrimaryGoal.allCases.filter(visible.contains))
+    }
+
+    func test_visibleGoals_selectionOutsideFeatured_showsEveryGoal() {
+        let visible = OnboardingView.PrimaryGoal.visible(showingAll: false, selected: [.buildMuscle, .energy])
+        XCTAssertEqual(visible, OnboardingView.PrimaryGoal.allCases)
+    }
+
+    func test_visibleGoals_expanded_showsEveryGoal() {
+        XCTAssertEqual(
+            OnboardingView.PrimaryGoal.visible(showingAll: true, selected: []),
+            OnboardingView.PrimaryGoal.allCases
+        )
+    }
+
     // MARK: - Defaults for skipped or untouched data
 
     func test_untouchedBodyMetrics_stillProduceNutritionTargets() {

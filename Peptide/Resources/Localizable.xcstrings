@@ -8665,6 +8665,16 @@
         }
       }
     },
+    "Choose your look. You can change this any time in Profile → Settings.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj ditt utseende. Du kan ändra det när du vill under Profil → Inställningar."
+          }
+        }
+      }
+    },
     "Crash reports are anonymous.": {
       "localizations": {
         "sv": {
@@ -8685,12 +8695,32 @@
         }
       }
     },
+    "More goals": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fler mål"
+          }
+        }
+      }
+    },
     "Share crash reports": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Dela kraschrapporter"
+          }
+        }
+      }
+    },
+    "Takes about 2 minutes": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tar ungefär 2 minuter"
           }
         }
       }
@@ -11805,6 +11835,26 @@
         }
       }
     },
+    "You're all set, %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allt är klart, %@."
+          }
+        }
+      }
+    },
+    "You're all set.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allt är klart."
+          }
+        }
+      }
+    },
     "Your Atlas Pro subscription is billed by Apple and keeps renewing until you cancel it in Settings → your name → Subscriptions.": {
       "localizations": {
         "sv": {
@@ -11821,6 +11871,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dina data är tillbaka. En säkerhetskopia av dina tidigare data kunde inte sparas."
+          }
+        }
+      }
+    },
+    "Your plan, targets and schedule are saved.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Din plan, dina dagliga mål och ditt schema är sparade."
           }
         }
       }
