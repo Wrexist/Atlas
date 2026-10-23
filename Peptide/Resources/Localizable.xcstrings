@@ -40048,6 +40048,27 @@
           }
         }
       }
+    },
+    "%@ wash-out begins in %lld days": {
+      "comment": "Smart planner — a wash-out protocol nears the end of its on-phase.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppehållet för %@ börjar om %lld dagar"
+          }
+        }
+      }
+    },
+    "Doses pause automatically during the wash-out and resume when the next cycle starts.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Doserna pausas automatiskt under uppehållet och fortsätter när nästa cykel börjar."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
