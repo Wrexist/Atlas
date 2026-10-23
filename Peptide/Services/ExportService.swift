@@ -72,6 +72,13 @@ final class ExportService {
 
     // MARK: - CSV Export
 
+    /// `yyyy-MM-dd` in the user's time zone. The bare `.iso8601` style
+    /// formats in GMT, which put an evening entry in the Americas on the
+    /// next day next to a local-time Time column.
+    nonisolated static func calendarDay(_ date: Date) -> String {
+        date.formatted(Date.ISO8601FormatStyle(timeZone: .current).year().month().day())
+    }
+
     func exportProtocolsCSV(protocols: [PeptideProtocol], entries: [ProtocolEntry]) -> String {
         var csv = "Date,Protocol,Peptide,Scheduled Dose,Actual Dose,Time,Injection Site,Completed,Notes\n"
 
@@ -79,7 +86,7 @@ final class ExportService {
 
         for entry in sortedEntries {
             let protocolName = protocols.first { $0.id == entry.protocolId }?.name ?? "Unknown"
-            let dateStr = entry.date.formatted(.iso8601.year().month().day())
+            let dateStr = Self.calendarDay(entry.date)
             let timeStr = entry.date.formatted(.dateTime.hour().minute())
             let actualDose = entry.actualDose ?? entry.dose
             let site = entry.injectionSite ?? ""
@@ -113,7 +120,7 @@ final class ExportService {
         var csv = "Date,Panel,Value,Unit,Source,Notes\n"
         let sorted = labs.sorted { $0.date > $1.date }
         for entry in sorted {
-            let dateStr = entry.date.formatted(.iso8601.year().month().day())
+            let dateStr = Self.calendarDay(entry.date)
             let value = formatLabValue(entry.value)
             let fields = [
                 dateStr,
@@ -139,7 +146,7 @@ final class ExportService {
         var csv = "Date,Time,Category,Name,Calories,Protein,Carbs,Fat,Source\n"
         let sorted = meals.sorted { $0.date > $1.date }
         for entry in sorted {
-            let dateStr = entry.date.formatted(.iso8601.year().month().day())
+            let dateStr = Self.calendarDay(entry.date)
             let timeStr = entry.date.formatted(.dateTime.hour().minute())
             let fields = [
                 dateStr,
@@ -168,7 +175,7 @@ final class ExportService {
         var csv = "Date,Energy,Sleep,Recovery,Mood,Focus,Note\n"
         let sorted = outcomes.sorted { $0.date > $1.date }
         for entry in sorted {
-            let dateStr = entry.date.formatted(.iso8601.year().month().day())
+            let dateStr = Self.calendarDay(entry.date)
             let fields = [
                 dateStr,
                 "\(entry.energy)",

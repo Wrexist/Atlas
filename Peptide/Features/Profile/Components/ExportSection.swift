@@ -80,7 +80,7 @@ struct ExportSection: View {
     }
 
     private var dateStamp: String {
-        Date().formatted(.iso8601.year().month().day())
+        ExportService.calendarDay(Date())
     }
 
     /// Routes a freshly-written export file to the share sheet, or raises
