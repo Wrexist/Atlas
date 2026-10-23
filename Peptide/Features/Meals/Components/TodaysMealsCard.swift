@@ -1,8 +1,9 @@
 import SwiftUI
 
 /// Per-meal log shown under the macro rings on the Lifestyle tab.
-/// Renders every `MealEntry` logged that day, newest first. Tap a row
-/// to edit it; long-press for Edit, Log again and Delete.
+/// Renders the day's `MealEntry` rows grouped under Breakfast, Lunch,
+/// Dinner and Snack, each with its calorie subtotal, in the order eaten.
+/// Tap a row to edit it; long-press for Edit, Log again and Delete.
 ///
 /// Fills the visibility gap the auto-close success screens leave —
 /// once those dismiss, users had no way to see (or fix) what got
@@ -79,22 +80,72 @@ struct TodaysMealsCard: View {
     }
 
     private var rows: some View {
-        VStack(spacing: Spacing.xs) {
-            ForEach(entries) { entry in
-                MealEntryRow(entry: entry) {
-                    onEdit(entry)
-                } onLogAgain: {
-                    onLogAgain(entry)
-                } onDelete: {
-                    pendingDelete = entry
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            ForEach(MealDiarySection.sections(of: entries)) { section in
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    sectionHeader(section)
+                    ForEach(section.entries) { entry in
+                        MealEntryRow(entry: entry) {
+                            onEdit(entry)
+                        } onLogAgain: {
+                            onLogAgain(entry)
+                        } onDelete: {
+                            pendingDelete = entry
+                        }
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .top).combined(with: .opacity),
+                            removal: .opacity.combined(with: .scale(scale: 0.95))
+                        ))
+                    }
                 }
-                .transition(.asymmetric(
-                    insertion: .move(edge: .top).combined(with: .opacity),
-                    removal: .opacity.combined(with: .scale(scale: 0.95))
-                ))
+                .transition(.opacity)
             }
         }
         .appAnimation(AppAnimation.springSnappy, value: entries.map(\.id))
+    }
+
+    /// Names the meal and what it added up to, so the diary reads the
+    /// way the day went instead of as one undivided list.
+    private func sectionHeader(_ section: MealDiarySection) -> some View {
+        HStack(spacing: Spacing.xs) {
+            Image(systemName: section.category.icon)
+                .font(AppFont.scaled(11, weight: .semibold))
+                .foregroundStyle(section.category.tint)
+                .accessibilityHidden(true)
+            Text(section.category.displayName)
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(AppColor.textPrimary)
+            Spacer(minLength: 0)
+            Text("\(section.calories) kcal")
+                .font(AppFont.scaled(11, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(AppColor.textSecondary)
+                .contentTransition(.numericText())
+        }
+        .padding(.horizontal, Spacing.xs)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// One meal of the day in the diary: its category and the entries
+/// logged under it.
+struct MealDiarySection: Identifiable {
+    let category: MealCategory
+    let entries: [MealEntry]
+
+    var id: MealCategory { category }
+    var calories: Int { entries.reduce(0) { $0 + $1.calories } }
+
+    /// Breakfast through snack, each meal's entries oldest first, with
+    /// meals that have nothing logged left out.
+    static func sections(of entries: [MealEntry]) -> [MealDiarySection] {
+        MealCategory.allCases.compactMap { category in
+            let logged = entries
+                .filter { $0.category == category }
+                .sorted { $0.date < $1.date }
+            return logged.isEmpty ? nil : MealDiarySection(category: category, entries: logged)
+        }
     }
 }
 
@@ -129,16 +180,11 @@ struct MealEntryRow: View {
                             .fixedSize()
                     }
                     HStack(spacing: Spacing.xs) {
+                        // The section header names the meal, so the row
+                        // keeps only how and when it was logged.
                         Image(systemName: entry.source.icon)
                             .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
-                        Circle()
-                            .fill(entry.category.tint)
-                            .frame(width: 6, height: 6)
-                        Text(verbatim: "\(entry.category.displayName) ·")
-                            .font(AppFont.scaled(11))
-                            .foregroundStyle(AppColor.textSecondary)
-                            .lineLimit(1)
                         Text(entry.date, format: .dateTime.hour().minute())
                             .font(AppFont.scaled(11))
                             .monospacedDigit()
