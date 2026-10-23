@@ -31,7 +31,7 @@ struct SubscriptionSection: View {
                     Spacer(minLength: 0)
                 }
 
-                if storeService.isInBillingRetry && !storeService.hasLifetimeAccess {
+                if showsBillingRetry {
                     billingRetryBanner
                 }
 
@@ -40,7 +40,9 @@ struct SubscriptionSection: View {
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                if hasSubscriptionToManage {
+                // The banner's "Update payment method" opens the same sheet,
+                // so a second button for it would only split the choice.
+                if hasSubscriptionToManage && !showsBillingRetry {
                     GlassButton(
                         title: "Manage subscription",
                         icon: "creditcard",
@@ -157,6 +159,10 @@ struct SubscriptionSection: View {
     /// in-app route to cancel it.
     private var hasLiveSubscription: Bool {
         !storeService.purchasedProductIDs.isDisjoint(with: [StoreService.monthlyID, StoreService.annualID])
+    }
+
+    private var showsBillingRetry: Bool {
+        storeService.isInBillingRetry && !storeService.hasLifetimeAccess
     }
 
     private var hasSubscriptionToManage: Bool {
