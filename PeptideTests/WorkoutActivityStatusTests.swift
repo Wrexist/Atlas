@@ -137,12 +137,12 @@ final class WorkoutActivityStatusTests: XCTestCase {
             name: "Pull B",
             startedAt: now,
             exercises: [
-                WorkoutExerciseEntry(exerciseID: "a", index: 0, sets: [
+                WorkoutExerciseEntry(exerciseID: "Pullups", index: 0, sets: [
                     SetEntry(index: 1, weightKg: 60, reps: 10, completed: true, isWarmup: true),
                     SetEntry(index: 2, weightKg: 100, reps: 5, completed: true),
                     SetEntry(index: 3, weightKg: 100, reps: 5),
                 ]),
-                WorkoutExerciseEntry(exerciseID: "b", index: 1, sets: [
+                WorkoutExerciseEntry(exerciseID: "Barbell_Deadlift", index: 1, sets: [
                     SetEntry(index: 1, weightKg: 40, reps: 12),
                 ]),
             ]
