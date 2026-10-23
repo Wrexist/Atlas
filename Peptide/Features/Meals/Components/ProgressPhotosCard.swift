@@ -252,25 +252,25 @@ struct ProgressPhotosCard: View {
         // they're about to reveal or open.
         .buttonStyle(ScalePressStyle())
         .accessibilityLabel(isRevealed ? Text("Open progress photo viewer") : Text("Show progress photo"))
-            .contextMenu {
+        .contextMenu {
+            Button {
+                viewerSelection = PhotoSelection(filename: filename)
+            } label: {
+                Label("Open viewer", systemImage: "rectangle.expand.vertical")
+            }
+            if dataStore.profile.progressPhotoFilenames.count >= 2 {
                 Button {
-                    viewerSelection = PhotoSelection(filename: filename)
+                    compareSelection = PhotoSelection(filename: filename)
                 } label: {
-                    Label("Open viewer", systemImage: "rectangle.expand.vertical")
-                }
-                if dataStore.profile.progressPhotoFilenames.count >= 2 {
-                    Button {
-                        compareSelection = PhotoSelection(filename: filename)
-                    } label: {
-                        Label("Compare", systemImage: "rectangle.split.2x1")
-                    }
-                }
-                Button(role: .destructive) {
-                    pendingDelete = filename
-                } label: {
-                    Label("Delete photo", systemImage: "trash")
+                    Label("Compare", systemImage: "rectangle.split.2x1")
                 }
             }
+            Button(role: .destructive) {
+                pendingDelete = filename
+            } label: {
+                Label("Delete photo", systemImage: "trash")
+            }
+        }
     }
 
     private var emptySlot: some View {
