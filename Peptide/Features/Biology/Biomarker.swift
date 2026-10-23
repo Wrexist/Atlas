@@ -195,7 +195,7 @@ struct BiomarkerSnapshot: Equatable, Sendable, Identifiable {
         let value: Double
     }
 
-    /// Sample values alone, for the row sparkline and trend math.
+    /// Sample values alone, for averages and trend math.
     var sparkline: [Double] { samples.map(\.value) }
 
     enum Trend: String, Equatable, Sendable {

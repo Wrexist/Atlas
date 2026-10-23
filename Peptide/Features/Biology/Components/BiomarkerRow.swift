@@ -26,20 +26,24 @@ struct BiomarkerRow: View {
                         .font(AppFont.subheadline)
                         .fontWeight(.semibold)
                         .foregroundStyle(AppColor.textPrimary)
-                        .lineLimit(1)
+                        .lineLimit(2)
 
+                    // Two lines so large text wraps instead of cutting
+                    // off the number the row exists to show.
                     Text(subtitle)
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
-                        .lineLimit(1)
+                        .lineLimit(2)
                         .contentTransition(.numericText())
                 }
 
                 Spacer(minLength: Spacing.sm)
 
-                if snapshot.sparkline.count >= 2 {
+                // At accessibility sizes the text needs the width more
+                // than the glance does.
+                if snapshot.samples.count >= 2, !dynamicTypeSize.isAccessibilitySize {
                     BiomarkerSparkline(
-                        points: snapshot.sparkline,
+                        samples: snapshot.samples,
                         tint: sparklineTint
                     )
                     .frame(width: 64)
@@ -80,9 +84,11 @@ struct BiomarkerRow: View {
             )
             .fill(badgeTint.opacity(0.20))
 
+            // Decorative: the row's text names the marker and trend.
             Image(systemName: snapshot.biomarker.icon)
                 .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(badgeTint)
+                .accessibilityHidden(true)
 
             // Direction arrow in a tiny notch — only when there's
             // a meaningful trend. Keeps the badge clean when the
@@ -98,6 +104,7 @@ struct BiomarkerRow: View {
                         Circle().fill(badgeTint)
                     }
                     .offset(x: 14, y: 14)
+                    .accessibilityHidden(true)
             }
         }
         .frame(width: 40, height: 40)

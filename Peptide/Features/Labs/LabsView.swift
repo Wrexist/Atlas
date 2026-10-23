@@ -321,7 +321,7 @@ struct LabSummaryRow: View {
                 Text(panel.displayName)
                     .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
-                    .lineLimit(1)
+                    .lineLimit(2)
                 Text(Self.drawDay(summary.latest.date))
                     .font(AppFont.scaled(11))
                     .foregroundStyle(AppColor.textSecondary)
