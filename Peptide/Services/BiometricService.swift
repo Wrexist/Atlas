@@ -42,24 +42,48 @@ final class BiometricService {
         biometryType = context.biometryType
     }
 
-    func authenticate() async -> Bool {
+    func authenticate() async -> BiometricOutcome {
         let context = LAContext()
         context.localizedFallbackTitle = String(localized: "Use Passcode")
 
         do {
-            return try await context.evaluatePolicy(
+            let passed = try await context.evaluatePolicy(
                 .deviceOwnerAuthentication,
                 localizedReason: String(localized: "Unlock Atlas")
             )
+            return passed ? .success : .failed
         } catch {
-            // LAError.userCancel is expected and routine; log at debug.
-            // Other failures (lockout, biometryLockout, system cancel) at error.
-            if let laError = error as? LAError, laError.code == .userCancel {
+            let outcome = (error as? LAError).map { BiometricOutcome(code: $0.code) } ?? .failed
+            // A cancel is expected and routine; log it at debug.
+            if outcome == .cancelled {
                 AppLog.biometrics.debug("User cancelled biometric prompt")
             } else {
                 AppLog.biometrics.error("Authentication failed: \(error.localizedDescription, privacy: .public)")
             }
-            return false
+            return outcome
+        }
+    }
+}
+
+/// How an unlock attempt ended.
+enum BiometricOutcome: Equatable, Sendable {
+    case success
+    /// The user, the app or the system dismissed the prompt.
+    case cancelled
+    /// Not recognised, locked out or similar; another attempt can pass.
+    case failed
+    /// The device has no passcode, so no owner authentication can ever
+    /// pass and a lock behind it could never be cleared.
+    case unavailable
+
+    init(code: LAError.Code) {
+        switch code {
+        case .userCancel, .appCancel, .systemCancel:
+            self = .cancelled
+        case .passcodeNotSet:
+            self = .unavailable
+        default:
+            self = .failed
         }
     }
 }

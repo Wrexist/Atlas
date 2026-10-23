@@ -130,7 +130,7 @@ struct AppearanceSettings: View {
             return
         }
         Task {
-            if await biometricService.authenticate() {
+            if await biometricService.authenticate() == .success {
                 dataStore.persistProfile()
             } else {
                 dataStore.profile.biometricLockEnabled = false

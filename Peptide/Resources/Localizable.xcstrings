@@ -5745,6 +5745,16 @@
         }
       }
     },
+    "App Lock Turned Off": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Applåset har stängts av"
+          }
+        }
+      }
+    },
     "Around 12 hours in, many people rely more on stored fat for energy.": {
       "localizations": {
         "sv": {
@@ -9151,6 +9161,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kunde inte läsa resultaten från skannern. Försök igen eller ange värdena för hand."
+          }
+        }
+      }
+    },
+    "Couldn't verify it's you. Try again.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det gick inte att bekräfta att det är du. Försök igen."
           }
         }
       }
@@ -31961,6 +31981,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sidorna är för stora för att laddas upp tillsammans. Skanna färre sidor åt gången."
+          }
+        }
+      }
+    },
+    "This iPhone no longer has a passcode, so Atlas can't stay locked. Set a passcode in Settings, then turn the lock back on in Profile.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Den här iPhonen har inte längre någon lösenkod, så Atlas kan inte förbli låst. Ställ in en lösenkod i Inställningar och slå sedan på låset igen i Profil."
           }
         }
       }

@@ -17,6 +17,7 @@ struct PeptideApp: App {
     @State private var notificationDelegate: NotificationDelegate
     @State private var quickActionInbox = QuickActionInbox.shared
     @State private var isUnlocked = false
+    @State private var showLockReleasedNotice = false
     @Environment(\.scenePhase) private var scenePhase
     @State private var travelChange: TimezoneChangeDetector.Change?
     /// Drives the "What's New" splash. Set on first launch after
@@ -240,6 +241,11 @@ struct PeptideApp: App {
         } message: {
             Text("Atlas data from the previous iCloud account is still on this iPhone. If you keep it, it syncs to the iCloud account you're signed in to now. Removing it doesn't touch the copy in the previous account's iCloud.")
         }
+        .alert("App Lock Turned Off", isPresented: $showLockReleasedNotice) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("This iPhone no longer has a passcode, so Atlas can't stay locked. Set a passcode in Settings, then turn the lock back on in Profile.")
+        }
         .onChange(of: dataStore.isAwaitingCloudAccountDecision, initial: true) { _, awaiting in
             // An open sheet would keep the prompt from presenting; the
             // screens behind these are empty during the hold anyway.
@@ -395,12 +401,25 @@ struct PeptideApp: App {
     private func syncPrivacyCover(_ cover: PrivacyLockWindow.Cover?) {
         switch cover {
         case .lock:
-            PrivacyLockWindow.shared.show(.lock, content: privacyCoverContent(LockScreenView { isUnlocked = true }))
+            PrivacyLockWindow.shared.show(.lock, content: privacyCoverContent(LockScreenView(
+                onUnlock: { isUnlocked = true },
+                onUnavailable: { releaseUnsatisfiableLock() }
+            )))
         case .snapshot:
             PrivacyLockWindow.shared.show(.snapshot, content: privacyCoverContent(PrivacyCoverView()))
         case nil:
             PrivacyLockWindow.shared.hide()
         }
+    }
+
+    /// With the device passcode removed no owner authentication can pass,
+    /// so the lock would hold the user's data out of reach for good. It
+    /// turns itself off instead and says why (B091).
+    private func releaseUnsatisfiableLock() {
+        dataStore.profile.biometricLockEnabled = false
+        dataStore.persistProfile()
+        isUnlocked = true
+        showLockReleasedNotice = true
     }
 
     /// The lock window hosts its own view tree, outside the app's
