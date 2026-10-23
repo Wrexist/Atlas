@@ -20,6 +20,10 @@ struct LabsView: View {
     @State private var creatingEntry: Bool = false
     @State private var detailPanel: LabPanel?
     @State private var pendingDelete: LabValue?
+    @State private var storeService = StoreService.shared
+    @State private var scanningReport = false
+    @State private var showScanPaywall = false
+    @State private var showScanConsent = false
 
     private func byCategory(
         _ summaries: [LabDataLogic.LatestSummary]
@@ -63,6 +67,17 @@ struct LabsView: View {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         Haptics.impact(.light)
+                        startLabScan()
+                    } label: {
+                        Image(systemName: "doc.text.viewfinder")
+                            .font(AppFont.scaled(20))
+                            .foregroundStyle(AppColor.accentPrimary)
+                    }
+                    .accessibilityLabel("Scan a lab report")
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        Haptics.impact(.light)
                         creatingEntry = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
@@ -88,6 +103,28 @@ struct LabsView: View {
                     onCancel: { creatingEntry = false }
                 )
                 .liquidGlassPresentation()
+            }
+            .sheet(isPresented: $scanningReport) {
+                LabScanFlow(
+                    sex: dataStore.profile.bodyMetrics.sex,
+                    onSave: { values in
+                        AppAnimation.with(AppAnimation.springSnappy) {
+                            for value in values { dataStore.saveLabValue(value) }
+                        }
+                        scanningReport = false
+                    },
+                    onClose: { scanningReport = false }
+                )
+                .liquidGlassPresentation()
+            }
+            .sheet(isPresented: $showScanPaywall, onDismiss: continueLabScan) {
+                PaywallView(source: .labScan)
+                    .environment(dataStore)
+                    .liquidGlassPresentation()
+            }
+            .sheet(isPresented: $showScanConsent, onDismiss: resumeAfterScanConsent) {
+                AIConsentSheet(whatIsSent: "The photos or PDF pages of the lab report you scan.")
+                    .liquidGlassPresentation()
             }
             .sheet(item: $editingEntry) { entry in
                 LabEntryEditor(
@@ -123,6 +160,33 @@ struct LabsView: View {
                 Text("This can't be undone. The trend chart will skip the deleted point.")
             }
         }
+    }
+
+    /// Lab scanning reads a report with Claude, so it sits behind the same
+    /// Pro entitlement as the other AI features, then the one-time
+    /// AI-sharing consent.
+    private func startLabScan() {
+        guard storeService.canAccessAIFeatures else {
+            showScanPaywall = true
+            return
+        }
+        continueLabScan()
+    }
+
+    /// Also resumes after the paywall closes; stops quietly if the user
+    /// didn't upgrade.
+    private func continueLabScan() {
+        guard storeService.canAccessAIFeatures else { return }
+        guard AIDataConsent.isGranted else {
+            showScanConsent = true
+            return
+        }
+        scanningReport = true
+    }
+
+    /// Opens the scanner only if the user allowed sharing.
+    private func resumeAfterScanConsent() {
+        if AIDataConsent.isGranted { scanningReport = true }
     }
 
     /// The panel the user logged most recently, so a new entry starts there.
