@@ -23644,6 +23644,17 @@
         }
       }
     },
+    "Open progress photo from %@": {
+      "comment": "VoiceOver label for a revealed progress photo tile; the value is its date.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppna framstegsbild från %@"
+          }
+        }
+      }
+    },
     "Open Protocols": {
       "localizations": {
         "sv": {
@@ -24553,6 +24564,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "PRO"
+          }
+        }
+      }
+    },
+    "Progress photo, %@": {
+      "comment": "VoiceOver label for a progress photo; the value is its date.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Framstegsbild, %@"
           }
         }
       }
@@ -28647,6 +28669,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Korta tränings- och coachningssammanfattningar skrivna av Apple Intelligence på den här enheten. Inget skickas någonstans."
+          }
+        }
+      }
+    },
+    "Show progress photo from %@": {
+      "comment": "VoiceOver label for a blurred progress photo tile; the value is its date.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visa framstegsbild från %@"
           }
         }
       }

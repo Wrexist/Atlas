@@ -135,6 +135,7 @@ struct ProgressPhotoCompareView: View {
                         RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                             .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                     }
+                    .accessibilityLabel(Text("Progress photo, \(label)"))
             } else {
                 placeholder
             }

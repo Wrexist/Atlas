@@ -249,7 +249,9 @@ struct ProgressPhotosCard: View {
             // whether they're about to reveal or open.
             .accessibilityElement(children: .ignore)
             .accessibilityAddTraits(.isButton)
-            .accessibilityLabel(isRevealed ? Text("Open progress photo viewer") : Text("Show progress photo"))
+            .accessibilityLabel(isRevealed
+                ? Text("Open progress photo from \(ProgressPhotoMetadata.displayDate(forFilename: filename))")
+                : Text("Show progress photo from \(ProgressPhotoMetadata.displayDate(forFilename: filename))"))
             .onTapGesture {
                 // Two-phase tap: first tap unblurs (privacy-by-
                 // default), second tap on an unblurred photo opens
