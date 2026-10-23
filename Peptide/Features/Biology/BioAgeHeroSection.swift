@@ -38,6 +38,7 @@ struct BioAgeHeroSection: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// What the dial and the number show. Starts at the dial's younger
     /// bound and is animated to the estimate, so the arc sweeps in and the
     /// digits roll rather than the result just appearing.
@@ -117,10 +118,16 @@ struct BioAgeHeroSection: View {
             centreContent
                 // The dial is a fixed 280pt; past AX2 the number, unit and
                 // info button outgrow its interior and overlap the arc.
-                .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+                // `AppFont.scaled` ignores this clamp, so the centre fonts
+                // also scale for `centreTypeSize`.
+                .dynamicTypeSize(...Self.centreTypeSizeLimit)
         }
         .frame(height: 280)
     }
+
+    private static let centreTypeSizeLimit = DynamicTypeSize.accessibility2
+
+    private var centreTypeSize: DynamicTypeSize { min(dynamicTypeSize, Self.centreTypeSizeLimit) }
 
     private var estimatedAge: Double? {
         guard case .unlocked(let estimate)? = state else { return nil }
@@ -138,7 +145,7 @@ struct BioAgeHeroSection: View {
                 .transition(Self.stateTransition)
         case .needsAge?:
             Image(systemName: "person.crop.circle.badge.questionmark")
-                .font(AppFont.scaled(32, weight: .light, relativeTo: .title1))
+                .font(AppFont.scaled(32, weight: .light, relativeTo: .title1, in: centreTypeSize))
                 .foregroundStyle(AppColor.textSecondary)
                 .accessibilityHidden(true)
                 .transition(Self.stateTransition)
@@ -165,7 +172,7 @@ struct BioAgeHeroSection: View {
     private func buildingCentre(progress: Double) -> some View {
         VStack(spacing: Spacing.xs) {
             Image(systemName: "hourglass")
-                .font(AppFont.scaled(28, weight: .light, relativeTo: .title1))
+                .font(AppFont.scaled(28, weight: .light, relativeTo: .title1, in: centreTypeSize))
                 .foregroundStyle(AppColor.textSecondary)
                 .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion && !noHealthData)
                 .accessibilityHidden(true)
@@ -180,7 +187,7 @@ struct BioAgeHeroSection: View {
         let shown = displayedAge ?? estimate.biologicalAge
         return VStack(spacing: Spacing.xxs) {
             Text(BioAgeFormat.age(shown))
-                .font(AppFont.scaled(56, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
+                .font(AppFont.scaled(56, weight: .heavy, design: .rounded, relativeTo: .largeTitle, in: centreTypeSize))
                 .foregroundStyle(tint(for: estimate))
                 .monospacedDigit()
                 .lineLimit(1)
@@ -192,7 +199,7 @@ struct BioAgeHeroSection: View {
                 .shadow(color: .black.opacity(colorScheme == .dark ? 0.35 : 0), radius: 8, y: 2)
                 .accessibilityLabel(Text("Biological age \(BioAgeFormat.age(estimate.biologicalAge)) years"))
             Text("years")
-                .font(AppFont.scaled(16, weight: .medium))
+                .font(AppFont.scaled(16, weight: .medium, in: centreTypeSize))
                 .foregroundStyle(AppColor.textSecondary)
                 .accessibilityHidden(true)
             explainButton
@@ -204,7 +211,7 @@ struct BioAgeHeroSection: View {
     private var explainButton: some View {
         Button(action: onExplainTapped) {
             Image(systemName: "info.circle")
-                .font(AppFont.scaled(16, weight: .regular))
+                .font(AppFont.scaled(16, weight: .regular, in: centreTypeSize))
                 .foregroundStyle(AppColor.textTertiary)
                 .minimumHitArea()
         }
