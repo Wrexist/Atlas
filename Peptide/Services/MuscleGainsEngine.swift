@@ -50,8 +50,10 @@ enum MuscleGainsEngine {
     /// `weeks` calendar weeks in which the head received meaningful
     /// stimulus (any working set from an exercise whose head weight
     /// clears 0.25). `1.0` means trained every single week; values map
-    /// directly onto the muscle map's load ramp without re-normalising,
-    /// so an every-week muscle reads hot even on a fresh-ish account.
+    /// directly onto the muscle map's load ramp without re-normalising.
+    /// The denominator is always the full window, matching the card's
+    /// "n/12 weeks" pill, so an account younger than the window reads
+    /// cooler than its every-week muscles deserve until it fills.
     @MainActor
     static func weeklyRegularity(
         from sessions: [WorkoutSession],
