@@ -1002,8 +1002,11 @@ final class SwiftDataRepository {
         do {
             existing = try canonicalProfileRow(in: context)
         } catch {
+            // Inserting now would add a second, newer row that wins the
+            // next reconciliation; stay dirty so the next save retries.
             AppLog.swiftData.error("Fetch profile failed: \(error.localizedDescription, privacy: .public)")
-            existing = nil
+            commitDidFail = true
+            return
         }
 
         if let existing {
