@@ -110,7 +110,7 @@ struct MetricRing<Center: View>: View {
             .trim(from: 0, to: renderedProgress)
             .stroke(
                 AngularGradient(
-                    gradient: Gradient(colors: gradient),
+                    gradient: Gradient(colors: arcColors(closed: renderedProgress >= 1)),
                     center: .center,
                     startAngle: .degrees(0),
                     endAngle: .degrees(360)
@@ -121,6 +121,15 @@ struct MetricRing<Center: View>: View {
             .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: renderedProgress)
 
         arc
+    }
+
+    /// A full ring's end cap lands on its start, so an open gradient shows
+    /// a hard colour step at 12 o'clock and 100% reads like an arc that
+    /// almost made it. Closing the gradient back to its first stop draws
+    /// a seamless loop exactly when the goal is met.
+    private func arcColors(closed: Bool) -> [Color] {
+        guard closed, let first = gradient.first, gradient.count > 1 else { return gradient }
+        return gradient + [first]
     }
 
     /// Drawn as a striped pattern over the same trim arc so it reads
