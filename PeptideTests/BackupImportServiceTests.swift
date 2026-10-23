@@ -249,6 +249,47 @@ final class BackupImportServiceTests: XCTestCase {
         XCTAssertNotNil(restored.weeklySummaries["2026-01-05"])
     }
 
+    func test_replace_whenSnapshotSucceeds_reportsSafetyCopy() throws {
+        let dataStore = makeDataStore()
+        let backup = AppBackup(
+            exportDate: Date(),
+            version: "1.0",
+            protocols: [makeProtocol(named: "Backup A")],
+            entries: [],
+            profile: makeProfile(named: "Backup user")
+        )
+
+        let realized = try BackupImportService.apply(backup, strategy: .replace, into: dataStore)
+
+        XCTAssertTrue(realized.safetyCopySaved)
+    }
+
+    func test_replace_whenSnapshotFails_reportsNoSafetyCopy() throws {
+        let dataStore = makeDataStore()
+        // A regular file where the snapshot directory should be makes
+        // every snapshot write fail.
+        let blocker = FileManager.default.temporaryDirectory
+            .appendingPathComponent("snapshot-blocker-\(UUID().uuidString)")
+        try Data("x".utf8).write(to: blocker)
+        BackupSnapshotService.directoryOverrideForTesting = blocker
+        defer {
+            BackupSnapshotService.directoryOverrideForTesting = nil
+            try? FileManager.default.removeItem(at: blocker)
+        }
+        let backup = AppBackup(
+            exportDate: Date(),
+            version: "1.0",
+            protocols: [makeProtocol(named: "Backup A")],
+            entries: [],
+            profile: makeProfile(named: "Backup user")
+        )
+
+        let realized = try BackupImportService.apply(backup, strategy: .replace, into: dataStore)
+
+        XCTAssertFalse(realized.safetyCopySaved)
+        XCTAssertEqual(dataStore.protocols.map(\.name), ["Backup A"])
+    }
+
     func test_replace_whenCommitFails_throwsInsteadOfReportingSuccess() {
         let dataStore = makeDataStore()
         let repo = SwiftDataRepository.shared

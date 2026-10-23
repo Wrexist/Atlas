@@ -86,6 +86,10 @@ enum BackupImportService {
         var workoutSessionsCount: Int = 0
         var routinesCount: Int = 0
         var customPeptidesCount: Int = 0
+        /// Set on the realized preview `apply` returns: true only when
+        /// the pre-apply safety copy was actually written, so the sheet
+        /// never promises one that a full disk prevented.
+        var safetyCopySaved: Bool = false
     }
 
     /// The one place a `Preview` is built. Three call sites summarise
@@ -232,21 +236,19 @@ enum BackupImportService {
         strategy: Strategy,
         into dataStore: DataStore
     ) throws -> Preview {
-        // Snapshot first so a worst-case "everything goes wrong" still
-        // has a recovery path. The snapshot URL is logged and the
-        // caller can surface a "restore from this" affordance.
-        if strategy != .dryRun {
-            if let snapshot = BackupSnapshotService.snapshotCurrentState(dataStore: dataStore) {
-                AppLog.persistence.error(
-                    "BackupImport: pre-apply snapshot at \(snapshot.lastPathComponent, privacy: .public)"
-                )
-            }
-        }
-
         guard strategy != .dryRun else {
             // Re-derive the preview from the backup — same shape the
             // validate path produced; nothing committed.
             return preview(of: backup)
+        }
+
+        // Snapshot first so a worst-case "everything goes wrong" still
+        // has a recovery path, offered back from the restore sheet.
+        let snapshot = BackupSnapshotService.snapshotCurrentState(dataStore: dataStore)
+        if let snapshot {
+            AppLog.persistence.info(
+                "BackupImport: pre-apply snapshot at \(snapshot.lastPathComponent, privacy: .public)"
+            )
         }
 
         // Build the new state in memory, then hand off to DataStore as
@@ -324,7 +326,7 @@ enum BackupImportService {
             throw ImportError.applyFailed(error.localizedDescription)
         }
 
-        return preview(
+        var realized = preview(
             exportDate: backup.exportDate,
             version: backup.version,
             protocols: resolvedProtocols,
@@ -334,6 +336,8 @@ enum BackupImportService {
             routinesCount: training?.routines.count ?? 0,
             customPeptidesCount: training?.customPeptides.count ?? 0
         )
+        realized.safetyCopySaved = snapshot != nil
+        return realized
     }
 
     /// Resolved v2 payload handed to `DataStore.applyImport`. Built

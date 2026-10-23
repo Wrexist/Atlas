@@ -168,7 +168,9 @@ struct RestoreBackupSheet: View {
             HeroCard(
                 icon: "checkmark.seal.fill",
                 title: "Restore complete",
-                subtitle: Text("Your data is back. A safety copy of your previous data is saved on this device."),
+                subtitle: resultPreview?.safetyCopySaved == true
+                    ? Text("Your data is back. A safety copy of your previous data is saved on this device.")
+                    : Text("Your data is back. A safety copy of your previous data couldn't be saved."),
                 bouncesOnAppear: true
             )
             if let resultPreview {

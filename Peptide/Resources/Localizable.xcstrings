@@ -10737,6 +10737,16 @@
         }
       }
     },
+    "Your data is back. A safety copy of your previous data couldn't be saved.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina data är tillbaka. En säkerhetskopia av dina tidigare data kunde inte sparas."
+          }
+        }
+      }
+    },
     "milliliters": {
       "localizations": {
         "sv": {

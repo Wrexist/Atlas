@@ -145,8 +145,12 @@ enum BackupSnapshotService {
 
     // MARK: - Paths
 
+    /// Tests point this somewhere unwritable to exercise a failed write.
+    static var directoryOverrideForTesting: URL?
+
     private static func snapshotDirectory() -> URL? {
         let fm = FileManager.default
+        if let directoryOverrideForTesting { return directoryOverrideForTesting }
         guard let base = fm.urls(for: .cachesDirectory, in: .userDomainMask).first else {
             return nil
         }
