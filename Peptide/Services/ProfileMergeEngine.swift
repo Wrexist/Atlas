@@ -69,8 +69,6 @@ enum ProfileMergeEngine {
             merged.biometricLockEnabled = other.biometricLockEnabled
             merged.weeklySummaryEnabled = other.weeklySummaryEnabled
         }
-        merged.creatorAttribution = merged.creatorAttribution ?? other.creatorAttribution
-        merged.affiliateApplication = merged.affiliateApplication ?? other.affiliateApplication
         merged.emailSubscription = merged.emailSubscription ?? other.emailSubscription
         merged.lastKnownTimezoneIdentifier = merged.lastKnownTimezoneIdentifier ?? other.lastKnownTimezoneIdentifier
     }

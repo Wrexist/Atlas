@@ -575,16 +575,6 @@
         }
       }
     },
-    "%@ gets credit for bringing you to Atlas.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ får äran för att du hittade till Atlas."
-          }
-        }
-      }
-    },
     "%@ h": {
       "localizations": {
         "sv": {
@@ -7265,16 +7255,6 @@
         }
       }
     },
-    "Approved creators get a personal code, a revenue share, and a creator-only Atlas dashboard.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Godkända kreatörer får en personlig kod, en intäktsdelning och en egen Atlas-panel för kreatörer."
-          }
-        }
-      }
-    },
     "Arms": {
       "localizations": {
         "sv": {
@@ -10125,26 +10105,6 @@
         }
       }
     },
-    "Code applied": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Koden har tillämpats"
-          }
-        }
-      }
-    },
-    "Code not found — double-check and try again.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Koden hittades inte – kontrollera och försök igen."
-          }
-        }
-      }
-    },
     "Cognitive": {
       "localizations": {
         "sv": {
@@ -12283,16 +12243,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kreatinin"
-          }
-        }
-      }
-    },
-    "Creator dashboard with installs + conversions": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kreatörspanel med installationer + konverteringar"
           }
         }
       }
@@ -14537,16 +14487,6 @@
         }
       }
     },
-    "Enter a creator or referral code below.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ange en kreatörs- eller värvningskod nedan."
-          }
-        }
-      }
-    },
     "Enter a target above zero.": {
       "localizations": {
         "sv": {
@@ -14583,16 +14523,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ange ett heltal inom tillåtet intervall."
-          }
-        }
-      }
-    },
-    "Enter creator code…": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ange kreatörskod …"
           }
         }
       }
@@ -17961,16 +17891,6 @@
         }
       }
     },
-    "Instagram": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Instagram"
-          }
-        }
-      }
-    },
     "Insulin": {
       "localizations": {
         "sv": {
@@ -18139,16 +18059,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dess set tas bort från din historik och personliga rekord räknas om. Det går inte att ångra."
-          }
-        }
-      }
-    },
-    "Join the creator program": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gå med i kreatörsprogrammet"
           }
         }
       }
@@ -21671,16 +21581,6 @@
         }
       }
     },
-    "Newsletter": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nyhetsbrev"
-          }
-        }
-      }
-    },
     "Next": {
       "localizations": {
         "sv": {
@@ -24807,16 +24707,6 @@
         }
       }
     },
-    "Personal referral code": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Personlig värvningskod"
-          }
-        }
-      }
-    },
     "Personalised by AI": {
       "localizations": {
         "sv": {
@@ -27057,16 +26947,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Reel"
-          }
-        }
-      }
-    },
-    "Referral": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Värvning"
           }
         }
       }
@@ -32445,16 +32325,6 @@
         }
       }
     },
-    "Thanks for using %@'s code": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tack för att du använder %@s kod"
-          }
-        }
-      }
-    },
     "That barcode doesn't look right. Try scanning again.": {
       "localizations": {
         "sv": {
@@ -34569,16 +34439,6 @@
         }
       }
     },
-    "Under 1k": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Under 1 000"
-          }
-        }
-      }
-    },
     "Under a year of consistent training": {
       "localizations": {
         "sv": {
@@ -35977,16 +35837,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bär Apple Watch, även på natten, för att registrera HRV."
-          }
-        }
-      }
-    },
-    "Website / blog": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Webbplats / blogg"
           }
         }
       }
@@ -39727,16 +39577,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "enheter"
-          }
-        }
-      }
-    },
-    "via %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "via %@"
           }
         }
       }

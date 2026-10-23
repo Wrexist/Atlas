@@ -25,7 +25,6 @@ struct PaywallView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(DataStore.self) private var dataStore
     @State private var storeService = StoreService.shared
 
     @State private var selectedProductID: String?
@@ -74,10 +73,6 @@ struct PaywallView: View {
                     pricingCardsRow
 
                     socialProof
-
-                    if let attribution = creatorAttribution {
-                        creatorBanner(attribution)
-                    }
 
                     trialTimeline
 
@@ -546,48 +541,6 @@ struct PaywallView: View {
                 .overlay {
                     RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                         .strokeBorder(AppColor.destructive.opacity(0.30), lineWidth: 0.5)
-                }
-        }
-    }
-
-    // MARK: - Creator banner
-
-    private var creatorAttribution: CreatorAttribution? {
-        guard let attribution = dataStore.profile.creatorAttribution,
-              attribution.discountPercent > 0
-        else { return nil }
-        return attribution
-    }
-
-    /// Surfaces the attribution captured on the onboarding creator-code
-    /// step. The discount percentage is stored on the profile but is
-    /// NOT shown until the purchase flow actually applies it at checkout —
-    /// claiming "X% off applied" while charging the full price is a trust
-    /// regression.
-    private func creatorBanner(_ attribution: CreatorAttribution) -> some View {
-        let bannerGreen = AppColor.positive
-        return HStack(spacing: Spacing.sm) {
-            Image(systemName: "tag.fill")
-                .font(AppFont.scaled(13, weight: .bold))
-                .foregroundStyle(bannerGreen)
-                .accessibilityHidden(true)              // Text alongside carries the meaning
-
-            Text("Thanks for using \(attribution.creatorName)'s code")
-                .font(AppFont.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(AppColor.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, Spacing.md)
-        .padding(.vertical, Spacing.sm)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                .fill(bannerGreen.opacity(0.12))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .strokeBorder(bannerGreen.opacity(0.45), lineWidth: 1)
                 }
         }
     }

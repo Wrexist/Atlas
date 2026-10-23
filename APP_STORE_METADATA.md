@@ -307,8 +307,8 @@ photos sent to the AI meal scanner are handled the same way.
 
 ### Before adding any upload of user data
 
-The app has no data drains: onboarding funnel events and the creator-code
-attribution stay on-device. A build that starts sending anything new off
+The app has no data drains: onboarding funnel events and the referral
+survey answer stay on-device. A build that starts sending anything new off
 the device MUST first:
 
 1. Update this nutrition label.

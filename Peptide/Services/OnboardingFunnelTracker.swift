@@ -33,8 +33,8 @@ enum OnboardingFunnelTracker {
     private static let maxEvents = 200
 
     /// Records a free-form event for the current onboarding session. Used
-    /// for things like "trial accepted", "trial declined", "creator code
-    /// applied", "email captured" — moments that don't map to a step
+    /// for things like "trial accepted", "trial declined", "notifications
+    /// granted" — moments that don't map to a step
     /// index but matter for funnel analysis. Event names are also
     /// truncated to 64 chars before logging to defend against a future
     /// caller passing user-controlled content.
