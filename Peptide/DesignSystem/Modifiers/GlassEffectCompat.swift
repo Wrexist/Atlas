@@ -59,6 +59,11 @@ extension View {
     /// translucent-fill recipe (an opaque-ish fill + overlay tint +
     /// hairline border).
     ///
+    /// Neither path clips the content: `glassEffect` doesn't, so the
+    /// legacy recipe doesn't either, and a badge or shadow that overflows
+    /// the card looks the same on every OS. Callers that need clipping
+    /// add their own `clipShape`.
+    ///
     /// The two are deliberately mutually exclusive. `GlassCard` used to
     /// paint the fake recipe
     /// *and then* composited real `glassEffect` on top — so on iOS 26
@@ -86,7 +91,6 @@ extension View {
                                 )
                         }
                 }
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         }
     }
 
@@ -147,8 +151,8 @@ extension View {
                         // `strokeBorder` draws on `glassSurface`. `AnyShape`
                         // isn't insettable, so it can't use `strokeBorder`.
                         .overlay { shape.stroke(border, lineWidth: 1) }
+                        .clipShape(shape)
                 }
-                .clipShape(shape)
         }
     }
 
@@ -174,7 +178,6 @@ extension View {
                             )
                         }
                 }
-                .clipShape(Capsule())
         }
     }
 }
