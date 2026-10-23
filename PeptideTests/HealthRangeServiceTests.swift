@@ -130,4 +130,37 @@ final class HealthRangeServiceTests: XCTestCase {
         XCTAssertEqual(sample.confidence, .establishedBaseline)
         XCTAssertNil(sample.confidenceCaption)
     }
+
+    // MARK: - Stale latest reading
+
+    private func series(endingDaysAgo daysAgo: Int, from now: Date) -> [(date: Date, value: Double)] {
+        (0..<10).map { i in
+            (date: now.addingTimeInterval(-Double(daysAgo + i) * 86_400), value: 50 + Double(i))
+        }
+    }
+
+    func test_sample_carriesLatestReadingDate() throws {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let sample = try XCTUnwrap(HealthRangeService.sample(from: series(endingDaysAgo: 0, from: now),
+                                                             direction: .higherIsBetter))
+        XCTAssertEqual(sample.latestDate, now)
+        XCTAssertEqual(sample.latest, 50)
+    }
+
+    /// Last night's reading is current; nothing to flag.
+    func test_staleCaption_yesterdaysReading_isNil() throws {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let sample = try XCTUnwrap(HealthRangeService.sample(from: series(endingDaysAgo: 1, from: now),
+                                                             direction: .higherIsBetter))
+        XCTAssertNil(sample.staleCaption(now: now))
+    }
+
+    /// The watch wasn't worn for days: the card must say when the
+    /// reading is from rather than rating it as today's.
+    func test_staleCaption_readingSeveralDaysOld_namesItsDay() throws {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let sample = try XCTUnwrap(HealthRangeService.sample(from: series(endingDaysAgo: 4, from: now),
+                                                             direction: .higherIsBetter))
+        XCTAssertNotNil(sample.staleCaption(now: now))
+    }
 }

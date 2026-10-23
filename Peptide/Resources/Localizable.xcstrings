@@ -1478,6 +1478,16 @@
         }
       }
     },
+    "%@%lld%% vs previous 30 days": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@%2$lld %% jämfört med föregående 30 dagar"
+          }
+        }
+      }
+    },
     "%@, %@ at %@, %lld kilocalories, %lld grams protein, %lld grams carbohydrate, %lld grams fat": {
       "localizations": {
         "sv": {
@@ -5661,6 +5671,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "En daglig incheckning på 30 sekunder matar korrelationsmotorn – den visar vilka dagar din sömn, energi och HRV går upp under doseringsveckor jämfört med uppehållsveckor."
+          }
+        }
+      }
+    },
+    "A few more signals will unlock your estimate.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Några fler signaler låser upp din uppskattning."
           }
         }
       }
@@ -10558,6 +10578,16 @@
         }
       }
     },
+    "Down %lld percentage points vs previous 30 days": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ned %lld procentenheter jämfört med föregående 30 dagar"
+          }
+        }
+      }
+    },
     "Daily limit reached": {
       "localizations": {
         "sv": {
@@ -10967,6 +10997,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Labbskanning är inte tillgänglig på den här servern ännu. Ange värdena för hand så länge."
+          }
+        }
+      }
+    },
+    "Last reading %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senaste mätning %@"
           }
         }
       }
@@ -35653,6 +35693,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ostoppbar"
+          }
+        }
+      }
+    },
+    "Up %lld percentage points vs previous 30 days": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upp %lld procentenheter jämfört med föregående 30 dagar"
           }
         }
       }

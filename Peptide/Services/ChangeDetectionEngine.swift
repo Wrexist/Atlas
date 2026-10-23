@@ -21,9 +21,7 @@ enum ChangeDetectionEngine {
         case notablyHigher
         /// Meaningfully below the mean, same caveat.
         case notablyLower
-        /// Outside the p10–p90 band entirely — beyond anything this
-        /// specific user's own recent history has shown, regardless of
-        /// direction.
+        /// Outside the user's own p10–p90 range, in either direction.
         case unusual
     }
 

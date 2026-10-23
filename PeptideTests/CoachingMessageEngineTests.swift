@@ -15,6 +15,7 @@ final class CoachingMessageEngineTests: XCTestCase {
         ))
         XCTAssertEqual(msg.tone, .welcome)
         XCTAssertEqual(msg.eyebrow, "WELCOME")
+        XCTAssertEqual(msg.kind, .welcome)
     }
 
     func test_pick_noHealthConnection_returnsConnectPrompt() {
@@ -23,6 +24,7 @@ final class CoachingMessageEngineTests: XCTestCase {
             healthConnected: false
         ))
         XCTAssertEqual(msg.eyebrow, "GET STARTED")
+        XCTAssertEqual(msg.kind, .getStarted)
         XCTAssertEqual(msg.icon, "heart.text.square.fill")
     }
 

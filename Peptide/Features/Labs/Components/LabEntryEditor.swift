@@ -77,16 +77,19 @@ struct LabEntryEditor: View {
         return f
     }()
 
-    private static func parseDecimal(_ s: String) -> Double? {
+    /// The typed number, or nil when it isn't one. `Double(_:)` also
+    /// accepts "inf" and "1e999", which would break the chart's axis and
+    /// the change percentage, so non-finite results are rejected.
+    static func parseDecimal(_ s: String) -> Double? {
         let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
-        if let n = decimalParser.number(from: trimmed) { return n.doubleValue }
-        return Double(trimmed)
+        let parsed = decimalParser.number(from: trimmed)?.doubleValue ?? Double(trimmed)
+        return parsed.flatMap { $0.isFinite ? $0 : nil }
     }
 
     private var canSave: Bool {
-        guard let value = parsedValue else { return false }
-        return value >= 0
+        guard let value = parsedValue, let canonical = canonicalValue else { return false }
+        return value >= 0 && canonical.isFinite
     }
 
     /// Sanity bound — a value 10× beyond the typical-range floor /
@@ -276,7 +279,7 @@ struct LabEntryEditor: View {
     }
 
     private func commit() {
-        guard let value = canonicalValue else { return }
+        guard let value = canonicalValue, value.isFinite else { return }
         Haptics.success()
         let trimmedSource = source.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)

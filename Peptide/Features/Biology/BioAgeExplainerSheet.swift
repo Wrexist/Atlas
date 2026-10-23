@@ -36,7 +36,7 @@ struct BioAgeExplainerSheet: View {
                         Text("What it won't do")
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
-                        Text("The estimate never drifts more than \(Int(PerformanceAgeEngine.maxDriftYears)) years from your chronological age, and Atlas won't show a number at all until it has at least \(BioAgeStateResolver.minBaselineDays) days of data and enough signals behind it. One good week shouldn't be able to claim a decade.")
+                        Text("The estimate never drifts more than \(Int(PerformanceAgeEngine.maxDriftYears)) years from your chronological age, and Atlas won't show a number at all until it has at least \(PerformanceAgeEngine.minimumDays(forCoverage: 1) ?? PerformanceAgeEngine.windowDays) days of data and enough signals behind it. One good week shouldn't be able to claim a decade.")
                             .font(AppFont.subheadline)
                             .foregroundStyle(AppColor.textSecondary)
                     }

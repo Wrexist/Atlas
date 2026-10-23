@@ -20,16 +20,21 @@ enum TrainingPatternEngine {
     static let emergingAtWeeks = 3
     static let establishedAtWeeks = 6
 
-    /// Baseline built from `trailingWeeks` non-overlapping, fully-elapsed
-    /// 7-day blocks immediately preceding the current rolling week (see
-    /// `currentRollingWeekCount`) — the current week's own days are never
-    /// counted inside the baseline that describes what's "normal."
+    /// Baseline built from up to `trailingWeeks` non-overlapping,
+    /// fully-elapsed 7-day blocks immediately preceding the current rolling
+    /// week (see `currentRollingWeekCount`) — the current week's own days
+    /// are never counted inside the baseline that describes what's
+    /// "normal." Blocks that ended before the first session are left out:
+    /// they're weeks before the user trained, not weeks they skipped, so
+    /// a new user's sample count (and confidence) reflects real history.
+    /// Nil until a full block has elapsed since the first session.
     static func weeklyFrequencyBaseline(
         sessionDates: [Date],
         asOf referenceDate: Date = Date(),
         calendar: Calendar = .current,
         trailingWeeks: Int = defaultTrailingWeeks
     ) -> PersonalBaselineEngine.Baseline? {
+        guard let firstSession = sessionDates.min() else { return nil }
         let currentWindowStart = currentRollingWeekStart(asOf: referenceDate, calendar: calendar)
         var counts: [Double] = []
         for weekIndex in 0..<trailingWeeks {
@@ -37,6 +42,8 @@ enum TrainingPatternEngine {
                 let blockEnd = calendar.date(byAdding: .day, value: -7 * weekIndex, to: currentWindowStart),
                 let blockStart = calendar.date(byAdding: .day, value: -7, to: blockEnd)
             else { continue }
+            // Every older block ends earlier still.
+            guard blockEnd > firstSession else { break }
             let count = sessionDates.filter { $0 >= blockStart && $0 < blockEnd }.count
             counts.append(Double(count))
         }

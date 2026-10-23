@@ -600,6 +600,26 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertEqual(LifestyleDataLogic.bestMealLoggingStreak(in: profile, asOf: today), 11)
     }
 
+    /// A past run bridged by a freeze keeps its full length in "Best"
+    /// after it ends, as the live streak counted it.
+    func test_bestMealLoggingStreak_freezeInsidePastRun_countsAsOneRun() {
+        var profile = UserProfile.fresh
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        // Logged 20–16 and 14–10 days ago; 15 days ago frozen → 11 days.
+        for daysAgo in Array(10...14) + Array(16...20) {
+            let date = calendar.date(byAdding: .day, value: -daysAgo, to: today)!
+            profile.mealHistory.append(
+                MealEntry(date: date, category: .snack, name: "Snack",
+                          calories: 100, proteinG: 5, carbsG: 15, fatG: 3,
+                          source: .openFoodFacts)
+            )
+        }
+        let frozen = calendar.date(byAdding: .day, value: -15, to: today)!
+        profile.streakFreezeDays.insert(StreakFreezeService.dayKey(for: frozen))
+        XCTAssertEqual(LifestyleDataLogic.bestMealLoggingStreak(in: profile, asOf: today), 11)
+    }
+
     func test_spotlightIdentifier_roundTrips_throughDeepLink() throws {
         let customID = UUID(uuidString: "33333333-3333-3333-3333-333333333333")!
         let customIdentifier = FoodSpotlightService.identifier(forCustomFoodID: customID)
@@ -765,7 +785,7 @@ final class PersistenceRoundTripTests: XCTestCase {
         let nextRising = LabValue(
             date: today, panel: .totalTestosterone, value: 720   // 20% delta
         )
-        if case .rising(let delta) = LabDataLogic.computeTrend(entries: [prev, nextRising]) {
+        if case .rising(let delta)? = LabDataLogic.computeTrend(entries: [prev, nextRising]) {
             XCTAssertEqual(delta, 120, accuracy: 0.01)
         } else {
             XCTFail("Expected rising trend for +20% delta")
@@ -781,6 +801,14 @@ final class PersistenceRoundTripTests: XCTestCase {
         )
         let next = LabValue(date: today, panel: .crp, value: 0)
         XCTAssertEqual(LabDataLogic.computeTrend(entries: [prev, next]), .stable)
+    }
+
+    /// One draw has nothing to compare against, so no direction — not
+    /// "stable" — is reported.
+    func test_labTrend_singleEntry_isNil() {
+        let only = LabValue(date: Date(), panel: .totalTestosterone, value: 600)
+        XCTAssertNil(LabDataLogic.computeTrend(entries: [only]))
+        XCTAssertNil(LabDataLogic.computeTrend(entries: []))
     }
 
     func test_latestPerPanel_returnsMostRecentPerPanelAndPreservesCategoryOrder() {

@@ -38,6 +38,9 @@ final class TrainingPatternEngineTests: XCTestCase {
             // Block 1: Jan 9–15 (4 sessions).
             date(2024, 1, 9), date(2024, 1, 10), date(2024, 1, 11), date(2024, 1, 14),
             // Block 2: Jan 2–8 (0 sessions) — left empty on purpose.
+            // Older history, outside the 3 blocks, so block 2 is a skipped
+            // week rather than a week before the user started.
+            date(2023, 12, 20),
         ]
         let baseline = TrainingPatternEngine.weeklyFrequencyBaseline(
             sessionDates: sessions,
@@ -65,22 +68,37 @@ final class TrainingPatternEngineTests: XCTestCase {
         XCTAssertEqual(baseline?.confidence, .emergingBaseline)
     }
 
-    func test_weeklyFrequencyBaseline_noSessionsAtAll_stillReturnsInsufficientBaseline_notNil() {
-        // Empty history still produces zero-count blocks, not a `nil`
-        // baseline — `PersonalBaselineEngine.build` only returns `nil` for
-        // a genuinely empty `values` array, and `trailingWeeks` blocks are
-        // always non-empty even when every count in them is zero.
-        // `trailingWeeks` below `emergingAtWeeks` (3) keeps this at
-        // insufficient confidence regardless of the (all-zero) counts.
-        let baseline = TrainingPatternEngine.weeklyFrequencyBaseline(
+    func test_weeklyFrequencyBaseline_noSessionsAtAll_isNil() {
+        XCTAssertNil(TrainingPatternEngine.weeklyFrequencyBaseline(
             sessionDates: [],
             asOf: referenceDate,
             calendar: utcCalendar,
             trailingWeeks: 2
+        ))
+    }
+
+    /// A user in their second week has one elapsed block of history, not
+    /// eight with seven zeros, so the baseline can't claim to be
+    /// established.
+    func test_weeklyFrequencyBaseline_oneWeekOfHistory_isNotEstablished() {
+        // First sessions in block 0 (Jan 16–22), plus this week's.
+        let sessions = [date(2024, 1, 17), date(2024, 1, 19), date(2024, 1, 24), date(2024, 1, 26)]
+        let baseline = TrainingPatternEngine.weeklyFrequencyBaseline(
+            sessionDates: sessions,
+            asOf: referenceDate,
+            calendar: utcCalendar
         )
-        XCTAssertNotNil(baseline)
-        XCTAssertEqual(baseline?.mean, 0)
+        XCTAssertEqual(baseline?.sampleCount, 1)
         XCTAssertEqual(baseline?.confidence, .insufficientHistory)
+    }
+
+    /// Sessions only in the current rolling week leave no elapsed block.
+    func test_weeklyFrequencyBaseline_onlyCurrentWeekSessions_isNil() {
+        XCTAssertNil(TrainingPatternEngine.weeklyFrequencyBaseline(
+            sessionDates: [date(2024, 1, 24), date(2024, 1, 27)],
+            asOf: referenceDate,
+            calendar: utcCalendar
+        ))
     }
 
     // MARK: - currentRollingWeekCount

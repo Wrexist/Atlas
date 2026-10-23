@@ -107,7 +107,7 @@ enum PrimaryReasonEngine {
         // CoachingMessageEngine's own cascade (its very first two
         // branches) — nothing here outranks getting a new or
         // disconnected user set up.
-        if coaching.eyebrow == String(localized: "WELCOME") || coaching.eyebrow == String(localized: "GET STARTED") {
+        if coaching.kind == .welcome || coaching.kind == .getStarted {
             return Reason(message: coaching, priority: .optionalReminder)
         }
 
@@ -165,14 +165,15 @@ enum PrimaryReasonEngine {
         // with the dose-plan's more precise headline (fasted-first
         // ordering, conflict-aware) in place of the generic "Next: X at
         // Y" body that fallback uses.
-        if let headline = context.dailyPlanHeadline, coaching.eyebrow == String(localized: "ON TRACK") {
+        if let headline = context.dailyPlanHeadline, coaching.kind == .onTrack {
             return Reason(
                 message: CoachingMessageEngine.CoachingMessage(
                     icon: coaching.icon,
                     eyebrow: coaching.eyebrow,
                     title: coaching.title,
                     body: headline,
-                    tone: coaching.tone
+                    tone: coaching.tone,
+                    kind: coaching.kind
                 ),
                 priority: .optionalReminder
             )
@@ -187,7 +188,8 @@ enum PrimaryReasonEngine {
             eyebrow: String(localized: "HABITS"),
             title: String(localized: "\(remaining) habits due today"),
             body: String(localized: "Tap in below to check off your first one."),
-            tone: .neutral
+            tone: .neutral,
+            kind: .habits
         )
     }
 
@@ -197,7 +199,8 @@ enum PrimaryReasonEngine {
             eyebrow: String(localized: "WEEKLY REVIEW"),
             title: String(localized: "Your week in review"),
             body: headline,
-            tone: .positive
+            tone: .positive,
+            kind: .weeklyReview
         )
     }
 }

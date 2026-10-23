@@ -165,8 +165,9 @@ struct BioAgeTrendCard: View {
 
 /// The plot itself: a padded value range so small movements are visible
 /// without exaggerating them, a dashed chronological-age baseline, and a
-/// line that draws in via `trim`. Points sit at their dates, so a week the
-/// engine couldn't estimate shows as a gap rather than closing up.
+/// line that draws in via `trim`. Points sit at their dates and the line
+/// breaks across a week the engine couldn't estimate, rather than closing
+/// up.
 private struct TrendPlot: View {
     let points: [PerformanceAgeEngine.TrendPoint]
     let baseline: Double
@@ -237,13 +238,26 @@ private struct TrendPlot: View {
         }
     }
 
-    private func linePath(_ points: [CGPoint]) -> Path {
+    /// Joins consecutive estimates, but lifts the pen across a missed
+    /// week so the line never implies estimates Atlas didn't make.
+    private func linePath(_ positions: [CGPoint]) -> Path {
         var path = Path()
-        guard let first = points.first else { return path }
+        guard let first = positions.first else { return path }
         path.move(to: first)
-        for point in points.dropFirst() { path.addLine(to: point) }
+        for index in positions.indices.dropFirst() {
+            let gap = points[index].date.timeIntervalSince(points[index - 1].date)
+            if gap > Self.maximumJoinedGap {
+                path.move(to: positions[index])
+            } else {
+                path.addLine(to: positions[index])
+            }
+        }
         return path
     }
+
+    /// A little over one stride, so a daylight-saving week still joins.
+    private static let maximumJoinedGap: TimeInterval =
+        Double(PerformanceAgeEngine.trendStrideDays) * 86_400 * 1.5
 }
 
 #Preview {
