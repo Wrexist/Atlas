@@ -745,8 +745,8 @@ private struct FlexibleInt: Decodable {
         let c = try decoder.singleValueContainer()
         if let i = try? c.decode(Int.self) {
             value = i
-        } else if let d = try? c.decode(Double.self), d.isFinite {
-            value = Int(d)
+        } else if let d = try? c.decode(Double.self) {
+            value = d.isFinite ? Int(exactly: d.rounded(.towardZero)) : nil
         } else if let s = try? c.decode(String.self) {
             value = Int(s.trimmingCharacters(in: .whitespacesAndNewlines))
         } else {
