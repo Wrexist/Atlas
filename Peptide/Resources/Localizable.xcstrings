@@ -241,12 +241,32 @@
         }
       }
     },
+    "%@ per month": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ per månad"
+          }
+        }
+      }
+    },
     "%@ per month for the %@ subscription": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ per månad för prenumerationen %2$@"
+          }
+        }
+      }
+    },
+    "%@ per year": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ per år"
           }
         }
       }
@@ -5725,6 +5745,16 @@
         }
       }
     },
+    "App Lock Turned Off": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Applåset har stängts av"
+          }
+        }
+      }
+    },
     "Around 12 hours in, many people rely more on stored fat for energy.": {
       "localizations": {
         "sv": {
@@ -7685,16 +7715,6 @@
         }
       }
     },
-    "Atlas never sees your email — Apple relays it.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Atlas ser aldrig din e-post – Apple vidarebefordrar den."
-          }
-        }
-      }
-    },
     "Atlas runs no server that stores your logs. AI features you invoke send only what they need — a meal photo, weekly averages — to answer your request.": {
       "localizations": {
         "sv": {
@@ -7891,6 +7911,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "BÄST VÄRDE"
+          }
+        }
+      }
+    },
+    "Best value": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bäst värde"
           }
         }
       }
@@ -9125,6 +9155,16 @@
         }
       }
     },
+    "Couldn't verify it's you. Try again.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det gick inte att bekräfta att det är du. Försök igen."
+          }
+        }
+      }
+    },
     "CSV": {
       "localizations": {
         "sv": {
@@ -10091,16 +10131,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Närmast möjliga vikt är %@, %@ under ditt mål."
-          }
-        }
-      }
-    },
-    "Cloud sync across iPhone, iPad, and Watch.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Molnsynk mellan iPhone, iPad och Watch."
           }
         }
       }
@@ -28451,6 +28481,16 @@
         }
       }
     },
+    "Save %lld percent": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spara %lld procent"
+          }
+        }
+      }
+    },
     "SAVE %lld%%": {
       "localizations": {
         "sv": {
@@ -28537,6 +28577,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Korta tränings- och coachningssammanfattningar skrivna av Apple Intelligence på den här enheten. Inget skickas någonstans."
+          }
+        }
+      }
+    },
+    "Sign in with Apple (optional)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga in med Apple (valfritt)"
           }
         }
       }
@@ -31921,6 +31971,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sidorna är för stora för att laddas upp tillsammans. Skanna färre sidor åt gången."
+          }
+        }
+      }
+    },
+    "This iPhone no longer has a passcode, so Atlas can't stay locked. Set a passcode in Settings, then turn the lock back on in Profile.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Den här iPhonen har inte längre någon lösenkod, så Atlas kan inte förbli låst. Ställ in en lösenkod i Inställningar och slå sedan på låset igen i Profil."
           }
         }
       }
@@ -36995,6 +37055,16 @@
         }
       }
     },
+    "You can hide your email — Apple will relay it.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du kan dölja din e-post – Apple vidarebefordrar den då."
+          }
+        }
+      }
+    },
     "You reached your %lld-hour fasting goal. End the fast in Atlas when you eat.": {
       "localizations": {
         "sv": {
@@ -37073,6 +37143,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Din kroppstemperatur. Toppar över ditt vanliga värde kan tyda på dålig återhämtning eller sjukdom."
+          }
+        }
+      }
+    },
+    "Your data syncs through iCloud when it's on, signed in or not.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina data synkas via iCloud när det är på, oavsett om du loggar in."
+          }
+        }
+      }
+    },
+    "Your data syncs through your private iCloud when iCloud is on, and you can lock the app with %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina data synkas via din privata iCloud när iCloud är på, och du kan låsa appen med %@."
+          }
+        }
+      }
+    },
+    "Your data syncs through your private iCloud when iCloud is on.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina data synkas via din privata iCloud när iCloud är på."
           }
         }
       }
@@ -37857,16 +37957,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dina data är säkra. Kontrollera anslutningen och försök igen."
-          }
-        }
-      }
-    },
-    "Your data lives in your private iCloud, and you can lock the app with Face ID.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dina data finns i din privata iCloud, och du kan låsa appen med Face ID."
           }
         }
       }

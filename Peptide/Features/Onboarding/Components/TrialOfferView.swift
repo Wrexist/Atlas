@@ -15,6 +15,7 @@ struct TrialOfferView: View {
     let onDecline: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var storeService = StoreService.shared
     @State private var isPurchasing = false
     @State private var isRestoring = false
@@ -121,6 +122,11 @@ struct TrialOfferView: View {
         return storeService.redeemableTrialDays(for: product)
     }
 
+    /// At accessibility text sizes the terms and links outgrow a pinned
+    /// footer and get pushed off screen, so they move to the end of the
+    /// scrolling content, where they can always be reached (B015).
+    private var pinsTerms: Bool { !dynamicTypeSize.isAccessibilitySize }
+
     var body: some View {
         ZStack {
             AppColor.background.ignoresSafeArea()
@@ -135,6 +141,11 @@ struct TrialOfferView: View {
                     valueBanner
                     benefitsCard
                     socialProof
+
+                    if !pinsTerms {
+                        terms
+                            .padding(.top, Spacing.md)
+                    }
 
                     Spacer(minLength: Spacing.md)
                 }
@@ -506,7 +517,32 @@ struct TrialOfferView: View {
         }
         .buttonStyle(ScalePressStyle())
         .appAnimation(AppAnimation.fadeIn, value: arePricesLoaded)
+        .accessibilityLabel(tierAccessibilityLabel(for: tier))
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+    }
+
+    /// Spoken in place of the card's visual fragments ("/yr", "·"), which
+    /// VoiceOver otherwise reads out as "slash y r" and "middle dot".
+    private func tierAccessibilityLabel(for tier: Tier) -> String {
+        guard arePricesLoaded else { return "\(tier.displayName), \(plansStatus)" }
+        var parts = [tier.displayName]
+        switch tier {
+        case .annual:
+            parts.append(String(localized: "\(annualPrice) per year"))
+            parts.append(String(localized: "\(annualPerMonthPrice) per month"))
+        case .monthly:
+            parts.append(String(localized: "\(monthlyPrice) per month"))
+        }
+        if let days = trialDays(for: tier) {
+            parts.append(String(localized: "\(days) days free"))
+        }
+        if tier == .annual {
+            parts.append(String(localized: "Best value"))
+            if let saved = annualSavingsPercent {
+                parts.append(String(localized: "Save \(saved) percent"))
+            }
+        }
+        return parts.joined(separator: ", ")
     }
 
     /// The billed amount per period — never the per-month equivalent of the
@@ -562,16 +598,15 @@ struct TrialOfferView: View {
                                 .font(AppFont.scaled(16, weight: .bold))
                             Text(ctaTitle)
                                 .font(AppFont.headline)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.75)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         Text(ctaDetail)
                             .font(AppFont.scaled(11, weight: .semibold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.75)
+                            .fixedSize(horizontal: false, vertical: true)
                             .opacity(0.85)
                     }
                 }
+                .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity, minHeight: 40)
                 .padding(.vertical, Spacing.md + 2)
                 .padding(.horizontal, Spacing.xl)
@@ -587,13 +622,8 @@ struct TrialOfferView: View {
             .opacity(arePricesLoaded ? 1 : 0.5)
             .accessibilityLabel("\(ctaTitle). \(ctaDetail)")
 
-            HStack(spacing: Spacing.xs) {
-                Image(systemName: "checkmark.shield.fill")
-                    .font(AppFont.scaled(11, weight: .semibold))
-                    .foregroundStyle(AppColor.accentLight)
-                Text(reassuranceCopy)
-                    .font(AppFont.scaled(11, weight: .semibold))
-                    .foregroundStyle(AppColor.textSecondary)
+            if pinsTerms {
+                reassurance
             }
 
             Button(action: declineTrial) {
@@ -604,7 +634,33 @@ struct TrialOfferView: View {
                     .minimumHitArea()
             }
             .buttonStyle(.plain)
-            .disabled(isPurchasing)
+            .disabled(isPurchasing || isRestoring)
+
+            if pinsTerms {
+                terms
+            }
+        }
+    }
+
+    private var reassurance: some View {
+        HStack(spacing: Spacing.xs) {
+            Image(systemName: "checkmark.shield.fill")
+                .font(AppFont.scaled(11, weight: .semibold))
+                .foregroundStyle(AppColor.accentLight)
+            Text(reassuranceCopy)
+                .font(AppFont.scaled(11, weight: .semibold))
+                .foregroundStyle(AppColor.textSecondary)
+        }
+    }
+
+    /// The Guideline 3.1.2 terms and the Restore / Terms of Use / Privacy
+    /// Policy links. Pinned under the CTA at regular text sizes; at the end
+    /// of the scroll content at accessibility sizes (see `pinsTerms`).
+    private var terms: some View {
+        VStack(spacing: Spacing.sm) {
+            if !pinsTerms {
+                reassurance
+            }
 
             Text(legalCopy)
                 .font(AppFont.scaled(11))
@@ -612,24 +668,49 @@ struct TrialOfferView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.md)
 
-            HStack(spacing: Spacing.md) {
-                Button(action: restore) {
-                    Text("Restore Purchases").minimumHitArea()
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Spacing.md) {
+                    restoreButton
+                    linkSeparator
+                    termsLink
+                    linkSeparator
+                    privacyLink
                 }
-                .buttonStyle(.plain)
-                .disabled(isPurchasing || isRestoring)
-                Text("·").foregroundStyle(AppColor.textTertiary)
-                Link(destination: URL.staticHTTPS("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")) {
-                    Text("Terms of Use").minimumHitArea()
-                }
-                Text("·").foregroundStyle(AppColor.textTertiary)
-                Link(destination: URL.staticHTTPS("https://wrexist.github.io/Atlas/privacy.html")) {
-                    Text("Privacy Policy").minimumHitArea()
+                VStack(spacing: Spacing.xs) {
+                    restoreButton
+                    termsLink
+                    privacyLink
                 }
             }
             .font(AppFont.scaled(11))
             .foregroundStyle(AppColor.accentLight)
         }
+    }
+
+    private var restoreButton: some View {
+        Button(action: restore) {
+            Text("Restore Purchases").minimumHitArea()
+        }
+        .buttonStyle(.plain)
+        .disabled(isPurchasing || isRestoring)
+    }
+
+    private var termsLink: some View {
+        Link(destination: URL.staticHTTPS("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")) {
+            Text("Terms of Use").minimumHitArea()
+        }
+    }
+
+    private var privacyLink: some View {
+        Link(destination: URL.staticHTTPS("https://wrexist.github.io/Atlas/privacy.html")) {
+            Text("Privacy Policy").minimumHitArea()
+        }
+    }
+
+    private var linkSeparator: some View {
+        Text("·")
+            .foregroundStyle(AppColor.textTertiary)
+            .accessibilityHidden(true)
     }
 
     private var productForSelectedTier: Product? { product(for: selectedTier) }

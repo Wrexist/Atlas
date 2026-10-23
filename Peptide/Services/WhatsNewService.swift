@@ -27,19 +27,19 @@ final class WhatsNewService {
         self.defaults = defaults
     }
 
-    /// Stamps the current tour version as seen on a brand-new
-    /// install — the user is about to walk through the regular
-    /// onboarding flow which already covers the new feature
-    /// surface, so re-firing this tour the moment they finish
-    /// would be redundant. Idempotent: once a version is
-    /// stamped, this is a no-op forever.
+    /// Stamps the current tour version as seen while onboarding is
+    /// still unfinished — the user is walking through (or about to walk
+    /// through) the regular onboarding flow, which already covers the
+    /// new feature surface, so firing this tour the moment they finish
+    /// would be redundant. That includes someone who started onboarding
+    /// on an older build: their stamp is the old version, and leaving it
+    /// showed the tour right after they finished.
     ///
     /// Call from `PeptideApp` on every transition to `.active`
-    /// before the should-show check. The early return when the
-    /// stamp already exists keeps the launch path cheap.
+    /// before the should-show check.
     func bootstrapForFreshInstallIfNeeded(hasCompletedOnboarding: Bool) {
-        guard defaults.string(forKey: storageKey) == nil,
-              !hasCompletedOnboarding
+        guard !hasCompletedOnboarding,
+              defaults.string(forKey: storageKey) != Self.currentTourVersion
         else { return }
         markCurrentTourSeen()
     }

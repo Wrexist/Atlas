@@ -2,12 +2,15 @@ import SwiftUI
 
 struct LockScreenView: View {
     let onUnlock: () -> Void
+    /// The device has no passcode, so this lock can never be cleared.
+    let onUnavailable: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var biometricService = BiometricService.shared
     @State private var isAuthenticating = false
     @State private var shakeOffset: CGFloat = 0
     @State private var iconBounce = 0
+    @State private var failureMessage: String?
 
     var body: some View {
         VStack(spacing: Spacing.xxl) {
@@ -28,7 +31,15 @@ struct LockScreenView: View {
                 Text("Authenticate to access your data")
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
+
+                if let failureMessage {
+                    Text(failureMessage)
+                        .font(AppFont.footnote)
+                        .foregroundStyle(AppColor.destructive)
+                        .transition(.opacity)
+                }
             }
+            .multilineTextAlignment(.center)
 
             Spacer()
 
@@ -52,14 +63,29 @@ struct LockScreenView: View {
         isAuthenticating = true
         defer { isAuthenticating = false }
 
-        if await biometricService.authenticate() {
+        switch await biometricService.authenticate() {
+        case .success:
             Haptics.success()
             onUnlock()
-        } else {
-            Haptics.error()
-            iconBounce &+= 1
+        case .cancelled:
+            // A deliberate cancel isn't an error; the Unlock button stays.
+            break
+        case .unavailable:
+            onUnavailable()
+        case .failed:
+            showFailure()
             await shakeIcon()
         }
+    }
+
+    /// Said as well as shown, so a VoiceOver user or someone with haptics
+    /// off learns the attempt failed (B292).
+    private func showFailure() {
+        let message = String(localized: "Couldn't verify it's you. Try again.")
+        AppAnimation.with(AppAnimation.fadeIn) { failureMessage = message }
+        AccessibilityNotification.Announcement(message).post()
+        Haptics.error()
+        iconBounce &+= 1
     }
 
     /// Three-step horizontal shake (8 → -8 → 0) over ~280 ms. Disabled under
@@ -75,7 +101,7 @@ struct LockScreenView: View {
 }
 
 #Preview {
-    LockScreenView(onUnlock: {})
+    LockScreenView(onUnlock: {}, onUnavailable: {})
         .environment(DataStore(seedSampleData: true))
         .preferredColorScheme(.dark)
 }

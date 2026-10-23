@@ -57,6 +57,10 @@ final class AuthService {
         }
     }
 
+    /// The onboarding experience answer, kept in UserDefaults by
+    /// `OnboardingView` and `ProgramBuilderSheet`.
+    private static let experienceLevelKey = "experienceLevel"
+
     private static let keychainService = "com.peptidesai.app.auth"
     private static let keychainAccountID = "apple-user-id"
     private static let keychainAccountEmail = "apple-user-email"
@@ -118,10 +122,12 @@ final class AuthService {
         timeoutTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: Self.signInTimeout)
             guard let self, !Task.isCancelled, self.isSigningIn else { return }
-            self.isSigningIn = false
-            self.coordinator = nil
-            self.lastError = .timedOut
             AppLog.auth.error("Sign in with Apple timed out (no callback within timeout window)")
+            // Cancelling, not just dropping, the coordinator dismisses
+            // Apple's sheet and resolves the request once through
+            // `finishSignIn`, so a late completion can't sign the user in
+            // behind the timeout alert.
+            self.coordinator?.cancel(reporting: SignInTimedOut())
         }
     }
 
@@ -190,6 +196,8 @@ final class AuthService {
             if !handleAuthorization(result) {
                 lastError = .failed("Could not read your Apple ID credential.")
             }
+        case .failure(let error) where error is SignInTimedOut:
+            lastError = .timedOut
         case .failure(let error):
             let asCode = (error as? ASAuthorizationError)?.code
             switch asCode {
@@ -374,6 +382,14 @@ final class AuthService {
             await FoodSpotlightService.shared.removeAll()
         }
         ScanCorrectionMemory.shared.eraseAll()
+        // After an erase the next meal scan or research question has to
+        // ask again before anything reaches the AI proxy.
+        AIDataConsent.revoke()
+        // Onboarding answers kept outside the profile. The disclaimer
+        // timestamp stays: it records an acknowledgment, not user data
+        // (see docs/DATA_ERASURE_POLICY.md).
+        OnboardingFunnelTracker.eraseAll()
+        UserDefaults.standard.removeObject(forKey: Self.experienceLevelKey)
         if let store { resetInMemoryState(of: store) }
     }
 
@@ -524,6 +540,9 @@ final class AuthService {
     }
 }
 
+/// What `signIn()`'s watchdog reports when it cancels a hung request.
+private struct SignInTimedOut: Error {}
+
 // MARK: - ASAuthorizationController Coordinator
 
 /// Drives `ASAuthorizationController` directly so we can supply an explicit
@@ -560,12 +579,12 @@ private final class AppleSignInCoordinator: NSObject {
         controller.performRequests()
     }
 
-    /// Resolves as `.failed` and dismisses Apple's sheet. `finish` resolves
+    /// Resolves with `error` and dismisses Apple's sheet. `finish` resolves
     /// once, so the controller's own cancel callback afterwards is a no-op,
     /// and so is this after a real callback.
-    func cancel() {
+    func cancel(reporting error: any Error = ASAuthorizationError(.failed)) {
         let controller = self.controller
-        finish(.failure(ASAuthorizationError(.failed)))
+        finish(.failure(error))
         controller?.cancel()
     }
 
