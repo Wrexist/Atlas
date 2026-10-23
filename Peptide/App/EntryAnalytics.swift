@@ -6,21 +6,25 @@ import Foundation
 /// definitions without going through `@MainActor DataStore`.
 enum EntryAnalytics {
 
-    /// 7-day completed-vs-scheduled ratio over doses due in the week up
-    /// to `now`. A dose scheduled later today is not missed yet, so it
-    /// stays out of the window. Returns nil when nothing was due, so
-    /// callers can tell "no recent data" from "0%". The window is
-    /// computed against `now` so the value drifts as the calendar day
-    /// rolls over without needing an explicit cache bust.
+    /// Completed ÷ due doses over the last 7 calendar days, pooled across
+    /// `protocols` with the same definition the protocol screen uses
+    /// (`PeptideProtocol.adherenceCounts`): a scheduled day the app never
+    /// generated entries for counts as missed, a dose later today is not
+    /// missed yet, and wash-out days have nothing due. Nil when nothing
+    /// was due, so callers can tell "no recent data" from "0%".
     static func weeklyComplianceFraction(
         in entries: [ProtocolEntry],
+        protocols: [PeptideProtocol],
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> Double? {
-        let cutoff = calendar.date(byAdding: .day, value: -7, to: now) ?? now
-        let window = entries.filter { $0.date >= cutoff && $0.date <= now }
-        guard !window.isEmpty else { return nil }
-        return Double(window.filter(\.completed).count) / Double(window.count)
+        let counts = protocols.map {
+            $0.adherenceCounts(entries: entries, days: 7, now: now, calendar: calendar)
+        }
+        let due = counts.reduce(0) { $0 + $1.due }
+        guard due > 0 else { return nil }
+        let completed = counts.reduce(0) { $0 + $1.completed }
+        return Double(completed) / Double(due)
     }
 
     /// Lifetime completed-entry count. Light enough to recompute on every

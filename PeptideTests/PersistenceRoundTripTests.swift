@@ -1069,6 +1069,24 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertEqual(west.daysOfWeek, [7])
     }
 
+    func test_travelShift_anchorlessIntervalAcrossMidnight_anchorsOnShiftedStart() {
+        let start = Calendar.current.date(from: DateComponents(year: 2026, month: 3, day: 2))!
+        let schedule = ProtocolSchedule(
+            daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
+            timesPerDay: 1,
+            preferredTimes: ["11:00 PM"],
+            intervalDays: 2
+        )
+
+        let shifted = TravelModeLogic.shiftSchedule(schedule, byMinutes: 180, protocolStart: start)
+
+        XCTAssertEqual(shifted.preferredTimes, ["2:00 AM"])
+        XCTAssertEqual(shifted.intervalAnchor, Calendar.current.date(byAdding: .day, value: 1, to: start))
+        // The 11 PM dose on Mar 4 is now the 2 AM dose on Mar 5.
+        let mar5 = Calendar.current.date(from: DateComponents(year: 2026, month: 3, day: 5))!
+        XCTAssertTrue(shifted.isActive(on: mar5, protocolStart: start))
+    }
+
     func test_travelShift_halfHourZone_keepsTheMinutes() {
         XCTAssertEqual(TravelModeLogic.shiftTime("8:00 AM", byMinutes: 330), "1:30 PM")
     }

@@ -36,6 +36,23 @@ final class SmartCyclePlannerTests: XCTestCase {
         XCTAssertFalse(result.contains { if case .considerPausing = $0.kind { return true } else { return false } })
     }
 
+    func test_idle_washoutWeekTwo_doesNotSuggestPausing() {
+        // 4 on / 4 off, started 6 weeks ago: day 15 of the wash-out, with
+        // the last dose logged at the end of the on-phase.
+        let proto = makeProtocol(daysAgo: 42, weeks: 4, washoutWeeks: 4)
+        let entries = [entry(for: proto, daysAgo: 15, completed: true)]
+        let result = SmartCyclePlanner.suggestions(protocols: [proto], entries: entries)
+        XCTAssertFalse(result.contains { if case .considerPausing = $0.kind { return true } else { return false } })
+    }
+
+    func test_wrappingUp_washoutProtocol_announcesTheWashoutInLaterCycles() {
+        // 4 on / 2 off, started 67 days ago: cycle 2, 3 days before its wash-out.
+        let proto = makeProtocol(daysAgo: 6 * 7 + 4 * 7 - 3, weeks: 4, washoutWeeks: 2)
+        let result = SmartCyclePlanner.suggestions(protocols: [proto], entries: [])
+        XCTAssertTrue(result.contains { if case .washoutStarting = $0.kind { return true } else { return false } })
+        XCTAssertFalse(result.contains { if case .cycleWrappingUp = $0.kind { return true } else { return false } })
+    }
+
     // MARK: - Decaying compliance
 
     func test_decayingCompliance_recommendsShorterCycle() {
@@ -82,6 +99,27 @@ final class SmartCyclePlannerTests: XCTestCase {
         XCTAssertTrue(result.contains { if case .offCycleReady = $0.kind { return true } else { return false } })
     }
 
+    func test_offCycle_completed120DaysPastEnd_isNotSuggested() {
+        let proto = makeProtocol(daysAgo: 8 * 7 + 120, weeks: 8, status: .completed)
+        let result = SmartCyclePlanner.suggestions(protocols: [proto], entries: [])
+        XCTAssertFalse(result.contains { if case .offCycleReady = $0.kind { return true } else { return false } })
+    }
+
+    func test_offCycle_onlyTheMostRecentCompletedProtocolIsSuggested() {
+        let older = makeProtocol(daysAgo: 8 * 7 + 40, weeks: 8, status: .completed)
+        let newer = makeProtocol(daysAgo: 8 * 7 + 35, weeks: 8, status: .completed)
+        let result = SmartCyclePlanner.suggestions(protocols: [older, newer], entries: [])
+        let offCycle = result.filter { if case .offCycleReady = $0.kind { return true } else { return false } }
+        XCTAssertEqual(offCycle.map(\.protocolID), [newer.id])
+    }
+
+    func test_suggestionID_isStableAcrossRecomputes() {
+        let proto = makeProtocol(daysAgo: 30, weeks: 12)
+        let first = SmartCyclePlanner.suggestions(protocols: [proto], entries: [])
+        let second = SmartCyclePlanner.suggestions(protocols: [proto], entries: [])
+        XCTAssertEqual(first.map(\.id), second.map(\.id))
+    }
+
     // MARK: - Confidence ordering
 
     func test_suggestions_areOrderedByConfidence() {
@@ -103,6 +141,7 @@ final class SmartCyclePlannerTests: XCTestCase {
     private func makeProtocol(
         daysAgo: Int,
         weeks: Int,
+        washoutWeeks: Int = 0,
         status: ProtocolStatus = .active
     ) -> PeptideProtocol {
         let start = Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date()) ?? Date()
@@ -116,6 +155,7 @@ final class SmartCyclePlannerTests: XCTestCase {
                 preferredTimes: ["8:00 AM"]
             ),
             cycleLengthWeeks: weeks,
+            washoutWeeks: washoutWeeks,
             startDate: start,
             status: status,
             notes: ""

@@ -113,6 +113,7 @@ final class DataStore {
     @ObservationIgnored private var _stackPeptides: (version: Int, value: [Peptide])?
     @ObservationIgnored private var _stackWarnings: (version: Int, value: [StackRecommendationEngine.Warning])?
     @ObservationIgnored private var _stackRecommendations: (version: Int, value: [StackRecommendationEngine.Recommendation])?
+    @ObservationIgnored private var _smartCycleSuggestions: (version: Int, value: [SmartCyclePlanner.Suggestion])?
     @ObservationIgnored private var _stackCompleteness: (version: Int, value: StackRecommendationEngine.StackCompleteness?)?
     @ObservationIgnored private var _cycleTransitions: (version: Int, value: [StackRecommendationEngine.CycleTransition])?
     @ObservationIgnored private var _topInsight: (version: Int, value: InsightEngine.Insight?)?
@@ -526,8 +527,12 @@ final class DataStore {
         if status == .active, protocols[index].status != .active, activationExceedsFreeCap(id: id) {
             return false
         }
+        let wasActive = protocols[index].status == .active
         protocols[index].status = status
         if status == .active {
+            if !wasActive {
+                CycleCompletionService.shared.restartGraceWindow(for: protocols[index])
+            }
             appendTodayEntries(for: protocols[index])
         }
         save()
@@ -730,24 +735,24 @@ final class DataStore {
         }
     }
 
+    /// `schedule` keeps a moved peptide's own dose, times and cadence;
+    /// it's stored as an override only when it differs from the
+    /// destination's default.
     @discardableResult
-    func addPeptide(_ peptide: Peptide, toProtocolId protocolId: UUID) -> Bool {
+    func addPeptide(
+        _ peptide: Peptide,
+        toProtocolId protocolId: UUID,
+        schedule: ProtocolSchedule? = nil
+    ) -> Bool {
         guard let index = protocols.firstIndex(where: { $0.id == protocolId }) else { return false }
         if protocols[index].peptides.contains(where: { $0.id == peptide.id }) { return false }
 
         let existing = protocols[index]
-        let updated = PeptideProtocol(
-            id: existing.id,
-            name: existing.name,
-            peptides: existing.peptides + [peptide],
-            schedule: existing.schedule,
-            peptideSchedules: existing.peptideSchedules,
-            cycleLengthWeeks: existing.cycleLengthWeeks,
-            washoutWeeks: existing.washoutWeeks,
-            startDate: existing.startDate,
-            status: existing.status,
-            notes: existing.notes
-        )
+        var overrides = existing.peptideSchedules
+        if let schedule, schedule != existing.schedule {
+            overrides[peptide.id] = schedule
+        }
+        let updated = existing.with(peptides: existing.peptides + [peptide], peptideSchedules: overrides)
         protocols[index] = updated
 
         if updated.status == .active {
@@ -805,6 +810,9 @@ final class DataStore {
             createdAt: existing.createdAt
         )
         protocols[index] = updated
+        if updated.status == .active, updated.cycleEndDay != existing.cycleEndDay {
+            CycleCompletionService.shared.restartGraceWindow(for: updated)
+        }
 
         // Regenerate today's entries, preserving any the user already
         // logged — see regenerateTodayEntriesPreservingLogs.
@@ -871,22 +879,7 @@ final class DataStore {
             overrides.removeValue(forKey: peptideId)
         }
 
-        let updated = PeptideProtocol(
-            id: existing.id,
-            name: existing.name,
-            peptides: existing.peptides,
-            schedule: existing.schedule,
-            peptideSchedules: overrides,
-            cycleLengthWeeks: existing.cycleLengthWeeks,
-            washoutWeeks: existing.washoutWeeks,
-            startDate: existing.startDate,
-            status: existing.status,
-            notes: existing.notes,
-            authorName: existing.authorName,
-            authorHandle: existing.authorHandle,
-            forkedFromStackId: existing.forkedFromStackId,
-            createdAt: existing.createdAt
-        )
+        let updated = existing.with(peptideSchedules: overrides)
         protocols[index] = updated
 
         // Regenerate today's entries for this protocol so the change
@@ -1014,18 +1007,18 @@ final class DataStore {
     /// previous implementation used the global averageCompliance and
     /// shipped a misleading number when the user had multiple stacks
     /// (audit Sharing P1.6).
+    ///
+    /// Same definition as the protocol screen (`PeptideProtocol.adherence`),
+    /// over the whole run since the protocol's start.
     func adherence(forProtocol id: UUID) -> Double {
-        let now = Date()
-        let protocolEntries = entries.filter { $0.protocolId == id && $0.date <= now }
-        let grouped = protocolEntries.groupedByDay
-        guard !grouped.isEmpty else { return 0 }
-
-        let dailyCompliance = grouped.map { _, dayEntries in
-            let completed = dayEntries.filter(\.completed).count
-            return Double(completed) / Double(dayEntries.count)
-        }
-
-        return dailyCompliance.reduce(0, +) / Double(dailyCompliance.count)
+        guard let proto = protocols.first(where: { $0.id == id }) else { return 0 }
+        let calendar = Calendar.current
+        let daysSinceStart = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: proto.startDate),
+            to: calendar.startOfDay(for: Date())
+        ).day ?? 0
+        return proto.adherence(entries: entries, days: max(1, daysSinceStart + 1)) ?? 0
     }
 
     func complianceTrend(for range: Int) -> Double {
@@ -1098,6 +1091,15 @@ final class DataStore {
         )
         let result = StackRecommendationEngine.recommendations(context: context)
         _stackRecommendations = (cacheVersion, result)
+        return result
+    }
+
+    /// Smart Planner nudges, cached like the other engines so the
+    /// Protocols tab doesn't re-filter every entry on each render.
+    var smartCycleSuggestions: [SmartCyclePlanner.Suggestion] {
+        if let cached = _smartCycleSuggestions, cached.version == cacheVersion { return cached.value }
+        let result = SmartCyclePlanner.suggestions(protocols: protocols, entries: entries)
+        _smartCycleSuggestions = (cacheVersion, result)
         return result
     }
 
@@ -2803,7 +2805,7 @@ final class DataStore {
             entries: entries,
             protocols: protocols,
             currentStreak: currentStreak,
-            weeklyCompliance: EntryAnalytics.weeklyComplianceFraction(in: entries),
+            weeklyCompliance: EntryAnalytics.weeklyComplianceFraction(in: entries, protocols: protocols),
             totalDosesLogged: EntryAnalytics.totalDosesLogged(in: entries),
             nutrition: nutritionSnapshotForWatch(),
             atlasScore: snap.score,
@@ -3196,7 +3198,11 @@ final class DataStore {
 
         let schedule = proto.schedule(for: peptide.id)
         let calendar = Calendar.current
-        guard schedule.isActive(on: Date(), calendar: calendar) else { return [] }
+        // Wash-out days have nothing due — the calendar, cycle bands and
+        // adherence already agree on that, so Today must not generate them.
+        guard CyclePhaseEngine.isOnCycle(Date(), protocol: proto, calendar: calendar),
+              schedule.isActive(on: Date(), protocolStart: proto.startDate, calendar: calendar)
+        else { return [] }
 
         return schedule.preferredTimes.compactMap { timeString in
             guard let time = timeStringParser.date(from: timeString) else { return nil }

@@ -30,10 +30,23 @@ enum SmartCyclePlanner {
         /// Stack hasn't logged in N days — recommend pausing instead of
         /// silently abandoning.
         case considerPausing(daysIdle: Int)
+        /// The current on-phase ends soon and the wash-out starts on its own.
+        case washoutStarting(daysRemaining: Int)
+
+        /// The heuristic that produced it, without its payload.
+        var heuristic: String {
+            switch self {
+            case .shortenNextCycle: "shorten"
+            case .shiftDoseTime: "shift"
+            case .cycleWrappingUp: "wrapUp"
+            case .offCycleReady: "offCycle"
+            case .considerPausing: "pause"
+            case .washoutStarting: "washout"
+            }
+        }
     }
 
     struct Suggestion: Identifiable, Equatable {
-        let id: UUID
         let protocolID: UUID?
         let kind: Kind
         let title: String
@@ -41,19 +54,23 @@ enum SmartCyclePlanner {
         let confidence: Confidence
 
         init(
-            id: UUID = UUID(),
             protocolID: UUID? = nil,
             kind: Kind,
             title: String,
             rationale: String,
             confidence: Confidence
         ) {
-            self.id = id
             self.protocolID = protocolID
             self.kind = kind
             self.title = title
             self.rationale = rationale
             self.confidence = confidence
+        }
+
+        /// One suggestion per protocol and heuristic, so the id is stable
+        /// across recomputes and ForEach identity doesn't churn.
+        var id: String {
+            "\(protocolID?.uuidString ?? "-")|\(kind.heuristic)"
         }
     }
 
@@ -87,10 +104,14 @@ enum SmartCyclePlanner {
             }
         }
 
-        for proto in protocols where proto.status == .completed {
-            if let nudge = offCycleNudge(for: proto, today: today, calendar: calendar) {
-                out.append(nudge)
-            }
+        // Only the most recently ended protocol, and not when one running
+        // now already uses its peptides — otherwise every finished
+        // protocol keeps a permanent "start a new cycle?" row.
+        let activePeptideIDs = Set(protocols.filter { $0.status == .active }.flatMap { $0.peptides.map(\.id) })
+        if let latest = protocols.filter({ $0.status == .completed }).max(by: { $0.cycleEndDay < $1.cycleEndDay }),
+           !latest.peptides.contains(where: { activePeptideIDs.contains($0.id) }),
+           let nudge = offCycleNudge(for: latest, today: today, calendar: calendar) {
+            out.append(nudge)
         }
 
         return out.sorted { $0.confidence > $1.confidence }
@@ -99,12 +120,30 @@ enum SmartCyclePlanner {
     // MARK: - Heuristics
 
     /// Within 5 days of cycle end → "wrapping up" nudge so the user
-    /// can plan whether to extend, pause, or move on.
+    /// can plan whether to extend, pause, or move on. A wash-out protocol
+    /// doesn't end: its current on-phase hands over to the wash-out on
+    /// its own, so it gets a heads-up about that instead.
     private static func wrappingUpNudge(
         for proto: PeptideProtocol,
         today: Date,
         calendar: Calendar
     ) -> Suggestion? {
+        if proto.washoutWeeks > 0 {
+            let status = CyclePhaseEngine.status(for: proto, at: today)
+            guard case .onCycle = status.phase else { return nil }
+            let remaining = CyclePhaseEngine.daysUntilPhaseEnd(status, from: today, calendar: calendar)
+            guard remaining <= 5 else { return nil }
+            return Suggestion(
+                protocolID: proto.id,
+                kind: .washoutStarting(daysRemaining: remaining),
+                title: remaining <= 1
+                    ? String(localized: "\(proto.name) wash-out begins tomorrow", comment: "Smart planner — a wash-out protocol's last on-cycle day is today.")
+                    : String(localized: "\(proto.name) wash-out begins in \(remaining) days"),
+                rationale: String(localized: "Doses pause automatically during the wash-out and resume when the next cycle starts."),
+                confidence: .medium
+            )
+        }
+
         // Use the protocol's canonical, start-of-day-normalised cycle
         // end so this agrees with `daysRemaining` / CycleCompletionService
         // rather than drifting by the start date's time-of-day.
@@ -123,6 +162,24 @@ enum SmartCyclePlanner {
         )
     }
 
+    /// Start of the run the protocol is dosing in now: the current
+    /// on-phase for a wash-out protocol, else its start. Nil during a
+    /// wash-out or before it starts, when no doses are due.
+    private static func currentRunStart(
+        of proto: PeptideProtocol,
+        today: Date,
+        calendar: Calendar
+    ) -> Date? {
+        switch CyclePhaseEngine.status(for: proto, at: today).phase {
+        case .onCycle(let day, _):
+            return calendar.date(byAdding: .day, value: -(day - 1), to: calendar.startOfDay(for: today))
+        case .completed:
+            return calendar.startOfDay(for: proto.startDate)
+        case .washout, .upcoming:
+            return nil
+        }
+    }
+
     /// No completed entries in the past 7 days for an "active" protocol
     /// → recommend pausing rather than silently abandoning. Gated on
     /// the protocol being at least 7 days old — a brand-new
@@ -134,18 +191,21 @@ enum SmartCyclePlanner {
         today: Date,
         calendar: Calendar
     ) -> Suggestion? {
-        let daysSinceStart = calendar.dateComponents([.day], from: proto.startDate, to: today).day ?? 0
+        // Wash-out weeks have no doses by design; idle time is measured
+        // within the current run so they never count towards it.
+        guard let runStart = currentRunStart(of: proto, today: today, calendar: calendar) else { return nil }
+        let daysSinceStart = calendar.dateComponents([.day], from: runStart, to: today).day ?? 0
         guard daysSinceStart >= 7 else { return nil }
 
         let cutoff = calendar.date(byAdding: .day, value: -7, to: today) ?? today
         let recent = entries.filter { $0.completed && $0.date >= cutoff }
         guard recent.isEmpty else { return nil }
 
-        let lastCompleted = entries.filter(\.completed).map(\.date).max()
+        let lastCompleted = entries.filter { $0.completed && $0.date >= runStart }.map(\.date).max()
         let idleDays: Int = {
             guard let last = lastCompleted else {
-                // No completions ever, but the protocol is ≥7 days old —
-                // measure idle from start date rather than the
+                // No completions in this run, but it's ≥7 days old —
+                // measure idle from its start rather than the
                 // misleading fallback of 30.
                 return daysSinceStart
             }
@@ -172,7 +232,7 @@ enum SmartCyclePlanner {
         let weeks = proto.safeCycleLengthWeeks
         guard weeks >= 4 else { return nil } // too short to split
 
-        let cycleStart = calendar.startOfDay(for: proto.startDate)
+        guard let cycleStart = currentRunStart(of: proto, today: today, calendar: calendar) else { return nil }
         let mid = calendar.date(byAdding: .day, value: (weeks * 7) / 2, to: cycleStart) ?? cycleStart
         let firstHalf = entries.filter { $0.date < mid && $0.date >= cycleStart }
         let secondHalf = entries.filter { $0.date >= mid && $0.date <= today }
@@ -230,11 +290,14 @@ enum SmartCyclePlanner {
         return Suggestion(
             protocolID: proto.id,
             kind: .shiftDoseTime(from: worst.time, to: best.time),
-            title: String(localized: "Shift the \(worst.time) dose"),
-            rationale: String(localized: "You take it \(Int(worst.rate * 100))% of the time vs \(Int(best.rate * 100))% at \(best.time). Moving it closer to a slot you nail might lift adherence."),
+            title: String(localized: "Shift the \(ProtocolSchedule.displayTime(worst.time)) dose"),
+            rationale: String(localized: "You take it \(Int(worst.rate * 100))% of the time vs \(Int(best.rate * 100))% at \(ProtocolSchedule.displayTime(best.time)). Moving it closer to a slot you nail might lift adherence."),
             confidence: best.rate - worst.rate >= 0.40 ? .high : .medium
         )
     }
+
+    /// How long after the rest window a restart is still suggested.
+    private static let offCycleOfferDays = 30
 
     /// Completed protocol's recommended off-cycle window has elapsed
     /// (heuristic: cycleLengthWeeks * 0.5) → suggest restarting or
@@ -249,7 +312,10 @@ enum SmartCyclePlanner {
         let offWindowDays = max(7, weeks * 7 / 2)
         guard let resumeDate = calendar.date(byAdding: .day, value: offWindowDays, to: end) else { return nil }
         let todayStart = calendar.startOfDay(for: today)
-        guard todayStart >= resumeDate else { return nil }
+        guard todayStart >= resumeDate,
+              let staleDate = calendar.date(byAdding: .day, value: offCycleOfferDays, to: resumeDate),
+              todayStart < staleDate
+        else { return nil }
         let elapsed = calendar.dateComponents([.day], from: end, to: todayStart).day ?? 0
 
         return Suggestion(

@@ -8,7 +8,7 @@ struct CycleProgressBar: View {
             GlassProgressBar(progress: protocol_.cycleProgress)
 
             HStack {
-                Text(protocol_.startDate.formatted(.dateTime.month(.abbreviated).day()))
+                Text(protocol_.currentCycleStartDay.formatted(.dateTime.month(.abbreviated).day()))
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
 
@@ -35,7 +35,7 @@ struct CycleProgressBar: View {
     }
 
     private var accessibilityValue: String {
-        let start = protocol_.startDate.formatted(.dateTime.month(.wide).day())
+        let start = protocol_.currentCycleStartDay.formatted(.dateTime.month(.wide).day())
         let end = protocol_.endDate.formatted(.dateTime.month(.wide).day())
         return String(localized: "\(Int(protocol_.cycleProgress * 100)) percent, \(start) to \(end)")
     }

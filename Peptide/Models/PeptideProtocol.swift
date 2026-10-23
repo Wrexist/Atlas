@@ -79,6 +79,26 @@ struct ProtocolSchedule: Hashable, Codable, Sendable {
         return date.formatted(date: .omitted, time: .shortened)
     }
 
+    /// Dose times with duplicates removed and sorted through the day.
+    /// Two identical times would generate two entries sharing one
+    /// deterministic id. Unparseable keys keep their order at the end.
+    static func normalizedTimes(_ times: [String], calendar: Calendar = .current) -> [String] {
+        var seenMinutes = Set<Int>()
+        var parsed: [(minute: Int, key: String)] = []
+        var unparsed: [String] = []
+        for key in times {
+            guard let date = storageTimeParser.date(from: key) else {
+                if !unparsed.contains(key) { unparsed.append(key) }
+                continue
+            }
+            let minute = calendar.component(.hour, from: date) * 60 + calendar.component(.minute, from: date)
+            if seenMinutes.insert(minute).inserted {
+                parsed.append((minute, key))
+            }
+        }
+        return parsed.sorted { $0.minute < $1.minute }.map(\.key) + unparsed
+    }
+
     private static let storageTimeParser: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "h:mm a"
@@ -214,6 +234,32 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
         self.createdAt = createdAt
     }
 
+    /// A copy with its dosing content replaced. Identity, attribution,
+    /// cycle and status carry over, so a rebuild can't silently reset
+    /// the template link or creation date.
+    func with(
+        peptides: [Peptide]? = nil,
+        schedule: ProtocolSchedule? = nil,
+        peptideSchedules: [UUID: ProtocolSchedule]? = nil
+    ) -> PeptideProtocol {
+        PeptideProtocol(
+            id: id,
+            name: name,
+            peptides: peptides ?? self.peptides,
+            schedule: schedule ?? self.schedule,
+            peptideSchedules: peptideSchedules ?? self.peptideSchedules,
+            cycleLengthWeeks: cycleLengthWeeks,
+            washoutWeeks: washoutWeeks,
+            startDate: startDate,
+            status: status,
+            notes: notes,
+            authorName: authorName,
+            authorHandle: authorHandle,
+            forkedFromStackId: forkedFromStackId,
+            createdAt: createdAt
+        )
+    }
+
     /// Returns the override schedule for a peptide, falling back to the protocol default.
     func schedule(for peptideId: UUID) -> ProtocolSchedule {
         peptideSchedules[peptideId] ?? schedule
@@ -236,8 +282,21 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> Double? {
+        let counts = adherenceCounts(entries: entries, days: days, now: now, calendar: calendar)
+        guard counts.due > 0 else { return nil }
+        return Double(counts.completed) / Double(counts.due)
+    }
+
+    /// The due and completed dose counts behind `adherence`, so callers
+    /// can pool several protocols into one ratio.
+    func adherenceCounts(
+        entries: [ProtocolEntry],
+        days: Int,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> (due: Int, completed: Int) {
         let today = calendar.startOfDay(for: now)
-        guard let windowStart = calendar.date(byAdding: .day, value: -(days - 1), to: today) else { return nil }
+        guard let windowStart = calendar.date(byAdding: .day, value: -(days - 1), to: today) else { return (0, 0) }
         let firstDay = max(windowStart, calendar.startOfDay(for: startDate))
         let windowEntries = entries.filter { $0.protocolId == id && $0.date >= firstDay }
 
@@ -260,9 +319,7 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
         }
         due += todayEntries.count
         completed += todayEntries.filter(\.completed).count
-
-        guard due > 0 else { return nil }
-        return Double(completed) / Double(due)
+        return (due, completed)
     }
 
     /// Doses the schedule puts on `day`, one per preferred time per

@@ -50,7 +50,15 @@ struct WashoutPicker: View {
     }
 
     private var stepperRow: some View {
-        HStack {
+        StepperRow(
+            stepper: LiquidGlassStepper(
+                label: "Wash-out length",
+                value: $washoutWeeks,
+                range: 1...12,
+                formatter: { String(localized: "\($0) wk") },
+                width: 64
+            )
+        ) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Wash-out length")
                     .font(AppFont.subheadline)
@@ -60,14 +68,6 @@ struct WashoutPicker: View {
                     .foregroundStyle(AppColor.textSecondary)
                     .monospacedDigit()
             }
-            Spacer()
-            LiquidGlassStepper(
-                label: "Wash-out length",
-                value: $washoutWeeks,
-                range: 1...12,
-                formatter: { "\($0) wk" },
-                width: 64
-            )
         }
     }
 

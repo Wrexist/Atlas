@@ -63,10 +63,25 @@ final class CycleMilestoneService {
     /// Stops + restarts of the same protocol (same UUID but a new
     /// `startDate`) re-fire the prompt because the suppression key
     /// includes the cycle's start date.
+    ///
+    /// Earlier milestones are marked too: once the 30-day card has been
+    /// offered, a week-1 prompt would only be stale.
     func markShown(_ milestone: Milestone, for proto: PeptideProtocol) {
         var current = shownIdentifiers
-        current.insert(key(milestone, proto: proto))
+        for earlier in Milestone.allCases.prefix(through: Milestone.allCases.firstIndex(of: milestone) ?? 0) {
+            current.insert(key(earlier, proto: proto))
+        }
         defaults.set(Array(current), forKey: Self.storageKey)
+    }
+
+    /// Drops suppression keys for protocols that no longer exist, so the
+    /// list doesn't grow forever. Skipped for an empty list, which is
+    /// what a store that hasn't loaded yet looks like.
+    func pruneSuppression(keeping protocols: [PeptideProtocol]) {
+        guard !protocols.isEmpty else { return }
+        let ids = Set(protocols.map(\.id.uuidString))
+        let kept = shownIdentifiers.filter { ids.contains(String($0.prefix { $0 != ":" })) }
+        defaults.set(Array(kept), forKey: Self.storageKey)
     }
 
     /// Test-only reset hook so the suppression list doesn't carry across
@@ -77,16 +92,27 @@ final class CycleMilestoneService {
 
     // MARK: - Predicates
 
+    /// How long after a milestone its prompt stays on offer. Suppression
+    /// is per device while protocols sync, so without a window a new
+    /// device (or a reinstall) would offer every historical milestone.
+    private static let promptWindowDays = 7
+    /// A cycle that ended longer ago than this is history, not news.
+    private static let completedWindowDays = 14
+
     private func isDue(_ milestone: Milestone, for proto: PeptideProtocol) -> Bool {
+        let days = daysSince(proto.startDate)
         switch milestone {
-        case .day7:      return daysSinceStart(of: proto) >= 7
-        case .day30:     return daysSinceStart(of: proto) >= 30
-        case .completed: return proto.status == .completed
+        case .day7:
+            return proto.status == .active && (7..<(7 + Self.promptWindowDays)).contains(days)
+        case .day30:
+            return proto.status == .active && (30..<(30 + Self.promptWindowDays)).contains(days)
+        case .completed:
+            return proto.status == .completed && daysSince(proto.cycleEndDay) < Self.completedWindowDays
         }
     }
 
-    private func daysSinceStart(of proto: PeptideProtocol) -> Int {
-        let start = calendar.startOfDay(for: proto.startDate)
+    private func daysSince(_ date: Date) -> Int {
+        let start = calendar.startOfDay(for: date)
         let today = calendar.startOfDay(for: Date())
         return calendar.dateComponents([.day], from: start, to: today).day ?? 0
     }

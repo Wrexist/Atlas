@@ -42,14 +42,19 @@ struct DoseLogRow: View {
         .accessibilityLabel(accessibilityLabel)
     }
 
-    /// When the dose was actually taken, falling back to its slot.
+    /// When the dose was actually taken, falling back to its slot. The
+    /// Recent Logs list spans two weeks, so anything before today carries
+    /// its date too.
     private var time: String {
-        (entry.actualTime ?? entry.date).formatted(.dateTime.hour().minute())
+        let moment = entry.actualTime ?? entry.date
+        return Calendar.current.isDateInToday(moment)
+            ? moment.formatted(.dateTime.hour().minute())
+            : moment.formatted(.dateTime.month(.abbreviated).day().hour().minute())
     }
 
     private var accessibilityLabel: String {
-        let status = entry.completed ? "completed" : "pending"
-        let dose = entry.dose.isEmpty ? time : "\(entry.dose) at \(time)"
+        let status = entry.completed ? String(localized: "Completed") : String(localized: "Pending")
+        let dose = entry.dose.isEmpty ? time : String(localized: "\(entry.dose) at \(time)")
         return "\(entry.peptide.name), \(dose), \(status)"
     }
 }

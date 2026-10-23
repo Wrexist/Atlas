@@ -48,12 +48,39 @@ final class CycleMilestoneServiceTests: XCTestCase {
         XCTAssertEqual(result?.proto.id, proto.id)
     }
 
-    /// Day-30 wins over day-7 once both are eligible — the spec walks
-    /// the milestone enum in declared order, so day-7 still surfaces
-    /// first unless it has been marked shown.
-    func test_pendingMilestone_bothDay7AndDay30Eligible_surfacesDay7First() {
+    /// Day 30 is past day 7's window, so only the 30-day card is offered.
+    func test_pendingMilestone_day30_skipsStaleDay7() {
         let proto = makeProtocol(daysAgo: 30)
-        XCTAssertEqual(service.pendingMilestone(in: [proto])?.milestone, .day7)
+        XCTAssertEqual(service.pendingMilestone(in: [proto])?.milestone, .day30)
+    }
+
+    func test_pendingMilestone_completed90DayOldProtocol_offersNothing() {
+        // An 8-week cycle that started 90 days ago ended 34 days ago.
+        let proto = makeProtocol(daysAgo: 90, status: .completed)
+        XCTAssertNil(service.pendingMilestone(in: [proto]))
+    }
+
+    func test_pendingMilestone_activeProtocolPastDay30Window_offersNothing() {
+        XCTAssertNil(service.pendingMilestone(in: [makeProtocol(daysAgo: 45)]))
+    }
+
+    func test_markShown_day30_alsoSuppressesDay7() {
+        let proto = makeProtocol(daysAgo: 10)
+        service.markShown(.day30, for: proto)
+        XCTAssertNil(service.pendingMilestone(in: [proto]))
+    }
+
+    func test_pruneSuppression_removedProtocol_forgetsItsKeys() {
+        let kept = makeProtocol(daysAgo: 7)
+        let removed = makeProtocol(daysAgo: 7)
+        service.markShown(.day7, for: kept)
+        service.markShown(.day7, for: removed)
+
+        service.pruneSuppression(keeping: [kept])
+
+        let stored = defaults.stringArray(forKey: "cycle.milestone.shown") ?? []
+        XCTAssertTrue(stored.allSatisfy { $0.hasPrefix(kept.id.uuidString) })
+        XCTAssertFalse(stored.isEmpty)
     }
 
     func test_pendingMilestone_day7AlreadyShown_skipsToDay30() {
@@ -122,7 +149,7 @@ final class CycleMilestoneServiceTests: XCTestCase {
     /// startDate wins so the user sees their longest-running cycle's
     /// milestone first.
     func test_pendingMilestone_picksEarliestStartFirst() {
-        let earlier = makeProtocol(daysAgo: 14)
+        let earlier = makeProtocol(daysAgo: 13)
         let later = makeProtocol(daysAgo: 7)
         let result = service.pendingMilestone(in: [later, earlier])
         XCTAssertEqual(result?.proto.id, earlier.id)

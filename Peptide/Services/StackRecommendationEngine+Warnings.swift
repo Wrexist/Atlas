@@ -24,7 +24,7 @@ extension StackRecommendationEngine {
         guard currentPeptides.count >= 2 else {
             // Skip to per-peptide warnings below
             return perPeptideWarnings(for: currentPeptides, activeProtocols: activeProtocols)
-                .sorted { $0.severity > $1.severity }
+                .sorted(by: Warning.displayOrder)
         }
 
         // 1. Compounding side effects
@@ -244,7 +244,7 @@ extension StackRecommendationEngine {
         // 9-12. Per-peptide warnings (also fire for single-peptide stacks)
         warnings.append(contentsOf: perPeptideWarnings(for: currentPeptides, activeProtocols: activeProtocols))
 
-        return warnings.sorted { $0.severity > $1.severity }
+        return warnings.sorted(by: Warning.displayOrder)
     }
 
     /// Warnings that apply per-peptide (cycle length, desensitization, hepatotoxicity, timing).
@@ -254,16 +254,18 @@ extension StackRecommendationEngine {
         activeProtocols: [PeptideProtocol]
     ) -> [Warning] {
         var warnings: [Warning] = []
-        let calendar = Calendar.current
+        let selected = Set(currentPeptides.map(\.abbreviation))
 
-        // 9. Cycle length warning
+        // 9. Cycle length warning — only for the peptides being checked, and
+        // measured within the current on-phase so a planned wash-out (or a
+        // later cycle) doesn't read as an overrun.
+        var overrunWarned: Set<String> = []
         for proto in activeProtocols {
-            for peptide in proto.peptides {
-                guard let cycle = PeptideTimingData.cycleProtocols[peptide.abbreviation] else { continue }
-                let weeksElapsed = calendar.dateComponents(
-                    [.weekOfYear], from: proto.startDate, to: Date()
-                ).weekOfYear ?? 0
-                guard weeksElapsed > cycle.onWeeks else { continue }
+            guard let weeksElapsed = weeksIntoCurrentRun(of: proto) else { continue }
+            for peptide in proto.peptides where selected.contains(peptide.abbreviation) {
+                guard let cycle = PeptideTimingData.cycleProtocols[peptide.abbreviation],
+                      weeksElapsed > cycle.onWeeks,
+                      overrunWarned.insert(peptide.abbreviation).inserted else { continue }
                 let overBy = weeksElapsed - cycle.onWeeks
                 let transitionText = cycle.transitionSuggestions.isEmpty
                     ? ""
@@ -280,17 +282,16 @@ extension StackRecommendationEngine {
             }
         }
 
-        // 10. Desensitization risk
+        // 10. Desensitization risk — nothing is dosed during a wash-out.
+        var desensitizationWarned: Set<String> = []
         for peptide in currentPeptides {
-            guard let info = PeptideTimingData.desensitizationRisks[peptide.abbreviation] else { continue }
-            let matchingProtocol = activeProtocols.first { proto in
-                proto.peptides.contains(where: { $0.abbreviation == peptide.abbreviation })
-            }
-            guard let proto = matchingProtocol else { continue }
-            let weeks = calendar.dateComponents(
-                [.weekOfYear], from: proto.startDate, to: Date()
-            ).weekOfYear ?? 0
-            guard weeks >= info.riskOnsetWeeks else { continue }
+            guard let info = PeptideTimingData.desensitizationRisks[peptide.abbreviation],
+                  desensitizationWarned.insert(peptide.abbreviation).inserted else { continue }
+            let weeks = activeProtocols
+                .filter { proto in proto.peptides.contains { $0.abbreviation == peptide.abbreviation } }
+                .compactMap { weeksIntoCurrentRun(of: $0) }
+                .max()
+            guard let weeks, weeks >= info.riskOnsetWeeks else { continue }
             let offWeeks = PeptideTimingData.cycleProtocols[peptide.abbreviation]?.offWeeks ?? 4
             warnings.append(Warning(
                 severity: .caution,

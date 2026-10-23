@@ -78,6 +78,7 @@ struct SmartCyclePlannerCard: View {
         case .cycleWrappingUp:   "flag.checkered"
         case .offCycleReady:     "arrow.clockwise.circle.fill"
         case .considerPausing:   "pause.circle.fill"
+        case .washoutStarting:   "moon.stars.fill"
         }
     }
 }

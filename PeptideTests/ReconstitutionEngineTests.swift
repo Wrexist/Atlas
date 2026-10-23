@@ -153,6 +153,13 @@ final class ReconstitutionEngineTests: XCTestCase {
         XCTAssertEqual(ReconstitutionEngine.amountsPerVial(amountMcg: 300, vialMg: 5), 16)
     }
 
+    func test_amountsPerVial_quotientJustBelowWhole_countsTheWholeAmount() {
+        XCTAssertEqual(ReconstitutionEngine.amountsPerVial(amountMcg: 140, vialMg: 7), 50)
+        XCTAssertEqual(ReconstitutionEngine.amountsPerVial(amountMcg: 70, vialMg: 3.5), 50)
+        XCTAssertEqual(ReconstitutionEngine.amountsPerVial(amountMcg: 170, vialMg: 8.5), 50)
+        XCTAssertEqual(ReconstitutionEngine.amountsPerVial(amountMcg: 140, vialMg: 10.5), 75)
+    }
+
     func test_amountsPerVial_amountLargerThanVial_isZero() {
         XCTAssertEqual(ReconstitutionEngine.amountsPerVial(amountMcg: 10_000, vialMg: 5), 0)
     }

@@ -111,10 +111,15 @@ enum StackAdjustmentEngine {
         }
     }
 
-    /// For each removed peptide, surface a ranked set of homes:
-    ///   1. existing active protocols that won't trigger the same compounding pattern,
-    ///   2. a fresh stack as a safety net,
-    ///   3. always offer "discard" so users can decline.
+    /// For each removed peptide, surface a ranked set of homes: existing
+    /// active protocols, a fresh stack as a safety net, and always
+    /// "discard" so users can decline.
+    ///
+    /// Compounding side-effect warnings are computed over every active
+    /// protocol's peptides together, so moving a peptide to another active
+    /// protocol — or a new one — leaves the warning exactly as it was.
+    /// For those (`sideEffectKey != nil`) only Discard is offered rather
+    /// than a move that promises a reduction it can't deliver.
     static func relocations(
         for removedPeptides: [Peptide],
         sourceProtocolId: UUID,
@@ -122,55 +127,23 @@ enum StackAdjustmentEngine {
         in protocols: [PeptideProtocol]
     ) -> [Relocation] {
         guard !removedPeptides.isEmpty else { return [] }
-        let key = sideEffectKey?.lowercased()
 
         return removedPeptides.map { peptide in
+            guard sideEffectKey == nil else {
+                return Relocation(peptide: peptide, options: [.discard])
+            }
             var options: [RelocationOption] = []
-
             for proto in protocols where proto.id != sourceProtocolId && proto.status == .active {
                 guard !proto.peptides.contains(where: { $0.id == peptide.id }) else { continue }
-                guard let reason = fitReason(for: peptide, joining: proto, sideEffectKey: key) else { continue }
-                options.append(.moveTo(protocolId: proto.id, name: proto.name, reason: reason))
+                options.append(.moveTo(
+                    protocolId: proto.id,
+                    name: proto.name,
+                    reason: String(localized: "Open spot in \(proto.name)")
+                ))
             }
-
-            let newStackReason: String
-            if let key, peptideHasEffect(peptide, key: key) {
-                newStackReason = String(localized: "Isolate \(peptide.abbreviation) from the \"\(key)\" cluster")
-            } else {
-                newStackReason = String(localized: "Solo cycle for \(peptide.abbreviation)")
-            }
-            options.append(.createStack(reason: newStackReason))
+            options.append(.createStack(reason: String(localized: "Solo cycle for \(peptide.abbreviation)")))
             options.append(.discard)
-
             return Relocation(peptide: peptide, options: options)
         }
-    }
-
-    // MARK: - Fit checks
-
-    /// Returns a reason string when `peptide` would land cleanly in `proto`, or nil if joining would
-    /// recreate the same compounding cluster the user is trying to escape.
-    private static func fitReason(
-        for peptide: Peptide,
-        joining proto: PeptideProtocol,
-        sideEffectKey key: String?
-    ) -> String? {
-        guard let key else {
-            return String(localized: "Open spot in \(proto.name)")
-        }
-
-        let peptideMatches = peptideHasEffect(peptide, key: key)
-        guard peptideMatches else {
-            return String(localized: "No \"\(key)\" overlap in \(proto.name)")
-        }
-
-        let existingMatches = proto.peptides.filter { peptideHasEffect($0, key: key) }.count
-        // Compounding warnings fire at 3+ shared. Reject moves that would push the destination over.
-        guard existingMatches < 2 else { return nil }
-        return String(localized: "Lower \"\(key)\" overlap in \(proto.name)")
-    }
-
-    private static func peptideHasEffect(_ peptide: Peptide, key: String) -> Bool {
-        peptide.sideEffects.contains { $0.lowercased().contains(key) }
     }
 }

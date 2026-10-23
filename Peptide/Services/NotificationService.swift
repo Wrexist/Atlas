@@ -223,6 +223,16 @@ final class NotificationService {
                 }
             }
 
+            if proto.washoutWeeks > 0 {
+                appendCycleBoundedWeeklyRequests(
+                    proto,
+                    grouped: grouped,
+                    invalidTimes: &invalidTimesSet,
+                    into: &pendingRequests
+                )
+                continue
+            }
+
             for (slot, peptides) in grouped {
                 guard let (hour, minute) = parseTime(slot.time) else {
                     if invalidTimesSet.insert(slot.time).inserted {
@@ -599,6 +609,10 @@ final class NotificationService {
     /// topped up as occurrences fire.
     private static let intervalLookahead: Int = 12
 
+    /// Days of dated reminders pre-scheduled for a weekly protocol with a
+    /// wash-out. Same top-up-on-activation model as `intervalLookahead`.
+    private static let cycleBoundedLookaheadDays: Int = 14
+
     private func makeContent(
         proto: PeptideProtocol,
         peptides: [Peptide],
@@ -672,7 +686,8 @@ final class NotificationService {
             guard let firstActive = calendar.date(byAdding: .day, value: offsetToNextActive, to: today) else { continue }
 
             for occurrence in 0..<Self.intervalLookahead {
-                guard let day = calendar.date(byAdding: .day, value: occurrence * n, to: firstActive) else { continue }
+                guard let day = calendar.date(byAdding: .day, value: occurrence * n, to: firstActive),
+                      CyclePhaseEngine.isOnCycle(day, protocol: proto, calendar: calendar) else { continue }
                 for timeString in schedule.preferredTimes {
                     guard let (hour, minute) = parseTime(timeString) else {
                         if invalidTimes.insert(timeString).inserted {
@@ -707,6 +722,51 @@ final class NotificationService {
                 protocolID: proto.id,
                 nextFireDate: fireDate
             ))
+        }
+    }
+
+    /// Weekly slots for a protocol with a wash-out. A repeating weekly
+    /// trigger would keep firing through the off weeks, so these become
+    /// dated one-shots on the on-cycle days inside the lookahead window.
+    private func appendCycleBoundedWeeklyRequests(
+        _ proto: PeptideProtocol,
+        grouped: [TimeslotKey: [Peptide]],
+        invalidTimes: inout Set<String>,
+        into requests: inout [PendingRequest]
+    ) {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+
+        for offset in 0..<Self.cycleBoundedLookaheadDays {
+            guard let day = calendar.date(byAdding: .day, value: offset, to: today),
+                  CyclePhaseEngine.isOnCycle(day, protocol: proto, calendar: calendar) else { continue }
+            let weekday = calendar.component(.weekday, from: day)
+            let isoWeekday = weekday == 1 ? 7 : weekday - 1
+
+            for (slot, peptides) in grouped where slot.day == isoWeekday {
+                guard let (hour, minute) = parseTime(slot.time) else {
+                    if invalidTimes.insert(slot.time).inserted {
+                        AppLog.notifications.error("Skipping invalid time \"\(slot.time, privacy: .public)\" for protocol \(proto.id.uuidString, privacy: .public)")
+                    }
+                    continue
+                }
+                var components = calendar.dateComponents([.year, .month, .day], from: day)
+                components.hour = hour
+                components.minute = minute
+                guard let fireDate = calendar.date(from: components), fireDate > Date() else { continue }
+
+                let content = makeContent(proto: proto, peptides: peptides, hour: hour, minute: minute)
+                let trigger = UNCalendarNotificationTrigger(
+                    dateMatching: calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate),
+                    repeats: false
+                )
+                let id = "\(proto.id)-cyc-\(Self.isoDayFormatter.string(from: fireDate))"
+                requests.append(PendingRequest(
+                    request: UNNotificationRequest(identifier: id, content: content, trigger: trigger),
+                    protocolID: proto.id,
+                    nextFireDate: fireDate
+                ))
+            }
         }
     }
 

@@ -11,6 +11,7 @@ struct CommunityStackDetailView: View {
     @State private var storeService = StoreService.shared
     @State private var didFork = false
     @State private var showingPaywall = false
+    @State private var isConfirmingDuplicate = false
     /// Resolved once, up front: filling these in a `.task` left the first
     /// frame claiming the stack's peptides were missing (warning copy,
     /// disabled CTA) until the lookup landed.
@@ -258,6 +259,16 @@ struct CommunityStackDetailView: View {
             PaywallView(source: .communityStack)
                 .liquidGlassPresentation()
         }
+        .confirmationDialog(
+            "Already in your protocols",
+            isPresented: $isConfirmingDuplicate,
+            titleVisibility: .visible
+        ) {
+            Button("Add another copy") { addFork() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("You're already running a protocol from this template.")
+        }
     }
 
     /// `value` is a compact abbreviation ("8w"), so VoiceOver reads
@@ -292,6 +303,14 @@ struct CommunityStackDetailView: View {
             showingPaywall = true
             return
         }
+        if CommunityStackService.shared.existingFork(of: stack, in: dataStore.protocols) != nil {
+            isConfirmingDuplicate = true
+            return
+        }
+        addFork()
+    }
+
+    private func addFork() {
         let proto = CommunityStackService.shared.forkToProtocol(stack)
         dataStore.addProtocol(proto)
         didFork = true

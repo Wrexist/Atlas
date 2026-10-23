@@ -19,6 +19,33 @@ final class ProtocolScheduleCadenceTests: XCTestCase {
         return calendar.date(from: c)!
     }
 
+    // MARK: - normalizedTimes
+
+    func test_normalizedTimes_twoIdenticalTimes_keepsOneSlot() {
+        XCTAssertEqual(ProtocolSchedule.normalizedTimes(["8:00 AM", "8:00 AM"]), ["8:00 AM"])
+    }
+
+    func test_normalizedTimes_outOfOrder_sortsThroughTheDay() {
+        XCTAssertEqual(
+            ProtocolSchedule.normalizedTimes(["9:00 PM", "8:00 AM", "1:00 PM"]),
+            ["8:00 AM", "1:00 PM", "9:00 PM"]
+        )
+    }
+
+    func test_normalizedTimes_unparseableKey_isKeptAtTheEnd() {
+        XCTAssertEqual(
+            ProtocolSchedule.normalizedTimes(["Around lunch", "6:00 PM"]),
+            ["6:00 PM", "Around lunch"]
+        )
+    }
+
+    func test_repeatsEarlierSlot_flagsOnlyTheLaterDuplicate() {
+        let times = ["8:00 AM", "1:00 PM", "8:00 AM"]
+        XCTAssertFalse(ScheduleEditor.repeatsEarlierSlot(0, in: times))
+        XCTAssertFalse(ScheduleEditor.repeatsEarlierSlot(1, in: times))
+        XCTAssertTrue(ScheduleEditor.repeatsEarlierSlot(2, in: times))
+    }
+
     // MARK: - resolvedDose
 
     func test_resolvedDose_noCustomDose_isEmptyNotResearchRange() {

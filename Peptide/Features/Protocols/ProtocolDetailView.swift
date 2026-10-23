@@ -10,6 +10,8 @@ struct ProtocolDetailView: View {
     @State private var showShareCard = false
     @State private var showPaywall = false
     @State private var schedulingPeptide: Peptide?
+    @State private var editingEntry: ProtocolEntry?
+    @State private var pendingUnlog: ProtocolEntry?
 
     private var liveProtocol: PeptideProtocol {
         dataStore.protocols.first { $0.id == protocol_.id } ?? protocol_
@@ -26,6 +28,49 @@ struct ProtocolDetailView: View {
         let entries = dataStore.entriesFor(protocolId: protocol_.id, days: 13)
         guard let ratio = liveProtocol.adherence(entries: entries, days: 14) else { return nil }
         return Int((ratio * 100).rounded())
+    }
+
+    /// Phase status while an active protocol sits in its wash-out.
+    private var activeWashout: CyclePhaseEngine.Status? {
+        guard liveProtocol.status == .active, liveProtocol.washoutWeeks > 0 else { return nil }
+        let status = CyclePhaseEngine.status(for: liveProtocol)
+        guard case .washout = status.phase else { return nil }
+        return status
+    }
+
+    /// Week and days-left only mean something during an active on-cycle;
+    /// a wash-out counts down to the next cycle, and a paused or completed
+    /// protocol shows what was logged instead.
+    private var statsRow: some View {
+        HStack(spacing: Spacing.lg) {
+            if let washout = activeWashout {
+                MiniStat(value: CyclePhaseEngine.labels(for: washout).title, label: String(localized: "Current"))
+                MiniStat(
+                    value: "\(CyclePhaseEngine.daysUntilPhaseEnd(washout))",
+                    label: String(localized: "To Next Cycle")
+                )
+            } else if liveProtocol.status == .active {
+                // Once a user rolls into their second cycle the bare
+                // "Week 2" loses the cycle context; prefix with "C2 ·"
+                // so they read both (audit Library P2.14).
+                let weekLabel: String = liveProtocol.cycleNumber > 1
+                    ? String(localized: "C\(liveProtocol.cycleNumber) · W\(liveProtocol.weekNumber)", comment: "Protocol detail — abbreviation for 'Cycle N · Week M' when the user is on their second or later cycle")
+                    : String(localized: "Week \(liveProtocol.weekNumber)", comment: "Protocol detail — first-cycle week label")
+                MiniStat(value: weekLabel, label: String(localized: "Current"))
+                MiniStat(value: "\(liveProtocol.daysRemaining)", label: String(localized: "Days Left"))
+            } else {
+                MiniStat(value: "\(dosesLogged)", label: String(localized: "Doses Logged"))
+            }
+            if let adherencePercent {
+                MiniStat(value: "\(adherencePercent)%", label: String(localized: "Adherence"))
+            } else {
+                MiniStat(value: "\(liveProtocol.peptides.count)", label: String(localized: "Peptides"))
+            }
+        }
+    }
+
+    private var dosesLogged: Int {
+        dataStore.entries.filter { $0.protocolId == protocol_.id && $0.completed }.count
     }
 
     private var customScheduleCount: Int {
@@ -54,7 +99,9 @@ struct ProtocolDetailView: View {
                         }
 
                         if liveProtocol.status == .active {
-                            CycleProgressBar(protocol_: liveProtocol)
+                            if activeWashout == nil {
+                                CycleProgressBar(protocol_: liveProtocol)
+                            }
 
                             // Surface the cycle-phase card only
                             // when the protocol uses wash-out
@@ -66,23 +113,7 @@ struct ProtocolDetailView: View {
                             }
                         }
 
-                        // Stats row. Once a user rolls into their
-                        // second cycle (8-on-4-off, repeated), the
-                        // bare "Week 2" loses the cycle context;
-                        // prefix with "C2 ·" so they read both
-                        // (audit Library P2.14).
-                        HStack(spacing: Spacing.lg) {
-                            let weekLabel: String = liveProtocol.cycleNumber > 1
-                                ? String(localized: "C\(liveProtocol.cycleNumber) · W\(liveProtocol.weekNumber)", comment: "Protocol detail — abbreviation for 'Cycle N · Week M' when the user is on their second or later cycle")
-                                : String(localized: "Week \(liveProtocol.weekNumber)", comment: "Protocol detail — first-cycle week label")
-                            MiniStat(value: weekLabel, label: String(localized: "Current"))
-                            MiniStat(value: "\(liveProtocol.daysRemaining)", label: String(localized: "Days Left"))
-                            if let adherencePercent {
-                                MiniStat(value: "\(adherencePercent)%", label: String(localized: "Adherence"))
-                            } else {
-                                MiniStat(value: "\(liveProtocol.peptides.count)", label: String(localized: "Peptides"))
-                            }
-                        }
+                        statsRow
                     }
                 }
                 .sectionAppear(index: 0)
@@ -155,10 +186,17 @@ struct ProtocolDetailView: View {
 
                         Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
 
-                        scheduleDetailRow(
-                            label: String(localized: "Cycle"),
-                            value: "\(formattedDate(liveProtocol.currentCycleStartDay)) – \(formattedDate(liveProtocol.endDate))"
-                        )
+                        if let washout = activeWashout {
+                            scheduleDetailRow(
+                                label: String(localized: "Next Cycle"),
+                                value: formattedDate(washout.phaseEndDate)
+                            )
+                        } else {
+                            scheduleDetailRow(
+                                label: String(localized: "Cycle"),
+                                value: "\(formattedDate(liveProtocol.currentCycleStartDay)) – \(formattedDate(liveProtocol.endDate))"
+                            )
+                        }
                     }
                 }
                 .sectionAppear(index: 3)
@@ -218,18 +256,7 @@ struct ProtocolDetailView: View {
                             )
                         } else {
                             ForEach(Array(recentEntries.enumerated()), id: \.element.id) { index, entry in
-                                Button {
-                                    AppAnimation.with(AppAnimation.springSnappy) {
-                                        if entry.completed {
-                                            dataStore.unlogDose(entryId: entry.id)
-                                        } else {
-                                            dataStore.markEntryComplete(entry.id, at: Date())
-                                        }
-                                    }
-                                } label: {
-                                    DoseLogRow(entry: entry)
-                                }
-                                .buttonStyle(.plain)
+                                recentLogRow(entry)
 
                                 if index < recentEntries.count - 1 {
                                     Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
@@ -299,6 +326,37 @@ struct ProtocolDetailView: View {
             PaywallView(source: .protocolLimit)
                 .liquidGlassPresentation()
         }
+        .sheet(item: $editingEntry) { entry in
+            DoseLoggingSheet(entry: entry) { actualDose, actualTime, site, notes in
+                dataStore.logDose(
+                    entryId: entry.id,
+                    actualDose: actualDose,
+                    actualTime: actualTime,
+                    injectionSite: site,
+                    notes: notes
+                )
+            }
+            .liquidGlassPresentation()
+        }
+        .confirmationDialog(
+            String(localized: "Remove the \(pendingUnlog?.peptide.abbreviation ?? "") log?"),
+            isPresented: Binding(
+                get: { pendingUnlog != nil },
+                set: { if !$0 { pendingUnlog = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: pendingUnlog
+        ) { entry in
+            Button("Remove log", role: .destructive) {
+                AppAnimation.with(AppAnimation.springSnappy) {
+                    dataStore.unlogDose(entryId: entry.id)
+                }
+                pendingUnlog = nil
+            }
+            Button("Cancel", role: .cancel) { pendingUnlog = nil }
+        } message: { _ in
+            Text("The dose returns to its scheduled state. You can re-log it later.")
+        }
         .sheet(item: $schedulingPeptide) { peptide in
             PeptideScheduleSheet(
                 peptide: peptide,
@@ -312,6 +370,37 @@ struct ProtocolDetailView: View {
                 )
             }
             .liquidGlassPresentation()
+        }
+    }
+
+    /// A pending dose logs in one tap. A logged one opens for editing, and
+    /// removing it — which clears its notes, site and amount — sits behind
+    /// a confirmation, as on the calendar's day panel.
+    private func recentLogRow(_ entry: ProtocolEntry) -> some View {
+        Button {
+            if entry.completed {
+                editingEntry = entry
+            } else {
+                AppAnimation.with(AppAnimation.springSnappy) {
+                    dataStore.markEntryComplete(entry.id, at: Date())
+                }
+            }
+        } label: {
+            DoseLogRow(entry: entry)
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint(entry.completed ? Text("Edits this log.") : Text("Logs this dose as taken."))
+        .contextMenu {
+            if entry.completed {
+                Button("Remove log", systemImage: "arrow.uturn.backward", role: .destructive) {
+                    pendingUnlog = entry
+                }
+            }
+        }
+        .accessibilityActions {
+            if entry.completed {
+                Button("Remove log") { pendingUnlog = entry }
+            }
         }
     }
 

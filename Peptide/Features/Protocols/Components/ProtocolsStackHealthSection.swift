@@ -136,7 +136,11 @@ struct ProtocolsStackHealthSection: View {
             case .discard:
                 continue
             case .moveTo(let protocolId, _, _):
-                dataStore.addPeptide(move.peptide, toProtocolId: protocolId)
+                dataStore.addPeptide(
+                    move.peptide,
+                    toProtocolId: protocolId,
+                    schedule: source.schedule(for: move.peptide.id)
+                )
             case .createStack:
                 if StoreService.shared.requiresPro(activeProtocolCount: dataStore.activeProtocols.count) {
                     deferredPaywall = true
@@ -146,8 +150,9 @@ struct ProtocolsStackHealthSection: View {
                     id: UUID(),
                     name: String(localized: "\(move.peptide.abbreviation) Solo"),
                     peptides: [move.peptide],
-                    schedule: source.schedule,
+                    schedule: source.schedule(for: move.peptide.id),
                     cycleLengthWeeks: source.cycleLengthWeeks,
+                    washoutWeeks: source.washoutWeeks,
                     startDate: Date(),
                     status: .active,
                     notes: String(localized: "Spun off from \(source.name) to reduce compounding side effects.")

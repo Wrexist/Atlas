@@ -28,13 +28,12 @@ struct CalendarMonthView: View {
     }
 
     private let calendar: Calendar = .current
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// One selection circle that slides between cells instead of each cell
     /// painting (and un-painting) its own.
     @Namespace private var selection
     private static let maxDots = 3
     private static let maxBands = 4
-
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     /// Seven columns leave about 50pt a day on a phone, so the grid grows
     /// with text size only up to xxxLarge; past that the day number would

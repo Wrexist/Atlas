@@ -40811,6 +40811,342 @@
         }
       }
     },
+    "%lldd to next cycle": {
+      "comment": "Protocol card — days until the next on-cycle while in wash-out.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld d till nästa cykel"
+          }
+        }
+      }
+    },
+    "wash-out, day %lld of %lld": {
+      "comment": "VoiceOver — protocol card during wash-out.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "uppehåll, dag %lld av %lld"
+          }
+        }
+      }
+    },
+    "%lld days until the next cycle": {
+      "comment": "VoiceOver — protocol card during wash-out.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld dagar till nästa cykel"
+          }
+        }
+      }
+    },
+    "Next Cycle": {
+      "comment": "Protocol detail schedule row — date the next on-cycle starts.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nästa cykel"
+          }
+        }
+      }
+    },
+    "To Next Cycle": {
+      "comment": "Protocol detail stat label — days until the next on-cycle.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Till nästa cykel"
+          }
+        }
+      }
+    },
+    "Doses Logged": {
+      "comment": "Protocol detail stat label for paused or completed protocols.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loggade doser"
+          }
+        }
+      }
+    },
+    "Tap Restart to start a new cycle.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck på Starta om för att starta en ny cykel."
+          }
+        }
+      }
+    },
+    "Starts tomorrow": {
+      "comment": "Cycle-phase footer — the protocol starts tomorrow.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Börjar i morgon"
+          }
+        }
+      }
+    },
+    "Starts in %lld days": {
+      "comment": "Cycle-phase footer — whole days until the protocol starts (always 2 or more).",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Börjar om %lld dagar"
+          }
+        }
+      }
+    },
+    "Wash-out begins tomorrow": {
+      "comment": "Cycle-phase footer — the wash-out opens tomorrow.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppehållet börjar i morgon"
+          }
+        }
+      }
+    },
+    "Wash-out begins in %lld days": {
+      "comment": "Cycle-phase footer — whole days until the wash-out (always 2 or more).",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppehållet börjar om %lld dagar"
+          }
+        }
+      }
+    },
+    "Next cycle starts tomorrow": {
+      "comment": "Cycle-phase footer — the next on-cycle starts tomorrow.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nästa cykel börjar i morgon"
+          }
+        }
+      }
+    },
+    "Next cycle starts in %lld days": {
+      "comment": "Cycle-phase footer — whole days until the next on-cycle (always 2 or more).",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nästa cykel börjar om %lld dagar"
+          }
+        }
+      }
+    },
+    "Repeated times are saved once.": {
+      "comment": "Schedule editor — shown when two dose slots hold the same time.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tider som upprepas sparas bara en gång."
+          }
+        }
+      }
+    },
+    "Repeated time": {
+      "comment": "VoiceOver — warning icon on a dose slot that repeats an earlier time.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upprepad tid"
+          }
+        }
+      }
+    },
+    "Edits this log.": {
+      "comment": "VoiceOver hint on a logged dose in Recent Logs.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redigerar den här loggen."
+          }
+        }
+      }
+    },
+    "Logs this dose as taken.": {
+      "comment": "VoiceOver hint on a pending dose in Recent Logs.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loggar dosen som tagen."
+          }
+        }
+      }
+    },
+    "%@ wash-out begins in %lld days": {
+      "comment": "Smart planner — a wash-out protocol nears the end of its on-phase.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppehållet för %@ börjar om %lld dagar"
+          }
+        }
+      }
+    },
+    "Doses pause automatically during the wash-out and resume when the next cycle starts.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Doserna pausas automatiskt under uppehållet och fortsätter när nästa cykel börjar."
+          }
+        }
+      }
+    },
+    "Suggestions for your protocols": {
+      "comment": "Protocols tab — header over Smart Planner nudges and peptide recommendations.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Förslag för dina protokoll"
+          }
+        }
+      }
+    },
+    "Started from the %@ template.\n\n%@": {
+      "comment": "Notes on a protocol created from a library template; the second value is the template description.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Startat från mallen %@.\n\n%@"
+          }
+        }
+      }
+    },
+    "Already in your protocols": {
+      "comment": "Confirmation title when using a library template that already has a running protocol.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finns redan i dina protokoll"
+          }
+        }
+      }
+    },
+    "Add another copy": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till en kopia till"
+          }
+        }
+      }
+    },
+    "You're already running a protocol from this template.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du har redan ett protokoll från den här mallen."
+          }
+        }
+      }
+    },
+    "Discard note?": {
+      "comment": "Protocol journal — confirm cancelling an unsaved note.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Släng anteckningen?"
+          }
+        }
+      }
+    },
+    "Your note hasn't been saved.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anteckningen har inte sparats."
+          }
+        }
+      }
+    },
+    "winter": {
+      "comment": "Season name inside 'X peptides are especially relevant in <season>'.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vintern"
+          }
+        }
+      }
+    },
+    "spring": {
+      "comment": "Season name inside 'X peptides are especially relevant in <season>'.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "våren"
+          }
+        }
+      }
+    },
+    "summer": {
+      "comment": "Season name inside 'X peptides are especially relevant in <season>'.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sommaren"
+          }
+        }
+      }
+    },
+    "fall": {
+      "comment": "Season name inside 'X peptides are especially relevant in <season>'.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hösten"
+          }
+        }
+      }
+    },
+    "%@ wash-out begins tomorrow": {
+      "comment": "Smart planner — a wash-out protocol's last on-cycle day is today.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppehållet för %@ börjar i morgon"
+          }
+        }
+      }
+    },
     "Total %lld kilocalories. Protein %lld grams, carbohydrate %lld grams, fat %lld grams.": {
       "localizations": {
         "sv": {

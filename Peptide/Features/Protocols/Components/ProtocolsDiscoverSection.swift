@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// "Add to your stack" cluster on the Protocols tab — surfaces the
+/// "Suggestions for your protocols" cluster on the Protocols tab — surfaces the
 /// smart cycle planner's suggestions plus the recommendation
 /// engine's "peptides that pair well with what you already run".
 /// Phase 34 split this off from HomeView so discovery lives next
@@ -14,15 +14,12 @@ struct ProtocolsDiscoverSection: View {
     @Environment(DataStore.self) private var dataStore
 
     var body: some View {
-        let plannerSuggestions = SmartCyclePlanner.suggestions(
-            protocols: dataStore.protocols,
-            entries: dataStore.entries
-        )
+        let plannerSuggestions = dataStore.smartCycleSuggestions
         let recommendations = dataStore.stackRecommendations
 
         if !plannerSuggestions.isEmpty || !recommendations.isEmpty {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                HomeSectionHeader(eyebrow: "Discover", title: "Add to your protocol")
+                HomeSectionHeader(eyebrow: "Discover", title: "Suggestions for your protocols")
 
                 if !plannerSuggestions.isEmpty {
                     SmartCyclePlannerCard(suggestions: plannerSuggestions)
