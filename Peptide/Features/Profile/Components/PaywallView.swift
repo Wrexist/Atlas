@@ -949,6 +949,12 @@ struct PaywallView: View {
             footerLinks
         }
         .appAnimation(AppAnimation.springSnappy, value: notice)
+        // VoiceOver focus returns to the CTA after the purchase sheet
+        // closes, so the notice has to be spoken to be noticed.
+        .onChange(of: notice) { _, newNotice in
+            guard let newNotice else { return }
+            AccessibilityNotification.Announcement(newNotice.announcement).post()
+        }
     }
 
     /// Two-line CTA: the action on top, the money underneath.
@@ -963,7 +969,9 @@ struct PaywallView: View {
     /// from someone who tapped without knowing what came next.
     private var primaryCTA: some View {
         Button {
-            guard let product = selectedProduct, !isPurchasing else { return }
+            // A running restore may dismiss or set its own notice; don't
+            // race a purchase against it.
+            guard let product = selectedProduct, !isPurchasing, !isRestoring else { return }
             Task { await purchase(product) }
         } label: {
             VStack(spacing: 2) {
@@ -1076,13 +1084,14 @@ struct PaywallView: View {
             }
             .minimumHitArea()
         }
-        .disabled(isRestoring)
+        .disabled(isRestoring || isPurchasing)
 
         Button {
             isRedeemingCode = true
         } label: {
             Text("Redeem code").minimumHitArea()
         }
+        .disabled(isPurchasing)
     }
 
     @ViewBuilder
@@ -1252,7 +1261,7 @@ struct PaywallView: View {
     private func restore() {
         // Guard against concurrent restores: the footer button and the
         // error-banner "Restore purchases" shortcut can both fire AppStore.sync().
-        guard !isRestoring else { return }
+        guard !isRestoring, !isPurchasing else { return }
         isRestoring = true
         Task {
             defer { isRestoring = false }
@@ -1294,4 +1303,18 @@ private enum PurchaseNotice: Equatable {
     case restoreFailed(String)
     case pending
     case nothingToRestore
+
+    var announcement: String {
+        switch self {
+        case .purchaseFailed(let message):
+            String(localized: "Purchase didn't go through") + ". " + message
+        case .restoreFailed(let message):
+            String(localized: "Restore didn't go through") + ". " + message
+        case .pending:
+            String(localized: "Waiting for approval") + ". "
+                + String(localized: "We'll unlock Pro automatically when the purchase is approved.")
+        case .nothingToRestore:
+            String(localized: "No previous purchase found to restore.")
+        }
+    }
 }

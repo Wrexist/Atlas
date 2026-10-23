@@ -26,13 +26,11 @@ final class AuthService {
     private(set) var lastError: SignInError?
 
     enum SignInError: Equatable {
-        case canceled
         case timedOut
         case failed(String)
 
         var title: String {
             switch self {
-            case .canceled:  return String(localized: "Sign-In Canceled")
             case .timedOut:  return String(localized: "Sign-In Is Taking Too Long")
             case .failed:    return String(localized: "Sign-In Failed")
             }
@@ -40,8 +38,6 @@ final class AuthService {
 
         var message: String {
             switch self {
-            case .canceled:
-                return String(localized: "You canceled the sign-in. You can try again or continue without signing in — all features work without an account.")
             case .timedOut:
                 return String(localized: "Apple’s sign-in service didn’t respond. Check your connection or continue without signing in — all features work without an account.")
             case .failed:
@@ -184,7 +180,8 @@ final class AuthService {
         return true
     }
 
-    private func finishSignIn(result: Result<ASAuthorization, Error>) {
+    /// Internal for tests.
+    func finishSignIn(result: Result<ASAuthorization, Error>) {
         timeoutTask?.cancel()
         timeoutTask = nil
         coordinator = nil
@@ -202,8 +199,9 @@ final class AuthService {
             let asCode = (error as? ASAuthorizationError)?.code
             switch asCode {
             case .canceled:
+                // Dismissing Apple's sheet is a choice, not a failure —
+                // no alert, matching the paywall and restore flows.
                 AppLog.auth.info("Sign in with Apple: user canceled")
-                lastError = .canceled
             default:
                 AppLog.auth.error("Sign in with Apple failed: \(error.localizedDescription, privacy: .private)")
                 lastError = .failed(error.localizedDescription)

@@ -11,16 +11,19 @@ final class ExportService {
     /// `pdfRecentEntryLimit` and references the CSV for the rest.
     /// 90 fits ~3 months of daily dosing in a single PDF section
     /// without the medical-report becoming unreadable.
-    static let pdfFullDetailLimit: Int = 90
+    nonisolated static let pdfFullDetailLimit: Int = 90
 
     /// How many recent entries to keep when total > pdfFullDetailLimit.
     /// 30 ≈ one screen / one printed page; the monthly summary above
     /// covers the missing window.
-    static let pdfRecentEntryLimit: Int = 30
+    nonisolated static let pdfRecentEntryLimit: Int = 30
 
     /// Hoisted out of `monthlyBuckets` — allocating a DateFormatter per
     /// call is the expensive part of an otherwise cheap reduce.
-    private static let monthFormatter: DateFormatter = {
+    /// `nonisolated(unsafe)`: the PDF renders off the main actor, and
+    /// DateFormatter is thread-safe for formatting; it is never mutated
+    /// after this initializer.
+    nonisolated(unsafe) private static let monthFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "LLLL yyyy"
         return f
@@ -31,7 +34,7 @@ final class ExportService {
     /// monthly-summary block to give the reader a trend view that
     /// stays complete regardless of how many entry rows the body
     /// truncates.
-    static func monthlyBuckets(for entries: [ProtocolEntry]) -> [PDFMonthlyBucket] {
+    nonisolated static func monthlyBuckets(for entries: [ProtocolEntry]) -> [PDFMonthlyBucket] {
         guard !entries.isEmpty else { return [] }
         let cal = Calendar.current
         // Drop entries whose month-start can't be derived (would only
@@ -50,7 +53,7 @@ final class ExportService {
             .map { monthStart, group -> PDFMonthlyBucket in
                 let logged = group.filter(\.completed).count
                 let total = group.count
-                let pct = total > 0 ? Int(Double(logged) / Double(total) * 100) : 0
+                let pct = Self.compliancePercent(done: logged, total: total)
                 return PDFMonthlyBucket(
                     monthStart: monthStart,
                     label: Self.monthFormatter.string(from: monthStart),
@@ -60,6 +63,13 @@ final class ExportService {
                 )
             }
             .sorted { $0.monthStart > $1.monthStart }
+    }
+
+    /// Rounded, not truncated, so 2 of 3 reads 67% as it does on the
+    /// share card and in the app.
+    nonisolated static func compliancePercent(done: Int, total: Int) -> Int {
+        guard total > 0 else { return 0 }
+        return Int((Double(done) / Double(total) * 100).rounded())
     }
 
     struct PDFMonthlyBucket: Equatable {
@@ -72,6 +82,13 @@ final class ExportService {
 
     // MARK: - CSV Export
 
+    /// `yyyy-MM-dd` in the user's time zone. The bare `.iso8601` style
+    /// formats in GMT, which put an evening entry in the Americas on the
+    /// next day next to a local-time Time column.
+    nonisolated static func calendarDay(_ date: Date) -> String {
+        date.formatted(Date.ISO8601FormatStyle(timeZone: .current).year().month().day())
+    }
+
     func exportProtocolsCSV(protocols: [PeptideProtocol], entries: [ProtocolEntry]) -> String {
         var csv = "Date,Protocol,Peptide,Scheduled Dose,Actual Dose,Time,Injection Site,Completed,Notes\n"
 
@@ -79,8 +96,9 @@ final class ExportService {
 
         for entry in sortedEntries {
             let protocolName = protocols.first { $0.id == entry.protocolId }?.name ?? "Unknown"
-            let dateStr = entry.date.formatted(.iso8601.year().month().day())
-            let timeStr = entry.date.formatted(.dateTime.hour().minute())
+            let dateStr = Self.calendarDay(entry.date)
+            // When the dose was actually taken, matching the PDF row.
+            let timeStr = (entry.actualTime ?? entry.date).formatted(.dateTime.hour().minute())
             let actualDose = entry.actualDose ?? entry.dose
             let site = entry.injectionSite ?? ""
 
@@ -113,7 +131,7 @@ final class ExportService {
         var csv = "Date,Panel,Value,Unit,Source,Notes\n"
         let sorted = labs.sorted { $0.date > $1.date }
         for entry in sorted {
-            let dateStr = entry.date.formatted(.iso8601.year().month().day())
+            let dateStr = Self.calendarDay(entry.date)
             let value = formatLabValue(entry.value)
             let fields = [
                 dateStr,
@@ -139,7 +157,7 @@ final class ExportService {
         var csv = "Date,Time,Category,Name,Calories,Protein,Carbs,Fat,Source\n"
         let sorted = meals.sorted { $0.date > $1.date }
         for entry in sorted {
-            let dateStr = entry.date.formatted(.iso8601.year().month().day())
+            let dateStr = Self.calendarDay(entry.date)
             let timeStr = entry.date.formatted(.dateTime.hour().minute())
             let fields = [
                 dateStr,
@@ -168,7 +186,7 @@ final class ExportService {
         var csv = "Date,Energy,Sleep,Recovery,Mood,Focus,Note\n"
         let sorted = outcomes.sorted { $0.date > $1.date }
         for entry in sorted {
-            let dateStr = entry.date.formatted(.iso8601.year().month().day())
+            let dateStr = Self.calendarDay(entry.date)
             let fields = [
                 dateStr,
                 "\(entry.energy)",
@@ -245,8 +263,10 @@ final class ExportService {
 
     // MARK: - PDF Export
 
+    /// `nonisolated` so the export flow can render many protocols off the
+    /// main thread; it reads only its value-type arguments.
     // swiftlint:disable:next function_body_length
-    func exportPDF(protocols: [PeptideProtocol], entries: [ProtocolEntry], profile: UserProfile) throws -> Data {
+    nonisolated func exportPDF(protocols: [PeptideProtocol], entries: [ProtocolEntry], profile: UserProfile) throws -> Data {
         let pageWidth: CGFloat = 612
         let pageHeight: CGFloat = 792
         let margin: CGFloat = 48
@@ -362,7 +382,7 @@ final class ExportService {
             y += sumTH + 8
 
             let completedDoses = entries.filter(\.completed).count
-            let compliancePct  = entries.isEmpty ? 0 : Int(Double(completedDoses) / Double(entries.count) * 100)
+            let compliancePct  = Self.compliancePercent(done: completedDoses, total: entries.count)
             let activeCount    = protocols.filter { $0.status == .active }.count
 
             for (label, value) in [
@@ -386,8 +406,7 @@ final class ExportService {
                     .filter { $0.protocolId == proto.id }
                     .sorted { $0.date > $1.date }
                 let done = protoEntries.filter(\.completed).count
-                let pct  = protoEntries.isEmpty ? 0
-                    : Int(Double(done) / Double(protoEntries.count) * 100)
+                let pct  = Self.compliancePercent(done: done, total: protoEntries.count)
 
                 checkPageBreak(for: 80)
 

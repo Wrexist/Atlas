@@ -22,15 +22,26 @@ final class WeeklySummaryService {
 
     private let session: URLSession
     private let endpointOverride: URL?
+    private let secretOverride: String?
+    /// The recap uploads weekly totals and the HRV trend, so it honours
+    /// the same AI data-sharing consent the Privacy screen revokes.
+    private let isConsentGranted: () -> Bool
 
     /// Maximum cached weekly summaries before older ones are
     /// trimmed. 26 weeks × ~500 bytes per summary = ~13 KB JSON,
     /// well within the comfortable bound for the profile sidecar.
     static let maxCachedSummaries: Int = 26
 
-    init(session: URLSession = .shared, endpointOverride: URL? = nil) {
+    init(
+        session: URLSession = .shared,
+        endpointOverride: URL? = nil,
+        secretOverride: String? = nil,
+        isConsentGranted: @escaping () -> Bool = { AIDataConsent.isGranted }
+    ) {
         self.session = session
         self.endpointOverride = endpointOverride
+        self.secretOverride = secretOverride
+        self.isConsentGranted = isConsentGranted
     }
 
     // MARK: - Gates
@@ -216,8 +227,13 @@ final class WeeklySummaryService {
     /// summary when the network is unreachable. Both branches
     /// produce a `WeeklySummary` with the same shape so the UI
     /// renders identically; only the `kind` field distinguishes.
-    private func fetchOrFallback(aggregate: WeeklyAggregate) async -> WeeklySummary {
+    /// Without AI data-sharing consent nothing is sent; the offline
+    /// recap is built on device instead. Internal for tests.
+    func fetchOrFallback(aggregate: WeeklyAggregate) async -> WeeklySummary {
         let fingerprint = Self.sourceFingerprint(of: aggregate)
+        guard isConsentGranted() else {
+            return offlineSummary(for: aggregate, fingerprint: fingerprint)
+        }
         do {
             let text = try await fetchAISummary(aggregate: aggregate)
             return WeeklySummary(
@@ -236,15 +252,19 @@ final class WeeklySummaryService {
             AppLog.persistence.error(
                 "Weekly summary fetch failed: \(String(describing: error), privacy: .private)"
             )
-            return WeeklySummary(
-                weekStart: aggregate.weekStart,
-                text: OfflineWeeklySummaryFormatter.summary(from: aggregate),
-                keyStats: keyStats(from: aggregate),
-                kind: .offline,
-                generatedAt: Date(),
-                sourceFingerprint: fingerprint
-            )
+            return offlineSummary(for: aggregate, fingerprint: fingerprint)
         }
+    }
+
+    private func offlineSummary(for aggregate: WeeklyAggregate, fingerprint: String) -> WeeklySummary {
+        WeeklySummary(
+            weekStart: aggregate.weekStart,
+            text: OfflineWeeklySummaryFormatter.summary(from: aggregate),
+            keyStats: keyStats(from: aggregate),
+            kind: .offline,
+            generatedAt: Date(),
+            sourceFingerprint: fingerprint
+        )
     }
 
     private func fetchAISummary(aggregate: WeeklyAggregate) async throws -> String {
@@ -359,7 +379,7 @@ final class WeeklySummaryService {
     }
 
     private var proxySecret: String? {
-        MealScannerService.stringSetting(forKey: "WEEKLY_SUMMARY_SECRET")
+        secretOverride ?? MealScannerService.stringSetting(forKey: "WEEKLY_SUMMARY_SECRET")
     }
 
     // MARK: - Wire formats

@@ -1,3 +1,4 @@
+import AuthenticationServices
 import XCTest
 @testable import Peptide
 
@@ -57,6 +58,23 @@ final class AuthServiceTests: XCTestCase {
         auth.handleAuthorization(.failure(NSError(domain: "test", code: -2)))
         XCTAssertFalse(auth.isSignedIn)
         XCTAssertNil(auth.userIdentifier)
+    }
+
+    // MARK: - Sign-in completion
+
+    func test_finishSignIn_userCanceled_raisesNoError() {
+        auth.clearLastError()
+        auth.finishSignIn(result: .failure(ASAuthorizationError(.canceled)))
+        XCTAssertNil(auth.lastError)
+    }
+
+    func test_finishSignIn_failure_raisesFailedError() {
+        auth.clearLastError()
+        defer { auth.clearLastError() }
+        auth.finishSignIn(result: .failure(ASAuthorizationError(.failed)))
+        guard case .failed? = auth.lastError else {
+            return XCTFail("Expected .failed, got \(String(describing: auth.lastError))")
+        }
     }
 
     // MARK: - Sign Out idempotency

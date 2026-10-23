@@ -28,6 +28,7 @@ struct RestoreBackupSheet: View {
     @State private var backup: AppBackup?
     @State private var errorMessage: String?
     @State private var resultPreview: BackupImportService.Preview?
+    @State private var snapshots: [BackupSnapshotService.Info] = []
 
     private enum Phase: Equatable {
         case pick
@@ -93,7 +94,29 @@ struct RestoreBackupSheet: View {
             PrimaryCTAButton(title: "Pick a backup file", icon: "folder", shape: .rounded) {
                 showingFileImporter = true
             }
+            if !snapshots.isEmpty {
+                safetyCopyList
+            }
         }
+        .onAppear { snapshots = BackupSnapshotService.availableSnapshots() }
+    }
+
+    /// The pre-restore snapshots `apply` writes, offered back so a
+    /// mistaken Replace can be undone.
+    private var safetyCopyList: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("Restore a safety copy")
+                .font(AppFont.headline)
+                .foregroundStyle(AppColor.textPrimary)
+            Text("Saved on this device before each restore.")
+                .font(AppFont.caption2)
+                .foregroundStyle(AppColor.textSecondary)
+            ForEach(snapshots) { info in
+                SafetyCopyRow(info: info) { validateSnapshot(info) }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, Spacing.md)
     }
 
     private var previewPhase: some View {
@@ -168,7 +191,9 @@ struct RestoreBackupSheet: View {
             HeroCard(
                 icon: "checkmark.seal.fill",
                 title: "Restore complete",
-                subtitle: Text("Your data is back. A safety copy of your previous data is saved on this device."),
+                subtitle: resultPreview?.safetyCopySaved == true
+                    ? Text("Your data is back. A safety copy of your previous data is saved on this device.")
+                    : Text("Your data is back. A safety copy of your previous data couldn't be saved."),
                 bouncesOnAppear: true
             )
             if let resultPreview {
@@ -208,21 +233,29 @@ struct RestoreBackupSheet: View {
     }
 
     private func validatePickedFile(_ url: URL) {
-        // Move the read + decode off the main actor so a 50 MB backup
-        // doesn't freeze the UI while validation runs. The
-        // security-scoped resource lifetime must cover the entire
-        // read, so it's acquired inside the detached task and
-        // released once validation returns. The decoded
-        // backup and preview are sendable and cross back to the main
-        // actor cheaply.
-        let target = url
+        // The security-scoped resource lifetime must cover the entire
+        // read, so it's acquired inside the detached load and released
+        // once the bytes are in.
+        validate {
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            return try Data(contentsOf: url)
+        }
+    }
+
+    private func validateSnapshot(_ info: BackupSnapshotService.Info) {
+        validate { try BackupSnapshotService.read(info) }
+    }
+
+    /// Moves the read + decode off the main actor so a 50 MB backup
+    /// doesn't freeze the UI while validation runs. The decoded backup
+    /// and preview are sendable and cross back to the main actor cheaply.
+    private func validate(loading load: @escaping @Sendable () throws -> Data) {
         Task { @MainActor in
             do {
                 let (parsed, preview) = try await Task.detached(priority: .userInitiated) {
                     () throws -> (backup: AppBackup, preview: BackupImportService.Preview) in
-                    let scoped = target.startAccessingSecurityScopedResource()
-                    defer { if scoped { target.stopAccessingSecurityScopedResource() } }
-                    return try BackupImportService.validate(Data(contentsOf: target))
+                    try BackupImportService.validate(load())
                 }.value
                 self.backup = parsed
                 self.preview = preview
@@ -350,6 +383,45 @@ private struct BackupSummaryCard: View {
                 .font(AppFont.subheadline.weight(.semibold))
                 .foregroundStyle(AppColor.textPrimary)
         }
+    }
+}
+
+private struct SafetyCopyRow: View {
+    let info: BackupSnapshotService.Info
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: Spacing.md) {
+                Image(systemName: "clock.arrow.circlepath")
+                    .font(AppFont.scaled(16, weight: .semibold))
+                    .foregroundStyle(AppColor.accentLight)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(info.createdAt, format: .dateTime.day().month(.abbreviated).year().hour().minute())
+                        .font(AppFont.subheadline.weight(.semibold))
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text(Int64(info.sizeBytes), format: .byteCount(style: .file))
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(AppFont.caption2.weight(.semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+            }
+            .padding(Spacing.md)
+            .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget, alignment: .leading)
+            .background {
+                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                    .fill(AppColor.surfaceSecondary.opacity(0.6))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
+                            .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
+                    }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint(Text("Shows what this safety copy holds before restoring it"))
     }
 }
 

@@ -86,6 +86,10 @@ enum BackupImportService {
         var workoutSessionsCount: Int = 0
         var routinesCount: Int = 0
         var customPeptidesCount: Int = 0
+        /// Set on the realized preview `apply` returns: true only when
+        /// the pre-apply safety copy was actually written, so the sheet
+        /// never promises one that a full disk prevented.
+        var safetyCopySaved: Bool = false
     }
 
     /// The one place a `Preview` is built. Three call sites summarise
@@ -232,21 +236,19 @@ enum BackupImportService {
         strategy: Strategy,
         into dataStore: DataStore
     ) throws -> Preview {
-        // Snapshot first so a worst-case "everything goes wrong" still
-        // has a recovery path. The snapshot URL is logged and the
-        // caller can surface a "restore from this" affordance.
-        if strategy != .dryRun {
-            if let snapshot = BackupSnapshotService.snapshotCurrentState(dataStore: dataStore) {
-                AppLog.persistence.error(
-                    "BackupImport: pre-apply snapshot at \(snapshot.lastPathComponent, privacy: .public)"
-                )
-            }
-        }
-
         guard strategy != .dryRun else {
             // Re-derive the preview from the backup — same shape the
             // validate path produced; nothing committed.
             return preview(of: backup)
+        }
+
+        // Snapshot first so a worst-case "everything goes wrong" still
+        // has a recovery path, offered back from the restore sheet.
+        let snapshot = BackupSnapshotService.snapshotCurrentState(dataStore: dataStore)
+        if let snapshot {
+            AppLog.persistence.info(
+                "BackupImport: pre-apply snapshot at \(snapshot.lastPathComponent, privacy: .public)"
+            )
         }
 
         // Build the new state in memory, then hand off to DataStore as
@@ -289,10 +291,8 @@ enum BackupImportService {
             resolvedEntries = dataStore.entries + backup.entries.filter {
                 !existingEntryIDs.contains($0.id)
             }
-            // Profile merge: current wins on every scalar field;
-            // history arrays union by ID where present, append-only
-            // for fields without IDs. Implemented inside DataStore
-            // because it has full visibility into the field set.
+            // Profile merge: current wins on conflict; every history
+            // collection unions in what only the backup holds.
             resolvedProfile = mergeProfile(current: dataStore.profile, incoming: backup.profile)
         case .dryRun:
             // The guard above already returned. Reaching here would
@@ -326,7 +326,7 @@ enum BackupImportService {
             throw ImportError.applyFailed(error.localizedDescription)
         }
 
-        return preview(
+        var realized = preview(
             exportDate: backup.exportDate,
             version: backup.version,
             protocols: resolvedProtocols,
@@ -336,6 +336,8 @@ enum BackupImportService {
             routinesCount: training?.routines.count ?? 0,
             customPeptidesCount: training?.customPeptides.count ?? 0
         )
+        realized.safetyCopySaved = snapshot != nil
+        return realized
     }
 
     /// Resolved v2 payload handed to `DataStore.applyImport`. Built
@@ -415,48 +417,14 @@ enum BackupImportService {
         }
     }
 
-    /// Field-level merge for `UserProfile`. Current state wins for
-    /// scalars; history arrays union by ID where present.
+    /// Field-level merge for `UserProfile`: the same union sync uses, so
+    /// every logged record (habits, notes, meals and their day totals,
+    /// momentum) comes back, and current state wins on conflict. Weekly
+    /// recaps are the one collection sync leaves alone, so they're
+    /// unioned here by week, current winning.
     private static func mergeProfile(current: UserProfile, incoming: UserProfile) -> UserProfile {
-        var merged = current
-
-        // Weight history: union by entry ID.
-        let currentWeightIDs = Set(current.weightHistory.map(\.id))
-        merged.weightHistory = current.weightHistory + incoming.weightHistory.filter {
-            !currentWeightIDs.contains($0.id)
-        }
-
-        // Lab history: union by ID.
-        let currentLabIDs = Set(current.labHistory.map(\.id))
-        merged.labHistory = current.labHistory + incoming.labHistory.filter {
-            !currentLabIDs.contains($0.id)
-        }
-
-        // Meal history: union by ID.
-        let currentMealIDs = Set(current.mealHistory.map(\.id))
-        merged.mealHistory = current.mealHistory + incoming.mealHistory.filter {
-            !currentMealIDs.contains($0.id)
-        }
-
-        // Outcome history: union by ID.
-        let currentOutcomeIDs = Set(current.outcomeHistory.map(\.id))
-        merged.outcomeHistory = current.outcomeHistory + incoming.outcomeHistory.filter {
-            !currentOutcomeIDs.contains($0.id)
-        }
-
-        // Recipes + custom foods: union by ID.
-        let currentRecipeIDs = Set(current.recipes.map(\.id))
-        merged.recipes = current.recipes + incoming.recipes.filter {
-            !currentRecipeIDs.contains($0.id)
-        }
-        let currentFoodIDs = Set(current.customFoods.map(\.id))
-        merged.customFoods = current.customFoods + incoming.customFoods.filter {
-            !currentFoodIDs.contains($0.id)
-        }
-
-        // Favorite foods: set union.
-        merged.favoriteFoodIDs = current.favoriteFoodIDs.union(incoming.favoriteFoodIDs)
-
+        var merged = ProfileMergeEngine.reconcile(current, with: incoming)
+        merged.weeklySummaries.merge(incoming.weeklySummaries) { currentRecap, _ in currentRecap }
         return merged
     }
 }

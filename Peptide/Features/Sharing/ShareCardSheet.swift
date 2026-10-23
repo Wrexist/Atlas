@@ -102,7 +102,9 @@ struct ShareCardSheet: View {
                     ) {
                         renderAndShare()
                     }
-                    .disabled(isRendering)
+                    // Until HealthKit answers, a render would drop the
+                    // health row the toggle says is included.
+                    .disabled(isRendering || isLoadingHealth)
                     .padding(.horizontal, Spacing.screenPadding)
                 }
                 .padding(.vertical, Spacing.xl)

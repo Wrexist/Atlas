@@ -50,7 +50,7 @@ final class AIResearchService: Sendable {
         case rateLimited
         case dailyLimitReached
         case serviceUnavailable
-        case requestFailed(String)
+        case questionTooLong
         case invalidResponse
 
         var errorDescription: String? {
@@ -63,8 +63,29 @@ final class AIResearchService: Sendable {
             case .rateLimited:          String(localized: "You're sending questions faster than the assistant can answer. Wait a minute and try again.")
             case .dailyLimitReached:    String(localized: "You've reached today's research limit. It resets tomorrow.")
             case .serviceUnavailable:   String(localized: "The research assistant is temporarily offline. Try again in a few minutes.")
-            case .requestFailed(let m): m
+            case .questionTooLong:      String(localized: "That message is too long for the assistant. Try a shorter question.")
             case .invalidResponse:      String(localized: "The assistant returned an unexpected response.")
+            }
+        }
+
+        /// The assistant was reached for these, so the alert must not say
+        /// it wasn't.
+        var alertTitle: String {
+            switch self {
+            case .dailyLimitReached:                  String(localized: "Daily limit reached")
+            case .questionTooLong:                    String(localized: "Message too long")
+            case .proxyNotConfigured, .unauthorised:  String(localized: "Assistant unavailable")
+            case .offline, .rateLimited, .serviceUnavailable, .invalidResponse:
+                String(localized: "Couldn't reach the assistant")
+            }
+        }
+
+        /// Sending the same question again can't succeed for these, so
+        /// Retry would only burn a request into the same error.
+        var isRetryable: Bool {
+            switch self {
+            case .dailyLimitReached, .questionTooLong, .proxyNotConfigured, .unauthorised: false
+            case .offline, .rateLimited, .serviceUnavailable, .invalidResponse: true
             }
         }
     }
@@ -371,13 +392,16 @@ final class AIResearchService: Sendable {
     /// echo the upstream body — Anthropic auth-failure responses include
     /// masked-key fingerprints that the user shouldn't see. 401 is broken
     /// out so the user sees an actionable message rather than a bare HTTP
-    /// status code.
+    /// status code; any status without its own copy keeps the number in
+    /// the log only.
     private static func chatError(status: Int, body: Data) -> ChatError {
         switch status {
-        case 401:           return .unauthorised
-        case 429:           return proxyErrorCode(in: body) == "daily_quota" ? .dailyLimitReached : .rateLimited
-        case 502, 503, 504: return .serviceUnavailable
-        default:            return .requestFailed("AI research returned HTTP \(status).")
+        case 401:      return .unauthorised
+        case 400, 413: return .questionTooLong
+        case 429:      return proxyErrorCode(in: body) == "daily_quota" ? .dailyLimitReached : .rateLimited
+        default:
+            AppLog.ai.error("AI research returned HTTP \(status, privacy: .public)")
+            return .serviceUnavailable
         }
     }
 
@@ -400,6 +424,10 @@ final class AIResearchService: Sendable {
         "• If the summary is thin (few logged days), say so and encourage consistent logging before drawing conclusions.",
     ]
 
+    static var truncationNote: String {
+        String(localized: "Answer was cut short. Ask me to continue.")
+    }
+
     private func parseAssistantText(from data: Data) throws -> String {
         let envelopeObject: Any
         do {
@@ -419,6 +447,10 @@ final class AIResearchService: Sendable {
         else {
             throw ChatError.invalidResponse
         }
-        return text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let answer = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        // A reply that hit the token cap ends mid-sentence; say so rather
+        // than let it read as the whole answer.
+        guard envelope["stop_reason"] as? String == "max_tokens", !answer.isEmpty else { return answer }
+        return answer + "\n\n" + Self.truncationNote
     }
 }

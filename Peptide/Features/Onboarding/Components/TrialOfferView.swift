@@ -562,16 +562,18 @@ struct TrialOfferView: View {
     }
 
     private func tierSubtitle(for tier: Tier) -> String {
-        let days = trialDays(for: tier)
+        // "%lld days free" carries the plural variants, so a one-day
+        // trial reads "1 day free" rather than "1 days free".
+        let free = trialDays(for: tier).map { String(localized: "\($0) days free") }
         switch tier {
         case .annual:
             let perMonth = "\(annualPerMonthPrice)/mo"
-            guard let days else { return String(localized: "Just \(perMonth)") }
-            return String(localized: "\(days) days free · \(perMonth)")
+            guard let free else { return String(localized: "Just \(perMonth)") }
+            return String(localized: "\(free) · \(perMonth)")
         case .monthly:
             let billed = "\(monthlyPrice)/mo"
-            guard let days else { return String(localized: "Billed \(billed)") }
-            return String(localized: "\(days) days free, then \(billed)")
+            guard let free else { return String(localized: "Billed \(billed)") }
+            return String(localized: "\(free), then \(billed)")
         }
     }
 
@@ -634,6 +636,8 @@ struct TrialOfferView: View {
                     .minimumHitArea()
             }
             .buttonStyle(.plain)
+            // A restore that finishes after declining would call onAccept
+            // on a page onboarding has already left.
             .disabled(isPurchasing || isRestoring)
 
             if pinsTerms {
@@ -684,6 +688,12 @@ struct TrialOfferView: View {
             }
             .font(AppFont.scaled(11))
             .foregroundStyle(AppColor.accentLight)
+        }
+        // VoiceOver focus returns to the CTA after the purchase sheet
+        // closes, so the notice has to be spoken to be noticed.
+        .onChange(of: notice?.message) { _, message in
+            guard let message else { return }
+            AccessibilityNotification.Announcement(message).post()
         }
     }
 

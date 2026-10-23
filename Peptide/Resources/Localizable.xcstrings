@@ -977,6 +977,16 @@
         }
       }
     },
+    "%@ · %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@"
+          }
+        }
+      }
+    },
     "%@ · %@ on the bar": {
       "localizations": {
         "sv": {
@@ -1583,6 +1593,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@, stödjande"
+          }
+        }
+      }
+    },
+    "%@, then %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, sedan %2$@"
           }
         }
       }
@@ -5745,6 +5765,16 @@
         }
       }
     },
+    "Answer was cut short. Ask me to continue.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Svaret kortades av. Be mig fortsätta."
+          }
+        }
+      }
+    },
     "App Lock Turned Off": {
       "localizations": {
         "sv": {
@@ -5781,6 +5811,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "ATLAS"
+          }
+        }
+      }
+    },
+    "Assistant answered": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assistenten har svarat"
+          }
+        }
+      }
+    },
+    "Assistant unavailable": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assistenten är inte tillgänglig"
           }
         }
       }
@@ -10295,6 +10345,16 @@
         }
       }
     },
+    "Daily limit reached": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagsgränsen är nådd"
+          }
+        }
+      }
+    },
     "Drag to reorder. Switch a section off to hide it from Today.": {
       "localizations": {
         "sv": {
@@ -10605,6 +10665,16 @@
         }
       }
     },
+    "Keep times": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Behåll tider"
+          }
+        }
+      }
+    },
     "Ketosis": {
       "localizations": {
         "sv": {
@@ -10721,6 +10791,138 @@
           "stringUnit": {
             "state": "translated",
             "value": "Måltider av livsmedel du redan äter, anpassade efter dina mål"
+          }
+        }
+      }
+    },
+    "Message too long": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meddelandet är för långt"
+          }
+        }
+      }
+    },
+    "More than one full 100-unit syringe": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mer än en full spruta med 100 enheter"
+          }
+        }
+      }
+    },
+    "Restore a safety copy": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Återställ en säkerhetskopia"
+          }
+        }
+      }
+    },
+    "Restore didn't go through": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Återställningen gick inte igenom"
+          }
+        }
+      }
+    },
+    "Saved on this device before each restore.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sparas på den här enheten före varje återställning."
+          }
+        }
+      }
+    },
+    "Shows what this safety copy holds before restoring it": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visar vad säkerhetskopian innehåller innan den återställs"
+          }
+        }
+      }
+    },
+    "Syringe diagram. Equivalent volume: %lld units, more than one full 100-unit syringe.": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Sprutdiagram. Motsvarande volym: %lld enhet, mer än en full spruta med 100 enheter."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Sprutdiagram. Motsvarande volym: %lld enheter, mer än en full spruta med 100 enheter."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Syringe diagram. No amount entered.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprutdiagram. Ingen mängd angiven."
+          }
+        }
+      }
+    },
+    "That message is too long for the assistant. Try a shorter question.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meddelandet är för långt för assistenten. Försök med en kortare fråga."
+          }
+        }
+      }
+    },
+    "Your Atlas Pro subscription is billed by Apple and keeps renewing until you cancel it in Settings → your name → Subscriptions.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Din Atlas Pro-prenumeration debiteras av Apple och förnyas tills du avslutar den i Inställningar → ditt namn → Prenumerationer."
+          }
+        }
+      }
+    },
+    "Your data is back. A safety copy of your previous data couldn't be saved.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina data är tillbaka. En säkerhetskopia av dina tidigare data kunde inte sparas."
+          }
+        }
+      }
+    },
+    "Your weekly totals and HRV trend, once a week.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina veckosummor och din HRV-trend, en gång i veckan."
           }
         }
       }
@@ -21986,6 +22188,34 @@
                     "stringUnit": {
                       "state": "translated",
                       "value": "%arg dagar"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No charge for %#@arg1@. Then %2$@. %3$@"
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg day"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg days"
                     }
                   }
                 }

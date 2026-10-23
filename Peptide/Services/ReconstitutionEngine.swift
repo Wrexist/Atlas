@@ -13,6 +13,9 @@ enum ReconstitutionEngine {
     /// Units on a U-100 syringe per millilitre.
     static let unitsPerMilliliter: Double = 100
 
+    /// A U-100 insulin syringe holds 1 mL, i.e. 100 units.
+    static let syringeCapacityUnits: Double = 100
+
     static let microgramsPerMilligram: Double = 1000
 
     /// Rounded results beyond this can't be shown and would trap on
@@ -55,6 +58,11 @@ enum ReconstitutionEngine {
 
     static func roundedUnits(_ units: Double) -> Int? {
         countable(units.rounded())
+    }
+
+    /// True when the result needs more than one full U-100 syringe.
+    static func exceedsSyringe(units: Double) -> Bool {
+        units.isFinite && units > syringeCapacityUnits
     }
 
     static func hasFractionalUnits(_ units: Double) -> Bool {

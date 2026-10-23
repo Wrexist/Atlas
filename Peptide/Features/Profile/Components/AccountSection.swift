@@ -39,7 +39,7 @@ struct AccountSection: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This permanently removes the Apple ID linkage from this device and erases all your workouts, meals, protocols, dose entries, progress photos, and profile data. Data in Apple Health is not touched. If iCloud sync is on, the deletion propagates to your other devices. This cannot be undone.")
+            Text(deleteAccountMessage)
         }
         .alert("Account Deleted", isPresented: $needsManualAppleRevoke) {
             Button("OK", role: .cancel) {}
@@ -258,7 +258,18 @@ struct AccountSection: View {
     private var dataEraseMessage: String {
         let erase = String(localized: "This permanently erases all your workouts, meals, protocols, dose entries, progress photos, and profile data from this device. Data in Apple Health is not touched. If iCloud sync is on, the copies in your iCloud are removed too.")
         let signOut = authService.isSignedIn ? " " + String(localized: "You will also be signed out.") : ""
-        return erase + signOut + " " + String(localized: "This cannot be undone.")
+        return erase + signOut + " " + String(localized: "This cannot be undone.") + subscriptionNotice
+    }
+
+    private var deleteAccountMessage: String {
+        String(localized: "This permanently removes the Apple ID linkage from this device and erases all your workouts, meals, protocols, dose entries, progress photos, and profile data. Data in Apple Health is not touched. If iCloud sync is on, the deletion propagates to your other devices. This cannot be undone.")
+            + subscriptionNotice
+    }
+
+    /// Erasing data doesn't cancel an App Store subscription.
+    private var subscriptionNotice: String {
+        guard StoreService.shared.hasAutoRenewingSubscription else { return "" }
+        return " " + String(localized: "Your Atlas Pro subscription is billed by Apple and keeps renewing until you cancel it in Settings → your name → Subscriptions.")
     }
 
     // MARK: - Helpers
