@@ -104,6 +104,7 @@ final class AtlasAppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         MainActor.assumeIsolated {
+            PendingWorkoutActionStore.applyInProcess = { WorkoutActivityActionProcessor.drain() }
             workoutActionToken = WorkoutActivityActionProcessor.startObserving()
             doseLogToken = PendingDoseLogProcessor.startObserving()
             waterToken = QuickActionRouter.observePendingWater()

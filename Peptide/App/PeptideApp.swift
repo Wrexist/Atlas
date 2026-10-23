@@ -22,6 +22,10 @@ struct PeptideApp: App {
     /// Drives the "What's New" splash. Set on first launch after
     /// an update, cleared once the user finishes the tour.
     @State private var showWhatsNewTour: Bool = false
+    /// Guard the one-shot launch and notification work against the
+    /// language switch's `.id` rebuild of the root tree.
+    @State private var hasStartedLaunchWork = false
+    @State private var hasStartedNotificationSync = false
 
     init() {
         // RevenueCat observes the app's own StoreKit 2 purchases here
@@ -225,62 +229,13 @@ struct PeptideApp: App {
             Text("Atlas data from the previous iCloud account is still on this iPhone. If you keep it, it syncs to the iCloud account you're signed in to now. Removing it doesn't touch the copy in the previous account's iCloud.")
         }
         .task {
-            // Once per launch the user sees, not per `.active`: returning
-            // from Control Center or a Face ID sheet isn't a launch, and
-            // counting those cleared the review prompt's engagement gate
-            // in the first session.
-            ReviewPromptService.shared.recordLaunch()
-        }
-        .task {
-            // Decode the bundled peptide catalog off the main
-            // thread, after the first frame. Every consumer
-            // (Library, protocol builder, AI research) reads it
-            // synchronously, so warming it here means none of them
-            // is the one that pays — and launch doesn't either.
-            await PeptideDatabase.warmUp()
-        }
-        .task {
-            // One-shot Spotlight reindex on app start. Custom foods
-            // and favorites stay in sync via DataStore mutation
-            // hooks, but a fresh install or a CloudKit pull on a
-            // second device needs this to seed the index — without
-            // it, the user wouldn't see their library in Spotlight
-            // until they next edited a food.
-            dataStore.reindexFoodSpotlight()
-        }
-        .task {
-            // Subscribe to MetricKit so crash + hang + disk-write
-            // payloads delivered the day after a problem occurs
-            // are captured locally. Apple's TestFlight dashboard
-            // already gets these on the server side; the local
-            // copy is the foundation for a future
-            // Diagnostics-in-Profile screen and eventual backend
-            // upload. Idempotent — subscribing on every launch
-            // is the documented usage.
-            DiagnosticsService.shared.startCollecting()
-        }
-        .task {
-            // Drain any completed onboarding funnel snapshot to the
-            // analytics endpoint configured via Info.plist. No-op
-            // unless the endpoint is configured, the user opted in
-            // via the Profile diagnostics toggle, AND onboarding
-            // finished — partial in-flight runs stay local.
-            await OnboardingFunnelTracker.drainIfReady()
-        }
-        .task {
-            // Drain any local affiliate application to the creator-
-            // program intake endpoint. Same opt-in shape as the
-            // funnel drain — gated on AffiliateIntakeEndpoint in
-            // Info.plist, no-op otherwise. The local copy stays
-            // on disk regardless so the user can re-edit.
-            await AffiliateIntakeService.drainIfReady(
-                dataStore.profile.affiliateApplication
-            )
-        }
-        .task(priority: .background) {
-            // Register the App Attest key now, so the first research
-            // question or meal scan doesn't wait on it.
-            await AppAttestService.shared.warmUp()
+            // `.id` above gives this tree a new identity on every
+            // language switch, which reruns its tasks and would cancel
+            // any still in flight. Launch work runs once per process,
+            // in unstructured tasks the view's lifetime can't cancel.
+            guard !hasStartedLaunchWork else { return }
+            hasStartedLaunchWork = true
+            startLaunchWork()
         }
         .onOpenURL { url in
             // All `peptidex://` routing lives in DeepLinkRouter so
@@ -356,6 +311,61 @@ struct PeptideApp: App {
                 }
             )
             .interactiveDismissDisabled()
+        }
+    }
+
+    private func startLaunchWork() {
+        // Once per launch the user sees, not per `.active`: returning
+        // from Control Center or a Face ID sheet isn't a launch, and
+        // counting those cleared the review prompt's engagement gate
+        // in the first session.
+        ReviewPromptService.shared.recordLaunch()
+        Task { @MainActor in
+            // Decode the bundled peptide catalog off the main
+            // thread, after the first frame. Every consumer
+            // (Library, protocol builder, AI research) reads it
+            // synchronously, so warming it here means none of them
+            // is the one that pays — and launch doesn't either.
+            await PeptideDatabase.warmUp()
+        }
+        // One-shot Spotlight reindex on app start. Custom foods
+        // and favorites stay in sync via DataStore mutation
+        // hooks, but a fresh install or a CloudKit pull on a
+        // second device needs this to seed the index — without
+        // it, the user wouldn't see their library in Spotlight
+        // until they next edited a food.
+        dataStore.reindexFoodSpotlight()
+        // Subscribe to MetricKit so crash + hang + disk-write
+        // payloads delivered the day after a problem occurs
+        // are captured locally. Apple's TestFlight dashboard
+        // already gets these on the server side; the local
+        // copy is the foundation for a future
+        // Diagnostics-in-Profile screen and eventual backend
+        // upload. Idempotent — subscribing on every launch
+        // is the documented usage.
+        DiagnosticsService.shared.startCollecting()
+        Task { @MainActor in
+            // Drain any completed onboarding funnel snapshot to the
+            // analytics endpoint configured via Info.plist. No-op
+            // unless the endpoint is configured, the user opted in
+            // via the Profile diagnostics toggle, AND onboarding
+            // finished — partial in-flight runs stay local.
+            await OnboardingFunnelTracker.drainIfReady()
+        }
+        Task { @MainActor in
+            // Drain any local affiliate application to the creator-
+            // program intake endpoint. Same opt-in shape as the
+            // funnel drain — gated on AffiliateIntakeEndpoint in
+            // Info.plist, no-op otherwise. The local copy stays
+            // on disk regardless so the user can re-edit.
+            await AffiliateIntakeService.drainIfReady(
+                dataStore.profile.affiliateApplication
+            )
+        }
+        Task(priority: .background) { @MainActor in
+            // Register the App Attest key now, so the first research
+            // question or meal scan doesn't wait on it.
+            await AppAttestService.shared.warmUp()
         }
     }
 
@@ -611,42 +621,51 @@ struct PeptideApp: App {
                 .liquidGlassPresentation()
         }
         .task {
-            QuickActionRouter.installHomeScreenShortcuts()
+            // Once per process, not per `.id` rebuild on a language
+            // switch — and unstructured, so that rebuild can't cancel
+            // a reconcile or permission request already under way.
+            guard !hasStartedNotificationSync else { return }
+            hasStartedNotificationSync = true
+            Task { @MainActor in await syncNotifications() }
+        }
+    }
 
-            // Repopulate the in-memory ID tracker from iOS's actual pending
-            // requests. Without this, force-quit leaves orphan reminders that
-            // scheduleNotifications can't see in its set-diff and won't remove.
-            await NotificationService.shared.reconcilePendingState()
+    private func syncNotifications() async {
+        QuickActionRouter.installHomeScreenShortcuts()
 
-            // Habit reminders are gated per-habit (Habit.reminderTime), not
-            // by `doseRemindersEnabled`. Re-stamp them every activation so a
-            // reminderTime change made on another device propagates.
-            NotificationService.shared.scheduleHabitReminders(for: dataStore.activeHabits)
-            await DailyReminderScheduler.reconcile(dataStore: dataStore)
+        // Repopulate the in-memory ID tracker from iOS's actual pending
+        // requests. Without this, force-quit leaves orphan reminders that
+        // scheduleNotifications can't see in its set-diff and won't remove.
+        await NotificationService.shared.reconcilePendingState()
 
-            guard dataStore.profile.doseRemindersEnabled else {
-                NotificationService.shared.cancelProtocolReminders()
-                return
-            }
+        // Habit reminders are gated per-habit (Habit.reminderTime), not
+        // by `doseRemindersEnabled`. Re-stamp them every activation so a
+        // reminderTime change made on another device propagates.
+        NotificationService.shared.scheduleHabitReminders(for: dataStore.activeHabits)
+        await DailyReminderScheduler.reconcile(dataStore: dataStore)
 
-            let status = await NotificationService.shared.checkAuthorization()
-            if status == .notDetermined {
-                let granted = await NotificationService.shared.requestAuthorization()
-                if !granted {
-                    dataStore.profile.doseRemindersEnabled = false
-                    dataStore.persistProfile()
-                    NotificationService.shared.cancelProtocolReminders()
-                    return
-                }
-            } else if status == .denied {
+        guard dataStore.profile.doseRemindersEnabled else {
+            NotificationService.shared.cancelProtocolReminders()
+            return
+        }
+
+        let status = await NotificationService.shared.checkAuthorization()
+        if status == .notDetermined {
+            let granted = await NotificationService.shared.requestAuthorization()
+            if !granted {
                 dataStore.profile.doseRemindersEnabled = false
                 dataStore.persistProfile()
                 NotificationService.shared.cancelProtocolReminders()
                 return
             }
-
-            NotificationService.shared.scheduleNotifications(for: dataStore.activeProtocols)
+        } else if status == .denied {
+            dataStore.profile.doseRemindersEnabled = false
+            dataStore.persistProfile()
+            NotificationService.shared.cancelProtocolReminders()
+            return
         }
+
+        NotificationService.shared.scheduleNotifications(for: dataStore.activeProtocols)
     }
 }
 
