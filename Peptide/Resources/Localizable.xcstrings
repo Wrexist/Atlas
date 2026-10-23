@@ -10548,6 +10548,17 @@
         }
       }
     },
+    "How much water to log, in milliliters. Used instead of ounces when both are set.": {
+      "comment": "Log water intent parameter description.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hur mycket vatten som ska loggas, i milliliter. Används i stället för ounces när båda är angivna."
+          }
+        }
+      }
+    },
     "HRV change, down %lld milliseconds versus prior week": {
       "localizations": {
         "sv": {
@@ -10745,6 +10756,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "milliliter"
+          }
+        }
+      }
+    },
+    "Milliliters": {
+      "comment": "Log water intent parameter title.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Milliliter"
           }
         }
       }
