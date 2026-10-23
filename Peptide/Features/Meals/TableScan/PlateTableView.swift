@@ -208,6 +208,7 @@ struct PlateTableView: View {
                             .padding(.horizontal, Spacing.md)
                             .frame(minHeight: 36)
                             .glassControl(.capsule)
+                            .minimumHitArea()
                     }
                     GlassIconButton(icon: "arrow.counterclockwise", accessibilityLabel: "Toss the plates", size: 36) {
                         scene.toss()
