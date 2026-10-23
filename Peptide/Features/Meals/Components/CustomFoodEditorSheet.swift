@@ -108,7 +108,8 @@ struct CustomFoodEditorSheet: View {
                              fiber: Double?, sugars: Double?, servingGrams: Double?) -> InputProblem? {
         if [calories, protein, carbs, fat, fiber, sugars].contains(where: { ($0 ?? 0) < 0 }) { return .negative }
         if (calories ?? 0) > 900 { return .caloriesOver900 }
-        if (protein ?? 0) + (carbs ?? 0) + (fat ?? 0) > 100 { return .macrosOver100g }
+        let macroGrams: Double = (protein ?? 0) + (carbs ?? 0) + (fat ?? 0)
+        if macroGrams > 100 { return .macrosOver100g }
         if (fiber ?? 0) > 100 || (sugars ?? 0) > 100 { return .fiberOrSugarsOver100g }
         if let servingGrams, servingGrams > 0, !FoodPortionInput.gramsRange.contains(servingGrams) {
             return .servingOutOfRange
