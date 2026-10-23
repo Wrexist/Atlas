@@ -58,7 +58,10 @@ struct AvatarPreset: Identifiable, Hashable {
     /// — callers should hop off the main thread for big batches.
     func renderJPEGData(side: CGFloat = 1024, quality: CGFloat = 0.82) -> Data? {
         let size = CGSize(width: side, height: side)
-        let renderer = UIGraphicsImageRenderer(size: size)
+        // Scale 1: `side` is the pixel size, not points at the screen's 3x.
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
         let image = renderer.image { context in
             let rect = CGRect(origin: .zero, size: size)
             // Diagonal gradient — top-leading light → bottom-trailing dark.
@@ -91,7 +94,6 @@ struct AvatarPreset: Identifiable, Hashable {
                 )
                 symbolImage.draw(at: origin)
             }
-            _ = rect
         }
         return image.jpegData(compressionQuality: quality)
     }

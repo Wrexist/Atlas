@@ -1,13 +1,6 @@
 import PhotosUI
 import SwiftUI
 
-/// File-scope so the off-main-actor `normalize`/`downscale` helpers below
-/// can read them without crossing actor boundaries. The enclosing
-/// SwiftUI View is @MainActor-isolated, which would otherwise pull
-/// these along with it.
-private let avatarMaxDimension: CGFloat = 1024
-private let avatarJPEGQuality: CGFloat = 0.82
-
 /// Detailed profile customization surface presented from `ProfileView` when the
 /// user taps the avatar or the pencil in `ProfileHeader`. Lets the user upload a profile
 /// image, edit identity (name, bio), pick an accent color, review goals, see
@@ -849,7 +842,7 @@ struct ProfileCustomizationSheet: View {
             }
 
             let processed = await Task.detached(priority: .userInitiated) {
-                Self.normalize(rawImageData: raw)
+                AvatarImageNormalizer.normalize(rawImageData: raw)
             }.value
 
             if let processed {
@@ -867,7 +860,7 @@ struct ProfileCustomizationSheet: View {
         isProcessingPhoto = true
         defer { isProcessingPhoto = false }
         let processed = await Task.detached(priority: .userInitiated) {
-            Self.normalize(image: image)
+            AvatarImageNormalizer.normalize(image: image)
         }.value
         if let processed {
             avatarData = processed
@@ -884,48 +877,6 @@ struct ProfileCustomizationSheet: View {
             preset.renderJPEGData()
         }.value
         avatarData = data
-    }
-
-    /// Decodes, square-crops to the largest centered square, downscales to
-    /// `avatarMaxDimension`, and JPEG-encodes. Performed off the main actor —
-    /// large photos can otherwise cause a perceptible UI hitch.
-    nonisolated private static func normalize(rawImageData: Data) -> Data? {
-        guard let source = UIImage(data: rawImageData) else { return nil }
-        return normalize(image: source)
-    }
-
-    nonisolated private static func normalize(image: UIImage) -> Data? {
-        let cropped = squareCenterCrop(image)
-        let downsampled = downscale(cropped, maxDimension: avatarMaxDimension)
-        return downsampled.jpegData(compressionQuality: avatarJPEGQuality)
-    }
-
-    /// Returns the largest centered square from the image, accounting for
-    /// `imageOrientation` so portrait shots aren't sliced sideways.
-    nonisolated private static func squareCenterCrop(_ image: UIImage) -> UIImage {
-        let size = image.size
-        let side = min(size.width, size.height)
-        guard side > 0, size.width != size.height else { return image }
-        let originX = (size.width - side) / 2
-        let originY = (size.height - side) / 2
-        let renderer = UIGraphicsImageRenderer(size: CGSize(width: side, height: side))
-        return renderer.image { _ in
-            image.draw(in: CGRect(x: -originX, y: -originY, width: size.width, height: size.height))
-        }
-    }
-
-    nonisolated private static func downscale(_ image: UIImage, maxDimension: CGFloat) -> UIImage {
-        let largest = max(image.size.width, image.size.height)
-        guard largest > maxDimension, largest > 0 else { return image }
-        let scale = maxDimension / largest
-        let newSize = CGSize(
-            width: (image.size.width * scale).rounded(),
-            height: (image.size.height * scale).rounded()
-        )
-        let renderer = UIGraphicsImageRenderer(size: newSize)
-        return renderer.image { _ in
-            image.draw(in: CGRect(origin: .zero, size: newSize))
-        }
     }
 }
 
