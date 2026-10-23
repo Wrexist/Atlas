@@ -262,13 +262,30 @@ final class StoreServiceTests: XCTestCase {
 
     /// SKTestSession refunds and expiries reach `currentEntitlements`
     /// asynchronously, so re-read until the change lands or time runs out.
-    private func awaitProAccess(_ expected: Bool, timeout: Duration = .seconds(10)) async {
+    /// 30s, not 10s: on a loaded shared macOS runner the change has taken
+    /// longer than 10s to land, failing a test whose logic was correct.
+    private func awaitProAccess(_ expected: Bool, timeout: Duration = .seconds(30)) async {
         let clock = ContinuousClock()
         let deadline = clock.now + timeout
         await service.checkProAccess()
         while service.isProUser != expected, clock.now < deadline {
             try? await Task.sleep(for: .milliseconds(200))
             await service.checkProAccess()
+        }
+    }
+
+    /// SKTestSession's refund and expire calls can throw when they land
+    /// before the session has registered the purchase they target, which
+    /// a slow runner makes likely. Retry with a pause; the last attempt's
+    /// error still fails the test, so a call that never succeeds is caught.
+    private func retryingSessionCall(attempts: Int = 5, _ call: () throws -> Void) async throws {
+        for attempt in 1... {
+            do {
+                try call()
+                return
+            } catch where attempt < attempts {
+                try await Task.sleep(for: .seconds(1))
+            }
         }
     }
 
@@ -281,7 +298,7 @@ final class StoreServiceTests: XCTestCase {
         let transaction = try XCTUnwrap(
             session.allTransactions().first { $0.productIdentifier == StoreService.lifetimeID }
         )
-        try session.refundTransaction(identifier: transaction.identifier)
+        try await retryingSessionCall { try session.refundTransaction(identifier: transaction.identifier) }
         await awaitProAccess(false)
 
         XCTAssertFalse(service.isProUser, "A refunded lifetime purchase must not keep Pro")
@@ -293,7 +310,7 @@ final class StoreServiceTests: XCTestCase {
         _ = try await service.purchase(monthly)
         XCTAssertTrue(service.isProUser)
 
-        try session.expireSubscription(productIdentifier: StoreService.monthlyID)
+        try await retryingSessionCall { try session.expireSubscription(productIdentifier: StoreService.monthlyID) }
         await awaitProAccess(false)
 
         XCTAssertFalse(service.isProUser, "An expired subscription outside grace must not keep Pro")
