@@ -165,7 +165,7 @@ final class DataStore {
         self.protocols = []
         self.entries   = []
         self.profile   = .fresh
-        let storedCustomPeptides = Self.readCustomPeptides()
+        let storedCustomPeptides = DataStore.readCustomPeptides()
         self.customPeptides = storedCustomPeptides ?? []
         self.customPeptidesReadable = storedCustomPeptides != nil
 
@@ -2921,6 +2921,8 @@ final class DataStore {
         regenerateTodayEntries()
         refreshHealthIfDue()
         turnOffDeniedHealthWrites()
+        // The unlock notification isn't delivered to a suspended app.
+        retryUnreadableCustomPeptides()
     }
 
     /// Write access can be withdrawn in Settings at any time; a toggle
