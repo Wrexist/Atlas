@@ -159,12 +159,21 @@ struct RestoreBackupSheet: View {
                     : Text("Your current data is kept; only items missing from your library are added.")
             )
             VStack(spacing: Spacing.sm) {
-                PrimaryCTAButton(
-                    title: strategy == .replace ? "Replace and restore" : "Merge and restore",
-                    icon: "checkmark",
-                    shape: .rounded
-                ) {
-                    apply(strategy: strategy)
+                // Replace wipes the current data, so it wears the same red
+                // as the card that chose it rather than the go-ahead fill.
+                if strategy == .replace {
+                    GlassButton(
+                        title: "Replace and restore",
+                        icon: "arrow.triangle.2.circlepath",
+                        style: .destructive,
+                        isFullWidth: true
+                    ) {
+                        apply(strategy: strategy)
+                    }
+                } else {
+                    PrimaryCTAButton(title: "Merge and restore", icon: "checkmark", shape: .rounded) {
+                        apply(strategy: strategy)
+                    }
                 }
 
                 GlassButton(title: "Back", style: .ghost, isFullWidth: true) {
