@@ -823,7 +823,9 @@ struct NextDoseAccessoryView: View {
     private var accessibilityLabel: Text {
         guard let next = dataStore.nextDose else { return Text("All doses completed for today") }
         let time = next.date.formatted(.dateTime.hour().minute())
-        return Text("Next dose: \(next.peptide.name), \(next.dose) at \(time)")
+        return next.dose.isEmpty
+            ? Text("Next dose: \(next.peptide.name) at \(time)")
+            : Text("Next dose: \(next.peptide.name), \(next.dose) at \(time)")
     }
 }
 

@@ -39942,6 +39942,16 @@
           }
         }
       }
+    },
+    "Next dose: %@ at %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nästa dos: %@ kl. %@"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
