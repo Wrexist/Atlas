@@ -10665,6 +10665,16 @@
         }
       }
     },
+    "Enter a weight between %@ and %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ange en vikt mellan %@ och %@."
+          }
+        }
+      }
+    },
     "Estimated expenditure: %lld kcal": {
       "localizations": {
         "sv": {
@@ -11035,12 +11045,32 @@
         }
       }
     },
+    "logged": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "loggat"
+          }
+        }
+      }
+    },
     "Logged %lld days ago": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Loggad för %lld dagar sedan"
+          }
+        }
+      }
+    },
+    "logged today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "loggat idag"
           }
         }
       }
@@ -11261,6 +11291,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Meddela mig när fastan är slut"
+          }
+        }
+      }
+    },
+    "of %@ kcal": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "av %@ kcal"
           }
         }
       }

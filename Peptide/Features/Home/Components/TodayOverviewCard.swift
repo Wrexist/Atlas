@@ -96,7 +96,7 @@ struct TodayOverviewCard: View {
 
     private var caloriesFootnote: String {
         if let target = snapshot.calorieTarget {
-            return String(format: String(localized: "of %d kcal"), target)
+            return String(localized: "of \(target.formatted()) kcal")
         }
         if snapshot.caloriesToday > 0 {
             return String(localized: "kcal logged")
@@ -134,11 +134,12 @@ struct TodayOverviewCard: View {
     private var waterTile: some View {
         StatTile(
             label: "Water",
-            value: snapshot.waterToday > 0 ? "\(unit.volumeValue(snapshot.waterToday))" : "—",
+            // Same label as the checklist row ("1.4 L", not "1420").
+            value: snapshot.waterToday > 0 ? unit.volumeLabel(snapshot.waterToday) : "—",
             icon: "drop.fill",
             tint: AppColor.macroWater,
             footnote: snapshot.waterToday > 0
-                ? (isToday ? String(localized: "\(unit.volumeSuffix) today") : unit.volumeSuffix)
+                ? (isToday ? String(localized: "logged today") : String(localized: "logged"))
                 : (isToday ? String(localized: "Tap to add") : String(localized: "None logged"))
         )
     }

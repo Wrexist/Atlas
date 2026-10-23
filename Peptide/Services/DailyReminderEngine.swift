@@ -79,13 +79,15 @@ enum DailyReminderEngine {
     /// "82,4", "82.4 kg" or "181 lb" alike; the unit suffix is ignored in
     /// favour of the user's display unit. Out-of-range values return nil
     /// so a slip of the thumb ("8.24") never lands in the weight history.
+    static let plausibleWeightKilograms: ClosedRange<Double> = 25...350
+
     static func parsedWeightKilograms(_ text: String, unit: MeasurementUnit) -> Double? {
         let numeric = text
             .replacingOccurrences(of: ",", with: ".")
             .filter { $0.isNumber || $0 == "." }
         guard let value = Double(numeric) else { return nil }
         let kilograms = unit.kilograms(fromDisplayed: value)
-        guard (25...350).contains(kilograms) else { return nil }
+        guard plausibleWeightKilograms.contains(kilograms) else { return nil }
         return kilograms
     }
 }
