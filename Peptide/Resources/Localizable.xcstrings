@@ -24370,6 +24370,39 @@
         }
       }
     },
+    "Past logs stay. It's used in ^[%lld recipe](inflect: true), which will need a replacement ingredient before logging.": {
+      "comment": "Delete-food confirmation when recipes use the food.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tidigare loggar påverkas inte. Livsmedlet används i %#@arg1@."
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg recept, som behöver en ny ingrediens innan det kan loggas"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg recept, som behöver en ny ingrediens innan de kan loggas"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Paused without Pro": {
       "localizations": {
         "sv": {

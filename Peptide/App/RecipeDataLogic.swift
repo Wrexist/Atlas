@@ -24,6 +24,12 @@ enum RecipeDataLogic {
         return Review(totals: totals(for: recipe, customFoods: customFoods), unresolved: [])
     }
 
+    /// How many recipes use this food as an ingredient. Deleting the food
+    /// leaves each of them unloggable until the ingredient is replaced.
+    static func recipeCount(using foodID: String, in recipes: [Recipe]) -> Int {
+        recipes.filter { recipe in recipe.components.contains { $0.foodID == foodID } }.count
+    }
+
     /// Inserts (or replaces by id) a recipe in the user's library.
     /// Newest-first sort by `updatedAt` so the list reads "what I
     /// just edited" on top.

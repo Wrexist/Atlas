@@ -245,8 +245,9 @@ struct FoodLibraryFlow: View {
                 pendingDelete = nil
             }
             Button("Cancel", role: .cancel) { pendingDelete = nil }
-        } message: { _ in
-            Text("Past logs aren't affected — only the food itself disappears from your library.")
+        } message: { food in
+            CustomFoodEditorSheet.deleteMessage(recipeCount: RecipeDataLogic.recipeCount(
+                using: food.foodID, in: profile.recipes))
         }
         .sheet(item: $editingRecipe) { recipe in
             RecipeEditorSheet(

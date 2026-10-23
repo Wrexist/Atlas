@@ -55,6 +55,19 @@ final class FoodLibraryLogicTests: XCTestCase {
         XCTAssertEqual(FoodLibraryLogic.wholeNumber(12.6), 13)
     }
 
+    func test_recipeCount_foodUsedInSomeRecipes_countsOnlyThose() {
+        let oats = food(), rice = food("Rice")
+        let bowl = Recipe(name: "Bowl", components: [
+            Recipe.Component(foodID: oats.foodID, cachedName: "Oats", portion: .grams(80)),
+            Recipe.Component(foodID: oats.foodID, cachedName: "Oats", portion: .grams(20)),
+        ])
+        let plate = Recipe(name: "Plate", components: [
+            Recipe.Component(foodID: rice.foodID, cachedName: "Rice", portion: .grams(150)),
+        ])
+        XCTAssertEqual(RecipeDataLogic.recipeCount(using: oats.foodID, in: [bowl, plate]), 1)
+        XCTAssertEqual(RecipeDataLogic.recipeCount(using: food("Unused").foodID, in: [bowl, plate]), 0)
+    }
+
     func testSearchRankingDeduplicatesAndPreservesTies() {
         let exact = food("Oats").toScannedProduct()
         let prefix = food("Oats rolled").toScannedProduct()

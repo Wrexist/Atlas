@@ -233,7 +233,8 @@ struct CustomFoodEditorSheet: View {
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("This won't remove past logs — only the food itself disappears from your library.")
+                Self.deleteMessage(recipeCount: RecipeDataLogic.recipeCount(
+                    using: initial.foodID, in: dataStore.profile.recipes))
             }
         }
         // `.onAppear` fires once per presentation, where `.task` would
@@ -423,6 +424,15 @@ struct CustomFoodEditorSheet: View {
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(width: unitWidth, alignment: .leading)
         }
+    }
+
+    /// Confirmation copy for deleting a custom food. Names the recipes
+    /// that will need a replacement ingredient, since deleting silently
+    /// leaves them unloggable.
+    static func deleteMessage(recipeCount: Int) -> Text {
+        recipeCount > 0
+            ? Text("Past logs stay. It's used in ^[\(recipeCount) recipe](inflect: true), which will need a replacement ingredient before logging.")
+            : Text("This won't remove past logs — only the food itself disappears from your library.")
     }
 
     // MARK: - State plumbing
