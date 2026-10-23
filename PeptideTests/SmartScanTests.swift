@@ -68,7 +68,7 @@ final class SmartScanTests: XCTestCase {
         }
         let scan = try await service.smartScan(image: tinyImage())
 
-        XCTAssertEqual(scan.items.map(\.name), ["Banana"])
+        XCTAssertEqual(scan.items.map(\.name), ["Banana", "Olive oil"], "label-rounded oil stays")
     }
 
     func test_parseSmartScan_onlyItemOverFiveThousandKcal_throwsImplausibleResult() {
@@ -77,6 +77,16 @@ final class SmartScanTests: XCTestCase {
                 XCTFail("Expected implausibleResult, got \(error)")
             }
         }
+    }
+
+    func test_parseSmartScan_wholePackageOverItemTotals_keepsItem() throws {
+        let scan = try service.parseSmartScan(from: Data(SmartFixtures.sugarBag.utf8))
+        XCTAssertEqual(scan.items.first?.per100g?.carbsG, 100)
+    }
+
+    func test_parseSmartScan_labelRoundedMacrosJustOver100g_keepsItem() throws {
+        let scan = try service.parseSmartScan(from: Data(SmartFixtures.roundedSeeds.utf8))
+        XCTAssertEqual(scan.items.map(\.name), ["Chia seeds"])
     }
 
     func test_parseSmartScan_macrosOverOneHundredGramsPer100g_dropsItem() {
@@ -390,8 +400,29 @@ private enum SmartFixtures {
       ]}}
     """
 
+    static let sugarBag = """
+    {"model":"claude-opus-5-5","result":{
+      "kind":"packaged_product","title":"Strösocker","summary":"A bag of sugar.","tips":[],
+      "package":{"total_grams":2000,"serving_grams":null,"serving_label":null},
+      "items":[
+        {"name":"Strösocker","brand":"Dansukker","portion_label":"1 bag","grams":2000,"portion_options":[],
+         "per_100g":{"calories":400,"protein_g":0,"carbs_g":100,"fat_g":0,"fiber_g":0,"sugars_g":100},
+         "confidence":0.95,"price":null}
+      ]}}
+    """
+
+    static let roundedSeeds = """
+    {"model":"claude-opus-5-5","result":{
+      "kind":"ingredient","title":"Chia","summary":"Chia seeds.","tips":[],"package":null,
+      "items":[
+        {"name":"Chia seeds","brand":null,"portion_label":"1 tbsp","grams":12,"portion_options":[],
+         "per_100g":{"calories":486,"protein_g":17,"carbs_g":42,"fat_g":42,"fiber_g":34,"sugars_g":0},
+         "confidence":0.9,"price":null}
+      ]}}
+    """
+
     static let legacyImplausibleItems = """
-    {"content":[{"type":"text","text":"{\\"meal_name\\":null,\\"items\\":[{\\"name\\":\\"Crumb\\",\\"quantity_label\\":\\"a crumb\\",\\"grams\\":0.4,\\"calories\\":50,\\"protein_g\\":1,\\"carbs_g\\":5,\\"fat_g\\":2,\\"confidence\\":0.9},{\\"name\\":\\"Dense\\",\\"quantity_label\\":\\"1 spoon\\",\\"grams\\":10,\\"calories\\":500,\\"protein_g\\":0,\\"carbs_g\\":0,\\"fat_g\\":10,\\"confidence\\":0.9},{\\"name\\":\\"Banana\\",\\"quantity_label\\":\\"1 banana\\",\\"grams\\":120,\\"calories\\":105,\\"protein_g\\":1,\\"carbs_g\\":27,\\"fat_g\\":0,\\"confidence\\":0.9}]}"}]}
+    {"content":[{"type":"text","text":"{\\"meal_name\\":null,\\"items\\":[{\\"name\\":\\"Crumb\\",\\"quantity_label\\":\\"a crumb\\",\\"grams\\":0.4,\\"calories\\":50,\\"protein_g\\":1,\\"carbs_g\\":5,\\"fat_g\\":2,\\"confidence\\":0.9},{\\"name\\":\\"Dense\\",\\"quantity_label\\":\\"1 spoon\\",\\"grams\\":10,\\"calories\\":500,\\"protein_g\\":0,\\"carbs_g\\":0,\\"fat_g\\":10,\\"confidence\\":0.9},{\\"name\\":\\"Banana\\",\\"quantity_label\\":\\"1 banana\\",\\"grams\\":120,\\"calories\\":105,\\"protein_g\\":1,\\"carbs_g\\":27,\\"fat_g\\":0,\\"confidence\\":0.9},{\\"name\\":\\"Olive oil\\",\\"quantity_label\\":\\"1 tsp\\",\\"grams\\":4,\\"calories\\":40,\\"protein_g\\":0,\\"carbs_g\\":0,\\"fat_g\\":4,\\"confidence\\":0.9}]}"}]}
     """
 
     static let legacyItems = """

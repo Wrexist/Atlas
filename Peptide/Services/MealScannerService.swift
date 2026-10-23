@@ -776,7 +776,7 @@ final class MealScannerService: Sendable {
             return !name.isEmpty
                 && name.lowercased() != "unknown"
                 && Self.plausibleItemGrams(item.grams)
-                && Double(item.calories) / item.grams * 100 <= Self.maxCaloriesPer100g
+                && Double(item.calories) / item.grams * 100 <= Self.maxItemCaloriesPer100g
                 && (0.0...1.0).contains(item.confidence)
                 && Self.isPlausible(
                     calories: item.calories,
@@ -889,7 +889,8 @@ final class MealScannerService: Sendable {
         }
         let questions = wire.questions ?? []
         let items = wire.items.enumerated().compactMap { index, item in
-            Self.scannedItem(from: item, question: questions.first { $0.itemIndex == index })
+            Self.scannedItem(from: item, question: questions.first { $0.itemIndex == index },
+                             isPackaged: wire.package != nil)
         }
         if !wire.items.isEmpty && items.isEmpty { throw ScanError.implausibleResult }
         let package = wire.package.map {
@@ -911,7 +912,8 @@ final class MealScannerService: Sendable {
     }
 
     private static func scannedItem(from wire: SmartScanEnvelope.Item,
-                                    question: SmartScanEnvelope.Question?) -> ScannedFoodItem? {
+                                    question: SmartScanEnvelope.Question?,
+                                    isPackaged: Bool) -> ScannedFoodItem? {
         let name = wire.name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty, name.lowercased() != "unknown",
               plausibleItemGrams(wire.grams),
@@ -923,7 +925,12 @@ final class MealScannerService: Sendable {
         let proteinG = Int((per100g.proteinG * scale).rounded())
         let carbsG = Int((per100g.carbsG * scale).rounded())
         let fatG = Int((per100g.fatG * scale).rounded())
-        guard isPlausible(calories: calories, proteinG: proteinG, carbsG: carbsG, fatG: fatG) else { return nil }
+        // A package read describes the whole pack (a 1 kg bag of rice is
+        // 3,600 kcal and 800 g of carbs); its per-100 g values are what
+        // gets portioned, and they are bounded above.
+        guard isPackaged || isPlausible(calories: calories, proteinG: proteinG, carbsG: carbsG, fatG: fatG) else {
+            return nil
+        }
         let options = wire.portionOptions
             .filter { plausibleItemGrams($0.grams) && !$0.label.isEmpty }
             .prefix(4)
@@ -971,15 +978,24 @@ final class MealScannerService: Sendable {
 
     /// Pure fat, the most energy 100 g of anything holds.
     private static let maxCaloriesPer100g: Double = 900
+    /// A whole-item estimate rounds both its grams and its kcal ("1 tsp
+    /// oil, 4 g, 40 kcal"; a US label's "1 tbsp (14 g) 130 kcal"), so its
+    /// energy density gets headroom over pure fat.
+    private static let maxItemCaloriesPer100g: Double = 1_000
+    /// Protein, carbohydrate and fat can't outweigh the food, but a US
+    /// label rounds each to the gram per serving and the model scales
+    /// that to 100 g — up to ~5 g of drift on a 30 g serving of oil,
+    /// sugar or seeds.
+    private static let maxMacroSumPer100g: Double = 105
 
     /// Per-100g values can't exceed what 100 g of anything holds: 900 kcal
     /// (pure fat), 100 g of any one macro, and 100 g of the three together
-    /// (half a gram of slack for rounding).
+    /// (with slack for label rounding).
     private static func plausible(_ n: SmartScanEnvelope.Nutrients) -> ScannedProduct.Nutriments? {
         let macros = [n.proteinG, n.carbsG, n.fatG, n.fiberG, n.sugarsG]
         guard n.calories.isFinite, (0...maxCaloriesPer100g).contains(n.calories),
               macros.allSatisfy({ $0.isFinite && (0...100).contains($0) }),
-              n.proteinG + n.carbsG + n.fatG <= 100.5
+              n.proteinG + n.carbsG + n.fatG <= maxMacroSumPer100g
         else { return nil }
         return ScannedProduct.Nutriments(calories: n.calories, proteinG: n.proteinG, carbsG: n.carbsG,
                                          fatG: n.fatG, fiberG: n.fiberG, sugarsG: n.sugarsG)

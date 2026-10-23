@@ -116,6 +116,7 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         XCTAssertNil(product.servingGrams)
         XCTAssertNil(product.novaGroup)
         XCTAssertEqual(product.per100g.fatG, 0)
+        XCTAssertEqual(product.per100g.carbsG, 0, "a \"nan\" string is missing, not NaN")
         XCTAssertEqual(product.per100g.proteinG, 1.5, accuracy: 0.001)
         XCTAssertEqual(product.per100g.calories, 120, accuracy: 0.001)
     }
@@ -627,6 +628,7 @@ private enum Fixtures {
         "nutriments": {
           "energy-kcal_100g": " 120 ",
           "proteins_100g": "1,5",
+          "carbohydrates_100g": "nan",
           "fat_100g": "n/a"
         }
       }
