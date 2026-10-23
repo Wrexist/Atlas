@@ -19447,12 +19447,12 @@
         }
       }
     },
-    "Log every meal from a photo or barcode.": {
+    "Log every meal from a photo, with no weekly cap.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Logga varje måltid från ett foto eller en streckkod."
+            "value": "Logga varje måltid från ett foto, utan veckogräns."
           }
         }
       }
@@ -23407,12 +23407,12 @@
         }
       }
     },
-    "One number built from your recovery and training data.": {
+    "Built from cardio fitness, HRV, resting heart rate, sleep and more.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ett tal byggt på dina återhämtnings- och träningsdata."
+            "value": "Byggd på kondition, HRV, vilopuls, sömn och mer."
           }
         }
       }
