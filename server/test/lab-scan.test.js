@@ -38,6 +38,7 @@ const BASE_ENV = {
   LAB_SCAN_EFFORT: undefined,
   STOREKIT_ROOT_CA_FINGERPRINT: chain.rootFingerprint,
   STOREKIT_BUNDLE_ID: undefined,
+  PRO_GATE_MODE: undefined,
 };
 
 const JPEG = '/9j/4AAQSkZJRgABAQ==';
@@ -181,6 +182,15 @@ test('test_withoutVerifiedProEntitlement_isRefused403BeforeUpstream', async (t) 
     assert.equal(res.body.error.code, 'pro_required');
   }
   assert.equal(calls.length, 0);
+});
+
+test('test_proGateReportMode_letsUnverifiedScanThrough', async (t) => {
+  setEnv(t, { ...BASE_ENV, PRO_GATE_MODE: 'report' });
+  const calls = stubUpstream(t, { stop_reason: 'end_turn', content: [{ type: 'text', text: JSON.stringify(RESULT) }] });
+  const res = makeRes();
+  await handler(makeReq('10.2.0.8', { images: [JPEG] }), res);
+  assert.equal(res.statusCode, 200);
+  assert.equal(calls.length, 1);
 });
 
 test('test_badLocale_fallsBackToDefault', () => {

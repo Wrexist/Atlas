@@ -54,6 +54,10 @@
  *                          pass `scanSucceeded`; see _lib/scan-quota.js.
  *   STOREKIT_BUNDLE_ID   — checked on the Pro entitlement that routes
  *                          with `requirePro` demand; see storekit-jws.js.
+ *   PRO_GATE_MODE        — `enforce` (default) refuses those routes
+ *                          without a verified entitlement; `report` only
+ *                          logs and lets them through, the switch to
+ *                          flip if real Pro users are being refused.
  *
  * iOS clients pull the proxy URL and the matching secret from
  * Info.plist (or scheme env): `MEAL_SCANNER_ENDPOINT` +
@@ -400,9 +404,17 @@ export async function forwardToAnthropic(req, res, {
   // lifts the free scan allowance. The app gates them behind the
   // paywall; this is what stops a client holding only the shared
   // secret from running them for free.
+  // Verification needs no configuration (it pins Apple's root and
+  // defaults to this app's bundle ID), but it has only met synthetic
+  // fixtures, so `PRO_GATE_MODE=report` turns the gate into a log line
+  // rather than a redeploy if a real subscriber's JWS is ever refused.
   if (requirePro && !hasVerifiedPro(req, logLabel)) {
-    refuse(res, 'pro_required');
-    return;
+    if (process.env.PRO_GATE_MODE === 'report') {
+      console.warn(`[${logLabel}] pro gate report: no verified entitlement`);
+    } else {
+      refuse(res, 'pro_required');
+      return;
+    }
   }
 
   // Charged on the parsed body, never on `content-length`, which a

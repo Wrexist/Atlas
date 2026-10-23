@@ -100,6 +100,8 @@ same auth, App Attest gate and limiter.
        "Free scan quota" below.
      - `STOREKIT_BUNDLE_ID` — bundle ID a Pro transaction must carry.
        Default `com.peptidesai.app`; only set it for a different app.
+     - `PRO_GATE_MODE` — `enforce` (default) or `report`; see "Free scan
+       quota" below for the Pro-only lab-scan route.
 4. Note the deploy URL (e.g. `https://peptidex-proxy.vercel.app`).
 
 ## Wire the iOS app
@@ -214,8 +216,10 @@ Verification ships **report-only by default** — it logs
 4. The App Store build in users' hands handles `401 attest_clock`: a
    device clock more than 5 minutes off is refused with that code, and
    the app corrects its stamp from the response's `Date` header and
-   keeps its key. Older builds treat every 401 as `attest_required`
-   and re-register on each request, which never fixes a wrong clock.
+   keeps its key. Older builds re-register only on `attest_required`,
+   so they show their "secret no longer matches" error for
+   `attest_clock` — still locked out until the clock is fixed, but no
+   longer minting a new key on every request.
 
 iOS client config: `APP_ATTEST_ENDPOINT` = the attest-register URL,
 `APP_ATTEST_SECRET` = the `PROXY_SHARED_SECRET` value (inject via CI
@@ -312,7 +316,14 @@ which a reinstall wipes. The proxy keeps the authoritative count:
 `/api/lab-scan` is Pro-only, as it is in the app, and uses the same
 check without a free allowance: no `X-Atlas-Entitlement` that verifies
 means `403 { error: { code: "pro_required" } }` before any quota or
-budget is spent.
+budget is spent. The check needs no env vars in production — it pins
+Apple Root CA - G3 and defaults to `com.peptidesai.app` (leave
+`STOREKIT_ROOT_CA_FINGERPRINT` unset there, or every real subscriber
+is refused). Unlike the free allowance it does not fail open on its
+own, so `PRO_GATE_MODE=report` is the switch: it logs
+`pro gate report` and lets the scan through. Flip it if
+`entitlement rejected` lines show up for real subscribers, since the
+verifier has so far only been tested against synthetic fixtures.
 
 The install ID and the metered flag are client-asserted, the same trust
 level as the shared secret: they stop a reinstall from resetting the
