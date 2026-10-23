@@ -22,11 +22,13 @@ struct ExerciseDetailView: View {
                     // trains, marked on the Atlas figure, front and back.
                     muscleSection(for: exercise)
                         .sectionAppear(index: 1)
-                    metadataRow(for: exercise)
-                        .sectionAppear(index: 2)
-                    ExerciseHistorySection(exercise: exercise)
-                        .sectionAppear(index: 3)
+                    // How to do it sits right under what it trains: below
+                    // the history it was a scroll away and read as missing.
                     instructionsSection(for: exercise)
+                        .sectionAppear(index: 2)
+                    metadataRow(for: exercise)
+                        .sectionAppear(index: 3)
+                    ExerciseHistorySection(exercise: exercise)
                         .sectionAppear(index: 4)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
@@ -146,19 +148,20 @@ struct ExerciseDetailView: View {
     // MARK: - Instructions
 
     private func instructionsSection(for exercise: Exercise) -> some View {
-        GlassCard {
+        let steps = library.steps(for: exercise)
+        return GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 Text("How to perform")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
 
-                if exercise.instructions.isEmpty {
+                if steps.isEmpty {
                     Text("No instructions provided for this exercise.")
                         .font(AppFont.callout)
                         .foregroundStyle(AppColor.textSecondary)
                 } else {
                     VStack(alignment: .leading, spacing: Spacing.sm) {
-                        ForEach(Array(exercise.instructions.enumerated()), id: \.offset) { index, step in
+                        ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
                             HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
                                 Text("\(index + 1)")
                                     .font(AppFont.headline)
