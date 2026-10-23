@@ -28,7 +28,7 @@ final class WorkoutLiveActivityService {
     /// over — even with Live Activities switched off, so a card left up
     /// when the user disabled them still clears. Called on launch, where
     /// a session restored from disk would otherwise have lost its
-    /// activity.
+    /// activity, and whenever the app becomes active.
     func reconcile(active session: WorkoutSession?) {
         guard let session, session.isActive else {
             endAll()
