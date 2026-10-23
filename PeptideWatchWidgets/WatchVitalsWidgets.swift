@@ -82,18 +82,24 @@ struct WatchRecoveryEntryView: View {
 
     private var vitals: WatchVitalsSnapshot? { entry.vitals }
 
+    /// The score while it is still today's. One measured days ago reads
+    /// as unknown rather than as this morning's recovery.
+    private var score: Int? {
+        vitals.flatMap { $0.isStale(at: entry.date) ? nil : $0.recoveryScore }
+    }
+
     private var circular: some View {
-        Gauge(value: Double(vitals?.recoveryScore ?? 0), in: 0...100) {
+        Gauge(value: Double(score ?? 0), in: 0...100) {
             Image(systemName: "heart.fill")
         } currentValueLabel: {
-            Text(vitals?.recoveryScore.map { "\($0)" } ?? "—")
+            Text(score.map(WatchFormat.recovery) ?? "—")
                 .widgetAccentable()
         }
         .gaugeStyle(.accessoryCircular)
         .tint(WatchPalette.heart)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(
-            vitals?.recoveryScore.map { Text("Recovery score \($0)") } ?? Text("Recovery score unavailable")
+            score.map { Text("Recovery score \($0)") } ?? Text("Recovery score unavailable")
         )
         .containerBackground(for: .widget) { Color.clear }
     }
@@ -104,10 +110,12 @@ struct WatchRecoveryEntryView: View {
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(WatchPalette.heart)
             if let vitals {
-                Text(vitals.recoveryScore.map { "\($0)" } ?? "—")
+                Text(score.map(WatchFormat.recovery) ?? "—")
                     .font(.system(.title2, design: .rounded, weight: .bold))
                     .widgetAccentable()
-                Text(detail(vitals))
+                Text(vitals.isStale(at: entry.date)
+                     ? String(localized: "Updated \(vitals.measuredAt.formatted(.relative(presentation: .named)))")
+                     : detail(vitals))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             } else {
@@ -126,7 +134,7 @@ struct WatchRecoveryEntryView: View {
 
     private var inline: some View {
         Label(
-            vitals?.recoveryScore.map { String(localized: "Recovery \($0)") } ?? String(localized: "Recovery —"),
+            score.map { String(localized: "Recovery \(WatchFormat.recovery($0))") } ?? String(localized: "Recovery —"),
             systemImage: "heart.fill"
         )
         .containerBackground(for: .widget) { Color.clear }
@@ -187,9 +195,7 @@ struct WatchSleepEntryView: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(sleep.map { String(localized: "Sleep Score \($0.score), \($0.band.label)") }
-                            ?? (entry.synced
-                                ? String(localized: "No sleep recorded last night")
-                                : String(localized: "Open Atlas on iPhone")))
+                            ?? emptyMessage)
         .containerBackground(for: .widget) { Color.clear }
     }
 
@@ -210,15 +216,21 @@ struct WatchSleepEntryView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             } else {
-                Text(entry.synced
-                     ? String(localized: "No sleep recorded last night")
-                     : String(localized: "Open Atlas on iPhone"))
+                Text(emptyMessage)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .containerBackground(for: .widget) { Color.clear }
+    }
+
+    /// Matches Recovery: not synced, not connected, or connected with no
+    /// night recorded.
+    private var emptyMessage: String {
+        !entry.synced ? String(localized: "Open Atlas on iPhone")
+            : !entry.healthConnected ? String(localized: "Connect Apple Health in Atlas")
+            : String(localized: "No sleep recorded last night")
     }
 
     private var inline: some View {

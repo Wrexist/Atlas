@@ -116,14 +116,21 @@ struct TodayPage: View {
         return parts.joined(separator: ", ")
     }
 
+    /// Never synced, synced on an earlier day, or synced today with
+    /// nothing due: only the last is a fact about today.
     private var emptyState: some View {
-        let neverSynced = store.watchData.lastUpdated == .distantPast
+        let data = store.watchData
+        let neverSynced = data.lastUpdated == .distantPast
+        let needsPhone = neverSynced || data.awaitsToday(at: .now)
+        let message: LocalizedStringKey = neverSynced ? "Open Atlas on your iPhone to sync."
+            : needsPhone ? "Open Atlas on your iPhone to load today."
+            : "Nothing due today."
         return VStack(spacing: 8) {
-            Image(systemName: neverSynced ? "iphone.and.arrow.forward" : "checkmark.circle.fill")
+            Image(systemName: needsPhone ? "iphone.and.arrow.forward" : "checkmark.circle.fill")
                 .font(.system(size: 34))
-                .foregroundStyle(neverSynced ? Color.secondary : WatchPalette.health)
-                .symbolEffect(.bounce, value: neverSynced)
-            Text(neverSynced ? LocalizedStringKey("Open Atlas on your iPhone to sync.") : LocalizedStringKey("Nothing due today."))
+                .foregroundStyle(needsPhone ? Color.secondary : WatchPalette.health)
+                .symbolEffect(.bounce, value: needsPhone)
+            Text(message)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

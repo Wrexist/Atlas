@@ -75,6 +75,12 @@ struct WatchVitalsSnapshot: Codable, Hashable, Sendable {
     /// When the phone ran the HealthKit queries this snapshot came from.
     let measuredAt: Date
 
+    /// Recovery, resting heart rate and HRV measured this long ago are no
+    /// longer today's: the phone only re-reads them when its app is opened.
+    func isStale(at now: Date) -> Bool {
+        now.timeIntervalSince(measuredAt) > WatchData.vitalsStaleAfter
+    }
+
     /// The same snapshot without its night, for one too old to pass as
     /// last night's.
     var withoutSleep: WatchVitalsSnapshot {
@@ -167,9 +173,9 @@ struct WatchData: Codable, Equatable, Sendable {
     /// Today's habit completion split by domain — health (green) and
     /// training/fitness (blue) — powering the color-coded complications.
     private(set) var healthHabitsDone: Int?
-    let healthHabitsTotal: Int?
+    private(set) var healthHabitsTotal: Int?
     private(set) var trainingHabitsDone: Int?
-    let trainingHabitsTotal: Int?
+    private(set) var trainingHabitsTotal: Int?
     /// `MeasurementUnit` rawValue — "metric" or "imperial". A String for
     /// the same reason `atlasTier` is: this file is shared with the watch
     /// and widget targets, which cannot see the app target's model types.
@@ -328,11 +334,23 @@ struct WatchData: Codable, Equatable, Sendable {
     /// only refreshes vitals when its app is opened.
     static let sleepStaleAfter: TimeInterval = 30 * 3600
 
+    /// Vitals measured this long ago are shown as out of date.
+    static let vitalsStaleAfter: TimeInterval = 24 * 3600
+
+    /// Whether this snapshot was sent on an earlier day than `now`, so
+    /// today's doses and habits are unknown until the phone pushes again.
+    /// A Watch that has never synced has its own empty state.
+    func awaitsToday(at now: Date) -> Bool {
+        lastUpdated != .distantPast && !Calendar.current.isDate(lastUpdated, inSameDayAs: now)
+    }
+
     /// The snapshot as it reads at `now`. One sent on an earlier day keeps
-    /// its totals and targets but none of that day's progress, so the
+    /// its targets but none of that day's progress or due counts, so the
     /// Watch never shows yesterday's doses (or lets them be tapped) after
-    /// midnight. A workout the phone stopped pushing hours ago is dropped,
-    /// and so is a night too old to show as last night.
+    /// midnight, nor yesterday's habit totals as today's: habits due on
+    /// set weekdays change from day to day. A workout the phone stopped
+    /// pushing hours ago is dropped, and so is a night too old to show as
+    /// last night.
     func forDisplay(at now: Date) -> WatchData {
         var copy = self
         if now.timeIntervalSince(lastUpdated) > Self.workoutStaleAfter {
@@ -346,8 +364,10 @@ struct WatchData: Codable, Equatable, Sendable {
         copy.completedToday = 0
         copy.totalToday = 0
         copy.atlasTodayEarned = atlasTodayEarned.map { _ in 0 }
-        copy.healthHabitsDone = healthHabitsDone.map { _ in 0 }
-        copy.trainingHabitsDone = trainingHabitsDone.map { _ in 0 }
+        copy.healthHabitsDone = nil
+        copy.healthHabitsTotal = nil
+        copy.trainingHabitsDone = nil
+        copy.trainingHabitsTotal = nil
         copy.nutrition = nutrition?.emptied
         return copy
     }
