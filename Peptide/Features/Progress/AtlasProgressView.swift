@@ -273,9 +273,13 @@ private struct MomentumTrendChart: View {
             let minScore = scores.min() ?? 0
             let maxScore = scores.max() ?? 1
             let range = max(1, maxScore - minScore)
-            let stepX = points.count > 1 ? geo.size.width / CGFloat(points.count - 1) : 0
-            let pts: [CGPoint] = scores.enumerated().map { index, score in
-                let x = CGFloat(index) * stepX
+            // Placed by date: history only gains a point on days the app
+            // ran, so a two-week break must read wider than one day.
+            let first = points.first?.date ?? Date()
+            let span = (points.last?.date ?? first).timeIntervalSince(first)
+            let pts: [CGPoint] = zip(points, scores).map { point, score in
+                let fraction = span > 0 ? point.date.timeIntervalSince(first) / span : 0
+                let x = geo.size.width * CGFloat(fraction)
                 let y = geo.size.height * (1 - CGFloat((score - minScore) / range))
                 return CGPoint(x: x, y: y)
             }
