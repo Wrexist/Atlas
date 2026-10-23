@@ -117,7 +117,7 @@ struct ProfileCustomizationSheet: View {
             guard let newValue else { return }
             Task { await processPickedPhoto(newValue) }
         }
-        .alert("Remove Profile Photo?", isPresented: $isConfirmingRemoveAvatar) {
+        .alert("Remove profile photo?", isPresented: $isConfirmingRemoveAvatar) {
             Button("Remove", role: .destructive) {
                 avatarData = nil
                 photoSelection = nil
@@ -127,7 +127,7 @@ struct ProfileCustomizationSheet: View {
             Text("Your initials will be shown instead.")
         }
         .alert(
-            "Couldn't Use That Photo",
+            "Couldn't use that photo",
             isPresented: Binding(
                 get: { photoError != nil },
                 set: { if !$0 { photoError = nil } }
@@ -244,7 +244,7 @@ struct ProfileCustomizationSheet: View {
             switch reason {
             case .denied:
                 Alert(
-                    title: Text("Camera Access Off"),
+                    title: Text("Camera access off"),
                     message: Text("Turn on Camera access for Atlas in Settings to take a profile photo. You can also pick from your library."),
                     primaryButton: .default(Text("Open Settings")) {
                         if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -282,8 +282,8 @@ struct ProfileCustomizationSheet: View {
                 Task { await tapTakePhoto() }
             }
         }
-        Button("Choose from Library") { isShowingLibrary = true }
-        Button("Pick a Preset Avatar") { isShowingPresetPicker = true }
+        Button("Choose from library") { isShowingLibrary = true }
+        Button("Pick a preset avatar") { isShowingPresetPicker = true }
         Button("Cancel", role: .cancel) {}
     }
 
@@ -437,7 +437,7 @@ struct ProfileCustomizationSheet: View {
                     .foregroundStyle(AppColor.textPrimary)
 
                 identityField(
-                    title: "Display Name",
+                    title: "Display name",
                     placeholder: "What should we call you?",
                     text: $name
                 )

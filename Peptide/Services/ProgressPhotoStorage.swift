@@ -143,7 +143,7 @@ enum ProgressPhotoStorage {
         try ensureDirectory().appendingPathComponent(filename)
     }
 
-    /// Removes the entire ProgressPhotos folder. "Delete All Data" /
+    /// Removes the entire ProgressPhotos folder. "Delete all data" /
     /// account-deletion path —
     /// photos are user-generated content and must not survive an erase.
     static func deleteAll() {

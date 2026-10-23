@@ -85,7 +85,7 @@ struct PeptideDetailView: View {
                         .accessibilityElement(children: .combine)
 
                         GlassButton(
-                            title: memberProtocols.isEmpty ? "Add to Protocol" : "Add to Another Protocol",
+                            title: memberProtocols.isEmpty ? "Add to protocol" : "Add to Another Protocol",
                             icon: "plus",
                             style: .primary
                         ) {
@@ -128,7 +128,7 @@ struct PeptideDetailView: View {
                                 Image(systemName: "gearshape.2.fill")
                                     .foregroundStyle(peptide.category.color)
                                     .accessibilityHidden(true)
-                                Text("Mechanism of Action")
+                                Text("Mechanism of action")
                                     .font(AppFont.headline)
                                     .foregroundStyle(AppColor.textPrimary)
                             }
@@ -177,7 +177,7 @@ struct PeptideDetailView: View {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .foregroundStyle(AppColor.warning)
                                     .accessibilityHidden(true)
-                                Text("Side Effects")
+                                Text("Side effects")
                                     .font(AppFont.headline)
                                     .foregroundStyle(AppColor.textPrimary)
                             }
@@ -269,7 +269,7 @@ struct PeptideDetailView: View {
                                 Image(systemName: "building.columns.fill")
                                     .foregroundStyle(peptide.category.color)
                                     .accessibilityHidden(true)
-                                Text("Regulatory Status")
+                                Text("Regulatory status")
                                     .font(AppFont.headline)
                                     .foregroundStyle(AppColor.textPrimary)
                             }
@@ -346,7 +346,7 @@ struct PeptideDetailView: View {
                     Image(systemName: "square.stack.3d.up.fill")
                         .foregroundStyle(AppColor.accentLight)
                         .accessibilityHidden(true)
-                    Text("In Your Protocols")
+                    Text("In your protocols")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
@@ -438,7 +438,7 @@ struct MolecularInfoSection: View {
                     Image(systemName: "atom")
                         .foregroundStyle(categoryColor)
                         .accessibilityHidden(true)
-                    Text("Molecular Data")
+                    Text("Molecular data")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                 }

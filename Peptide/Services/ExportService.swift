@@ -563,7 +563,7 @@ final class ExportService {
     }
 
     /// Removes every export file. Called before each new export and by
-    /// "Delete All Data".
+    /// "Delete all data".
     func clearExports() {
         let directory = Self.exportDirectory
         guard FileManager.default.fileExists(atPath: directory.path) else { return }

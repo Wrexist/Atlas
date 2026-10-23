@@ -213,7 +213,7 @@ struct PeptideApp: App {
         // stays closed until the user says what happens to the data the
         // previous account left on this device.
         .alert(
-            "iCloud Account Changed",
+            "iCloud account changed",
             isPresented: Binding(
                 get: { dataStore.isAwaitingCloudAccountDecision },
                 set: { _ in }

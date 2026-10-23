@@ -237,7 +237,7 @@ struct MealScanFlow: View {
             switch reason {
             case .denied:
                 Alert(
-                    title: Text("Camera Access Off"),
+                    title: Text("Camera access off"),
                     message: Text("Turn on Camera access for Atlas in Settings to scan meals with your camera. You can still pick a photo from your library."),
                     primaryButton: .default(Text("Open Settings")) {
                         if let url = URL(string: UIApplication.openSettingsURLString) {

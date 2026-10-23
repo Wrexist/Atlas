@@ -110,7 +110,7 @@ final class FoodSpotlightService: Sendable {
     }
 
     /// Drops every food-library entry from Spotlight. Used when the index
-    /// should be empty and by "Delete All Data", which must not leave the
+    /// should be empty and by "Delete all data", which must not leave the
     /// user's foods and recipes searchable system-wide.
     func removeAll() async {
         guard isAvailable else { return }

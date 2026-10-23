@@ -67,7 +67,7 @@ struct PeptideScheduleSheet: View {
                         if useCustom {
                             GlassCard {
                                 VStack(alignment: .leading, spacing: Spacing.lg) {
-                                    Label("Custom Schedule", systemImage: "calendar.badge.clock")
+                                    Label("Custom schedule", systemImage: "calendar.badge.clock")
                                         .font(AppFont.headline)
                                         .foregroundStyle(AppColor.textPrimary)
 

@@ -135,7 +135,7 @@ enum BackupSnapshotService {
 
     // MARK: - Erase
 
-    /// Removes every snapshot. "Delete All Data" / account-deletion path —
+    /// Removes every snapshot. "Delete all data" / account-deletion path —
     /// a snapshot is a full copy of the user's data and must not outlive
     /// an erase.
     static func deleteAll() {

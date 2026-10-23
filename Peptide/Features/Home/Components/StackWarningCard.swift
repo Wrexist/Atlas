@@ -7,7 +7,7 @@ struct StackWarningCard: View {
     var body: some View {
         GlassCard(tinted: true) {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                Label("Protocol Alerts", systemImage: "exclamationmark.triangle.fill")
+                Label("Protocol alerts", systemImage: "exclamationmark.triangle.fill")
                     .font(AppFont.headline)
                     .foregroundStyle(highestSeverityColor)
 

@@ -40,6 +40,10 @@ contrast = _load("contrast_check", "contrast-check.py")
 # (rule, filename it must be judged as, source that MUST fire,
 #                                       source that MUST NOT)
 CASES = [
+    ("rule_title_case_copy", "Foo.swift",
+     'Text("Days of Week")\n.alert("Remove Profile Photo?", isPresented: $x) { }',
+     'Text("Days of week")\nButton("Connect Apple Health") { }\nText("Terms of Use")'),
+
     ("rule_forced_color_scheme", "Foo.swift",
      'var body: some View { Text("hi").preferredColorScheme(.dark) }',
      'var body: some View { Text("hi").preferredColorScheme(theme.displayMode.preferredScheme) }'),

@@ -19,7 +19,7 @@ struct DosageInfoSection: View {
                     Image(systemName: "chart.bar.doc.horizontal")
                         .foregroundStyle(peptide.category.color)
                         .accessibilityHidden(true)
-                    Text("Reported in Research")
+                    Text("Reported in research")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                 }

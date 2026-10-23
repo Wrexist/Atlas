@@ -5895,7 +5895,7 @@
         }
       }
     },
-    "Account Deleted": {
+    "Account deleted": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -6115,7 +6115,7 @@
         }
       }
     },
-    "Add a Compound": {
+    "Add a compound": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -6365,7 +6365,7 @@
         }
       }
     },
-    "Add to Protocol": {
+    "Add to protocol": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -9265,7 +9265,7 @@
         }
       }
     },
-    "Camera Access Off": {
+    "Camera access off": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -9843,16 +9843,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Välj biomarkörer"
-          }
-        }
-      }
-    },
-    "Choose from Library": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Välj från bibliotek"
           }
         }
       }
@@ -11559,7 +11549,7 @@
         }
       }
     },
-    "Couldn't Use That Photo": {
+    "Couldn't use that photo": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -12389,16 +12379,6 @@
         }
       }
     },
-    "Custom Schedule": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Eget schema"
-          }
-        }
-      }
-    },
     "Custom compounds": {
       "localizations": {
         "sv": {
@@ -12525,16 +12505,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Uppföljning av cykel + uppehåll"
-          }
-        }
-      }
-    },
-    "Cycle Length": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cykellängd"
           }
         }
       }
@@ -12919,16 +12889,6 @@
         }
       }
     },
-    "Days of Week": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Veckodagar"
-          }
-        }
-      }
-    },
     "Days of week": {
       "localizations": {
         "sv": {
@@ -13059,7 +13019,7 @@
         }
       }
     },
-    "Delete Account": {
+    "Delete account": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -13069,7 +13029,7 @@
         }
       }
     },
-    "Delete Account?": {
+    "Delete account?": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -13079,7 +13039,7 @@
         }
       }
     },
-    "Delete All Data": {
+    "Delete all data": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -13089,7 +13049,7 @@
         }
       }
     },
-    "Delete All Data?": {
+    "Delete all data?": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -13609,7 +13569,7 @@
         }
       }
     },
-    "Display Name": {
+    "Display name": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -13685,16 +13645,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Doseringsinformation"
-          }
-        }
-      }
-    },
-    "Dosage Range": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Doseringsintervall"
           }
         }
       }
@@ -16911,7 +16861,7 @@
         }
       }
     },
-    "Health Metrics": {
+    "Health metrics": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -17683,7 +17633,7 @@
         }
       }
     },
-    "In Your Protocols": {
+    "In your protocols": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -20541,7 +20491,7 @@
         }
       }
     },
-    "Mechanism of Action": {
+    "Mechanism of action": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -20841,7 +20791,7 @@
         }
       }
     },
-    "Molecular Data": {
+    "Molecular data": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -21803,16 +21753,6 @@
         }
       }
     },
-    "No Protocols Yet": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inga protokoll än"
-          }
-        }
-      }
-    },
     "No active dose streak.": {
       "localizations": {
         "sv": {
@@ -22577,7 +22517,7 @@
         }
       }
     },
-    "Not Signed In": {
+    "Not signed in": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -24889,7 +24829,7 @@
         }
       }
     },
-    "Pick a Preset Avatar": {
+    "Pick a preset avatar": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -24899,7 +24839,7 @@
         }
       }
     },
-    "Pick a Protocol": {
+    "Pick a protocol": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -25681,16 +25621,6 @@
         }
       }
     },
-    "Progress Photos": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Framstegsbilder"
-          }
-        }
-      }
-    },
     "Progress photos": {
       "localizations": {
         "sv": {
@@ -25871,7 +25801,7 @@
         }
       }
     },
-    "Protocol Alerts": {
+    "Protocol alerts": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -26813,7 +26743,7 @@
         }
       }
     },
-    "Recommended for Your Protocol": {
+    "Recommended for your protocol": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -27063,7 +26993,7 @@
         }
       }
     },
-    "Regulatory Status": {
+    "Regulatory status": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -27213,7 +27143,7 @@
         }
       }
     },
-    "Remove Profile Photo?": {
+    "Remove profile photo?": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -27613,7 +27543,7 @@
         }
       }
     },
-    "Reported in Research": {
+    "Reported in research": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -29633,16 +29563,6 @@
         }
       }
     },
-    "Share Cycle Card": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dela cykelkort"
-          }
-        }
-      }
-    },
     "Share card": {
       "localizations": {
         "sv": {
@@ -30147,7 +30067,7 @@
         }
       }
     },
-    "Side Effects": {
+    "Side effects": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -30197,7 +30117,7 @@
         }
       }
     },
-    "Sign Out": {
+    "Sign out": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -30237,7 +30157,7 @@
         }
       }
     },
-    "Sign-In Canceled": {
+    "Sign-in canceled": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -30247,17 +30167,7 @@
         }
       }
     },
-    "Sign-In Failed": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inloggningen misslyckades"
-          }
-        }
-      }
-    },
-    "Sign-In Is Taking Too Long": {
+    "Sign-in is taking too long": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -30277,7 +30187,7 @@
         }
       }
     },
-    "Signed In": {
+    "Signed in": {
       "localizations": {
         "sv": {
           "stringUnit": {
@@ -33211,16 +33121,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tidslinje"
-          }
-        }
-      }
-    },
-    "Times per Day": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gånger per dag"
           }
         }
       }
@@ -39917,6 +39817,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dina data finns i din privata iCloud."
+          }
+        }
+      }
+    },
+    "iCloud account changed": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud-kontot har ändrats"
           }
         }
       }

@@ -13,7 +13,7 @@ struct HealthSummaryCard: View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 HStack {
-                    Label("Health Metrics", systemImage: "heart.fill")
+                    Label("Health metrics", systemImage: "heart.fill")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()

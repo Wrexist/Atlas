@@ -52,7 +52,7 @@ struct AddToStackSheet: View {
                 .padding(.bottom, Spacing.xxxxl)
             }
             .background(AppColor.background)
-            .navigationTitle("Add to Protocol")
+            .navigationTitle("Add to protocol")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

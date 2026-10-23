@@ -35,7 +35,7 @@ struct PulsatingDot: View {
             PulsatingDot()
             HStack(spacing: 8) {
                 PulsatingDot(size: 8)
-                Text("Signed In").foregroundStyle(AppColor.textPrimary)
+                Text("Signed in").foregroundStyle(AppColor.textPrimary)
             }
         }
     }

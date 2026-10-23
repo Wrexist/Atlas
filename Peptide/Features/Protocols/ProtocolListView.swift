@@ -31,7 +31,7 @@ struct ProtocolListView: View {
                         if dataStore.protocols.isEmpty {
                             EmptyStateView(
                                 icon: "list.clipboard",
-                                title: "No Protocols Yet",
+                                title: "No protocols yet",
                                 message: "Build a protocol to track what you take, when, and how it's going.",
                                 action: .init(title: "Create Protocol", icon: "plus") {
                                     Haptics.impact(.medium)
@@ -239,7 +239,7 @@ private struct ProtocolSection: View {
                     Button {
                         onShare(protocol_)
                     } label: {
-                        Label("Share Cycle Card", systemImage: "square.and.arrow.up")
+                        Label("Share cycle card", systemImage: "square.and.arrow.up")
                     }
                 }
                 // Status changes animate at the list root, so a paused or

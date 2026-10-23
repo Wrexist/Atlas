@@ -32,9 +32,9 @@ final class AuthService {
 
         var title: String {
             switch self {
-            case .canceled:  return String(localized: "Sign-In Canceled")
-            case .timedOut:  return String(localized: "Sign-In Is Taking Too Long")
-            case .failed:    return String(localized: "Sign-In Failed")
+            case .canceled:  return String(localized: "Sign-in canceled")
+            case .timedOut:  return String(localized: "Sign-in is taking too long")
+            case .failed:    return String(localized: "Sign-in failed")
             }
         }
 
@@ -317,7 +317,7 @@ final class AuthService {
     func deleteAccount() {
         // Guarded so this entry point stays an *account* action. Guests
         // have no account to delete and erase their data through
-        // `deleteAllData()` ("Delete All Data" in Settings → Account).
+        // `deleteAllData()` ("Delete all data" in Settings → Account).
         guard isSignedIn else {
             AppLog.auth.warning("deleteAccount called without an active sign-in; ignored.")
             return
@@ -326,7 +326,7 @@ final class AuthService {
         signOut()
     }
 
-    /// "Delete All Data" — available to every user, guest or signed in.
+    /// "Delete all data" — available to every user, guest or signed in.
     /// Same erasure as `deleteAccount()`; a signed-in user is also signed
     /// out so no identity outlives the data it was attached to.
     func deleteAllData() {

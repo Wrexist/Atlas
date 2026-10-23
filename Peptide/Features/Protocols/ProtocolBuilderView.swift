@@ -305,7 +305,7 @@ struct ProtocolBuilderView: View {
                 titleVisibility: .visible
             ) {
                 Button("Discard", role: .destructive) { dismiss() }
-                Button("Keep Editing", role: .cancel) {}
+                Button("Keep editing", role: .cancel) {}
             } message: {
                 Text("What you've entered for this protocol will be lost.")
             }
