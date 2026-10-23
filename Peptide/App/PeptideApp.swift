@@ -88,17 +88,17 @@ struct PeptideApp: App {
             let delegate = NotificationDelegate(dataStore: store, appState: appState)
             UNUserNotificationCenter.current().delegate = delegate
             NotificationService.shared.registerCategories()
-            return (store: store, appState: appState, notificationDelegate: delegate)
+            // Unlocked whenever the lock is off, so turning it on from
+            // Profile doesn't raise the lock screen over the toggle's own
+            // Face ID check (B014). Held locked while an account change
+            // keeps the real profile from loading.
+            let startsUnlocked = !store.profile.biometricLockEnabled && !store.isAwaitingCloudAccountDecision
+            return (store: store, appState: appState, notificationDelegate: delegate, startsUnlocked: startsUnlocked)
         }
         _dataStore = State(wrappedValue: launch.store)
         _appState = State(wrappedValue: launch.appState)
         _notificationDelegate = State(wrappedValue: launch.notificationDelegate)
-        // Unlocked whenever the lock is off, so turning it on from
-        // Profile doesn't raise the lock screen over the toggle's own
-        // Face ID check (B014). Held locked while an account change keeps
-        // the real profile from loading.
-        _isUnlocked = State(wrappedValue: !launch.store.profile.biometricLockEnabled
-            && !launch.store.isAwaitingCloudAccountDecision)
+        _isUnlocked = State(wrappedValue: launch.startsUnlocked)
     }
 
     var body: some Scene {
