@@ -72,7 +72,9 @@ struct RoutineBuilderView: View {
                 sets: slot.targetSets,
                 reps: slot.targetReps,
                 restSeconds: slot.restSeconds,
-                defaultRestSeconds: defaultRestSeconds
+                // What "Default" resolves to when the routine starts:
+                // the routine's own rest, then the profile's.
+                defaultRestSeconds: routine?.defaultRestSeconds ?? defaultRestSeconds
             ) { sets, reps, restSeconds in
                 updateTargets(slotID: slot.id, sets: sets, reps: reps, restSeconds: restSeconds)
             }
