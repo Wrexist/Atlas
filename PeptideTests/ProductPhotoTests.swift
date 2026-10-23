@@ -122,6 +122,15 @@ final class ProductPhotoTests: XCTestCase {
         XCTAssertEqual(again?.isCutout, true)
     }
 
+    func test_diskCache_keepsOnlyTheNewestFiles() async throws {
+        let store = ProductPhotoStore(directory: directory, session: session, maxFiles: 2) { _ in Self.packshot }
+        for index in 0..<4 {
+            _ = await store.photo(for: URL(string: "https://images.openfoodfacts.org/\(index).jpg")!)
+        }
+        let files = try FileManager.default.contentsOfDirectory(atPath: directory.path)
+        XCTAssertEqual(files.count, 2)
+    }
+
     func test_missingImage_returnsNilSoArtworkStays() async {
         MockURLProtocol.handler = { request in
             (HTTPURLResponse(url: request.url!, statusCode: 404, httpVersion: nil, headerFields: nil)!, Data())

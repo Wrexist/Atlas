@@ -18,6 +18,10 @@ actor ProductPhotoStore {
 
     static let shared = ProductPhotoStore()
 
+    /// Files kept on disk, newest first. A cut-out is ~30-80 KB, so this
+    /// holds a well-used library in a few tens of MB.
+    static let defaultMaxFiles = 400
+
     typealias CutOut = @Sendable (UIImage) throws -> UIImage?
 
     private final class Entry {
@@ -36,16 +40,19 @@ actor ProductPhotoStore {
     private let directory: URL
     private let session: URLSession
     private let cutOut: CutOut
+    private let maxFiles: Int
     private var inFlight: [URL: Task<ProductPhoto?, Never>] = [:]
     private var visionTail: Task<Void, Never>?
 
     init(
         directory: URL = URL.cachesDirectory.appending(path: "product-cutouts", directoryHint: .isDirectory),
         session: URLSession = .shared,
+        maxFiles: Int = ProductPhotoStore.defaultMaxFiles,
         cutOut: @escaping CutOut = ProductCutoutEngine.cutOut
     ) {
         self.directory = directory
         self.session = session
+        self.maxFiles = maxFiles
         self.cutOut = cutOut
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     }
@@ -78,10 +85,10 @@ actor ProductPhotoStore {
         switch await cutOutSerially(image) {
         case .success(let cutout?):
             guard let png = cutout.pngData() else { return ProductPhoto(image: cutout, isCutout: true) }
-            try? png.write(to: file(for: url, cutout: true), options: .atomic)
+            store(png, at: file(for: url, cutout: true))
             return ProductPhoto(image: cutout, isCutout: true)
         case .success(nil):
-            try? data.write(to: file(for: url, cutout: false), options: .atomic)
+            store(data, at: file(for: url, cutout: false))
             return ProductPhoto(image: image, isCutout: false)
         case .failure:
             // Vision couldn't run (Simulator, memory pressure). Show the
@@ -99,6 +106,25 @@ actor ProductPhotoStore {
         }
         visionTail = Task { _ = await job.value }
         return await job.value
+    }
+
+    private func store(_ data: Data, at file: URL) {
+        try? data.write(to: file, options: .atomic)
+        pruneIfNeeded()
+    }
+
+    /// Drops the oldest files once the directory passes `maxFiles`.
+    private func pruneIfNeeded() {
+        let keys: [URLResourceKey] = [.contentModificationDateKey]
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: directory, includingPropertiesForKeys: keys
+        ), files.count > maxFiles else { return }
+        let modified = { (file: URL) in
+            (try? file.resourceValues(forKeys: Set(keys)).contentModificationDate) ?? .distantPast
+        }
+        for file in files.sorted(by: { modified($0) > modified($1) }).dropFirst(maxFiles) {
+            try? FileManager.default.removeItem(at: file)
+        }
     }
 
     private func stored(_ url: URL) -> ProductPhoto? {

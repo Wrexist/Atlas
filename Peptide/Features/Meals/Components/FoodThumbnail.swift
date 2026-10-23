@@ -153,7 +153,11 @@ struct FoodThumbnail: View {
                 photo = nil
                 return
             }
-            photo = await ProductPhotoStore.shared.photo(for: imageURL)
+            let loaded = await ProductPhotoStore.shared.photo(for: imageURL)
+            // A shared load ignores this task's cancellation, so a
+            // superseded URL could otherwise land after the current one.
+            guard !Task.isCancelled else { return }
+            photo = loaded
         }
         .accessibilityHidden(true)
     }
