@@ -109,13 +109,13 @@ struct OnboardingView: View {
         var id: String { rawValue }
         var displayName: String {
             switch self {
-            case .friend:   return "A friend"
-            case .appStore: return "App Store"
+            case .friend:   return String(localized: "A friend")
+            case .appStore: return String(localized: "App Store")
             case .tiktok:   return "TikTok"
             case .youtube:  return "YouTube"
-            case .reddit:   return "Reddit"
-            case .podcast:  return "Podcast"
-            case .other:    return "Other"
+            case .reddit:   return String(localized: "Reddit")
+            case .podcast:  return String(localized: "Podcast")
+            case .other:    return String(localized: "Other")
             }
         }
         var icon: String {
@@ -143,17 +143,17 @@ struct OnboardingView: View {
         var id: String { rawValue }
         var displayName: String {
             switch self {
-            case .buildMuscle:    return "Build muscle"
-            case .loseFat:        return "Lose fat"
-            case .getStronger:    return "Get stronger"
-            case .stayConsistent: return "Stay consistent"
-            case .athletic:       return "Athletic performance"
-            case .recomp:         return "Recomp"
-            case .betterSleep:    return "Better sleep"
-            case .recovery:       return "Faster recovery"
-            case .antiAging:      return "Healthy aging"
-            case .skinHair:       return "Look & feel better"
-            case .energy:         return "More energy"
+            case .buildMuscle:    return String(localized: "Build muscle")
+            case .loseFat:        return String(localized: "Lose fat")
+            case .getStronger:    return String(localized: "Get stronger")
+            case .stayConsistent: return String(localized: "Stay consistent")
+            case .athletic:       return String(localized: "Athletic performance")
+            case .recomp:         return String(localized: "Recomp")
+            case .betterSleep:    return String(localized: "Better sleep")
+            case .recovery:       return String(localized: "Faster recovery")
+            case .antiAging:      return String(localized: "Healthy aging")
+            case .skinHair:       return String(localized: "Look & feel better")
+            case .energy:         return String(localized: "More energy")
             }
         }
         var icon: String {
@@ -193,16 +193,16 @@ struct OnboardingView: View {
         var id: String { rawValue }
         var title: String {
             switch self {
-            case .beginner:     return "New to lifting"
-            case .intermediate: return "Comfortable in the gym"
-            case .advanced:     return "Years of training"
+            case .beginner:     return String(localized: "New to lifting")
+            case .intermediate: return String(localized: "Comfortable in the gym")
+            case .advanced:     return String(localized: "Years of training")
             }
         }
         var subtitle: String {
             switch self {
-            case .beginner:     return "Under a year of consistent training"
-            case .intermediate: return "1–3 years, solid technique"
-            case .advanced:     return "3+ years, dialed-in programming"
+            case .beginner:     return String(localized: "Under a year of consistent training")
+            case .intermediate: return String(localized: "1–3 years, solid technique")
+            case .advanced:     return String(localized: "3+ years, dialed-in programming")
             }
         }
         var icon: String {
@@ -540,11 +540,11 @@ struct OnboardingView: View {
 
     private var primaryTitle: String {
         switch page {
-        case .welcome:    return "Let's go"
-        case .disclaimer: return "I understand"
-        case .referral:   return hasCreatorCodeToApply ? "Apply" : "Continue"
-        case .plan:       return "Start my plan"
-        default:          return "Continue"
+        case .welcome:    return String(localized: "Let's go")
+        case .disclaimer: return String(localized: "I understand")
+        case .referral:   return hasCreatorCodeToApply ? String(localized: "Apply") : String(localized: "Continue")
+        case .plan:       return String(localized: "Start my plan")
+        default:          return String(localized: "Continue")
         }
     }
 
@@ -662,7 +662,7 @@ struct OnboardingView: View {
             OnboardingFunnelTracker.recordEvent("creator_code_applied")
             Haptics.success()
         } else {
-            AppAnimation.with(AppAnimation.fadeIn) { creatorError = "Code not found — double-check and try again." }
+            AppAnimation.with(AppAnimation.fadeIn) { creatorError = String(localized: "Code not found — double-check and try again.") }
             OnboardingFunnelTracker.recordEvent("creator_code_invalid")
             Haptics.error()
         }
@@ -821,7 +821,7 @@ struct OnboardingView: View {
                 .foregroundStyle(AppColor.accentPrimary)
                 .symbolEffect(.bounce, value: authService.isSignedIn)
                 .accessibilityHidden(true)
-            Text(authService.userDisplayName.map { "Signed in as \($0)" } ?? "Signed in with Apple")
+            Text(authService.userDisplayName.map { String(localized: "Signed in as \($0)") } ?? String(localized: "Signed in with Apple"))
                 .font(AppFont.callout.weight(.semibold))
                 .foregroundStyle(AppColor.textPrimary)
         }
@@ -1021,9 +1021,9 @@ struct OnboardingView: View {
             sectionEyebrow("Target date")
                 .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: Spacing.sm) {
-                goalDateChip("8 wks", a11yLabel: "8 weeks", weeks: 8)
-                goalDateChip("12 wks", a11yLabel: "12 weeks", weeks: 12)
-                goalDateChip("6 mo", a11yLabel: "6 months", weeks: 26)
+                goalDateChip("8 wks", a11yLabel: String(localized: "8 weeks"), weeks: 8)
+                goalDateChip("12 wks", a11yLabel: String(localized: "12 weeks"), weeks: 12)
+                goalDateChip("6 mo", a11yLabel: String(localized: "6 months"), weeks: 26)
             }
 
             DatePicker(
@@ -1124,7 +1124,7 @@ struct OnboardingView: View {
     /// goal-and-date step. Used inside the date section underneath
     /// the picker.
     private var goalDateSummary: String {
-        "That's \(goalWeeks) week\(goalWeeks == 1 ? "" : "s") to commit."
+        String(localized: "That's \(goalWeeks) weeks to commit.")
     }
 
     /// Weeks between today and the user's chosen goal date. Used by
@@ -1446,27 +1446,27 @@ struct OnboardingView: View {
                         // older run with incomplete metrics — the
                         // body-metrics page fills untouched wheels.
                         projectionStatRow(
-                            label: "Daily targets",
-                            value: "\(targets.calories) kcal\n\(targets.proteinG) g protein · \(targets.carbsG) g carbs · \(targets.fatG) g fat",
+                            label: String(localized: "Daily targets"),
+                            value: String(localized: "\(targets.calories) kcal\n\(targets.proteinG) g protein · \(targets.carbsG) g carbs · \(targets.fatG) g fat"),
                             icon: "fork.knife",
                             tint: AppColor.achievement
                         )
                     }
                     projectionStatRow(
-                        label: "Program",
+                        label: String(localized: "Program"),
                         value: OnboardingPlanEngine.programName(goal: primaryGoal, daysPerWeek: daysPerWeek),
                         icon: "list.bullet.clipboard.fill",
                         tint: AppColor.accentPrimary
                     )
                     projectionStatRow(
-                        label: "Schedule",
-                        value: "\(daysPerWeek)× per week, \(timeOfDay.displayName.lowercased())",
+                        label: String(localized: "Schedule"),
+                        value: String(localized: "\(daysPerWeek)× per week, \(timeOfDay.displayName.lowercased())"),
                         icon: "calendar",
                         tint: AppColor.accentPrimary
                     )
                     projectionStatRow(
-                        label: "First milestone",
-                        value: "Week 2 · habit locked in",
+                        label: String(localized: "First milestone"),
+                        value: String(localized: "Week 2 · habit locked in"),
                         icon: "checkmark.seal.fill",
                         tint: AppColor.accentPrimary
                     )
@@ -1497,58 +1497,58 @@ struct OnboardingView: View {
     private var projectionHeadline: String {
         let weeks = goalWeeks == 1 ? "1 week" : "\(goalWeeks) weeks"
         switch primaryGoal {
-        case .buildMuscle:    return "+\(projectedMuscleGain) in \(weeks)"
-        case .loseFat:        return "−\(projectedFatLoss) in \(weeks)"
-        case .getStronger:    return "Build strength\nover \(weeks)"
-        case .stayConsistent: return "\(daysPerWeek * goalWeeks) sessions\nin \(weeks)"
-        case .athletic:       return "Work on conditioning\nover \(weeks)"
-        case .recomp:         return "Work toward a recomp\nover \(weeks)"
-        case .betterSleep:    return "Track your sleep\nover \(weeks)"
-        case .recovery:       return "Track your recovery\nover \(weeks)"
-        case .antiAging:      return "Track your biomarkers\nover \(weeks)"
-        case .skinHair:       return "Track how you look & feel\nover \(weeks)"
-        case .energy:         return "Track your energy\nover \(weeks)"
+        case .buildMuscle:    return String(localized: "+\(projectedMuscleGain) in \(weeks)")
+        case .loseFat:        return String(localized: "−\(projectedFatLoss) in \(weeks)")
+        case .getStronger:    return String(localized: "Build strength\nover \(weeks)")
+        case .stayConsistent: return String(localized: "\(daysPerWeek * goalWeeks) sessions\nin \(weeks)")
+        case .athletic:       return String(localized: "Work on conditioning\nover \(weeks)")
+        case .recomp:         return String(localized: "Work toward a recomp\nover \(weeks)")
+        case .betterSleep:    return String(localized: "Track your sleep\nover \(weeks)")
+        case .recovery:       return String(localized: "Track your recovery\nover \(weeks)")
+        case .antiAging:      return String(localized: "Track your biomarkers\nover \(weeks)")
+        case .skinHair:       return String(localized: "Track how you look & feel\nover \(weeks)")
+        case .energy:         return String(localized: "Track your energy\nover \(weeks)")
         }
     }
 
     private var projectionSubtitle: String {
         switch primaryGoal {
         case .buildMuscle, .recomp:
-            return "Based on your training experience and \(daysPerWeek) sessions per week."
+            return String(localized: "Based on your training experience and \(daysPerWeek) sessions per week.")
         case .loseFat:
-            return "From a moderate deficit at \(daysPerWeek) sessions per week."
+            return String(localized: "From a moderate deficit at \(daysPerWeek) sessions per week.")
         case .getStronger, .athletic:
-            return "Progressive overload at \(daysPerWeek) sessions per week."
+            return String(localized: "Progressive overload at \(daysPerWeek) sessions per week.")
         case .stayConsistent:
-            return "Consistency curve from \(daysPerWeek) sessions per week."
+            return String(localized: "Consistency curve from \(daysPerWeek) sessions per week.")
         case .betterSleep, .recovery, .antiAging, .skinHair, .energy:
-            return "Trend curve from your recovery signals."
+            return String(localized: "Trend curve from your recovery signals.")
         }
     }
 
     private var projectionStatLabel: String {
         switch primaryGoal {
-        case .buildMuscle, .recomp:                       return "Projected gain"
-        case .loseFat:                                     return "Projected loss"
-        case .getStronger:                                 return "Projected lift increase"
-        case .stayConsistent, .athletic:                   return "Projected sessions"
+        case .buildMuscle, .recomp:                       return String(localized: "Projected gain")
+        case .loseFat:                                     return String(localized: "Projected loss")
+        case .getStronger:                                 return String(localized: "Projected lift increase")
+        case .stayConsistent, .athletic:                   return String(localized: "Projected sessions")
         case .betterSleep, .recovery, .antiAging,
-             .skinHair, .energy:                           return "Projected trend"
+             .skinHair, .energy:                           return String(localized: "Projected trend")
         }
     }
 
     private var projectionStatValue: String {
         switch primaryGoal {
-        case .buildMuscle: return "+\(projectedMuscleGain) lean mass"
-        case .loseFat:     return "−\(projectedFatLoss) body weight"
-        case .getStronger: return "+10–15% on your top lifts"
-        case .stayConsistent, .athletic: return "\(daysPerWeek * goalWeeks) sessions logged"
-        case .recomp:      return "Body recomp tracked weekly"
-        case .betterSleep: return "Sleep tracked nightly"
-        case .recovery:    return "HRV trend tracked daily"
-        case .antiAging:   return "Biomarker improvement"
-        case .skinHair:    return "Tracked weekly with photos"
-        case .energy:      return "Steadier energy curve"
+        case .buildMuscle: return String(localized: "+\(projectedMuscleGain) lean mass")
+        case .loseFat:     return String(localized: "−\(projectedFatLoss) body weight")
+        case .getStronger: return String(localized: "+10–15% on your top lifts")
+        case .stayConsistent, .athletic: return String(localized: "\(daysPerWeek * goalWeeks) sessions logged")
+        case .recomp:      return String(localized: "Body recomp tracked weekly")
+        case .betterSleep: return String(localized: "Sleep tracked nightly")
+        case .recovery:    return String(localized: "HRV trend tracked daily")
+        case .antiAging:   return String(localized: "Biomarker improvement")
+        case .skinHair:    return String(localized: "Tracked weekly with photos")
+        case .energy:      return String(localized: "Steadier energy curve")
         }
     }
 
@@ -1627,15 +1627,15 @@ struct OnboardingView: View {
                 VStack(alignment: .leading, spacing: Spacing.md) {
                     disclaimerBullet(
                         icon: "xmark.shield.fill",
-                        text: "Atlas does **not** prescribe, recommend, or calculate doses for any supplement, medication, or training protocol."
+                        text: String(localized: "Atlas does **not** prescribe, recommend, or calculate doses for any supplement, medication, or training protocol.")
                     )
                     disclaimerBullet(
                         icon: "person.crop.circle.badge.questionmark.fill",
-                        text: "Always consult a qualified clinician before starting, changing, or stopping anything you track here."
+                        text: String(localized: "Always consult a qualified clinician before starting, changing, or stopping anything you track here.")
                     )
                     disclaimerBullet(
                         icon: "lock.fill",
-                        text: "Your data lives in your private iCloud, and you can lock the app with Face ID."
+                        text: String(localized: "Your data lives in your private iCloud, and you can lock the app with Face ID.")
                     )
                 }
                 .padding(Spacing.lg)
@@ -1688,10 +1688,10 @@ struct OnboardingView: View {
                 // was a dead tap. Route to Settings instead.
                 permissionRow(
                     icon: "bell.fill",
-                    title: "Enable notifications",
+                    title: String(localized: "Enable notifications"),
                     subtitle: notificationsDenied
-                        ? "Turned off in Settings. Tap to open Settings."
-                        : "Reminders, weekly recaps, and rest-timer alerts.",
+                        ? String(localized: "Turned off in Settings. Tap to open Settings.")
+                        : String(localized: "Reminders, weekly recaps, and rest-timer alerts."),
                     isLoading: requestingNotifications,
                     isOn: notificationsAuthorized,
                     action: notificationsDenied ? openAppSettings : requestNotifications
@@ -1699,8 +1699,8 @@ struct OnboardingView: View {
 
                 permissionRow(
                     icon: "heart.fill",
-                    title: "Connect Apple Health",
-                    subtitle: "Reads sleep, HRV, heart rate, and weight for Recovery.",
+                    title: String(localized: "Connect Apple Health"),
+                    subtitle: String(localized: "Reads sleep, HRV, heart rate, and weight for Recovery."),
                     isLoading: requestingHealth,
                     isOn: dataStore.profile.healthConnected,
                     action: requestHealth

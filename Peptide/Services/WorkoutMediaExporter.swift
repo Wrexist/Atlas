@@ -7,9 +7,9 @@ enum WorkoutMediaError: LocalizedError, Equatable {
     case render, video, photoPermission
     var errorDescription: String? {
         switch self {
-        case .render: "Could not create the image. Try again."
-        case .video: "Could not create the video. Try again or share a Story image."
-        case .photoPermission: "Allow Atlas to add photos in Settings, or use Share to save the file elsewhere."
+        case .render: String(localized: "Could not create the image. Try again.")
+        case .video: String(localized: "Could not create the video. Try again or share a Story image.")
+        case .photoPermission: String(localized: "Allow Atlas to add photos in Settings, or use Share to save the file elsewhere.")
         }
     }
 }

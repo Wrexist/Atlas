@@ -237,7 +237,7 @@ struct CompoundVial: View {
     private var accessibilityLabel: String {
         let nameSpoken = labelText ?? compoundName
         let percent = Int((liquidLevel * 100).rounded())
-        return "\(nameSpoken), \(percent) percent remaining"
+        return String(localized: "\(nameSpoken), \(percent) percent remaining")
     }
 }
 

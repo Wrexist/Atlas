@@ -1,0 +1,908 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "%@ asleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sömn"
+          }
+        }
+      }
+    },
+    "%@ kcal · %lld g protein": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ kcal · %lld g protein"
+          }
+        }
+      }
+    },
+    "%lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld"
+          }
+        }
+      }
+    },
+    "%lld bpm": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld slag/min"
+          }
+        }
+      }
+    },
+    "%lld calories, %lld grams protein": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld kalorier, %lld gram protein"
+          }
+        }
+      }
+    },
+    "%lld of %lld doses taken": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld av %lld doser tagna"
+          }
+        }
+      }
+    },
+    "%lld of %lld sets done": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld av %lld set klara"
+          }
+        }
+      }
+    },
+    "%lld pts": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld p"
+          }
+        }
+      }
+    },
+    "%lld this week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld den här veckan"
+          }
+        }
+      }
+    },
+    "%lld workouts this week": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld pass den här veckan"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld pass den här veckan"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld · +%lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld · +%lld"
+          }
+        }
+      }
+    },
+    "%lld/%lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld"
+          }
+        }
+      }
+    },
+    "%lld/%lld done": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld klara"
+          }
+        }
+      }
+    },
+    "%lld/%lld doses today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld doser idag"
+          }
+        }
+      }
+    },
+    "%lld/%lld sets": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld set"
+          }
+        }
+      }
+    },
+    "%lld/%lld sets · %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld set · %@"
+          }
+        }
+      }
+    },
+    "/%lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "/%lld"
+          }
+        }
+      }
+    },
+    "All complete": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allt klart"
+          }
+        }
+      }
+    },
+    "Asleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sover"
+          }
+        }
+      }
+    },
+    "Atlas": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atlas"
+          }
+        }
+      }
+    },
+    "Atlas Lv %lld · %lld pts": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atlas nivå %lld · %lld p"
+          }
+        }
+      }
+    },
+    "Atlas Nutrition": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atlas Kost"
+          }
+        }
+      }
+    },
+    "Atlas Score": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atlas-poäng"
+          }
+        }
+      }
+    },
+    "Atlas Score %lld, level %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atlas-poäng %lld, nivå %lld"
+          }
+        }
+      }
+    },
+    "Atlas · %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atlas · %@"
+          }
+        }
+      }
+    },
+    "Atlas —": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atlas —"
+          }
+        }
+      }
+    },
+    "Awake": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vaken"
+          }
+        }
+      }
+    },
+    "Bronze": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brons"
+          }
+        }
+      }
+    },
+    "Calories & Protein": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalorier och protein"
+          }
+        }
+      }
+    },
+    "Connect Apple Health in Atlas": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anslut Apple Hälsa i Atlas"
+          }
+        }
+      }
+    },
+    "Core": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bål"
+          }
+        }
+      }
+    },
+    "Deep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Djup"
+          }
+        }
+      }
+    },
+    "Diamond": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diamant"
+          }
+        }
+      }
+    },
+    "Done": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klar"
+          }
+        }
+      }
+    },
+    "Gold": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guld"
+          }
+        }
+      }
+    },
+    "HRV %lld ms": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HRV %lld ms"
+          }
+        }
+      }
+    },
+    "Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hälsa"
+          }
+        }
+      }
+    },
+    "Health %lld/%lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hälsa %lld/%lld"
+          }
+        }
+      }
+    },
+    "Health Habits": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hälsovanor"
+          }
+        }
+      }
+    },
+    "Health —": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hälsa –"
+          }
+        }
+      }
+    },
+    "High": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hög"
+          }
+        }
+      }
+    },
+    "Last night's Sleep Score and time asleep.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nattens sömnpoäng och sovtid."
+          }
+        }
+      }
+    },
+    "Last: %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senast: %@"
+          }
+        }
+      }
+    },
+    "Log a meal on iPhone": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga en måltid på iPhone"
+          }
+        }
+      }
+    },
+    "Low": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Låg"
+          }
+        }
+      }
+    },
+    "Lv %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nv %lld"
+          }
+        }
+      }
+    },
+    "Lv%lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nv%lld"
+          }
+        }
+      }
+    },
+    "Next Dose": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nästa dos"
+          }
+        }
+      }
+    },
+    "No doses today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga doser idag"
+          }
+        }
+      }
+    },
+    "No habits": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga vanor"
+          }
+        }
+      }
+    },
+    "No meals logged": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga måltider loggade"
+          }
+        }
+      }
+    },
+    "No recovery data yet": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingen återhämtningsdata än"
+          }
+        }
+      }
+    },
+    "No sleep recorded last night": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingen sömn registrerad i natt"
+          }
+        }
+      }
+    },
+    "No workouts yet": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga pass än"
+          }
+        }
+      }
+    },
+    "Nutrition": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kost"
+          }
+        }
+      }
+    },
+    "OK": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        }
+      }
+    },
+    "Open Atlas on iPhone": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppna Atlas på iPhone"
+          }
+        }
+      }
+    },
+    "Paused · %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausad · %@"
+          }
+        }
+      }
+    },
+    "Platinum": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Platina"
+          }
+        }
+      }
+    },
+    "REM": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "REM"
+          }
+        }
+      }
+    },
+    "Recovery": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Återhämtning"
+          }
+        }
+      }
+    },
+    "Recovery %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Återhämtning %lld"
+          }
+        }
+      }
+    },
+    "Recovery score %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Återhämtningspoäng %lld"
+          }
+        }
+      }
+    },
+    "Recovery score unavailable": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Återhämtningspoäng saknas"
+          }
+        }
+      }
+    },
+    "Recovery —": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Återhämtning –"
+          }
+        }
+      }
+    },
+    "Rest %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vila %@"
+          }
+        }
+      }
+    },
+    "Resting, %lld of %lld sets done": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vilar, %lld av %lld set klara"
+          }
+        }
+      }
+    },
+    "Shows your next peptide dose at a glance.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visar din nästa peptiddos med en blick."
+          }
+        }
+      }
+    },
+    "Silver": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Silver"
+          }
+        }
+      }
+    },
+    "Sleep %lld · %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sömn %lld · %@"
+          }
+        }
+      }
+    },
+    "Sleep Score": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sömnpoäng"
+          }
+        }
+      }
+    },
+    "Sleep Score %lld, %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sömnpoäng %lld, %@"
+          }
+        }
+      }
+    },
+    "Sleep —": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sömn –"
+          }
+        }
+      }
+    },
+    "Today's calories and protein against your targets.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagens kalorier och protein jämfört med dina mål."
+          }
+        }
+      }
+    },
+    "Today's health-habit progress.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagens framsteg för hälsovanor."
+          }
+        }
+      }
+    },
+    "Today's training-habit progress.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagens framsteg för träningsvanor."
+          }
+        }
+      }
+    },
+    "Training": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Träning"
+          }
+        }
+      }
+    },
+    "Training %lld/%lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Träning %lld/%lld"
+          }
+        }
+      }
+    },
+    "Training Habits": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Träningsvanor"
+          }
+        }
+      }
+    },
+    "Training —": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Träning –"
+          }
+        }
+      }
+    },
+    "Very High": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mycket hög"
+          }
+        }
+      }
+    },
+    "Very Low": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mycket låg"
+          }
+        }
+      }
+    },
+    "WEEK": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VECKA"
+          }
+        }
+      }
+    },
+    "Workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pass"
+          }
+        }
+      }
+    },
+    "Workout paused": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passet är pausat"
+          }
+        }
+      }
+    },
+    "Your Atlas Score, level and tier at a glance.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Din Atlas-poäng, nivå och klass med en blick."
+          }
+        }
+      }
+    },
+    "Your Recovery score, resting heart rate and HRV.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Din återhämtningspoäng, vilopuls och HRV."
+          }
+        }
+      }
+    },
+    "Your workout in progress, or this week's training.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ditt pågående pass, eller veckans träning."
+          }
+        }
+      }
+    },
+    "scheduled today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "schemalagd idag"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

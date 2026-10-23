@@ -48,26 +48,26 @@ struct NotificationIssueBanner: View {
     private var headline: LocalizedStringKey {
         if !report.droppedProtocolIDs.isEmpty {
             let count = max(0, report.requested - report.scheduled)
-            return "^[\(count) reminder](inflect: true) couldn't be scheduled"
+            return String(localized: "\(count) reminders couldn't be scheduled")
         }
         if !report.invalidTimes.isEmpty {
-            return "Some reminder times couldn't be parsed"
+            return String(localized: "Some reminder times couldn't be parsed")
         }
-        return "Some reminders couldn't be scheduled"
+        return String(localized: "Some reminders couldn't be scheduled")
     }
 
     private var detail: String {
         var parts: [String] = []
         if !droppedProtocolNames.isEmpty {
             let list = droppedProtocolNames.joined(separator: ", ")
-            parts.append("iOS allows \(NotificationService.pendingRequestLimit) scheduled reminders. Reminders for \(list) won't fire — pause a protocol or trim dose times.")
+            parts.append(String(localized: "iOS allows \(NotificationService.pendingRequestLimit) scheduled reminders. Reminders for \(list) won't fire — pause a protocol or trim dose times."))
         }
         if !report.invalidTimes.isEmpty {
             let list = report.invalidTimes.prefix(3).joined(separator: ", ")
-            parts.append("Invalid time format: \(list).")
+            parts.append(String(localized: "Invalid time format: \(list)."))
         }
         if !report.invalidWeekdays.isEmpty {
-            parts.append("Some schedules use weekdays outside Monday–Sunday.")
+            parts.append(String(localized: "Some schedules use weekdays outside Monday–Sunday."))
         }
         return parts.joined(separator: " ")
     }

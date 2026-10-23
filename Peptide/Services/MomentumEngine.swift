@@ -145,11 +145,11 @@ enum MomentumEngine {
 
         var name: String {
             switch self {
-            case .bronze:   return "Bronze"
-            case .silver:   return "Silver"
-            case .gold:     return "Gold"
-            case .platinum: return "Platinum"
-            case .diamond:  return "Diamond"
+            case .bronze:   return String(localized: "Bronze")
+            case .silver:   return String(localized: "Silver")
+            case .gold:     return String(localized: "Gold")
+            case .platinum: return String(localized: "Platinum")
+            case .diamond:  return String(localized: "Diamond")
             }
         }
 

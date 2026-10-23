@@ -6,7 +6,7 @@ import SwiftUI
 struct MuscleHistorySheet: View {
     let muscle: AnatomicalMuscle
     let history: [MuscleExerciseHistory]
-    var periodLabel: String = "Last 30 days"
+    var periodLabel: String = String(localized: "Last 30 days")
     var sessions: [WorkoutSession] = []
     @Environment(\.dismiss) private var dismiss
 
@@ -108,7 +108,7 @@ struct MuscleHistorySheet: View {
                         .foregroundStyle(AppColor.textSecondary)
                 }
                 Spacer(minLength: Spacing.sm)
-                Text("\(item.sets) \(item.sets == 1 ? "set" : "sets")")
+                Text("\(item.sets) sets")
                     .font(AppFont.subheadline.weight(.semibold))
                     .foregroundStyle(AppColor.textPrimary)
             }

@@ -56,7 +56,7 @@ struct CelebrationOverlayView: View {
             }
             // SwiftUI-native announcement so the moment isn't silent for
             // VoiceOver users (avoids importing UIKit just for this).
-            AccessibilityNotification.Announcement("Level \(level) reached").post()
+            AccessibilityNotification.Announcement(String(localized: "Level \(level) reached")).post()
         }
     }
 }

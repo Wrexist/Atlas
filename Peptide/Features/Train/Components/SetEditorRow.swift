@@ -50,8 +50,8 @@ struct SetEditorRow: View {
                     .padding(.leading, Spacing.xxxl)
             }
             if let load = set.measurement?.load, load != .recorded {
-                Text(load == .eachPair ? "Load per hand · both counted" :
-                    (load == .perSide ? "Load per side · entered reps counted once" : "Combined load"))
+                Text(load == .eachPair ? String(localized: "Load per hand · both counted") :
+                    (load == .perSide ? String(localized: "Load per side · entered reps counted once") : String(localized: "Combined load")))
                     .font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
             }
         }

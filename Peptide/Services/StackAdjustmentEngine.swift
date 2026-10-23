@@ -47,10 +47,10 @@ enum StackAdjustmentEngine {
 
         var summary: String {
             switch (added.count, removed.count) {
-            case (0, 0): return "No changes yet"
-            case (let a, 0): return "Adding \(a)"
-            case (0, let r): return "Removing \(r)"
-            case (let a, let r): return "Adding \(a), removing \(r)"
+            case (0, 0): return String(localized: "No changes yet")
+            case (let a, 0): return String(localized: "Adding \(a)")
+            case (0, let r): return String(localized: "Removing \(r)")
+            case (let a, let r): return String(localized: "Adding \(a), removing \(r)")
             }
         }
     }
@@ -82,9 +82,9 @@ enum StackAdjustmentEngine {
 
         var label: String {
             switch self {
-            case .discard: return "Discard"
-            case .moveTo(_, let name, _): return "Move to \(name)"
-            case .createStack: return "Create new protocol"
+            case .discard: return String(localized: "Discard")
+            case .moveTo(_, let name, _): return String(localized: "Move to \(name)")
+            case .createStack: return String(localized: "Create new protocol")
             }
         }
 
@@ -135,9 +135,9 @@ enum StackAdjustmentEngine {
 
             let newStackReason: String
             if let key, peptideHasEffect(peptide, key: key) {
-                newStackReason = "Isolate \(peptide.abbreviation) from the \"\(key)\" cluster"
+                newStackReason = String(localized: "Isolate \(peptide.abbreviation) from the \"\(key)\" cluster")
             } else {
-                newStackReason = "Solo cycle for \(peptide.abbreviation)"
+                newStackReason = String(localized: "Solo cycle for \(peptide.abbreviation)")
             }
             options.append(.createStack(reason: newStackReason))
             options.append(.discard)
@@ -156,18 +156,18 @@ enum StackAdjustmentEngine {
         sideEffectKey key: String?
     ) -> String? {
         guard let key else {
-            return "Open spot in \(proto.name)"
+            return String(localized: "Open spot in \(proto.name)")
         }
 
         let peptideMatches = peptideHasEffect(peptide, key: key)
         guard peptideMatches else {
-            return "No \"\(key)\" overlap in \(proto.name)"
+            return String(localized: "No \"\(key)\" overlap in \(proto.name)")
         }
 
         let existingMatches = proto.peptides.filter { peptideHasEffect($0, key: key) }.count
         // Compounding warnings fire at 3+ shared. Reject moves that would push the destination over.
         guard existingMatches < 2 else { return nil }
-        return "Lower \"\(key)\" overlap in \(proto.name)"
+        return String(localized: "Lower \"\(key)\" overlap in \(proto.name)")
     }
 
     private static func peptideHasEffect(_ peptide: Peptide, key: String) -> Bool {

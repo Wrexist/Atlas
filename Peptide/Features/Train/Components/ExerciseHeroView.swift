@@ -70,9 +70,9 @@ struct ExerciseMuscleLegend: View {
         let primary = ExerciseAnatomyEngine.names(in: highlights, tier: .primary)
         let secondary = ExerciseAnatomyEngine.names(in: highlights, tier: .secondary)
         var parts: [String] = []
-        if !primary.isEmpty { parts.append("Primary: " + primary.joined(separator: ", ")) }
-        if !secondary.isEmpty { parts.append("Supporting: " + secondary.joined(separator: ", ")) }
-        return parts.isEmpty ? "No mapped muscles" : parts.joined(separator: ". ")
+        if !primary.isEmpty { parts.append(String(localized: "Primary: ") + primary.joined(separator: ", ")) }
+        if !secondary.isEmpty { parts.append(String(localized: "Supporting: ") + secondary.joined(separator: ", ")) }
+        return parts.isEmpty ? String(localized: "No mapped muscles") : parts.joined(separator: ". ")
     }
 }
 

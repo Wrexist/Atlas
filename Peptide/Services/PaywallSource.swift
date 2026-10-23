@@ -27,16 +27,16 @@ enum PaywallSource: String, CaseIterable, Identifiable, Sendable {
     /// alone there.
     var headline: String? {
         switch self {
-        case .protocolLimit:  return "Track unlimited protocols"
-        case .biology:        return "Unlock your recovery insights"
-        case .performanceAge: return "See your Biological Age"
-        case .weeklyRecap:    return "Get your weekly AI recap"
-        case .export:         return "Export your full history"
-        case .aiResearch:     return "Ask the AI research assistant"
-        case .communityStack: return "Use this as your protocol"
-        case .mealScanLimit:  return "Unlimited AI meal scans"
-        case .labScan:        return "Scan your lab reports"
-        case .winBack:        return "Welcome back to Atlas Pro"
+        case .protocolLimit:  return String(localized: "Track unlimited protocols")
+        case .biology:        return String(localized: "Unlock your recovery insights")
+        case .performanceAge: return String(localized: "See your Biological Age")
+        case .weeklyRecap:    return String(localized: "Get your weekly AI recap")
+        case .export:         return String(localized: "Export your full history")
+        case .aiResearch:     return String(localized: "Ask the AI research assistant")
+        case .communityStack: return String(localized: "Use this as your protocol")
+        case .mealScanLimit:  return String(localized: "Unlimited AI meal scans")
+        case .labScan:        return String(localized: "Scan your lab reports")
+        case .winBack:        return String(localized: "Welcome back to Atlas Pro")
         case .profile, .deepLink, .generic: return nil
         }
     }
@@ -44,16 +44,16 @@ enum PaywallSource: String, CaseIterable, Identifiable, Sendable {
     /// One-line explanation under `headline`.
     var subhead: String? {
         switch self {
-        case .protocolLimit:  return "The free plan covers three active protocols. Pro removes the cap."
-        case .biology:        return "HRV, resting heart rate and sleep, read together every morning."
-        case .performanceAge: return "One number built from your recovery and training data."
-        case .weeklyRecap:    return "A Sunday summary of your week, written for you."
-        case .export:         return "Take every log with you as a file you own."
-        case .aiResearch:     return "Questions answered with cited research."
-        case .communityStack: return "Add it to your protocols and track it like your own."
-        case .mealScanLimit:  return "Log every meal from a photo or barcode."
-        case .labScan:        return "Photograph a blood test and review every marker before it's saved."
-        case .winBack:        return "Pick up where you left off."
+        case .protocolLimit:  return String(localized: "The free plan covers three active protocols. Pro removes the cap.")
+        case .biology:        return String(localized: "HRV, resting heart rate and sleep, read together every morning.")
+        case .performanceAge: return String(localized: "One number built from your recovery and training data.")
+        case .weeklyRecap:    return String(localized: "A Sunday summary of your week, written for you.")
+        case .export:         return String(localized: "Take every log with you as a file you own.")
+        case .aiResearch:     return String(localized: "Questions answered with cited research.")
+        case .communityStack: return String(localized: "Add it to your protocols and track it like your own.")
+        case .mealScanLimit:  return String(localized: "Log every meal from a photo or barcode.")
+        case .labScan:        return String(localized: "Photograph a blood test and review every marker before it's saved.")
+        case .winBack:        return String(localized: "Pick up where you left off.")
         case .profile, .deepLink, .generic: return nil
         }
     }

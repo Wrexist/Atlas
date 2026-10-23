@@ -18,7 +18,7 @@ final class BiometricService {
         case .faceID: "Face ID"
         case .touchID: "Touch ID"
         case .opticID: "Optic ID"
-        default: "Biometrics"
+        default: String(localized: "Biometrics")
         }
     }
 

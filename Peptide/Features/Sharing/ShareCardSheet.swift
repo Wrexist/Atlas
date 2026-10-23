@@ -121,7 +121,7 @@ struct ShareCardSheet: View {
                     // "Hide compound names" choice the image itself honours.
                     ShareSheet(activityItems: [
                         renderedURL,
-                        "Tracking my progress with Atlas",
+                        String(localized: "Tracking my progress with Atlas"),
                     ])
                 }
             }
@@ -342,7 +342,7 @@ struct ShareCardSheet: View {
         healthSummary = CycleCardModel.HealthSummary(
             weightDeltaKg: weightDeltaSinceCycleStart(),
             avgSleepHours: sleepHours,
-            hrvTrendDescription: hrvAvg.map { String(format: "%.0f ms avg", $0) },
+            hrvTrendDescription: hrvAvg.map { String(format: String(localized: "%.0f ms avg"), $0) },
             weightUnit: dataStore.profile.bodyMetrics.unit
         )
     }

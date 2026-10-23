@@ -49,31 +49,30 @@ struct CycleCompletionPromptSheet: View {
 
     private var headerSubtitle: String {
         if daysPastEnd <= 0 {
-            return "\(proto.name) reached the end of its \(proto.safeCycleLengthWeeks)-week cycle today. What's next?"
+            return String(localized: "\(proto.name) reached the end of its \(proto.safeCycleLengthWeeks)-week cycle today. What's next?")
         }
-        let dayWord = daysPastEnd == 1 ? "day" : "days"
-        return "\(proto.name) ended \(daysPastEnd) \(dayWord) ago. Pick what's next so doses don't keep showing on your calendar."
+        return String(localized: "\(proto.name) ended \(daysPastEnd) days ago. Pick what's next so doses don't keep showing on your calendar.")
     }
 
     private var actionStack: some View {
         VStack(spacing: Spacing.sm) {
             CompletionAction(
                 title: "Mark complete",
-                detail: "Stops doses for \(proto.name). History is kept.",
+                detail: String(localized: "Stops doses for \(proto.name). History is kept."),
                 icon: "checkmark.circle.fill",
                 style: .primary,
                 onTap: onMarkComplete
             )
             CompletionAction(
                 title: "Extend by 2 weeks",
-                detail: "Keep dosing on the same schedule. You'll see this prompt again when the extended cycle ends.",
+                detail: String(localized: "Keep dosing on the same schedule. You'll see this prompt again when the extended cycle ends."),
                 icon: "calendar.badge.plus",
                 style: .secondary,
                 onTap: onExtend
             )
             CompletionAction(
                 title: "Start a new cycle",
-                detail: "Resets the cycle to today. Same compounds, fresh week 1.",
+                detail: String(localized: "Resets the cycle to today. Same compounds, fresh week 1."),
                 icon: "arrow.counterclockwise.circle",
                 style: .secondary,
                 onTap: onStartNewCycle

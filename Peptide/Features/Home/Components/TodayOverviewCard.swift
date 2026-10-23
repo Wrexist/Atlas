@@ -138,7 +138,7 @@ struct TodayOverviewCard: View {
             icon: "drop.fill",
             tint: AppColor.macroWater,
             footnote: snapshot.waterToday > 0
-                ? (isToday ? "\(unit.volumeSuffix) today" : unit.volumeSuffix)
+                ? (isToday ? String(localized: "\(unit.volumeSuffix) today") : unit.volumeSuffix)
                 : (isToday ? String(localized: "Tap to add") : String(localized: "None logged"))
         )
     }

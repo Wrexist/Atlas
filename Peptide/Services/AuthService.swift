@@ -32,18 +32,18 @@ final class AuthService {
 
         var title: String {
             switch self {
-            case .canceled:  return "Sign-In Canceled"
-            case .timedOut:  return "Sign-In Is Taking Too Long"
-            case .failed:    return "Sign-In Failed"
+            case .canceled:  return String(localized: "Sign-In Canceled")
+            case .timedOut:  return String(localized: "Sign-In Is Taking Too Long")
+            case .failed:    return String(localized: "Sign-In Failed")
             }
         }
 
         var message: String {
             switch self {
             case .canceled:
-                return "You canceled the sign-in. You can try again or continue without signing in — all features work without an account."
+                return String(localized: "You canceled the sign-in. You can try again or continue without signing in — all features work without an account.")
             case .timedOut:
-                return "Apple’s sign-in service didn’t respond. Check your connection or continue without signing in — all features work without an account."
+                return String(localized: "Apple’s sign-in service didn’t respond. Check your connection or continue without signing in — all features work without an account.")
             case .failed:
                 // Intentionally drops the underlying localizedDescription
                 // from the user-visible string — that text comes from
@@ -52,7 +52,7 @@ final class AuthService {
                 // (audit security H-2). The full description is still
                 // logged at .private privacy in AuthService.finishSignIn
                 // for diagnostic purposes.
-                return "Something went wrong signing in. You can try again or continue without signing in — all features work without an account."
+                return String(localized: "Something went wrong signing in. You can try again or continue without signing in — all features work without an account.")
             }
         }
     }

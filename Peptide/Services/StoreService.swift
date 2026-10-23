@@ -170,15 +170,15 @@ final class StoreService {
         let unit = intro.period.unit
         let count = intro.period.value * intro.periodCount
         switch unit {
-        case .day: return count == 1 ? "1 day free" : "\(count) days free"
+        case .day: return count == 1 ? String(localized: "1 day free") : String(localized: "\(count) days free")
         case .week:
             // "2 weeks free" reads worse on a paywall than "14 days free"
             // even though they're the same length. Prefer days for ≤4
             // weeks so it parses as a recognisable trial length.
             let days = count * 7
-            return count <= 4 ? "\(days) days free" : "\(count) weeks free"
-        case .month: return count == 1 ? "1 month free" : "\(count) months free"
-        case .year: return count == 1 ? "1 year free" : "\(count) years free"
+            return count <= 4 ? String(localized: "\(days) days free") : String(localized: "\(count) weeks free")
+        case .month: return count == 1 ? String(localized: "1 month free") : String(localized: "\(count) months free")
+        case .year: return count == 1 ? String(localized: "1 year free") : String(localized: "\(count) years free")
         @unknown default: return nil
         }
     }

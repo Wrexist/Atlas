@@ -110,7 +110,7 @@ struct WeeklySummaryDetailView: View {
                     label: "Adherence",
                     value: "\(Int((summary.keyStats.compliancePct * 100).rounded()))%",
                     tint: accent,
-                    footnote: "\(summary.keyStats.dosesCompleted) of \(summary.keyStats.dosesTotal) doses",
+                    footnote: String(localized: "\(summary.keyStats.dosesCompleted) of \(summary.keyStats.dosesTotal) doses"),
                     size: .large
                 )
             }
@@ -118,7 +118,7 @@ struct WeeklySummaryDetailView: View {
                 label: "Streak",
                 value: "\(summary.keyStats.currentStreak)",
                 tint: AppColor.streak,
-                footnote: summary.keyStats.currentStreak == 1 ? "day" : "days",
+                footnote: summary.keyStats.currentStreak == 1 ? String(localized: "day") : String(localized: "days"),
                 size: .large
             )
             if let composite = summary.keyStats.avgCheckInScore {
@@ -126,7 +126,7 @@ struct WeeklySummaryDetailView: View {
                     label: "Check-in",
                     value: composite.formatted(.number.precision(.fractionLength(1))),
                     tint: AppColor.metricHRV,
-                    footnote: "of 5.0",
+                    footnote: String(localized: "of 5.0"),
                     size: .large
                 )
             }
@@ -135,7 +135,7 @@ struct WeeklySummaryDetailView: View {
                     label: "Avg kcal",
                     value: "\(calories)",
                     tint: AppColor.macroProtein,
-                    footnote: "per day",
+                    footnote: String(localized: "per day"),
                     size: .large
                 )
             }
@@ -147,7 +147,7 @@ struct WeeklySummaryDetailView: View {
                     tint: delta >= 0
                         ? AppColor.positive
                         : AppColor.negative,
-                    footnote: "ms vs prior week",
+                    footnote: String(localized: "ms vs prior week"),
                     size: .large,
                     accessibilityLabel: hrvChangeAccessibilityLabel(delta)
                 )

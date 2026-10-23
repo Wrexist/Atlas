@@ -1048,8 +1048,8 @@ final class SwiftDataRepository {
         case unavailable, failed
         var errorDescription: String? {
             switch self {
-            case .unavailable: "Device storage is unavailable. The workout has not been saved."
-            case .failed: "The workout could not be written to device storage. Try again."
+            case .unavailable: String(localized: "Device storage is unavailable. The workout has not been saved.")
+            case .failed: String(localized: "The workout could not be written to device storage. Try again.")
             }
         }
     }

@@ -87,7 +87,7 @@ extension CycleCardModel {
         let anchor = dataStore.activeProtocols.min { $0.startDate < $1.startDate }
         let start = anchor?.startDate ?? Date()
         return CycleCardModel(
-            subjectTitle: "My Protocol",
+            subjectTitle: String(localized: "My Protocol"),
             peptides: dataStore.stackPeptides,
             activeSinceDate: start,
             cycleDay: cycleDay(from: start),

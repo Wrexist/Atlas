@@ -17,22 +17,22 @@ struct StackAlertDetailSheet: View {
 
     private var severityLabel: String {
         switch warning.severity {
-        case .danger: return "High priority"
-        case .caution: return "Worth reviewing"
-        case .info: return "For your awareness"
+        case .danger: return String(localized: "High priority")
+        case .caution: return String(localized: "Worth reviewing")
+        case .info: return String(localized: "For your awareness")
         }
     }
 
     private var primaryActionLabel: LocalizedStringKey {
         switch warning.kind {
-        case .cycleOverrun, .desensitization: return "Schedule off period"
-        case .timingConflict: return "Adjust schedule"
-        case .injectionBurden: return "Group injections"
+        case .cycleOverrun, .desensitization: return String(localized: "Schedule off period")
+        case .timingConflict: return String(localized: "Adjust schedule")
+        case .injectionBurden: return String(localized: "Group injections")
         case .general:
             switch warning.severity {
-            case .danger: return "Review Protocol now"
-            case .caution: return "Adjust Protocol"
-            case .info: return "Open Protocols"
+            case .danger: return String(localized: "Review Protocol now")
+            case .caution: return String(localized: "Adjust Protocol")
+            case .info: return String(localized: "Open Protocols")
             }
         }
     }
@@ -153,7 +153,7 @@ struct StackAlertDetailSheet: View {
     }
 
     private var detailSection: some View {
-        sectionCard(iconName: "info.circle.fill", title: "What's happening", tint: AppColor.textSecondary) {
+        sectionCard(iconName: "info.circle.fill", title: String(localized: "What's happening"), tint: AppColor.textSecondary) {
             Text(warning.detail)
                 .font(AppFont.callout)
                 .foregroundStyle(AppColor.textPrimary)
@@ -164,7 +164,7 @@ struct StackAlertDetailSheet: View {
     }
 
     private var suggestionSection: some View {
-        sectionCard(iconName: "lightbulb.fill", title: "Recommended action", tint: AppColor.accentLight) {
+        sectionCard(iconName: "lightbulb.fill", title: String(localized: "Recommended action"), tint: AppColor.accentLight) {
             Text(warning.suggestion)
                 .font(AppFont.callout)
                 .foregroundStyle(AppColor.textPrimary)
@@ -177,7 +177,7 @@ struct StackAlertDetailSheet: View {
     @ViewBuilder
     private var affectedPeptidesSection: some View {
         if !warning.peptides.isEmpty {
-            sectionCard(iconName: "pills.fill", title: "Affected peptides", tint: severityColor) {
+            sectionCard(iconName: "pills.fill", title: String(localized: "Affected peptides"), tint: severityColor) {
                 FlowLayout(spacing: Spacing.sm) {
                     ForEach(warning.peptides, id: \.self) { abbreviation in
                         peptideChip(abbreviation: abbreviation)

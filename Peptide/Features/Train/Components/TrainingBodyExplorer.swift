@@ -172,12 +172,12 @@ struct TrainingBodyExplorer: View {
 
     private var selectionDescription: String {
         guard let selected, let highlight = highlights[selected] else {
-            return "No logged work in this view"
+            return String(localized: "No logged work in this view")
         }
         switch highlight {
-        case .primary: return "Primary muscle"
-        case .secondary: return "Supporting muscle"
-        case .intensity: return "Highlighted from logged training"
+        case .primary: return String(localized: "Primary muscle")
+        case .secondary: return String(localized: "Supporting muscle")
+        case .intensity: return String(localized: "Highlighted from logged training")
         }
     }
 }

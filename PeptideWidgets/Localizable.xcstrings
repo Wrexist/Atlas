@@ -1,0 +1,1190 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "%@ at %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ kl. %@"
+          }
+        }
+      }
+    },
+    "%@ kcal left": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ kcal kvar"
+          }
+        }
+      }
+    },
+    "%@ kcal over": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ kcal över"
+          }
+        }
+      }
+    },
+    "%@ kcal today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ kcal idag"
+          }
+        }
+      }
+    },
+    "%lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld"
+          }
+        }
+      }
+    },
+    "%lld exercises": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld övning"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld övningar"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld of %lld calories": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld av %lld kalorier"
+          }
+        }
+      }
+    },
+    "%lld of %lld doses logged": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld av %lld doser loggade"
+          }
+        }
+      }
+    },
+    "%lld of ^[%lld set](inflect: true)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld av %#@arg2@"
+          },
+          "substitutions": {
+            "arg2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg set"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg set"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld sets · %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld set · %@"
+          }
+        }
+      }
+    },
+    "%lld workouts this week": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld pass den här veckan"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld pass den här veckan"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld/%lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld"
+          }
+        }
+      }
+    },
+    "%lld/%lld sets": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld set"
+          }
+        }
+      }
+    },
+    "1 exercise": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 övning"
+          }
+        }
+      }
+    },
+    "Action": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Åtgärd"
+          }
+        }
+      }
+    },
+    "Add a glass": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till ett glas"
+          }
+        }
+      }
+    },
+    "Add a protocol to track doses here.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till ett protokoll för att följa doser här."
+          }
+        }
+      }
+    },
+    "Add your first exercise": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till din första övning"
+          }
+        }
+      }
+    },
+    "Adds a glass of water to today without opening Atlas.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägger till ett glas vatten för idag utan att öppna Atlas."
+          }
+        }
+      }
+    },
+    "All done today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allt klart idag"
+          }
+        }
+      }
+    },
+    "C": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "K"
+          }
+        }
+      }
+    },
+    "Calories left today, split by meal, with your macros.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalorier kvar idag, uppdelat per måltid, med dina makron."
+          }
+        }
+      }
+    },
+    "Carbs": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kolhydrater"
+          }
+        }
+      }
+    },
+    "Complete set": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Slutför set"
+          }
+        }
+      }
+    },
+    "Done": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klar"
+          }
+        }
+      }
+    },
+    "Doses": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Doser"
+          }
+        }
+      }
+    },
+    "Due %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ska tas %@"
+          }
+        }
+      }
+    },
+    "Entry ID": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Post-ID"
+          }
+        }
+      }
+    },
+    "F": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "F"
+          }
+        }
+      }
+    },
+    "Fat": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fett"
+          }
+        }
+      }
+    },
+    "Fresh week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ny vecka"
+          }
+        }
+      }
+    },
+    "High": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hög"
+          }
+        }
+      }
+    },
+    "How much of today's protocol you've logged.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hur mycket av dagens protokoll du har loggat."
+          }
+        }
+      }
+    },
+    "Idle": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inaktiv"
+          }
+        }
+      }
+    },
+    "In progress": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pågår"
+          }
+        }
+      }
+    },
+    "Last workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senaste passet"
+          }
+        }
+      }
+    },
+    "Last: %@, %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senast: %@, %@"
+          }
+        }
+      }
+    },
+    "Late": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sent"
+          }
+        }
+      }
+    },
+    "Log": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga"
+          }
+        }
+      }
+    },
+    "Log a glass of water": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga ett glas vatten"
+          }
+        }
+      }
+    },
+    "Log dose": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga dos"
+          }
+        }
+      }
+    },
+    "Log water": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga vatten"
+          }
+        }
+      }
+    },
+    "Log weight": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga vikt"
+          }
+        }
+      }
+    },
+    "Logged": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loggad"
+          }
+        }
+      }
+    },
+    "Logged: %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loggad: %@"
+          }
+        }
+      }
+    },
+    "Low": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Låg"
+          }
+        }
+      }
+    },
+    "Marks a peptide dose as taken from the lock screen.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markerar en peptiddos som tagen från låsskärmen."
+          }
+        }
+      }
+    },
+    "Next": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nästa"
+          }
+        }
+      }
+    },
+    "No meals logged yet": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga måltider loggade än"
+          }
+        }
+      }
+    },
+    "No protocol yet": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inget protokoll än"
+          }
+        }
+      }
+    },
+    "No sets planned": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga planerade set"
+          }
+        }
+      }
+    },
+    "No workouts yet": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga pass än"
+          }
+        }
+      }
+    },
+    "Now": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nu"
+          }
+        }
+      }
+    },
+    "Nutrition": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kost"
+          }
+        }
+      }
+    },
+    "OK": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        }
+      }
+    },
+    "Open Atlas to load today's doses.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppna Atlas för att läsa in dagens doser."
+          }
+        }
+      }
+    },
+    "Open Atlas to update": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppna Atlas för att uppdatera"
+          }
+        }
+      }
+    },
+    "Open quick action": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppna snabbåtgärd"
+          }
+        }
+      }
+    },
+    "Opens the meal scanner.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar måltidsskannern."
+          }
+        }
+      }
+    },
+    "Opens weight entry in Atlas.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar viktinmatning i Atlas."
+          }
+        }
+      }
+    },
+    "Overdue": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Försenad"
+          }
+        }
+      }
+    },
+    "P": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "P"
+          }
+        }
+      }
+    },
+    "P %lld · C %lld · F %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "P %lld · K %lld · F %lld"
+          }
+        }
+      }
+    },
+    "Paused": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausad"
+          }
+        }
+      }
+    },
+    "Paused at %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausad vid %@"
+          }
+        }
+      }
+    },
+    "Protein": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protein"
+          }
+        }
+      }
+    },
+    "Protein %lld grams, carbs %lld grams, fat %lld grams": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protein %lld gram, kolhydrater %lld gram, fett %lld gram"
+          }
+        }
+      }
+    },
+    "Protocol": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protokoll"
+          }
+        }
+      }
+    },
+    "Protocol Adherence": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Följsamhet till protokollet"
+          }
+        }
+      }
+    },
+    "Quick action": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snabbåtgärd"
+          }
+        }
+      }
+    },
+    "Scan meal": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skanna måltid"
+          }
+        }
+      }
+    },
+    "Session ID": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sessions-ID"
+          }
+        }
+      }
+    },
+    "Skip rest": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hoppa över vila"
+          }
+        }
+      }
+    },
+    "Start workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starta pass"
+          }
+        }
+      }
+    },
+    "Starts a workout in Atlas.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Startar ett pass i Atlas."
+          }
+        }
+      }
+    },
+    "Take now": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ta nu"
+          }
+        }
+      }
+    },
+    "Tap to start your first session.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck för att starta ditt första pass."
+          }
+        }
+      }
+    },
+    "This week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Den här veckan"
+          }
+        }
+      }
+    },
+    "Today's Protocol": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagens protokoll"
+          }
+        }
+      }
+    },
+    "Today's protocol": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagens protokoll"
+          }
+        }
+      }
+    },
+    "Trained %lld of 7 days this week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tränade %lld av 7 dagar den här veckan"
+          }
+        }
+      }
+    },
+    "Training": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Träning"
+          }
+        }
+      }
+    },
+    "Very High": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mycket hög"
+          }
+        }
+      }
+    },
+    "Very Low": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mycket låg"
+          }
+        }
+      }
+    },
+    "Window": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fönster"
+          }
+        }
+      }
+    },
+    "Workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pass"
+          }
+        }
+      }
+    },
+    "Workout %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pass %@"
+          }
+        }
+      }
+    },
+    "Workout action": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passåtgärd"
+          }
+        }
+      }
+    },
+    "Workout idle · Tap to resume": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passet är inaktivt · Tryck för att fortsätta"
+          }
+        }
+      }
+    },
+    "Workout paused": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passet är pausat"
+          }
+        }
+      }
+    },
+    "Your first finished session lands here.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ditt första avslutade pass hamnar här."
+          }
+        }
+      }
+    },
+    "Your next scheduled dose and today's progress.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Din nästa schemalagda dos och dagens framsteg."
+          }
+        }
+      }
+    },
+    "Your week at a glance, your last workout, and a live timer while you train.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Din vecka med en blick, ditt senaste pass och en live-timer medan du tränar."
+          }
+        }
+      }
+    },
+    "^[%lld session](inflect: true)": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld pass"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld pass"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "^[%lld session](inflect: true) this week": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld pass den här veckan"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld pass den här veckan"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "^[%lld set](inflect: true)": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld set"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld set"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "^[%lld set](inflect: true) · done": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld set · klart"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld set · klart"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "elapsed": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "förfluten"
+          }
+        }
+      }
+    },
+    "kcal": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kcal"
+          }
+        }
+      }
+    },
+    "late": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sen"
+          }
+        }
+      }
+    },
+    "left": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kvar"
+          }
+        }
+      }
+    },
+    "now": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nu"
+          }
+        }
+      }
+    },
+    "over": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "över"
+          }
+        }
+      }
+    },
+    "paused": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "pausad"
+          }
+        }
+      }
+    },
+    "rest": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vila"
+          }
+        }
+      }
+    },
+    "sets": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "set"
+          }
+        }
+      }
+    },
+    "time": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "gång"
+          }
+        }
+      }
+    },
+    "to dose": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "att dosera"
+          }
+        }
+      }
+    },
+    "volume": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "volym"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

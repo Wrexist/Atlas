@@ -61,9 +61,9 @@ struct RecommendedPeptidesCard: View {
         case .high:
             reasonBadge("Research-backed", color: AppColor.accentLight, bgOpacity: 0.2)
         case .medium:
-            reasonBadge("Suggested", color: AppColor.accentPrimary, bgOpacity: 0.15)
+            reasonBadge(String(localized: "Suggested"), color: AppColor.accentPrimary, bgOpacity: 0.15)
         case .low:
-            reasonBadge("Exploratory", color: AppColor.textSecondary, bgOpacity: 0.1)
+            reasonBadge(String(localized: "Exploratory"), color: AppColor.textSecondary, bgOpacity: 0.1)
         }
     }
 
@@ -191,7 +191,7 @@ struct RecommendedPeptidesCard: View {
                         reasons: [
                             .commonStack(pairsWith: ["TB-500", "GHK-Cu"]),
                             .goalMatch(goal: "recovery"),
-                            .categorySynergy(description: "Growth + Recovery amplify tissue repair"),
+                            .categorySynergy(description: String(localized: "Growth + Recovery amplify tissue repair")),
                         ],
                         confidence: .high
                     ),

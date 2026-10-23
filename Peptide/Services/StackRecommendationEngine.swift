@@ -7,12 +7,12 @@ enum StackRecommendationEngine {
     // MARK: - Category Synergies
 
     private static let categorySynergies: [(PeptideCategory, PeptideCategory, String)] = [
-        (.growth, .recovery, "Growth + Recovery amplify tissue repair"),
-        (.cognitive, .antiAging, "Cognitive + Anti-Aging support neuroprotection"),
-        (.metabolic, .growth, "Metabolic + Growth preserve muscle during fat loss"),
-        (.immune, .recovery, "Immune + Recovery accelerate healing response"),
-        (.antiAging, .recovery, "Anti-Aging + Recovery enhance regeneration"),
-        (.growth, .cognitive, "Growth + Cognitive support neuroplasticity"),
+        (.growth, .recovery, String(localized: "Growth + Recovery amplify tissue repair")),
+        (.cognitive, .antiAging, String(localized: "Cognitive + Anti-Aging support neuroprotection")),
+        (.metabolic, .growth, String(localized: "Metabolic + Growth preserve muscle during fat loss")),
+        (.immune, .recovery, String(localized: "Immune + Recovery accelerate healing response")),
+        (.antiAging, .recovery, String(localized: "Anti-Aging + Recovery enhance regeneration")),
+        (.growth, .cognitive, String(localized: "Growth + Cognitive support neuroplasticity")),
     ]
 
     // MARK: - Goal Mapping
@@ -275,7 +275,7 @@ enum StackRecommendationEngine {
                     missingCategories.append(goal.category)
                 }
                 suggestions.append(
-                    "Add a \(goal.category.displayName) peptide for your \"\(goal.displayName)\" goal"
+                    String(localized: "Add a \(goal.category.displayName) peptide for your \"\(goal.displayName)\" goal")
                 )
             }
 

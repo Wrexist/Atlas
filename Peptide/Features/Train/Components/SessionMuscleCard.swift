@@ -37,7 +37,7 @@ struct SessionMuscleCard: View {
                 history: WeeklyMuscleHeatmap.history(
                     for: muscle, from: [session], library: library, days: nil
                 ),
-                periodLabel: "This workout",
+                periodLabel: String(localized: "This workout"),
                 sessions: [session]
             )
         }

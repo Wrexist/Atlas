@@ -64,7 +64,7 @@ struct WorkoutSavedEditor: View {
     }
 
     private var validationIssue: String? {
-        if !invalidFields.isEmpty { return "Correct the highlighted number fields before saving." }
+        if !invalidFields.isEmpty { return String(localized: "Correct the highlighted number fields before saving.") }
         return WorkoutEditValidation.issue(in: draft, original: original)
     }
 
@@ -80,7 +80,7 @@ struct WorkoutSavedEditor: View {
                 dismiss()
             } catch {
                 self.error = error.localizedDescription
-                AccessibilityNotification.Announcement("Could not save changes").post()
+                AccessibilityNotification.Announcement(String(localized: "Could not save changes")).post()
             }
             saving = false
         }
@@ -110,19 +110,19 @@ private struct RecapSetEditor: View {
             invalidFields = invalidFields.filter { !$0.hasPrefix(set.id.uuidString) }
         }
         if set.measurement?.kind == .timed {
-            numberField("Seconds", value: Binding(get: { set.measurement?.seconds ?? 0 }, set: {
+            numberField(String(localized: "Seconds"), value: Binding(get: { set.measurement?.seconds ?? 0 }, set: {
                 var m = set.measurement ?? .init(); m.seconds = $0; set.measurement = m
             }))
         } else if set.measurement?.kind == .distance {
-            numberField("Meters", value: Binding(get: { set.measurement?.meters ?? 0 }, set: {
+            numberField(String(localized: "Meters"), value: Binding(get: { set.measurement?.meters ?? 0 }, set: {
                 var m = set.measurement ?? .init(); m.meters = $0; set.measurement = m
             }))
         } else {
-            numberField("Load (\(unit.weightSuffix))", value: Binding(
+            numberField(String(localized: "Load (\(unit.weightSuffix))"), value: Binding(
                 get: { unit.weightForDisplay(set.weightKg) },
                 set: { set.weightKg = unit.kilograms(fromDisplayed: $0) }),
                 range: 0...unit.weightForDisplay(SetEntryLimits.weightKg.upperBound))
-            numberField("Reps", value: Binding(get: { Double(set.reps) }, set: { set.reps = Int($0) }),
+            numberField(String(localized: "Reps"), value: Binding(get: { Double(set.reps) }, set: { set.reps = Int($0) }),
                         range: 0...Double(SetEntryLimits.reps.upperBound), wholeNumber: true)
             Picker("Load convention", selection: measurement.load) {
                 Text("As entered").tag(SetEntry.Measurement.Load.recorded)

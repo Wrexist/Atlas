@@ -71,10 +71,10 @@ enum RoutineEditEngine {
 
     /// "Push day" → "Push day copy" → "Push day copy 2", Finder-style.
     private static func copyName(of name: String, avoiding taken: Set<String>) -> String {
-        let base = truncated("\(name) copy")
+        let base = truncated(String(localized: "\(name) copy"))
         guard taken.contains(base) else { return base }
         for suffix in 2...99 {
-            let candidate = truncated("\(name) copy \(suffix)")
+            let candidate = truncated(String(localized: "\(name) copy \(suffix)"))
             if !taken.contains(candidate) { return candidate }
         }
         return base

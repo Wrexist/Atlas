@@ -60,10 +60,9 @@ run "Copy claims vs source" python3 scripts/check-copy-claims.py
 # and privacy links. 1.2.0 (135) was rejected for missing the first one.
 run "App Store metadata (3.1.2)" python3 scripts/check-store-metadata.py
 
-# Informational, not gating. Coverage is 13% today; making that a hard gate
-# would just fail every run until someone commissions the translations.
-printf '\n\033[1m── Localization coverage\033[0m\n'
-python3 scripts/check-localization.py
+# A shipped language must cover 80% of the UI, and every translation must
+# keep its key's format specifiers — neither is a build error otherwise.
+run "Localization (coverage, specifiers)" python3 scripts/check-localization.py
 
 run "Bundled peptide dataset" python3 - <<'PY'
 import json, pathlib, sys

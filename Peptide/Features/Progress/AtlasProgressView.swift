@@ -133,12 +133,12 @@ struct AtlasProgressView: View {
         return VStack(alignment: .leading, spacing: Spacing.md) {
             sectionHeader("Streaks", systemImage: "flame.fill")
             HStack(spacing: Spacing.md) {
-                streakTile(label: "Habits", current: habitCurrent, best: dataStore.bestHabitStreak, tint: AppColor.streak)
+                streakTile(label: String(localized: "Habits"), current: habitCurrent, best: dataStore.bestHabitStreak, tint: AppColor.streak)
                 if !dataStore.protocols.isEmpty {
-                    streakTile(label: "Doses", current: dataStore.currentStreak, best: dataStore.bestStreak, tint: AppColor.accentPrimary)
+                    streakTile(label: String(localized: "Doses"), current: dataStore.currentStreak, best: dataStore.bestStreak, tint: AppColor.accentPrimary)
                 }
                 if !dataStore.profile.mealHistory.isEmpty {
-                    streakTile(label: "Meals", current: dataStore.mealLoggingStreak, best: dataStore.bestMealLoggingStreak, tint: AppColor.macroProtein)
+                    streakTile(label: String(localized: "Meals"), current: dataStore.mealLoggingStreak, best: dataStore.bestMealLoggingStreak, tint: AppColor.macroProtein)
                 }
             }
         }

@@ -235,10 +235,12 @@ struct TodayHabitsHero: View {
     private var summaryAccessibilityLabel: String {
         let dayWord = isReadOnly ? "that day" : "today"
         let progress = snapshot.dueCount > 0
-            ? "\(snapshot.doneCount) of \(snapshot.dueCount) habits done \(dayWord)"
-            : "No habits due \(dayWord)"
+            ? (isReadOnly
+                ? String(localized: "\(snapshot.doneCount) of \(snapshot.dueCount) habits done that day")
+                : String(localized: "\(snapshot.doneCount) of \(snapshot.dueCount) habits done today"))
+            : (isReadOnly ? String(localized: "No habits due that day") : String(localized: "No habits due today"))
         let streak = snapshot.bestCurrentStreak > 0
-            ? ", \(snapshot.bestCurrentStreak) day streak"
+            ? String(localized: ", \(snapshot.bestCurrentStreak) day streak")
             : ""
         return progress + streak
     }

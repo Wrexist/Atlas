@@ -121,9 +121,9 @@ struct ExerciseDetailView: View {
 
     private func levelLabel(_ level: Exercise.Level) -> String {
         switch level {
-        case .beginner:     return "Beginner"
-        case .intermediate: return "Intermediate"
-        case .expert:       return "Expert"
+        case .beginner:     return String(localized: "Beginner")
+        case .intermediate: return String(localized: "Intermediate")
+        case .expert:       return String(localized: "Expert")
         }
     }
 

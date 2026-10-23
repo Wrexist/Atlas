@@ -197,8 +197,8 @@ struct TrainContainerView: View {
         guard let closure = sessionService.staleClosure else { return }
         sessionService.acknowledgeStaleClosure()
         staleNoticeMessage = closure == .finished
-            ? "Saved your unfinished workout to History"
-            : "Cleared an empty workout left open"
+            ? String(localized: "Saved your unfinished workout to History")
+            : String(localized: "Cleared an empty workout left open")
         showStaleNotice = true
     }
 

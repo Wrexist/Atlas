@@ -909,7 +909,7 @@ final class DataStore {
         let mondayOffset = weekday == 1 ? -6 : -(weekday - 2)
         guard let monday = calendar.date(byAdding: .day, value: mondayOffset, to: todayStart) else { return [] }
 
-        let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        let dayLabels = [String(localized: "Mon"), String(localized: "Tue"), String(localized: "Wed"), String(localized: "Thu"), String(localized: "Fri"), String(localized: "Sat"), String(localized: "Sun")]
         let grouped = entriesByDay
 
         let result = (0..<7).map { offset -> WeekDayStatus in
@@ -1825,7 +1825,7 @@ final class DataStore {
             startedAt: entry.date,
             finishedAt: finishedAt,
             exercises: [],
-            note: "Quick-log · \(entry.sets) sets × \(entry.reps) reps",
+            note: String(localized: "Quick-log · \(entry.sets) sets × \(entry.reps) reps"),
             perceivedEffort: nil,
             focus: WorkoutFocusState(timing: entry.durationMinutes > 0 ? .tracked : .notTracked)
         )
@@ -2284,7 +2284,7 @@ final class DataStore {
     @discardableResult
     func adoptStarterProtocol(
         peptides: [Peptide],
-        name: String = "Starter Protocol"
+        name: String = String(localized: "Starter Protocol")
     ) -> PeptideProtocol? {
         guard !peptides.isEmpty else { return nil }
         let schedule = ProtocolSchedule(
@@ -2300,7 +2300,7 @@ final class DataStore {
             cycleLengthWeeks: 8,
             startDate: Date(),
             status: .active,
-            notes: "Generated from your onboarding goals. Review and adjust before starting."
+            notes: String(localized: "Generated from your onboarding goals. Review and adjust before starting.")
         )
         addProtocol(proto)
         return proto

@@ -6,10 +6,10 @@ enum BiologicalSex: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var displayName: String {
         switch self {
-        case .male: "Male"
-        case .female: "Female"
-        case .other: "Other"
-        case .unspecified: "Prefer not to say"
+        case .male: String(localized: "Male")
+        case .female: String(localized: "Female")
+        case .other: String(localized: "Other")
+        case .unspecified: String(localized: "Prefer not to say")
         }
     }
 
@@ -17,10 +17,10 @@ enum BiologicalSex: String, Codable, CaseIterable, Identifiable, Sendable {
     /// full "Prefer not to say" wraps awkwardly.
     var shortLabel: String {
         switch self {
-        case .male: "Male"
-        case .female: "Female"
-        case .other: "Other"
-        case .unspecified: "Skip"
+        case .male: String(localized: "Male")
+        case .female: String(localized: "Female")
+        case .other: String(localized: "Other")
+        case .unspecified: String(localized: "Skip")
         }
     }
 
@@ -36,21 +36,21 @@ enum ActivityLevel: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var displayName: String {
         switch self {
-        case .sedentary: "Sedentary"
-        case .light: "Light"
-        case .moderate: "Moderate"
-        case .active: "Active"
-        case .athlete: "Athlete"
+        case .sedentary: String(localized: "Sedentary")
+        case .light: String(localized: "Light")
+        case .moderate: String(localized: "Moderate")
+        case .active: String(localized: "Active")
+        case .athlete: String(localized: "Athlete")
         }
     }
 
     var subtitle: String {
         switch self {
-        case .sedentary: "Desk work, little exercise"
-        case .light: "1–2 sessions per week"
-        case .moderate: "3–4 sessions per week"
-        case .active: "5–6 intense sessions"
-        case .athlete: "Daily training, competition"
+        case .sedentary: String(localized: "Desk work, little exercise")
+        case .light: String(localized: "1–2 sessions per week")
+        case .moderate: String(localized: "3–4 sessions per week")
+        case .active: String(localized: "5–6 intense sessions")
+        case .athlete: String(localized: "Daily training, competition")
         }
     }
 
@@ -288,13 +288,13 @@ struct AffiliateApplication: Codable, Hashable, Sendable {
         var id: String { rawValue }
         var displayName: String {
             switch self {
-            case .instagram:  return "Instagram"
+            case .instagram:  return String(localized: "Instagram")
             case .tiktok:     return "TikTok"
             case .youtube:    return "YouTube"
-            case .podcast:    return "Podcast"
-            case .newsletter: return "Newsletter"
-            case .website:    return "Website / blog"
-            case .other:      return "Other"
+            case .podcast:    return String(localized: "Podcast")
+            case .newsletter: return String(localized: "Newsletter")
+            case .website:    return String(localized: "Website / blog")
+            case .other:      return String(localized: "Other")
             }
         }
     }
@@ -308,7 +308,7 @@ struct AffiliateApplication: Codable, Hashable, Sendable {
         var id: String { rawValue }
         var displayName: String {
             switch self {
-            case .under1k:   return "Under 1k"
+            case .under1k:   return String(localized: "Under 1k")
             case .k1to10:    return "1k – 10k"
             case .k10to50:   return "10k – 50k"
             case .k50to250:  return "50k – 250k"

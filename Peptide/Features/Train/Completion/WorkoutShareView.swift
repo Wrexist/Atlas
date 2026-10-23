@@ -48,7 +48,7 @@ struct WorkoutShareView: View {
                 }.padding(Spacing.screenPadding)
             }
             .safeAreaInset(edge: .bottom) { actions }
-            .recapScreen(title: "Share workout")
+            .recapScreen(title: String(localized: "Share workout"))
             .toolbar { ToolbarItem(placement: .cancellationAction) {
                 Button("Close") { model.cancel(); dismiss() }.minimumHitArea().disabled(model.savingToPhotos)
             } }
@@ -75,7 +75,7 @@ struct WorkoutShareView: View {
                     }
                 } catch {
                     previewImage = nil
-                    previewError = "Could not prepare the preview. Change a format or try Share again."
+                    previewError = String(localized: "Could not prepare the preview. Change a format or try Share again.")
                 }
             }
             .onDisappear { model.cancel(); model.player?.pause() }
@@ -98,7 +98,7 @@ struct WorkoutShareView: View {
                 Text(model.savingToPhotos ? "Saving to Photos…" : "Preparing share file…").font(AppFont.subheadline)
                 if !model.savingToPhotos { Button("Cancel export") { model.cancel() }.minimumHitArea() }
             } else {
-                RecapAction(title: "Share") { perform(.share) }
+                RecapAction(title: String(localized: "Share")) { perform(.share) }
                     .accessibilityIdentifier("workout-share-send")
                 Button(options.format.isVideo ? "Save video to Photos" : "Save image to Photos") { perform(.save) }
                     .minimumHitArea().accessibilityIdentifier("workout-share-save")

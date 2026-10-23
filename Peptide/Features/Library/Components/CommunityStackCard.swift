@@ -58,9 +58,9 @@ struct CommunityStackCard: View {
         let peptides = stack.peptideAbbreviations.count
         var parts = [
             stack.name,
-            "by \(stack.authorName)",
-            peptides == 1 ? "1 peptide" : "\(peptides) peptides",
-            stack.cycleLengthWeeks == 1 ? "1 week" : "\(stack.cycleLengthWeeks) weeks"
+            String(localized: "by \(stack.authorName)"),
+            peptides == 1 ? String(localized: "1 peptide") : String(localized: "\(peptides) peptides"),
+            stack.cycleLengthWeeks == 1 ? String(localized: "1 week") : String(localized: "\(stack.cycleLengthWeeks) weeks")
         ]
         if let goal = stack.goalTags.first { parts.append(goal) }
         if stack.featured { parts.append("featured") }

@@ -107,7 +107,7 @@ final class RoutineStore {
 
     // MARK: - Internals
 
-    static let untitledName = "New routine"
+    static let untitledName = String(localized: "New routine")
 
     private var nextSortIndex: Int {
         (routines.compactMap(\.sortIndex).max() ?? routines.count - 1) + 1

@@ -54,8 +54,8 @@ struct MuscleGainsCard: View {
 
                 TrainingBodyExplorer(
                     highlights: highlights,
-                    legend: .intensity(low: mode == .regular ? "Rarely" : "Least",
-                                       high: mode == .regular ? "Every week" : "Most"),
+                    legend: .intensity(low: mode == .regular ? String(localized: "Rarely") : String(localized: "Least"),
+                                       high: mode == .regular ? String(localized: "Every week") : String(localized: "Most")),
                     onIdentify: { muscle in onIdentify?(muscle, historyDays) }
                 )
                 .frame(maxWidth: .infinity)
@@ -71,13 +71,13 @@ struct MuscleGainsCard: View {
 
     private var subtitle: String {
         guard hasHistory else {
-            return "Your full training history will build up here."
+            return String(localized: "Your full training history will build up here.")
         }
         switch mode {
         case .regular:
-            return "How consistently you've hit each muscle over the last \(regularityWeeks) weeks."
+            return String(localized: "How consistently you've hit each muscle over the last \(regularityWeeks) weeks.")
         case .total:
-            return "Where you've put in the most total work, across every session."
+            return String(localized: "Where you've put in the most total work, across every session.")
         }
     }
 
@@ -163,10 +163,10 @@ struct MuscleGainsCard: View {
         switch mode {
         case .regular:
             let weeks = Int((value * Double(regularityWeeks)).rounded())
-            return "\(weeks)/\(regularityWeeks) weeks"
+            return String(localized: "\(weeks)/\(regularityWeeks) weeks")
         case .total:
             let sets = Int(value.rounded())
-            return "Score \(sets)"
+            return String(localized: "Score \(sets)")
         }
     }
 }

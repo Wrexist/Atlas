@@ -14,9 +14,9 @@ enum ShareCardRenderer {
 
         var errorDescription: String? {
             switch self {
-            case .render: "Couldn't render the share card."
-            case .encoding: "Couldn't encode the share card as a PNG."
-            case .write: "Couldn't save the share card. Check your free storage and try again."
+            case .render: String(localized: "Couldn't render the share card.")
+            case .encoding: String(localized: "Couldn't encode the share card as a PNG.")
+            case .write: String(localized: "Couldn't save the share card. Check your free storage and try again.")
             }
         }
     }
