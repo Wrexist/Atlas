@@ -362,7 +362,10 @@ struct OnboardingView: View {
             let granted = status == .authorized || status == .provisional
             // A grant made in iOS Settings after a denial switches on what
             // this step promised, the same as a grant from the prompt.
-            if granted && !notificationsAuthorized { applyNotificationGrant() }
+            // Keyed on the denial, not on `!notificationsAuthorized`, which
+            // is also false on the first check of a launch and would flip
+            // reminders on for anyone who had granted already.
+            if granted && notificationsDenied { applyNotificationGrant() }
             notificationsAuthorized = granted
             notificationsDenied = status == .denied
         }
