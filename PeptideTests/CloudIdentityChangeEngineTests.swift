@@ -26,21 +26,37 @@ final class CloudIdentityChangeEngineTests: XCTestCase {
     }
 
     func test_needsUserDecision_signedOutWithData_holdsStore() {
-        XCTAssertTrue(CloudIdentityChangeEngine.needsUserDecision(.signedOut, storeHasData: true))
+        XCTAssertTrue(decision(.signedOut, hasData: true, hadEarlier: true))
     }
 
     func test_needsUserDecision_switchedAccountWithData_holdsStore() {
-        XCTAssertTrue(CloudIdentityChangeEngine.needsUserDecision(.switchedAccount, storeHasData: true))
+        XCTAssertTrue(decision(.switchedAccount, hasData: true, hadEarlier: true))
     }
 
     func test_needsUserDecision_emptyStore_neverAsks() {
         for kind: CloudIdentityChange in [.unchanged, .signedIn, .signedOut, .switchedAccount] {
-            XCTAssertFalse(CloudIdentityChangeEngine.needsUserDecision(kind, storeHasData: false), "\(kind)")
+            XCTAssertFalse(decision(kind, hasData: false, hadEarlier: true), "\(kind)")
         }
     }
 
-    func test_needsUserDecision_firstSignInWithData_syncsWithoutAsking() {
-        XCTAssertFalse(CloudIdentityChangeEngine.needsUserDecision(.signedIn, storeHasData: true))
+    func test_needsUserDecision_unchanged_neverAsks() {
+        XCTAssertFalse(decision(.unchanged, hasData: true, hadEarlier: true))
+    }
+
+    func test_needsUserDecision_firstEverSignInWithData_syncsWithoutAsking() {
+        XCTAssertFalse(decision(.signedIn, hasData: true, hadEarlier: false))
+    }
+
+    func test_needsUserDecision_signInAfterEarlierAccountWithData_asks() {
+        XCTAssertTrue(decision(.signedIn, hasData: true, hadEarlier: true))
+    }
+
+    private func decision(_ change: CloudIdentityChange, hasData: Bool, hadEarlier: Bool) -> Bool {
+        CloudIdentityChangeEngine.needsUserDecision(
+            change,
+            storeHasData: hasData,
+            hadEarlierIdentity: hadEarlier
+        )
     }
 
     private func change(_ previous: Bool, _ current: Bool, sameAccount: Bool) -> CloudIdentityChange {

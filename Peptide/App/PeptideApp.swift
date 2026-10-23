@@ -228,6 +228,12 @@ struct PeptideApp: App {
         } message: {
             Text("Atlas data from the previous iCloud account is still on this iPhone. If you keep it, it syncs to the iCloud account you're signed in to now. Removing it doesn't touch the copy in the previous account's iCloud.")
         }
+        .onChange(of: dataStore.isAwaitingCloudAccountDecision, initial: true) { _, awaiting in
+            // An open sheet would keep the prompt from presenting; the
+            // screens behind these are empty during the hold anyway.
+            guard awaiting else { return }
+            dismissRootPresentations()
+        }
         .task {
             // `.id` above gives this tree a new identity on every
             // language switch, which reruns its tasks and would cancel
@@ -379,6 +385,17 @@ struct PeptideApp: App {
         guard hasCompletedOnboarding, dataStore.profile.biometricLockEnabled else { return nil }
         if !isUnlocked { return scenePhase == .background ? .snapshot : .lock }
         return scenePhase == .active ? nil : .snapshot
+    }
+
+    /// Closes every sheet and cover presented from the app root, and with
+    /// them anything stacked on top.
+    private func dismissRootPresentations() {
+        appState.showProfile = false
+        appState.showLibrary = false
+        appState.presentedQuickSheet = nil
+        appState.presentedPaywall = nil
+        travelChange = nil
+        showWhatsNewTour = false
     }
 
     private func syncPrivacyCover(_ cover: PrivacyLockWindow.Cover?) {
