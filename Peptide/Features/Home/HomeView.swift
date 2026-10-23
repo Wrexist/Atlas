@@ -85,6 +85,9 @@ struct HomeView: View {
     /// each successful refresh of the hero + health-range snapshots
     /// so the user gets visible confirmation the dashboard is fresh.
     @State private var showSyncToast = false
+    /// The first successful range build of a HomeView only fills an
+    /// empty snapshot — that's a launch, not a sync worth announcing.
+    @State private var hasLoadedHealthRange = false
     /// The last one-tap water glass, kept so its toast can undo it.
     @State private var lastWaterLog: WaterLog?
     @State private var showWaterToast = false
@@ -230,7 +233,9 @@ struct HomeView: View {
         let daySessions = finishedWorkoutSessions(on: day, thisWeek: weekSessions)
         let workoutSummary = (
             count: daySessions.count,
-            minutes: daySessions.reduce(0) { $0 + $1.elapsedSeconds() / 60 }
+            // Sum seconds, then round once: per-session integer minutes
+            // dropped up to a minute per workout.
+            minutes: (daySessions.reduce(0) { $0 + $1.elapsedSeconds() } + 30) / 60
         )
         let reason = isViewingToday ? buildPrimaryReason(plan: plan, habits: habits) : nil
         let next = DerivedToday(
@@ -1240,7 +1245,7 @@ struct HomeView: View {
                     name: session.displayName,
                     sets: sets.count,
                     reps: avgReps,
-                    durationMinutes: session.elapsedSeconds() / 60
+                    durationMinutes: (session.elapsedSeconds() + 30) / 60
                 )
             }
         return TodayTimelineEvent.build(
@@ -1340,7 +1345,8 @@ struct HomeView: View {
         // Firing on any non-empty result announced a sync on every tab
         // return, and stacked on top of an achievement toast.
         let hasData = healthRange.hrv != nil || healthRange.rhr != nil || healthRange.sleep != nil
-        if hasData && healthRange != previous && !showAchievementToast {
+        defer { if hasData { hasLoadedHealthRange = true } }
+        if hasData && hasLoadedHealthRange && healthRange != previous && !showAchievementToast {
             showSyncToast = true
         }
     }
