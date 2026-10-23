@@ -100,10 +100,7 @@ struct EditNutritionSheet: View {
     }
 
     private var isValid: Bool {
-        [calories, protein, carbs, fat].allSatisfy {
-            guard let value = Int($0) else { return false }
-            return (0...100_000).contains(value)
-        }
+        [calories, protein, carbs, fat].allSatisfy { MacroInput.parse($0) != nil }
     }
 
     /// Calories implied by the macros (4 / 4 / 9 kcal per gram).
@@ -121,10 +118,10 @@ struct EditNutritionSheet: View {
     private func save() {
         guard isValid else { return }
         guard
-            let kcal = Int(calories),
-            let p = Int(protein),
-            let c = Int(carbs),
-            let f = Int(fat)
+            let kcal = MacroInput.parse(calories),
+            let p = MacroInput.parse(protein),
+            let c = MacroInput.parse(carbs),
+            let f = MacroInput.parse(fat)
         else { return }
         var result = LoggableMeal(calories: kcal, proteinG: p, carbsG: c, fatG: f)
         if var component = initial?.components?.first, initial?.components?.count == 1,
