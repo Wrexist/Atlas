@@ -634,7 +634,7 @@ struct TrialOfferView: View {
                     .minimumHitArea()
             }
             .buttonStyle(.plain)
-            .disabled(isPurchasing)
+            .disabled(isPurchasing || isRestoring)
 
             if pinsTerms {
                 terms
