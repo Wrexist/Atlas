@@ -3074,7 +3074,11 @@ final class DataStore {
 
         let schedule = proto.schedule(for: peptide.id)
         let calendar = Calendar.current
-        guard schedule.isActive(on: Date(), calendar: calendar) else { return [] }
+        // Wash-out days have nothing due — the calendar, cycle bands and
+        // adherence already agree on that, so Today must not generate them.
+        guard CyclePhaseEngine.isOnCycle(Date(), protocol: proto, calendar: calendar),
+              schedule.isActive(on: Date(), protocolStart: proto.startDate, calendar: calendar)
+        else { return [] }
 
         return schedule.preferredTimes.compactMap { timeString in
             guard let time = timeStringParser.date(from: timeString) else { return nil }

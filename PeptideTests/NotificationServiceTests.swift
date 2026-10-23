@@ -292,7 +292,42 @@ final class NotificationServiceTests: XCTestCase {
         XCTAssertEqual(resolved.minute, 30)
     }
 
+    // MARK: - Wash-out cycles
+
+    func test_scheduleNotifications_protocolInWashoutForWholeWindow_schedulesNothing() {
+        let proto = makeWashoutProtocol(onWeeks: 1, offWeeks: 3, startedDaysAgo: 8)
+        service.scheduleNotifications(for: [proto])
+        XCTAssertEqual(service.requestedCount, 0)
+    }
+
+    func test_scheduleNotifications_washoutProtocol_remindsOnlyOnOnCycleDays() {
+        // Days 8–13 are wash-out, days 14–20 the next on-phase, day 21
+        // wash-out again: 7 of the 14 look-ahead days carry a reminder.
+        let proto = makeWashoutProtocol(onWeeks: 1, offWeeks: 1, startedDaysAgo: 8)
+        service.scheduleNotifications(for: [proto])
+        XCTAssertEqual(service.requestedCount, 7)
+    }
+
     // MARK: - Helpers
+
+    private func makeWashoutProtocol(onWeeks: Int, offWeeks: Int, startedDaysAgo: Int) -> PeptideProtocol {
+        let start = Calendar.current.date(
+            byAdding: .day,
+            value: -startedDaysAgo,
+            to: Calendar.current.startOfDay(for: Date())
+        ) ?? Date()
+        return PeptideProtocol(
+            id: UUID(),
+            name: "Cycled Protocol",
+            peptides: [MockPeptides.bpc157],
+            schedule: ProtocolSchedule(daysOfWeek: [1, 2, 3, 4, 5, 6, 7], timesPerDay: 1, preferredTimes: ["11:59 PM"]),
+            cycleLengthWeeks: onWeeks,
+            washoutWeeks: offWeeks,
+            startDate: start,
+            status: .active,
+            notes: ""
+        )
+    }
 
     private func makeProtocol(
         times: [String],

@@ -140,6 +140,27 @@ final class DataStoreTests: XCTestCase {
         }
     }
 
+    func test_addProtocol_duringWashout_generatesNoEntriesToday() {
+        let start = Calendar.current.date(
+            byAdding: .day,
+            value: -8,
+            to: Calendar.current.startOfDay(for: Date())
+        ) ?? Date()
+        let proto = PeptideProtocol(
+            id: UUID(),
+            name: "One on, one off",
+            peptides: [MockPeptides.bpc157],
+            schedule: ProtocolSchedule(daysOfWeek: [1, 2, 3, 4, 5, 6, 7], timesPerDay: 1, preferredTimes: ["8:00 AM"]),
+            cycleLengthWeeks: 1,
+            washoutWeeks: 1,
+            startDate: start,
+            status: .active,
+            notes: ""
+        )
+        store.addProtocol(proto)
+        XCTAssertFalse(store.entries.contains { $0.protocolId == proto.id })
+    }
+
     func test_todayEntries_areSortedByDate() {
         let today = store.todayEntries
         for (earlier, later) in zip(today, today.dropFirst()) {
