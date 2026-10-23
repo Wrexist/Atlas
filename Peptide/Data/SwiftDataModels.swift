@@ -173,9 +173,11 @@ private struct EncodedSchedule: Codable {
 
     var decodedOverrides: [UUID: ProtocolSchedule] {
         guard let overrides else { return [:] }
-        return Dictionary(uniqueKeysWithValues: overrides.compactMap { key, value in
+        // UUID(uuidString:) ignores case, so two spellings of one id can
+        // collide; keep the first rather than trap.
+        return Dictionary(overrides.compactMap { key, value in
             UUID(uuidString: key).map { ($0, value) }
-        })
+        }, uniquingKeysWith: { first, _ in first })
     }
 
     var decodedWashoutWeeks: Int { washoutWeeks ?? 0 }

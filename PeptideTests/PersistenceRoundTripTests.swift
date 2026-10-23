@@ -1610,4 +1610,26 @@ final class PersistenceRoundTripTests: XCTestCase {
     private static func localDate(hour: Int) -> Date {
         Calendar.current.date(from: DateComponents(year: 2026, month: 3, day: 15, hour: hour))!
     }
+
+    // MARK: - Schedule override keys
+
+    func test_decodeProtocol_overrideKeysDifferingOnlyInCase_keepsOneOverride() throws {
+        let peptide = MockPeptides.bpc157
+        let schedule = ProtocolSchedule(daysOfWeek: [1, 4], timesPerDay: 1, preferredTimes: ["8:00 AM"])
+        let proto = PeptideProtocol(
+            id: UUID(), name: "Hand-edited backup", peptides: [peptide], schedule: schedule,
+            peptideSchedules: [peptide.id: schedule], cycleLengthWeeks: 8,
+            startDate: Date(timeIntervalSince1970: 1_760_000_000), status: .active, notes: ""
+        )
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(proto)) as? [String: Any])
+        var overrides = try XCTUnwrap(json["peptideSchedules"] as? [String: Any])
+        overrides[peptide.id.uuidString.lowercased()] = overrides[peptide.id.uuidString]
+        json["peptideSchedules"] = overrides
+
+        let decoded = try JSONDecoder().decode(
+            PeptideProtocol.self, from: JSONSerialization.data(withJSONObject: json)
+        )
+
+        XCTAssertEqual(Array(decoded.peptideSchedules.keys), [peptide.id])
+    }
 }

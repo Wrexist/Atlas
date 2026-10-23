@@ -405,9 +405,11 @@ struct PeptideProtocol: Identifiable, Hashable, Codable, Sendable {
         self.schedule = try c.decode(ProtocolSchedule.self, forKey: .schedule)
         // Older saves: stored as [String: ProtocolSchedule] with UUID strings as keys.
         if let raw = try c.decodeIfPresent([String: ProtocolSchedule].self, forKey: .peptideSchedules) {
-            self.peptideSchedules = Dictionary(uniqueKeysWithValues: raw.compactMap { key, value in
+            // Case-insensitive UUID parsing can map two keys of a
+            // hand-edited backup to one id; keep the first rather than trap.
+            self.peptideSchedules = Dictionary(raw.compactMap { key, value in
                 UUID(uuidString: key).map { ($0, value) }
-            })
+            }, uniquingKeysWith: { first, _ in first })
         } else {
             self.peptideSchedules = [:]
         }
