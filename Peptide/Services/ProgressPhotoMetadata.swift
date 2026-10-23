@@ -45,8 +45,8 @@ enum ProgressPhotoMetadata {
 
     /// Pretty date string for the viewer's overlay label. Uses
     /// medium style for "Jan 15, 2026"; switches to relative
-    /// phrasing for the most recent week so a today-photo reads
-    /// as "Today" rather than the full date.
+    /// phrasing within two days so a this-morning photo reads
+    /// "5 hours ago" and yesterday's reads "Yesterday".
     static func displayDate(forFilename filename: String, now: Date = Date()) -> String {
         guard let date = date(forFilename: filename) else {
             return String(localized: "Unknown date")
@@ -54,13 +54,21 @@ enum ProgressPhotoMetadata {
         let interval = now.timeIntervalSince(date)
         let twoDays: TimeInterval = 2 * 24 * 60 * 60
         if interval < twoDays {
-            let formatter = RelativeDateTimeFormatter()
-            formatter.dateTimeStyle = .named
-            formatter.unitsStyle = .full
-            return formatter.localizedString(for: date, relativeTo: now).capitalized
+            // Only the first letter: `.capitalized` title-cases every
+            // word ("5 Hours Ago").
+            let relative = relativeFormatter.localizedString(for: date, relativeTo: now)
+            return relative.prefix(1).uppercased() + relative.dropFirst()
         }
         return Self.mediumFormatter.string(from: date)
     }
+
+    /// Shared: the compare filmstrip formats a date per thumbnail per render.
+    nonisolated(unsafe) private static let relativeFormatter: RelativeDateTimeFormatter = {
+        let f = RelativeDateTimeFormatter()
+        f.dateTimeStyle = .named
+        f.unitsStyle = .full
+        return f
+    }()
 
     private static let mediumFormatter: DateFormatter = {
         let f = DateFormatter()

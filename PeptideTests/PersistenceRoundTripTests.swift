@@ -830,6 +830,16 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertNil(ProgressPhotoMetadata.date(forFilename: "progress-not-a-number-abc.jpg"))
     }
 
+    func test_progressPhotoMetadata_displayDate_recentPhoto_capitalisesOnlyFirstLetter() {
+        let now = Date()
+        let fiveHoursAgo = now.addingTimeInterval(-5 * 60 * 60)
+        let filename = "progress-\(Int(fiveHoursAgo.timeIntervalSince1970))-aaa111.jpg"
+        let label = ProgressPhotoMetadata.displayDate(forFilename: filename, now: now)
+        XCTAssertEqual(label.first.map(String.init), label.first.map { String($0).uppercased() })
+        XCTAssertEqual(String(label.dropFirst()), String(label.dropFirst()).lowercased(),
+                       "Only the first letter is capitalised, not every word")
+    }
+
     func test_progressPhotoMetadata_daysBetween_isAbsoluteAndDayResolution() {
         let cal = Calendar.current
         let now = cal.startOfDay(for: Date())
