@@ -473,6 +473,13 @@ final class NotificationService {
         }
     }
 
+    /// Drops the trial-ending reminder once auto-renew is off: its "you'll
+    /// be charged" line is false for a trial the user already cancelled.
+    func cancelTrialReminder() {
+        center.removePendingNotificationRequests(withIdentifiers: [Self.trialReminderID])
+        currentIDs.remove(Self.trialReminderID)
+    }
+
     private struct TimeslotKey: Hashable {
         let day: Int
         let time: String
@@ -545,8 +552,11 @@ final class NotificationService {
         }
     }
 
+    /// Removes pending requests and the ones already sitting in
+    /// Notification Center, so no dose reminder outlives an erase.
     func cancelAll() {
         center.removeAllPendingNotificationRequests()
+        center.removeAllDeliveredNotifications()
         currentIDs.removeAll()
         scheduledCount = 0
         requestedCount = 0

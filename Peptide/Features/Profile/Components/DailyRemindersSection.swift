@@ -7,7 +7,7 @@ import UserNotifications
 /// pending requests through `DailyReminderScheduler`.
 struct DailyRemindersSection: View {
     @Environment(DataStore.self) private var dataStore
-    @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
     @State private var settings = DailyReminderSettings.defaults(training: nil)
     @State private var permissionDenied = false
 
@@ -24,7 +24,7 @@ struct DailyRemindersSection: View {
                 }
 
                 if permissionDenied {
-                    permissionRow
+                    NotificationsDeniedRow()
                 }
 
                 ForEach(Array(DailyReminderKind.allCases.enumerated()), id: \.element) { index, kind in
@@ -41,31 +41,13 @@ struct DailyRemindersSection: View {
         }
         .task {
             settings = DailyReminderSettings.load(training: dataStore.profile.trainingPreferences)
+        }
+        .task(id: scenePhase) {
+            // Re-checked on return from iOS Settings, so the banner clears
+            // as soon as the user grants notifications there.
+            guard scenePhase == .active else { return }
             permissionDenied = await NotificationService.shared.checkAuthorization() == .denied
         }
-    }
-
-    private var permissionRow: some View {
-        Button {
-            if let url = URL(string: UIApplication.openSettingsURLString) {
-                openURL(url)
-            }
-        } label: {
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(AppFont.scaled(11))
-                    .foregroundStyle(AppColor.warning)
-                Text("Notifications are off for Atlas. Turn them on in Settings.")
-                    .font(AppFont.caption)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.leading)
-                Spacer(minLength: 0)
-                Image(systemName: "arrow.up.right")
-                    .font(AppFont.scaled(11, weight: .semibold))
-                    .foregroundStyle(AppColor.textTertiary)
-            }
-        }
-        .buttonStyle(.plain)
     }
 
     private func subtitle(for kind: DailyReminderKind) -> LocalizedStringKey {
@@ -96,6 +78,12 @@ struct DailyRemindersSection: View {
                 Task { @MainActor in
                     if turnedOn {
                         permissionDenied = !(await NotificationService.shared.requestAuthorization())
+                        // A denied permission means this reminder can't
+                        // fire, so the toggle shouldn't claim it's on.
+                        if permissionDenied {
+                            settings.slots[kind]?.isEnabled = false
+                            settings.save()
+                        }
                     }
                     await DailyReminderScheduler.reconcile(dataStore: dataStore)
                 }
@@ -164,6 +152,36 @@ private struct DailyReminderRow: View {
                 slot.minute = parts.minute ?? slot.minute
             }
         )
+    }
+}
+
+/// Shown wherever a reminder toggle needs notification permission the
+/// user has denied: iOS won't ask twice, so Settings is the only route.
+/// Shared with `AppearanceSettings`' protocol reminders.
+struct NotificationsDeniedRow: View {
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        Button {
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                openURL(url)
+            }
+        } label: {
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(AppFont.scaled(11))
+                    .foregroundStyle(AppColor.warning)
+                Text("Notifications are off for Atlas. Turn them on in Settings.")
+                    .font(AppFont.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.leading)
+                Spacer(minLength: 0)
+                Image(systemName: "arrow.up.right")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
 

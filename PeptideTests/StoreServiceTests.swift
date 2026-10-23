@@ -158,6 +158,17 @@ final class StoreServiceTests: XCTestCase {
         XCTAssertTrue(service.purchasedProductIDs.contains(StoreService.lifetimeID))
     }
 
+    func test_entitlementWalk_persistsLastKnownPro() async throws {
+        await service.loadProducts()
+        let lifetime = try XCTUnwrap(service.lifetimeProduct)
+        _ = try await service.purchase(lifetime)
+        XCTAssertTrue(UserDefaults.standard.bool(forKey: StoreService.lastKnownProKey))
+
+        session.clearTransactions()
+        await service.checkProAccess()
+        XCTAssertFalse(UserDefaults.standard.bool(forKey: StoreService.lastKnownProKey))
+    }
+
     func test_startMonthlyTrial_succeeds_whenProductLoaded() async throws {
         await service.loadProducts()
         let started = try await service.startMonthlyTrial()

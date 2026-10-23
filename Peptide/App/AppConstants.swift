@@ -1,15 +1,14 @@
 import Foundation
 
 enum AppConstants {
-    /// Live App Store listing for Atlas (id6762042210, Sweden region
-    /// — Apple's smart-app banner mechanism resolves the user's local
-    /// store automatically, so the /se/ path doesn't pin the URL to one
-    /// region for redirects).
+    /// Live App Store listing for Atlas (id6762042210). Storefront-neutral
+    /// and slug-free, so the share-card QR and "Rate Atlas" open the
+    /// viewer's own storefront without the legacy app name.
     static let appStoreURL = URL(string: appStoreURLString) ?? URL.staticHTTPS("https://apps.apple.com")
     static let marketingHost = "peptidex.site"
     static let watermarkText = "Made with Atlas"
 
-    private static let appStoreURLString = "https://apps.apple.com/se/app/peptidex/id6762042210"
+    private static let appStoreURLString = "https://apps.apple.com/app/id6762042210"
 }
 
 extension URL {

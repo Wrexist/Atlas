@@ -70,7 +70,7 @@ struct PeptideApp: App {
                 store.logWater(fluidOunces: fluidOunces, date: date)
             }
             // Resolve haptics against the live profile so the global
-            // "Haptic Feedback" toggle is honoured everywhere without
+            // "Haptic feedback" toggle is honoured everywhere without
             // threading it through each view.
             Haptics.configure { [weak store] in
                 store?.profile.hapticFeedbackEnabled ?? true
@@ -330,7 +330,7 @@ struct PeptideApp: App {
             // version stamp wouldn't land — they'd see it
             // again on the next launch.
             WhatsNewTourSheet(
-                pages: WhatsNewPage.v30Training,
+                pages: WhatsNewPage.current,
                 onComplete: {
                     WhatsNewService.shared.markCurrentTourSeen()
                     showWhatsNewTour = false

@@ -65,7 +65,7 @@ extension CycleCardModel {
             subjectTitle: proto.name,
             peptides: proto.peptides,
             activeSinceDate: proto.startDate,
-            cycleDay: cycleDay(for: proto),
+            cycleDay: cycleDay(from: proto.startDate),
             cycleTotalDays: proto.safeCycleLengthWeeks * 7,
             dosesLogged: logged,
             adherencePercent: Int((adherence * 100).rounded()),
@@ -75,36 +75,23 @@ extension CycleCardModel {
     }
 
     /// Builds a stack-level model summarising every active protocol. The
-    /// "active since" date is the earliest `startDate` across the active
-    /// set so the card represents the user's overall journey rather than
-    /// any one protocol.
+    /// card is anchored on the earliest-started protocol so the "active
+    /// since" date shows the user's overall journey, and the day and cycle
+    /// length come from that same protocol so the counter can't mix one
+    /// protocol's start with another's cycle.
     @MainActor
     static func forStack(
         in dataStore: DataStore,
         healthSummary: HealthSummary? = nil
     ) -> CycleCardModel {
-        let active = dataStore.activeProtocols
-        let earliestStart = active.map(\.startDate).min() ?? Date()
-        let longestCycle = active.map { $0.safeCycleLengthWeeks * 7 }.max() ?? 1
-        // A protocol with a future startDate (scheduled to begin tomorrow)
-        // would otherwise show "Day 1 of N" — misleading. Render day 0
-        // when the cycle hasn't started yet so the view can downgrade the
-        // copy to "Starts soon" if it wants to.
-        // Unified with `forProtocol.cycleDay` clamping at max(1, ...)
-        // so the stack-level card and the per-protocol card describe
-        // a not-yet-started protocol consistently as "Day 1 of N"
-        // (audit Sharing P2.15). Previously forStack used max(0,...)
-        // and forProtocol used max(1,...), so a brand-new stack
-        // showed "Day 0 of N" on the stack card and "Day 1 of N" on
-        // the per-protocol card.
-        let raw = Calendar.current.dateComponents([.day], from: earliestStart, to: Date()).day ?? 0
-        let cycleDay = max(1, raw + 1)
+        let anchor = dataStore.activeProtocols.min { $0.startDate < $1.startDate }
+        let start = anchor?.startDate ?? Date()
         return CycleCardModel(
             subjectTitle: "My Protocol",
             peptides: dataStore.stackPeptides,
-            activeSinceDate: earliestStart,
-            cycleDay: cycleDay,
-            cycleTotalDays: longestCycle,
+            activeSinceDate: start,
+            cycleDay: cycleDay(from: start),
+            cycleTotalDays: (anchor?.safeCycleLengthWeeks ?? 1) * 7,
             dosesLogged: dataStore.entries.filter(\.completed).count,
             adherencePercent: Int((dataStore.averageCompliance * 100).rounded()),
             currentStreakDays: dataStore.currentStreak,
@@ -112,9 +99,15 @@ extension CycleCardModel {
         )
     }
 
-    private static func cycleDay(for proto: PeptideProtocol) -> Int {
-        let start = Calendar.current.startOfDay(for: proto.startDate)
-        let today = Calendar.current.startOfDay(for: Date())
-        return max(1, (Calendar.current.dateComponents([.day], from: start, to: today).day ?? 0) + 1)
+    /// 1-based calendar day of a cycle that began on `start`, counted
+    /// between start-of-day boundaries so a late-evening start is day 2
+    /// the next morning. 0 for a cycle that hasn't begun, so the card can
+    /// name the start date instead. Not capped at the cycle length — the
+    /// card reads an overrun as a completed cycle.
+    static func cycleDay(from start: Date, now: Date = Date(), calendar: Calendar = .current) -> Int {
+        let startDay = calendar.startOfDay(for: start)
+        let today = calendar.startOfDay(for: now)
+        guard startDay <= today else { return 0 }
+        return (calendar.dateComponents([.day], from: startDay, to: today).day ?? 0) + 1
     }
 }

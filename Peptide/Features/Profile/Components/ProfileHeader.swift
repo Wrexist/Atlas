@@ -69,6 +69,9 @@ struct ProfileHeader: View {
             Text(displayName)
                 .font(AppFont.title)
                 .foregroundStyle(AppColor.textPrimary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
         } else if let onEdit {
             Button("Add your name", action: onEdit)
                 .font(AppFont.headline)

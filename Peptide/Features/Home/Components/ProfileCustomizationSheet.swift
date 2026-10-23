@@ -18,6 +18,7 @@ struct ProfileCustomizationSheet: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
 
+    private static let nameCharacterLimit = 40
     private static let bioCharacterLimit = 280
 
     private static let availableGoals = [
@@ -440,6 +441,11 @@ struct ProfileCustomizationSheet: View {
                     placeholder: "What should we call you?",
                     text: $name
                 )
+                .onChange(of: name) { _, newValue in
+                    if newValue.count > Self.nameCharacterLimit {
+                        name = String(newValue.prefix(Self.nameCharacterLimit))
+                    }
+                }
 
                 Divider().overlay(AppColor.glassBorder)
 
@@ -511,7 +517,7 @@ struct ProfileCustomizationSheet: View {
         return GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 HStack(alignment: .firstTextBaseline) {
-                    Label("Accent Color", systemImage: "paintpalette.fill")
+                    Label("Accent color", systemImage: "paintpalette.fill")
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
@@ -686,7 +692,7 @@ struct ProfileCustomizationSheet: View {
         let metrics = dataStore.profile.bodyMetrics
         return GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                Label("Body Metrics", systemImage: "figure.arms.open")
+                Label("Body metrics", systemImage: "figure.arms.open")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
 
@@ -750,7 +756,7 @@ struct ProfileCustomizationSheet: View {
 
                 preferenceToggle(
                     icon: "hand.tap.fill",
-                    title: "Haptic Feedback",
+                    title: "Haptic feedback",
                     subtitle: "Vibrate on taps and toggles",
                     isOn: $store.profile.hapticFeedbackEnabled
                 )

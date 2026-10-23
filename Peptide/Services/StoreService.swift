@@ -41,10 +41,17 @@ final class StoreService {
     static let annualID = "com.peptidesai.app.pro.annual"
     static let lifetimeID = "com.peptidesai.app.pro.lifetime"
 
+    /// The last entitlement StoreKit resolved, so a subscriber launches as
+    /// Pro instead of seeing free gates and Pro deep links bounce to the
+    /// paywall until the async entitlement walk finishes. StoreKit still
+    /// corrects it on every walk.
+    static let lastKnownProKey = "storeService.lastKnownPro"
+
     @ObservationIgnored private var updateTask: Task<Void, Never>?
     @ObservationIgnored private var productsTask: Task<Void, Never>?
 
     private init() {
+        isProUser = UserDefaults.standard.bool(forKey: Self.lastKnownProKey)
         updateTask = Task { [weak self] in
             await self?.listenForTransactions()
         }
@@ -237,14 +244,25 @@ final class StoreService {
         return try await purchase(monthly)
     }
 
-    func restorePurchases() async throws {
+    enum RestoreOutcome: Equatable, Sendable {
+        case completed
+        /// The user dismissed Apple's sign-in sheet — a choice, not a
+        /// failure, so callers stay quiet.
+        case userCancelled
+    }
+
+    @discardableResult
+    func restorePurchases() async throws -> RestoreOutcome {
         do {
             try await AppStore.sync()
+        } catch StoreKitError.userCancelled {
+            return .userCancelled
         } catch {
             AppLog.storeKit.error("AppStore.sync failed: \(error.localizedDescription, privacy: .public)")
             throw error
         }
         await updatePurchasedProducts()
+        return .completed
     }
 
     // MARK: - Entitlement Checking
@@ -267,7 +285,7 @@ final class StoreService {
     var hasLifetimeAccess: Bool { purchasedProductIDs.contains(Self.lifetimeID) }
 
     /// Gates the Pro weekly AI recap — enforced in
-    /// `WeeklySummaryService.generateIfNeeded`.
+    /// `WeeklySummaryService.isAvailable(profile:)`.
     ///
     /// This is the only per-feature entitlement flag the app actually
     /// checks. `canAccessCloudSync`, `canAccessAllWidgets`,
@@ -334,6 +352,7 @@ final class StoreService {
         let proIDs: Set<String> = [Self.monthlyID, Self.annualID, Self.lifetimeID]
         purchasedProductIDs = purchased
         isProUser = !purchased.isDisjoint(with: proIDs)
+        UserDefaults.standard.set(isProUser, forKey: Self.lastKnownProKey)
         hasResolvedEntitlements = true
         await refreshTrialEligibility()
         await refreshBillingRetryState()
@@ -357,6 +376,8 @@ final class StoreService {
     /// Re-reads the subscription group's renewal state. `currentEntitlements`
     /// drops a subscription once it leaves grace and enters plain billing
     /// retry, so the status API is the only place that state is visible.
+    /// It is also where a turned-off auto-renew shows, which retires the
+    /// trial-ending reminder.
     private func refreshBillingRetryState() async {
         guard let subscription = (monthlyProduct ?? annualProduct)?.subscription,
               let statuses = try? await subscription.status
@@ -366,6 +387,12 @@ final class StoreService {
         }
         isInBillingRetry = statuses.contains {
             $0.state == .inBillingRetryPeriod || $0.state == .inGracePeriod
+        }
+        // An unverified renewal info counts as renewing, so only a
+        // verified auto-renew-off clears the reminder.
+        let willRenew = statuses.contains { (try? $0.renewalInfo.payloadValue)?.willAutoRenew ?? true }
+        if !statuses.isEmpty && !willRenew {
+            NotificationService.shared.cancelTrialReminder()
         }
     }
 

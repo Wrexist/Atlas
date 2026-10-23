@@ -23,7 +23,7 @@ struct GoalsSectionCard: View {
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                Label("Your Goals", systemImage: "target")
+                Label("Your goals", systemImage: "target")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
 
@@ -58,6 +58,7 @@ struct GoalsSectionCard: View {
                                             )
                                     }
                             }
+                            .minimumHitArea()
                             .appAnimation(AppAnimation.springSnappy, value: isSelected)
                         }
                         .buttonStyle(ScalePressStyle(pressedScale: 0.95))
