@@ -128,7 +128,7 @@ private struct DiagnosticsDetailSheet: View {
     private var emptyState: some View {
         VStack(spacing: Spacing.md) {
             Image(systemName: "checkmark.shield.fill")
-                .font(.system(size: 40))
+                .font(AppFont.scaled(40, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.success)
                 .padding(.top, Spacing.xxl)
             Text("No reports yet")

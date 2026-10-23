@@ -322,12 +322,16 @@ private struct MediumNutritionView: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            VStack(spacing: 8) {
+            // Ring + gap + 44pt targets fill the same 126pt column the
+            // 86pt ring and 32pt glyphs did, so the right side keeps its room.
+            VStack(spacing: 4) {
                 CalorieRing(entry: entry, lineWidth: 9)
                     .overlay { CalorieCenter(entry: entry, large: true) }
                     .calorieAccessibility(entry)
-                    .frame(width: 86, height: 86)
-                HStack(spacing: 10) {
+                    .frame(width: 78, height: 78)
+                // The 44pt hit frames sit edge to edge; the 32pt circles
+                // inside them still read as two separate buttons.
+                HStack(spacing: 0) {
                     if let scan = QuickAction.scanMeal.url {
                         Link(destination: scan) {
                             QuickActionGlyph(systemImage: QuickAction.scanMeal.systemImage)
@@ -367,9 +371,14 @@ private struct MediumNutritionView: View {
 }
 
 /// The small round buttons under the medium widget's ring: scan a meal
-/// (opens the scanner) and log a glass of water (no app launch).
+/// (opens the scanner) and log a glass of water (no app launch). The
+/// circle is 32pt but the tappable frame is the 44pt minimum.
 private struct QuickActionGlyph: View {
     let systemImage: String
+
+    /// Apple's minimum hit target. `Spacing.minimumHitTarget` lives in
+    /// the app's design system, which this extension doesn't compile.
+    private static let hitTarget: CGFloat = 44
 
     var body: some View {
         Image(systemName: systemImage)
@@ -377,6 +386,8 @@ private struct QuickActionGlyph: View {
             .foregroundStyle(WidgetPalette.brand)
             .frame(width: 32, height: 32)
             .background(Circle().fill(WidgetPalette.brand.opacity(0.16)))
+            .frame(width: Self.hitTarget, height: Self.hitTarget)
+            .contentShape(Rectangle())
     }
 }
 

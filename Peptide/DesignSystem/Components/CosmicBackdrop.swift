@@ -104,7 +104,7 @@ struct SplitMix64: RandomNumberGenerator {
         CosmicBackdrop(intensity: 0.55)
             .ignoresSafeArea()
         Text("Biology")
-            .font(.system(size: 48, weight: .heavy, design: .rounded))
+            .font(AppFont.scaled(48, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
             .foregroundStyle(.white)
     }
 }
