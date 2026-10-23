@@ -103,7 +103,39 @@ final class ExerciseLibraryTests: XCTestCase {
         XCTAssertEqual(library.displayName(for: "custom_deleted_123"), "Unknown exercise")
     }
 
-    // MARK: - Filter
+    // MARK: - Custom exercises from SwiftData
+
+    /// A relaunch starts with an empty overlay; `load()` must read the
+    /// stored custom exercises itself rather than wait for a recap.
+    func test_load_afterRelaunch_includesStoredCustomExercises() async {
+        let repo = SwiftDataRepository.shared
+        repo.configureForTesting()
+        let custom = CustomExercise(name: "Zqx Landmine Row", primaryMuscles: ["lats"], equipment: "barbell")
+        repo.upsertCustomExercise(custom)
+        defer { repo.deleteCustomExercise(id: custom.id) }
+        library.attachCustomExercises([])
+        library.reset()
+
+        await library.load()
+
+        XCTAssertEqual(library.lookup(id: custom.id)?.name, "Zqx Landmine Row")
+        XCTAssertEqual(library.filter(query: "zqx").map(\.id), [custom.id])
+    }
+
+    func test_reloadCustomExercises_dropsRowsDeletedFromTheStore() async {
+        let repo = SwiftDataRepository.shared
+        repo.configureForTesting()
+        let custom = CustomExercise(name: "Zqx Cable Fly", primaryMuscles: ["chest"], equipment: "cable")
+        repo.upsertCustomExercise(custom)
+        library.reloadCustomExercises()
+        XCTAssertNotNil(library.lookup(id: custom.id))
+
+        repo.deleteCustomExercise(id: custom.id)
+        library.reloadCustomExercises()
+
+        XCTAssertNil(library.lookup(id: custom.id))
+    }
+
 
     func test_filter_afterAttachingCustom_includesItSortedByName() {
         let custom = CustomExercise(name: "Aaa Test Curl", primaryMuscles: ["biceps"])
