@@ -157,7 +157,7 @@ private struct DailyReminderRow: View {
 
 /// Shown wherever a reminder toggle needs notification permission the
 /// user has denied: iOS won't ask twice, so Settings is the only route.
-/// Shared with `AppearanceSettings`' protocol reminders.
+/// Shared with `ProtocolRemindersRow`.
 struct NotificationsDeniedRow: View {
     @Environment(\.openURL) private var openURL
 

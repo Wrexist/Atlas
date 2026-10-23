@@ -754,57 +754,22 @@ struct ProfileCustomizationSheet: View {
                     .foregroundStyle(AppColor.textPrimary)
                     .padding(.bottom, Spacing.xs)
 
-                preferenceToggle(
+                SettingsToggleRow(
                     icon: "hand.tap.fill",
                     title: "Haptic feedback",
-                    subtitle: "Vibrate on taps and toggles",
+                    subtitle: "Vibrate on interactions",
                     isOn: $store.profile.hapticFeedbackEnabled
                 )
                 .onChange(of: dataStore.profile.hapticFeedbackEnabled) { _, _ in
                     dataStore.persistProfile()
                 }
 
-                Divider().overlay(AppColor.glassBorder)
+                if !dataStore.activeProtocols.isEmpty {
+                    Divider().overlay(AppColor.glassBorder)
 
-                preferenceToggle(
-                    icon: "bell.fill",
-                    title: "Dose Reminders",
-                    subtitle: "Get notified for scheduled doses",
-                    isOn: $store.profile.doseRemindersEnabled
-                )
-                .onChange(of: dataStore.profile.doseRemindersEnabled) { _, _ in
-                    dataStore.persistProfile()
+                    ProtocolRemindersRow()
                 }
             }
-        }
-    }
-
-    private func preferenceToggle(
-        icon: String,
-        title: LocalizedStringKey,
-        subtitle: LocalizedStringKey,
-        isOn: Binding<Bool>
-    ) -> some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: icon)
-                .font(AppFont.scaled(13))
-                .foregroundStyle(AppColor.accentPrimary)
-                .frame(width: 24)
-
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(title)
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textPrimary)
-                Text(subtitle)
-                    .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.textTertiary)
-            }
-
-            Spacer()
-
-            Toggle("", isOn: isOn)
-                .labelsHidden()
-                .tint(AppColor.accentPrimary)
         }
     }
 
