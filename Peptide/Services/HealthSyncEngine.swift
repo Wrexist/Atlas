@@ -53,4 +53,21 @@ enum HealthSyncEngine {
         }
         return latestByDay.values.sorted { $0.date < $1.date }
     }
+
+    /// The outside readings that are an earlier build's import of
+    /// `deleted`. Those builds imported under random ids, so the match is
+    /// by day and value; a different value that day is the scale's own
+    /// reading, which comes back once the user's entry is gone.
+    static func legacyImports(
+        of deleted: WeightEntry,
+        in external: [WeightEntry],
+        calendar: Calendar = .current
+    ) -> [WeightEntry] {
+        external.filter {
+            calendar.isDate($0.date, inSameDayAs: deleted.date) && abs($0.kg - deleted.kg) < legacyImportToleranceKg
+        }
+    }
+
+    /// Half the diary's 0.1 kg display step.
+    private static let legacyImportToleranceKg = 0.05
 }

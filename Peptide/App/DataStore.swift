@@ -1260,18 +1260,18 @@ final class DataStore {
         guard let deleted, HealthSyncSettings.isEnabled else { return }
         let day = deleted.date
         if !wasRecordedImport {
-            Task { await self.dismissExternalWeights(onDayOf: day) }
+            Task { await self.dismissLegacyImports(of: deleted) }
         }
         enqueueBodyMassHealthWrite { await HealthKitService.shared.deleteBodyMass(onDayOf: day) }
     }
 
     /// Earlier builds imported Health weigh-ins under random ids, so
-    /// deleting one can't dismiss its sample by id. Dismissing every
-    /// outside sample on that day keeps the next pass from re-importing it.
-    private func dismissExternalWeights(onDayOf day: Date) async {
+    /// deleting one can't dismiss its sample by id; dismissing the
+    /// matching outside sample keeps the next pass from re-importing it.
+    private func dismissLegacyImports(of deleted: WeightEntry) async {
         let external = await HealthKitService.shared.externalWeights(days: HealthSyncEngine.importWindowDays)
-        let sameDay = external.filter { Calendar.current.isDate($0.date, inSameDayAs: day) }
-        repo.dismissHealthWeights(ids: Set(sameDay.map(\.id)))
+        let imports = HealthSyncEngine.legacyImports(of: deleted, in: external)
+        repo.dismissHealthWeights(ids: Set(imports.map(\.id)))
     }
 
     /// Exact-amount water log behind every entry point (quick-adds,
