@@ -469,7 +469,10 @@ struct HomeView: View {
                 )
             }
             .sheet(item: $selectedEntry) { entry in
-                DoseLoggingSheet(entry: entry) { actualDose, actualTime, site, notes in
+                DoseLoggingSheet(
+                    entry: entry,
+                    lastInjectionSite: entry.lastInjectionSite(in: dataStore.entries)
+                ) { actualDose, actualTime, site, notes in
                     dataStore.logDose(
                         entryId: entry.id,
                         actualDose: actualDose,
@@ -940,31 +943,40 @@ struct HomeView: View {
     @ViewBuilder
     private func overviewSection(proxy: ScrollViewProxy) -> some View {
         if let overview = derived.overview, overview.hasAnySignal {
-            TodayOverviewCard(
-                snapshot: overview,
-                unit: dataStore.profile.bodyMetrics.unit,
-                onTapInsight: { insight in
-                    switch insight {
-                    case .latestLab:
-                        appState.pendingLabsOpen = true
-                        appState.selectedTab = .biology
-                    case .nudge(_, _, _, .setCalorieTarget):
-                        showTargetsEditor = true
-                    case .nudge(_, _, _, .logMeal):
-                        appState.selectedTab = .meals
-                    case .protocolInsight:
-                        break
-                    }
-                },
-                // Tiles log and route for today; a past day's tiles are a
-                // read-only record.
-                onTapTile: isViewingToday
-                    ? { tile in handleOverviewTile(tile, proxy: proxy) }
-                    : nil,
-                isToday: isViewingToday
-            )
+            // Headed like every other Today section, so the grid reads as
+            // its own group rather than a stray card.
+            VStack(spacing: Spacing.sm) {
+                HomeSectionHeader(eyebrow: "Lifestyle", title: "Overview")
+                overviewCard(overview, proxy: proxy)
+            }
             .scrollReveal()
         }
+    }
+
+    private func overviewCard(_ overview: TodayOverviewSnapshot, proxy: ScrollViewProxy) -> some View {
+        TodayOverviewCard(
+            snapshot: overview,
+            unit: dataStore.profile.bodyMetrics.unit,
+            onTapInsight: { insight in
+                switch insight {
+                case .latestLab:
+                    appState.pendingLabsOpen = true
+                    appState.selectedTab = .biology
+                case .nudge(_, _, _, .setCalorieTarget):
+                    showTargetsEditor = true
+                case .nudge(_, _, _, .logMeal):
+                    appState.selectedTab = .meals
+                case .protocolInsight:
+                    break
+                }
+            },
+            // Tiles log and route for today; a past day's tiles are a
+            // read-only record.
+            onTapTile: isViewingToday
+                ? { tile in handleOverviewTile(tile, proxy: proxy) }
+                : nil,
+            isToday: isViewingToday
+        )
     }
 
     /// Momentum — goal countdown for users who committed to a target
@@ -1330,7 +1342,10 @@ struct HomeView: View {
                 .liquidGlassPresentation()
         case .dose(let next):
             if let next {
-                DoseLoggingSheet(entry: next) { actualDose, actualTime, site, notes in
+                DoseLoggingSheet(
+                    entry: next,
+                    lastInjectionSite: next.lastInjectionSite(in: dataStore.entries)
+                ) { actualDose, actualTime, site, notes in
                     dataStore.logDose(
                         entryId: next.id,
                         actualDose: actualDose,

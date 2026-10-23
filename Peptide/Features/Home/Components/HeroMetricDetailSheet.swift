@@ -68,16 +68,11 @@ struct HeroMetricDetailSheet: View {
             .navigationTitle(kind.label)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        HStack(spacing: Spacing.xs) {
-                            Image(systemName: "checkmark.circle")
-                                .accessibilityHidden(true)
-                            Text("Done")
-                        }
-                    }
+                // The standard trailing Done, as on Edit Today and every
+                // other read-only sheet.
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                        .fontWeight(.semibold)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     overflowMenu

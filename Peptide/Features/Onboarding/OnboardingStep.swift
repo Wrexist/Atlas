@@ -52,6 +52,14 @@ enum OnboardingStep: Int, CaseIterable, Comparable, Sendable {
     /// seen their own targets.
     var presentsPaywall: Bool { self == .plan }
 
+    /// How full the progress bar is while this page shows. The page on
+    /// screen counts as begun, so Welcome already carries a sliver of
+    /// progress and the plan page fills the bar: a flow that visibly
+    /// starts underway and ends complete is the one people finish.
+    var progressFraction: Double {
+        Double(rawValue + 1) / Double(Self.allCases.count)
+    }
+
     var next: OnboardingStep? { OnboardingStep(rawValue: rawValue + 1) }
     var previous: OnboardingStep? { OnboardingStep(rawValue: rawValue - 1) }
 
