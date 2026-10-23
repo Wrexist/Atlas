@@ -28,7 +28,7 @@ final class PrivacyLockWindow {
         else { return }
         // The cover never becomes key, so a focused field underneath would
         // keep the keyboard up over it and keep taking keystrokes (B092).
-        for appWindow in scene.windows where appWindow !== window {
+        for appWindow in scene.windows where appWindow !== self.window {
             appWindow.endEditing(true)
         }
         let window = window ?? UIWindow(windowScene: scene)
