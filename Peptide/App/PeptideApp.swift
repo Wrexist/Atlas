@@ -116,7 +116,8 @@ struct PeptideApp: App {
                 // get lost.
                 dataStore.flushPendingSave()
                 // Leaving the app is the moment a just-logged meal, weigh-
-                // in or workout should cancel today's matching reminder.
+                // in, workout or habit should cancel today's matching
+                // reminder, and the rolling one-shot window moves forward.
                 // Held open as a background task: reconcile removes stale
                 // reminders before adding their replacements, and a
                 // suspension in between would leave none until next open.
@@ -126,6 +127,7 @@ struct PeptideApp: App {
                 )
                 Task { @MainActor in
                     await DailyReminderScheduler.reconcile(dataStore: dataStore)
+                    await dataStore.rescheduleHabitReminders()
                     UIApplication.shared.endBackgroundTask(backgroundTask)
                 }
             }
@@ -137,13 +139,15 @@ struct PeptideApp: App {
                 // was suspended, the local `doseRemindersEnabled`
                 // flag stays true and `scheduleNotifications` would
                 // silently no-op forever. Flip the flag so the UI
-                // surfaces the inconsistency.
+                // surfaces the inconsistency. Then roll the habit
+                // reminders' one-shot window forward.
                 Task { @MainActor in
                     let status = await NotificationService.shared.checkAuthorization()
                     if status == .denied && dataStore.profile.doseRemindersEnabled {
                         dataStore.profile.doseRemindersEnabled = false
                         dataStore.persistProfile()
                     }
+                    await dataStore.rescheduleHabitReminders()
                 }
                 // Drain any "user tapped Log on the Live Activity"
                 // markers the widget extension queued while we were
@@ -648,9 +652,9 @@ struct PeptideApp: App {
         await NotificationService.shared.reconcilePendingState()
 
         // Habit reminders are gated per-habit (Habit.reminderTime), not
-        // by `doseRemindersEnabled`. Re-stamp them every activation so a
-        // reminderTime change made on another device propagates.
-        NotificationService.shared.scheduleHabitReminders(for: dataStore.activeHabits)
+        // by `doseRemindersEnabled`. Re-planned once the tracker above
+        // knows what is pending; every activation re-plans them too.
+        await dataStore.rescheduleHabitReminders()
         await DailyReminderScheduler.reconcile(dataStore: dataStore)
 
         guard dataStore.profile.doseRemindersEnabled else {
