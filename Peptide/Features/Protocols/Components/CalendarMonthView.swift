@@ -28,12 +28,16 @@ struct CalendarMonthView: View {
     }
 
     private let calendar: Calendar = .current
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// One selection circle that slides between cells instead of each cell
     /// painting (and un-painting) its own.
     @Namespace private var selection
     private static let maxDots = 3
     private static let maxBands = 4
     private static let rowHeight: CGFloat = 52
+    /// The 7-column grid can't reflow, so the day number stops growing
+    /// at the largest size that still sits inside its 34-pt circle.
+    private static let maxDayNumberSize: DynamicTypeSize = .xxxLarge
 
     private var firstWeekday: Int { calendar.firstWeekday }
     private var grid: [Date] {
@@ -121,7 +125,12 @@ struct CalendarMonthView: View {
                             .frame(width: 34, height: 34)
                     }
                     Text(dayNumber(for: date))
-                        .font(AppFont.scaled(16, weight: dayWeight(isSelected: isSelected, isToday: isToday, isCurrentMonth: isCurrentMonth), design: .rounded))
+                        .font(AppFont.scaled(
+                            16,
+                            weight: dayWeight(isSelected: isSelected, isToday: isToday, isCurrentMonth: isCurrentMonth),
+                            design: .rounded,
+                            in: min(dynamicTypeSize, Self.maxDayNumberSize)
+                        ))
                         .foregroundStyle(dateColor(isCurrentMonth: isCurrentMonth, isSelected: isSelected, isToday: isToday))
                         .monospacedDigit()
                 }
