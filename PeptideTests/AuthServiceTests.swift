@@ -60,12 +60,8 @@ final class AuthServiceTests: XCTestCase {
         XCTAssertNil(auth.userIdentifier)
     }
 
-    // MARK: - Sign Out idempotency
+    // MARK: - Sign-in completion
 
-    /// Calling signOut twice in a row must produce the same end state
-    /// as one call — the second invocation can't crash on the absent
-    /// Keychain items. This is the only post-signOut state the unit
-    /// test target can verify without faking a real authorization.
     func test_finishSignIn_userCanceled_raisesNoError() {
         auth.clearLastError()
         auth.finishSignIn(result: .failure(ASAuthorizationError(.canceled)))
@@ -81,6 +77,12 @@ final class AuthServiceTests: XCTestCase {
         }
     }
 
+    // MARK: - Sign Out idempotency
+
+    /// Calling signOut twice in a row must produce the same end state
+    /// as one call — the second invocation can't crash on the absent
+    /// Keychain items. This is the only post-signOut state the unit
+    /// test target can verify without faking a real authorization.
     func test_signOut_isIdempotent() {
         auth.signOut()
         auth.signOut()
