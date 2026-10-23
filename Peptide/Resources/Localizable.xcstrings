@@ -957,6 +957,16 @@
         }
       }
     },
+    "%@ · %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@"
+          }
+        }
+      }
+    },
     "%@ · %@ on the bar": {
       "localizations": {
         "sv": {
@@ -1563,6 +1573,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@, stödjande"
+          }
+        }
+      }
+    },
+    "%@, then %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, sedan %2$@"
           }
         }
       }
