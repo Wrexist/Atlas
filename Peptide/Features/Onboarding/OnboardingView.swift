@@ -1765,21 +1765,17 @@ struct OnboardingView: View {
     }
 
     private func requestHealth() {
+        guard !dataStore.profile.healthConnected else { return }
         haptic()
         requestingHealth = true
         Task {
-            let granted = await HealthKitService.shared.requestAuthorization()
+            // HealthKit never tells an app which reads were denied, so a
+            // completed sheet — even a deny-all — is all this can confirm:
+            // the row and the funnel record that the user was asked, not
+            // that access was granted. The toggle makes the one request.
+            let sheetCompleted = await dataStore.toggleHealthConnection()
             requestingHealth = false
-            // Note: HealthKit deliberately doesn't tell apps when the
-            // user denies a specific type — `granted == true` only
-            // confirms the user saw the dialog. The toggleHealthConnection
-            // path re-runs the auth request anyway and only flips the
-            // flag when the system reports success, so a deny-all
-            // still leaves healthConnected false.
-            if granted, !dataStore.profile.healthConnected {
-                _ = await dataStore.toggleHealthConnection()
-            }
-            OnboardingFunnelTracker.recordEvent(granted ? "health_granted" : "health_denied")
+            OnboardingFunnelTracker.recordEvent(sheetCompleted ? "health_sheet_completed" : "health_request_failed")
         }
     }
 
