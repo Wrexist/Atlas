@@ -1128,21 +1128,11 @@ struct OnboardingView: View {
         .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
     }
 
-    /// Toggles a goal in/out of the multi-select set and keeps
-    /// `primaryGoal` pointing at a still-selected goal. The first goal
-    /// the user picks becomes primary; removing the primary promotes the
-    /// next selected goal (in stable `allCases` order) so the projection
-    /// and date tint never reference a deselected goal.
+    /// See `OnboardingPlanEngine.toggling` for the primary-goal rules.
     private func toggleGoal(_ goal: PrimaryGoal) {
-        if selectedGoals.contains(goal) {
-            selectedGoals.remove(goal)
-            if primaryGoal == goal {
-                primaryGoal = PrimaryGoal.allCases.first { selectedGoals.contains($0) } ?? primaryGoal
-            }
-        } else {
-            if selectedGoals.isEmpty { primaryGoal = goal }
-            selectedGoals.insert(goal)
-        }
+        let result = OnboardingPlanEngine.toggling(goal, in: selectedGoals, primary: primaryGoal)
+        selectedGoals = result.selected
+        primaryGoal = result.primary
         goalHasBeenSelected = !selectedGoals.isEmpty
     }
 
@@ -1246,23 +1236,17 @@ struct OnboardingView: View {
         }
     }
 
-    private static let daysPerWeekRange = 2...6
+    private static let daysPerWeekRange = OnboardingPlanEngine.daysPerWeekRange
 
-    /// Keeps the preferred days within the weekly count, dropping the
-    /// latest days of the week first.
     private func setDaysPerWeek(_ count: Int) {
         daysPerWeek = count
-        if preferredDays.count > count {
-            preferredDays = Set(Weekday.allCases.filter(preferredDays.contains).prefix(count))
-        }
+        preferredDays = OnboardingPlanEngine.preferredDays(preferredDays, cappedAt: count)
     }
 
-    /// Picking more preferred days than the weekly count raises the count.
     private func togglePreferredDay(_ day: Weekday) {
-        if preferredDays.remove(day) == nil {
-            preferredDays.insert(day)
-            daysPerWeek = max(daysPerWeek, preferredDays.count)
-        }
+        let result = OnboardingPlanEngine.togglingPreferredDay(day, in: preferredDays, daysPerWeek: daysPerWeek)
+        preferredDays = result.days
+        daysPerWeek = result.daysPerWeek
     }
 
     private var daysStepper: some View {
@@ -1588,37 +1572,18 @@ struct OnboardingView: View {
     // Both scale with the chosen span, so "8 weeks" and "26 weeks"
     // don't promise the same number.
 
-    /// A range rather than a single number, from half the typical rate
-    /// for the user's experience up to it — a personal projection shown
-    /// before the paywall shouldn't promise more than training delivers.
+    /// A range, not a single number — see
+    /// `OnboardingPlanEngine.projectedLeanGainKg`.
     private var projectedMuscleGain: String {
-        let months = Double(goalWeeks) * 12 / 52
-        let upperKg = monthlyLeanGainKg * months
+        let gain = OnboardingPlanEngine.projectedLeanGainKg(experience: experienceLevel, weeks: goalWeeks)
         let unit = bodyMetrics.unit
-        let lower = unit.weightValue(upperKg / 2, fractionDigits: 1...1)
-        return "\(lower)–\(unit.weightLabel(upperKg, fractionDigits: 1))"
+        let lower = unit.weightValue(gain.lowerBound, fractionDigits: 1...1)
+        return "\(lower)–\(unit.weightLabel(gain.upperBound, fractionDigits: 1))"
     }
 
     private var projectedFatLoss: String {
-        bodyMetrics.unit.weightLabel(min(10, max(1, (estimatedFatLossKg * goalSpanFactor).rounded())))
-    }
-
-    private var goalSpanFactor: Double {
-        Double(goalWeeks) / 12
-    }
-
-    /// Typical lean-mass gain per month on a good program, which falls
-    /// steeply with training age.
-    private var monthlyLeanGainKg: Double {
-        switch Experience(rawValue: experienceLevel) ?? .beginner {
-        case .beginner:     return 0.75
-        case .intermediate: return 0.4
-        case .advanced:     return 0.2
-        }
-    }
-
-    private var estimatedFatLossKg: Double {
-        (bodyMetrics.weightKg ?? 75) * 0.05
+        let lossKg = OnboardingPlanEngine.projectedFatLossKg(weightKg: bodyMetrics.weightKg, weeks: goalWeeks)
+        return bodyMetrics.unit.weightLabel(lossKg)
     }
 
     private func projectionStatRow(label: String, value: String, icon: String, tint: Color) -> some View {
