@@ -963,7 +963,9 @@ struct PaywallView: View {
     /// from someone who tapped without knowing what came next.
     private var primaryCTA: some View {
         Button {
-            guard let product = selectedProduct, !isPurchasing else { return }
+            // A running restore may dismiss or set its own notice; don't
+            // race a purchase against it.
+            guard let product = selectedProduct, !isPurchasing, !isRestoring else { return }
             Task { await purchase(product) }
         } label: {
             VStack(spacing: 2) {
@@ -1076,13 +1078,14 @@ struct PaywallView: View {
             }
             .minimumHitArea()
         }
-        .disabled(isRestoring)
+        .disabled(isRestoring || isPurchasing)
 
         Button {
             isRedeemingCode = true
         } label: {
             Text("Redeem code").minimumHitArea()
         }
+        .disabled(isPurchasing)
     }
 
     @ViewBuilder
@@ -1252,7 +1255,7 @@ struct PaywallView: View {
     private func restore() {
         // Guard against concurrent restores: the footer button and the
         // error-banner "Restore purchases" shortcut can both fire AppStore.sync().
-        guard !isRestoring else { return }
+        guard !isRestoring, !isPurchasing else { return }
         isRestoring = true
         Task {
             defer { isRestoring = false }
