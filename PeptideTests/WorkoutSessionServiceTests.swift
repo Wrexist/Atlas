@@ -443,6 +443,35 @@ final class WorkoutSessionServiceTests: XCTestCase {
         XCTAssertEqual(service.previousSessionSets(forExerciseID: bench().id).map(\.weightKg), [80, 60])
     }
 
+    func test_previousSessionSets_unfinishedSessionFromAnotherDevice_isIgnored() {
+        logBenchWorkout(weightKg: 80, reps: 5)
+        repo.upsertWorkoutSession(WorkoutSession(
+            startedAt: Date().addingTimeInterval(-600),
+            exercises: [
+                WorkoutExerciseEntry(exerciseID: bench().id, index: 0, sets: [
+                    SetEntry(index: 1, weightKg: 40, reps: 5, completed: true),
+                ]),
+            ]
+        ))
+        _ = service.startWorkout()
+
+        XCTAssertEqual(service.previousSessionSets(forExerciseID: bench().id).map(\.weightKg), [80],
+                       "A half-done workout still open elsewhere isn't 'last time'")
+    }
+
+    func test_previousSessionSets_beyondTheHistoryFetchCap_stillFound() {
+        logBenchWorkout(weightKg: 70, reps: 5)
+        for offset in 1...SwiftDataRepository.workoutHistoryFetchLimit {
+            repo.upsertWorkoutSession(WorkoutSession(
+                startedAt: Date().addingTimeInterval(Double(offset)),
+                finishedAt: Date().addingTimeInterval(Double(offset) + 1)
+            ))
+        }
+        _ = service.startWorkout()
+
+        XCTAssertEqual(service.previousSessionSets(forExerciseID: bench().id).map(\.weightKg), [70])
+    }
+
     func test_startWorkout_fromRoutine_afterHittingTheTarget_seedsTheNextLoad() {
         let saved = DataStore.current
         DataStore.current = nil

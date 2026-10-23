@@ -235,7 +235,10 @@ final class WorkoutSessionService {
             changed = true
             AppLog.training.info("Orphaned workout closed (id: \(orphan.id, privacy: .public))")
         }
-        if changed { DataStore.current?.refreshTrainingGlanceables() }
+        if changed {
+            invalidatePreviousSetCache()
+            DataStore.current?.refreshTrainingGlanceables()
+        }
     }
 
     /// Re-reads the in-progress session after an iCloud account switch,
@@ -427,10 +430,12 @@ final class WorkoutSessionService {
     ///
     /// Read from a memo of every exercise built in one history pass: a
     /// lookup deserializes the stored workouts, and seeding a routine plus
-    /// the exercise stack's re-renders ask once per exercise. The active
-    /// session is excluded, so editing its sets can't change the answer —
-    /// only a start, finish, discard or a history edit can, and those
-    /// clear the memo. An exercise logged twice in one session contributes
+    /// the exercise stack's re-renders ask once per exercise. Only finished
+    /// sessions count — not the active one, nor one still open on another
+    /// device — so editing sets can't change the answer; only a start,
+    /// finish, discard, orphan closure or history edit can, and those
+    /// clear the memo. The whole history is read, so a lift last done
+    /// hundreds of workouts ago still has a previous. An exercise logged twice in one session contributes
     /// both entries' sets, in entry order.
     func previousSessionSets(forExerciseID id: String) -> [SetEntry] {
         previousSetsByExercise()[id] ?? []
@@ -440,9 +445,9 @@ final class WorkoutSessionService {
         if let cached = previousSetCache { return cached }
         var byExercise: [String: [SetEntry]] = [:]
         // Newest first, so each exercise keeps its most recent session.
-        let sessions = SwiftDataRepository.shared.loadWorkoutSessions()
+        let sessions = SwiftDataRepository.shared.loadAllWorkoutSessions()
             .sorted { $0.startedAt > $1.startedAt }
-        for session in sessions where session.id != activeSession?.id {
+        for session in sessions where session.finishedAt != nil {
             var sessionSets: [String: [SetEntry]] = [:]
             for entry in session.exercises.sorted(by: { $0.index < $1.index })
             where byExercise[entry.exerciseID] == nil {
