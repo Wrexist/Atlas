@@ -39952,6 +39952,16 @@
           }
         }
       }
+    },
+    "%@, rated %lld of 5 stars": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, betyg %lld av 5 stjärnor"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
