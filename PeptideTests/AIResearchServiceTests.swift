@@ -275,19 +275,29 @@ final class AIResearchServiceTests: XCTestCase {
 
     // MARK: - HTTP failures
 
-    /// 500 rather than 502. The gateway codes were broken out of the generic
-    /// envelope so a transient upstream outage reads as "try again in a few
-    /// minutes" instead of a bare status code — this test kept using 502 and
-    /// so was asserting against the case it no longer lands in.
-    func test_reply_throwsRequestFailedOnNon2xx() async {
+    func test_reply_unmappedStatus_throwsServiceUnavailable() async {
         MockURLProtocol.handler = { request in
             (Self.response(for: request, status: 500), Data())
         }
         await XCTAssertThrowsErrorAsyncResearch(try await service.reply(history: [], newUserPrompt: "hi", in: [])) { error in
-            if case .requestFailed(let message) = error as? AIResearchService.ChatError {
-                XCTAssertTrue(message.contains("500"))
-            } else {
-                XCTFail("Expected .requestFailed, got \(error)")
+            guard case .serviceUnavailable = error as? AIResearchService.ChatError else {
+                return XCTFail("Expected .serviceUnavailable, got \(error)")
+            }
+            XCTAssertFalse(error.localizedDescription.contains("500"))
+        }
+    }
+
+    /// A pasted question over the proxy's body cap (413) or a malformed
+    /// body (400) gets copy the user can act on.
+    func test_reply_oversizedOrMalformedBody_throwsQuestionTooLong() async {
+        for status in [400, 413] {
+            MockURLProtocol.handler = { request in
+                (Self.response(for: request, status: status), Data())
+            }
+            await XCTAssertThrowsErrorAsyncResearch(try await service.reply(history: [], newUserPrompt: "hi", in: [])) { error in
+                guard case .questionTooLong = error as? AIResearchService.ChatError else {
+                    return XCTFail("Expected .questionTooLong for HTTP \(status), got \(error)")
+                }
             }
         }
     }

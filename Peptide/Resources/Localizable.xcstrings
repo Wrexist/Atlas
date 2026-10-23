@@ -10777,6 +10777,16 @@
         }
       }
     },
+    "That message is too long for the assistant. Try a shorter question.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meddelandet är för långt för assistenten. Försök med en kortare fråga."
+          }
+        }
+      }
+    },
     "Your data is back. A safety copy of your previous data couldn't be saved.": {
       "localizations": {
         "sv": {
