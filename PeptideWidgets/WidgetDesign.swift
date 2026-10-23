@@ -289,3 +289,24 @@ struct WidgetBar: View {
         .frame(height: height)
     }
 }
+
+// MARK: - Colour helpers
+
+/// Black or white, whichever reads better on `fill`. Vial tints run from
+/// deep to pale, and the late and resting amber is light, so a fixed
+/// white label fails contrast on some of the fills a Live Activity button
+/// takes. The palette colours are light/dark pairs, so `fill` is resolved
+/// against the scheme the view draws in, not whatever trait collection is
+/// current.
+func labelColor(on fill: Color, in colorScheme: ColorScheme) -> Color {
+    let traits = UITraitCollection(userInterfaceStyle: colorScheme == .dark ? .dark : .light)
+    var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+    guard UIColor(fill).resolvedColor(with: traits).getRed(&r, green: &g, blue: &b, alpha: &a) else { return .white }
+    func linear(_ channel: CGFloat) -> Double {
+        let c = Double(channel)
+        return c <= 0.03928 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
+    }
+    let luminance = 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
+    // Above this, black text out-contrasts white (WCAG relative luminance).
+    return luminance > 0.179 ? .black : .white
+}
