@@ -517,7 +517,32 @@ struct TrialOfferView: View {
         }
         .buttonStyle(ScalePressStyle())
         .appAnimation(AppAnimation.fadeIn, value: arePricesLoaded)
+        .accessibilityLabel(tierAccessibilityLabel(for: tier))
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+    }
+
+    /// Spoken in place of the card's visual fragments ("/yr", "·"), which
+    /// VoiceOver otherwise reads out as "slash y r" and "middle dot".
+    private func tierAccessibilityLabel(for tier: Tier) -> String {
+        guard arePricesLoaded else { return "\(tier.displayName), \(plansStatus)" }
+        var parts = [tier.displayName]
+        switch tier {
+        case .annual:
+            parts.append(String(localized: "\(annualPrice) per year"))
+            parts.append(String(localized: "\(annualPerMonthPrice) per month"))
+        case .monthly:
+            parts.append(String(localized: "\(monthlyPrice) per month"))
+        }
+        if let days = trialDays(for: tier) {
+            parts.append(String(localized: "\(days) days free"))
+        }
+        if tier == .annual {
+            parts.append(String(localized: "Best value"))
+            if let saved = annualSavingsPercent {
+                parts.append(String(localized: "Save \(saved) percent"))
+            }
+        }
+        return parts.joined(separator: ", ")
     }
 
     /// The billed amount per period — never the per-month equivalent of the
@@ -683,7 +708,9 @@ struct TrialOfferView: View {
     }
 
     private var linkSeparator: some View {
-        Text("·").foregroundStyle(AppColor.textTertiary)
+        Text("·")
+            .foregroundStyle(AppColor.textTertiary)
+            .accessibilityHidden(true)
     }
 
     private var productForSelectedTier: Product? { product(for: selectedTier) }
