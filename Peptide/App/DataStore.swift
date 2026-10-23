@@ -188,7 +188,8 @@ final class DataStore {
         let savedProfile   = repo.loadProfile()
         let hasOlderEntries = repo.entryCount() > savedEntries.count
 
-        if !savedProtocols.isEmpty || !savedEntries.isEmpty || hasOlderEntries || savedProfile != nil {
+        let isReturningUser = !savedProtocols.isEmpty || !savedEntries.isEmpty || hasOlderEntries || savedProfile != nil
+        if isReturningUser {
             // Returning user: recover what we can. Using || (not &&) so a single
             // corrupt record doesn't erase the user's entire dataset.
             self.protocols = savedProtocols
@@ -250,6 +251,11 @@ final class DataStore {
 
         if hasOlderEntries {
             scheduleEntryBackfill(before: entryWindowStart)
+        }
+        if isReturningUser {
+            seedAchievementsIfNeeded()
+        } else if !seedSampleData {
+            AchievementService.shared.markSeeded()
         }
 
         // If screenshot mode is currently enabled (set in
@@ -1884,7 +1890,7 @@ final class DataStore {
         // the ephemeral guard: screenshot mode still has to redraw.
         cacheVersion &+= 1
         revision &+= 1
-        guard !isEphemeral else { return }
+        guard !isEphemeral, !AchievementService.shared.needsSilentSeed else { return }
         AchievementService.shared.checkTrainingAchievements(
             workoutCount: repo.workoutSessionCount(),
             prDetected: detectedPRCount > 0
@@ -2761,49 +2767,72 @@ final class DataStore {
     }
 
 
+    /// Achievements are stored per install while the records they count
+    /// come back from iCloud, so a reinstall's first check would replay
+    /// every earned unlock as a toast. Seeds silently once, after the
+    /// entry backfill so lifetime totals are complete.
+    private func seedAchievementsIfNeeded() {
+        guard AchievementService.shared.needsSilentSeed else { return }
+        let backfill = entryBackfillTask
+        Task { @MainActor [weak self] in
+            await backfill?.value
+            guard let self, !self.isEphemeral else { return }
+            AchievementService.shared.seedSilently {
+                self.runAchievementChecks()
+                AchievementService.shared.checkTrainingAchievements(
+                    workoutCount: self.repo.workoutSessionCount(),
+                    prDetected: false
+                )
+            }
+        }
+    }
+
     private func scheduleAchievementCheck() {
         guard !achievementCheckPending else { return }
         achievementCheckPending = true
         Task { @MainActor [weak self] in
             guard let self else { return }
             self.achievementCheckPending = false
-            AchievementService.shared.checkAchievements(
-                totalDoses: self.totalDoses,
-                currentStreak: self.currentStreak,
-                bestStreak: self.bestStreak,
-                protocolCount: self.protocols.count,
-                daysLogged: self.totalDaysLogged
-            )
-            // Lifestyle milestones run on the same hook so the
-            // achievement toast pipeline doesn't fire twice for
-            // unrelated mutations. The two `checkAchievements`
-            // calls each manage their own `latestUnlock` — only
-            // the second one's value survives, but in practice
-            // the two domains rarely cross a threshold on the
-            // same mutation.
-            AchievementService.shared.checkLifestyleAchievements(
-                mealsLogged: self.profile.mealHistory.count,
-                mealStreak: self.mealLoggingStreak,
-                labsLogged: self.profile.labHistory.count,
-                labPanelCount: Set(self.profile.labHistory.map(\.panel)).count,
-                recipesCount: self.profile.recipes.count,
-                checkInsLogged: self.profile.outcomeHistory.count
-            )
-            AchievementService.shared.checkHabitAchievements(
-                habitCount: self.activeHabits.count,
-                bestHabitStreak: self.bestHabitStreak,
-                totalCompletions: self.totalHabitCompletions,
-                perfectDayToday: self.allHabitsDoneToday(),
-                perfectWeek: (HabitsService.completionRate(
-                    habits: self.activeHabits,
-                    entries: self.profile.habitEntries,
-                    days: 7
-                ) ?? 0) >= 1.0
-            )
+            // The silent seed covers the current state; checking first
+            // would toast everything it is about to absorb.
+            if !AchievementService.shared.needsSilentSeed {
+                self.runAchievementChecks()
+            }
             // Bank today's Atlas Score from the same coalesced hook. Mutates
             // the profile in memory; the debounced save persists it.
             self.accrueMomentumIfNeeded()
         }
+    }
+
+    private func runAchievementChecks() {
+        AchievementService.shared.checkAchievements(
+            totalDoses: self.totalDoses,
+            currentStreak: self.currentStreak,
+            bestStreak: self.bestStreak,
+            protocolCount: self.protocols.count,
+            daysLogged: self.totalDaysLogged
+        )
+        // Lifestyle and habit milestones run on the same hook; every
+        // unlock joins one FIFO toast queue.
+        AchievementService.shared.checkLifestyleAchievements(
+            mealsLogged: self.profile.mealHistory.count,
+            mealStreak: self.mealLoggingStreak,
+            labsLogged: self.profile.labHistory.count,
+            labPanelCount: Set(self.profile.labHistory.map(\.panel)).count,
+            recipesCount: self.profile.recipes.count,
+            checkInsLogged: self.profile.outcomeHistory.count
+        )
+        AchievementService.shared.checkHabitAchievements(
+            habitCount: self.activeHabits.count,
+            bestHabitStreak: self.bestHabitStreak,
+            totalCompletions: self.totalHabitCompletions,
+            perfectDayToday: self.allHabitsDoneToday(),
+            perfectWeek: (HabitsService.completionRate(
+                habits: self.activeHabits,
+                entries: self.profile.habitEntries,
+                days: 7
+            ) ?? 0) >= 1.0
+        )
     }
 
     /// Idempotent: appends today's scheduled entries for any active protocol that
