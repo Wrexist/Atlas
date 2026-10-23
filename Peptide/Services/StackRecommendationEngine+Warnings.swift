@@ -163,7 +163,8 @@ extension StackRecommendationEngine {
                     detail: String(localized: "Your protocol requires ~\(dailyCount) injections daily across \(injectables.count) peptides."),
                     suggestion: String(localized: "Group compatible peptides at the same injection time to reduce needle count and improve adherence."),
                     peptides: injectables.map(\.abbreviation),
-                    icon: "syringe.fill"
+                    icon: "syringe.fill",
+                    kind: .injectionBurden
                 ))
             }
         }
@@ -273,7 +274,8 @@ extension StackRecommendationEngine {
                     detail: String(localized: "Recommended cycle is \(cycle.onWeeks) weeks on / \(cycle.offWeeks) weeks off. You're at week \(weeksElapsed). \(cycle.reason)."),
                     suggestion: String(localized: "Schedule a \(cycle.offWeeks)-week off period.\(transitionText)"),
                     peptides: [peptide.abbreviation],
-                    icon: "clock.arrow.circlepath"
+                    icon: "clock.arrow.circlepath",
+                    kind: .cycleOverrun
                 ))
             }
         }
@@ -296,7 +298,8 @@ extension StackRecommendationEngine {
                 detail: String(localized: "\(peptide.abbreviation) active for \(weeks) weeks. \(info.description) typically begins around week \(info.riskOnsetWeeks)."),
                 suggestion: String(localized: "Consider a \(offWeeks)-week washout period to restore receptor sensitivity."),
                 peptides: [peptide.abbreviation],
-                icon: "arrow.down.right.circle"
+                icon: "arrow.down.right.circle",
+                kind: .desensitization
             ))
         }
 
@@ -328,7 +331,8 @@ extension StackRecommendationEngine {
                         detail: String(localized: "\(a.abbreviation) and \(b.abbreviation) should be separated when administered."),
                         suggestion: timingA.notes,
                         peptides: [a.abbreviation, b.abbreviation],
-                        icon: "clock.badge.exclamationmark"
+                        icon: "clock.badge.exclamationmark",
+                        kind: .timingConflict
                     ))
                 } else if let timingB = PeptideTimingData.timingRecommendations[b.abbreviation],
                           timingB.avoidWith.contains(a.abbreviation) {
@@ -338,7 +342,8 @@ extension StackRecommendationEngine {
                         detail: String(localized: "\(a.abbreviation) and \(b.abbreviation) should be separated when administered."),
                         suggestion: timingB.notes,
                         peptides: [a.abbreviation, b.abbreviation],
-                        icon: "clock.badge.exclamationmark"
+                        icon: "clock.badge.exclamationmark",
+                        kind: .timingConflict
                     ))
                 }
             }
