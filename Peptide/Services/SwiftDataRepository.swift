@@ -1241,6 +1241,33 @@ final class SwiftDataRepository {
         }
     }
 
+    /// Finished sessions, oldest first, that log any of `exerciseIDs`.
+    /// Rows are screened on their raw JSON first, so a history edit no
+    /// longer decodes every workout the user has ever logged.
+    func loadFinishedWorkoutSessions(touching exerciseIDs: Set<String>) -> [WorkoutSession] {
+        guard let context, !exerciseIDs.isEmpty else { return [] }
+        let descriptor = FetchDescriptor<StoredWorkoutSession>(
+            sortBy: [SortDescriptor(\.startedAt, order: .forward)]
+        )
+        let needles = StoredWorkoutSession.exerciseIDNeedles(exerciseIDs)
+        do {
+            return try context.fetch(descriptor)
+                .filter { $0.finishedAt != nil && $0.mayLog(anyOf: needles) }
+                .compactMap {
+                    do {
+                        return try $0.toWorkoutSession()
+                    } catch {
+                        AppLog.swiftData.error("Decode StoredWorkoutSession (touching) failed: \(error.localizedDescription, privacy: .public)")
+                        return nil
+                    }
+                }
+                .filter { $0.exercises.contains { exerciseIDs.contains($0.exerciseID) } }
+        } catch {
+            AppLog.swiftData.error("Load workout sessions touching exercises failed: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
     /// Cheap lifetime count of workout sessions via `fetchCount` (no row
     /// materialization). Used by the training-achievement check so it
     /// doesn't load the whole session table on a workout finish.
