@@ -361,7 +361,11 @@ struct OnboardingView: View {
             // code-review #14).
             guard scenePhase == .active else { return }
             let status = await NotificationService.shared.checkAuthorization()
-            notificationsAuthorized = (status == .authorized || status == .provisional)
+            let granted = status == .authorized || status == .provisional
+            // A grant made in iOS Settings after a denial switches on what
+            // this step promised, the same as a grant from the prompt.
+            if granted && !notificationsAuthorized { applyNotificationGrant() }
+            notificationsAuthorized = granted
             notificationsDenied = status == .denied
         }
         .fullScreenCover(isPresented: $showTrialOffer) {
@@ -1785,30 +1789,30 @@ struct OnboardingView: View {
         Task {
             let granted = await NotificationService.shared.requestAuthorization()
             requestingNotifications = false
+            if granted { applyNotificationGrant() }
             notificationsAuthorized = granted
             notificationsDenied = !granted
-            // Surface the OS grant on the user's dose-reminders flag too
-            // so peptide-protocol reminders fire by default the first time
-            // the user adds a protocol. Independent of the OS auth state
-            // tracked above — the user can still toggle this flag off
-            // later from Profile without revoking notification permission.
-            if granted, !dataStore.profile.doseRemindersEnabled {
-                dataStore.profile.doseRemindersEnabled = true
-                // Persist so a crash / quick backgrounding between here
-                // and the next onboarding-driven save doesn't lose the
-                // toggle. Settings-side `onChange` handlers do this same
-                // belt-and-braces persist.
-                dataStore.persistProfile()
-            }
-            // This step promises workout reminders, so a grant switches
-            // the training-day nudge on at the time picked earlier.
-            if granted {
-                var reminders = DailyReminderSettings.load(training: dataStore.profile.trainingPreferences)
-                reminders.slots[.workout]?.isEnabled = true
-                reminders.save()
-            }
             OnboardingFunnelTracker.recordEvent(granted ? "notifications_granted" : "notifications_denied")
         }
+    }
+
+    /// What a notification grant switches on, whether it came from the
+    /// prompt or from iOS Settings after a denial.
+    private func applyNotificationGrant() {
+        // Dose reminders default on so Protocol reminders fire the first
+        // time the user adds one; Profile can still turn the flag off
+        // without revoking the OS permission.
+        if !dataStore.profile.doseRemindersEnabled {
+            dataStore.profile.doseRemindersEnabled = true
+            // Persisted now so a quick backgrounding before the next
+            // onboarding save doesn't lose it.
+            dataStore.persistProfile()
+        }
+        // This step promises workout reminders, so a grant switches the
+        // training-day nudge on at the time picked earlier.
+        var reminders = DailyReminderSettings.load(training: dataStore.profile.trainingPreferences)
+        reminders.slots[.workout]?.isEnabled = true
+        reminders.save()
     }
 
     // MARK: - Creator code
