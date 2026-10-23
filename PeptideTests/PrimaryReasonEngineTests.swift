@@ -44,6 +44,21 @@ final class PrimaryReasonEngineTests: XCTestCase {
         XCTAssertEqual(reason.message.body, "Start with BPC-157 — fasted, on waking")
     }
 
+    /// The tiering keys on which branch produced the message, so the eyebrow
+    /// copy can be reworded or translated without moving a message to a
+    /// different tier.
+    func test_pick_classifiesByMessageKind_notDisplayCopy() {
+        let welcome = PrimaryReasonEngine.pick(context: .init(coaching: coachingContext(hasProtocols: false, memberDays: 1)))
+        XCTAssertEqual(welcome.message.kind, .welcome)
+        XCTAssertEqual(welcome.priority, .optionalReminder)
+
+        let onTrack = PrimaryReasonEngine.pick(context: .init(
+            coaching: coachingContext(), dailyPlanHeadline: "Plan headline"
+        ))
+        XCTAssertEqual(onTrack.message.kind, .onTrack)
+        XCTAssertEqual(onTrack.message.body, "Plan headline")
+    }
+
     // MARK: - Multiple candidates → exactly one clear primary, by priority
 
     func test_pick_weakRecoveryBeatsHabitsDue() {

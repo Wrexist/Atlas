@@ -28,9 +28,17 @@ enum CoachingMessageEngine {
         let title: String                      // the headline line
         let body: String?                      // optional one-line detail
         let tone: Tone
+        /// Which branch produced the message. Callers that need to know
+        /// (`PrimaryReasonEngine`) compare this, never the display copy,
+        /// which changes with wording and language.
+        var kind: Kind = .other
 
         enum Tone: Equatable, Sendable {
             case positive, neutral, cautionary, welcome
+        }
+
+        enum Kind: Equatable, Sendable {
+            case welcome, connectHealth, onTrack, other
         }
     }
 
@@ -129,7 +137,8 @@ enum CoachingMessageEngine {
             eyebrow: String(localized: "WELCOME"),
             title: String(localized: "Set up your first protocol"),
             body: String(localized: "Atlas builds your schedule, tracks every dose, and learns your patterns."),
-            tone: .welcome
+            tone: .welcome,
+            kind: .welcome
         )
     }
 
@@ -139,7 +148,8 @@ enum CoachingMessageEngine {
             eyebrow: String(localized: "GET STARTED"),
             title: String(localized: "Connect Apple Health"),
             body: String(localized: "Unlock Recovery and Sleep scores plus per-protocol HRV correlations."),
-            tone: .neutral
+            tone: .neutral,
+            kind: .connectHealth
         )
     }
 
@@ -197,7 +207,8 @@ enum CoachingMessageEngine {
                 eyebrow: String(localized: "ON TRACK"),
                 title: String(localized: "You're on track"),
                 body: String(localized: "Next: \(dose) at \(time). Keep it steady."),
-                tone: .positive
+                tone: .positive,
+                kind: .onTrack
             )
         }
         return CoachingMessage(
@@ -205,7 +216,8 @@ enum CoachingMessageEngine {
             eyebrow: String(localized: "ON TRACK"),
             title: String(localized: "You're on track"),
             body: String(localized: "No pending doses right now — enjoy the gap."),
-            tone: .positive
+            tone: .positive,
+            kind: .onTrack
         )
     }
 }
