@@ -79,23 +79,20 @@ final class SwiftDataRepository {
         }
         let token = FileManager.default.ubiquityIdentityToken
         lastObservedIdentityToken = token
-        let iCloudAvailable = token != nil
-        let cloudFailureState: CloudSyncState = iCloudAvailable ? .unavailable : .noAccount
-        if iCloudAvailable, let ck = Self.makeCloudContainer() {
-            container = ck
-            cloudSyncState = .active
-        } else if let local = Self.makeLocalContainer() {
-            container = local
-            cloudSyncState = cloudFailureState
-        } else if let inMemory = Self.makeInMemoryContainer() {
-            container = inMemory
-            isUsingFallbackStore = true
-            cloudSyncState = cloudFailureState
+        cloudSyncState = token != nil ? .unavailable : .noAccount
+        // A hold left by a previous run (force-quit with the prompt up),
+        // or an account change made while the app was closed, keeps the
+        // store shut before any container — and so any sync — starts.
+        if Self.isHoldPersisted
+            || Self.needsDecision(movingStoreTo: token, storeHasData: Self.sharedStoreHasData()) {
+            beginHold()
         } else {
-            container = nil
             isInoperable = true
-            cloudSyncState = cloudFailureState
-            assertionFailure("SwiftDataRepository: both on-disk and in-memory ModelContainer creation failed")
+            reopenContainer(signedIn: token != nil)
+            if container == nil {
+                assertionFailure("SwiftDataRepository: both on-disk and in-memory ModelContainer creation failed")
+            }
+            recordStoreIdentityIfOpen(token)
         }
 
         // Observe iCloud identity changes. When the token swaps, pause
@@ -162,16 +159,7 @@ final class SwiftDataRepository {
     private func handleIdentityChange() {
         let current = FileManager.default.ubiquityIdentityToken
         let prev = lastObservedIdentityToken
-        let sameAccount: Bool = {
-            guard let prev, let current else { return false }
-            return prev.isEqual(current)
-        }()
-        let change = CloudIdentityChangeEngine.change(
-            previousSignedIn: prev != nil,
-            currentSignedIn: current != nil,
-            sameAccount: sameAccount
-        )
-        guard change != .unchanged else { return }
+        guard !Self.isSameIdentity(prev, current) else { return }
         lastObservedIdentityToken = current
         AppLog.swiftData.error(
             "iCloud identity changed; tearing down container and re-initializing"
@@ -179,7 +167,7 @@ final class SwiftDataRepository {
         // Read before the teardown — afterwards there is no context to ask.
         // A store already held closed stays held whatever the next change.
         let holdForDecision = isAwaitingAccountDecision
-            || CloudIdentityChangeEngine.needsUserDecision(change, storeHasData: hasAnyData)
+            || Self.needsDecision(movingStoreTo: current, storeHasData: hasAnyData)
 
         // Pause writes during the swap so any in-flight save attempt
         // doesn't see a half-initialised container.
@@ -198,10 +186,10 @@ final class SwiftDataRepository {
         cloudSyncState = current != nil ? .unavailable : .noAccount
 
         if holdForDecision {
-            isAwaitingAccountDecision = true
-            AppLog.swiftData.info("Store held closed until the user decides what happens to the previous account's data")
+            beginHold()
         } else {
             reopenContainer(signedIn: current != nil)
+            recordStoreIdentityIfOpen(current)
         }
 
         // Notify DataStore — by the time this fires, the container has
@@ -212,22 +200,133 @@ final class SwiftDataRepository {
 
     /// True while the store is held closed after an iCloud sign-out or
     /// account switch. Reads are empty and writes no-op until
-    /// `resolveAccountChange(removingLocalData:)` runs.
+    /// `resolveAccountChange(removingLocalData:)` runs. Mirrored in
+    /// `UserDefaults` so a relaunch keeps holding.
     private(set) var isAwaitingAccountDecision = false
 
     /// The user's answer to the account-change prompt. Keeping reopens
     /// the store as it is — under a signed-in account its data then syncs
     /// to that account. Removing destroys the store file first; the
-    /// previous account's iCloud copy is untouched.
-    func resolveAccountChange(removingLocalData: Bool) {
-        guard isAwaitingAccountDecision else { return }
-        if removingLocalData { Self.destroySharedStore() }
+    /// previous account's iCloud copy is untouched. Returns false, still
+    /// holding, when the store couldn't be destroyed.
+    func resolveAccountChange(removingLocalData: Bool) -> Bool {
+        guard isAwaitingAccountDecision else { return true }
+        if removingLocalData, !Self.destroySharedStore() { return false }
         isAwaitingAccountDecision = false
+        UserDefaults.standard.removeObject(forKey: AccountChangeKey.holdPending)
         let current = FileManager.default.ubiquityIdentityToken
         lastObservedIdentityToken = current
         cloudSyncState = current != nil ? .unavailable : .noAccount
         reopenContainer(signedIn: current != nil)
+        recordStoreIdentityIfOpen(current)
         NotificationCenter.default.post(name: .peptideXiCloudIdentityChanged, object: nil)
+        return true
+    }
+
+    private func beginHold() {
+        container = nil
+        isInoperable = true
+        isAwaitingAccountDecision = true
+        UserDefaults.standard.set(true, forKey: AccountChangeKey.holdPending)
+        AppLog.swiftData.info("Store held closed until the user decides what happens to the previous account's data")
+    }
+
+    // MARK: - Store identity (A116)
+
+    /// Device-local only (`UserDefaults.standard`): this records what is
+    /// on this device's disk, which must never sync anywhere.
+    private enum AccountChangeKey {
+        static let holdPending = "cloudAccountDecisionPending"
+        /// Archived identity token of the account the store's data was
+        /// last opened under; absent after keeping data while signed out.
+        static let storeIdentity = "cloudStoreIdentityToken"
+        /// Set once any identity has been recorded on this install.
+        static let hadIdentity = "cloudStoreHadIdentity"
+    }
+
+    private static var isHoldPersisted: Bool {
+        UserDefaults.standard.bool(forKey: AccountChangeKey.holdPending)
+    }
+
+    private static func isSameIdentity(_ lhs: (any NSObjectProtocol)?, _ rhs: (any NSObjectProtocol)?) -> Bool {
+        switch (lhs, rhs) {
+        case (nil, nil): return true
+        case let (a?, b?): return a.isEqual(b)
+        default: return false
+        }
+    }
+
+    /// Whether opening the store under `current` needs the user's say,
+    /// measured against the account the store was last opened under.
+    /// A fresh install — or the first launch of a build that records
+    /// identities — has none recorded, so it never holds.
+    private static func needsDecision(
+        movingStoreTo current: (any NSObjectProtocol)?,
+        storeHasData: @autoclosure () -> Bool
+    ) -> Bool {
+        let recorded = recordedStoreIdentity()
+        let change = CloudIdentityChangeEngine.change(
+            previousSignedIn: recorded != nil,
+            currentSignedIn: current != nil,
+            sameAccount: recorded != nil && current != nil && isSameIdentity(recorded, current)
+        )
+        guard change != .unchanged else { return false }
+        return CloudIdentityChangeEngine.needsUserDecision(
+            change,
+            storeHasData: storeHasData(),
+            hadEarlierIdentity: UserDefaults.standard.bool(forKey: AccountChangeKey.hadIdentity)
+        )
+    }
+
+    private static func recordedStoreIdentity() -> (any NSObjectProtocol)? {
+        guard let data = UserDefaults.standard.data(forKey: AccountChangeKey.storeIdentity) else { return nil }
+        do {
+            let unarchiver = try NSKeyedUnarchiver(forReadingFrom: data)
+            unarchiver.requiresSecureCoding = false
+            defer { unarchiver.finishDecoding() }
+            return unarchiver.decodeObject(forKey: NSKeyedArchiveRootObjectKey) as? any NSObjectProtocol
+        } catch {
+            AppLog.swiftData.error("Reading the recorded iCloud identity failed: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
+    /// Records the account an on-disk store was just opened under. The
+    /// in-memory fallback records nothing — no data of anyone's is on
+    /// disk through it. A token that fails to archive leaves the record
+    /// as it was rather than marking the install as having had an
+    /// account it can't compare against.
+    private func recordStoreIdentityIfOpen(_ token: (any NSCoding & NSCopying & NSObjectProtocol)?) {
+        guard container != nil, !isUsingFallbackStore else { return }
+        let defaults = UserDefaults.standard
+        guard let token else {
+            defaults.removeObject(forKey: AccountChangeKey.storeIdentity)
+            return
+        }
+        do {
+            let data = try NSKeyedArchiver.archivedData(withRootObject: token, requiringSecureCoding: false)
+            defaults.set(data, forKey: AccountChangeKey.storeIdentity)
+            defaults.set(true, forKey: AccountChangeKey.hadIdentity)
+        } catch {
+            AppLog.swiftData.error("Recording the iCloud identity failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Opens the shared store without CloudKit just long enough to count
+    /// its rows, so the launch check can't start a sync. A store that
+    /// can't be opened counts as holding data — asking is the safe side.
+    private static func sharedStoreHasData() -> Bool {
+        do {
+            let container = try ModelContainer(
+                for: versionedSchema,
+                migrationPlan: PeptideAtlasMigrationPlan.self,
+                configurations: ModelConfiguration(cloudKitDatabase: .none)
+            )
+            return hasRows(in: container.mainContext)
+        } catch {
+            AppLog.swiftData.error("Inspecting the store after an account change failed: \(error.localizedDescription, privacy: .public)")
+            return true
+        }
     }
 
     /// Same fallback chain as `init`.
@@ -256,13 +355,15 @@ final class SwiftDataRepository {
     /// back in to the previous account could export them there as
     /// deletions of that account's iCloud data; a destroyed store takes
     /// its history and mirroring metadata with it.
-    private static func destroySharedStore() {
+    private static func destroySharedStore() -> Bool {
         let url = ModelConfiguration().url
         do {
             try NSPersistentStoreCoordinator(managedObjectModel: NSManagedObjectModel())
                 .destroyPersistentStore(at: url, ofType: NSSQLiteStoreType, options: nil)
+            return true
         } catch {
             AppLog.swiftData.error("Destroying the store after an account change failed: \(error.localizedDescription, privacy: .public)")
+            return false
         }
     }
 
@@ -1441,6 +1542,10 @@ final class SwiftDataRepository {
 
     var hasAnyData: Bool {
         guard let context else { return false }
+        return Self.hasRows(in: context)
+    }
+
+    private static func hasRows(in context: ModelContext) -> Bool {
         let descriptors: [() throws -> Int] = [
             { try context.fetchCount(FetchDescriptor<StoredProtocol>()) },
             { try context.fetchCount(FetchDescriptor<StoredEntry>()) },

@@ -25,12 +25,20 @@ enum CloudIdentityChangeEngine {
     }
 
     /// True when the store must stay closed until the user chooses to
-    /// keep or remove what's in it: the previous account's data is on
-    /// the device and the identity it belonged to is gone. A first
-    /// sign-in is not asked about — the data belongs to this device's
-    /// user, and syncing it to their account is what they signed in for.
-    static func needsUserDecision(_ change: CloudIdentityChange, storeHasData: Bool) -> Bool {
+    /// keep or remove what's in it: there is data, and the account it was
+    /// last opened under is gone. Signing in skips the prompt only when no
+    /// account was ever recorded on this install — otherwise the data may
+    /// be one kept from an earlier account after a sign-out.
+    static func needsUserDecision(
+        _ change: CloudIdentityChange,
+        storeHasData: Bool,
+        hadEarlierIdentity: Bool
+    ) -> Bool {
         guard storeHasData else { return false }
-        return change == .signedOut || change == .switchedAccount
+        switch change {
+        case .unchanged: return false
+        case .signedIn: return hadEarlierIdentity
+        case .signedOut, .switchedAccount: return true
+        }
     }
 }

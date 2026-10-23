@@ -163,7 +163,11 @@ final class DataStore {
         self.customPeptides = PersistenceService.shared.loadCustomPeptides() ?? []
 
         // Phase 2: self is fully initialized — safe to call methods.
-        if repo.isInoperable {
+        if repo.isAwaitingAccountDecision {
+            // Held closed by an account change (A116) — not broken. The
+            // app root asks the user what to do with the data.
+            self.isAwaitingCloudAccountDecision = true
+        } else if repo.isInoperable {
             // Never advise reinstalling: deleting the app erases any data
             // that hasn't reached iCloud yet.
             self.lastError = String(localized: "Atlas can't open its storage. Restart the app; if this keeps happening, contact support before deleting the app.")
@@ -356,10 +360,22 @@ final class DataStore {
     /// (A116). The app root asks the user to keep or remove it.
     private(set) var isAwaitingCloudAccountDecision = false
 
-    /// The repository reopens the store and posts the identity-change
-    /// notification, so `handleIdentityChange` reloads from it.
+    /// Clears the prompt flag first, synchronously, so the alert can't
+    /// flash back while the reload is pending. A failed removal keeps the
+    /// store held (the hold persists, so the next launch asks again) and
+    /// says so in the banner.
     func resolveCloudAccountChange(removingLocalData: Bool) {
-        repo.resolveAccountChange(removingLocalData: removingLocalData)
+        isAwaitingCloudAccountDecision = false
+        // Nothing saved during the hold may land in the reopened store.
+        pendingSaveTask?.cancel()
+        pendingSaveTask = nil
+        guard repo.resolveAccountChange(removingLocalData: removingLocalData) else {
+            lastError = String(localized: "Atlas couldn't remove the previous account's data. Restart Atlas to try again.")
+            return
+        }
+        // Reload now rather than after the notification's Task hop, so no
+        // save can run against the reopened store with the cleared state.
+        handleIdentityChange()
     }
 
     /// The currently-active `DataStore`, set by `init` and consumed
