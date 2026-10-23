@@ -144,8 +144,10 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         Task { @MainActor [appState] in
             // The workout screen marks rest end with a haptic and an
             // announcement; a banner over it on top of that is noise.
+            // Everything else also goes to Notification Center, so a
+            // reminder delivered while Atlas is open keeps its actions.
             let workoutOnScreen = isRestEnd && appState.isActiveWorkoutVisible
-            completionHandler(workoutOnScreen ? [] : [.banner, .sound])
+            completionHandler(workoutOnScreen ? [] : [.banner, .list, .sound])
         }
     }
 
