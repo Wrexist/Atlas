@@ -183,13 +183,15 @@ struct RoutinesView: View {
                 EmptyStateView(
                     icon: "list.bullet.rectangle.portrait.fill",
                     title: "No routines yet",
-                    message: "A routine is your workout written down — the lifts, in order, with the sets and reps you're aiming for. Save one and every session after this starts with a single tap.",
+                    message: "Save your lifts once — start every session in one tap.",
                     action: .init(title: "Build a routine", icon: "plus") {
                         open(store.createDraft().id)
                     }
                 )
 
-                GlassButton(title: "Build my program", icon: "wand.and.stars", isFullWidth: true) {
+                // Secondary: the empty state's "Build a routine" is the one
+                // painted action here.
+                GlassButton(title: "Build my program", icon: "wand.and.stars", style: .secondary, isFullWidth: true) {
                     buildingProgram = true
                 }
 
