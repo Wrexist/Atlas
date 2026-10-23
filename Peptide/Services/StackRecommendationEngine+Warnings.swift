@@ -289,7 +289,7 @@ extension StackRecommendationEngine {
                   desensitizationWarned.insert(peptide.abbreviation).inserted else { continue }
             let weeks = activeProtocols
                 .filter { proto in proto.peptides.contains { $0.abbreviation == peptide.abbreviation } }
-                .compactMap(weeksIntoCurrentRun(of:))
+                .compactMap { weeksIntoCurrentRun(of: $0) }
                 .max()
             guard let weeks, weeks >= info.riskOnsetWeeks else { continue }
             let offWeeks = PeptideTimingData.cycleProtocols[peptide.abbreviation]?.offWeeks ?? 4
