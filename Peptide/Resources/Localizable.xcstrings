@@ -1408,16 +1408,6 @@
         }
       }
     },
-    "%@%lld pts vs previous 30 days": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@%2$lld p jämfört med föregående 30 dagar"
-          }
-        }
-      }
-    },
     "%@%lld sessions this week — %@.": {
       "localizations": {
         "sv": {
@@ -1566,16 +1556,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@, %lld procent"
-          }
-        }
-      }
-    },
-    "%@, %lld percent remaining": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@, %lld procent kvar"
           }
         }
       }
@@ -7011,16 +6991,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lägg till idag"
-          }
-        }
-      }
-    },
-    "Add to your protocol": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lägg till i ditt protokoll"
           }
         }
       }
@@ -15609,16 +15579,6 @@
         }
       }
     },
-    "Enough days — a few more signals will unlock your estimate.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tillräckligt många dagar – några fler signaler låser upp din uppskattning."
-          }
-        }
-      }
-    },
     "Enter": {
       "localizations": {
         "sv": {
@@ -17005,16 +16965,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Underarmar – framsida"
-          }
-        }
-      }
-    },
-    "Forked from %@'s community protocol.\n\n%@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kopierat från %@s community-protokoll.\n\n%@"
           }
         }
       }
@@ -19163,16 +19113,6 @@
         }
       }
     },
-    "Isolate %@ from the \"%@\" cluster": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Isolera %@ från klustret ”%@”"
-          }
-        }
-      }
-    },
     "It also comes off your meal log and calorie totals.": {
       "localizations": {
         "sv": {
@@ -21089,16 +21029,6 @@
         }
       }
     },
-    "Lower \"%@\" overlap in %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mindre ”%@”-överlapp i %@"
-          }
-        }
-      }
-    },
     "Lower back": {
       "localizations": {
         "sv": {
@@ -21585,16 +21515,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Måltidssvit"
-          }
-        }
-      }
-    },
-    "Meal streak paused, best was %lld.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Måltidssviten är pausad, bästa var %lld."
           }
         }
       }
@@ -22823,16 +22743,6 @@
         }
       }
     },
-    "Next cycle starts %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nästa cykel börjar %@"
-          }
-        }
-      }
-    },
     "Next dose: %@, %@ at %@": {
       "localizations": {
         "sv": {
@@ -22929,16 +22839,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Snyggt. Det var allt – så snabbt går dina pass."
-          }
-        }
-      }
-    },
-    "No \"%@\" overlap in %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ingen ”%@”-överlapp i %@"
           }
         }
       }
@@ -32597,16 +32497,6 @@
         }
       }
     },
-    "Step on the scale, then reply with today's number.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ställ dig på vågen och svara sedan med dagens siffra."
-          }
-        }
-      }
-    },
     "Steps": {
       "localizations": {
         "sv": {
@@ -33607,16 +33497,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tryck på det du inte vill behålla."
-          }
-        }
-      }
-    },
-    "Tap edit to start a new cycle.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tryck på Redigera för att starta en ny cykel."
           }
         }
       }
@@ -34959,16 +34839,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Totalt"
-          }
-        }
-      }
-    },
-    "Total %lld kilocalories. ": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Totalt %lld kilokalorier."
           }
         }
       }
@@ -37193,16 +37063,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Uppehåll"
-          }
-        }
-      }
-    },
-    "Wash-out begins %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Uppehållet börjar %@"
           }
         }
       }
