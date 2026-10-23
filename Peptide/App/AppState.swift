@@ -139,7 +139,8 @@ enum DeepLinkRouter {
             appState.selectedTab = .today
             appState.pendingWeeklyRecap = true
         case "today":
-            // Home-screen dose/compliance widgets → land on Today.
+            // Home-screen dose/compliance widgets and dose reminders →
+            // land on Today.
             appState.dismissModalsForRouting()
             appState.selectedTab = .today
         case "train":
@@ -152,6 +153,10 @@ enum DeepLinkRouter {
             // Nutrition widget → the Meals tab's log-entry pickers.
             appState.dismissModalsForRouting()
             appState.selectedTab = .meals
+        case "habits":
+            // Habit reminders → the Habits tab, where the habit is ticked.
+            appState.dismissModalsForRouting()
+            appState.selectedTab = .habits
         case "quick":
             // Widget buttons → `peptidex://quick/<QuickAction>`.
             guard let action = QuickAction(rawValue: url.lastPathComponent) else { return false }

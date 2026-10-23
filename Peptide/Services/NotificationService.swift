@@ -395,7 +395,7 @@ final class NotificationService {
             content.body = String(localized: "Time to check in.", comment: "Habit reminder body — boolean habits.")
         }
         content.sound = .default
-        content.userInfo = ["habitId": habit.id.uuidString]
+        content.userInfo = ["habitId": habit.id.uuidString, "deeplink": "peptidex://habits"]
         return content
     }
 
@@ -625,10 +625,12 @@ final class NotificationService {
         // showing N flat entries. Cuts visual fatigue for users on
         // a multi-dose-per-day schedule.
         content.threadIdentifier = proto.id.uuidString
+        // A plain tap lands on Today, where the dose is logged.
         content.userInfo = [
             "protocolId": proto.id.uuidString,
             "hour": hour,
             "minute": minute,
+            "deeplink": "peptidex://today",
         ]
         return content
     }

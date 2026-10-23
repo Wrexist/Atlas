@@ -94,7 +94,7 @@ final class DeepLinkRouterTests: XCTestCase {
     }
 
     func test_tabHosts_withLibraryOpen_closeItSoTheSwitchIsVisible() {
-        for host in ["weekly/current", "today", "train", "meals"] {
+        for host in ["weekly/current", "today", "train", "meals", "habits"] {
             let state = AppState()
             state.showLibrary = true
             DeepLinkRouter.route(XCTUnwrapURL("peptidex://\(host)"), appState: state)
@@ -107,6 +107,12 @@ final class DeepLinkRouterTests: XCTestCase {
         state.showProfile = true
         DeepLinkRouter.route(XCTUnwrapURL("peptidex://dose/not-a-uuid"), appState: state)
         XCTAssertTrue(state.showProfile)
+    }
+
+    func test_habitsHost_selectsHabits() {
+        let (handled, state) = route("peptidex://habits")
+        XCTAssertTrue(handled)
+        XCTAssertEqual(state.selectedTab, .habits)
     }
 
     func test_proHost_proUser_isHandledWithoutPaywall() {
