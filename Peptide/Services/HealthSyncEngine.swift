@@ -18,6 +18,19 @@ enum HealthSyncSettings {
         UserDefaults.standard.bool(forKey: nutritionEnabledKey)
     }
 
+    /// "Connected to Apple Health". Device-local for the same reason; the
+    /// profile's synced `healthConnected` column now only mirrors it for
+    /// older builds. Nil until this device has decided.
+    static let connectedKey = "atlas.healthSync.connected.v1"
+
+    static var isConnected: Bool? {
+        UserDefaults.standard.object(forKey: connectedKey) as? Bool
+    }
+
+    static func setConnected(_ connected: Bool) {
+        UserDefaults.standard.set(connected, forKey: connectedKey)
+    }
+
     /// Earlier builds kept the meal toggle in the synced profile. Takes
     /// that value once, so the device that opted in stays opted in.
     static func adoptSyncedNutritionFlag(_ synced: Bool) {

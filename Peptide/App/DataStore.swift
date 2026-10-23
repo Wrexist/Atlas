@@ -204,6 +204,7 @@ final class DataStore {
             self.persistedProfile = savedProfile
             if let savedProfile {
                 HealthSyncSettings.adoptSyncedNutritionFlag(savedProfile.healthKitNutritionEnabled)
+                adoptDeviceHealthConnection()
             }
             // Everything above came off disk and is already persisted.
             // A synthesised `.fresh` profile is the exception: there's no
@@ -2035,6 +2036,7 @@ final class DataStore {
     @discardableResult
     func toggleHealthConnection() async -> Bool {
         if profile.healthConnected {
+            HealthSyncSettings.setConnected(false)
             profile.healthConnected = false
             save()
             await refreshWatchVitals()
@@ -2045,10 +2047,33 @@ final class DataStore {
             AppLog.healthKit.warning("toggleHealthConnection blocked — no HealthKit grant")
             return false
         }
+        HealthSyncSettings.setConnected(true)
         profile.healthConnected = true
         save()
         await refreshWatchVitals()
         return true
+    }
+
+    /// Health permission is granted per device, so a just-loaded profile
+    /// shows this device's connection, not the synced column another
+    /// device set. Applied to the baseline too, so the column is only
+    /// written when the user toggles here. A device that predates the
+    /// local flag adopts the synced value only if Health has asked it.
+    private func adoptDeviceHealthConnection() {
+        let synced = profile.healthConnected
+        let local = HealthSyncSettings.isConnected
+        profile.healthConnected = local ?? false
+        persistedProfile?.healthConnected = local ?? false
+        guard local == nil, synced else { return }
+        Task { @MainActor [weak self] in
+            let askedHere = await HealthKitService.shared.hasRequestedReadAuthorization()
+            guard HealthSyncSettings.isConnected == nil else { return }
+            HealthSyncSettings.setConnected(askedHere)
+            guard askedHere, let self else { return }
+            self.profile.healthConnected = true
+            self.persistedProfile?.healthConnected = true
+            await self.refreshWatchVitals()
+        }
     }
 
     /// Atomically updates the user-customizable identity fields shown on the
@@ -2941,6 +2966,7 @@ final class DataStore {
         persistedProfile = saved
         if let saved {
             profile = saved
+            adoptDeviceHealthConnection()
             // Only clear the profile flag when a row actually replaced
             // it — otherwise an unsaved in-memory profile edit would be
             // marked clean without ever reaching disk.

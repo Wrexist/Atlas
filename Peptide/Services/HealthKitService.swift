@@ -56,8 +56,22 @@ final class HealthKitService {
     /// so this is the honest test for whether asking again does anything.
     func hasUnrequestedReadTypes() async -> Bool {
         guard isAvailable else { return false }
-        let types = readTypes
-        let status: HKAuthorizationRequestStatus = await withCheckedContinuation { continuation in
+        return await requestStatus(read: readTypes) == .shouldRequest
+    }
+
+    /// True when this device has already put Health's read sheet to the
+    /// user for at least one read type — the sign that Health was
+    /// connected here rather than on another device of the account.
+    func hasRequestedReadAuthorization() async -> Bool {
+        guard isAvailable else { return false }
+        for type in readTypes {
+            if await requestStatus(read: [type]) == .unnecessary { return true }
+        }
+        return false
+    }
+
+    private func requestStatus(read types: Set<HKObjectType>) async -> HKAuthorizationRequestStatus {
+        await withCheckedContinuation { continuation in
             // `@Sendable` keeps the closure nonisolated: HealthKit calls it
             // on its own queue, and an inferred main-actor closure would
             // trap there under Swift 6.
@@ -65,7 +79,6 @@ final class HealthKitService {
                 continuation.resume(returning: error == nil ? status : .unknown)
             }
         }
-        return status == .shouldRequest
     }
 
     // MARK: - Nutrition write authorization

@@ -9,11 +9,13 @@ final class DataStoreTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
+        UserDefaults.standard.removeObject(forKey: HealthSyncSettings.connectedKey)
         SwiftDataRepository.shared.configureForTesting()
         store = DataStore(seedSampleData: true)
     }
 
     override func tearDown() {
+        UserDefaults.standard.removeObject(forKey: HealthSyncSettings.connectedKey)
         SwiftDataRepository.shared.deleteAll()
         store = nil
         super.tearDown()
@@ -223,6 +225,26 @@ final class DataStoreTests: XCTestCase {
     }
 
     // MARK: - Profile customization
+
+    func test_profileSyncedAsHealthConnected_onADeviceThatNeverConnected_isNotConnected() {
+        var synced = MockProfile.current
+        synced.healthConnected = true
+        SwiftDataRepository.shared.saveProfile(synced)
+        UserDefaults.standard.removeObject(forKey: HealthSyncSettings.connectedKey)
+
+        let otherDevice = DataStore()
+
+        XCTAssertFalse(otherDevice.profile.healthConnected)
+    }
+
+    func test_profileSyncedAsDisconnected_onADeviceThatConnected_staysConnected() {
+        SwiftDataRepository.shared.saveProfile(MockProfile.current)
+        HealthSyncSettings.setConnected(true)
+
+        let connectedDevice = DataStore()
+
+        XCTAssertTrue(connectedDevice.profile.healthConnected)
+    }
 
     func test_updateProfileIdentity_trimsWhitespaceAndPersists() {
         store.updateProfileIdentity(name: "  Casey  ", bio: "\n Optimizing recovery.\n ")
