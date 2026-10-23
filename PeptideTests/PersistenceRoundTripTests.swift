@@ -405,11 +405,11 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertEqual(MealCategory.auto(for: lateNight), .snack)
     }
 
-    func test_updateMealEntry_changesCategoryWithoutShiftingAggregate() throws {
+    func test_applyMealEntryEdit_categoryChange_keepsAggregate() {
         var profile = UserProfile.fresh
-        let now = Date()
+        let noon = Self.todayAtNoon
         let original = MealEntry(
-            date: now,
+            date: noon,
             category: .lunch,
             name: "Chicken",
             calories: 400,
@@ -419,21 +419,110 @@ final class PersistenceRoundTripTests: XCTestCase {
             source: .openFoodFacts
         )
         LifestyleDataLogic.logMealEntry(into: &profile, entry: original)
-        let before = LifestyleDataLogic.consumption(in: profile, for: now)
+        let before = LifestyleDataLogic.consumption(in: profile, for: noon)
 
-        // Recategorize same entry — aggregate must not move because
-        // only the category bucket changed.
         var updated = original
         updated.category = .dinner
-        if let index = profile.mealHistory.firstIndex(where: { $0.id == original.id }) {
-            profile.mealHistory[index] = updated
-        }
-        let after = LifestyleDataLogic.consumption(in: profile, for: now)
-        XCTAssertEqual(before.caloriesKcal, after.caloriesKcal)
+        LifestyleDataLogic.applyMealEntryEdit(into: &profile, updated: updated)
 
-        let breakdown = LifestyleDataLogic.mealsByCategory(in: profile, for: now)
+        XCTAssertEqual(LifestyleDataLogic.consumption(in: profile, for: noon), before)
+        let breakdown = LifestyleDataLogic.mealsByCategory(in: profile, for: noon)
         XCTAssertEqual(breakdown.lunch.calories, 0)
         XCTAssertEqual(breakdown.dinner.calories, 400)
+    }
+
+    func test_applyMealEntryEdit_calorieChange_movesAggregateByDelta() {
+        var profile = UserProfile.fresh
+        let noon = Self.todayAtNoon
+        let original = Self.meal(on: noon, calories: 500)
+        LifestyleDataLogic.logMealEntry(into: &profile, entry: original)
+        let before = LifestyleDataLogic.consumption(in: profile, for: noon).caloriesKcal
+
+        var updated = original
+        updated.calories = 800
+        LifestyleDataLogic.applyMealEntryEdit(into: &profile, updated: updated)
+
+        XCTAssertEqual(LifestyleDataLogic.consumption(in: profile, for: noon).caloriesKcal, before + 300)
+        XCTAssertEqual(profile.mealHistory.map(\.calories), [800])
+    }
+
+    func test_applyMealEntryEdit_dateMovedToYesterday_movesMacrosBetweenDays() throws {
+        var profile = UserProfile.fresh
+        let noon = Self.todayAtNoon
+        let yesterday = try XCTUnwrap(Calendar.current.date(byAdding: .day, value: -1, to: noon))
+        let original = Self.meal(on: noon, calories: 600)
+        LifestyleDataLogic.logMealEntry(into: &profile, entry: original)
+
+        var updated = original
+        updated.date = yesterday
+        LifestyleDataLogic.applyMealEntryEdit(into: &profile, updated: updated)
+
+        let today = LifestyleDataLogic.consumption(in: profile, for: noon)
+        let moved = LifestyleDataLogic.consumption(in: profile, for: yesterday)
+        XCTAssertEqual([today.caloriesKcal, today.proteinG, today.carbsG, today.fatG], [0, 0, 0, 0])
+        XCTAssertEqual([moved.caloriesKcal, moved.proteinG, moved.carbsG, moved.fatG], [600, 30, 50, 20])
+    }
+
+    func test_applyMealEntryEdit_unknownID_isNoOp() {
+        var profile = UserProfile.fresh
+        let noon = Self.todayAtNoon
+        LifestyleDataLogic.logMealEntry(into: &profile, entry: Self.meal(on: noon, calories: 500))
+        let history = profile.mealHistory
+        let consumption = profile.dailyConsumption
+
+        LifestyleDataLogic.applyMealEntryEdit(into: &profile, updated: Self.meal(on: noon, calories: 900))
+
+        XCTAssertEqual(profile.mealHistory, history)
+        XCTAssertEqual(profile.dailyConsumption, consumption)
+    }
+
+    func test_logMealEntry_overCap_keepsEveryEntryFromToday() throws {
+        var profile = UserProfile.fresh
+        let noon = Self.todayAtNoon
+        let lastWeek = try XCTUnwrap(Calendar.current.date(byAdding: .day, value: -7, to: noon))
+        let todays = (0..<3).map { _ in Self.meal(on: noon, calories: 100) }
+        profile.mealHistory = todays
+            + (0..<LifestyleDataLogic.maxMealHistoryEntries).map { _ in Self.meal(on: lastWeek, calories: 100) }
+
+        let latest = Self.meal(on: noon, calories: 200)
+        LifestyleDataLogic.logMealEntry(into: &profile, entry: latest)
+
+        XCTAssertEqual(profile.mealHistory.count, LifestyleDataLogic.maxMealHistoryEntries)
+        let kept = Set(profile.mealHistory.map(\.id))
+        XCTAssertTrue((todays + [latest]).allSatisfy { kept.contains($0.id) },
+                      "the cap trims older days, never today")
+    }
+
+    func test_dedupedWeightHistory_twoEntriesSameDay_keepsLatest() throws {
+        var profile = UserProfile.fresh
+        let noon = Self.todayAtNoon
+        let morning = try XCTUnwrap(Calendar.current.date(byAdding: .hour, value: -4, to: noon))
+        let otherDevice = WeightEntry(date: noon, kg: 80.4)
+        profile.weightHistory = [otherDevice, WeightEntry(date: morning, kg: 81.0)]
+
+        let deduped = LifestyleDataLogic.dedupedWeightHistory(profile)
+
+        XCTAssertEqual(deduped, [otherDevice])
+    }
+
+    func test_dedupedWeightHistory_isSortedAscending() throws {
+        var profile = UserProfile.fresh
+        let noon = Self.todayAtNoon
+        let dates = try [0, -3, -1].map { try XCTUnwrap(Calendar.current.date(byAdding: .day, value: $0, to: noon)) }
+        profile.weightHistory = dates.map { WeightEntry(date: $0, kg: 80) }
+
+        let deduped = LifestyleDataLogic.dedupedWeightHistory(profile)
+
+        XCTAssertEqual(deduped.map(\.date), dates.sorted())
+    }
+
+    private static var todayAtNoon: Date {
+        Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: Date())!
+    }
+
+    private static func meal(on date: Date, calories: Int) -> MealEntry {
+        MealEntry(date: date, category: .lunch, name: "Meal", calories: calories,
+                  proteinG: 30, carbsG: 50, fatG: 20, source: .custom)
     }
 
     func test_mealLoggingStreak_countsConsecutiveDaysEndingToday() {

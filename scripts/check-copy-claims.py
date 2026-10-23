@@ -43,6 +43,10 @@ PHOTO_USAGE_PATTERNS = {
     "NSPhotoLibraryAddUsageDescription": r"PHAssetChangeRequest|PHAssetCreationRequest|for:\s*\.addOnly",
 }
 
+# A HealthKit write is a `toShare:` with a non-empty set. `toShare: []` (or
+# `nil`) is a read-only request or status query and needs no update purpose.
+HEALTH_WRITE_PATTERN = r"toShare:(?!\s*(?:\[\s*\]|nil\b))"
+
 
 def dataset_count(name: str, key: str | None = None) -> int:
     data = json.loads((REPO / "Peptide" / "Resources" / name).read_text())
@@ -283,7 +287,7 @@ def main() -> int:
     declared = set(re.findall(r"(NS\w+UsageDescription):", plist))
     required = {
         "NSHealthShareUsageDescription": r"HKHealthStore|HealthKit",
-        "NSHealthUpdateUsageDescription": r"toShare:",
+        "NSHealthUpdateUsageDescription": HEALTH_WRITE_PATTERN,
         "NSCameraUsageDescription": r"AVCaptureDevice|AVCaptureSession|UIImagePickerController",
         **PHOTO_USAGE_PATTERNS,
         "NSFaceIDUsageDescription": r"LAContext|LocalAuthentication",
@@ -308,7 +312,7 @@ def main() -> int:
     # The write description must not claim the app does not write.
     m = re.search(r"NSHealthUpdateUsageDescription:\s*\"(.*?)\"\s*$", plist, re.M)
     if m and re.search(r"does not write|never writes", m.group(1), re.I):
-        if "toShare:" in swift and "toShare: []" != swift:
+        if re.search(HEALTH_WRITE_PATTERN, swift):
             print("  FAIL NSHealthUpdateUsageDescription claims the app does not "
                   "write, but requestAuthorization(toShare:) is called")
             failures.append("health-write-claim")

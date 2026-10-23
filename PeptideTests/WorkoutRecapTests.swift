@@ -280,7 +280,7 @@ final class WorkoutRecapTests: XCTestCase {
         guard let image = renderer.uiImage else { XCTFail("Image rendering failed: \(name)"); return }
         let attachment = XCTAttachment(image: image)
         attachment.name = "completion-\(name)"
-        attachment.lifetime = .keepAlways
+        attachment.lifetime = .deleteOnSuccess
         add(attachment)
     }
 }

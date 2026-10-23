@@ -35,5 +35,23 @@ class PhotosPurposeTests(unittest.TestCase):
                          set(claims.PHOTO_USAGE_PATTERNS))
 
 
+class HealthWriteTests(unittest.TestCase):
+    def writes(self, source):
+        return re.search(claims.HEALTH_WRITE_PATTERN, source) is not None
+
+    def test_empty_share_set_is_read_only(self):
+        for source in ["requestAuthorization(toShare: [], read: readTypes)",
+                       "getRequestStatusForAuthorization(toShare: [ ], read: types)",
+                       "requestAuthorization(toShare: nil, read: readTypes)"]:
+            with self.subTest(source=source):
+                self.assertFalse(self.writes(source))
+
+    def test_non_empty_share_set_is_a_write(self):
+        for source in ["requestAuthorization(toShare: nutritionWriteTypes, read: [])",
+                       "requestAuthorization(\n    toShare: [HKQuantityType(.bodyMass)],\n    read: [])"]:
+            with self.subTest(source=source):
+                self.assertTrue(self.writes(source))
+
+
 if __name__ == "__main__":
     unittest.main()

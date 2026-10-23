@@ -20,19 +20,15 @@ final class DataStoreTests: XCTestCase {
 
     // MARK: - Protocol Management
 
-    func test_activeProtocols_filtersCorrectly() {
-        let activeCount = store.protocols.filter { $0.status == .active }.count
-        XCTAssertEqual(store.activeProtocols.count, activeCount)
-    }
+    func test_statusLists_twoActiveOnePausedOneCompleted_splitByStatus() {
+        let active = [fixtureProtocol(.active), fixtureProtocol(.active)]
+        let paused = fixtureProtocol(.paused)
+        let completed = fixtureProtocol(.completed)
+        store.protocols = [active[0], paused, completed, active[1]]
 
-    func test_pausedProtocols_filtersCorrectly() {
-        let pausedCount = store.protocols.filter { $0.status == .paused }.count
-        XCTAssertEqual(store.pausedProtocols.count, pausedCount)
-    }
-
-    func test_completedProtocols_filtersCorrectly() {
-        let completedCount = store.protocols.filter { $0.status == .completed }.count
-        XCTAssertEqual(store.completedProtocols.count, completedCount)
+        XCTAssertEqual(store.activeProtocols.map(\.id), active.map(\.id))
+        XCTAssertEqual(store.pausedProtocols.map(\.id), [paused.id])
+        XCTAssertEqual(store.completedProtocols.map(\.id), [completed.id])
     }
 
     func test_addProtocol_insertsAtBeginning() {
@@ -164,9 +160,16 @@ final class DataStoreTests: XCTestCase {
 
     // MARK: - Stats
 
-    func test_totalDoses_countsOnlyCompleted() {
-        let manualCount = store.entries.filter(\.completed).count
-        XCTAssertEqual(store.totalDoses, manualCount)
+    func test_totalDoses_twoCompletedOnePending_isTwo() {
+        let proto = fixtureProtocol(.active)
+        store.protocols = [proto]
+        store.entries = [
+            fixtureEntry(proto, daysAgo: 0, completed: true),
+            fixtureEntry(proto, daysAgo: 1, completed: false),
+            fixtureEntry(proto, daysAgo: 2, completed: true),
+        ]
+
+        XCTAssertEqual(store.totalDoses, 2)
     }
 
     func test_totalDaysLogged_countsUniqueDays() {
@@ -175,12 +178,19 @@ final class DataStoreTests: XCTestCase {
         XCTAssertEqual(store.totalDaysLogged, uniqueDays.count)
     }
 
-    func test_currentStreak_isNonNegative() {
-        XCTAssertGreaterThanOrEqual(store.currentStreak, 0)
-    }
+    /// Logged today and the two days before, missed day 3, and an older
+    /// five-day run (days 4–8). A paused protocol's dose on the missed day
+    /// must not rescue it.
+    func test_streaks_knownDosingHistory_matchExactCounts() {
+        let active = fixtureProtocol(.active)
+        let paused = fixtureProtocol(.paused)
+        store.protocols = [active, paused]
+        store.profile.streakFreezeDays = []
+        store.entries = (0...8).map { fixtureEntry(active, daysAgo: $0, completed: $0 != 3) }
+            + [fixtureEntry(paused, daysAgo: 3, completed: true)]
 
-    func test_bestStreak_isNonNegative() {
-        XCTAssertGreaterThanOrEqual(store.bestStreak, 0)
+        XCTAssertEqual(store.currentStreak, 3)
+        XCTAssertEqual(store.bestStreak, 5)
     }
 
     func test_averageCompliance_isBetweenZeroAndOne() {
@@ -515,7 +525,13 @@ final class DataStoreTests: XCTestCase {
         SwiftDataRepository.shared.upsertProtocols([synced])
 
         NotificationCenter.default.post(name: .peptideXCloudKitImportCompleted, object: nil)
-        try await Task.sleep(for: .seconds(4))
+        // Poll with a deadline: the refresh waits 2 s and then retries
+        // while a save is pending, so a fixed sleep was either flaky on a
+        // loaded runner or wasted seconds on a fast one.
+        let deadline = ContinuousClock.now + .seconds(15)
+        while !store.protocols.contains(where: { $0.id == synced.id }), ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(100))
+        }
 
         XCTAssertTrue(store.protocols.contains { $0.id == synced.id },
                       "A finished debounced save must not block the import refresh for the rest of the session")
@@ -640,5 +656,34 @@ final class DataStoreTests: XCTestCase {
         XCTAssertGreaterThan(store.widgetUpdateCountForTesting, widgetBaseline)
         XCTAssertGreaterThan(store.watchUpdateCountForTesting, watchBaseline)
         XCTAssertNil(store.lastError)
+    }
+
+    // MARK: - Fixtures
+
+    private func fixtureProtocol(_ status: ProtocolStatus) -> PeptideProtocol {
+        PeptideProtocol(
+            id: UUID(),
+            name: "Fixture \(status)",
+            peptides: [],
+            schedule: ProtocolSchedule(daysOfWeek: Array(1...7), timesPerDay: 1, preferredTimes: ["8:00 AM"]),
+            cycleLengthWeeks: 4,
+            startDate: Date(),
+            status: status,
+            notes: ""
+        )
+    }
+
+    private func fixtureEntry(_ proto: PeptideProtocol, daysAgo: Int, completed: Bool) -> ProtocolEntry {
+        let calendar = Calendar.current
+        let noon = calendar.date(bySettingHour: 12, minute: 0, second: 0, of: Date()) ?? Date()
+        return ProtocolEntry(
+            id: UUID(),
+            protocolId: proto.id,
+            peptide: MockPeptides.bpc157,
+            date: calendar.date(byAdding: .day, value: -daysAgo, to: noon) ?? noon,
+            dose: "250mcg",
+            notes: "",
+            completed: completed
+        )
     }
 }

@@ -72,6 +72,10 @@ final class WorkoutFocusStateTests: XCTestCase {
 final class WorkoutFocusServiceTests: XCTestCase {
     private var service: WorkoutSessionService!
     private var repo: SwiftDataRepository!
+    /// Live Activity taps go here, never the App Group inbox the widget
+    /// extension shares with the real app.
+    private var inbox: UserDefaults!
+    private var savedApplyInProcess: (@MainActor () -> Void)?
 
     override func setUp() {
         super.setUp()
@@ -79,9 +83,14 @@ final class WorkoutFocusServiceTests: XCTestCase {
         repo.configureForTesting()
         service = WorkoutSessionService.shared
         service.discardWorkout()
+        let suite = "WorkoutFocusServiceTests.\(UUID().uuidString)"
+        addTeardownBlock { UserDefaults().removePersistentDomain(forName: suite) }
+        inbox = UserDefaults(suiteName: suite)
+        savedApplyInProcess = PendingWorkoutActionStore.applyInProcess
     }
 
     override func tearDown() {
+        PendingWorkoutActionStore.applyInProcess = savedApplyInProcess
         service.discardWorkout()
         repo.deleteAll()
         super.tearDown()
@@ -270,13 +279,13 @@ final class WorkoutFocusServiceTests: XCTestCase {
 
     func test_liveActivityTapForAnotherWorkout_isDropped() throws {
         start()
-        PendingWorkoutActionStore.enqueue(.init(sessionId: UUID(), action: .completeSet, tappedAt: Date()))
-        WorkoutActivityActionProcessor.drain()
+        PendingWorkoutActionStore.enqueue(.init(sessionId: UUID(), action: .completeSet, tappedAt: Date()), defaults: inbox)
+        WorkoutActivityActionProcessor.drain(defaults: inbox)
         XCTAssertEqual(service.activeSession?.completedSetCount, 0)
 
         let id = try XCTUnwrap(service.activeSession?.id)
-        PendingWorkoutActionStore.enqueue(.init(sessionId: id, action: .completeSet, tappedAt: Date()))
-        WorkoutActivityActionProcessor.drain()
+        PendingWorkoutActionStore.enqueue(.init(sessionId: id, action: .completeSet, tappedAt: Date()), defaults: inbox)
+        WorkoutActivityActionProcessor.drain(defaults: inbox)
         XCTAssertEqual(service.activeSession?.completedSetCount, 1)
     }
 

@@ -127,6 +127,12 @@ jobs:
     # took 14 min with ten tests failing early and pushed a labelled run
     # to 38m41s of the old 40 min ceiling; a passing suite takes longer.
     timeout-minutes: 75
+    env:
+      # Pinned so a tool upgrade is a reviewed diff, not a runner-image
+      # or cache accident (.swiftlint.yml records one that changed the
+      # gate). Bump both here and the cache key follows.
+      XCODEGEN_VERSION: 2.46.0
+      SWIFTLINT_VERSION: 0.65.1
 
     steps:
       - uses: actions/checkout@v7
@@ -138,43 +144,43 @@ jobs:
       - name: Verify Xcode version
         run: xcodebuild -version
 
-      - name: Cache Homebrew packages
+      - name: Cache pinned tools
+        # Keyed on the job's pinned versions, so bumping one is a recorded
+        # diff that refreshes the cache. The old Homebrew cache had a
+        # constant key and froze whatever version it first saw (B344).
         uses: actions/cache@v6
         with:
-          path: |
-            ~/Library/Caches/Homebrew
-            /usr/local/Cellar/xcodegen
-            /opt/homebrew/Cellar/xcodegen
-            /usr/local/Cellar/swiftlint
-            /opt/homebrew/Cellar/swiftlint
-          key: brew-tools-${{ runner.os }}-${{ runner.arch }}
+          path: ~/.ci-tools
+          key: ci-tools-${{ runner.os }}-${{ runner.arch }}-xcodegen-${{ env.XCODEGEN_VERSION }}-swiftlint-${{ env.SWIFTLINT_VERSION }}
 
-      - name: Cache DerivedData
-        # Hash every file that influences build output, not just
-        # project.yml — a Fastfile/Gemfile/.swiftlint.yml change with
-        # no project.yml diff would otherwise restore a stale cache.
-        uses: actions/cache@v6
+      - name: Restore DerivedData
+        # Keyed per commit and restored from the newest prefix match.
+        # actions/cache only saves on a key miss, so a config-hash key
+        # was saved once and then restored ever staler; main pushes now
+        # save a fresh copy (see "Save DerivedData" below).
+        uses: actions/cache/restore@v6
         with:
           path: ~/Library/Developer/Xcode/DerivedData
-          key: derived-data-${{ runner.os }}-${{ hashFiles('project.yml', 'Gemfile.lock', 'fastlane/Fastfile', '.swiftlint.yml') }}
+          key: derived-data-${{ runner.os }}-${{ github.sha }}
           restore-keys: derived-data-${{ runner.os }}-
 
-      - name: Install XcodeGen
+      - name: Install XcodeGen and SwiftLint
         run: |
-          if brew list xcodegen &>/dev/null 2>&1; then
-            brew unlink xcodegen 2>/dev/null || true
-            brew link --overwrite xcodegen 2>/dev/null || true
-          else
-            brew install xcodegen || brew reinstall xcodegen
+          TOOLS="$HOME/.ci-tools"
+          if [ ! -x "$TOOLS/xcodegen/bin/xcodegen" ]; then
+            mkdir -p "$TOOLS"
+            curl -fsSL -o "$RUNNER_TEMP/xcodegen.zip" \
+              "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
+            unzip -q -o "$RUNNER_TEMP/xcodegen.zip" -d "$TOOLS"
           fi
-          echo "$(brew --prefix)/bin" >> $GITHUB_PATH
-          export PATH="$(brew --prefix)/bin:$PATH"
-          if ! command -v xcodegen &> /dev/null; then
-            echo "FATAL: xcodegen still not on PATH after install"
-            ls -la "$(brew --prefix)/Cellar/xcodegen/" 2>/dev/null || echo "No xcodegen in Cellar"
-            exit 1
+          if [ ! -x "$TOOLS/swiftlint/swiftlint" ]; then
+            curl -fsSL -o "$RUNNER_TEMP/swiftlint.zip" \
+              "https://github.com/realm/SwiftLint/releases/download/${SWIFTLINT_VERSION}/portable_swiftlint.zip"
+            unzip -q -o "$RUNNER_TEMP/swiftlint.zip" -d "$TOOLS/swiftlint"
           fi
-          echo "XcodeGen ready: $(xcodegen --version)"
+          echo "$TOOLS/xcodegen/bin" >> "$GITHUB_PATH"
+          echo "$TOOLS/swiftlint" >> "$GITHUB_PATH"
+          echo "XcodeGen $("$TOOLS/xcodegen/bin/xcodegen" --version), SwiftLint $("$TOOLS/swiftlint/swiftlint" version)"
 
       - name: Generate Xcode project
         run: xcodegen generate
@@ -248,12 +254,10 @@ jobs:
             2>&1 | tee build-output.log
 
       - name: Count concurrency warnings
-        # Report-only, never gating. Swift 5 mode with targeted strict
-        # concurrency downgrades data-race diagnostics to warnings, so
-        # nothing else surfaces them. This tracks the count per PR as
-        # the first step toward a committed baseline (audit A553).
-        if: always()
-        continue-on-error: true
+        # Swift 5 mode with targeted strict concurrency downgrades
+        # data-race diagnostics to warnings, so nothing else surfaces
+        # them. Ratcheted against scripts/ci-baselines.json: a PR may not
+        # add any (audits A553, B345).
         run: |
           if [ ! -f build-output.log ]; then
             echo "No build-output.log — Build app step did not run."
@@ -266,6 +270,7 @@ jobs:
             echo ""
             echo "Unique warnings mentioning Sendable, actor-isolated, data race or nonisolated in the Debug app build: **${COUNT}**"
           } >> "$GITHUB_STEP_SUMMARY" || true
+          python3 scripts/ratchet.py concurrency_warnings "$COUNT"
 
       - name: Build app (Release)
         # Debug alone never sees a symbol referenced outside its
@@ -280,16 +285,6 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
-
-      - name: Install SwiftLint
-        run: |
-          if brew list swiftlint &>/dev/null 2>&1; then
-            brew unlink swiftlint 2>/dev/null || true
-            brew link --overwrite swiftlint 2>/dev/null || true
-          else
-            brew install swiftlint || brew reinstall swiftlint
-          fi
-          echo "SwiftLint ready: $(swiftlint version)"
 
       - name: Lint
         # `force_unwrapping` and `implicitly_unwrapped_optional` are
@@ -346,9 +341,19 @@ jobs:
             -resultBundlePath UnitTestResults.xcresult \
             2>&1 | tee test-output.log
 
+      - name: Save DerivedData
+        # Only main pushes save, so every main build refreshes the cache
+        # PRs restore from, and PR runs cannot evict it with their own.
+        if: "!cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main'"
+        uses: actions/cache/save@v6
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: derived-data-${{ runner.os }}-${{ github.sha }}
+
       - name: Coverage report
+        # Ratcheted against scripts/ci-baselines.json: a PR may not lower
+        # total line coverage (audit B345).
         if: always()
-        continue-on-error: true
         run: |
           if [ ! -d UnitTestResults.xcresult ]; then
             echo "No xcresult bundle — skipping coverage."
@@ -378,12 +383,7 @@ jobs:
             jq -r '.targets[]? | "| \(.name) | \((.lineCoverage // 0) * 100 | . * 10 | floor / 10)% |"' coverage.json 2>/dev/null || true
           } >> "$GITHUB_STEP_SUMMARY"
 
-          # Soft gate: warn (no fail) below 25%. Raise as the suite grows.
-          MIN_PCT_X10=250
-          PCT_X10=$(jq -r '(.lineCoverage // 0) * 1000 | floor' coverage.json 2>/dev/null || echo "0")
-          if [ "$PCT_X10" -lt "$MIN_PCT_X10" ]; then
-            echo "::warning::Line coverage ${PCT}% is below the 25.0% threshold."
-          fi
+          python3 scripts/ratchet.py line_coverage_pct "$PCT"
 
       - name: Print test failures
         # `always()`, not `failure()`. The Unit Tests step now fails the
@@ -415,7 +415,15 @@ jobs:
         # with `run-ui-tests` to exercise them on the next push. Uses
         # `xcodebuild test`, so this path does its own incremental build
         # of whatever the UI test target needs.
-        if: contains(github.event.pull_request.labels.*.name, 'run-ui-tests')
+        #
+        # The nightly run has no labels, so it opts in by event instead:
+        # without it the accessibility audits and the paywall
+        # Close-hittable check never ran unless someone remembered the
+        # label (audit B126). Nightly runs the PeptideUITests class only;
+        # ScreenshotTests stays label-gated because it costs ~14 min.
+        if: github.event_name == 'schedule' || contains(github.event.pull_request.labels.*.name, 'run-ui-tests')
+        env:
+          UI_TEST_SCOPE: ${{ github.event_name == 'schedule' && 'PeptideUITests/PeptideUITests' || 'PeptideUITests' }}
         run: |
           DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; ids=[x['udid'] for r in d.values() for x in r if 'iPhone' in x.get('name','')]; print(ids[0] if ids else '')")
           if [ -z "$DEVICE_ID" ]; then
@@ -430,7 +438,7 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            -only-testing:PeptideUITests \
+            -only-testing:"$UI_TEST_SCOPE" \
             -resultBundlePath UITestResults.xcresult
 
       - name: Upload test results
@@ -504,6 +512,8 @@ jobs:
           python3 scripts/test_design_lint.py
           python3 scripts/test_copy_claims.py
           python3 scripts/test_contrast_check.py
+          python3 scripts/test_store_metadata.py
+          python3 scripts/test_ratchet.py
 
       - name: Copy claims vs source
         # Pins numeric marketing copy (exercise counts, compound counts,
@@ -525,8 +535,9 @@ jobs:
         # key silently renders English, a translation with the wrong
         # format specifiers crashes or prints garbage, in that language
         # only. Holds every shipped language to 80% of the UI and every
-        # translation to its key's specifiers.
-        run: python3 scripts/check-localization.py
+        # translation to its key's specifiers, and every UI sentence to a
+        # catalog entry: coverage is 100% today, so a PR may not lower it.
+        run: python3 scripts/check-localization.py --min-coverage 100
 
       - name: Colour contrast check
         # The design tokens ship two schemes, and light mode has never been

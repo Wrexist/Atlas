@@ -66,7 +66,7 @@ final class ShareCardRendererTests: XCTestCase {
             XCTAssertEqual(CGFloat(cgImage.height), format.pixelSize.height, "\(format) height")
             let attachment = XCTAttachment(image: UIImage(cgImage: cgImage))
             attachment.name = "cycle-card-\(format.rawValue)"
-            attachment.lifetime = .keepAlways
+            attachment.lifetime = .deleteOnSuccess
             add(attachment)
         }
     }

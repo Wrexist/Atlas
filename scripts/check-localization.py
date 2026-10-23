@@ -168,9 +168,9 @@ def main() -> int:
 
     # A language is only worth shipping if the app is actually in it — its
     # own translations, not the keys. The withheld catalog is fully
-    # translated but covers 13% of the UI, so shipping those nine would have
-    # put them on the App Store listing while handing those users a
-    # mostly-English app, dosing and safety copy included.
+    # translated but covers a small fraction of the UI, so shipping those
+    # nine would have put them on the App Store listing while handing those
+    # users a mostly-English app, dosing and safety copy included.
     failed = False
     for lang in sorted(shipped - {"en", "Base"}):
         done = {s for s in covered if lang in (strings[s].get("localizations") or {})}

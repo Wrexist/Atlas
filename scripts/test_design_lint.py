@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import importlib.util
 import pathlib
+import subprocess
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -217,5 +218,16 @@ def run() -> int:
     return 1 if failures else 0
 
 
+def unknown_rule_fails() -> int:
+    """A mistyped --rule must fail loudly, never report a clean pass."""
+    typo = subprocess.run([sys.executable, str(HERE / "design-lint.py"), "--rule", "no-such-rule"],
+                          capture_output=True, text=True)
+    if typo.returncode != 2 or "valid rules" not in typo.stderr:
+        print(f"FAIL  --rule no-such-rule exited {typo.returncode}, expected 2 with the valid names")
+        return 1
+    print("--rule no-such-rule rejected")
+    return 0
+
+
 if __name__ == "__main__":
-    sys.exit(run())
+    sys.exit(max(run(), unknown_rule_fails()))

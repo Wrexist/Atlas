@@ -65,7 +65,10 @@ final class MealScanRecoveryTests: XCTestCase {
             try? FileManager.default.removeItem(at: folder)
         }
         var store: DataStore? = DataStore(seedSampleData: false)
-        UserDefaults.standard.set(false, forKey: HealthSyncSettings.nutritionEnabledKey)
+        let healthKey = HealthSyncSettings.nutritionEnabledKey
+        let savedHealthFlag = UserDefaults.standard.object(forKey: healthKey)
+        defer { UserDefaults.standard.set(savedHealthFlag, forKey: healthKey) }
+        UserDefaults.standard.set(false, forKey: healthKey)
         // A clean-slate store writes no profile row until the profile
         // changes; the failed-commit check below reads that row back.
         repo.saveProfile(store!.profile)
