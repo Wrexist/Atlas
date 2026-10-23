@@ -10,6 +10,8 @@ struct ProtocolDetailView: View {
     @State private var showShareCard = false
     @State private var showPaywall = false
     @State private var schedulingPeptide: Peptide?
+    @State private var editingEntry: ProtocolEntry?
+    @State private var pendingUnlog: ProtocolEntry?
 
     private var liveProtocol: PeptideProtocol {
         dataStore.protocols.first { $0.id == protocol_.id } ?? protocol_
@@ -254,18 +256,7 @@ struct ProtocolDetailView: View {
                             )
                         } else {
                             ForEach(Array(recentEntries.enumerated()), id: \.element.id) { index, entry in
-                                Button {
-                                    AppAnimation.with(AppAnimation.springSnappy) {
-                                        if entry.completed {
-                                            dataStore.unlogDose(entryId: entry.id)
-                                        } else {
-                                            dataStore.markEntryComplete(entry.id, at: Date())
-                                        }
-                                    }
-                                } label: {
-                                    DoseLogRow(entry: entry)
-                                }
-                                .buttonStyle(.plain)
+                                recentLogRow(entry)
 
                                 if index < recentEntries.count - 1 {
                                     Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
@@ -335,6 +326,37 @@ struct ProtocolDetailView: View {
             PaywallView(source: .protocolLimit)
                 .liquidGlassPresentation()
         }
+        .sheet(item: $editingEntry) { entry in
+            DoseLoggingSheet(entry: entry) { actualDose, actualTime, site, notes in
+                dataStore.logDose(
+                    entryId: entry.id,
+                    actualDose: actualDose,
+                    actualTime: actualTime,
+                    injectionSite: site,
+                    notes: notes
+                )
+            }
+            .liquidGlassPresentation()
+        }
+        .confirmationDialog(
+            String(localized: "Remove the \(pendingUnlog?.peptide.abbreviation ?? "") log?"),
+            isPresented: Binding(
+                get: { pendingUnlog != nil },
+                set: { if !$0 { pendingUnlog = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: pendingUnlog
+        ) { entry in
+            Button("Remove log", role: .destructive) {
+                AppAnimation.with(AppAnimation.springSnappy) {
+                    dataStore.unlogDose(entryId: entry.id)
+                }
+                pendingUnlog = nil
+            }
+            Button("Cancel", role: .cancel) { pendingUnlog = nil }
+        } message: { _ in
+            Text("The dose returns to its scheduled state. You can re-log it later.")
+        }
         .sheet(item: $schedulingPeptide) { peptide in
             PeptideScheduleSheet(
                 peptide: peptide,
@@ -348,6 +370,37 @@ struct ProtocolDetailView: View {
                 )
             }
             .liquidGlassPresentation()
+        }
+    }
+
+    /// A pending dose logs in one tap. A logged one opens for editing, and
+    /// removing it — which clears its notes, site and amount — sits behind
+    /// a confirmation, as on the calendar's day panel.
+    private func recentLogRow(_ entry: ProtocolEntry) -> some View {
+        Button {
+            if entry.completed {
+                editingEntry = entry
+            } else {
+                AppAnimation.with(AppAnimation.springSnappy) {
+                    dataStore.markEntryComplete(entry.id, at: Date())
+                }
+            }
+        } label: {
+            DoseLogRow(entry: entry)
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint(entry.completed ? Text("Edits this log.") : Text("Logs this dose as taken."))
+        .contextMenu {
+            if entry.completed {
+                Button("Remove log", systemImage: "arrow.uturn.backward", role: .destructive) {
+                    pendingUnlog = entry
+                }
+            }
+        }
+        .accessibilityActions {
+            if entry.completed {
+                Button("Remove log") { pendingUnlog = entry }
+            }
         }
     }
 

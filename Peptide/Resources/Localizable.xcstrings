@@ -40026,6 +40026,28 @@
           }
         }
       }
+    },
+    "Edits this log.": {
+      "comment": "VoiceOver hint on a logged dose in Recent Logs.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redigerar den här loggen."
+          }
+        }
+      }
+    },
+    "Logs this dose as taken.": {
+      "comment": "VoiceOver hint on a pending dose in Recent Logs.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loggar dosen som tagen."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
