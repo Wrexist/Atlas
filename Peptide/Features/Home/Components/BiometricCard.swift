@@ -104,9 +104,9 @@ struct BiometricCard: View {
 
     private func statusLabel(for sample: HealthRangeService.Sample) -> LocalizedStringKey {
         switch sample.status {
-        case .lower:  return String(localized: "Lower")
-        case .normal: return String(localized: "Normal")
-        case .higher: return String(localized: "Higher")
+        case .lower:  return "Lower"
+        case .normal: return "Normal"
+        case .higher: return "Higher"
         }
     }
 
