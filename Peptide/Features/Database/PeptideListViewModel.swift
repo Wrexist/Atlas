@@ -74,16 +74,23 @@ final class PeptideListViewModel {
             results = results.filter { $0.category == category }
         }
 
-        if !searchText.isEmpty {
-            let query = searchText
-            results = results.filter {
-                $0.name.localizedCaseInsensitiveContains(query) ||
-                $0.abbreviation.localizedCaseInsensitiveContains(query) ||
-                $0.category.displayName.localizedCaseInsensitiveContains(query) ||
-                $0.benefits.contains { $0.localizedCaseInsensitiveContains(query) }
-            }
-        }
+        let query = searchText
+        results = results.filter { $0.matchesSearch(query) }
 
         filteredPeptides = results
+    }
+}
+
+extension Peptide {
+    /// Library search match. The query is trimmed (autocomplete leaves a
+    /// trailing space) and compared ignoring case and diacritics; a blank
+    /// query matches everything.
+    func matchesSearch(_ rawQuery: String) -> Bool {
+        let query = rawQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return true }
+        return name.localizedStandardContains(query) ||
+            abbreviation.localizedStandardContains(query) ||
+            category.displayName.localizedStandardContains(query) ||
+            benefits.contains { $0.localizedStandardContains(query) }
     }
 }
