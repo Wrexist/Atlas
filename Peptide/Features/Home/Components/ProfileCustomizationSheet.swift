@@ -21,17 +21,6 @@ struct ProfileCustomizationSheet: View {
     private static let nameCharacterLimit = 40
     private static let bioCharacterLimit = 280
 
-    private static let availableGoals = [
-        "Muscle Recovery",
-        "Better Sleep",
-        "Cognitive Edge",
-        "Anti-Aging",
-        "Fat Loss",
-        "Immune Support",
-        "Joint Health",
-        "Stress Reduction",
-    ]
-
     @State private var themeManager = ThemeManager.shared
 
     @State private var name: String = ""
@@ -572,6 +561,10 @@ struct ProfileCustomizationSheet: View {
 
     // MARK: - Goals
 
+    private var selectedGoalCount: Int {
+        OnboardingView.PrimaryGoal.allCases.filter { dataStore.profile.goals.contains($0.rawValue) }.count
+    }
+
     private var goalsCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
@@ -580,7 +573,7 @@ struct ProfileCustomizationSheet: View {
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
-                    Text("\(dataStore.profile.goals.count) selected")
+                    Text("\(selectedGoalCount) selected")
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                         .monospacedDigit()
@@ -590,12 +583,13 @@ struct ProfileCustomizationSheet: View {
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
 
-                if let pinned = dataStore.profile.primaryGoal, !pinned.isEmpty {
+                if let pinned = dataStore.profile.primaryGoal.flatMap(OnboardingView.PrimaryGoal.init(rawValue:)) {
                     HStack(spacing: Spacing.xs) {
                         Image(systemName: "pin.fill")
                             .font(AppFont.scaled(11, weight: .semibold))
                             .foregroundStyle(AppColor.accentLight)
-                        Text("Primary: \(pinned)")
+                            .accessibilityHidden(true)
+                        Text("Primary: \(pinned.displayName)")
                             .font(AppFont.caption2)
                             .fontWeight(.semibold)
                             .foregroundStyle(AppColor.accentLight)
@@ -619,7 +613,7 @@ struct ProfileCustomizationSheet: View {
                 }
 
                 FlowLayout(spacing: Spacing.sm) {
-                    ForEach(Self.availableGoals, id: \.self) { goal in
+                    ForEach(OnboardingView.PrimaryGoal.allCases) { goal in
                         goalChip(goal)
                     }
                 }
@@ -627,16 +621,17 @@ struct ProfileCustomizationSheet: View {
         }
     }
 
-    private func goalChip(_ goal: String) -> some View {
-        let selected = dataStore.profile.goals.contains(goal)
-        let pinned = dataStore.profile.primaryGoal == goal
+    private func goalChip(_ goal: OnboardingView.PrimaryGoal) -> some View {
+        let key = goal.rawValue
+        let selected = dataStore.profile.goals.contains(key)
+        let pinned = dataStore.profile.primaryGoal == key
         return Button {
-            toggleGoal(goal)
+            toggleGoal(key)
         } label: {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: pinned ? "pin.fill" : (selected ? "checkmark.circle.fill" : "circle"))
                     .font(AppFont.scaled(11, weight: .semibold))
-                Text(goal)
+                Text(goal.displayName)
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
             }
@@ -655,6 +650,18 @@ struct ProfileCustomizationSheet: View {
             }
         }
         .buttonStyle(ScalePressStyle())
+        .accessibilityLabel(goal.displayName)
+        .accessibilityValue(pinned ? Text("Primary goal") : Text(""))
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityActions {
+            if selected {
+                if pinned {
+                    Button("Unpin") { dataStore.setPrimaryGoal(nil) }
+                } else {
+                    Button("Pin as primary") { pin(key) }
+                }
+            }
+        }
         .contextMenu {
             if selected {
                 if pinned {
@@ -665,14 +672,18 @@ struct ProfileCustomizationSheet: View {
                     }
                 } else {
                     Button {
-                        dataStore.setPrimaryGoal(goal)
-                        Haptics.success()
+                        pin(key)
                     } label: {
-                        Label("Pin as Primary", systemImage: "pin")
+                        Label("Pin as primary", systemImage: "pin")
                     }
                 }
             }
         }
+    }
+
+    private func pin(_ key: String) {
+        dataStore.setPrimaryGoal(key)
+        Haptics.success()
     }
 
     private func toggleGoal(_ goal: String) {

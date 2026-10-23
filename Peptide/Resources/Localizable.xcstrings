@@ -24397,6 +24397,16 @@
         }
       }
     },
+    "Pin as primary": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fäst som huvudmål"
+          }
+        }
+      }
+    },
     "Plans are built from what you already eat. Log or save at least %lld different foods — you have %lld so far.": {
       "localizations": {
         "sv": {
@@ -24433,6 +24443,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "PR-detektering firar nya e1RM- och volymrekord"
+          }
+        }
+      }
+    },
+    "Primary goal": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Huvudmål"
           }
         }
       }

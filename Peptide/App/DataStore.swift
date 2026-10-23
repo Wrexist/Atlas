@@ -224,6 +224,13 @@ final class DataStore {
                 repo.saveProfile(profile)
                 persistedProfile = profile
             }
+            let goals = LegacyGoalMigration.migrate(goals: profile.goals, primaryGoal: profile.primaryGoal)
+            if goals.goals != profile.goals || goals.primaryGoal != profile.primaryGoal {
+                profile.goals = goals.goals
+                profile.primaryGoal = goals.primaryGoal
+                repo.saveProfile(profile)
+                persistedProfile = profile
+            }
         } else if seedSampleData {
             // Tests/previews: seed mock data
             let sampleProtocols = MockProtocols.all
