@@ -1213,7 +1213,7 @@ struct FoodLibraryFlow: View {
 
     private func reviewMacros(_ product: ScannedProduct) -> some View {
         let meal = product.loggable(for: portion)
-        let isZeroCalorieOFF = !FoodLibraryLogic.hasUsableNutrition(product)
+        let lacksNutrition = !FoodLibraryLogic.hasUsableNutrition(product)
         return VStack(spacing: Spacing.sm) {
             MealScanTotalsCard(
                 calories: meal?.calories ?? 0,
@@ -1221,7 +1221,7 @@ struct FoodLibraryFlow: View {
                 carbsG: meal?.carbsG ?? 0,
                 fatG: meal?.fatG ?? 0
             )
-            if isZeroCalorieOFF {
+            if lacksNutrition {
                 inlineMessage(
                     icon: "exclamationmark.triangle.fill",
                     text: String(localized: "This product has no calorie data in Open Food Facts. Save it as a custom food with the values from its label.")
