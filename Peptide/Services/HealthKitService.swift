@@ -106,10 +106,8 @@ final class HealthKitService {
     /// every fresh install — matches the Lifesum/MFP pattern where
     /// nutrition sync is a deliberate setting toggle.
     ///
-    /// HKHealthStore intentionally won't tell us whether the user
-    /// granted or denied — Apple's privacy model is "your app should
-    /// behave the same either way". We return `true` on success of
-    /// the request itself (i.e. the prompt was shown without throwing).
+    /// Unlike read access, write access is reported, so this is true
+    /// only when the user allowed at least one of the types.
     func requestNutritionWriteAuthorization() async -> Bool {
         guard isAvailable else { return false }
         do {
@@ -117,13 +115,27 @@ final class HealthKitService {
                 toShare: nutritionWriteTypes,
                 read: []
             )
-            return true
+            return canWriteAny(of: nutritionWriteTypes)
         } catch {
             AppLog.healthKit.error(
                 "Nutrition write authorization failed: \(error.localizedDescription, privacy: .private)"
             )
             return false
         }
+    }
+
+    /// True once the user has denied every type a write toggle needs,
+    /// at its prompt or later in Settings. Undetermined types don't
+    /// count: the toggle's own request asks for them.
+    var isNutritionWriteDenied: Bool { isWriteDenied(for: nutritionWriteTypes) }
+    var isActivityWriteDenied: Bool { isWriteDenied(for: activityWriteTypes) }
+
+    private func isWriteDenied(for types: Set<HKSampleType>) -> Bool {
+        isAvailable && types.allSatisfy { store.authorizationStatus(for: $0) == .sharingDenied }
+    }
+
+    private func canWriteAny(of types: Set<HKSampleType>) -> Bool {
+        types.contains { store.authorizationStatus(for: $0) == .sharingAuthorized }
     }
 
     // MARK: - Nutrition write
@@ -194,7 +206,10 @@ final class HealthKitService {
             date: entry.date,
             metadata: baseMetadata
         ))
-        // Fiber not written — see `nutritionWriteTypes`.
+        // Fiber not written — see `nutritionWriteTypes`. HealthKit
+        // rejects a whole batch holding one type the user didn't allow,
+        // so only allowed types are sent.
+        samples.removeAll { store.authorizationStatus(for: $0.sampleType) != .sharingAuthorized }
         guard !samples.isEmpty else { return }
 
         do {
@@ -228,12 +243,12 @@ final class HealthKitService {
                 try await store.deleteObjects(of: type, predicate: predicate)
             } catch let hkError as HKError where hkError.code == .errorAuthorizationDenied
                                               || hkError.code == .errorAuthorizationNotDetermined {
-                // User hasn't granted delete permission. Logging once
-                // is enough — no point hammering on every undo.
+                // Permission is per type, so the other types' samples
+                // are still deleted.
                 AppLog.healthKit.debug(
                     "deleteSamples denied for \(type.identifier, privacy: .public)"
                 )
-                return
+                continue
             } catch {
                 AppLog.healthKit.error(
                     "deleteSamples \(type.identifier, privacy: .public) failed: \(error.localizedDescription, privacy: .private)"
@@ -280,7 +295,7 @@ final class HealthKitService {
                 toShare: activityWriteTypes,
                 read: [HKQuantityType(.bodyMass)]
             )
-            return true
+            return canWriteAny(of: activityWriteTypes)
         } catch {
             AppLog.healthKit.error(
                 "Activity sync authorization failed: \(error.localizedDescription, privacy: .private)"

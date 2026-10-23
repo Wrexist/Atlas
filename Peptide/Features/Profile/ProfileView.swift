@@ -8,6 +8,8 @@ struct ProfileView: View {
     @State private var achievementService = AchievementService.shared
     @AppStorage(HealthSyncSettings.enabledKey) private var healthActivitySync = false
     @AppStorage(HealthSyncSettings.nutritionEnabledKey) private var healthNutritionWrite = false
+    /// Set when turning on a Health write toggle came back refused.
+    @State private var healthWriteRefused = false
     @State private var authService = AuthService.shared
     @State private var showReconstitutionCalculator = false
     @State private var showProfileCustomization = false
@@ -89,12 +91,13 @@ struct ProfileView: View {
                         isConnected: dataStore.profile.healthConnected,
                         nutritionWriteEnabled: healthNutritionWrite,
                         onToggleNutritionWrite: { enabled in
-                            Task { await dataStore.setHealthKitNutritionEnabled(enabled) }
+                            Task { healthWriteRefused = !(await dataStore.setHealthKitNutritionEnabled(enabled)) }
                         },
                         activitySyncEnabled: healthActivitySync,
                         onToggleActivitySync: { enabled in
-                            Task { await dataStore.setHealthActivitySyncEnabled(enabled) }
+                            Task { healthWriteRefused = !(await dataStore.setHealthActivitySyncEnabled(enabled)) }
                         },
+                        writeAccessRefused: healthWriteRefused,
                         onConnect: connectHealthKit
                     )
                     .scrollReveal()

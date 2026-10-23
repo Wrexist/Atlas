@@ -1421,16 +1421,11 @@ final class DataStore {
     }
 
     /// Flips the Apple Health write toggle. When turning ON, requests
-    /// HK write permission first — if that fails (sim, denied, no
-    /// HealthKit on iPad), the toggle stays off and we surface the
-    /// failure via the returned Bool so the caller can show an
-    /// error pill or revert the switch.
-    ///
-    /// Apple's privacy model doesn't tell us whether the user
-    /// approved or denied; we treat "permission prompt completed
-    /// without throwing" as success. The user can revoke any time in
-    /// the Settings → Health pane, which is the right level of
-    /// indirection for a delete-everything action.
+    /// HK write permission first — if that fails (sim, every type
+    /// denied, no HealthKit on iPad), the toggle stays off and we
+    /// surface the failure via the returned Bool so the caller can
+    /// point the user to Settings. A later revocation in Settings is
+    /// picked up on the next foreground (`turnOffDeniedHealthWrites`).
     @discardableResult
     func setHealthKitNutritionEnabled(_ enabled: Bool) async -> Bool {
         if enabled {
@@ -1445,7 +1440,7 @@ final class DataStore {
     }
 
     /// Turns "Sync workouts, weight and water" on or off. Like the meal
-    /// toggle, it only stays on once the permission prompt completed.
+    /// toggle, it only stays on while some write type is allowed.
     @discardableResult
     func setHealthActivitySyncEnabled(_ enabled: Bool) async -> Bool {
         if enabled {
@@ -2925,6 +2920,19 @@ final class DataStore {
         performCycleAutoCompletion()
         regenerateTodayEntries()
         refreshHealthIfDue()
+        turnOffDeniedHealthWrites()
+    }
+
+    /// Write access can be withdrawn in Settings at any time; a toggle
+    /// left on would only make every write fail in the log.
+    private func turnOffDeniedHealthWrites() {
+        let health = HealthKitService.shared
+        if HealthSyncSettings.isNutritionEnabled, health.isNutritionWriteDenied {
+            UserDefaults.standard.set(false, forKey: HealthSyncSettings.nutritionEnabledKey)
+        }
+        if HealthSyncSettings.isEnabled, health.isActivityWriteDenied {
+            UserDefaults.standard.set(false, forKey: HealthSyncSettings.enabledKey)
+        }
     }
 
     private func refreshHealthIfDue() {

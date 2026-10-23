@@ -17,6 +17,8 @@ struct HealthConnectionCard: View {
     /// pass-through as the meal toggle.
     var activitySyncEnabled: Bool = false
     var onToggleActivitySync: (Bool) -> Void = { _ in }
+    /// True after turning a write toggle on came back without access.
+    var writeAccessRefused: Bool = false
     /// Awaited so the button can show it's waiting on HealthKit's
     /// permission sheet rather than sitting idle under it.
     var onConnect: @MainActor () async -> Void = {}
@@ -95,6 +97,12 @@ struct HealthConnectionCard: View {
                             isOn: nutritionWriteEnabled,
                             onChange: onToggleNutritionWrite
                         )
+                        if writeAccessRefused {
+                            Text("Atlas isn't allowed to write to Apple Health. Turn it on in Settings › Health › Data Access & Devices › Atlas.")
+                                .font(AppFont.caption2)
+                                .foregroundStyle(AppColor.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }

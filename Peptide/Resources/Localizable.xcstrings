@@ -7675,6 +7675,16 @@
         }
       }
     },
+    "Atlas isn't allowed to write to Apple Health. Turn it on in Settings › Health › Data Access & Devices › Atlas.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atlas får inte skriva till Apple Hälsa. Slå på det i Inställningar › Hälsa › Dataåtkomst och enheter › Atlas."
+          }
+        }
+      }
+    },
     "Atlas just got a lot bigger": {
       "localizations": {
         "sv": {
