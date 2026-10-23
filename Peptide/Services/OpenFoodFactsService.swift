@@ -35,6 +35,7 @@ final class OpenFoodFactsService: Sendable {
     private static let requestedFields = [
         "product_name",
         "brands",
+        "image_front_url",
         "image_front_small_url",
         "serving_size",
         "serving_quantity",
@@ -541,7 +542,7 @@ final class OpenFoodFactsService: Sendable {
     private static let decoder = JSONDecoder()
 
     /// Allow-listed host suffixes for product image URLs. OFF data is
-    /// community-edited, so the `image_front_small_url` field is
+    /// community-edited, so the `image_front_*` fields are
     /// effectively user-controlled — accepting arbitrary HTTPS hosts
     /// would let a malicious record exfiltrate the user's IP and scan
     /// signal to any third-party server the moment AsyncImage starts
@@ -610,6 +611,9 @@ private extension OpenFoodFactsService {
         let id: String?
         let productName: String?
         let brands: String?
+        /// The 400 px front packshot, sharp enough to cut the product
+        /// out of; the 200 px one is the fallback for older records.
+        let imageFrontURL: String?
         let imageFrontSmallURL: String?
         let servingSize: String?
         let servingQuantity: FlexibleDouble?
@@ -626,6 +630,7 @@ private extension OpenFoodFactsService {
             case id                 = "_id"
             case productName        = "product_name"
             case brands             = "brands"
+            case imageFrontURL      = "image_front_url"
             case imageFrontSmallURL = "image_front_small_url"
             case servingSize        = "serving_size"
             case servingQuantity    = "serving_quantity"
@@ -667,7 +672,8 @@ private extension OpenFoodFactsService {
                 name: resolvedName,
                 brand: brands?.trimmingCharacters(in: .whitespacesAndNewlines)
                     .nilIfEmpty,
-                imageURL: imageFrontSmallURL.flatMap(OpenFoodFactsService.safeImageURL(from:)),
+                imageURL: imageFrontURL.flatMap(OpenFoodFactsService.safeImageURL(from:))
+                    ?? imageFrontSmallURL.flatMap(OpenFoodFactsService.safeImageURL(from:)),
                 servingSizeText: servingSize?.trimmingCharacters(in: .whitespacesAndNewlines)
                     .nilIfEmpty,
                 // OFF occasionally serializes 0 for unknown weights —

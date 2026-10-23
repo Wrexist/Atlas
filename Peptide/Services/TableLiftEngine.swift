@@ -77,7 +77,7 @@ enum TableLiftEngine {
 
     // MARK: - Boxes
 
-    private static func instanceBoxes(in mask: CVPixelBuffer) -> [Box] {
+    static func instanceBoxes(in mask: CVPixelBuffer) -> [Box] {
         CVPixelBufferLockBaseAddress(mask, .readOnly)
         defer { CVPixelBufferUnlockBaseAddress(mask, .readOnly) }
         guard let base = CVPixelBufferGetBaseAddress(mask) else { return [] }
