@@ -39922,6 +39922,72 @@
           }
         }
       }
+    },
+    "%lldd to next cycle": {
+      "comment": "Protocol card — days until the next on-cycle while in wash-out.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld d till nästa cykel"
+          }
+        }
+      }
+    },
+    "wash-out, day %lld of %lld": {
+      "comment": "VoiceOver — protocol card during wash-out.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "uppehåll, dag %lld av %lld"
+          }
+        }
+      }
+    },
+    "%lld days until the next cycle": {
+      "comment": "VoiceOver — protocol card during wash-out.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld dagar till nästa cykel"
+          }
+        }
+      }
+    },
+    "Next Cycle": {
+      "comment": "Protocol detail schedule row — date the next on-cycle starts.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nästa cykel"
+          }
+        }
+      }
+    },
+    "To Next Cycle": {
+      "comment": "Protocol detail stat label — days until the next on-cycle.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Till nästa cykel"
+          }
+        }
+      }
+    },
+    "Doses Logged": {
+      "comment": "Protocol detail stat label for paused or completed protocols.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loggade doser"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

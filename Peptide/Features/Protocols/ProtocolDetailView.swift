@@ -28,6 +28,49 @@ struct ProtocolDetailView: View {
         return Int((ratio * 100).rounded())
     }
 
+    /// Phase status while an active protocol sits in its wash-out.
+    private var activeWashout: CyclePhaseEngine.Status? {
+        guard liveProtocol.status == .active, liveProtocol.washoutWeeks > 0 else { return nil }
+        let status = CyclePhaseEngine.status(for: liveProtocol)
+        guard case .washout = status.phase else { return nil }
+        return status
+    }
+
+    /// Week and days-left only mean something during an active on-cycle;
+    /// a wash-out counts down to the next cycle, and a paused or completed
+    /// protocol shows what was logged instead.
+    private var statsRow: some View {
+        HStack(spacing: Spacing.lg) {
+            if let washout = activeWashout {
+                MiniStat(value: CyclePhaseEngine.labels(for: washout).title, label: String(localized: "Current"))
+                MiniStat(
+                    value: "\(CyclePhaseEngine.daysUntilPhaseEnd(washout))",
+                    label: String(localized: "To Next Cycle")
+                )
+            } else if liveProtocol.status == .active {
+                // Once a user rolls into their second cycle the bare
+                // "Week 2" loses the cycle context; prefix with "C2 ·"
+                // so they read both (audit Library P2.14).
+                let weekLabel: String = liveProtocol.cycleNumber > 1
+                    ? String(localized: "C\(liveProtocol.cycleNumber) · W\(liveProtocol.weekNumber)", comment: "Protocol detail — abbreviation for 'Cycle N · Week M' when the user is on their second or later cycle")
+                    : String(localized: "Week \(liveProtocol.weekNumber)", comment: "Protocol detail — first-cycle week label")
+                MiniStat(value: weekLabel, label: String(localized: "Current"))
+                MiniStat(value: "\(liveProtocol.daysRemaining)", label: String(localized: "Days Left"))
+            } else {
+                MiniStat(value: "\(dosesLogged)", label: String(localized: "Doses Logged"))
+            }
+            if let adherencePercent {
+                MiniStat(value: "\(adherencePercent)%", label: String(localized: "Adherence"))
+            } else {
+                MiniStat(value: "\(liveProtocol.peptides.count)", label: String(localized: "Peptides"))
+            }
+        }
+    }
+
+    private var dosesLogged: Int {
+        dataStore.entries.filter { $0.protocolId == protocol_.id && $0.completed }.count
+    }
+
     private var customScheduleCount: Int {
         liveProtocol.peptideSchedules.count
     }
@@ -54,7 +97,9 @@ struct ProtocolDetailView: View {
                         }
 
                         if liveProtocol.status == .active {
-                            CycleProgressBar(protocol_: liveProtocol)
+                            if activeWashout == nil {
+                                CycleProgressBar(protocol_: liveProtocol)
+                            }
 
                             // Surface the cycle-phase card only
                             // when the protocol uses wash-out
@@ -66,23 +111,7 @@ struct ProtocolDetailView: View {
                             }
                         }
 
-                        // Stats row. Once a user rolls into their
-                        // second cycle (8-on-4-off, repeated), the
-                        // bare "Week 2" loses the cycle context;
-                        // prefix with "C2 ·" so they read both
-                        // (audit Library P2.14).
-                        HStack(spacing: Spacing.lg) {
-                            let weekLabel: String = liveProtocol.cycleNumber > 1
-                                ? String(localized: "C\(liveProtocol.cycleNumber) · W\(liveProtocol.weekNumber)", comment: "Protocol detail — abbreviation for 'Cycle N · Week M' when the user is on their second or later cycle")
-                                : String(localized: "Week \(liveProtocol.weekNumber)", comment: "Protocol detail — first-cycle week label")
-                            MiniStat(value: weekLabel, label: String(localized: "Current"))
-                            MiniStat(value: "\(liveProtocol.daysRemaining)", label: String(localized: "Days Left"))
-                            if let adherencePercent {
-                                MiniStat(value: "\(adherencePercent)%", label: String(localized: "Adherence"))
-                            } else {
-                                MiniStat(value: "\(liveProtocol.peptides.count)", label: String(localized: "Peptides"))
-                            }
-                        }
+                        statsRow
                     }
                 }
                 .sectionAppear(index: 0)
@@ -155,10 +184,17 @@ struct ProtocolDetailView: View {
 
                         Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
 
-                        scheduleDetailRow(
-                            label: String(localized: "Cycle"),
-                            value: "\(formattedDate(liveProtocol.currentCycleStartDay)) – \(formattedDate(liveProtocol.endDate))"
-                        )
+                        if let washout = activeWashout {
+                            scheduleDetailRow(
+                                label: String(localized: "Next Cycle"),
+                                value: formattedDate(washout.phaseEndDate)
+                            )
+                        } else {
+                            scheduleDetailRow(
+                                label: String(localized: "Cycle"),
+                                value: "\(formattedDate(liveProtocol.currentCycleStartDay)) – \(formattedDate(liveProtocol.endDate))"
+                            )
+                        }
                     }
                 }
                 .sectionAppear(index: 3)

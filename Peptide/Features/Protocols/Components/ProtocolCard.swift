@@ -3,6 +3,16 @@ import SwiftUI
 struct ProtocolCard: View {
     let protocol_: PeptideProtocol
 
+    /// Wash-out day and length while an active protocol is between
+    /// cycles — the on-cycle week, days left and bar would otherwise
+    /// sit frozen at "Week 8 of 8 · 0d left · 100%" for the whole break.
+    private var washout: (status: CyclePhaseEngine.Status, day: Int, total: Int)? {
+        guard protocol_.status == .active, protocol_.washoutWeeks > 0 else { return nil }
+        let status = CyclePhaseEngine.status(for: protocol_)
+        guard case .washout(let day, let total) = status.phase else { return nil }
+        return (status, day, total)
+    }
+
     var body: some View {
         GlassCard(tinted: protocol_.status == .active) {
             VStack(alignment: .leading, spacing: Spacing.md) {
@@ -23,7 +33,17 @@ struct ProtocolCard: View {
 
                     Spacer()
 
-                    if protocol_.status == .active {
+                    if let washout {
+                        VStack(alignment: .trailing, spacing: Spacing.xxs) {
+                            Text("Wash-out")
+                                .font(AppFont.headline)
+                                .foregroundStyle(CyclePhaseEngine.tint(for: washout.status.phase))
+                            Text("Day \(washout.day) of \(washout.total)")
+                                .font(AppFont.caption2)
+                                .monospacedDigit()
+                                .foregroundStyle(AppColor.textTertiary)
+                        }
+                    } else if protocol_.status == .active {
                         VStack(alignment: .trailing, spacing: Spacing.xxs) {
                             Text("Week \(protocol_.weekNumber)")
                                 .font(AppFont.headline)
@@ -37,7 +57,12 @@ struct ProtocolCard: View {
                     }
                 }
 
-                if protocol_.status == .active {
+                if let washout {
+                    GlassProgressBar(
+                        progress: washout.status.phaseProgress,
+                        gradient: [CyclePhaseEngine.tint(for: washout.status.phase)]
+                    )
+                } else if protocol_.status == .active {
                     CycleProgressBar(protocol_: protocol_)
                 }
 
@@ -68,7 +93,12 @@ struct ProtocolCard: View {
 
                     Spacer()
 
-                    if protocol_.status == .active {
+                    if let washout {
+                        Text("\(CyclePhaseEngine.daysUntilPhaseEnd(washout.status))d to next cycle")
+                            .font(AppFont.caption2)
+                            .monospacedDigit()
+                            .foregroundStyle(AppColor.textSecondary)
+                    } else if protocol_.status == .active {
                         Text("\(protocol_.daysRemaining)d left")
                             .font(AppFont.caption2)
                             .monospacedDigit()
@@ -88,7 +118,10 @@ struct ProtocolCard: View {
     private var accessibilitySummary: String {
         var parts = [protocol_.name, protocol_.status.displayName]
         parts.append(protocol_.peptides.count == 1 ? String(localized: "1 peptide") : String(localized: "\(protocol_.peptides.count) peptides"))
-        if protocol_.status == .active {
+        if let washout {
+            parts.append(String(localized: "wash-out, day \(washout.day) of \(washout.total)"))
+            parts.append(String(localized: "\(CyclePhaseEngine.daysUntilPhaseEnd(washout.status)) days until the next cycle"))
+        } else if protocol_.status == .active {
             parts.append(String(localized: "week \(protocol_.weekNumber) of \(protocol_.cycleLengthWeeks)"))
             parts.append(String(localized: "\(protocol_.daysRemaining) days left"))
         }

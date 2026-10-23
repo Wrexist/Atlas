@@ -115,6 +115,21 @@ enum CyclePhaseEngine {
         }
     }
 
+    /// Whole calendar days from `referenceDate` to the end of the
+    /// current phase — 1 on its last day.
+    static func daysUntilPhaseEnd(
+        _ status: Status,
+        from referenceDate: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Int {
+        let days = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: referenceDate),
+            to: status.phaseEndDate
+        ).day ?? 0
+        return max(0, days)
+    }
+
     /// True when `day` falls in an "on" phase: the single cycle when
     /// there's no wash-out, otherwise every repeat of it.
     static func isOnCycle(_ day: Date, protocol proto: PeptideProtocol, calendar: Calendar = .current) -> Bool {
