@@ -952,12 +952,12 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertTrue(StreakFreezeService.hasFreezeAvailable(in: profile, now: today))
 
         let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: today)!
-        XCTAssertTrue(StreakFreezeService.applyFreeze(in: &profile, for: yesterday, now: today))
+        XCTAssertTrue(StreakFreezeService.applyFreeze(in: &profile, for: yesterday))
         XCTAssertFalse(StreakFreezeService.hasFreezeAvailable(in: profile, now: today))
 
         // Second freeze in the same month is rejected.
         let twoDaysAgo = Calendar.current.date(byAdding: .day, value: -2, to: today)!
-        XCTAssertFalse(StreakFreezeService.applyFreeze(in: &profile, for: twoDaysAgo, now: today))
+        XCTAssertFalse(StreakFreezeService.applyFreeze(in: &profile, for: twoDaysAgo))
     }
 
     func test_streakFreeze_onTheFirstEastOfUTC_countsInItsOwnMonth() {
@@ -1001,7 +1001,7 @@ final class PersistenceRoundTripTests: XCTestCase {
                        "Yesterday gap should break the streak when no freeze is applied")
 
         let yesterday = cal.date(byAdding: .day, value: -1, to: today)!
-        _ = StreakFreezeService.applyFreeze(in: &profile, for: yesterday, now: today)
+        _ = StreakFreezeService.applyFreeze(in: &profile, for: yesterday)
         XCTAssertEqual(LifestyleDataLogic.mealLoggingStreak(in: profile, asOf: today), 3,
                        "Freeze should bridge the gap and extend the streak across 3 days")
     }

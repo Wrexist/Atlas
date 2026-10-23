@@ -225,9 +225,12 @@ final class DataStore {
                 persistedProfile = profile
             }
             let goals = LegacyGoalMigration.migrate(goals: profile.goals, primaryGoal: profile.primaryGoal)
-            if goals.goals != profile.goals || goals.primaryGoal != profile.primaryGoal {
+            let freezeDays = StreakFreezeService.migratingLegacyKeys(profile.streakFreezeDays)
+            if goals.goals != profile.goals || goals.primaryGoal != profile.primaryGoal
+                || freezeDays != profile.streakFreezeDays {
                 profile.goals = goals.goals
                 profile.primaryGoal = goals.primaryGoal
+                profile.streakFreezeDays = freezeDays
                 repo.saveProfile(profile)
                 persistedProfile = profile
             }

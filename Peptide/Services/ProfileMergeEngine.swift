@@ -35,7 +35,9 @@ enum ProfileMergeEngine {
         merged.recipes = union(primary.recipes, other.recipes)
         merged.protocolNotes = union(primary.protocolNotes, other.protocolNotes)
         merged.favoriteFoodIDs.formUnion(other.favoriteFoodIDs)
-        merged.streakFreezeDays.formUnion(other.streakFreezeDays)
+        merged.streakFreezeDays = StreakFreezeService.migratingLegacyKeys(
+            primary.streakFreezeDays.union(other.streakFreezeDays)
+        )
         merged.progressPhotoFilenames += other.progressPhotoFilenames.filter {
             !primary.progressPhotoFilenames.contains($0)
         }
