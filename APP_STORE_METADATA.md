@@ -290,14 +290,18 @@ Feedback → support@peptidesai.com
 | Do you or your third-party partners collect data from this app? | **Yes** |
 | Tracking (ATT)? | **No** |
 
-Declare exactly two categories, both collected by the RevenueCat SDK
+Declare exactly four data types: two collected by the RevenueCat SDK
 (observer mode, subscription infrastructure — configured in
-`PeptideApp.swift`):
+`PeptideApp.swift`), and two by the crash reports `CrashReportUploader`
+posts to the Atlas proxy, which forwards them to Sentry (MetricKit
+diagnostics; on by default, Settings → Share crash reports):
 
 | Category | Data type | Linked to identity | Tracking | Purpose |
 |---|---|---|---|---|
 | Purchases | Purchase History | No | No | App Functionality |
 | Identifiers | User ID (anonymous RevenueCat app-user ID) | No | No | App Functionality |
+| Diagnostics | Crash Data | No | No | App Functionality |
+| Diagnostics | Performance Data (hangs, CPU / disk-write exceptions, slow launches) | No | No | App Functionality |
 
 If App Review questions the HealthKit entitlement: HealthKit data is
 analyzed on-device and is not retained off-device. The one exception is
@@ -309,8 +313,9 @@ photos sent to the AI meal scanner are handled the same way.
 
 ### Before adding any upload of user data
 
-The app has no data drains: onboarding funnel events and the creator-code
-attribution stay on-device. A build that starts sending anything new off
+The app's only upload outside user-invoked AI features is the crash
+report above: onboarding funnel events and the creator-code attribution
+stay on-device. A build that starts sending anything new off
 the device MUST first:
 
 1. Update this nutrition label.
@@ -721,7 +726,7 @@ Store Connect before submission.
 
 PRIVACY
 No developer-operated backend for user data; no advertising or tracking
-SDKs, no crash reporters, no advertising identifiers. Three optional AI
+SDKs, no third-party crash-reporting SDK, no advertising identifiers. Three optional AI
 features (meal photo scanning, the Pro research assistant, the Pro
 weekly summary) call our proxy server, which forwards the request to
 Anthropic's Claude API — the proxy holds the API key, requests are
@@ -732,8 +737,12 @@ StoreKit transaction data under an anonymous ID; the app's privacy
 label and PrivacyInfo.xcprivacy declare Purchase History and User ID
 (not linked to identity, no tracking). Other network use: StoreKit 2,
 Sign in with Apple (optional), CloudKit (user's private zone, developer
-cannot access), and Open Food Facts for barcode lookups. Each binary
-ships its own PrivacyInfo.xcprivacy with NSPrivacyTracking = false.
+cannot access), Open Food Facts for barcode lookups, and MetricKit crash
+reports (app/OS version, device model, where in the code the fault
+occurred; no identifiers or health data) sent through our proxy, on by
+default and switchable in Settings — declared as Crash Data and
+Performance Data, not linked. Each binary ships its own
+PrivacyInfo.xcprivacy with NSPrivacyTracking = false.
 
 Support: support@peptidesai.com
 ```
@@ -772,7 +781,7 @@ Run through every item before hitting Submit in App Store Connect.
 - [ ] Description pasted (3 983 chars)
 - [ ] What's New pasted
 - [ ] Age rating set to 17+
-- [ ] App Privacy questionnaire: Yes, the two RevenueCat categories in "App Privacy" above, no tracking
+- [ ] App Privacy questionnaire: Yes, the four data types in "App Privacy" above (RevenueCat + Diagnostics), no tracking
 - [ ] Review Notes pasted verbatim from above
 
 **Screenshots**

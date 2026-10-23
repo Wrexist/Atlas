@@ -136,6 +136,11 @@ struct PrivacySummaryView: View {
             detail: "Atlas runs no server that stores your logs. AI features you invoke send only what they need — a meal photo, weekly averages — to answer your request."
         ),
         .init(
+            icon: "ladybug.fill",
+            title: "Crash reports are anonymous.",
+            detail: "If Atlas crashes or freezes, a technical report (app version, device model, where in the code) goes to the developer so it can be fixed. No health data, nothing linked to you. Turn it off in Settings."
+        ),
+        .init(
             icon: "creditcard.fill",
             title: "Subscriptions run through Apple.",
             detail: "Apple handles payment. RevenueCat receives your purchase history under an anonymous ID — never your name, email, or health data — to keep Pro status in sync."

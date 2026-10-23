@@ -2,6 +2,32 @@
 
 ## Current in-flight state
 
+### Crash reports to Sentry (branch `feature/crash-reports`)
+
+`DiagnosticsService` hands every MetricKit diagnostic payload to
+`CrashReportUploader`, which trims it (allow-listed metadata, the
+attributed thread's stack, no Objective-C exception message) and posts
+it to `/api/crash-report`, derived from `MEAL_SCANNER_ENDPOINT` with its
+secret. The proxy turns each diagnostic into a Sentry event and posts it
+to the envelope API. No SDK in the app, and app code never names the
+service, so the review checklist's grep stays clean. On by default;
+Settings → "Share crash reports" turns it off.
+
+Manual steps before this ships:
+- Vercel: set `SENTRY_DSN` (the Sentry project's DSN) on the proxy
+  project. Until then the route answers 204 and drops reports.
+- App Store Connect → App Privacy: add Diagnostics → **Crash Data** and
+  **Performance Data**, each not linked to identity, not used for
+  tracking, purpose App Functionality. `PrivacyInfo.xcprivacy` and
+  `docs/privacy.html` already say so; the label must match before the
+  next submission.
+- Privacy screenshot slot: `PrivacySummaryView` gained a "Crash reports
+  are anonymous." row; re-render that slot if it is in the deck.
+
+Sentry symbolication needs the build's dSYMs uploaded to the project
+(e.g. `sentry-cli debug-files upload` in the TestFlight lane); without
+them events show addresses and binary names only.
+
 ### Design-system audit (branch `claude/audit-design-system`)
 
 Deliberately deferred: **A411**. The legacy (iOS 18–25) branches of
