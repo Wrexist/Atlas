@@ -155,6 +155,21 @@ final class DesignSystemTokenTests: XCTestCase {
         }
     }
 
+    // MARK: - AppFont.scaledValue
+
+    /// Icon tiles size themselves with this, so it must match the glyph's
+    /// font exactly: unchanged at the default size, larger at AX sizes.
+    func test_scaledValue_defaultSize_isUnchanged() {
+        XCTAssertEqual(AppFont.scaledValue(40, in: .large), 40, accuracy: 0.5)
+    }
+
+    func test_scaledValue_accessibilitySize_growsMonotonically() {
+        let ax1 = AppFont.scaledValue(40, in: .accessibility1)
+        let ax5 = AppFont.scaledValue(40, in: .accessibility5)
+        XCTAssertGreaterThan(ax1, 40)
+        XCTAssertGreaterThan(ax5, ax1)
+    }
+
     // MARK: - SyncToast
 
     /// An Undo toast is a time-limited control: under VoiceOver or Switch

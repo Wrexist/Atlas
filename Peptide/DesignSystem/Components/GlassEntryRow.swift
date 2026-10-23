@@ -46,14 +46,19 @@ struct GlassEntryRowLabel: View {
     var subtitle: Text?
     var badge: Badge?
 
-    private static let tileSize: CGFloat = 40
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    /// The tile grows with its glyph, up to AX1 so it doesn't crowd out the
+    /// title at the largest sizes.
+    private var iconTypeSize: DynamicTypeSize { min(dynamicTypeSize, .accessibility1) }
 
     var body: some View {
+        let tileSize = AppFont.scaledValue(40, in: iconTypeSize)
         HStack(spacing: Spacing.md) {
             Image(systemName: icon)
-                .font(AppFont.scaled(16, weight: .semibold))
+                .font(AppFont.scaled(16, weight: .semibold, in: iconTypeSize))
                 .foregroundStyle(tint ?? AppColor.accentLight)
-                .frame(width: Self.tileSize, height: Self.tileSize)
+                .frame(width: tileSize, height: tileSize)
                 .background {
                     RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                         .fill((tint ?? AppColor.accentPrimary).opacity(0.18))
