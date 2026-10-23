@@ -39922,6 +39922,16 @@
           }
         }
       }
+    },
+    "Barcode number": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Streckkodsnummer"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

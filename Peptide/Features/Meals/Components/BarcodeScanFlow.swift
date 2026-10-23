@@ -312,6 +312,7 @@ struct BarcodeScanFlow: View {
             }
 
             TextField("e.g. 5449000000996", text: $manualBarcode)
+                .accessibilityLabel("Barcode number")
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.center)
                 .font(AppFont.scaled(20, weight: .semibold, design: .monospaced))
