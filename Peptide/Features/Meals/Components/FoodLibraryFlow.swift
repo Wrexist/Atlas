@@ -186,6 +186,10 @@ struct FoodLibraryFlow: View {
             guard tab == .favorites else { return }
             await refreshCachedFavorites()
         }
+        .task(id: tab) {
+            guard tab == .myFoods else { return }
+            await findMissingPictures()
+        }
         .task {
             // Single-shot on first appear: hydrate the landing page's
             // "Recently logged" row from `BarcodeProductCache` +
@@ -849,6 +853,15 @@ struct FoodLibraryFlow: View {
         .accessibilityAction(named: isFavorite ? Text("Remove from favorites") : Text("Add to favorites")) {
             dataStore.toggleFavoriteFood(id: product.barcode)
         }
+    }
+
+    /// Looks up packshots for branded foods saved without one, a few per
+    /// visit and inside the search budget the user's typing leaves free.
+    private func findMissingPictures() async {
+        let lookups = FoodPictureFinder.candidates(in: profile.customFoods, skipping: FoodPictureFinder.tried)
+        guard !lookups.isEmpty else { return }
+        FoodPictureFinder.tried.formUnion(lookups.map(\.id))
+        dataStore.attachPictures(await FoodPictureFinder.find(for: lookups))
     }
 
     private func customFoodRow(_ food: CustomFood) -> some View {
