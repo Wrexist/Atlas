@@ -520,8 +520,21 @@ struct PeptideApp: App {
         return (firstTime, shifted)
     }
 
+    /// Ticks only for a tab the user picked. Routers, deep links and
+    /// Spotlight set `selectedTab` directly, so they never buzz — often at
+    /// launch, for a change the user didn't make.
+    private var userTabSelection: Binding<AppTab> {
+        Binding(
+            get: { appState.selectedTab },
+            set: { tab in
+                if tab != appState.selectedTab { Haptics.selection() }
+                appState.selectedTab = tab
+            }
+        )
+    }
+
     private var coreTabView: some View {
-        TabView(selection: $appState.selectedTab) {
+        TabView(selection: userTabSelection) {
             Tab("Today", systemImage: "house.fill", value: .today) {
                 HomeContainerView()
             }
@@ -541,9 +554,6 @@ struct PeptideApp: App {
         // A tab bar on iPhone; on iPad, a top tab bar that expands into a
         // sidebar, so the wide screen isn't framed by a phone-style bar.
         .tabViewStyle(.sidebarAdaptable)
-        .onChange(of: appState.selectedTab) { _, _ in
-            Haptics.selection()
-        }
     }
 
     @ViewBuilder
