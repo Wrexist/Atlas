@@ -22,6 +22,31 @@ final class FoodLibraryLogicTests: XCTestCase {
         XCTAssertNil(oats.toScannedProduct().loggable(for: .grams(.nan)))
     }
 
+    private func offProduct(_ per100g: ScannedProduct.Nutriments, nutritionMissing: Bool = false) -> ScannedProduct {
+        ScannedProduct(barcode: "7310070000000", name: "Water", brand: nil, imageURL: nil,
+                       servingSizeText: nil, servingGrams: nil, packageGrams: 500,
+                       per100g: per100g, nutriScore: nil, novaGroup: nil, fetchedAt: Date(),
+                       nutritionMissing: nutritionMissing)
+    }
+
+    func test_hasUsableNutrition_statedZeroCalorieProduct_isLoggable() {
+        XCTAssertTrue(FoodLibraryLogic.hasUsableNutrition(offProduct(.zero)))
+    }
+
+    func test_hasUsableNutrition_missingNutrition_isBlocked() {
+        XCTAssertFalse(FoodLibraryLogic.hasUsableNutrition(offProduct(.zero, nutritionMissing: true)))
+    }
+
+    func test_hasUsableNutrition_macrosWithoutEnergy_isBlocked() {
+        let proteinOnly = ScannedProduct.Nutriments(calories: 0, proteinG: 20, carbsG: 0, fatG: 0, fiberG: nil, sugarsG: nil)
+        XCTAssertFalse(FoodLibraryLogic.hasUsableNutrition(offProduct(proteinOnly)))
+    }
+
+    func test_hasUsableNutrition_customFood_isAlwaysLoggable() {
+        let custom = CustomFood(name: "Tea", per100g: .zero).toScannedProduct()
+        XCTAssertTrue(FoodLibraryLogic.hasUsableNutrition(custom))
+    }
+
     func test_wholeNumber_nonFiniteOrHugeValue_doesNotTrap() {
         XCTAssertEqual(FoodLibraryLogic.wholeNumber(.nan), 0)
         XCTAssertEqual(FoodLibraryLogic.wholeNumber(.infinity), 0)

@@ -36,6 +36,18 @@ enum FoodLibraryLogic {
         return latest?.grams
     }
 
+    /// Whether a library product carries nutrition worth logging. A real
+    /// 0 kcal label (water, diet soda, black coffee) counts; an OFF record
+    /// with no nutrition, or with macros but no energy field, does not —
+    /// logging it would put zeros into the user's rings. Custom foods are
+    /// the user's own values and always count.
+    static func hasUsableNutrition(_ product: ScannedProduct) -> Bool {
+        if product.barcode.hasPrefix("custom:") { return true }
+        guard product.hasNutrition else { return false }
+        let n = product.per100g
+        return n.calories > 0 || n.proteinG + n.carbsG + n.fatG <= 0
+    }
+
     /// A per-100 g value rounded for display. Cached products can predate
     /// the decode-time sanitising, so this never traps on a non-finite or
     /// huge value the way `Int(_:)` does.

@@ -1017,7 +1017,7 @@ struct FoodLibraryFlow: View {
                 .minimumHitArea()
         }
         .buttonStyle(.plain)
-        .disabled(product.loggable(for: preferredPortion(for: product)) == nil)
+        .disabled(product.loggable(for: preferredPortion(for: product)) == nil || !FoodLibraryLogic.hasUsableNutrition(product))
         .accessibilityLabel("Quick log \(product.name)")
         .accessibilityHint("Logs your last valid amount, or the default portion if none is saved. Undo is available after saving.")
     }
@@ -1029,7 +1029,8 @@ struct FoodLibraryFlow: View {
     /// macro effects without the extra taps.
     private func performQuickLog(_ product: ScannedProduct) {
         let chosen = preferredPortion(for: product)
-        guard phase == .browse, let meal = product.loggable(for: chosen) else { return }
+        guard phase == .browse, FoodLibraryLogic.hasUsableNutrition(product),
+              let meal = product.loggable(for: chosen) else { return }
         let now = Date()
         let loggedAt = logTimestamp()
         let loggedCategory = MealCategory.auto(for: loggedAt)
@@ -1204,18 +1205,9 @@ struct FoodLibraryFlow: View {
         }
     }
 
-    /// OFF entries with incomplete data report 0 kcal/100g for the whole
-    /// product — distinct from a legitimate zero-calorie item like black
-    /// coffee, which a user saves as a custom food. We surface the
-    /// ambiguity (and block the log) instead of silently logging zeros
-    /// into the user's rings.
-    private func zeroCaloriesPer100g(_ product: ScannedProduct) -> Bool {
-        product.per100g.calories <= 0 && !product.barcode.hasPrefix("custom:")
-    }
-
     private func reviewMacros(_ product: ScannedProduct) -> some View {
         let meal = product.loggable(for: portion)
-        let isZeroCalorieOFF = zeroCaloriesPer100g(product)
+        let isZeroCalorieOFF = !FoodLibraryLogic.hasUsableNutrition(product)
         return VStack(spacing: Spacing.sm) {
             MealScanTotalsCard(
                 calories: meal?.calories ?? 0,
@@ -1244,9 +1236,9 @@ struct FoodLibraryFlow: View {
             GlassButton(title: addButtonTitle, style: .primary) {
                 confirmLog(for: product)
             }
-            // Block logging a 0-kcal OFF product despite the warning above —
-            // it would push an all-zero entry into today's totals/rings.
-            .disabled(product.loggable(for: portion) == nil || zeroCaloriesPer100g(product))
+            // Block logging an OFF product without usable nutrition despite
+            // the warning above — it would push zeros into today's rings.
+            .disabled(product.loggable(for: portion) == nil || !FoodLibraryLogic.hasUsableNutrition(product))
         }
     }
 
