@@ -13,12 +13,18 @@ struct RoutineBuilderView: View {
 
     @State private var store = RoutineStore.shared
     @State private var library = ExerciseLibrary.shared
+    @Environment(DataStore.self) private var dataStore
     @State private var addingExercise = false
     @State private var editingTargets: RoutineExercise?
     @State private var renaming = false
     @State private var nameDraft = ""
     @State private var pendingStart: Routine?
     @Environment(\.dismiss) private var dismiss
+
+    /// The rest the timer runs for a slot and routine that set none.
+    private var defaultRestSeconds: Int {
+        dataStore.profile.trainingPreferences?.restTimerDefault ?? RoutineSeedEngine.fallbackRestSeconds
+    }
 
     private var routine: Routine? { store.routines.first { $0.id == routineID } }
 
@@ -100,7 +106,7 @@ struct RoutineBuilderView: View {
             HStack(spacing: Spacing.lg) {
                 stat("\(routine.exercises.count)", label: "Exercises")
                 stat("\(RoutineSeedEngine.totalSets(in: routine))", label: "Sets")
-                stat("~\(RoutineSeedEngine.estimatedMinutes(for: routine))", label: "Minutes")
+                stat("~\(RoutineSeedEngine.estimatedMinutes(for: routine, defaultRestSeconds: defaultRestSeconds))", label: "Minutes")
             }
             .frame(maxWidth: .infinity)
 
@@ -428,5 +434,6 @@ private struct RoutineTargetSheet: View {
     NavigationStack {
         RoutineBuilderView(routineID: UUID())
     }
+    .environment(DataStore(seedSampleData: true))
     .preferredColorScheme(.dark)
 }

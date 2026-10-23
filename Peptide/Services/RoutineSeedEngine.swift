@@ -18,8 +18,8 @@ enum RoutineSeedEngine {
     static let secondsPerSet = 40
 
     /// Rest used for the duration estimate when neither the slot nor the
-    /// routine specifies one. Mirrors `TrainingPreferences.restTimerDefault`'s
-    /// own default so the estimate matches the timer the user will see.
+    /// routine specifies one and the caller has no user default to pass.
+    /// Mirrors `TrainingPreferences.restTimerDefault`'s own default.
     static let fallbackRestSeconds = 90
 
     /// Builds the session's exercise entries from the routine's slots.
@@ -85,19 +85,21 @@ enum RoutineSeedEngine {
     /// Rough wall-clock minutes: work plus rest between sets. Rounded to
     /// the nearest 5 so the card reads as the estimate it is rather than
     /// promising "47 min".
-    static func estimatedMinutes(for routine: Routine) -> Int {
+    /// `defaultRestSeconds` is the user's rest-timer default, the rest the
+    /// timer will actually run for a slot and routine that set none.
+    static func estimatedMinutes(for routine: Routine, defaultRestSeconds: Int = fallbackRestSeconds) -> Int {
         guard !routine.exercises.isEmpty else { return 0 }
-        let seconds = estimatedSeconds(for: routine)
+        let seconds = estimatedSeconds(for: routine, defaultRestSeconds: defaultRestSeconds)
         return max(5, Int((Double(seconds) / 60.0 / 5.0).rounded()) * 5)
     }
 
     /// Unrounded work plus rest. A superset rests once per round, after its
     /// last member, so pairing two exercises saves their in-between rests.
-    static func estimatedSeconds(for routine: Routine) -> Int {
+    static func estimatedSeconds(for routine: Routine, defaultRestSeconds: Int = fallbackRestSeconds) -> Int {
         let supersets = supersetMembers(in: routine)
         return routine.exercises.reduce(0) { total, slot in
             let sets = clampedSets(slot)
-            let rest = slot.restSeconds ?? routine.defaultRestSeconds ?? fallbackRestSeconds
+            let rest = slot.restSeconds ?? routine.defaultRestSeconds ?? defaultRestSeconds
             let work = sets * secondsPerSet
             guard let members = slot.supersetGroup.flatMap({ supersets[$0] }) else {
                 // One fewer rest than sets — the last set of an exercise runs

@@ -16,7 +16,7 @@ struct RoutineSummary: Identifiable, Hashable {
 
     var id: UUID { routine.id }
 
-    static func make(routine: Routine, lookup: (String) -> Exercise?) -> RoutineSummary {
+    static func make(routine: Routine, defaultRestSeconds: Int, lookup: (String) -> Exercise?) -> RoutineSummary {
         let resolved = routine.exercises
             .sorted { $0.index < $1.index }
             .compactMap { lookup($0.exerciseID) }
@@ -24,7 +24,7 @@ struct RoutineSummary: Identifiable, Hashable {
             routine: routine,
             exerciseNames: resolved.map(\.name),
             totalSets: RoutineSeedEngine.totalSets(in: routine),
-            estimatedMinutes: RoutineSeedEngine.estimatedMinutes(for: routine),
+            estimatedMinutes: RoutineSeedEngine.estimatedMinutes(for: routine, defaultRestSeconds: defaultRestSeconds),
             muscleGroup: dominantGroup(of: resolved)
         )
     }

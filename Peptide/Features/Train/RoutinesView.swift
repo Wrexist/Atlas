@@ -12,6 +12,7 @@ struct RoutinesView: View {
     @Binding var path: [TrainNavigation]
 
     @State private var store = RoutineStore.shared
+    @Environment(DataStore.self) private var dataStore
     @State private var library = ExerciseLibrary.shared
     /// Library lookups resolved off the render path — see `RoutineSummary`.
     @State private var summaries: [RoutineSummary] = []
@@ -20,6 +21,11 @@ struct RoutinesView: View {
     @State private var pendingDeletion: Routine?
     @State private var pendingStart: Routine?
     @State private var buildingProgram = false
+
+    /// The rest the timer runs for a slot and routine that set none.
+    private var defaultRestSeconds: Int {
+        dataStore.profile.trainingPreferences?.restTimerDefault ?? RoutineSeedEngine.fallbackRestSeconds
+    }
 
     var body: some View {
         Group {
@@ -218,7 +224,7 @@ struct RoutinesView: View {
 
     private func rebuildSummaries() {
         summaries = store.routines.map { routine in
-            RoutineSummary.make(routine: routine) { library.lookup(id: $0) }
+            RoutineSummary.make(routine: routine, defaultRestSeconds: defaultRestSeconds) { library.lookup(id: $0) }
         }
     }
 
@@ -281,5 +287,6 @@ extension View {
         RoutinesView(path: $path)
             .navigationTitle("Train")
     }
+    .environment(DataStore(seedSampleData: true))
     .preferredColorScheme(.dark)
 }

@@ -18,6 +18,11 @@ struct ProgramBuilderSheet: View {
     @State private var alternatives: [UUID: [String]] = [:]
     @State private var didPrefill = false
 
+    /// The rest the timer runs for a slot and routine that set none.
+    private var defaultRestSeconds: Int {
+        dataStore.profile.trainingPreferences?.restTimerDefault ?? RoutineSeedEngine.fallbackRestSeconds
+    }
+
     /// Onboarding's equipment vocabulary, so a prefilled answer can be
     /// toggled off here. Bodyweight is always in, and a foam roller has
     /// no lift in the shortlist to unlock.
@@ -167,7 +172,7 @@ struct ProgramBuilderSheet: View {
                     Text(day.routine.name)
                         .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
-                    Text("\(day.routine.exercises.count) exercises · \(RoutineSeedEngine.totalSets(in: day.routine)) sets · ~\(RoutineSeedEngine.estimatedMinutes(for: day.routine)) min")
+                    Text("\(day.routine.exercises.count) exercises · \(RoutineSeedEngine.totalSets(in: day.routine)) sets · ~\(RoutineSeedEngine.estimatedMinutes(for: day.routine, defaultRestSeconds: defaultRestSeconds)) min")
                         .font(AppFont.scaled(13))
                         .foregroundStyle(AppColor.textSecondary)
                 }
