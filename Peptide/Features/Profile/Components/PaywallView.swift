@@ -537,8 +537,12 @@ struct PaywallView: View {
 
     // MARK: - Creator banner
 
+    /// Re-resolved against the current list, so a code that has been
+    /// retired (like the old "General Biohacker" placeholder) stops
+    /// thanking a creator who doesn't exist, even on profiles that stored it.
     private var creatorAttribution: CreatorAttribution? {
-        guard let attribution = dataStore.profile.creatorAttribution,
+        guard let stored = dataStore.profile.creatorAttribution,
+              let attribution = CreatorCodeService.lookup(stored.code),
               attribution.discountPercent > 0
         else { return nil }
         return attribution

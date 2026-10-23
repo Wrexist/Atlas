@@ -15,7 +15,6 @@ enum CreatorCodeService {
     static let seeded: [CreatorAttribution] = [
         CreatorAttribution(code: "LUCAS50",  creatorName: "Lucas Aoun",        discountPercent: 20),
         CreatorAttribution(code: "NIDDAM",   creatorName: "Nathalie Niddam",   discountPercent: 15),
-        CreatorAttribution(code: "BIOHACK",  creatorName: "General Biohacker", discountPercent: 10),
     ]
 
     /// Case-insensitive, whitespace-trimmed lookup. Returns nil for empty

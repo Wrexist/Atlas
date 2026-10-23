@@ -20,7 +20,7 @@ final class CreatorCodeServiceTests: XCTestCase {
     /// Pasting from a chat almost always brings whitespace; tolerate it
     /// instead of forcing the user to clean up before tapping Apply.
     func test_lookup_trimsWhitespace() {
-        XCTAssertNotNil(CreatorCodeService.lookup("  BIOHACK  "))
+        XCTAssertNotNil(CreatorCodeService.lookup("  NIDDAM  "))
         XCTAssertNotNil(CreatorCodeService.lookup("\nLUCAS50\n"))
     }
 
@@ -34,6 +34,13 @@ final class CreatorCodeServiceTests: XCTestCase {
         XCTAssertNil(CreatorCodeService.lookup(""))
         XCTAssertNil(CreatorCodeService.lookup("   "))
         XCTAssertNil(CreatorCodeService.lookup("\n"))
+    }
+
+    /// "General Biohacker" was a placeholder name that reached the paywall
+    /// as "Thanks for using General Biohacker's code".
+    func test_placeholderCreatorCode_isNotAccepted() {
+        XCTAssertNil(CreatorCodeService.lookup("BIOHACK"))
+        XCTAssertFalse(CreatorCodeService.seeded.contains { $0.creatorName == "General Biohacker" })
     }
 
     /// Guards against accidentally introducing duplicate codes that would
