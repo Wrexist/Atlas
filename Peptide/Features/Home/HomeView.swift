@@ -4,10 +4,7 @@ struct HomeView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
     @State private var selectedEntry: ProtocolEntry?
-    @State private var showAchievementToast = false
-    @State private var toastAchievement: Achievement?
     @State private var achievementService = AchievementService.shared
-    @State private var celebrationCenter = CelebrationCenter.shared
     @State private var showProgress = false
     /// Observed directly so the notification banner reacts to a fresh
     /// schedule report. DataStore exposes `notificationReport` as a passthrough,
@@ -168,12 +165,6 @@ struct HomeView: View {
             switch self { case .meal: 0; case .dose: 1 }
         }
     }
-
-    private static let reviewWorthyAchievements: Set<String> = [
-        "streak_7", "streak_14", "streak_30", "streak_90",
-        "fifty_doses", "hundred_doses", "five_hundred_doses",
-        "month_logged"
-    ]
 
     private var todayStats: (entries: [ProtocolEntry], score: Double, completed: Int, total: Int) {
         let entries = dataStore.todayEntries
@@ -598,11 +589,6 @@ struct HomeView: View {
                     .environment(dataStore)
                     .liquidGlassPresentation()
             }
-            .overlay {
-                if celebrationCenter.current == nil, let achievement = toastAchievement {
-                    AchievementToastView(achievement: achievement, isShowing: $showAchievementToast)
-                }
-            }
             .overlay(alignment: .top) {
                 // Bevel-style sync-complete pill. The toast manages
                 // its own auto-dismiss timer (2.4s) so we just bind
@@ -617,25 +603,6 @@ struct HomeView: View {
                     )
                 }
                 .padding(.top, Spacing.sm)
-            }
-            .onChange(of: achievementService.latestUnlock?.id) { _, newId in
-                if let newId, let achievement = achievementService.achievements.first(where: { $0.id == newId }) {
-                    toastAchievement = achievement
-                    AppAnimation.with(AppAnimation.springBouncy) { showAchievementToast = true }
-                    if Self.reviewWorthyAchievements.contains(newId) {
-                        Task { @MainActor in
-                            try? await Task.sleep(for: .seconds(2))
-                            ReviewPromptService.shared.requestReviewIfEligible(using: requestReview)
-                        }
-                    }
-                }
-            }
-            .onChange(of: showAchievementToast) { _, isShowing in
-                // Drain one queued unlock when its toast finishes —
-                // this surfaces the next pending unlock (if a single
-                // save crossed several milestones) instead of all but
-                // the last being dropped.
-                if !isShowing { achievementService.acknowledgeLatestUnlock() }
             }
             // Single handler for adherence-ratio changes: update only the
             // trio's Adherence ring so a logged/unlogged dose shows
@@ -1346,7 +1313,7 @@ struct HomeView: View {
         // return, and stacked on top of an achievement toast.
         let hasData = healthRange.hrv != nil || healthRange.rhr != nil || healthRange.sleep != nil
         defer { if hasData { hasLoadedHealthRange = true } }
-        if hasData && hasLoadedHealthRange && healthRange != previous && !showAchievementToast {
+        if hasData && hasLoadedHealthRange && healthRange != previous && achievementService.latestUnlock == nil {
             showSyncToast = true
         }
     }
