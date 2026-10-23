@@ -1792,25 +1792,6 @@ final class DataStore {
         profile.favoriteFoodIDs.contains(id)
     }
 
-    // MARK: - Vial inventory (derived)
-
-    /// Default doses per vial when the user hasn't told us otherwise.
-    /// Picked because most short-acting research peptides come as 5 mg
-    /// vials reconstituted to deliver ~20–30 doses, and the modulo wrap
-    /// reads as a believable "vial swap" cadence in the Home shelf.
-    static let defaultDosesPerVial = 30
-
-    /// Liquid-fill fraction for a compound's vial. Math lives in
-    /// `VialInventoryLogic.liquidLevel(for:in:dosesPerVial:)` so it's
-    /// unit-testable in isolation; this method only forwards.
-    func liquidLevel(for peptide: Peptide) -> Double {
-        VialInventoryLogic.liquidLevel(
-            for: peptide,
-            in: entries,
-            dosesPerVial: Self.defaultDosesPerVial
-        )
-    }
-
     /// Quick-log workout entry — kept for the freeform "Movement"
     /// surface on the Today scroll. Plan C reconciled the dual store
     /// split: this method no longer writes to the legacy
