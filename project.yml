@@ -50,9 +50,14 @@ options:
   # source path: withheld, not discarded. Restoring a language means
   # translating the full catalog, then adding it to CFBundleLocalizations below.
 packages:
+  # Exact, because the xcodeproj is generated and git-ignored, so no
+  # Package.resolved is committed: `from:` let every CI and TestFlight
+  # build resolve whatever 5.x was newest that day, and the purchase SDK
+  # that passed PR checks was not guaranteed to be the one that shipped.
+  # Bump deliberately, in its own PR.
   RevenueCat:
     url: https://github.com/RevenueCat/purchases-ios
-    from: 5.0.0
+    exactVersion: 5.98.0
 settings:
   base:
     # Swift 5 language mode. The codebase is not yet clean under Swift 6
