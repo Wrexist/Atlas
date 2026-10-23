@@ -39922,6 +39922,26 @@
           }
         }
       }
+    },
+    "This needs Atlas Pro. If you've subscribed, restore your purchase and try again.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det här kräver Atlas Pro. Om du prenumererar, återställ ditt köp och försök igen."
+          }
+        }
+      }
+    },
+    "Lab scanning is part of Atlas Pro. If you've subscribed, restore your purchase and try again, or enter the values by hand.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Labbskanning ingår i Atlas Pro. Om du prenumererar, återställ ditt köp och försök igen, eller ange värdena för hand."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -309,6 +309,11 @@ which a reinstall wipes. The proxy keeps the authoritative count:
   scan is allowed. This is a product allowance, not a spend ceiling —
   `ANTHROPIC_DAILY_REQUEST_BUDGET` is that.
 
+`/api/lab-scan` is Pro-only, as it is in the app, and uses the same
+check without a free allowance: no `X-Atlas-Entitlement` that verifies
+means `403 { error: { code: "pro_required" } }` before any quota or
+budget is spent.
+
 The install ID and the metered flag are client-asserted, the same trust
 level as the shared secret: they stop a reinstall from resetting the
 allowance, not a modified client. App Attest enforce mode is what raises

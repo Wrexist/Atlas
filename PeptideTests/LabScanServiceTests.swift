@@ -72,6 +72,22 @@ final class LabScanServiceTests: XCTestCase {
         }
     }
 
+    func test_scan_proRequired403_throwsProRequired() async {
+        MockURLProtocol.handler = { request in
+            (Self.response(request, 403), Data(#"{"error":{"message":"Pro subscription required","code":"pro_required"}}"#.utf8))
+        }
+        do {
+            _ = try await service.scan(pages: [tinyImage()])
+            XCTFail("Expected .proRequired")
+        } catch {
+            guard case .proRequired = error as? MealScannerService.ScanError else {
+                XCTFail("Expected .proRequired, got \(error)")
+                return
+            }
+            XCTAssertTrue(LabScanService.message(for: error).contains("Pro"))
+        }
+    }
+
     func test_message_rewordsTransportErrorsForLabs() {
         XCTAssertFalse(LabScanService.message(for: MealScannerService.ScanError.rateLimited).contains("meal"))
         XCTAssertFalse(LabScanService.message(for: MealScannerService.ScanError.routeMissing).contains("HTTP"))

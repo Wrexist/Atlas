@@ -52,6 +52,8 @@
  *                          _lib/app-attest.js for modes and rollout.
  *   FREE_SCANS_PER_WEEK  — free-tier scan allowance on routes that
  *                          pass `scanSucceeded`; see _lib/scan-quota.js.
+ *   STOREKIT_BUNDLE_ID   — checked on the Pro entitlement that routes
+ *                          with `requirePro` demand; see storekit-jws.js.
  *
  * iOS clients pull the proxy URL and the matching secret from
  * Info.plist (or scheme env): `MEAL_SCANNER_ENDPOINT` +
@@ -64,7 +66,7 @@
  */
 import { checkAppAttest } from './app-attest.js';
 import { authorize } from './auth.js';
-import { chargeScan } from './scan-quota.js';
+import { chargeScan, hasVerifiedPro } from './scan-quota.js';
 import {
   abuseBlockSeconds,
   allowRate,
@@ -170,6 +172,9 @@ const REFUSALS = {
   // The free weekly scan allowance (scan-quota.js); no Retry-After,
   // since the app answers it with the paywall, not a retry.
   scan_quota: { status: 429, message: 'Free scan limit reached' },
+  // A Pro-only route called without a verified Pro entitlement; the app
+  // answers it with the paywall, not a retry.
+  pro_required: { status: 403, message: 'Pro subscription required' },
   unavailable: { status: 503, message: 'Service unavailable' },
 };
 
@@ -291,6 +296,7 @@ export async function forwardToAnthropic(req, res, {
   readResponse,
   betas,
   requireJson = false,
+  requirePro = false,
   scanSucceeded,
   timeoutMs = 25_000,
 }) {
@@ -387,6 +393,15 @@ export async function forwardToAnthropic(req, res, {
     : sanitiseBody(req.body, { systemPrefix, allowClientSystem, maxClientSystemChars, shape, maxTokens, thinking });
   if (!clean) {
     res.status(400).json({ error: { message: 'Malformed request body' } });
+    return;
+  }
+
+  // Pro-only routes (`requirePro`) need the same StoreKit proof that
+  // lifts the free scan allowance. The app gates them behind the
+  // paywall; this is what stops a client holding only the shared
+  // secret from running them for free.
+  if (requirePro && !hasVerifiedPro(req, logLabel)) {
+    refuse(res, 'pro_required');
     return;
   }
 
