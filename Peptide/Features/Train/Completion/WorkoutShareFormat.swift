@@ -2,21 +2,54 @@ import Foundation
 import CoreGraphics
 
 enum WorkoutShareFormat: String, CaseIterable, Identifiable, Sendable {
-    case story, post, reel
+    case story, post, square, landscape, reel
     var id: String { rawValue }
     var title: String {
-        switch self { case .story: "Story"; case .post: "Post"; case .reel: "Reel" }
+        switch self {
+        case .story: "Story"
+        case .post: "Post"
+        case .square: ShareFormat.square.title
+        case .landscape: ShareFormat.landscape.title
+        case .reel: "Reel"
+        }
     }
-    var logicalSize: CGSize { CGSize(width: 360, height: self == .post ? 450 : 640) }
-    var pixelSize: CGSize { CGSize(width: 1080, height: self == .post ? 1350 : 1920) }
+    var pixelSize: CGSize {
+        switch self {
+        case .story, .reel: ShareFormat.story.pixelSize
+        case .post: CGSize(width: 1080, height: 1350)
+        case .square: ShareFormat.square.pixelSize
+        case .landscape: ShareFormat.landscape.pixelSize
+        }
+    }
+    /// The canvases are authored in points at the size a phone shows them,
+    /// so a wider canvas renders at a lower scale to keep its type in step
+    /// with the 360pt-wide portrait formats.
+    var renderScale: CGFloat { self == .landscape ? 2.5 : 3 }
+    var logicalSize: CGSize {
+        CGSize(width: pixelSize.width / renderScale, height: pixelSize.height / renderScale)
+    }
+    var layout: ShareLayout {
+        switch self {
+        case .story, .reel: .tall
+        case .post, .square: .compact
+        case .landscape: .wide
+        }
+    }
     var isVideo: Bool { self == .reel }
     var detail: String {
         switch self {
-        case .story: "9:16 image · 1080 × 1920"
+        case .story: ShareFormat.story.detail
         case .post: "4:5 image · 1080 × 1350"
+        case .square: ShareFormat.square.detail
+        case .landscape: ShareFormat.landscape.detail
         case .reel: "9:16 video · 6 seconds · no audio"
         }
     }
+}
+
+extension WorkoutShareFormat: ShareFormatDescribing {
+    var aspectRatio: CGFloat { pixelSize.width / pixelSize.height }
+    var glyphSymbol: String? { isVideo ? "play.fill" : nil }
 }
 
 enum WorkoutShareStyle: String, CaseIterable, Identifiable, Sendable {

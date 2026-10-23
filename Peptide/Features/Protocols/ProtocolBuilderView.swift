@@ -674,8 +674,8 @@ struct ProtocolBuilderView: View {
                     cyclePreview(previewModel)
                 } else {
                     SkeletonBlock(
-                        width: ShareCardRenderer.canvasSize.width * 0.26,
-                        height: ShareCardRenderer.canvasSize.height * 0.26,
+                        width: ShareFormat.story.pixelSize.width * 0.26,
+                        height: ShareFormat.story.pixelSize.height * 0.26,
                         cornerRadius: Spacing.controlCornerRadius
                     )
                     .frame(maxWidth: .infinity)
@@ -696,13 +696,13 @@ struct ProtocolBuilderView: View {
     private func cyclePreview(_ model: CycleCardModel) -> some View {
         CycleCardView(model: model)
             .frame(
-                width: ShareCardRenderer.canvasSize.width,
-                height: ShareCardRenderer.canvasSize.height
+                width: ShareFormat.story.pixelSize.width,
+                height: ShareFormat.story.pixelSize.height
             )
             .scaleEffect(0.26, anchor: .topLeading)
             .frame(
-                width: ShareCardRenderer.canvasSize.width * 0.26,
-                height: ShareCardRenderer.canvasSize.height * 0.26
+                width: ShareFormat.story.pixelSize.width * 0.26,
+                height: ShareFormat.story.pixelSize.height * 0.26
             )
             .clipShape(RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous))
             .overlay(

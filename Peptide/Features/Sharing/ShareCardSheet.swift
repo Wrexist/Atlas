@@ -38,12 +38,22 @@ struct ShareCardSheet: View {
     @State private var previewImage: UIImage?
     @State private var previewToken: UUID = UUID()
     @State private var previewRenderFailed = false
+    /// Opens on the format the user last shared in.
+    @State private var format: ShareFormat = ShareFormatMemory.load(
+        ShareFormatMemory.cycleCardKey,
+        default: .story
+    )
 
-    /// 9:16 aspect ratio matching the 1080×1920 export. The preview is
-    /// width-constrained by its container, so we only need the aspect
-    /// ratio here — `ImageRenderer` handles the actual pixel size.
-    private static let previewAspect: CGFloat = 1080.0 / 1920.0
-    private static let previewWidth: CGFloat = 240
+    /// The preview fits each format inside the same box: a story is as
+    /// tall as it always was, square and landscape use the width instead.
+    /// `ImageRenderer` handles the actual pixel size.
+    private static let previewBox = CGSize(width: 320, height: 426)
+
+    private var previewSize: CGSize {
+        let aspect = format.pixelSize.width / format.pixelSize.height
+        let width = min(Self.previewBox.width, Self.previewBox.height * aspect)
+        return CGSize(width: width, height: width / aspect)
+    }
 
     @MainActor
     private var baseModel: CycleCardModel {
@@ -78,6 +88,9 @@ struct ShareCardSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Spacing.xl) {
+                    ShareFormatPicker(options: ShareFormat.allCases, selection: $format)
+                        .disabled(isRendering)
+                        .padding(.horizontal, Spacing.screenPadding)
                     preview
                     privacyToggle
                     pitch
@@ -127,6 +140,10 @@ struct ShareCardSheet: View {
                 refreshPreview()
             }
             .onChange(of: maskCompoundNames) { _, _ in refreshPreview() }
+            .onChange(of: format) { _, newValue in
+                ShareFormatMemory.save(newValue, ShareFormatMemory.cycleCardKey)
+                refreshPreview()
+            }
             .onChange(of: healthSummary) { _, _ in refreshPreview() }
             .task { refreshPreview() }
         }
@@ -135,8 +152,7 @@ struct ShareCardSheet: View {
     // MARK: - Preview
 
     private var preview: some View {
-        let previewHeight = Self.previewWidth / Self.previewAspect
-        return ZStack {
+        ZStack {
             if let previewImage {
                 // Re-identified per render so an option toggle cross-fades
                 // to the new card instead of hard-swapping the pixels.
@@ -168,7 +184,8 @@ struct ShareCardSheet: View {
             }
         }
         .appAnimation(AppAnimation.fadeIn, value: previewImage)
-        .frame(width: Self.previewWidth, height: previewHeight)
+        .frame(width: previewSize.width, height: previewSize.height)
+        .appAnimation(AppAnimation.springSnappy, value: format)
         .clipShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
@@ -190,11 +207,12 @@ struct ShareCardSheet: View {
             guard previewToken == token else { return }
             do {
                 // Render only the pixels the preview frame shows, not the
-                // full 1080×1920 export, so each toggle stays cheap.
+                // full-size export, so each toggle stays cheap.
                 let image = try ShareCardRenderer.renderImage(
                     for: modelForRender,
+                    format: format,
                     maskCompoundNames: maskCompoundNames,
-                    scale: Self.previewWidth * displayScale / ShareCardRenderer.canvasSize.width
+                    scale: previewSize.width * displayScale / format.pixelSize.width
                 )
                 guard previewToken == token else { return }
                 previewImage = image
@@ -285,7 +303,7 @@ struct ShareCardSheet: View {
 
     private var pitch: some View {
         VStack(spacing: Spacing.xs) {
-            Text("Sized for Instagram Stories")
+            Text(format.detail)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
             Text("Brand watermark and QR are baked into the image.")
@@ -359,6 +377,7 @@ struct ShareCardSheet: View {
             do {
                 let url = try ShareCardRenderer.renderPNG(
                     for: modelForRender,
+                    format: format,
                     maskCompoundNames: maskCompoundNames
                 )
                 renderedURL = url

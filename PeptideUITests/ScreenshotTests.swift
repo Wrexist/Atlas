@@ -132,10 +132,10 @@ final class ScreenshotTests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Share workout"].waitForExistence(timeout: 10))
         for style in [("Exercise highlight", "highlight"), ("Dark summary", "summary")] {
             app.otherElements["workout-share-style"].buttons[style.0].tap()
-            for format in [("Story", "story"), ("Post", "post"), ("Reel", "reel")] {
-                app.otherElements["workout-share-format"].buttons[format.0].tap()
-                XCTAssertTrue(app.images["workout-share-rendered-\(style.1)-\(format.1)"].waitForExistence(timeout: 10))
-                capture(named: "social-\(style.1)-\(format.1)")
+            for format in ["story", "post", "square", "landscape", "reel"] {
+                app.buttons["share-format-\(format)"].tap()
+                XCTAssertTrue(app.images["workout-share-rendered-\(style.1)-\(format)"].waitForExistence(timeout: 10))
+                capture(named: "social-\(style.1)-\(format)")
             }
         }
         app.buttons["workout-share-preview-video"].tap()

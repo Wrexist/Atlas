@@ -2,12 +2,13 @@ import SwiftUI
 import CoreImage
 import CoreImage.CIFilterBuiltins
 
-/// 1080×1920 share card sized for Instagram Stories. Pure SwiftUI so
-/// `ImageRenderer` can capture it deterministically — every section
-/// (top bar, stack, stats, optional health, divider, watermark) is a
-/// sibling inside the same root `ZStack` so the gradient background
-/// bleeds through every element and there's no detachable layer for
-/// the watermark.
+/// Cycle share card, authored at the exact pixel size of its `ShareFormat`.
+/// Pure SwiftUI so `ImageRenderer` can capture it deterministically — every
+/// section (top bar, stack, stats, optional health, divider, watermark) is
+/// a sibling inside the same root `ZStack` so the gradient background
+/// bleeds through every element and there's no detachable layer for the
+/// watermark. Story and square stack the sections in one column (square
+/// tighter); landscape puts the stack left and the stats right.
 struct CycleCardView: View {
     let model: CycleCardModel
     /// When true, compound names and abbreviations are masked behind
@@ -18,15 +19,37 @@ struct CycleCardView: View {
     /// (audit Sharing P1.8: the toggle previously only hid health
     /// metrics; compound names were always shown).
     var maskCompoundNames: Bool = false
+    var format: ShareFormat = .story
 
-    private static let canvasWidth: CGFloat = 1080
-    private static let canvasHeight: CGFloat = 1920
     private static let maxVisibleVials = 4
+
+    private var canvas: CGSize { format.pixelSize }
+    private var metrics: Metrics { Metrics(format.layout) }
 
     var body: some View {
         ZStack {
             background
 
+            content
+                .padding(metrics.padding)
+        }
+        .frame(width: canvas.width, height: canvas.height)
+        .clipped()
+        .environment(\.colorScheme, .dark)
+        // A fixed-size export: the sharer's own Dynamic Type size must not
+        // resize the PNG's labels (at AX sizes they overflowed the stat
+        // cards), so the canvas renders at the default size.
+        .environment(\.dynamicTypeSize, .large)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    // MARK: - Layout
+
+    @ViewBuilder
+    private var content: some View {
+        switch format.layout {
+        case .tall, .compact:
             VStack(alignment: .leading, spacing: 0) {
                 topBar
                 stackSection
@@ -38,18 +61,67 @@ struct CycleCardView: View {
                 divider
                 watermark
             }
-            .padding(.horizontal, 80)
-            .padding(.vertical, 80)
+        case .wide:
+            HStack(alignment: .top, spacing: 56) {
+                VStack(alignment: .leading, spacing: 0) {
+                    topBar
+                    stackSection
+                    Spacer(minLength: 0)
+                    watermark
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: 0) {
+                    statsColumn
+                    if let health = model.healthSummary {
+                        healthSection(health)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .frame(width: 440)
+            }
         }
-        .frame(width: Self.canvasWidth, height: Self.canvasHeight)
-        .clipped()
-        .environment(\.colorScheme, .dark)
-        // A fixed 1080×1920 export: the sharer's own Dynamic Type size
-        // must not resize the PNG's labels (at AX sizes they overflowed
-        // the stat cards), so the canvas renders at the default size.
-        .environment(\.dynamicTypeSize, .large)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityLabel)
+    }
+
+    /// Spacing and sizes per layout. `.tall` is the original Stories card,
+    /// unchanged; the others keep its proportions where they fit.
+    private struct Metrics {
+        let padding: CGFloat
+        let sectionTop: CGFloat
+        let vialsTop: CGFloat
+        let vialsHeight: CGFloat
+        let vialSize: CompoundVialSize
+        let vialOverlap: CGFloat
+        let stackSpacing: CGFloat
+        let statsTop: CGFloat
+        let healthTop: CGFloat
+        let healthValueSize: CGFloat
+        let healthCardPadding: CGFloat
+        let dividerTop: CGFloat
+        let dividerBottom: CGFloat
+        let qrSize: CGFloat
+
+        init(_ layout: ShareLayout) {
+            switch layout {
+            case .tall:
+                padding = 80; sectionTop = 50; vialsTop = 40; vialsHeight = 200
+                vialSize = .lg; vialOverlap = -28; stackSpacing = 28; statsTop = 60
+                healthTop = 40; healthValueSize = 26; healthCardPadding = 20
+                dividerTop = 40; dividerBottom = 36; qrSize = 96
+            case .compact:
+                padding = 64; sectionTop = 24; vialsTop = 16; vialsHeight = 200
+                vialSize = .lg; vialOverlap = -28; stackSpacing = 20; statsTop = 32
+                healthTop = 24; healthValueSize = 26; healthCardPadding = 20
+                dividerTop = 24; dividerBottom = 20; qrSize = 72
+            case .wide:
+                // No divider in landscape — the watermark closes the left
+                // column instead.
+                padding = 56; sectionTop = 32; vialsTop = 8; vialsHeight = 150
+                vialSize = .md; vialOverlap = -20; stackSpacing = 16; statsTop = 0
+                healthTop = 24; healthValueSize = 22; healthCardPadding = 16
+                dividerTop = 0; dividerBottom = 0; qrSize = 72
+            }
+        }
     }
 
     // MARK: - Background
@@ -67,19 +139,23 @@ struct CycleCardView: View {
 
             // Soft purple aura — bleeds across both stack + watermark so
             // the watermark can't be cropped out without leaving a hard edge.
+            // Sized against the shorter side and placed in proportion to
+            // the canvas, so every format gets the same composition.
             Circle()
                 .fill(Color(red: 0.310, green: 0.275, blue: 0.898).opacity(0.25))
-                .frame(width: 900, height: 900)
-                .blur(radius: 180)
-                .offset(x: 240, y: -440)
+                .frame(width: 900 * auraScale, height: 900 * auraScale)
+                .blur(radius: 180 * auraScale)
+                .offset(x: canvas.width * 240 / 1080, y: -canvas.height * 440 / 1920)
 
             Circle()
                 .fill(Color(red: 0.486, green: 0.227, blue: 0.929).opacity(0.16))
-                .frame(width: 700, height: 700)
-                .blur(radius: 200)
-                .offset(x: -260, y: 540)
+                .frame(width: 700 * auraScale, height: 700 * auraScale)
+                .blur(radius: 200 * auraScale)
+                .offset(x: -canvas.width * 260 / 1080, y: canvas.height * 540 / 1920)
         }
     }
+
+    private var auraScale: CGFloat { min(canvas.width, canvas.height) / 1080 }
 
     // MARK: - Top bar
 
@@ -105,9 +181,9 @@ struct CycleCardView: View {
     // MARK: - Stack section
 
     private var stackSection: some View {
-        VStack(alignment: .leading, spacing: 28) {
+        VStack(alignment: .leading, spacing: metrics.stackSpacing) {
             vialsRow
-                .padding(.top, 40)
+                .padding(.top, metrics.vialsTop)
 
             if !model.peptides.isEmpty {
                 Text(peptideNamesLine)
@@ -125,11 +201,11 @@ struct CycleCardView: View {
                     .foregroundStyle(.white)
             }
         }
-        .padding(.top, 50)
+        .padding(.top, metrics.sectionTop)
     }
 
     private var vialsRow: some View {
-        HStack(spacing: -28) {
+        HStack(spacing: metrics.vialOverlap) {
             let visible = Array(model.peptides.prefix(Self.maxVisibleVials))
             ForEach(Array(visible.enumerated()), id: \.offset) { index, peptide in
                 let label: String = maskCompoundNames
@@ -143,7 +219,7 @@ struct CycleCardView: View {
                     category: peptide.category,
                     liquidLevel: 1.0,
                     labelText: label,
-                    size: .lg
+                    size: metrics.vialSize
                 )
                 .zIndex(Double(visible.count - index))
             }
@@ -155,7 +231,7 @@ struct CycleCardView: View {
                     .padding(.leading, 32)
             }
         }
-        .frame(height: 200)
+        .frame(height: metrics.vialsHeight)
     }
 
     private var peptideNamesLine: String {
@@ -206,52 +282,76 @@ struct CycleCardView: View {
 
     private var statsRow: some View {
         HStack(spacing: 18) {
-            statCard(
-                value: "\(model.dosesLogged)",
-                label: "Doses logged"
-            )
-            statCard(
-                value: "\(model.adherencePercent)%",
-                label: "Adherence"
-            )
-            statCard(
-                value: streakLabel,
-                label: "Streak",
-                trailingGlyph: "🔥"
-            )
+            statCard(value: dosesValue, label: "Doses logged")
+            statCard(value: adherenceValue, label: "Adherence")
+            statCard(value: streakLabel, label: "Streak", trailingGlyph: "🔥")
         }
-        .padding(.top, 60)
+        .padding(.top, metrics.statsTop)
     }
+
+    /// Landscape: the same three stats as full-width rows, label left and
+    /// figure right, so the right-hand column reads as a scoreboard.
+    private var statsColumn: some View {
+        VStack(spacing: 12) {
+            statRow(value: dosesValue, label: "Doses logged")
+            statRow(value: adherenceValue, label: "Adherence")
+            statRow(value: streakLabel, label: "Streak", trailingGlyph: "🔥")
+        }
+    }
+
+    private var dosesValue: String { "\(model.dosesLogged)" }
+    private var adherenceValue: String { "\(model.adherencePercent)%" }
 
     private func statCard(value: String, label: String, trailingGlyph: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Text(value)
-                    .font(AppFont.scaled(42, weight: .bold, design: .rounded, in: .large))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                if let trailingGlyph {
-                    Text(trailingGlyph)
-                        .font(AppFont.scaled(30, in: .large))
-                }
-            }
-            Text(label)
-                .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(Color.white.opacity(0.55))
-                .textCase(.uppercase)
-                .tracking(1.2)
+            statValue(value, size: 42, trailingGlyph: trailingGlyph)
+            statLabel(label)
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color.white.opacity(0.06))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
-                }
+        .background { statBackground }
+    }
+
+    private func statRow(value: String, label: String, trailingGlyph: String? = nil) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            statLabel(label)
+            Spacer(minLength: 16)
+            statValue(value, size: 36, trailingGlyph: trailingGlyph)
         }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 20)
+        .background { statBackground }
+    }
+
+    private func statValue(_ value: String, size: CGFloat, trailingGlyph: String?) -> some View {
+        HStack(spacing: 6) {
+            Text(value)
+                .font(AppFont.scaled(size, weight: .bold, design: .rounded, in: .large))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            if let trailingGlyph {
+                Text(trailingGlyph)
+                    .font(AppFont.scaled(size * 5 / 7, in: .large))
+            }
+        }
+    }
+
+    private func statLabel(_ label: String) -> some View {
+        Text(label)
+            .font(AppFont.scaled(16, weight: .semibold))
+            .foregroundStyle(Color.white.opacity(0.55))
+            .textCase(.uppercase)
+            .tracking(1.2)
+    }
+
+    private var statBackground: some View {
+        RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .fill(Color.white.opacity(0.06))
+            .overlay {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+            }
     }
 
     // MARK: - Health section (only when toggled on)
@@ -291,7 +391,7 @@ struct CycleCardView: View {
                 }
             }
         }
-        .padding(.top, 40)
+        .padding(.top, metrics.healthTop)
     }
 
     private func healthCard(icon: String, value: String, label: String) -> some View {
@@ -301,7 +401,7 @@ struct CycleCardView: View {
                     .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(Color(red: 0.78, green: 0.74, blue: 0.96))
                 Text(value)
-                    .font(AppFont.scaled(26, weight: .bold, design: .rounded, in: .large))
+                    .font(AppFont.scaled(metrics.healthValueSize, weight: .bold, design: .rounded, in: .large))
                     .foregroundStyle(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
@@ -310,7 +410,7 @@ struct CycleCardView: View {
                 .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.55))
         }
-        .padding(20)
+        .padding(metrics.healthCardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
@@ -328,8 +428,8 @@ struct CycleCardView: View {
         Rectangle()
             .fill(Color.white.opacity(0.10))
             .frame(height: 1)
-            .padding(.top, 40)
-            .padding(.bottom, 36)
+            .padding(.top, metrics.dividerTop)
+            .padding(.bottom, metrics.dividerBottom)
     }
 
     private var watermark: some View {
@@ -352,11 +452,11 @@ struct CycleCardView: View {
                 Image(uiImage: qr)
                     .interpolation(.none)
                     .resizable()
-                    .frame(width: 96, height: 96)
+                    .frame(width: metrics.qrSize, height: metrics.qrSize)
             } else {
                 RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
                     .fill(.white)
-                    .frame(width: 96, height: 96)
+                    .frame(width: metrics.qrSize, height: metrics.qrSize)
             }
         }
         .padding(8)

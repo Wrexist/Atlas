@@ -9,19 +9,66 @@ final class ShareCardRendererTests: XCTestCase {
 
         let data = try Data(contentsOf: url)
         let image = try XCTUnwrap(UIImage(data: data))
-        // Against the renderer's own constant, not a second copy of the
-        // number. These two asserted 1080×1350 — a 4:5 feed post — while
-        // `canvasSize` has been 1080×1920 since the renderer was written, so
-        // the expectation was never right about the code it was testing.
-        XCTAssertEqual(image.size.width, ShareCardRenderer.canvasSize.width, accuracy: 0.5)
-        XCTAssertEqual(image.size.height, ShareCardRenderer.canvasSize.height, accuracy: 0.5)
+        // The default format is the Stories canvas.
+        XCTAssertEqual(image.size.width, ShareFormat.story.pixelSize.width, accuracy: 0.5)
+        XCTAssertEqual(image.size.height, ShareFormat.story.pixelSize.height, accuracy: 0.5)
         XCTAssertGreaterThan(data.count, 10_000, "PNG should be non-trivially large")
     }
 
     func testRenderImageIsOpaque() throws {
         let image = try ShareCardRenderer.renderImage(for: Self.makeModel(from: MockProtocols.recoveryStack))
-        XCTAssertEqual(image.size.width, ShareCardRenderer.canvasSize.width)
-        XCTAssertEqual(image.size.height, ShareCardRenderer.canvasSize.height)
+        XCTAssertEqual(image.size.width, ShareFormat.story.pixelSize.width)
+        XCTAssertEqual(image.size.height, ShareFormat.story.pixelSize.height)
+    }
+
+    func test_eachFormat_rendersExactPixelSize() throws {
+        // Spelled out rather than read back from `pixelSize`, so a typo in
+        // the enum can't agree with itself.
+        let expected: [ShareFormat: (width: Int, height: Int)] = [
+            .story: (1080, 1920),
+            .square: (1080, 1080),
+            .landscape: (1200, 630),
+        ]
+        let model = Self.makeModel(from: MockProtocols.recoveryStack)
+        for format in ShareFormat.allCases {
+            let image = try ShareCardRenderer.renderImage(for: model, format: format)
+            let cgImage = try XCTUnwrap(image.cgImage, "\(format)")
+            let size = try XCTUnwrap(expected[format], "\(format) has no expected size")
+            XCTAssertEqual(cgImage.width, size.width, "\(format) width")
+            XCTAssertEqual(cgImage.height, size.height, "\(format) height")
+        }
+    }
+
+    func test_eachFormat_withHealthAndMaskedNames_writesPNGOfExactPixelSize() throws {
+        // The fullest card — health row on, names masked — is the one most
+        // likely to overflow the tighter square and landscape layouts.
+        let base = Self.makeModel(from: MockProtocols.recoveryStack)
+        let model = CycleCardModel(
+            subjectTitle: base.subjectTitle,
+            peptides: base.peptides,
+            activeSinceDate: base.activeSinceDate,
+            cycleDay: base.cycleDay,
+            cycleTotalDays: base.cycleTotalDays,
+            dosesLogged: 128,
+            adherencePercent: 94,
+            currentStreakDays: 21,
+            healthSummary: CycleCardModel.HealthSummary(
+                weightDeltaKg: -1.8,
+                avgSleepHours: 7.4,
+                hrvTrendDescription: "62 ms avg"
+            )
+        )
+        for format in ShareFormat.allCases {
+            let url = try ShareCardRenderer.renderPNG(for: model, format: format, maskCompoundNames: true)
+            defer { try? FileManager.default.removeItem(at: url) }
+            let cgImage = try XCTUnwrap(UIImage(data: Data(contentsOf: url))?.cgImage, "\(format)")
+            XCTAssertEqual(CGFloat(cgImage.width), format.pixelSize.width, "\(format) width")
+            XCTAssertEqual(CGFloat(cgImage.height), format.pixelSize.height, "\(format) height")
+            let attachment = XCTAttachment(image: UIImage(cgImage: cgImage))
+            attachment.name = "cycle-card-\(format.rawValue)"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
     }
 
     func testWatermarkBakedInWhenSinglePeptideStack() throws {
@@ -46,8 +93,8 @@ final class ShareCardRendererTests: XCTestCase {
         // The watermark is rendered inline in the same view tree, so single
         // and many-peptide stacks both produce a fully populated canvas with
         // no detached overlay.
-        XCTAssertEqual(image.size.width, ShareCardRenderer.canvasSize.width, accuracy: 0.5)
-        XCTAssertEqual(image.size.height, ShareCardRenderer.canvasSize.height, accuracy: 0.5)
+        XCTAssertEqual(image.size.width, ShareFormat.story.pixelSize.width, accuracy: 0.5)
+        XCTAssertEqual(image.size.height, ShareFormat.story.pixelSize.height, accuracy: 0.5)
     }
 
     /// Builds a CycleCardModel for a given protocol with deterministic
