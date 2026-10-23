@@ -7,6 +7,9 @@ final class WorkoutRecapStore {
     private(set) var week: WorkoutRecapEngine.Week?
     private(set) var metadataUnavailable = false
     private(set) var historyUnavailable = false
+    /// Set once the user saves an edit, so the summary stops celebrating
+    /// records the edit may have removed.
+    private(set) var wasEdited = false
     /// A recap reopened from history charts the workout's own week, not today's.
     private let anchorsWeekOnSession: Bool
 
@@ -48,6 +51,7 @@ final class WorkoutRecapStore {
         try SwiftDataRepository.shared.saveWorkoutDurably(edited)
         let affected = Set((session.exercises + edited.exercises).map(\.exerciseID))
         session = edited
+        wasEdited = true
         DataStore.current?.workoutWasEdited(exerciseIDs: affected)
         refresh()
     }

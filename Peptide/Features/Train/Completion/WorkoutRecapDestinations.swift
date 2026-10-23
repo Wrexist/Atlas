@@ -46,7 +46,6 @@ struct WorkoutRecapExercisesView: View {
         .sheet(isPresented: $editing) {
             WorkoutSavedEditor(session: store.session, unit: unit) { edited in
                 try store.saveEdits(edited)
-                Task { await store.load() }
             }
         }
     }
