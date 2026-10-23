@@ -124,7 +124,7 @@ struct EmptyStateView: View {
                 .fill(accent)
                 .frame(width: 72, height: 72)
             Image(systemName: icon)
-                .font(.system(size: 30, weight: .heavy))
+                .font(AppFont.scaled(30, weight: .heavy, in: .large))
                 .foregroundStyle(AppColor.onAccent)
         }
         .padding(.top, Spacing.sm)
@@ -136,7 +136,7 @@ struct EmptyStateView: View {
     private var compactContent: some View {
         VStack(spacing: Spacing.sm) {
             Image(systemName: icon)
-                .font(.system(size: 26))
+                .font(AppFont.scaled(26, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.textTertiary)
                 .symbolRenderingMode(.hierarchical)
                 .accessibilityHidden(true)

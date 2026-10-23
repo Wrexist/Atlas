@@ -287,7 +287,7 @@ struct BarcodeScanFlow: View {
     private var manualEntry: some View {
         VStack(spacing: Spacing.lg) {
             Image(systemName: "barcode.viewfinder")
-                .font(.system(size: 56, weight: .light))
+                .font(AppFont.scaled(56, weight: .light, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.accentLight)
 
             Text("Type the barcode below the bars")
@@ -595,7 +595,7 @@ struct BarcodeScanFlow: View {
     private var notFoundCard: some View {
         VStack(spacing: Spacing.md) {
             Image(systemName: identity == nil ? "questionmark.app.dashed" : "checkmark.seal.fill")
-                .font(.system(size: 48, weight: .light))
+                .font(AppFont.scaled(48, weight: .light, relativeTo: .largeTitle))
                 .foregroundStyle(identity == nil ? AppColor.accentLight : AppColor.positive)
             Text(notFoundHeadline)
                 .font(AppFont.headline)
@@ -798,7 +798,7 @@ struct BarcodeScanFlow: View {
     private var unsupportedCodeCard: some View {
         VStack(spacing: Spacing.md) {
             Image(systemName: "qrcode.viewfinder")
-                .font(.system(size: 48, weight: .light))
+                .font(AppFont.scaled(48, weight: .light, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.accentLight)
             Text("That's not a product barcode")
                 .font(AppFont.headline)
@@ -897,7 +897,7 @@ struct BarcodeScanFlow: View {
     private var errorCard: some View {
         VStack(spacing: Spacing.md) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 40))
+                .font(AppFont.scaled(40, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.destructive)
             Text("Couldn't add this product")
                 .font(AppFont.headline)

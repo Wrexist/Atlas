@@ -181,6 +181,12 @@ private struct EncodedSchedule: Codable {
     var decodedWashoutWeeks: Int { washoutWeeks ?? 0 }
 }
 
+/// Reads only a stored peptide's id, to tell whether a row's blob
+/// still matches the entry being saved.
+private struct PeptideIDProbe: Decodable {
+    let id: UUID
+}
+
 // MARK: - StoredEntry
 
 @Model
@@ -198,7 +204,11 @@ final class StoredEntry {
     var actualDose: String?
     var actualTime: Date?
     var injectionSite: String?
-    var peptideData: Data = Data()     // JSON-encoded Peptide
+    /// JSON-encoded `Peptide`: an `EntryPeptideSnapshot` for rows
+    /// written since A379, the full record for older ones. Same column
+    /// and format either way, so no schema change and older builds
+    /// syncing through CloudKit still decode it.
+    var peptideData: Data = Data()
 
     init(id: UUID, protocolId: UUID, date: Date, dose: String, notes: String,
          completed: Bool, actualDose: String?, actualTime: Date?,
@@ -216,7 +226,7 @@ final class StoredEntry {
     }
 
     static func make(from entry: ProtocolEntry) throws -> StoredEntry {
-        let peptideData = try sdEncoder.encode(entry.peptide)
+        let peptideData = try sdEncoder.encode(EntryPeptideSnapshot.snapshot(of: entry.peptide))
         return StoredEntry(
             id: entry.id,
             protocolId: entry.protocolId,
@@ -238,15 +248,26 @@ final class StoredEntry {
         assignIfChanged(self, \.injectionSite, entry.injectionSite)
         assignIfChanged(self, \.notes, entry.notes)
         assignIfChanged(self, \.dose, entry.dose)
-        try assignIfChanged(self, \.peptideData, sdEncoder.encode(entry.peptide))
+        // A dose's peptide is part of its identity and never changes in
+        // practice, so an existing blob — legacy full record or
+        // snapshot — is left alone rather than re-exported to CloudKit.
+        if storedPeptideID != entry.peptide.id {
+            peptideData = try sdEncoder.encode(EntryPeptideSnapshot.snapshot(of: entry.peptide))
+        }
     }
 
-    func toProtocolEntry() throws -> ProtocolEntry {
-        let peptide = try sdDecoder.decode(Peptide.self, from: peptideData)
+    private var storedPeptideID: UUID? {
+        try? sdDecoder.decode(PeptideIDProbe.self, from: peptideData).id
+    }
+
+    /// `known` maps peptide ids to full records; a row whose id isn't in
+    /// it keeps the copy it stored.
+    func toProtocolEntry(resolvingFrom known: [UUID: Peptide] = [:]) throws -> ProtocolEntry {
+        let stored = try sdDecoder.decode(Peptide.self, from: peptideData)
         return ProtocolEntry(
             id: id,
             protocolId: protocolId,
-            peptide: peptide,
+            peptide: EntryPeptideSnapshot.resolve(stored, in: known),
             date: date,
             dose: dose,
             notes: notes,

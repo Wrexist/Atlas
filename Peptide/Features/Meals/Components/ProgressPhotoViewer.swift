@@ -144,7 +144,7 @@ struct ProgressPhotoViewer: View {
         } else {
             VStack(spacing: Spacing.sm) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 32))
+                    .font(AppFont.scaled(32, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.warning)
                 Text("Couldn't load this photo.")
                     .font(AppFont.subheadline)

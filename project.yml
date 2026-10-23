@@ -19,6 +19,10 @@
 # Missing any of these on a sub-bundle is what got us "train 1.0
 # closed" rejections from App Store Connect — Apple will reject the
 # entire upload if a single embedded extension's version is stale.
+#
+# The only version source is ios-testflight's `marketing_version` input
+# (passed to xcodebuild as MARKETING_VERSION by fastlane). The values in
+# this file are placeholders and never reach a shipped build.
 name: Peptide
 options:
   bundleIdPrefix: com.peptidesai

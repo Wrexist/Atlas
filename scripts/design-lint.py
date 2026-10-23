@@ -214,6 +214,23 @@ def rule_fixed_font(path, source, code) -> list[Finding]:
     return out
 
 
+def rule_system_font_modifier(path, source, code) -> list[Finding]:
+    """`.font(.system(size:))` belongs only in the type ramp itself.
+
+    `rule_fixed_font` lets large glyphs and share-card copy keep a fixed
+    size, which let the raw modifier spread to call sites that should have
+    scaled. Everything outside `DesignSystem/Theme` goes through
+    `AppFont.scaled(_:)`; a surface that genuinely must not grow pins the
+    size explicitly with `in: .large`, so the choice is visible in review.
+    """
+    if DESIGN_SYSTEM / "Theme" in path.parents:
+        return []
+    return [Finding(path, line_of(code, m.start()), "system-font-modifier",
+                    ".font(.system(size:)) ignores Dynamic Type; use "
+                    "AppFont.scaled(_:relativeTo:), or pin with in: .large", "error")
+            for m in re.finditer(r"\.font\(\s*\.system\(size:", code)]
+
+
 def rule_glow(path, source, code) -> list[Finding]:
     """A coloured shadow behind a *glyph* is a halo — the neon look the
     craft rules exist to prevent.
@@ -841,6 +858,7 @@ RULES = [
     rule_pure_neutral,
     rule_motion,
     rule_fixed_font,
+    rule_system_font_modifier,
     rule_glow,
     rule_untargeted_animation,
     rule_unnamed_motion,

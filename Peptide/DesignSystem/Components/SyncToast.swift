@@ -9,26 +9,44 @@ import SwiftUI
 /// toast (e.g. after HealthKit returns a new snapshot, or after
 /// CloudKit completes a sync). The toast manages its own dismiss
 /// timer so callers don't have to schedule one.
+///
+/// An optional `action` adds one trailing button — "Undo" after a
+/// one-tap log — which runs and dismisses the toast.
 struct SyncToast: View {
+    struct Action {
+        let label: LocalizedStringResource
+        let perform: @MainActor () -> Void
+    }
+
     @Binding var isShowing: Bool
     var message: LocalizedStringResource = "Sync Complete"
     var autoDismissAfter: Duration = .milliseconds(2_400)
+    var action: Action?
 
     @State private var dismissTask: Task<Void, Never>?
 
     var body: some View {
         Group {
             if isShowing {
-                HStack(spacing: Spacing.xs) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(AppFont.scaled(13, weight: .bold))
-                        .foregroundStyle(AppColor.success)
-                    Text(message)
-                        .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
-                        .foregroundStyle(AppColor.textPrimary)
+                HStack(spacing: Spacing.sm) {
+                    HStack(spacing: Spacing.xs) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(AppFont.scaled(13, weight: .bold))
+                            .foregroundStyle(AppColor.success)
+                        Text(message)
+                            .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
+                            .foregroundStyle(AppColor.textPrimary)
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(Text(message))
+                    .accessibilityAddTraits(.isStaticText)
+                    if let action {
+                        actionButton(action)
+                    }
                 }
                 .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.sm)
+                // The action button's 44pt hit area sets the height itself.
+                .padding(.vertical, action == nil ? Spacing.sm : 0)
                 .glassControl(
                     .capsule,
                     tint: AppColor.success.opacity(0.10),
@@ -43,12 +61,29 @@ struct SyncToast: View {
                     scheduleDismiss()
                 }
                 .onDisappear { dismissTask?.cancel() }
-                .accessibilityElement()
-                .accessibilityLabel(Text(message))
-                .accessibilityAddTraits(.isStaticText)
+                .accessibilityElement(children: .contain)
             }
         }
         .appAnimation(AppAnimation.toast, value: isShowing)
+    }
+
+    private func actionButton(_ action: Action) -> some View {
+        Button {
+            dismissTask?.cancel()
+            action.perform()
+            isShowing = false
+        } label: {
+            Label {
+                Text(action.label)
+            } icon: {
+                Image(systemName: "arrow.uturn.backward")
+            }
+            .labelStyle(.titleAndIcon)
+            .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
+            .foregroundStyle(AppColor.textPrimary)
+            .minimumHitArea()
+        }
+        .buttonStyle(.plain)
     }
 
     private func scheduleDismiss() {

@@ -38,6 +38,13 @@ enum PendingWorkoutActionStore {
         )
     }
 
+    /// The app's drain, registered at launch. iOS runs the Live Activity
+    /// intent in the app's process and may suspend a background launch
+    /// as soon as `perform()` returns, before the Darwin-notification
+    /// drain gets its turn, so the intent applies the tap through this
+    /// first. Nil in the widget extension, where the inbox is the path.
+    @MainActor static var applyInProcess: (@MainActor () -> Void)?
+
     /// A Complete set this soon after the last one on the same workout
     /// is a double tap on a button that hadn't caught up yet.
     static let doubleTapWindow: TimeInterval = 1.5
@@ -124,9 +131,9 @@ import ActivityKit
 import AppIntents
 
 /// The "Skip rest" / "Complete set" button on the workout Live
-/// Activity. Queues the tap for the app, and applies it to the activity
-/// straight away so the countdown or the set count doesn't lag until
-/// the app catches up.
+/// Activity. Applies it to the activity straight away so the countdown
+/// or the set count doesn't lag, queues the tap, and — in the app's
+/// process — applies it to the workout before returning.
 @available(iOS 17.0, *)
 struct WorkoutActivityActionIntent: LiveActivityIntent {
     static let title: LocalizedStringResource = "Workout action"
@@ -170,6 +177,7 @@ struct WorkoutActivityActionIntent: LiveActivityIntent {
         // Queued after the update: the app's push of the real count
         // must land on top of this one, not be read back and bumped.
         PendingWorkoutActionStore.enqueue(tap)
+        await MainActor.run { PendingWorkoutActionStore.applyInProcess?() }
         return .result()
     }
 }

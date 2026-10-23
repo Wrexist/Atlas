@@ -712,44 +712,56 @@ struct PaywallView: View {
                 selectedProductID = product.id
             }
         } label: {
-            HStack(spacing: Spacing.md) {
-                radioMark(isSelected: isSelected)
+            // One line when it fits. At accessibility sizes the fixed-width
+            // title, badge and price no longer fit side by side, and the row
+            // used to push the whole paywall — Close included — past the
+            // screen edge, so it stacks instead.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Spacing.md) {
+                    radioMark(isSelected: isSelected)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: Spacing.xs) {
-                        Text(title)
-                            .font(AppFont.scaled(16, weight: .bold))
-                            .foregroundStyle(AppColor.textPrimary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: Spacing.xs) {
+                            planTitle(title)
+                                // Without `fixedSize` the badge alongside wins the
+                                // width negotiation and the plan name — the one
+                                // word that has to stay readable — wraps mid-word.
+                                .fixedSize()
+                            if let badge {
+                                savingsPill(badge)
+                            }
+                        }
+
+                        Text(subtitle)
+                            .font(AppFont.caption2)
+                            .foregroundStyle(AppColor.textTertiary)
                             .lineLimit(1)
-                            // Without `fixedSize` the badge alongside wins the
-                            // width negotiation and the plan name — the one
-                            // word that has to stay readable — wraps mid-word.
-                            .fixedSize()
+                            .minimumScaleFactor(0.8)
+                    }
+
+                    Spacer(minLength: Spacing.sm)
+
+                    planPrice(primaryPrice, unit: primaryUnit)
+                        .fixedSize()
+                }
+
+                HStack(alignment: .top, spacing: Spacing.md) {
+                    radioMark(isSelected: isSelected)
+
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        planTitle(title)
+                            .minimumScaleFactor(0.7)
                         if let badge {
                             savingsPill(badge)
                         }
+                        Text(subtitle)
+                            .font(AppFont.caption2)
+                            .foregroundStyle(AppColor.textTertiary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        planPrice(primaryPrice, unit: primaryUnit)
+                            .minimumScaleFactor(0.5)
                     }
-
-                    Text(subtitle)
-                        .font(AppFont.caption2)
-                        .foregroundStyle(AppColor.textTertiary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
                 }
-
-                Spacer(minLength: Spacing.sm)
-
-                HStack(alignment: .firstTextBaseline, spacing: 2) {
-                    Text(primaryPrice)
-                        .font(AppFont.scaled(20, weight: .bold, design: .rounded))
-                        .foregroundStyle(AppColor.textPrimary)
-                        .monospacedDigit()
-                    Text(primaryUnit)
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textSecondary)
-                }
-                .lineLimit(1)
-                .fixedSize()
             }
             .padding(Spacing.md)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -779,6 +791,26 @@ struct PaywallView: View {
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .transition(.opacity)
+    }
+
+    private func planTitle(_ title: LocalizedStringKey) -> some View {
+        Text(title)
+            .font(AppFont.scaled(16, weight: .bold))
+            .foregroundStyle(AppColor.textPrimary)
+            .lineLimit(1)
+    }
+
+    private func planPrice(_ price: String, unit: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 2) {
+            Text(price)
+                .font(AppFont.scaled(20, weight: .bold, design: .rounded))
+                .foregroundStyle(AppColor.textPrimary)
+                .monospacedDigit()
+            Text(unit)
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+        }
+        .lineLimit(1)
     }
 
     private func radioMark(isSelected: Bool) -> some View {
@@ -1008,7 +1040,9 @@ struct PaywallView: View {
     // MARK: - Footer
 
     /// One row when it fits; at large Dynamic Type the four links split
-    /// into account actions and legal links so none is clipped.
+    /// into account actions and legal links, and at accessibility sizes
+    /// into one link per line, so none is clipped and the footer never
+    /// widens the screen past its Close button.
     private var footerLinks: some View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: Spacing.md) {
@@ -1018,6 +1052,10 @@ struct PaywallView: View {
             VStack(spacing: 0) {
                 HStack(spacing: Spacing.md) { accountLinks }
                 HStack(spacing: Spacing.md) { legalLinks }
+            }
+            VStack(spacing: 0) {
+                accountLinks
+                legalLinks
             }
         }
         .font(AppFont.scaled(11))
