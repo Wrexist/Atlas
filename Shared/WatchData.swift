@@ -1,6 +1,6 @@
 import Foundation
 
-struct WatchEntry: Codable, Identifiable, Sendable {
+struct WatchEntry: Codable, Identifiable, Equatable, Sendable {
     let id: UUID
     let protocolId: UUID
     let peptideName: String
@@ -135,7 +135,7 @@ enum SleepBand: Sendable {
     }
 }
 
-struct WatchData: Codable, Sendable {
+struct WatchData: Codable, Equatable, Sendable {
     private(set) var todayEntries: [WatchEntry]
     private(set) var completedToday: Int
     private(set) var totalToday: Int
@@ -295,6 +295,29 @@ struct WatchData: Codable, Sendable {
         copy.workout = workout
         if let updatedAt { copy.lastUpdated = updatedAt }
         return copy
+    }
+
+    /// The same snapshot pushed again at `date`, so the Watch adopts it
+    /// over an optimistic tap it built on the previous push.
+    func stamped(_ date: Date) -> WatchData {
+        var copy = self
+        copy.lastUpdated = date
+        return copy
+    }
+
+    /// Equal apart from when it was pushed: a new push of this snapshot
+    /// would change nothing on the wrist.
+    func hasSameContent(as other: WatchData) -> Bool {
+        stamped(other.lastUpdated) == other
+    }
+
+    /// Whether moving from `previous` to this snapshot changes what the
+    /// complications are mostly glanced at for: the dose count, or a
+    /// workout starting or ending. Set edits mid-workout don't count.
+    func changesComplications(from previous: WatchData) -> Bool {
+        completedToday != previous.completedToday
+            || totalToday != previous.totalToday
+            || workout?.sessionId != previous.workout?.sessionId
     }
 
     /// A workout whose last push is this old ended without its final

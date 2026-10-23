@@ -161,6 +161,38 @@ final class WatchDataTests: XCTestCase {
         XCTAssertEqual(shown.vitals?.measuredAt, now)
     }
 
+    // MARK: - Push change detection
+
+    func test_hasSameContent_differentStampOnly_isTrue() {
+        let data = fullDay()
+        XCTAssertTrue(data.stamped(now.addingTimeInterval(300)).hasSameContent(as: data))
+    }
+
+    func test_hasSameContent_doseToggled_isFalse() {
+        let data = fullDay()
+        var entries = data.todayEntries
+        entries[1].completed = true
+        XCTAssertFalse(data.replacingEntries(entries).hasSameContent(as: data))
+    }
+
+    func test_changesComplications_doseCountOrWorkoutStartChanges_isTrue() {
+        let data = fullDay()
+        var entries = data.todayEntries
+        entries[1].completed = true
+        XCTAssertTrue(data.replacingEntries(entries).changesComplications(from: data))
+        XCTAssertTrue(data.replacingWorkout(workout).changesComplications(from: data))
+    }
+
+    /// Set edits arrive many times a minute and must not spend the daily
+    /// complication-transfer budget.
+    func test_changesComplications_sameWorkoutEdited_isFalse() {
+        let started = workout
+        let running = fullDay(workout: started)
+        let edited = WatchWorkoutSnapshot(sessionId: started.sessionId, name: "Push day", timerStartedAt: now,
+                                          pausedElapsedSeconds: 30, exercises: [], selectedExerciseID: nil, rest: nil)
+        XCTAssertFalse(running.replacingWorkout(edited).changesComplications(from: running))
+    }
+
     /// The phone stamps each workout push so the Watch can tell it from an
     /// older one; the Watch's optimistic copy keeps the push's date.
     func test_replacingWorkout_stampsOnlyWhenGivenADate() {

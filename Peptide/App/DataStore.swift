@@ -2731,7 +2731,7 @@ final class DataStore {
             healthConnected: profile.healthConnected,
             vitals: watchVitals,
             workout: watchWorkout,
-            training: WatchWorkoutSnapshotBuilder.training(from: repo.loadWorkoutSessions(limit: 30)),
+            training: WatchWorkoutSnapshotBuilder.training(from: recentWidgetWorkouts()),
             hapticsEnabled: profile.hapticFeedbackEnabled
         )
     }
