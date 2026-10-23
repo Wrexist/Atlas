@@ -10705,6 +10705,36 @@
         }
       }
     },
+    "Restore a safety copy": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Återställ en säkerhetskopia"
+          }
+        }
+      }
+    },
+    "Saved on this device before each restore.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sparas på den här enheten före varje återställning."
+          }
+        }
+      }
+    },
+    "Shows what this safety copy holds before restoring it": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visar vad säkerhetskopian innehåller innan den återställs"
+          }
+        }
+      }
+    },
     "Syringe diagram. Equivalent volume: %lld units, more than one full 100-unit syringe.": {
       "localizations": {
         "sv": {

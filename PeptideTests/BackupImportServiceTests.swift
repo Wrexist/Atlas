@@ -290,6 +290,25 @@ final class BackupImportServiceTests: XCTestCase {
         XCTAssertEqual(dataStore.protocols.map(\.name), ["Backup A"])
     }
 
+    func test_replace_writesSafetyCopyThatListsAndRestoresPriorState() throws {
+        BackupSnapshotService.deleteAll()
+        let dataStore = makeDataStore()
+        dataStore.profile.name = "Before restore"
+        let backup = AppBackup(
+            exportDate: Date(),
+            version: "1.0",
+            protocols: [makeProtocol(named: "Backup A")],
+            entries: [],
+            profile: makeProfile(named: "Backup user")
+        )
+
+        try BackupImportService.apply(backup, strategy: .replace, into: dataStore)
+
+        let snapshot = try XCTUnwrap(BackupSnapshotService.availableSnapshots().first)
+        let restored = try BackupImportService.validate(BackupSnapshotService.read(snapshot))
+        XCTAssertEqual(restored.preview.profileName, "Before restore")
+    }
+
     func test_replace_whenCommitFails_throwsInsteadOfReportingSuccess() {
         let dataStore = makeDataStore()
         let repo = SwiftDataRepository.shared

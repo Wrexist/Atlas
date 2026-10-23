@@ -4,7 +4,7 @@ import Foundation
 /// `BackupImportService.apply` mutates anything, the current state
 /// is serialised to a timestamped JSON file under the system Caches
 /// directory. If the import goes wrong, the user can pick that
-/// snapshot from a recovery affordance in Settings and restore it
+/// snapshot from the restore sheet's safety-copy list and restore it
 /// just like a regular backup.
 ///
 /// Snapshots live in `Caches/` so the OS can evict under storage
@@ -115,10 +115,12 @@ enum BackupSnapshotService {
             .sorted { $0.createdAt > $1.createdAt }
     }
 
-    /// Reads the snapshot bytes for re-import. Used by the Settings
-    /// "Restore from snapshot" affordance — the rollback path just
-    /// feeds these bytes back through `BackupImportService.apply`.
-    static func read(_ info: Info) throws -> Data {
+    /// Reads the snapshot bytes for re-import. Used by the restore
+    /// sheet's "Restore a safety copy" list — the rollback path just
+    /// feeds these bytes back through `BackupImportService.validate`
+    /// and `apply`, like a picked file. Nonisolated so the read runs off
+    /// the main actor.
+    nonisolated static func read(_ info: Info) throws -> Data {
         try Data(contentsOf: info.url)
     }
 
