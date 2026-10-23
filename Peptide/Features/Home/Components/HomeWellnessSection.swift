@@ -21,7 +21,7 @@ struct HomeWellnessSection: View {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         return dataStore.profile.outcomeHistory
-            .filter { !calendar.isDate($0.date, inSameDayAs: today) }
+            .filter { $0.date < today }
             .max { $0.date < $1.date }
     }
 
