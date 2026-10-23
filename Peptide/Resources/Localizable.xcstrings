@@ -7995,12 +7995,12 @@
         }
       }
     },
-    "Backup validated but couldn't be applied: %@": {
+    "The backup checked out but couldn't be restored. Try again.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Säkerhetskopian validerades men kunde inte tillämpas: %@"
+            "value": "Säkerhetskopian godkändes men kunde inte återställas. Försök igen."
           }
         }
       }
@@ -11785,16 +11785,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kunde inte läsa fotot. Prova ett annat."
-          }
-        }
-      }
-    },
-    "Couldn't read the backup file: %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kunde inte läsa säkerhetskopian: %@"
           }
         }
       }
@@ -19829,12 +19819,12 @@
         }
       }
     },
-    "Lookup failed (status %lld). Please try again.": {
+    "Couldn't look up that product. Please try again.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Uppslaget misslyckades (status %lld). Försök igen."
+            "value": "Kunde inte slå upp produkten. Försök igen."
           }
         }
       }
@@ -32453,22 +32443,12 @@
         }
       }
     },
-    "The backup contents look implausible: %@": {
+    "This backup looks damaged, so nothing was imported. Try a different backup file.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Innehållet i säkerhetskopian verkar orimligt: %@"
-          }
-        }
-      }
-    },
-    "The backup decoded partially but a field was malformed: %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Säkerhetskopian avkodades delvis men ett fält var felaktigt: %@"
+            "value": "Säkerhetskopian verkar skadad, så inget importerades. Prova en annan säkerhetskopia."
           }
         }
       }

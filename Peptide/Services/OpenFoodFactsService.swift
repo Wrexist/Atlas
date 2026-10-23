@@ -134,11 +134,8 @@ final class OpenFoodFactsService: Sendable {
                 )
             case .networkUnavailable:
                 String(localized: "You're offline. We'll use cached results when available.")
-            case .requestFailed(let status):
-                String(
-                    localized: "Lookup failed (status \(status)). Please try again.",
-                    comment: "Status code is an HTTP code or -1 for transport errors."
-                )
+            case .requestFailed:
+                String(localized: "Couldn't look up that product. Please try again.")
             case .serviceUnavailable:
                 String(localized: "Open Food Facts is briefly unavailable. Try again in a moment, or snap a photo of the label instead.")
             case .decodeFailure:
@@ -488,7 +485,9 @@ final class OpenFoodFactsService: Sendable {
         case 200..<300:                  break
         case 404:                        throw LookupError.notFound
         case 429:                        throw LookupError.rateLimited
-        default:                         throw LookupError.requestFailed(status: http.statusCode)
+        default:
+            AppLog.persistence.error("OFF lookup returned status \(http.statusCode, privacy: .public)")
+            throw LookupError.requestFailed(status: http.statusCode)
         }
 
         let envelope: APIEnvelope
