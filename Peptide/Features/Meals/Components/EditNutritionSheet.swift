@@ -24,7 +24,11 @@ struct EditNutritionSheet: View {
     @State private var protein: String = ""
     @State private var carbs: String = ""
     @State private var fat: String = ""
+    /// The fields as hydrated, so a stray swipe can't discard edits.
+    @State private var openedFields: [String] = []
     @FocusState private var isEditing: Bool
+
+    private var hasChanges: Bool { [calories, protein, carbs, fat] != openedFields }
 
     var body: some View {
         NavigationStack {
@@ -59,7 +63,7 @@ struct EditNutritionSheet: View {
             .glassFormStyle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", action: onCancel)
+                    DiscardChangesCancelButton(hasChanges: hasChanges, onCancel: onCancel)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { save() }
@@ -71,6 +75,7 @@ struct EditNutritionSheet: View {
                 }
             }
         }
+        .interactiveDismissDisabled(hasChanges)
         .onAppear(perform: hydrate)
     }
 
@@ -97,6 +102,7 @@ struct EditNutritionSheet: View {
         protein  = String(initial?.proteinG ?? 0)
         carbs    = String(initial?.carbsG ?? 0)
         fat      = String(initial?.fatG ?? 0)
+        openedFields = [calories, protein, carbs, fat]
     }
 
     private var isValid: Bool {

@@ -25,9 +25,16 @@ struct OutcomeCheckInSheet: View {
     @State private var focus: Int = 3
     @State private var note: String = ""
     @State private var didHydrate: Bool = false
+    /// The values the sheet opened with, so a stray swipe can't throw
+    /// away five ratings and a typed note.
+    @State private var openedValues: [String] = []
     @Namespace private var pillNamespace
 
-    @Environment(\.dismiss) private var dismiss
+    private var currentValues: [String] {
+        [energy, sleepQuality, recovery, mood, focus].map(String.init) + [note]
+    }
+
+    private var hasChanges: Bool { didHydrate && currentValues != openedValues }
 
     var body: some View {
         NavigationStack {
@@ -51,7 +58,7 @@ struct OutcomeCheckInSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", action: onCancel)
+                    DiscardChangesCancelButton(hasChanges: hasChanges, onCancel: onCancel)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: commit)
@@ -59,6 +66,7 @@ struct OutcomeCheckInSheet: View {
             }
             .onAppear(perform: hydrate)
         }
+        .interactiveDismissDisabled(hasChanges)
     }
 
     private var header: some View {
@@ -222,6 +230,7 @@ struct OutcomeCheckInSheet: View {
             // Don't carry over the note — a stale note from yesterday
             // is worse than no note today.
         }
+        openedValues = currentValues
     }
 
     private func commit() {
