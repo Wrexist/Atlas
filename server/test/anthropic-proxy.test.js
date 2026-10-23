@@ -4,6 +4,7 @@ import { readdirSync } from 'node:fs';
 import { forwardToAnthropic } from '../api/_lib/anthropic-proxy.js';
 import mealScan from '../api/meal-scan.js';
 import aiResearch from '../api/ai-research.js';
+import { makeStoreKitChain, signTransaction, transactionPayload } from '../testutil/storekit-fixtures.js';
 
 // Handler-level wiring tests on the in-memory limiter path (no Redis
 // env). Each test uses its own logLabel and client IPs so the module's
@@ -48,6 +49,8 @@ const BASE_ENV = {
   SHARED_IP_LIMIT_SCALE: '1',
   APP_ATTEST_MODE: 'off',
   APP_ATTEST_APP_ID: undefined,
+  STOREKIT_ROOT_CA_FINGERPRINT: undefined,
+  PRO_GATE_MODE: undefined,
 };
 
 function stubUpstream(t) {
@@ -229,6 +232,16 @@ function withContent(ip, content) {
   return req;
 }
 
+// ai-research is Pro-gated; these tests exercise what happens after the
+// gate, so they carry an entitlement the test chain signed.
+const storeKit = makeStoreKitChain();
+const PRO_ENV = { STOREKIT_ROOT_CA_FINGERPRINT: storeKit.rootFingerprint };
+
+function asPro(req) {
+  req.headers['x-atlas-entitlement'] = signTransaction(storeKit, transactionPayload());
+  return req;
+}
+
 test('url image sources are rejected 400 before reaching Anthropic', async (t) => {
   setEnv(t, BASE_ENV);
   const upstream = stubUpstream(t);
@@ -345,12 +358,12 @@ test('meal-scan drops a client-supplied system prompt', async (t) => {
 });
 
 test('test_mealScanAndAiResearch_sendThinkingDisabledUpstream', async (t) => {
-  setEnv(t, BASE_ENV);
+  setEnv(t, { ...BASE_ENV, ...PRO_ENV });
   const upstream = stubUpstream(t);
   const scan = withContent('10.0.9.7', [image, { type: 'text', text: 'Estimate macros.' }]);
   scan.body.thinking = { type: 'adaptive' };
   assert.equal((await callRoute(mealScan, scan)).statusCode, 200);
-  assert.equal((await callRoute(aiResearch, withContent('10.0.9.8', 'What is HRV?'))).statusCode, 200);
+  assert.equal((await callRoute(aiResearch, asPro(withContent('10.0.9.8', 'What is HRV?')))).statusCode, 200);
 
   for (const [, init] of upstream) {
     assert.deepEqual(JSON.parse(init.body).thinking, { type: 'disabled' });
@@ -358,9 +371,9 @@ test('test_mealScanAndAiResearch_sendThinkingDisabledUpstream', async (t) => {
 });
 
 test('test_thinkingOff_isOmittedForModelThatRejectsDisabled', async (t) => {
-  setEnv(t, { ...BASE_ENV, ALLOWED_MODELS: 'claude-sonnet-5-5' });
+  setEnv(t, { ...BASE_ENV, ...PRO_ENV, ALLOWED_MODELS: 'claude-sonnet-5-5' });
   const upstream = stubUpstream(t);
-  assert.equal((await callRoute(aiResearch, withContent('10.0.9.6', 'What is HRV?'))).statusCode, 200);
+  assert.equal((await callRoute(aiResearch, asPro(withContent('10.0.9.6', 'What is HRV?')))).statusCode, 200);
   const sent = JSON.parse(upstream[0][1].body);
   assert.equal(sent.model, 'claude-sonnet-5-5');
   assert.equal(sent.thinking, undefined);

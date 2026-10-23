@@ -1,7 +1,8 @@
 /**
  * Vercel proxy route for the Atlas AI research assistant. Thin
  * wrapper over `forwardToAnthropic`; see `_lib/anthropic-proxy.js`
- * for the server-side env vars and behavior.
+ * for the server-side env vars and behavior. A verified Pro
+ * entitlement is required (403 `pro_required` otherwise).
  *
  * iOS env vars (Info.plist or scheme env):
  *   AI_RESEARCH_ENDPOINT = https://<deploy>/api/ai-research
@@ -51,5 +52,9 @@ export default async function handler(req, res) {
     shape: { maxImages: 0 },
     // The 800-token cap is sized for a ~250-word reply; see THINKING_OFF.
     thinking: THINKING_OFF,
+    // Pro-only in the app (the research chat and the Meals diet coach
+    // open only for `canAccessAIFeatures`); the app sends its StoreKit
+    // transaction in X-Atlas-Entitlement.
+    requirePro: true,
   });
 }

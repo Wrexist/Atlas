@@ -52,6 +52,8 @@ final class AIResearchService: Sendable {
         case serviceUnavailable
         case questionTooLong
         case invalidResponse
+        /// The proxy found no verified Pro entitlement on the request.
+        case proRequired
 
         var errorDescription: String? {
             switch self {
@@ -65,6 +67,7 @@ final class AIResearchService: Sendable {
             case .serviceUnavailable:   String(localized: "The research assistant is temporarily offline. Try again in a few minutes.")
             case .questionTooLong:      String(localized: "That message is too long for the assistant. Try a shorter question.")
             case .invalidResponse:      String(localized: "The assistant returned an unexpected response.")
+            case .proRequired:          String(localized: "This needs Atlas Pro. If you've subscribed, restore your purchase and try again.")
             }
         }
 
@@ -75,6 +78,7 @@ final class AIResearchService: Sendable {
             case .dailyLimitReached:                  String(localized: "Daily limit reached")
             case .questionTooLong:                    String(localized: "Message too long")
             case .proxyNotConfigured, .unauthorised:  String(localized: "Assistant unavailable")
+            case .proRequired:                        String(localized: "Atlas Pro")
             case .offline, .rateLimited, .serviceUnavailable, .invalidResponse:
                 String(localized: "Couldn't reach the assistant")
             }
@@ -84,7 +88,7 @@ final class AIResearchService: Sendable {
         /// Retry would only burn a request into the same error.
         var isRetryable: Bool {
             switch self {
-            case .dailyLimitReached, .questionTooLong, .proxyNotConfigured, .unauthorised: false
+            case .dailyLimitReached, .questionTooLong, .proxyNotConfigured, .unauthorised, .proRequired: false
             case .offline, .rateLimited, .serviceUnavailable, .invalidResponse: true
             }
         }
@@ -180,6 +184,10 @@ final class AIResearchService: Sendable {
         request.timeoutInterval = 60
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(proxySecret, forHTTPHeaderField: "X-Peptide-Proxy")
+        // The proxy refuses this route without a verified Pro entitlement.
+        if let entitlementJWS = await StoreService.shared.resolvedProEntitlementJWS() {
+            request.setValue(entitlementJWS, forHTTPHeaderField: MealScanQuota.Header.entitlement)
+        }
         request.httpBody = try JSONSerialization.data(
             withJSONObject: payload(history: history, newPrompt: prompt, ragContext: context, coachBrief: coachBrief),
             options: []
@@ -397,6 +405,7 @@ final class AIResearchService: Sendable {
     private static func chatError(status: Int, body: Data) -> ChatError {
         switch status {
         case 401:      return .unauthorised
+        case 403:      return .proRequired
         case 400, 413: return .questionTooLong
         case 429:      return proxyErrorCode(in: body) == "daily_quota" ? .dailyLimitReached : .rateLimited
         default:
