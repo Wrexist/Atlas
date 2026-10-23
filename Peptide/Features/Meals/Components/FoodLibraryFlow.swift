@@ -72,20 +72,6 @@ struct FoodLibraryFlow: View {
     /// trip. Refreshed on tab change so a re-favorited item from the
     /// All tab shows up immediately.
     @State private var cachedFavoriteProducts: [ScannedProduct] = []
-    /// Food IDs that just got quick-logged from a row's "+" button,
-    /// keyed to the exact category the entry was logged under. The
-    /// "Logged as Breakfast" overlay reads this map so a tap landing
-    /// on a meal-boundary (10:59:59 → 11:00:00) shows the category
-    /// the entry actually got rather than re-running `auto(for:)` at
-    /// render time and surfacing a different bucket. Cleared on the
-    /// row's 1.5-second timeout or on sheet dismiss.
-    @State private var recentlyQuickLogged: [String: MealCategory] = [:]
-    /// Outstanding "Logged ✓" timeout Tasks, keyed by food ID. One
-    /// task per food at a time — a second quick-log of the same
-    /// food inside the window cancels the in-flight clear and
-    /// reschedules, so the badge timing always reflects the latest
-    /// log. Cancelled in bulk on sheet dismiss.
-    @State private var quickLogClearTasks: [String: Task<Void, Never>] = [:]
     /// `true` once the most recent search hit a network-unavailable
     /// error. Toggles the offline pill at the top of the list and
     /// suppresses the rate-limit / "no match" copy so the user knows
@@ -178,14 +164,6 @@ struct FoodLibraryFlow: View {
                     }
                 }
             }
-        }
-        .onDisappear {
-            // Cancel outstanding "Logged ✓" timeouts so they can't
-            // fire into a re-presented sheet and surface stale
-            // confirmation badges.
-            for task in quickLogClearTasks.values { task.cancel() }
-            quickLogClearTasks.removeAll()
-            recentlyQuickLogged.removeAll()
         }
         .task(id: query) { await runDebouncedSearch() }
         .task(id: debouncedQuery) { await runSearch() }
@@ -851,7 +829,6 @@ struct FoodLibraryFlow: View {
                             .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                     }
             }
-            .overlay { quickLoggedOverlay(foodID: product.barcode) }
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .ignore)
@@ -894,7 +871,6 @@ struct FoodLibraryFlow: View {
                             .strokeBorder(AppColor.accentPrimary.opacity(0.30), lineWidth: 0.5)
                     }
             }
-            .overlay { quickLoggedOverlay(foodID: food.foodID) }
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .ignore)
@@ -926,9 +902,7 @@ struct FoodLibraryFlow: View {
     /// entries, which have no food-library record to re-open. Tapping
     /// logs it again as it was logged.
     private func recentMealRow(_ meal: MealEntry) -> some View {
-        let foodID = Self.recentMealFoodID(meal)
-        let inFlight = recentlyQuickLogged[foodID] != nil
-        return Button {
+        Button {
             relogMeal(meal)
         } label: {
             HStack(spacing: Spacing.sm) {
@@ -945,7 +919,7 @@ struct FoodLibraryFlow: View {
                     macroPreview(calories: meal.calories, protein: meal.proteinG, carbs: meal.carbsG, fat: meal.fatG)
                 }
                 Spacer(minLength: 0)
-                Image(systemName: inFlight ? "checkmark" : "arrow.clockwise")
+                Image(systemName: "arrow.clockwise")
                     .font(AppFont.scaled(13, weight: .bold))
                     .foregroundStyle(AppColor.accentLight)
                     .minimumHitArea()
@@ -959,10 +933,8 @@ struct FoodLibraryFlow: View {
                             .strokeBorder(AppColor.glassBorder, lineWidth: 0.5)
                     }
             }
-            .overlay { quickLoggedOverlay(foodID: foodID) }
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
-        .disabled(inFlight)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("\(meal.name), \(meal.category.displayName), \(meal.calories) kilocalories"))
         .accessibilityHint("Logs this meal again.")
@@ -1025,90 +997,40 @@ struct FoodLibraryFlow: View {
 
     /// One-tap log shortcut on each row. Skips the portion picker and
     /// uses the last valid amount, falling back to the default (1 serving when available,
-    /// else a known small package or 100 g), categorized for the logged date. The
-    /// 1.5-second "Logged ✓" overlay disables the button + gives
-    /// visual feedback so a fat-fingered double-tap can't log twice.
-    /// For everything else — multiple servings, a different category,
-    /// manual macro edit — the row itself still opens the full
-    /// review sheet, so this is purely additive UX.
+    /// else a known small package or 100 g), categorized for the logged date.
+    /// A successful log moves to the success screen, whose Undo button
+    /// reverses it, so a double-tap can't log twice. For everything
+    /// else — multiple servings, a different category, manual macro
+    /// edit — the row itself opens the full review sheet.
     private func quickLogButton(product: ScannedProduct) -> some View {
-        let inFlight = recentlyQuickLogged[product.barcode] != nil
-        return Button {
+        Button {
             performQuickLog(product)
         } label: {
-            Image(systemName: inFlight ? "checkmark" : "plus")
+            Image(systemName: "plus")
                 .font(AppFont.scaled(13, weight: .bold))
-                .foregroundStyle(inFlight ? AppColor.accentLight : AppColor.onAccent)
-                .contentTransition(.symbolEffect(.replace))
+                .foregroundStyle(AppColor.onAccent)
                 .frame(width: 32, height: 32)
                 .background {
-                    Circle().fill(inFlight ? AppColor.accentLight.opacity(0.2) : AppColor.accentPrimary)
+                    Circle().fill(AppColor.accentPrimary)
                 }
                 .minimumHitArea()
         }
         .buttonStyle(.plain)
-        .disabled(inFlight || product.loggable(for: preferredPortion(for: product)) == nil)
+        .disabled(product.loggable(for: preferredPortion(for: product)) == nil)
         .accessibilityLabel("Quick log \(product.name)")
         .accessibilityHint("Logs your last valid amount, or the default portion if none is saved. Undo is available after saving.")
-    }
-
-    /// Semi-transparent "Logged ✓" wash drawn on top of the row's
-    /// background while it's in the confirmation window. Hugs the
-    /// row's corners via the parent's background shape so the
-    /// rounded edges align visually with the underlying card.
-    ///
-    /// `allowsHitTesting(true)` on the wash blocks the underlying
-    /// row's tap-to-review gesture during the confirmation window —
-    /// otherwise a quick-logger could tap the row by accident
-    /// immediately after the "+" and find themselves inside the
-    /// portion picker for the same food they just logged.
-    ///
-    /// Category text is read from `recentlyQuickLogged` (set at
-    /// log-commit time), NOT re-computed via `auto(for: Date())` at
-    /// render time. The two `Date()` values could otherwise diverge
-    /// at a meal-boundary tap — surfacing "Logged as Breakfast"
-    /// while the entry actually landed in lunch.
-    @ViewBuilder
-    private func quickLoggedOverlay(foodID: String) -> some View {
-        if let category = recentlyQuickLogged[foodID] {
-            ZStack {
-                RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
-                    .fill(AppColor.accentPrimary.opacity(0.18))
-                HStack(spacing: Spacing.xs) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(AppColor.accentLight)
-                    Text("Logged as \(category.displayName)")
-                        .font(AppFont.scaled(13, weight: .heavy))
-                        .foregroundStyle(AppColor.textPrimary)
-                }
-                .padding(.horizontal, Spacing.md)
-                .padding(.vertical, 6)
-                .background {
-                    Capsule().fill(AppColor.surfaceSecondary.opacity(0.9))
-                }
-            }
-            .allowsHitTesting(true)
-            .transition(.opacity.combined(with: .scale(scale: 0.96)))
-        }
     }
 
     /// Builds a MealEntry from the last valid or default portion + the
     /// current time-of-day category and hands it to the DataStore.
     /// Mirrors `confirmLog(for:)`'s persistence and history wiring
     /// without the review-sheet detour — the user gets identical
-    /// macro effects without the extra taps. Animation + haptic +
-    /// timed dismissal of the "Logged ✓" overlay live here so the
-    /// row knows when to come back to its idle look.
+    /// macro effects without the extra taps.
     private func performQuickLog(_ product: ScannedProduct) {
         let chosen = preferredPortion(for: product)
-        guard phase == .browse, recentlyQuickLogged[product.barcode] == nil,
-              let meal = product.loggable(for: chosen) else { return }
+        guard phase == .browse, let meal = product.loggable(for: chosen) else { return }
         let now = Date()
         let loggedAt = logTimestamp()
-        // Auto-category captured once at log time and reused for
-        // both the persisted entry and the overlay readout — see
-        // `quickLoggedOverlay` for the meal-boundary bug this
-        // prevents.
         let loggedCategory = MealCategory.auto(for: loggedAt)
         let source: MealSource = product.barcode.hasPrefix("custom:") ? .custom : .openFoodFacts
         let entry = MealEntry(
@@ -1125,48 +1047,14 @@ struct FoodLibraryFlow: View {
         if !barcode.hasPrefix("custom:") {
             recordHistory(product, portion: chosen, at: now)
         }
-        showQuickLogged(foodID: product.barcode, category: loggedCategory)
     }
 
     /// "Log again" from the Recent meals row: duplicates the entry onto
     /// the viewed day at the current clock time, keeping its category.
     private func relogMeal(_ meal: MealEntry) {
-        let foodID = Self.recentMealFoodID(meal)
-        guard phase == .browse, recentlyQuickLogged[foodID] == nil else { return }
+        guard phase == .browse else { return }
         guard commitLibraryEntry(LifestyleDataLogic.relogged(meal, at: logTimestamp())) else { return }
         BarcodeHaptics.logCommitted()
-        showQuickLogged(foodID: foodID, category: meal.category)
-    }
-
-    /// Keyed by name, not entry id: the re-log becomes the newest entry
-    /// for that name, and the row must keep its "Logged ✓" wash.
-    private static func recentMealFoodID(_ meal: MealEntry) -> String {
-        "meal:" + FoodLibraryLogic.normalized(meal.name)
-    }
-
-    /// Shows the row's "Logged ✓" wash, then clears it after the
-    /// confirmation window.
-    private func showQuickLogged(foodID: String, category: MealCategory) {
-        AppAnimation.with(AppAnimation.quick) {
-            recentlyQuickLogged[foodID] = category
-        }
-        // Clear the badge after the confirmation window so the row
-        // returns to its tap-to-log idle state. Keying tasks by
-        // food ID means each food has at most one in-flight clear
-        // (memory bounded by distinct logged foods, not log count)
-        // and a rapid second log of the same food cancels the old
-        // timer before scheduling the new one — so the badge
-        // duration always reflects the most recent log.
-        quickLogClearTasks[foodID]?.cancel()
-        let task = Task { @MainActor in
-            try? await Task.sleep(for: AppAnimation.quickLogConfirmationDuration)
-            guard !Task.isCancelled else { return }
-            AppAnimation.with(AppAnimation.quick) {
-                recentlyQuickLogged.removeValue(forKey: foodID)
-            }
-            quickLogClearTasks.removeValue(forKey: foodID)
-        }
-        quickLogClearTasks[foodID] = task
     }
 
     private func favoriteToggle(foodID: String, isFavorite: Bool) -> some View {
@@ -1364,7 +1252,15 @@ struct FoodLibraryFlow: View {
     // MARK: - Logged phase
 
     @ViewBuilder
+    /// Scrolls so Undo stays reachable at accessibility text sizes.
     private var loggedContent: some View {
+        ScrollView {
+            loggedStack
+        }
+        .scrollBounceBehavior(.basedOnSize)
+    }
+
+    private var loggedStack: some View {
         VStack(spacing: Spacing.lg) {
             MilestoneArtwork(size: 64)
             Text(addedTitle)
@@ -1540,7 +1436,6 @@ struct FoodLibraryFlow: View {
             lastLoggedEntry = nil
             loggedSnapshot = nil
             loggedHistoryBarcode = nil
-            recentlyQuickLogged.removeAll()
             backToBrowse()
             BarcodeHaptics.logUndone()
         } catch {

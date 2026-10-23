@@ -83,6 +83,18 @@ final class CycleCompletionServiceTests: XCTestCase {
                       "A wash-out protocol repeats, so its first wash-out isn't the end")
     }
 
+    func test_washoutProtocolInLaterCycle_withDismissals_isNeverAutoCompleted() {
+        // 8-on / 4-off, 20 weeks in: cycle 2, past the first cycle's
+        // end by 12 weeks and past the dismissal threshold.
+        let proto = makeProtocol(weeksAgo: 20, cycleLengthWeeks: 8, washoutWeeks: 4)
+        for _ in 0..<CycleCompletionService.autoCompleteDismissThreshold {
+            service.recordDismissal(for: proto)
+        }
+        XCTAssertNil(service.pendingCompletion(in: [proto]))
+        XCTAssertTrue(service.protocolsDueForAutoCompletion(in: [proto]).isEmpty,
+                      "A wash-out protocol keeps cycling, so nothing auto-completes it")
+    }
+
     func test_resetDismissals_afterExtend_restartsTheCount() {
         let proto = makeProtocol(weeksAgo: 8, cycleLengthWeeks: 8)
         service.recordDismissal(for: proto)

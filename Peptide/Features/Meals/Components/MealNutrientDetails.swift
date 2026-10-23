@@ -35,21 +35,23 @@ struct MealNutrientDetails: View {
 
 struct DailyMealNutrientsCard: View {
     let entries: [MealEntry]
+    /// The user's daily fiber goal in grams; nil or zero shows no target.
+    var fiberTargetG: Int?
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text("Fiber & sugar").font(AppFont.headline)
-                row("Fiber", coverage: .derive(entries: entries, nutrient: \.fiberG))
-                row("Total sugars", coverage: .derive(entries: entries, nutrient: \.sugarsG))
+                row("Fiber", coverage: .derive(entries: entries, nutrient: \.fiberG), targetG: fiberTargetG)
+                row("Total sugars", coverage: .derive(entries: entries, nutrient: \.sugarsG), targetG: nil)
                 Text("From foods with label data.")
                     .font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
             }
         }
     }
-    private func row(_ title: LocalizedStringKey, coverage: MealNutrientCoverage) -> some View {
+    private func row(_ title: LocalizedStringKey, coverage: MealNutrientCoverage, targetG: Int?) -> some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             LabeledContent(title, value: coverage.total.map { (total: Double) -> String in
-                let grams = "\(total.formatted(.number.precision(.fractionLength(0...1)))) g"
+                let grams = Self.grams(total, targetG: targetG)
                 return coverage.missing > 0 ? String(localized: "\(grams) · Partial") : grams
             } ?? String(localized: "Unavailable"))
             if coverage.missing > 0 {
@@ -57,5 +59,10 @@ struct DailyMealNutrientsCard: View {
                     .font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
             }
         }
+    }
+    private static func grams(_ total: Double, targetG: Int?) -> String {
+        let amount = total.formatted(.number.precision(.fractionLength(0...1)))
+        guard let targetG, targetG > 0 else { return "\(amount) g" }
+        return "\(amount) / \(targetG) g"
     }
 }
