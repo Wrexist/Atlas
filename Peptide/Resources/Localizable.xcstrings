@@ -5862,6 +5862,46 @@
         }
       }
     },
+    "AI & privacy": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI och integritet"
+          }
+        }
+      }
+    },
+    "Delete your data": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Radera dina data"
+          }
+        }
+      }
+    },
+    "Private by design — no ads, no tracking": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privat från grunden – ingen reklam, ingen spårning"
+          }
+        }
+      }
+    },
+    "These can't be undone.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det här går inte att ångra."
+          }
+        }
+      }
+    },
     "^[%lld workout](inflect: true)": {
       "comment": "Workout card subtitle: number of workouts logged.",
       "localizations": {

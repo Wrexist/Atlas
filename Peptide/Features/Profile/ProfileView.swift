@@ -104,14 +104,17 @@ struct ProfileView: View {
                     )
                     .scrollReveal()
 
-                    PeptideLibraryEntryCard()
-                        .scrollReveal()
+                    // The library and its calculator are one toolset, so they
+                    // sit together rather than a full section gap apart.
+                    VStack(spacing: Spacing.sm) {
+                        PeptideLibraryEntryCard()
 
-                    // The calculator only matters to someone running a protocol.
-                    if !dataStore.protocols.isEmpty {
-                        ReconstitutionEntryCard(onTap: { showReconstitutionCalculator = true })
-                            .scrollReveal()
+                        // The calculator only matters to someone running a protocol.
+                        if !dataStore.protocols.isEmpty {
+                            ReconstitutionEntryCard(onTap: { showReconstitutionCalculator = true })
+                        }
                     }
+                    .scrollReveal()
 
                     // The way into Settings at the foot of Profile; the
                     // toolbar gear goes to the same place.

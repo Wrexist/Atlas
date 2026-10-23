@@ -37,6 +37,14 @@ struct DailyRemindersSection: View {
                         slot: binding(for: kind)
                     )
                 }
+
+                // Every notification switch lives in this one card; protocol
+                // reminders only mean something to someone running one.
+                if !dataStore.activeProtocols.isEmpty {
+                    Divider().overlay(AppColor.glassBorder)
+
+                    ProtocolRemindersRow()
+                }
             }
         }
         .task {
