@@ -205,6 +205,25 @@ struct PeptideApp: App {
         .onChange(of: privacyCover, initial: true) { _, cover in
             syncPrivacyCover(cover)
         }
+        // A116: after an iCloud sign-out or account switch the store
+        // stays closed until the user says what happens to the data the
+        // previous account left on this device.
+        .alert(
+            "iCloud Account Changed",
+            isPresented: Binding(
+                get: { dataStore.isAwaitingCloudAccountDecision },
+                set: { _ in }
+            )
+        ) {
+            Button("Keep on This iPhone") {
+                dataStore.resolveCloudAccountChange(removingLocalData: false)
+            }
+            Button("Remove from This iPhone", role: .destructive) {
+                dataStore.resolveCloudAccountChange(removingLocalData: true)
+            }
+        } message: {
+            Text("Atlas data from the previous iCloud account is still on this iPhone. If you keep it, it syncs to the iCloud account you're signed in to now. Removing it doesn't touch the copy in the previous account's iCloud.")
+        }
         .task {
             // Once per launch the user sees, not per `.active`: returning
             // from Control Center or a Face ID sheet isn't a launch, and
