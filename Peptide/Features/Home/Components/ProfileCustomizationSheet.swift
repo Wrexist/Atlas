@@ -759,7 +759,7 @@ struct ProfileCustomizationSheet: View {
                     .foregroundStyle(AppColor.textPrimary)
                     .padding(.bottom, Spacing.xs)
 
-                preferenceToggle(
+                SettingsToggleRow(
                     icon: "hand.tap.fill",
                     title: "Haptic feedback",
                     subtitle: "Vibrate on taps and toggles",
@@ -771,7 +771,7 @@ struct ProfileCustomizationSheet: View {
 
                 Divider().overlay(AppColor.glassBorder)
 
-                preferenceToggle(
+                SettingsToggleRow(
                     icon: "bell.fill",
                     title: "Dose reminders",
                     subtitle: "Get notified for scheduled doses",
@@ -781,35 +781,6 @@ struct ProfileCustomizationSheet: View {
                     dataStore.persistProfile()
                 }
             }
-        }
-    }
-
-    private func preferenceToggle(
-        icon: String,
-        title: LocalizedStringKey,
-        subtitle: LocalizedStringKey,
-        isOn: Binding<Bool>
-    ) -> some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: icon)
-                .font(AppFont.scaled(13))
-                .foregroundStyle(AppColor.accentPrimary)
-                .frame(width: 24)
-                .accessibilityHidden(true)
-
-            // The title and subtitle are the toggle's own label, so
-            // VoiceOver names the switch it focuses.
-            Toggle(isOn: isOn) {
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text(title)
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textPrimary)
-                    Text(subtitle)
-                        .font(AppFont.caption2)
-                        .foregroundStyle(AppColor.textTertiary)
-                }
-            }
-            .tint(AppColor.accentPrimary)
         }
     }
 
