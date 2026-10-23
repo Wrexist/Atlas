@@ -606,7 +606,9 @@ struct TrialOfferView: View {
                     .minimumHitArea()
             }
             .buttonStyle(.plain)
-            .disabled(isPurchasing)
+            // A restore that finishes after declining would call onAccept
+            // on a page onboarding has already left.
+            .disabled(isPurchasing || isRestoring)
 
             Text(legalCopy)
                 .font(AppFont.scaled(11))
