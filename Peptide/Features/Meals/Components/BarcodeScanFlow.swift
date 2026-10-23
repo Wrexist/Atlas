@@ -1311,15 +1311,15 @@ struct BarcodeScanFlow: View {
     private func commitMealEntry(product: ScannedProduct, meal: LoggableMeal) {
         let now = Date()
         let loggedAt = LifestyleDataLogic.logTimestamp(on: logDay, now: now)
-        // OCR-synthesised products carry an `ocr:<uuid>` barcode and come
-        // from on-device Vision, not Open Food Facts — tagging them
-        // `.openFoodFacts` mis-attributes the source, and feeding that
-        // synthetic barcode to scan history corrupts the actor (recordLog
-        // expects an 8-14 digit code). Manual-override edits are likewise
-        // not OFF data. Tag both `.manual` and skip history.
-        let isOCR = product.barcode.hasPrefix("ocr:") || product.barcode.hasPrefix("ai:")
-        let source: MealSource = (manualOverride != nil || isOCR) ? .manual
-            : productReadByAI ? .photo : .openFoodFacts
+        // A package read by Atlas AI is a photo scan whether or not it
+        // was filed under a real barcode. OCR-synthesised products carry
+        // an `ocr:<uuid>` barcode and come from on-device Vision, not
+        // Open Food Facts, and manual-override edits are likewise not OFF
+        // data — both are `.manual`. Synthetic `ocr:`/`ai:` barcodes skip
+        // history: recordLog expects an 8-14 digit code.
+        let hasSyntheticBarcode = product.barcode.hasPrefix("ocr:") || product.barcode.hasPrefix("ai:")
+        let source: MealSource = productReadByAI ? .photo
+            : (manualOverride != nil || hasSyntheticBarcode) ? .manual : .openFoodFacts
         let entry = MealEntry(
             loggable: meal,
             name: product.name,
@@ -1346,7 +1346,7 @@ struct BarcodeScanFlow: View {
         // the same portion. Fire-and-forget — UI doesn't need to wait.
         // Skip OCR scans: each carries a unique synthetic barcode, so a
         // history record would never re-match and would corrupt the actor.
-        if !isOCR {
+        if !hasSyntheticBarcode {
             let recordedBarcode = product.barcode
             let recordedPortion = portion
             Task {
