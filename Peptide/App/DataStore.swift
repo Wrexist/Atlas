@@ -2673,8 +2673,10 @@ final class DataStore {
             unit: profile.bodyMetrics.unit
         )
         if let lastWidgetData, data.hasSameContent(as: lastWidgetData) { return }
+        // Remembered only once written: a failed write must not make the
+        // next identical payload look like a no-op.
+        guard PersistenceService.shared.updateWidgetData(data) else { return }
         lastWidgetData = data
-        PersistenceService.shared.updateWidgetData(data)
         WidgetCenter.shared.reloadAllTimelines()
     }
 

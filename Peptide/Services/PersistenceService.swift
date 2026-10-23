@@ -118,12 +118,14 @@ final class PersistenceService: @unchecked Sendable {
 
     // MARK: - Widget Data (Shared Container)
 
-    func updateWidgetData(_ data: WidgetData) {
-        guard let url = widgetDataURL else { return }
+    /// Writes the widget payload; false when it couldn't be written.
+    func updateWidgetData(_ data: WidgetData) -> Bool {
+        guard let url = widgetDataURL else { return false }
         // The widget extension reads this on the Lock Screen and at its
         // midnight reload — while the device is locked.
-        save(data, to: url, protection: .completeFileProtectionUntilFirstUserAuthentication)
+        guard save(data, to: url, protection: .completeFileProtectionUntilFirstUserAuthentication) else { return false }
         Self.excludeFromBackup(url)
+        return true
     }
 
     /// Marks regenerated-cache files (widget / watch payloads) so
