@@ -211,6 +211,11 @@ struct PeptideApp: App {
         .environment(\.locale, localization.effectiveLocale)
         .environment(\.layoutDirection, localization.layoutDirection)
         .id(localization.selectedCode ?? "system")
+        .onChange(of: localization.selectedCode) { _, _ in
+            // The long-press menu is set at runtime to follow the in-app
+            // language; without this it kept the old one until relaunch.
+            QuickActionRouter.installHomeScreenShortcuts()
+        }
         .onChange(of: privacyCover, initial: true) { _, cover in
             syncPrivacyCover(cover)
         }
