@@ -770,7 +770,8 @@ struct MealScanFlow: View {
     private var draftSnapshot: MealScanDraft {
         MealScanDraft(items: items, photo: draftPhoto, date: logDate, category: category,
                       suggestedName: suggestedMealName, name: mealName, combine: logAsOneMeal,
-                      pendingEntries: pendingEntries, undoRequested: undoRequested, insight: insight)
+                      pendingEntries: pendingEntries, undoRequested: undoRequested, insight: insight,
+                      categoryPickedByHand: categoryPickedByHand)
     }
 
     private func loadDraft() {
@@ -813,7 +814,7 @@ struct MealScanFlow: View {
         photoScale = nil
         chosenLogDate = draft.date
         category = draft.category
-        categoryPickedByHand = draft.category != MealCategory.auto(for: draft.date)
+        categoryPickedByHand = draft.categoryPickedByHand ?? (draft.category != MealCategory.auto(for: draft.date))
         suggestedMealName = draft.suggestedName
         insight = draft.insight
         mealName = draft.name
