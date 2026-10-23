@@ -18,15 +18,6 @@ struct CyclePhaseCard: View {
     private var tint: Color { CyclePhaseEngine.tint(for: status.phase) }
     private var icon: String { CyclePhaseEngine.icon(for: status.phase) }
 
-    // Non-Sendable Foundation formatter; thread-safe for read-only
-    // use after configuration. nonisolated(unsafe) is the Swift 6
-    // escape hatch for this pattern.
-    nonisolated(unsafe) private static let relative: RelativeDateTimeFormatter = {
-        let f = RelativeDateTimeFormatter()
-        f.unitsStyle = .full
-        return f
-    }()
-
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             header
@@ -100,25 +91,25 @@ struct CyclePhaseCard: View {
         }
     }
 
+    /// Whole calendar days to the boundary, so the footer agrees with the
+    /// "Day X of Y" subtitle instead of rounding to the largest unit.
     private var footerCopy: String {
+        let days = CyclePhaseEngine.daysUntilPhaseEnd(status)
         switch status.phase {
         case .completed:
-            return String(localized: "Tap edit to start a new cycle.")
+            return String(localized: "Tap Restart to start a new cycle.")
         case .upcoming:
-            return String(
-                localized: "Starts \(Self.relative.localizedString(for: status.phaseEndDate, relativeTo: Date()))",
-                comment: "Cycle-phase footer — when the protocol starts."
-            )
+            return days <= 1
+                ? String(localized: "Starts tomorrow", comment: "Cycle-phase footer — the protocol starts tomorrow.")
+                : String(localized: "Starts in \(days) days", comment: "Cycle-phase footer — whole days until the protocol starts (always 2 or more).")
         case .onCycle:
-            return String(
-                localized: "Wash-out begins \(Self.relative.localizedString(for: status.phaseEndDate, relativeTo: Date()))",
-                comment: "Cycle-phase footer — when the wash-out window opens."
-            )
+            return days <= 1
+                ? String(localized: "Wash-out begins tomorrow", comment: "Cycle-phase footer — the wash-out opens tomorrow.")
+                : String(localized: "Wash-out begins in \(days) days", comment: "Cycle-phase footer — whole days until the wash-out (always 2 or more).")
         case .washout:
-            return String(
-                localized: "Next cycle starts \(Self.relative.localizedString(for: status.phaseEndDate, relativeTo: Date()))",
-                comment: "Cycle-phase footer — when the next on-cycle starts."
-            )
+            return days <= 1
+                ? String(localized: "Next cycle starts tomorrow", comment: "Cycle-phase footer — the next on-cycle starts tomorrow.")
+                : String(localized: "Next cycle starts in \(days) days", comment: "Cycle-phase footer — whole days until the next on-cycle (always 2 or more).")
         }
     }
 

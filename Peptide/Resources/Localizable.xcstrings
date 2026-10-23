@@ -21701,16 +21701,6 @@
         }
       }
     },
-    "Next cycle starts %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nästa cykel börjar %@"
-          }
-        }
-      }
-    },
     "Next dose: %@, %@ at %@": {
       "localizations": {
         "sv": {
@@ -32195,16 +32185,6 @@
         }
       }
     },
-    "Tap edit to start a new cycle.": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tryck på Redigera för att starta en ny cykel."
-          }
-        }
-      }
-    },
     "Tap for today": {
       "localizations": {
         "sv": {
@@ -35757,16 +35737,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Uppehåll"
-          }
-        }
-      }
-    },
-    "Wash-out begins %@": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Uppehållet börjar %@"
           }
         }
       }
@@ -39985,6 +39955,82 @@
           "stringUnit": {
             "state": "translated",
             "value": "Loggade doser"
+          }
+        }
+      }
+    },
+    "Tap Restart to start a new cycle.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck på Starta om för att starta en ny cykel."
+          }
+        }
+      }
+    },
+    "Starts tomorrow": {
+      "comment": "Cycle-phase footer — the protocol starts tomorrow.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Börjar i morgon"
+          }
+        }
+      }
+    },
+    "Starts in %lld days": {
+      "comment": "Cycle-phase footer — whole days until the protocol starts (always 2 or more).",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Börjar om %lld dagar"
+          }
+        }
+      }
+    },
+    "Wash-out begins tomorrow": {
+      "comment": "Cycle-phase footer — the wash-out opens tomorrow.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppehållet börjar i morgon"
+          }
+        }
+      }
+    },
+    "Wash-out begins in %lld days": {
+      "comment": "Cycle-phase footer — whole days until the wash-out (always 2 or more).",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppehållet börjar om %lld dagar"
+          }
+        }
+      }
+    },
+    "Next cycle starts tomorrow": {
+      "comment": "Cycle-phase footer — the next on-cycle starts tomorrow.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nästa cykel börjar i morgon"
+          }
+        }
+      }
+    },
+    "Next cycle starts in %lld days": {
+      "comment": "Cycle-phase footer — whole days until the next on-cycle (always 2 or more).",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nästa cykel börjar om %lld dagar"
           }
         }
       }
