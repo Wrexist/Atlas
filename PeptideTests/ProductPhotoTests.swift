@@ -28,28 +28,25 @@ final class ProductPhotoTests: XCTestCase {
 
     // MARK: - Open Food Facts image choice
 
-    func test_offRecordWithBothSizes_prefersTheFullFrontImage() throws {
-        let product = try decodeProduct("""
-        {"product_name": "Cola",
-         "image_front_url": "https://images.openfoodfacts.org/images/products/1/front_en.400.jpg",
-         "image_front_small_url": "https://images.openfoodfacts.org/images/products/1/front_en.200.jpg"}
+    func test_offRecordWithBothSizes_prefersTheFullFrontImage() async throws {
+        let product = try await fetchProduct("""
+        "image_front_url": "https://images.openfoodfacts.org/images/products/1/front_en.400.jpg",
+        "image_front_small_url": "https://images.openfoodfacts.org/images/products/1/front_en.200.jpg"
         """)
         XCTAssertEqual(product.imageURL?.lastPathComponent, "front_en.400.jpg")
     }
 
-    func test_offRecordWithOnlySmallImage_fallsBackToIt() throws {
-        let product = try decodeProduct("""
-        {"product_name": "Cola",
-         "image_front_small_url": "https://images.openfoodfacts.org/images/products/1/front_en.200.jpg"}
+    func test_offRecordWithOnlySmallImage_fallsBackToIt() async throws {
+        let product = try await fetchProduct("""
+        "image_front_small_url": "https://images.openfoodfacts.org/images/products/1/front_en.200.jpg"
         """)
         XCTAssertEqual(product.imageURL?.lastPathComponent, "front_en.200.jpg")
     }
 
-    func test_offFrontImageOnForeignHost_fallsBackToTrustedSmallImage() throws {
-        let product = try decodeProduct("""
-        {"product_name": "Cola",
-         "image_front_url": "https://tracker.example.com/front.jpg",
-         "image_front_small_url": "https://images.openfoodfacts.org/images/products/1/front_en.200.jpg"}
+    func test_offFrontImageOnForeignHost_fallsBackToTrustedSmallImage() async throws {
+        let product = try await fetchProduct("""
+        "image_front_url": "https://tracker.example.com/front.jpg",
+        "image_front_small_url": "https://images.openfoodfacts.org/images/products/1/front_en.200.jpg"
         """)
         XCTAssertEqual(product.imageURL?.host, "images.openfoodfacts.org")
     }
@@ -158,9 +155,21 @@ final class ProductPhotoTests: XCTestCase {
         }
     }()
 
-    private func decodeProduct(_ json: String) throws -> ScannedProduct {
-        try JSONDecoder()
-            .decode(OpenFoodFactsService.RawProduct.self, from: Data(json.utf8))
-            .toScannedProduct(barcode: "1", fetchedAt: Date(timeIntervalSince1970: 0))
+    private func fetchProduct(_ imageFields: String) async throws -> ScannedProduct {
+        let body = Data("""
+        {"status": 1, "code": "5449000000996",
+         "product": {"product_name": "Cola", \(imageFields),
+                     "nutriments": {"energy-kcal_100g": 42}}}
+        """.utf8)
+        MockURLProtocol.handler = { request in
+            (HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!, body)
+        }
+        let service = OpenFoodFactsService(
+            session: session,
+            cache: BarcodeProductCache(directory: directory.appendingPathComponent("off", isDirectory: true)),
+            baseURL: URL(string: "https://openfoodfacts.test/api/v2/product/")!,
+            userAgent: "PeptideTests/1.0"
+        )
+        return try await service.fetch(barcode: "5449000000996")
     }
 }
