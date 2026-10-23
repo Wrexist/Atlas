@@ -3263,20 +3263,120 @@
     },
     "%lld of %lld habits done that day": {
       "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld of %#@arg2@ done that day"
+          },
+          "substitutions": {
+            "arg2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg habit"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg habits"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$lld av %2$lld vanor klara den dagen"
+            "value": "%1$lld av %#@arg2@ klara den dagen"
+          },
+          "substitutions": {
+            "arg2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg vana"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg vanor"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
     "%lld of %lld habits done today": {
       "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld of %#@arg2@ done today"
+          },
+          "substitutions": {
+            "arg2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg habit"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg habits"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld av %lld vanor klara idag"
+            "value": "%1$lld av %#@arg2@ klara i dag"
+          },
+          "substitutions": {
+            "arg2": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg vana"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg vanor"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -4801,16 +4901,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "1 set"
-          }
-        }
-      }
-    },
-    "1 week": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1 vecka"
           }
         }
       }

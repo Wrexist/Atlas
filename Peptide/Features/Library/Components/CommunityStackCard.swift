@@ -60,7 +60,7 @@ struct CommunityStackCard: View {
             stack.name,
             String(localized: "by \(stack.authorName)"),
             peptides == 1 ? String(localized: "1 peptide") : String(localized: "\(peptides) peptides"),
-            stack.cycleLengthWeeks == 1 ? String(localized: "1 week") : String(localized: "\(stack.cycleLengthWeeks) weeks")
+            String(localized: "\(stack.cycleLengthWeeks) weeks")
         ]
         if let goal = stack.goalTags.first { parts.append(goal) }
         if stack.featured { parts.append("featured") }
