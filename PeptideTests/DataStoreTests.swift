@@ -498,6 +498,27 @@ final class DataStoreTests: XCTestCase {
         XCTAssertEqual(store.profile.name, "Dirty Tracking")
     }
 
+    func test_refreshFromStore_beforeTheDebouncedSave_keepsTheDeletion() throws {
+        let proto = try XCTUnwrap(store.protocols.first)
+
+        store.deleteProtocol(id: proto.id)
+        store.refreshFromStore()
+
+        XCTAssertFalse(store.protocols.contains { $0.id == proto.id })
+        XCTAssertFalse(SwiftDataRepository.shared.loadProtocols().contains { $0.id == proto.id })
+    }
+
+    func test_refreshFromStore_whenSaveFails_keepsUnsavedEdits() throws {
+        let entry = try XCTUnwrap(store.entries.first { !$0.completed })
+        SwiftDataRepository.shared.forceCommitFailureForTesting = true
+        defer { SwiftDataRepository.shared.forceCommitFailureForTesting = false }
+
+        store.toggleEntry(entry.id)
+        store.refreshFromStore()
+
+        XCTAssertEqual(store.entries.first { $0.id == entry.id }?.completed, true)
+    }
+
     // MARK: - Multi-device sync
 
     func test_cloudImport_afterADebouncedSave_reloadsFromDisk() async throws {

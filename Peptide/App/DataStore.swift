@@ -2912,10 +2912,20 @@ final class DataStore {
         Task { await importHealthWeights() }
     }
 
-    /// Re-pulls protocols / entries / profile from the repository — used by
-    /// the Protocols list's pull-to-refresh so a CloudKit sync from another
-    /// device shows up without an app relaunch. Falls back to the existing
-    /// in-memory state if the repo returns nil for that resource.
+    /// Pull-to-refresh. Lands pending edits first, so the reload can't
+    /// discard them or bring back a protocol whose deletion is still
+    /// queued; while they can't be saved, memory stays as it is.
+    func refreshFromStore() {
+        flushPendingSave()
+        guard !hasUnsavedChanges else { return }
+        reloadFromDisk()
+    }
+
+    /// Re-pulls protocols / entries / profile from the repository so a
+    /// CloudKit sync from another device shows up without an app
+    /// relaunch. Falls back to the existing in-memory state if the repo
+    /// returns nil for that resource. Replaces unsaved in-memory edits;
+    /// user-triggered refreshes go through `refreshFromStore`.
     func reloadFromDisk() {
         // Same two-phase shape as init: the recent window synchronously
         // (this runs on pull-to-refresh and CloudKit pulls, where a
