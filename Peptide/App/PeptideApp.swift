@@ -425,10 +425,12 @@ struct PeptideApp: App {
         else { return }
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(450))
-            // Re-check inside the Task — another launch in the
-            // same scene tick could have already presented the
-            // sheet, and we don't want a double-present race.
-            guard !showWhatsNewTour else { return }
+            // Checked after the delay, when the sheet would present: a
+            // sheet already up (a tab's own, Profile, the travel prompt)
+            // makes SwiftUI refuse this one while the flag stays set,
+            // which would block every retry. Left unset, the next
+            // `.active` tries again.
+            guard canPresentRootModal else { return }
             showWhatsNewTour = true
         }
     }
@@ -487,12 +489,16 @@ struct PeptideApp: App {
             return
         }
         // Not over onboarding: the prompt is about protocols the user
-        // hasn't set up yet. Over the lock it's harmless — it presents
-        // beneath the lock window and can't be answered until unlock.
-        if hasCompletedOnboarding,
-           let change = TimezoneChangeDetector.detect(previousIdentifier: stored) {
-            travelChange = change
-        }
+        // hasn't set up yet. Nor over another presentation, which would
+        // refuse it and leave `travelChange` set, blocking the prompt
+        // and the win-back for the session. The stored zone is only
+        // updated once the user answers, so the next `.active` detects
+        // the same change again.
+        guard hasCompletedOnboarding,
+              canPresentRootModal,
+              let change = TimezoneChangeDetector.detect(previousIdentifier: stored)
+        else { return }
+        travelChange = change
     }
 
     /// First active protocol's first preferred time, paired with
