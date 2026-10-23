@@ -214,19 +214,18 @@ struct OnboardingView: View {
         }
     }
 
-    /// Blocks forward swipes on every page so the only way forward is
-    /// the footer button. `primaryAction()` is what persists each step
-    /// (name, goal, nutrition targets) and records the disclaimer
-    /// acknowledgment (Deep Audit II A1); a swipe would skip it.
+    /// The only way forward is the footer button: `primaryAction()` is
+    /// what persists each step (name, goal, nutrition targets) and records
+    /// the disclaimer acknowledgment (Deep Audit II A1). Swiping the pager
+    /// is switched off (see the TabView), because a rejected binding write
+    /// left the pager showing the next page with no state change to drive
+    /// it back. This gate stays as a backstop for paths that still page
+    /// it, such as VoiceOver's three-finger scroll; back is always allowed.
     /// `advance()` writes `page` directly, so it never hits this gate.
-    /// Backward swipes are always allowed.
     private var gatedPage: Binding<OnboardingStep> {
         Binding(
             get: { page },
             set: { newValue in
-                // A blocked forward swipe just settles back — no
-                // warning buzz, which read as an error for a gesture
-                // the user had every reason to try.
                 guard newValue <= page else { return }
                 page = newValue
             }
@@ -254,17 +253,20 @@ struct OnboardingView: View {
                     // Tags are `OnboardingStep` cases rather than literal
                     // Ints so a step insertion doesn't silently shift
                     // every downstream tag and re-bucket the funnel events.
-                    welcome.tag(OnboardingStep.welcome)
-                    nameStep.tag(OnboardingStep.name)
-                    goalStep.tag(OnboardingStep.goal)
-                    bodyMetricsStep.tag(OnboardingStep.bodyMetrics)
-                    trainingStep.tag(OnboardingStep.training)
-                    permissionsStep.tag(OnboardingStep.permissions)
-                    referralStep.tag(OnboardingStep.referral)
-                    disclaimerStep.tag(OnboardingStep.disclaimer)
-                    planStep.tag(OnboardingStep.plan)
+                    welcome.scrollDisabled(false).tag(OnboardingStep.welcome)
+                    nameStep.scrollDisabled(false).tag(OnboardingStep.name)
+                    goalStep.scrollDisabled(false).tag(OnboardingStep.goal)
+                    bodyMetricsStep.scrollDisabled(false).tag(OnboardingStep.bodyMetrics)
+                    trainingStep.scrollDisabled(false).tag(OnboardingStep.training)
+                    permissionsStep.scrollDisabled(false).tag(OnboardingStep.permissions)
+                    referralStep.scrollDisabled(false).tag(OnboardingStep.referral)
+                    disclaimerStep.scrollDisabled(false).tag(OnboardingStep.disclaimer)
+                    planStep.scrollDisabled(false).tag(OnboardingStep.plan)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
+                // No swiping between pages; each page re-enables its own
+                // scrolling above. Back stays on the top-bar button.
+                .scrollDisabled(true)
                 .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: page)
                 // `pinnedFooter`, not a floating overlay. The footer used
                 // to be `VStack { Spacer(); footer }` layered in this
