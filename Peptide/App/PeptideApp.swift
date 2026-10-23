@@ -846,12 +846,15 @@ struct WorkoutAccessoryView: View {
 
 struct NextDoseAccessoryView: View {
     @Environment(DataStore.self) private var dataStore
+    /// Re-read when the shown dose falls due, so "Next" turns into
+    /// "Overdue" on time even while nothing else redraws the strip.
+    @State private var now = Date()
 
     var body: some View {
         let next = dataStore.nextDose
         // `nextDose` falls back to a missed dose once none is left ahead,
         // so a past time here means the dose is overdue, not upcoming.
-        let isOverdue = next.map { $0.date < Date() } ?? false
+        let isOverdue = next.map { $0.date < now } ?? false
 
         HStack(spacing: Spacing.sm) {
             Image(systemName: icon(isDone: next == nil, isOverdue: isOverdue))
@@ -880,6 +883,12 @@ struct NextDoseAccessoryView: View {
         .appAnimation(AppAnimation.springSnappy, value: next == nil)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(voiceOverLabel(isOverdue: isOverdue))
+        .task(id: next?.date) {
+            now = Date()
+            guard let due = next?.date, due > now else { return }
+            try? await Task.sleep(for: .seconds(due.timeIntervalSince(now) + 1))
+            now = Date()
+        }
     }
 
     private func icon(isDone: Bool, isOverdue: Bool) -> String {
