@@ -674,6 +674,16 @@ struct OnboardingView: View {
         }
     }
 
+    /// Undoes an applied code, so a typo that happened to match another
+    /// creator's code isn't locked in for the rest of the flow.
+    private func clearCreatorCode() {
+        Haptics.selection()
+        AppAnimation.with(AppAnimation.springSnappy) { creatorAttribution = nil }
+        dataStore.profile.creatorAttribution = nil
+        dataStore.flushPendingSave()
+        OnboardingFunnelTracker.recordEvent("creator_code_cleared")
+    }
+
     private var currentTrainingPrefs: TrainingPreferences {
         TrainingPreferences(
             daysPerWeek: daysPerWeek,
@@ -1842,6 +1852,12 @@ struct OnboardingView: View {
             .autocorrectionDisabled()
             .submitLabel(.done)
             .onSubmit { if hasCreatorCodeToApply { applyCreatorCode() } }
+            // "Code not found" describes the last Apply, not what's being
+            // typed now.
+            .onChange(of: creatorCodeInput) { _, _ in
+                guard creatorError != nil else { return }
+                AppAnimation.with(AppAnimation.fadeIn) { creatorError = nil }
+            }
 
             if let error = creatorError {
                 HStack(spacing: Spacing.xs) {
@@ -1875,6 +1891,10 @@ struct OnboardingView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
+            Button("Change", action: clearCreatorCode)
+                .font(AppFont.subheadline.weight(.semibold))
+                .foregroundStyle(AppColor.accentLight)
+                .minimumHitArea()
         }
         .padding(Spacing.md)
         .background(
