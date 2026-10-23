@@ -479,8 +479,12 @@ final class DataStore {
         if status == .active, protocols[index].status != .active, activationExceedsFreeCap(id: id) {
             return false
         }
+        let wasActive = protocols[index].status == .active
         protocols[index].status = status
         if status == .active {
+            if !wasActive {
+                CycleCompletionService.shared.restartGraceWindow(for: protocols[index])
+            }
             appendTodayEntries(for: protocols[index])
         }
         save()
@@ -757,6 +761,9 @@ final class DataStore {
             createdAt: existing.createdAt
         )
         protocols[index] = updated
+        if updated.status == .active, updated.cycleEndDay != existing.cycleEndDay {
+            CycleCompletionService.shared.restartGraceWindow(for: updated)
+        }
 
         // Regenerate today's entries, preserving any the user already
         // logged — see regenerateTodayEntriesPreservingLogs.
