@@ -3,8 +3,9 @@ import Foundation
 /// The user's one-time, explicit permission to send what they submit —
 /// research-chat messages, a meal photo — to Anthropic's Claude through
 /// Atlas's proxy (App Store Guideline 5.1.2(i)). Stored as the moment of
-/// consent so a revoke is simply removing it. The weekly recap has its own
-/// toggle and disclosure and does not read this.
+/// consent so a revoke is simply removing it. The weekly recap also sends
+/// data, so turning it on asks for this consent and its proxy call is
+/// skipped without it.
 ///
 /// The diet coach also sends a 7-day nutrition summary the user never typed,
 /// so it needs its own grant on top of the general one: consent given to the

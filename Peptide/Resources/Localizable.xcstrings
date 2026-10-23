@@ -10887,6 +10887,16 @@
         }
       }
     },
+    "Your weekly totals and HRV trend, once a week.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina veckosummor och din HRV-trend, en gång i veckan."
+          }
+        }
+      }
+    },
     "milliliters": {
       "localizations": {
         "sv": {
