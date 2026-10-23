@@ -1,4 +1,4 @@
-"""Regression checks for add-only vs read/write Photos purpose strings."""
+"""Regression checks for check-copy-claims.py."""
 import importlib.util
 from pathlib import Path
 import re
@@ -33,6 +33,24 @@ class PhotosPurposeTests(unittest.TestCase):
     def test_mixed_read_and_add_requires_both(self):
         self.assertEqual(self.required("PHAsset.fetchAssets(); PHAssetCreationRequest.forAsset()"),
                          set(claims.PHOTO_USAGE_PATTERNS))
+
+
+class StoreFacingCopyTests(unittest.TestCase):
+    def test_marketing_page_and_social_images_are_scanned_for_retired_terms(self):
+        scanned = {str(p.relative_to(claims.REPO)) for p in claims.store_facing_files()}
+        self.assertIn("docs/index.html", scanned)
+        self.assertIn("marketing/app-store/social/square-biology.html", scanned)
+        self.assertIn("marketing/app-store/screens/07-biology.html", scanned)
+
+    def test_retired_terms_match_performance_age_and_stack(self):
+        for text in ["Track your Performance Age.", "your stack", "stacking"]:
+            with self.subTest(text=text):
+                self.assertRegex(text, claims.RETIRED_TERMS)
+        self.assertNotRegex("Track your Biological Age.", claims.RETIRED_TERMS)
+
+    def test_offer_countdown_copy_is_flagged(self):
+        self.assertRegex("⚡ WELCOME OFFER ENDS IN", claims.COUNTDOWN_COPY)
+        self.assertNotRegex("7 days free, then choose a plan", claims.COUNTDOWN_COPY)
 
 
 if __name__ == "__main__":

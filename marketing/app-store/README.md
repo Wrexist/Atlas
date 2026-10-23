@@ -73,7 +73,7 @@ build breadth and end on the paywall (required by App Review).
 | 4 | Recap (real capture) | "A recap after every workout." | Duration, sets, volume and muscles after each session. |
 | 5 | Recovery / Today | "Know if you're ready to train." | Daily recovery score. |
 | 6 | Atlas Score | "A streak you won't break." | Retention: streaks and levels. |
-| 7 | Biology · Atlas Pro | "Track your Performance Age." | Pro upsell; labelled an estimate, never "biological age". |
+| 7 | Biology · Atlas Pro | "Track your Biological Age." | Pro upsell; labelled an estimate, the same name the app uses. |
 | 8 | Habits | "Build streaks that stick." | Six-month heatmap. |
 | 9 | Protocols | "Track every protocol. To the dose." | Advanced audience. |
 | 10 | Paywall | "Try free. Upgrade when ready." | Required by Guideline 3.1; 7-day trial on Monthly and Annual, matching Products.storekit. |
@@ -121,7 +121,7 @@ in the deck:
 2. **Lead with the emotional benefit, not a feature list.** "Know if you're ready to
    train" / "earns points" / "two taps" — outcomes, not specs.
 3. **Tell a story across the set:** problem → emotional payoff → solution, then breadth.
-4. **Real, specific numbers convert.** "47-day streak", "12,480", "100 kg × 5",
+4. **Real, specific numbers convert.** "47-day streak", "6,976", "100 kg × 5",
    "3.6 years younger" — concrete data signals a real, active product far better than
    "track your workouts". *(SensorTower, Nakxi)*
 5. **Prove consistency for a fitness app.** Streaks, heatmaps, and a score are
@@ -135,7 +135,7 @@ in the deck:
    and reads like a genuine screenshot — no gimmicky floating callouts. *(ASOMobile)*
 8. **Headlines big, copy < 20% of the frame**, legible at search-thumbnail size.
 9. **One hero stat per frame.** Each screen is decluttered so a single dominant number
-   (78 · 12,480 · 100 kg · 28.4 · 47-day streak) carries it — no competing chips.
+   (78 · 6,976 · 100 kg · 28.4 · 47-day streak) carries it — no competing chips.
 10. **No unverifiable claims.** No fake star rating; only honest signals
     ("No ads · No tracking", real trial terms).
 11. **Vertical frames** (the 2026 standard for ~96% of top apps).
@@ -217,7 +217,7 @@ shot list for the listing's autoplay video. It must be **real on-device capture*
       submitting** (drop a JPG at `assets/meal-photo.jpg` and re-render). Your own
       photo is the ideal asset anyway: it's authentic, owned, and zero-risk.
 - [ ] Confirm the `873` exercise count and `208` compound count still match the app.
-- [ ] Swap the illustrative figures (Recovery 78, Atlas Score 12,480, 47-day streak,
+- [ ] Swap the illustrative figures (Recovery 78, Atlas Score 6,976, 47-day streak,
       Bio Age 28.4) for real screenshots/values if you'd rather not ship sample data.
 - [ ] Keep the `Atlas Pro — subscription required` badge on every Pro-gated frame.
 - [ ] A/B test via **Apple Product Page Optimization** — test frame 1 (Recovery ring)
