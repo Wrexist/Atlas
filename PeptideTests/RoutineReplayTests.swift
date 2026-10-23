@@ -82,6 +82,20 @@ final class RoutineReplayTests: XCTestCase {
         XCTAssertEqual(slot?.note, "belt on top set")
     }
 
+    func test_replaying_keepsSupersetPairsThroughReseeding() {
+        let group = UUID()
+        let routine = Routine(replaying: session([
+            WorkoutExerciseEntry(exerciseID: "Bench", index: 0, sets: [set(1, reps: 8)], supersetGroup: group),
+            WorkoutExerciseEntry(exerciseID: "Row", index: 1, sets: [set(1, reps: 8)], supersetGroup: group),
+            WorkoutExerciseEntry(exerciseID: "Curl", index: 2, sets: [set(1, reps: 12)])
+        ]), name: "Upper")
+
+        XCTAssertEqual(routine.exercises.map(\.supersetGroup), [group, group, nil])
+
+        let seeded = RoutineSeedEngine.sessionExercises(for: routine)
+        XCTAssertEqual(seeded.map(\.supersetGroup), [group, group, nil])
+    }
+
     func test_replaying_usesSuppliedID() {
         let id = UUID()
 

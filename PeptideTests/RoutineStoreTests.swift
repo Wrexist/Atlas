@@ -53,6 +53,27 @@ final class RoutineStoreTests: XCTestCase {
         XCTAssertEqual(store.routines.compactMap(\.sortIndex), [0, 1, 2])
     }
 
+    // MARK: - Add (generated program)
+
+    func test_add_appendsInOrder_andKeepsTheGeneratedDetail() throws {
+        store.create(name: "Existing")
+        let group = UUID()
+        let upper = Routine(name: "Upper A", subtitle: "Build muscle · day 1 of 2", exercises: [
+            RoutineExercise(exerciseID: "Barbell_Curl", index: 0, restSeconds: 60, supersetGroup: group),
+            RoutineExercise(exerciseID: "Triceps_Pushdown", index: 1, restSeconds: 60, supersetGroup: group),
+        ])
+        let lower = Routine(name: "Lower A", exercises: [RoutineExercise(exerciseID: "Barbell_Squat", index: 0)])
+
+        store.add([upper, lower])
+        store.load()
+
+        XCTAssertEqual(store.routines.map(\.name), ["Existing", "Upper A", "Lower A"])
+        let saved = try XCTUnwrap(store.routines.first { $0.id == upper.id })
+        XCTAssertEqual(saved.subtitle, upper.subtitle)
+        XCTAssertEqual(saved.exercises.map(\.supersetGroup), [group, group])
+        XCTAssertEqual(saved.exercises.map(\.restSeconds), [60, 60])
+    }
+
     // MARK: - Rename
 
     func test_rename_writesThrough() {

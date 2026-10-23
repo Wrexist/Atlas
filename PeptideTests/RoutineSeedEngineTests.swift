@@ -207,4 +207,44 @@ final class RoutineSeedEngineTests: XCTestCase {
 
         XCTAssertGreaterThanOrEqual(RoutineSeedEngine.estimatedMinutes(for: routine), 5)
     }
+
+    // MARK: - Supersets
+
+    private func superset(_ group: UUID, _ slots: RoutineExercise...) -> [RoutineExercise] {
+        slots.map { slot in
+            var linked = slot
+            linked.supersetGroup = group
+            return linked
+        }
+    }
+
+    func test_sessionExercises_carriesSupersetGroup() {
+        let group = UUID()
+        let routine = Routine(name: "Arms", exercises: superset(
+            group,
+            slot("Barbell_Curl", index: 0),
+            slot("Triceps_Pushdown", index: 1)
+        ))
+
+        let entries = RoutineSeedEngine.sessionExercises(for: routine)
+
+        XCTAssertEqual(entries.map(\.supersetGroup), [group, group])
+    }
+
+    func test_sessionExercises_loneSupersetSlot_seedsStandalone() {
+        let routine = Routine(name: "Arms", exercises: superset(UUID(), slot("Barbell_Curl", index: 0)))
+
+        XCTAssertNil(RoutineSeedEngine.sessionExercises(for: routine).first?.supersetGroup)
+    }
+
+    func test_estimatedSeconds_supersetRestsOncePerRound() {
+        let curl = slot("Barbell_Curl", index: 0, sets: 3, rest: 60)
+        let pushdown = slot("Triceps_Pushdown", index: 1, sets: 3, rest: 60)
+        let straight = Routine(name: "Arms", exercises: [curl, pushdown])
+        let paired = Routine(name: "Arms", exercises: superset(UUID(), curl, pushdown))
+
+        let work = 6 * RoutineSeedEngine.secondsPerSet
+        XCTAssertEqual(RoutineSeedEngine.estimatedSeconds(for: straight), work + 4 * 60)
+        XCTAssertEqual(RoutineSeedEngine.estimatedSeconds(for: paired), work + 2 * 60)
+    }
 }

@@ -73,6 +73,10 @@ struct RoutineExercise: Codable, Hashable, Identifiable, Sendable {
     var restSeconds: Int?
     /// Optional note attached to this slot, e.g. "tempo 3-1-1".
     var note: String?
+    /// Shared by slots worked as a superset; carried onto the session's
+    /// `WorkoutExerciseEntry.supersetGroup`. Optional so routines saved
+    /// before supersets existed still decode.
+    var supersetGroup: UUID?
 
     init(
         id: UUID = UUID(),
@@ -83,7 +87,8 @@ struct RoutineExercise: Codable, Hashable, Identifiable, Sendable {
         targetRPE: Double? = nil,
         targetPercentOf1RM: Double? = nil,
         restSeconds: Int? = nil,
-        note: String? = nil
+        note: String? = nil,
+        supersetGroup: UUID? = nil
     ) {
         self.id = id
         self.exerciseID = exerciseID
@@ -94,5 +99,6 @@ struct RoutineExercise: Codable, Hashable, Identifiable, Sendable {
         self.targetPercentOf1RM = targetPercentOf1RM
         self.restSeconds = restSeconds
         self.note = note
+        self.supersetGroup = supersetGroup
     }
 }
