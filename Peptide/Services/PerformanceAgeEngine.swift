@@ -474,8 +474,9 @@ enum PerformanceAgeEngine {
     }
 
     /// Engine inputs as they stood on `day`: medians over the trailing
-    /// `windowDays` (VO2 max over `vo2WindowDays`), the weight change
-    /// across that window, and the count of days with any recovery data.
+    /// `windowDays` (VO2 max over `vo2WindowDays`, steps over the finished
+    /// days only), the weight change across that window, and the count of
+    /// days with any recovery data.
     static func inputs(
         asOf day: Date,
         series: DailySeries,
@@ -489,6 +490,10 @@ enum PerformanceAgeEngine {
         let rhr = series.rhr.filter { recent.contains($0.date) }
         let sleep = series.sleepHours.filter { recent.contains($0.date) }
         let coveredDays = Set((hrv + rhr + sleep).map { calendar.startOfDay(for: $0.date) })
+        // `day`'s own steps bucket is a running total until midnight, so
+        // only finished days count — as in BiomarkerSeriesService.
+        let dayStart = calendar.startOfDay(for: day)
+        let completedSteps = series.steps.filter { recent.contains($0.date) && $0.date < dayStart }
 
         return Inputs(
             chronologicalAge: profile.chronologicalAge,
@@ -498,7 +503,7 @@ enum PerformanceAgeEngine {
             sleepHoursMedian30d: median(sleep.map(\.value)),
             weightDeltaKg30d: weightDelta(series.weightKg.filter { recent.contains($0.date) }),
             vo2MaxRecent: median(series.vo2Max.filter { vo2Window.contains($0.date) }.map(\.value)),
-            stepsMedian30d: median(series.steps.filter { recent.contains($0.date) }.map(\.value)),
+            stepsMedian30d: median(completedSteps.map(\.value)),
             bodyMassIndex: profile.bodyMassIndex,
             healthDataDays: coveredDays.count
         )

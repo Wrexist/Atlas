@@ -567,6 +567,21 @@ final class PerformanceAgeEngineTests: XCTestCase {
         ).isEmpty)
     }
 
+    /// Today's steps bucket is a running total until midnight, so a tiny
+    /// morning count must not drag the median down.
+    func test_inputs_partialTodaySteps_doNotChangeMedian() {
+        let end = utc.startOfDay(for: Date(timeIntervalSince1970: 1_760_000_000))
+        let finished = series([8_000, 8_000, 8_000], endingOn: day(-1, from: end))
+        let morning = PerformanceAgeEngine.DailyValue(date: end.addingTimeInterval(8 * 3_600), value: 900)
+        let withToday = PerformanceAgeEngine.inputs(
+            asOf: end.addingTimeInterval(8 * 3_600),
+            series: .init(steps: finished + [morning]),
+            profile: .init(chronologicalAge: 30),
+            calendar: utc
+        )
+        XCTAssertEqual(withToday.stepsMedian30d, 8_000)
+    }
+
     // MARK: - Unlock day
 
     /// Full coverage: 14 days is just below the confidence gate, 15 clears it.
