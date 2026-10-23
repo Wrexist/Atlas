@@ -3435,6 +3435,16 @@
         }
       }
     },
+    "%lld out of 5": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld av 5"
+          }
+        }
+      }
+    },
     "%lld peptides": {
       "localizations": {
         "sv": {

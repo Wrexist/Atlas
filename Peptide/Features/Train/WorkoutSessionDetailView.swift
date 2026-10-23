@@ -22,6 +22,8 @@ struct WorkoutSessionDetailView: View {
 
     private var unit: MeasurementUnit { dataStore.profile.bodyMetrics.unit }
     @State private var library = ExerciseLibrary.shared
+    /// Set-number column, scaled with the text so two digits never wrap.
+    @ScaledMetric(relativeTo: .caption2) private var setNumberWidth: CGFloat = 20
 
     init(session: WorkoutSession) {
         _session = State(initialValue: session)
@@ -247,6 +249,7 @@ struct WorkoutSessionDetailView: View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: "bolt.fill")
                 .foregroundStyle(AppColor.perceivedEffort)
+                .accessibilityHidden(true)
             Text("Perceived effort")
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
@@ -257,6 +260,9 @@ struct WorkoutSessionDetailView: View {
         }
         .padding(Spacing.md)
         .glassSurface(cornerRadius: Spacing.smallCornerRadius)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Perceived effort")
+        .accessibilityValue("\(effort) out of 5")
     }
 
     private func noteCard(_ note: String) -> some View {
@@ -297,7 +303,8 @@ struct WorkoutSessionDetailView: View {
                     Text("\(set.index)")
                         .font(AppFont.caption2.weight(.semibold))
                         .monospacedDigit()
-                        .frame(width: 20, alignment: .leading)
+                        .frame(minWidth: setNumberWidth, alignment: .leading)
+                        .fixedSize()
                         .foregroundStyle(AppColor.textTertiary)
                         .accessibilityLabel("Set \(set.index)")
                     Text(RecapFormat.set(set, unit: unit))
