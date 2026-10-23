@@ -23810,6 +23810,17 @@
         }
       }
     },
+    "Opens the entry to edit or delete it.": {
+      "comment": "VoiceOver hint for a logged meal row.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar posten så att du kan redigera eller radera den."
+          }
+        }
+      }
+    },
     "Opens the meal scanner.": {
       "localizations": {
         "sv": {
