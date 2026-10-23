@@ -45,6 +45,9 @@ struct ProtocolBuilderView: View {
     /// only cost the user a prompt once they've actually entered something.
     @State private var initialForm: FormSnapshot?
     @State private var isConfirmingDiscard = false
+    /// Recomputed when the selection changes, not on every keystroke in
+    /// the name field.
+    @State private var inlineWarnings: [StackRecommendationEngine.Warning] = []
 
     private let dayNames = ScheduleEditor.isoWeekdayNames
     private let totalSteps = 2
@@ -210,8 +213,8 @@ struct ProtocolBuilderView: View {
         return profileName.isEmpty ? nil : profileName
     }
 
-    private var inlineWarnings: [StackRecommendationEngine.Warning] {
-        StackRecommendationEngine.warnings(
+    private func refreshInlineWarnings() {
+        inlineWarnings = StackRecommendationEngine.warnings(
             for: orderedSelectedPeptides,
             activeProtocols: dataStore.activeProtocols
         )
@@ -386,9 +389,8 @@ struct ProtocolBuilderView: View {
                 }
                 .sectionAppear(index: 2)
 
-                let warnings = inlineWarnings
-                if !warnings.isEmpty {
-                    warningsCard(warnings)
+                if !inlineWarnings.isEmpty {
+                    warningsCard(inlineWarnings)
                         .sectionAppear(index: 3)
                 }
             }
@@ -397,6 +399,7 @@ struct ProtocolBuilderView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .dismissKeyboardOnTap()
+        .task(id: selectedPeptides) { refreshInlineWarnings() }
     }
 
     private func hydrate(from proto: PeptideProtocol) {
@@ -524,9 +527,6 @@ struct ProtocolBuilderView: View {
     }
 
     private func warningsCard(_ warnings: [StackRecommendationEngine.Warning]) -> some View {
-        // `Warning.id` is a fresh UUID per instance, which would churn SwiftUI
-        // identity on every keystroke. Key on `title` instead — it's stable
-        // across renders for the same warning content.
         let topWarnings = Array(warnings.prefix(3))
         let hiddenCount = warnings.count - topWarnings.count
         return GlassCard {
@@ -535,7 +535,7 @@ struct ProtocolBuilderView: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.warning)
 
-                ForEach(topWarnings, id: \.title) { warning in
+                ForEach(topWarnings) { warning in
                     HStack(alignment: .top, spacing: Spacing.sm) {
                         Image(systemName: warning.icon)
                             .font(AppFont.subheadline.weight(.semibold))

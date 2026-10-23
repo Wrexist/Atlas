@@ -225,7 +225,9 @@ enum StackRecommendationEngine {
         // Filter out zero-score, compute confidence, sort and return
         return candidates.values
             .filter { $0.score > 0 }
-            .sorted { $0.score > $1.score }
+            // Dictionary order is randomized per launch; break score ties
+            // on the abbreviation so the top picks don't reshuffle.
+            .sorted { $0.score != $1.score ? $0.score > $1.score : $0.peptide.abbreviation < $1.peptide.abbreviation }
             .prefix(limit)
             .map {
                 Recommendation(
@@ -306,15 +308,12 @@ enum StackRecommendationEngine {
     static func cycleTransitions(
         for activeProtocols: [PeptideProtocol]
     ) -> [CycleTransition] {
-        let calendar = Calendar.current
         var transitions: [CycleTransition] = []
 
         for proto in activeProtocols {
+            guard let weeksElapsed = weeksIntoCurrentRun(of: proto) else { continue }
             for peptide in proto.peptides {
                 guard let cycle = PeptideTimingData.cycleProtocols[peptide.abbreviation] else { continue }
-                let weeksElapsed = calendar.dateComponents(
-                    [.weekOfYear], from: proto.startDate, to: Date()
-                ).weekOfYear ?? 0
                 let weeksRemaining = max(cycle.onWeeks - weeksElapsed, 0)
 
                 // Show transition if within 2 weeks of cycle end or already overdue
@@ -332,6 +331,26 @@ enum StackRecommendationEngine {
     }
 
     // MARK: - Helpers
+
+    /// Whole weeks the protocol has been dosing in its current on-phase,
+    /// or nil while it's in a wash-out or hasn't started. A single-cycle
+    /// protocol still running past its end keeps counting from its start.
+    static func weeksIntoCurrentRun(of proto: PeptideProtocol, now: Date = Date()) -> Int? {
+        switch CyclePhaseEngine.status(for: proto, at: now).phase {
+        case .onCycle(let day, _):
+            return (day - 1) / 7
+        case .completed:
+            let calendar = Calendar.current
+            let days = calendar.dateComponents(
+                [.day],
+                from: calendar.startOfDay(for: proto.startDate),
+                to: calendar.startOfDay(for: now)
+            ).day ?? 0
+            return days / 7
+        case .washout, .upcoming:
+            return nil
+        }
+    }
 
     struct ResolvedGoal {
         let displayName: String
