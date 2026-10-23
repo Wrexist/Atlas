@@ -352,6 +352,23 @@ final class HabitsServiceTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(rate), 1.0, accuracy: 0.0001)
     }
 
+    /// A morning with nothing logged yet: today's due habit isn't a miss,
+    /// so the rate reflects only the finished days.
+    func test_completionRate_pendingTodayNotYetDone_isNotCountedAsMissed() throws {
+        let habit = makeHabit() // daily
+        let entries = [1, 2, 3].map { HabitEntry(habitId: habit.id, date: day($0), value: 1) }
+        let rate = HabitsService.completionRate(habits: [habit], entries: entries, days: 4, pendingDay: Date())
+        XCTAssertEqual(try XCTUnwrap(rate), 1.0, accuracy: 0.0001)
+    }
+
+    /// Once today's habit is done it counts like any other day.
+    func test_completionRate_pendingTodayDone_counts() throws {
+        let habit = makeHabit() // daily
+        let entries = [HabitEntry(habitId: habit.id, date: day(0), value: 1)]
+        let rate = HabitsService.completionRate(habits: [habit], entries: entries, days: 2, pendingDay: Date())
+        XCTAssertEqual(try XCTUnwrap(rate), 0.5, accuracy: 0.0001)
+    }
+
     // MARK: - Streak freeze
 
     func test_currentStreak_frozenDayBridgesMissedDueDay() {

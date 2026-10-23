@@ -62,7 +62,9 @@ struct AtlasProgressView: View {
             habitCurrentStreak: habits
                 .map { HabitsService.summary(for: $0, entries: entries, frozenDayKeys: frozen).currentStreak }
                 .max() ?? 0,
-            rate30: HabitsService.completionRate(habits: habits, entries: entries, days: 30),
+            // Today isn't over, so its unfinished habits aren't missed yet;
+            // the previous window has no such day.
+            rate30: HabitsService.completionRate(habits: habits, entries: entries, days: 30, pendingDay: Date()),
             ratePrevious: HabitsService.completionRate(habits: habits, entries: entries, days: 30, endingOn: previousEnd)
         )
         AppAnimation.with(AppAnimation.springSmooth) { derived = next }

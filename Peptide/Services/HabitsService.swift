@@ -318,11 +318,15 @@ enum HabitsService {
     /// day, so per-day completion would misrepresent a weekly cadence.
     /// Returns nil when the window had no due-days (avoids a 0/0 reading);
     /// the progress surface treats nil as "not enough data yet".
+    ///
+    /// `pendingDay` is a day still in progress: its due habits count once
+    /// done but aren't missed yet, so a morning doesn't drag the rate down.
     static func completionRate(
         habits: [Habit],
         entries: [HabitEntry],
         days: Int,
         endingOn endDate: Date = Date(),
+        pendingDay: Date? = nil,
         calendar: Calendar = .current
     ) -> Double? {
         guard days > 0 else { return nil }
@@ -345,10 +349,13 @@ enum HabitsService {
         var done = 0
         for offset in 0..<days {
             guard let day = calendar.date(byAdding: .day, value: -offset, to: end) else { continue }
+            let isPending = pendingDay.map { calendar.isDate(day, inSameDayAs: $0) } ?? false
             for habit in scheduled where habit.schedule.isDue(on: day, calendar: calendar) {
-                due += 1
                 let target = habit.targetValue ?? 1
-                if (bestValue[ConsistencyKey(habitId: habit.id, day: day)] ?? 0) >= target { done += 1 }
+                let isDone = (bestValue[ConsistencyKey(habitId: habit.id, day: day)] ?? 0) >= target
+                if isPending && !isDone { continue }
+                due += 1
+                if isDone { done += 1 }
             }
         }
         guard due > 0 else { return nil }
