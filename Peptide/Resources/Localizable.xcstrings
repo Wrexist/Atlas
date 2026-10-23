@@ -42119,6 +42119,26 @@
         }
       }
     },
+    "Saved as “%@” unless you name it.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sparas som ”%@” om du inte namnger det."
+          }
+        }
+      }
+    },
+    "Abbreviation (optional)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Förkortning (valfritt)"
+          }
+        }
+      }
+    },
     "Opens Today": {
       "localizations": {
         "sv": {

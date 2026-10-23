@@ -24,7 +24,7 @@ struct CustomPeptideForm: View {
     }
 
     private var canSave: Bool {
-        !trimmedName.isEmpty && !trimmedAbbreviation.isEmpty && !trimmedDosage.isEmpty
+        !trimmedName.isEmpty && !trimmedDosage.isEmpty
     }
 
     var body: some View {
@@ -73,7 +73,7 @@ struct CustomPeptideForm: View {
                 fieldLabel("Name")
                 styledTextField("e.g., Creatine", label: "Name", text: $name)
 
-                fieldLabel("Abbreviation")
+                fieldLabel("Abbreviation (optional)")
                 styledTextField("e.g., CRE", label: "Abbreviation", text: $abbreviation)
                     .textInputAutocapitalization(.characters)
             }
@@ -161,7 +161,8 @@ struct CustomPeptideForm: View {
         guard canSave else { return }
         let peptide = Peptide(
             name: trimmedName,
-            abbreviation: trimmedAbbreviation,
+            // Not every compound has a short form; the name stands in.
+            abbreviation: trimmedAbbreviation.isEmpty ? trimmedName : trimmedAbbreviation,
             category: category,
             description: notes.trimmingCharacters(in: .whitespacesAndNewlines),
             benefits: [],

@@ -46,12 +46,6 @@ struct StackLibraryView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
-                GlassTextField(
-                    placeholder: "Search protocols, peptides…",
-                    text: $searchText
-                )
-                .padding(.horizontal, Spacing.screenPadding)
-
                 tagChips
                     .padding(.horizontal, Spacing.screenPadding)
 
@@ -81,6 +75,14 @@ struct StackLibraryView: View {
         }
         .background(AppColor.background)
         .navigationTitle("Protocol library")
+        // The system search field, as the compound Library uses — it stays
+        // reachable while scrolling and dismisses the keyboard natively.
+        .searchable(
+            text: $searchText,
+            placement: .navigationBarDrawer(displayMode: .always),
+            prompt: "Search protocols, peptides…"
+        )
+        .scrollDismissesKeyboard(.interactively)
         // The `CommunityStack` navigation destination is declared by
         // every host stack that pushes this view (ProtocolListView,
         // ProtocolBuilderView). Declaring it again here collides on

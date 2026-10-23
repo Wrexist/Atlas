@@ -185,7 +185,9 @@ struct PeptideListView: View {
                 // New-user CTA only: once a protocol exists the toolbar's
                 // Protocols button is the way back in, so the card would
                 // just push the list further down.
-                if dataStore.activeProtocols.isEmpty {
+                // Paused and completed protocols count: "your first" would be
+                // wrong copy for someone with a protocol on hold.
+                if dataStore.protocols.isEmpty {
                     ProtocolsEntryCard(onTap: { showProtocols = true })
                         .padding(.horizontal, Spacing.screenPadding)
                 }

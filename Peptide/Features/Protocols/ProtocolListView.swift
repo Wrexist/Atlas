@@ -44,15 +44,6 @@ struct ProtocolListView: View {
                             .padding(.top, Spacing.xxl)
                             .sectionAppear(index: 0)
                         } else {
-                            NavigationLink(value: StackLibraryRoute()) {
-                                GlassEntryRowLabel(
-                                    icon: "books.vertical.fill",
-                                    title: "Browse the protocol library",
-                                    subtitle: Text("Ready-made templates you can start from")
-                                )
-                            }
-                            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
-
                             // Compact vial-shelf glance — "what
                             // compounds am I currently on?" — sits
                             // above the per-protocol detail list so
@@ -100,10 +91,10 @@ struct ProtocolListView: View {
                             // stack first, then the analytical
                             // metadata, then the older protocols.
                             ProtocolsStackHealthSection()
-                                .sectionAppear(index: 3)
+                                .sectionAppear(index: 4)
 
                             ProtocolsDiscoverSection()
-                                .sectionAppear(index: 4)
+                                .sectionAppear(index: 5)
 
                             if !dataStore.pausedProtocols.isEmpty {
                                 ProtocolSection(
@@ -113,7 +104,7 @@ struct ProtocolListView: View {
                                     onShare: { sharingProtocol = $0 },
                                     zoom: zoom
                                 )
-                                .sectionAppear(index: 5)
+                                .sectionAppear(index: 6)
                             }
 
                             if !dataStore.completedProtocols.isEmpty {
@@ -124,8 +115,21 @@ struct ProtocolListView: View {
                                     onShare: { sharingProtocol = $0 },
                                     zoom: zoom
                                 )
-                                .sectionAppear(index: 6)
+                                .sectionAppear(index: 7)
                             }
+
+                            // Templates start something new; they aren't
+                            // part of the user's stack, so they close the
+                            // list instead of leading it.
+                            NavigationLink(value: StackLibraryRoute()) {
+                                GlassEntryRowLabel(
+                                    icon: "books.vertical.fill",
+                                    title: "Browse the protocol library",
+                                    subtitle: Text("Ready-made templates you can start from")
+                                )
+                            }
+                            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+                            .sectionAppear(index: 8)
                         }
                     }
                     .appAnimation(AppAnimation.springSmooth, value: dataStore.protocols.map(\.status))
