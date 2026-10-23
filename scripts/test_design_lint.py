@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import importlib.util
 import pathlib
+import subprocess
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -183,9 +184,15 @@ def run() -> int:
     if len(ramps) < 5:
         failures.append(f"parse_ramps found only {len(ramps)} ramps")
 
+    # A mistyped --rule must fail loudly, never report a clean pass.
+    typo = subprocess.run([sys.executable, str(HERE / "design-lint.py"), "--rule", "no-such-rule"],
+                          capture_output=True, text=True)
+    if typo.returncode != 2 or "valid rules" not in typo.stderr:
+        failures.append(f"--rule no-such-rule exited {typo.returncode}, expected 2 with the valid names")
+
     for f in failures:
         print(f"FAIL  {f}")
-    total = len(CASES) * 2 + 1 + 3 + 2
+    total = len(CASES) * 2 + 1 + 3 + 2 + 1
     print(f"\n{total - len(failures)}/{total} passed")
     return 1 if failures else 0
 

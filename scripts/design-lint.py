@@ -886,13 +886,17 @@ def main() -> int:
     parser.add_argument("--rule", help="run a single rule by name")
     args = parser.parse_args()
 
+    # A mistyped --rule used to skip every rule and report a clean pass.
+    names = {rule.__name__.removeprefix("rule_").replace("_", "-"): rule for rule in RULES}
+    if args.rule and args.rule.replace("_", "-") not in names:
+        parser.error(f"unknown rule '{args.rule}'; valid rules: {', '.join(sorted(names))}")
+    rules = [names[args.rule.replace("_", "-")]] if args.rule else RULES
+
     findings: list[Finding] = []
     for root in SCANNED_ROOTS:
         for path, source in swift_files(root):
             code = blank_previews(strip_comments(source))
-            for rule in RULES:
-                if args.rule and rule.__name__ != f"rule_{args.rule.replace('-', '_')}":
-                    continue
+            for rule in rules:
                 findings.extend(rule(path, source, code))
 
     errors = [f for f in findings if f.severity == "error"]
