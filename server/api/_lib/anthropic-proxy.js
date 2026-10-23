@@ -20,6 +20,8 @@
  *                          list every model the app sends, or the
  *                          sanitiser rewrites the missing ones to the
  *                          first entry — silently, with no client error.
+ *                          meal-scan and ai-research send THINKING_OFF,
+ *                          which Sonnet 5.5 / Opus 5.5 reject; see there.
  *   RATE_LIMIT_RPM       — requests per minute per principal per
  *                          route. Default 20.
  *   DEVICE_DAILY_QUOTA   — upstream cost units per principal per UTC
@@ -94,6 +96,19 @@ const MAX_BODY_BYTES = 4_400_000;
 // The client-supplied part of a route's system prompt is cut to this
 // unless the route allows more (`maxClientSystemChars`).
 const MAX_CLIENT_SYSTEM_CHARS = 4000;
+
+/**
+ * Thinking off, for the routes whose `max_tokens` was sized for the
+ * answer alone. Claude Sonnet 5 runs adaptive thinking at effort high
+ * when `thinking` is omitted, and `max_tokens` caps thinking plus text
+ * together, so those small caps truncated replies. Sonnet 5 and 4.6
+ * accept `disabled` (Sonnet 5 at effort high or below, the default).
+ *
+ * Claude Sonnet 5.5 rejects `{ type: 'disabled' }` with a 400: moving
+ * a route to it means sending `{ type: 'between_tools' }` or
+ * `output_config.effort: 'low'` instead.
+ */
+export const THINKING_OFF = Object.freeze({ type: 'disabled' });
 
 function getAllowedModels() {
   const raw = process.env.ALLOWED_MODELS;
@@ -244,6 +259,7 @@ function sanitiseBody(raw, options) {
   if (!fitsShape(messages, options?.shape)) return null;
 
   const out = { model, max_tokens, messages };
+  if (options?.thinking) out.thinking = options.thinking;
 
   // System-prompt handling. Routes that don't expect a client system
   // (`allowClientSystem: false`) drop any client-supplied value
@@ -270,6 +286,7 @@ export async function forwardToAnthropic(req, res, {
   maxBodyBytes,
   shape,
   maxTokens,
+  thinking,
   buildBody,
   readResponse,
   betas,
@@ -366,7 +383,7 @@ export async function forwardToAnthropic(req, res, {
   // sanitised pass-through of the Messages shape the app sends.
   const clean = buildBody
     ? buildBody(req.body)
-    : sanitiseBody(req.body, { systemPrefix, allowClientSystem, maxClientSystemChars, shape, maxTokens });
+    : sanitiseBody(req.body, { systemPrefix, allowClientSystem, maxClientSystemChars, shape, maxTokens, thinking });
   if (!clean) {
     res.status(400).json({ error: { message: 'Malformed request body' } });
     return;

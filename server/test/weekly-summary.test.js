@@ -110,6 +110,15 @@ test('over-RPM weekly-summary request is rejected 429', async (t) => {
   assert.equal(upstream.length, 1);
 });
 
+test('test_weeklySummary_sendsThinkingDisabledUpstream', async (t) => {
+  setEnv(t, BASE_ENV);
+  const upstream = stubUpstream(t);
+  const res = makeRes();
+  await handler(makeReq('10.1.0.9'), res);
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(JSON.parse(upstream[0][1].body).thinking, { type: 'disabled' });
+});
+
 test('oversized parsed body is rejected 413 regardless of content-length', async (t) => {
   setEnv(t, BASE_ENV);
   const upstream = stubUpstream(t);
