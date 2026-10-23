@@ -28,6 +28,7 @@ struct TrainOverviewView: View {
     /// workouts" sheet promise every session, which the cap would break.
     @State private var allSessions: [WorkoutSession] = []
     @State private var sessionService = WorkoutSessionService.shared
+    @State private var routineStore = RoutineStore.shared
     /// Memoised result of `WeeklyMuscleHeatmap.frequencies` — the
     /// underlying scan is O(sessions × exercises × muscles) and was
     /// previously recomputed on every body re-evaluation because the
@@ -79,13 +80,15 @@ struct TrainOverviewView: View {
             VStack(spacing: Spacing.lg) {
                 startWorkoutButton
                     .sectionAppear(index: 0)
-                recentWorkoutsCard
+                weeklyGoalCard
                     .sectionAppear(index: 1)
-                weeklyMuscleCard
+                recentWorkoutsCard
                     .sectionAppear(index: 2)
+                weeklyMuscleCard
+                    .sectionAppear(index: 3)
                 if weekHasTraining {
                     topMusclesRow
-                        .sectionAppear(index: 3)
+                        .sectionAppear(index: 4)
                 }
                 trainingDetails
                     .scrollReveal()
@@ -103,6 +106,7 @@ struct TrainOverviewView: View {
         // ran every engine pass twice. `load()` is a no-op once loaded.
         .task(id: dataStore.revision) { @MainActor in
             await library.load()
+            routineStore.load()
             refresh()
         }
         .onChange(of: selectedPeriod) { _, _ in
@@ -182,11 +186,100 @@ struct TrainOverviewView: View {
     @ViewBuilder
     private var startWorkoutButton: some View {
         if sessionService.activeSession == nil {
-            PrimaryCTAButton(title: "Start workout", icon: "play.fill", shape: .rounded) {
-                Haptics.impact(.medium)
-                sessionService.startWorkout()
+            VStack(spacing: Spacing.sm) {
+                PrimaryCTAButton(title: "Start workout", icon: "play.fill", shape: .rounded) {
+                    Haptics.impact(.medium)
+                    sessionService.startWorkout()
+                }
+                // The routine that comes next in the user's rotation, one
+                // tap from here instead of via the Routines tab.
+                if let routine = Self.suggestedRoutine(from: routineStore.routines, history: sessions) {
+                    GlassButton(title: "Start \(routine.name)", icon: "list.bullet.rectangle.portrait",
+                                style: .secondary, isFullWidth: true) {
+                        Haptics.impact(.medium)
+                        routineStore.startWorkout(from: routine)
+                    }
+                    .accessibilityIdentifier("train-start-next-routine")
+                }
             }
         }
+    }
+
+    /// The next routine in library order after the one trained most
+    /// recently, wrapping round, so a Push / Pull / Legs rotation suggests
+    /// Pull after Push. The first routine when none has been trained yet;
+    /// routines with no exercises can't be started and are skipped.
+    static func suggestedRoutine(from routines: [Routine], history: [WorkoutSession]) -> Routine? {
+        let ready = routines.filter { !$0.exercises.isEmpty }
+        guard let first = ready.first else { return nil }
+        let readyIDs = Set(ready.map(\.id))
+        let lastTrained = history
+            .filter { session in session.routineID.map { readyIDs.contains($0) } ?? false }
+            .max { $0.startedAt < $1.startedAt }
+        guard let lastID = lastTrained?.routineID,
+              let index = ready.firstIndex(where: { $0.id == lastID })
+        else { return first }
+        return ready[(index + 1) % ready.count]
+    }
+
+    // MARK: - Weekly goal
+
+    /// Days trained this calendar week against the days-per-week the user
+    /// set in onboarding — the goal had no progress shown anywhere in Train.
+    @ViewBuilder
+    private var weeklyGoalCard: some View {
+        if let target = dataStore.profile.trainingPreferences?.daysPerWeek, target > 0 {
+            let done = Self.trainedDaysThisWeek(sessions)
+            let reached = done >= target
+            GlassCard {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    HStack(spacing: Spacing.sm) {
+                        Text("Training days this week")
+                            .font(AppFont.headline)
+                            .foregroundStyle(AppColor.textPrimary)
+                        Spacer(minLength: Spacing.sm)
+                        if reached {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(AppColor.positive)
+                                .accessibilityHidden(true)
+                        }
+                        Text("\(done) of \(target)")
+                            .font(AppFont.headline)
+                            .foregroundStyle(AppColor.textPrimary)
+                            .monospacedDigit()
+                            .contentTransition(.numericText())
+                    }
+                    // One connected track, a segment per planned day.
+                    HStack(spacing: Spacing.xxs) {
+                        ForEach(0..<target, id: \.self) { day in
+                            Capsule()
+                                .fill(day < done ? AppColor.accentFill : AppColor.surfaceSecondary)
+                                .frame(height: Spacing.sm)
+                        }
+                    }
+                    .appAnimation(AppAnimation.springSnappy, value: done)
+                    if reached {
+                        Text("Goal reached")
+                            .font(AppFont.caption2)
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+                }
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("train-weekly-goal")
+        }
+    }
+
+    /// Distinct days with a finished workout in the calendar week that
+    /// holds `now`; two sessions on one day count once.
+    static func trainedDaysThisWeek(
+        _ sessions: [WorkoutSession], now: Date = Date(), calendar: Calendar = .current
+    ) -> Int {
+        guard let week = calendar.dateInterval(of: .weekOfYear, for: now) else { return 0 }
+        let days = sessions
+            .filter { !$0.isActive && $0.startedAt >= week.start && $0.startedAt < week.end }
+            .map { calendar.startOfDay(for: $0.startedAt) }
+        return Set(days).count
     }
 
     /// Pulls the latest sessions out of SwiftData. Called on appear,

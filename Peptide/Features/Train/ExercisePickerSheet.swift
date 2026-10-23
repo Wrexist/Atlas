@@ -10,6 +10,9 @@ import SwiftUI
 /// the order it was tapped, so callers that append one exercise per call
 /// get a multi-add for free.
 struct ExercisePickerSheet: View {
+    /// Exercises the caller already holds (the workout's or the routine's),
+    /// tagged in the list so the same lift isn't added twice by accident.
+    var existingIDs: Set<String> = []
     let onSelect: (Exercise) -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -233,11 +236,17 @@ struct ExercisePickerSheet: View {
 
     private func row(_ exercise: Exercise) -> some View {
         let isSelected = picks.exercises.contains { $0.id == exercise.id }
+        let isExisting = existingIDs.contains(exercise.id)
         return Button {
             toggle(exercise)
         } label: {
             HStack(spacing: Spacing.sm) {
                 ExerciseRow(exercise: exercise, showsChevron: false)
+                if isExisting && !isSelected {
+                    Text("Already added")
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "plus.circle")
                     .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(AppColor.accentPrimary)
@@ -252,6 +261,7 @@ struct ExercisePickerSheet: View {
         .background(isSelected ? AppColor.accentPrimary.opacity(0.08) : Color.clear)
         .appAnimation(AppAnimation.quick, value: isSelected)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityValue(isExisting ? "Already added" : "")
         .accessibilityHint(isSelected ? "Removes from selection" : "Adds to selection")
     }
 

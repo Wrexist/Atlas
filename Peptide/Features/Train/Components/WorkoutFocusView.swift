@@ -39,7 +39,7 @@ struct WorkoutFocusView: View {
                         )
                     }
                 }
-                .padding(.horizontal, Spacing.lg)
+                .padding(.horizontal, Spacing.screenPadding)
                 .padding(.bottom, Spacing.xxl)
             }
         }
@@ -87,6 +87,10 @@ struct WorkoutFocusView: View {
         let exercise = library.lookup(id: item.exerciseID)
         let selected = entry?.id == item.id
         let complete = !item.sets.isEmpty && item.sets.allSatisfy(\.completed)
+        let working = item.sets.filter { !$0.isWarmup }
+        let workingDone = working.filter(\.completed).count
+        // The ring fills set by set, so a half-done lift reads as half done.
+        let progress = working.isEmpty ? 0 : Double(workingDone) / Double(working.count)
         return Button {
             service.selectExercise(item.id)
             Haptics.selection()
@@ -99,6 +103,12 @@ struct WorkoutFocusView: View {
             .padding(Spacing.xs)
             .background(Circle().fill(AppColor.trainingPanel))
             .overlay(Circle().stroke(selected ? AppColor.trainingSelection : AppColor.glassBorder, lineWidth: selected ? 3 : 1))
+            .overlay(
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(AppColor.trainingComplete, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+            )
             .overlay(alignment: .bottomTrailing) {
                 if complete {
                     Image(systemName: "checkmark.circle.fill")
@@ -112,10 +122,11 @@ struct WorkoutFocusView: View {
             }
             .appAnimation(AppAnimation.springBouncy, value: complete)
             .appAnimation(AppAnimation.springSnappy, value: selected)
+            .appAnimation(AppAnimation.springSnappy, value: progress)
         }
         .buttonStyle(ScalePressStyle())
         .accessibilityLabel(Text(library.displayName(for: item.exerciseID)))
-        .accessibilityValue(complete ? "Complete" : "In progress")
+        .accessibilityValue(complete ? Text("Complete") : Text("Sets done: \(workingDone) of \(working.count)"))
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
@@ -193,10 +204,13 @@ struct WorkoutFocusView: View {
                 if exerciseDone(entry) && session.focus?.rest == nil {
                     if let next = session.nextPendingSet(after: entry.id) {
                         GlassButton(title: "Next exercise", icon: "arrow.right", isFullWidth: true) {
+                            Haptics.selection()
                             service.selectExercise(next.entry)
                         }
                     } else if session.completedSetCount > 0 {
-                        GlassButton(title: "Finish workout", icon: "checkmark", isFullWidth: true, action: onFinish)
+                        // The last set is in: finishing is the one thing
+                        // left, so it gets the painted CTA.
+                        PrimaryCTAButton(title: "Finish workout", icon: "checkmark", action: onFinish)
                     } else {
                         Text("Log a working set to finish")
                             .font(AppFont.callout).foregroundStyle(AppColor.textSecondary)
@@ -212,10 +226,25 @@ struct WorkoutFocusView: View {
             }
             Divider()
             WorkoutFocusMetrics(session: session, unit: unit)
+            // Skipping the last planned sets is common; finishing then
+            // shouldn't hide two taps deep in the toolbar menu.
+            if session.completedSetCount > 0 && !showsFinishCTA(entry) {
+                GlassButton(
+                    title: session.nextPendingSet(after: entry.id) == nil ? "Finish workout" : "Finish early",
+                    icon: "flag.checkered", style: .ghost, isFullWidth: true, action: onFinish
+                )
+                .accessibilityIdentifier("focus-finish-workout")
+            }
         }
         .padding(Spacing.xl)
         .foregroundStyle(AppColor.textPrimary)
-        .background(AppColor.trainingPanel, in: RoundedRectangle(cornerRadius: Spacing.sheetCornerRadius))
+        .background(AppColor.trainingPanel, in: RoundedRectangle(cornerRadius: Spacing.sheetCornerRadius, style: .continuous))
+    }
+
+    /// The painted "Finish workout" above, shown once every set is logged.
+    private func showsFinishCTA(_ entry: WorkoutExerciseEntry) -> Bool {
+        exerciseDone(entry) && session.focus?.rest == nil
+            && session.nextPendingSet(after: entry.id) == nil && session.completedSetCount > 0
     }
 
     /// "Superset A · with Incline Dumbbell Press".
@@ -251,8 +280,11 @@ struct WorkoutFocusView: View {
               VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text(progressTitle(entry)).font(AppFont.statValueSmall)
                     .foregroundStyle(AppColor.textPrimary)
-                Text("Check a set when you finish. Tap its check again to undo.")
-                    .font(AppFont.subheadline).foregroundStyle(AppColor.textSecondary)
+                // Taught once: after the first logged set it's known.
+                if session.completedSetCount == 0 {
+                    Text("Check a set when you finish. Tap its check again to undo.")
+                        .font(AppFont.subheadline).foregroundStyle(AppColor.textSecondary)
+                }
               }
             }
           }
