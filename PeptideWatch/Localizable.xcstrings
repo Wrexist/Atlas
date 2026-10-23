@@ -647,6 +647,16 @@
         }
       }
     },
+    "Open Atlas on your iPhone to load today.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppna Atlas på din iPhone för att läsa in dagen."
+          }
+        }
+      }
+    },
     "Open Atlas on your iPhone to sync.": {
       "localizations": {
         "sv": {
@@ -747,12 +757,12 @@
         }
       }
     },
-    "Recovery %lld": {
+    "Recovery %@": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Återhämtning %lld"
+            "value": "Återhämtning %@"
           }
         }
       }

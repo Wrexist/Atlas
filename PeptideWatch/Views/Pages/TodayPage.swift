@@ -7,6 +7,7 @@ struct TodayPage: View {
     @EnvironmentObject private var store: WatchStore
     @Environment(\.watchPageIsActive) private var isActive
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private struct Ring: Identifiable {
         let id: String
@@ -48,7 +49,7 @@ struct TodayPage: View {
                     ActivityRings(rings: rings.map(\.spec), lineWidth: rings.count > 2 ? 14 : 17, spacing: 3)
                         .frame(maxWidth: 132)
                         .accessibilityHidden(true)
-                    HStack(alignment: .top, spacing: 4) {
+                    statLayout {
                         ForEach(rings) { stat($0) }
                     }
                     .entrance(0)
@@ -59,6 +60,14 @@ struct TodayPage: View {
         }
         .navigationTitle("Today")
         .pageBackground(WatchPalette.tier(store.watchData.atlasTier))
+    }
+
+    /// Side by side, or stacked at accessibility text sizes where even a
+    /// shrunk label no longer fits a third of the screen.
+    private var statLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: 4))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 4))
     }
 
     private func stat(_ ring: Ring) -> some View {
@@ -107,14 +116,21 @@ struct TodayPage: View {
         return parts.joined(separator: ", ")
     }
 
+    /// Never synced, synced on an earlier day, or synced today with
+    /// nothing due: only the last is a fact about today.
     private var emptyState: some View {
-        let neverSynced = store.watchData.lastUpdated == .distantPast
+        let data = store.watchData
+        let neverSynced = data.lastUpdated == .distantPast
+        let needsPhone = neverSynced || data.awaitsToday(at: .now)
+        let message: LocalizedStringKey = neverSynced ? "Open Atlas on your iPhone to sync."
+            : needsPhone ? "Open Atlas on your iPhone to load today."
+            : "Nothing due today."
         return VStack(spacing: 8) {
-            Image(systemName: neverSynced ? "iphone.and.arrow.forward" : "checkmark.circle.fill")
+            Image(systemName: needsPhone ? "iphone.and.arrow.forward" : "checkmark.circle.fill")
                 .font(.system(size: 34))
-                .foregroundStyle(neverSynced ? Color.secondary : WatchPalette.health)
-                .symbolEffect(.bounce, value: neverSynced)
-            Text(neverSynced ? LocalizedStringKey("Open Atlas on your iPhone to sync.") : LocalizedStringKey("Nothing due today."))
+                .foregroundStyle(needsPhone ? Color.secondary : WatchPalette.health)
+                .symbolEffect(.bounce, value: needsPhone)
+            Text(message)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

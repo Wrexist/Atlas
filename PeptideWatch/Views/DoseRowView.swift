@@ -37,6 +37,9 @@ struct DoseRowView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                // Dosing is health information: redacted on a lowered
+                // wrist in Always On and while the watch is locked.
+                .privacySensitive()
 
                 Spacer(minLength: 4)
 
