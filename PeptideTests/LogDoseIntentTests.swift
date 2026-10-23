@@ -102,4 +102,20 @@ final class LogDoseIntentTests: XCTestCase {
         XCTAssertEqual(saved.count, 1)
         XCTAssertEqual(saved.first?.completed, true)
     }
+
+    // MARK: - Live Activity Log button
+
+    /// iOS may suspend the background launch that runs the intent as soon
+    /// as `perform()` returns, so the tap must already be applied by then.
+    func test_liveActivityLogTapInAppProcess_isAppliedBeforeIntentReturns() async throws {
+        let store = makeStore(hours: [8])
+        DataStore.current = store
+        PendingDoseLogStore.applyInProcess = { PendingDoseLogProcessor.drainAndReconcile() }
+        defer { PendingDoseLogStore.applyInProcess = nil }
+        let entryId = try XCTUnwrap(store.entries.first?.id)
+
+        _ = try await LogDoseLiveActivityIntent(entryId: entryId).perform()
+
+        XCTAssertEqual(store.entries.first { $0.id == entryId }?.completed, true)
+    }
 }

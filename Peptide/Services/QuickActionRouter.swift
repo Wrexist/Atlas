@@ -105,6 +105,7 @@ final class AtlasAppDelegate: NSObject, UIApplicationDelegate {
     ) -> Bool {
         MainActor.assumeIsolated {
             PendingWorkoutActionStore.applyInProcess = { WorkoutActivityActionProcessor.drain() }
+            PendingDoseLogStore.applyInProcess = { PendingDoseLogProcessor.drainAndReconcile() }
             workoutActionToken = WorkoutActivityActionProcessor.startObserving()
             doseLogToken = PendingDoseLogProcessor.startObserving()
             waterToken = QuickActionRouter.observePendingWater()
