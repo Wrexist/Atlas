@@ -1020,7 +1020,9 @@ final class SwiftDataRepository {
 
         if let existing {
             do {
-                try write(synced, into: existing, since: syncedBaseline)
+                // An edit an unreadable column refused must not be reported
+                // as saved: it would vanish on the next reload.
+                if try !write(synced, into: existing, since: syncedBaseline) { commitDidFail = true }
             } catch {
                 AppLog.swiftData.error("Update StoredProfile failed: \(error.localizedDescription, privacy: .public)")
                 commitDidFail = true
@@ -1073,13 +1075,14 @@ final class SwiftDataRepository {
         healthWeightStore.dismiss(ids: ids)
     }
 
-    private func write(_ profile: UserProfile, into row: StoredProfile, since baseline: UserProfile?) throws {
+    /// False when a column this build can't read kept an edit out.
+    private func write(_ profile: UserProfile, into row: StoredProfile, since baseline: UserProfile?) throws -> Bool {
         guard let baseline else { return try row.update(from: profile) }
         var rebased = profile
         if ProfileMergeEngine.mealsChanged(from: baseline, to: profile) {
             rebased = ProfileMergeEngine.rebasingMeals(local: profile, baseline: baseline, remote: try row.toUserProfile())
         }
-        try row.update(from: rebased, since: baseline)
+        return try row.update(from: rebased, since: baseline)
     }
 
     func loadProfile() -> UserProfile? {
@@ -1147,8 +1150,9 @@ final class SwiftDataRepository {
         let previous = try existing?.toUserProfile()
         var inserted: StoredProfile?
         do {
-            if let existing { try write(synced, into: existing, since: syncedBaseline) }
-            else {
+            if let existing {
+                guard try write(synced, into: existing, since: syncedBaseline) else { throw MealSaveError.unavailable }
+            } else {
                 let row = try StoredProfile.make(from: synced)
                 context.insert(row)
                 inserted = row
@@ -1158,7 +1162,7 @@ final class SwiftDataRepository {
             #endif
             try context.save()
         } catch {
-            if let existing, let previous { try? existing.update(from: previous) }
+            if let existing, let previous { _ = try? existing.update(from: previous) }
             if let inserted { context.delete(inserted) }
             throw error
         }

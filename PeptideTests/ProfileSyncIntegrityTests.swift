@@ -434,6 +434,42 @@ final class ProfileSyncIntegrityTests: XCTestCase {
         XCTAssertEqual(loaded.weightHistory.map(\.id), profile.weightHistory.map(\.id))
     }
 
+    func test_mealFromANewerBuild_isHiddenAndKept_whileANewMealSaves() throws {
+        repo.saveProfile(baseProfile())
+        try editStoredMeals { meals in
+            var future = meals[0]
+            future["id"] = UUID().uuidString
+            future["category"] = "brunch"
+            meals.append(future)
+        }
+
+        let loaded = try XCTUnwrap(repo.loadProfile())
+        XCTAssertEqual(loaded.mealHistory.map(\.name), ["Base meal"])
+        var edited = loaded
+        LifestyleDataLogic.logMealEntry(into: &edited, entry: meal("New lunch"))
+        repo.beginSaveBatch()
+        repo.saveProfile(edited, since: loaded)
+
+        XCTAssertFalse(repo.commitDidFail)
+        XCTAssertEqual(Set(try XCTUnwrap(repo.loadProfile()).mealHistory.map(\.name)), ["Base meal", "New lunch"])
+        let stored = String(decoding: try XCTUnwrap(loadStoredRow()?.mealsData), as: UTF8.self)
+        XCTAssertTrue(stored.contains("brunch"), "The newer build's meal must survive this build's save")
+    }
+
+    func test_fieldFromANewerBuild_survivesSavingAnotherMeal() throws {
+        repo.saveProfile(baseProfile())
+        try editStoredMeals { meals in meals[0]["addedByNewerBuild"] = "kept" }
+
+        let loaded = try XCTUnwrap(repo.loadProfile())
+        var edited = loaded
+        LifestyleDataLogic.logMealEntry(into: &edited, entry: meal("New lunch"))
+        repo.saveProfile(edited, since: loaded)
+
+        let stored = String(decoding: try XCTUnwrap(loadStoredRow()?.mealsData), as: UTF8.self)
+        XCTAssertTrue(stored.contains("addedByNewerBuild"))
+        XCTAssertTrue(stored.contains("New lunch"))
+    }
+
     func test_workoutMigrationMarker_survivesARoundTrip() throws {
         var profile = baseProfile()
         profile.workoutLegacyMigrationCompleted = true
@@ -478,6 +514,19 @@ final class ProfileSyncIntegrityTests: XCTestCase {
     private func fetchAllRows() throws -> [StoredProfile] {
         try XCTUnwrap(repo.contextForTesting)
             .fetch(FetchDescriptor<StoredProfile>())
+    }
+
+    /// Rewrites the stored meal column as a newer build would.
+    private func editStoredMeals(_ change: (inout [[String: Any]]) -> Void) throws {
+        let row = try XCTUnwrap(loadStoredRow())
+        var root = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: XCTUnwrap(row.mealsData)) as? [String: Any]
+        )
+        var meals = try XCTUnwrap(root["mealHistory"] as? [[String: Any]])
+        change(&meals)
+        root["mealHistory"] = meals
+        row.mealsData = try JSONSerialization.data(withJSONObject: root)
+        try XCTUnwrap(repo.contextForTesting).save()
     }
 
     private func insertRows(_ rows: [StoredProfile]) throws {
