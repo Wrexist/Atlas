@@ -25,14 +25,14 @@ struct StackAlertDetailSheet: View {
 
     private var primaryActionLabel: LocalizedStringKey {
         switch warning.kind {
-        case .cycleOverrun, .desensitization: return String(localized: "Schedule off period")
-        case .timingConflict: return String(localized: "Adjust schedule")
-        case .injectionBurden: return String(localized: "Group injections")
+        case .cycleOverrun, .desensitization: return "Schedule off period"
+        case .timingConflict: return "Adjust schedule"
+        case .injectionBurden: return "Group injections"
         case .general:
             switch warning.severity {
-            case .danger: return String(localized: "Review Protocol now")
-            case .caution: return String(localized: "Adjust Protocol")
-            case .info: return String(localized: "Open Protocols")
+            case .danger: return "Review Protocol now"
+            case .caution: return "Adjust Protocol"
+            case .info: return "Open Protocols"
             }
         }
     }
