@@ -20,7 +20,23 @@ enum CloudSyncState: Sendable {
 final class SwiftDataRepository {
     static let shared = SwiftDataRepository()
 
-    private var container: ModelContainer?
+    private var container: ModelContainer? {
+        didSet { forgetPersistedIDs() }
+    }
+
+    /// Protocol and entry ids this device has read from or written to
+    /// the current store. One that is no longer there was deleted on
+    /// another device: the live save must not re-insert it from
+    /// in-memory state that predates the CloudKit import.
+    private var persistedProtocolIDs: Set<UUID> = []
+    private var persistedEntryIDs: Set<UUID> = []
+
+    /// Lets the next upserts insert every id again — for a backup
+    /// restore, which brings back rows deleted anywhere on purpose.
+    func forgetPersistedIDs() {
+        persistedProtocolIDs.removeAll()
+        persistedEntryIDs.removeAll()
+    }
 
     /// True when the on-disk store could not be opened and we fell back to an
     /// in-memory container. The app remains usable, but mutations won't persist
@@ -521,6 +537,8 @@ final class SwiftDataRepository {
                     context.delete(stored)
                 }
             }
+            persistedProtocolIDs.subtract(protocolIDs)
+            persistedEntryIDs.subtract(entryIDs)
             if includingProfile {
                 for stored in try context.fetch(FetchDescriptor<StoredProfile>()) {
                     context.delete(stored)
@@ -545,6 +563,7 @@ final class SwiftDataRepository {
             try context.delete(model: StoredPersonalRecord.self)
             try context.delete(model: StoredFast.self)
             try context.save()
+            forgetPersistedIDs()
             summaryStore.deleteAll()
             healthWeightStore.deleteAll()
             mealDraftStore.resetForAccountChange()
@@ -579,6 +598,7 @@ final class SwiftDataRepository {
         let inputIds = Set(protocols.map(\.id))
 
         for stored in existing where !inputIds.contains(stored.id) {
+            persistedProtocolIDs.remove(stored.id)
             context.delete(stored)
         }
 
@@ -634,7 +654,28 @@ final class SwiftDataRepository {
                 AppLog.swiftData.error("Upsert StoredProtocol failed: \(error.localizedDescription, privacy: .public)")
             }
         }
-        commit()
+        if commit() { persistedProtocolIDs.formUnion(protocols.map(\.id)) }
+    }
+
+    /// The ids among `ids` this device has seen in the store that are no
+    /// longer there — protocols deleted on another device whose import
+    /// landed after this device loaded them.
+    func protocolIDsDeletedElsewhere(among ids: Set<UUID>) -> Set<UUID> {
+        let candidates = Array(ids.intersection(persistedProtocolIDs))
+        guard let context, !candidates.isEmpty else { return [] }
+        var present: Set<UUID> = []
+        do {
+            for chunk in Self.predicateChunks(candidates) {
+                var descriptor = FetchDescriptor<StoredProtocol>(predicate: #Predicate { chunk.contains($0.id) })
+                descriptor.propertiesToFetch = [\.id]
+                present.formUnion(try context.fetch(descriptor).map(\.id))
+            }
+        } catch {
+            // Unknown is not deleted: keep the in-memory protocols.
+            AppLog.swiftData.error("Fetch protocol ids failed: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+        return Set(candidates).subtracting(present)
     }
 
     func deleteProtocol(id: UUID) {
@@ -647,6 +688,7 @@ final class SwiftDataRepository {
             for stored in try context.fetch(descriptor) {
                 context.delete(stored)
             }
+            persistedProtocolIDs.remove(id)
             commit()
         } catch {
             AppLog.swiftData.error("Delete StoredProtocol failed: \(error.localizedDescription, privacy: .public)")
@@ -668,6 +710,7 @@ final class SwiftDataRepository {
         // Duplicate rows (see `saveProtocols`) must load as one protocol:
         // a second in-memory copy would be written back over every row
         // after the first one is edited, reverting the edit.
+        persistedProtocolIDs.formUnion(stored.map(\.id))
         return Self.keepingFirstPerID(stored.compactMap {
             do {
                 return try $0.toPeptideProtocol()
@@ -703,6 +746,7 @@ final class SwiftDataRepository {
         let inputIds = Set(entries.map(\.id))
 
         for stored in existing where !inputIds.contains(stored.id) {
+            persistedEntryIDs.remove(stored.id)
             context.delete(stored)
         }
 
@@ -728,9 +772,11 @@ final class SwiftDataRepository {
 
     /// Upsert-only entry save — never deletes. Used by the live save
     /// path; pair with explicit `deleteEntries(ids:)` calls at the
-    /// removal sites.
-    func upsertEntries(_ entries: [ProtocolEntry]) {
-        guard let context, !entries.isEmpty else { return }
+    /// removal sites. Returns the ids it skipped because another
+    /// device deleted their rows (see `persistedEntryIDs`).
+    @discardableResult
+    func upsertEntries(_ entries: [ProtocolEntry]) -> Set<UUID> {
+        guard let context, !entries.isEmpty else { return [] }
         var existing: [StoredEntry] = []
         do {
             for chunk in Self.predicateChunks(entries.map(\.id)) {
@@ -743,15 +789,18 @@ final class SwiftDataRepository {
             // exists; leave the batch dirty so the next save retries.
             AppLog.swiftData.error("Fetch (upsert) entries failed: \(error.localizedDescription, privacy: .public)")
             commitDidFail = true
-            return
+            return []
         }
         // Grouped, not unique: two devices that generated the same
         // scheduled dose each synced a row with its id.
         let existingById = Dictionary(grouping: existing, by: \.id)
+        var deletedElsewhere: Set<UUID> = []
         for entry in entries {
             do {
                 if let rows = existingById[entry.id] {
                     for stored in rows { try stored.update(from: entry) }
+                } else if persistedEntryIDs.contains(entry.id) {
+                    deletedElsewhere.insert(entry.id)
                 } else {
                     context.insert(try StoredEntry.make(from: entry))
                 }
@@ -759,7 +808,10 @@ final class SwiftDataRepository {
                 AppLog.swiftData.error("Upsert StoredEntry failed: \(error.localizedDescription, privacy: .public)")
             }
         }
-        commit()
+        if commit() {
+            persistedEntryIDs.formUnion(entries.lazy.map(\.id).filter { !deletedElsewhere.contains($0) })
+        }
+        return deletedElsewhere
     }
 
     func deleteEntries(ids: Set<UUID>) {
@@ -772,6 +824,7 @@ final class SwiftDataRepository {
             for stored in try context.fetch(descriptor) {
                 context.delete(stored)
             }
+            persistedEntryIDs.subtract(ids)
             commit()
         } catch {
             AppLog.swiftData.error("Delete StoredEntries failed: \(error.localizedDescription, privacy: .public)")
@@ -787,6 +840,7 @@ final class SwiftDataRepository {
         )
         do {
             for stored in try context.fetch(descriptor) {
+                persistedEntryIDs.remove(stored.id)
                 context.delete(stored)
             }
             commit()
@@ -860,6 +914,7 @@ final class SwiftDataRepository {
             AppLog.swiftData.error("Load entries failed: \(error.localizedDescription, privacy: .public)")
             return []
         }
+        persistedEntryIDs.formUnion(stored.map(\.id))
         return Self.collapsingDuplicateIDs(stored.compactMap {
             do {
                 return try $0.toProtocolEntry(resolvingFrom: known)

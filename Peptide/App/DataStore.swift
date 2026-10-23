@@ -2505,8 +2505,12 @@ final class DataStore {
         else { return }
 
         repo.beginSaveBatch()
+        if protocolsNeedSave || entriesNeedSave { dropProtocolsDeletedElsewhere() }
         if protocolsNeedSave { repo.upsertProtocols(protocols) }
-        if entriesNeedSave { repo.upsertEntries(entries) }
+        if entriesNeedSave {
+            let deletedElsewhere = repo.upsertEntries(entries)
+            if !deletedElsewhere.isEmpty { entries.removeAll { deletedElsewhere.contains($0.id) } }
+        }
         for id in pendingProtocolDeletions {
             repo.deleteProtocol(id: id)
             // Includes rows outside the in-memory window or synced in
@@ -2560,6 +2564,16 @@ final class DataStore {
 
         updateWidgetData()
         updateWatchData()
+    }
+
+    /// A protocol another device deleted, whose CloudKit import landed
+    /// before this device reloaded, leaves memory here instead of being
+    /// re-inserted (with today's doses) by this save.
+    private func dropProtocolsDeletedElsewhere() {
+        let deletedElsewhere = repo.protocolIDsDeletedElsewhere(among: Set(protocols.map(\.id)))
+        guard !deletedElsewhere.isEmpty else { return }
+        protocols.removeAll { deletedElsewhere.contains($0.id) }
+        entries.removeAll { deletedElsewhere.contains($0.protocolId) }
     }
 
     /// Banner copy for a transient live-save failure. Kept as a
@@ -3003,6 +3017,7 @@ final class DataStore {
         let importEntryIDs = Set(newEntries.map(\.id))
 
         repo.beginSaveBatch()
+        repo.forgetPersistedIDs()
         repo.upsertProtocols(newProtocols)
         repo.upsertEntries(newEntries)
 

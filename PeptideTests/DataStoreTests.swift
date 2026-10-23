@@ -1,3 +1,4 @@
+import SwiftData
 import XCTest
 @testable import Peptide
 
@@ -563,6 +564,24 @@ final class DataStoreTests: XCTestCase {
         store.reloadFromDisk()
 
         XCTAssertEqual(store.protocols.first { $0.id == proto.id }?.status, .paused)
+    }
+
+    func test_save_afterProtocolDeletedOnAnotherDevice_doesNotRecreateIt() throws {
+        store.flushPendingSave()
+        let deleted = try XCTUnwrap(store.protocols.first)
+        let deletedID = deleted.id
+        let context = try XCTUnwrap(SwiftDataRepository.shared.contextForTesting)
+        try context.delete(model: StoredProtocol.self, where: #Predicate { $0.id == deletedID })
+        try context.delete(model: StoredEntry.self, where: #Predicate { $0.protocolId == deletedID })
+        try context.save()
+        let survivor = try XCTUnwrap(store.protocols.first { $0.id != deletedID })
+
+        store.extendProtocol(id: survivor.id, byWeeks: 1)
+        store.flushPendingSave()
+
+        XCTAssertFalse(SwiftDataRepository.shared.loadProtocols().contains { $0.id == deletedID })
+        XCTAssertFalse(SwiftDataRepository.shared.loadEntries().contains { $0.protocolId == deletedID })
+        XCTAssertFalse(store.protocols.contains { $0.id == deletedID })
     }
 
     func test_deleteProtocol_alsoDeletesItsRowsNotLoadedInMemory() throws {
