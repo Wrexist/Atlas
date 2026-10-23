@@ -201,7 +201,7 @@ final class OpenFoodFactsService: Sendable {
                         // the user still gets the cached response on
                         // this call, so this is diagnostic-only.
                         AppLog.persistence.error(
-                            "Barcode background refresh failed for \(normalized, privacy: .public): \(error.localizedDescription, privacy: .public)"
+                            "Barcode background refresh failed for \(normalized, privacy: .private): \(error.localizedDescription, privacy: .public)"
                         )
                     }
                 }
