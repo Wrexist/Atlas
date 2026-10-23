@@ -121,14 +121,11 @@ struct PeptideApp: App {
                 // Held open as a background task: reconcile removes stale
                 // reminders before adding their replacements, and a
                 // suspension in between would leave none until next open.
-                let backgroundTask = UIApplication.shared.beginBackgroundTask(
-                    withName: "Reminder reconcile",
-                    expirationHandler: nil
-                )
+                let backgroundTask = BackgroundTaskHandle(name: "Reminder reconcile")
                 Task { @MainActor in
                     await DailyReminderScheduler.reconcile(dataStore: dataStore)
                     await dataStore.rescheduleHabitReminders()
-                    UIApplication.shared.endBackgroundTask(backgroundTask)
+                    backgroundTask.end()
                 }
             }
             if phase == .active {
@@ -683,6 +680,26 @@ struct PeptideApp: App {
         }
 
         NotificationService.shared.scheduleNotifications(for: dataStore.activeProtocols)
+    }
+}
+
+/// A UIKit background task that is ended exactly once: when the work
+/// finishes, or when iOS's budget runs out first. An unended task at
+/// expiry gets the app terminated rather than suspended.
+@MainActor
+private final class BackgroundTaskHandle {
+    private var identifier: UIBackgroundTaskIdentifier = .invalid
+
+    init(name: String) {
+        identifier = UIApplication.shared.beginBackgroundTask(withName: name) { [weak self] in
+            MainActor.assumeIsolated { self?.end() }
+        }
+    }
+
+    func end() {
+        guard identifier != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(identifier)
+        identifier = .invalid
     }
 }
 
