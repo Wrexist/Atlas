@@ -78,7 +78,7 @@ enum OfflineWeeklySummaryFormatter {
                 outcomes.energyAvg + outcomes.sleepAvg + outcomes.recoveryAvg
                 + outcomes.moodAvg + outcomes.focusAvg
             ) / 5.0
-            let compStr = String(format: "%.1f", composite)
+            let compStr = composite.formatted(.number.precision(.fractionLength(1)))
             if outcomes.compositeDelta > 0.2 {
                 observations.append(
                     String(localized: "Daily check-ins averaged \(compStr) of 5 — up from last week.")

@@ -170,7 +170,7 @@ enum CoachingMessageEngine {
     }
 
     private static func shortSleepMessage(sleepHours: Double) -> CoachingMessage {
-        let display = String(format: "%.1f", sleepHours)
+        let display = sleepHours.formatted(.number.precision(.fractionLength(1)))
         return CoachingMessage(
             icon: "bed.double.fill",
             eyebrow: String(localized: "COACHING"),

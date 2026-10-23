@@ -1564,7 +1564,7 @@ struct OnboardingView: View {
         let months = Double(goalWeeks) * 12 / 52
         let upperKg = monthlyLeanGainKg * months
         let unit = bodyMetrics.unit
-        let lower = String(format: "%.1f", unit.weightForDisplay(upperKg / 2))
+        let lower = unit.weightForDisplay(upperKg / 2).formatted(.number.precision(.fractionLength(1)))
         return "\(lower)–\(unit.weightLabel(upperKg, fractionDigits: 1))"
     }
 

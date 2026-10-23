@@ -71,12 +71,12 @@
         }
       }
     },
-    "%.0f ms avg": {
+    "%lld ms avg": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%.0f ms i snitt"
+            "value": "%lld ms i snitt"
           }
         }
       }
