@@ -105,8 +105,13 @@ struct ProgressPhotosCard: View {
                     }
                 },
                 onDelete: { filename in
-                    pendingDelete = filename
                     viewerSelection = nil
+                    // The alert lives on this card, which can't present
+                    // it while the viewer cover is still dismissing.
+                    Task { @MainActor in
+                        try? await Task.sleep(for: AppAnimation.sheetDismissDelay)
+                        pendingDelete = filename
+                    }
                 },
                 onClose: { viewerSelection = nil }
             )
