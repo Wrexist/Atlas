@@ -150,7 +150,20 @@ struct HabitRowCard: View {
             .contentShape(Circle().inset(by: -(Spacing.minimumHitTarget - Self.todayButtonSize) / 2))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(summary.isCompletedToday ? "Completed today" : "Mark complete for today")
+        .accessibilityLabel(todayButtonLabel)
+        .accessibilityValue(todayButtonValue)
+    }
+
+    /// A tap on a countable habit adds one toward the target rather than
+    /// completing it, so say so.
+    private var todayButtonLabel: Text {
+        if summary.isCompletedToday { return Text("Completed today") }
+        return habit.isCountable ? Text("Add one") : Text("Mark complete for today")
+    }
+
+    private var todayButtonValue: Text {
+        guard let target = habit.targetValue else { return Text("") }
+        return Text("\(summary.todayValue) of \(target)")
     }
 
     private var statRow: some View {

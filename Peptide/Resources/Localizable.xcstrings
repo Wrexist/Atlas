@@ -3241,6 +3241,16 @@
         }
       }
     },
+    "%lld of %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld av %2$lld"
+          }
+        }
+      }
+    },
     "%lld of %lld calories. %lld over your target. %lld grams protein, %lld grams carbs, %lld grams fat.": {
       "localizations": {
         "sv": {
@@ -5731,6 +5741,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Adaptivt, baserat på %lld dagar med loggade måltider och vägningar"
+          }
+        }
+      }
+    },
+    "Add one": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till en"
           }
         }
       }
@@ -10425,6 +10445,16 @@
         }
       }
     },
+    "Edit habit": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redigera vana"
+          }
+        }
+      }
+    },
     "Estimated expenditure: %lld kcal": {
       "localizations": {
         "sv": {
@@ -10841,6 +10871,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Neutral vid %@ steg"
+          }
+        }
+      }
+    },
+    "New habit": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ny vana"
           }
         }
       }

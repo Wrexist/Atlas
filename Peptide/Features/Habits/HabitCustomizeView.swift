@@ -56,7 +56,7 @@ struct HabitCustomizeView: View {
             }
 
             Section {
-                Toggle("Daily reminder", isOn: $enableReminder)
+                Toggle("Reminder", isOn: $enableReminder)
                 if enableReminder {
                     DatePicker(
                         "Time",
@@ -167,7 +167,7 @@ struct HabitCustomizeView: View {
 
     /// Each tap on a countable habit adds one, so a target has to be
     /// reachable by tapping.
-    private static let targetRange = 1...50
+    static let targetRange = 1...50
 
     private var targetHint: LocalizedStringKey {
         switch category {
