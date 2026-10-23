@@ -341,6 +341,7 @@ final class DataStore {
         entries = []
         profile = .fresh
         WorkoutSessionService.shared.reloadActiveSession()
+        isAwaitingCloudAccountDecision = repo.isAwaitingAccountDecision
         // SwiftDataRepository's identity handler swaps the container
         // BEFORE posting the notification, so loadProtocols / etc.
         // here read from the new identity's store. If the new
@@ -348,6 +349,17 @@ final class DataStore {
         // instead of forcing the user through a relaunch to see
         // their own records.
         reloadFromDisk()
+    }
+
+    /// True while the store is held closed after an iCloud sign-out or
+    /// account switch left the previous account's data on the device
+    /// (A116). The app root asks the user to keep or remove it.
+    private(set) var isAwaitingCloudAccountDecision = false
+
+    /// The repository reopens the store and posts the identity-change
+    /// notification, so `handleIdentityChange` reloads from it.
+    func resolveCloudAccountChange(removingLocalData: Bool) {
+        repo.resolveAccountChange(removingLocalData: removingLocalData)
     }
 
     /// The currently-active `DataStore`, set by `init` and consumed

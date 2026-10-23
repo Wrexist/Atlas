@@ -151,22 +151,35 @@ final class SwiftDataRepository {
     /// `isInoperable = true` and never recreated the container, which
     /// left persistence permanently degraded for the rest of the
     /// process lifetime.
+    ///
+    /// The CloudKit and local containers share one store file (A116), so
+    /// after a sign-out or account switch that left the previous
+    /// account's data on the device the store stays closed until the
+    /// user decides, via `resolveAccountChange(removingLocalData:)`.
+    /// Reopening it silently would show that data to whoever uses the
+    /// device next, and under a new account could export it there.
     @MainActor
     private func handleIdentityChange() {
         let current = FileManager.default.ubiquityIdentityToken
         let prev = lastObservedIdentityToken
-        let isSame: Bool = {
-            switch (prev, current) {
-            case (nil, nil): return true
-            case let (a?, b?): return a.isEqual(b)
-            default: return false
-            }
+        let sameAccount: Bool = {
+            guard let prev, let current else { return false }
+            return prev.isEqual(current)
         }()
-        guard !isSame else { return }
+        let change = CloudIdentityChangeEngine.change(
+            previousSignedIn: prev != nil,
+            currentSignedIn: current != nil,
+            sameAccount: sameAccount
+        )
+        guard change != .unchanged else { return }
         lastObservedIdentityToken = current
         AppLog.swiftData.error(
             "iCloud identity changed; tearing down container and re-initializing"
         )
+        // Read before the teardown — afterwards there is no context to ask.
+        // A store already held closed stays held whatever the next change.
+        let holdForDecision = isAwaitingAccountDecision
+            || CloudIdentityChangeEngine.needsUserDecision(change, storeHasData: hasAnyData)
 
         // Pause writes during the swap so any in-flight save attempt
         // doesn't see a half-initialised container.
@@ -182,11 +195,44 @@ final class SwiftDataRepository {
             healthWeightStore.deleteAll()
         }
         mealDraftStore.resetForAccountChange()
-        let cloudFailureState: CloudSyncState = current != nil ? .unavailable : .noAccount
-        cloudSyncState = cloudFailureState
+        cloudSyncState = current != nil ? .unavailable : .noAccount
 
-        // Rebuild — same fallback chain as `init`.
-        if current != nil, let ck = Self.makeCloudContainer() {
+        if holdForDecision {
+            isAwaitingAccountDecision = true
+            AppLog.swiftData.info("Store held closed until the user decides what happens to the previous account's data")
+        } else {
+            reopenContainer(signedIn: current != nil)
+        }
+
+        // Notify DataStore — by the time this fires, the container has
+        // already swapped (or closed), so `reloadFromDisk` in the
+        // observer reads from the new identity's store.
+        NotificationCenter.default.post(name: .peptideXiCloudIdentityChanged, object: nil)
+    }
+
+    /// True while the store is held closed after an iCloud sign-out or
+    /// account switch. Reads are empty and writes no-op until
+    /// `resolveAccountChange(removingLocalData:)` runs.
+    private(set) var isAwaitingAccountDecision = false
+
+    /// The user's answer to the account-change prompt. Keeping reopens
+    /// the store as it is — under a signed-in account its data then syncs
+    /// to that account. Removing destroys the store file first; the
+    /// previous account's iCloud copy is untouched.
+    func resolveAccountChange(removingLocalData: Bool) {
+        guard isAwaitingAccountDecision else { return }
+        if removingLocalData { Self.destroySharedStore() }
+        isAwaitingAccountDecision = false
+        let current = FileManager.default.ubiquityIdentityToken
+        lastObservedIdentityToken = current
+        cloudSyncState = current != nil ? .unavailable : .noAccount
+        reopenContainer(signedIn: current != nil)
+        NotificationCenter.default.post(name: .peptideXiCloudIdentityChanged, object: nil)
+    }
+
+    /// Same fallback chain as `init`.
+    private func reopenContainer(signedIn: Bool) {
+        if signedIn, let ck = Self.makeCloudContainer() {
             container = ck
             cloudSyncState = .active
             isInoperable = false
@@ -203,11 +249,21 @@ final class SwiftDataRepository {
             // is the safest available state until the user relaunches.
             AppLog.swiftData.error("Container re-init failed after identity change; reads will be empty")
         }
+    }
 
-        // Notify DataStore — by the time this fires, the container has
-        // already swapped, so `reloadFromDisk` in the observer reads
-        // from the new identity's store.
-        NotificationCenter.default.post(name: .peptideXiCloudIdentityChanged, object: nil)
+    /// Destroys the store file both containers open, instead of deleting
+    /// rows. Row deletes would stay in persistent history, and signing
+    /// back in to the previous account could export them there as
+    /// deletions of that account's iCloud data; a destroyed store takes
+    /// its history and mirroring metadata with it.
+    private static func destroySharedStore() {
+        let url = ModelConfiguration().url
+        do {
+            try NSPersistentStoreCoordinator(managedObjectModel: NSManagedObjectModel())
+                .destroyPersistentStore(at: url, ofType: NSSQLiteStoreType, options: nil)
+        } catch {
+            AppLog.swiftData.error("Destroying the store after an account change failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     private(set) var cloudSyncState: CloudSyncState = .unavailable
