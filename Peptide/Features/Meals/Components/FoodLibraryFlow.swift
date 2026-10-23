@@ -417,7 +417,7 @@ struct FoodLibraryFlow: View {
             }
         }
         .padding(.horizontal, Spacing.md)
-        .frame(height: 48)
+        .frame(minHeight: 48)
         .background {
             RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous)
                 .fill(AppColor.surfaceSecondary.opacity(0.6))
@@ -689,8 +689,7 @@ struct FoodLibraryFlow: View {
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 64)
+            .frame(maxWidth: .infinity, minHeight: 64)
             .background {
                 RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
                     .fill(AppColor.accentPrimary.opacity(0.12))
