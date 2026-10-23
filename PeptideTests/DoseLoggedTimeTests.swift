@@ -47,4 +47,61 @@ final class DoseLoggedTimeTests: XCTestCase {
         let scheduled = at(day: 21, hour: 8)
         XCTAssertEqual(entry(scheduled: scheduled).defaultLoggedTime(now: at(day: 23, hour: 9), calendar: calendar), scheduled)
     }
+
+    // MARK: - Last injection site
+
+    private func logged(scheduled: Date, site: String?, actualTime: Date? = nil) -> ProtocolEntry {
+        var result = entry(scheduled: scheduled, completed: true, actualTime: actualTime)
+        result.injectionSite = site
+        return result
+    }
+
+    func test_lastInjectionSite_severalLoggedSites_returnsMostRecentlyTaken() {
+        let pending = entry(scheduled: at(day: 23, hour: 20))
+        let history = [
+            logged(scheduled: at(day: 21, hour: 8), site: InjectionSite.leftAbdomen.rawValue),
+            // Scheduled earlier but actually taken last.
+            logged(scheduled: at(day: 22, hour: 8), site: InjectionSite.rightThigh.rawValue, actualTime: at(day: 23, hour: 9)),
+            logged(scheduled: at(day: 22, hour: 20), site: InjectionSite.leftGlute.rawValue),
+            pending,
+        ]
+        XCTAssertEqual(
+            pending.lastInjectionSite(in: history, now: at(day: 23, hour: 12)),
+            InjectionSite.rightThigh.rawValue
+        )
+    }
+
+    func test_lastInjectionSite_ignoresTheDoseBeingEditedAndFutureEntries() {
+        let editing = logged(scheduled: at(day: 23, hour: 8), site: InjectionSite.leftDeltoid.rawValue)
+        let history = [
+            logged(scheduled: at(day: 22, hour: 8), site: InjectionSite.rightAbdomen.rawValue),
+            editing,
+            logged(scheduled: at(day: 24, hour: 8), site: InjectionSite.leftThigh.rawValue),
+        ]
+        XCTAssertEqual(
+            editing.lastInjectionSite(in: history, now: at(day: 23, hour: 12)),
+            InjectionSite.rightAbdomen.rawValue
+        )
+    }
+
+    func test_lastInjectionSite_uncheckedDoseWithSite_isIgnored() {
+        let pending = entry(scheduled: at(day: 23, hour: 20))
+        var unchecked = logged(scheduled: at(day: 23, hour: 8), site: InjectionSite.leftThigh.rawValue)
+        unchecked.completed = false
+        let history = [
+            logged(scheduled: at(day: 22, hour: 8), site: InjectionSite.rightAbdomen.rawValue),
+            unchecked,
+            pending,
+        ]
+        XCTAssertEqual(
+            pending.lastInjectionSite(in: history, now: at(day: 23, hour: 12)),
+            InjectionSite.rightAbdomen.rawValue
+        )
+    }
+
+    func test_lastInjectionSite_noSiteEverLogged_isNil() {
+        let pending = entry(scheduled: at(day: 23, hour: 8))
+        let history = [logged(scheduled: at(day: 22, hour: 8), site: nil), pending]
+        XCTAssertNil(pending.lastInjectionSite(in: history, now: at(day: 23, hour: 12)))
+    }
 }

@@ -117,7 +117,36 @@ struct DailyPlanCard: View {
             Text(plan.summary)
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
+
+            doseProgress
         }
+    }
+
+    private var allDoses: [DailyScheduleEngine.PlannedDose] {
+        plan.slots.flatMap(\.doses)
+    }
+
+    private var takenCount: Int {
+        allDoses.filter(\.entry.completed).count
+    }
+
+    /// How far through the day's doses the user is — the plan's headline
+    /// names the next one, this shows the distance left.
+    private var doseProgress: some View {
+        HStack(spacing: Spacing.sm) {
+            GlassProgressBar(
+                progress: allDoses.isEmpty ? 0 : Double(takenCount) / Double(allDoses.count)
+            )
+            Text("\(takenCount)/\(allDoses.count) taken")
+                .font(AppFont.caption2)
+                .fontWeight(.semibold)
+                .monospacedDigit()
+                .contentTransition(.numericText())
+                .foregroundStyle(takenCount == allDoses.count ? AppColor.accentLight : AppColor.textSecondary)
+        }
+        .padding(.top, Spacing.xxs)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("\(takenCount) of \(allDoses.count) doses taken"))
     }
 
     private func countBadge(icon: String, count: Int, color: Color, accessibilityLabel: String) -> some View {

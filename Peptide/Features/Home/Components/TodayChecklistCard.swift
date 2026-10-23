@@ -36,10 +36,51 @@ struct TodayChecklistCard: View {
                         }
                         row(item)
                     }
+                    if allDone {
+                        dayCompleteFooter
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
                 }
             }
         }
         .appAnimation(AppAnimation.springSmooth, value: state)
+    }
+
+    /// The end state of the day's loop — a finished checklist says so
+    /// rather than only recolouring the counter.
+    private var dayCompleteFooter: some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(AppFont.scaled(16, weight: .semibold))
+                .foregroundStyle(AppColor.accentPrimary)
+                .accessibilityHidden(true)
+            (isReadOnly ? Text("Every item was logged that day.") : Text("Day logged — every item is checked off."))
+                .font(AppFont.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(AppColor.textPrimary)
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, Spacing.sm)
+        .padding(.horizontal, Spacing.md)
+        .background {
+            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
+                .fill(AppColor.accentPrimary.opacity(0.12))
+        }
+        .padding(.top, Spacing.sm)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// Partial progress for the rows that fill up over the day, drawn
+    /// as a ring around the row's icon so "1 of 3" reads at a glance.
+    private func progress(_ item: TodayChecklistEngine.Item) -> Double {
+        switch item {
+        case .meals:
+            Double(state.loggedMainMealCount) / Double(TodayChecklistEngine.mainMeals.count)
+        case .water:
+            state.waterProgress
+        case .training, .weight:
+            0
+        }
     }
 
     private var allDone: Bool {
@@ -72,6 +113,13 @@ struct TodayChecklistCard: View {
             ZStack {
                 Circle()
                     .fill(done ? AppColor.accentFill : AppColor.surfaceSecondary.opacity(0.6))
+                if !done, progress(item) > 0 {
+                    Circle()
+                        .trim(from: 0, to: progress(item))
+                        .stroke(AppColor.accentPrimary, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .padding(1.5)
+                }
                 Image(systemName: done ? "checkmark" : icon(item))
                     .font(AppFont.scaled(13, weight: .bold))
                     .foregroundStyle(done ? AppColor.onAccent : AppColor.textSecondary)
@@ -220,6 +268,20 @@ struct LogWeightSheet: View {
                     focus: $isFieldFocused
                 )
                 .keyboardType(.decimalPad)
+                // Day-to-day weight moves by a few tenths, so starting from
+                // the last entry beats typing the whole number again.
+                if text.isEmpty, let last = dataStore.dedupedWeightHistory.last {
+                    Button {
+                        Haptics.selection()
+                        text = unit.weightValue(last.kg, fractionDigits: 1...1)
+                    } label: {
+                        Label("Start from \(unit.weightLabel(last.kg, fractionDigits: 1))", systemImage: "arrow.uturn.backward")
+                            .font(AppFont.chipText)
+                            .foregroundStyle(AppColor.accentLight)
+                            .minimumHitArea()
+                    }
+                    .buttonStyle(ScalePressStyle())
+                }
                 if let rangeHint {
                     Text(rangeHint)
                         .font(AppFont.caption2)
