@@ -7,6 +7,7 @@ import SwiftUI
 struct FastingCard: View {
     @State private var store = FastingStore.shared
     @State private var showSheet = false
+    @State private var confirmsEarlyEnd = false
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
@@ -19,6 +20,7 @@ struct FastingCard: View {
             FastingSheet()
                 .liquidGlassPresentation()
         }
+        .endFastEarlyConfirmation(isPresented: $confirmsEarlyEnd) { endFast() }
     }
 
     private func content(now: Date) -> some View {
@@ -104,12 +106,18 @@ struct FastingCard: View {
                     remindsAtEnd: store.sessions.first?.remindsAtEnd ?? false
                 )
                 Haptics.impact(.medium)
+            } else if let active = store.active, FastingEngine.remaining(active, at: Date()) > 0 {
+                confirmsEarlyEnd = true
             } else {
-                store.end()
-                Haptics.success()
+                endFast()
             }
         }
         .accessibilityLabel(store.active == nil ? "Start fast" : "End fast")
+    }
+
+    private func endFast() {
+        store.end()
+        Haptics.success()
     }
 
     private func activeSubtitle(_ fast: FastSession, now: Date) -> String {
@@ -121,10 +129,32 @@ struct FastingCard: View {
     }
 
     private func idleSubtitle(now: Date) -> String {
+        // A fast finished today stays acknowledged for the rest of the
+        // day instead of the card snapping straight back to "Start".
+        if let last = store.ended.first, let endedAt = last.endedAt,
+           Calendar.current.isDate(endedAt, inSameDayAs: now) {
+            let duration = FastingEngine.clock(FastingEngine.elapsed(last, at: endedAt))
+            return FastingEngine.metGoal(last)
+                ? String(localized: "Fasted \(duration) today · goal reached")
+                : String(localized: "Fasted \(duration) today")
+        }
         let streak = FastingEngine.currentStreak(store.sessions, asOf: now, calendar: .current)
         if streak > 0 {
             return String(localized: "\(streak)-day streak · next: \(store.lastPlan.plan.title)")
         }
         return String(localized: "Start a \(store.lastPlan.plan.title) fast")
+    }
+}
+
+extension View {
+    /// Asks before ending a fast that hasn't reached its goal: one stray
+    /// tap on End would otherwise throw away hours and the streak day.
+    func endFastEarlyConfirmation(isPresented: Binding<Bool>, onEnd: @escaping () -> Void) -> some View {
+        confirmationDialog("End fast early?", isPresented: isPresented, titleVisibility: .visible) {
+            Button("End fast", role: .destructive, action: onEnd)
+            Button("Keep fasting", role: .cancel) {}
+        } message: {
+            Text("It hasn't reached its goal yet, so it won't count toward your streak.")
+        }
     }
 }

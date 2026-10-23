@@ -41876,6 +41876,76 @@
           }
         }
       }
+    },
+    "End fast early?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avsluta fastan i förtid?"
+          }
+        }
+      }
+    },
+    "End fast": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avsluta fastan"
+          }
+        }
+      }
+    },
+    "Keep fasting": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fortsätt fasta"
+          }
+        }
+      }
+    },
+    "It hasn't reached its goal yet, so it won't count toward your streak.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fastan har inte nått sitt mål än, så den räknas inte till din svit."
+          }
+        }
+      }
+    },
+    "Fasted %@ today · goal reached": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fastat %@ idag · målet nått"
+          }
+        }
+      }
+    },
+    "Fasted %@ today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fastat %@ idag"
+          }
+        }
+      }
+    },
+    "%@ in %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ om %2$@"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

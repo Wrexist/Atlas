@@ -9,6 +9,7 @@ struct FastingSheet: View {
     @State private var plan: FastingProtocol = .sixteen
     @State private var customHours: Double = FastingProtocol.custom.defaultFastingHours
     @State private var remindsAtEnd = false
+    @State private var confirmsEarlyEnd = false
 
     private var targetHours: Double {
         plan == .custom ? customHours : plan.defaultFastingHours
@@ -44,6 +45,7 @@ struct FastingSheet: View {
                 }
             }
             .onAppear(perform: seedFromHistory)
+            .endFastEarlyConfirmation(isPresented: $confirmsEarlyEnd) { endFast() }
         }
     }
 
@@ -81,6 +83,15 @@ struct FastingSheet: View {
                       systemImage: FastingEngine.stage(of: active, at: now).icon)
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.accentLight)
+                // The next milestone is closer than the goal, so it is
+                // the one worth counting down to.
+                if let next = FastingEngine.stage(of: active, at: now).next,
+                   let wait = FastingEngine.timeUntilNextStage(of: active, at: now) {
+                    Text("\(next.title) in \(FastingEngine.clock(wait))")
+                        .font(AppFont.caption2)
+                        .monospacedDigit()
+                        .foregroundStyle(AppColor.textSecondary)
+                }
             }
         }
         .frame(maxWidth: .infinity)
@@ -151,8 +162,11 @@ struct FastingSheet: View {
             .foregroundStyle(AppColor.textPrimary)
             reminderToggle
             PrimaryCTAButton(title: "End fast", icon: "stop.fill") {
-                store.end()
-                Haptics.success()
+                if FastingEngine.remaining(active, at: Date()) > 0 {
+                    confirmsEarlyEnd = true
+                } else {
+                    endFast()
+                }
             }
         }
     }
@@ -229,6 +243,11 @@ struct FastingSheet: View {
     private func startFast() {
         store.start(plan: plan, targetHours: targetHours, remindsAtEnd: remindsAtEnd)
         Haptics.impact(.medium)
+    }
+
+    private func endFast() {
+        store.end()
+        Haptics.success()
     }
 
     private func setReminder(_ enabled: Bool) {
