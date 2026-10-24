@@ -185,20 +185,40 @@ final class AIResearchServiceTests: XCTestCase {
         XCTAssertNil(body["system"])
     }
 
-    func test_reply_withCoachBrief_appendsSummaryToSystemPrompt() async throws {
+    func test_reply_withNutritionBrief_appendsSummaryToSystemPrompt() async throws {
         let captured = SendableBox<URLRequest?>(nil)
         MockURLProtocol.handler = { request in
             captured.set(request)
             return (Self.ok(for: request), Data(Fixtures.helloReply.utf8))
         }
         let brief = "Days with food logged: 5 of 7."
-        _ = try await service.reply(history: [], newUserPrompt: "How was my week?", in: [], coachBrief: brief)
+        _ = try await service.reply(
+            history: [], newUserPrompt: "How was my week?", in: [],
+            brief: .init(topic: .nutrition, text: brief)
+        )
         let system = try Self.decodeBody(captured.value)["system"] as? String ?? ""
         XCTAssertTrue(system.contains("Nutrition coach mode"))
         XCTAssertTrue(system.contains(brief))
     }
 
-    func test_reply_withoutCoachBrief_staysInResearchMode() async throws {
+    func test_reply_withBiologyBrief_usesBiologyRules() async throws {
+        let captured = SendableBox<URLRequest?>(nil)
+        MockURLProtocol.handler = { request in
+            captured.set(request)
+            return (Self.ok(for: request), Data(Fixtures.helloReply.utf8))
+        }
+        let brief = "Biological Age: 34.2, chronological age 38, confidence 92%."
+        _ = try await service.reply(
+            history: [], newUserPrompt: "What's driving it?", in: [],
+            brief: .init(topic: .biology, text: brief)
+        )
+        let system = try Self.decodeBody(captured.value)["system"] as? String ?? ""
+        XCTAssertTrue(system.contains("Biology mode"))
+        XCTAssertTrue(system.contains(brief))
+        XCTAssertFalse(system.contains("Nutrition coach mode"))
+    }
+
+    func test_reply_withoutBrief_staysInResearchMode() async throws {
         let captured = SendableBox<URLRequest?>(nil)
         MockURLProtocol.handler = { request in
             captured.set(request)

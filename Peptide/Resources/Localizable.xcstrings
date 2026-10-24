@@ -121,6 +121,16 @@
         }
       }
     },
+    "%@ ± %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ ± %2$@"
+          }
+        }
+      }
+    },
     "%lld mg/dL": {
       "localizations": {
         "sv": {
@@ -5922,12 +5932,142 @@
         }
       }
     },
+    "Age-group comparisons: FRIEND registry (VO2 max) and CDC NHANES (resting heart rate).": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jämförelser med åldersgrupp: FRIEND-registret (VO2 max) och CDC NHANES (vilopuls)."
+          }
+        }
+      }
+    },
+    "Ask AI what's moving your Biological Age": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fråga AI vad som påverkar din biologiska ålder"
+          }
+        }
+      }
+    },
+    "Ask Atlas": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fråga Atlas"
+          }
+        }
+      }
+    },
+    "Ask about your Biological Age…": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fråga om din biologiska ålder…"
+          }
+        }
+      }
+    },
+    "Ask about your eating this week…": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fråga om veckans kost…"
+          }
+        }
+      }
+    },
+    "Ask what's moving your Biological Age.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fråga vad som påverkar din biologiska ålder."
+          }
+        }
+      }
+    },
+    "Atlas sees your Biological Age, its 90-day trend and the 30-day readings behind it — not your raw Health data.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atlas ser din biologiska ålder, trenden de senaste 90 dagarna och 30-dagarsvärdena bakom den, inte din råa Hälsa-data."
+          }
+        }
+      }
+    },
     "Average %@": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Snitt %@"
+          }
+        }
+      }
+    },
+    "Average asleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snitt sömn"
+          }
+        }
+      }
+    },
+    "Bedtime": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Läggdags"
+          }
+        }
+      }
+    },
+    "Better than %lld%% of men your age": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bättre än %lld %% av män i din ålder"
+          }
+        }
+      }
+    },
+    "Better than %lld%% of women your age": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bättre än %lld %% av kvinnor i din ålder"
+          }
+        }
+      }
+    },
+    "Core sleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kärnsömn"
+          }
+        }
+      }
+    },
+    "Deep sleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Djupsömn"
           }
         }
       }
@@ -5952,6 +6092,16 @@
         }
       }
     },
+    "Efficiency": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effektivitet"
+          }
+        }
+      }
+    },
     "Enter a value between %@ and %@.": {
       "localizations": {
         "sv": {
@@ -5972,6 +6122,16 @@
         }
       }
     },
+    "How has it moved over the last 90 days?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hur har den förändrats de senaste 90 dagarna?"
+          }
+        }
+      }
+    },
     "Inflammation (hs-CRP)": {
       "localizations": {
         "sv": {
@@ -5988,6 +6148,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "LDL-kolesterol"
+          }
+        }
+      }
+    },
+    "Last %lld nights from Apple Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senaste %#@arg1@ från Apple Hälsa"
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "natten"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg nätterna"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -6052,6 +6244,16 @@
         }
       }
     },
+    "None": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingen"
+          }
+        }
+      }
+    },
     "Not enough readings in this range. Try a longer one.": {
       "localizations": {
         "sv": {
@@ -6082,12 +6284,42 @@
         }
       }
     },
+    "REM sleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "REM-sömn"
+          }
+        }
+      }
+    },
     "Report not on this device": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Rapporten finns inte på den här enheten"
+          }
+        }
+      }
+    },
+    "Research chat, the diet coach, Ask Atlas, meal photo and text logging, package scans, Fill with AI, barcode price estimates and the weekly recap send what you submit to Claude, by Anthropic, through Atlas's server — only when you use them, and only after you allow it. Turning sharing off also turns off the weekly recap.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Researchchatten, kostcoachen, Fråga Atlas, loggning med matfoto och text, förpackningsskanning, Fyll i med AI, prisuppskattning via streckkod och veckosammanfattningen skickar det du skickar in till Claude, från Anthropic, via Atlas server – bara när du använder dem och bara efter att du har tillåtit det. Stänger du av delningen stängs även veckosammanfattningen av."
+          }
+        }
+      }
+    },
+    "Review your week of eating with the coach.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gå igenom veckans kost med coachen."
           }
         }
       }
@@ -6122,6 +6354,16 @@
         }
       }
     },
+    "Sleep debt, last 7 nights": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sömnskuld, senaste 7 nätterna"
+          }
+        }
+      }
+    },
     "Source: Apple Health, including readings you log here": {
       "localizations": {
         "sv": {
@@ -6138,6 +6380,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Systoliskt"
+          }
+        }
+      }
+    },
+    "The coach sees your targets, average intake, protein days and weight trend from the last 7 days — not your individual meals.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coachen ser dina mål, ditt genomsnittliga intag, proteindagar och vikttrend från de senaste 7 dagarna, inte dina enskilda måltider."
           }
         }
       }
@@ -6182,6 +6434,36 @@
         }
       }
     },
+    "Wake time": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppvakning"
+          }
+        }
+      }
+    },
+    "What's driving my Biological Age?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vad påverkar min biologiska ålder mest?"
+          }
+        }
+      }
+    },
+    "Which one change would lower it the most?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vilken enskild förändring skulle sänka den mest?"
+          }
+        }
+      }
+    },
     "Your latest HbA1c from Labs, if drawn in the past year. It reflects average blood sugar over about three months; lower reads younger, and 6.5% or more adds the most.": {
       "localizations": {
         "sv": {
@@ -6208,6 +6490,56 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ditt senaste hs-CRP från Labbvärden, om provet är taget det senaste året. Under 1 mg/L ger en yngre ålder; över 3 mg/L lägger till mest. En förkylning eller ett hårt pass kan höja det i några dagar."
+          }
+        }
+      }
+    },
+    "Your messages in this chat, plus a 7-day nutrition summary: your targets, average intake, protein days and weight trend.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina meddelanden i den här chatten, plus en sammanfattning av de senaste 7 dagarnas kost: dina mål, ditt genomsnittliga intag, proteindagar och vikttrend."
+          }
+        }
+      }
+    },
+    "Your messages in this chat, plus a summary of your Biological Age: the estimate, its trend, and the signals behind it, such as HRV, resting heart rate, sleep, steps, cardio fitness, weight and lab results.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina meddelanden i den här chatten, plus en sammanfattning av din biologiska ålder: uppskattningen, trenden och signalerna bakom den, som HRV, vilopuls, sömn, steg, kondition, vikt och labbvärden."
+          }
+        }
+      }
+    },
+    "Your sleep schedule is steady. A regular clock helps recovery.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina sovtider är jämna. En regelbunden dygnsrytm hjälper återhämtningen."
+          }
+        }
+      }
+    },
+    "Your sleep schedule shifts by more than an hour. Try going to bed and waking at the same times.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina sovtider varierar med mer än en timme. Försök lägga dig och vakna på samma tider."
+          }
+        }
+      }
+    },
+    "Your sleep schedule shifts by up to an hour. Steadier times help recovery.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina sovtider varierar med upp till en timme. Jämnare tider hjälper återhämtningen."
           }
         }
       }

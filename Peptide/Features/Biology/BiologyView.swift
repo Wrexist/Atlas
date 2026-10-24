@@ -17,12 +17,14 @@ struct BiologyView: View {
     @State private var showEditSheet = false
     @State private var showLabs = false
     @State private var showBioAgeExplainer = false
+    @State private var showAskAtlas = false
     /// True when Health is connected but a read type added since (VO2 max)
     /// has never been put to the user.
     @State private var needsHealthUpgrade = false
     /// Bumped by pull-to-refresh and a fresh Health grant so the
     /// biomarker list re-reads HealthKit without re-keying on config.
     @State private var reloadID = 0
+    @State private var sleepInsights: SleepInsightsEngine.Insights?
     /// Drives the per-biomarker detail sheet. Identifiable wrapper
     /// so `.sheet(item:)` lifecycle is clean across taps.
     @State private var detailItem: BiomarkerDetailItem?
@@ -66,6 +68,15 @@ struct BiologyView: View {
 
                     bioAgeDetail
 
+                    GlassEntryRow(
+                        icon: "sparkles",
+                        title: "Ask Atlas",
+                        subtitle: Text("Ask AI what's moving your Biological Age"),
+                        badge: storeService.canAccessAIFeatures ? nil : Badge("Pro"),
+                        action: openAskAtlas
+                    )
+                    .biologyCardReveal()
+
                     BiomarkerListSection(
                         visibleBiomarkers: visibleBiomarkers,
                         reloadID: reloadID,
@@ -74,6 +85,11 @@ struct BiologyView: View {
                             openDetail(for: snapshot.biomarker, seed: snapshot)
                         }
                     )
+
+                    if let sleepInsights {
+                        SleepInsightsSection(insights: sleepInsights)
+                            .transition(.opacity)
+                    }
 
                     GlassEntryRow(
                         icon: "cross.vial.fill",
@@ -128,6 +144,11 @@ struct BiologyView: View {
                     .environment(dataStore)
                     .liquidGlassPresentation()
             }
+            .sheet(isPresented: $showAskAtlas) {
+                AIResearchView(brief: biologyBrief)
+                    .environment(dataStore)
+                    .liquidGlassPresentation()
+            }
             .sheet(isPresented: $showBioAgeExplainer) {
                 BioAgeExplainerSheet()
                     .liquidGlassPresentation(detents: [.medium, .large])
@@ -149,6 +170,15 @@ struct BiologyView: View {
                              healthConnected: dataStore.profile.healthConnected)) {
             await refreshState()
         }
+        .task(id: SleepKey(reloadID: reloadID, healthConnected: dataStore.profile.healthConnected)) {
+            let next = await SleepInsightsSection.load()
+            AppAnimation.with(AppAnimation.springSmooth) { sleepInsights = next }
+        }
+    }
+
+    private struct SleepKey: Equatable {
+        let reloadID: Int
+        let healthConnected: Bool
     }
 
     /// Asks for Health access while it's missing, and slides away once
@@ -190,7 +220,12 @@ struct BiologyView: View {
     private var bioAgeDetail: some View {
         if let resolved {
             if case .unlocked(let estimate) = resolved.state {
-                BioAgeDriversCard(estimate: estimate, unit: dataStore.profile.bodyMetrics.unit)
+                BioAgeDriversCard(
+                    estimate: estimate,
+                    unit: dataStore.profile.bodyMetrics.unit,
+                    age: resolved.inputs?.chronologicalAge,
+                    sex: resolved.inputs?.sex ?? .unspecified
+                )
                     .biologyCardReveal()
                 BioAgeTrendCard(points: resolved.trend, chronologicalAge: resolved.chronologicalAge)
                     .biologyCardReveal()
@@ -365,6 +400,30 @@ struct BiologyView: View {
             unit: dataStore.profile.bodyMetrics.unit
         )
         return snapshots.first ?? .empty(biomarker)
+    }
+
+    // MARK: - Ask Atlas
+
+    /// Same Pro gate as the research chat it reuses.
+    private func openAskAtlas() {
+        Haptics.impact(.light)
+        if storeService.canAccessAIFeatures {
+            showAskAtlas = true
+        } else {
+            appState.presentedPaywall = .aiResearch
+        }
+    }
+
+    /// Built when the sheet opens, from the estimate on screen. Before the
+    /// first resolve lands there is nothing to explain, so the chat opens
+    /// in its plain research mode.
+    private var biologyBrief: AIResearchService.Brief? {
+        resolved.map {
+            AIResearchService.Brief(
+                topic: .biology,
+                text: BiologyBriefEngine.brief($0, unit: dataStore.profile.bodyMetrics.unit)
+            )
+        }
     }
 
     // MARK: - Paywall
