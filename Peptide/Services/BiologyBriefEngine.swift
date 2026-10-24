@@ -67,9 +67,14 @@ enum BiologyBriefEngine {
     /// Oldest and newest weekly points, so "how has it moved" has an answer.
     private static func trendLine(_ trend: [PerformanceAgeEngine.TrendPoint]) -> String? {
         guard trend.count > 1, let first = trend.first, let last = trend.last else { return nil }
-        let day = Date.ISO8601FormatStyle().year().month().day()
-        return "Trend: \(BioAgeFormat.age(first.biologicalAge)) on \(first.date.formatted(day)), "
-            + "\(BioAgeFormat.age(last.biologicalAge)) on \(last.date.formatted(day))."
+        return "Trend: \(BioAgeFormat.age(first.biologicalAge)) on \(first.date.formatted(dayFormat)), "
+            + "\(BioAgeFormat.age(last.biologicalAge)) on \(last.date.formatted(dayFormat))."
+    }
+
+    /// yyyy-MM-dd in the user's zone: points sit at local midnight, which
+    /// the default GMT style would print as the day before east of UTC.
+    private static var dayFormat: Date.ISO8601FormatStyle {
+        Date.ISO8601FormatStyle(timeZone: .current).year().month().day()
     }
 
     /// The estimate's drivers once unlocked; while building, the same
