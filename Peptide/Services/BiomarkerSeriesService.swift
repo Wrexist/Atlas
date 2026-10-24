@@ -3,9 +3,8 @@ import Foundation
 /// Builds `BiomarkerSnapshot`s for the Biology tab's biomarker
 /// list. The list view asks for `snapshots(for:)` with the user's
 /// chosen ordering; the service fans out to HealthKit (HRV / RHR
-/// / sleep / steps) and DataStore (weight log, labs) in parallel.
-/// Body temperature and the manual body-composition markers have
-/// no data source yet and render empty.
+/// / sleep / steps, and the body measurements the user can also log
+/// by hand) and DataStore (weight log, labs) in parallel.
 ///
 /// Trend math lives in this file so the view layer stays
 /// presentation-only: "is this number going up or down" is a
@@ -97,11 +96,19 @@ enum BiomarkerSeriesService {
         case .stepsBaseline:
             let series = await HealthKitService.shared.dailySteps(days: days)
             return seriesSnapshot(.stepsBaseline, series: completedDays(series), unit: unit)
-        case .bodyTemperature, .bodyFat, .waist, .bloodPressure:
-            // Manual-entry biomarkers — Pro-gated, persistence
-            // surface lands in a follow-up commit. Tile renders
-            // an "Add" CTA when empty.
-            return .empty(biomarker)
+        case .bodyFat:
+            let series = await HealthKitService.shared.dailyBodyFatPercent(days: days)
+            return seriesSnapshot(.bodyFat, series: series, unit: unit)
+        case .waist:
+            let series = await HealthKitService.shared.dailyWaistCentimeters(days: days)
+            return seriesSnapshot(.waist, series: series, unit: unit)
+        case .bodyTemperature:
+            let series = await HealthKitService.shared.dailyBodyTemperature(days: days)
+            return seriesSnapshot(.bodyTemperature, series: series, unit: unit)
+        case .bloodPressure:
+            let systolic = await HealthKitService.shared.dailyBloodPressureSystolic(days: days)
+            let diastolic = await HealthKitService.shared.dailyBloodPressureDiastolic(days: days)
+            return bloodPressureSnapshot(systolic: systolic, diastolic: diastolic)
         case .latestLabPanel:
             return labSnapshot(latestLab: latestLab)
         }
@@ -167,6 +174,32 @@ enum BiomarkerSeriesService {
                 : [],
             changeText: changeText(for: biomarker, trend: trend, latest: newest.value, unit: unit),
             latestDate: newest.date
+        )
+    }
+
+    /// Pairs each day's systolic with that day's diastolic; a day with
+    /// only one half is dropped rather than charted lopsided. The trend
+    /// reads the systolic, the number clinicians track first.
+    static func bloodPressureSnapshot(
+        systolic: [(date: Date, value: Double)],
+        diastolic: [(date: Date, value: Double)]
+    ) -> BiomarkerSnapshot {
+        let diastolicByDay = Dictionary(diastolic.map { ($0.date, $0.value) }, uniquingKeysWith: { first, _ in first })
+        let paired = systolic.compactMap { day in
+            diastolicByDay[day.date].map { (date: day.date, systolic: day.value, diastolic: $0) }
+        }
+        guard let newest = paired.last else { return .empty(.bloodPressure) }
+        let trend = inferTrend(samples: paired.map { $0.systolic })
+        let charted = paired.count >= sparklineMinSamples
+        return BiomarkerSnapshot(
+            biomarker: .bloodPressure,
+            latest: newest.systolic,
+            trend: trend,
+            samples: charted ? paired.map { BiomarkerSnapshot.Sample(date: $0.date, value: $0.systolic) } : [],
+            changeText: changeText(for: .bloodPressure, trend: trend, latest: newest.systolic, diastolic: newest.diastolic),
+            latestDate: newest.date,
+            latestSecondary: newest.diastolic,
+            secondarySamples: charted ? paired.map { BiomarkerSnapshot.Sample(date: $0.date, value: $0.diastolic) } : []
         )
     }
 
@@ -243,17 +276,28 @@ enum BiomarkerSeriesService {
         for biomarker: Biomarker,
         trend: BiomarkerSnapshot.Trend,
         latest: Double,
+        diastolic: Double? = nil,
         unit: MeasurementUnit = .metric
     ) -> String {
         // `latest` is stored canonical metric; convert to the user's unit
         // for display (kg→lb, cm→in, °C→°F). HRV/RHR/sleep/steps are
         // unit-agnostic, so displayValue returns them unchanged.
-        let formatted = formatValue(biomarker.displayValue(latest, for: unit), for: biomarker)
+        let formatted = diastolic.map { bloodPressureText(systolic: latest, diastolic: $0) }
+            ?? formatValue(biomarker.displayValue(latest, for: unit), for: biomarker)
         let verb: String
         switch (biomarker, trend) {
-        case (.weight, .up):           verb = String(localized: "Increasing")
-        case (.weight, .down):         verb = String(localized: "Decreasing")
-        case (.weight, .flat):         verb = String(localized: "Holding")
+        case (.weight, .up), (.bodyFat, .up), (.waist, .up):
+            verb = String(localized: "Increasing")
+        case (.weight, .down), (.bodyFat, .down), (.waist, .down):
+            verb = String(localized: "Decreasing")
+        case (.weight, .flat), (.bodyFat, .flat), (.waist, .flat):
+            verb = String(localized: "Holding")
+        case (.bloodPressure, .up), (.bodyTemperature, .up):
+            verb = String(localized: "Higher")
+        case (.bloodPressure, .down), (.bodyTemperature, .down):
+            verb = String(localized: "Lower")
+        case (.bloodPressure, .flat), (.bodyTemperature, .flat):
+            verb = String(localized: "Steady")
         case (.hrvBaseline, .up):      verb = String(localized: "Trending up")
         case (.hrvBaseline, .down):    verb = String(localized: "Trending down")
         case (.hrvBaseline, .flat):    verb = String(localized: "Steady")
@@ -272,6 +316,11 @@ enum BiomarkerSeriesService {
             return "\(verb) · \(formatted) \(unitString)"
         }
         return "\(verb) · \(formatted)"
+    }
+
+    /// "120/80", the way a cuff and a doctor write it.
+    static func bloodPressureText(systolic: Double, diastolic: Double) -> String {
+        "\(formatValue(systolic, for: .bloodPressure))/\(formatValue(diastolic, for: .bloodPressure))"
     }
 
     /// Biomarker-specific number formatting. Weight is one
