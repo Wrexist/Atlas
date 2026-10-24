@@ -22,9 +22,14 @@ enum LabDataLogic {
     }
 
     /// Deletes one entry by id. Idempotent — calling twice does
-    /// nothing on the second pass.
-    static func deleteLabValue(from profile: inout UserProfile, id: UUID) {
+    /// nothing on the second pass. Returns the entry's scanned report
+    /// when no remaining entry refers to it, so its pages can go too.
+    @discardableResult
+    static func deleteLabValue(from profile: inout UserProfile, id: UUID) -> UUID? {
+        let reportID = profile.labHistory.first { $0.id == id }?.reportID
         profile.labHistory.removeAll { $0.id == id }
+        guard let reportID, !profile.labHistory.contains(where: { $0.reportID == reportID }) else { return nil }
+        return reportID
     }
 
     /// Every entry for one panel, sorted oldest-first so callers
