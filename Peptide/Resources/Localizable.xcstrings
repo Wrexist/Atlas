@@ -5922,6 +5922,16 @@
         }
       }
     },
+    "Age-group comparisons: FRIEND registry (VO2 max) and CDC NHANES (resting heart rate).": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jämförelser med åldersgrupp: FRIEND-registret (VO2 max) och CDC NHANES (vilopuls)."
+          }
+        }
+      }
+    },
     "Average asleep": {
       "localizations": {
         "sv": {
@@ -5938,6 +5948,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Läggdags"
+          }
+        }
+      }
+    },
+    "Better than %lld%% of men your age": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bättre än %lld %% av män i din ålder"
+          }
+        }
+      }
+    },
+    "Better than %lld%% of women your age": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bättre än %lld %% av kvinnor i din ålder"
           }
         }
       }

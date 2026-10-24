@@ -7,6 +7,9 @@ import SwiftUI
 struct BioAgeDriversCard: View {
     let estimate: PerformanceAgeEngine.Estimate
     let unit: MeasurementUnit
+    /// Pick the age-group table for the "better than" line.
+    var age: Int?
+    var sex: BiologicalSex = .unspecified
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var grown = false
@@ -28,6 +31,13 @@ struct BioAgeDriversCard: View {
                         row(driver, index: index)
                     }
                     legend
+                    if estimate.drivers.contains(where: { placement(for: $0) != nil }) {
+                        Text("Age-group comparisons: FRIEND registry (VO2 max) and CDC NHANES (resting heart rate).")
+                            .font(AppFont.scaled(11))
+                            .foregroundStyle(AppColor.textTertiary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
         }
@@ -61,6 +71,12 @@ struct BioAgeDriversCard: View {
                             .foregroundStyle(AppColor.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                    if let placement = placement(for: driver) {
+                        Text(placement)
+                            .font(AppFont.scaled(13, weight: .medium))
+                            .foregroundStyle(kind.tint)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
 
                 Spacer(minLength: Spacing.sm)
@@ -84,7 +100,7 @@ struct BioAgeDriversCard: View {
         )
         .animation(reduceMotion ? nil : AppAnimation.springSmooth, value: driver.deltaYears)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text([kind.displayName, detail(for: driver)].compactMap { $0 }.joined(separator: ", ")))
+        .accessibilityLabel(Text([kind.displayName, detail(for: driver), placement(for: driver)].compactMap { $0 }.joined(separator: ", ")))
         .accessibilityValue(Text(BioAgeFormat.spokenYears(driver.deltaYears)))
     }
 
@@ -94,6 +110,22 @@ struct BioAgeDriversCard: View {
         let reading = driver.kind.formattedValue(value, unit: unit)
         guard let reference = driver.reference else { return reading }
         return "\(reading) · \(driver.kind.formattedReference(reference, unit: unit))"
+    }
+
+    /// "Better than 72% of men your age", for signals with a published
+    /// age-group table.
+    private func placement(for driver: PerformanceAgeEngine.Driver) -> String? {
+        guard let age, let value = driver.value else { return nil }
+        let signal: AgeGroupPercentileEngine.Signal
+        switch driver.kind {
+        case .vo2Max: signal = .vo2Max
+        case .rhr: signal = .restingHeartRate
+        default: return nil
+        }
+        guard let share = AgeGroupPercentileEngine.betterThan(signal, value: value, age: age, sex: sex) else { return nil }
+        return sex == .female
+            ? String(localized: "Better than \(share)% of women your age")
+            : String(localized: "Better than \(share)% of men your age")
     }
 
     private var legend: some View {
@@ -167,7 +199,9 @@ private struct TrailingIconLabelStyle: LabelStyle {
                     .init(kind: .steps, deltaYears: -0.4, value: 8_200, reference: 7_000),
                 ]
             ),
-            unit: .metric
+            unit: .metric,
+            age: 35,
+            sex: .male
         )
         .padding(Spacing.screenPadding)
     }
