@@ -5952,6 +5952,36 @@
         }
       }
     },
+    "Diastolic": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diastoliskt"
+          }
+        }
+      }
+    },
+    "Enter a value between %@ and %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ange ett värde mellan %@ och %@."
+          }
+        }
+      }
+    },
+    "Enter systolic over diastolic, for example 120 over 80.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ange övertryck och undertryck, till exempel 120 över 80."
+          }
+        }
+      }
+    },
     "Inflammation (hs-CRP)": {
       "localizations": {
         "sv": {
@@ -5968,6 +5998,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "LDL-kolesterol"
+          }
+        }
+      }
+    },
+    "Log a reading": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga ett värde"
+          }
+        }
+      }
+    },
+    "Measured": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppmätt"
           }
         }
       }
@@ -6032,6 +6082,16 @@
         }
       }
     },
+    "Saved to Apple Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sparas i Apple Hälsa"
+          }
+        }
+      }
+    },
     "Scanned report attached": {
       "localizations": {
         "sv": {
@@ -6052,6 +6112,26 @@
         }
       }
     },
+    "Source: Apple Health, including readings you log here": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Källa: Apple Hälsa, inklusive värden du loggar här"
+          }
+        }
+      }
+    },
+    "Systolic": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Systoliskt"
+          }
+        }
+      }
+    },
     "The scanned pages this value was read from.": {
       "localizations": {
         "sv": {
@@ -6068,6 +6148,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Det här går inte att ångra."
+          }
+        }
+      }
+    },
+    "Value in %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Värde i %@"
           }
         }
       }

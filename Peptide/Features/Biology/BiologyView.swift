@@ -118,7 +118,8 @@ struct BiologyView: View {
                     biomarker: item.biomarker,
                     initialSnapshot: item.snapshot,
                     historicalFetcher: { await fetchHistorical(for: item.biomarker) },
-                    unit: dataStore.profile.bodyMetrics.unit
+                    unit: dataStore.profile.bodyMetrics.unit,
+                    onReadingLogged: { reloadID &+= 1 }
                 )
                 .liquidGlassPresentation()
             }

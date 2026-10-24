@@ -122,17 +122,15 @@ enum Biomarker: String, CaseIterable, Codable, Hashable, Sendable {
         }
     }
 
-    /// False for catalog slots `BiomarkerSeriesService` can't fill yet
-    /// (no HealthKit helper, no manual-entry surface). The Edit sheet
-    /// stops offering them so nobody switches on a row that can never
-    /// show a reading; users who added one earlier keep it until they
-    /// turn it off.
-    var hasDataSource: Bool {
+    /// Rows the user can log by hand. They read and write Apple Health,
+    /// so readings from a smart scale or blood-pressure cuff land in the
+    /// same row.
+    var supportsManualEntry: Bool {
         switch self {
+        case .bodyFat, .waist, .bloodPressure, .bodyTemperature:
+            return true
         case .weight, .hrvBaseline, .rhrBaseline,
              .sleepBaseline, .stepsBaseline, .latestLabPanel:
-            return true
-        case .bodyTemperature, .bodyFat, .waist, .bloodPressure:
             return false
         }
     }
@@ -171,6 +169,10 @@ struct BiomarkerSnapshot: Equatable, Sendable, Identifiable {
     let changeText: String
     /// When `latest` was recorded. `nil` when there is no reading.
     var latestDate: Date? = nil
+    /// Blood pressure's diastolic half; `latest` and `samples` carry the
+    /// systolic. Nil and empty for every other biomarker.
+    var latestSecondary: Double? = nil
+    var secondarySamples: [Sample] = []
 
     /// Past this many days the latest reading is called out as old
     /// rather than shown as if it were current.
