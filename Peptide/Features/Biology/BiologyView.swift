@@ -188,7 +188,12 @@ struct BiologyView: View {
     private var bioAgeDetail: some View {
         if let resolved {
             if case .unlocked(let estimate) = resolved.state {
-                BioAgeDriversCard(estimate: estimate, unit: dataStore.profile.bodyMetrics.unit)
+                BioAgeDriversCard(
+                    estimate: estimate,
+                    unit: dataStore.profile.bodyMetrics.unit,
+                    age: resolved.inputs?.chronologicalAge,
+                    sex: resolved.inputs?.sex ?? .unspecified
+                )
                     .biologyCardReveal()
                 BioAgeTrendCard(points: resolved.trend, chronologicalAge: resolved.chronologicalAge)
                     .biologyCardReveal()
