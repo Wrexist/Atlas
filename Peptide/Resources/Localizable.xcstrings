@@ -121,6 +121,16 @@
         }
       }
     },
+    "%@ ± %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ ± %2$@"
+          }
+        }
+      }
+    },
     "%lld mg/dL": {
       "localizations": {
         "sv": {
@@ -5922,6 +5932,26 @@
         }
       }
     },
+    "Average asleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snitt sömn"
+          }
+        }
+      }
+    },
+    "Bedtime": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Läggdags"
+          }
+        }
+      }
+    },
     "Better than %lld%% of men your age": {
       "localizations": {
         "sv": {
@@ -5942,6 +5972,26 @@
         }
       }
     },
+    "Core sleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kärnsömn"
+          }
+        }
+      }
+    },
+    "Deep sleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Djupsömn"
+          }
+        }
+      }
+    },
     "Delete your data": {
       "localizations": {
         "sv": {
@@ -5958,6 +6008,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Diastoliskt"
+          }
+        }
+      }
+    },
+    "Efficiency": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effektivitet"
           }
         }
       }
@@ -5998,6 +6058,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "LDL-kolesterol"
+          }
+        }
+      }
+    },
+    "Last %lld nights from Apple Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senaste %#@arg1@ från Apple Hälsa"
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "natten"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg nätterna"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -6052,6 +6144,16 @@
         }
       }
     },
+    "None": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingen"
+          }
+        }
+      }
+    },
     "Original report": {
       "localizations": {
         "sv": {
@@ -6068,6 +6170,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Privat från grunden – ingen reklam, ingen spårning"
+          }
+        }
+      }
+    },
+    "REM sleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "REM-sömn"
           }
         }
       }
@@ -6108,6 +6220,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Skannade rapporter stannar på enheten som skannade dem."
+          }
+        }
+      }
+    },
+    "Sleep debt, last 7 nights": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sömnskuld, senaste 7 nätterna"
           }
         }
       }
@@ -6172,6 +6294,16 @@
         }
       }
     },
+    "Wake time": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppvakning"
+          }
+        }
+      }
+    },
     "Your latest HbA1c from Labs, if drawn in the past year. It reflects average blood sugar over about three months; lower reads younger, and 6.5% or more adds the most.": {
       "localizations": {
         "sv": {
@@ -6198,6 +6330,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ditt senaste hs-CRP från Labbvärden, om provet är taget det senaste året. Under 1 mg/L ger en yngre ålder; över 3 mg/L lägger till mest. En förkylning eller ett hårt pass kan höja det i några dagar."
+          }
+        }
+      }
+    },
+    "Your sleep schedule is steady. A regular clock helps recovery.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina sovtider är jämna. En regelbunden dygnsrytm hjälper återhämtningen."
+          }
+        }
+      }
+    },
+    "Your sleep schedule shifts by more than an hour. Try going to bed and waking at the same times.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina sovtider varierar med mer än en timme. Försök lägga dig och vakna på samma tider."
+          }
+        }
+      }
+    },
+    "Your sleep schedule shifts by up to an hour. Steadier times help recovery.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina sovtider varierar med upp till en timme. Jämnare tider hjälper återhämtningen."
           }
         }
       }
