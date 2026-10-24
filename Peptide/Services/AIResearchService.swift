@@ -126,6 +126,20 @@ final class AIResearchService: Sendable {
         }
     }
 
+    /// Data the user agreed to attach to a chat — a summary they never
+    /// typed — and which rules the model reads it with.
+    struct Brief: Sendable, Equatable {
+        enum Topic: Sendable, Equatable {
+            /// The Meals tab's diet coach: `NutritionCoachEngine.brief`.
+            case nutrition
+            /// The Biology tab's Ask Atlas: `BiologyBriefEngine.brief`.
+            case biology
+        }
+
+        let topic: Topic
+        let text: String
+    }
+
     /// `reply` as a stream for the chat view, which reads it with
     /// `for try await` so Stop or a newer question cancels the request.
     /// The proxy answers with one buffered JSON reply, so the whole text
@@ -134,12 +148,12 @@ final class AIResearchService: Sendable {
         history: [Turn],
         newUserPrompt prompt: String,
         in database: [Peptide],
-        coachBrief: String? = nil
+        brief: Brief? = nil
     ) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             let task = Task { [self] in
                 do {
-                    let text = try await reply(history: history, newUserPrompt: prompt, in: database, coachBrief: coachBrief)
+                    let text = try await reply(history: history, newUserPrompt: prompt, in: database, brief: brief)
                     if !text.isEmpty { continuation.yield(text) }
                     continuation.finish()
                 } catch {
@@ -158,7 +172,7 @@ final class AIResearchService: Sendable {
         history: [Turn],
         newUserPrompt prompt: String,
         in database: [Peptide],
-        coachBrief: String? = nil
+        brief: Brief? = nil
     ) async throws -> String {
         guard let endpoint, let proxySecret, !proxySecret.isEmpty else {
             // Mirror MealScannerService: keep the public error generic but
@@ -189,7 +203,7 @@ final class AIResearchService: Sendable {
             request.setValue(entitlementJWS, forHTTPHeaderField: MealScanQuota.Header.entitlement)
         }
         request.httpBody = try JSONSerialization.data(
-            withJSONObject: payload(history: history, newPrompt: prompt, ragContext: context, coachBrief: coachBrief),
+            withJSONObject: payload(history: history, newPrompt: prompt, ragContext: context, brief: brief),
             options: []
         )
 
@@ -343,7 +357,7 @@ final class AIResearchService: Sendable {
         history: [Turn],
         newPrompt: String,
         ragContext: String?,
-        coachBrief: String?
+        brief: Brief?
     ) -> [String: Any] {
         // Drop the oldest turns once the conversation grows past the
         // server's per-request message cap. Without this trim, sessions
@@ -373,22 +387,23 @@ final class AIResearchService: Sendable {
             "messages": messages,
         ]
         // The proxy prepends the authoritative persona and safety rules,
-        // so the client sends only grounding: the coach brief first, since
-        // the proxy cuts an over-long system from the end, then the
-        // compounds the user mentioned.
-        if let system = Self.systemContext(ragContext: ragContext, coachBrief: coachBrief) {
+        // so the client sends only grounding: the brief first, since the
+        // proxy cuts an over-long system from the end, then the compounds
+        // the user mentioned.
+        if let system = Self.systemContext(ragContext: ragContext, brief: brief) {
             body["system"] = Self.clipped(system, to: Self.systemCharacterBudget)
         }
         return body
     }
 
-    private static func systemContext(ragContext: String?, coachBrief: String?) -> String? {
+    private static func systemContext(ragContext: String?, brief: Brief?) -> String? {
         var sections: [String] = []
-        if let coachBrief, !coachBrief.isEmpty {
-            sections.append(
-                (coachRules + ["", "The user's last 7 days, from their Atlas log:", coachBrief])
-                    .joined(separator: "\n")
-            )
+        if let brief, !brief.text.isEmpty {
+            let (rules, heading): ([String], String) = switch brief.topic {
+            case .nutrition: (coachRules, "The user's last 7 days, from their Atlas log:")
+            case .biology:   (biologyRules, "The user's Biological Age and the signals behind it, from Atlas:")
+            }
+            sections.append((rules + ["", heading, brief.text]).joined(separator: "\n"))
         }
         if let ragContext, !ragContext.isEmpty {
             sections.append(ragContextHeader + "\n" + ragContext)
@@ -431,6 +446,16 @@ final class AIResearchService: Sendable {
         "• Read the summary below, say plainly how the week went against their targets, and suggest one or two concrete, food-based changes.",
         "• Keep guidance general. Don't diagnose, don't prescribe diets for medical conditions, and point to a registered dietitian or clinician for anything medical.",
         "• If the summary is thin (few logged days), say so and encourage consistent logging before drawing conclusions.",
+    ]
+
+    /// Biology mode, opened from the Biology tab with the Biological Age
+    /// summary attached (`BiologyBriefEngine.brief`).
+    private static let biologyRules: [String] = [
+        "Biology mode: the user opened this chat from the Biology tab to understand their Biological Age.",
+        "• Biological Age is Atlas's estimate from wearable and lab signals, not a clinical test. Explain what moved it using the signals below.",
+        "• Suggest one or two concrete habits — training, sleep, daily movement, nutrition — aimed at the largest drivers.",
+        "• Don't diagnose. For a lab value or blood pressure well outside the typical range, suggest talking to a clinician.",
+        "• If a signal is missing, say briefly what adding it would show.",
     ]
 
     static var truncationNote: String {

@@ -53,7 +53,7 @@ struct MealsContainerView: View {
                     .liquidGlassPresentation()
             }
             .sheet(isPresented: $showCoach) {
-                AIResearchView(coachBrief: coachBrief)
+                AIResearchView(brief: coachBrief)
                     .environment(dataStore)
                     .liquidGlassPresentation()
             }
@@ -88,12 +88,13 @@ struct MealsContainerView: View {
         }
     }
 
-    private var coachBrief: String {
+    private var coachBrief: AIResearchService.Brief {
         let profile = dataStore.profile
-        return NutritionCoachEngine.brief(
+        let text = NutritionCoachEngine.brief(
             NutritionCoachEngine.summary(of: profile),
             unit: profile.bodyMetrics.unit
         )
+        return AIResearchService.Brief(topic: .nutrition, text: text)
     }
 }
 

@@ -9,12 +9,13 @@ import SwiftUI
 /// floating action button on Home for users with `storeService.isProUser`.
 /// Free tier sees the upsell sheet.
 ///
-/// With a `coachBrief` (the Meals tab's "Ask the diet coach") the same
-/// chat becomes the nutrition coach: the 7-day summary rides along in
-/// the system prompt and the copy and starter prompts are about food.
+/// With a `brief` the same chat changes topic: the Meals tab's "Ask the
+/// diet coach" attaches a 7-day nutrition summary, the Biology tab's "Ask
+/// Atlas" the Biological Age and its signals. The summary rides along in
+/// the system prompt and the copy and starter prompts follow the topic.
 struct AIResearchView: View {
-    /// `NutritionCoachEngine.brief` output; nil for the research chat.
-    var coachBrief: String?
+    /// Nil for the research chat.
+    var brief: AIResearchService.Brief?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(DataStore.self) private var dataStore
@@ -56,7 +57,7 @@ struct AIResearchView: View {
                 composer
             }
             .background(AppColor.background.ignoresSafeArea())
-            .navigationTitle(isCoach ? "Diet coach" : "Research assistant")
+            .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -190,34 +191,61 @@ struct AIResearchView: View {
         }
     }
 
-    private var isCoach: Bool { coachBrief != nil }
+    private var navigationTitle: LocalizedStringKey {
+        switch brief?.topic {
+        case .nutrition: "Diet coach"
+        case .biology:   "Ask Atlas"
+        case nil:        "Research assistant"
+        }
+    }
 
     private var hasConsent: Bool {
-        AIDataConsent.allowsSend(includesCoachSummary: isCoach)
+        AIDataConsent.allowsSend(attaching: brief?.topic)
     }
 
     @ViewBuilder
     private var consentSheet: some View {
-        if isCoach {
+        switch brief?.topic {
+        case .nutrition:
             AIConsentSheet(
                 whatIsSent: "Your messages in this chat, plus a 7-day nutrition summary: your targets, average intake, protein days and weight trend.",
                 grant: AIDataConsent.grantCoachSummary
             )
-        } else {
+        case .biology:
+            AIConsentSheet(
+                whatIsSent: "Your messages in this chat, plus a summary of your Biological Age: the estimate, its trend, and the signals behind it, such as HRV, resting heart rate, sleep, steps, cardio fitness, weight and lab results.",
+                grant: AIDataConsent.grantBiologySummary
+            )
+        case nil:
             AIConsentSheet(whatIsSent: "Your messages in this chat, including earlier ones in the conversation.")
+        }
+    }
+
+    private var emptyStateTitle: LocalizedStringKey {
+        switch brief?.topic {
+        case .nutrition: "Review your week of eating with the coach."
+        case .biology:   "Ask what's moving your Biological Age."
+        case nil:        "Ask about training, nutrition, recovery, or a compound you track."
+        }
+    }
+
+    private var emptyStateMessage: LocalizedStringKey {
+        switch brief?.topic {
+        case .nutrition:
+            "The coach sees your targets, average intake, protein days and weight trend from the last 7 days — not your individual meals."
+        case .biology:
+            "Atlas sees your Biological Age, its 90-day trend and the 30-day readings behind it — not your raw Health data."
+        case nil:
+            "Mention a compound by name and the assistant will pull half-life, dosage range, mechanism, and citations from Atlas's compound library before answering."
         }
     }
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            Text(isCoach
-                 ? "Review your week of eating with the coach."
-                 : "Ask about training, nutrition, recovery, or a compound you track.")
+            Text(emptyStateTitle)
                 .font(AppFont.title2)
                 .foregroundStyle(AppColor.textPrimary)
-            Text(isCoach
-                 ? "The coach sees your targets, average intake, protein days and weight trend from the last 7 days — not your individual meals."
-                 : "Mention a compound by name and the assistant will pull half-life, dosage range, mechanism, and citations from Atlas's compound library before answering.")
+            Text(emptyStateMessage)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
 
@@ -253,7 +281,7 @@ struct AIResearchView: View {
     private var composer: some View {
         HStack(spacing: Spacing.sm) {
             GlassTextField(
-                placeholder: isCoach ? "Ask about your eating this week…" : "Ask about a compound, protocol, or study…",
+                placeholder: composerPlaceholder,
                 text: $input,
                 icon: nil,
                 axis: .vertical,
@@ -288,6 +316,14 @@ struct AIResearchView: View {
         }
     }
 
+    private var composerPlaceholder: LocalizedStringKey {
+        switch brief?.topic {
+        case .nutrition: "Ask about your eating this week…"
+        case .biology:   "Ask about your Biological Age…"
+        case nil:        "Ask about a compound, protocol, or study…"
+        }
+    }
+
     private var canSend: Bool {
         !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isStreaming
     }
@@ -296,8 +332,8 @@ struct AIResearchView: View {
         let prompt = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !prompt.isEmpty, !isStreaming else { return }
         // Nothing leaves the device until the user has agreed to share it
-        // with Anthropic — and the coach summary needs its own consent even
-        // when the research chat was already allowed. The prompt stays in
+        // with Anthropic — and an attached summary needs its own consent
+        // even when the research chat was already allowed. The prompt stays in
         // `input` so it sends as soon as they tap Allow.
         guard hasConsent else {
             input = prompt
@@ -315,7 +351,7 @@ struct AIResearchView: View {
 
         let priorHistory = Array(transcript.dropLast()) // exclude the user turn we just appended
         let database = dataStore.peptideDatabase
-        let brief = AIDataConsent.isCoachSummaryGranted ? coachBrief : nil
+        let attached = brief.flatMap { AIDataConsent.allowsSend(attaching: $0.topic) ? $0 : nil }
 
         // Empty assistant turn — the reply lands in this turn's content,
         // and until then the bubble shows the typing indicator.
@@ -334,7 +370,7 @@ struct AIResearchView: View {
                 history: priorHistory,
                 newUserPrompt: prompt,
                 in: database,
-                coachBrief: brief
+                brief: attached
             )
             do {
                 for try await chunk in stream {
@@ -414,13 +450,23 @@ struct AIResearchView: View {
     }
 
     private var suggestedPrompts: [String] {
-        isCoach ? Self.coachPrompts : Self.researchPrompts
+        switch brief?.topic {
+        case .nutrition: Self.coachPrompts
+        case .biology:   Self.biologyPrompts
+        case nil:        Self.researchPrompts
+        }
     }
 
     private static let researchPrompts: [String] = [
         String(localized: "How does sleep affect HRV recovery?"),
         String(localized: "How much protein do I need for hypertrophy?"),
         String(localized: "What does the research say about BPC-157 half-life?"),
+    ]
+
+    private static let biologyPrompts: [String] = [
+        String(localized: "What's driving my Biological Age?"),
+        String(localized: "Which one change would lower it the most?"),
+        String(localized: "How has it moved over the last 90 days?"),
     ]
 
     private static let coachPrompts: [String] = [

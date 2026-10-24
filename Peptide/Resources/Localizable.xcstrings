@@ -5872,12 +5872,82 @@
         }
       }
     },
+    "Ask AI what's moving your Biological Age": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fråga AI vad som påverkar din biologiska ålder"
+          }
+        }
+      }
+    },
+    "Ask Atlas": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fråga Atlas"
+          }
+        }
+      }
+    },
+    "Ask about your Biological Age…": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fråga om din biologiska ålder…"
+          }
+        }
+      }
+    },
+    "Ask about your eating this week…": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fråga om veckans kost…"
+          }
+        }
+      }
+    },
+    "Ask what's moving your Biological Age.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fråga vad som påverkar din biologiska ålder."
+          }
+        }
+      }
+    },
+    "Atlas sees your Biological Age, its 90-day trend and the 30-day readings behind it — not your raw Health data.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atlas ser din biologiska ålder, trenden de senaste 90 dagarna och 30-dagarsvärdena bakom den, inte din råa Hälsa-data."
+          }
+        }
+      }
+    },
     "Delete your data": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Radera dina data"
+          }
+        }
+      }
+    },
+    "How has it moved over the last 90 days?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hur har den förändrats de senaste 90 dagarna?"
           }
         }
       }
@@ -5892,12 +5962,82 @@
         }
       }
     },
+    "Research chat, the diet coach, Ask Atlas, meal photo and text logging, package scans, Fill with AI, barcode price estimates and the weekly recap send what you submit to Claude, by Anthropic, through Atlas's server — only when you use them, and only after you allow it. Turning sharing off also turns off the weekly recap.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Researchchatten, kostcoachen, Fråga Atlas, loggning med matfoto och text, förpackningsskanning, Fyll i med AI, prisuppskattning via streckkod och veckosammanfattningen skickar det du skickar in till Claude, från Anthropic, via Atlas server – bara när du använder dem och bara efter att du har tillåtit det. Stänger du av delningen stängs även veckosammanfattningen av."
+          }
+        }
+      }
+    },
+    "Review your week of eating with the coach.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gå igenom veckans kost med coachen."
+          }
+        }
+      }
+    },
+    "The coach sees your targets, average intake, protein days and weight trend from the last 7 days — not your individual meals.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coachen ser dina mål, ditt genomsnittliga intag, proteindagar och vikttrend från de senaste 7 dagarna, inte dina enskilda måltider."
+          }
+        }
+      }
+    },
     "These can't be undone.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Det här går inte att ångra."
+          }
+        }
+      }
+    },
+    "What's driving my Biological Age?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vad påverkar min biologiska ålder mest?"
+          }
+        }
+      }
+    },
+    "Which one change would lower it the most?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vilken enskild förändring skulle sänka den mest?"
+          }
+        }
+      }
+    },
+    "Your messages in this chat, plus a 7-day nutrition summary: your targets, average intake, protein days and weight trend.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina meddelanden i den här chatten, plus en sammanfattning av de senaste 7 dagarnas kost: dina mål, ditt genomsnittliga intag, proteindagar och vikttrend."
+          }
+        }
+      }
+    },
+    "Your messages in this chat, plus a summary of your Biological Age: the estimate, its trend, and the signals behind it, such as HRV, resting heart rate, sleep, steps, cardio fitness, weight and lab results.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina meddelanden i den här chatten, plus en sammanfattning av din biologiska ålder: uppskattningen, trenden och signalerna bakom den, som HRV, vilopuls, sömn, steg, kondition, vikt och labbvärden."
           }
         }
       }

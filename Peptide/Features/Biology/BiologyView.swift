@@ -17,6 +17,7 @@ struct BiologyView: View {
     @State private var showEditSheet = false
     @State private var showLabs = false
     @State private var showBioAgeExplainer = false
+    @State private var showAskAtlas = false
     /// True when Health is connected but a read type added since (VO2 max)
     /// has never been put to the user.
     @State private var needsHealthUpgrade = false
@@ -65,6 +66,15 @@ struct BiologyView: View {
                     healthPrompt
 
                     bioAgeDetail
+
+                    GlassEntryRow(
+                        icon: "sparkles",
+                        title: "Ask Atlas",
+                        subtitle: Text("Ask AI what's moving your Biological Age"),
+                        badge: storeService.canAccessAIFeatures ? nil : Badge("Pro"),
+                        action: openAskAtlas
+                    )
+                    .biologyCardReveal()
 
                     BiomarkerListSection(
                         visibleBiomarkers: visibleBiomarkers,
@@ -124,6 +134,11 @@ struct BiologyView: View {
             }
             .sheet(isPresented: $showLabs) {
                 LabsView(presentedModally: true)
+                    .environment(dataStore)
+                    .liquidGlassPresentation()
+            }
+            .sheet(isPresented: $showAskAtlas) {
+                AIResearchView(brief: biologyBrief)
                     .environment(dataStore)
                     .liquidGlassPresentation()
             }
@@ -361,6 +376,30 @@ struct BiologyView: View {
             unit: dataStore.profile.bodyMetrics.unit
         )
         return snapshots.first ?? .empty(biomarker)
+    }
+
+    // MARK: - Ask Atlas
+
+    /// Same Pro gate as the research chat it reuses.
+    private func openAskAtlas() {
+        Haptics.impact(.light)
+        if storeService.canAccessAIFeatures {
+            showAskAtlas = true
+        } else {
+            appState.presentedPaywall = .aiResearch
+        }
+    }
+
+    /// Built when the sheet opens, from the estimate on screen. Before the
+    /// first resolve lands there is nothing to explain, so the chat opens
+    /// in its plain research mode.
+    private var biologyBrief: AIResearchService.Brief? {
+        resolved.map {
+            AIResearchService.Brief(
+                topic: .biology,
+                text: BiologyBriefEngine.brief($0, unit: dataStore.profile.bodyMetrics.unit)
+            )
+        }
     }
 
     // MARK: - Paywall

@@ -73,7 +73,7 @@ struct PrivacySummaryView: View {
                 PrivacyRow(row: .init(
                     icon: "sparkles",
                     title: "AI features ask first.",
-                    detail: "Research chat, meal photo and text logging, package scans, Fill with AI, barcode price estimates and the weekly recap send what you submit to Claude, by Anthropic, through Atlas's server — only when you use them, and only after you allow it. Turning sharing off also turns off the weekly recap."
+                    detail: "Research chat, the diet coach, Ask Atlas, meal photo and text logging, package scans, Fill with AI, barcode price estimates and the weekly recap send what you submit to Claude, by Anthropic, through Atlas's server — only when you use them, and only after you allow it. Turning sharing off also turns off the weekly recap."
                 ))
                 if aiConsentGranted {
                     GlassButton(title: "Turn off AI data sharing", style: .secondary, isFullWidth: true) {
