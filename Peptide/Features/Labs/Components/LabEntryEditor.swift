@@ -28,6 +28,7 @@ struct LabEntryEditor: View {
     /// way to "1000" doesn't flash an error.
     @State private var showRangeWarning = false
     @State private var showSaveAnywayConfirm = false
+    @State private var showReport = false
     @FocusState private var valueFocused: Bool
 
     private var isEditing: Bool { initial != nil }
@@ -204,6 +205,16 @@ struct LabEntryEditor: View {
                     Text("Add the lab name (e.g. Quest, Labcorp, your clinic) so multiple draws stay sortable.")
                 }
 
+                if initial?.reportID != nil {
+                    Section {
+                        Button { showReport = true } label: {
+                            Label("View original report", systemImage: "doc.text.magnifyingglass")
+                        }
+                    } footer: {
+                        Text("The scanned pages this value was read from.")
+                    }
+                }
+
                 if isEditing {
                     Section {
                         Button(role: .destructive) {
@@ -231,6 +242,12 @@ struct LabEntryEditor: View {
             }
             .onAppear {
                 if !isEditing { valueFocused = true }
+            }
+            .sheet(isPresented: $showReport) {
+                if let reportID = initial?.reportID {
+                    LabReportViewer(reportID: reportID)
+                        .liquidGlassPresentation()
+                }
             }
             .navigationTitle(isEditing ? "Edit lab" : "New lab")
             .navigationBarTitleDisplayMode(.inline)
@@ -307,7 +324,8 @@ struct LabEntryEditor: View {
             value: value,
             source: trimmedSource.isEmpty ? nil : trimmedSource,
             note: trimmedNote.isEmpty ? nil : trimmedNote,
-            updatedAt: Date()
+            updatedAt: Date(),
+            reportID: initial?.reportID
         )
         onSave(entry)
     }
