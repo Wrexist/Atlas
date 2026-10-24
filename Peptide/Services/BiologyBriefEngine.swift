@@ -4,9 +4,20 @@ import Foundation
 /// estimate, its trend, and each signal's reading, reference and pull.
 /// Signals are worded with the same presentation the drivers card uses,
 /// so the model reads what the user sees, in the user's language and units.
+/// The last two weeks of the health journal ride along, so the chat can
+/// connect how the user felt to what the signals did.
 enum BiologyBriefEngine {
 
-    static func brief(_ resolved: BioAgeStateResolver.Resolved, unit: MeasurementUnit) -> String {
+    static let journalDays = 14
+    /// Long notes are cut so one entry can't crowd out the rest.
+    static let journalNoteLimit = 280
+
+    static func brief(
+        _ resolved: BioAgeStateResolver.Resolved,
+        unit: MeasurementUnit,
+        journal: [HealthJournalEntry] = [],
+        now: Date = .now
+    ) -> String {
         var lines = [headline(resolved)]
         if let trend = trendLine(resolved.trend) {
             lines.append(trend)
@@ -21,7 +32,23 @@ enum BiologyBriefEngine {
         if !missing.isEmpty {
             lines.append("Not available: " + missing.map(\.displayName).joined(separator: ", ") + ".")
         }
+        let recent = journal
+            .filter { now.timeIntervalSince($0.day) < Double(journalDays) * 86_400 }
+            .sorted { $0.day < $1.day }
+        if !recent.isEmpty {
+            lines.append("Health journal (mood 1–5, the user's own words):")
+            lines += recent.map(journalLine)
+        }
         return lines.joined(separator: "\n")
+    }
+
+    private static func journalLine(_ entry: HealthJournalEntry) -> String {
+        let day = entry.day.formatted(dayFormat)
+        var line = "- \(day): mood \(entry.mood.rawValue)/5"
+        if !entry.note.isEmpty {
+            line += " — \"" + String(entry.note.prefix(journalNoteLimit)) + "\""
+        }
+        return line
     }
 
     private static func headline(_ resolved: BioAgeStateResolver.Resolved) -> String {

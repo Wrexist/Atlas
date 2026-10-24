@@ -15,6 +15,7 @@ future storage surface must be added to.
 | Widget snapshot (`widget-data.json`) | App Group container | `PersistenceService.clearAll()` |
 | Progress photos | Documents/ProgressPhotos | `ProgressPhotoStorage.deleteAll()` |
 | Scanned lab reports | Documents/LabReports | `LabReportStorage.deleteAll()` |
+| Health journal | Documents/health-journal.json | `HealthJournalStore.shared.deleteAll()` |
 | Apple ID linkage (keychain email/name/identifier) | Keychain | `signOut()` |
 | Pending and delivered reminders | Notification Center | `NotificationService.cancelAll()` |
 | Recently scanned products | Caches | `BarcodeProductCache.clear()` |
