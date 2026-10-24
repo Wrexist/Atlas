@@ -403,7 +403,10 @@ final class PerformanceAgeEngineTests: XCTestCase {
             vo2MaxRecent: 52,
             stepsMedian30d: 11_000,
             bodyMassIndex: 23,
-            healthDataDays: 30
+            healthDataDays: 30,
+            hba1cLatest: 5.0,
+            ldlLatest: 70,
+            crpLatest: 0.5
         )
         guard let result = PerformanceAgeEngine.estimate(inputs: inputs) else {
             return XCTFail("Expected estimate")
@@ -411,7 +414,7 @@ final class PerformanceAgeEngineTests: XCTestCase {
         XCTAssertEqual(result.drivers.first?.kind, .vo2Max)
         XCTAssertTrue(result.missing.isEmpty)
         XCTAssertEqual(result.drivers.count, PerformanceAgeEngine.Driver.Kind.allCases.count)
-        // -3 (VO2) - 2.5 (HRV) - 1.8 (RHR) - 1 (steps) = -8.3 → capped at -8.
+        // -3 (VO2) - 2.5 (HRV) - 1.8 (RHR) - 1 (steps) - 1.75 (labs) → capped at -8.
         XCTAssertEqual(result.biologicalAge, 32, accuracy: 0.001)
     }
 
@@ -619,5 +622,69 @@ final class PerformanceAgeEngineTests: XCTestCase {
         XCTAssertEqual(PerformanceAgeEngine.median([4, 1, 3, 2]), 2.5)
         XCTAssertEqual(PerformanceAgeEngine.median([.nan, 5]), 5)
         XCTAssertNil(PerformanceAgeEngine.median([]))
+    }
+
+    // MARK: - Lab signals
+
+    func test_labCurve_endsAndNeutralPoint() {
+        let curve = PerformanceAgeEngine.hba1cCurve
+        XCTAssertEqual(curve.contribution(4.8), -0.75)
+        XCTAssertEqual(curve.contribution(7.0), 1.5)
+        XCTAssertEqual(curve.contribution(curve.neutral), 0, accuracy: 0.0001)
+        XCTAssertEqual(curve.neutral, 5.5, accuracy: 0.0001)
+    }
+
+    func test_labCurve_penaltyOutweighsReward() {
+        for curve in [PerformanceAgeEngine.hba1cCurve, PerformanceAgeEngine.ldlCurve, PerformanceAgeEngine.crpCurve] {
+            XCTAssertGreaterThan(curve.penaltyYears, curve.rewardYears)
+        }
+    }
+
+    /// Labs move the number but carry no coverage, so a draw can't stand
+    /// in for heart and sleep data.
+    func test_estimate_labsAlone_doNotUnlock() {
+        let inputs = PerformanceAgeEngine.Inputs(
+            chronologicalAge: 40, healthDataDays: 30,
+            hba1cLatest: 5.2, ldlLatest: 90, crpLatest: 0.8
+        )
+        XCTAssertNil(PerformanceAgeEngine.estimate(inputs: inputs))
+    }
+
+    func test_estimate_highHbA1c_addsYearsAndIsADriver() {
+        let base = PerformanceAgeEngine.Inputs(
+            chronologicalAge: 40, hrvMedian30d: 42.5 - 5, rhrMedian30d: 65,
+            sleepHoursMedian30d: 8, healthDataDays: 30
+        )
+        let withLab = PerformanceAgeEngine.Inputs(
+            chronologicalAge: 40, hrvMedian30d: 42.5 - 5, rhrMedian30d: 65,
+            sleepHoursMedian30d: 8, healthDataDays: 30, hba1cLatest: 6.8
+        )
+        guard let before = PerformanceAgeEngine.estimate(inputs: base),
+              let after = PerformanceAgeEngine.estimate(inputs: withLab)
+        else { return XCTFail("Expected estimates") }
+        XCTAssertEqual(after.biologicalAge - before.biologicalAge, 1.5, accuracy: 0.0001)
+        XCTAssertEqual(after.drivers.first { $0.kind == .hba1c }?.value, 6.8)
+        XCTAssertTrue(before.missing.contains(.hba1c))
+    }
+
+    /// The latest draw inside the past year counts; an older one doesn't,
+    /// and nor does one taken after the day being computed.
+    func test_inputs_labs_useLatestDrawInsideYear() {
+        let end = utc.startOfDay(for: Date(timeIntervalSince1970: 1_760_000_000))
+        let input = PerformanceAgeEngine.inputs(
+            asOf: end,
+            series: .init(
+                hba1c: [.init(date: day(-200, from: end), value: 5.9),
+                        .init(date: day(-30, from: end), value: 5.4),
+                        .init(date: day(10, from: end), value: 7.0)],
+                ldl: [.init(date: day(-400, from: end), value: 160)],
+                crp: [.init(date: end, value: 0.6)]
+            ),
+            profile: .init(chronologicalAge: 35),
+            calendar: utc
+        )
+        XCTAssertEqual(input.hba1cLatest, 5.4)
+        XCTAssertNil(input.ldlLatest, "A draw over a year old no longer counts")
+        XCTAssertEqual(input.crpLatest, 0.6)
     }
 }
