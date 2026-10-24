@@ -101,6 +101,36 @@
         }
       }
     },
+    "%@ %%": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ %%"
+          }
+        }
+      }
+    },
+    "%@ mg/L": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ mg/L"
+          }
+        }
+      }
+    },
+    "%lld mg/dL": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld mg/dL"
+          }
+        }
+      }
+    },
     "%lld ms avg": {
       "localizations": {
         "sv": {
@@ -5872,6 +5902,16 @@
         }
       }
     },
+    "Add a result from the past year in Labs.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till ett provsvar från det senaste året i Labbvärden."
+          }
+        }
+      }
+    },
     "Delete your data": {
       "localizations": {
         "sv": {
@@ -5912,6 +5952,26 @@
         }
       }
     },
+    "Inflammation (hs-CRP)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inflammation (hs-CRP)"
+          }
+        }
+      }
+    },
+    "LDL cholesterol": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LDL-kolesterol"
+          }
+        }
+      }
+    },
     "Log a reading": {
       "localizations": {
         "sv": {
@@ -5928,6 +5988,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Uppmätt"
+          }
+        }
+      }
+    },
+    "Neutral at %@ %%": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neutral vid %@ %%"
+          }
+        }
+      }
+    },
+    "Neutral at %@ mg/L": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neutral vid %@ mg/L"
+          }
+        }
+      }
+    },
+    "Neutral at %lld mg/dL": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neutral vid %lld mg/dL"
           }
         }
       }
@@ -5988,6 +6078,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Värde i %@"
+          }
+        }
+      }
+    },
+    "Your latest HbA1c from Labs, if drawn in the past year. It reflects average blood sugar over about three months; lower reads younger, and 6.5% or more adds the most.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ditt senaste HbA1c från Labbvärden, om provet är taget det senaste året. Det speglar ditt genomsnittliga blodsocker under ungefär tre månader; lägre ger en yngre ålder, och 6,5 % eller mer lägger till mest."
+          }
+        }
+      }
+    },
+    "Your latest LDL cholesterol from Labs, if drawn in the past year. Lower reads younger; 190 mg/dL or more adds the most.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ditt senaste LDL-kolesterol från Labbvärden, om provet är taget det senaste året. Lägre ger en yngre ålder; 190 mg/dL eller mer lägger till mest."
+          }
+        }
+      }
+    },
+    "Your latest hs-CRP from Labs, if drawn in the past year. Under 1 mg/L reads younger; over 3 mg/L adds the most. A cold or a hard workout can raise it for a few days.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ditt senaste hs-CRP från Labbvärden, om provet är taget det senaste året. Under 1 mg/L ger en yngre ålder; över 3 mg/L lägger till mest. En förkylning eller ett hårt pass kan höja det i några dagar."
           }
         }
       }
