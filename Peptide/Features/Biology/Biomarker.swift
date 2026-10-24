@@ -41,9 +41,8 @@ enum Biomarker: String, CaseIterable, Codable, Hashable, Sendable {
         }
     }
 
-    /// SF Symbol used by `BiomarkerRow`'s trend badge background.
-    /// Sized for a 28–32pt circle, so prefer the `.fill` variants
-    /// that hold their weight at small sizes.
+    /// SF Symbol shown on the biomarker's card. Prefer the `.fill`
+    /// variants that hold their weight at small sizes.
     var icon: String {
         switch self {
         case .weight:           "scalemass.fill"
@@ -61,7 +60,7 @@ enum Biomarker: String, CaseIterable, Codable, Hashable, Sendable {
 
     /// Locale-aware unit string. `MeasurementUnit.imperial` swaps
     /// kg → lb, cm → in, °C → °F. The numeric value itself is
-    /// converted at the render site (BiomarkerRow uses the
+    /// converted at the render site (BiomarkerTile uses the
     /// user's BodyMetrics.unit to choose).
     func displayUnit(for unit: MeasurementUnit) -> String? {
         switch self {
@@ -146,7 +145,7 @@ enum Biomarker: String, CaseIterable, Codable, Hashable, Sendable {
 
 // MARK: - Snapshot returned by the series service
 
-/// What the view actually reads. `BiomarkerRow` consumes this
+/// What the view actually reads. `BiomarkerTile` consumes this
 /// shape directly; no further math in the view layer.
 struct BiomarkerSnapshot: Equatable, Sendable, Identifiable {
     var id: Biomarker { biomarker }

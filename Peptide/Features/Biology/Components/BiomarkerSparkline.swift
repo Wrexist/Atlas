@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Tiny inline trend line used on each `BiomarkerRow`. Just the
+/// Thin trend line used on each `BiomarkerTile`. Just the
 /// shape — no axis, no labels, no legend. Detail lives one tap
-/// down in `BiomarkerDetailSheet` (commit 8); on the row, the
+/// down in `BiomarkerDetailSheet`; on the card, the
 /// sparkline's job is to answer "is the line going up or down"
 /// in 200ms of glance time.
 ///
