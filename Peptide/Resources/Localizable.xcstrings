@@ -5782,6 +5782,16 @@
         }
       }
     },
+    "90 days": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "90 dagar"
+          }
+        }
+      }
+    },
     "90-day habit streak": {
       "localizations": {
         "sv": {
@@ -5872,6 +5882,16 @@
         }
       }
     },
+    "Average %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snitt %@"
+          }
+        }
+      }
+    },
     "Delete your data": {
       "localizations": {
         "sv": {
@@ -5912,6 +5932,16 @@
         }
       }
     },
+    "Learn more · %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Läs mer · %@"
+          }
+        }
+      }
+    },
     "Log a reading": {
       "localizations": {
         "sv": {
@@ -5928,6 +5958,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Uppmätt"
+          }
+        }
+      }
+    },
+    "Not enough readings in this range. Try a longer one.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "För få värden i det här intervallet. Prova ett längre."
           }
         }
       }
@@ -5988,6 +6028,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Värde i %@"
+          }
+        }
+      }
+    },
+    "^[%lld day](inflect: true) with a reading": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dag med värde"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dagar med värde"
+                }
+              }
+            }
           }
         }
       }
