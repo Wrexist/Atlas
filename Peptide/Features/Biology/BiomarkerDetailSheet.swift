@@ -26,7 +26,11 @@ struct BiomarkerDetailSheet: View {
     /// metric; the hero number, chart, and delta convert at render so
     /// imperial users see lb / in / °F (audit Biology A4).
     var unit: MeasurementUnit = .metric
+    /// Called after the user logs a manual reading, so the host's row
+    /// re-reads too.
+    var onReadingLogged: (() -> Void)?
 
+    @State private var showEntrySheet = false
     @State private var historicalSnapshot: BiomarkerSnapshot?
     /// True while the 90-day read is in flight, so a short initial
     /// series shows a loading chart rather than "need more data".
@@ -49,6 +53,9 @@ struct BiomarkerDetailSheet: View {
                     // The number and its chart sit together; the static
                     // explainer follows what changes day to day.
                     heroBlock
+                    if biomarker.supportsManualEntry {
+                        logReadingButton
+                    }
                     chartBlock
                     if hasComparison {
                         deltaBlock
@@ -66,22 +73,36 @@ struct BiomarkerDetailSheet: View {
                     Button("Done") { dismiss() }
                 }
             }
-            .task {
-                // Upgrade from the host's 14-day snapshot to the
-                // 90-day series for the chart. If the fetcher is
-                // nil or returns nil (no data / HealthKit blocked),
-                // we keep rendering the initial snapshot.
-                guard historicalSnapshot == nil,
-                      let fetcher = historicalFetcher else { return }
-                isFetching = true
-                let larger = await fetcher()
-                AppAnimation.with(AppAnimation.springSmooth) {
-                    if let larger { historicalSnapshot = larger }
-                    isFetching = false
+            .task { await loadHistory() }
+            .sheet(isPresented: $showEntrySheet) {
+                BodyMeasurementEntrySheet(biomarker: biomarker, unit: unit) {
+                    onReadingLogged?()
+                    Task { await loadHistory() }
                 }
             }
         }
         .presentationSizing(.page)
+    }
+
+    /// Upgrades from the host's 14-day snapshot to the 90-day series for
+    /// the chart, and re-reads after a logged reading. If the fetcher is
+    /// nil or returns nil (no data / HealthKit blocked), the sheet keeps
+    /// rendering what it has.
+    private func loadHistory() async {
+        guard let fetcher = historicalFetcher else { return }
+        isFetching = true
+        let larger = await fetcher()
+        AppAnimation.with(AppAnimation.springSmooth) {
+            if let larger { historicalSnapshot = larger }
+            isFetching = false
+        }
+    }
+
+    private var logReadingButton: some View {
+        GlassButton(title: "Log a reading", icon: "plus", style: .secondary, isFullWidth: true) {
+            Haptics.impact(.light)
+            showEntrySheet = true
+        }
     }
 
     // MARK: - Hero
@@ -131,6 +152,9 @@ struct BiomarkerDetailSheet: View {
 
     private var latestValueString: String {
         guard let latest = snapshot.latest else { return "—" }
+        if let diastolic = snapshot.latestSecondary {
+            return BiomarkerSeriesService.bloodPressureText(systolic: latest, diastolic: diastolic)
+        }
         return BiomarkerSeriesService.formatValue(biomarker.displayValue(latest, for: unit), for: biomarker)
     }
 
@@ -231,7 +255,7 @@ struct BiomarkerDetailSheet: View {
     /// Display-unit domain around the plotted values, so the line uses
     /// the plot's height instead of hugging the top of a zero-based axis.
     private var chartDomain: ClosedRange<Double> {
-        let values = snapshot.samples.map { biomarker.displayValue($0.value, for: unit) }
+        let values = (snapshot.samples + snapshot.secondarySamples).map { biomarker.displayValue($0.value, for: unit) }
         return ChartYDomain.padded(values, minimumPadding: biomarker.chartMinimumPadding) ?? 0...1
     }
 
@@ -240,6 +264,9 @@ struct BiomarkerDetailSheet: View {
         return Chart {
             ForEach(snapshot.samples, id: \.date) { sample in
                 trendMarks(for: sample, floor: domain.lowerBound)
+            }
+            ForEach(snapshot.secondarySamples, id: \.date) { sample in
+                diastolicMark(for: sample)
             }
             if let selectedSample {
                 RuleMark(x: .value("Date", selectedSample.date, unit: .day))
@@ -291,7 +318,7 @@ struct BiomarkerDetailSheet: View {
 
     private func selectionCallout(for sample: BiomarkerSnapshot.Sample) -> some View {
         VStack(spacing: Spacing.xxs) {
-            Text(formattedWithUnit(biomarker.displayValue(sample.value, for: unit)))
+            Text(calloutValue(for: sample))
                 .font(AppFont.scaled(13, weight: .bold, design: .rounded))
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
@@ -302,6 +329,14 @@ struct BiomarkerDetailSheet: View {
         .padding(.horizontal, Spacing.sm)
         .padding(.vertical, Spacing.xs)
         .glassSurface(cornerRadius: Spacing.chipCornerRadius)
+    }
+
+    /// The scrubbed reading; for blood pressure, both halves of that day.
+    private func calloutValue(for sample: BiomarkerSnapshot.Sample) -> String {
+        if let diastolic = snapshot.secondarySamples.first(where: { $0.date == sample.date }) {
+            return BiomarkerSeriesService.bloodPressureText(systolic: sample.value, diastolic: diastolic.value) + " mmHg"
+        }
+        return formattedWithUnit(biomarker.displayValue(sample.value, for: unit))
     }
 
     /// A display-unit value with its unit, e.g. "72.0 kg".
@@ -317,16 +352,38 @@ struct BiomarkerDetailSheet: View {
         let displayValue = biomarker.displayValue(sample.value, for: unit)
         LineMark(
             x: .value("Date", sample.date, unit: .day),
-            y: .value(biomarker.displayName, displayValue)
+            y: .value(biomarker.displayName, displayValue),
+            series: .value("Reading", "primary")
         )
         .interpolationMethod(.monotone)
         .lineStyle(.init(lineWidth: 2, lineCap: .round, lineJoin: .round))
         .foregroundStyle(AppColor.accentPrimary)
         .accessibilityLabel(dayLabel(for: sample.date))
-        .accessibilityValue(formattedWithUnit(displayValue))
+        .accessibilityValue(calloutValue(for: sample))
 
         // Filled down to the axis floor, not to zero, which now sits
-        // outside the plot.
+        // outside the plot. Blood pressure skips it: the band would
+        // swallow the diastolic line drawn below.
+        if snapshot.secondarySamples.isEmpty {
+            areaMark(for: sample, displayValue: displayValue, floor: floor)
+        }
+    }
+
+    /// The diastolic line under blood pressure's systolic one, in a
+    /// lighter ink. VoiceOver already hears both on the systolic mark.
+    private func diastolicMark(for sample: BiomarkerSnapshot.Sample) -> some ChartContent {
+        LineMark(
+            x: .value("Date", sample.date, unit: .day),
+            y: .value(biomarker.displayName, sample.value),
+            series: .value("Reading", "diastolic")
+        )
+        .interpolationMethod(.monotone)
+        .lineStyle(.init(lineWidth: 2, lineCap: .round, lineJoin: .round))
+        .foregroundStyle(AppColor.accentLight)
+        .accessibilityHidden(true)
+    }
+
+    private func areaMark(for sample: BiomarkerSnapshot.Sample, displayValue: Double, floor: Double) -> some ChartContent {
         AreaMark(
             x: .value("Date", sample.date, unit: .day),
             yStart: .value(biomarker.displayName, floor),
@@ -405,7 +462,10 @@ struct BiomarkerDetailSheet: View {
     /// chart placeholder already says more data is needed, so the
     /// comparison card stays out rather than saying it a second time.
     private var hasComparison: Bool {
-        snapshot.latest != nil && snapshot.sparkline.count >= Self.minimumSamples
+        // A systolic-only average would misread as the whole blood
+        // pressure, so that card stays out.
+        snapshot.latest != nil && snapshot.secondarySamples.isEmpty
+            && snapshot.sparkline.count >= Self.minimumSamples
     }
 
     private static let minimumSamples = 4
@@ -438,13 +498,12 @@ struct BiomarkerDetailSheet: View {
 
     private var footnoteText: String {
         switch biomarker {
-        case .hrvBaseline, .rhrBaseline, .sleepBaseline,
-             .stepsBaseline, .bodyTemperature:
+        case .hrvBaseline, .rhrBaseline, .sleepBaseline, .stepsBaseline:
             return String(localized: "Source: Apple Health")
         case .weight:
             return String(localized: "Source: your weight log")
-        case .bodyFat, .waist, .bloodPressure:
-            return String(localized: "Source: manual entries")
+        case .bodyFat, .waist, .bloodPressure, .bodyTemperature:
+            return String(localized: "Source: Apple Health, including readings you log here")
         case .latestLabPanel:
             return String(localized: "Source: your lab panel")
         }
