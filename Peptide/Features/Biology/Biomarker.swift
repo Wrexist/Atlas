@@ -134,6 +134,32 @@ enum Biomarker: String, CaseIterable, Codable, Hashable, Sendable {
         }
     }
 
+    /// A plain-language page from a public health body or major clinic,
+    /// behind the detail sheet's "Learn more". Nil for lab results, whose
+    /// context lives in Labs.
+    var reference: (publisher: String, url: URL)? {
+        let page: (String, String)
+        switch self {
+        case .hrvBaseline:
+            page = ("Cleveland Clinic", "https://my.clevelandclinic.org/health/symptoms/21773-heart-rate-variability-hrv")
+        case .rhrBaseline:
+            page = ("Cleveland Clinic", "https://my.clevelandclinic.org/health/diagnostics/heart-rate")
+        case .sleepBaseline:
+            page = ("CDC", "https://www.cdc.gov/sleep/about/index.html")
+        case .stepsBaseline:
+            page = ("CDC", "https://www.cdc.gov/physical-activity-basics/guidelines/adults.html")
+        case .weight, .bodyFat, .waist:
+            page = ("CDC", "https://www.cdc.gov/healthy-weight-growth/about/index.html")
+        case .bloodPressure:
+            page = ("American Heart Association", "https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings")
+        case .bodyTemperature:
+            page = ("Cleveland Clinic", "https://my.clevelandclinic.org/health/articles/10881-vital-signs")
+        case .latestLabPanel:
+            return nil
+        }
+        return URL(string: page.1).map { (publisher: page.0, url: $0) }
+    }
+
     /// Biomarkers shown by default on a fresh install. Curated to
     /// the four free-tier HealthKit baselines + weight so the tab
     /// has something to render before the user goes shopping in

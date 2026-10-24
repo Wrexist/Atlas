@@ -82,6 +82,24 @@ enum SleepScoreEngine {
         return summarize(chosen)
     }
 
+    /// One night per wake day, oldest first: the longest sleep that
+    /// ended on that day, so a nap never stands in for the night. Sources
+    /// compete per day, so switching trackers mid-window keeps both
+    /// trackers' nights instead of dropping one side.
+    static func nights(from segments: [Segment], calendar: Calendar) -> [Night] {
+        var longestByDay: [Date: [Segment]] = [:]
+        // Sorted so a tie between sources resolves the same way every launch.
+        for source in Set(segments.map(\.source)).sorted() {
+            for session in split(segments.filter { $0.source == source }) {
+                guard let end = session.map(\.end).max(), asleepTime(in: session) > 0 else { continue }
+                let day = calendar.startOfDay(for: end)
+                if let current = longestByDay[day], asleepTime(in: current) >= asleepTime(in: session) { continue }
+                longestByDay[day] = session
+            }
+        }
+        return longestByDay.values.map(summarize).sorted { $0.end < $1.end }
+    }
+
     static func score(_ night: Night, targetHours: Double) -> Int {
         guard night.asleep > 0, targetHours > 0 else { return 0 }
         let duration = min(1, night.asleep / (targetHours * 3600))
