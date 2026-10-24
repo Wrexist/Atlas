@@ -36,6 +36,9 @@ struct BiomarkerDetailSheet: View {
     /// True while the 90-day read is in flight, so a short initial
     /// series shows a loading chart rather than "need more data".
     @State private var isFetching = false
+    /// Bumped per read, so an older read that finishes last is dropped
+    /// instead of overwriting the post-save series.
+    @State private var historyGeneration = 0
     /// The date the user is scrubbing on the chart.
     @State private var selectedDate: Date?
     @Environment(\.dismiss) private var dismiss
@@ -91,8 +94,11 @@ struct BiomarkerDetailSheet: View {
     /// rendering what it has.
     private func loadHistory() async {
         guard let fetcher = historicalFetcher else { return }
+        historyGeneration += 1
+        let generation = historyGeneration
         isFetching = true
         let larger = await fetcher()
+        guard generation == historyGeneration else { return }
         AppAnimation.with(AppAnimation.springSmooth) {
             if let larger { historicalSnapshot = larger }
             isFetching = false
@@ -255,11 +261,21 @@ struct BiomarkerDetailSheet: View {
         }
     }
 
-    /// Readings inside the chosen range, counted back from today.
+    /// The chosen range in whole days, counted back from today and
+    /// ending at tomorrow's midnight so today's day-wide mark isn't cut.
+    /// The chart's x-axis spans all of it, so a sparse 90 days still
+    /// reads as 90 days.
+    private var rangeDomain: ClosedRange<Date> {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let start = calendar.date(byAdding: .day, value: 1 - range.rawValue, to: today) ?? today
+        let end = calendar.date(byAdding: .day, value: 1, to: today) ?? today
+        return start...end
+    }
+
     private func inRange(_ samples: [BiomarkerSnapshot.Sample]) -> [BiomarkerSnapshot.Sample] {
-        let today = Calendar.current.startOfDay(for: Date())
-        guard let start = Calendar.current.date(byAdding: .day, value: 1 - range.rawValue, to: today) else { return samples }
-        return samples.filter { $0.date >= start }
+        let domain = rangeDomain
+        return samples.filter { $0.date >= domain.lowerBound }
     }
 
     private var chartSamples: [BiomarkerSnapshot.Sample] { inRange(snapshot.samples) }
@@ -360,6 +376,7 @@ struct BiomarkerDetailSheet: View {
                 AxisGridLine().foregroundStyle(AppColor.glassBorder)
             }
         }
+        .chartXScale(domain: rangeDomain)
         .chartYScale(domain: domain)
         .chartYAxis {
             AxisMarks(position: .leading) { _ in
