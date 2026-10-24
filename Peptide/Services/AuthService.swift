@@ -346,11 +346,11 @@ final class AuthService {
     /// Covers the SwiftData store (propagates to the private CloudKit zone
     /// when iCloud sync is on), legacy JSON and the archived `.migrated`
     /// safety nets (name, email, body metrics), custom peptides, the widget
-    /// snapshot, progress photos, pre-restore backup snapshots and any
-    /// export file still in the temp directory. HealthKit samples are
-    /// deliberately untouched — Health data belongs to the user's Health
-    /// app, and deleting it there is theirs to decide (see
-    /// docs/DATA_ERASURE_POLICY.md).
+    /// snapshot, progress photos, scanned lab reports, pre-restore backup
+    /// snapshots and any export file still in the temp directory.
+    /// HealthKit samples are deliberately untouched — Health data belongs
+    /// to the user's Health app, and deleting it there is theirs to decide
+    /// (see docs/DATA_ERASURE_POLICY.md).
     func eraseAllLocalData() {
         let store = DataStore.current
         // Commit (then wipe) any debounced save first: left pending, it
@@ -363,6 +363,7 @@ final class AuthService {
         SwiftDataRepository.shared.deleteAll()
         PersistenceService.shared.clearAll()
         ProgressPhotoStorage.deleteAll()
+        LabReportStorage.deleteAll()
         TableMomentStore.shared.deleteAll()
         BackupSnapshotService.deleteAll()
         ExportService.shared.clearExports()
