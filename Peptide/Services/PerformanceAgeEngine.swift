@@ -23,6 +23,11 @@ import Foundation
 ///   5. Below `minConfidence`, return nil. The UI shows the "building
 ///      baseline" state instead of a number it can't stand behind.
 ///
+/// Blood work (HbA1c, LDL, hs-CRP) from the user's Labs counts too, as
+/// long as the draw is under a year old. It sharpens the estimate but
+/// carries no coverage weight: draws are months apart, so they can never
+/// unlock a number on their own.
+///
 /// Every curve is a conservative heuristic drawn from population-level
 /// associations, not a fitted clinical model. The per-signal swings are
 /// deliberately small, and the largest goes to VO2 max because it is the
@@ -51,6 +56,11 @@ enum PerformanceAgeEngine {
         /// Days of HealthKit HRV / resting-HR / sleep data backing the
         /// medians — drives confidence.
         let healthDataDays: Int
+        /// Latest lab results inside `labWindowDays`, in `LabPanel`'s
+        /// canonical units (%, mg/dL, mg/L).
+        let hba1cLatest: Double?
+        let ldlLatest: Double?
+        let crpLatest: Double?
 
         init(
             chronologicalAge: Int,
@@ -62,7 +72,10 @@ enum PerformanceAgeEngine {
             vo2MaxRecent: Double? = nil,
             stepsMedian30d: Double? = nil,
             bodyMassIndex: Double? = nil,
-            healthDataDays: Int = 0
+            healthDataDays: Int = 0,
+            hba1cLatest: Double? = nil,
+            ldlLatest: Double? = nil,
+            crpLatest: Double? = nil
         ) {
             self.chronologicalAge = chronologicalAge
             self.sex = sex
@@ -74,6 +87,9 @@ enum PerformanceAgeEngine {
             self.stepsMedian30d = stepsMedian30d
             self.bodyMassIndex = bodyMassIndex
             self.healthDataDays = healthDataDays
+            self.hba1cLatest = hba1cLatest
+            self.ldlLatest = ldlLatest
+            self.crpLatest = crpLatest
         }
     }
 
@@ -120,10 +136,11 @@ enum PerformanceAgeEngine {
 
         /// Declaration order is the tie-break order for equal impacts.
         enum Kind: String, Sendable, CaseIterable {
-            case vo2Max, hrv, rhr, sleep, steps, bodyMassIndex, weight
+            case vo2Max, hrv, rhr, sleep, steps, bodyMassIndex, weight, hba1c, ldl, crp
 
             /// How much this signal counts toward coverage. Reflects how
-            /// strongly each one tracks ageing; sums to 1.
+            /// strongly each one tracks ageing; sums to 1. Lab results
+            /// weigh nothing, so a single draw can't unlock the estimate.
             var coverageWeight: Double {
                 switch self {
                 case .vo2Max:        return 0.25
@@ -133,6 +150,7 @@ enum PerformanceAgeEngine {
                 case .steps:         return 0.10
                 case .bodyMassIndex: return 0.05
                 case .weight:        return 0.05
+                case .hba1c, .ldl, .crp: return 0
                 }
             }
 
@@ -146,6 +164,9 @@ enum PerformanceAgeEngine {
                 case .steps:         return PerformanceAgeEngine.stepsSwingYears
                 case .bodyMassIndex: return PerformanceAgeEngine.bmiHighPenaltyYears
                 case .weight:        return PerformanceAgeEngine.weightTrendPenaltyYears
+                case .hba1c:         return PerformanceAgeEngine.hba1cCurve.penaltyYears
+                case .ldl:           return PerformanceAgeEngine.ldlCurve.penaltyYears
+                case .crp:           return PerformanceAgeEngine.crpCurve.penaltyYears
                 }
             }
         }
@@ -229,6 +250,38 @@ enum PerformanceAgeEngine {
     static let bmiHighPenaltyYears: Double = 1.5
     static let bmiUnderweightPenaltyYears: Double = 0.5
 
+    /// A lab marker where lower is better: at or under `low` it reads up
+    /// to `rewardYears` younger, at or over `high` up to `penaltyYears`
+    /// older, linear between. Penalties outweigh rewards, because a high
+    /// reading is better evidence than a low one is.
+    struct LabCurve: Equatable, Sendable {
+        let low: Double
+        let high: Double
+        let rewardYears: Double
+        let penaltyYears: Double
+
+        /// The reading that contributes nothing.
+        var neutral: Double {
+            low + (high - low) * rewardYears / (rewardYears + penaltyYears)
+        }
+
+        func contribution(_ value: Double) -> Double {
+            if value <= low { return -rewardYears }
+            if value >= high { return penaltyYears }
+            let normalized = (value - low) / (high - low)
+            return -rewardYears + normalized * (rewardYears + penaltyYears)
+        }
+    }
+
+    /// HbA1c in %. 6.5 is the diagnostic line for diabetes.
+    static let hba1cCurve = LabCurve(low: 5.0, high: 6.5, rewardYears: 0.75, penaltyYears: 1.5)
+    /// LDL cholesterol in mg/dL. 190 is the "very high" line.
+    static let ldlCurve = LabCurve(low: 70, high: 190, rewardYears: 0.5, penaltyYears: 1.0)
+    /// hs-CRP in mg/L. Under 1 is low cardiovascular risk, over 3 high.
+    static let crpCurve = LabCurve(low: 1, high: 3, rewardYears: 0.5, penaltyYears: 1.0)
+    /// A draw older than this no longer counts.
+    static let labWindowDays: Int = 365
+
     // MARK: - Estimate
 
     static func estimate(inputs: Inputs) -> Estimate? {
@@ -299,6 +352,15 @@ enum PerformanceAgeEngine {
                                  deltaYears: weightContribution(deltaKg: weight),
                                  value: weight,
                                  reference: weightRapidDeltaKg))
+        }
+        let labs: [(Driver.Kind, Double?, LabCurve)] = [
+            (.hba1c, inputs.hba1cLatest, hba1cCurve),
+            (.ldl, inputs.ldlLatest, ldlCurve),
+            (.crp, inputs.crpLatest, crpCurve),
+        ]
+        for (kind, value, curve) in labs {
+            guard let value = usable(value) else { continue }
+            result.append(.init(kind: kind, deltaYears: curve.contribution(value), value: value, reference: curve.neutral))
         }
         return result
     }
@@ -460,6 +522,9 @@ enum PerformanceAgeEngine {
         var steps: [DailyValue] = []
         var vo2Max: [DailyValue] = []
         var weightKg: [DailyValue] = []
+        var hba1c: [DailyValue] = []
+        var ldl: [DailyValue] = []
+        var crp: [DailyValue] = []
     }
 
     /// Profile facts that don't vary across the trend window.
@@ -487,6 +552,10 @@ enum PerformanceAgeEngine {
     ) -> Inputs {
         let recent = window(endingOn: day, days: windowDays, calendar: calendar)
         let vo2Window = window(endingOn: day, days: vo2WindowDays, calendar: calendar)
+        let labWindow = window(endingOn: day, days: labWindowDays, calendar: calendar)
+        let latestLab = { (draws: [DailyValue]) in
+            draws.filter { labWindow.contains($0.date) }.max { $0.date < $1.date }?.value
+        }
 
         let hrv = series.hrv.filter { recent.contains($0.date) }
         let rhr = series.rhr.filter { recent.contains($0.date) }
@@ -507,7 +576,10 @@ enum PerformanceAgeEngine {
             vo2MaxRecent: median(series.vo2Max.filter { vo2Window.contains($0.date) }.map(\.value)),
             stepsMedian30d: median(completedSteps.map(\.value)),
             bodyMassIndex: profile.bodyMassIndex,
-            healthDataDays: coveredDays.count
+            healthDataDays: coveredDays.count,
+            hba1cLatest: latestLab(series.hba1c),
+            ldlLatest: latestLab(series.ldl),
+            crpLatest: latestLab(series.crp)
         )
     }
 
