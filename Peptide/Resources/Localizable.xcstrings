@@ -121,6 +121,16 @@
         }
       }
     },
+    "%@ ± %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ ± %2$@"
+          }
+        }
+      }
+    },
     "%lld mg/dL": {
       "localizations": {
         "sv": {
@@ -5912,6 +5922,16 @@
         }
       }
     },
+    "Age-group comparisons: FRIEND registry (VO2 max) and CDC NHANES (resting heart rate).": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jämförelser med åldersgrupp: FRIEND-registret (VO2 max) och CDC NHANES (vilopuls)."
+          }
+        }
+      }
+    },
     "Ask AI what's moving your Biological Age": {
       "localizations": {
         "sv": {
@@ -5972,12 +5992,112 @@
         }
       }
     },
+    "Average asleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snitt sömn"
+          }
+        }
+      }
+    },
+    "Bedtime": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Läggdags"
+          }
+        }
+      }
+    },
+    "Better than %lld%% of men your age": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bättre än %lld %% av män i din ålder"
+          }
+        }
+      }
+    },
+    "Better than %lld%% of women your age": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bättre än %lld %% av kvinnor i din ålder"
+          }
+        }
+      }
+    },
+    "Core sleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kärnsömn"
+          }
+        }
+      }
+    },
+    "Deep sleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Djupsömn"
+          }
+        }
+      }
+    },
     "Delete your data": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Radera dina data"
+          }
+        }
+      }
+    },
+    "Diastolic": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diastoliskt"
+          }
+        }
+      }
+    },
+    "Efficiency": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effektivitet"
+          }
+        }
+      }
+    },
+    "Enter a value between %@ and %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ange ett värde mellan %@ och %@."
+          }
+        }
+      }
+    },
+    "Enter systolic over diastolic, for example 120 over 80.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ange övertryck och undertryck, till exempel 120 över 80."
           }
         }
       }
@@ -6012,6 +6132,58 @@
         }
       }
     },
+    "Last %lld nights from Apple Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senaste %#@arg1@ från Apple Hälsa"
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "natten"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg nätterna"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Log a reading": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga ett värde"
+          }
+        }
+      }
+    },
+    "Measured": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppmätt"
+          }
+        }
+      }
+    },
     "Neutral at %@ %%": {
       "localizations": {
         "sv": {
@@ -6042,6 +6214,16 @@
         }
       }
     },
+    "None": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingen"
+          }
+        }
+      }
+    },
     "Original report": {
       "localizations": {
         "sv": {
@@ -6058,6 +6240,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Privat från grunden – ingen reklam, ingen spårning"
+          }
+        }
+      }
+    },
+    "REM sleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "REM-sömn"
           }
         }
       }
@@ -6092,6 +6284,16 @@
         }
       }
     },
+    "Saved to Apple Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sparas i Apple Hälsa"
+          }
+        }
+      }
+    },
     "Scanned report attached": {
       "localizations": {
         "sv": {
@@ -6108,6 +6310,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Skannade rapporter stannar på enheten som skannade dem."
+          }
+        }
+      }
+    },
+    "Sleep debt, last 7 nights": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sömnskuld, senaste 7 nätterna"
+          }
+        }
+      }
+    },
+    "Source: Apple Health, including readings you log here": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Källa: Apple Hälsa, inklusive värden du loggar här"
+          }
+        }
+      }
+    },
+    "Systolic": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Systoliskt"
           }
         }
       }
@@ -6142,12 +6374,32 @@
         }
       }
     },
+    "Value in %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Värde i %@"
+          }
+        }
+      }
+    },
     "View original report": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Visa originalrapport"
+          }
+        }
+      }
+    },
+    "Wake time": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppvakning"
           }
         }
       }
@@ -6218,6 +6470,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dina meddelanden i den här chatten, plus en sammanfattning av din biologiska ålder: uppskattningen, trenden och signalerna bakom den, som HRV, vilopuls, sömn, steg, kondition, vikt och labbvärden."
+          }
+        }
+      }
+    },
+    "Your sleep schedule is steady. A regular clock helps recovery.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina sovtider är jämna. En regelbunden dygnsrytm hjälper återhämtningen."
+          }
+        }
+      }
+    },
+    "Your sleep schedule shifts by more than an hour. Try going to bed and waking at the same times.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina sovtider varierar med mer än en timme. Försök lägga dig och vakna på samma tider."
+          }
+        }
+      }
+    },
+    "Your sleep schedule shifts by up to an hour. Steadier times help recovery.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina sovtider varierar med upp till en timme. Jämnare tider hjälper återhämtningen."
           }
         }
       }
