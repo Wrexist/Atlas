@@ -60,8 +60,10 @@ final class BiologyBriefEngineTests: XCTestCase {
     /// 2025-10-09 00:00 UTC.
     private let now = Date(timeIntervalSince1970: 1_759_968_000)
 
+    /// Noon UTC on the offset day, so the printed date is the same in
+    /// every time zone the tests run in.
     private func day(_ offset: Int) -> Date {
-        now.addingTimeInterval(Double(offset) * 86_400)
+        now.addingTimeInterval(Double(offset) * 86_400 + 12 * 3600)
     }
 
     func test_brief_journal_listsRecentDaysOldestFirst() {

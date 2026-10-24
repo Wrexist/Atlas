@@ -43,7 +43,7 @@ enum BiologyBriefEngine {
     }
 
     private static func journalLine(_ entry: HealthJournalEntry) -> String {
-        let day = entry.day.formatted(Date.ISO8601FormatStyle().year().month().day())
+        let day = entry.day.formatted(dayFormat)
         var line = "- \(day): mood \(entry.mood.rawValue)/5"
         if !entry.note.isEmpty {
             line += " — \"" + String(entry.note.prefix(journalNoteLimit)) + "\""
