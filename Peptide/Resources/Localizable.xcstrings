@@ -5972,6 +5972,16 @@
         }
       }
     },
+    "Original report": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Originalrapport"
+          }
+        }
+      }
+    },
     "Private by design — no ads, no tracking": {
       "localizations": {
         "sv": {
@@ -5982,12 +5992,62 @@
         }
       }
     },
+    "Report not on this device": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rapporten finns inte på den här enheten"
+          }
+        }
+      }
+    },
+    "Scanned report attached": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skannad rapport bifogad"
+          }
+        }
+      }
+    },
+    "Scanned reports stay on the device that scanned them.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skannade rapporter stannar på enheten som skannade dem."
+          }
+        }
+      }
+    },
+    "The scanned pages this value was read from.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De skannade sidorna som värdet lästes från."
+          }
+        }
+      }
+    },
     "These can't be undone.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Det här går inte att ångra."
+          }
+        }
+      }
+    },
+    "View original report": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visa originalrapport"
           }
         }
       }

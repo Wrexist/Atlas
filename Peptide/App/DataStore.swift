@@ -1574,7 +1574,9 @@ final class DataStore {
     /// Removes a lab entry by id. Idempotent — calling twice on
     /// the same id is a no-op the second time.
     func deleteLabValue(id: UUID) {
-        LabDataLogic.deleteLabValue(from: &profile, id: id)
+        if let orphanedReport = LabDataLogic.deleteLabValue(from: &profile, id: id) {
+            LabReportStorage.delete(orphanedReport)
+        }
         save()
     }
 
