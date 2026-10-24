@@ -14,6 +14,9 @@ extension PerformanceAgeEngine.Driver.Kind {
         case .steps:         String(localized: "Daily steps")
         case .bodyMassIndex: String(localized: "BMI")
         case .weight:        String(localized: "Weight trend")
+        case .hba1c:         String(localized: "HbA1c")
+        case .ldl:           String(localized: "LDL cholesterol")
+        case .crp:           String(localized: "Inflammation (hs-CRP)")
         }
     }
 
@@ -26,6 +29,9 @@ extension PerformanceAgeEngine.Driver.Kind {
         case .steps:         "figure.walk"
         case .bodyMassIndex: "figure"
         case .weight:        "scalemass.fill"
+        case .hba1c:         "drop.fill"
+        case .ldl:           "heart.circle.fill"
+        case .crp:           "flame.fill"
         }
     }
 
@@ -38,6 +44,9 @@ extension PerformanceAgeEngine.Driver.Kind {
         case .rhr:                   AppColor.metricHeartRate
         case .sleep:                 AppColor.metricSleep
         case .bodyMassIndex, .weight: AppColor.accentLight
+        case .hba1c:                 AppColor.labMetabolic
+        case .ldl:                   AppColor.labLipids
+        case .crp:                   AppColor.labOrganHealth
         }
     }
 
@@ -59,6 +68,12 @@ extension PerformanceAgeEngine.Driver.Kind {
             String(localized: "From the height and weight in your profile. It only ever adds a little, because BMI can't tell muscle from fat.")
         case .weight:
             String(localized: "How fast your weight moved over 30 days, not the number itself. A rapid change in either direction adds a little.")
+        case .hba1c:
+            String(localized: "Your latest HbA1c from Labs, if drawn in the past year. It reflects average blood sugar over about three months; lower reads younger, and 6.5% or more adds the most.")
+        case .ldl:
+            String(localized: "Your latest LDL cholesterol from Labs, if drawn in the past year. Lower reads younger; 190 mg/dL or more adds the most.")
+        case .crp:
+            String(localized: "Your latest hs-CRP from Labs, if drawn in the past year. Under 1 mg/L reads younger; over 3 mg/L adds the most. A cold or a hard workout can raise it for a few days.")
         }
     }
 
@@ -79,6 +94,8 @@ extension PerformanceAgeEngine.Driver.Kind {
             String(localized: "Add your height and weight in your profile.")
         case .weight:
             String(localized: "Log your weight at least twice a month.")
+        case .hba1c, .ldl, .crp:
+            String(localized: "Add a result from the past year in Labs.")
         }
     }
 
@@ -87,7 +104,8 @@ extension PerformanceAgeEngine.Driver.Kind {
     var comesFromHealth: Bool {
         switch self {
         case .vo2Max, .hrv, .rhr, .sleep, .steps: true
-        case .bodyMassIndex, .weight:             false
+        case .bodyMassIndex, .weight,
+             .hba1c, .ldl, .crp:                  false
         }
     }
 
@@ -101,6 +119,9 @@ extension PerformanceAgeEngine.Driver.Kind {
         case .steps:         String(localized: "\(value.formatted(.number.precision(.fractionLength(0)))) steps")
         case .bodyMassIndex: value.formatted(.number.precision(.fractionLength(1)))
         case .weight:        signedWeight(value, unit: unit)
+        case .hba1c:         String(localized: "\(value.formatted(.number.precision(.fractionLength(1)))) %")
+        case .ldl:           String(localized: "\(Int(value.rounded())) mg/dL")
+        case .crp:           String(localized: "\(value.formatted(.number.precision(.fractionLength(1)))) mg/L")
         }
     }
 
@@ -121,6 +142,12 @@ extension PerformanceAgeEngine.Driver.Kind {
             String(localized: "Neutral up to \(reference.formatted(.number.precision(.fractionLength(0))))")
         case .weight:
             String(localized: "Neutral within ±\(magnitude(reference, unit: unit))")
+        case .hba1c:
+            String(localized: "Neutral at \(reference.formatted(.number.precision(.fractionLength(1)))) %")
+        case .ldl:
+            String(localized: "Neutral at \(Int(reference.rounded())) mg/dL")
+        case .crp:
+            String(localized: "Neutral at \(reference.formatted(.number.precision(.fractionLength(1)))) mg/L")
         }
     }
 
