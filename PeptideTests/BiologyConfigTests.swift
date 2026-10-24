@@ -169,4 +169,39 @@ final class BiologyConfigTests: XCTestCase {
         XCTAssertEqual(decoded.biologyConfig.visibleBiomarkers, [.weight, .hrvBaseline])
         XCTAssertEqual(decoded.biologyConfig.hiddenBiomarkers, [.sleepBaseline])
     }
+
+    // MARK: - Card sizes
+
+    func test_tileSize_unset_isSmall() {
+        XCTAssertEqual(BiologyConfig().tileSize(for: .hrvBaseline), .small)
+    }
+
+    func test_setTileSize_default_clearsTheEntry() {
+        var config = BiologyConfig()
+        config.setTileSize(.large, for: .weight)
+        XCTAssertEqual(config.tileSize(for: .weight), .large)
+        config.setTileSize(.small, for: .weight)
+        XCTAssertTrue(config.tileSizes.isEmpty)
+    }
+
+    func test_tileSizes_roundTripThroughCoding() throws {
+        var config = BiologyConfig()
+        config.setTileSize(.medium, for: .sleepBaseline)
+        let decoded = try JSONDecoder().decode(BiologyConfig.self, from: JSONEncoder().encode(config))
+        XCTAssertEqual(decoded.tileSize(for: .sleepBaseline), .medium)
+    }
+
+    func test_tileSizes_unknownKeysAreDropped() throws {
+        let json = #"{"visibleBiomarkers":["weight"],"hiddenBiomarkers":[],"tileSizes":{"weight":"large","future":"small","waist":"huge"}}"#
+        let decoded = try JSONDecoder().decode(BiologyConfig.self, from: Data(json.utf8))
+        XCTAssertEqual(decoded.tileSizes, [.weight: .large])
+    }
+
+    func test_rows_pairSmallCardsAndGiveLargerOnesARow() {
+        let rows = BiomarkerTileSize.rows(
+            for: [.hrvBaseline, .rhrBaseline, .sleepBaseline, .weight, .stepsBaseline],
+            sizes: [.weight: .medium]
+        )
+        XCTAssertEqual(rows, [[.hrvBaseline, .rhrBaseline], [.sleepBaseline], [.weight], [.stepsBaseline]])
+    }
 }

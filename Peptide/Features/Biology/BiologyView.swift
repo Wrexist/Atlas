@@ -83,7 +83,9 @@ struct BiologyView: View {
                         onEditTapped: { showEditSheet = true },
                         onSelectBiomarker: { snapshot in
                             openDetail(for: snapshot.biomarker, seed: snapshot)
-                        }
+                        },
+                        tileSizes: dataStore.profile.biologyConfig.tileSizes,
+                        onResize: resizeTile
                     )
 
                     if let sleepInsights {
@@ -355,6 +357,14 @@ struct BiologyView: View {
     }
 
     private func persistConfigChanges() {
+        dataStore.persistProfile()
+    }
+
+    private func resizeTile(_ biomarker: Biomarker, to size: BiomarkerTileSize) {
+        Haptics.selection()
+        AppAnimation.with(AppAnimation.springSnappy) {
+            dataStore.profile.biologyConfig.setTileSize(size, for: biomarker)
+        }
         dataStore.persistProfile()
     }
 

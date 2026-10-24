@@ -5932,6 +5932,16 @@
         }
       }
     },
+    "Add results in Labs": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till resultat under Labbvärden"
+          }
+        }
+      }
+    },
     "Age-group comparisons: FRIEND registry (VO2 max) and CDC NHANES (resting heart rate).": {
       "localizations": {
         "sv": {
@@ -6022,6 +6032,16 @@
         }
       }
     },
+    "Avg %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snitt %@"
+          }
+        }
+      }
+    },
     "Bedtime": {
       "localizations": {
         "sv": {
@@ -6048,6 +6068,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bättre än %lld %% av kvinnor i din ålder"
+          }
+        }
+      }
+    },
+    "Card size": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kortstorlek"
+          }
+        }
+      }
+    },
+    "Connect Apple Health to fill this in": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anslut Apple Hälsa för att fylla i det här"
           }
         }
       }
@@ -6152,6 +6192,16 @@
         }
       }
     },
+    "Large": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stort"
+          }
+        }
+      }
+    },
     "Last %lld nights from Apple Health": {
       "localizations": {
         "sv": {
@@ -6214,6 +6264,16 @@
         }
       }
     },
+    "Medium": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mellan"
+          }
+        }
+      }
+    },
     "Neutral at %@ %%": {
       "localizations": {
         "sv": {
@@ -6260,6 +6320,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "För få värden i det här intervallet. Prova ett längre."
+          }
+        }
+      }
+    },
+    "Opens the chart": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar grafen"
           }
         }
       }
@@ -6364,6 +6434,16 @@
         }
       }
     },
+    "Small": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litet"
+          }
+        }
+      }
+    },
     "Source: Apple Health, including readings you log here": {
       "localizations": {
         "sv": {
@@ -6380,6 +6460,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Systoliskt"
+          }
+        }
+      }
+    },
+    "Tap to log a reading": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck för att logga ett värde"
           }
         }
       }
