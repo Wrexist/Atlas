@@ -26,6 +26,9 @@ final class ExerciseLibrary {
     private(set) var custom: [CustomExercise] = []
 
     private var byID: [String: Exercise] = [:]
+    /// Translated instruction steps: language code to bundled exercise id
+    /// to steps. English has no entry; `Exercise.instructions` is the text.
+    private var translatedSteps: [String: [String: [String]]] = [:]
     /// Bundled + custom, sorted by name, with each row's filter keys
     /// worked out once. `filter` runs on every library render, so it
     /// must not re-classify or re-sort ~870 exercises per keystroke.
@@ -36,6 +39,31 @@ final class ExerciseLibrary {
     private(set) var isLoaded = false
 
     private init() {}
+
+    // MARK: - Instructions
+
+    /// How to perform the exercise in `locale`'s language when a
+    /// translation ships for it. Pass the view's `\.locale`, which follows
+    /// the in-app language picker; the bundle's own preference does not.
+    /// Custom exercises keep the user's own text.
+    func steps(for exercise: Exercise, locale: Locale) -> [String] {
+        let language = locale.language.languageCode?.identifier ?? "en"
+        return translatedSteps[language]?[exercise.id] ?? exercise.instructions
+    }
+
+    /// `exercise-instructions.<language>.json`: bundled exercise id to its
+    /// translated steps. English has no file, so this reads as empty.
+    nonisolated static func translatedSteps(language: String, bundle: Bundle = .main) -> [String: [String]] {
+        guard let url = bundle.url(forResource: "exercise-instructions.\(language)", withExtension: "json") else {
+            return [:]
+        }
+        do {
+            return try JSONDecoder().decode([String: [String]].self, from: Data(contentsOf: url))
+        } catch {
+            AppLog.training.error("ExerciseLibrary: \(language, privacy: .public) instructions failed to decode: \(error.localizedDescription, privacy: .public)")
+            return [:]
+        }
+    }
 
     // MARK: - Loading
 
@@ -56,17 +84,25 @@ final class ExerciseLibrary {
         // Move the read + decode off the main actor. The bundled JSON is
         // ~800 KB; on older devices the synchronous Data(contentsOf:) +
         // JSONDecoder runs visibly stalled the first Train tab open.
-        let parsed: [Exercise]? = await Task.detached(priority: .userInitiated) {
+        // A Set: the bundle can list a localization twice ("en" does), and
+        // a duplicate key traps in Dictionary(uniqueKeysWithValues:).
+        let languages = Set(Bundle.main.localizations)
+        let parsed: ([Exercise], [String: [String: [String]]])? = await Task.detached(priority: .userInitiated) {
             do {
                 let data = try Data(contentsOf: url)
-                return try JSONDecoder().decode([Exercise].self, from: data)
+                let exercises = try JSONDecoder().decode([Exercise].self, from: data)
+                let translations = Dictionary(uniqueKeysWithValues: languages.map { ($0, Self.translatedSteps(language: $0)) })
+                    .filter { !$0.value.isEmpty }
+                return (exercises, translations)
             } catch {
                 AppLog.training.error("ExerciseLibrary decode failed: \(error.localizedDescription, privacy: .public)")
                 return nil
             }
         }.value
-        guard let decoded = parsed else { return }
+        guard let parsed else { return }
+        let (decoded, translations) = parsed
         bundled = decoded
+        translatedSteps = translations
         // uniquingKeysWith (keep first) instead of uniqueKeysWithValues:
         // a duplicate id in a bad exercises.json edit/OTA would otherwise
         // trap and crash the app on launch.

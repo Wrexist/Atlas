@@ -45,30 +45,39 @@ final class ExerciseLibraryTests: XCTestCase {
         }
     }
 
-    /// Five rows ship without instructions. The dataset is upstream
-    /// (`yuhonas/free-exercise-db`) and these gaps are its, not ours, so the
-    /// assertion is that the set does not *grow* — a sixth is a real
-    /// regression, whether from a dataset refresh or a bad local edit.
-    ///
-    /// Asserting a flat `isEmpty` here could never pass against the data the
-    /// app actually ships, so it reported the same five failures forever and
-    /// told nobody anything. Pinning them by name means the check earns its
-    /// place: it fails only when something changed.
-    private static let knownMissingInstructions: Set<String> = [
-        "Iron_Cross", "One-Arm_Kettlebell_Swings", "Push_Press",
-        "Side_Bridge", "Side_Jackknife",
-    ]
-
     func test_load_everyExercise_hasInstructions() {
-        let missing = Set(library.bundled.filter(\.instructions.isEmpty).map(\.id))
+        let missing = library.bundled.filter(\.instructions.isEmpty).map(\.id)
+        XCTAssertTrue(missing.isEmpty, "Exercises with no instructions: \(missing.sorted())")
+    }
 
-        let unexpected = missing.subtracting(Self.knownMissingInstructions)
-        XCTAssertTrue(unexpected.isEmpty,
-                      "New exercises with no instructions: \(unexpected.sorted())")
+    /// Swedish ships every step of every exercise. A step count that drifts
+    /// from the English means a step was merged, split or lost in
+    /// translation, so the numbered list would no longer line up.
+    func test_swedishInstructions_coverEveryExerciseStepForStep() {
+        let swedish = ExerciseLibrary.translatedSteps(language: "sv")
+        for exercise in library.bundled {
+            guard let steps = swedish[exercise.id] else {
+                XCTFail("No Swedish instructions for \(exercise.id)")
+                continue
+            }
+            XCTAssertEqual(steps.count, exercise.instructions.count,
+                           "Swedish step count differs for \(exercise.id)")
+            XCTAssertFalse(steps.contains { $0.trimmingCharacters(in: .whitespaces).isEmpty },
+                           "Empty Swedish step in \(exercise.id)")
+        }
+    }
 
-        let fixed = Self.knownMissingInstructions.subtracting(missing)
-        XCTAssertTrue(fixed.isEmpty,
-                      "These now have instructions — drop them from the allowlist: \(fixed.sorted())")
+    /// The steps follow the locale the view hands in (the in-app language
+    /// picker), not the device language.
+    func test_steps_followTheGivenLocale() throws {
+        let squat = try XCTUnwrap(library.lookup(id: "Barbell_Squat"))
+        let swedish = ExerciseLibrary.translatedSteps(language: "sv")["Barbell_Squat"]
+        XCTAssertEqual(library.steps(for: squat, locale: Locale(identifier: "sv_SE")), swedish)
+        XCTAssertEqual(library.steps(for: squat, locale: Locale(identifier: "en_US")), squat.instructions)
+    }
+
+    func test_translatedSteps_withoutFile_isEmpty() {
+        XCTAssertTrue(ExerciseLibrary.translatedSteps(language: "en").isEmpty)
     }
 
     // MARK: - Lookup
