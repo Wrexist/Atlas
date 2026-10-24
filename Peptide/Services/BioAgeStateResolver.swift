@@ -35,6 +35,8 @@ enum BioAgeStateResolver {
     /// - Parameter sex: Picks the VO2 max reference curve.
     /// - Parameter bodyMassIndex: From profile height and latest weight.
     /// - Parameter weightHistory: The in-app weight log.
+    /// - Parameter labHistory: Every lab result; HbA1c, LDL and hs-CRP
+    ///   feed the estimate.
     /// - Parameter isPro: When false the resolver short-circuits to
     ///   `.locked` without touching HealthKit.
     static func resolve(
@@ -42,6 +44,7 @@ enum BioAgeStateResolver {
         sex: BiologicalSex = .unspecified,
         bodyMassIndex: Double? = nil,
         weightHistory: [WeightEntry] = [],
+        labHistory: [LabValue] = [],
         isPro: Bool
     ) async -> Resolved {
         let scaleAge = chronologicalAge ?? chronologicalAgeFallback
@@ -52,7 +55,10 @@ enum BioAgeStateResolver {
             return Resolved(state: .needsAge, chronologicalAge: scaleAge)
         }
 
-        let series = await readSeries(weightHistory: weightHistory)
+        var series = await readSeries(weightHistory: weightHistory)
+        series.hba1c = labDraws(labHistory, panel: .hba1c)
+        series.ldl = labDraws(labHistory, panel: .ldl)
+        series.crp = labDraws(labHistory, panel: .crp)
         let profile = PerformanceAgeEngine.Profile(
             chronologicalAge: age,
             sex: sex,
@@ -111,6 +117,10 @@ enum BioAgeStateResolver {
             vo2Max: vo2Days.map(dailyValue),
             weightKg: weightHistory.map { .init(date: $0.date, value: $0.kg) }
         )
+    }
+
+    static func labDraws(_ history: [LabValue], panel: LabPanel) -> [PerformanceAgeEngine.DailyValue] {
+        history.filter { $0.panel == panel }.map { .init(date: $0.date, value: $0.value) }
     }
 
     nonisolated private static func dailyValue(_ sample: (date: Date, value: Double)) -> PerformanceAgeEngine.DailyValue {
