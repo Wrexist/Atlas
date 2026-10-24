@@ -1,9 +1,8 @@
 import SwiftUI
 
-/// "Biomarkers" list on the Biology tab. Section header with an
-/// Edit affordance; below it, one
-/// `BiomarkerRow` per visible biomarker in the user's curated
-/// order.
+/// "Biomarkers" on the Biology tab. Section header with an Edit
+/// affordance; below it, one `BiomarkerTile` per visible biomarker in
+/// the user's curated order, two small cards to a row.
 ///
 /// Loads snapshots async via `BiomarkerSeriesService` so the view
 /// body stays synchronous. Refreshes on appear + when the user
@@ -20,6 +19,8 @@ struct BiomarkerListSection: View {
     var reloadID = 0
     var onEditTapped: (() -> Void)?
     var onSelectBiomarker: ((BiomarkerSnapshot) -> Void)?
+    var tileSizes: [Biomarker: BiomarkerTileSize] = [:]
+    var onResize: ((Biomarker, BiomarkerTileSize) -> Void)?
 
     @State private var snapshots: [BiomarkerSnapshot] = []
     /// True until the first HealthKit read lands, so rows render as a
@@ -73,18 +74,38 @@ struct BiomarkerListSection: View {
     }
 
     private var rows: some View {
-        VStack(spacing: Spacing.sm) {
-            ForEach(Array(visibleBiomarkers.enumerated()), id: \.element) { index, biomarker in
-                let rowSnapshot = snapshot(for: biomarker)
-                BiomarkerRow(
-                    snapshot: rowSnapshot,
-                    onTap: { onSelectBiomarker?(rowSnapshot) }
-                )
-                .transition(.opacity.combined(with: .move(edge: .trailing)))
+        let layout = BiomarkerTileSize.rows(for: visibleBiomarkers, sizes: tileSizes)
+        return VStack(spacing: Spacing.sm) {
+            ForEach(Array(layout.enumerated()), id: \.element) { index, row in
+                HStack(alignment: .top, spacing: Spacing.sm) {
+                    ForEach(row, id: \.self) { biomarker in
+                        tile(for: biomarker)
+                    }
+                    // A small card without a partner keeps its half.
+                    if row.count == 1, tileSize(for: row[0]) == .small {
+                        Color.clear.frame(maxWidth: .infinity, maxHeight: 0)
+                    }
+                }
+                .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 .staggeredAppear(index: index)
             }
         }
-        .appAnimation(AppAnimation.springSnappy, value: visibleBiomarkers)
+        .appAnimation(AppAnimation.springSnappy, value: layout)
+    }
+
+    private func tile(for biomarker: Biomarker) -> some View {
+        let tileSnapshot = snapshot(for: biomarker)
+        return BiomarkerTile(
+            snapshot: tileSnapshot,
+            size: tileSize(for: biomarker),
+            unit: dataStore.profile.bodyMetrics.unit,
+            onTap: { onSelectBiomarker?(tileSnapshot) },
+            onResize: { onResize?(biomarker, $0) }
+        )
+    }
+
+    private func tileSize(for biomarker: Biomarker) -> BiomarkerTileSize {
+        tileSizes[biomarker] ?? .default
     }
 
     private var emptyState: some View {

@@ -88,26 +88,18 @@ final class BiologyConfigTests: XCTestCase {
         XCTAssertFalse(available.contains(.weight))
         XCTAssertFalse(available.contains(.hrvBaseline))
         XCTAssertFalse(available.contains(.rhrBaseline))
-        // Everything else in the catalog that has a data source is available.
+        // Everything else in the catalog is available.
         let expected = Biomarker.allCases.filter {
-            $0.hasDataSource && $0 != .weight && $0 != .hrvBaseline && $0 != .rhrBaseline
+            $0 != .weight && $0 != .hrvBaseline && $0 != .rhrBaseline
         }
         XCTAssertEqual(Set(available), Set(expected))
     }
 
-    func test_availableBiomarkers_excludesBiomarkersWithoutDataSource() {
+    /// Every catalog row can now be filled — the body measurements read
+    /// and write Apple Health — so a fresh config offers all of them.
+    func test_availableBiomarkers_freshConfig_offersWholeCatalog() {
         let available = BiologyConfig(visibleBiomarkers: [], hiddenBiomarkers: []).availableBiomarkers
-        XCTAssertFalse(available.isEmpty)
-        XCTAssertTrue(available.allSatisfy(\.hasDataSource))
-        XCTAssertFalse(available.contains(.bodyFat))
-    }
-
-    /// The Edit sheet offers exactly the rows BiomarkerSeriesService can
-    /// fill — steps included, manual-entry slots without a surface not.
-    func test_availableBiomarkers_matchesSeriesServiceSources() {
-        let available = BiologyConfig(visibleBiomarkers: [], hiddenBiomarkers: []).availableBiomarkers
-        XCTAssertEqual(Set(available), [.weight, .hrvBaseline, .rhrBaseline,
-                                        .sleepBaseline, .stepsBaseline, .latestLabPanel])
+        XCTAssertEqual(Set(available), Set(Biomarker.allCases))
     }
 
     // MARK: - Codable round-trip
@@ -176,5 +168,40 @@ final class BiologyConfigTests: XCTestCase {
         let decoded = try JSONDecoder().decode(UserProfile.self, from: data)
         XCTAssertEqual(decoded.biologyConfig.visibleBiomarkers, [.weight, .hrvBaseline])
         XCTAssertEqual(decoded.biologyConfig.hiddenBiomarkers, [.sleepBaseline])
+    }
+
+    // MARK: - Card sizes
+
+    func test_tileSize_unset_isSmall() {
+        XCTAssertEqual(BiologyConfig().tileSize(for: .hrvBaseline), .small)
+    }
+
+    func test_setTileSize_default_clearsTheEntry() {
+        var config = BiologyConfig()
+        config.setTileSize(.large, for: .weight)
+        XCTAssertEqual(config.tileSize(for: .weight), .large)
+        config.setTileSize(.small, for: .weight)
+        XCTAssertTrue(config.tileSizes.isEmpty)
+    }
+
+    func test_tileSizes_roundTripThroughCoding() throws {
+        var config = BiologyConfig()
+        config.setTileSize(.medium, for: .sleepBaseline)
+        let decoded = try JSONDecoder().decode(BiologyConfig.self, from: JSONEncoder().encode(config))
+        XCTAssertEqual(decoded.tileSize(for: .sleepBaseline), .medium)
+    }
+
+    func test_tileSizes_unknownKeysAreDropped() throws {
+        let json = #"{"visibleBiomarkers":["weight"],"hiddenBiomarkers":[],"tileSizes":{"weight":"large","future":"small","waist":"huge"}}"#
+        let decoded = try JSONDecoder().decode(BiologyConfig.self, from: Data(json.utf8))
+        XCTAssertEqual(decoded.tileSizes, [.weight: .large])
+    }
+
+    func test_rows_pairSmallCardsAndGiveLargerOnesARow() {
+        let rows = BiomarkerTileSize.rows(
+            for: [.hrvBaseline, .rhrBaseline, .sleepBaseline, .weight, .stepsBaseline],
+            sizes: [.weight: .medium]
+        )
+        XCTAssertEqual(rows, [[.hrvBaseline, .rhrBaseline], [.sleepBaseline], [.weight], [.stepsBaseline]])
     }
 }

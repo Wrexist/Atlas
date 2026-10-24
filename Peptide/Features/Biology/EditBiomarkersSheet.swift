@@ -66,9 +66,9 @@ struct EditBiomarkersSheet: View {
                     }
                 }
 
-                if !restorableBiomarkers.isEmpty {
+                if !config.hiddenBiomarkers.isEmpty {
                     Section {
-                        ForEach(restorableBiomarkers, id: \.self) { biomarker in
+                        ForEach(config.hiddenBiomarkers, id: \.self) { biomarker in
                             row(biomarker, action: .show)
                         }
                     } header: {
@@ -95,12 +95,6 @@ struct EditBiomarkersSheet: View {
                     .liquidGlassPresentation()
             }
         }
-    }
-
-    /// Hidden biomarkers that can still show data. One without a data
-    /// source stays off once hidden, matching `availableBiomarkers`.
-    private var restorableBiomarkers: [Biomarker] {
-        config.hiddenBiomarkers.filter(\.hasDataSource)
     }
 
     private enum RowAction {

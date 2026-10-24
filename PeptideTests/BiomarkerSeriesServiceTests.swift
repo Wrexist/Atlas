@@ -267,4 +267,46 @@ final class BiomarkerSeriesServiceTests: XCTestCase {
         let snapshot = BiomarkerSeriesService.seriesSnapshot(.hrvBaseline, series: series)
         XCTAssertEqual(snapshot.samples.map(\.date), series.map(\.date))
     }
+
+    // MARK: - Body measurements
+
+    func test_changeText_bodyFatDown_readsDecreasing() {
+        let text = BiomarkerSeriesService.changeText(for: .bodyFat, trend: .down, latest: 18.4)
+        XCTAssertEqual(text, "Decreasing · 18.4 %")
+    }
+
+    func test_changeText_waistImperial_convertsToInches() {
+        let text = BiomarkerSeriesService.changeText(for: .waist, trend: .flat, latest: 86, unit: .imperial)
+        XCTAssertEqual(text, "Holding · 34 in")
+    }
+
+    func test_changeText_bloodPressure_showsBothHalves() {
+        let text = BiomarkerSeriesService.changeText(for: .bloodPressure, trend: .up, latest: 128, diastolic: 82)
+        XCTAssertEqual(text, "Higher · 128/82 mmHg")
+    }
+
+    func test_bloodPressureSnapshot_pairsDaysAndDropsHalfReadings() {
+        let day = { (offset: Int) in self.utc.date(byAdding: .day, value: offset, to: Date(timeIntervalSince1970: 1_700_000_000))! }
+        let systolic = [(date: day(0), value: 120.0), (date: day(1), value: 125.0), (date: day(2), value: 130.0)]
+        // Day 1 has no diastolic, so it can't be charted as a pair.
+        let diastolic = [(date: day(0), value: 80.0), (date: day(2), value: 85.0)]
+
+        let snapshot = BiomarkerSeriesService.bloodPressureSnapshot(systolic: systolic, diastolic: diastolic)
+
+        XCTAssertEqual(snapshot.latest, 130)
+        XCTAssertEqual(snapshot.latestSecondary, 85)
+        XCTAssertEqual(snapshot.latestDate, day(2))
+        XCTAssertEqual(snapshot.samples.map(\.value), [120, 130])
+        XCTAssertEqual(snapshot.secondarySamples.map(\.value), [80, 85])
+    }
+
+    func test_bloodPressureSnapshot_noPairedDay_isEmpty() {
+        let date = Date(timeIntervalSince1970: 1_700_000_000)
+        let snapshot = BiomarkerSeriesService.bloodPressureSnapshot(
+            systolic: [(date: date, value: 120)],
+            diastolic: []
+        )
+        XCTAssertNil(snapshot.latest)
+        XCTAssertNil(snapshot.latestSecondary)
+    }
 }

@@ -41,9 +41,8 @@ enum Biomarker: String, CaseIterable, Codable, Hashable, Sendable {
         }
     }
 
-    /// SF Symbol used by `BiomarkerRow`'s trend badge background.
-    /// Sized for a 28–32pt circle, so prefer the `.fill` variants
-    /// that hold their weight at small sizes.
+    /// SF Symbol shown on the biomarker's card. Prefer the `.fill`
+    /// variants that hold their weight at small sizes.
     var icon: String {
         switch self {
         case .weight:           "scalemass.fill"
@@ -61,7 +60,7 @@ enum Biomarker: String, CaseIterable, Codable, Hashable, Sendable {
 
     /// Locale-aware unit string. `MeasurementUnit.imperial` swaps
     /// kg → lb, cm → in, °C → °F. The numeric value itself is
-    /// converted at the render site (BiomarkerRow uses the
+    /// converted at the render site (BiomarkerTile uses the
     /// user's BodyMetrics.unit to choose).
     func displayUnit(for unit: MeasurementUnit) -> String? {
         switch self {
@@ -122,19 +121,43 @@ enum Biomarker: String, CaseIterable, Codable, Hashable, Sendable {
         }
     }
 
-    /// False for catalog slots `BiomarkerSeriesService` can't fill yet
-    /// (no HealthKit helper, no manual-entry surface). The Edit sheet
-    /// stops offering them so nobody switches on a row that can never
-    /// show a reading; users who added one earlier keep it until they
-    /// turn it off.
-    var hasDataSource: Bool {
+    /// Rows the user can log by hand. They read and write Apple Health,
+    /// so readings from a smart scale or blood-pressure cuff land in the
+    /// same row.
+    var supportsManualEntry: Bool {
         switch self {
+        case .bodyFat, .waist, .bloodPressure, .bodyTemperature:
+            return true
         case .weight, .hrvBaseline, .rhrBaseline,
              .sleepBaseline, .stepsBaseline, .latestLabPanel:
-            return true
-        case .bodyTemperature, .bodyFat, .waist, .bloodPressure:
             return false
         }
+    }
+
+    /// A plain-language page from a public health body or major clinic,
+    /// behind the detail sheet's "Learn more". Nil for lab results, whose
+    /// context lives in Labs.
+    var reference: (publisher: String, url: URL)? {
+        let page: (String, String)
+        switch self {
+        case .hrvBaseline:
+            page = ("Cleveland Clinic", "https://my.clevelandclinic.org/health/symptoms/21773-heart-rate-variability-hrv")
+        case .rhrBaseline:
+            page = ("Cleveland Clinic", "https://my.clevelandclinic.org/health/diagnostics/heart-rate")
+        case .sleepBaseline:
+            page = ("CDC", "https://www.cdc.gov/sleep/about/index.html")
+        case .stepsBaseline:
+            page = ("CDC", "https://www.cdc.gov/physical-activity-basics/guidelines/adults.html")
+        case .weight, .bodyFat, .waist:
+            page = ("CDC", "https://www.cdc.gov/healthy-weight-growth/about/index.html")
+        case .bloodPressure:
+            page = ("American Heart Association", "https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings")
+        case .bodyTemperature:
+            page = ("Cleveland Clinic", "https://my.clevelandclinic.org/health/articles/10881-vital-signs")
+        case .latestLabPanel:
+            return nil
+        }
+        return URL(string: page.1).map { (publisher: page.0, url: $0) }
     }
 
     /// Biomarkers shown by default on a fresh install. Curated to
@@ -148,7 +171,7 @@ enum Biomarker: String, CaseIterable, Codable, Hashable, Sendable {
 
 // MARK: - Snapshot returned by the series service
 
-/// What the view actually reads. `BiomarkerRow` consumes this
+/// What the view actually reads. `BiomarkerTile` consumes this
 /// shape directly; no further math in the view layer.
 struct BiomarkerSnapshot: Equatable, Sendable, Identifiable {
     var id: Biomarker { biomarker }
@@ -171,6 +194,10 @@ struct BiomarkerSnapshot: Equatable, Sendable, Identifiable {
     let changeText: String
     /// When `latest` was recorded. `nil` when there is no reading.
     var latestDate: Date? = nil
+    /// Blood pressure's diastolic half; `latest` and `samples` carry the
+    /// systolic. Nil and empty for every other biomarker.
+    var latestSecondary: Double? = nil
+    var secondarySamples: [Sample] = []
 
     /// Past this many days the latest reading is called out as old
     /// rather than shown as if it were current.

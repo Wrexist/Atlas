@@ -461,6 +461,117 @@ final class HealthKitService {
         }
     }
 
+    // MARK: - Body measurements
+
+    /// The manual Biology rows: body fat, waist, blood pressure and body
+    /// temperature. They live in Apple Health rather than in Atlas, so a
+    /// smart scale's body fat or a cuff's blood pressure shows up next to
+    /// what the user types, and there is no second copy to keep in sync.
+    /// Asked for the first time the user logs one, not at connect.
+    private var bodyMeasurementTypes: Set<HKSampleType> {
+        [
+            HKQuantityType(.bodyFatPercentage),
+            HKQuantityType(.waistCircumference),
+            HKQuantityType(.bloodPressureSystolic),
+            HKQuantityType(.bloodPressureDiastolic),
+            HKQuantityType(.bodyTemperature),
+        ]
+    }
+
+    func requestBodyMeasurementAuthorization() async -> Bool {
+        guard isAvailable else { return false }
+        do {
+            try await store.requestAuthorization(toShare: bodyMeasurementTypes, read: bodyMeasurementTypes)
+            return canWriteAny(of: bodyMeasurementTypes)
+        } catch {
+            AppLog.healthKit.error(
+                "Body measurement authorization failed: \(error.localizedDescription, privacy: .private)"
+            )
+            return false
+        }
+    }
+
+    /// True when Health lets Atlas save this biomarker's reading — both
+    /// halves, for blood pressure.
+    func canWriteBodyMeasurement(_ biomarker: Biomarker) -> Bool {
+        let types = bodyMeasurementQuantityTypes(for: biomarker)
+        return isAvailable && !types.isEmpty
+            && types.allSatisfy { store.authorizationStatus(for: $0) == .sharingAuthorized }
+    }
+
+    private func bodyMeasurementQuantityTypes(for biomarker: Biomarker) -> [HKQuantityType] {
+        switch biomarker {
+        case .bodyFat:          [HKQuantityType(.bodyFatPercentage)]
+        case .waist:            [HKQuantityType(.waistCircumference)]
+        case .bloodPressure:    [HKQuantityType(.bloodPressureSystolic), HKQuantityType(.bloodPressureDiastolic)]
+        case .bodyTemperature:  [HKQuantityType(.bodyTemperature)]
+        default:                []
+        }
+    }
+
+    /// Saves one manual reading in canonical metric (% / cm / mmHg / °C).
+    /// `diastolic` is required for blood pressure, which Health stores as
+    /// one correlation of two samples. False when the save failed.
+    func writeBodyMeasurement(_ biomarker: Biomarker, value: Double, diastolic: Double? = nil, date: Date) async -> Bool {
+        guard isAvailable,
+              let sample = bodyMeasurementSample(biomarker, value: value, diastolic: diastolic, date: date)
+        else { return false }
+        do {
+            try await store.save(sample)
+            return true
+        } catch {
+            AppLog.healthKit.error("writeBodyMeasurement failed: \(error.localizedDescription, privacy: .private)")
+            return false
+        }
+    }
+
+    private func bodyMeasurementSample(_ biomarker: Biomarker, value: Double, diastolic: Double?, date: Date) -> HKSample? {
+        switch biomarker {
+        case .bodyFat:
+            // Health stores body fat as a fraction; Atlas shows percent.
+            return makeSample(type: .bodyFatPercentage, unit: .percent(), value: value / 100, date: date, metadata: [:])
+        case .waist:
+            return makeSample(type: .waistCircumference, unit: .meterUnit(with: .centi), value: value, date: date, metadata: [:])
+        case .bodyTemperature:
+            return makeSample(type: .bodyTemperature, unit: .degreeCelsius(), value: value, date: date, metadata: [:])
+        case .bloodPressure:
+            guard let diastolic else { return nil }
+            let unit = HKUnit.millimeterOfMercury()
+            let readings: Set<HKSample> = [
+                makeSample(type: .bloodPressureSystolic, unit: unit, value: value, date: date, metadata: [:]),
+                makeSample(type: .bloodPressureDiastolic, unit: unit, value: diastolic, date: date, metadata: [:]),
+            ]
+            return HKCorrelation(type: HKCorrelationType(.bloodPressure), start: date, end: date, objects: readings)
+        default:
+            return nil
+        }
+    }
+
+    /// Body fat per day, in percent (Health's fraction × 100).
+    func dailyBodyFatPercent(days: Int) async -> [(date: Date, value: Double)] {
+        await dailyAverage(type: .bodyFatPercentage, unit: .percent(), days: days).map { (date: $0.date, value: $0.value * 100) }
+    }
+
+    func dailyWaistCentimeters(days: Int) async -> [(date: Date, value: Double)] {
+        await dailyAverage(type: .waistCircumference, unit: .meterUnit(with: .centi), days: days)
+    }
+
+    func dailyBodyTemperature(days: Int) async -> [(date: Date, value: Double)] {
+        await dailyAverage(type: .bodyTemperature, unit: .degreeCelsius(), days: days)
+    }
+
+    func dailyBloodPressureSystolic(days: Int) async -> [(date: Date, value: Double)] {
+        await dailyAverage(type: .bloodPressureSystolic, unit: .millimeterOfMercury(), days: days)
+    }
+
+    func dailyBloodPressureDiastolic(days: Int) async -> [(date: Date, value: Double)] {
+        await dailyAverage(type: .bloodPressureDiastolic, unit: .millimeterOfMercury(), days: days)
+    }
+
+    private func dailyAverage(type: HKQuantityTypeIdentifier, unit: HKUnit, days: Int) async -> [(date: Date, value: Double)] {
+        await dailyQuantity(type: type, unit: unit, days: days, options: .discreteAverage, extract: { $0.averageQuantity() })
+    }
+
     // MARK: - Heart Rate
 
     func averageRestingHeartRate(days: Int) async -> Double? {
@@ -649,9 +760,20 @@ final class HealthKitService {
     /// about 18 hours ago. `.inBed` is dropped because it overlaps the
     /// asleep stages and would double the night.
     func recentSleepSegments() async -> [SleepScoreEngine.Segment] {
+        await sleepSegments(hours: 30)
+    }
+
+    /// Staged sleep segments for the last `nights` nights, for the
+    /// Biology tab's sleep deep-dive. The extra 12 hours reach back to
+    /// the bedtime of the oldest night.
+    func sleepSegments(nights: Int) async -> [SleepScoreEngine.Segment] {
+        await sleepSegments(hours: Double(nights * 24 + 12))
+    }
+
+    private func sleepSegments(hours: Double) async -> [SleepScoreEngine.Segment] {
         guard isAvailable else { return [] }
         let endDate = Date()
-        let startDate = endDate.addingTimeInterval(-30 * 3600)
+        let startDate = endDate.addingTimeInterval(-hours * 3600)
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate)
         let descriptor = HKSampleQueryDescriptor(
             predicates: [.categorySample(type: HKCategoryType(.sleepAnalysis), predicate: predicate)],
@@ -670,7 +792,7 @@ final class HealthKitService {
                 )
             }
         } catch {
-            AppLog.healthKit.error("recentSleepSegments query failed: \(error.localizedDescription, privacy: .private)")
+            AppLog.healthKit.error("sleepSegments query failed: \(error.localizedDescription, privacy: .private)")
             return []
         }
     }

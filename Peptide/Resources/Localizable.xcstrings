@@ -121,6 +121,16 @@
         }
       }
     },
+    "%@ ± %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ ± %2$@"
+          }
+        }
+      }
+    },
     "%lld mg/dL": {
       "localizations": {
         "sv": {
@@ -5812,6 +5822,16 @@
         }
       }
     },
+    "90 days": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "90 dagar"
+          }
+        }
+      }
+    },
     "90-day habit streak": {
       "localizations": {
         "sv": {
@@ -5922,6 +5942,26 @@
         }
       }
     },
+    "Add results in Labs": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till resultat under Labbvärden"
+          }
+        }
+      }
+    },
+    "Age-group comparisons: FRIEND registry (VO2 max) and CDC NHANES (resting heart rate).": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jämförelser med åldersgrupp: FRIEND-registret (VO2 max) och CDC NHANES (vilopuls)."
+          }
+        }
+      }
+    },
     "Ask AI what's moving your Biological Age": {
       "localizations": {
         "sv": {
@@ -5972,12 +6012,52 @@
         }
       }
     },
+    "Atlas sees your Biological Age, its 90-day trend and the 30-day readings behind it — not your raw Health data.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atlas ser din biologiska ålder, trenden de senaste 90 dagarna och 30-dagarsvärdena bakom den, inte din råa Hälsa-data."
+          }
+        }
+      }
+    },
     "Atlas sees your Biological Age, its 90-day trend, the 30-day readings behind it and your last two weeks of journal entries — not your raw Health data.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Atlas ser din Biological Age, dess trend över 90 dagar, 30-dagarsvärdena bakom den och dina dagboksanteckningar från de senaste två veckorna – inte dina råa hälsodata."
+          }
+        }
+      }
+    },
+    "Average %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snitt %@"
+          }
+        }
+      }
+    },
+    "Average asleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snitt sömn"
+          }
+        }
+      }
+    },
+    "Avg %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snitt %@"
           }
         }
       }
@@ -5992,12 +6072,122 @@
         }
       }
     },
+    "Bedtime": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Läggdags"
+          }
+        }
+      }
+    },
+    "Better than %lld%% of men your age": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bättre än %lld %% av män i din ålder"
+          }
+        }
+      }
+    },
+    "Better than %lld%% of women your age": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bättre än %lld %% av kvinnor i din ålder"
+          }
+        }
+      }
+    },
+    "Card size": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kortstorlek"
+          }
+        }
+      }
+    },
+    "Connect Apple Health to fill this in": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anslut Apple Hälsa för att fylla i det här"
+          }
+        }
+      }
+    },
+    "Core sleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kärnsömn"
+          }
+        }
+      }
+    },
+    "Deep sleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Djupsömn"
+          }
+        }
+      }
+    },
     "Delete your data": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Radera dina data"
+          }
+        }
+      }
+    },
+    "Diastolic": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diastoliskt"
+          }
+        }
+      }
+    },
+    "Efficiency": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effektivitet"
+          }
+        }
+      }
+    },
+    "Enter a value between %@ and %@.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ange ett värde mellan %@ och %@."
+          }
+        }
+      }
+    },
+    "Enter systolic over diastolic, for example 120 over 80.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ange övertryck och undertryck, till exempel 120 över 80."
           }
         }
       }
@@ -6072,6 +6262,88 @@
         }
       }
     },
+    "Large": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stort"
+          }
+        }
+      }
+    },
+    "Last %lld nights from Apple Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senaste %#@arg1@ från Apple Hälsa"
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "natten"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg nätterna"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Learn more · %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Läs mer · %@"
+          }
+        }
+      }
+    },
+    "Log a reading": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga ett värde"
+          }
+        }
+      }
+    },
+    "Measured": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppmätt"
+          }
+        }
+      }
+    },
+    "Medium": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mellan"
+          }
+        }
+      }
+    },
     "Neutral at %@ %%": {
       "localizations": {
         "sv": {
@@ -6102,12 +6374,42 @@
         }
       }
     },
+    "None": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingen"
+          }
+        }
+      }
+    },
+    "Not enough readings in this range. Try a longer one.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "För få värden i det här intervallet. Prova ett längre."
+          }
+        }
+      }
+    },
     "Okay": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Okej"
+          }
+        }
+      }
+    },
+    "Opens the chart": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar grafen"
           }
         }
       }
@@ -6128,6 +6430,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Privat från grunden – ingen reklam, ingen spårning"
+          }
+        }
+      }
+    },
+    "REM sleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "REM-sömn"
           }
         }
       }
@@ -6162,6 +6474,16 @@
         }
       }
     },
+    "Saved to Apple Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sparas i Apple Hälsa"
+          }
+        }
+      }
+    },
     "Scanned report attached": {
       "localizations": {
         "sv": {
@@ -6192,6 +6514,16 @@
         }
       }
     },
+    "Sleep debt, last 7 nights": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sömnskuld, senaste 7 nätterna"
+          }
+        }
+      }
+    },
     "Sleep, stress, training, how your body feels…": {
       "localizations": {
         "sv": {
@@ -6202,12 +6534,52 @@
         }
       }
     },
+    "Small": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litet"
+          }
+        }
+      }
+    },
+    "Source: Apple Health, including readings you log here": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Källa: Apple Hälsa, inklusive värden du loggar här"
+          }
+        }
+      }
+    },
     "Stays on this device. Ask Atlas reads it only when you allow it.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Stannar på den här enheten. Fråga Atlas läser den bara om du tillåter det."
+          }
+        }
+      }
+    },
+    "Systolic": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Systoliskt"
+          }
+        }
+      }
+    },
+    "Tap to log a reading": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck för att logga ett värde"
           }
         }
       }
@@ -6242,12 +6614,32 @@
         }
       }
     },
+    "Value in %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Värde i %@"
+          }
+        }
+      }
+    },
     "View original report": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Visa originalrapport"
+          }
+        }
+      }
+    },
+    "Wake time": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppvakning"
           }
         }
       }
@@ -6328,6 +6720,68 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dina meddelanden i den här chatten, plus en sammanfattning av din Biological Age: uppskattningen, trenden och signalerna bakom den, som HRV, vilopuls, sömn, steg, kondition, vikt och labbvärden, samt dina dagboksanteckningar från de senaste två veckorna."
+          }
+        }
+      }
+    },
+    "Your messages in this chat, plus a summary of your Biological Age: the estimate, its trend, and the signals behind it, such as HRV, resting heart rate, sleep, steps, cardio fitness, weight and lab results.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina meddelanden i den här chatten, plus en sammanfattning av din biologiska ålder: uppskattningen, trenden och signalerna bakom den, som HRV, vilopuls, sömn, steg, kondition, vikt och labbvärden."
+          }
+        }
+      }
+    },
+    "Your sleep schedule is steady. A regular clock helps recovery.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina sovtider är jämna. En regelbunden dygnsrytm hjälper återhämtningen."
+          }
+        }
+      }
+    },
+    "Your sleep schedule shifts by more than an hour. Try going to bed and waking at the same times.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina sovtider varierar med mer än en timme. Försök lägga dig och vakna på samma tider."
+          }
+        }
+      }
+    },
+    "Your sleep schedule shifts by up to an hour. Steadier times help recovery.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina sovtider varierar med upp till en timme. Jämnare tider hjälper återhämtningen."
+          }
+        }
+      }
+    },
+    "^[%lld day](inflect: true) with a reading": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dag med värde"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dagar med värde"
+                }
+              }
+            }
           }
         }
       }

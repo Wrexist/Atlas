@@ -24,6 +24,7 @@ struct BiologyView: View {
     /// Bumped by pull-to-refresh and a fresh Health grant so the
     /// biomarker list re-reads HealthKit without re-keying on config.
     @State private var reloadID = 0
+    @State private var sleepInsights: SleepInsightsEngine.Insights?
     /// Drives the per-biomarker detail sheet. Identifiable wrapper
     /// so `.sheet(item:)` lifecycle is clean across taps.
     @State private var detailItem: BiomarkerDetailItem?
@@ -82,8 +83,15 @@ struct BiologyView: View {
                         onEditTapped: { showEditSheet = true },
                         onSelectBiomarker: { snapshot in
                             openDetail(for: snapshot.biomarker, seed: snapshot)
-                        }
+                        },
+                        tileSizes: dataStore.profile.biologyConfig.tileSizes,
+                        onResize: resizeTile
                     )
+
+                    if let sleepInsights {
+                        SleepInsightsSection(insights: sleepInsights)
+                            .transition(.opacity)
+                    }
 
                     HealthJournalCard(onReflect: openAskAtlas)
 
@@ -130,7 +138,8 @@ struct BiologyView: View {
                     biomarker: item.biomarker,
                     initialSnapshot: item.snapshot,
                     historicalFetcher: { await fetchHistorical(for: item.biomarker) },
-                    unit: dataStore.profile.bodyMetrics.unit
+                    unit: dataStore.profile.bodyMetrics.unit,
+                    onReadingLogged: { reloadID &+= 1 }
                 )
                 .liquidGlassPresentation()
             }
@@ -165,6 +174,15 @@ struct BiologyView: View {
                              healthConnected: dataStore.profile.healthConnected)) {
             await refreshState()
         }
+        .task(id: SleepKey(reloadID: reloadID, healthConnected: dataStore.profile.healthConnected)) {
+            let next = await SleepInsightsSection.load()
+            AppAnimation.with(AppAnimation.springSmooth) { sleepInsights = next }
+        }
+    }
+
+    private struct SleepKey: Equatable {
+        let reloadID: Int
+        let healthConnected: Bool
     }
 
     /// Asks for Health access while it's missing, and slides away once
@@ -206,7 +224,12 @@ struct BiologyView: View {
     private var bioAgeDetail: some View {
         if let resolved {
             if case .unlocked(let estimate) = resolved.state {
-                BioAgeDriversCard(estimate: estimate, unit: dataStore.profile.bodyMetrics.unit)
+                BioAgeDriversCard(
+                    estimate: estimate,
+                    unit: dataStore.profile.bodyMetrics.unit,
+                    age: resolved.inputs?.chronologicalAge,
+                    sex: resolved.inputs?.sex ?? .unspecified
+                )
                     .biologyCardReveal()
                 BioAgeTrendCard(points: resolved.trend, chronologicalAge: resolved.chronologicalAge)
                     .biologyCardReveal()
@@ -336,6 +359,14 @@ struct BiologyView: View {
     }
 
     private func persistConfigChanges() {
+        dataStore.persistProfile()
+    }
+
+    private func resizeTile(_ biomarker: Biomarker, to size: BiomarkerTileSize) {
+        Haptics.selection()
+        AppAnimation.with(AppAnimation.springSnappy) {
+            dataStore.profile.biologyConfig.setTileSize(size, for: biomarker)
+        }
         dataStore.persistProfile()
     }
 
