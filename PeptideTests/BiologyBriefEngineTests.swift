@@ -54,4 +54,44 @@ final class BiologyBriefEngineTests: XCTestCase {
         let brief = BiologyBriefEngine.brief(.init(state: .locked, chronologicalAge: 35), unit: .metric)
         XCTAssertTrue(brief.hasPrefix("No Biological Age available."))
     }
+
+    // MARK: - Journal
+
+    /// 2025-10-09 00:00 UTC.
+    private let now = Date(timeIntervalSince1970: 1_759_968_000)
+
+    private func day(_ offset: Int) -> Date {
+        now.addingTimeInterval(Double(offset) * 86_400)
+    }
+
+    func test_brief_journal_listsRecentDaysOldestFirst() {
+        let journal = [
+            HealthJournalEntry(day: day(-1), mood: .good, note: "Slept well"),
+            HealthJournalEntry(day: day(-3), mood: .low),
+            HealthJournalEntry(day: day(-20), mood: .awful, note: "Too old"),
+        ]
+
+        let brief = BiologyBriefEngine.brief(
+            .init(state: .locked, chronologicalAge: 35), unit: .metric, journal: journal, now: now
+        )
+
+        XCTAssertTrue(brief.contains("Health journal"))
+        XCTAssertTrue(brief.contains("- 2025-10-06: mood 2/5\n- 2025-10-08: mood 4/5 — \"Slept well\""))
+        XCTAssertFalse(brief.contains("Too old"))
+    }
+
+    func test_brief_journal_cutsLongNotes() {
+        let note = String(repeating: "a", count: 1_000)
+        let brief = BiologyBriefEngine.brief(
+            .init(state: .locked, chronologicalAge: 35), unit: .metric,
+            journal: [HealthJournalEntry(day: day(0), mood: .okay, note: note)], now: now
+        )
+        XCTAssertTrue(brief.contains(String(repeating: "a", count: BiologyBriefEngine.journalNoteLimit) + "\""))
+        XCTAssertFalse(brief.contains(String(repeating: "a", count: BiologyBriefEngine.journalNoteLimit + 1)))
+    }
+
+    func test_brief_noJournal_hasNoJournalSection() {
+        let brief = BiologyBriefEngine.brief(.init(state: .locked, chronologicalAge: 35), unit: .metric, now: now)
+        XCTAssertFalse(brief.contains("Health journal"))
+    }
 }

@@ -85,6 +85,8 @@ struct BiologyView: View {
                         }
                     )
 
+                    HealthJournalCard(onReflect: openAskAtlas)
+
                     GlassEntryRow(
                         icon: "cross.vial.fill",
                         title: "Labs",
@@ -397,7 +399,11 @@ struct BiologyView: View {
         resolved.map {
             AIResearchService.Brief(
                 topic: .biology,
-                text: BiologyBriefEngine.brief($0, unit: dataStore.profile.bodyMetrics.unit)
+                text: BiologyBriefEngine.brief(
+                    $0,
+                    unit: dataStore.profile.bodyMetrics.unit,
+                    journal: HealthJournalStore.shared.entries
+                )
             )
         }
     }

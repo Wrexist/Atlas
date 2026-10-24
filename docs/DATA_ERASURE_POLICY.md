@@ -14,6 +14,7 @@ future storage surface must be added to.
 | Custom peptides (`custom-peptides.json`) | Documents | `PersistenceService.clearAll()` |
 | Widget snapshot (`widget-data.json`) | App Group container | `PersistenceService.clearAll()` |
 | Progress photos | Documents/ProgressPhotos | `ProgressPhotoStorage.deleteAll()` |
+| Health journal | Documents/health-journal.json | `HealthJournalStore.shared.deleteAll()` |
 | Apple ID linkage (keychain email/name/identifier) | Keychain | `signOut()` |
 | Pending and delivered reminders | Notification Center | `NotificationService.cancelAll()` |
 | Recently scanned products | Caches | `BarcodeProductCache.clear()` |

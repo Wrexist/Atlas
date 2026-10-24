@@ -213,7 +213,7 @@ struct AIResearchView: View {
             )
         case .biology:
             AIConsentSheet(
-                whatIsSent: "Your messages in this chat, plus a summary of your Biological Age: the estimate, its trend, and the signals behind it, such as HRV, resting heart rate, sleep, steps, cardio fitness, weight and lab results.",
+                whatIsSent: "Your messages in this chat, plus a summary of your Biological Age: the estimate, its trend, and the signals behind it, such as HRV, resting heart rate, sleep, steps, cardio fitness, weight and lab results, plus your last two weeks of health journal entries.",
                 grant: AIDataConsent.grantBiologySummary
             )
         case nil:
@@ -234,7 +234,7 @@ struct AIResearchView: View {
         case .nutrition:
             "The coach sees your targets, average intake, protein days and weight trend from the last 7 days — not your individual meals."
         case .biology:
-            "Atlas sees your Biological Age, its 90-day trend and the 30-day readings behind it — not your raw Health data."
+            "Atlas sees your Biological Age, its 90-day trend, the 30-day readings behind it and your last two weeks of journal entries — not your raw Health data."
         case nil:
             "Mention a compound by name and the assistant will pull half-life, dosage range, mechanism, and citations from Atlas's compound library before answering."
         }
@@ -467,6 +467,7 @@ struct AIResearchView: View {
         String(localized: "What's driving my Biological Age?"),
         String(localized: "Which one change would lower it the most?"),
         String(localized: "How has it moved over the last 90 days?"),
+        String(localized: "What patterns do you see in my journal?"),
     ]
 
     private static let coachPrompts: [String] = [

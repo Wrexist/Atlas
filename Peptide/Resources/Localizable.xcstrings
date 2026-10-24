@@ -5872,6 +5872,16 @@
         }
       }
     },
+    "Add a note about today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skriv en anteckning om i dag"
+          }
+        }
+      }
+    },
     "Ask AI what's moving your Biological Age": {
       "localizations": {
         "sv": {
@@ -5922,12 +5932,22 @@
         }
       }
     },
-    "Atlas sees your Biological Age, its 90-day trend and the 30-day readings behind it — not your raw Health data.": {
+    "Atlas sees your Biological Age, its 90-day trend, the 30-day readings behind it and your last two weeks of journal entries — not your raw Health data.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Atlas ser din biologiska ålder, trenden de senaste 90 dagarna och 30-dagarsvärdena bakom den, inte din råa Hälsa-data."
+            "value": "Atlas ser din Biological Age, dess trend över 90 dagar, 30-dagarsvärdena bakom den och dina dagboksanteckningar från de senaste två veckorna – inte dina råa hälsodata."
+          }
+        }
+      }
+    },
+    "Awful": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usel"
           }
         }
       }
@@ -5942,12 +5962,62 @@
         }
       }
     },
+    "Find patterns in your journal": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hitta mönster i din dagbok"
+          }
+        }
+      }
+    },
+    "Good": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bra"
+          }
+        }
+      }
+    },
+    "Great": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toppen"
+          }
+        }
+      }
+    },
     "How has it moved over the last 90 days?": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Hur har den förändrats de senaste 90 dagarna?"
+          }
+        }
+      }
+    },
+    "Journal": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagbok"
+          }
+        }
+      }
+    },
+    "Okay": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Okej"
           }
         }
       }
@@ -5982,6 +6052,36 @@
         }
       }
     },
+    "See all": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visa alla"
+          }
+        }
+      }
+    },
+    "Sleep, stress, training, how your body feels…": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sömn, stress, träning, hur kroppen känns …"
+          }
+        }
+      }
+    },
+    "Stays on this device. Ask Atlas reads it only when you allow it.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stannar på den här enheten. Fråga Atlas läser den bara om du tillåter det."
+          }
+        }
+      }
+    },
     "The coach sees your targets, average intake, protein days and weight trend from the last 7 days — not your individual meals.": {
       "localizations": {
         "sv": {
@@ -5998,6 +6098,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Det här går inte att ångra."
+          }
+        }
+      }
+    },
+    "What patterns do you see in my journal?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vilka mönster ser du i min dagbok?"
           }
         }
       }
@@ -6032,12 +6142,12 @@
         }
       }
     },
-    "Your messages in this chat, plus a summary of your Biological Age: the estimate, its trend, and the signals behind it, such as HRV, resting heart rate, sleep, steps, cardio fitness, weight and lab results.": {
+    "Your messages in this chat, plus a summary of your Biological Age: the estimate, its trend, and the signals behind it, such as HRV, resting heart rate, sleep, steps, cardio fitness, weight and lab results, plus your last two weeks of health journal entries.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dina meddelanden i den här chatten, plus en sammanfattning av din biologiska ålder: uppskattningen, trenden och signalerna bakom den, som HRV, vilopuls, sömn, steg, kondition, vikt och labbvärden."
+            "value": "Dina meddelanden i den här chatten, plus en sammanfattning av din Biological Age: uppskattningen, trenden och signalerna bakom den, som HRV, vilopuls, sömn, steg, kondition, vikt och labbvärden, samt dina dagboksanteckningar från de senaste två veckorna."
           }
         }
       }
