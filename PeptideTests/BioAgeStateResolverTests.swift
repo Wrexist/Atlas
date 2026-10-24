@@ -121,4 +121,16 @@ final class BioAgeStateResolverTests: XCTestCase {
         XCTAssertNotEqual(BioAgeHeroSection.BioAgeState.unlocked(estimate: est1),
                           BioAgeHeroSection.BioAgeState.unlocked(estimate: est3))
     }
+
+    func test_labDraws_keepsOnlyThatPanel() {
+        let date = Date(timeIntervalSince1970: 1_760_000_000)
+        let history = [
+            LabValue(date: date, panel: .hba1c, value: 5.4),
+            LabValue(date: date, panel: .ldl, value: 110),
+            LabValue(date: date.addingTimeInterval(86_400), panel: .hba1c, value: 5.6),
+        ]
+        let draws = BioAgeStateResolver.labDraws(history, panel: .hba1c)
+        XCTAssertEqual(draws.map(\.value), [5.4, 5.6])
+    }
 }
+
