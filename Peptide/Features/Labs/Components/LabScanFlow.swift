@@ -10,8 +10,9 @@ import UIKit
 /// confirms each one before anything is saved.
 ///
 /// The Pro gate and the AI-sharing consent are checked by the caller
-/// before this sheet opens. Pages live only in this view's state and are
-/// dropped when it closes.
+/// before this sheet opens. Pages stay in this view's state until Save,
+/// which keeps a copy on the device (`LabReportStorage`) so the user can
+/// check a value against the report later; a discarded scan keeps none.
 struct LabScanFlow: View {
     let sex: BiologicalSex
     /// Called once with every confirmed value; the caller saves each
@@ -46,7 +47,7 @@ struct LabScanFlow: View {
                 switch phase {
                 case .pick:             picker
                 case .reading:          reading
-                case .review(let scan): LabScanReviewView(scan: scan, sex: sex, onSave: onSave)
+                case .review(let scan): LabScanReviewView(scan: scan, sex: sex, onSave: saveWithReport)
                 case .error:            errorCard
                 }
             }
@@ -272,6 +273,23 @@ struct LabScanFlow: View {
         let bounds = page.bounds(for: .mediaBox)
         let scale = 2000 / max(bounds.width, bounds.height, 1)
         return page.thumbnail(of: CGSize(width: bounds.width * scale, height: bounds.height * scale), for: .mediaBox)
+    }
+
+    /// A failed write only loses the copy of the report, never the values.
+    private func saveWithReport(_ values: [LabValue]) {
+        let reportID = UUID()
+        do {
+            try LabReportStorage.save(pages: pages, reportID: reportID)
+        } catch {
+            AppLog.persistence.error("Lab report pages not saved: \(error.localizedDescription, privacy: .public)")
+            onSave(values)
+            return
+        }
+        onSave(values.map { value in
+            var stamped = value
+            stamped.reportID = reportID
+            return stamped
+        })
     }
 
     // MARK: - Reading
