@@ -144,6 +144,7 @@ struct BiologyView: View {
         .task(id: RefreshKey(isPro: storeService.isProUser,
                              metrics: dataStore.profile.bodyMetrics,
                              weightHistory: dataStore.profile.weightHistory,
+                             labHistory: dataStore.profile.labHistory,
                              healthConnected: dataStore.profile.healthConnected)) {
             await refreshState()
         }
@@ -217,6 +218,7 @@ struct BiologyView: View {
         let isPro: Bool
         let metrics: BodyMetrics
         let weightHistory: [WeightEntry]
+        let labHistory: [LabValue]
         let healthConnected: Bool
     }
 
@@ -287,6 +289,7 @@ struct BiologyView: View {
                 heightCm: profile.bodyMetrics.heightCm
             ),
             weightHistory: profile.weightHistory,
+            labHistory: profile.labHistory,
             isPro: storeService.isProUser
         )
         // A superseded run keeps going after cancellation; it must not
