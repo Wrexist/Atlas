@@ -29,6 +29,7 @@ struct LabScanFlow: View {
     @State private var isImportingPDF = false
     @State private var cameraDenied = false
     @State private var discardConfirmation = false
+    @State private var isSaving = false
     /// Cancelled on close so an abandoned scan stops spending quota.
     @State private var inFlightTask: Task<Void, Never>?
 
@@ -277,19 +278,24 @@ struct LabScanFlow: View {
 
     /// A failed write only loses the copy of the report, never the values.
     private func saveWithReport(_ values: [LabValue]) {
+        guard !isSaving else { return }
+        isSaving = true
         let reportID = UUID()
-        do {
-            try LabReportStorage.save(pages: pages, reportID: reportID)
-        } catch {
-            AppLog.persistence.error("Lab report pages not saved: \(error.localizedDescription, privacy: .public)")
-            onSave(values)
-            return
+        let submitted = pages
+        Task {
+            do {
+                try await LabReportStorage.save(pages: submitted, reportID: reportID)
+            } catch {
+                AppLog.persistence.error("Lab report pages not saved: \(error.localizedDescription, privacy: .public)")
+                onSave(values)
+                return
+            }
+            onSave(values.map { value in
+                var stamped = value
+                stamped.reportID = reportID
+                return stamped
+            })
         }
-        onSave(values.map { value in
-            var stamped = value
-            stamped.reportID = reportID
-            return stamped
-        })
     }
 
     // MARK: - Reading

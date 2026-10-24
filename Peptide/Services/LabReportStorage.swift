@@ -6,22 +6,21 @@ import UIKit
 /// report under Documents/LabReports, named by the `reportID` its lab
 /// values carry; pages are JPEGs downscaled like progress photos.
 ///
-/// Nothing here goes to iCloud: a lab report is health data, and the
-/// lab values that reference it sync without it. On a device that
+/// Nothing here goes to iCloud, sync or device backup: a lab report is
+/// health data, and the lab values that reference it sync without it. On a device that
 /// never had the file the viewer simply has nothing to show.
 enum LabReportStorage {
 
     private static let folderName = "LabReports"
 
     /// Writes every page, replacing any earlier copy of the same report.
-    static func save(pages: [UIImage], reportID: UUID) throws {
-        let folder = try folder(for: reportID)
-        try? FileManager.default.removeItem(at: folder)
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        for (index, page) in pages.enumerated() {
-            guard let data = ProgressPhotoStorage.downscaled(page).jpegData(compressionQuality: 0.85) else { continue }
-            try data.write(to: folder.appendingPathComponent(pageName(index)), options: [.atomic, .completeFileProtection])
-        }
+    /// Downscaling and encoding up to four camera pages is slow, so it
+    /// all runs off the main actor.
+    static func save(pages: [UIImage], reportID: UUID) async throws {
+        try await Task.detached(priority: .userInitiated) {
+            let encoded = pages.compactMap { ProgressPhotoStorage.downscaled($0).jpegData(compressionQuality: 0.85) }
+            try write(encoded, reportID: reportID)
+        }.value
     }
 
     /// The report's pages in order, empty when this device has none.
@@ -53,6 +52,27 @@ enum LabReportStorage {
     }
 
     // MARK: - Private
+
+    private static func write(_ pages: [Data], reportID: UUID) throws {
+        let folder = try folder(for: reportID)
+        try? FileManager.default.removeItem(at: folder)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        do {
+            // Excluding the folder keeps every page in it out of device backups.
+            var url = folder
+            var values = URLResourceValues()
+            values.isExcludedFromBackup = true
+            try url.setResourceValues(values)
+            for (index, data) in pages.enumerated() {
+                try data.write(to: folder.appendingPathComponent(pageName(index)), options: [.atomic, .completeFileProtection])
+            }
+        } catch {
+            // No lab value will point at a half-written report, so nothing
+            // would ever delete it.
+            try? FileManager.default.removeItem(at: folder)
+            throw error
+        }
+    }
 
     private static func pageName(_ index: Int) -> String {
         String(format: "page-%02d.jpg", index + 1)
