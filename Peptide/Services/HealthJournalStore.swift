@@ -69,6 +69,12 @@ final class HealthJournalStore {
         guard let fileURL else { return }
         do {
             try JSONEncoder().encode(entries).write(to: fileURL, options: [.atomic, .completeFileProtection])
+            // `.atomic` replaces the file, and the exclusion flag lives
+            // on the file, not the path.
+            var url = fileURL
+            var values = URLResourceValues()
+            values.isExcludedFromBackup = true
+            try url.setResourceValues(values)
         } catch {
             AppLog.persistence.error("Health journal not saved: \(error.localizedDescription, privacy: .public)")
         }
