@@ -33,6 +33,10 @@ struct LabValue: Codable, Hashable, Identifiable, Sendable {
     /// Stamp on create / edit. Lets the list show an "edited"
     /// indicator if the user revised a value.
     var updatedAt: Date
+    /// The scanned report this value was read from, shared by every
+    /// value of that scan. Its pages live in `LabReportStorage`; nil
+    /// for values entered by hand.
+    var reportID: UUID?
 
     init(
         id: UUID = UUID(),
@@ -41,7 +45,8 @@ struct LabValue: Codable, Hashable, Identifiable, Sendable {
         value: Double,
         source: String? = nil,
         note: String? = nil,
-        updatedAt: Date = Date()
+        updatedAt: Date = Date(),
+        reportID: UUID? = nil
     ) {
         self.id = id
         self.date = date
@@ -50,6 +55,7 @@ struct LabValue: Codable, Hashable, Identifiable, Sendable {
         self.source = source
         self.note = note
         self.updatedAt = updatedAt
+        self.reportID = reportID
     }
 }
 

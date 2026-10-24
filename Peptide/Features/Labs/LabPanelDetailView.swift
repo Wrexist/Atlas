@@ -19,6 +19,11 @@ struct LabPanelDetailView: View {
     @State private var editingEntry: LabValue?
     @State private var creatingEntry = false
     @State private var pendingDelete: LabValue?
+    @State private var viewingReport: ReportItem?
+
+    private struct ReportItem: Identifiable {
+        let id: UUID
+    }
     /// The date the user is scrubbing on the chart.
     @State private var selectedDate: Date?
 
@@ -92,6 +97,10 @@ struct LabPanelDetailView: View {
                 onCancel: { editingEntry = nil }
             )
             .liquidGlassPresentation()
+        }
+        .sheet(item: $viewingReport) { item in
+            LabReportViewer(reportID: item.id)
+                .liquidGlassPresentation()
         }
         .confirmationDialog(
             "Delete this entry?",
@@ -383,6 +392,12 @@ struct LabPanelDetailView: View {
                     }
                 }
                 Spacer(minLength: 0)
+                if entry.reportID != nil {
+                    Image(systemName: "paperclip")
+                        .font(AppFont.scaled(11, weight: .semibold))
+                        .foregroundStyle(AppColor.textTertiary)
+                        .accessibilityLabel(Text("Scanned report attached"))
+                }
                 HStack(alignment: .firstTextBaseline, spacing: Spacing.xxs) {
                     // Coloured by range, as on the Labs list and the chart.
                     Text(LabValueFormat.string(entry.value))
@@ -411,6 +426,11 @@ struct LabPanelDetailView: View {
         .contextMenu {
             Button { editingEntry = entry } label: {
                 Label("Edit", systemImage: "pencil")
+            }
+            if let reportID = entry.reportID {
+                Button { viewingReport = ReportItem(id: reportID) } label: {
+                    Label("View original report", systemImage: "doc.text.magnifyingglass")
+                }
             }
             Button(role: .destructive) {
                 pendingDelete = entry
