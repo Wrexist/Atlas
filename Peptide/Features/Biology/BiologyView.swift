@@ -23,6 +23,7 @@ struct BiologyView: View {
     /// Bumped by pull-to-refresh and a fresh Health grant so the
     /// biomarker list re-reads HealthKit without re-keying on config.
     @State private var reloadID = 0
+    @State private var sleepInsights: SleepInsightsEngine.Insights?
     /// Drives the per-biomarker detail sheet. Identifiable wrapper
     /// so `.sheet(item:)` lifecycle is clean across taps.
     @State private var detailItem: BiomarkerDetailItem?
@@ -74,6 +75,11 @@ struct BiologyView: View {
                             openDetail(for: snapshot.biomarker, seed: snapshot)
                         }
                     )
+
+                    if let sleepInsights {
+                        SleepInsightsSection(insights: sleepInsights)
+                            .transition(.opacity)
+                    }
 
                     GlassEntryRow(
                         icon: "cross.vial.fill",
@@ -147,6 +153,15 @@ struct BiologyView: View {
                              healthConnected: dataStore.profile.healthConnected)) {
             await refreshState()
         }
+        .task(id: SleepKey(reloadID: reloadID, healthConnected: dataStore.profile.healthConnected)) {
+            let next = await SleepInsightsSection.load()
+            AppAnimation.with(AppAnimation.springSmooth) { sleepInsights = next }
+        }
+    }
+
+    private struct SleepKey: Equatable {
+        let reloadID: Int
+        let healthConnected: Bool
     }
 
     /// Asks for Health access while it's missing, and slides away once

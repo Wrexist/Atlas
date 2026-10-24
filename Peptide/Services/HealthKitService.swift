@@ -649,9 +649,20 @@ final class HealthKitService {
     /// about 18 hours ago. `.inBed` is dropped because it overlaps the
     /// asleep stages and would double the night.
     func recentSleepSegments() async -> [SleepScoreEngine.Segment] {
+        await sleepSegments(hours: 30)
+    }
+
+    /// Staged sleep segments for the last `nights` nights, for the
+    /// Biology tab's sleep deep-dive. The extra 12 hours reach back to
+    /// the bedtime of the oldest night.
+    func sleepSegments(nights: Int) async -> [SleepScoreEngine.Segment] {
+        await sleepSegments(hours: Double(nights * 24 + 12))
+    }
+
+    private func sleepSegments(hours: Double) async -> [SleepScoreEngine.Segment] {
         guard isAvailable else { return [] }
         let endDate = Date()
-        let startDate = endDate.addingTimeInterval(-30 * 3600)
+        let startDate = endDate.addingTimeInterval(-hours * 3600)
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate)
         let descriptor = HKSampleQueryDescriptor(
             predicates: [.categorySample(type: HKCategoryType(.sleepAnalysis), predicate: predicate)],
@@ -670,7 +681,7 @@ final class HealthKitService {
                 )
             }
         } catch {
-            AppLog.healthKit.error("recentSleepSegments query failed: \(error.localizedDescription, privacy: .private)")
+            AppLog.healthKit.error("sleepSegments query failed: \(error.localizedDescription, privacy: .private)")
             return []
         }
     }

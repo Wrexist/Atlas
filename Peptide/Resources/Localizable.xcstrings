@@ -101,6 +101,16 @@
         }
       }
     },
+    "%@ ± %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ ± %2$@"
+          }
+        }
+      }
+    },
     "%lld ms avg": {
       "localizations": {
         "sv": {
@@ -5872,12 +5882,104 @@
         }
       }
     },
+    "Average asleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snitt sömn"
+          }
+        }
+      }
+    },
+    "Bedtime": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Läggdags"
+          }
+        }
+      }
+    },
+    "Core sleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kärnsömn"
+          }
+        }
+      }
+    },
+    "Deep sleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Djupsömn"
+          }
+        }
+      }
+    },
     "Delete your data": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Radera dina data"
+          }
+        }
+      }
+    },
+    "Efficiency": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effektivitet"
+          }
+        }
+      }
+    },
+    "Last %lld nights from Apple Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senaste %#@arg1@ från Apple Hälsa"
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "natten"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg nätterna"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "None": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingen"
           }
         }
       }
@@ -5892,12 +5994,72 @@
         }
       }
     },
+    "REM sleep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "REM-sömn"
+          }
+        }
+      }
+    },
+    "Sleep debt, last 7 nights": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sömnskuld, senaste 7 nätterna"
+          }
+        }
+      }
+    },
     "These can't be undone.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Det här går inte att ångra."
+          }
+        }
+      }
+    },
+    "Wake time": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uppvakning"
+          }
+        }
+      }
+    },
+    "Your sleep schedule is steady. A regular clock helps recovery.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina sovtider är jämna. En regelbunden dygnsrytm hjälper återhämtningen."
+          }
+        }
+      }
+    },
+    "Your sleep schedule shifts by more than an hour. Try going to bed and waking at the same times.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina sovtider varierar med mer än en timme. Försök lägga dig och vakna på samma tider."
+          }
+        }
+      }
+    },
+    "Your sleep schedule shifts by up to an hour. Steadier times help recovery.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina sovtider varierar med upp till en timme. Jämnare tider hjälper återhämtningen."
           }
         }
       }
