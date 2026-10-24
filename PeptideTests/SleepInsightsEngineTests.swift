@@ -111,6 +111,20 @@ final class SleepInsightsEngineTests: XCTestCase {
         ], calendar: utc)
 
         XCTAssertEqual(nights.count, 2)
-        XCTAssertEqual(nights.map(\.asleep), [8 * 3600, 7 * 3600])
+        XCTAssertEqual(nights.map(\.asleep), [8.0 * 3600, 7.0 * 3600])
+    }
+
+    func test_nights_trackerSwitchMidWindow_keepsBothTrackersNights() {
+        func segment(_ start: Double, _ hours: Double, _ source: String) -> SleepScoreEngine.Segment {
+            let begin = dayZero.addingTimeInterval(start * 3600)
+            return .init(stage: .core, start: begin, end: begin.addingTimeInterval(hours * 3600), source: source)
+        }
+        let nights = SleepScoreEngine.nights(from: [
+            segment(-1, 8, "com.oura"),          // night ending 07:00 day 0
+            segment(23, 7, "com.apple.health"),  // night ending 06:00 day 1
+            segment(47, 6, "com.apple.health"),  // night ending 05:00 day 2
+        ], calendar: utc)
+
+        XCTAssertEqual(nights.map(\.asleep), [8.0 * 3600, 7.0 * 3600, 6.0 * 3600])
     }
 }
