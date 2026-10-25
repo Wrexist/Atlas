@@ -2,8 +2,12 @@ name: Exercise animation render
 
 # Renders exercise clips on CPU runners in 20 parallel shards and commits the
 # MP4s to the exercise-videos branch, where the app streams them from.
-# Run by hand, one batch at a time (a batch is a slice of the priority order).
+# Run by hand, one batch at a time (a batch is a slice of the priority order),
+# or by pushing tools/exercise-anim/render_batch.json to the pipeline branch.
 on:
+  push:
+    branches: [claude/anim-pipeline]
+    paths: [tools/exercise-anim/render_batch.json]
   workflow_dispatch:
     inputs:
       batch:
@@ -30,6 +34,10 @@ jobs:
           BATCH_SIZE: ${{ inputs.batch_size }}
           SLUGS: ${{ inputs.slugs }}
         run: |
+          if [ "${{ github.event_name }}" = push ]; then
+            export BATCH=$(jq -r '.batch // 0' render_batch.json) BATCH_SIZE=$(jq -r '.batch_size // 60' render_batch.json)
+            export SLUGS=$(jq -r '(.slugs // []) | join(",")' render_batch.json)
+          fi
           python3 gen_specs.py
           python3 render_plan.py > shards.json
           cat shards.json
