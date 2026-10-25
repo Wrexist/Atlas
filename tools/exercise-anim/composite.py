@@ -12,6 +12,7 @@ from PIL import Image
 
 DILATE_PX = 3
 GLOW = ((9, 0.42), (32, 0.30))           # (blur sigma px, weight): a tight rim glow, not a fog
+REF_WIDTH = 1080                         # the px sizes above are for this width; other sizes scale them
 SHADOW = 0.9                             # how much the floor's contact shadow darkens the glow
 POOL = 0.007                             # linear intensity of the faint pool of light on the floor round the feet
 
@@ -34,8 +35,10 @@ def to_display(c):
 
 
 def glow_from(alpha):
-    mask = ndimage.grey_dilation(alpha, size=(2 * DILATE_PX + 1, 2 * DILATE_PX + 1))
-    g = sum(w * ndimage.gaussian_filter(mask, sigma) for sigma, w in GLOW)
+    k = alpha.shape[1] / REF_WIDTH
+    d = max(1, round(DILATE_PX * k))
+    mask = ndimage.grey_dilation(alpha, size=(2 * d + 1, 2 * d + 1))
+    g = sum(w * ndimage.gaussian_filter(mask, sigma * k) for sigma, w in GLOW)
     return np.clip(g, 0.0, 1.0)
 
 
