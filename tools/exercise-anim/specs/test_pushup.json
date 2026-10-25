@@ -1,0 +1,57 @@
+{
+ "primary": [
+  "chest"
+ ],
+ "secondary": [
+  "triceps",
+  "front_delts"
+ ],
+ "posture": {
+  "type": "plank",
+  "alpha": 22
+ },
+ "implement": "floor",
+ "body": {
+  "keys": [
+   {
+    "alpha": 0
+   },
+   {
+    "alpha": -15
+   }
+  ],
+  "head_level": 0
+ },
+ "arm": {
+  "frame": "world",
+  "keys": [
+   {
+    "upper": [
+     0.22,
+     0.02,
+     -1
+    ],
+    "fore": [
+     0.05,
+     0.03,
+     -1
+    ],
+    "thumb": [
+     -1,
+     0,
+     0
+    ]
+   }
+  ],
+  "elbow_out": [
+   0.7,
+   -0.5,
+   0.2
+  ]
+ },
+ "camera": {
+  "az": 65,
+  "el": 14
+ },
+ "name": "test_pushup"
+}

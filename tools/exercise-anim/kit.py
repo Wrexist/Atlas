@@ -202,7 +202,49 @@ def floor_supine(p):
     return (drop, 0, -math.pi / 2), []
 
 
-POSTURES = {"stand": stand, "seat": seat, "floor_supine": floor_supine}
+def plank(p):
+    """Straight body from the toes, face down, `alpha` deg above level; body key `alpha` pivots it about the toes."""
+    pivot = A.D["root"].matrix_local.translation
+    length = pivot.z - A.rest_head("foot.L").z
+    ankle_z = 0.13
+    lean0 = math.radians(90 - p.get("alpha", 20))
+    ankle_y = pivot.y + length * math.sin(lean0)
+
+    def move(k):
+        lean = math.radians(90 - p.get("alpha", 20) - k.get("alpha", 0))
+        hip = Vector((0, ankle_y - length * math.sin(lean), ankle_z + length * math.cos(lean)))
+        A.set_root(pivot.z - hip.z + k.get("drop", 0), hip.y - pivot.y, lean)
+        return lean
+
+    move({})
+    A.plant_feet(toe_out_deg=0, ankles={s: (sx * 0.11, ankle_y, ankle_z) for s, sx in SIDES})
+    for s, _ in SIDES:
+        t = bpy.data.objects["FootIK." + s]
+        t.matrix_world = Matrix.Translation(t.matrix_world.translation) @ \
+            Matrix.Rotation(math.radians(p.get("toe_pitch", 62)), 4, 'X') @ t.matrix_world.to_3x3().to_4x4()
+    p["knees_point"] = {s: (0, -math.cos(lean0), -math.sin(lean0)) for s, _ in SIDES}
+    p["_move"] = move
+    return (0, 0, lean0), []
+
+
+def hang(p):
+    """Hanging free (feet off the floor, legs straight); the hands hold an overhead bar at `bar_z`."""
+    reach = sum(A.arm_lengths("L")) + HAND_TO_HANDLE
+    drop = A.rest_head("upperarm01.L").z - (p.get("bar_z", 2.35) - reach * 0.97)
+    knees = math.radians(p.get("knees", 0))
+
+    def move(k):
+        A.set_root(drop + k.get("drop", 0), k.get("back", 0), math.radians(p.get("lean", 0) + k.get("lean", 0)))
+        for s, _ in SIDES:
+            A.rotate_local("lowerleg01." + s, (1, 0, 0), knees)
+        return math.radians(p.get("lean", 0) + k.get("lean", 0))
+
+    move({})
+    p["_move"] = move
+    return (drop, 0, math.radians(p.get("lean", 0))), []
+
+
+POSTURES = {"stand": stand, "seat": seat, "floor_supine": floor_supine, "plank": plank, "hang": hang}
 
 
 # ---------------------------------------------------------------- implements
@@ -393,6 +435,68 @@ class Bar:
         return [o for o in self.bar.children if o.type == 'MESH'] + (self.cables.meshes() if self.cables else [])
 
 
+class Anchored:
+    """Hands fixed in the world (floor, pull-up bar): set from the arm key pose at frame 1, then the body moves and
+    the arms follow by IK."""
+
+    def __init__(self, spec, arms, impl):
+        self.arms, self.impl = arms, impl
+        a = spec.get("arm", {})
+        pts = {s: arms.target(1, s, sx) for s, sx in SIDES}
+        self.cables = None
+        self.props = []
+        if impl == "floor":
+            self.h = {}
+            for s, sx in SIDES:
+                w = pts[s][1]
+                h = A.holder("Hand." + s)
+                h.location = (w.x, w.y - 0.05, 0.0)
+                self.h[s] = h
+            A.ik_arms(self.h, {s: (sx * 0.5, 0, 1) for s, sx in SIDES}, poles_in_world=True)
+            for s, sx in SIDES:
+                A.grip_on(s, self.h[s], (0, 0, 0), thumbward=(-sx, 0, 0), palm_to_handle=(0, 0, -1), slide=0.0,
+                          radius=0.0)
+        else:
+            bar = A.holder("Bar")
+            centre = sum((w + F * HAND_TO_HANDLE for _, w, F, _ in pts.values()), Vector()) / 2
+            bar.location = centre
+            A.cylinder(bar, A.BAR_R, 1.3, mat=A.STEEL, verts=48)
+            for sx in (1, -1):
+                self.props.append(box("Upright", (0.06, 0.06, centre.z + 0.1),
+                                      (sx * 0.68, centre.y, (centre.z + 0.1) / 2)))
+            self.h = {s: bar for s, _ in SIDES}
+            A.ik_arms(bar, {s: (sx * 0.5, 0, 1) for s, sx in SIDES}, poles_in_world=True)
+            self.gx = a.get("grip", 0.3)
+            self.tsign = 1 if arms.keys[0]["thumb"][0] > 0 else -1
+            self.palm = a.get("palm", (0, -1, 0))
+            for s, sx in SIDES:
+                A.grip_on(s, bar, (sx * self.gx, 0, 0), thumbward=(sx * self.tsign, 0, 0), palm_to_handle=self.palm)
+
+    def place(self, fr):
+        for s, sx in SIDES:
+            shoulder = A.head("upperarm01." + s)
+            hand = A.hand_targets[s].matrix_world.translation
+            bpy.data.objects["ElbowPole." + s].location = (shoulder + hand) / 2 + self.arms.pole_dir(sx) * 0.6
+        A.update()
+
+    def grip(self):
+        if self.impl == "floor":
+            return
+        for s, sx in SIDES:
+            A.grip_neutral(s, self.h[s], (sx * self.gx, 0, 0), thumbward=(sx * self.tsign, 0, 0),
+                           palm_guess=self.palm)
+        for s, _ in SIDES:
+            A.seat_palm(s)
+        for s, _ in SIDES:
+            A.wrap_hand(s)
+
+    def key(self, fr):
+        pass
+
+    def meshes(self):
+        return [o for h in set(self.h.values()) for o in h.children if o.type == 'MESH'] + self.props
+
+
 # ---------------------------------------------------------------- build
 def load(slug):
     with open(os.path.join(HERE, "specs", slug + ".json")) as f:
@@ -424,12 +528,17 @@ def build(spec):
     body_keys = spec.get("body", {}).get("keys")
     head_level = spec.get("body", {}).get("head_level", 0.6)
 
+    move = spec["posture"].get("_move")
+
     def body(fr):
         if not body_keys:
             return
         k = body_pose(body_keys, ph(fr, "L"))
-        lean = l0 + math.radians(k.get("lean", 0))
-        A.set_root(d0 + k.get("drop", 0), b0 + k.get("back", 0), lean)
+        if move:
+            lean = move(k)
+        else:
+            lean = l0 + math.radians(k.get("lean", 0))
+            A.set_root(d0 + k.get("drop", 0), b0 + k.get("back", 0), lean)
         A.rotate_local("neck01", (1, 0, 0), -head_level * (lean - l0))
         A.update()
 
@@ -437,7 +546,13 @@ def build(spec):
     A.update()
     impl = spec.get("implement", "dumbbell")
     arms = Arms(spec, ph)
-    gear = Bar(spec, arms, impl) if impl in ("barbell", "ezbar", "cable_bar") else PerHand(spec, arms, impl)
+    if impl in ("floor", "pullup_bar"):
+        gear = Anchored(spec, arms, impl)
+        props += gear.props
+    elif impl in ("barbell", "ezbar", "cable_bar"):
+        gear = Bar(spec, arms, impl)
+    else:
+        gear = PerHand(spec, arms, impl)
     props += gear.cables.props if gear.cables else []
 
     gear.place(1)
