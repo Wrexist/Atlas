@@ -1,11 +1,8 @@
 name: Exercise animation CPU benchmark
 
 # Measures how fast the Blender exercise pipeline renders on a CPU runner,
-# so the full 873-clip render can be planned. Runs only on the pipeline branch.
+# so the full 873-clip render can be planned. Run by hand.
 on:
-  push:
-    branches: [claude/anim-pipeline]
-    paths: ['tools/exercise-anim/**', '.github/workflows/exercise-anim-bench.yml']
   workflow_dispatch:
 
 jobs:

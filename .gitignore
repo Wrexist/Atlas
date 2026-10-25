@@ -71,3 +71,5 @@ scripts/peptide-dataset/build.log
 tools/exercise-anim/out/
 tools/exercise-anim/*.blend
 !tools/exercise-anim/human.blend
+tools/exercise-anim/*.blend1
+/sheet.png
