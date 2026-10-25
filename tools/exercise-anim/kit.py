@@ -733,7 +733,7 @@ def spine_bend(bone, curl_deg, twist_deg):
 
 
 class Heels:
-    """Raise the heels about the balls of the feet (calf raise), moving the foot IK targets."""
+    """Raise the heels (deg, positive = up) about the balls of the feet, moving the foot IK targets."""
 
     def __init__(self):
         self.base, self.ball = {}, {}

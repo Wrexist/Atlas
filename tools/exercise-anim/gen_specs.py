@@ -474,12 +474,12 @@ def lunge(n, eq):
 def calf(n, eq):
     if has(n, "seated"):
         return {"posture": {"type": "seat"}, "implement": "none",
-                "body": {"keys": [{"heel": 0}, {"heel": -28}]},
-                "arm": {"keys": [key((0.2, 0.45, -0.9), (0.05, 0.7, -0.7), (0, 1, 0))], "elbow_out": [1, -0.3, 0]},
+                "body": {"keys": [{"heel": 0}, {"heel": 28}]},
+                "arm": {"keys": [key((0.15, 0.25, -1), (0.05, 0.75, -0.65), (0, 1, 0))], "elbow_out": [1, -0.3, 0]},
                 "camera": {"az": 70, "el": 6}}
     if has(n, "donkey|press|single|\\bone\\b|smith|rocking|toe|tibialis|ankle|leg press"):
         return None
-    spec = {"posture": {"type": "stand", "width": 0.13}, "body": {"keys": [{"heel": 0}, {"heel": -32, "drop": -0.08}]},
+    spec = {"posture": {"type": "stand", "width": 0.13}, "body": {"keys": [{"heel": 0}, {"heel": 32, "drop": -0.08}]},
             "camera": {"az": 70, "el": 4}}
     if eq == "barbell":
         spec.update(implement="barbell_back", arm={"frame": "torso", "elbow_out": [0.3, -1, -1]})
