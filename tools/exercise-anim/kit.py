@@ -4,7 +4,7 @@
 # blender -b human.blend -P kit.py -- <slug> [--preview] [--stills] [--anim]
 import bpy, json, math, sys, os
 import numpy as np
-from mathutils import Vector, Matrix
+from mathutils import Vector, Matrix, Quaternion
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import atlas_rig as A
 
@@ -170,10 +170,11 @@ def seat(p):
     lean = -math.radians(90 - back_deg) if back_deg is not None else math.radians(p.get("lean", 0))
     width = p.get("knees_apart", 0.2)
     reach = p.get("feet_fwd", 0.98)
-    A.plant_feet(toe_out_deg=12, ankles={s: (sx * width, hip.y - thigh * reach, A.rest_head("foot.L").z)
-                                         for s, sx in SIDES})
-    for s, sx in SIDES:
-        bpy.data.objects["KneePole." + s].location = (sx * width * 1.3, hip.y - thigh, 1.2)
+    if not p.get("feet_free"):
+        A.plant_feet(toe_out_deg=12, ankles={s: (sx * width, hip.y - thigh * reach, A.rest_head("foot.L").z)
+                                             for s, sx in SIDES})
+        for s, sx in SIDES:
+            bpy.data.objects["KneePole." + s].location = (sx * width * 1.3, hip.y - thigh, 1.2)
     A.set_root(drop, 0, lean)
     hip_y = A.head("upperleg01.L").y
     props = [] if p.get("no_bench") else bench(hip_y - (0.22 if back_deg is None else 0.30), hip_y + 0.16,
@@ -245,6 +246,64 @@ def support(p):
     return (drop, 0, math.radians(p.get("lean", 0))), []
 
 
+def split(p):
+    """Lunge stance: lead foot `front` m ahead, rear foot `back` m behind on its toes."""
+    hip = A.rest_head("upperleg01.L")
+    z = A.rest_head("foot.L").z
+    lead = p.get("lead", "L")
+    ankles = {}
+    for s, sx in SIDES:
+        ankles[s] = (sx * 0.12, hip.y - p.get("front", 0.45), z) if s == lead else \
+            (sx * 0.12, hip.y + p.get("back", 0.5), z + 0.06)
+    A.plant_feet(toe_out_deg=4, ankles=ankles)
+    rear = "R" if lead == "L" else "L"
+    t = bpy.data.objects["FootIK." + rear]
+    t.matrix_world = Matrix.Translation(t.matrix_world.translation) @ Matrix.Rotation(math.radians(40), 4, 'X') @ \
+        t.matrix_world.to_3x3().to_4x4()
+    p["knees_point"] = {lead: (0, -1, 0), rear: (0, -0.3, -1)}
+    lean = math.radians(p.get("lean", 0))
+    A.set_root(0, 0, lean)
+    return (0, 0, lean), []
+
+
+def bridge(p):
+    """Glute bridge / hip thrust: shoulders on the floor (or on a bench at `shoulders_z`), feet planted; body key
+    `lift` raises the hips about the shoulders (1 = body level on a bench, 25 deg on the floor)."""
+    pivot = A.D["root"].matrix_local.translation
+    v = (A.rest_head("upperarm01.L") + A.rest_head("upperarm01.R")) / 2 - pivot
+    v.x = 0
+    sz = p.get("shoulders_z", 0.0) + 0.12
+    torso = v.length
+    base = math.degrees(math.asin(min((sz - 0.2) / torso, 0.95))) if sz > 0.3 else 0.0
+    shoulders = Vector((0, pivot.y + torso, sz))
+
+    def pose(beta):
+        lean = math.radians(-90 + base - beta)
+        root = shoulders - Matrix.Rotation(lean, 3, 'X') @ v
+        return lean, root
+
+    def move(k):
+        lean, root = pose(k.get("lift", 0) * (base or 25))
+        A.set_root(pivot.z - root.z, root.y - pivot.y, lean)
+        return lean
+
+    _, top = pose(p.get("top", base or 25))
+    move({})
+    hip_off = A.rest_head("upperleg01.L") - pivot
+    ank_z = A.rest_head("foot.L").z
+    A.plant_feet(toe_out_deg=6, ankles={s: (sx * 0.15, top.y + hip_off.y - p.get("feet_fwd", 0.45), ank_z)
+                                        for s, sx in SIDES}, knee_up=1.0)
+    for s, sx in SIDES:
+        bpy.data.objects["KneePole." + s].location = (sx * 0.25, top.y - 0.3, 1.4)
+    p["knees_point"] = {s: (sx * 0.15, 0, 1) for s, sx in SIDES}
+    p["_move"] = move
+    props = []
+    if p.get("shoulders_z"):
+        top_z = p["shoulders_z"]
+        props.append(box("ThrustBench", (1.1, 0.36, top_z), (0, shoulders.y + 0.1, top_z / 2)))
+    return (0, 0, math.radians(-90 + base)), props
+
+
 def plank(p):
     """Straight body from the toes, face down, `alpha` deg above level; body key `alpha` pivots it about the toes."""
     pivot = A.D["root"].matrix_local.translation
@@ -285,7 +344,7 @@ def hang(p):
 
 
 POSTURES = {"stand": stand, "seat": seat, "floor_supine": floor_supine, "plank": plank, "hang": hang, "kneel": kneel,
-            "support": support}
+            "support": support, "split": split, "bridge": bridge}
 
 
 # ---------------------------------------------------------------- implements
@@ -299,7 +358,7 @@ class PerHand:
         for s, h in self.h.items():
             if impl == "kettlebell":
                 kettlebell(h, s, rack=spec.get("kb") == "rack")
-            elif impl in ("cable", "cable_handle"):
+            elif impl in ("cable", "cable_handle", "handle"):
                 cable_handle(h)
             else:
                 A.dumbbell(h)
@@ -486,19 +545,23 @@ class BackBar:
         self.arms = arms
         a = spec.get("arm", {})
         self.gx = a.get("grip", 0.42)
-        self.on = a.get("bar_on", (0, -0.085, 0.035))        # bar centre from mid-shoulders: (_, forward, up)
+        self.at = a.get("bar_at", "back")
+        default = (0, 0.17, -0.02) if self.at == "hips" else (0, -0.085, 0.035)
+        self.palm = a.get("palm", (0, 1, 0) if self.at == "hips" else (0, -1, 0.3))
+        self.on = a.get("bar_on", default)                  # bar centre from mid-shoulders/hips: (_, forward, up)
         self.bar = A.holder("Bar")
         A.barbell(self.bar)
         self.cables = None
         self.place(1)
         A.ik_arms(self.bar, {s: (sx * 0.4, 0.6, 0.9) for s, sx in SIDES}, poles_in_world=True)
         for s, sx in SIDES:
-            A.grip_on(s, self.bar, (sx * self.gx, 0, 0), thumbward=(-sx, 0, 0), palm_to_handle=(0, -1, 0.3))
+            A.grip_on(s, self.bar, (sx * self.gx, 0, 0), thumbward=(-sx, 0, 0), palm_to_handle=self.palm)
 
     def place(self, fr):
         lat, fwd, up = torso_frame()
         m = Matrix((lat, -fwd, up)).transposed().to_4x4()
-        mid = (A.head("upperarm01.L") + A.head("upperarm01.R")) / 2
+        joint = "upperleg01" if self.at == "hips" else "upperarm01"
+        mid = (A.head(joint + ".L") + A.head(joint + ".R")) / 2
         m.translation = mid + fwd * self.on[1] + up * self.on[2]
         self.bar.matrix_world = m
         if "ElbowPole.L" in bpy.data.objects:
@@ -510,7 +573,7 @@ class BackBar:
 
     def grip(self):
         for s, sx in SIDES:
-            A.grip_neutral(s, self.bar, (sx * self.gx, 0, 0), thumbward=(-sx, 0, 0), palm_guess=(0, -1, 0.3))
+            A.grip_neutral(s, self.bar, (sx * self.gx, 0, 0), thumbward=(-sx, 0, 0), palm_guess=self.palm)
         for s, _ in SIDES:
             A.seat_palm(s)
         for s, _ in SIDES:
@@ -604,6 +667,74 @@ class Anchored:
         return [o for h in set(self.h.values()) for o in h.children if o.type == 'MESH'] + self.props
 
 
+def posed_dir(bone, rest_dir):
+    """World direction that `rest_dir` (world, in the rest pose) points along after bone `bone` is posed."""
+    m = A.rig.matrix_world.to_3x3() @ A.P[bone].matrix.to_3x3() @ A.D[bone].matrix_local.to_3x3().inverted()
+    return (m @ Vector(rest_dir)).normalized()
+
+
+def attach(obj, bone):
+    """Parent `obj` to `bone`, keeping its current world placement."""
+    pb = A.P[bone]
+    m = A.rig.matrix_world @ pb.matrix @ Matrix.Translation((0, pb.bone.length, 0))
+    world = obj.matrix_world.copy()
+    obj.parent, obj.parent_type, obj.parent_bone = A.rig, 'BONE', bone
+    obj.matrix_parent_inverse = m.inverted()
+    obj.matrix_basis = world
+
+
+def leg_pad(side_of_shin):
+    """Roller pad across both shins just above the ankles, in front (leg extension) or behind (leg curl); it
+    rides with the left shin, so only for symmetric leg moves."""
+    mid = (A.head("foot.L") + A.head("foot.R")) / 2
+    along = posed_dir("lowerleg01.L", (0, 0, 1))
+    front = posed_dir("lowerleg01.L", (0, -1, 0)) * (1 if side_of_shin == "front" else -1)
+    c = mid + along * 0.07 + front * 0.085
+    bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=0.05, depth=0.42, location=c, rotation=(0, math.pi / 2, 0))
+    pad = bpy.context.object
+    pad.name = "LegPad"
+    pad.data.materials.append(A.BLACK)
+    bpy.ops.object.shade_smooth()
+    A.update()
+    attach(pad, "lowerleg01.L")
+    return pad
+
+
+SPINE = ["spine04", "spine03", "spine02", "spine01"]
+
+
+def spine_bend(bone, curl_deg, twist_deg):
+    """Flex (forward, deg) and twist (toward the figure's left, deg) one spine bone."""
+    rest = A.D[bone].matrix_local.to_3x3().inverted()
+    q = Quaternion((rest @ Vector((1, 0, 0))).normalized(), math.radians(curl_deg)) @ \
+        Quaternion((rest @ Vector((0, 0, 1))).normalized(), math.radians(twist_deg))
+    A.P[bone].rotation_quaternion = q
+
+
+class Heels:
+    """Raise the heels about the balls of the feet (calf raise), moving the foot IK targets."""
+
+    def __init__(self):
+        self.base, self.ball = {}, {}
+        for s, _ in SIDES:
+            t = bpy.data.objects["FootIK." + s]
+            self.base[s] = t.matrix_world.copy()
+            local = A.D["foot." + s].matrix_local.inverted() @ A.rest_head("toe1-1." + s)
+            self.ball[s] = t.matrix_world @ local
+
+    def set(self, deg):
+        for s, _ in SIDES:
+            b = self.ball[s]
+            bpy.data.objects["FootIK." + s].matrix_world = Matrix.Translation(b) @ \
+                Matrix.Rotation(math.radians(deg), 4, 'X') @ Matrix.Translation(-b) @ self.base[s]
+
+    def key(self, fr):
+        for s, _ in SIDES:
+            t = bpy.data.objects["FootIK." + s]
+            t.keyframe_insert("location", frame=fr)
+            t.keyframe_insert("rotation_quaternion" if t.rotation_mode == 'QUATERNION' else "rotation_euler", frame=fr)
+
+
 # ---------------------------------------------------------------- build
 def load(slug):
     with open(os.path.join(HERE, "specs", slug + ".json")) as f:
@@ -636,6 +767,14 @@ def build(spec):
     head_level = spec.get("body", {}).get("head_level", 0.6)
 
     move = spec["posture"].get("_move")
+    keyed = ["root", "neck01"]
+    if body_keys:
+        names = set().union(*body_keys)
+        if names & {"curl", "twist"}:
+            keyed += SPINE
+        if any(n.startswith(("hip", "knee")) for n in names):
+            keyed += [f"{b}.{s}" for b in ("upperleg01", "lowerleg01") for s, _ in SIDES]
+    heel = Heels() if body_keys and any("heel" in k for k in body_keys) else None
 
     def body(fr):
         if not body_keys:
@@ -646,11 +785,28 @@ def build(spec):
         else:
             lean = l0 + math.radians(k.get("lean", 0))
             A.set_root(d0 + k.get("drop", 0), b0 + k.get("back", 0), lean)
-        A.rotate_local("neck01", (1, 0, 0), -head_level * (lean - l0))
+        A.rotate_local("neck01", (1, 0, 0), -head_level * (lean - l0) - math.radians(k.get("curl", 0)) * 0.3)
+        if "curl" in k or "twist" in k:
+            for b in SPINE:
+                spine_bend(b, k.get("curl", 0) / len(SPINE), k.get("twist", 0) / len(SPINE))
+        for s, _ in SIDES:
+            if f"hip_{s}" in k or "hip" in k:
+                A.rotate_local("upperleg01." + s, (1, 0, 0), -math.radians(k.get(f"hip_{s}", k.get("hip", 0))))
+            if f"knee_{s}" in k or "knee" in k:
+                A.rotate_local("lowerleg01." + s, (1, 0, 0), math.radians(k.get(f"knee_{s}", k.get("knee", 0))))
+        if heel:
+            heel.set(k.get("heel", 0))
         A.update()
+
+    def key_body(fr):
+        A.key_bones(keyed, fr)
+        if heel:
+            heel.key(fr)
 
     body(1)
     A.update()
+    if spec.get("pad"):
+        props.append(leg_pad(spec["pad"]))
     impl = spec.get("implement", "dumbbell")
     arms = Arms(spec, ph)
     if impl == "barbell_back":
@@ -680,7 +836,7 @@ def build(spec):
         gear.key(fr)
         arms.key_poles(fr)
         if body_keys:
-            A.key_bones(["root", "neck01"], fr)
+            key_body(fr)
 
     A.report([1, 23, 45, 68])
     A.setup_render()
