@@ -1,0 +1,10 @@
+07:56.371  cycles           | WARNING CUEW initialization failed: Error opening the library
+07:56.371  cycles           | WARNING HIPEW initialization failed: Error opening HIP dynamic library
+EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
+EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
+EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
+RENDERED raw_squat_top.png in 171.0 s
+RENDERED raw_squat_mid.png in 169.0 s
+RENDERED raw_squat_hands.png in 200.6 s
+RENDERED raw_squat_under.png in 237.2 s
+TOTAL 1263 s incl. pose solve
