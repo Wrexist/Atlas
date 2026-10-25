@@ -1,0 +1,129 @@
+name: Exercise animation render
+
+# Renders exercise clips on CPU runners in 20 parallel shards and commits the
+# MP4s to the exercise-videos branch, where the app streams them from.
+# Run by hand, one batch at a time (a batch is a slice of the priority order).
+on:
+  workflow_dispatch:
+    inputs:
+      batch:
+        description: "Batch number (0 = the most common exercises first)"
+        default: "0"
+      batch_size:
+        description: "Clips per batch (20 shards share them; ~75 min per clip per shard)"
+        default: "60"
+      slugs:
+        description: "Optional comma-separated exercise ids instead of a batch"
+        default: ""
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      shards: ${{ steps.plan.outputs.shards }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: plan
+        working-directory: tools/exercise-anim
+        env:
+          BATCH: ${{ inputs.batch }}
+          BATCH_SIZE: ${{ inputs.batch_size }}
+          SLUGS: ${{ inputs.slugs }}
+        run: |
+          python3 gen_specs.py
+          python3 render_plan.py > shards.json
+          cat shards.json
+          echo "shards=$(cat shards.json)" >> "$GITHUB_OUTPUT"
+
+  render:
+    needs: plan
+    if: needs.plan.outputs.shards != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
+    env:
+      BLENDER_VERSION: 5.2.1
+      ATLAS_PYTHON: python3
+      ATLAS_SAMPLES: 64
+      ATLAS_RES: 720x900
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install system packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -yq ffmpeg libxi6 libxkbcommon0 libsm6 libgl1 libegl1 libxrender1 libxxf86vm1 libxfixes3
+          python3 -m pip install --break-system-packages -q numpy scipy pillow
+      - uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/blender
+          key: blender-${{ env.BLENDER_VERSION }}
+      - name: Install Blender
+        run: |
+          dir="$RUNNER_TEMP/blender/blender-${BLENDER_VERSION}-linux-x64"
+          if [ ! -x "$dir/blender" ]; then
+            mkdir -p "$RUNNER_TEMP/blender"
+            curl -fsSL "https://download.blender.org/release/Blender${BLENDER_VERSION%.*}/blender-${BLENDER_VERSION}-linux-x64.tar.xz" | tar -xJ -C "$RUNNER_TEMP/blender"
+          fi
+          echo "BLENDER=$dir/blender" >> "$GITHUB_ENV"
+      - name: Render clips
+        working-directory: tools/exercise-anim
+        env:
+          SLUGS: ${{ join(matrix.shard.slugs, ' ') }}
+        run: |
+          python3 gen_specs.py
+          mkdir -p "$RUNNER_TEMP/videos"
+          for slug in $SLUGS; do
+            echo "::group::$slug"
+            if "$BLENDER" -b human.blend -P kit.py -- "$slug" --anim; then
+              cp "out/$slug.mp4" "$RUNNER_TEMP/videos/"
+            else
+              echo "::warning::$slug failed"
+            fi
+            rm -rf "out/frames_$slug" "$slug.blend"
+            echo "::endgroup::"
+          done
+          ls -la "$RUNNER_TEMP/videos"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: clips-${{ matrix.shard.id }}
+          path: ${{ runner.temp }}/videos
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # The cloud session can't download artifacts, and the app streams from a branch.
+  publish:
+    needs: render
+    if: always() && needs.render.result != 'skipped'
+    runs-on: ubuntu-24.04
+    concurrency: exercise-videos-publish
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: clips
+          pattern: clips-*
+          merge-multiple: true
+      - name: Commit clips to exercise-videos
+        run: |
+          [ -n "$(ls clips 2>/dev/null)" ] || { echo "no clips"; exit 0; }
+          repo="https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          if git ls-remote --exit-code --heads "$repo" exercise-videos >/dev/null; then
+            git clone -q --depth 1 --branch exercise-videos "$repo" site
+          else
+            git init -q -b exercise-videos site
+            git -C site remote add origin "$repo"
+          fi
+          cp clips/*.mp4 site/
+          cd site
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          ls *.mp4 | sed 's/\.mp4$//' | sort > index.txt
+          git add -A
+          git commit -qm "Add $(ls ../clips | wc -l) exercise clips (run ${{ github.run_id }})"
+          for i in 1 2 3 4; do git push -q origin exercise-videos && exit 0; sleep $((i * 5)); git pull -q --rebase origin exercise-videos; done
+          exit 1

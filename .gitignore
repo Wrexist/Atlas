@@ -73,3 +73,4 @@ tools/exercise-anim/*.blend
 !tools/exercise-anim/human.blend
 tools/exercise-anim/*.blend1
 /sheet.png
+tools/exercise-anim/specs/gen/

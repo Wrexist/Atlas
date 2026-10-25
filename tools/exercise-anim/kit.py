@@ -11,6 +11,7 @@ import atlas_rig as A
 HERE = os.path.dirname(os.path.abspath(__file__))
 SIDES = (("L", 1), ("R", -1))
 BENCH_TOP = 0.45
+PLATE_R = 0.225                 # barbell plate radius (atlas_rig.barbell)
 HAND_TO_HANDLE = 0.085          # wrist joint to the handle axis along the fingers (closed grip)
 
 
@@ -195,6 +196,8 @@ def floor_supine(p):
     run = math.sqrt(thigh ** 2 + shin ** 2 - 2 * thigh * shin * math.cos(interior))
     ankle_z = A.rest_head("foot.L").z
     run = math.sqrt(max(run ** 2 - (hip.z - ankle_z) ** 2, 0.0))
+    if p.get("feet_free"):
+        return (drop, 0, -math.pi / 2), []
     A.plant_feet(toe_out_deg=6, ankles={s: (sx * 0.15, hip.y - run * 0.99, ankle_z) for s, sx in SIDES},
                  knee_up=1.0)
     for s, sx in SIDES:
@@ -304,6 +307,18 @@ def bridge(p):
     return (0, 0, math.radians(-90 + base)), props
 
 
+def prone(p):
+    """Lying face down on a pad at `top` (leg curl, chest-supported row); legs free past the knees."""
+    hip = A.rest_head("upperleg01.L")
+    top = p.get("top", 0.62)
+    drop = hip.z - (top + 0.12)
+    lean = math.radians(90 - p.get("incline", 0))
+    A.set_root(drop, 0, lean)
+    hip_y = A.head("upperleg01.L").y
+    props = [] if p.get("no_bench") else bench(hip_y - 0.62, hip_y + p.get("pad_past_hip", 0.3), top=top)
+    return (drop, 0, lean), props
+
+
 def plank(p):
     """Straight body from the toes, face down, `alpha` deg above level; body key `alpha` pivots it about the toes."""
     pivot = A.D["root"].matrix_local.translation
@@ -344,7 +359,8 @@ def hang(p):
 
 
 POSTURES = {"stand": stand, "seat": seat, "floor_supine": floor_supine, "plank": plank, "hang": hang, "kneel": kneel,
-            "support": support, "split": split, "bridge": bridge}
+            "support": support, "split": split, "bridge": bridge,
+            "prone": prone}
 
 
 # ---------------------------------------------------------------- implements
@@ -355,18 +371,23 @@ class PerHand:
     def __init__(self, spec, arms, impl):
         self.arms, self.impl = arms, impl
         self.h = {s: A.holder(f"{impl}.{s}") for s, _ in SIDES}
+        self.hands = [s for s, _ in SIDES if s in spec.get("hands", "LR")] if impl != "none" else []
         for s, h in self.h.items():
+            if s not in self.hands:
+                continue
             if impl == "kettlebell":
                 kettlebell(h, s, rack=spec.get("kb") == "rack")
             elif impl in ("cable", "cable_handle", "handle"):
                 cable_handle(h)
+            elif impl == "cable_rope":
+                A.cylinder(h, 0.017, 0.11, mat=A.BLACK, verts=32)
             else:
                 A.dumbbell(h)
         self.radius = A.DB_R
         A.ik_arms(self.h, {s: (sx * 0.4, 0.6, 0.9) for s, sx in SIDES}, poles_in_world=True)
         for s, _ in SIDES:
             A.grip_on(s, self.h[s], (0, 0, 0), thumbward=(1, 0, 0), palm_to_handle=(0, 0, 1), radius=self.radius)
-        self.cables = Cables(spec, {s: self.h[s] for s, _ in SIDES}) if impl.startswith("cable") else None
+        self.cables = Cables(spec, {s: self.h[s] for s in self.hands}) if impl.startswith("cable") else None
 
     def place(self, fr):
         for s, sx in SIDES:
@@ -378,9 +399,9 @@ class PerHand:
             A.straighten_wrist(s, self.h[s])
 
     def grip(self):
-        for s, _ in SIDES:
+        for s in self.hands:
             A.seat_palm(s)
-        for s, _ in SIDES:
+        for s in self.hands:
             A.wrap_hand(s)
 
     def key(self, fr):
@@ -625,10 +646,10 @@ class Anchored:
             bar = A.holder("Bar")
             centre = sum((w + F * HAND_TO_HANDLE for _, w, F, _ in pts.values()), Vector()) / 2
             bar.location = centre
-            A.cylinder(bar, A.BAR_R, 1.3, mat=A.STEEL, verts=48)
-            for sx in (1, -1):
-                self.props.append(box("Upright", (0.06, 0.06, centre.z + 0.1),
-                                      (sx * 0.68, centre.y, (centre.z + 0.1) / 2)))
+            A.cylinder(bar, A.BAR_R, 1.44, mat=A.STEEL, verts=48)
+            for sx in (1, -1):                              # bar runs into the posts, which stop just above it
+                self.props.append(box("Upright", (0.07, 0.07, centre.z + 0.05),
+                                      (sx * 0.69, centre.y, (centre.z + 0.05) / 2)))
             self.h = {s: bar for s, _ in SIDES}
             A.ik_arms(bar, {s: (sx * 0.5, 0, 1) for s, sx in SIDES}, poles_in_world=True)
             self.gx = a.get("grip", 0.3)
@@ -737,7 +758,10 @@ class Heels:
 
 # ---------------------------------------------------------------- build
 def load(slug):
-    with open(os.path.join(HERE, "specs", slug + ".json")) as f:
+    path = os.path.join(HERE, "specs", slug + ".json")
+    if not os.path.exists(path):
+        path = os.path.join(HERE, "specs", "gen", slug + ".json")
+    with open(path) as f:
         spec = json.load(f)
     spec.setdefault("slug", slug)
     return spec
@@ -772,6 +796,8 @@ def build(spec):
         names = set().union(*body_keys)
         if names & {"curl", "twist"}:
             keyed += SPINE
+        if "shrug" in names:
+            keyed += ["clavicle.L", "clavicle.R"]
         if any(n.startswith(("hip", "knee")) for n in names):
             keyed += [f"{b}.{s}" for b in ("upperleg01", "lowerleg01") for s, _ in SIDES]
     heel = Heels() if body_keys and any("heel" in k for k in body_keys) else None
@@ -794,6 +820,9 @@ def build(spec):
                 A.rotate_local("upperleg01." + s, (1, 0, 0), -math.radians(k.get(f"hip_{s}", k.get("hip", 0))))
             if f"knee_{s}" in k or "knee" in k:
                 A.rotate_local("lowerleg01." + s, (1, 0, 0), math.radians(k.get(f"knee_{s}", k.get("knee", 0))))
+        if "shrug" in k:
+            for s, sx in SIDES:
+                A.rotate_local("clavicle." + s, (0, 1, 0), -sx * math.radians(k["shrug"]))
         if heel:
             heel.set(k.get("heel", 0))
         A.update()
@@ -821,6 +850,10 @@ def build(spec):
     props += gear.cables.props if gear.cables else []
 
     gear.place(1)
+    if spec.get("bar_floor") and body_keys:          # first key starts with the plates on the floor
+        body_keys[0]["drop"] = body_keys[0].get("drop", 0) + gear.bar.matrix_world.translation.z - PLATE_R
+        body(1)
+        gear.place(1)
     gear.grip() if isinstance(gear, Bar) else None
     A.solve_pole_angles({s: arms.pole_dir(sx) for s, sx in SIDES}, spec["posture"].get("knees_point"))
     gear.place(1)
