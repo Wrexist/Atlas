@@ -1,0 +1,63 @@
+{
+ "name": "test_incline",
+ "primary": [
+  "chest"
+ ],
+ "secondary": [
+  "front_delts",
+  "triceps"
+ ],
+ "posture": {
+  "type": "seat",
+  "back_deg": 40
+ },
+ "implement": "dumbbell",
+ "bottom": 40,
+ "arm": {
+  "keys": [
+   {
+    "upper": [
+     0.85,
+     -0.3,
+     -0.25
+    ],
+    "fore": [
+     0.05,
+     1,
+     0.05
+    ],
+    "thumb": [
+     -1,
+     0,
+     0.2
+    ]
+   },
+   {
+    "upper": [
+     0.18,
+     1,
+     0.02
+    ],
+    "fore": [
+     0.1,
+     1,
+     0.02
+    ],
+    "thumb": [
+     -1,
+     0,
+     0.2
+    ]
+   }
+  ],
+  "elbow_out": [
+   0.6,
+   -1,
+   -0.3
+  ]
+ },
+ "camera": {
+  "az": 56,
+  "el": 30
+ }
+}
