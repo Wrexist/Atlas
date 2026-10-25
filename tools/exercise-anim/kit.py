@@ -636,7 +636,7 @@ class Anchored:
             for s, sx in SIDES:
                 w = pts[s][1]
                 h = A.holder("Hand." + s)
-                h.location = (w.x, w.y - 0.05, 0.0)
+                h.location = (w.x, w.y - 0.05, a.get("hand_z", 0.0))
                 self.h[s] = h
             A.ik_arms(self.h, {s: (sx * 0.5, 0, 1) for s, sx in SIDES}, poles_in_world=True)
             for s, sx in SIDES:
@@ -721,14 +721,55 @@ def leg_pad(side_of_shin):
     return pad
 
 
+def arm_pad(arms):
+    """Preacher pad under both upper arms at their frame-1 key pose."""
+    pts = [arms.target(1, s, sx) for s, sx in SIDES]
+    shoulders = [A.head("upperarm01." + s) for s, _ in SIDES]
+    elbow = (pts[0][0] + pts[1][0]) / 2
+    shoulder = (shoulders[0] + shoulders[1]) / 2
+    along = (elbow - shoulder)
+    along.x = 0
+    along.normalize()
+    normal = Vector((0, along.z, -along.y))             # perpendicular in the sagittal plane, pointing back/up
+    if normal.z < 0:
+        normal = -normal
+    centre = elbow - along * 0.12 - normal * 0.075
+    tilt = math.atan2(along.z, -along.y)                # pad's long axis from level toward the figure's front
+    pad = box("PreacherPad", (0.55, 0.34, 0.07), centre, rot_x=-tilt)
+    foot = centre - normal * 0.05
+    post = box("PreacherPost", (0.07, 0.07, foot.z), (0, foot.y, foot.z / 2))
+    base = box("PreacherBase", (0.45, 0.08, 0.04), (0, foot.y, 0.02))
+    return [pad, post, base]
+
+
+def bench_dip(p):
+    """Hands on a bench behind the hips, legs straight out in front, heels on the floor."""
+    hip = A.rest_head("upperleg01.L")
+    top = p.get("bench_top", 0.45)
+    drop = hip.z - p.get("hip_z", 0.55)
+    A.set_root(drop, p.get("back", 0.0), math.radians(p.get("lean", 5)))
+    hip = A.head("upperleg01.L")
+    leg = A.rest_head("upperleg01.L").z - A.rest_head("foot.L").z
+    run = math.sqrt(max((leg * 0.97) ** 2 - (hip.z - 0.09) ** 2, 0.01))
+    A.plant_feet(toe_out_deg=6, ankles={s: (sx * 0.13, hip.y - run, 0.09) for s, sx in SIDES})
+    pitch_feet(-35)
+    p["knees_point"] = {s: (0, 0, 1) for s, _ in SIDES}
+    return (drop, p.get("back", 0.0), math.radians(p.get("lean", 5))), [
+        box("DipBench", (0.9, 0.36, top), (0, hip.y + 0.32, top / 2))]
+
+
+POSTURES["bench_dip"] = bench_dip
+
+
 SPINE = ["spine04", "spine03", "spine02", "spine01"]
 
 
-def spine_bend(bone, curl_deg, twist_deg):
-    """Flex (forward, deg) and twist (toward the figure's left, deg) one spine bone."""
+def spine_bend(bone, curl_deg, twist_deg, side_deg=0.0):
+    """Flex (forward), twist (toward the figure's left) and side-bend (toward the figure's left) one spine bone, deg."""
     rest = A.D[bone].matrix_local.to_3x3().inverted()
     q = Quaternion((rest @ Vector((1, 0, 0))).normalized(), math.radians(curl_deg)) @ \
-        Quaternion((rest @ Vector((0, 0, 1))).normalized(), math.radians(twist_deg))
+        Quaternion((rest @ Vector((0, 0, 1))).normalized(), math.radians(twist_deg)) @ \
+        Quaternion((rest @ Vector((0, 1, 0))).normalized(), math.radians(-side_deg))
     A.P[bone].rotation_quaternion = q
 
 
@@ -794,7 +835,7 @@ def build(spec):
     keyed = ["root", "neck01"]
     if body_keys:
         names = set().union(*body_keys)
-        if names & {"curl", "twist"}:
+        if names & {"curl", "twist", "side"}:
             keyed += SPINE
         if "shrug" in names:
             keyed += ["clavicle.L", "clavicle.R"]
@@ -812,9 +853,10 @@ def build(spec):
             lean = l0 + math.radians(k.get("lean", 0))
             A.set_root(d0 + k.get("drop", 0), b0 + k.get("back", 0), lean)
         A.rotate_local("neck01", (1, 0, 0), -head_level * (lean - l0) - math.radians(k.get("curl", 0)) * 0.3)
-        if "curl" in k or "twist" in k:
+        if {"curl", "twist", "side"} & set(k):
             for b in SPINE:
-                spine_bend(b, k.get("curl", 0) / len(SPINE), k.get("twist", 0) / len(SPINE))
+                spine_bend(b, k.get("curl", 0) / len(SPINE), k.get("twist", 0) / len(SPINE),
+                           k.get("side", 0) / len(SPINE))
         for s, _ in SIDES:
             if f"hip_{s}" in k or "hip" in k:
                 A.rotate_local("upperleg01." + s, (1, 0, 0), -math.radians(k.get(f"hip_{s}", k.get("hip", 0))))
@@ -836,6 +878,8 @@ def build(spec):
     A.update()
     if spec.get("pad"):
         props.append(leg_pad(spec["pad"]))
+    for b in spec.get("boxes", []):
+        props.append(box("Box", b["size"], b["at"], rot_x=math.radians(b.get("rot_x", 0))))
     impl = spec.get("implement", "dumbbell")
     arms = Arms(spec, ph)
     if impl == "barbell_back":
@@ -848,6 +892,8 @@ def build(spec):
     else:
         gear = PerHand(spec, arms, impl)
     props += gear.cables.props if gear.cables else []
+    if spec.get("arm", {}).get("pad"):
+        props += arm_pad(arms)
 
     gear.place(1)
     if spec.get("bar_floor") and body_keys:          # first key starts with the plates on the floor
