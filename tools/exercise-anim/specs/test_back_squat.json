@@ -1,0 +1,42 @@
+{
+ "name": "test_back_squat",
+ "primary": [
+  "quads",
+  "glutes"
+ ],
+ "secondary": [
+  "hamstrings",
+  "lower_back"
+ ],
+ "posture": {
+  "type": "stand",
+  "width": 0.2,
+  "toe_out": 18
+ },
+ "implement": "barbell_back",
+ "body": {
+  "keys": [
+   {
+    "drop": 0
+   },
+   {
+    "drop": 0.42,
+    "back": 0.14,
+    "lean": 35
+   }
+  ],
+  "head_level": 0.85
+ },
+ "arm": {
+  "frame": "torso",
+  "elbow_out": [
+   0.3,
+   -1,
+   -1
+  ]
+ },
+ "camera": {
+  "az": 50,
+  "el": 6
+ }
+}

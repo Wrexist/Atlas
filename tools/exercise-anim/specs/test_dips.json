@@ -1,0 +1,59 @@
+{
+ "primary": [
+  "chest",
+  "triceps"
+ ],
+ "secondary": [
+  "front_delts"
+ ],
+ "posture": {
+  "type": "support",
+  "bar_z": 1.25,
+  "knees": 75
+ },
+ "implement": "dip_bars",
+ "body": {
+  "keys": [
+   {
+    "drop": 0
+   },
+   {
+    "drop": 0.3,
+    "lean": 18
+   }
+  ],
+  "head_level": 0.5
+ },
+ "arm": {
+  "frame": "world",
+  "keys": [
+   {
+    "upper": [
+     0.12,
+     0,
+     -1
+    ],
+    "fore": [
+     0.05,
+     0,
+     -1
+    ],
+    "thumb": [
+     0,
+     1,
+     0
+    ]
+   }
+  ],
+  "elbow_out": [
+   0.25,
+   -1,
+   0
+  ]
+ },
+ "camera": {
+  "az": 60,
+  "el": 8
+ },
+ "name": "test_dips"
+}
