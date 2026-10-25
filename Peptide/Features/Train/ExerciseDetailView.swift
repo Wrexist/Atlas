@@ -20,8 +20,8 @@ struct ExerciseDetailView: View {
                 VStack(alignment: .leading, spacing: Spacing.lg) {
                     header(for: exercise)
                         .sectionAppear(index: 0)
-                    // The exercise's visual is its body map: the muscles it
-                    // trains, marked on the Atlas figure, front and back.
+                    // The exercise's visual: its rendered animation when one
+                    // exists, over the body map of the muscles it trains.
                     muscleSection(for: exercise)
                         .sectionAppear(index: 1)
                     // How to do it sits right under what it trains: below
@@ -142,6 +142,7 @@ struct ExerciseDetailView: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
 
+                ExerciseClipView(exercise: exercise)
                 MuscleActivationMap(exercise: exercise)
             }
         }

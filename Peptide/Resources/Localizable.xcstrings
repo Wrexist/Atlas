@@ -8559,6 +8559,16 @@
         }
       }
     },
+    "Animation of %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Animering av %@"
+          }
+        }
+      }
+    },
     "Anti-Aging": {
       "localizations": {
         "sv": {
