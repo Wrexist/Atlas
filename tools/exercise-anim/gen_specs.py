@@ -617,9 +617,129 @@ def core(n, eq):
     return None
 
 
+HIPS_HANDS = key((0.8, -0.15, -0.55), (-0.55, 0.35, -0.3), (0, 1, 0))     # torso: hands on hips
+LYING_ARMS = [key((0.25, -0.15, -1), (0.2, -0.1, -1), (0, 1, 0))]        # torso: arms by the sides, lying
+HOLD = {"bottom": 30, "hold": 40}                                       # stretches: ease in, hold, ease out
+
+
+def floor_seat(lean_keys, **posture):
+    """Sitting on the floor: the floor_supine posture sat up by a body `lean` (90 = upright)."""
+    return dict({"type": "floor_supine", "knees": 0}, **posture), lean_keys
+
+
+def stretch(n, eq):
+    S = None
+    if n == "standing toe touches":
+        S = {"posture": {"type": "stand", "width": 0.12}, "implement": "none",
+             "body": {"keys": [{}, {"lean": 95, "back": 0.12, "drop": 0.02, "curl": 20}], "head_level": 0.2},
+             "arm": {"frame": "world", "keys": HANG_W}, "camera": {"az": 80, "el": 6}}
+    elif n in ("overhead stretch", "upward stretch"):
+        S = {"posture": STAND, "implement": "none", "body": {"keys": [{}, {"heel": 12, "drop": -0.03}]},
+             "arm": {"keys": [key((0.25, 0.05, -1), (0.2, 0.05, -1), (0, 1, 0)),
+                              key((0.12, 0.0, 1), (0.03, -0.05, 1), (-1, 0, 0))], "elbow_out": [1, 0, 0]},
+             "camera": {"az": 30, "el": 6}}
+    elif n == "standing lateral stretch":
+        S = {"posture": {"type": "stand", "width": 0.16}, "implement": "none",
+             "body": {"keys": [{}, {"side": -32}]},
+             "arm": {"sides": "L", "keys": [key((0.45, 0.0, 0.9), (-0.25, 0.0, 0.95), (0, 0, 1))], "rest": HIPS_HANDS,
+                     "elbow_out": [1, 0.2, 0.3]}, "camera": {"az": 5, "el": 6}}
+    elif n in ("triceps stretch", "overhead triceps", "overhead lat"):
+        S = {"posture": STAND, "implement": "none",
+             "arm": {"sides": "L", "keys": [key((0.25, 0.1, 0.95), (-0.6, -0.3, -0.4), (0, 0, 1)),
+                                           key((0.1, -0.05, 1), (-0.65, -0.35, -0.3), (0, 0, 1))],
+                     "elbow_out": [1, -0.5, 0.4]},
+             "camera": {"az": 140, "el": 8}}
+    elif n == "shoulder stretch":
+        S = {"posture": STAND, "implement": "none",
+             "arm": {"sides": "L", "keys": [key((0.3, 0.6, -0.75), (0.2, 0.6, -0.75), (0, 1, 0)),
+                                           key((-0.65, 0.75, -0.1), (-0.8, 0.55, 0.0), (0, 0, 1))],
+                     "rest": key((0.15, 0.55, -0.8), (-0.75, 0.6, 0.25), (0, 0, 1)), "elbow_out": [0, -1, -0.3]},
+             "camera": {"az": 25, "el": 6}}
+    elif n == "elbows back":
+        S = {"posture": STAND, "implement": "none",
+             "arm": {"keys": [key((0.7, -0.45, -0.55), (-0.45, -0.3, -0.8), (0, 0, -1)),
+                              key((0.45, -0.75, -0.5), (-0.5, -0.2, -0.8), (0, 0, -1))], "elbow_out": [1, -1, 0]},
+             "camera": {"az": 150, "el": 8}}
+    elif n == "standing biceps stretch":
+        S = {"posture": STAND, "implement": "none",
+             "arm": {"keys": [key((0.1, -0.35, -1), (-0.2, -0.3, -1), (1, 0, 0)),
+                              key((0.1, -0.85, -0.55), (-0.15, -0.85, -0.5), (1, 0, 0))], "elbow_out": [1, 0, 0]},
+             "body": {"keys": [{}, {"lean": 10}]}, "camera": {"az": 110, "el": 6}}
+    elif n == "upper back stretch":
+        S = {"posture": STAND, "implement": "none", "body": {"keys": [{}, {"curl": 22, "back": 0.03}]},
+             "arm": {"keys": [key((0.2, 0.6, -0.8), (0.1, 0.6, -0.8), (0, 1, 0)),
+                              key((0.15, 1, -0.05), (-0.25, 1, -0.05), (0, 0, -1))], "elbow_out": [1, 0, -0.5]},
+             "camera": {"az": 60, "el": 6}}
+    elif n in ("middle back stretch", "torso rotation"):
+        arms = [HIPS_HANDS] if n.startswith("middle") else [key((0.4, 1, -0.15), (0.05, 1, 0), (0, 0, 1))]
+        S = {"posture": {"type": "stand", "width": 0.16}, "implement": "none", "cycle": True,
+             "body": {"keys": [{"twist": 0}, {"twist": 40}, {"twist": 0}, {"twist": -40}, {"twist": 0}]},
+             "arm": {"keys": arms, "elbow_out": [1, -0.3, 0]}, "camera": {"az": 20, "el": 10}}
+    elif n == "arm circles":
+        ring = [key((1, 0.22 * math.cos(a), 0.22 * math.sin(a)), (1, 0.22 * math.cos(a), 0.22 * math.sin(a)),
+                    (0, 0, -1)) for a in [i * math.pi / 3 for i in range(6)] + [0]]
+        S = {"posture": STAND, "implement": "none", "cycle": True,
+             "arm": {"keys": ring, "elbow_out": [0, -0.3, 1]}, "camera": {"az": 30, "el": 6}}
+    elif n == "side neck stretch":
+        S = {"posture": STAND, "implement": "none", "body": {"keys": [{}, {"tilt": -35}], "head_level": 0},
+             "arm": {"keys": [key((0.12, 0.03, -1), (0.06, 0.06, -1), (0, 1, 0))]}, "camera": {"az": 10, "el": 6}}
+    elif n == "chin to chest stretch":
+        S = {"posture": STAND, "implement": "none", "body": {"keys": [{}, {"nod": 40}], "head_level": 0},
+             "arm": {"keys": [key((0.75, 0.55, 0.35), (-0.7, 0.05, 0.7), (0, 0, 1))], "elbow_out": [0.2, 1, 0]},
+             "camera": {"az": 70, "el": 6}}
+    elif n == "child's pose":
+        S = {"posture": {"type": "kneel"}, "implement": "none",
+             "body": {"keys": [{}, {"drop": 0.3, "back": 0.12, "lean": 85}], "head_level": 0.1},
+             "arm": {"keys": [key((0.15, 0.25, 1), (0.1, 0.25, 1), (0, 0, 1))], "elbow_out": [1, 0, 0]},
+             "camera": {"az": 80, "el": 10}}
+    elif n == "cat stretch":
+        S = {"posture": {"type": "kneel", "lean": 88}, "implement": "floor",
+             "body": {"keys": [{"curl": -14, "nod": -15}, {"curl": 28, "nod": 30}], "head_level": 0},
+             "arm": {"frame": "world", "keys": [key((0.14, 0, -1), (0.04, 0.02, -1), (-1, 0, 0))],
+                     "elbow_out": [0.3, -1, 0]}, "camera": {"az": 80, "el": 8}}
+    elif n == "superman":
+        S = {"posture": {"type": "prone", "top": 0.0, "no_bench": True}, "implement": "none",
+             "body": {"keys": [{}, {"curl": -16, "hip": -14, "nod": -10}], "head_level": 0},
+             "arm": {"keys": [key((0.25, 0.05, 1), (0.15, 0.05, 1), (0, 0, 1)),
+                              key((0.25, -0.35, 1), (0.15, -0.35, 1), (0, 0, 1))], "elbow_out": [1, 0, 0]},
+             "camera": {"az": 70, "el": 14}}
+    elif n in ("hug knees to chest", "one knee to chest"):
+        one = n.startswith("one")
+        top = {"hip_L": 120, "knee_L": 125} if one else {"hip": 120, "knee": 125}
+        start = {"hip_L": 70, "knee_L": 100} if one else {"hip": 70, "knee": 100}
+        S = {"posture": {"type": "floor_supine", "feet_free": True}, "implement": "none",
+             "body": {"keys": [dict(start, curl=0), dict(top, curl=12)], "head_level": 0},
+             "arm": {"keys": [key((0.25, 0.4, -0.9), (0.0, 0.45, -0.9), (0, 0, 1)),
+                              key((0.15, 0.5, -0.85), (-0.05, 0.6, -0.8), (0, 0, 1))], "elbow_out": [1, 0, 0]},
+             "camera": {"az": 75, "el": 14}}
+    elif n in ("hamstring stretch", "lying hamstring", "leg-up hamstring stretch"):
+        S = {"posture": {"type": "floor_supine", "feet_free": True}, "implement": "none",
+             "body": {"keys": [{"hip_L": 20}, {"hip_L": 85}], "head_level": 0},
+             "arm": {"keys": LYING_ARMS}, "camera": {"az": 75, "el": 12}}
+    elif n in ("kneeling hip flexor", "standing hip flexors"):
+        kneel_deep = n.startswith("kneeling")
+        S = {"posture": {"type": "split", "front": 0.55 if kneel_deep else 0.35, "back": 0.6 if kneel_deep else 0.35},
+             "implement": "none",
+             "body": {"keys": [{"drop": 0.42 if kneel_deep else 0.08}, {"drop": 0.5 if kneel_deep else 0.15,
+                                                                       "back": -0.06, "lean": -6}]},
+             "arm": {"keys": [HIPS_HANDS], "elbow_out": [1, -0.3, 0]}, "camera": {"az": 80, "el": 6}}
+    elif n in ("seated hamstring", "seated floor hamstring stretch", "the straddle"):
+        apart = 0.42 if n == "the straddle" else 0.12
+        posture, _ = floor_seat(None, feet_apart=apart)
+        S = {"posture": posture, "implement": "none",
+             "body": {"keys": [{"lean": 88}, {"lean": 128, "curl": 22}], "head_level": 0.3},
+             "arm": {"frame": "world", "keys": [key((0.18, 0.75, -0.65), (0.12, 0.8, -0.6), (0, 0, 1)),
+                                                key((0.2, 0.95, -0.3), (0.15, 0.95, -0.3), (0, 0, 1))],
+                     "elbow_out": [1, 0, 0]}, "camera": {"az": 70, "el": 10}}
+    if S:
+        S.update({k: v for k, v in HOLD.items() if k not in S and not S.get("cycle")})
+    return S
+
+
 FAMILY_TEMPLATES = {"curl": curl, "hpress": hpress, "vpress": vpress, "raise": raise_, "fly": fly, "row": row,
                     "vpull": vpull, "triceps": triceps, "squat": squat, "hinge": hinge, "lunge": lunge,
-                    "calf": calf, "legcurl_ext": legcurl_ext, "core": core}
+                    "calf": calf, "legcurl_ext": legcurl_ext, "core": core,
+                    "stretch": stretch}
 
 
 NAME_FAMILIES = [(r"seated dumbbell press|shoulder press|military press|overhead press", "vpress"),

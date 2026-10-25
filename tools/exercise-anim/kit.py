@@ -92,14 +92,17 @@ def slerp_dir(a, b, t):
     return ((math.sin((1 - t) * ang) * a + math.sin(t * ang) * b) / math.sin(ang)).normalized()
 
 
+LINEAR = False                  # set for cycling specs (circles): constant speed through the keys
+
+
 def interp(keys, t, fn):
-    """Eased piecewise interpolation of key poses at phase t in [0, 1]."""
+    """Eased (or, for cycles, linear) piecewise interpolation of key poses at phase t in [0, 1]."""
     if len(keys) == 1:
         return keys[0]
     n = len(keys) - 1
     x = min(max(t, 0.0) * n, n - 1e-9)
     i = int(x)
-    return fn(keys[i], keys[i + 1], A.ease(x - i))
+    return fn(keys[i], keys[i + 1], (x - i) if LINEAR else A.ease(x - i))
 
 
 def arm_pose(keys, t):
@@ -152,6 +155,11 @@ class Arms:
 # Each sets the feet/legs and the base root offset (drop, back, lean in rad) and returns its props.
 def stand(p):
     A.plant_feet(toe_out_deg=p.get("toe_out", 8), ankles=stance(p.get("width")))
+    free = p.get("free_leg")
+    if free:                                    # that leg is posed by hip/knee keys instead (quad stretch, leg swings)
+        A.P["lowerleg02." + free].constraints["IK"].mute = True
+        for c in A.P["foot." + free].constraints:
+            c.mute = True
     return (0, 0, math.radians(p.get("lean", 0))), []
 
 
@@ -198,11 +206,15 @@ def floor_supine(p):
     run = math.sqrt(max(run ** 2 - (hip.z - ankle_z) ** 2, 0.0))
     if p.get("feet_free"):
         return (drop, 0, -math.pi / 2), []
-    A.plant_feet(toe_out_deg=6, ankles={s: (sx * 0.15, hip.y - run * 0.99, ankle_z) for s, sx in SIDES},
+    apart, reach = p.get("feet_apart", 0.15), p.get("feet_reach", 0.99)
+    A.plant_feet(toe_out_deg=6, ankles={s: (sx * apart, hip.y - run * reach, ankle_z) for s, sx in SIDES},
                  knee_up=1.0)
+    out = p.get("knees_out", 0.2)
     for s, sx in SIDES:
-        bpy.data.objects["KneePole." + s].location = (sx * 0.25, hip.y - run / 2, 1.2)
-    p["knees_point"] = {s: (sx * 0.2, 0, 1) for s, sx in SIDES}
+        bpy.data.objects["KneePole." + s].location = (sx * (0.25 + out), hip.y - run / 2, 1.2)
+    p["knees_point"] = {s: (sx * out, 0, 1) for s, sx in SIDES}
+    if knees < 30:
+        pitch_feet(-80)                         # straight legs: toes up
     return (drop, 0, -math.pi / 2), []
 
 
@@ -811,6 +823,10 @@ def load(slug):
 def phases(spec):
     """Per-frame phase per side: one rep (0 -> 1 -> 0), or one rep per arm in turn when `alternate`."""
     bottom, hold = spec.get("bottom", 40), spec.get("hold", 4)
+    if spec.get("cycle"):                       # keys run once round per loop (first key repeated last)
+        global LINEAR
+        LINEAR = True
+        return lambda fr, s: ((fr - 1) % A.LOOP) / A.LOOP
     if spec.get("alternate"):
         half = A.LOOP // 2
 
@@ -852,7 +868,11 @@ def build(spec):
         else:
             lean = l0 + math.radians(k.get("lean", 0))
             A.set_root(d0 + k.get("drop", 0), b0 + k.get("back", 0), lean)
-        A.rotate_local("neck01", (1, 0, 0), -head_level * (lean - l0) - math.radians(k.get("curl", 0)) * 0.3)
+        nod = -head_level * (lean - l0) - math.radians(k.get("curl", 0)) * 0.3 + math.radians(k.get("nod", 0))
+        if "tilt" in k or "turn" in k:
+            spine_bend("neck01", math.degrees(nod), k.get("turn", 0), k.get("tilt", 0))
+        else:
+            A.rotate_local("neck01", (1, 0, 0), nod)
         if {"curl", "twist", "side"} & set(k):
             for b in SPINE:
                 spine_bend(b, k.get("curl", 0) / len(SPINE), k.get("twist", 0) / len(SPINE),
