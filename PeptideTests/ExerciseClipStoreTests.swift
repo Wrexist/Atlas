@@ -42,7 +42,8 @@ final class ExerciseClipStoreTests: XCTestCase {
         let store = store(serving: ["index.txt": Data("Barbell_Squat\n".utf8), "Barbell_Squat.mp4": video],
                           requests: requests)
 
-        let first = try XCTUnwrap(await store.clip(for: "Barbell_Squat"))
+        let downloaded = await store.clip(for: "Barbell_Squat")
+        let first = try XCTUnwrap(downloaded)
         XCTAssertEqual(try Data(contentsOf: first), video)
         let fetchesAfterFirst = requests.value
 
