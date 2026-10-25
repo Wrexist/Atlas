@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       batch:
-        description: "Batch number (0 = the most common exercises first)"
+        description: "Batch number among the clips not rendered yet (0 = the most common first)"
         default: "0"
       batch_size:
         description: "Clips per batch (20 shards share them; ~75 min per clip per shard)"
@@ -39,7 +39,8 @@ jobs:
             export SLUGS=$(jq -r '(.slugs // []) | join(",")' render_batch.json)
           fi
           python3 gen_specs.py
-          python3 render_plan.py > shards.json
+          curl -fsSL "https://raw.githubusercontent.com/${{ github.repository }}/exercise-videos/index.txt" -o done.txt || true
+          DONE=done.txt python3 render_plan.py > shards.json
           cat shards.json
           echo "shards=$(cat shards.json)" >> "$GITHUB_OUTPUT"
 

@@ -335,7 +335,7 @@ def plank(p):
     """Straight body from the toes, face down, `alpha` deg above level; body key `alpha` pivots it about the toes."""
     pivot = A.D["root"].matrix_local.translation
     length = pivot.z - A.rest_head("foot.L").z
-    ankle_z = 0.13
+    ankle_z = p.get("feet_z", 0.13)                     # raised on a box for decline push-ups
     lean0 = math.radians(90 - p.get("alpha", 20))
     ankle_y = pivot.y + length * math.sin(lean0)
 
@@ -350,7 +350,10 @@ def plank(p):
     pitch_feet(p.get("toe_pitch", 62))
     p["knees_point"] = {s: (0, -math.cos(lean0), -math.sin(lean0)) for s, _ in SIDES}
     p["_move"] = move
-    return (0, 0, lean0), []
+    props = []
+    if ankle_z > 0.2:
+        props.append(box("FeetBox", (0.5, 0.4, ankle_z - 0.08), (0, ankle_y + 0.05, (ankle_z - 0.08) / 2)))
+    return (0, 0, lean0), props
 
 
 def hang(p):
@@ -654,6 +657,9 @@ class Anchored:
             for s, sx in SIDES:
                 A.grip_on(s, self.h[s], (0, 0, 0), thumbward=(-sx, 0, 0), palm_to_handle=(0, 0, -1), slide=0.0,
                           radius=0.0)
+            if a.get("hand_box"):
+                z, y = a["hand_z"], sum(h.location.y for h in self.h.values()) / 2
+                self.props.append(box("HandBox", (0.75, 0.35, z), (0, y, z / 2)))
         else:
             bar = A.holder("Bar")
             centre = sum((w + F * HAND_TO_HANDLE for _, w, F, _ in pts.values()), Vector()) / 2

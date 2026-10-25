@@ -122,13 +122,18 @@ def bench_posture(n):
 
 def hpress(n, eq):
     if has(n, "push.?up"):
-        if has(n, "clap|plyo|single|\\bone\\b|decline|incline|knee|handstand|dive|spider|isometric|medicine"):
+        if has(n, "clap|plyo|single|\\bone\\b|knee|handstand|dive|spider|isometric|medicine|reverse grip"):
             return None
         wide = 0.34 if has(n, "wide") else 0.14 if has(n, "close|diamond|triangle") else 0.22
-        return {"posture": {"type": "plank", "alpha": 22}, "implement": "floor",
+        alpha, posture, arm = 22, {"type": "plank"}, {}
+        if has(n, "incline"):
+            alpha, arm = 40, {"hand_z": 0.45, "hand_box": True}
+        elif has(n, "decline"):
+            alpha, posture = 4, {"type": "plank", "feet_z": 0.5}
+        return {"posture": dict(posture, alpha=alpha), "implement": "floor",
                 "body": {"keys": [{"alpha": 0}, {"alpha": -15}], "head_level": 0},
-                "arm": {"frame": "world", "keys": [key((wide, 0.02, -1), (0.05, 0.03, -1), (-1, 0, 0))],
-                        "elbow_out": [0.7, -0.5, 0.2]}, "camera": {"az": 65, "el": 14}}
+                "arm": dict(arm, frame="world", keys=[key((wide, 0.02, -1), (0.05, 0.03, -1), (-1, 0, 0))],
+                            elbow_out=[0.7, -0.5, 0.2]), "camera": {"az": 65, "el": 14}}
     if has(n, "^dips|dip -|dips -|parallel bar dip"):
         lean = 18 if has(n, "chest") else 4
         return {"posture": {"type": "support", "bar_z": 1.25, "knees": 75}, "implement": "dip_bars",
@@ -139,6 +144,8 @@ def hpress(n, eq):
         return {"posture": {"type": "stand", "lean": 8}, "implement": "cable", "cable": {"anchor": [0.55, -0.7, -0.05]},
                 "arm": {"keys": [BENCH_BOTTOM_DB, BENCH_TOP_DB], "elbow_out": [0.6, -1, -0.3]},
                 "camera": {"az": 40, "el": 8}}
+    if has(n, "fly|flye") and eq == "dumbbell" and not has(n, "twist"):
+        return fly(n, eq)
     if has(n, "fly|flye|svend|squeeze|guillotine|neck|around|leg-over|kettlebell"):
         return None
     if has(n, "machine|leverage") or eq == "machine":
@@ -174,6 +181,11 @@ def hpress(n, eq):
 
 
 def vpress(n, eq):
+    if has(n, "^dumbbell one-arm shoulder press"):
+        spec = vpress("dumbbell shoulder press", "dumbbell")
+        spec["hands"] = "L"
+        spec["arm"].update(sides="L", rest=HIPS_HANDS)
+        return spec
     if has(n, "handstand|push press|jerk|bradford|cuban|landmine|\\bone\\b|single|kettlebell|"
            "behind"):
         return None
@@ -223,6 +235,8 @@ def raise_(n, eq):
         if impl == "barbell":
             spec["arm"].update(grip=0.24, palm=[0, 1, 0])
         return spec if eq in ("barbell", "dumbbell") else None
+    if has(n, "^smith machine upright row"):
+        return raise_("upright barbell row", "barbell")
     if has(n, "upright"):
         if eq not in ("barbell", "dumbbell") or has(n, "one-arm|one arm|single"):
             return None
@@ -374,12 +388,23 @@ def triceps(n, eq):
             spec["implement"] = "cable_bar"
             spec["arm"].update(grip=0.12, palm=[0, 0.3, -1])
         return spec
-    if has(n, "skull|lying triceps|lying .*extension|french"):
-        if has(n, "cable|decline|incline|\\bone\\b|single"):
+    if has(n, "parallel bar dip|ring dips"):
+        return hpress("dips - triceps version", eq)
+    if has(n, "weighted bench dip"):
+        return triceps("bench dips", eq)
+    if has(n, "push-ups - close triceps"):
+        return hpress("close push-up", eq)
+    if has(n, "bent-over .*triceps extension") and not has(n, "seated"):
+        return triceps("kickback" + (" one arm" if has(n, "one-arm") else ""), "dumbbell")
+    if has(n, "^standing (one-arm )?dumbbell triceps extension|^dumbbell one-arm triceps extension"):
+        return triceps("overhead " + n, "dumbbell")
+    if has(n, "skull|lying triceps|lying .*extension|french|press to chin|incline barbell triceps"):
+        if has(n, "cable|decline|\\bone\\b|single"):
             return None
         keys = [key((0.12, 0.95, 0.3), (0.05, 1, 0.05), (-1, 0, 0)), key((0.12, 0.95, 0.3), (0.05, -0.15, 1),
                                                                         (-1, 0, 0))]
-        spec = {"posture": {"type": "seat", "back_deg": 0}, "arm": {"keys": keys, "elbow_out": [0.1, 0.2, 1]},
+        spec = {"posture": {"type": "seat", "back_deg": 35 if has(n, "incline") else 0},
+                "arm": {"keys": keys, "elbow_out": [0.1, 0.2, 1]},
                 "camera": {"az": 65, "el": 20}}
         if eq == "dumbbell":
             spec["implement"] = "dumbbell"
@@ -390,7 +415,14 @@ def triceps(n, eq):
             spec["arm"].update(grip=0.15, palm=[0, -1, 0])
         return spec
     if has(n, "overhead|seated triceps press|standing triceps press"):
-        if eq not in ("dumbbell", "cable") or has(n, "\\bone\\b|single|kneeling|lying|low"):
+        if has(n, "barbell") and eq == "barbell":
+            keys = [key((0.15, 0.15, 1), (0.05, 0.1, 1), (-1, 0, 0)),
+                    key((0.15, 0.15, 1), (0.05, -0.35, -0.9), (-1, 0, 0))]
+            return {"posture": STAND, "implement": "barbell",
+                    "arm": {"keys": keys, "grip": 0.12, "palm": [0, 0.3, 1], "elbow_out": [0.3, 1, 0.2]},
+                    "camera": {"az": 70, "el": 6}}
+        one = has(n, "one-arm|one arm")
+        if eq not in ("dumbbell", "cable") or has(n, "single|kneeling|lying|low") or (one and eq != "dumbbell"):
             return None
         keys = [key((0.15, 0.15, 1), (0.05, 0.1, 1), (0, 1, 0)), key((0.15, 0.15, 1), (0.05, -0.35, -0.9), (0, 1, 0))]
         spec = {"posture": {"type": "seat", "backrest": 85} if has(n, "seated") else STAND,
@@ -400,14 +432,21 @@ def triceps(n, eq):
             spec["posture"] = {"type": "stand", "lean": 25}
         else:
             spec["implement"] = "dumbbell"
+        if one:
+            spec["hands"] = "L"
+            spec["arm"].update(sides="L", rest=HIPS_HANDS)
         return spec
     if has(n, "kickback"):
         if eq != "dumbbell":
             return None
         keys = [key((0.1, -1, 0.2), (0.05, 0.1, -1), (0, 1, 0)), key((0.1, -1, 0.2), (0.05, -1, 0.25), (0, 1, 0))]
-        return {"posture": {"type": "stand", "lean": 55, "width": 0.14}, "body": {"keys": [{"drop": 0.08}]},
+        spec = {"posture": {"type": "stand", "lean": 55, "width": 0.14}, "body": {"keys": [{"drop": 0.08}]},
                 "implement": "dumbbell", "arm": {"frame": "world", "keys": keys, "elbow_out": [0, 0, 1]},
                 "camera": {"az": 80, "el": 8}}
+        if has(n, "one arm"):
+            spec["hands"] = "L"
+            spec["arm"].update(sides="L", rest=key((0.15, 0.35, -1), (0.05, 0.3, -1), (0, 1, 0)))
+        return spec
     if has(n, "^bench dips"):
         return {"posture": {"type": "bench_dip"}, "implement": "floor",
                 "body": {"keys": [{"drop": 0}, {"drop": 0.24, "back": 0.03}], "head_level": 0.3},
@@ -421,7 +460,21 @@ def triceps(n, eq):
     return None
 
 
+def goblet(n):
+    """One dumbbell held upright against the chest in both hands."""
+    return {"posture": {"type": "stand", "width": 0.19, "toe_out": 18}, "implement": "dumbbell", "hands": "L",
+            "body": {"keys": [{"drop": 0}, {"drop": 0.44, "back": 0.1, "lean": 22}], "head_level": 0.85},
+            "arm": {"keys": [key((0.25, 0.5, -0.85), (-0.85, 0.35, 0.4), (0, 0, 1))], "elbow_out": [0.3, 0, -1]},
+            "camera": {"az": 40, "el": 6}}
+
+
 def squat(n, eq):
+    if has(n, "^goblet squat"):
+        return goblet(n)
+    if has(n, "split squat with dumbbells"):
+        return lunge("dumbbell lunge", "dumbbell")
+    if has(n, "^smith machine squat"):
+        return squat("barbell squat", "barbell")
     if has(n, "hack|machine|jump|pistol|single|\\bone\\b|split|overhead|zercher|plie|"
            "sissy|wall|kettlebell|goblet|landmine|pause|anderson|frankenstein|leg press|"
            "leverage|sled|squat clean|thruster|pin|rack|ball|lying|suspended|turkish|calf"):
@@ -453,6 +506,10 @@ def squat(n, eq):
 
 
 def hinge(n, eq):
+    if has(n, "^butt lift"):
+        return {"posture": {"type": "bridge"}, "implement": "none",
+                "body": {"keys": [{"lift": 0}, {"lift": 1}], "head_level": 0.7},
+                "arm": {"keys": LYING_ARMS}, "camera": {"az": 80, "el": 10}}
     if has(n, "thrust|bridge"):
         if has(n, "single|\\bone\\b|leg|band|machine|kettlebell|march|dumbbell"):
             return None
@@ -469,6 +526,11 @@ def hinge(n, eq):
         return {"posture": {"type": "stand", "width": 0.16}, "implement": "barbell_back",
                 "body": {"keys": [{"lean": 0}, {"lean": 70, "back": 0.12, "drop": 0.04}], "head_level": 0.6},
                 "arm": {"frame": "torso", "elbow_out": [0.3, -1, -1]}, "camera": {"az": 80, "el": 6}}
+    if has(n, "^rack pulls$"):
+        return {"posture": {"type": "stand", "width": 0.12}, "implement": "barbell",
+                "body": {"keys": [{"drop": 0.1, "back": 0.06, "lean": 32}, {}], "head_level": 0.5},
+                "arm": {"frame": "world", "grip": 0.24, "palm": [0, 1, 0], "keys": HANG_BAR,
+                        "elbow_out": [0.4, -1, 0]}, "camera": {"az": 70, "el": 6}}
     if not has(n, "deadlift|rdl"):
         return None
     if has(n, "single|\\bone\\b|rack|trap|hex|kettlebell|snatch|axle|car|platform|cable|leverage|"
@@ -525,6 +587,8 @@ def calf(n, eq):
                 "body": {"keys": [{"heel": 0}, {"heel": 28}]},
                 "arm": {"keys": [key((0.15, 0.25, -1), (0.05, 0.75, -0.65), (0, 1, 0))], "elbow_out": [1, -0.3, 0]},
                 "camera": {"az": 70, "el": 6}}
+    if has(n, "^smith machine calf raise"):
+        return calf("barbell calf raise", "barbell")
     if has(n, "donkey|press|single|\\bone\\b|smith|rocking|toe|tibialis|ankle|leg press"):
         return None
     spec = {"posture": {"type": "stand", "width": 0.13}, "body": {"keys": [{"heel": 0}, {"heel": 32, "drop": -0.08}]},
@@ -539,6 +603,9 @@ def calf(n, eq):
 
 
 def legcurl_ext(n, eq):
+    if has(n, "^single-leg leg extension"):
+        return dict(legcurl_ext("leg extensions", eq), body={"keys": [{"hip": 88, "knee_L": 95, "knee_R": 95},
+                                                                     {"hip": 88, "knee_L": 5, "knee_R": 95}]})
     if has(n, "extension"):
         if has(n, "single|\\bone\\b|band"):
             return None
