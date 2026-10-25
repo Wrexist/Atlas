@@ -1,0 +1,52 @@
+name: Exercise animation CPU benchmark
+
+# Measures how fast the Blender exercise pipeline renders on a CPU runner,
+# so the full 873-clip render can be planned. Runs only on the pipeline branch.
+on:
+  push:
+    branches: [claude/anim-pipeline]
+    paths: ['tools/exercise-anim/**', '.github/workflows/exercise-anim-bench.yml']
+  workflow_dispatch:
+
+jobs:
+  bench:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { label: full-256spp-1080, samples: 256, pct: 100 }
+          - { label: mid-128spp-720, samples: 128, pct: 67 }
+          - { label: low-64spp-720, samples: 64, pct: 67 }
+    env:
+      BLENDER_VERSION: 5.2.1
+      ATLAS_PYTHON: python3
+      ATLAS_SAMPLES: ${{ matrix.samples }}
+      ATLAS_RES_PCT: ${{ matrix.pct }}
+      ATLAS_FRAMES: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install system packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -yq ffmpeg libxi6 libxkbcommon0 libsm6 libgl1 libegl1 libxrender1 libxxf86vm1 libxfixes3
+          python3 -m pip install --break-system-packages -q numpy scipy pillow
+      - name: Install Blender
+        run: |
+          curl -fsSL "https://download.blender.org/release/Blender${BLENDER_VERSION%.*}/blender-${BLENDER_VERSION}-linux-x64.tar.xz" | tar -xJ -C "$RUNNER_TEMP"
+          echo "BLENDER=$RUNNER_TEMP/blender-${BLENDER_VERSION}-linux-x64/blender" >> "$GITHUB_ENV"
+      - name: Render squat
+        working-directory: tools/exercise-anim
+        run: |
+          nproc
+          start=$(date +%s)
+          "$BLENDER" -b human.blend -P squat.py -- --anim 2>&1 | grep -E "^(RENDERED|VIDEO)|Fra:|Error|Traceback" | tail -40
+          echo "TOTAL $(( $(date +%s) - start )) s for $ATLAS_FRAMES frames incl. pose solve" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bench-${{ matrix.label }}
+          path: |
+            tools/exercise-anim/out/frames_squat/*.png
+            tools/exercise-anim/out/squat.mp4
+          retention-days: 7

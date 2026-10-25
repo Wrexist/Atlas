@@ -1178,10 +1178,10 @@ def setup_render():
     # edge stability: enough samples that silhouette pixels converge, a fixed seed (same noise pattern every frame),
     # and the OptiX denoiser guided by albedo + normal so it keeps the outline instead of smearing it per frame
     c = scene.cycles
-    c.samples = 256
+    c.samples = int(os.environ.get("ATLAS_SAMPLES", 256))          # CPU runners render with fewer samples
     c.use_adaptive_sampling = True
-    c.adaptive_threshold = 0.004
-    c.adaptive_min_samples = 96
+    c.adaptive_threshold = float(os.environ.get("ATLAS_ADAPTIVE", 0.004))
+    c.adaptive_min_samples = min(96, c.samples // 2)
     c.seed = 0
     c.use_animated_seed = False
     c.use_denoising = True
@@ -1363,7 +1363,8 @@ def finish(name, cam, hands_cam, mid_frame, extra_cams=()):
             composite_still(raw, os.path.join(OUT, f"{name}_{tag}.png"))
     if "--anim" in ARGS:
         scene.camera = cam
-        scene.render.resolution_percentage = 100
+        scene.render.resolution_percentage = int(os.environ.get("ATLAS_RES_PCT", 100))
+        scene.frame_end = int(os.environ.get("ATLAS_FRAMES", LOOP))   # benchmark: render only the first N frames
         frames = os.path.join(OUT, "frames_" + name)
         os.makedirs(frames, exist_ok=True)
         for f in os.listdir(frames):
