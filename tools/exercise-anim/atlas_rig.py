@@ -1159,7 +1159,7 @@ def setup_render():
     scene.world = world
     r = scene.render
     r.film_transparent = True                        # black + glow composited in post (composite.py)
-    r.resolution_x, r.resolution_y = 1080, 1350
+    r.resolution_x, r.resolution_y = map(int, os.environ.get("ATLAS_RES", "1080x1350").split("x"))
     r.image_settings.file_format = 'PNG'
     r.image_settings.color_mode = 'RGBA'
     r.image_settings.color_depth = '16'
@@ -1363,7 +1363,7 @@ def finish(name, cam, hands_cam, mid_frame, extra_cams=()):
             composite_still(raw, os.path.join(OUT, f"{name}_{tag}.png"))
     if "--anim" in ARGS:
         scene.camera = cam
-        scene.render.resolution_percentage = int(os.environ.get("ATLAS_RES_PCT", 100))
+        scene.render.resolution_percentage = 100
         scene.frame_end = int(os.environ.get("ATLAS_FRAMES", LOOP))   # benchmark: render only the first N frames
         frames = os.path.join(OUT, "frames_" + name)
         os.makedirs(frames, exist_ok=True)

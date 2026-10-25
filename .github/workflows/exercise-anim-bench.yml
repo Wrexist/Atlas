@@ -16,15 +16,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { label: full-256spp-1080, samples: 256, pct: 100 }
-          - { label: mid-128spp-720, samples: 128, pct: 67 }
-          - { label: low-64spp-720, samples: 64, pct: 67 }
+          - { label: 720-64spp, res: 720x900, samples: 64 }
+          - { label: 1080-128spp, res: 1080x1350, samples: 128 }
+          - { label: 1080-256spp, res: 1080x1350, samples: 256 }
     env:
       BLENDER_VERSION: 5.2.1
       ATLAS_PYTHON: python3
       ATLAS_SAMPLES: ${{ matrix.samples }}
-      ATLAS_RES_PCT: ${{ matrix.pct }}
-      ATLAS_FRAMES: 4
+      ATLAS_RES: ${{ matrix.res }}
     steps:
       - uses: actions/checkout@v4
       - name: Install system packages
@@ -36,17 +35,38 @@ jobs:
         run: |
           curl -fsSL "https://download.blender.org/release/Blender${BLENDER_VERSION%.*}/blender-${BLENDER_VERSION}-linux-x64.tar.xz" | tar -xJ -C "$RUNNER_TEMP"
           echo "BLENDER=$RUNNER_TEMP/blender-${BLENDER_VERSION}-linux-x64/blender" >> "$GITHUB_ENV"
-      - name: Render squat
+      - name: Render squat stills
         working-directory: tools/exercise-anim
         run: |
-          nproc
           start=$(date +%s)
-          "$BLENDER" -b human.blend -P squat.py -- --anim 2>&1 | grep -E "^(RENDERED|VIDEO)|Fra:|Error|Traceback" | tail -40
-          echo "TOTAL $(( $(date +%s) - start )) s for $ATLAS_FRAMES frames incl. pose solve" | tee -a "$GITHUB_STEP_SUMMARY"
+          "$BLENDER" -b human.blend -P squat.py -- --stills 2>&1 | grep -E "^RENDERED|Error|Traceback" | tee times.txt
+          echo "TOTAL $(( $(date +%s) - start )) s incl. pose solve" | tee -a times.txt
+          mkdir -p "$RUNNER_TEMP/res/${{ matrix.label }}"
+          cp out/squat_*.png times.txt "$RUNNER_TEMP/res/${{ matrix.label }}/"
       - uses: actions/upload-artifact@v4
         with:
           name: bench-${{ matrix.label }}
-          path: |
-            tools/exercise-anim/out/frames_squat/*.png
-            tools/exercise-anim/out/squat.mp4
+          path: ${{ runner.temp }}/res
           retention-days: 7
+
+  # The cloud session can't download artifacts, so the results go to a branch.
+  publish:
+    needs: bench
+    if: always()
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: res
+          merge-multiple: true
+      - name: Push results to claude/anim-bench-out
+        run: |
+          cd res
+          git init -q -b claude/anim-bench-out
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "CPU benchmark results"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" claude/anim-bench-out
