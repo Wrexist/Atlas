@@ -808,6 +808,57 @@ FAMILY_TEMPLATES = {"curl": curl, "hpress": hpress, "vpress": vpress, "raise": r
                     "calf": calf, "legcurl_ext": legcurl_ext, "core": core,
                     "stretch": stretch}
 
+# Same movement as an exercise a template already covers: render that one's spec under this name.
+ALIASES = {
+    "Weighted Squat": "Bodyweight Squat", "Squats - With Bands": "Squat with Bands",
+    "Plie Dumbbell Squat": "Goblet Squat", "Front Squats With Two Kettlebells": "Goblet Squat",
+    "Barbell Hack Squat": "Barbell Deadlift", "Two-Arm Kettlebell Military Press": "Dumbbell Shoulder Press",
+    "Double Kettlebell Push Press": "Standing Dumbbell Press", "Kettlebell Arnold Press": "Arnold Dumbbell Press",
+    "Standing Bradford Press": "Standing Military Press", "Bradford/Rocky Presses": "Seated Barbell Military Press",
+    "Alternating Kettlebell Row": "Two-Arm Kettlebell Row", "Seated One-arm Cable Pulley Rows": "Seated Cable Rows",
+    "Elevated Cable Rows": "Seated Cable Rows", "Smith Machine Bent Over Row": "Bent Over Barbell Row",
+    "V-Bar Pulldown": "Close-Grip Front Lat Pulldown", "Wide-Grip Pulldown Behind The Neck": "Wide-Grip Lat Pulldown",
+    "Mixed Grip Chin": "Chin-Up", "V-Bar Pullup": "Chin-Up", "Gironda Sternum Chins": "Chin-Up",
+    "Band Assisted Pull-Up": "Pullups", "Rocky Pull-Ups/Pulldowns": "Pullups",
+    "Cable Shrugs": "Barbell Shrug", "Leverage Shrug": "Barbell Shrug",
+    "Smith Machine Behind the Back Shrug": "Barbell Shrug Behind The Back",
+    "Front Plate Raise": "Front Two-Dumbbell Raise", "Single Dumbbell Raise": "Front Two-Dumbbell Raise",
+    "Lateral Raise - With Bands": "Side Lateral Raise", "Upright Row - With Bands": "Upright Barbell Row",
+    "Seated Bent-Over Rear Delt Raise": "Bent Over Dumbbell Rear Delt Raise With Head On Bench",
+    "Machine Preacher Curls": "Preacher Curl", "Cable Preacher Curl": "Preacher Curl",
+    "Reverse Barbell Preacher Curls": "Preacher Curl", "Machine Bicep Curl": "Preacher Curl",
+    "One Arm Dumbbell Preacher Curl": "Two-Arm Dumbbell Preacher Curl",
+    "Preacher Hammer Dumbbell Curl": "Two-Arm Dumbbell Preacher Curl",
+    "Zottman Curl": "Dumbbell Alternate Bicep Curl", "Reverse Plate Curls": "Reverse Barbell Curl",
+    "Standing Concentration Curl": "Concentration Curls",
+    "Seated Close-Grip Concentration Barbell Curl": "Concentration Curls",
+    "Cable One Arm Tricep Extension": "Cable Rope Overhead Triceps Extension",
+    "Standing Low-Pulley One-Arm Triceps Extension": "Cable Rope Overhead Triceps Extension",
+    "Kneeling Cable Triceps Extension": "Cable Rope Overhead Triceps Extension",
+    "Low Cable Triceps Extension": "Cable Rope Overhead Triceps Extension",
+    "Standing Towel Triceps Extension": "Standing Dumbbell Triceps Extension",
+    "Speed Band Overhead Triceps": "Standing Dumbbell Triceps Extension",
+    "Decline EZ Bar Triceps Extension": "EZ-Bar Skullcrusher", "Decline Close-Grip Bench To Skull Crusher": "EZ-Bar Skullcrusher",
+    "Decline Dumbbell Triceps Extension": "Lying Dumbbell Tricep Extension",
+    "Dumbbell Tricep Extension -Pronated Grip": "Lying Dumbbell Tricep Extension",
+    "One Arm Pronated Dumbbell Triceps Extension": "Lying Dumbbell Tricep Extension",
+    "One Arm Supinated Dumbbell Triceps Extension": "Lying Dumbbell Tricep Extension",
+    "Cable Lying Triceps Extension": "Lying Triceps Press",
+    "Seated Bent-Over One-Arm Dumbbell Triceps Extension": "Standing Bent-Over One-Arm Dumbbell Triceps Extension",
+    "Seated Bent-Over Two-Arm Dumbbell Triceps Extension": "Standing Bent-Over Two-Arm Dumbbell Triceps Extension",
+    "Trap Bar Deadlift": "Barbell Deadlift", "Leverage Deadlift": "Barbell Deadlift", "Cable Deadlifts": "Barbell Deadlift",
+    "Rack Pull with Bands": "Rack Pulls", "Good Morning off Pins": "Good Morning",
+    "Rocking Standing Calf Raise": "Standing Calf Raises",
+    "Rope Crunch": "Cable Crunch", "Exercise Ball Crunch": "Crunches", "Frog Sit-Ups": "Sit-Up",
+    "Janda Sit-Up": "Sit-Up", "Weighted Ball Side Bend": "Dumbbell Side Bend",
+    "Alternating Floor Press": "Dumbbell Floor Press", "One-Arm Kettlebell Floor Press": "One Arm Floor Press",
+    "Extended Range One-Arm Kettlebell Floor Press": "One Arm Floor Press", "Leg-Over Floor Press": "Floor Press",
+    "Barbell Guillotine Bench Press": "Wide-Grip Barbell Bench Press", "Incline Push-Up Reverse Grip": "Incline Push-Up",
+    "Incline Cable Chest Press": "Incline Dumbbell Press", "Incline Cable Flye": "Incline Dumbbell Flyes",
+    "Incline Dumbbell Flyes - With A Twist": "Incline Dumbbell Flyes",
+    "Low Cable Crossover": "Cable Crossover", "Single-Arm Cable Crossover": "Cable Crossover",
+}
+
 
 NAME_FAMILIES = [(r"seated dumbbell press|shoulder press|military press|overhead press", "vpress"),
                  (r"front squat|back squat|^barbell squat", "squat"),
@@ -832,12 +883,27 @@ def generate(e):
     return spec, family
 
 
+def aliased(e, by_name):
+    """An alias renders its source's movement; a kettlebell version swaps the dumbbells for kettlebells."""
+    source = by_name.get(ALIASES.get(e["name"]))
+    spec, family = generate(source) if source else (None, None)
+    if not spec:
+        return None, FAMILIES.get(e["name"])
+    if e.get("equipment") == "kettlebells" and spec.get("implement") == "dumbbell":
+        spec["implement"] = "kettlebell"
+    primary, secondary = muscles(e, family)
+    return dict(spec, name=e["name"], slug=e["id"], primary=primary, secondary=secondary), family
+
+
 def main():
     exercises = json.load(open(DATA))
+    by_name = {e["name"]: e for e in exercises}
     os.makedirs(OUT, exist_ok=True)
     made, missing = [], []
     for e in exercises:
         spec, family = generate(e)
+        if not spec and e["name"] in ALIASES:
+            spec, family = aliased(e, by_name)
         if spec:
             with open(os.path.join(OUT, e["id"] + ".json"), "w") as f:
                 json.dump(spec, f, indent=1)
