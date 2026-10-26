@@ -52,7 +52,6 @@ Cable_Rope_Overhead_Triceps_Extension
 Cable_Russian_Twists
 Cable_Seated_Lateral_Raise
 Cable_Shoulder_Press
-Cable_Wrist_Curl
 Calf-Machine_Shoulder_Shrug
 Calf_Raise_On_A_Dumbbell
 Calf_Raises_-_With_Bands
@@ -109,7 +108,6 @@ EZ-Bar_Curl
 EZ-Bar_Skullcrusher
 Elbows_Back
 Face_Pull
-Finger_Curls
 Flat_Bench_Cable_Flyes
 Flat_Bench_Lying_Leg_Raise
 Flexor_Incline_Dumbbell_Curls
@@ -179,10 +177,6 @@ One_Knee_To_Chest
 Overhead_Lat
 Overhead_Stretch
 Overhead_Triceps
-Palms-Down_Dumbbell_Wrist_Curl_Over_A_Bench
-Palms-Down_Wrist_Curl_Over_A_Bench
-Palms-Up_Barbell_Wrist_Curl_Over_A_Bench
-Palms-Up_Dumbbell_Wrist_Curl_Over_A_Bench
 Parallel_Bar_Dip
 Pin_Presses
 Plank
@@ -225,19 +219,12 @@ Seated_Cable_Shoulder_Press
 Seated_Calf_Raise
 Seated_Dumbbell_Curl
 Seated_Dumbbell_Inner_Biceps_Curl
-Seated_Dumbbell_Palms-Down_Wrist_Curl
-Seated_Dumbbell_Palms-Up_Wrist_Curl
 Seated_Dumbbell_Press
 Seated_Floor_Hamstring_Stretch
 Seated_Hamstring
 Seated_Leg_Curl
-Seated_One-Arm_Dumbbell_Palms-Down_Wrist_Curl
-Seated_One-Arm_Dumbbell_Palms-Up_Wrist_Curl
-Seated_Palm-Up_Barbell_Wrist_Curl
-Seated_Palms-Down_Barbell_Wrist_Curl
 Seated_Side_Lateral_Raise
 Seated_Triceps_Press
-Seated_Two-Arm_Palms-Up_Low-Pulley_Wrist_Curl
 Shoulder_Stretch
 Side_Lateral_Raise
 Side_Laterals_to_Front_Raise
@@ -246,11 +233,7 @@ Single-Leg_Leg_Extension
 Sit-Up
 Sled_Reverse_Flye
 Smith_Incline_Shoulder_Raise
-Smith_Machine_Bench_Press
 Smith_Machine_Calf_Raise
-Smith_Machine_Close-Grip_Bench_Press
-Smith_Machine_Decline_Press
-Smith_Machine_Incline_Bench_Press
 Smith_Machine_Overhead_Shoulder_Press
 Smith_Machine_Squat
 Smith_Machine_Stiff-Legged_Deadlift
@@ -286,7 +269,6 @@ Standing_One-Arm_Dumbbell_Triceps_Extension
 Standing_Overhead_Barbell_Triceps_Extension
 Standing_Palm-In_One-Arm_Dumbbell_Press
 Standing_Palms-In_Dumbbell_Press
-Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl
 Standing_Toe_Touches
 Step-up_with_Knee_Raise
 Stiff-Legged_Barbell_Deadlift
