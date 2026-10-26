@@ -327,7 +327,12 @@ def prone(p):
     lean = math.radians(90 - p.get("incline", 0))
     A.set_root(drop, 0, lean)
     hip_y = A.head("upperleg01.L").y
-    props = [] if p.get("no_bench") else bench(hip_y - 0.62, hip_y + p.get("pad_past_hip", 0.3), top=top)
+    if p.get("no_bench"):
+        props = []
+    elif p.get("pad_under") == "thighs":                # hyperextension: hips over the pad's front edge
+        props = bench(hip_y + 0.04, hip_y + 0.62, top=top)
+    else:
+        props = bench(hip_y - 0.62, hip_y + p.get("pad_past_hip", 0.3), top=top)
     return (drop, 0, lean), props
 
 
@@ -777,6 +782,53 @@ def bench_dip(p):
 
 
 POSTURES["bench_dip"] = bench_dip
+
+
+def leg_press(p):
+    """Reclined in a leg press, feet on a sled plate `sled_deg` above level; body key `press` (0..1) pushes the
+    feet and plate `travel` m up the sled (knees `bottom` m from full reach at 0)."""
+    hip = A.rest_head("upperleg01.L")
+    drop = hip.z - (BENCH_TOP + 0.105)
+    back_deg = p.get("back_deg", 40)
+    lean = -math.radians(90 - back_deg)
+    A.set_root(drop, 0, lean)
+    hip = A.head("upperleg01.L")
+    leg = (A.rest_head("lowerleg01.L") - A.rest_head("upperleg01.L")).length + \
+        (A.rest_head("foot.L") - A.rest_head("lowerleg01.L")).length
+    a = math.radians(p.get("sled_deg", 40))
+    d = Vector((0, -math.cos(a), math.sin(a)))
+    travel = p.get("travel", 0.32)
+    reach = leg * 0.97 - travel
+    width = p.get("width", 0.15)
+    base = {s: Vector((sx * width, hip.y, hip.z)) + d * reach for s, sx in SIDES}
+    A.plant_feet(toe_out_deg=10, ankles={s: tuple(v) for s, v in base.items()}, knee_up=1.0)
+    pitch_feet(p.get("foot_pitch", -130))
+    for s, sx in SIDES:
+        bpy.data.objects["KneePole." + s].location = (sx * 0.35, hip.y - 0.3, hip.z + 1.2)
+    p["knees_point"] = {s: (sx * 0.2, 0, 1) for s, sx in SIDES}
+    plate_c = (base["L"] + base["R"]) / 2 + d * 0.11
+    plate = box("SledPlate", (0.62, 0.48, 0.04), plate_c, rot_x=math.pi / 2 - a)
+    targets = [bpy.data.objects["FootIK." + s] for s, _ in SIDES] + [plate]
+    starts = [o.location.copy() for o in targets]
+
+    def move(k):
+        for o, v in zip(targets, starts):
+            o.location = v + d * travel * k.get("press", 0)
+            o.keyframe_insert("location", frame=A.scene.frame_current)
+        return lean
+
+    p["_move"] = move
+    hip_y = A.head("upperleg01.L").y
+    under = Vector((0, -math.sin(a), -math.cos(a))) * 0.07     # rails just behind the plate
+    rails = [rod("SledRail", plate_c + under + Vector((x, 0, 0)) - d * 0.15,
+                 plate_c + under + Vector((x, 0, 0)) + d * (travel + 0.25), 0.02) for x in (-0.2, 0.2)]
+    low = plate_c + under - d * 0.15
+    post = box("SledPost", (0.5, 0.08, low.z), (0, low.y, low.z / 2))
+    props = [plate, post] + rails + bench(hip_y - 0.30, hip_y + 0.16, back_deg=back_deg)
+    return (drop, 0, lean), props
+
+
+POSTURES["leg_press"] = leg_press
 
 
 SPINE = ["spine04", "spine03", "spine02", "spine01"]

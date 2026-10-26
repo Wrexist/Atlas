@@ -805,7 +805,20 @@ def stretch(n, eq):
     return S
 
 
-FAMILY_TEMPLATES = {"curl": curl, "hpress": hpress, "vpress": vpress, "raise": raise_, "fly": fly, "row": row,
+def machine(n, eq):
+    if has(n, "^(narrow stance |smith machine )?leg press$"):
+        return {"posture": {"type": "leg_press", "width": 0.09 if has(n, "narrow") else 0.15}, "implement": "handle",
+                "body": {"keys": [{"press": 0}, {"press": 1}], "head_level": 0},
+                "arm": {"keys": [key((0.45, 0.05, -1), (0.1, 0.6, -0.8), (0, 1, 0))]}, "camera": {"az": 80, "el": 8}}
+    if has(n, "^hyperextensions \\(back|^weighted ball hyperextension"):
+        return {"posture": {"type": "prone", "top": 0.9, "pad_under": "thighs"}, "implement": "none", "pad": "back",
+                "body": {"keys": [{"lean": 55, "hip": 55}, {"lean": 0, "hip": 0}], "head_level": 0.4},
+                "arm": {"keys": [key((0.6, 0.3, -0.75), (-0.8, 0.5, 0.2), (0, 0, 1))], "elbow_out": [1, 0, 0]},
+                "camera": {"az": 80, "el": 8}}
+    return None
+
+
+FAMILY_TEMPLATES = {"machine": machine, "curl": curl, "hpress": hpress, "vpress": vpress, "raise": raise_, "fly": fly, "row": row,
                     "vpull": vpull, "triceps": triceps, "squat": squat, "hinge": hinge, "lunge": lunge,
                     "calf": calf, "legcurl_ext": legcurl_ext, "core": core,
                     "stretch": stretch}
@@ -866,7 +879,8 @@ ALIASES = {
 }
 
 
-NAME_FAMILIES = [(r"seated dumbbell press|shoulder press|military press|overhead press", "vpress"),
+NAME_FAMILIES = [(r"leg press$|hyperextension", "machine"),
+                 (r"seated dumbbell press|shoulder press|military press|overhead press", "vpress"),
                  (r"front squat|back squat|^barbell squat", "squat"),
                  (r"leg raise|knee raise|crunch|^plank", "core"),
                  (r"deadlift|good morning|hip thrust|glute bridge", "hinge")]
