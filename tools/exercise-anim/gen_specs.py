@@ -858,7 +858,11 @@ ALIASES = {
     "Barbell Guillotine Bench Press": "Wide-Grip Barbell Bench Press", "Incline Push-Up Reverse Grip": "Incline Push-Up",
     "Incline Cable Chest Press": "Incline Dumbbell Press", "Incline Cable Flye": "Incline Dumbbell Flyes",
     "Incline Dumbbell Flyes - With A Twist": "Incline Dumbbell Flyes",
-    "Low Cable Crossover": "Cable Crossover", "Single-Arm Cable Crossover": "Cable Crossover",
+    "Low Cable Crossover": "Cable Crossover",
+    "Smith Machine Bench Press": "Barbell Bench Press - Medium Grip",
+    "Smith Machine Close-Grip Bench Press": "Close-Grip Barbell Bench Press",
+    "Smith Machine Decline Press": "Decline Barbell Bench Press",
+    "Smith Machine Incline Bench Press": "Barbell Incline Bench Press - Medium Grip", "Single-Arm Cable Crossover": "Cable Crossover",
 }
 
 
@@ -903,9 +907,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     made, missing = [], []
     for e in exercises:
-        spec, family = generate(e)
-        if not spec and e["name"] in ALIASES:
-            spec, family = aliased(e, by_name)
+        spec, family = aliased(e, by_name) if e["name"] in ALIASES else generate(e)
         if spec:
             with open(os.path.join(OUT, e["id"] + ".json"), "w") as f:
                 json.dump(spec, f, indent=1)
