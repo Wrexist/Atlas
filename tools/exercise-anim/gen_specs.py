@@ -59,6 +59,8 @@ def has(n, *words):
 
 # ---------------------------------------------------------------- templates per family
 def curl(n, eq):
+    if has(n, "wrist|finger"):
+        return None     # the rig keeps wrists straight, so these would play as a biceps curl
     thumb = (0, 1, 0) if has(n, "hammer", "cross body", "rope") else (-1, 0, 0) if has(n, "reverse") else (1, 0, 0)
     if has(n, "preacher") and not has(n, "machine|cable|one arm|reverse|hammer|zottman"):
         keys = [key((0.12, 0.75, -0.65), fore(55), thumb), key((0.12, 0.75, -0.65), fore(160), thumb)]
