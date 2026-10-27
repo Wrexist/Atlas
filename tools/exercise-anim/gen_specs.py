@@ -909,6 +909,11 @@ FAMILY_TEMPLATES = {"cardio": cardio, "plyo": plyo, "machine": machine, "curl": 
 
 # Same movement as an exercise a template already covers: render that one's spec under this name.
 ALIASES = {
+    "90/90 Hamstring": "Lying Hamstring", "Seated Hamstring and Calf Stretch": "Seated Hamstring",
+    "Intermediate Hip Flexor and Quad Stretch": "Kneeling Hip Flexor", "Scissor Kick": "Flutter Kicks",
+    "Standing Soleus And Achilles Stretch": "Standing Gastrocnemius Calf Stretch",
+    "Tricep Side Stretch": "Triceps Stretch", "Chest And Front Of Shoulder Stretch": "Elbows Back",
+    "Crossover Reverse Lunge": "Bodyweight Walking Lunge", "Frog Hops": "Freehand Jump Squat",
     "Sit Squats": "Bodyweight Squat", "Toe Touchers": "Standing Toe Touches",
     "Split Squats": "Bodyweight Walking Lunge",
     "Weighted Squat": "Bodyweight Squat", "Squats - With Bands": "Squat with Bands",
