@@ -6,7 +6,6 @@ Alternate_Incline_Dumbbell_Curl
 Alternating_Cable_Shoulder_Press
 Alternating_Deltoid_Raise
 Alternating_Floor_Press
-Alternating_Kettlebell_Press
 Alternating_Kettlebell_Row
 Arm_Circles
 Arnold_Dumbbell_Press
@@ -137,7 +136,6 @@ Dips_-_Chest_Version
 Dips_-_Triceps_Version
 Donkey_Calf_Raises
 Double_Kettlebell_Jerk
-Double_Kettlebell_Push_Press
 Double_Leg_Butt_Kick
 Drag_Curl
 Drop_Push
@@ -241,7 +239,6 @@ Jogging_Treadmill
 Kettlebell_Arnold_Press
 Kettlebell_One-Legged_Deadlift
 Kettlebell_Seated_Press
-Kettlebell_Seesaw_Press
 Knee_Hip_Raise_On_Parallel_Bars
 Knee_Tuck_Jump
 Kneeling_Cable_Crunch_With_Alternating_Oblique_Twists
@@ -397,7 +394,6 @@ Squat_with_Bands
 Squat_with_Chains
 Squat_with_Plate_Movers
 Squats_-_With_Bands
-Standing_Alternating_Dumbbell_Press
 Standing_Barbell_Calf_Raise
 Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension
 Standing_Bent-Over_Two-Arm_Dumbbell_Triceps_Extension
@@ -408,7 +404,6 @@ Standing_Cable_Chest_Press
 Standing_Calf_Raises
 Standing_Concentration_Curl
 Standing_Dumbbell_Calf_Raise
-Standing_Dumbbell_Press
 Standing_Dumbbell_Reverse_Curl
 Standing_Dumbbell_Straight-Arm_Front_Delt_Raise_Above_Head
 Standing_Dumbbell_Triceps_Extension
@@ -424,8 +419,6 @@ Standing_One-Arm_Cable_Curl
 Standing_One-Arm_Dumbbell_Curl_Over_Incline_Bench
 Standing_One-Arm_Dumbbell_Triceps_Extension
 Standing_Overhead_Barbell_Triceps_Extension
-Standing_Palm-In_One-Arm_Dumbbell_Press
-Standing_Palms-In_Dumbbell_Press
 Standing_Soleus_And_Achilles_Stretch
 Standing_Toe_Touches
 Standing_Towel_Triceps_Extension
