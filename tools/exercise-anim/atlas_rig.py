@@ -1351,7 +1351,8 @@ def finish(name, cam, hands_cam, mid_frame, extra_cams=()):
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, f"{name}.blend"))
     if "--preview" in ARGS:
         scene.cycles.samples = 32
-        for tag, fr, c in (("top", 1, cam), ("mid", mid_frame, cam), ("hands", hands_cam["frame"], hands_cam)):
+        extra = [(f"f{f}", int(f), cam) for f in os.environ.get("ATLAS_PREVIEW_FRAMES", "").split(",") if f]
+        for tag, fr, c in [("top", 1, cam), ("mid", mid_frame, cam), ("hands", hands_cam["frame"], hands_cam)] + extra:
             raw = os.path.join(OUT, f"raw_preview_{name}_{tag}.png")
             render_still(raw, fr, c, 50)
             composite_still(raw, os.path.join(OUT, f"preview_{name}_{tag}.png"))

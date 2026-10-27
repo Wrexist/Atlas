@@ -902,7 +902,63 @@ def plyo(n, eq):
             "arm": {"keys": arms, "elbow_out": [1, -0.3, 0]}, "camera": {"az": 50, "el": 6}}
 
 
-FAMILY_TEMPLATES = {"cardio": cardio, "plyo": plyo, "machine": machine, "curl": curl, "hpress": hpress, "vpress": vpress, "raise": raise_, "fly": fly, "row": row,
+OLY_HANG = key((0.1, 0.04, -1), (0.03, 0.05, -1), (-1, 0, 0))
+OLY_PULL = key((0.35, 0.2, -0.9), (0.0, 0.3, -0.95), (-1, 0, 0))
+OLY_RACK = key((0.45, 0.6, -0.65), (0.1, 0.25, 1), (-1, 0.1, 0))
+OLY_OVERHEAD = key((0.35, 0.05, 0.95), (0.2, 0.0, 1), (-1, 0.1, 0))
+
+
+def olympic(n, eq):
+    """Cleans, snatches and jerks as key sequences: pull from the floor (or the hang), extend, drop under the bar
+    into the catch, then stand up (and drive it overhead for the jerk variants)."""
+    if has(n, "one-arm|alternating|balance|rack delivery|kneeling|overhead squat|bottoms-up|open palm|dead clean|heaving"):
+        return None
+    if eq in ("kettlebells", "dumbbell"):
+        return None
+    implement = "barbell"
+    stand = {}
+    snatch = has(n, "snatch")
+    jerk = has(n, "jerk|and press")
+    if has(n, "^(power |squat |split )?jerk$"):
+        dip = {"drop": 0.1, "lean": 2}
+        catch = {"drop": 0.16, "fy_L": -0.3, "fy_R": 0.35} if has(n, "split") else {"drop": 0.14}
+        return {"posture": {"type": "stand", "width": 0.14, "toe_out": 10, "feet_move": True}, "implement": implement,
+                "bottom": 30, "hold": 8, "body": {"keys": [stand, dip, {"heel": 10}, catch, stand], "head_level": 0.8},
+                "arm": {"frame": "world", "grip": 0.26, "palm": [0, 1, 0],
+                        "keys": [OLY_RACK, OLY_RACK, OLY_RACK, OLY_OVERHEAD, OLY_OVERHEAD], "elbow_out": [1, 0, -0.4]},
+                "camera": {"az": 50, "el": 6}}
+    if not has(n, "clean|snatch"):
+        return None
+    if has(n, "below the knees|below knees|from blocks"):
+        start = {"drop": 0.2, "back": 0.08, "lean": 40}
+    elif has(n, "hang"):
+        start = {"drop": 0.08, "back": 0.04, "lean": 25}
+    else:
+        start = {"drop": 0.32, "back": 0.1, "lean": 48}
+    if has(n, "muscle"):
+        catch = {"drop": 0.02}
+    elif has(n, "split"):
+        catch = {"drop": 0.3, "fy_L": -0.35, "fy_R": 0.4, "lean": 4}
+    elif has(n, "power|^(kettlebell|dumbbell|two-arm|double)"):
+        catch = {"drop": 0.22, "back": 0.06, "lean": 12}
+    else:
+        catch = {"drop": 0.44, "back": 0.08, "lean": 15}
+    finish = OLY_OVERHEAD if snatch else OLY_RACK
+    body = [start, {"heel": 10, "drop": -0.02, "lean": -4}, catch, stand]
+    arms = [OLY_HANG, OLY_HANG, OLY_PULL, finish, finish]
+    if jerk:
+        body += [{"drop": 0.1, "lean": 2}, {"heel": 8}, stand]
+        arms = [OLY_HANG, OLY_HANG, OLY_PULL, OLY_RACK, OLY_RACK, OLY_RACK, OLY_OVERHEAD, OLY_OVERHEAD]
+    spec = {"posture": {"type": "stand", "width": 0.14, "toe_out": 10, "feet_move": has(n, "split")},
+            "implement": implement, "bottom": 32, "hold": 8, "body": {"keys": body, "head_level": 0.7},
+            "arm": {"frame": "world", "grip": 0.4 if snatch else 0.24, "palm": [0, 1, 0], "keys": arms,
+                    "elbow_out": [0.6, -0.2, 0]}, "camera": {"az": 60, "el": 6}}
+    if start["drop"] > 0.3 and implement == "barbell":
+        spec["bar_floor"] = True
+    return spec
+
+
+FAMILY_TEMPLATES = {"olympic": olympic, "cardio": cardio, "plyo": plyo, "machine": machine, "curl": curl, "hpress": hpress, "vpress": vpress, "raise": raise_, "fly": fly, "row": row,
                     "vpull": vpull, "triceps": triceps, "squat": squat, "hinge": hinge, "lunge": lunge,
                     "calf": calf, "legcurl_ext": legcurl_ext, "core": core,
                     "stretch": stretch}
