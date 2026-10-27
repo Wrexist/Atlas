@@ -124,10 +124,16 @@ class Arms:
         self.frame = a.get("frame", "torso")
         self.elbow_out = a.get("elbow_out", (1, 0, 0))
         self.active = {s for s, _ in SIDES if a.get("sides", "both") in ("both", s)}
+        self.offset_r = a.get("offset_R", 0)
         self.ph = ph
 
     def pose(self, fr, s):
-        return arm_pose(self.keys, self.ph(fr, s)) if s in self.active else self.rest
+        if s not in self.active:
+            return self.rest
+        t = self.ph(fr, s)
+        if s == "R" and self.offset_r:          # cycles: right arm half a stride behind (running arm swing)
+            t = (t + self.offset_r) % 1.0
+        return arm_pose(self.keys, t)
 
     def target(self, fr, s, sx):
         pose = self.pose(fr, s)
@@ -160,7 +166,27 @@ def stand(p):
         A.P["lowerleg02." + free].constraints["IK"].mute = True
         for c in A.P["foot." + free].constraints:
             c.mute = True
-    return (0, 0, math.radians(p.get("lean", 0))), []
+    lean0 = math.radians(p.get("lean", 0))
+    if p.get("feet_move"):
+        p["_move"] = feet_mover(lean0)
+    return (0, 0, lean0), []
+
+
+def feet_mover(lean0):
+    """Body keys that also move the feet: `air` lifts the whole body and both feet (jumps), `fx_`/`fy_`/`fz_<side>`
+    offset one foot (strides, tucks, star jumps); the foot targets are keyed every frame."""
+    feet = {s: bpy.data.objects["FootIK." + s] for s, _ in SIDES}
+    start = {s: o.location.copy() for s, o in feet.items()}
+
+    def move(k):
+        lean = lean0 + math.radians(k.get("lean", 0))
+        A.set_root(k.get("drop", 0) - k.get("air", 0), k.get("back", 0), lean)
+        for s, o in feet.items():
+            o.location = start[s] + Vector((k.get("fx_" + s, 0), k.get("fy_" + s, 0),
+                                            k.get("air", 0) + k.get("fz_" + s, 0)))
+            o.keyframe_insert("location", frame=A.scene.frame_current)
+        return lean
+    return move
 
 
 def stance(width):

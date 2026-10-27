@@ -818,7 +818,68 @@ def machine(n, eq):
     return None
 
 
-FAMILY_TEMPLATES = {"machine": machine, "curl": curl, "hpress": hpress, "vpress": vpress, "raise": raise_, "fly": fly, "row": row,
+def gait(stride, lift, swing, drop, lean, treadmill):
+    """One stride cycle per loop, feet keyed: each foot plants `stride` m ahead, pushes off behind and swings
+    through `lift` m up; the arms swing opposite the legs."""
+    def contact(lead, rear):
+        return {"drop": drop, "lean": lean, "fy_" + lead: -stride, "fy_" + rear: stride, "fz_" + rear: lift * 0.25}
+
+    def passing(stance, swing_leg):
+        return {"drop": drop * 1.5, "lean": lean, "fy_" + stance: 0.0,
+                "fy_" + swing_leg: -stride * lift / 0.42, "fz_" + swing_leg: lift}
+    keys = [contact("L", "R"), passing("L", "R"), contact("R", "L"), passing("R", "L"), contact("L", "R")]
+    fwd = key((0.1, swing * 0.6, -0.95), (0.05, 0.6, 0.8), (0, 0, 1))
+    back = key((0.1, -swing, -0.85), (0.05, 0.75, -0.6), (0, 0, 1))
+    spec = {"posture": {"type": "stand", "width": 0.1, "toe_out": 4, "feet_move": True}, "implement": "none",
+            "cycle": True, "body": {"keys": keys, "head_level": 0.9},
+            "arm": {"keys": [back, fwd, back], "offset_R": 0.5, "elbow_out": [0.3, -1, 0]}, "camera": {"az": 80, "el": 5}}
+    if treadmill:
+        spec["boxes"] = [{"size": [0.75, 2.0, 0.02], "at": [0, 0, 0.01]}]
+    return spec
+
+
+def cardio(n, eq):
+    treadmill = has(n, "treadmill")
+    if has(n, "^running|^trail running"):
+        return gait(0.32, 0.42, 0.5, 0.06, 8, treadmill)
+    if has(n, "^jogging|single leg butt kick"):
+        return gait(0.24, 0.32, 0.4, 0.04, 5, treadmill)
+    if has(n, "^walking"):
+        return gait(0.28, 0.12, 0.3, 0.01, 2, treadmill)
+    return None
+
+
+def plyo(n, eq):
+    arms_down = key((0.1, 0.1, -1), (0.05, 0.15, -1), (0, 1, 0))
+    arms_back = key((0.15, -0.6, -0.8), (0.1, -0.5, -0.85), (0, 1, 0))
+    arms_up = key((0.15, 0.85, 0.5), (0.1, 0.8, 0.6), (0, 0, 1))
+    squat = {"drop": 0.36, "back": 0.1, "lean": 30}
+    air = {"air": 0.28}
+    arms = [arms_down, arms_back, arms_up]
+    if has(n, "knee tuck jump"):
+        air = {"air": 0.4, "fz_L": 0.3, "fz_R": 0.3, "fy_L": -0.15, "fy_R": -0.15}
+        arms = [arms_down, arms_back, key((0.15, 0.9, -0.1), (0.1, 0.9, 0.1), (0, 0, 1))]
+    elif has(n, "star jump"):
+        squat = {"drop": 0.2, "back": 0.05, "lean": 15}
+        air = {"air": 0.25, "fx_L": 0.3, "fx_R": -0.3}
+        arms = [arms_down, arms_down, key((0.85, 0.1, 0.5), (0.8, 0.1, 0.6), (0, 1, 0))]
+    elif has(n, "double leg butt kick"):
+        air = {"air": 0.3, "fz_L": 0.3, "fz_R": 0.3, "fy_L": 0.2, "fy_R": 0.2}
+    elif has(n, "rope jumping"):
+        hop = key((0.25, 0.05, -1), (0.35, 0.5, -0.4), (0, 1, 0))
+        return {"posture": {"type": "stand", "width": 0.1, "feet_move": True}, "implement": "none", "cycle": True,
+                "body": {"keys": [{}, {"drop": 0.05}, {"air": 0.1}, {}], "head_level": 0.9},
+                "arm": {"keys": [hop]}, "camera": {"az": 40, "el": 5}}
+    elif not has(n, "^(freehand|weighted) jump squat|rocket jump"):
+        return None
+    if has(n, "rocket"):
+        arms = [arms_down, arms_down, arms_up]
+    return {"posture": {"type": "stand", "width": 0.17, "toe_out": 14, "feet_move": True}, "implement": "none",
+            "bottom": 36, "hold": 2, "body": {"keys": [{}, squat, air], "head_level": 0.85},
+            "arm": {"keys": arms, "elbow_out": [1, -0.3, 0]}, "camera": {"az": 50, "el": 6}}
+
+
+FAMILY_TEMPLATES = {"cardio": cardio, "plyo": plyo, "machine": machine, "curl": curl, "hpress": hpress, "vpress": vpress, "raise": raise_, "fly": fly, "row": row,
                     "vpull": vpull, "triceps": triceps, "squat": squat, "hinge": hinge, "lunge": lunge,
                     "calf": calf, "legcurl_ext": legcurl_ext, "core": core,
                     "stretch": stretch}
@@ -879,7 +940,8 @@ ALIASES = {
 }
 
 
-NAME_FAMILIES = [(r"leg press$|hyperextension", "machine"),
+NAME_FAMILIES = [(r"walking lunge", "lunge"),
+                 (r"leg press$|hyperextension", "machine"),
                  (r"seated dumbbell press|shoulder press|military press|overhead press", "vpress"),
                  (r"front squat|back squat|^barbell squat", "squat"),
                  (r"leg raise|knee raise|crunch|^plank", "core"),
