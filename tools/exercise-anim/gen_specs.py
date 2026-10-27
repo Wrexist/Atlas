@@ -183,7 +183,7 @@ def hpress(n, eq):
 
 
 def vpress(n, eq):
-    if has(n, "^dumbbell one-arm shoulder press"):
+    if has(n, "^dumbbell one-arm shoulder press|^standing palm-in one-arm"):
         spec = vpress("dumbbell shoulder press", "dumbbell")
         spec["hands"] = "L"
         spec["arm"].update(sides="L", rest=HIPS_HANDS)
@@ -1180,7 +1180,8 @@ ALIASES = {
 }
 
 
-NAME_FAMILIES = [(r"walking lunge", "lunge"),
+NAME_FAMILIES = [(r"^standing .*dumbbell press", "vpress"),
+                 (r"walking lunge", "lunge"),
                  (r"leg press$|hyperextension", "machine"),
                  (r"seated dumbbell press|shoulder press|military press|overhead press", "vpress"),
                  (r"front squat|back squat|^barbell squat", "squat"),
