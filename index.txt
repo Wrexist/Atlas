@@ -68,6 +68,8 @@ Cable_Shrugs
 Calf-Machine_Shoulder_Shrug
 Calf_Raise_On_A_Dumbbell
 Calf_Raises_-_With_Bands
+Calf_Stretch_Elbows_Against_Wall
+Calf_Stretch_Hands_Against_Wall
 Cat_Stretch
 Chair_Squat
 Childs_Pose
@@ -143,6 +145,7 @@ Front_Barbell_Squat_To_A_Bench
 Front_Cable_Raise
 Front_Dumbbell_Raise
 Front_Incline_Dumbbell_Raise
+Front_Leg_Raises
 Front_Plate_Raise
 Front_Squat_Clean_Grip
 Front_Squats_With_Two_Kettlebells
@@ -248,6 +251,7 @@ Pushups
 Pushups_Close_and_Wide_Hand_Positions
 Rack_Pull_with_Bands
 Rack_Pulls
+Rear_Leg_Raises
 Reverse_Band_Bench_Press
 Reverse_Band_Box_Squat
 Reverse_Band_Deadlift
@@ -296,11 +300,13 @@ Seated_Triceps_Press
 Shoulder_Stretch
 Side_Lateral_Raise
 Side_Laterals_to_Front_Raise
+Side_Leg_Raises
 Side_Neck_Stretch
 Single-Arm_Cable_Crossover
 Single-Leg_Leg_Extension
 Single_Dumbbell_Raise
 Sit-Up
+Sit_Squats
 Sled_Reverse_Flye
 Smith_Incline_Shoulder_Raise
 Smith_Machine_Behind_the_Back_Shrug
@@ -319,6 +325,7 @@ Speed_Band_Overhead_Triceps
 Speed_Box_Squat
 Speed_Squats
 Split_Squat_with_Dumbbells
+Split_Squats
 Squat_with_Bands
 Squat_with_Chains
 Squat_with_Plate_Movers
@@ -339,6 +346,7 @@ Standing_Dumbbell_Reverse_Curl
 Standing_Dumbbell_Straight-Arm_Front_Delt_Raise_Above_Head
 Standing_Dumbbell_Triceps_Extension
 Standing_Dumbbell_Upright_Row
+Standing_Gastrocnemius_Calf_Stretch
 Standing_Hip_Flexors
 Standing_Inner-Biceps_Curl
 Standing_Lateral_Stretch
@@ -368,6 +376,7 @@ Superman
 Suspended_Push-Up
 T-Bar_Row_with_Handle
 The_Straddle
+Toe_Touchers
 Torso_Rotation
 Trail_Running_Walking
 Trap_Bar_Deadlift
