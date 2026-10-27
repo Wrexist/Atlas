@@ -1,4 +1,5 @@
 3_4_Sit-Up
+90_90_Hamstring
 Alternate_Hammer_Curl
 Alternate_Incline_Dumbbell_Curl
 Alternating_Cable_Shoulder_Press
@@ -72,6 +73,7 @@ Calf_Stretch_Elbows_Against_Wall
 Calf_Stretch_Hands_Against_Wall
 Cat_Stretch
 Chair_Squat
+Chest_And_Front_Of_Shoulder_Stretch
 Childs_Pose
 Chin-Up
 Chin_To_Chest_Stretch
@@ -86,6 +88,7 @@ Close-Grip_Standing_Barbell_Curl
 Concentration_Curls
 Cross-Body_Crunch
 Cross_Body_Hammer_Curl
+Crossover_Reverse_Lunge
 Crunch_-_Hands_Overhead
 Crunch_-_Legs_On_Exercise_Ball
 Crunches
@@ -139,6 +142,7 @@ Floor_Press
 Floor_Press_with_Chains
 Flutter_Kicks
 Freehand_Jump_Squat
+Frog_Hops
 Frog_Sit-Ups
 Front_Barbell_Squat
 Front_Barbell_Squat_To_A_Bench
@@ -179,6 +183,7 @@ Incline_Push-Up_Close-Grip
 Incline_Push-Up_Medium
 Incline_Push-Up_Reverse_Grip
 Incline_Push-Up_Wide
+Intermediate_Hip_Flexor_and_Quad_Stretch
 Janda_Sit-Up
 Jefferson_Squats
 Jogging_Treadmill
@@ -279,6 +284,7 @@ Rope_Straight-Arm_Pulldown
 Running_Treadmill
 Russian_Twist
 Scapular_Pull-Up
+Scissor_Kick
 Seated_Barbell_Military_Press
 Seated_Barbell_Twist
 Seated_Bent-Over_One-Arm_Dumbbell_Triceps_Extension
@@ -293,6 +299,7 @@ Seated_Dumbbell_Inner_Biceps_Curl
 Seated_Dumbbell_Press
 Seated_Floor_Hamstring_Stretch
 Seated_Hamstring
+Seated_Hamstring_and_Calf_Stretch
 Seated_Leg_Curl
 Seated_One-arm_Cable_Pulley_Rows
 Seated_Side_Lateral_Raise
@@ -359,6 +366,7 @@ Standing_One-Arm_Dumbbell_Triceps_Extension
 Standing_Overhead_Barbell_Triceps_Extension
 Standing_Palm-In_One-Arm_Dumbbell_Press
 Standing_Palms-In_Dumbbell_Press
+Standing_Soleus_And_Achilles_Stretch
 Standing_Toe_Touches
 Standing_Towel_Triceps_Extension
 Star_Jump
@@ -381,6 +389,7 @@ Torso_Rotation
 Trail_Running_Walking
 Trap_Bar_Deadlift
 Tricep_Dumbbell_Kickback
+Tricep_Side_Stretch
 Triceps_Overhead_Extension_with_Rope
 Triceps_Pushdown
 Triceps_Pushdown_-_Rope_Attachment
