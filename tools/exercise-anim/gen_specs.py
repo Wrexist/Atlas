@@ -958,13 +958,26 @@ def olympic(n, eq):
     return spec
 
 
-FAMILY_TEMPLATES = {"olympic": olympic, "cardio": cardio, "plyo": plyo, "machine": machine, "curl": curl, "hpress": hpress, "vpress": vpress, "raise": raise_, "fly": fly, "row": row,
+def strongman(n, eq):
+    """Loaded carries reuse the walking gait with the arms holding the load still."""
+    walk = gait(0.24, 0.12, 0.3, 0.02, 3, False)
+    walk["arm"] = {"frame": "world", "keys": [OLY_HANG], "elbow_out": [0.4, -1, 0]}
+    if has(n, "^farmer"):
+        return dict(walk, implement="dumbbell", camera={"az": 60, "el": 6})
+    if has(n, "^yoke"):
+        return dict(walk, implement="barbell_back", arm={"frame": "torso", "elbow_out": [0.3, -1, -1]},
+                    camera={"az": 50, "el": 6})
+    return None
+
+
+FAMILY_TEMPLATES = {"strongman": strongman, "olympic": olympic, "cardio": cardio, "plyo": plyo, "machine": machine, "curl": curl, "hpress": hpress, "vpress": vpress, "raise": raise_, "fly": fly, "row": row,
                     "vpull": vpull, "triceps": triceps, "squat": squat, "hinge": hinge, "lunge": lunge,
                     "calf": calf, "legcurl_ext": legcurl_ext, "core": core,
                     "stretch": stretch}
 
 # Same movement as an exercise a template already covers: render that one's spec under this name.
 ALIASES = {
+    "Rickshaw Carry": "Farmer's Walk",
     "Clean Deadlift": "Barbell Deadlift",
     "Snatch Deadlift": "Barbell Deadlift",
     "Clean Pull": "Barbell Deadlift",
