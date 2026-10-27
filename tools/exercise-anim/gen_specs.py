@@ -696,7 +696,30 @@ def floor_seat(lean_keys, **posture):
     return dict({"type": "floor_supine", "knees": 0}, **posture), lean_keys
 
 
+def standing_mobility(n):
+    """Leg swings and wall calf stretches, built on keyed feet."""
+    swings = {"front leg raises": {"fy_L": -0.62, "fz_L": 0.4, "lean": -4},
+              "rear leg raises": {"fy_L": 0.55, "fz_L": 0.22, "lean": 12},
+              "side leg raises": {"fx_L": 0.5, "fz_L": 0.18, "side": 8}}
+    if n in swings:
+        return {"posture": {"type": "stand", "width": 0.12, "feet_move": True}, "implement": "none", "cycle": True,
+                "body": {"keys": [{}, swings[n], {}]}, "arm": {"keys": [HIPS_HANDS], "elbow_out": [1, -0.3, 0]},
+                "camera": {"az": 20 if n.startswith("side") else 80, "el": 6}}
+    if has(n, "^calf stretch (hands|elbows) against wall|^standing gastrocnemius"):
+        elbows = "elbows" in n
+        reach = key((0.15, 1, 0.1), (0.1, 0.2, 1), (0, 0, -1)) if elbows else key((0.15, 1, 0.25), (0.15, 1, 0.3), (0, 0, -1))
+        return {"posture": {"type": "stand", "width": 0.14, "feet_move": True}, "implement": "none",
+                "boxes": [{"size": [1.2, 0.08, 2.0], "at": [0, -0.75 if elbows else -0.85, 1.0]}],
+                "body": {"keys": [{"fy_L": -0.15, "fy_R": 0.3, "lean": 12},
+                                  {"fy_L": -0.2, "fy_R": 0.42, "lean": 22, "drop": 0.03}]},
+                "arm": {"keys": [reach], "elbow_out": [1, -0.3, 0]}, "camera": {"az": 85, "el": 6}}
+    return None
+
+
 def stretch(n, eq):
+    S = standing_mobility(n)
+    if S:
+        return S
     S = None
     if n == "standing toe touches":
         S = {"posture": {"type": "stand", "width": 0.12}, "implement": "none",
@@ -886,6 +909,8 @@ FAMILY_TEMPLATES = {"cardio": cardio, "plyo": plyo, "machine": machine, "curl": 
 
 # Same movement as an exercise a template already covers: render that one's spec under this name.
 ALIASES = {
+    "Sit Squats": "Bodyweight Squat", "Toe Touchers": "Standing Toe Touches",
+    "Split Squats": "Bodyweight Walking Lunge",
     "Weighted Squat": "Bodyweight Squat", "Squats - With Bands": "Squat with Bands",
     "Plie Dumbbell Squat": "Goblet Squat", "Front Squats With Two Kettlebells": "Goblet Squat",
     "Barbell Hack Squat": "Barbell Deadlift", "Two-Arm Kettlebell Military Press": "Dumbbell Shoulder Press",
