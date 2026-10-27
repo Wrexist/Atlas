@@ -30,6 +30,7 @@ Barbell_Side_Bend
 Barbell_Squat
 Barbell_Squat_To_A_Bench
 Barbell_Step_Ups
+Barbell_Walking_Lunge
 Bench_Dips
 Bench_Press_-_Powerlifting
 Bench_Press_-_With_Bands
@@ -42,6 +43,7 @@ Bent_Over_Two-Dumbbell_Row
 Bent_Over_Two-Dumbbell_Row_With_Palms_In
 Board_Press
 Bodyweight_Squat
+Bodyweight_Walking_Lunge
 Box_Squat
 Box_Squat_with_Bands
 Box_Squat_with_Chains
@@ -99,6 +101,7 @@ Deficit_Deadlift
 Dips_-_Chest_Version
 Dips_-_Triceps_Version
 Double_Kettlebell_Push_Press
+Double_Leg_Butt_Kick
 Dumbbell_Alternate_Bicep_Curl
 Dumbbell_Bench_Press
 Dumbbell_Bench_Press_with_Neutral_Grip
@@ -133,6 +136,7 @@ Flexor_Incline_Dumbbell_Curls
 Floor_Press
 Floor_Press_with_Chains
 Flutter_Kicks
+Freehand_Jump_Squat
 Frog_Sit-Ups
 Front_Barbell_Squat
 Front_Barbell_Squat_To_A_Bench
@@ -174,7 +178,9 @@ Incline_Push-Up_Reverse_Grip
 Incline_Push-Up_Wide
 Janda_Sit-Up
 Jefferson_Squats
+Jogging_Treadmill
 Kettlebell_Arnold_Press
+Knee_Tuck_Jump
 Kneeling_Cable_Crunch_With_Alternating_Oblique_Twists
 Kneeling_Cable_Triceps_Extension
 Kneeling_Hip_Flexor
@@ -259,12 +265,14 @@ Reverse_Machine_Flyes
 Reverse_Plate_Curls
 Reverse_Triceps_Bench_Press
 Ring_Dips
+Rocket_Jump
 Rocking_Standing_Calf_Raise
 Rocky_Pull-Ups_Pulldowns
 Romanian_Deadlift
 Romanian_Deadlift_from_Deficit
 Rope_Crunch
 Rope_Straight-Arm_Pulldown
+Running_Treadmill
 Russian_Twist
 Scapular_Pull-Up
 Seated_Barbell_Military_Press
@@ -345,6 +353,7 @@ Standing_Palm-In_One-Arm_Dumbbell_Press
 Standing_Palms-In_Dumbbell_Press
 Standing_Toe_Touches
 Standing_Towel_Triceps_Extension
+Star_Jump
 Step-up_with_Knee_Raise
 Stiff-Legged_Barbell_Deadlift
 Stiff-Legged_Dumbbell_Deadlift
@@ -360,6 +369,7 @@ Suspended_Push-Up
 T-Bar_Row_with_Handle
 The_Straddle
 Torso_Rotation
+Trail_Running_Walking
 Trap_Bar_Deadlift
 Tricep_Dumbbell_Kickback
 Triceps_Overhead_Extension_with_Rope
@@ -378,10 +388,12 @@ Upright_Row_-_With_Bands
 Upward_Stretch
 V-Bar_Pulldown
 V-Bar_Pullup
+Walking_Treadmill
 Weighted_Ball_Hyperextension
 Weighted_Ball_Side_Bend
 Weighted_Bench_Dip
 Weighted_Crunches
+Weighted_Jump_Squat
 Weighted_Sit-Ups_-_With_Bands
 Weighted_Squat
 Wide-Grip_Barbell_Bench_Press
