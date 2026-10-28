@@ -279,7 +279,8 @@ private struct RecipeGridCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            RecipeImage(recipe: recipe, cornerRadius: Spacing.concentric(in: Spacing.cardCornerRadius, inset: Spacing.sm))
+            RecipeCutout(recipe: recipe)
+                .padding(Spacing.sm)
                 .aspectRatio(1, contentMode: .fit)
                 .overlay(alignment: .topLeading) {
                     if recipe.mealPrep {

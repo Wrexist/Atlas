@@ -251,12 +251,16 @@ struct RecipeDetailView: View {
     @ViewBuilder
     private var logButton: some View {
         if let loggedSlot {
-            Label("Logged to \(loggedSlot.displayName)", systemImage: "checkmark.circle.fill")
-                .font(AppFont.headline)
-                .foregroundStyle(AppColor.positive)
-                .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
-                .glassSurfaceCapsule()
-                .transition(.scale(scale: 0.92).combined(with: .opacity))
+            HStack(spacing: Spacing.sm) {
+                RecipeCutout(recipe: recipe)
+                    .frame(width: 32, height: 32)
+                Label("Logged to \(loggedSlot.displayName)", systemImage: "checkmark.circle.fill")
+                    .font(AppFont.headline)
+                    .foregroundStyle(AppColor.positive)
+            }
+            .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
+            .glassSurfaceCapsule()
+            .transition(.scale(scale: 0.92).combined(with: .opacity))
         } else {
             PrimaryCTAButton(title: "Log 1 serving", icon: "plus.circle.fill", action: log)
                 .transition(.opacity)

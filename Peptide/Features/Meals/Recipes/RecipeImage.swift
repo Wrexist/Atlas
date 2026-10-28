@@ -18,7 +18,7 @@ struct RecipeImage: View {
                         .resizable()
                         .scaledToFill()
                 } else {
-                    RecipePlatePlaceholder(artwork: Self.artwork(for: recipe))
+                    RecipePlatePlaceholder(artwork: Self.artwork(for: recipe), showsBackdrop: true)
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
@@ -36,18 +36,42 @@ struct RecipeImage: View {
     }
 }
 
+/// Just the plate and its food on a transparent background, from the asset
+/// `recipe-<id>-cutout`, for small and floating spots where a square photo
+/// would read as a box: compact cards, rows and confirmations.
+struct RecipeCutout: View {
+    let recipe: LibraryRecipe
+
+    var body: some View {
+        Color.clear
+            .overlay {
+                if let cutout = UIImage(named: recipe.image + "-cutout") {
+                    Image(uiImage: cutout)
+                        .resizable()
+                        .scaledToFit()
+                } else {
+                    RecipePlatePlaceholder(artwork: RecipeImage.artwork(for: recipe), showsBackdrop: false)
+                }
+            }
+            .accessibilityHidden(true)
+    }
+}
+
 private struct RecipePlatePlaceholder: View {
     let artwork: FoodArtwork
+    let showsBackdrop: Bool
 
     var body: some View {
         GeometryReader { proxy in
             let side = min(proxy.size.width, proxy.size.height)
             ZStack {
-                LinearGradient(
-                    colors: [artwork.tint.opacity(0.30), artwork.tint.opacity(0.08)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+                if showsBackdrop {
+                    LinearGradient(
+                        colors: [artwork.tint.opacity(0.30), artwork.tint.opacity(0.08)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                }
                 Circle()
                     .fill(AppColor.surfaceElevated)
                     .overlay {
@@ -56,7 +80,7 @@ private struct RecipePlatePlaceholder: View {
                             .padding(side * 0.08)
                     }
                     .appShadow(AppShadow.glassSubtle)
-                    .frame(width: side * 0.68, height: side * 0.68)
+                    .frame(width: side * (showsBackdrop ? 0.68 : 0.96), height: side * (showsBackdrop ? 0.68 : 0.96))
                 Text(artwork.emoji)
                     .font(AppFont.scaled(max(28, side * 0.26), relativeTo: .largeTitle, in: .large))
             }
