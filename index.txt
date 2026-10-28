@@ -476,7 +476,6 @@ Squat_with_Bands
 Squat_with_Chains
 Squat_with_Plate_Movers
 Squats_-_With_Bands
-Stairmaster
 Standing_Alternating_Dumbbell_Press
 Standing_Barbell_Calf_Raise
 Standing_Barbell_Press_Behind_Neck
@@ -514,7 +513,6 @@ Standing_Toe_Touches
 Standing_Towel_Triceps_Extension
 Star_Jump
 Step-up_with_Knee_Raise
-Step_Mill
 Stiff-Legged_Barbell_Deadlift
 Stiff-Legged_Dumbbell_Deadlift
 Stiff_Leg_Barbell_Good_Morning
