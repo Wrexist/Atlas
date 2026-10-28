@@ -12,6 +12,7 @@ Arm_Circles
 Arnold_Dumbbell_Press
 Axle_Deadlift
 Back_Flyes_-_With_Bands
+Backward_Medicine_Ball_Throw
 Band_Assisted_Pull-Up
 Band_Good_Morning
 Band_Good_Morning_Pull_Through
@@ -91,9 +92,14 @@ Calf_Stretch_Hands_Against_Wall
 Car_Deadlift
 Car_Drivers
 Cat_Stretch
+Catch_and_Overhead_Throw
 Chain_Press
 Chair_Squat
 Chest_And_Front_Of_Shoulder_Stretch
+Chest_Push_from_3_point_stance
+Chest_Push_multiple_response
+Chest_Push_single_response
+Chest_Push_with_Run_Release
 Childs_Pose
 Chin-Up
 Chin_To_Chest_Stretch
@@ -139,6 +145,7 @@ Decline_Reverse_Crunch
 Decline_Smith_Press
 Deficit_Deadlift
 Depth_Jump_Leap
+Dip_Machine
 Dips_-_Chest_Version
 Dips_-_Triceps_Version
 Donkey_Calf_Raises
@@ -164,6 +171,7 @@ Dumbbell_One-Arm_Upright_Row
 Dumbbell_Raise
 Dumbbell_Rear_Lunge
 Dumbbell_Scaption
+Dumbbell_Seated_Box_Jump
 Dumbbell_Seated_One-Leg_Calf_Raise
 Dumbbell_Shoulder_Press
 Dumbbell_Shrug
@@ -231,6 +239,7 @@ Hip_Lift_with_Band
 Hug_Knees_To_Chest
 Hurdle_Hops
 Hyperextensions_Back_Extensions
+Hyperextensions_With_No_Hyperextension_Bench
 Incline_Barbell_Triceps_Extension
 Incline_Bench_Pull
 Incline_Cable_Chest_Press
@@ -267,6 +276,7 @@ Kneeling_Cable_Crunch_With_Alternating_Oblique_Twists
 Kneeling_Cable_Triceps_Extension
 Kneeling_Hip_Flexor
 Kneeling_Squat
+Lateral_Box_Jump
 Lateral_Raise_-_With_Bands
 Leg-Over_Floor_Press
 Leg-Up_Hamstring_Stretch
@@ -304,6 +314,9 @@ Machine_Bench_Press
 Machine_Bicep_Curl
 Machine_Preacher_Curls
 Machine_Shoulder_Military_Press
+Medicine_Ball_Chest_Pass
+Medicine_Ball_Full_Twist
+Medicine_Ball_Scoop_Throw
 Middle_Back_Shrug
 Middle_Back_Stretch
 Mixed_Grip_Chin
@@ -331,10 +344,12 @@ One_Arm_Chin-Up
 One_Arm_Dumbbell_Bench_Press
 One_Arm_Dumbbell_Preacher_Curl
 One_Arm_Floor_Press
+One_Arm_Lat_Pulldown
 One_Arm_Pronated_Dumbbell_Triceps_Extension
 One_Arm_Supinated_Dumbbell_Triceps_Extension
 One_Knee_To_Chest
 Overhead_Lat
+Overhead_Slam
 Overhead_Stretch
 Overhead_Triceps
 Parallel_Bar_Dip
@@ -431,6 +446,7 @@ Side_Lateral_Raise
 Side_Laterals_to_Front_Raise
 Side_Leg_Raises
 Side_Neck_Stretch
+Side_Standing_Long_Jump
 Side_To_Side_Chins
 Single-Arm_Cable_Crossover
 Single-Arm_Push-Up
@@ -512,6 +528,7 @@ Standing_Palms-In_Dumbbell_Press
 Standing_Soleus_And_Achilles_Stretch
 Standing_Toe_Touches
 Standing_Towel_Triceps_Extension
+Standing_Two-Arm_Overhead_Throw
 Star_Jump
 Step-up_with_Knee_Raise
 Stiff-Legged_Barbell_Deadlift
