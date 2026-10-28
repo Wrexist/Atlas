@@ -141,6 +141,16 @@
         }
       }
     },
+    "%lld min this week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld min den här veckan"
+          }
+        }
+      }
+    },
     "%lld ms avg": {
       "localizations": {
         "sv": {
@@ -5922,6 +5932,16 @@
         }
       }
     },
+    "Active energy": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktiv energi"
+          }
+        }
+      }
+    },
     "Add a note about today": {
       "localizations": {
         "sv": {
@@ -6012,6 +6032,16 @@
         }
       }
     },
+    "Asks Apple Health for access to workouts": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ber Apple Hälsa om åtkomst till pass"
+          }
+        }
+      }
+    },
     "Atlas sees your Biological Age, its 90-day trend and the 30-day readings behind it — not your raw Health data.": {
       "localizations": {
         "sv": {
@@ -6062,12 +6092,32 @@
         }
       }
     },
+    "Avg heart rate": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snittpuls"
+          }
+        }
+      }
+    },
     "Awful": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Usel"
+          }
+        }
+      }
+    },
+    "Basketball": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Basket"
           }
         }
       }
@@ -6102,12 +6152,32 @@
         }
       }
     },
+    "Boxing": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Boxning"
+          }
+        }
+      }
+    },
     "Card size": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Kortstorlek"
+          }
+        }
+      }
+    },
+    "Climbing": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klättring"
           }
         }
       }
@@ -6122,12 +6192,62 @@
         }
       }
     },
+    "Cooldown": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nedvarvning"
+          }
+        }
+      }
+    },
     "Core sleep": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Kärnsömn"
+          }
+        }
+      }
+    },
+    "Core training": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bålträning"
+          }
+        }
+      }
+    },
+    "Cross training": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crossträning"
+          }
+        }
+      }
+    },
+    "Cross-country skiing": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Längdskidåkning"
+          }
+        }
+      }
+    },
+    "Dance": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dans"
           }
         }
       }
@@ -6162,12 +6282,42 @@
         }
       }
     },
+    "Downhill skiing": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utförsåkning"
+          }
+        }
+      }
+    },
+    "Edit or delete this workout in the Health app.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ändra eller ta bort passet i appen Hälsa."
+          }
+        }
+      }
+    },
     "Efficiency": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Effektivitet"
+          }
+        }
+      }
+    },
+    "Elliptical": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crosstrainer"
           }
         }
       }
@@ -6202,6 +6352,36 @@
         }
       }
     },
+    "Flexibility": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rörlighet"
+          }
+        }
+      }
+    },
+    "From Apple Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Från Apple Hälsa"
+          }
+        }
+      }
+    },
+    "Golf": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Golf"
+          }
+        }
+      }
+    },
     "Good": {
       "localizations": {
         "sv": {
@@ -6218,6 +6398,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Toppen"
+          }
+        }
+      }
+    },
+    "HIIT": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HIIT"
+          }
+        }
+      }
+    },
+    "Hiking": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vandring"
           }
         }
       }
@@ -6248,6 +6448,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dagbok"
+          }
+        }
+      }
+    },
+    "Jump rope": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hopprep"
           }
         }
       }
@@ -6324,6 +6534,16 @@
         }
       }
     },
+    "Martial arts": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kampsport"
+          }
+        }
+      }
+    },
     "Measured": {
       "localizations": {
         "sv": {
@@ -6340,6 +6560,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mellan"
+          }
+        }
+      }
+    },
+    "Mixed cardio": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blandad kondition"
           }
         }
       }
@@ -6424,6 +6654,26 @@
         }
       }
     },
+    "Paddling": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paddling"
+          }
+        }
+      }
+    },
+    "Pilates": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pilates"
+          }
+        }
+      }
+    },
     "Private by design — no ads, no tracking": {
       "localizations": {
         "sv": {
@@ -6440,6 +6690,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "REM-sömn"
+          }
+        }
+      }
+    },
+    "Racket sports": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Racketsport"
+          }
+        }
+      }
+    },
+    "Recorded by %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrerat av %@"
           }
         }
       }
@@ -6470,6 +6740,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Gå igenom veckans kost med coachen."
+          }
+        }
+      }
+    },
+    "Rowing": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rodd"
+          }
+        }
+      }
+    },
+    "Runs, rides and walks from your Apple Watch or other apps": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löprundor, cykelturer och promenader från din Apple Watch eller andra appar"
           }
         }
       }
@@ -6514,6 +6804,16 @@
         }
       }
     },
+    "Show workouts from Apple Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visa pass från Apple Hälsa"
+          }
+        }
+      }
+    },
     "Sleep debt, last 7 nights": {
       "localizations": {
         "sv": {
@@ -6544,6 +6844,26 @@
         }
       }
     },
+    "Snowboarding": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snowboard"
+          }
+        }
+      }
+    },
+    "Soccer": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotboll"
+          }
+        }
+      }
+    },
     "Source: Apple Health, including readings you log here": {
       "localizations": {
         "sv": {
@@ -6554,12 +6874,32 @@
         }
       }
     },
+    "Stair climbing": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trappklättring"
+          }
+        }
+      }
+    },
     "Stays on this device. Ask Atlas reads it only when you allow it.": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Stannar på den här enheten. Fråga Atlas läser den bara om du tillåter det."
+          }
+        }
+      }
+    },
+    "Surfing": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Surfing"
           }
         }
       }
@@ -6580,6 +6920,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tryck för att logga ett värde"
+          }
+        }
+      }
+    },
+    "Team sports": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lagsport"
+          }
+        }
+      }
+    },
+    "Tennis": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tennis"
           }
         }
       }
@@ -6660,6 +7020,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vad påverkar min biologiska ålder mest?"
+          }
+        }
+      }
+    },
+    "Wheelchair": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rullstol"
           }
         }
       }
