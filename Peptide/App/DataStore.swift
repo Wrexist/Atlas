@@ -1370,7 +1370,7 @@ final class DataStore {
         }
         save()
         if HealthSyncSettings.isNutritionEnabled {
-            Task {
+            enqueueMealHealthWrite {
                 for copy in copies { await HealthKitService.shared.writeMealEntry(copy) }
             }
         }
@@ -1445,7 +1445,17 @@ final class DataStore {
         save()
         TableMomentStore.shared.removeDish(id: id)
         if HealthSyncSettings.isNutritionEnabled {
-            Task { await HealthKitService.shared.deleteSamples(forEntryID: id) }
+            // Queued behind pending writes, so an Undo right after a copy
+            // can't delete before the copy's samples exist.
+            enqueueMealHealthWrite { await HealthKitService.shared.deleteSamples(forEntryID: id) }
+        }
+    }
+
+    private func enqueueMealHealthWrite(_ work: @escaping @MainActor @Sendable () async -> Void) {
+        let previous = mealHealthWriteTask
+        mealHealthWriteTask = Task {
+            await previous?.value
+            await work()
         }
     }
 
