@@ -5962,6 +5962,16 @@
         }
       }
     },
+    "All meals": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alla måltider"
+          }
+        }
+      }
+    },
     "Ask AI what's moving your Biological Age": {
       "localizations": {
         "sv": {
@@ -6118,6 +6128,87 @@
           "stringUnit": {
             "state": "translated",
             "value": "Anslut Apple Hälsa för att fylla i det här"
+          }
+        }
+      }
+    },
+    "Copied from %@": {
+      "comment": "Toast after copying meals in the diary. The value is the source day, e.g. “yesterday”.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopierat från %@"
+          }
+        }
+      }
+    },
+    "Copy": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopiera"
+          }
+        }
+      }
+    },
+    "Copy all meals from %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopiera alla måltider från %@"
+          }
+        }
+      }
+    },
+    "Copy from": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopiera från"
+          }
+        }
+      }
+    },
+    "Copy from %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopiera från %@"
+          }
+        }
+      }
+    },
+    "Copy from another day…": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopiera från en annan dag…"
+          }
+        }
+      }
+    },
+    "Copy meals": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopiera måltider"
+          }
+        }
+      }
+    },
+    "Copy options for %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopieringsval för %@"
           }
         }
       }
@@ -6394,6 +6485,16 @@
         }
       }
     },
+    "Nothing logged that day.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inget loggat den dagen."
+          }
+        }
+      }
+    },
     "Okay": {
       "localizations": {
         "sv": {
@@ -6420,6 +6521,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Originalrapport"
+          }
+        }
+      }
+    },
+    "Pick another day to copy from.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj en annan dag att kopiera från."
           }
         }
       }

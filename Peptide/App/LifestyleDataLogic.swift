@@ -313,6 +313,39 @@ enum LifestyleDataLogic {
         )
     }
 
+    /// Fresh copies of the meals logged on `sourceDay` — only `category`,
+    /// or the whole day when nil — moved onto `targetDay` at the same
+    /// wall-clock time, oldest first. Each copy is a new entry, so running
+    /// this twice logs the meals twice; callers that must not double a
+    /// meal check the target day first, as `DataStore.repeatMeals` does.
+    /// An empty source day returns no copies.
+    static func copiedMeals(
+        from sourceDay: Date,
+        to targetDay: Date,
+        category: MealCategory? = nil,
+        in history: [MealEntry],
+        calendar: Calendar = .current
+    ) -> [MealEntry] {
+        let target = calendar.startOfDay(for: targetDay)
+        return history
+            .filter { entry in
+                calendar.isDate(entry.date, inSameDayAs: sourceDay)
+                    && (category == nil || entry.category == category)
+            }
+            .sorted { $0.date < $1.date }
+            .map { relogged($0, at: sameClockTime(as: $0.date, on: target, calendar: calendar)) }
+    }
+
+    private static func sameClockTime(as date: Date, on day: Date, calendar: Calendar) -> Date {
+        let time = calendar.dateComponents([.hour, .minute, .second], from: date)
+        return calendar.date(
+            bySettingHour: time.hour ?? 12,
+            minute: time.minute ?? 0,
+            second: time.second ?? 0,
+            of: day
+        ) ?? day
+    }
+
     static let recentMealLimit = 8
 
     /// The most recent entry for each distinct meal name, newest first.
