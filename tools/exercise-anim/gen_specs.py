@@ -867,7 +867,18 @@ def gait(stride, lift, swing, drop, lean, treadmill):
     return spec
 
 
+def sled_push():
+    """Driving the legs while leaning into a sled; the sled is a box under the hands."""
+    spec = gait(0.34, 0.22, 0, 0.12, 52, False)
+    spec["body"]["head_level"] = 0.45
+    return dict(spec, implement="floor", camera={"az": 75, "el": 6},
+                arm={"frame": "world", "hand_z": 0.85, "hand_box": True, "elbow_out": [0.6, -0.5, -0.4],
+                     "keys": [key((0.2, 0.95, -0.2), (0.12, 0.97, 0.0), (-1, 0, 0))]})
+
+
 def cardio(n, eq):
+    if has(n, "^prowler"):
+        return sled_push()
     treadmill = has(n, "treadmill")
     if has(n, "^running|^trail running"):
         return gait(0.32, 0.42, 0.5, 0.06, 8, treadmill)
@@ -1019,6 +1030,8 @@ def strongman(n, eq):
     walk["arm"] = {"frame": "world", "keys": [OLY_HANG], "elbow_out": [0.4, -1, 0]}
     if has(n, "^farmer"):
         return dict(walk, implement="dumbbell", camera={"az": 60, "el": 6})
+    if has(n, "^sled push"):
+        return sled_push()
     if has(n, "^yoke"):
         return dict(walk, implement="barbell_back", arm={"frame": "torso", "elbow_out": [0.3, -1, -1]},
                     camera={"az": 50, "el": 6})
