@@ -43294,6 +43294,86 @@
           }
         }
       }
+    },
+    "Micronutrients": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikronäring"
+          }
+        }
+      }
+    },
+    "Scan a barcode or a photo to see vitamins and minerals.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skanna en streckkod eller ett foto för att se vitaminer och mineraler."
+          }
+        }
+      }
+    },
+    "Data for %lld of %lld nutrients": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data för %lld av %lld ämnen"
+          }
+        }
+      }
+    },
+    "Sodium": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Natrium"
+          }
+        }
+      }
+    },
+    "Potassium": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalium"
+          }
+        }
+      }
+    },
+    "Iron": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Järn"
+          }
+        }
+      }
+    },
+    "Calcium": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalcium"
+          }
+        }
+      }
+    },
+    "Vitamin B12": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "B12-vitamin"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

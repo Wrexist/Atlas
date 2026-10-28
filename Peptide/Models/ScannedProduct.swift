@@ -68,6 +68,9 @@ extension ScannedProduct {
         let fatG: Double
         let fiberG: Double?
         let sugarsG: Double?
+        /// Vitamins and minerals per 100 g. Optional with a nil default so
+        /// foods, caches and meals stored before it existed still decode.
+        var micros: Micronutrients? = nil
 
         static let zero = Nutriments(
             calories: 0, proteinG: 0, carbsG: 0, fatG: 0, fiberG: nil, sugarsG: nil

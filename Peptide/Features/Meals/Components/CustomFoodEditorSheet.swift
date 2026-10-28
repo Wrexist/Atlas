@@ -46,6 +46,8 @@ struct CustomFoodEditorSheet: View {
     @State private var servingLabel: String = ""
     @State private var showDeleteConfirm = false
     @State private var pricePer100g: FoodPriceEstimate?
+    /// Carried from the label or an AI fill; the editor has no fields for it.
+    @State private var micros: Micronutrients?
     @State private var aiQuery = ""
     @State private var aiPhoto: PhotosPickerItem?
     @State private var isFilling = false
@@ -503,6 +505,7 @@ struct CustomFoodEditorSheet: View {
         servingGrams = formatOrEmptyOptional(food.servingGrams)
         servingLabel = food.servingLabel ?? ""
         pricePer100g = food.pricePer100g
+        micros = food.per100g.micros
 
         // Auto-focus the name field on a fresh food — the user almost
         // always wants to start typing immediately.
@@ -525,7 +528,8 @@ struct CustomFoodEditorSheet: View {
             carbsG: Self.parseDecimal(carbs) ?? 0,
             fatG: Self.parseDecimal(fat) ?? 0,
             fiberG: Self.parseDecimal(fiber),
-            sugarsG: Self.parseDecimal(sugars)
+            sugarsG: Self.parseDecimal(sugars),
+            micros: micros
         )
         let saved = CustomFood(
             id: initial.id,
