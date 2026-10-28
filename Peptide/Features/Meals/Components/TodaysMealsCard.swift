@@ -4,6 +4,9 @@ import SwiftUI
 /// Renders the day's `MealEntry` rows grouped under Breakfast, Lunch,
 /// Dinner and Snack, each with its calorie subtotal, in the order eaten.
 /// Tap a row to edit it; long-press for Edit, Log again and Delete.
+/// A meal the previous day had and this day lacks offers a one-tap
+/// copy; each meal's menu (and the header's, for the whole day) can
+/// copy from any other day.
 ///
 /// Fills the visibility gap the auto-close success screens leave —
 /// once those dismiss, users had no way to see (or fix) what got
@@ -16,6 +19,15 @@ struct TodaysMealsCard: View {
     let onEdit: (MealEntry) -> Void
     let onLogAgain: (MealEntry) -> Void
     let onDelete: (UUID) -> Void
+    /// Meals logged on the day before the viewed one. Each of them that
+    /// this day lacks offers a one-tap copy.
+    var previousDayCategories: Set<MealCategory> = []
+    /// Mid-sentence name of that previous day: "yesterday", "Mon, Sep 21".
+    var previousDayName: String = ""
+    /// Copies one meal (or the whole day when nil) from the previous day.
+    var onCopyFromPreviousDay: (MealCategory?) -> Void = { _ in }
+    /// Opens the day picker to copy one meal (or the whole day when nil).
+    var onCopyFromAnotherDay: (MealCategory?) -> Void = { _ in }
 
     @State private var pendingDelete: MealEntry?
 
@@ -25,7 +37,8 @@ struct TodaysMealsCard: View {
                 header
                 if entries.isEmpty {
                     emptyState
-                } else {
+                }
+                if !entries.isEmpty || !previousDayCategories.isEmpty {
                     rows
                 }
             }
@@ -62,69 +75,154 @@ struct TodaysMealsCard: View {
                     .contentTransition(.numericText())
             }
             Spacer(minLength: 0)
+            copyMenu(for: nil)
         }
     }
 
     private var emptyState: some View {
-        HStack(spacing: Spacing.sm) {
-            Image(systemName: "fork.knife.circle")
-                .font(AppFont.scaled(24, weight: .light))
-                .foregroundStyle(AppColor.textSecondary)
-            Text("Log a meal to see it here. Tap any entry afterwards to edit or remove it.")
-                .font(AppFont.scaled(11))
-                .foregroundStyle(AppColor.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: "fork.knife.circle")
+                    .font(AppFont.scaled(24, weight: .light))
+                    .foregroundStyle(AppColor.textSecondary)
+                Text("Log a meal to see it here. Tap any entry afterwards to edit or remove it.")
+                    .font(AppFont.scaled(11))
+                    .foregroundStyle(AppColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            if !previousDayCategories.isEmpty {
+                Button {
+                    onCopyFromPreviousDay(nil)
+                } label: {
+                    Label(String(localized: "Copy all meals from \(previousDayName)"), systemImage: "doc.on.doc")
+                        .font(AppFont.scaled(13, weight: .semibold))
+                        .foregroundStyle(AppColor.accentLight)
+                        .minimumHitArea()
+                }
+                .buttonStyle(.plain)
+            }
         }
         .padding(.vertical, Spacing.sm)
     }
 
+    /// Logged meals in breakfast-to-snack order, with a copy offer in
+    /// the slot of each meal the previous day had and this day lacks.
     private var rows: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            ForEach(MealDiarySection.sections(of: entries)) { section in
-                VStack(alignment: .leading, spacing: Spacing.xs) {
-                    sectionHeader(section)
-                    ForEach(section.entries) { entry in
-                        MealEntryRow(entry: entry) {
-                            onEdit(entry)
-                        } onLogAgain: {
-                            onLogAgain(entry)
-                        } onDelete: {
-                            pendingDelete = entry
-                        }
-                        .transition(.asymmetric(
-                            insertion: .move(edge: .top).combined(with: .opacity),
-                            removal: .opacity.combined(with: .scale(scale: 0.95))
-                        ))
-                    }
+        let sections = MealDiarySection.sections(of: entries)
+        return VStack(alignment: .leading, spacing: Spacing.md) {
+            ForEach(MealCategory.allCases, id: \.self) { category in
+                if let section = sections.first(where: { $0.category == category }) {
+                    loggedSection(section)
+                } else if previousDayCategories.contains(category) {
+                    copySuggestion(category)
+                        .transition(.opacity)
                 }
-                .transition(.opacity)
             }
         }
         .appAnimation(AppAnimation.springSnappy, value: entries.map(\.id))
+    }
+
+    private func loggedSection(_ section: MealDiarySection) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            sectionHeader(section)
+            ForEach(section.entries) { entry in
+                MealEntryRow(entry: entry) {
+                    onEdit(entry)
+                } onLogAgain: {
+                    onLogAgain(entry)
+                } onDelete: {
+                    pendingDelete = entry
+                }
+                .transition(.asymmetric(
+                    insertion: .move(edge: .top).combined(with: .opacity),
+                    removal: .opacity.combined(with: .scale(scale: 0.95))
+                ))
+            }
+        }
+        .transition(.opacity)
     }
 
     /// Names the meal and what it added up to, so the diary reads the
     /// way the day went instead of as one undivided list.
     private func sectionHeader(_ section: MealDiarySection) -> some View {
         HStack(spacing: Spacing.xs) {
-            Image(systemName: section.category.icon)
-                .font(AppFont.scaled(11, weight: .semibold))
-                .foregroundStyle(section.category.tint)
-                .accessibilityHidden(true)
-            Text(section.category.displayName)
-                .font(AppFont.scaled(13, weight: .semibold))
-                .foregroundStyle(AppColor.textPrimary)
-            Spacer(minLength: 0)
-            Text("\(section.calories) kcal")
-                .font(AppFont.scaled(11, weight: .semibold))
-                .monospacedDigit()
-                .foregroundStyle(AppColor.textSecondary)
-                .contentTransition(.numericText())
+            HStack(spacing: Spacing.xs) {
+                categoryLabel(section.category)
+                Spacer(minLength: 0)
+                Text("\(section.calories) kcal")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(AppColor.textSecondary)
+                    .contentTransition(.numericText())
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isHeader)
+            copyMenu(for: section.category)
         }
         .padding(.horizontal, Spacing.xs)
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
+    }
+
+    /// An empty meal slot the previous day filled: one tap copies it.
+    private func copySuggestion(_ category: MealCategory) -> some View {
+        HStack(spacing: Spacing.xs) {
+            categoryLabel(category)
+                .accessibilityElement(children: .combine)
+            Spacer(minLength: 0)
+            Button {
+                onCopyFromPreviousDay(category)
+            } label: {
+                Label(String(localized: "Copy from \(previousDayName)"), systemImage: "doc.on.doc")
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(AppColor.accentLight)
+                    .minimumHitArea()
+            }
+            .buttonStyle(.plain)
+            copyMenu(for: category)
+        }
+        .padding(.horizontal, Spacing.xs)
+    }
+
+    private func categoryLabel(_ category: MealCategory) -> some View {
+        HStack(spacing: Spacing.xs) {
+            Image(systemName: category.icon)
+                .font(AppFont.scaled(11, weight: .semibold))
+                .foregroundStyle(category.tint)
+                .accessibilityHidden(true)
+            Text(category.displayName)
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(AppColor.textPrimary)
+        }
+    }
+
+    /// Copy options for one meal, or for the whole day when `category`
+    /// is nil.
+    private func copyMenu(for category: MealCategory?) -> some View {
+        Menu {
+            if category.map({ previousDayCategories.contains($0) }) ?? !previousDayCategories.isEmpty {
+                Button {
+                    onCopyFromPreviousDay(category)
+                } label: {
+                    Label(
+                        category == nil
+                            ? String(localized: "Copy all meals from \(previousDayName)")
+                            : String(localized: "Copy from \(previousDayName)"),
+                        systemImage: "doc.on.doc"
+                    )
+                }
+            }
+            Button {
+                onCopyFromAnotherDay(category)
+            } label: {
+                Label("Copy from another day…", systemImage: "calendar")
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(AppColor.textSecondary)
+                .minimumHitArea()
+        }
+        .accessibilityLabel(category.map { String(localized: "Copy options for \($0.displayName)") } ?? String(localized: "Copy meals"))
     }
 }
 

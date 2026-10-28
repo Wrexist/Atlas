@@ -1340,31 +1340,41 @@ final class DataStore {
         }
     }
 
-    /// Re-logs the previous day's `category` entries at the current time —
-    /// the meal reminder's "Same as yesterday" action. A no-op when that
-    /// meal is already logged today, so a second tap can't double it.
+    /// Re-logs the previous day's `category` entries onto today at their
+    /// original clock times — the meal reminder's "Same as yesterday"
+    /// action. A no-op when that meal is already logged today, so a
+    /// second tap can't double it.
     func repeatMeals(_ category: MealCategory, from reminderDate: Date) {
-        let now = Date()
-        let calendar = Calendar.current
-        guard !profile.mealHistory.contains(where: {
-            $0.category == category && calendar.isDate($0.date, inSameDayAs: now)
-        }) else { return }
+        let today = Date()
+        guard !mealEntries(for: today).contains(where: { $0.category == category }),
+              let previousDay = Calendar.current.date(byAdding: .day, value: -1, to: reminderDate)
+        else { return }
+        copyMeals(from: previousDay, to: today, category: category)
+    }
 
-        let previous = DailyReminderEngine.previousDayMeals(category, before: reminderDate, in: profile.mealHistory)
-        for meal in previous {
-            logMealEntry(MealEntry(
-                date: now,
-                category: category,
-                name: meal.name,
-                calories: meal.calories,
-                proteinG: meal.proteinG,
-                carbsG: meal.carbsG,
-                fatG: meal.fatG,
-                sourceID: meal.sourceID,
-                source: meal.source,
-                components: meal.components
-            ))
+    /// Logs copies of `sourceDay`'s meals — one `category`, or the whole
+    /// day when nil — onto `targetDay` at their original clock times, and
+    /// returns the copies so the caller can offer Undo. Not idempotent:
+    /// a second call copies again.
+    @discardableResult
+    func copyMeals(from sourceDay: Date, to targetDay: Date, category: MealCategory? = nil) -> [MealEntry] {
+        let copies = LifestyleDataLogic.copiedMeals(
+            from: sourceDay,
+            to: targetDay,
+            category: category,
+            in: profile.mealHistory
+        )
+        guard !copies.isEmpty else { return [] }
+        for copy in copies {
+            LifestyleDataLogic.logMealEntry(into: &profile, entry: copy)
         }
+        save()
+        if HealthSyncSettings.isNutritionEnabled {
+            enqueueMealHealthWrite {
+                for copy in copies { await HealthKitService.shared.writeMealEntry(copy) }
+            }
+        }
+        return copies
     }
 
     /// Stable IDs make retry and interrupted completion idempotent.
@@ -1435,7 +1445,17 @@ final class DataStore {
         save()
         TableMomentStore.shared.removeDish(id: id)
         if HealthSyncSettings.isNutritionEnabled {
-            Task { await HealthKitService.shared.deleteSamples(forEntryID: id) }
+            // Queued behind pending writes, so an Undo right after a copy
+            // can't delete before the copy's samples exist.
+            enqueueMealHealthWrite { await HealthKitService.shared.deleteSamples(forEntryID: id) }
+        }
+    }
+
+    private func enqueueMealHealthWrite(_ work: @escaping @MainActor @Sendable () async -> Void) {
+        let previous = mealHealthWriteTask
+        mealHealthWriteTask = Task {
+            await previous?.value
+            await work()
         }
     }
 

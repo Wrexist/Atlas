@@ -32,9 +32,21 @@ struct HomeMealsSection: View {
     @State private var dayOffset = 0
     /// Most recent water quick-add, kept briefly so it can be undone.
     @State private var lastWaterLog: WaterLog?
+    /// Open day picker for copying one meal, or the whole day.
+    @State private var copyRequest: CopyRequest?
+    /// The entries the last copy logged, kept so its toast can undo it.
+    @State private var lastCopiedMeals: [MealEntry] = []
+    @State private var showCopyToast = false
+    @State private var copyToastMessage: LocalizedStringResource = ""
+    @State private var copyToastID = 0
 
     private struct TableRoute: Identifiable {
         let id: UUID
+    }
+
+    private struct CopyRequest: Identifiable {
+        let id = UUID()
+        let category: MealCategory?
     }
 
     private enum PendingLibraryHandoff {
@@ -50,6 +62,10 @@ struct HomeMealsSection: View {
 
     private var selectedDay: Date {
         LifestyleDataLogic.mealDay(offset: dayOffset)
+    }
+
+    private var previousDay: Date {
+        Calendar.current.date(byAdding: .day, value: -1, to: selectedDay) ?? selectedDay
     }
 
     private var targets: NutritionTargets {
@@ -151,8 +167,22 @@ struct HomeMealsSection: View {
                 dayTitle: dayOffset == 0 ? nil : MealDaySwitcher.title(for: selectedDay),
                 onEdit: { entry in editingMealEntry = entry },
                 onLogAgain: logAgain,
-                onDelete: { id in dataStore.unlogMealEntry(id: id) }
+                onDelete: { id in dataStore.unlogMealEntry(id: id) },
+                previousDayCategories: Set(dataStore.mealEntries(for: previousDay).map(\.category)),
+                previousDayName: MealDaySwitcher.inlineTitle(for: previousDay),
+                onCopyFromPreviousDay: { category in copyMeals(from: previousDay, category: category) },
+                onCopyFromAnotherDay: { category in copyRequest = CopyRequest(category: category) }
             )
+            .overlay(alignment: .top) {
+                SyncToast(
+                    isShowing: $showCopyToast,
+                    message: copyToastMessage,
+                    autoDismissAfter: AppAnimation.logSuccessAutoCloseDelay,
+                    action: .init(label: "Undo", perform: undoCopy),
+                    presentationID: copyToastID
+                )
+                .padding(.top, Spacing.sm)
+            }
             .scrollReveal()
         }
         .onAppear { dataStore.refreshAdaptiveTargets() }
@@ -231,6 +261,19 @@ struct HomeMealsSection: View {
                 },
                 onCancel: { editingMealEntry = nil }
             )
+        }
+        .sheet(item: $copyRequest) { request in
+            MealCopySourceSheet(
+                targetDay: selectedDay,
+                category: request.category,
+                onCopy: { sourceDay in
+                    copyRequest = nil
+                    copyMeals(from: sourceDay, category: request.category)
+                },
+                onCancel: { copyRequest = nil }
+            )
+            .environment(dataStore)
+            .liquidGlassPresentation()
         }
         .task(id: lastWaterLog?.id) {
             // Undo window for the last water quick-add. A newer log
@@ -318,6 +361,29 @@ struct HomeMealsSection: View {
         let date = LifestyleDataLogic.logTimestamp(on: selectedDay)
         dataStore.logMealEntry(LifestyleDataLogic.relogged(entry, at: date))
         Haptics.success()
+    }
+
+    /// Copies one meal (or the whole day when `category` is nil) from
+    /// `sourceDay` onto the viewed day and opens the Undo toast.
+    private func copyMeals(from sourceDay: Date, category: MealCategory?) {
+        let copies = dataStore.copyMeals(from: sourceDay, to: selectedDay, category: category)
+        guard !copies.isEmpty else { return }
+        Haptics.success()
+        lastCopiedMeals = copies
+        copyToastMessage = LocalizedStringResource(
+            "Copied from \(MealDaySwitcher.inlineTitle(for: sourceDay))",
+            comment: "Toast after copying meals in the diary. The value is the source day, e.g. “yesterday”."
+        )
+        copyToastID += 1
+        showCopyToast = true
+    }
+
+    private func undoCopy() {
+        for meal in lastCopiedMeals {
+            dataStore.unlogMealEntry(id: meal.id)
+        }
+        lastCopiedMeals = []
+        Haptics.impact(.light)
     }
 
     /// Sets a flag and dismisses the barcode sheet — the .onChange
