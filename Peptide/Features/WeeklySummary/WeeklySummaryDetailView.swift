@@ -17,6 +17,9 @@ import SwiftUI
 struct WeeklySummaryDetailView: View {
     @Binding var summary: WeeklySummary
     let onRefresh: (() async -> WeeklySummary.Kind?)?
+    /// This week's check-in, under the recap. Nil for an older week.
+    var checkIn: WeeklyCheckIn?
+    var unit: MeasurementUnit = .metric
     @State private var isRefreshing = false
     @State private var refreshFailed = false
 
@@ -34,6 +37,9 @@ struct WeeklySummaryDetailView: View {
                 statsGrid
                 bodyText
                 metadataRow
+                if let checkIn {
+                    WeeklyCheckInCard(checkIn: checkIn, unit: unit)
+                }
             }
             .padding(Spacing.screenPadding)
             .padding(.bottom, Spacing.xxxxl)
