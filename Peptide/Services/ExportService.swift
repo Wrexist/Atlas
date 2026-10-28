@@ -204,7 +204,7 @@ final class ExportService {
     // MARK: - Workouts
 
     /// CSV of every completed set in every finished workout, one row per
-    /// set. Workout-level columns (name, duration, note) repeat on each
+    /// set; a finished workout without logged sets gets one row of its own. Workout-level columns (name, duration, note) repeat on each
     /// row so a coach can filter or pivot by exercise without losing the
     /// session context. Date is ISO 8601 with the local offset so the
     /// column sorts correctly and still reads as the lifter's wall clock.
@@ -221,6 +221,13 @@ final class ExportService {
         for session in finished {
             let dateStr = session.startedAt.formatted(dateStyle)
             let minutes = "\(session.elapsedSeconds() / 60)"
+            // Quick-logged workouts carry no sets, only a note; keep them
+            // as one session-level row so the export doesn't drop them.
+            if !session.exercises.contains(where: { $0.sets.contains(where: \.completed) }) {
+                let fields = [dateStr, csvQuote(session.displayName), "", "", "", "", "", "", "", minutes, "", csvQuote(session.note ?? "")]
+                csv += fields.joined(separator: ",") + "\n"
+                continue
+            }
             for entry in session.exercises.sorted(by: { $0.index < $1.index }) {
                 let superset = session.supersetLetter(for: entry.id) ?? ""
                 for set in entry.sets.sorted(by: { $0.index < $1.index }) where set.completed {

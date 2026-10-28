@@ -56,6 +56,21 @@ final class WorkoutCSVExportTests: XCTestCase {
         ])
     }
 
+    func test_quickLoggedWorkoutWithoutSets_writesOneSessionRow() throws {
+        let start = try date(day: 12, hour: 17)
+        let session = WorkoutSession(
+            name: "Run",
+            startedAt: start,
+            finishedAt: start.addingTimeInterval(20 * 60),
+            exercises: [],
+            note: "Quick-log · 3 sets × 10 reps"
+        )
+
+        XCTAssertEqual(rows(csv([session])), [
+            "2026-03-12T17:00:00+01:00,Run,,,,,,,,20,,Quick-log · 3 sets × 10 reps",
+        ])
+    }
+
     func test_supersetWorkout_lettersMembersAndLeavesStandaloneEmpty() throws {
         let start = try date(day: 10, hour: 7)
         let group = UUID()
