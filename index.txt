@@ -42,7 +42,6 @@ Barbell_Squat
 Barbell_Squat_To_A_Bench
 Barbell_Step_Ups
 Barbell_Walking_Lunge
-Behind_Head_Chest_Stretch
 Bench_Dips
 Bench_Jump
 Bench_Press_-_Powerlifting
@@ -455,7 +454,6 @@ Seated_Leg_Tucks
 Seated_One-Arm_Dumbbell_Palms-Down_Wrist_Curl
 Seated_One-Arm_Dumbbell_Palms-Up_Wrist_Curl
 Seated_One-arm_Cable_Pulley_Rows
-Seated_Overhead_Stretch
 Seated_Side_Lateral_Raise
 Seated_Triceps_Press
 See-Saw_Press_Alternating_Side_Press
