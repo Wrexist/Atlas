@@ -179,7 +179,52 @@ final class WatchOfflineWorkoutTests: XCTestCase {
         XCTAssertNil(WatchWorkoutImportEngine.session(from: empty))
     }
 
+    func test_import_keepsBodyweightAndPerPairMeasurements() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "Europe/Stockholm"))
+        let start = try XCTUnwrap(calendar.date(from: DateComponents(year: 2025, month: 10, day: 11, hour: 7)))
+        let dips = WatchLift(exerciseID: "dips", name: "Dips", restSeconds: 90, sets: 1, weightKg: 10, reps: 8,
+                             measurement: WatchSetMeasurement(kind: "bodyweight", load: "recorded"))
+        let curls = WatchLift(exerciseID: "dumbbell-curl", name: "Dumbbell Curl", restSeconds: 60, sets: 1, weightKg: 12, reps: 10,
+                              measurement: WatchSetMeasurement(kind: "repetitions", load: "eachPair"))
+        var workout = WatchOfflineWorkout(routine: WatchRoutine(id: UUID(), name: "Arms", lifts: [dips, curls]), at: start)
+        workout = try completingNext(workout, at: start.addingTimeInterval(60))
+        workout = try completingNext(workout, at: start.addingTimeInterval(240))
+        let message = try XCTUnwrap(WatchOfflineSyncEngine.message(for: workout.finished(at: start.addingTimeInterval(600))))
+        let delivered = try XCTUnwrap(WatchOfflineSyncEngine.workout(in: message))
+
+        let session = try XCTUnwrap(WatchWorkoutImportEngine.session(from: delivered))
+        let dipSet = try XCTUnwrap(session.exercises.first?.sets.first)
+        let curlSet = try XCTUnwrap(session.exercises.last?.sets.first)
+
+        XCTAssertEqual(dipSet.measurement, SetEntry.Measurement(kind: .bodyweight, load: .recorded))
+        XCTAssertNil(dipSet.estimatedOneRepMaxKg, "A bodyweight set is no ordinary-rep 1RM")
+        XCTAssertEqual(curlSet.measurement, SetEntry.Measurement(kind: .repetitions, load: .eachPair))
+        XCTAssertEqual(curlSet.volumeKg, 240, "A per-pair load counts both hands")
+        XCTAssertEqual(session.totalVolumeKg, 320)
+    }
+
+    func test_addSet_carriesTheMeasurementOfThePreviousSet() throws {
+        let perSide = WatchLift(exerciseID: "lunge", name: "Lunge", restSeconds: 60, sets: 1, weightKg: 20, reps: 10,
+                                measurement: WatchSetMeasurement(kind: "repetitions", load: "perSide"))
+        let workout = WatchOfflineWorkout(routine: nil, at: now).adding(perSide)
+        let exerciseID = try XCTUnwrap(workout.snapshot.exercises.first?.id)
+
+        let added = workout.applying(.addSet(exerciseID: exerciseID, setID: UUID()), at: now)
+
+        XCTAssertEqual(added.snapshot.exercises.first?.sets.map(\.measurement), [perSide.measurement, perSide.measurement])
+    }
+
     // MARK: - Wire format
+
+    func test_liftWithoutMeasurement_decodesFromAnOlderPayload() throws {
+        let older = Data(#"{"exerciseID":"squat","name":"Squat","restSeconds":120,"sets":3,"weightKg":100,"reps":5}"#.utf8)
+
+        let lift = try JSONDecoder().decode(WatchLift.self, from: older)
+
+        XCTAssertEqual(lift.weightKg, 100)
+        XCTAssertNil(lift.measurement)
+    }
 
     func test_watchData_carriesCatalogAndReceipts_andOlderPayloadsDecodeWithout() throws {
         let catalog = WatchTrainingCatalog(routines: [routine], recentLifts: [row])
@@ -256,6 +301,25 @@ final class WatchTrainingCatalogBuilderTests: XCTestCase {
                        "Newest first, once each, finished workouts only")
         XCTAssertEqual(catalog.recentLifts.first?.sets, 2)
         XCTAssertEqual(catalog.recentLifts.last?.weightKg, 140)
+    }
+
+    func test_catalog_carriesTheLastSetsMeasurement() {
+        let bodyweight = SetEntry.Measurement(kind: .bodyweight, load: .recorded)
+        let routine = Routine(name: "Upper", exercises: [RoutineExercise(exerciseID: "pull-up", index: 0, targetSets: 3, targetReps: 8)])
+        let session = WorkoutSession(startedAt: now, finishedAt: now.addingTimeInterval(3_600), exercises: [
+            WorkoutExerciseEntry(exerciseID: "pull-up", index: 0, sets: [
+                SetEntry(index: 1, weightKg: 5, reps: 8, completed: true, measurement: bodyweight),
+            ]),
+        ])
+        let last = SetEntry(index: 1, weightKg: 5, reps: 8, completed: true, measurement: bodyweight)
+
+        let catalog = WatchWorkoutSnapshotBuilder.catalog(
+            routines: [routine], recent: [session], defaultRestSeconds: 90, lastSet: { _ in last }, name: { $0 }
+        )
+
+        let wire = WatchSetMeasurement(kind: "bodyweight", load: "recorded")
+        XCTAssertEqual(catalog.routines.first?.lifts.first?.measurement, wire)
+        XCTAssertEqual(catalog.recentLifts.first?.measurement, wire)
     }
 
     func test_catalog_capsRoutinesForTheApplicationContext() {

@@ -82,7 +82,8 @@ enum WatchWorkoutSnapshotBuilder {
                     restSeconds: entry.restSeconds ?? defaultRestSeconds,
                     sets: max(1, entry.completedWorkingSets.count),
                     weightKg: last.weightKg,
-                    reps: last.reps
+                    reps: last.reps,
+                    measurement: last.measurement.map { WatchSetMeasurement($0) }
                 )
             }
             .prefix(catalogLiftLimit)
@@ -103,7 +104,8 @@ enum WatchWorkoutSnapshotBuilder {
             restSeconds: entry.restSeconds ?? defaultRestSeconds,
             sets: entry.sets.count,
             weightKg: first.weightKg,
-            reps: first.reps
+            reps: first.reps,
+            measurement: first.measurement.map { WatchSetMeasurement($0) }
         )
     }
 
@@ -120,9 +122,16 @@ enum WatchWorkoutSnapshotBuilder {
                     reps: set.reps,
                     completed: set.completed,
                     isWarmup: set.isWarmup,
-                    logsReps: set.supportsRepLogging
+                    logsReps: set.supportsRepLogging,
+                    measurement: set.measurement.map { WatchSetMeasurement($0) }
                 )
             }
         )
+    }
+}
+
+extension WatchSetMeasurement {
+    init(_ measurement: SetEntry.Measurement) {
+        self.init(kind: measurement.kind.rawValue, load: measurement.load.rawValue)
     }
 }

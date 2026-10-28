@@ -41,7 +41,15 @@ enum WatchWorkoutImportEngine {
             reps: SetEntryLimits.clampReps(row.reps),
             completed: row.completed,
             isWarmup: row.isWarmup,
-            completedAt: row.completed ? completedAt : nil
+            completedAt: row.completed ? completedAt : nil,
+            measurement: measurement(from: row.measurement)
         )
+    }
+
+    /// Nil for a plain loaded set, or a kind this build doesn't know: a
+    /// newer Watch's measurement is better dropped than guessed.
+    private static func measurement(from wire: WatchSetMeasurement?) -> SetEntry.Measurement? {
+        guard let wire, let kind = SetEntry.Measurement.Kind(rawValue: wire.kind) else { return nil }
+        return SetEntry.Measurement(kind: kind, load: SetEntry.Measurement.Load(rawValue: wire.load) ?? .recorded)
     }
 }

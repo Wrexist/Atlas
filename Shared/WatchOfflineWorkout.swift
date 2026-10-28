@@ -89,7 +89,7 @@ struct WatchOfflineWorkout: Codable, Hashable, Identifiable, Sendable {
         let sets = (1...max(1, lift.sets)).map { index in
             WatchWorkoutSnapshot.SetRow(
                 id: UUID(), index: index, weightKg: lift.weightKg, reps: lift.reps,
-                completed: false, isWarmup: false, logsReps: true
+                completed: false, isWarmup: false, logsReps: true, measurement: lift.measurement
             )
         }
         let exercise = WatchWorkoutSnapshot.Exercise(id: UUID(), name: lift.name, restSeconds: lift.restSeconds, sets: sets)
