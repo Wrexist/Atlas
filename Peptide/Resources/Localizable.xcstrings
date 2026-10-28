@@ -44062,6 +44062,146 @@
           }
         }
       }
+    },
+    "Deload week suggested: normal suggestions": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avlastningsvecka föreslås: vanliga förslag"
+          }
+        }
+      }
+    },
+    "Deload week: lighter, with about a third fewer reps.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avlastningsvecka: lättare, med ungefär en tredjedel färre reps."
+          }
+        }
+      }
+    },
+    "Deload week: suggestions at about 60% volume": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avlastningsvecka: förslagen på cirka 60 % volym"
+          }
+        }
+      }
+    },
+    "Lighter today to match your recovery.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lättare i dag för att matcha din återhämtning."
+          }
+        }
+      }
+    },
+    "Low recovery today: normal suggestions": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Låg återhämtning i dag: vanliga förslag"
+          }
+        }
+      }
+    },
+    "Low recovery today: suggestions lowered 10%": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Låg återhämtning i dag: förslagen sänkta 10 %"
+          }
+        }
+      }
+    },
+    "Most of your lifts have stalled over their last few sessions.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De flesta av dina lyft har stått still de senaste passen."
+          }
+        }
+      }
+    },
+    "Switches between lowered and normal suggestions": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Växlar mellan sänkta och vanliga förslag"
+          }
+        }
+      }
+    },
+    "Use lighter": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Använd lättare"
+          }
+        }
+      }
+    },
+    "Use normal": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Använd vanliga"
+          }
+        }
+      }
+    },
+    "You slept under %lld hours last night.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du sov under %lld timmar i natt."
+          }
+        }
+      }
+    },
+    "Your HRV is well below your baseline.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Din HRV ligger klart under din baslinje."
+          }
+        }
+      }
+    },
+    "Your resting heart rate is above your baseline.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Din vilopuls ligger över din baslinje."
+          }
+        }
+      }
+    },
+    "Your training volume has risen %lld weeks in a row.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Din träningsvolym har ökat %lld veckor i rad."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

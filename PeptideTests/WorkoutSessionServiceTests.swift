@@ -486,6 +486,42 @@ final class WorkoutSessionServiceTests: XCTestCase {
         XCTAssertEqual(session.exercises[0].sets.map(\.reps), [8, 8, 8])
     }
 
+    func test_deloadWeek_seedsLighterSetsAndUseNormalRestoresOnlyPendingOnes() throws {
+        let saved = DataStore.current
+        DataStore.current = nil
+        defer { DataStore.current = saved }
+        let calendar = Calendar.current
+        let thisWeek = try XCTUnwrap(calendar.dateInterval(of: .weekOfYear, for: Date())).start
+        for (weeksAgo, kg) in [(4, 65.0), (3, 70.0), (2, 75.0), (1, 80.0)] {
+            let day = try XCTUnwrap(calendar.date(byAdding: .day, value: 1 - 7 * weeksAgo, to: thisWeek))
+            repo.upsertWorkoutSession(WorkoutSession(startedAt: day, finishedAt: day.addingTimeInterval(3600), exercises: [
+                WorkoutExerciseEntry(exerciseID: bench().id, index: 0, sets: [
+                    SetEntry(index: 1, weightKg: kg, reps: 8, completed: true),
+                ]),
+            ]))
+        }
+
+        let session = service.startWorkout(routine: Routine(name: "Push", exercises: [
+            RoutineExercise(exerciseID: bench().id, index: 0, targetSets: 3, targetReps: 8),
+        ]))
+        XCTAssertEqual(service.activeAdjustment, .deload)
+        XCTAssertEqual(session.exercises[0].sets.map(\.weightKg), [75, 75, 75])
+        XCTAssertEqual(session.exercises[0].sets.map(\.reps), [5, 5, 5])
+
+        let entry = session.exercises[0]
+        var logged = entry.sets[0]
+        logged.completed = true
+        service.updateSet(logged, inExerciseEntryID: entry.id)
+        service.useNormalSuggestions(true)
+
+        let sets = try XCTUnwrap(service.activeSession?.exercises.first?.sets)
+        XCTAssertNil(service.activeAdjustment)
+        XCTAssertEqual(sets[0].weightKg, 75, "A logged set keeps what was lifted")
+        XCTAssertEqual(sets[0].reps, 5)
+        XCTAssertEqual(sets.dropFirst().map(\.weightKg), [82.5, 82.5])
+        XCTAssertEqual(sets.dropFirst().map(\.reps), [8, 8])
+    }
+
     func test_startWorkout_routineListingAnExerciseTwice_keepsEachSlotsTarget() {
         let saved = DataStore.current
         DataStore.current = nil

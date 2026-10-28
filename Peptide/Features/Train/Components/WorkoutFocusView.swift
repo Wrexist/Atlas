@@ -22,6 +22,7 @@ struct WorkoutFocusView: View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(spacing: Spacing.md) {
+                    adjustmentBanner
                     if let entry {
                         ExerciseHeroView(exercise: exercise)
                             .id(exercise?.id)
@@ -55,6 +56,20 @@ struct WorkoutFocusView: View {
                             }
                         }
                 }
+        }
+    }
+
+    @ViewBuilder
+    private var adjustmentBanner: some View {
+        if let proposed = service.proposedAdjustment {
+            let applied = service.activeAdjustment != nil
+            TrainingAdjustmentBanner(
+                adjustment: proposed, readiness: service.readiness.reason, deload: service.deload,
+                isApplied: applied
+            ) {
+                service.useNormalSuggestions(applied)
+            }
+            .padding(.top, Spacing.sm)
         }
     }
 
