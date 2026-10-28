@@ -78,7 +78,39 @@ struct MealPlanSheet: View {
                 }
             }
             .disabled(plan.meals.allSatisfy { loggedSlots.contains($0.slot) })
+            shoppingListLink(plan)
         }
+    }
+
+    private func shoppingListLink(_ plan: MealPlanEngine.Plan) -> some View {
+        NavigationLink {
+            GroceryListView(plan: plan)
+        } label: {
+            HStack(spacing: Spacing.md) {
+                Image(systemName: "cart.fill")
+                    .font(AppFont.scaled(20, weight: .semibold))
+                    .foregroundStyle(AppColor.accentLight)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text("Shopping list")
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text("Everything this plan needs, sorted by store section")
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(AppFont.scaled(13, weight: .semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityHidden(true)
+            }
+            .padding(Spacing.md)
+            .insetRowBackground(cornerRadius: Spacing.smallCornerRadius)
+            .contentShape(.rect)
+        }
+        .buttonStyle(ScalePressStyle())
+        .accessibilityElement(children: .combine)
     }
 
     private func totals(_ plan: MealPlanEngine.Plan) -> some View {
