@@ -3071,6 +3071,9 @@ final class DataStore {
     // private by design — these keep the single-facade rule intact
     // instead of handing views the repository singleton.
     func allWorkoutSessionsForBackup() -> [WorkoutSession] { repo.loadAllWorkoutSessions() }
+    /// `fetchCount` only, so the export screen can gate its workout row
+    /// without decoding every session.
+    var hasWorkoutHistory: Bool { repo.workoutSessionCount() > 0 }
     func routinesForBackup() -> [Routine] { repo.loadRoutines() }
     func customExercisesForBackup() -> [CustomExercise] { repo.loadCustomExercises() }
     func personalRecordsForBackup() -> [PersonalRecord] { repo.loadPersonalRecords() }

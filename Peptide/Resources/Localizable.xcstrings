@@ -6674,6 +6674,16 @@
         }
       }
     },
+    "Workouts CSV": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Träningspass (CSV)"
+          }
+        }
+      }
+    },
     "Your latest HbA1c from Labs, if drawn in the past year. It reflects average blood sugar over about three months; lower reads younger, and 6.5% or more adds the most.": {
       "localizations": {
         "sv": {
