@@ -12023,5 +12023,1137 @@
       "vitaminB12Ug": 1.3
     },
     "image": "recipe-egg-curry-spinach"
+  },
+  {
+    "id": "prep-creamy-chicken-parmesan-pasta",
+    "name": "Creamy chicken pasta",
+    "name_sv": "Krämig kycklingpasta",
+    "category": "lunch",
+    "mealPrep": true,
+    "minutes": 30,
+    "servings": 4,
+    "fridgeDays": 4,
+    "tags": [
+      "high-protein",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Chicken breast",
+        "name_sv": "Kycklingbröst",
+        "grams": 200,
+        "pantryKey": "chicken breast"
+      },
+      {
+        "name": "Pasta",
+        "name_sv": "Pasta",
+        "grams": 87.5,
+        "pantryKey": "pasta"
+      },
+      {
+        "name": "Cooking cream 15%",
+        "name_sv": "Matlagningsgrädde 15 %",
+        "grams": 75,
+        "pantryKey": "cooking cream"
+      },
+      {
+        "name": "Crème fraîche 34%",
+        "name_sv": "Crème fraîche 34 %",
+        "grams": 25,
+        "pantryKey": "full-fat creme fraiche"
+      },
+      {
+        "name": "Parmesan",
+        "name_sv": "Parmesan",
+        "grams": 25,
+        "pantryKey": "parmesan"
+      },
+      {
+        "name": "Garlic",
+        "name_sv": "Vitlök",
+        "grams": 2.5,
+        "pantryKey": "garlic"
+      },
+      {
+        "name": "Butter",
+        "name_sv": "Smör",
+        "grams": 3.5,
+        "pantryKey": "butter"
+      }
+    ],
+    "steps": [
+      "Cook the pasta and save some of the cooking water.",
+      "Cut the chicken into pieces and fry in butter until cooked through, then add finely chopped garlic, mild paprika and Italian seasoning and fry briefly.",
+      "Pour in the cream and crème fraîche and simmer for about five minutes.",
+      "Stir in the parmesan and a splash of pasta water until the sauce is creamy, then fold in the pasta and season with salt and pepper.",
+      "Divide into four boxes. Chill quickly and keep for up to 4 days, or freeze. When reheating, add a little milk or water if the sauce has thickened."
+    ],
+    "steps_sv": [
+      "Koka pastan och spara lite pastavatten.",
+      "Skär kycklingen i bitar och stek i smör tills den är genomstekt. Tillsätt finhackad vitlök, milt paprikapulver och italiensk kryddblandning och fräs kort.",
+      "Häll i grädde och crème fraîche och låt sjuda i cirka fem minuter.",
+      "Rör ner parmesan och lite pastavatten tills såsen blir krämig. Vänd ner pastan och smaka av med salt och peppar.",
+      "Fördela i fyra lådor. Kyl snabbt och förvara i kylen i upp till 4 dagar, eller frys. Tillsätt lite mjölk eller vatten vid uppvärmning om såsen tjocknat."
+    ],
+    "calories": 858,
+    "proteinG": 68.7,
+    "carbsG": 67.5,
+    "fatG": 33.9,
+    "fiberG": 2.7,
+    "micros": {
+      "sodiumMg": 566,
+      "potassiumMg": 1073,
+      "ironMg": 2.3,
+      "calciumMg": 403,
+      "vitaminDUg": 0.5,
+      "vitaminB12Ug": 1.4
+    },
+    "image": "recipe-prep-creamy-chicken-parmesan-pasta"
+  },
+  {
+    "id": "prep-spaghetti-bolognese",
+    "name": "Spaghetti bolognese",
+    "name_sv": "Spaghetti bolognese",
+    "category": "dinner",
+    "mealPrep": true,
+    "minutes": 45,
+    "servings": 4,
+    "fridgeDays": 4,
+    "tags": [
+      "high-protein",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Minced beef 10%",
+        "name_sv": "Nötfärs 10 %",
+        "grams": 200,
+        "pantryKey": "minced beef"
+      },
+      {
+        "name": "Spaghetti",
+        "name_sv": "Spaghetti",
+        "grams": 87.5,
+        "pantryKey": "spaghetti"
+      },
+      {
+        "name": "Onion",
+        "name_sv": "Lök",
+        "grams": 25,
+        "pantryKey": "onion"
+      },
+      {
+        "name": "Garlic",
+        "name_sv": "Vitlök",
+        "grams": 2.5,
+        "pantryKey": "garlic"
+      },
+      {
+        "name": "Passata",
+        "name_sv": "Passerade tomater",
+        "grams": 125,
+        "pantryKey": "passata"
+      },
+      {
+        "name": "Tomato purée",
+        "name_sv": "Tomatpuré",
+        "grams": 8,
+        "pantryKey": "tomato paste"
+      },
+      {
+        "name": "Olive oil",
+        "name_sv": "Olivolja",
+        "grams": 3.25,
+        "pantryKey": "olive oil"
+      },
+      {
+        "name": "Parmesan",
+        "name_sv": "Parmesan",
+        "grams": 10,
+        "pantryKey": "parmesan"
+      }
+    ],
+    "steps": [
+      "Cook the spaghetti according to the packet.",
+      "Chop the onion and garlic and soften the onion in the oil, then add the mince and brown it.",
+      "Stir in the garlic, tomato purée, passata, 100 ml water, oregano and basil.",
+      "Simmer the sauce for 15–20 minutes and season with salt and pepper.",
+      "Pack the sauce with the spaghetti and grated parmesan, together or separately. Chill quickly and keep for up to 4 days; the sauce freezes very well."
+    ],
+    "steps_sv": [
+      "Koka spaghettin enligt förpackningen.",
+      "Hacka lök och vitlök. Stek löken mjuk i olja, tillsätt sedan nötfärsen och bryn tills den fått färg.",
+      "Rör ner vitlök, tomatpuré, passerade tomater, 1 dl vatten, oregano och basilika.",
+      "Låt såsen sjuda i 15–20 minuter och smaka av med salt och peppar.",
+      "Packa såsen med spaghetti och riven parmesan, tillsammans eller separat. Kyl snabbt och förvara i kylen i upp till 4 dagar. Såsen går utmärkt att frysa."
+    ],
+    "calories": 781,
+    "proteinG": 57.1,
+    "carbsG": 73.7,
+    "fatG": 27.7,
+    "fiberG": 5.0,
+    "micros": {
+      "sodiumMg": 313,
+      "potassiumMg": 1327,
+      "ironMg": 6.7,
+      "calciumMg": 179,
+      "vitaminDUg": 0.5,
+      "vitaminB12Ug": 4.1
+    },
+    "image": "recipe-prep-spaghetti-bolognese"
+  },
+  {
+    "id": "prep-salmon-lemon-cream-rice",
+    "name": "Salmon with creamy lemon sauce and rice",
+    "name_sv": "Lax med krämig citronsås och ris",
+    "category": "dinner",
+    "mealPrep": true,
+    "minutes": 30,
+    "servings": 4,
+    "fridgeDays": 3,
+    "tags": [
+      "high-protein",
+      "fish",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Salmon fillet",
+        "name_sv": "Laxfilé",
+        "grams": 200,
+        "pantryKey": "salmon"
+      },
+      {
+        "name": "Long-grain rice",
+        "name_sv": "Ris",
+        "grams": 75,
+        "pantryKey": "rice"
+      },
+      {
+        "name": "Cooking cream 15%",
+        "name_sv": "Matlagningsgrädde 15 %",
+        "grams": 50,
+        "pantryKey": "cooking cream"
+      },
+      {
+        "name": "Crème fraîche 34%",
+        "name_sv": "Crème fraîche 34 %",
+        "grams": 37.5,
+        "pantryKey": "full-fat creme fraiche"
+      },
+      {
+        "name": "Lemon juice",
+        "name_sv": "Citronsaft",
+        "grams": 7.5,
+        "pantryKey": "lemon"
+      },
+      {
+        "name": "Butter",
+        "name_sv": "Smör",
+        "grams": 3.5,
+        "pantryKey": "butter"
+      },
+      {
+        "name": "Broccoli",
+        "name_sv": "Broccoli",
+        "grams": 100,
+        "pantryKey": "broccoli"
+      }
+    ],
+    "steps": [
+      "Cook the rice, and boil or steam the broccoli.",
+      "Cut the salmon into portions, season with salt and pepper and fry in butter until cooked through.",
+      "Mix cream, crème fraîche, finely grated lemon zest, a little lemon juice and dill in a saucepan.",
+      "Simmer the sauce for 3–5 minutes and season to taste.",
+      "Pack the salmon with rice and broccoli, ideally with the sauce in a separate pot. Chill quickly, keep cold and eat within 3 days. Salmon can be frozen but may turn a little drier when reheated."
+    ],
+    "steps_sv": [
+      "Koka riset och koka eller ånga broccolin.",
+      "Skär laxen i portionsbitar, krydda med salt och peppar och stek i smör tills den är genomlagad.",
+      "Blanda grädde, crème fraîche, finrivet citronskal, lite citronsaft och dill i en kastrull.",
+      "Låt såsen sjuda i 3–5 minuter och smaka av.",
+      "Packa laxen med ris och broccoli, gärna med såsen separat. Kyl snabbt, förvara kallt och ät inom 3 dagar. Lax kan frysas men kan bli något torrare vid uppvärmning."
+    ],
+    "calories": 934,
+    "proteinG": 50.8,
+    "carbsG": 66.1,
+    "fatG": 50.1,
+    "fiberG": 3.6,
+    "micros": {
+      "sodiumMg": 185,
+      "potassiumMg": 1222,
+      "ironMg": 2.0,
+      "calciumMg": 155,
+      "vitaminDUg": 16.2,
+      "vitaminB12Ug": 6.6
+    },
+    "image": "recipe-prep-salmon-lemon-cream-rice"
+  },
+  {
+    "id": "prep-creamy-chicken-curry",
+    "name": "Creamy chicken curry",
+    "name_sv": "Krämig kycklingcurry",
+    "category": "dinner",
+    "mealPrep": true,
+    "minutes": 35,
+    "servings": 4,
+    "fridgeDays": 4,
+    "tags": [
+      "high-protein",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Chicken breast",
+        "name_sv": "Kycklingbröst",
+        "grams": 200,
+        "pantryKey": "chicken breast"
+      },
+      {
+        "name": "Long-grain rice",
+        "name_sv": "Ris",
+        "grams": 75,
+        "pantryKey": "rice"
+      },
+      {
+        "name": "Cooking cream 15%",
+        "name_sv": "Matlagningsgrädde 15 %",
+        "grams": 75,
+        "pantryKey": "cooking cream"
+      },
+      {
+        "name": "Crème fraîche 34%",
+        "name_sv": "Crème fraîche 34 %",
+        "grams": 25,
+        "pantryKey": "full-fat creme fraiche"
+      },
+      {
+        "name": "Onion",
+        "name_sv": "Lök",
+        "grams": 25,
+        "pantryKey": "onion"
+      },
+      {
+        "name": "Garlic",
+        "name_sv": "Vitlök",
+        "grams": 2.5,
+        "pantryKey": "garlic"
+      },
+      {
+        "name": "Curry powder",
+        "name_sv": "Curry",
+        "grams": 1,
+        "pantryKey": "curry powder"
+      },
+      {
+        "name": "Tomato purée",
+        "name_sv": "Tomatpuré",
+        "grams": 4,
+        "pantryKey": "tomato paste"
+      },
+      {
+        "name": "Rapeseed oil",
+        "name_sv": "Rapsolja",
+        "grams": 3.25,
+        "pantryKey": "rapeseed oil"
+      }
+    ],
+    "steps": [
+      "Cook the rice. Cut the chicken into pieces and chop the onion and garlic.",
+      "Brown the chicken in the oil, then add the onion.",
+      "Stir in the garlic, mild curry powder and tomato purée.",
+      "Pour in the cream, crème fraîche and 100 ml water and simmer for 8–10 minutes until the chicken is cooked through. Season to taste.",
+      "Pack with the rice. Keeps 4 days in the fridge and freezes well; stir in a little water when reheating if needed."
+    ],
+    "steps_sv": [
+      "Koka riset. Skär kycklingen i bitar och hacka lök och vitlök.",
+      "Stek kycklingen i olja tills den fått färg och lägg i löken.",
+      "Tillsätt vitlök, mild curry och tomatpuré och rör om.",
+      "Häll i grädde, crème fraîche och 1 dl vatten. Låt sjuda i 8–10 minuter tills kycklingen är genomstekt och smaka av.",
+      "Packa med riset. Håller 4 dagar i kylen och går bra att frysa. Rör i lite vatten vid uppvärmning vid behov."
+    ],
+    "calories": 733,
+    "proteinG": 55.2,
+    "carbsG": 65.8,
+    "fatG": 26.8,
+    "fiberG": 1.9,
+    "micros": {
+      "sodiumMg": 175,
+      "potassiumMg": 1039,
+      "ironMg": 1.9,
+      "calciumMg": 129,
+      "vitaminDUg": 0.3,
+      "vitaminB12Ug": 1.1
+    },
+    "image": "recipe-prep-creamy-chicken-curry"
+  },
+  {
+    "id": "prep-meatballs-cream-sauce",
+    "name": "Meatballs in cream sauce with potatoes",
+    "name_sv": "Köttbullar med gräddsås och potatis",
+    "category": "dinner",
+    "mealPrep": true,
+    "minutes": 45,
+    "servings": 4,
+    "fridgeDays": 4,
+    "tags": [
+      "high-protein",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Minced beef 10%",
+        "name_sv": "Nötfärs 10 %",
+        "grams": 200,
+        "pantryKey": "minced beef"
+      },
+      {
+        "name": "Potatoes",
+        "name_sv": "Potatis",
+        "grams": 225,
+        "pantryKey": "potato"
+      },
+      {
+        "name": "Breadcrumbs",
+        "name_sv": "Ströbröd",
+        "grams": 7.5,
+        "pantryKey": "breadcrumb"
+      },
+      {
+        "name": "Semi-skimmed milk",
+        "name_sv": "Mellanmjölk",
+        "grams": 25,
+        "pantryKey": "milk"
+      },
+      {
+        "name": "Onion",
+        "name_sv": "Lök",
+        "grams": 17.5,
+        "pantryKey": "onion"
+      },
+      {
+        "name": "Butter",
+        "name_sv": "Smör",
+        "grams": 3.5,
+        "pantryKey": "butter"
+      },
+      {
+        "name": "Whipping cream 40%",
+        "name_sv": "Vispgrädde 40 %",
+        "grams": 62.5,
+        "pantryKey": "cream"
+      },
+      {
+        "name": "Beef stock",
+        "name_sv": "Köttbuljong",
+        "grams": 50,
+        "pantryKey": "beef stock"
+      },
+      {
+        "name": "Soy sauce",
+        "name_sv": "Soja",
+        "grams": 3.75,
+        "pantryKey": "soy sauce"
+      },
+      {
+        "name": "Cornflour",
+        "name_sv": "Majsstärkelse",
+        "grams": 0.75,
+        "pantryKey": "cornstarch"
+      }
+    ],
+    "steps": [
+      "Boil the potatoes in salted water. Mix the breadcrumbs and milk and leave to swell for five minutes.",
+      "Mix in the mince, finely grated onion, salt and pepper and shape into small meatballs – no egg needed.",
+      "Fry in butter over medium heat until cooked through.",
+      "Pour the stock and cream into the pan, add the soy sauce and simmer for five minutes. Thicken with the cornflour stirred into 1 tbsp cold water.",
+      "Pack with the potatoes. Keeps 4 days in the fridge; the meatballs and sauce freeze well, but potatoes can change texture once frozen."
+    ],
+    "steps_sv": [
+      "Koka potatisen i saltat vatten. Blanda ströbröd och mjölk och låt svälla i fem minuter.",
+      "Blanda med nötfärs, finriven lök, salt och peppar och forma små köttbullar – inget ägg behövs.",
+      "Stek i smör på medelvärme tills köttbullarna är genomstekta.",
+      "Häll buljong och grädde i pannan, tillsätt soja och sjud i fem minuter. Red såsen med majsstärkelsen utrörd i 1 msk kallt vatten.",
+      "Packa med potatisen. Håller 4 dagar i kylen. Köttbullar och sås går bra att frysa, men potatis kan få ändrad konsistens efter frysning."
+    ],
+    "calories": 828,
+    "proteinG": 48.4,
+    "carbsG": 46.9,
+    "fatG": 48.9,
+    "fiberG": 5.1,
+    "micros": {
+      "sodiumMg": 649,
+      "potassiumMg": 1738,
+      "ironMg": 5.7,
+      "calciumMg": 132,
+      "vitaminDUg": 0.9,
+      "vitaminB12Ug": 4.3
+    },
+    "image": "recipe-prep-meatballs-cream-sauce"
+  },
+  {
+    "id": "prep-cod-dill-shrimp-sauce",
+    "name": "Cod in creamy dill and shrimp sauce",
+    "name_sv": "Torsk med krämig dill- och räksås",
+    "category": "dinner",
+    "mealPrep": true,
+    "minutes": 35,
+    "servings": 4,
+    "fridgeDays": 3,
+    "tags": [
+      "high-protein",
+      "fish",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Cod fillet",
+        "name_sv": "Torskfilé",
+        "grams": 175,
+        "pantryKey": "cod"
+      },
+      {
+        "name": "Peeled shrimp",
+        "name_sv": "Skalade räkor",
+        "grams": 75,
+        "pantryKey": "shrimp"
+      },
+      {
+        "name": "Potatoes",
+        "name_sv": "Potatis",
+        "grams": 225,
+        "pantryKey": "potato"
+      },
+      {
+        "name": "Whipping cream 40%",
+        "name_sv": "Vispgrädde 40 %",
+        "grams": 50,
+        "pantryKey": "cream"
+      },
+      {
+        "name": "Crème fraîche 34%",
+        "name_sv": "Crème fraîche 34 %",
+        "grams": 25,
+        "pantryKey": "full-fat creme fraiche"
+      },
+      {
+        "name": "Fish stock cube",
+        "name_sv": "Fiskbuljongtärning",
+        "grams": 2.5,
+        "pantryKey": "fish stock cube"
+      },
+      {
+        "name": "Lemon juice",
+        "name_sv": "Citronsaft",
+        "grams": 3.75,
+        "pantryKey": "lemon"
+      }
+    ],
+    "steps": [
+      "Boil the potatoes.",
+      "Put the cream, crème fraîche, 100 ml water and the fish stock cube in a saucepan and simmer for five minutes. Add chopped dill and a little lemon juice.",
+      "Lay the cod in the sauce and poach gently until just cooked through.",
+      "Fold in the shrimp right at the end so they only warm through, then season with salt and white pepper.",
+      "Pack with the potatoes. Chill quickly and eat within 3 days, reheating gently. Fish and shrimp can be frozen, but the texture may suffer."
+    ],
+    "steps_sv": [
+      "Koka potatisen.",
+      "Lägg grädde, crème fraîche, 1 dl vatten och fiskbuljongtärningen i en kastrull och låt sjuda i fem minuter. Tillsätt hackad dill och lite citronsaft.",
+      "Lägg ner torsken i såsen och sjud försiktigt tills fisken är genomlagad.",
+      "Vänd ner räkorna precis på slutet så att de bara blir varma och smaka av med salt och vitpeppar.",
+      "Packa med potatisen. Kyl snabbt och ät inom 3 dagar. Värm försiktigt. Fisk och räkor kan frysas, men konsistensen kan försämras."
+    ],
+    "calories": 660,
+    "proteinG": 54.3,
+    "carbsG": 39.0,
+    "fatG": 31.0,
+    "fiberG": 4.5,
+    "micros": {
+      "sodiumMg": 987,
+      "potassiumMg": 1861,
+      "ironMg": 1.7,
+      "calciumMg": 150,
+      "vitaminDUg": 2.0,
+      "vitaminB12Ug": 2.8
+    },
+    "image": "recipe-prep-cod-dill-shrimp-sauce"
+  },
+  {
+    "id": "prep-chicken-wraps-garlic-sauce",
+    "name": "Chicken wraps with garlic sauce",
+    "name_sv": "Kycklingwraps med vitlökssås",
+    "category": "lunch",
+    "mealPrep": true,
+    "minutes": 25,
+    "servings": 4,
+    "fridgeDays": 4,
+    "tags": [
+      "high-protein",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Chicken breast",
+        "name_sv": "Kycklingbröst",
+        "grams": 200,
+        "pantryKey": "chicken breast"
+      },
+      {
+        "name": "Large flour tortilla",
+        "name_sv": "Tortillabröd",
+        "grams": 80,
+        "pantryKey": "wheat tortilla"
+      },
+      {
+        "name": "Cheese 26%",
+        "name_sv": "Ost 26 %",
+        "grams": 37.5,
+        "pantryKey": "full-fat cheese"
+      },
+      {
+        "name": "Greek-style yogurt 10%",
+        "name_sv": "Grekisk yoghurt 10 %",
+        "grams": 37.5,
+        "pantryKey": "greek yogurt"
+      },
+      {
+        "name": "Crème fraîche 34%",
+        "name_sv": "Crème fraîche 34 %",
+        "grams": 25,
+        "pantryKey": "full-fat creme fraiche"
+      },
+      {
+        "name": "Garlic",
+        "name_sv": "Vitlök",
+        "grams": 2.5,
+        "pantryKey": "garlic"
+      },
+      {
+        "name": "Rapeseed oil",
+        "name_sv": "Rapsolja",
+        "grams": 3.25,
+        "pantryKey": "rapeseed oil"
+      },
+      {
+        "name": "Mixed salad leaves",
+        "name_sv": "Sallad",
+        "grams": 25,
+        "pantryKey": "lettuce"
+      },
+      {
+        "name": "Tomatoes",
+        "name_sv": "Tomater",
+        "grams": 25,
+        "pantryKey": "tomato"
+      }
+    ],
+    "steps": [
+      "Cut the chicken into thin strips.",
+      "Fry in the oil with mild paprika, oregano, salt and pepper until cooked through.",
+      "Stir the yogurt, crème fraîche and crushed garlic into a sauce.",
+      "Fill the tortillas with chicken, cheese and vegetables, drizzle with sauce and fold. Toast briefly on both sides if you want them warm.",
+      "For boxes, keep filling, vegetables and sauce apart from the bread for up to 4 days; reheat the chicken and assemble at mealtime. Freeze only the chicken filling."
+    ],
+    "steps_sv": [
+      "Skär kycklingen i tunna strimlor.",
+      "Stek i olja med paprikapulver, oregano, salt och peppar tills den är genomstekt.",
+      "Blanda yoghurt, crème fraîche och pressad vitlök till en sås.",
+      "Fördela kyckling, ost och grönsaker i tortillabröden, ringla över såsen och vik ihop. Stek snabbt på båda sidor om du vill ha varma wraps.",
+      "Till matlådan: förvara fyllning, grönsaker och sås separat från brödet i upp till 4 dagar. Värm kycklingen och montera wrapen vid måltiden. Frys helst bara kycklingfyllningen."
+    ],
+    "calories": 759,
+    "proteinG": 65.7,
+    "carbsG": 45.7,
+    "fatG": 34.3,
+    "fiberG": 2.7,
+    "micros": {
+      "sodiumMg": 907,
+      "potassiumMg": 1103,
+      "ironMg": 3.3,
+      "calciumMg": 453,
+      "vitaminDUg": 0.4,
+      "vitaminB12Ug": 1.5
+    },
+    "image": "recipe-prep-chicken-wraps-garlic-sauce"
+  },
+  {
+    "id": "prep-pork-tenderloin-pepper-sauce",
+    "name": "Pork tenderloin with creamy pepper sauce and potatoes",
+    "name_sv": "Fläskfilé med krämig pepparsås och potatis",
+    "category": "dinner",
+    "mealPrep": true,
+    "minutes": 35,
+    "servings": 4,
+    "fridgeDays": 4,
+    "tags": [
+      "high-protein",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Pork tenderloin",
+        "name_sv": "Fläskfilé",
+        "grams": 200,
+        "pantryKey": "pork tenderloin"
+      },
+      {
+        "name": "Potatoes",
+        "name_sv": "Potatis",
+        "grams": 250,
+        "pantryKey": "potato"
+      },
+      {
+        "name": "Whipping cream 40%",
+        "name_sv": "Vispgrädde 40 %",
+        "grams": 75,
+        "pantryKey": "cream"
+      },
+      {
+        "name": "Beef stock",
+        "name_sv": "Köttbuljong",
+        "grams": 25,
+        "pantryKey": "beef stock"
+      },
+      {
+        "name": "Dijon mustard",
+        "name_sv": "Dijonsenap",
+        "grams": 3.75,
+        "pantryKey": "dijon mustard"
+      },
+      {
+        "name": "Butter",
+        "name_sv": "Smör",
+        "grams": 3.5,
+        "pantryKey": "butter"
+      },
+      {
+        "name": "Cornflour",
+        "name_sv": "Majsstärkelse",
+        "grams": 0.75,
+        "pantryKey": "cornstarch"
+      }
+    ],
+    "steps": [
+      "Cut the potatoes into smaller pieces and boil in salted water.",
+      "Trim the pork and cut it into 1 cm thick slices. Brown in butter, season with salt and coarse black pepper and cook through, then lift out.",
+      "Pour the cream, stock and Dijon mustard into the same pan and simmer for five minutes. Thicken with cornflour stirred into cold water if needed.",
+      "Return the pork to the sauce and let it heat through.",
+      "Pack with the potatoes, keeping the meat in the sauce so it stays juicy. Keeps 4 days in the fridge and freezes well."
+    ],
+    "steps_sv": [
+      "Skär potatisen i mindre bitar och koka i saltat vatten.",
+      "Putsa fläskfilén och skär i centimetertjocka skivor. Bryn i smör, krydda med salt och grovmalen svartpeppar och stek tills köttet är genomstekt. Ta upp köttet.",
+      "Häll grädde, buljong och dijonsenap i samma panna och låt sjuda i fem minuter. Red vid behov med majsstärkelse utrörd i kallt vatten.",
+      "Lägg tillbaka köttet i såsen och låt det bli varmt.",
+      "Packa med potatisen och förvara köttet i såsen så håller det sig saftigare. Håller 4 dagar i kylen och går att frysa."
+    ],
+    "calories": 729,
+    "proteinG": 51.0,
+    "carbsG": 43.2,
+    "fatG": 38.6,
+    "fiberG": 5.1,
+    "micros": {
+      "sodiumMg": 346,
+      "potassiumMg": 1928,
+      "ironMg": 3.1,
+      "calciumMg": 92,
+      "vitaminDUg": 1.3,
+      "vitaminB12Ug": 1.4
+    },
+    "image": "recipe-prep-pork-tenderloin-pepper-sauce"
+  },
+  {
+    "id": "prep-creamy-chicken-casserole-rice",
+    "name": "Creamy chicken casserole with rice",
+    "name_sv": "Krämig kycklinggryta med ris",
+    "category": "dinner",
+    "mealPrep": true,
+    "minutes": 35,
+    "servings": 4,
+    "fridgeDays": 4,
+    "tags": [
+      "high-protein",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Chicken breast",
+        "name_sv": "Kycklingbröst",
+        "grams": 200,
+        "pantryKey": "chicken breast"
+      },
+      {
+        "name": "Long-grain rice",
+        "name_sv": "Ris",
+        "grams": 75,
+        "pantryKey": "rice"
+      },
+      {
+        "name": "Cooking cream 15%",
+        "name_sv": "Matlagningsgrädde 15 %",
+        "grams": 75,
+        "pantryKey": "cooking cream"
+      },
+      {
+        "name": "Crème fraîche 34%",
+        "name_sv": "Crème fraîche 34 %",
+        "grams": 25,
+        "pantryKey": "full-fat creme fraiche"
+      },
+      {
+        "name": "Onion",
+        "name_sv": "Lök",
+        "grams": 25,
+        "pantryKey": "onion"
+      },
+      {
+        "name": "Mushrooms",
+        "name_sv": "Champinjoner",
+        "grams": 62.5,
+        "pantryKey": "mushroom"
+      },
+      {
+        "name": "Bell pepper",
+        "name_sv": "Paprika",
+        "grams": 37.5,
+        "pantryKey": "bell pepper"
+      },
+      {
+        "name": "Tomato purée",
+        "name_sv": "Tomatpuré",
+        "grams": 4,
+        "pantryKey": "tomato paste"
+      },
+      {
+        "name": "Butter",
+        "name_sv": "Smör",
+        "grams": 3.5,
+        "pantryKey": "butter"
+      }
+    ],
+    "steps": [
+      "Cook the rice. Cut the chicken into pieces and slice the onion, mushrooms and pepper.",
+      "Brown the chicken in butter, then add the onion, mushrooms and pepper and fry for a few minutes.",
+      "Stir in the tomato purée and mild paprika, then pour in the cream, crème fraîche and 100 ml water.",
+      "Simmer for 10 minutes until the chicken is cooked through and season with salt and pepper.",
+      "Pack with the rice. Keeps 4 days in the fridge and freezes well; add a splash of water when reheating."
+    ],
+    "steps_sv": [
+      "Koka riset. Skär kycklingen i bitar och skiva lök, champinjoner och paprika.",
+      "Bryn kycklingen i smör och lägg i lök, champinjoner och paprika. Fräs några minuter.",
+      "Rör ner tomatpuré och milt paprikapulver och häll i grädde, crème fraîche och 1 dl vatten.",
+      "Låt sjuda i 10 minuter tills kycklingen är genomstekt och smaka av med salt och peppar.",
+      "Packa med riset. Håller 4 dagar i kylen och går bra att frysa. Tillsätt en skvätt vatten vid uppvärmning."
+    ],
+    "calories": 749,
+    "proteinG": 57.1,
+    "carbsG": 67.0,
+    "fatG": 26.6,
+    "fiberG": 2.9,
+    "micros": {
+      "sodiumMg": 196,
+      "potassiumMg": 1294,
+      "ironMg": 2.1,
+      "calciumMg": 125,
+      "vitaminDUg": 0.5,
+      "vitaminB12Ug": 1.1
+    },
+    "image": "recipe-prep-creamy-chicken-casserole-rice"
+  },
+  {
+    "id": "prep-creamy-shrimp-pasta",
+    "name": "Creamy shrimp pasta",
+    "name_sv": "Krämig räkpasta",
+    "category": "dinner",
+    "mealPrep": true,
+    "minutes": 25,
+    "servings": 4,
+    "fridgeDays": 3,
+    "tags": [
+      "high-protein",
+      "fish",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Peeled shrimp",
+        "name_sv": "Skalade räkor",
+        "grams": 150,
+        "pantryKey": "shrimp"
+      },
+      {
+        "name": "Pasta",
+        "name_sv": "Pasta",
+        "grams": 87.5,
+        "pantryKey": "pasta"
+      },
+      {
+        "name": "Cooking cream 15%",
+        "name_sv": "Matlagningsgrädde 15 %",
+        "grams": 75,
+        "pantryKey": "cooking cream"
+      },
+      {
+        "name": "Crème fraîche 34%",
+        "name_sv": "Crème fraîche 34 %",
+        "grams": 25,
+        "pantryKey": "full-fat creme fraiche"
+      },
+      {
+        "name": "Parmesan",
+        "name_sv": "Parmesan",
+        "grams": 15,
+        "pantryKey": "parmesan"
+      },
+      {
+        "name": "Garlic",
+        "name_sv": "Vitlök",
+        "grams": 2.5,
+        "pantryKey": "garlic"
+      },
+      {
+        "name": "Butter",
+        "name_sv": "Smör",
+        "grams": 3.5,
+        "pantryKey": "butter"
+      },
+      {
+        "name": "Baby spinach",
+        "name_sv": "Babyspenat",
+        "grams": 17.5,
+        "pantryKey": "spinach"
+      },
+      {
+        "name": "Lemon juice",
+        "name_sv": "Citronsaft",
+        "grams": 3.75,
+        "pantryKey": "lemon"
+      }
+    ],
+    "steps": [
+      "Cook the pasta and save some of the cooking water.",
+      "Soften the garlic in butter, then pour in the cream and crème fraîche and simmer for a few minutes.",
+      "Stir in the parmesan, spinach and a little lemon juice until the spinach wilts.",
+      "Fold in the shrimp and pasta and let them just warm through. Loosen with pasta water and season with salt and pepper.",
+      "Divide into boxes. Chill quickly and eat within 3 days, reheating gently with a splash of water. Can be frozen, but the shrimp may turn firmer."
+    ],
+    "steps_sv": [
+      "Koka pastan och spara lite pastavatten.",
+      "Fräs vitlöken i smör och häll i grädde och crème fraîche. Låt sjuda några minuter.",
+      "Rör ner parmesan, spenat och lite citronsaft tills spenaten mjuknat.",
+      "Vänd ner räkor och pasta och låt dem bara bli varma. Späd med pastavatten och smaka av med salt och peppar.",
+      "Fördela i lådor. Kyl snabbt och ät inom 3 dagar. Värm försiktigt med en skvätt vatten. Kan frysas, men räkorna kan bli fastare."
+    ],
+    "calories": 760,
+    "proteinG": 52.7,
+    "carbsG": 68.0,
+    "fatG": 29.7,
+    "fiberG": 3.1,
+    "micros": {
+      "sodiumMg": 1050,
+      "potassiumMg": 695,
+      "ironMg": 2.6,
+      "calciumMg": 390,
+      "vitaminDUg": 0.4,
+      "vitaminB12Ug": 2.3
+    },
+    "image": "recipe-prep-creamy-shrimp-pasta"
+  },
+  {
+    "id": "prep-burgers-fries-burger-sauce",
+    "name": "Burgers with fries and burger sauce",
+    "name_sv": "Burgare med pommes och hamburgarsås",
+    "category": "dinner",
+    "mealPrep": true,
+    "minutes": 40,
+    "servings": 4,
+    "fridgeDays": 4,
+    "tags": [
+      "high-protein",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Minced beef 10%",
+        "name_sv": "Nötfärs 10 %",
+        "grams": 200,
+        "pantryKey": "minced beef"
+      },
+      {
+        "name": "Burger bun",
+        "name_sv": "Hamburgerbröd",
+        "grams": 70,
+        "pantryKey": "burger bun"
+      },
+      {
+        "name": "Cheese 26%",
+        "name_sv": "Ost 26 %",
+        "grams": 20,
+        "pantryKey": "full-fat cheese"
+      },
+      {
+        "name": "Oven fries",
+        "name_sv": "Ugnspommes",
+        "grams": 150,
+        "pantryKey": "oven fries"
+      },
+      {
+        "name": "Mixed salad leaves",
+        "name_sv": "Sallad",
+        "grams": 25,
+        "pantryKey": "lettuce"
+      },
+      {
+        "name": "Tomatoes",
+        "name_sv": "Tomater",
+        "grams": 37.5,
+        "pantryKey": "tomato"
+      },
+      {
+        "name": "Greek-style yogurt 10%",
+        "name_sv": "Grekisk yoghurt 10 %",
+        "grams": 37.5,
+        "pantryKey": "greek yogurt"
+      },
+      {
+        "name": "Ketchup",
+        "name_sv": "Ketchup",
+        "grams": 7.5,
+        "pantryKey": "ketchup"
+      },
+      {
+        "name": "Dijon mustard",
+        "name_sv": "Dijonsenap",
+        "grams": 3.75,
+        "pantryKey": "dijon mustard"
+      }
+    ],
+    "steps": [
+      "Bake the fries in the oven according to the packet.",
+      "Shape the mince into four patties and season with salt and pepper.",
+      "Fry the patties for 3–4 minutes per side until cooked through and lay a slice of cheese on each at the end.",
+      "Stir yogurt, ketchup and Dijon mustard into a burger sauce and slice the tomato.",
+      "Toast the buns and build the burgers. For boxes, keep patties and fries for up to 4 days and pack bun, sauce and salad separately; reheat patties and fries in the oven or air fryer. The patties freeze well."
+    ],
+    "steps_sv": [
+      "Grädda pommesen i ugnen enligt förpackningen.",
+      "Forma nötfärsen till fyra burgare och krydda med salt och peppar.",
+      "Stek burgarna 3–4 minuter per sida tills de är genomstekta och lägg en skiva ost på varje mot slutet.",
+      "Rör ihop yoghurt, ketchup och dijonsenap till hamburgarsås och skiva tomaten.",
+      "Rosta bröden och bygg burgarna. Till matlådan: förvara burgare och pommes i upp till 4 dagar och packa bröd, sås och sallad separat. Värm burgare och pommes i ugn eller airfryer. Burgarna går bra att frysa."
+    ],
+    "calories": 893,
+    "proteinG": 58.0,
+    "carbsG": 73.8,
+    "fatG": 39.6,
+    "fiberG": 6.4,
+    "micros": {
+      "sodiumMg": 824,
+      "potassiumMg": 1650,
+      "ironMg": 7.6,
+      "calciumMg": 304,
+      "vitaminDUg": 0.5,
+      "vitaminB12Ug": 4.4
+    },
+    "image": "recipe-prep-burgers-fries-burger-sauce"
+  },
+  {
+    "id": "prep-salmon-tomato-cream-potatoes",
+    "name": "Salmon in creamy tomato sauce with potatoes",
+    "name_sv": "Lax i krämig tomatsås med potatis",
+    "category": "dinner",
+    "mealPrep": true,
+    "minutes": 35,
+    "servings": 4,
+    "fridgeDays": 3,
+    "tags": [
+      "high-protein",
+      "fish",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Salmon fillet",
+        "name_sv": "Laxfilé",
+        "grams": 200,
+        "pantryKey": "salmon"
+      },
+      {
+        "name": "Potatoes",
+        "name_sv": "Potatis",
+        "grams": 225,
+        "pantryKey": "potato"
+      },
+      {
+        "name": "Crushed tomatoes",
+        "name_sv": "Krossade tomater",
+        "grams": 100,
+        "pantryKey": "crushed tomato"
+      },
+      {
+        "name": "Cooking cream 15%",
+        "name_sv": "Matlagningsgrädde 15 %",
+        "grams": 50,
+        "pantryKey": "cooking cream"
+      },
+      {
+        "name": "Onion",
+        "name_sv": "Lök",
+        "grams": 25,
+        "pantryKey": "onion"
+      },
+      {
+        "name": "Garlic",
+        "name_sv": "Vitlök",
+        "grams": 2.5,
+        "pantryKey": "garlic"
+      },
+      {
+        "name": "Tomato purée",
+        "name_sv": "Tomatpuré",
+        "grams": 4,
+        "pantryKey": "tomato paste"
+      },
+      {
+        "name": "Olive oil",
+        "name_sv": "Olivolja",
+        "grams": 3.25,
+        "pantryKey": "olive oil"
+      },
+      {
+        "name": "Baby spinach",
+        "name_sv": "Babyspenat",
+        "grams": 17.5,
+        "pantryKey": "spinach"
+      }
+    ],
+    "steps": [
+      "Boil the potatoes.",
+      "Chop the onion and garlic and soften in the oil, then stir in the tomato purée.",
+      "Add the crushed tomatoes, cream and oregano and simmer for five minutes.",
+      "Lay the salmon in the sauce, cover and cook gently for 8–10 minutes until just done. Stir in the spinach and season with salt and pepper.",
+      "Pack with the potatoes. Chill quickly and eat within 3 days, reheating gently. The sauce freezes well; salmon can be frozen but may turn a little drier."
+    ],
+    "steps_sv": [
+      "Koka potatisen.",
+      "Hacka lök och vitlök och fräs mjuka i oljan. Rör ner tomatpurén.",
+      "Tillsätt krossade tomater, grädde och oregano och låt sjuda i fem minuter.",
+      "Lägg ner laxen i såsen, lägg på lock och låt sjuda försiktigt i 8–10 minuter tills den precis är klar. Rör ner spenaten och smaka av med salt och peppar.",
+      "Packa med potatisen. Kyl snabbt och ät inom 3 dagar. Värm försiktigt. Såsen går bra att frysa. Lax kan frysas men kan bli något torrare."
+    ],
+    "calories": 731,
+    "proteinG": 48.3,
+    "carbsG": 45.6,
+    "fatG": 37.3,
+    "fiberG": 6.7,
+    "micros": {
+      "sodiumMg": 301,
+      "potassiumMg": 2165,
+      "ironMg": 2.9,
+      "calciumMg": 142,
+      "vitaminDUg": 16.1,
+      "vitaminB12Ug": 6.6
+    },
+    "image": "recipe-prep-salmon-tomato-cream-potatoes"
   }
 ]
