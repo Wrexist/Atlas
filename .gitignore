@@ -68,3 +68,6 @@ scripts/peptide-dataset/.venv/
 scripts/peptide-dataset/peptides.json
 scripts/peptide-dataset/peptides.partial.json
 scripts/peptide-dataset/build.log
+
+# Recipe image generation working files
+tools/recipe-images/raw/
