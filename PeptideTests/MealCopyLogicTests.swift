@@ -28,6 +28,9 @@ final class MealCopyLogicTests: XCTestCase {
         )
     }
 
+    /// A "now" after every target day, so no copy is clamped.
+    private var later: Date { date(30, 12, month: 11) }
+
     private var history: [MealEntry] {
         [
             entry("Oats", at: date(27, 7, 30), category: .breakfast),
@@ -39,7 +42,7 @@ final class MealCopyLogicTests: XCTestCase {
 
     func test_copiedMeals_oneCategory_copiesOnlyThatMealAtSameClockTime() {
         let copies = LifestyleDataLogic.copiedMeals(
-            from: date(27, 0), to: date(28, 9), category: .breakfast, in: history, calendar: calendar
+            from: date(27, 0), to: date(28, 9), category: .breakfast, in: history, now: later, calendar: calendar
         )
 
         XCTAssertEqual(copies.map(\.name), ["Oats", "Coffee"])
@@ -49,7 +52,7 @@ final class MealCopyLogicTests: XCTestCase {
 
     func test_copiedMeals_wholeDay_copiesEveryMealOldestFirst() {
         let copies = LifestyleDataLogic.copiedMeals(
-            from: date(27, 0), to: date(28, 0), in: history, calendar: calendar
+            from: date(27, 0), to: date(28, 0), in: history, now: later, calendar: calendar
         )
 
         XCTAssertEqual(copies.map(\.name), ["Oats", "Coffee", "Salad"])
@@ -58,7 +61,7 @@ final class MealCopyLogicTests: XCTestCase {
 
     func test_copiedMeals_acrossMonthBoundary_shiftsDateKeepsTime() {
         let copies = LifestyleDataLogic.copiedMeals(
-            from: date(26, 0), to: date(1, 0, month: 11), category: .dinner, in: history, calendar: calendar
+            from: date(26, 0), to: date(1, 0, month: 11), category: .dinner, in: history, now: later, calendar: calendar
         )
 
         XCTAssertEqual(copies.map(\.date), [date(1, 19, month: 11)])
@@ -67,7 +70,7 @@ final class MealCopyLogicTests: XCTestCase {
     func test_copiedMeals_givesNewIDsAndKeepsMacros() {
         let source = history
         let copies = LifestyleDataLogic.copiedMeals(
-            from: date(27, 0), to: date(28, 0), in: source, calendar: calendar
+            from: date(27, 0), to: date(28, 0), in: source, now: later, calendar: calendar
         )
 
         XCTAssertTrue(Set(copies.map(\.id)).isDisjoint(with: source.map(\.id)))
@@ -77,10 +80,10 @@ final class MealCopyLogicTests: XCTestCase {
 
     func test_copiedMeals_emptySourceDay_returnsNothing() {
         let wholeDay = LifestyleDataLogic.copiedMeals(
-            from: date(20, 0), to: date(28, 0), in: history, calendar: calendar
+            from: date(20, 0), to: date(28, 0), in: history, now: later, calendar: calendar
         )
         let missingMeal = LifestyleDataLogic.copiedMeals(
-            from: date(27, 0), to: date(28, 0), category: .snack, in: history, calendar: calendar
+            from: date(27, 0), to: date(28, 0), category: .snack, in: history, now: later, calendar: calendar
         )
 
         XCTAssertTrue(wholeDay.isEmpty)
@@ -94,15 +97,24 @@ final class MealCopyLogicTests: XCTestCase {
     func test_copiedMeals_runTwice_copiesAgainWithDistinctIDs() {
         var updated = history
         let first = LifestyleDataLogic.copiedMeals(
-            from: date(27, 0), to: date(28, 0), category: .lunch, in: updated, calendar: calendar
+            from: date(27, 0), to: date(28, 0), category: .lunch, in: updated, now: later, calendar: calendar
         )
         updated += first
         let second = LifestyleDataLogic.copiedMeals(
-            from: date(27, 0), to: date(28, 0), category: .lunch, in: updated, calendar: calendar
+            from: date(27, 0), to: date(28, 0), category: .lunch, in: updated, now: later, calendar: calendar
         )
 
         XCTAssertEqual(first.count, 1)
         XCTAssertEqual(second.count, 1)
         XCTAssertNotEqual(first.first?.id, second.first?.id)
+    }
+
+    func test_copiedMeals_ontoToday_neverLandsAfterNow() {
+        let now = date(28, 9)
+        let copies = LifestyleDataLogic.copiedMeals(
+            from: date(27, 0), to: date(28, 0), in: history, now: now, calendar: calendar
+        )
+
+        XCTAssertEqual(copies.map(\.date), [date(28, 7, 30), date(28, 7, 45), now])
     }
 }

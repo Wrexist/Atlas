@@ -324,16 +324,20 @@ enum LifestyleDataLogic {
         to targetDay: Date,
         category: MealCategory? = nil,
         in history: [MealEntry],
+        now: Date = Date(),
         calendar: Calendar = .current
     ) -> [MealEntry] {
         let target = calendar.startOfDay(for: targetDay)
+        // A copy onto today never lands later than now, so a lunch copied at
+        // 08:00 doesn't show up (or reach Apple Health) as a future meal.
+        let latestAllowed = calendar.isDate(target, inSameDayAs: now) ? now : .distantFuture
         return history
             .filter { entry in
                 calendar.isDate(entry.date, inSameDayAs: sourceDay)
                     && (category == nil || entry.category == category)
             }
             .sorted { $0.date < $1.date }
-            .map { relogged($0, at: sameClockTime(as: $0.date, on: target, calendar: calendar)) }
+            .map { relogged($0, at: min(sameClockTime(as: $0.date, on: target, calendar: calendar), latestAllowed)) }
     }
 
     private static func sameClockTime(as date: Date, on day: Date, calendar: Calendar) -> Date {
