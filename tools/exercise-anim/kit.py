@@ -106,7 +106,8 @@ def interp(keys, t, fn):
 
 
 def arm_pose(keys, t):
-    return interp(keys, t, lambda a, b, u: {k: slerp_dir(a[k], b[k], u) for k in ("upper", "fore", "thumb")})
+    return interp(keys, t, lambda a, b, u: dict({k: slerp_dir(a[k], b[k], u) for k in ("upper", "fore", "thumb")},
+                                                 flex=a.get("flex", 0) + (b.get("flex", 0) - a.get("flex", 0)) * u))
 
 
 def body_pose(keys, t):
@@ -451,8 +452,16 @@ class PerHand:
             self.h[s].matrix_world = A.holder_for_hand(s, wrist, F, thumb)
         self.arms.set_poles(fr)
         A.update()
-        for s, _ in SIDES:
+        for s, sx in SIDES:
             A.straighten_wrist(s, self.h[s])
+            flex = self.arms.pose(fr, s).get("flex", 0)
+            if flex:                                    # wrist curls: bend the hand about the thumb axis
+                _, _, F, thumb = self.arms.target(fr, s, sx)
+                axis = (thumb - thumb.dot(F) * F).normalized()
+                w = A.head("wrist." + s)
+                self.h[s].matrix_world = Matrix.Translation(w) @ Matrix.Rotation(math.radians(flex * sx), 4, axis) @ \
+                    Matrix.Translation(-w) @ self.h[s].matrix_world
+        A.update()
 
     def grip(self):
         for s in self.hands:

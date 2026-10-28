@@ -58,9 +58,24 @@ def has(n, *words):
 
 
 # ---------------------------------------------------------------- templates per family
+def wrist_curl(n, eq):
+    """Forearms resting forward over the thighs; only the wrists move, from hanging down to curled up."""
+    if eq != "dumbbell" or has(n, "behind|cable|pulley"):
+        return None
+    arm = lambda flex: dict(key((0.16, 0.45, -1), (0.0, 1, -0.15), (-1, 0, 0)), flex=flex)
+    spec = {"posture": {"type": "seat", "lean": 30, "knees_apart": 0.3}, "implement": "dumbbell",
+            "arm": {"frame": "world", "keys": [arm(-50), arm(55)], "elbow_out": [1, 0, 0]}, "camera": {"az": 60, "el": 10}}
+    if has(n, "one-arm"):
+        spec["arm"].update(sides="L", rest=key((0.16, 0.45, -1), (0.0, 1, -0.15), (-1, 0, 0)))
+        spec["hands"] = "L"
+    return spec
+
+
 def curl(n, eq):
+    if has(n, "wrist curl"):
+        return wrist_curl(n, eq)
     if has(n, "wrist|finger"):
-        return None     # the rig keeps wrists straight, so these would play as a biceps curl
+        return None
     thumb = (0, 1, 0) if has(n, "hammer", "cross body", "rope") else (-1, 0, 0) if has(n, "reverse") else (1, 0, 0)
     if has(n, "preacher") and not has(n, "machine|cable|one arm|reverse|hammer|zottman"):
         keys = [key((0.12, 0.75, -0.65), fore(55), thumb), key((0.12, 0.75, -0.65), fore(160), thumb)]
