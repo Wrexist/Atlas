@@ -1071,6 +1071,13 @@ FAMILY_TEMPLATES = {"windmill": windmill, "strongman": strongman, "olympic": oly
 
 # Same movement as an exercise a template already covers: render that one's spec under this name.
 ALIASES = {
+    "Adductor/Groin": "Groin and Back Stretch",
+    "Behind Head Chest Stretch": "Chest And Front Of Shoulder Stretch",
+    "Dynamic Chest Stretch": "Elbows Back",
+    "Seated Overhead Stretch": "Overhead Stretch",
+    "Seated Calf Stretch": "Seated Hamstring and Calf Stretch",
+    "Quad Stretch": "Intermediate Hip Flexor and Quad Stretch",
+    "Lying Glute": "One Knee To Chest",
     "One-Arm Medicine Ball Slam": "Overhead Slam",
     "One Arm Lat Pulldown": "Close-Grip Front Lat Pulldown",
     "Hyperextensions With No Hyperextension Bench": "Hyperextensions (Back Extensions)",
