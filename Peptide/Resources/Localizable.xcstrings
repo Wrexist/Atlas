@@ -43294,6 +43294,16 @@
           }
         }
       }
+    },
+    "Journal, %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagbok, %@"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
