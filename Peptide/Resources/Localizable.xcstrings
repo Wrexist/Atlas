@@ -43294,6 +43294,27 @@
           }
         }
       }
+    },
+    "%lld h": {
+      "comment": "Custom fast length on the lock screen, e.g. 20 h",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld h"
+          }
+        }
+      }
+    },
+    "Fast ID": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fast-ID"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

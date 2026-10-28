@@ -61,6 +61,16 @@
         }
       }
     },
+    "%@ left": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ kvar"
+          }
+        }
+      }
+    },
     "%lld": {
       "localizations": {
         "sv": {
@@ -343,6 +353,16 @@
         }
       }
     },
+    "End fast": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avsluta fastan"
+          }
+        }
+      }
+    },
     "Entry ID": {
       "localizations": {
         "sv": {
@@ -363,6 +383,56 @@
         }
       }
     },
+    "Fast ID": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fast-ID"
+          }
+        }
+      }
+    },
+    "Fast ended": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fastan avslutad"
+          }
+        }
+      }
+    },
+    "Fasting": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fasta"
+          }
+        }
+      }
+    },
+    "Fasting %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fasta %@"
+          }
+        }
+      }
+    },
+    "Fasting · %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fasta · %@"
+          }
+        }
+      }
+    },
     "Fat": {
       "localizations": {
         "sv": {
@@ -379,6 +449,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ny vecka"
+          }
+        }
+      }
+    },
+    "Goal %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mål %@"
+          }
+        }
+      }
+    },
+    "Goal at %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mål kl. %@"
+          }
+        }
+      }
+    },
+    "Goal reached": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Målet nått"
+          }
+        }
+      }
+    },
+    "Goal reached · keep going or end your fast": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Målet nått · fortsätt eller avsluta fastan"
           }
         }
       }
@@ -599,6 +709,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Inga pass än"
+          }
+        }
+      }
+    },
+    "Not fasting": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fastar inte"
           }
         }
       }
@@ -873,6 +993,16 @@
         }
       }
     },
+    "Tap to start a fast.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck för att starta en fasta."
+          }
+        }
+      }
+    },
     "Tap to start your first session.": {
       "localizations": {
         "sv": {
@@ -1033,6 +1163,16 @@
         }
       }
     },
+    "Your current fast: time fasted, time left and your goal.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Din pågående fasta: tid fastad, tid kvar och ditt mål."
+          }
+        }
+      }
+    },
     "Your first finished session lands here.": {
       "localizations": {
         "sv": {
@@ -1179,6 +1319,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "förfluten"
+          }
+        }
+      }
+    },
+    "fasted": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fastat"
           }
         }
       }
