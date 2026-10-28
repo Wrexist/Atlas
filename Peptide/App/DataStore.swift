@@ -2258,8 +2258,13 @@ final class DataStore {
     }
 
     /// Supplement reminders share the daily-reminder pass and namespace.
+    /// Doses are re-planned after it so they fit the 64-request budget
+    /// around however many supplement reminders are now pending.
     private func rescheduleSupplementReminders() {
-        Task { await DailyReminderScheduler.reconcile(dataStore: self) }
+        Task {
+            await DailyReminderScheduler.reconcile(dataStore: self)
+            rescheduleNotificationsIfEnabled()
+        }
     }
 
     // MARK: - Momentum / Atlas Score

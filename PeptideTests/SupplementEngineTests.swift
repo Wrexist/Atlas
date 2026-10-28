@@ -193,6 +193,24 @@ final class SupplementEngineTests: XCTestCase {
         XCTAssertEqual(merged.supplements.first?.takenDays, ["2026-10-26", "2026-10-27"])
     }
 
+    func test_rebasing_bothDevicesCheckedOffDifferentDays_keepsBothAndLocalUncheck() {
+        let base = supplement(taken: [25, 26])
+        var mine = base
+        mine.takenDays = ["2026-10-25", "2026-10-28"]
+        var theirs = base
+        theirs.takenDays = ["2026-10-25", "2026-10-26", "2026-10-27"]
+        var baseline = UserProfile.fresh
+        baseline.supplements = [base]
+        var local = baseline
+        local.supplements = [mine]
+        var remote = baseline
+        remote.supplements = [theirs]
+
+        let merged = ProfileMergeEngine.rebasing(local: local, baseline: baseline, remote: remote)
+
+        XCTAssertEqual(merged.supplements.first?.takenDays, ["2026-10-25", "2026-10-27", "2026-10-28"])
+    }
+
     func test_profileDecode_olderProfileWithoutSupplements_decodesEmpty() throws {
         var profile = UserProfile.fresh
         profile.supplements = [supplement(taken: [28])]
