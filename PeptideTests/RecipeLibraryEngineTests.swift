@@ -94,7 +94,7 @@ final class RecipeLibraryEngineTests: XCTestCase {
         let library = try bundledLibrary()
         XCTAssertGreaterThanOrEqual(library.count, 55)
         XCTAssertEqual(Set(library.map(\.id)).count, library.count, "Recipe ids must be unique")
-        XCTAssertGreaterThanOrEqual(library.filter(\.mealPrep).count, 15)
+        XCTAssertGreaterThanOrEqual(library.filter(\.mealPrep).count, 60)
         for recipe in library {
             XCTAssertEqual(recipe.image, "recipe-\(recipe.id)")
             XCTAssertFalse(recipe.ingredients.isEmpty, recipe.id)
