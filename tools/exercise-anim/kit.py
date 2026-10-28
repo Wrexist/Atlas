@@ -496,6 +496,34 @@ def cable_handle(h):
     A.cylinder(h, A.DB_R, 0.12, mat=A.PLATE, verts=48)
 
 
+class Ball(PerHand):
+    """A medicine ball held between both palms: the hands follow their key poses and the ball sits between them."""
+    R = 0.12
+
+    def __init__(self, spec, arms, impl):
+        super().__init__(spec, arms, "none")
+        self.ball = A.holder("ball")
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=self.R, segments=48, ring_count=24, location=(0, 0, 0))
+        o = bpy.context.object
+        o.data.materials.append(A.PLATE)
+        bpy.ops.object.shade_smooth()
+        o.parent = self.ball
+        o.matrix_parent_inverse = Matrix.Identity(4)
+
+    def place(self, fr):
+        super().place(fr)
+        ends = [self.arms.target(fr, s, sx) for s, sx in SIDES]          # (elbow, wrist, forearm dir, thumb)
+        palms = [w + F * 0.05 for _, w, F, _ in ends]
+        self.ball.location = (palms[0] + palms[1]) / 2
+
+    def key(self, fr):
+        super().key(fr)
+        A.key_holder(self.ball, fr)
+
+    def meshes(self):
+        return super().meshes() + list(self.ball.children)
+
+
 class Cables:
     """A cable from a pulley (`cable.anchor`, torso-frame offset from the shoulders at frame 1) to each handle."""
 
@@ -1003,6 +1031,8 @@ def build(spec):
         props += gear.props
     elif impl in ("barbell", "ezbar", "cable_bar"):
         gear = Bar(spec, arms, impl)
+    elif impl == "ball":
+        gear = Ball(spec, arms, impl)
     else:
         gear = PerHand(spec, arms, impl)
     props += gear.cables.props if gear.cables else []

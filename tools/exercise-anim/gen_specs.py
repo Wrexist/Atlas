@@ -872,7 +872,40 @@ def cardio(n, eq):
     return None
 
 
+MB_CHEST = key((0.55, 0.45, -0.7), (-0.45, 0.85, 0.2), (0, 0, 1))
+MB_OUT = key((0.12, 1, -0.05), (0.1, 1, 0), (0, 0, 1))
+MB_OVERHEAD = key((0.25, 0.25, 0.93), (0.1, 0.25, 0.96), (0, -1, 0))
+MB_BEHIND = key((0.3, 0.1, 0.95), (0.1, -0.6, 0.8), (0, -1, 0))
+MB_LOW = key((0.15, 0.35, -0.93), (0.05, 0.3, -0.95), (0, 1, 0))
+
+
+def medball(n):
+    """Medicine ball throws: the ball stays between the palms through the throwing motion."""
+    def spec(body, arms, az=60, **extra):
+        return dict({"posture": {"type": "stand", "width": 0.16, "toe_out": 8}, "implement": "ball",
+                     "body": {"keys": body, "head_level": 0.8}, "arm": {"keys": arms, "elbow_out": [1, -0.3, 0]},
+                     "camera": {"az": az, "el": 6}}, **extra)
+    squat = {"drop": 0.3, "back": 0.08, "lean": 38}
+    if has(n, "^supine"):
+        return None
+    if has(n, "chest pass|^chest push"):
+        return spec([{"drop": 0.05}, {"lean": 8}], [MB_CHEST, MB_OUT])
+    if has(n, "slam"):
+        return spec([{"heel": 8}, squat], [MB_OVERHEAD, MB_LOW], az=50)
+    if has(n, "overhead throw"):
+        return spec([{"lean": -6}, {"lean": 10}], [MB_BEHIND, key((0.2, 0.9, 0.4), (0.1, 0.95, 0.3), (0, 0, 1))])
+    if has(n, "scoop throw|backward medicine ball"):
+        return spec([squat, {"heel": 10, "lean": -8}], [MB_LOW, MB_OVERHEAD], az=55)
+    if has(n, "full twist"):
+        return spec([{"twist": 0}, {"twist": 55}, {"twist": 0}, {"twist": -55}, {"twist": 0}],
+                    [key((0.4, 0.8, -0.45), (-0.3, 0.95, 0), (0, 0, 1))], az=20, cycle=True)
+    return None
+
+
 def plyo(n, eq):
+    ball = medball(n)
+    if ball:
+        return ball
     arms_down = key((0.1, 0.1, -1), (0.05, 0.15, -1), (0, 1, 0))
     arms_back = key((0.15, -0.6, -0.8), (0.1, -0.5, -0.85), (0, 1, 0))
     arms_up = key((0.15, 0.85, 0.5), (0.1, 0.8, 0.6), (0, 0, 1))
