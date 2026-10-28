@@ -1026,6 +1026,12 @@ FAMILY_TEMPLATES = {"strongman": strongman, "olympic": olympic, "cardio": cardio
 
 # Same movement as an exercise a template already covers: render that one's spec under this name.
 ALIASES = {
+    "One Arm Lat Pulldown": "Close-Grip Front Lat Pulldown",
+    "Hyperextensions With No Hyperextension Bench": "Hyperextensions (Back Extensions)",
+    "Dip Machine": "Dips - Triceps Version",
+    "Dumbbell Seated Box Jump": "Front Box Jump",
+    "Lateral Box Jump": "Front Box Jump",
+    "Side Standing Long Jump": "Standing Long Jump",
     "Barbell Curls Lying Against An Incline": "Barbell Curl",
     "One-Legged Cable Kickback": "Rear Leg Raises",
     "Hack Squat": "Smith Machine Squat",
