@@ -44492,6 +44492,256 @@
           }
         }
       }
+    },
+    "%@ a week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ per vecka"
+          }
+        }
+      }
+    },
+    "%@ h a night": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ h per natt"
+          }
+        }
+      }
+    },
+    "%lld g a day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld g per dag"
+          }
+        }
+      }
+    },
+    "%lld kcal a day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld kcal per dag"
+          }
+        }
+      }
+    },
+    "%lld of %lld planned": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld av %lld planerade"
+          }
+        }
+      }
+    },
+    "%lld vs usual %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld mot vanliga %lld"
+          }
+        }
+      }
+    },
+    "Aim for at least 7 hours of sleep a night": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sikta på minst 7 timmars sömn per natt"
+          }
+        }
+      }
+    },
+    "Book your %lld workouts in the calendar now": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Boka in dina %lld pass i kalendern redan nu"
+          }
+        }
+      }
+    },
+    "Get protein into every meal to reach your target": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Få in protein i varje måltid för att nå målet"
+          }
+        }
+      }
+    },
+    "Good pace, keep it up": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bra tempo, behåll det"
+          }
+        }
+      }
+    },
+    "Land closer to your calorie target on more days": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hamna närmare kalorimålet fler dagar"
+          }
+        }
+      }
+    },
+    "Last week: %@ h": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Förra veckan: %@ h"
+          }
+        }
+      }
+    },
+    "Last week: %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Förra veckan: %lld"
+          }
+        }
+      }
+    },
+    "Logged %lld of 7 days": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loggat %lld av 7 dagar"
+          }
+        }
+      }
+    },
+    "No weigh-ins in two weeks": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga vägningar på två veckor"
+          }
+        }
+      }
+    },
+    "On target %@ of logged days": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I mål %@ av loggade dagar"
+          }
+        }
+      }
+    },
+    "Training days: %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Träningsdagar: %lld"
+          }
+        }
+      }
+    },
+    "Weekly check-in": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veckoavstämning"
+          }
+        }
+      }
+    },
+    "Weigh in at least 3 mornings for a clearer trend": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Väg dig minst 3 morgnar för en tydligare trend"
+          }
+        }
+      }
+    },
+    "Weigh-ins this week: %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vägningar i veckan: %lld"
+          }
+        }
+      }
+    },
+    "Weight has held steady for two weeks: add %lld kcal a day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vikten har stått still i två veckor: lägg till %lld kcal per dag"
+          }
+        }
+      }
+    },
+    "Weight has held steady for two weeks: cut %lld kcal a day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vikten har stått still i två veckor: dra ner %lld kcal per dag"
+          }
+        }
+      }
+    },
+    "Weight trend, %@, %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vikttrend, %@, %@"
+          }
+        }
+      }
+    },
+    "You're gaining fast: cut %lld kcal a day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du går upp snabbt: dra ner %lld kcal per dag"
+          }
+        }
+      }
+    },
+    "You're losing fast: add %lld kcal a day to protect muscle": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du går ner snabbt: lägg till %lld kcal per dag för att skydda musklerna"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

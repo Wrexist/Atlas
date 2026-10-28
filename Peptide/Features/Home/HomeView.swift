@@ -32,6 +32,11 @@ struct HomeView: View {
     /// Set when the user taps the Today recap card; drives the
     /// navigation push into the detail view.
     @State private var detailWeekStart: String?
+    /// Rule-based weekly check-in, shown under the recap on Sundays and
+    /// Mondays and inside the current week's recap. Rebuilt with the
+    /// derived models; `checkInSleep` is the Health part, fetched apart.
+    @State private var weeklyCheckIn: WeeklyCheckIn?
+    @State private var checkInSleep: [(date: Date, value: Double)] = []
     /// Cycle-milestone prompt state. Both are nil unless the
     /// CycleMilestoneService has surfaced a pending (protocol,
     /// milestone) pair on appear; the prompt sheet routes into the
@@ -262,6 +267,21 @@ struct HomeView: View {
         )
         // Inside an animation so the cards' numericText digits roll.
         AppAnimation.with(AppAnimation.springSmooth) { derived = next }
+        refreshWeeklyCheckIn()
+    }
+
+    private func refreshWeeklyCheckIn() {
+        let next = dataStore.weeklyCheckIn(sleepHours: checkInSleep)
+        AppAnimation.with(AppAnimation.springSmooth) { weeklyCheckIn = next }
+    }
+
+    /// Sleep nights for the check-in. Health-backed, so it moves without a
+    /// store mutation and refreshes with the other HealthKit reads.
+    private func refreshCheckInSleep() async {
+        checkInSleep = dataStore.profile.healthConnected
+            ? await HealthKitService.shared.dailySleepHours(days: 14)
+            : []
+        refreshWeeklyCheckIn()
     }
 
     /// Rebuilds everything that depends on the clock rather than the store —
@@ -273,6 +293,7 @@ struct HomeView: View {
         Task { await refreshHeroSnapshot() }
         Task { await refreshHealthRange() }
         Task { await refreshSteps() }
+        Task { await refreshCheckInSleep() }
     }
 
     /// Nil without a Health connection, or when Health has no step data
@@ -711,6 +732,7 @@ struct HomeView: View {
                 Task { await loadWeeklySummary(forceRefresh: false) }
                 Task { await refreshHeroSnapshot() }
                 Task { await refreshHealthRange() }
+                Task { await refreshCheckInSleep() }
             }
             .onChange(of: notificationService.lastReport.droppedProtocolIDs) { _, _ in
                 notificationBannerDismissed = false
@@ -730,7 +752,11 @@ struct HomeView: View {
                         summary: binding,
                         onRefresh: isCurrentWeek(weekStart)
                             ? { await loadWeeklySummary(forceRefresh: true) }
-                            : nil
+                            : nil,
+                        // The check-in is about the last seven days, so it
+                        // belongs only on this week's recap.
+                        checkIn: isCurrentWeek(weekStart) ? weeklyCheckIn : nil,
+                        unit: dataStore.profile.bodyMetrics.unit
                     )
                 } else {
                     // The summary was deleted between push and render —
@@ -890,6 +916,15 @@ struct HomeView: View {
                 },
                 onRetry: { Task { await loadWeeklySummary(forceRefresh: true) } }
             )
+            .sectionAppear(index: 3)
+        }
+        if let weeklyCheckIn, WeeklyCheckInEngine.isCheckInDay(Date(), calendar: .current) {
+            WeeklyCheckInCard(
+                checkIn: weeklyCheckIn,
+                unit: dataStore.profile.bodyMetrics.unit,
+                onLogWeight: { showWeightSheet = true }
+            )
+            .transition(.opacity.combined(with: .scale(0.98)))
             .sectionAppear(index: 3)
         }
     }
