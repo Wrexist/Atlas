@@ -317,6 +317,12 @@ def row(n, eq):
         return {"posture": {"type": "seat", "feet_fwd": 1.5, "lean": 8}, "implement": "cable",
                 "cable": {"anchor": [0, 1.6, -0.45]}, "arm": {"keys": keys, "elbow_out": [0.4, -0.3, -1]},
                 "camera": {"az": 80, "el": 8}}
+    if has(n, "^inverted row|bodyweight mid row"):        # body hangs face up from a fixed bar, heels on the floor
+        return {"posture": {"type": "plank", "alpha": 155, "toe_pitch": -20}, "implement": "pullup_bar",
+                "body": {"keys": [{"alpha": 0}, {"alpha": -18}], "head_level": 0},
+                "arm": {"frame": "world", "grip": 0.3, "palm": [0, -1, 0],
+                        "keys": [key((0.26, 0.2, 1), (0.06, 0.2, 1), (-1, 0, 0))], "elbow_out": [0.8, 0.3, -0.3]},
+                "camera": {"az": 110, "el": 12}}
     if has(n, "inverted|renegade|landmine|machine|lying|incline|chest supported|"
            "alternating|gorilla|meadows|sled|plate|leverage|elevated|face|suspended|bodyweight|shotgun|rope|"
            "kneeling|pulley|upright|iso"):
