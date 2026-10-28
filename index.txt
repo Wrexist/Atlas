@@ -1,5 +1,6 @@
 3_4_Sit-Up
 90_90_Hamstring
+Adductor_Groin
 Advanced_Kettlebell_Windmill
 Alternate_Hammer_Curl
 Alternate_Heel_Touchers
@@ -41,6 +42,7 @@ Barbell_Squat
 Barbell_Squat_To_A_Bench
 Barbell_Step_Ups
 Barbell_Walking_Lunge
+Behind_Head_Chest_Stretch
 Bench_Dips
 Bench_Jump
 Bench_Press_-_Powerlifting
@@ -182,6 +184,7 @@ Dumbbell_Squat
 Dumbbell_Squat_To_A_Bench
 Dumbbell_Step_Ups
 Dumbbell_Tricep_Extension_-Pronated_Grip
+Dynamic_Chest_Stretch
 EZ-Bar_Curl
 EZ-Bar_Skullcrusher
 Elbow_to_Knee
@@ -309,6 +312,7 @@ Lying_Cambered_Barbell_Row
 Lying_Close-Grip_Barbell_Triceps_Extension_Behind_The_Head
 Lying_Close-Grip_Barbell_Triceps_Press_To_Chin
 Lying_Dumbbell_Tricep_Extension
+Lying_Glute
 Lying_Hamstring
 Lying_Leg_Curls
 Lying_Rear_Delt_Raise
@@ -343,6 +347,7 @@ One-Arm_Kettlebell_Military_Press_To_The_Side
 One-Arm_Kettlebell_Push_Press
 One-Arm_Kettlebell_Row
 One-Arm_Long_Bar_Row
+One-Arm_Medicine_Ball_Slam
 One-Arm_Side_Laterals
 One-Legged_Cable_Kickback
 One_Arm_Chin-Up
@@ -390,6 +395,7 @@ Push_Up_to_Side_Plank
 Pushups
 Pushups_Close_and_Wide_Hand_Positions
 Pyramid
+Quad_Stretch
 Quick_Leap
 Rack_Pull_with_Bands
 Rack_Pulls
@@ -434,6 +440,7 @@ Seated_Bent-Over_Two-Arm_Dumbbell_Triceps_Extension
 Seated_Cable_Rows
 Seated_Cable_Shoulder_Press
 Seated_Calf_Raise
+Seated_Calf_Stretch
 Seated_Close-Grip_Concentration_Barbell_Curl
 Seated_Dumbbell_Curl
 Seated_Dumbbell_Inner_Biceps_Curl
@@ -448,6 +455,7 @@ Seated_Leg_Tucks
 Seated_One-Arm_Dumbbell_Palms-Down_Wrist_Curl
 Seated_One-Arm_Dumbbell_Palms-Up_Wrist_Curl
 Seated_One-arm_Cable_Pulley_Rows
+Seated_Overhead_Stretch
 Seated_Side_Lateral_Raise
 Seated_Triceps_Press
 See-Saw_Press_Alternating_Side_Press
