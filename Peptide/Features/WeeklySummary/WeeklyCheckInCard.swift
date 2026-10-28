@@ -378,26 +378,24 @@ private struct ProgressBar: View {
     }
 }
 
+private let previewTrend: [WeeklyCheckIn.Point] = (0..<10).map { (day: Int) -> WeeklyCheckIn.Point in
+    WeeklyCheckIn.Point(date: Date.now.addingTimeInterval(Double(day) * 86_400), kg: 80.4 - Double(day) * 0.07)
+}
+
+private let previewOnTrack = WeeklyCheckIn(
+    weight: WeeklyCheckIn.Weight(currentKg: 79.8, changeKgPerWeek: -0.4, weighInsThisWeek: 5, trend: previewTrend),
+    nutrition: WeeklyCheckIn.Nutrition(
+        loggedDays: 6, averageKcal: 2050, previousAverageKcal: 2200, targetKcal: 2000,
+        kcalAdherence: 0.83, averageProteinG: 152, targetProteinG: 150, proteinAdherence: 0.67
+    ),
+    training: WeeklyCheckIn.Training(days: 3, previousDays: 4, goal: 4, goalSource: .planned),
+    sleep: WeeklyCheckIn.Sleep(averageHours: 7.4, previousAverageHours: 6.9),
+    suggestion: .planWorkouts(goal: 4)
+)
+
 #Preview("On track") {
     ScrollView {
-        WeeklyCheckInCard(
-            checkIn: WeeklyCheckIn(
-                weight: .init(
-                    currentKg: 79.8,
-                    changeKgPerWeek: -0.4,
-                    weighInsThisWeek: 5,
-                    trend: (0..<10).map { .init(date: .now.addingTimeInterval(Double($0) * 86_400), kg: 80.4 - Double($0) * 0.07) }
-                ),
-                nutrition: .init(
-                    loggedDays: 6, averageKcal: 2050, previousAverageKcal: 2200, targetKcal: 2000,
-                    kcalAdherence: 0.83, averageProteinG: 152, targetProteinG: 150, proteinAdherence: 0.67
-                ),
-                training: .init(days: 3, previousDays: 4, goal: 4, goalSource: .planned),
-                sleep: .init(averageHours: 7.4, previousAverageHours: 6.9),
-                suggestion: .planWorkouts(goal: 4)
-            ),
-            unit: .metric
-        )
+        WeeklyCheckInCard(checkIn: previewOnTrack, unit: .metric)
         .padding(Spacing.screenPadding)
     }
     .background(AppColor.background)
