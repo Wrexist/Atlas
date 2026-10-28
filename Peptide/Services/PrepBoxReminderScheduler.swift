@@ -31,6 +31,7 @@ enum PrepBoxReminderScheduler {
         do {
             try await UNUserNotificationCenter.current()
                 .add(UNNotificationRequest(identifier: identifier, content: content, trigger: trigger))
+            NotificationService.shared.trackExternalReminder(identifier, isPending: true)
         } catch {
             AppLog.notifications.error("Prep box reminder add failed: \(error.localizedDescription, privacy: .public)")
         }
@@ -38,6 +39,7 @@ enum PrepBoxReminderScheduler {
 
     static func cancel() {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
+        NotificationService.shared.trackExternalReminder(identifier, isPending: false)
     }
 
     private static var isAuthorised: Bool {
