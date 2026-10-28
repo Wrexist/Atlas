@@ -43612,6 +43612,86 @@
           }
         }
       }
+    },
+    "%@ / %@ steps": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ / %@ steg"
+          }
+        }
+      }
+    },
+    "%@ of %@ steps": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ av %@ steg"
+          }
+        }
+      }
+    },
+    "%@ short of the goal": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ kvar till målet"
+          }
+        }
+      }
+    },
+    "%@ to go": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ kvar"
+          }
+        }
+      }
+    },
+    "Counted from Apple Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Räknas från Apple Hälsa"
+          }
+        }
+      }
+    },
+    "Daily step goal": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagligt stegmål"
+          }
+        }
+      }
+    },
+    "Step goal reached": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stegmålet är nått"
+          }
+        }
+      }
+    },
+    "Today checks off steps once you reach it": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idag bockas stegen av när du når målet"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

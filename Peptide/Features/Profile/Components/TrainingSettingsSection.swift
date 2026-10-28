@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// The settings a training-first user reaches for most — display units,
-/// the rest timer's fallback length, auto-progression, and the plates and
-/// bars the plate calculator loads — surfaced near the top of Profile
+/// the daily step goal, the rest timer's fallback length, auto-progression,
+/// and the plates and bars the plate calculator loads — surfaced near the top of Profile
 /// instead of at the bottom of the general Settings card.
 struct TrainingSettingsSection: View {
     @Environment(DataStore.self) private var dataStore
@@ -20,6 +20,10 @@ struct TrainingSettingsSection: View {
                     .onChange(of: dataStore.profile.bodyMetrics.unit) { _, _ in
                         dataStore.persistProfile()
                     }
+
+                Divider().overlay(AppColor.glassBorder)
+
+                StepGoalRow(goal: stepGoalBinding)
 
                 Divider().overlay(AppColor.glassBorder)
 
@@ -83,6 +87,17 @@ struct TrainingSettingsSection: View {
         )
     }
 
+    private var stepGoalBinding: Binding<Int> {
+        Binding(
+            get: { preferences.stepGoal },
+            set: { goal in
+                var updated = preferences
+                updated.dailyStepGoal = StepGoalEngine.clamped(goal)
+                dataStore.updateTrainingPreferences(updated)
+            }
+        )
+    }
+
     private var autoProgressionBinding: Binding<Bool> {
         Binding(
             get: { preferences.autoProgression },
@@ -116,6 +131,27 @@ private struct MeasurementUnitRow: View {
                 selected: $selection,
                 label: { $0 == .metric ? "Metric" : "Imperial" }
             )
+        }
+    }
+}
+
+/// The Health step count Today's checklist and Steps card count toward.
+private struct StepGoalRow: View {
+    @Binding var goal: Int
+
+    var body: some View {
+        SettingsPickerRow(
+            icon: "figure.walk",
+            title: "Daily step goal",
+            subtitle: "Today checks off steps once you reach it"
+        ) {
+            Stepper(value: $goal, in: StepGoalEngine.goalRange, step: StepGoalEngine.goalIncrement) {
+                Text("\(goal.formatted()) steps")
+                    .font(AppFont.subheadline.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+            .onChange(of: goal) { _, _ in Haptics.selection() }
         }
     }
 }
