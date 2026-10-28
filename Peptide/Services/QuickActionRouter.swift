@@ -109,12 +109,14 @@ final class AtlasAppDelegate: NSObject, UIApplicationDelegate {
         MainActor.assumeIsolated {
             PendingWorkoutActionStore.applyInProcess = { WorkoutActivityActionProcessor.drain() }
             PendingDoseLogStore.applyInProcess = { PendingDoseLogProcessor.drainAndReconcile() }
+            PendingFastEndStore.applyInProcess = { FastingActivityActionProcessor.drain() }
             registerDoseWindowCloseTask()
             workoutActionToken = WorkoutActivityActionProcessor.startObserving()
             doseLogToken = PendingDoseLogProcessor.startObserving()
             waterToken = QuickActionRouter.observePendingWater()
             WorkoutActivityActionProcessor.drain()
             let store = IntentDataStore.resolve()
+            FastingActivityActionProcessor.drain()
             PendingDoseLogProcessor.drain(into: store)
             QuickActionRouter.drainPendingWater(into: store)
             store.reconcileDoseLiveActivities()

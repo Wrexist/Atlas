@@ -172,6 +172,12 @@ struct PeptideApp: App {
                 // Starts the workout's activity if Live Activities were
                 // switched on, or a start failed, since the workout began.
                 WorkoutLiveActivityService.shared.reconcile(active: WorkoutSessionService.shared.activeSession)
+                // An End fast tapped on the lock screen while suspended,
+                // then a reload that restarts the fast's activity once
+                // iOS has ended it at its eight-hour limit, and keeps the
+                // fasting widget current.
+                FastingActivityActionProcessor.drain()
+                FastingStore.shared.load()
                 // Re-evaluate which scheduled doses are in their
                 // active window so the lock-screen Live Activities
                 // start / end without needing the user to open the

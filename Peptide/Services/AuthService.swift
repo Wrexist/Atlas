@@ -375,6 +375,8 @@ final class AuthService {
         // foods and recipes.
         NotificationService.shared.cancelAll()
         DoseLiveActivityService.shared.endAll()
+        FastingLiveActivityService.shared.endAll()
+        FastingWidgetPublisher.shared.clear()
         AchievementService.shared.eraseAll()
         Task {
             await BarcodeScanHistory.shared.removeAll()
