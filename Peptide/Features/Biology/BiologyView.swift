@@ -352,7 +352,8 @@ struct BiologyView: View {
         // overwrite the newer run's result when its reads land last.
         guard !Task.isCancelled else { return }
         resolved = fresh
-        if profile.healthConnected && storeService.isProUser {
+        // Not Pro-gated: the free sleep card reads wrist temperature too.
+        if profile.healthConnected {
             let unrequested = await HealthKitService.shared.hasUnrequestedReadTypes()
             guard !Task.isCancelled else { return }
             needsHealthUpgrade = unrequested
