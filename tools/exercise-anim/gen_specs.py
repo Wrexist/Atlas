@@ -1071,6 +1071,7 @@ FAMILY_TEMPLATES = {"windmill": windmill, "strongman": strongman, "olympic": oly
 
 # Same movement as an exercise a template already covers: render that one's spec under this name.
 ALIASES = {
+    "One-Arm Medicine Ball Slam": "Overhead Slam",
     "One Arm Lat Pulldown": "Close-Grip Front Lat Pulldown",
     "Hyperextensions With No Hyperextension Bench": "Hyperextensions (Back Extensions)",
     "Dip Machine": "Dips - Triceps Version",
