@@ -111,12 +111,52 @@
         }
       }
     },
+    "%@ / %@ steps": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ / %@ steg"
+          }
+        }
+      }
+    },
     "%@ mg/L": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "%@ mg/L"
+          }
+        }
+      }
+    },
+    "%@ of %@ steps": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ av %@ steg"
+          }
+        }
+      }
+    },
+    "%@ short of the goal": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ kvar till målet"
+          }
+        }
+      }
+    },
+    "%@ to go": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ kvar"
           }
         }
       }
@@ -6132,6 +6172,26 @@
         }
       }
     },
+    "Counted from Apple Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Räknas från Apple Hälsa"
+          }
+        }
+      }
+    },
+    "Daily step goal": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagligt stegmål"
+          }
+        }
+      }
+    },
     "Deep sleep": {
       "localizations": {
         "sv": {
@@ -6564,6 +6624,16 @@
         }
       }
     },
+    "Step goal reached": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stegmålet är nått"
+          }
+        }
+      }
+    },
     "Systolic": {
       "localizations": {
         "sv": {
@@ -6610,6 +6680,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Det här går inte att ångra."
+          }
+        }
+      }
+    },
+    "Today checks off steps once you reach it": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idag bockas stegen av när du når målet"
           }
         }
       }

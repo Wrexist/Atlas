@@ -21,6 +21,8 @@ enum TodayDayEngine {
         /// The check-in prompt; a past day's check-in shows in the overview and timeline.
         case wellness
         case movement
+        /// Health step count against the daily goal.
+        case steps
         case overview
         /// Goal countdown and Atlas Score — where the user stands now.
         case momentum
@@ -33,7 +35,7 @@ enum TodayDayEngine {
 
     /// Sections whose content is recorded per calendar day, so they can
     /// show any day. Everything else describes "now" and only shows today.
-    static let perDaySections: Set<Section> = [.habits, .checklist, .doses, .movement, .overview, .timeline]
+    static let perDaySections: Set<Section> = [.habits, .checklist, .doses, .movement, .steps, .overview, .timeline]
 
     static func isVisible(_ section: Section, isToday: Bool) -> Bool {
         isToday || perDaySections.contains(section)

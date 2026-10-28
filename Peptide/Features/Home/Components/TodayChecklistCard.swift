@@ -1,9 +1,10 @@
 import SwiftUI
 
-/// Today's "is the day logged?" card: meals, training, water, weight.
-/// Every open row is also its own shortcut — tap meals to scan, training
-/// to start, water to add a glass, weight to type today's number — so the
-/// card answers "what's left" and closes the gap in the same place.
+/// Today's "is the day logged?" card: meals, training, steps, water,
+/// weight. Every open row except steps is also its own shortcut — tap
+/// meals to scan, training to start, water to add a glass, weight to type
+/// today's number — so the card answers "what's left" and closes the gap
+/// in the same place. Steps fill from Health, so that row only reports.
 /// Without `onAction` it's a read-only record of a past day.
 struct TodayChecklistCard: View {
     let state: TodayChecklistEngine.State
@@ -18,17 +19,17 @@ struct TodayChecklistCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             HomeSectionHeader(eyebrow: dayTitle.map { LocalizedStringKey($0) } ?? "Today", title: "Daily checklist") {
-                Text("\(state.completedCount)/\(TodayChecklistEngine.Item.allCases.count)")
+                Text("\(state.completedCount)/\(state.items.count)")
                     .font(AppFont.scaled(16, weight: .semibold, design: .rounded))
                     .monospacedDigit()
                     .contentTransition(.numericText())
                     .foregroundStyle(allDone ? AppColor.accentPrimary : AppColor.textSecondary)
-                    .accessibilityLabel("\(state.completedCount) of \(TodayChecklistEngine.Item.allCases.count) done")
+                    .accessibilityLabel("\(state.completedCount) of \(state.items.count) done")
             }
 
             GlassCard {
                 VStack(spacing: 0) {
-                    ForEach(Array(TodayChecklistEngine.Item.allCases.enumerated()), id: \.element) { index, item in
+                    ForEach(Array(state.items.enumerated()), id: \.element) { index, item in
                         if index > 0 {
                             Divider()
                                 .overlay(AppColor.glassBorder)
@@ -76,6 +77,8 @@ struct TodayChecklistCard: View {
         switch item {
         case .meals:
             Double(state.loggedMainMealCount) / Double(TodayChecklistEngine.mainMeals.count)
+        case .steps:
+            state.stepProgress
         case .water:
             state.waterProgress
         case .training, .weight:
@@ -84,13 +87,13 @@ struct TodayChecklistCard: View {
     }
 
     private var allDone: Bool {
-        state.completedCount == TodayChecklistEngine.Item.allCases.count
+        state.completedCount == state.items.count
     }
 
     @ViewBuilder
     private func row(_ item: TodayChecklistEngine.Item) -> some View {
         let done = state.isDone(item)
-        if let onAction {
+        if let onAction, item != .steps {
             Button {
                 Haptics.impact(.light)
                 onAction(item)
@@ -105,6 +108,7 @@ struct TodayChecklistCard: View {
             rowContent(item, done: done)
                 .accessibilityElement(children: .combine)
                 .accessibilityValue(done ? Text("Done") : Text("Not done"))
+                .accessibilityHint(item == .steps ? hint(item) : Text(verbatim: ""))
         }
     }
 
@@ -152,6 +156,8 @@ struct TodayChecklistCard: View {
     @ViewBuilder
     private func trailing(_ item: TodayChecklistEngine.Item, done: Bool) -> some View {
         switch item {
+        case .steps:
+            EmptyView()
         case .water:
             Text("+\(unit.volumeLabel(TodayChecklistEngine.glassFluidOunces(for: unit)))")
                 .font(AppFont.scaled(13, weight: .semibold))
@@ -172,6 +178,7 @@ struct TodayChecklistCard: View {
         switch item {
         case .meals:    "fork.knife"
         case .training: "dumbbell.fill"
+        case .steps:    "figure.walk"
         case .water:    "drop.fill"
         case .weight:   "scalemass.fill"
         }
@@ -181,6 +188,7 @@ struct TodayChecklistCard: View {
         switch item {
         case .meals:    "Meals"
         case .training: state.isTrainingDay ? "Training" : "Rest day"
+        case .steps:    "Steps"
         case .water:    "Water"
         case .weight:   "Weigh-in"
         }
@@ -203,6 +211,9 @@ struct TodayChecklistCard: View {
             return state.isTrainingDay
                 ? String(localized: "On the plan today — tap to start")
                 : String(localized: "Recovery counts too")
+        case .steps:
+            let steps = Int(state.steps ?? 0)
+            return String(localized: "\(steps.formatted()) of \(state.stepGoal.formatted()) steps")
         case .water:
             let target = Double(TodayChecklistEngine.waterTargetOz)
             return String(localized: "\(unit.volumeLabel(state.waterFluidOunces)) of \(unit.volumeLabel(target))")
@@ -218,6 +229,7 @@ struct TodayChecklistCard: View {
         switch item {
         case .meals:    Text("Opens the meal scanner")
         case .training: Text("Opens Train")
+        case .steps:    Text("Counted from Apple Health")
         case .water:    Text("Adds a glass of water")
         case .weight:   Text("Opens weight entry")
         }

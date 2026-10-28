@@ -16,6 +16,7 @@ enum TodaySection: String, CaseIterable, Identifiable, Sendable {
     case doses = "doses"
     case wellness = "wellness"
     case movement = "movement"
+    case steps = "steps"
     case overview = "overview"
     case momentum = "momentum"
     case explore = "explore"
@@ -34,6 +35,7 @@ enum TodaySection: String, CaseIterable, Identifiable, Sendable {
         case .doses: String(localized: "Doses")
         case .wellness: String(localized: "Wellness check-in")
         case .movement: String(localized: "Movement")
+        case .steps: String(localized: "Steps")
         case .overview: String(localized: "Overview")
         case .momentum: String(localized: "Goal & Atlas Score")
         case .explore: String(localized: "Explore")
@@ -52,6 +54,7 @@ enum TodaySection: String, CaseIterable, Identifiable, Sendable {
         case .doses: "syringe"
         case .wellness: "heart.text.square"
         case .movement: "figure.run"
+        case .steps: "figure.walk"
         case .overview: "square.grid.2x2"
         case .momentum: "flag.checkered"
         case .explore: "text.magnifyingglass"
@@ -74,6 +77,7 @@ extension TodaySection {
         case .doses: .doses
         case .wellness: .wellness
         case .movement: .movement
+        case .steps: .steps
         case .overview: .overview
         case .momentum: .momentum
         case .explore: .explore

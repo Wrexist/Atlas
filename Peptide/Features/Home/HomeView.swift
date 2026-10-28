@@ -85,6 +85,10 @@ struct HomeView: View {
     /// The first successful range build of a HomeView only fills an
     /// empty snapshot — that's a launch, not a sync worth announcing.
     @State private var hasLoadedHealthRange = false
+    /// Health's daily step buckets, wide enough to cover the shown day.
+    /// Steps move without any store mutation, so they're fetched here
+    /// and folded into the checklist rather than read from `DataStore`.
+    @State private var stepBuckets: [(date: Date, value: Double)] = []
     /// The last one-tap water glass, kept so its toast can undo it.
     @State private var lastWaterLog: WaterLog?
     @State private var showWaterToast = false
@@ -115,6 +119,11 @@ struct HomeView: View {
     private struct DerivedKey: Equatable {
         let revision: Int
         let dayOffset: Int
+    }
+
+    private struct StepsKey: Equatable {
+        let dayOffset: Int
+        let healthConnected: Bool
     }
 
     /// Everything here describes the shown day, except `primaryReason`
@@ -247,6 +256,7 @@ struct HomeView: View {
                 profile: dataStore.profile,
                 consumption: dataStore.consumption(for: day),
                 trainedToday: workoutSummary.count > 0,
+                steps: steps(on: day),
                 now: reference
             )
         )
@@ -262,6 +272,27 @@ struct HomeView: View {
         refreshDerived()
         Task { await refreshHeroSnapshot() }
         Task { await refreshHealthRange() }
+        Task { await refreshSteps() }
+    }
+
+    /// Nil without a Health connection, or when Health has no step data
+    /// for the day — the checklist then drops its steps row.
+    private func steps(on day: Date) -> Double? {
+        guard dataStore.profile.healthConnected else { return nil }
+        return StepGoalEngine.steps(on: day, from: stepBuckets)
+    }
+
+    /// Fetches the step window for the shown day and folds the count
+    /// into the checklist without rebuilding the rest of Today.
+    private func refreshSteps() async {
+        if dataStore.profile.healthConnected {
+            stepBuckets = await HealthKitService.shared.dailySteps(days: StepGoalEngine.fetchDays(forDayOffset: dayOffset))
+        } else {
+            stepBuckets = []
+        }
+        let count = steps(on: selectedDay)
+        guard derived.checklist?.steps != count else { return }
+        AppAnimation.with(AppAnimation.springSmooth) { derived.checklist?.steps = count }
     }
 
     /// The week's finished sessions — one fetch that also covers today, so
@@ -632,6 +663,10 @@ struct HomeView: View {
             .task(id: DerivedKey(revision: dataStore.revision, dayOffset: dayOffset)) {
                 refreshDerived()
             }
+            // Refetch steps for a newly browsed day and once Health connects.
+            .task(id: StepsKey(dayOffset: dayOffset, healthConnected: dataStore.profile.healthConnected)) {
+                await refreshSteps()
+            }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { refreshForCurrentTime() }
             }
@@ -768,6 +803,7 @@ struct HomeView: View {
         case .doses: dosesSection
         case .wellness: wellnessSection
         case .movement: movementSection
+        case .steps: stepsSection
         case .overview: overviewSection(proxy: proxy)
         case .momentum: momentumSection
         case .explore: exploreSection
@@ -936,6 +972,16 @@ struct HomeView: View {
             .id(TodayJumpBar.SectionAnchor.movement)
             .trackSectionAnchor(.movement)
             .scrollReveal()
+    }
+
+    /// The shown day's steps against the goal. Hidden without Health
+    /// step data, like the checklist's steps row.
+    @ViewBuilder
+    private var stepsSection: some View {
+        if let checklist = derived.checklist, let steps = checklist.steps {
+            TodayStepsCard(steps: steps, goal: checklist.stepGoal, isPastDay: !isViewingToday)
+                .scrollReveal()
+        }
     }
 
     /// Lifestyle overview: calorie / streak / check-in / water grid and
@@ -1169,6 +1215,9 @@ struct HomeView: View {
             logWaterGlass()
         case .weight:
             showWeightSheet = true
+        case .steps:
+            // Display-only: steps fill from Health.
+            break
         }
     }
 
