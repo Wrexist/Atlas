@@ -36,6 +36,10 @@ final class WorkoutSessionService {
         .string(forKey: WorkoutSessionService.normalSuggestionsKey).flatMap(UUID.init(uuidString:))
 
     private static let normalSuggestionsKey = "workout.normalSuggestionsSessionID"
+    /// The routine this launch started the active workout from, for its
+    /// targets when the session links no stored routine (a template, or
+    /// one deleted mid-workout).
+    private var seedRoutine: (sessionID: UUID, routine: Routine)?
 
     /// How recently a session must have started for a second `startWorkout`
     /// to be treated as a duplicate tap rather than a fresh workout. Roughly
@@ -120,6 +124,7 @@ final class WorkoutSessionService {
             focus: WorkoutFocusState(selectedEntryID: exercises.first?.id)
         )
         activeSession = session
+        seedRoutine = routine.map { (session.id, $0) }
         SwiftDataRepository.shared.upsertWorkoutSession(session)
         WorkoutLiveActivityService.shared.start(session)
         DataStore.current?.refreshTrainingGlanceables()
@@ -512,9 +517,11 @@ final class WorkoutSessionService {
     }
 
     private var activeRoutine: Routine? {
-        activeSession?.routineID.flatMap { id in
-            RoutineStore.shared.routines.first { $0.id == id }
+        guard let session = activeSession else { return nil }
+        if let id = session.routineID, let stored = RoutineStore.shared.routines.first(where: { $0.id == id }) {
+            return stored
         }
+        return seedRoutine?.sessionID == session.id ? seedRoutine?.routine : nil
     }
 
     /// The slot this entry was seeded from. Entries take their slot's
