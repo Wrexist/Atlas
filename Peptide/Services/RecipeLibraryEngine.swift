@@ -203,7 +203,7 @@ enum RecipeLibraryEngine {
         }
 
         let fiberRoom = needs.remainingFiberG ?? 0
-        if recipe.fiberG >= 8 {
+        if recipe.fiberG >= 8, fiberRoom > 0 {
             score += fiberRoom > 10 ? 10 : 5
             if fiberRoom > 10 { reasons.append(.fiber) }
         }

@@ -42,7 +42,7 @@ struct RecipeLibraryView: View {
         return RankingKey(
             pantry: pantry.keys,
             favorites: profile.favoriteFoodIDs,
-            mealCount: profile.mealHistory.count,
+            meals: profile.mealHistory,
             targets: profile.nutritionTargets
         )
     }
@@ -194,7 +194,7 @@ struct RecipeLibraryView: View {
 private struct RankingKey: Hashable {
     let pantry: Set<String>
     let favorites: Set<String>
-    let mealCount: Int
+    let meals: [MealEntry]
     let targets: NutritionTargets?
 }
 

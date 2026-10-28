@@ -193,6 +193,18 @@ final class RecipeLibraryEngineTests: XCTestCase {
         XCTAssertTrue(ranked.first?.reasons.contains(.fiber) ?? false)
     }
 
+    func test_fibreTargetMet_givesFibreRichRecipeNoEdge() {
+        let beans = recipe("beans", fiber: 14)
+        let plain = recipe("plain", fiber: 2)
+        let needs = RecipeLibraryEngine.Needs(remainingCalories: 1500, remainingProteinG: 0, remainingFiberG: 0)
+        let ctx = context(needs: needs)
+
+        let beansScore = RecipeLibraryEngine.recommendation(for: beans, context: ctx).score
+        let plainScore = RecipeLibraryEngine.recommendation(for: plain, context: ctx).score
+
+        XCTAssertEqual(beansScore, plainScore, accuracy: 0.001)
+    }
+
     func test_lowMicronutrient_rewardsRecipeRichInIt() {
         let ironRich = recipe("lentils", micros: .init(sodiumMg: 0, potassiumMg: 0, ironMg: 6, calciumMg: 0, vitaminDUg: 0, vitaminB12Ug: 0))
         let plain = recipe("plain")
