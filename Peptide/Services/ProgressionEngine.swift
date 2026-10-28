@@ -21,6 +21,17 @@ enum ProgressionEngine {
         let weightKg: Double
         let reps: Int
         let reason: Reason
+        /// Set when today's readiness or a deload week lowered the target.
+        var adjustment: Adjustment?
+    }
+
+    /// Why today's target sits below the plain progression.
+    enum Adjustment: Equatable, Sendable {
+        /// Low recovery: about 10% less load, same reps.
+        case lowRecovery
+        /// Deload week: the same lighter load and a third fewer reps,
+        /// about 60% of the usual volume without dropping sets.
+        case deload
     }
 
     /// At or above this RPE the last session was a grind, so the load holds.
@@ -84,6 +95,33 @@ enum ProgressionEngine {
         }
         let reps = min(max(fewestReps + 1, repRange.lowerBound), repRange.upperBound)
         return Suggestion(weightKg: topWeight, reps: reps, reason: reps == fewestReps + 1 ? .addRep : .reachRange)
+    }
+
+    static let reducedLoadFactor = 0.9
+    static let deloadRepFactor = 2.0 / 3.0
+
+    /// Lowers a suggestion for `adjustment`, landing the load on a step the
+    /// equipment can make. Bodyweight work keeps its load.
+    static func adjusted(_ suggestion: Suggestion, for adjustment: Adjustment, incrementKg: Double) -> Suggestion {
+        let reps = adjustment == .deload
+            ? max(1, Int((Double(suggestion.reps) * deloadRepFactor).rounded()))
+            : suggestion.reps
+        return Suggestion(
+            weightKg: reducedLoad(suggestion.weightKg, stepKg: incrementKg),
+            reps: reps,
+            reason: suggestion.reason,
+            adjustment: adjustment
+        )
+    }
+
+    /// About 10% lighter, rounded to the nearest step; at least one step
+    /// down so the change is visible, and never down to nothing.
+    static func reducedLoad(_ weightKg: Double, stepKg: Double) -> Double {
+        guard weightKg > 0, stepKg > 0 else { return weightKg }
+        let rounded = (weightKg * reducedLoadFactor / stepKg).rounded() * stepKg
+        if rounded > 0, rounded < weightKg - 0.01 { return rounded }
+        let oneStepDown = weightKg - stepKg
+        return oneStepDown > 0 ? oneStepDown : weightKg
     }
 
     /// Writes the suggestion into every working set the user hasn't

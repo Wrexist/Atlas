@@ -46,6 +46,7 @@ struct ProgressionHint: View {
     }
 
     private var symbolName: String {
+        if suggestion.adjustment != nil { return "arrow.down.circle.fill" }
         switch suggestion.reason {
         case .addWeight: return "arrow.up.circle.fill"
         case .addRep, .reachRange: return "plus.circle.fill"
@@ -54,6 +55,11 @@ struct ProgressionHint: View {
     }
 
     private var reason: String {
+        switch suggestion.adjustment {
+        case .lowRecovery: return String(localized: "Lighter today to match your recovery.")
+        case .deload: return String(localized: "Deload week: lighter, with about a third fewer reps.")
+        case nil: break
+        }
         switch suggestion.reason {
         case .addWeight: return String(localized: "Every set hit its reps last time, so add weight.")
         case .addRep: return String(localized: "Same weight, one more rep than last time.")
