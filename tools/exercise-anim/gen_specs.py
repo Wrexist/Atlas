@@ -888,6 +888,12 @@ def plyo(n, eq):
         arms = [arms_down, arms_down, key((0.85, 0.1, 0.5), (0.8, 0.1, 0.6), (0, 1, 0))]
     elif has(n, "double leg butt kick"):
         air = {"air": 0.3, "fz_L": 0.3, "fz_R": 0.3, "fy_L": 0.2, "fy_R": 0.2}
+    elif has(n, "^mountain climbers"):
+        drive = lambda s: {"fy_" + s: -0.55, "fz_" + s: 0.22}
+        return {"posture": {"type": "plank", "alpha": 28, "feet_move": True}, "implement": "floor", "cycle": True,
+                "body": {"keys": [drive("L"), {}, drive("R"), {}, drive("L")], "head_level": 0},
+                "arm": {"frame": "world", "keys": [key((0.22, 0.02, -1), (0.05, 0.03, -1), (-1, 0, 0))],
+                        "elbow_out": [0.7, -0.5, 0.2]}, "camera": {"az": 70, "el": 12}}
     elif has(n, "^(split|scissors) jump"):
         def lunge(lead, rear):
             return {"drop": 0.3, "lean": 5, "fy_" + lead: -0.35, "fy_" + rear: 0.4, "fz_" + rear: 0.08}

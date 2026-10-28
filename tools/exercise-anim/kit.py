@@ -381,6 +381,16 @@ def plank(p):
     pitch_feet(p.get("toe_pitch", 62))
     p["knees_point"] = {s: (0, -math.cos(lean0), -math.sin(lean0)) for s, _ in SIDES}
     p["_move"] = move
+    if p.get("feet_move"):                              # mountain climbers: knees driven toward the chest
+        feet = {s: bpy.data.objects["FootIK." + s] for s, _ in SIDES}
+        start = {s: o.location.copy() for s, o in feet.items()}
+
+        def move_feet(k):
+            for s, o in feet.items():
+                o.location = start[s] + Vector((0, k.get("fy_" + s, 0), k.get("fz_" + s, 0)))
+                o.keyframe_insert("location", frame=A.scene.frame_current)
+            return move(k)
+        p["_move"] = move_feet
     props = []
     if ankle_z > 0.2:
         props.append(box("FeetBox", (0.5, 0.4, ankle_z - 0.08), (0, ankle_y + 0.05, (ankle_z - 0.08) / 2)))
