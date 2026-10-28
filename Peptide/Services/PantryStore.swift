@@ -29,4 +29,9 @@ final class PantryStore {
         }
         defaults.set(keys.sorted(), forKey: Self.storageKey)
     }
+
+    func deleteAll() {
+        keys = []
+        defaults.removeObject(forKey: Self.storageKey)
+    }
 }
