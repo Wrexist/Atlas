@@ -14,6 +14,23 @@ final class WatchStore: NSObject, ObservableObject {
     /// The latest snapshot as it reads now (see `WatchData.forDisplay`).
     @Published private(set) var watchData: WatchData = .empty
     @Published private(set) var isSending = false
+    /// A workout the Watch runs by itself, started while the phone was out
+    /// of reach. While it runs it owns the Workout page.
+    @Published private(set) var offlineWorkout: WatchOfflineWorkout?
+    /// Finished Watch-run workouts the phone hasn't confirmed filing.
+    @Published private(set) var offlineOutbox: [WatchOfflineWorkout] = []
+    /// Whether the phone answers live messages right now. Only while it
+    /// doesn't can a workout start on the wrist; otherwise the phone owns it.
+    @Published private(set) var isPhoneReachable = false
+
+    /// The workout the Workout page shows: the Watch's own, else the phone's.
+    var displayedWorkout: WatchWorkoutSnapshot? {
+        offlineWorkout?.snapshot ?? watchData.workout
+    }
+
+    var canStartOfflineWorkout: Bool {
+        offlineWorkout == nil && watchData.workout == nil && !isPhoneReachable
+    }
 
     /// Bumped on every guarded send so a stale release from a prior send
     /// can't clear `isSending` out from under a newer in-flight send.
@@ -54,9 +71,21 @@ final class WatchStore: NSObject, ObservableObject {
             .appendingPathComponent("watch_data.json")
     }
 
+    /// The Watch-run workout and the outbox, in the app's own container:
+    /// nothing else on the Watch reads them.
+    private var offlineStateURL: URL {
+        URL.documentsDirectory.appending(path: "offline_workouts.json")
+    }
+
+    private struct OfflineState: Codable {
+        var active: WatchOfflineWorkout?
+        var outbox: [WatchOfflineWorkout]
+    }
+
     private override init() {
         super.init()
         loadFromDisk()
+        loadOfflineState()
         if WCSession.isSupported() {
             WCSession.default.delegate = self
             WCSession.default.activate()
@@ -115,27 +144,23 @@ final class WatchStore: NSObject, ObservableObject {
         watchData = data.forDisplay(at: Date())
         persistToDisk(data)
         WidgetCenter.shared.reloadAllTimelines()
-        scheduleRestEndHaptic(for: data.workout)
+        scheduleRestEndHaptic(for: displayedWorkout)
+        pruneOutbox(syncedIDs: data.syncedWorkoutIDs)
     }
 
     /// Sends a workout tap to the phone and shows its likely result at
     /// once, so logging a set never waits on the round trip. The phone's
     /// next push replaces the guess with what it actually applied.
     func sendWorkout(_ command: WatchWorkoutCommand) {
+        if offlineWorkout != nil {
+            applyOffline(command)
+            return
+        }
         guard let workout = watchData.workout else { return }
-        // Whole seconds, as the phone's push carries them, so the guessed
-        // rest end matches the pushed one exactly instead of re-arming the
-        // haptic and nudging the countdown on every push.
-        let issuedAt = Date(timeIntervalSince1970: Date().timeIntervalSince1970.rounded(.down))
+        let issuedAt = Self.tapTime()
         let request = WatchWorkoutRequest(sessionId: workout.sessionId, command: command, issuedAt: issuedAt)
         guard let payload = request.encoded() else { return }
-        // A second "Complete set" tap would log the next set too, since
-        // the first one already moved the page on, and a second "Add set"
-        // would add another set under a fresh id. Held like a dose toggle.
-        let guarded = switch command {
-        case .completeSet, .addSet: true
-        default: false
-        }
+        let guarded = Self.holdsControls(command)
         if guarded {
             guard !isSending else { return }
             isSending = true
@@ -146,6 +171,113 @@ final class WatchStore: NSObject, ObservableObject {
             "action": WatchMessage.workout,
             WatchMessage.workoutRequestKey: payload,
         ], guarded: guarded)
+    }
+
+    /// Whole seconds, as the phone's push carries them, so the guessed
+    /// rest end matches the pushed one exactly instead of re-arming the
+    /// haptic and nudging the countdown on every push.
+    private static func tapTime() -> Date {
+        Date(timeIntervalSince1970: Date().timeIntervalSince1970.rounded(.down))
+    }
+
+    /// A second "Complete set" tap would log the next set too, since the
+    /// first one already moved the page on, and a second "Add set" would
+    /// add another set under a fresh id. Held like a dose toggle.
+    private static func holdsControls(_ command: WatchWorkoutCommand) -> Bool {
+        switch command {
+        case .completeSet, .addSet: true
+        default: false
+        }
+    }
+
+    // MARK: - Workouts without the phone
+
+    /// Starts a workout the Watch owns, from a cached routine or empty.
+    /// Offered only while the phone is out of reach and runs none itself.
+    func startOfflineWorkout(_ routine: WatchRoutine?) {
+        guard canStartOfflineWorkout else { return }
+        play(.start)
+        updateOffline(WatchOfflineWorkout(routine: routine, at: Self.tapTime()))
+    }
+
+    func addOfflineLift(_ lift: WatchLift) {
+        guard let workout = offlineWorkout else { return }
+        play(.click)
+        updateOffline(workout.adding(lift))
+    }
+
+    /// Moves the workout to the outbox and hands it to WatchConnectivity,
+    /// which delivers it whenever the phone is next in reach.
+    func finishOfflineWorkout() {
+        guard let workout = offlineWorkout, workout.hasLoggedWork else { return }
+        play(.success)
+        offlineOutbox = WatchOfflineSyncEngine.enqueue(workout.finished(at: Date()), into: offlineOutbox)
+        updateOffline(nil)
+        sendOfflineOutbox()
+    }
+
+    func discardOfflineWorkout() {
+        guard offlineWorkout != nil else { return }
+        play(.click)
+        updateOffline(nil)
+    }
+
+    /// The Watch-run counterpart of `sendWorkout`: the same tap, haptic
+    /// and double-tap hold, applied here and nowhere else.
+    private func applyOffline(_ command: WatchWorkoutCommand) {
+        guard let workout = offlineWorkout else { return }
+        if Self.holdsControls(command) {
+            guard !isSending else { return }
+            isSending = true
+            releaseSending(beginGuardedSend())
+        }
+        if case .completeSet = command { play(.success) } else { play(.click) }
+        updateOffline(workout.applying(command, at: Self.tapTime()))
+    }
+
+    private func updateOffline(_ workout: WatchOfflineWorkout?) {
+        offlineWorkout = workout
+        persistOfflineState()
+        scheduleRestEndHaptic(for: displayedWorkout)
+    }
+
+    /// Hands every unconfirmed workout to WatchConnectivity, except one it
+    /// is still delivering. Runs on finish and on each activation, so a
+    /// workout the phone received but couldn't save goes out again.
+    private func sendOfflineOutbox() {
+        let session = WCSession.default
+        guard session.activationState == .activated, !offlineOutbox.isEmpty else { return }
+        let inFlight = Set(session.outstandingUserInfoTransfers.compactMap {
+            WatchOfflineSyncEngine.workoutID(in: $0.userInfo)
+        })
+        for workout in WatchOfflineSyncEngine.toSend(offlineOutbox, inFlight: inFlight) {
+            guard let message = WatchOfflineSyncEngine.message(for: workout) else { continue }
+            session.transferUserInfo(message)
+        }
+    }
+
+    /// Lets go of the workouts the phone's push says it has filed.
+    private func pruneOutbox(syncedIDs: [UUID]?) {
+        guard let syncedIDs, !offlineOutbox.isEmpty else { return }
+        let remaining = WatchOfflineSyncEngine.pruned(offlineOutbox, syncedIDs: syncedIDs)
+        guard remaining.count != offlineOutbox.count else { return }
+        offlineOutbox = remaining
+        persistOfflineState()
+    }
+
+    private func loadOfflineState() {
+        guard let data = try? Data(contentsOf: offlineStateURL),
+              let state = try? JSONDecoder().decode(OfflineState.self, from: data) else { return }
+        offlineWorkout = state.active
+        offlineOutbox = state.outbox
+    }
+
+    /// Written on every tap: this file is the only copy of a workout the
+    /// phone hasn't seen, so it must survive the app being closed mid-set.
+    private func persistOfflineState() {
+        let state = OfflineState(active: offlineWorkout, outbox: offlineOutbox)
+        guard let data = try? JSONEncoder().encode(state) else { return }
+        try? data.write(to: offlineStateURL, options: .atomic)
     }
 
     /// Plays a tap confirmation unless the user turned Haptic Feedback off
@@ -318,10 +450,20 @@ extension WatchStore: WCSessionDelegate {
     nonisolated func session(_ session: WCSession, activationDidCompleteWith state: WCSessionActivationState, error: Error?) {
         guard state == .activated else { return }
         let decoded = Self.decodeWatchData(from: session.receivedApplicationContext)
+        let reachable = session.isReachable
         Task { @MainActor in
+            self.isPhoneReachable = reachable
             self.flushAwaitingActivation()
             if let decoded { self.adoptIfNewer(decoded) }
+            self.sendOfflineOutbox()
         }
+    }
+
+    /// Offers a workout on the wrist the moment the phone drops out of
+    /// reach, and withdraws the offer when it comes back.
+    nonisolated func sessionReachabilityDidChange(_ session: WCSession) {
+        let reachable = session.isReachable
+        Task { @MainActor in self.isPhoneReachable = reachable }
     }
 
     /// The phone's complication transfer: the same snapshot as its

@@ -1991,12 +1991,36 @@ final class DataStore {
         widgetWorkouts = nil
         updateWidgetData()
         updateWatchData()
+        pushTrainingCatalogToWatch()
     }
 
     /// Sends the active workout alone to the Watch. Runs on every set
     /// edit, so it skips the full snapshot's habit and score math.
     func pushWorkoutToWatch() {
         WatchSyncService.shared.updateWorkout(watchWorkout)
+    }
+
+    /// Sends the routines and recent lifts the Watch can start while the
+    /// phone is out of reach, with the weights to open at. Runs when the
+    /// routine library or the history changes. Waits for the exercise
+    /// library, whose names it sends, and for the routine library, whose
+    /// empty pre-load state would otherwise wipe the Watch's copy.
+    func pushTrainingCatalogToWatch() {
+        guard ExerciseLibrary.shared.isLoaded else { return }
+        let routines = RoutineStore.shared
+        guard routines.hasLoaded else {
+            routines.load()
+            return
+        }
+        let library = ExerciseLibrary.shared
+        let sessions = WorkoutSessionService.shared
+        WatchSyncService.shared.updateTrainingCatalog(WatchWorkoutSnapshotBuilder.catalog(
+            routines: routines.routines,
+            recent: recentWidgetWorkouts(),
+            defaultRestSeconds: profile.trainingPreferences?.restTimerDefault ?? 90,
+            lastSet: { sessions.lastCompletedSet(forExerciseID: $0) },
+            name: { library.displayName(for: $0) }
+        ))
     }
 
     private var watchWorkout: WatchWorkoutSnapshot? {

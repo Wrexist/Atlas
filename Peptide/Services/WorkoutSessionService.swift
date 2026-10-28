@@ -45,6 +45,7 @@ final class WorkoutSessionService {
             // one whose workout is long gone — or lose one whose workout isn't.
             WorkoutLiveActivityService.shared.reconcile(active: self.activeSession)
             DataStore.current?.pushWorkoutToWatch()
+            DataStore.current?.pushTrainingCatalogToWatch()
             self.reconcileRest()
             self.closeIfStale()
             self.closeStaleOrphans()
@@ -239,6 +240,32 @@ final class WorkoutSessionService {
             invalidatePreviousSetCache()
             DataStore.current?.refreshTrainingGlanceables()
         }
+    }
+
+    /// Files a workout the Watch ran on its own while the phone was out of
+    /// reach, through the same durable save, PR detection, HealthKit write
+    /// and reward as a phone finish. Keyed by the Watch's id, so a copy
+    /// delivered twice is filed once. True once the workout is on file
+    /// (or had nothing worth filing), so the Watch can let it go; false
+    /// when the save failed and the Watch should send it again.
+    func importWatchWorkout(_ workout: WatchOfflineWorkout) -> Bool {
+        let repo = SwiftDataRepository.shared
+        guard repo.loadWorkoutSession(id: workout.id) == nil else { return true }
+        guard let session = WatchWorkoutImportEngine.session(from: workout) else { return true }
+        do { try repo.saveWorkoutDurably(session) }
+        catch {
+            AppLog.training.error("Watch workout import failed: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+        let detections = PRDetectionEngine.shared.ingest(session: session)
+        invalidatePreviousSetCache()
+        if HealthSyncSettings.isEnabled {
+            Task { await HealthKitService.shared.writeWorkout(session) }
+        }
+        DataStore.current?.recordWorkoutFinished(detectedPRCount: detections.count)
+        DataStore.current?.refreshTrainingGlanceables()
+        AppLog.training.info("Watch workout imported (id: \(session.id, privacy: .public), sets: \(session.completedSetCount, privacy: .public))")
+        return true
     }
 
     /// Re-reads the in-progress session after an iCloud account switch,

@@ -33,6 +33,8 @@ struct WatchWorkoutSnapshot: Codable, Hashable, Sendable {
         /// False for timed and distance sets: the Watch ticks them off but
         /// has no reps or load to edit, matching `SetEntry.supportsRepLogging`.
         let logsReps: Bool
+        /// Nil for a plain loaded set, and on payloads older than the field.
+        var measurement: WatchSetMeasurement?
     }
 
     struct Rest: Codable, Hashable, Sendable {
@@ -118,7 +120,8 @@ struct WatchWorkoutSnapshot: Codable, Hashable, Sendable {
                 reps: previous?.reps ?? 8,
                 completed: false,
                 isWarmup: false,
-                logsReps: previous?.logsReps ?? true
+                logsReps: previous?.logsReps ?? true,
+                measurement: previous?.measurement
             ))
             next.selectedExerciseID = exerciseID
         case let .setPaused(paused):
@@ -217,4 +220,57 @@ struct WatchWorkoutRequest: Codable, Equatable, Sendable {
 struct WatchTrainingSnapshot: Codable, Hashable, Sendable {
     let workoutsThisWeek: Int
     let lastWorkout: WidgetWorkoutSummary?
+}
+
+/// One exercise the Watch can log without the phone: what to call it, how
+/// many sets to lay out, and the load and reps to open at.
+struct WatchLift: Codable, Hashable, Sendable {
+    /// `Exercise.id` or `CustomExercise.id`, so the phone files the sets
+    /// logged on the wrist under the right exercise.
+    let exerciseID: String
+    let name: String
+    let restSeconds: Int
+    let sets: Int
+    /// Canonical kilograms, like every other weight on the wire.
+    let weightKg: Double
+    let reps: Int
+    /// How the last set was measured, so the sets logged on the wrist file
+    /// as bodyweight or per-side sets as they would on the phone.
+    var measurement: WatchSetMeasurement?
+}
+
+/// `SetEntry.Measurement` on the wire, as raw values so the Watch needs no
+/// app enums. Kind and load only: the Watch logs rep sets, never timed or
+/// distance ones, and the phone maps the strings back when it files them.
+struct WatchSetMeasurement: Codable, Hashable, Sendable {
+    /// `SetEntry.Measurement.Kind` raw value, e.g. "bodyweight".
+    let kind: String
+    /// `SetEntry.Measurement.Load` raw value, e.g. "perSide".
+    let load: String
+}
+
+/// A routine as the Watch starts it while the phone is out of reach.
+struct WatchRoutine: Codable, Hashable, Identifiable, Sendable {
+    let id: UUID
+    let name: String
+    let lifts: [WatchLift]
+}
+
+/// What the Watch can start on its own: the user's routines, seeded with
+/// their last weights, and the lifts they logged lately for a quick
+/// workout. The phone pushes it whenever either changes, so it is on the
+/// wrist before the phone is left behind.
+struct WatchTrainingCatalog: Codable, Hashable, Sendable {
+    let routines: [WatchRoutine]
+    /// Newest first.
+    let recentLifts: [WatchLift]
+
+    /// Every lift the Watch knows, once each: the recent ones first, then
+    /// any routine lift not logged lately. What a quick workout picks from.
+    var allLifts: [WatchLift] {
+        var seen = Set<String>()
+        return (recentLifts + routines.flatMap(\.lifts)).filter { seen.insert($0.exerciseID).inserted }
+    }
+
+    var isEmpty: Bool { routines.isEmpty && recentLifts.isEmpty }
 }

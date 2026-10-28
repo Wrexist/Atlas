@@ -3,12 +3,15 @@ import SwiftUI
 /// First page while a workout runs on the phone: the set to do next with
 /// its load and reps on the Digital Crown and one button to log it, the
 /// rest countdown in its place between sets, and every exercise one tap
-/// away. Each tap goes to the phone, which owns the workout.
+/// away. Each tap goes to the phone, which owns the workout, unless the
+/// Watch started this one itself while the phone was out of reach: then
+/// the Watch keeps it, and finishing it sends it to the phone.
 struct WorkoutPage: View {
     @EnvironmentObject private var store: WatchStore
     let workout: WatchWorkoutSnapshot
 
     private var unit: WatchWeightUnit { WatchWeightUnit(store.watchData.measurementUnit) }
+    private var isOnWatch: Bool { store.offlineWorkout != nil }
 
     /// Re-renders when the rest runs out, so the logger replaces the
     /// countdown without waiting for the phone.
@@ -20,16 +23,22 @@ struct WorkoutPage: View {
         TimelineView(schedule) { context in
             ScrollView {
                 VStack(spacing: 10) {
-                    WorkoutClockRow(workout: workout)
+                    WorkoutClockRow(workout: workout, isOnWatch: isOnWatch)
                     stage(at: context.date)
-                    NavigationLink {
-                        WorkoutExerciseList()
-                    } label: {
-                        Label("Exercises", systemImage: "list.bullet")
-                            .font(.system(.footnote, design: .rounded, weight: .semibold))
-                            .frame(maxWidth: .infinity)
+                    if !(workout.exercises.isEmpty && isOnWatch) {
+                        NavigationLink {
+                            WorkoutExerciseList()
+                        } label: {
+                            Label("Exercises", systemImage: "list.bullet")
+                                .font(.system(.footnote, design: .rounded, weight: .semibold))
+                                .frame(maxWidth: .infinity)
+                        }
+                        .entrance(1)
                     }
-                    .entrance(1)
+                    if isOnWatch {
+                        FinishOnWatchButton(hasLoggedWork: workout.completedSets > 0)
+                            .entrance(2)
+                    }
                 }
             }
         }
@@ -56,18 +65,29 @@ struct WorkoutPage: View {
         } else if let next = workout.upNext {
             SetLogger(exercise: next.exercise, set: next.set, unit: unit)
                 .id(next.set.id)
+        } else if workout.exercises.isEmpty, isOnWatch {
+            EmptyWorkoutCard()
         } else {
             AllSetsDoneCard(exercise: workout.selectedExercise)
         }
     }
 }
 
-/// Active time and set count, the two numbers worth a glance mid-set.
+/// Active time and set count, the two numbers worth a glance mid-set. A
+/// workout the Watch runs itself is marked, so the user knows it lives
+/// on the wrist until it is finished.
 private struct WorkoutClockRow: View {
     let workout: WatchWorkoutSnapshot
+    let isOnWatch: Bool
 
     var body: some View {
-        HStack {
+        HStack(spacing: 4) {
+            if isOnWatch {
+                Image(systemName: "applewatch")
+                    .font(.caption2)
+                    .foregroundStyle(WatchPalette.training)
+                    .accessibilityLabel("Running on your watch")
+            }
             Group {
                 if let paused = workout.pausedElapsedSeconds {
                     Text(Duration.seconds(paused).formatted(.time(pattern: WatchFormat.elapsedPattern(seconds: paused))))
@@ -357,8 +377,9 @@ private struct PausedCard: View {
     }
 }
 
-/// Every planned set is logged. Another set can go on from here; finishing
-/// stays on the phone, where effort and notes are asked for.
+/// Every planned set is logged. Another set can go on from here. A phone
+/// workout is finished on the phone, where effort and notes are asked
+/// for; one the Watch runs is finished with the button below this card.
 private struct AllSetsDoneCard: View {
     @EnvironmentObject private var store: WatchStore
     let exercise: WatchWorkoutSnapshot.Exercise?
@@ -380,12 +401,77 @@ private struct AllSetsDoneCard: View {
                 }
                 .disabled(store.isSending)
             }
-            Text("Finish the workout on your iPhone.")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+            if store.offlineWorkout != nil {
+                NavigationLink {
+                    OfflineLiftPicker()
+                } label: {
+                    Label("Add exercise", systemImage: "plus.circle")
+                        .frame(maxWidth: .infinity)
+                }
+            } else {
+                Text("Finish the workout on your iPhone.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
         }
         .entrance(0)
+    }
+}
+
+/// A quick workout before its first exercise: pick one of the lifts the
+/// Watch knows.
+private struct EmptyWorkoutCard: View {
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "dumbbell.fill")
+                .font(.system(size: 30))
+                .foregroundStyle(WatchPalette.training)
+            Text("Add your first exercise")
+                .font(.system(.headline, design: .rounded))
+                .multilineTextAlignment(.center)
+            NavigationLink {
+                OfflineLiftPicker()
+            } label: {
+                Label("Add exercise", systemImage: "plus")
+                    .frame(maxWidth: .infinity)
+            }
+            .tint(WatchPalette.training)
+            .buttonStyle(.borderedProminent)
+        }
+        .entrance(0)
+    }
+}
+
+/// Ends a workout the Watch runs itself: finish sends it to the phone,
+/// discard drops it. Asked once, since neither can be undone on the wrist.
+private struct FinishOnWatchButton: View {
+    @EnvironmentObject private var store: WatchStore
+    let hasLoggedWork: Bool
+
+    @State private var isConfirming = false
+
+    var body: some View {
+        Button {
+            isConfirming = true
+        } label: {
+            Label("End workout", systemImage: "stop.fill")
+                .font(.system(.footnote, design: .rounded, weight: .semibold))
+                .frame(maxWidth: .infinity)
+        }
+        .confirmationDialog("End workout?", isPresented: $isConfirming) {
+            if hasLoggedWork {
+                Button("Finish and save") { store.finishOfflineWorkout() }
+            }
+            Button("Discard workout", role: .destructive) { store.discardOfflineWorkout() }
+            Button("Keep going", role: .cancel) {}
+        } message: {
+            if hasLoggedWork {
+                Text("It syncs to your iPhone when it is back in reach.")
+            } else {
+                Text("No sets are logged yet, so there is nothing to save.")
+            }
+        }
     }
 }
 
@@ -396,7 +482,7 @@ struct WorkoutExerciseList: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        let workout = store.watchData.workout
+        let workout = store.displayedWorkout
         List {
             ForEach(workout?.exercises ?? []) { exercise in
                 Button {
@@ -422,6 +508,14 @@ struct WorkoutExerciseList: View {
                     }
                 }
                 .accessibilityAddTraits(exercise.id == workout?.selectedExercise?.id ? .isSelected : [])
+            }
+            if store.offlineWorkout != nil {
+                NavigationLink {
+                    OfflineLiftPicker()
+                } label: {
+                    Label("Add exercise", systemImage: "plus")
+                        .foregroundStyle(WatchPalette.training)
+                }
             }
         }
         .navigationTitle("Exercises")
