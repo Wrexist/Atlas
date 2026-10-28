@@ -307,6 +307,7 @@ Machine_Shoulder_Military_Press
 Middle_Back_Shrug
 Middle_Back_Stretch
 Mixed_Grip_Chin
+Mountain_Climbers
 Muscle_Snatch
 Narrow_Stance_Hack_Squats
 Narrow_Stance_Leg_Press
