@@ -18,13 +18,14 @@ struct BiologyView: View {
     @State private var showLabs = false
     @State private var showBioAgeExplainer = false
     @State private var showAskAtlas = false
-    /// True when Health is connected but a read type added since (VO2 max)
-    /// has never been put to the user.
+    /// True when Health is connected but a read type added since (VO2 max,
+    /// wrist temperature) has never been put to the user.
     @State private var needsHealthUpgrade = false
     /// Bumped by pull-to-refresh and a fresh Health grant so the
     /// biomarker list re-reads HealthKit without re-keying on config.
     @State private var reloadID = 0
     @State private var sleepInsights: SleepInsightsEngine.Insights?
+    @State private var wristTemperature: WristTemperatureEngine.Deviation?
     /// Drives the per-biomarker detail sheet. Identifiable wrapper
     /// so `.sheet(item:)` lifecycle is clean across taps.
     @State private var detailItem: BiomarkerDetailItem?
@@ -89,8 +90,12 @@ struct BiologyView: View {
                     )
 
                     if let sleepInsights {
-                        SleepInsightsSection(insights: sleepInsights)
-                            .transition(.opacity)
+                        SleepInsightsSection(
+                            insights: sleepInsights,
+                            wristTemperature: wristTemperature,
+                            unit: dataStore.profile.bodyMetrics.unit
+                        )
+                        .transition(.opacity)
                     }
 
                     HealthJournalCard(onReflect: openAskAtlas)
@@ -176,7 +181,11 @@ struct BiologyView: View {
         }
         .task(id: SleepKey(reloadID: reloadID, healthConnected: dataStore.profile.healthConnected)) {
             let next = await SleepInsightsSection.load()
-            AppAnimation.with(AppAnimation.springSmooth) { sleepInsights = next }
+            let temperature = await SleepInsightsSection.loadWristTemperature()
+            AppAnimation.with(AppAnimation.springSmooth) {
+                sleepInsights = next
+                wristTemperature = temperature
+            }
         }
     }
 
@@ -200,12 +209,12 @@ struct BiologyView: View {
                 .accessibilityHint("Asks for read access to Apple Health")
             } else if needsHealthUpgrade {
                 GlassEntryRow(
-                    icon: "lungs.fill",
-                    title: "Add cardio fitness",
-                    subtitle: Text("Let Atlas read VO2 max from Apple Health for a sharper estimate"),
+                    icon: "heart.text.square.fill",
+                    title: "Allow new Health data",
+                    subtitle: Text("Let Atlas read cardio fitness and wrist temperature from Apple Health"),
                     action: requestNewHealthTypes
                 )
-                .accessibilityHint("Asks Apple Health for access to VO2 max")
+                .accessibilityHint("Asks Apple Health for access to VO2 max and wrist temperature")
             }
         }
         .transition(.opacity.combined(with: .move(edge: .top)))

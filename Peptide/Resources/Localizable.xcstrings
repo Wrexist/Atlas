@@ -7709,16 +7709,6 @@
         }
       }
     },
-    "Add cardio fitness": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lägg till konditionsvärde"
-          }
-        }
-      }
-    },
     "Add custom peptide": {
       "localizations": {
         "sv": {
@@ -8835,16 +8825,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fråga assistenten"
-          }
-        }
-      }
-    },
-    "Asks Apple Health for access to VO2 max": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ber Apple Hälsa om åtkomst till VO2 max"
           }
         }
       }
@@ -20797,16 +20777,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mindre sömn"
-          }
-        }
-      }
-    },
-    "Let Atlas read VO2 max from Apple Health for a sharper estimate": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Låt Atlas läsa VO2 max från Apple Hälsa för en skarpare uppskattning"
           }
         }
       }
@@ -43301,6 +43271,56 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dagbok, %@"
+          }
+        }
+      }
+    },
+    "Wrist temperature": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Handledstemperatur"
+          }
+        }
+      }
+    },
+    "Last night vs your baseline": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I natt mot din baslinje"
+          }
+        }
+      }
+    },
+    "Allow new Health data": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tillåt ny hälsodata"
+          }
+        }
+      }
+    },
+    "Let Atlas read cardio fitness and wrist temperature from Apple Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Låt Atlas läsa konditionsvärde och handledstemperatur från Apple Hälsa"
+          }
+        }
+      }
+    },
+    "Asks Apple Health for access to VO2 max and wrist temperature": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ber Apple Hälsa om åtkomst till VO2 max och handledstemperatur"
           }
         }
       }

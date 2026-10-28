@@ -24,7 +24,8 @@ final class HealthKitService {
 
     /// Exactly the types the app reads back: HRV and resting heart rate
     /// (Recovery, Biological Age, correlations), VO2 max (Biological Age),
-    /// steps (the home health summary and Biological Age) and sleep.
+    /// steps (the home health summary and Biological Age), sleep, and
+    /// sleeping wrist temperature (the Biology sleep card).
     /// Asking for a type we never query is an App Review liability and
     /// costs the user a permission row they get nothing for. Computed, not
     /// a `static let`, because `HKObjectType` is non-Sendable.
@@ -35,6 +36,7 @@ final class HealthKitService {
             HKQuantityType(.vo2Max),
             HKQuantityType(.stepCount),
             HKCategoryType(.sleepAnalysis),
+            HKQuantityType(.appleSleepingWristTemperature),
         ]
     }
 
@@ -570,6 +572,31 @@ final class HealthKitService {
 
     private func dailyAverage(type: HKQuantityTypeIdentifier, unit: HKUnit, days: Int) async -> [(date: Date, value: Double)] {
         await dailyQuantity(type: type, unit: unit, days: days, options: .discreteAverage, extract: { $0.averageQuantity() })
+    }
+
+    // MARK: - Wrist temperature
+
+    /// Apple Watch's nightly wrist temperature readings over the last
+    /// `days` days, dated by when each night's sample ended.
+    func sleepingWristTemperatures(days: Int) async -> [WristTemperatureEngine.Reading] {
+        guard isAvailable, days > 0 else { return [] }
+        let end = Date()
+        let start = Calendar.current.date(byAdding: .day, value: -days, to: end) ?? end
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: [.quantitySample(
+                type: HKQuantityType(.appleSleepingWristTemperature),
+                predicate: HKQuery.predicateForSamples(withStart: start, end: end)
+            )],
+            sortDescriptors: [SortDescriptor(\.endDate)]
+        )
+        do {
+            return try await descriptor.result(for: store).map {
+                WristTemperatureEngine.Reading(date: $0.endDate, celsius: $0.quantity.doubleValue(for: .degreeCelsius()))
+            }
+        } catch {
+            AppLog.healthKit.error("sleepingWristTemperatures failed: \(error.localizedDescription, privacy: .private)")
+            return []
+        }
     }
 
     // MARK: - Heart Rate
