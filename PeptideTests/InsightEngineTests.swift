@@ -13,11 +13,16 @@ final class InsightEngineTests: XCTestCase {
     private func makeEntry(daysAgo: Double, completed: Bool, weekday: Int? = nil) -> ProtocolEntry {
         let date: Date
         if let weekday {
+            // Search back from midnight so the entry never lands on today:
+            // the engine skips today's not-yet-done doses, which made the
+            // pattern test fail whenever CI ran on its weekday.
             let calendar = Calendar.current
             var components = DateComponents()
             components.weekday = weekday == 7 ? 1 : weekday + 1
             components.hour = 10
-            date = calendar.nextDate(after: Date(), matching: components, matchingPolicy: .previousTimePreservingSmallerComponents, direction: .backward) ?? Date()
+            let startOfToday = calendar.startOfDay(for: Date())
+            let latest = calendar.nextDate(after: startOfToday, matching: components, matchingPolicy: .previousTimePreservingSmallerComponents, direction: .backward) ?? startOfToday
+            date = calendar.date(byAdding: .day, value: -Int(daysAgo), to: latest) ?? latest
         } else {
             date = Date().addingTimeInterval(-daysAgo * 86400)
         }
