@@ -291,7 +291,7 @@ final class WorkoutSessionService {
                 reps: seed?.reps ?? 8,
                 measurement: seed?.measurement
             )]
-        ), routine: nil)
+        ), routine: nil, adjustment: activeAdjustment)
         session.exercises.append(entry)
         if session.focus == nil { session.focus = WorkoutFocusState() }
         session.focus?.selectedEntryID = entry.id
