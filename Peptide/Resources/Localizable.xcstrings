@@ -121,6 +121,16 @@
         }
       }
     },
+    "%@ routines": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ rutiner"
+          }
+        }
+      }
+    },
     "%@ ± %@": {
       "localizations": {
         "sv": {
@@ -6102,6 +6112,16 @@
         }
       }
     },
+    "Body": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kropp"
+          }
+        }
+      }
+    },
     "Card size": {
       "localizations": {
         "sv": {
@@ -6172,6 +6192,16 @@
         }
       }
     },
+    "Ends the fast that's running and tells you how long it lasted.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avslutar den pågående fastan och berättar hur länge den varade."
+          }
+        }
+      }
+    },
     "Enter a value between %@ and %@.": {
       "localizations": {
         "sv": {
@@ -6188,6 +6218,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ange övertryck och undertryck, till exempel 120 över 80."
+          }
+        }
+      }
+    },
+    "Fast ended after %@.": {
+      "comment": "Siri confirmation after ending a fast before its goal. The value is its length, e.g. “14 hours, 5 minutes”.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fastan avslutades efter %@."
+          }
+        }
+      }
+    },
+    "Fast ended after %@. You reached your %lld-hour goal.": {
+      "comment": "Siri confirmation after ending a fast that reached its goal. Values: its length, the goal in hours.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fastan avslutades efter %@. Du nådde ditt mål på %lld timmar."
           }
         }
       }
@@ -6314,12 +6366,43 @@
         }
       }
     },
+    "Log Weight": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga vikt"
+          }
+        }
+      }
+    },
     "Log a reading": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Logga ett värde"
+          }
+        }
+      }
+    },
+    "Logged %@.": {
+      "comment": "Siri confirmation after logging a body weight, e.g. “Logged 82.4 kg.”",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loggade %@."
+          }
+        }
+      }
+    },
+    "Logs today's body weight in the unit you use in Atlas.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loggar dagens kroppsvikt i den enhet du använder i Atlas."
           }
         }
       }
@@ -6400,6 +6483,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Okej"
+          }
+        }
+      }
+    },
+    "Opens Atlas and starts a workout from a routine, or an empty workout when none is picked.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar Atlas och startar ett pass från en rutin, eller ett tomt pass om ingen väljs."
           }
         }
       }
@@ -6554,6 +6647,47 @@
         }
       }
     },
+    "Start Workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starta pass"
+          }
+        }
+      }
+    },
+    "Start fast": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starta fasta"
+          }
+        }
+      }
+    },
+    "Started a %lld-hour fast. You'll reach your goal at %@.": {
+      "comment": "Siri confirmation after starting a fast. Values: target length in hours, clock time the goal is reached.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Startade en fasta på %lld timmar. Du når målet kl. %@."
+          }
+        }
+      }
+    },
+    "Starts a fast with the plan you last used. Does nothing if a fast is already running.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Startar en fasta med planen du använde senast. Gör ingenting om en fasta redan pågår."
+          }
+        }
+      }
+    },
     "Stays on this device. Ask Atlas reads it only when you allow it.": {
       "localizations": {
         "sv": {
@@ -6594,6 +6728,16 @@
         }
       }
     },
+    "The routine to train. Leave empty for an empty workout.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rutinen att träna. Lämna tomt för ett tomt pass."
+          }
+        }
+      }
+    },
     "The scanned pages this value was read from.": {
       "localizations": {
         "sv": {
@@ -6610,6 +6754,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Det här går inte att ångra."
+          }
+        }
+      }
+    },
+    "Today's weight, in kilograms or pounds as set in Atlas.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagens vikt, i kilo eller pund enligt inställningen i Atlas."
           }
         }
       }
@@ -6664,12 +6818,44 @@
         }
       }
     },
+    "What's your weight?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vad väger du?"
+          }
+        }
+      }
+    },
     "Which one change would lower it the most?": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Vilken enskild förändring skulle sänka den mest?"
+          }
+        }
+      }
+    },
+    "You don't have a fast running.": {
+      "comment": "Siri response to “End fast” when no fast is open.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du har ingen fasta igång."
+          }
+        }
+      }
+    },
+    "You're already fasting — %@ so far.": {
+      "comment": "Siri response to “Start fast” when a fast is already running. The value is the time fasted, e.g. “3 hours, 12 minutes”.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du fastar redan – %@ hittills."
           }
         }
       }
