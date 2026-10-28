@@ -44242,6 +44242,176 @@
           }
         }
       }
+    },
+    "Fruit & veg": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frukt & grönt"
+          }
+        }
+      }
+    },
+    "Dairy": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mejeri"
+          }
+        }
+      }
+    },
+    "Meat & fish": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kött & fisk"
+          }
+        }
+      }
+    },
+    "Pantry": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skafferi"
+          }
+        }
+      }
+    },
+    "Frozen": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frys"
+          }
+        }
+      }
+    },
+    "Shopping list": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inköpslista"
+          }
+        }
+      }
+    },
+    "%lld to buy": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld kvar att köpa"
+          }
+        }
+      }
+    },
+    "Your planned day, bought for the days you pick.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Din planerade dag, handlad för så många dagar du väljer."
+          }
+        }
+      }
+    },
+    "3 days": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "3 dagar"
+          }
+        }
+      }
+    },
+    "Clear checked": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rensa avbockade"
+          }
+        }
+      }
+    },
+    "Share list": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dela listan"
+          }
+        }
+      }
+    },
+    "All done": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allt klart"
+          }
+        }
+      }
+    },
+    "Everything on the list is ticked off.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allt på listan är avbockat."
+          }
+        }
+      }
+    },
+    "Start over": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Börja om"
+          }
+        }
+      }
+    },
+    "Double-tap to put back on the list": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck två gånger för att lägga tillbaka på listan"
+          }
+        }
+      }
+    },
+    "Double-tap to tick off": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck två gånger för att bocka av"
+          }
+        }
+      }
+    },
+    "Everything this plan needs, sorted by store section": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allt planen behöver, sorterat efter avdelning i butiken"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
