@@ -35,6 +35,7 @@ enum ProfileMergeEngine {
         merged.customFoods = union(primary.customFoods, other.customFoods)
         merged.recipes = union(primary.recipes, other.recipes)
         merged.protocolNotes = union(primary.protocolNotes, other.protocolNotes)
+        merged.supplements = mergeSupplements(primary.supplements, other.supplements)
         merged.favoriteFoodIDs.formUnion(other.favoriteFoodIDs)
         merged.streakFreezeDays = StreakFreezeService.migratingLegacyKeys(
             primary.streakFreezeDays.union(other.streakFreezeDays)
@@ -171,6 +172,7 @@ enum ProfileMergeEngine {
         [
             .of(\.habits), .of(\.habitEntries), .of(\.weightHistory), .of(\.labHistory),
             .of(\.outcomeHistory), .of(\.customFoods), .of(\.recipes), .of(\.protocolNotes),
+            .of(\.supplements),
         ]
     }
 
@@ -274,6 +276,19 @@ enum ProfileMergeEngine {
             }
         }
         return merged
+    }
+
+    /// A supplement both rows hold keeps the primary's settings and the
+    /// days either row checked it off.
+    private static func mergeSupplements(_ primary: [Supplement], _ other: [Supplement]) -> [Supplement] {
+        let otherByID = Dictionary(other.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let merged = primary.map { (supplement: Supplement) -> Supplement in
+            guard let theirs = otherByID[supplement.id] else { return supplement }
+            var copy = supplement
+            copy.takenDays = Set(supplement.takenDays).union(theirs.takenDays).sorted()
+            return copy
+        }
+        return union(merged, other)
     }
 
     /// One outcome check-in per day; the more recently edited one stays.

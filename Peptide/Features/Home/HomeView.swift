@@ -63,6 +63,7 @@ struct HomeView: View {
     @State private var showQuickLogSheet = false
     @State private var quickLogAction: QuickLogAction?
     @State private var showWeightSheet = false
+    @State private var showSupplements = false
     /// Bevel-style hero metric trio snapshot. Loaded async on first
     /// appear + on each .active scene transition so the rings reflect
     /// the freshest HealthKit reads without blocking the view body.
@@ -144,6 +145,8 @@ struct HomeView: View {
         /// The logging checklist. Filters the full meal and weight
         /// histories, so it's built here rather than in `body`.
         var checklist: TodayChecklistEngine.State?
+        /// The shown day's supplements with their checks, under the checklist.
+        var supplements: [SupplementEngine.Row] = []
     }
 
     private struct HeroDetailItem: Identifiable {
@@ -248,7 +251,8 @@ struct HomeView: View {
                 consumption: dataStore.consumption(for: day),
                 trainedToday: workoutSummary.count > 0,
                 now: reference
-            )
+            ),
+            supplements: SupplementEngine.rows(dataStore.profile.supplements, on: reference, calendar: .current)
         )
         // Inside an animation so the cards' numericText digits roll.
         AppAnimation.with(AppAnimation.springSmooth) { derived = next }
@@ -722,6 +726,11 @@ struct HomeView: View {
                     .environment(dataStore)
                     .liquidGlassPresentation()
             }
+            .sheet(isPresented: $showSupplements) {
+                SupplementsSheet()
+                    .environment(dataStore)
+                    .liquidGlassPresentation()
+            }
             .sheet(isPresented: $showQuickLogSheet) {
                 QuickLogMenuSheet(
                     nextDose: dataStore.nextDose,
@@ -875,7 +884,10 @@ struct HomeView: View {
                 state: checklist,
                 unit: dataStore.profile.bodyMetrics.unit,
                 onAction: checklistAction,
-                dayTitle: pastDayTitle
+                dayTitle: pastDayTitle,
+                supplements: derived.supplements,
+                onToggleSupplement: supplementToggle,
+                onManageSupplements: supplementManager
             )
             .sectionAppear(index: 5)
         }
@@ -1157,6 +1169,25 @@ struct HomeView: View {
     private func toggleDose(_ entry: ProtocolEntry) {
         if entry.completed { Haptics.impact(.soft) } else { Haptics.success() }
         AppAnimation.with(AppAnimation.springSnappy) { dataStore.toggleEntry(entry.id) }
+    }
+
+    /// Nil on a past day: its supplement checks are a record, not a control.
+    private var supplementToggle: ((UUID) -> Void)? {
+        guard isViewingToday else { return nil }
+        return toggleSupplement
+    }
+
+    private var supplementManager: (() -> Void)? {
+        guard isViewingToday else { return nil }
+        return { showSupplements = true }
+    }
+
+    /// The supplement row's one-tap check, with the same feedback as a
+    /// dose: a success haptic when taken, a soft tap when un-checked.
+    private func toggleSupplement(_ id: UUID) {
+        let wasTaken = derived.supplements.first(where: { $0.id == id })?.isTaken ?? false
+        if wasTaken { Haptics.impact(.soft) } else { Haptics.success() }
+        AppAnimation.with(AppAnimation.springSnappy) { dataStore.toggleSupplement(id: id) }
     }
 
     private func handleChecklistAction(_ item: TodayChecklistEngine.Item) {

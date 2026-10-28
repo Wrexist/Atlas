@@ -548,6 +548,10 @@ struct UserProfile: Codable, Sendable {
     /// Rolling per-day Atlas Score history for the progress trend chart.
     /// Capped to a recent window on write so the profile blob stays small.
     var momentumHistory: [MomentumDayPoint]
+    /// Daily supplements checked off on Today, each carrying its own
+    /// taken days. Older profiles decode to an empty list. See
+    /// `SupplementEngine` for the streak and reminder rules.
+    var supplements: [Supplement]
 
     init(
         name: String,
@@ -591,7 +595,8 @@ struct UserProfile: Codable, Sendable {
         atlasLevel: Int = 1,
         momentumAwardedToday: Int = 0,
         lastMomentumAwardDay: Date? = nil,
-        momentumHistory: [MomentumDayPoint] = []
+        momentumHistory: [MomentumDayPoint] = [],
+        supplements: [Supplement] = []
     ) {
         self.name = name
         self.goals = goals
@@ -635,6 +640,7 @@ struct UserProfile: Codable, Sendable {
         self.momentumAwardedToday = momentumAwardedToday
         self.lastMomentumAwardDay = lastMomentumAwardDay
         self.momentumHistory = momentumHistory
+        self.supplements = supplements
     }
 
     init(from decoder: Decoder) throws {
@@ -686,6 +692,7 @@ struct UserProfile: Codable, Sendable {
         momentumAwardedToday = try container.decodeIfPresent(Int.self, forKey: .momentumAwardedToday) ?? 0
         lastMomentumAwardDay = try container.decodeIfPresent(Date.self, forKey: .lastMomentumAwardDay)
         momentumHistory = try container.decodeIfPresent([MomentumDayPoint].self, forKey: .momentumHistory) ?? []
+        supplements = try container.decodeIfPresent([Supplement].self, forKey: .supplements) ?? []
     }
 
     static var fresh: UserProfile {

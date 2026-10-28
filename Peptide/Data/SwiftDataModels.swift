@@ -531,6 +531,7 @@ final class StoredProfile {
             .of(Recipe.self, at: "recipes"),
             .of(ProtocolNote.self, at: "protocolNotes"),
             .of(WorkoutEntry.self, at: "workoutHistory"),
+            .of(Supplement.self, at: "supplements"),
         ]
     }
 
@@ -725,7 +726,8 @@ final class StoredProfile {
             atlasLevel: momentum.atlasLevel,
             momentumAwardedToday: momentum.momentumAwardedToday,
             lastMomentumAwardDay: momentum.lastMomentumAwardDay,
-            momentumHistory: momentum.momentumHistory
+            momentumHistory: momentum.momentumHistory,
+            supplements: ext.supplements
         )
     }
 }
@@ -958,6 +960,10 @@ private struct ProfileExtension: Codable {
     var momentumAwardedToday: Int = 0
     var lastMomentumAwardDay: Date? = nil
     var momentumHistory: [MomentumDayPoint] = []
+    /// Daily supplements and their taken days. Small and rarely edited on
+    /// two devices at once, so it rides the residual blob rather than a
+    /// column of its own — a new column would mean a CloudKit schema deploy.
+    var supplements: [Supplement] = []
 
     static let empty = ProfileExtension()
 
@@ -1003,6 +1009,7 @@ private struct ProfileExtension: Codable {
         momentumAwardedToday = try c.decodeIfPresent(Int.self, forKey: .momentumAwardedToday) ?? 0
         lastMomentumAwardDay = try c.decodeIfPresent(Date.self, forKey: .lastMomentumAwardDay)
         momentumHistory = try c.decodeIfPresent([MomentumDayPoint].self, forKey: .momentumHistory) ?? []
+        supplements = try c.decodeIfPresent([Supplement].self, forKey: .supplements) ?? []
     }
 
     /// Snapshot of everything that still lives in the blob. The split
@@ -1030,6 +1037,7 @@ private struct ProfileExtension: Codable {
         ext.weeklySummaryEnabled = profile.weeklySummaryEnabled
         ext.weeklySummaryOptInConfirmed = profile.weeklySummaryOptInConfirmed
         ext.goalDate = profile.goalDate
+        ext.supplements = profile.supplements
         return ext
     }
 }
