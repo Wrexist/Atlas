@@ -1038,7 +1038,18 @@ def strongman(n, eq):
     return None
 
 
-FAMILY_TEMPLATES = {"strongman": strongman, "olympic": olympic, "cardio": cardio, "plyo": plyo, "machine": machine, "curl": curl, "hpress": hpress, "vpress": vpress, "raise": raise_, "fly": fly, "row": row,
+def windmill(n, eq):
+    """The bell stays locked out overhead while the hips push back and the free hand slides down the leg."""
+    if has(n, "double"):
+        return None
+    return {"posture": {"type": "stand", "width": 0.3, "toe_out": 25}, "implement": "kettlebell", "hands": "L",
+            "body": {"keys": [{}, {"side": -40, "lean": 55, "twist": -30, "back": 0.06}], "head_level": 0.3},
+            "arm": {"frame": "world", "sides": "L", "keys": [key((0.15, 0, 1), (0.02, 0, 1), (0, 1, 0))],
+                    "rest": key((-0.1, 0.1, -1), (-0.05, 0.1, -1), (0, 1, 0)), "elbow_out": [1, 0, 0]},
+            "camera": {"az": 20, "el": 8}}
+
+
+FAMILY_TEMPLATES = {"windmill": windmill, "strongman": strongman, "olympic": olympic, "cardio": cardio, "plyo": plyo, "machine": machine, "curl": curl, "hpress": hpress, "vpress": vpress, "raise": raise_, "fly": fly, "row": row,
                     "vpull": vpull, "triceps": triceps, "squat": squat, "hinge": hinge, "lunge": lunge,
                     "calf": calf, "legcurl_ext": legcurl_ext, "core": core,
                     "stretch": stretch}
@@ -1243,6 +1254,7 @@ ALIASES = {
 
 
 NAME_FAMILIES = [(r"^standing .*dumbbell press", "vpress"),
+                 (r"kettlebell windmill", "windmill"),
                  (r"walking lunge", "lunge"),
                  (r"leg press$|hyperextension", "machine"),
                  (r"seated dumbbell press|shoulder press|military press|overhead press", "vpress"),
