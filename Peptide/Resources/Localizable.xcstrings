@@ -44742,6 +44742,326 @@
           }
         }
       }
+    },
+    "Creatine": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kreatin"
+          }
+        }
+      }
+    },
+    "Omega-3": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Omega-3"
+          }
+        }
+      }
+    },
+    "Magnesium": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Magnesium"
+          }
+        }
+      }
+    },
+    "Zinc": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zink"
+          }
+        }
+      }
+    },
+    "Vitamin C": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "C-vitamin"
+          }
+        }
+      }
+    },
+    "Multivitamin": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Multivitamin"
+          }
+        }
+      }
+    },
+    "2,000 IU": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2 000 IE"
+          }
+        }
+      }
+    },
+    "1 tablet": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 tablett"
+          }
+        }
+      }
+    },
+    "Time for today's supplement.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dags för dagens tillskott."
+          }
+        }
+      }
+    },
+    "Time for today's dose: %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dags för dagens dos: %@"
+          }
+        }
+      }
+    },
+    "Supplements": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tillskott"
+          }
+        }
+      }
+    },
+    "Opens your supplement list": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar din lista med tillskott"
+          }
+        }
+      }
+    },
+    "Creatine, vitamin D, omega-3 — one check a day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kreatin, D-vitamin, omega-3 – en bock om dagen"
+          }
+        }
+      }
+    },
+    "Not taken": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inte tagen"
+          }
+        }
+      }
+    },
+    "Marks it as not taken": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markerar som inte tagen"
+          }
+        }
+      }
+    },
+    "Marks it as taken today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markerar som tagen i dag"
+          }
+        }
+      }
+    },
+    "One check a day on Today. No cycles, no protocol.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En bock om dagen under Idag. Inga cykler, inget protokoll."
+          }
+        }
+      }
+    },
+    "Days in a row: %lld. Taken %lld of the last 7 days.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagar i rad: %lld. Tagen %lld av de senaste 7 dagarna."
+          }
+        }
+      }
+    },
+    "Opens the supplement's settings": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar inställningarna för tillskottet"
+          }
+        }
+      }
+    },
+    "Adds %@ with %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägger till %@ med %@"
+          }
+        }
+      }
+    },
+    "Name your own supplement": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Namnge ett eget tillskott"
+          }
+        }
+      }
+    },
+    "Dose (optional)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dos (valfritt)"
+          }
+        }
+      }
+    },
+    "Add supplement": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till tillskott"
+          }
+        }
+      }
+    },
+    "New supplement": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nytt tillskott"
+          }
+        }
+      }
+    },
+    "Edit supplement": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redigera tillskott"
+          }
+        }
+      }
+    },
+    "Time of day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tid på dagen"
+          }
+        }
+      }
+    },
+    "Pick a time of day to get a reminder.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj en tid på dagen för att få en påminnelse."
+          }
+        }
+      }
+    },
+    "Remind me": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Påminn mig"
+          }
+        }
+      }
+    },
+    "At %@, until it's checked off": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kl. %@, tills det är avbockat"
+          }
+        }
+      }
+    },
+    "Delete supplement": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Radera tillskott"
+          }
+        }
+      }
+    },
+    "Delete this supplement?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Radera det här tillskottet?"
+          }
+        }
+      }
+    },
+    "Removes it and its history from your list. This can't be undone.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tar bort det och dess historik från din lista. Det går inte att ångra."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

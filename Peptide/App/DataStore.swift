@@ -2273,6 +2273,44 @@ final class DataStore {
         Task { await rescheduleHabitReminders() }
     }
 
+    // MARK: - Supplements
+
+    /// Adds the supplement, or replaces the one with its id.
+    func saveSupplement(_ supplement: Supplement) {
+        if let index = profile.supplements.firstIndex(where: { $0.id == supplement.id }) {
+            profile.supplements[index] = supplement
+        } else {
+            profile.supplements.append(supplement)
+        }
+        save()
+        rescheduleSupplementReminders()
+    }
+
+    func deleteSupplement(id: UUID) {
+        profile.supplements.removeAll { $0.id == id }
+        save()
+        rescheduleSupplementReminders()
+    }
+
+    /// Checks the supplement off for the day, or un-checks it. Taking it
+    /// drops that day's reminder; un-checking brings it back.
+    func toggleSupplement(id: UUID, on date: Date = Date()) {
+        guard let index = profile.supplements.firstIndex(where: { $0.id == id }) else { return }
+        profile.supplements[index] = SupplementEngine.toggled(profile.supplements[index], on: date, calendar: .current)
+        save()
+        rescheduleSupplementReminders()
+    }
+
+    /// Supplement reminders share the daily-reminder pass and namespace.
+    /// Doses are re-planned after it so they fit the 64-request budget
+    /// around however many supplement reminders are now pending.
+    private func rescheduleSupplementReminders() {
+        Task {
+            await DailyReminderScheduler.reconcile(dataStore: self)
+            rescheduleNotificationsIfEnabled()
+        }
+    }
+
     // MARK: - Momentum / Atlas Score
 
     /// Transient guard so the "perfect day" burst fires once per day per
