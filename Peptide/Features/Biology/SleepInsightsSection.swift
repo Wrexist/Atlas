@@ -5,9 +5,12 @@ import SwiftUI
 /// stages, the regularity of bedtime and wake time, and sleep debt.
 /// The parent shows it only once `load()` finds at least
 /// `SleepInsightsEngine.minNights` nights, so a new user never sees a
-/// card of dashes.
+/// card of dashes. Last night's wrist temperature, when Apple Watch has
+/// recorded enough nights for a baseline, rides along as one quiet row.
 struct SleepInsightsSection: View {
     let insights: SleepInsightsEngine.Insights
+    var wristTemperature: WristTemperatureEngine.Deviation?
+    var unit: MeasurementUnit = .metric
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
@@ -24,6 +27,10 @@ struct SleepInsightsSection: View {
                     Divider().overlay(AppColor.glassBorder)
                     clock(insights)
                     debt(insights)
+                    if let wristTemperature {
+                        wristTemperatureRow(wristTemperature)
+                            .transition(.opacity)
+                    }
                 }
             }
         }
@@ -36,6 +43,13 @@ struct SleepInsightsSection: View {
         let segments = await HealthKitService.shared.sleepSegments(nights: SleepInsightsEngine.windowNights)
         let nights = SleepScoreEngine.nights(from: segments, calendar: .current)
         return SleepInsightsEngine.insights(nights: nights, targetHours: targetHours, calendar: .current)
+    }
+
+    /// Last night's wrist temperature against the user's baseline, or nil
+    /// without an Apple Watch reading from last night or enough nights before it.
+    static func loadWristTemperature() async -> WristTemperatureEngine.Deviation? {
+        let readings = await HealthKitService.shared.sleepingWristTemperatures(days: WristTemperatureEngine.readDays)
+        return WristTemperatureEngine.deviation(readings: readings, now: .now, calendar: .current)
     }
 
     // MARK: - Rows
@@ -138,17 +152,30 @@ struct SleepInsightsSection: View {
         )
     }
 
+    private func wristTemperatureRow(_ deviation: WristTemperatureEngine.Deviation) -> some View {
+        HStack(spacing: Spacing.md) {
+            rowIcon("thermometer.medium")
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text("Wrist temperature")
+                    .font(AppFont.scaled(16))
+                    .foregroundStyle(AppColor.textPrimary)
+                Text("Last night vs your baseline")
+                    .font(AppFont.scaled(13))
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+            Spacer(minLength: Spacing.sm)
+            Text(Self.temperatureDelta(deviation.celsius, unit: unit))
+                .font(AppFont.scaled(16, weight: .semibold))
+                .foregroundStyle(AppColor.textPrimary)
+                .monospacedDigit()
+                .contentTransition(.numericText())
+        }
+        .accessibilityElement(children: .combine)
+    }
+
     private func row(icon: String, title: LocalizedStringKey, value: Text) -> some View {
         HStack(spacing: Spacing.md) {
-            Image(systemName: icon)
-                .font(AppFont.scaled(13, weight: .semibold))
-                .foregroundStyle(AppColor.metricSleep)
-                .frame(width: 28, height: 28)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
-                        .fill(AppColor.metricSleep.opacity(0.15))
-                }
-                .accessibilityHidden(true)
+            rowIcon(icon)
             Text(title)
                 .font(AppFont.scaled(16))
                 .foregroundStyle(AppColor.textPrimary)
@@ -161,7 +188,26 @@ struct SleepInsightsSection: View {
         .accessibilityElement(children: .combine)
     }
 
+    private func rowIcon(_ icon: String) -> some View {
+        Image(systemName: icon)
+            .font(AppFont.scaled(13, weight: .semibold))
+            .foregroundStyle(AppColor.metricSleep)
+            .frame(width: 28, height: 28)
+            .background {
+                RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
+                    .fill(AppColor.metricSleep.opacity(0.15))
+            }
+            .accessibilityHidden(true)
+    }
+
     // MARK: - Formatting
+
+    /// Signed, one decimal, in the user's unit: "+0.3 °C", "−0.5 °F".
+    private static func temperatureDelta(_ celsius: Double, unit: MeasurementUnit) -> String {
+        let delta = WristTemperatureEngine.displayDelta(celsius, unit: unit)
+        let number = delta.formatted(.number.precision(.fractionLength(1)).sign(strategy: .always(includingZero: false)))
+        return number + (unit == .imperial ? " °F" : " °C")
+    }
 
     private static func duration(_ seconds: TimeInterval) -> String {
         Duration.seconds(seconds.rounded()).formatted(.units(allowed: [.hours, .minutes], width: .abbreviated))

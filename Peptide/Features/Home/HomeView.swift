@@ -32,6 +32,11 @@ struct HomeView: View {
     /// Set when the user taps the Today recap card; drives the
     /// navigation push into the detail view.
     @State private var detailWeekStart: String?
+    /// Rule-based weekly check-in, shown under the recap on Sundays and
+    /// Mondays and inside the current week's recap. Rebuilt with the
+    /// derived models; `checkInSleep` is the Health part, fetched apart.
+    @State private var weeklyCheckIn: WeeklyCheckIn?
+    @State private var checkInSleep: [(date: Date, value: Double)] = []
     /// Cycle-milestone prompt state. Both are nil unless the
     /// CycleMilestoneService has surfaced a pending (protocol,
     /// milestone) pair on appear; the prompt sheet routes into the
@@ -63,6 +68,7 @@ struct HomeView: View {
     @State private var showQuickLogSheet = false
     @State private var quickLogAction: QuickLogAction?
     @State private var showWeightSheet = false
+    @State private var showSupplements = false
     /// Bevel-style hero metric trio snapshot. Loaded async on first
     /// appear + on each .active scene transition so the rings reflect
     /// the freshest HealthKit reads without blocking the view body.
@@ -85,6 +91,10 @@ struct HomeView: View {
     /// The first successful range build of a HomeView only fills an
     /// empty snapshot — that's a launch, not a sync worth announcing.
     @State private var hasLoadedHealthRange = false
+    /// Health's daily step buckets, wide enough to cover the shown day.
+    /// Steps move without any store mutation, so they're fetched here
+    /// and folded into the checklist rather than read from `DataStore`.
+    @State private var stepBuckets: [(date: Date, value: Double)] = []
     /// The last one-tap water glass, kept so its toast can undo it.
     @State private var lastWaterLog: WaterLog?
     @State private var showWaterToast = false
@@ -117,6 +127,11 @@ struct HomeView: View {
         let dayOffset: Int
     }
 
+    private struct StepsKey: Equatable {
+        let dayOffset: Int
+        let healthConnected: Bool
+    }
+
     /// Everything here describes the shown day, except `primaryReason`
     /// and `workoutsThisWeek`, which are about now and only render today.
     private struct DerivedToday {
@@ -144,6 +159,8 @@ struct HomeView: View {
         /// The logging checklist. Filters the full meal and weight
         /// histories, so it's built here rather than in `body`.
         var checklist: TodayChecklistEngine.State?
+        /// The shown day's supplements with their checks, under the checklist.
+        var supplements: [SupplementEngine.Row] = []
     }
 
     private struct HeroDetailItem: Identifiable {
@@ -247,11 +264,28 @@ struct HomeView: View {
                 profile: dataStore.profile,
                 consumption: dataStore.consumption(for: day),
                 trainedToday: workoutSummary.count > 0,
+                steps: steps(on: day),
                 now: reference
-            )
+            ),
+            supplements: SupplementEngine.rows(dataStore.profile.supplements, on: reference, calendar: .current)
         )
         // Inside an animation so the cards' numericText digits roll.
         AppAnimation.with(AppAnimation.springSmooth) { derived = next }
+        refreshWeeklyCheckIn()
+    }
+
+    private func refreshWeeklyCheckIn() {
+        let next = dataStore.weeklyCheckIn(sleepHours: checkInSleep)
+        AppAnimation.with(AppAnimation.springSmooth) { weeklyCheckIn = next }
+    }
+
+    /// Sleep nights for the check-in. Health-backed, so it moves without a
+    /// store mutation and refreshes with the other HealthKit reads.
+    private func refreshCheckInSleep() async {
+        checkInSleep = dataStore.profile.healthConnected
+            ? await HealthKitService.shared.dailySleepHours(days: 14)
+            : []
+        refreshWeeklyCheckIn()
     }
 
     /// Rebuilds everything that depends on the clock rather than the store —
@@ -262,6 +296,28 @@ struct HomeView: View {
         refreshDerived()
         Task { await refreshHeroSnapshot() }
         Task { await refreshHealthRange() }
+        Task { await refreshSteps() }
+        Task { await refreshCheckInSleep() }
+    }
+
+    /// Nil without a Health connection, or when Health has no step data
+    /// for the day — the checklist then drops its steps row.
+    private func steps(on day: Date) -> Double? {
+        guard dataStore.profile.healthConnected else { return nil }
+        return StepGoalEngine.steps(on: day, from: stepBuckets)
+    }
+
+    /// Fetches the step window for the shown day and folds the count
+    /// into the checklist without rebuilding the rest of Today.
+    private func refreshSteps() async {
+        if dataStore.profile.healthConnected {
+            stepBuckets = await HealthKitService.shared.dailySteps(days: StepGoalEngine.fetchDays(forDayOffset: dayOffset))
+        } else {
+            stepBuckets = []
+        }
+        let count = steps(on: selectedDay)
+        guard derived.checklist?.steps != count else { return }
+        AppAnimation.with(AppAnimation.springSmooth) { derived.checklist?.steps = count }
     }
 
     /// The week's finished sessions — one fetch that also covers today, so
@@ -632,6 +688,17 @@ struct HomeView: View {
             .task(id: DerivedKey(revision: dataStore.revision, dayOffset: dayOffset)) {
                 refreshDerived()
             }
+            // Refetch steps for a newly browsed day and once Health connects.
+            // Today's count keeps moving while the screen stays open, so it
+            // is re-read every few minutes; past days are final.
+            .task(id: StepsKey(dayOffset: dayOffset, healthConnected: dataStore.profile.healthConnected)) {
+                await refreshSteps()
+                while dayOffset == 0, !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(StepGoalEngine.liveRefreshSeconds))
+                    guard !Task.isCancelled, scenePhase == .active else { continue }
+                    await refreshSteps()
+                }
+            }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { refreshForCurrentTime() }
             }
@@ -669,6 +736,7 @@ struct HomeView: View {
                 Task { await loadWeeklySummary(forceRefresh: false) }
                 Task { await refreshHeroSnapshot() }
                 Task { await refreshHealthRange() }
+                Task { await refreshCheckInSleep() }
             }
             .onChange(of: notificationService.lastReport.droppedProtocolIDs) { _, _ in
                 notificationBannerDismissed = false
@@ -688,7 +756,11 @@ struct HomeView: View {
                         summary: binding,
                         onRefresh: isCurrentWeek(weekStart)
                             ? { await loadWeeklySummary(forceRefresh: true) }
-                            : nil
+                            : nil,
+                        // The check-in is about the last seven days, so it
+                        // belongs only on this week's recap.
+                        checkIn: isCurrentWeek(weekStart) ? weeklyCheckIn : nil,
+                        unit: dataStore.profile.bodyMetrics.unit
                     )
                 } else {
                     // The summary was deleted between push and render —
@@ -719,6 +791,11 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showWeightSheet) {
                 LogWeightSheet()
+                    .environment(dataStore)
+                    .liquidGlassPresentation()
+            }
+            .sheet(isPresented: $showSupplements) {
+                SupplementsSheet()
                     .environment(dataStore)
                     .liquidGlassPresentation()
             }
@@ -768,6 +845,7 @@ struct HomeView: View {
         case .doses: dosesSection
         case .wellness: wellnessSection
         case .movement: movementSection
+        case .steps: stepsSection
         case .overview: overviewSection(proxy: proxy)
         case .momentum: momentumSection
         case .explore: exploreSection
@@ -849,6 +927,15 @@ struct HomeView: View {
             )
             .sectionAppear(index: 3)
         }
+        if let weeklyCheckIn, WeeklyCheckInEngine.isCheckInDay(Date(), calendar: .current) {
+            WeeklyCheckInCard(
+                checkIn: weeklyCheckIn,
+                unit: dataStore.profile.bodyMetrics.unit,
+                onLogWeight: { showWeightSheet = true }
+            )
+            .transition(.opacity.combined(with: .scale(0.98)))
+            .sectionAppear(index: 3)
+        }
     }
 
     /// PRIMARY ACTION — today's habits, the daily completion ring, and
@@ -875,7 +962,10 @@ struct HomeView: View {
                 state: checklist,
                 unit: dataStore.profile.bodyMetrics.unit,
                 onAction: checklistAction,
-                dayTitle: pastDayTitle
+                dayTitle: pastDayTitle,
+                supplements: derived.supplements,
+                onToggleSupplement: supplementToggle,
+                onManageSupplements: supplementManager
             )
             .sectionAppear(index: 5)
         }
@@ -936,6 +1026,16 @@ struct HomeView: View {
             .id(TodayJumpBar.SectionAnchor.movement)
             .trackSectionAnchor(.movement)
             .scrollReveal()
+    }
+
+    /// The shown day's steps against the goal. Hidden without Health
+    /// step data, like the checklist's steps row.
+    @ViewBuilder
+    private var stepsSection: some View {
+        if let checklist = derived.checklist, let steps = checklist.steps {
+            TodayStepsCard(steps: steps, goal: checklist.stepGoal, isPastDay: !isViewingToday)
+                .scrollReveal()
+        }
     }
 
     /// Lifestyle overview: calorie / streak / check-in / water grid and
@@ -1159,6 +1259,25 @@ struct HomeView: View {
         AppAnimation.with(AppAnimation.springSnappy) { dataStore.toggleEntry(entry.id) }
     }
 
+    /// Nil on a past day: its supplement checks are a record, not a control.
+    private var supplementToggle: ((UUID) -> Void)? {
+        guard isViewingToday else { return nil }
+        return toggleSupplement
+    }
+
+    private var supplementManager: (() -> Void)? {
+        guard isViewingToday else { return nil }
+        return { showSupplements = true }
+    }
+
+    /// The supplement row's one-tap check, with the same feedback as a
+    /// dose: a success haptic when taken, a soft tap when un-checked.
+    private func toggleSupplement(_ id: UUID) {
+        let wasTaken = derived.supplements.first(where: { $0.id == id })?.isTaken ?? false
+        if wasTaken { Haptics.impact(.soft) } else { Haptics.success() }
+        AppAnimation.with(AppAnimation.springSnappy) { dataStore.toggleSupplement(id: id) }
+    }
+
     private func handleChecklistAction(_ item: TodayChecklistEngine.Item) {
         switch item {
         case .meals:
@@ -1169,6 +1288,9 @@ struct HomeView: View {
             logWaterGlass()
         case .weight:
             showWeightSheet = true
+        case .steps:
+            // Display-only: steps fill from Health.
+            break
         }
     }
 

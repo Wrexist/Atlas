@@ -217,3 +217,27 @@ test('test_schema_objectsAllForbidExtraKeys', () => {
   };
   walk(FOOD_SCAN_SCHEMA);
 });
+
+test('test_schema_itemMicronutrients_areNullableWithLabelUnits', () => {
+  const item = FOOD_SCAN_SCHEMA.properties.items.items;
+  assert.ok(item.required.includes('micros_per_100g'));
+  const [micros, nothing] = item.properties.micros_per_100g.anyOf;
+  assert.deepEqual(nothing, { type: 'null' }, 'null when the model cannot estimate them');
+  assert.deepEqual(micros.required, ['sodium_mg', 'potassium_mg', 'iron_mg', 'calcium_mg', 'vitamin_d_ug', 'vitamin_b12_ug']);
+  const option = FOOD_SCAN_SCHEMA.properties.questions.items.properties.options.items;
+  assert.ok(!('micros_per_100g' in option.properties), 'answers keep the item\'s micronutrients');
+  assert.match(buildFoodScanRequest(photoBody).system, /micros_per_100g .* in mg .* in µg/);
+});
+
+test('test_resultWithMicronutrients_passesThroughUnchanged', () => {
+  const withMicros = {
+    ...RESULT,
+    items: [{ ...RESULT.items[0], micros_per_100g: {
+      sodium_mg: 230, potassium_mg: 180, iron_mg: 1.1, calcium_mg: 20, vitamin_d_ug: 0, vitamin_b12_ug: 0.4,
+    } }],
+  };
+  const text = JSON.stringify(withMicros);
+  const out = readFoodScanResult({ stop_reason: 'end_turn', model: 'claude-opus-5-5', content: [{ type: 'text', text }] });
+  assert.equal(out.status, 200);
+  assert.deepEqual(out.body.result.items[0].micros_per_100g, withMicros.items[0].micros_per_100g);
+});

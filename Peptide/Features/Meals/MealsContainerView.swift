@@ -62,6 +62,26 @@ struct MealsContainerView: View {
 
     private var planningTools: some View {
         VStack(spacing: Spacing.sm) {
+            NavigationLink {
+                RecipeLibraryView()
+            } label: {
+                GlassEntryRowLabel(
+                    icon: "fork.knife",
+                    title: "Recipes & meal prep",
+                    subtitle: Text("Healthy recipes picked for your day")
+                )
+            }
+            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+            NavigationLink {
+                WeeklyPrepView()
+            } label: {
+                GlassEntryRowLabel(
+                    icon: "shippingbox.fill",
+                    title: "Weekly prep",
+                    subtitle: Text("Two dishes, one shopping list, boxes for the week")
+                )
+            }
+            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
             GlassEntryRow(
                 icon: "wand.and.stars",
                 title: "Plan my day",

@@ -690,8 +690,8 @@ propagates the delete through the user's private CloudKit zone.
 HEALTHKIT
 HealthKit access is requested from the optional "Connect Apple Health"
 row on the onboarding "Stay on track" screen, or later from the Profile tab — the user always initiates
-it. Atlas reads five metrics from Apple Health: HRV, resting heart
-rate, VO2 max, sleep, and step count. It
+it. Atlas reads six metrics from Apple Health: HRV, resting heart
+rate, VO2 max, sleep, sleeping wrist temperature, and step count. It
 optionally writes meal macros (calories, protein, carbs, fat) if the
 user enables "Write meals to Apple Health" from Profile, and finished
 workouts, weigh-ins and water (reading weight back from scales) if the

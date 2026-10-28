@@ -186,6 +186,30 @@ final class SmartScanTests: XCTestCase {
         XCTAssertEqual(item.selectedAnswer, 0)
     }
 
+    func test_parseSmartScan_micronutrients_keptPerItem_andImplausibleValuesDropped() throws {
+        let scan = try service.parseSmartScan(from: Data(SmartFixtures.salmonWithMicros.utf8))
+        let micros = try XCTUnwrap(scan.items.first?.per100g?.micros)
+        XCTAssertEqual(micros.potassiumMg, 363)
+        XCTAssertEqual(micros.vitaminB12Ug, 3.2)
+        XCTAssertNil(micros.vitaminDUg, "a negative amount is unknown, not zero")
+        XCTAssertNil(scan.items.last?.per100g?.micros, "null from the model stores nothing")
+    }
+
+    func test_parseSmartScan_withoutMicronutrients_stillDecodes() throws {
+        let scan = try service.parseSmartScan(from: Data(SmartFixtures.meal.utf8))
+        XCTAssertNil(scan.items.first?.per100g?.micros, "proxies before micronutrients omit the field")
+    }
+
+    func test_answerAndManualEdit_keepTheItemsMicronutrients() throws {
+        let scan = try service.parseSmartScan(from: Data(SmartFixtures.salmonWithMicros.utf8))
+        var item = EditableFoodItem(from: try XCTUnwrap(scan.items.first))
+        item.answer(1)
+        XCTAssertEqual(item.per100g.calories, 245)
+        XCTAssertEqual(item.per100g.micros?.ironMg, 0.3)
+        item.correctNutrition(LoggableMeal(calories: 300, proteinG: 30, carbsG: 0, fatG: 20))
+        XCTAssertEqual(item.per100g.micros?.sodiumMg, 59)
+    }
+
     // MARK: - Correction memory
 
     @MainActor
@@ -437,6 +461,26 @@ private enum SmartFixtures {
         {"name":"Chia seeds","brand":null,"portion_label":"1 tbsp","grams":12,"portion_options":[],
          "per_100g":{"calories":486,"protein_g":17,"carbs_g":42,"fat_g":42,"fiber_g":34,"sugars_g":0},
          "confidence":0.9,"price":null}
+      ]}}
+    """
+
+    static let salmonWithMicros = """
+    {"model":"claude-opus-5-5","result":{
+      "kind":"meal","title":"Salmon","summary":"Baked salmon.","tips":[],"package":null,
+      "items":[
+        {"name":"Salmon","brand":null,"portion_label":"1 fillet","grams":150,"portion_options":[],
+         "per_100g":{"calories":208,"protein_g":20,"carbs_g":0,"fat_g":13,"fiber_g":0,"sugars_g":0},
+         "micros_per_100g":{"sodium_mg":59,"potassium_mg":363,"iron_mg":0.3,"calcium_mg":9,"vitamin_d_ug":-1,"vitamin_b12_ug":3.2},
+         "confidence":0.9,"price":null},
+        {"name":"Lemon","brand":null,"portion_label":"1 wedge","grams":10,"portion_options":[],
+         "per_100g":{"calories":29,"protein_g":1.1,"carbs_g":9,"fat_g":0.3,"fiber_g":2.8,"sugars_g":2.5},
+         "micros_per_100g":null,"confidence":0.9,"price":null}
+      ],
+      "questions":[
+        {"item_index":0,"question":"Butter on top?","options":[
+          {"label":"No","grams":150,"per_100g":{"calories":208,"protein_g":20,"carbs_g":0,"fat_g":13,"fiber_g":0,"sugars_g":0}},
+          {"label":"Yes","grams":160,"per_100g":{"calories":245,"protein_g":19,"carbs_g":0,"fat_g":17,"fiber_g":0,"sugars_g":0}}
+        ]}
       ]}}
     """
 

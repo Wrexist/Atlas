@@ -121,6 +121,16 @@
         }
       }
     },
+    "%@ routines": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ rutiner"
+          }
+        }
+      }
+    },
     "%@ ± %@": {
       "localizations": {
         "sv": {
@@ -5962,12 +5972,12 @@
         }
       }
     },
-    "Ask AI what's moving your Biological Age": {
+    "All meals": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fråga AI vad som påverkar din biologiska ålder"
+            "value": "Alla måltider"
           }
         }
       }
@@ -6102,6 +6112,16 @@
         }
       }
     },
+    "Body": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kropp"
+          }
+        }
+      }
+    },
     "Card size": {
       "localizations": {
         "sv": {
@@ -6118,6 +6138,87 @@
           "stringUnit": {
             "state": "translated",
             "value": "Anslut Apple Hälsa för att fylla i det här"
+          }
+        }
+      }
+    },
+    "Copied from %@": {
+      "comment": "Toast after copying meals in the diary. The value is the source day, e.g. “yesterday”.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopierat från %@"
+          }
+        }
+      }
+    },
+    "Copy": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopiera"
+          }
+        }
+      }
+    },
+    "Copy all meals from %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopiera alla måltider från %@"
+          }
+        }
+      }
+    },
+    "Copy from": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopiera från"
+          }
+        }
+      }
+    },
+    "Copy from %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopiera från %@"
+          }
+        }
+      }
+    },
+    "Copy from another day…": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopiera från en annan dag…"
+          }
+        }
+      }
+    },
+    "Copy meals": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopiera måltider"
+          }
+        }
+      }
+    },
+    "Copy options for %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopieringsval för %@"
           }
         }
       }
@@ -6172,6 +6273,16 @@
         }
       }
     },
+    "Ends the fast that's running and tells you how long it lasted.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avslutar den pågående fastan och berättar hur länge den varade."
+          }
+        }
+      }
+    },
     "Enter a value between %@ and %@.": {
       "localizations": {
         "sv": {
@@ -6188,6 +6299,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ange övertryck och undertryck, till exempel 120 över 80."
+          }
+        }
+      }
+    },
+    "Fast ended after %@.": {
+      "comment": "Siri confirmation after ending a fast before its goal. The value is its length, e.g. “14 hours, 5 minutes”.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fastan avslutades efter %@."
+          }
+        }
+      }
+    },
+    "Fast ended after %@. You reached your %lld-hour goal.": {
+      "comment": "Siri confirmation after ending a fast that reached its goal. Values: its length, the goal in hours.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fastan avslutades efter %@. Du nådde ditt mål på %lld timmar."
           }
         }
       }
@@ -6314,12 +6447,43 @@
         }
       }
     },
+    "Log Weight": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga vikt"
+          }
+        }
+      }
+    },
     "Log a reading": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Logga ett värde"
+          }
+        }
+      }
+    },
+    "Logged %@.": {
+      "comment": "Siri confirmation after logging a body weight, e.g. “Logged 82.4 kg.”",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loggade %@."
+          }
+        }
+      }
+    },
+    "Logs today's body weight in the unit you use in Atlas.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loggar dagens kroppsvikt i den enhet du använder i Atlas."
           }
         }
       }
@@ -6394,12 +6558,32 @@
         }
       }
     },
+    "Nothing logged that day.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inget loggat den dagen."
+          }
+        }
+      }
+    },
     "Okay": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Okej"
+          }
+        }
+      }
+    },
+    "Opens Atlas and starts a workout from a routine, or an empty workout when none is picked.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar Atlas och startar ett pass från en rutin, eller ett tomt pass om ingen väljs."
           }
         }
       }
@@ -6420,6 +6604,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Originalrapport"
+          }
+        }
+      }
+    },
+    "Pick another day to copy from.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj en annan dag att kopiera från."
           }
         }
       }
@@ -6554,6 +6748,47 @@
         }
       }
     },
+    "Start Workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starta pass"
+          }
+        }
+      }
+    },
+    "Start fast": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starta fasta"
+          }
+        }
+      }
+    },
+    "Started a %lld-hour fast. You'll reach your goal at %@.": {
+      "comment": "Siri confirmation after starting a fast. Values: target length in hours, clock time the goal is reached.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Startade en fasta på %lld timmar. Du når målet kl. %@."
+          }
+        }
+      }
+    },
+    "Starts a fast with the plan you last used. Does nothing if a fast is already running.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Startar en fasta med planen du använde senast. Gör ingenting om en fasta redan pågår."
+          }
+        }
+      }
+    },
     "Stays on this device. Ask Atlas reads it only when you allow it.": {
       "localizations": {
         "sv": {
@@ -6594,6 +6829,16 @@
         }
       }
     },
+    "The routine to train. Leave empty for an empty workout.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rutinen att träna. Lämna tomt för ett tomt pass."
+          }
+        }
+      }
+    },
     "The scanned pages this value was read from.": {
       "localizations": {
         "sv": {
@@ -6610,6 +6855,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Det här går inte att ångra."
+          }
+        }
+      }
+    },
+    "Today's weight, in kilograms or pounds as set in Atlas.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagens vikt, i kilo eller pund enligt inställningen i Atlas."
           }
         }
       }
@@ -6664,12 +6919,44 @@
         }
       }
     },
+    "What's your weight?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vad väger du?"
+          }
+        }
+      }
+    },
     "Which one change would lower it the most?": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Vilken enskild förändring skulle sänka den mest?"
+          }
+        }
+      }
+    },
+    "You don't have a fast running.": {
+      "comment": "Siri response to “End fast” when no fast is open.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du har ingen fasta igång."
+          }
+        }
+      }
+    },
+    "You're already fasting — %@ so far.": {
+      "comment": "Siri response to “Start fast” when a fast is already running. The value is the time fasted, e.g. “3 hours, 12 minutes”.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du fastar redan – %@ hittills."
           }
         }
       }
@@ -7705,16 +7992,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lägg till kroppsmått"
-          }
-        }
-      }
-    },
-    "Add cardio fitness": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lägg till konditionsvärde"
           }
         }
       }
@@ -8835,16 +9112,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fråga assistenten"
-          }
-        }
-      }
-    },
-    "Asks Apple Health for access to VO2 max": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ber Apple Hälsa om åtkomst till VO2 max"
           }
         }
       }
@@ -20797,16 +21064,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mindre sömn"
-          }
-        }
-      }
-    },
-    "Let Atlas read VO2 max from Apple Health for a sharper estimate": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Låt Atlas läsa VO2 max från Apple Hälsa för en skarpare uppskattning"
           }
         }
       }
@@ -43291,6 +43548,2407 @@
           "stringUnit": {
             "state": "translated",
             "value": "Försenad: %@ • %@"
+          }
+        }
+      }
+    },
+    "%lld h": {
+      "comment": "Custom fast length on the lock screen, e.g. 20 h",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld h"
+          }
+        }
+      }
+    },
+    "Fast ID": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fast-ID"
+          }
+        }
+      }
+    },
+    "%@ / %@ steps": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ / %@ steg"
+          }
+        }
+      }
+    },
+    "%@ of %@ steps": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ av %@ steg"
+          }
+        }
+      }
+    },
+    "%@ short of the goal": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ kvar till målet"
+          }
+        }
+      }
+    },
+    "%@ to go": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ kvar"
+          }
+        }
+      }
+    },
+    "Counted from Apple Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Räknas från Apple Hälsa"
+          }
+        }
+      }
+    },
+    "Daily step goal": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagligt stegmål"
+          }
+        }
+      }
+    },
+    "Step goal reached": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stegmålet är nått"
+          }
+        }
+      }
+    },
+    "Today checks off steps once you reach it": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idag bockas stegen av när du når målet"
+          }
+        }
+      }
+    },
+    "%lld min this week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld min den här veckan"
+          }
+        }
+      }
+    },
+    "Active energy": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktiv energi"
+          }
+        }
+      }
+    },
+    "Asks Apple Health for access to workouts": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ber Apple Hälsa om åtkomst till pass"
+          }
+        }
+      }
+    },
+    "Avg heart rate": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snittpuls"
+          }
+        }
+      }
+    },
+    "Basketball": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Basket"
+          }
+        }
+      }
+    },
+    "Boxing": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Boxning"
+          }
+        }
+      }
+    },
+    "Climbing": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klättring"
+          }
+        }
+      }
+    },
+    "Cooldown": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nedvarvning"
+          }
+        }
+      }
+    },
+    "Core training": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bålträning"
+          }
+        }
+      }
+    },
+    "Cross training": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crossträning"
+          }
+        }
+      }
+    },
+    "Cross-country skiing": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Längdskidåkning"
+          }
+        }
+      }
+    },
+    "Dance": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dans"
+          }
+        }
+      }
+    },
+    "Downhill skiing": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utförsåkning"
+          }
+        }
+      }
+    },
+    "Edit or delete this workout in the Health app.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ändra eller ta bort passet i appen Hälsa."
+          }
+        }
+      }
+    },
+    "Elliptical": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crosstrainer"
+          }
+        }
+      }
+    },
+    "Flexibility": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rörlighet"
+          }
+        }
+      }
+    },
+    "From Apple Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Från Apple Hälsa"
+          }
+        }
+      }
+    },
+    "Golf": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Golf"
+          }
+        }
+      }
+    },
+    "HIIT": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HIIT"
+          }
+        }
+      }
+    },
+    "Hiking": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vandring"
+          }
+        }
+      }
+    },
+    "Jump rope": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hopprep"
+          }
+        }
+      }
+    },
+    "Martial arts": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kampsport"
+          }
+        }
+      }
+    },
+    "Mixed cardio": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blandad kondition"
+          }
+        }
+      }
+    },
+    "Paddling": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paddling"
+          }
+        }
+      }
+    },
+    "Pilates": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pilates"
+          }
+        }
+      }
+    },
+    "Racket sports": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Racketsport"
+          }
+        }
+      }
+    },
+    "Recorded by %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrerat av %@"
+          }
+        }
+      }
+    },
+    "Rowing": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rodd"
+          }
+        }
+      }
+    },
+    "Runs, rides and walks from your Apple Watch or other apps": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löprundor, cykelturer och promenader från din Apple Watch eller andra appar"
+          }
+        }
+      }
+    },
+    "Show workouts from Apple Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visa pass från Apple Hälsa"
+          }
+        }
+      }
+    },
+    "Snowboarding": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snowboard"
+          }
+        }
+      }
+    },
+    "Soccer": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotboll"
+          }
+        }
+      }
+    },
+    "Stair climbing": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trappklättring"
+          }
+        }
+      }
+    },
+    "Surfing": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Surfing"
+          }
+        }
+      }
+    },
+    "Team sports": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lagsport"
+          }
+        }
+      }
+    },
+    "Tennis": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tennis"
+          }
+        }
+      }
+    },
+    "Wheelchair": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rullstol"
+          }
+        }
+      }
+    },
+    "Deload week suggested: normal suggestions": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avlastningsvecka föreslås: vanliga förslag"
+          }
+        }
+      }
+    },
+    "Deload week: lighter, with about a third fewer reps.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avlastningsvecka: lättare, med ungefär en tredjedel färre reps."
+          }
+        }
+      }
+    },
+    "Deload week: suggestions at about 60% volume": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avlastningsvecka: förslagen på cirka 60 % volym"
+          }
+        }
+      }
+    },
+    "Lighter today to match your recovery.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lättare i dag för att matcha din återhämtning."
+          }
+        }
+      }
+    },
+    "Low recovery today: normal suggestions": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Låg återhämtning i dag: vanliga förslag"
+          }
+        }
+      }
+    },
+    "Low recovery today: suggestions lowered 10%": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Låg återhämtning i dag: förslagen sänkta 10 %"
+          }
+        }
+      }
+    },
+    "Most of your lifts have stalled over their last few sessions.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De flesta av dina lyft har stått still de senaste passen."
+          }
+        }
+      }
+    },
+    "Switches between lowered and normal suggestions": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Växlar mellan sänkta och vanliga förslag"
+          }
+        }
+      }
+    },
+    "Use lighter": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Använd lättare"
+          }
+        }
+      }
+    },
+    "Use normal": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Använd vanliga"
+          }
+        }
+      }
+    },
+    "You slept under %lld hours last night.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du sov under %lld timmar i natt."
+          }
+        }
+      }
+    },
+    "Your HRV is well below your baseline.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Din HRV ligger klart under din baslinje."
+          }
+        }
+      }
+    },
+    "Your resting heart rate is above your baseline.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Din vilopuls ligger över din baslinje."
+          }
+        }
+      }
+    },
+    "Your training volume has risen %lld weeks in a row.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Din träningsvolym har ökat %lld veckor i rad."
+          }
+        }
+      }
+    },
+    "Workouts CSV": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Träningspass (CSV)"
+          }
+        }
+      }
+    },
+    "Journal, %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagbok, %@"
+          }
+        }
+      }
+    },
+    "Wrist temperature": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Handledstemperatur"
+          }
+        }
+      }
+    },
+    "Last night vs your baseline": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I natt mot din baslinje"
+          }
+        }
+      }
+    },
+    "Allow new Health data": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tillåt ny hälsodata"
+          }
+        }
+      }
+    },
+    "Let Atlas read cardio fitness and wrist temperature from Apple Health": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Låt Atlas läsa konditionsvärde och handledstemperatur från Apple Hälsa"
+          }
+        }
+      }
+    },
+    "Asks Apple Health for access to VO2 max and wrist temperature": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ber Apple Hälsa om åtkomst till VO2 max och handledstemperatur"
+          }
+        }
+      }
+    },
+    "Opens an AI chat about today's biology": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar en AI-chatt om dagens biologi"
+          }
+        }
+      }
+    },
+    "Fruit & veg": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frukt & grönt"
+          }
+        }
+      }
+    },
+    "Dairy": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mejeri"
+          }
+        }
+      }
+    },
+    "Meat & fish": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kött & fisk"
+          }
+        }
+      }
+    },
+    "Pantry": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skafferi"
+          }
+        }
+      }
+    },
+    "Frozen": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fryst"
+          }
+        }
+      }
+    },
+    "Shopping list": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inköpslista"
+          }
+        }
+      }
+    },
+    "%lld to buy": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld kvar att köpa"
+          }
+        }
+      }
+    },
+    "Your planned day, bought for the days you pick.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Din planerade dag, handlad för så många dagar du väljer."
+          }
+        }
+      }
+    },
+    "3 days": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "3 dagar"
+          }
+        }
+      }
+    },
+    "Clear checked": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rensa avbockade"
+          }
+        }
+      }
+    },
+    "Share list": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dela listan"
+          }
+        }
+      }
+    },
+    "All done": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allt klart"
+          }
+        }
+      }
+    },
+    "Everything on the list is ticked off.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allt på listan är avbockat."
+          }
+        }
+      }
+    },
+    "Start over": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Börja om"
+          }
+        }
+      }
+    },
+    "Double-tap to put back on the list": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck två gånger för att lägga tillbaka på listan"
+          }
+        }
+      }
+    },
+    "Double-tap to tick off": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck två gånger för att bocka av"
+          }
+        }
+      }
+    },
+    "Everything this plan needs, sorted by store section": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allt planen behöver, sorterat efter avdelning i butiken"
+          }
+        }
+      }
+    },
+    "Micronutrients": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikronäring"
+          }
+        }
+      }
+    },
+    "Scan a barcode or a photo to see vitamins and minerals.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skanna en streckkod eller ett foto för att se vitaminer och mineraler."
+          }
+        }
+      }
+    },
+    "Data for %lld of %lld nutrients": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data för %lld av %lld ämnen"
+          }
+        }
+      }
+    },
+    "Sodium": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Natrium"
+          }
+        }
+      }
+    },
+    "Potassium": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalium"
+          }
+        }
+      }
+    },
+    "Iron": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Järn"
+          }
+        }
+      }
+    },
+    "Calcium": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalcium"
+          }
+        }
+      }
+    },
+    "Vitamin B12": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "B12-vitamin"
+          }
+        }
+      }
+    },
+    "%@ a week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ per vecka"
+          }
+        }
+      }
+    },
+    "%@ h a night": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ h per natt"
+          }
+        }
+      }
+    },
+    "%lld g a day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld g per dag"
+          }
+        }
+      }
+    },
+    "%lld kcal a day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld kcal per dag"
+          }
+        }
+      }
+    },
+    "%lld of %lld planned": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld av %lld planerade"
+          }
+        }
+      }
+    },
+    "%lld vs usual %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld mot vanliga %lld"
+          }
+        }
+      }
+    },
+    "Aim for at least 7 hours of sleep a night": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sikta på minst 7 timmars sömn per natt"
+          }
+        }
+      }
+    },
+    "Book your %lld workouts in the calendar now": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Boka in dina %lld pass i kalendern redan nu"
+          }
+        }
+      }
+    },
+    "Get protein into every meal to reach your target": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Få in protein i varje måltid för att nå målet"
+          }
+        }
+      }
+    },
+    "Good pace, keep it up": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bra tempo, behåll det"
+          }
+        }
+      }
+    },
+    "Land closer to your calorie target on more days": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hamna närmare kalorimålet fler dagar"
+          }
+        }
+      }
+    },
+    "Last week: %@ h": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Förra veckan: %@ h"
+          }
+        }
+      }
+    },
+    "Last week: %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Förra veckan: %lld"
+          }
+        }
+      }
+    },
+    "Logged %lld of 7 days": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loggat %lld av 7 dagar"
+          }
+        }
+      }
+    },
+    "No weigh-ins in two weeks": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga vägningar på två veckor"
+          }
+        }
+      }
+    },
+    "On target %@ of logged days": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I mål %@ av loggade dagar"
+          }
+        }
+      }
+    },
+    "Training days: %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Träningsdagar: %lld"
+          }
+        }
+      }
+    },
+    "Weekly check-in": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veckoavstämning"
+          }
+        }
+      }
+    },
+    "Weigh in at least 3 mornings for a clearer trend": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Väg dig minst 3 morgnar för en tydligare trend"
+          }
+        }
+      }
+    },
+    "Weigh-ins this week: %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vägningar i veckan: %lld"
+          }
+        }
+      }
+    },
+    "Weight has held steady for two weeks: add %lld kcal a day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vikten har stått still i två veckor: lägg till %lld kcal per dag"
+          }
+        }
+      }
+    },
+    "Weight has held steady for two weeks: cut %lld kcal a day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vikten har stått still i två veckor: dra ner %lld kcal per dag"
+          }
+        }
+      }
+    },
+    "Weight trend, %@, %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vikttrend, %@, %@"
+          }
+        }
+      }
+    },
+    "You're gaining fast: cut %lld kcal a day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du går upp snabbt: dra ner %lld kcal per dag"
+          }
+        }
+      }
+    },
+    "You're losing fast: add %lld kcal a day to protect muscle": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du går ner snabbt: lägg till %lld kcal per dag för att skydda musklerna"
+          }
+        }
+      }
+    },
+    "Creatine": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kreatin"
+          }
+        }
+      }
+    },
+    "Omega-3": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Omega-3"
+          }
+        }
+      }
+    },
+    "Magnesium": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Magnesium"
+          }
+        }
+      }
+    },
+    "Zinc": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zink"
+          }
+        }
+      }
+    },
+    "Vitamin C": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "C-vitamin"
+          }
+        }
+      }
+    },
+    "Multivitamin": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Multivitamin"
+          }
+        }
+      }
+    },
+    "2,000 IU": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2 000 IE"
+          }
+        }
+      }
+    },
+    "1 tablet": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 tablett"
+          }
+        }
+      }
+    },
+    "Time for today's supplement.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dags för dagens tillskott."
+          }
+        }
+      }
+    },
+    "Time for today's dose: %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dags för dagens dos: %@"
+          }
+        }
+      }
+    },
+    "Supplements": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tillskott"
+          }
+        }
+      }
+    },
+    "Opens your supplement list": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar din lista med tillskott"
+          }
+        }
+      }
+    },
+    "Creatine, vitamin D, omega-3 — one check a day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kreatin, D-vitamin, omega-3 – en bock om dagen"
+          }
+        }
+      }
+    },
+    "Not taken": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inte tagen"
+          }
+        }
+      }
+    },
+    "Marks it as not taken": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markerar som inte tagen"
+          }
+        }
+      }
+    },
+    "Marks it as taken today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markerar som tagen i dag"
+          }
+        }
+      }
+    },
+    "One check a day on Today. No cycles, no protocol.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En bock om dagen under Idag. Inga cykler, inget protokoll."
+          }
+        }
+      }
+    },
+    "Days in a row: %lld. Taken %lld of the last 7 days.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagar i rad: %lld. Tagen %lld av de senaste 7 dagarna."
+          }
+        }
+      }
+    },
+    "Opens the supplement's settings": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar inställningarna för tillskottet"
+          }
+        }
+      }
+    },
+    "Adds %@ with %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägger till %@ med %@"
+          }
+        }
+      }
+    },
+    "Name your own supplement": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Namnge ett eget tillskott"
+          }
+        }
+      }
+    },
+    "Dose (optional)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dos (valfritt)"
+          }
+        }
+      }
+    },
+    "Add supplement": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till tillskott"
+          }
+        }
+      }
+    },
+    "New supplement": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nytt tillskott"
+          }
+        }
+      }
+    },
+    "Edit supplement": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redigera tillskott"
+          }
+        }
+      }
+    },
+    "Time of day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tid på dagen"
+          }
+        }
+      }
+    },
+    "Pick a time of day to get a reminder.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj en tid på dagen för att få en påminnelse."
+          }
+        }
+      }
+    },
+    "Remind me": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Påminn mig"
+          }
+        }
+      }
+    },
+    "At %@, until it's checked off": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kl. %@, tills det är avbockat"
+          }
+        }
+      }
+    },
+    "Delete supplement": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Radera tillskott"
+          }
+        }
+      }
+    },
+    "Delete this supplement?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Radera det här tillskottet?"
+          }
+        }
+      }
+    },
+    "Removes it and its history from your list. This can't be undone.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tar bort det och dess historik från din lista. Det går inte att ångra."
+          }
+        }
+      }
+    },
+    "potassium": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kalium"
+          }
+        }
+      }
+    },
+    "iron": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "järn"
+          }
+        }
+      }
+    },
+    "calcium": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kalcium"
+          }
+        }
+      }
+    },
+    "vitamin D": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "D-vitamin"
+          }
+        }
+      }
+    },
+    "vitamin B12": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "B12-vitamin"
+          }
+        }
+      }
+    },
+    "With your favourites: %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Med dina favoriter: %@"
+          }
+        }
+      }
+    },
+    "%lld of %lld at home": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld av %lld hemma"
+          }
+        }
+      }
+    },
+    "High protein": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mycket protein"
+          }
+        }
+      }
+    },
+    "Fits your %lld kcal left": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passar dina %lld kcal kvar"
+          }
+        }
+      }
+    },
+    "Rich in fibre": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fiberrik"
+          }
+        }
+      }
+    },
+    "Rich in %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rik på %@"
+          }
+        }
+      }
+    },
+    "A good start to the day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En bra start på dagen"
+          }
+        }
+      }
+    },
+    "Made for lunch": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perfekt till lunch"
+          }
+        }
+      }
+    },
+    "Tonight's dinner": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kvällens middag"
+          }
+        }
+      }
+    },
+    "A smart snack": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ett smart mellanmål"
+          }
+        }
+      }
+    },
+    "Recipes & meal prep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recept & matlådor"
+          }
+        }
+      }
+    },
+    "Search recipes or ingredients": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sök recept eller ingredienser"
+          }
+        }
+      }
+    },
+    "For you": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "För dig"
+          }
+        }
+      }
+    },
+    "Snacks": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mellanmål"
+          }
+        }
+      }
+    },
+    "Meal prep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Matlådor"
+          }
+        }
+      }
+    },
+    "No recipes match": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga recept matchar"
+          }
+        }
+      }
+    },
+    "Try another ingredient or clear the filter.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prova en annan ingrediens eller rensa filtret."
+          }
+        }
+      }
+    },
+    "%lld min · %lld kcal · %lld g protein": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld min · %lld kcal · %lld g protein"
+          }
+        }
+      }
+    },
+    "General guidance, not medical or dietetic advice.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allmän vägledning, inte medicinska eller dietistråd."
+          }
+        }
+      }
+    },
+    "Makes %lld servings · keeps %lld days in the fridge": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Räcker %lld portioner · håller %lld dagar i kylen"
+          }
+        }
+      }
+    },
+    "fibre": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fiber"
+          }
+        }
+      }
+    },
+    "Per serving: %lld kcal · %lld g protein": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Per portion: %lld kcal · %lld g protein"
+          }
+        }
+      }
+    },
+    "%lld servings": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld portioner"
+          }
+        }
+      }
+    },
+    "Ingredients": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingredienser"
+          }
+        }
+      }
+    },
+    "You have %lld of %lld ingredients": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du har %lld av %lld ingredienser"
+          }
+        }
+      }
+    },
+    "Tap what you have at home.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck på det du har hemma."
+          }
+        }
+      }
+    },
+    "Method": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gör så här"
+          }
+        }
+      }
+    },
+    "Step %lld: %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Steg %lld: %@"
+          }
+        }
+      }
+    },
+    "Logged to %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loggat till %@"
+          }
+        }
+      }
+    },
+    "Log 1 serving": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga 1 portion"
+          }
+        }
+      }
+    },
+    "%@, %lld g": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, %lld g"
+          }
+        }
+      }
+    },
+    "At home": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Har hemma"
+          }
+        }
+      }
+    },
+    "Not at home": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inte hemma"
+          }
+        }
+      }
+    },
+    "Marks whether you have it at home": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markerar om du har den hemma"
+          }
+        }
+      }
+    },
+    "Healthy recipes picked for your day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hälsosamma recept utvalda för din dag"
+          }
+        }
+      }
+    },
+    "Weekly prep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veckoprep"
+          }
+        }
+      }
+    },
+    "Two dishes, one shopping list, boxes for the week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Två rätter, en inköpslista, matlådor för hela veckan"
+          }
+        }
+      }
+    },
+    "This week's boxes": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veckans matlådor"
+          }
+        }
+      }
+    },
+    "Suggest again": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Föreslå nya"
+          }
+        }
+      }
+    },
+    "Plan this week's prep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Planera veckans prep"
+          }
+        }
+      }
+    },
+    "Two dishes, a few boxes each, cooked in one go.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Två rätter, några lådor av varje, lagade i ett svep."
+          }
+        }
+      }
+    },
+    "Suggest a week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Föreslå vecka"
+          }
+        }
+      }
+    },
+    "Choose dishes myself": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj rätter själv"
+          }
+        }
+      }
+    },
+    "Add a dish": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till rätt"
+          }
+        }
+      }
+    },
+    "Prepped %@. Enjoy the week.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preppat %@. Smaklig vecka!"
+          }
+        }
+      }
+    },
+    "%lld min · %lld g protein per box": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld min · %lld g protein per låda"
+          }
+        }
+      }
+    },
+    "Swap dish": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Byt rätt"
+          }
+        }
+      }
+    },
+    "Fewer boxes": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Färre lådor"
+          }
+        }
+      }
+    },
+    "More boxes": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fler lådor"
+          }
+        }
+      }
+    },
+    "All bought": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allt är handlat"
+          }
+        }
+      }
+    },
+    "%lld left to buy": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld kvar att handla"
+          }
+        }
+      }
+    },
+    "I have this at home": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Har hemma"
+          }
+        }
+      }
+    },
+    "Hold an item to mark it as at home.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Håll inne på en vara för att markera att du har den hemma."
+          }
+        }
+      }
+    },
+    "Bought": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Handlad"
+          }
+        }
+      }
+    },
+    "To buy": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Att handla"
+          }
+        }
+      }
+    },
+    "Prep day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prepdag"
+          }
+        }
+      }
+    },
+    "Done — boxes in the fridge": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klart – lådorna in i kylen"
+          }
+        }
+      }
+    },
+    "Start first": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starta först"
+          }
+        }
+      }
+    },
+    "Cook": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laga"
+          }
+        }
+      }
+    },
+    "Pack": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Packa"
+          }
+        }
+      }
+    },
+    "Let it cool, put the lids on and into the fridge": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Låt svalna, lägg på locken och ställ in i kylen"
+          }
+        }
+      }
+    },
+    "Boxes in the fridge": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lådor i kylen"
+          }
+        }
+      }
+    },
+    "×%lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "×%lld"
+          }
+        }
+      }
+    },
+    "Throw out": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Släng"
+          }
+        }
+      }
+    },
+    "Throw out one box": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Släng en låda"
+          }
+        }
+      }
+    },
+    "Eat a box": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ät en låda"
+          }
+        }
+      }
+    },
+    "Move one to the freezer": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flytta en till frysen"
+          }
+        }
+      }
+    },
+    "Logs one serving. Hold for more.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loggar en portion. Håll inne för fler val."
+          }
+        }
+      }
+    },
+    "Past its eat-by day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Har gått ut"
+          }
+        }
+      }
+    },
+    "Eat today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ät i dag"
+          }
+        }
+      }
+    },
+    "Eat by tomorrow": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ät senast i morgon"
+          }
+        }
+      }
+    },
+    "Frozen · keeps until %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fryst · håller till %@"
+          }
+        }
+      }
+    },
+    "Eat by %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ät senast %@"
+          }
+        }
+      }
+    },
+    "Choose a dish": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj en rätt"
+          }
+        }
+      }
+    },
+    "Dairy & chilled": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mejeri & kyl"
+          }
+        }
+      }
+    },
+    "Meal prep boxes to eat by tomorrow": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Matlådor att äta senast i morgon"
+          }
+        }
+      }
+    },
+    "%lld boxes": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld box"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld boxes"
+                }
+              }
+            }
+          }
+        },
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld låda"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld lådor"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Divide into %lld boxes": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Divide into %lld box"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Divide into %lld boxes"
+                }
+              }
+            }
+          }
+        },
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Fördela i %lld låda"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Fördela i %lld lådor"
+                }
+              }
+            }
           }
         }
       }

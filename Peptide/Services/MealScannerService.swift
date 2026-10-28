@@ -854,6 +854,9 @@ final class MealScannerService: Sendable {
             let grams: Double
             let portionOptions: [FoodPortionOption]
             let per100g: Nutrients
+            /// Absent from proxies that predate micronutrients, null when
+            /// the model couldn't estimate them.
+            let micros: Micros?
             let confidence: Double
             let price: FoodPriceEstimate?
 
@@ -862,6 +865,20 @@ final class MealScannerService: Sendable {
                 case portionLabel = "portion_label"
                 case portionOptions = "portion_options"
                 case per100g = "per_100g"
+                case micros = "micros_per_100g"
+            }
+        }
+
+        struct Micros: Decodable {
+            let sodiumMg, potassiumMg, ironMg, calciumMg, vitaminDUg, vitaminB12Ug: Double?
+
+            enum CodingKeys: String, CodingKey {
+                case sodiumMg = "sodium_mg"
+                case potassiumMg = "potassium_mg"
+                case ironMg = "iron_mg"
+                case calciumMg = "calcium_mg"
+                case vitaminDUg = "vitamin_d_ug"
+                case vitaminB12Ug = "vitamin_b12_ug"
             }
         }
 
@@ -930,8 +947,10 @@ final class MealScannerService: Sendable {
         guard !name.isEmpty, name.lowercased() != "unknown",
               plausibleItemGrams(wire.grams),
               (0.0...1.0).contains(wire.confidence),
-              let per100g = plausible(wire.per100g)
+              var per100g = plausible(wire.per100g)
         else { return nil }
+        let micros = wire.micros.flatMap(plausibleMicros)
+        per100g.micros = micros
         let scale = wire.grams / 100
         let calories = Int((per100g.calories * scale).rounded())
         let proteinG = Int((per100g.proteinG * scale).rounded())
@@ -959,20 +978,23 @@ final class MealScannerService: Sendable {
             per100g: per100g,
             portionOptions: Array(options),
             price: wire.price.flatMap { $0.isPlausible ? $0 : nil },
-            question: question.flatMap(scanQuestion(from:))
+            question: question.flatMap { scanQuestion(from: $0, micros: micros) }
         )
     }
 
     /// A question survives only with two or more plausible, distinctly
     /// labelled answers; the rest of the scan never depends on it.
-    private static func scanQuestion(from wire: SmartScanEnvelope.Question) -> ScanQuestion? {
+    /// Answers change how the food was cooked or dressed, not what it
+    /// is, so each one keeps the item's micronutrients.
+    private static func scanQuestion(from wire: SmartScanEnvelope.Question, micros: Micronutrients?) -> ScanQuestion? {
         let text = wire.question.trimmingCharacters(in: .whitespacesAndNewlines)
         var seen = Set<String>()
         let answers = wire.options.compactMap { option -> ScanQuestion.Answer? in
             let label = option.label.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !label.isEmpty, seen.insert(label.lowercased()).inserted,
-                  plausibleItemGrams(option.grams), let per100g = plausible(option.per100g)
+                  plausibleItemGrams(option.grams), var per100g = plausible(option.per100g)
             else { return nil }
+            per100g.micros = micros
             return ScanQuestion.Answer(label: label, grams: option.grams, per100g: per100g)
         }.prefix(3)
         guard !text.isEmpty, answers.count >= 2 else { return nil }
@@ -1011,6 +1033,19 @@ final class MealScannerService: Sendable {
         else { return nil }
         return ScannedProduct.Nutriments(calories: n.calories, proteinG: n.proteinG, carbsG: n.carbsG,
                                          fatG: n.fatG, fiberG: n.fiberG, sugarsG: n.sugarsG)
+    }
+
+    /// A vitamin or mineral can't outweigh the 100 g it is part of:
+    /// 100 000 mg, or 100 000 000 µg. Anything else unusable is unknown.
+    private static func plausibleMicros(_ m: SmartScanEnvelope.Micros) -> Micronutrients? {
+        func upTo(_ limit: Double, _ value: Double?) -> Double? {
+            guard let value, value.isFinite, (0...limit).contains(value) else { return nil }
+            return value
+        }
+        let mg = 100_000.0, ug = 100_000_000.0
+        return Micronutrients(sodiumMg: upTo(mg, m.sodiumMg), potassiumMg: upTo(mg, m.potassiumMg),
+                              ironMg: upTo(mg, m.ironMg), calciumMg: upTo(mg, m.calciumMg),
+                              vitaminDUg: upTo(ug, m.vitaminDUg), vitaminB12Ug: upTo(ug, m.vitaminB12Ug)).nonEmpty
     }
 
     private func parseEstimate(from data: Data) throws -> MealEstimate {

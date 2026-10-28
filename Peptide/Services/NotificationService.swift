@@ -533,6 +533,17 @@ final class NotificationService {
         currentIDs = currentIDs.filter { !$0.hasPrefix(Self.dailyIDPrefix) }.union(ids)
     }
 
+    /// Keeps the slot budget in step with a single-request scheduler
+    /// (the meal-prep box reminder) that adds or removes its request
+    /// outside this service.
+    func trackExternalReminder(_ id: String, isPending: Bool) {
+        if isPending {
+            currentIDs.insert(id)
+        } else {
+            currentIDs.remove(id)
+        }
+    }
+
     /// Returns the snooze duration (in seconds) for a notification
     /// action identifier, or nil when the identifier isn't a
     /// snooze. Lets `NotificationDelegate` share one
@@ -564,14 +575,16 @@ final class NotificationService {
     }
 
     /// True for a pending request that the dose scheduler doesn't own:
-    /// snoozes, habit / daily / ad-hoc reminders, the trial reminder and the
-    /// Sunday recap. Shared by the dose set-diff, its slot reservation and
-    /// `cancelProtocolReminders` so the three can never disagree.
+    /// snoozes, habit / daily / ad-hoc reminders, the trial reminder, the
+    /// Sunday recap and the meal-prep box reminder. Shared by the dose
+    /// set-diff, its slot reservation and `cancelProtocolReminders` so the
+    /// three can never disagree.
     static func isOwnedByAnotherScheduler(_ identifier: String) -> Bool {
         let prefixes = [Self.snoozeIDPrefix, Self.habitIDPrefix, Self.dailyIDPrefix, Self.adHocIDPrefix]
         return prefixes.contains { identifier.hasPrefix($0) }
             || identifier == Self.trialReminderID
             || identifier == WeeklySummaryNotificationScheduler.identifier
+            || identifier == PrepBoxReminderScheduler.identifier
     }
 
     /// Wipes only the protocol-dose reminders, leaving every other

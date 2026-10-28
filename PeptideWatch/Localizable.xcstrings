@@ -53,6 +53,16 @@
         }
       }
     },
+    "%lld exercises": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld övningar"
+          }
+        }
+      }
+    },
     "%lld of %lld calories": {
       "localizations": {
         "sv": {
@@ -111,6 +121,16 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "%lld × %lld · %@ %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld × %lld · %@ %@"
           }
         }
       }
@@ -255,12 +275,32 @@
         }
       }
     },
+    "Add exercise": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till övning"
+          }
+        }
+      }
+    },
     "Add set": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Lägg till set"
+          }
+        }
+      }
+    },
+    "Add your first exercise": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till din första övning"
           }
         }
       }
@@ -375,6 +415,16 @@
         }
       }
     },
+    "Discard workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Släng pass"
+          }
+        }
+      }
+    },
     "Double tap to log this dose": {
       "localizations": {
         "sv": {
@@ -395,12 +445,42 @@
         }
       }
     },
+    "End workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avsluta pass"
+          }
+        }
+      }
+    },
+    "End workout?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avsluta passet?"
+          }
+        }
+      }
+    },
     "Exercises": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "Övningar"
+          }
+        }
+      }
+    },
+    "Finish and save": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avsluta och spara"
           }
         }
       }
@@ -475,12 +555,32 @@
         }
       }
     },
+    "It syncs to your iPhone when it is back in reach.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passet synkas till din iPhone när den är inom räckhåll igen."
+          }
+        }
+      }
+    },
     "KCAL": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "KCAL"
+          }
+        }
+      }
+    },
+    "Keep going": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fortsätt"
           }
         }
       }
@@ -555,6 +655,16 @@
         }
       }
     },
+    "Log here. It syncs when your iPhone is back.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga här. Allt synkas när din iPhone är tillbaka."
+          }
+        }
+      }
+    },
     "Low": {
       "localizations": {
         "sv": {
@@ -617,6 +727,16 @@
         }
       }
     },
+    "No sets are logged yet, so there is nothing to save.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga set är loggade än, så det finns inget att spara."
+          }
+        }
+      }
+    },
     "Nothing due today.": {
       "localizations": {
         "sv": {
@@ -643,6 +763,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "OK"
+          }
+        }
+      }
+    },
+    "Open Atlas on your iPhone once to bring your routines here.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppna Atlas på din iPhone en gång så hamnar dina rutiner här."
           }
         }
       }
@@ -723,6 +853,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Protokoll"
+          }
+        }
+      }
+    },
+    "Quick workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snabbpass"
           }
         }
       }
@@ -857,6 +997,16 @@
         }
       }
     },
+    "Running on your watch": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Körs på din klocka"
+          }
+        }
+      }
+    },
     "Set %lld of %lld": {
       "localizations": {
         "sv": {
@@ -937,6 +1087,16 @@
         }
       }
     },
+    "Starts this routine on your watch": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Startar rutinen på din klocka"
+          }
+        }
+      }
+    },
     "Streak": {
       "localizations": {
         "sv": {
@@ -1007,6 +1167,16 @@
         }
       }
     },
+    "Waiting to sync: %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Väntar på synk: %lld"
+          }
+        }
+      }
+    },
     "Warm-up": {
       "localizations": {
         "sv": {
@@ -1073,6 +1243,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Din poäng väger sovtid mot målet 8 timmar, hur mycket som var djupsömn och REM, och hur lite du vaknade."
+          }
+        }
+      }
+    },
+    "iPhone out of reach": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone utom räckhåll"
           }
         }
       }

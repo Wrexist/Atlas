@@ -35,6 +35,7 @@ enum ProfileMergeEngine {
         merged.customFoods = union(primary.customFoods, other.customFoods)
         merged.recipes = union(primary.recipes, other.recipes)
         merged.protocolNotes = union(primary.protocolNotes, other.protocolNotes)
+        merged.supplements = mergeSupplements(primary.supplements, other.supplements)
         merged.favoriteFoodIDs.formUnion(other.favoriteFoodIDs)
         merged.streakFreezeDays = StreakFreezeService.migratingLegacyKeys(
             primary.streakFreezeDays.union(other.streakFreezeDays)
@@ -153,6 +154,30 @@ enum ProfileMergeEngine {
                 }
             )
         }
+
+        /// Like `.of(\.supplements)`, but a supplement both devices
+        /// touched keeps the days the other device checked or unchecked:
+        /// this device's day changes are replayed onto `remote`'s days.
+        static var supplements: RecordList {
+            RecordList(
+                changed: { $0.supplements != $1.supplements },
+                rebase: { merged, baseline, remote in
+                    let local = merged.supplements
+                    let baseByID = Dictionary(baseline.supplements.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+                    let remoteByID = Dictionary(remote.supplements.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+                    let rebased = ProfileMergeEngine.rebasingRecords(local: local, baseline: baseline.supplements, remote: remote.supplements)
+                    merged.supplements = rebased.map { (supplement: Supplement) -> Supplement in
+                        guard let theirs = remoteByID[supplement.id], let base = baseByID[supplement.id],
+                              let mine = local.first(where: { $0.id == supplement.id }) else { return supplement }
+                        let added = Set(mine.takenDays).subtracting(base.takenDays)
+                        let removed = Set(base.takenDays).subtracting(mine.takenDays)
+                        var copy = supplement
+                        copy.takenDays = Set(theirs.takenDays).union(added).subtracting(removed).sorted()
+                        return copy
+                    }
+                }
+            )
+        }
     }
 
     private struct BlobField {
@@ -171,6 +196,7 @@ enum ProfileMergeEngine {
         [
             .of(\.habits), .of(\.habitEntries), .of(\.weightHistory), .of(\.labHistory),
             .of(\.outcomeHistory), .of(\.customFoods), .of(\.recipes), .of(\.protocolNotes),
+            .supplements,
         ]
     }
 
@@ -274,6 +300,19 @@ enum ProfileMergeEngine {
             }
         }
         return merged
+    }
+
+    /// A supplement both rows hold keeps the primary's settings and the
+    /// days either row checked it off.
+    private static func mergeSupplements(_ primary: [Supplement], _ other: [Supplement]) -> [Supplement] {
+        let otherByID = Dictionary(other.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let merged = primary.map { (supplement: Supplement) -> Supplement in
+            guard let theirs = otherByID[supplement.id] else { return supplement }
+            var copy = supplement
+            copy.takenDays = Set(supplement.takenDays).union(theirs.takenDays).sorted()
+            return copy
+        }
+        return union(merged, other)
     }
 
     /// One outcome check-in per day; the more recently edited one stays.

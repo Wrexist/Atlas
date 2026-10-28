@@ -1340,31 +1340,41 @@ final class DataStore {
         }
     }
 
-    /// Re-logs the previous day's `category` entries at the current time —
-    /// the meal reminder's "Same as yesterday" action. A no-op when that
-    /// meal is already logged today, so a second tap can't double it.
+    /// Re-logs the previous day's `category` entries onto today at their
+    /// original clock times — the meal reminder's "Same as yesterday"
+    /// action. A no-op when that meal is already logged today, so a
+    /// second tap can't double it.
     func repeatMeals(_ category: MealCategory, from reminderDate: Date) {
-        let now = Date()
-        let calendar = Calendar.current
-        guard !profile.mealHistory.contains(where: {
-            $0.category == category && calendar.isDate($0.date, inSameDayAs: now)
-        }) else { return }
+        let today = Date()
+        guard !mealEntries(for: today).contains(where: { $0.category == category }),
+              let previousDay = Calendar.current.date(byAdding: .day, value: -1, to: reminderDate)
+        else { return }
+        copyMeals(from: previousDay, to: today, category: category)
+    }
 
-        let previous = DailyReminderEngine.previousDayMeals(category, before: reminderDate, in: profile.mealHistory)
-        for meal in previous {
-            logMealEntry(MealEntry(
-                date: now,
-                category: category,
-                name: meal.name,
-                calories: meal.calories,
-                proteinG: meal.proteinG,
-                carbsG: meal.carbsG,
-                fatG: meal.fatG,
-                sourceID: meal.sourceID,
-                source: meal.source,
-                components: meal.components
-            ))
+    /// Logs copies of `sourceDay`'s meals — one `category`, or the whole
+    /// day when nil — onto `targetDay` at their original clock times, and
+    /// returns the copies so the caller can offer Undo. Not idempotent:
+    /// a second call copies again.
+    @discardableResult
+    func copyMeals(from sourceDay: Date, to targetDay: Date, category: MealCategory? = nil) -> [MealEntry] {
+        let copies = LifestyleDataLogic.copiedMeals(
+            from: sourceDay,
+            to: targetDay,
+            category: category,
+            in: profile.mealHistory
+        )
+        guard !copies.isEmpty else { return [] }
+        for copy in copies {
+            LifestyleDataLogic.logMealEntry(into: &profile, entry: copy)
         }
+        save()
+        if HealthSyncSettings.isNutritionEnabled {
+            enqueueMealHealthWrite {
+                for copy in copies { await HealthKitService.shared.writeMealEntry(copy) }
+            }
+        }
+        return copies
     }
 
     /// Stable IDs make retry and interrupted completion idempotent.
@@ -1435,7 +1445,17 @@ final class DataStore {
         save()
         TableMomentStore.shared.removeDish(id: id)
         if HealthSyncSettings.isNutritionEnabled {
-            Task { await HealthKitService.shared.deleteSamples(forEntryID: id) }
+            // Queued behind pending writes, so an Undo right after a copy
+            // can't delete before the copy's samples exist.
+            enqueueMealHealthWrite { await HealthKitService.shared.deleteSamples(forEntryID: id) }
+        }
+    }
+
+    private func enqueueMealHealthWrite(_ work: @escaping @MainActor @Sendable () async -> Void) {
+        let previous = mealHealthWriteTask
+        mealHealthWriteTask = Task {
+            await previous?.value
+            await work()
         }
     }
 
@@ -1971,12 +1991,36 @@ final class DataStore {
         widgetWorkouts = nil
         updateWidgetData()
         updateWatchData()
+        pushTrainingCatalogToWatch()
     }
 
     /// Sends the active workout alone to the Watch. Runs on every set
     /// edit, so it skips the full snapshot's habit and score math.
     func pushWorkoutToWatch() {
         WatchSyncService.shared.updateWorkout(watchWorkout)
+    }
+
+    /// Sends the routines and recent lifts the Watch can start while the
+    /// phone is out of reach, with the weights to open at. Runs when the
+    /// routine library or the history changes. Waits for the exercise
+    /// library, whose names it sends, and for the routine library, whose
+    /// empty pre-load state would otherwise wipe the Watch's copy.
+    func pushTrainingCatalogToWatch() {
+        guard ExerciseLibrary.shared.isLoaded else { return }
+        let routines = RoutineStore.shared
+        guard routines.hasLoaded else {
+            routines.load()
+            return
+        }
+        let library = ExerciseLibrary.shared
+        let sessions = WorkoutSessionService.shared
+        WatchSyncService.shared.updateTrainingCatalog(WatchWorkoutSnapshotBuilder.catalog(
+            routines: routines.routines,
+            recent: recentWidgetWorkouts(),
+            defaultRestSeconds: profile.trainingPreferences?.restTimerDefault ?? 90,
+            lastSet: { sessions.lastCompletedSet(forExerciseID: $0) },
+            name: { library.displayName(for: $0) }
+        ))
     }
 
     private var watchWorkout: WatchWorkoutSnapshot? {
@@ -2227,6 +2271,44 @@ final class DataStore {
             registerHabitCompletionCelebration(habit: habit, wasCompleted: wasCompleted, on: date)
         }
         Task { await rescheduleHabitReminders() }
+    }
+
+    // MARK: - Supplements
+
+    /// Adds the supplement, or replaces the one with its id.
+    func saveSupplement(_ supplement: Supplement) {
+        if let index = profile.supplements.firstIndex(where: { $0.id == supplement.id }) {
+            profile.supplements[index] = supplement
+        } else {
+            profile.supplements.append(supplement)
+        }
+        save()
+        rescheduleSupplementReminders()
+    }
+
+    func deleteSupplement(id: UUID) {
+        profile.supplements.removeAll { $0.id == id }
+        save()
+        rescheduleSupplementReminders()
+    }
+
+    /// Checks the supplement off for the day, or un-checks it. Taking it
+    /// drops that day's reminder; un-checking brings it back.
+    func toggleSupplement(id: UUID, on date: Date = Date()) {
+        guard let index = profile.supplements.firstIndex(where: { $0.id == id }) else { return }
+        profile.supplements[index] = SupplementEngine.toggled(profile.supplements[index], on: date, calendar: .current)
+        save()
+        rescheduleSupplementReminders()
+    }
+
+    /// Supplement reminders share the daily-reminder pass and namespace.
+    /// Doses are re-planned after it so they fit the 64-request budget
+    /// around however many supplement reminders are now pending.
+    private func rescheduleSupplementReminders() {
+        Task {
+            await DailyReminderScheduler.reconcile(dataStore: self)
+            rescheduleNotificationsIfEnabled()
+        }
     }
 
     // MARK: - Momentum / Atlas Score
@@ -3071,6 +3153,9 @@ final class DataStore {
     // private by design — these keep the single-facade rule intact
     // instead of handing views the repository singleton.
     func allWorkoutSessionsForBackup() -> [WorkoutSession] { repo.loadAllWorkoutSessions() }
+    /// `fetchCount` only, so the export screen can gate its workout row
+    /// without decoding every session.
+    var hasWorkoutHistory: Bool { repo.workoutSessionCount() > 0 }
     func routinesForBackup() -> [Routine] { repo.loadRoutines() }
     func customExercisesForBackup() -> [CustomExercise] { repo.loadCustomExercises() }
     func personalRecordsForBackup() -> [PersonalRecord] { repo.loadPersonalRecords() }

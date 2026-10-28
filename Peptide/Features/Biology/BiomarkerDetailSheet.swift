@@ -41,6 +41,7 @@ struct BiomarkerDetailSheet: View {
     @State private var historyGeneration = 0
     /// The date the user is scrubbing on the chart.
     @State private var selectedDate: Date?
+    @State private var journal = HealthJournalStore.shared
     @Environment(\.dismiss) private var dismiss
 
     /// What the rest of the view reads — the larger window if the
@@ -279,6 +280,12 @@ struct BiomarkerDetailSheet: View {
     }
 
     private var chartSamples: [BiomarkerSnapshot.Sample] { inRange(snapshot.samples) }
+
+    /// Journal days in the range, drawn as dots along the time axis so a
+    /// dip can be read against the day the user wrote about.
+    private var journalMarkers: [JournalChartMarkerEngine.Marker] {
+        JournalChartMarkerEngine.markers(from: journal.entries, in: rangeDomain, calendar: .current)
+    }
     private var chartSecondarySamples: [BiomarkerSnapshot.Sample] { inRange(snapshot.secondarySamples) }
 
     /// Mean of the charted readings in display units. Blood pressure has
@@ -336,9 +343,16 @@ struct BiomarkerDetailSheet: View {
 
     private var trendChart: some View {
         let domain = chartDomain
+        let markers = journalMarkers
+        let selectedMarker = selectedSample.flatMap {
+            JournalChartMarkerEngine.marker(on: $0.date, in: markers, calendar: .current)
+        }
         return Chart {
             ForEach(chartSamples, id: \.date) { sample in
                 trendMarks(for: sample, floor: domain.lowerBound)
+            }
+            ForEach(markers) { marker in
+                journalMark(for: marker, floor: domain.lowerBound, isSelected: marker == selectedMarker)
             }
             ForEach(chartSecondarySamples, id: \.date) { sample in
                 diastolicMark(for: sample)
@@ -354,7 +368,7 @@ struct BiomarkerDetailSheet: View {
                     .foregroundStyle(AppColor.textTertiary)
                     .lineStyle(.init(lineWidth: 1))
                     .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
-                        selectionCallout(for: selectedSample)
+                        selectionCallout(for: selectedSample, journal: selectedMarker)
                     }
             }
         }
@@ -398,7 +412,10 @@ struct BiomarkerDetailSheet: View {
         }
     }
 
-    private func selectionCallout(for sample: BiomarkerSnapshot.Sample) -> some View {
+    private func selectionCallout(
+        for sample: BiomarkerSnapshot.Sample,
+        journal marker: JournalChartMarkerEngine.Marker?
+    ) -> some View {
         VStack(spacing: Spacing.xxs) {
             Text(calloutValue(for: sample))
                 .font(AppFont.scaled(13, weight: .bold, design: .rounded))
@@ -407,10 +424,49 @@ struct BiomarkerDetailSheet: View {
             Text(dayLabel(for: sample.date))
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
+            if let marker {
+                journalCalloutLine(marker)
+            }
         }
         .padding(.horizontal, Spacing.sm)
         .padding(.vertical, Spacing.xs)
         .glassSurface(cornerRadius: Spacing.chipCornerRadius)
+    }
+
+    /// That day's journal mood and the start of its note, under the reading.
+    private func journalCalloutLine(_ marker: JournalChartMarkerEngine.Marker) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
+            Image(systemName: marker.mood.icon)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(marker.mood.tint)
+                .accessibilityHidden(true)
+            Text(marker.excerpt ?? marker.mood.label)
+                .foregroundStyle(AppColor.textPrimary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+        }
+        .font(AppFont.caption2)
+        .frame(maxWidth: 180)
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.top, Spacing.xxs)
+        .transition(.opacity)
+    }
+
+    /// A small dot on the time axis for a journal day, tinted by mood and
+    /// grown while its day is scrubbed.
+    private func journalMark(
+        for marker: JournalChartMarkerEngine.Marker,
+        floor: Double,
+        isSelected: Bool
+    ) -> some ChartContent {
+        PointMark(
+            x: .value("Date", marker.day, unit: .day),
+            y: .value(biomarker.displayName, floor)
+        )
+        .symbolSize(isSelected ? 70 : 26)
+        .foregroundStyle(marker.mood.tint.opacity(isSelected ? 1 : 0.75))
+        .accessibilityLabel(String(localized: "Journal, \(dayLabel(for: marker.day))"))
+        .accessibilityValue(marker.excerpt.map { "\(marker.mood.label), \($0)" } ?? marker.mood.label)
     }
 
     /// The scrubbed reading; for blood pressure, both halves of that day.
@@ -517,6 +573,15 @@ struct BiomarkerDetailSheet: View {
                     }
                     .accessibilityHidden(true)
                     Text("Average \(formattedWithUnit(chartMean))")
+                }
+            }
+            if !journalMarkers.isEmpty {
+                HStack(spacing: Spacing.xs) {
+                    Circle()
+                        .fill(AppColor.textSecondary)
+                        .frame(width: 6, height: 6)
+                        .accessibilityHidden(true)
+                    Text("Journal")
                 }
             }
             Spacer(minLength: 0)
