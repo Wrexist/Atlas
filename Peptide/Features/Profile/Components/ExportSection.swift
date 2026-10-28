@@ -8,6 +8,7 @@ struct ExportSection: View {
     @State private var exportError: String?
     @State private var isPreparingBackup = false
     @State private var isPreparingPDF = false
+    @State private var hasWorkouts = false
     private var isPro: Bool { StoreService.shared.isProUser }
 
     var body: some View {
@@ -40,6 +41,10 @@ struct ExportSection: View {
                 // empty so the row doesn't clutter a fresh install.
                 domainExportsRow
             }
+            .appAnimation(AppAnimation.settle, value: hasWorkouts)
+        }
+        .task(id: dataStore.revision) {
+            hasWorkouts = dataStore.hasWorkoutHistory
         }
         .sheet(isPresented: $showShareSheet) {
             if let url = exportURL {
@@ -106,8 +111,8 @@ struct ExportSection: View {
         share(ExportService.shared.writeCSV(csv, filename: "atlas-export-\(dateStamp).csv"))
     }
 
-    /// Three text buttons stacked beneath the primary export row
-    /// for the per-domain slices (labs / meals / outcomes). Each
+    /// Text buttons stacked beneath the primary export row for the
+    /// per-domain slices (workouts / labs / meals / outcomes). Each
     /// is gated on the user actually having data to share — no
     /// point offering "Export labs" to someone with zero entries.
     @ViewBuilder
@@ -115,7 +120,7 @@ struct ExportSection: View {
         let hasLabs = !dataStore.profile.labHistory.isEmpty
         let hasMeals = !dataStore.profile.mealHistory.isEmpty
         let hasOutcomes = !dataStore.profile.outcomeHistory.isEmpty
-        if hasLabs || hasMeals || hasOutcomes {
+        if hasWorkouts || hasLabs || hasMeals || hasOutcomes {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Divider().overlay(AppColor.glassBorder).padding(.vertical, Spacing.xxs)
                 Text("By section")
@@ -124,6 +129,12 @@ struct ExportSection: View {
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.textTertiary)
                     .padding(.horizontal, 2)
+                if hasWorkouts {
+                    sliceButton(title: "Workouts CSV", icon: "dumbbell.fill") {
+                        isPro ? exportWorkoutsCSV() : (showPaywall = true)
+                    }
+                    .transition(.opacity)
+                }
                 if hasLabs {
                     sliceButton(title: "Labs CSV", icon: "testtube.2") {
                         isPro ? exportLabsCSV() : (showPaywall = true)
@@ -168,6 +179,20 @@ struct ExportSection: View {
             .contentShape(.rect)
         }
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+    }
+
+    /// Loads the exercise library first: before it loads, every name
+    /// would export as "Unknown exercise".
+    private func exportWorkoutsCSV() {
+        Task {
+            await ExerciseLibrary.shared.load()
+            let library = ExerciseLibrary.shared
+            let csv = ExportService.shared.exportWorkoutsCSV(
+                sessions: dataStore.allWorkoutSessionsForBackup(),
+                exerciseName: { library.displayName(for: $0) }
+            )
+            share(ExportService.shared.writeCSV(csv, filename: "atlas-workouts-\(dateStamp).csv"))
+        }
     }
 
     private func exportLabsCSV() {

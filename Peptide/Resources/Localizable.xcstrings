@@ -44202,6 +44202,16 @@
           }
         }
       }
+    },
+    "Workouts CSV": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Träningspass (CSV)"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
