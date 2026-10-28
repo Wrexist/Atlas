@@ -43294,6 +43294,406 @@
           }
         }
       }
+    },
+    "potassium": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kalium"
+          }
+        }
+      }
+    },
+    "iron": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "järn"
+          }
+        }
+      }
+    },
+    "calcium": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kalcium"
+          }
+        }
+      }
+    },
+    "vitamin D": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "D-vitamin"
+          }
+        }
+      }
+    },
+    "vitamin B12": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "B12-vitamin"
+          }
+        }
+      }
+    },
+    "With your favourites: %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Med dina favoriter: %@"
+          }
+        }
+      }
+    },
+    "%lld of %lld at home": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld av %lld hemma"
+          }
+        }
+      }
+    },
+    "High protein": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mycket protein"
+          }
+        }
+      }
+    },
+    "Fits your %lld kcal left": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passar dina %lld kcal kvar"
+          }
+        }
+      }
+    },
+    "Rich in fibre": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fiberrik"
+          }
+        }
+      }
+    },
+    "Rich in %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rik på %@"
+          }
+        }
+      }
+    },
+    "A good start to the day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En bra start på dagen"
+          }
+        }
+      }
+    },
+    "Made for lunch": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perfekt till lunch"
+          }
+        }
+      }
+    },
+    "Tonight's dinner": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kvällens middag"
+          }
+        }
+      }
+    },
+    "A smart snack": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ett smart mellanmål"
+          }
+        }
+      }
+    },
+    "Recipes & meal prep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recept & matlådor"
+          }
+        }
+      }
+    },
+    "Search recipes or ingredients": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sök recept eller ingredienser"
+          }
+        }
+      }
+    },
+    "For you": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "För dig"
+          }
+        }
+      }
+    },
+    "Snacks": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mellanmål"
+          }
+        }
+      }
+    },
+    "Meal prep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Matlådor"
+          }
+        }
+      }
+    },
+    "No recipes match": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga recept matchar"
+          }
+        }
+      }
+    },
+    "Try another ingredient or clear the filter.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prova en annan ingrediens eller rensa filtret."
+          }
+        }
+      }
+    },
+    "%lld min · %lld kcal · %lld g protein": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld min · %lld kcal · %lld g protein"
+          }
+        }
+      }
+    },
+    "General guidance, not medical or dietetic advice.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allmän vägledning, inte medicinska eller dietistråd."
+          }
+        }
+      }
+    },
+    "Makes %lld servings · keeps %lld days in the fridge": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Räcker %lld portioner · håller %lld dagar i kylen"
+          }
+        }
+      }
+    },
+    "fibre": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fiber"
+          }
+        }
+      }
+    },
+    "Per serving: %lld kcal · %lld g protein": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Per portion: %lld kcal · %lld g protein"
+          }
+        }
+      }
+    },
+    "%lld servings": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld portioner"
+          }
+        }
+      }
+    },
+    "Ingredients": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingredienser"
+          }
+        }
+      }
+    },
+    "You have %lld of %lld ingredients": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du har %lld av %lld ingredienser"
+          }
+        }
+      }
+    },
+    "Tap what you have at home.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck på det du har hemma."
+          }
+        }
+      }
+    },
+    "Method": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gör så här"
+          }
+        }
+      }
+    },
+    "Step %lld: %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Steg %lld: %@"
+          }
+        }
+      }
+    },
+    "Logged to %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loggat till %@"
+          }
+        }
+      }
+    },
+    "Log 1 serving": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga 1 portion"
+          }
+        }
+      }
+    },
+    "%@, %lld g": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, %lld g"
+          }
+        }
+      }
+    },
+    "At home": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Har hemma"
+          }
+        }
+      }
+    },
+    "Not at home": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inte hemma"
+          }
+        }
+      }
+    },
+    "Marks whether you have it at home": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markerar om du har den hemma"
+          }
+        }
+      }
+    },
+    "Healthy recipes picked for your day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hälsosamma recept utvalda för din dag"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

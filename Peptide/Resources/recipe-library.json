@@ -1,0 +1,4672 @@
+[
+  {
+    "id": "overnight-oats-blueberry",
+    "name": "Blueberry overnight oats",
+    "name_sv": "Overnight oats med blåbär",
+    "category": "breakfast",
+    "mealPrep": false,
+    "minutes": 10,
+    "servings": 1,
+    "tags": [
+      "vegetarian",
+      "high-fiber",
+      "quick",
+      "budget"
+    ],
+    "ingredients": [
+      {
+        "name": "Rolled oats",
+        "name_sv": "Havregryn",
+        "grams": 50,
+        "pantryKey": "oat"
+      },
+      {
+        "name": "Plain quark",
+        "name_sv": "Kvarg naturell",
+        "grams": 150,
+        "pantryKey": "quark"
+      },
+      {
+        "name": "Semi-skimmed milk",
+        "name_sv": "Mellanmjölk",
+        "grams": 100,
+        "pantryKey": "milk"
+      },
+      {
+        "name": "Blueberries",
+        "name_sv": "Blåbär",
+        "grams": 75,
+        "pantryKey": "blueberry"
+      },
+      {
+        "name": "Chia seeds",
+        "name_sv": "Chiafrön",
+        "grams": 10,
+        "pantryKey": "chia seed"
+      }
+    ],
+    "steps": [
+      "Stir oats, chia, quark and milk together in a jar.",
+      "Cover and chill overnight.",
+      "Top with blueberries before eating."
+    ],
+    "steps_sv": [
+      "Rör ihop havregryn, chiafrön, kvarg och mjölk i en burk.",
+      "Ställ i kylen över natten.",
+      "Toppa med blåbär innan servering."
+    ],
+    "calories": 410,
+    "proteinG": 28.7,
+    "carbsG": 50.2,
+    "fatG": 8.6,
+    "fiberG": 10.2,
+    "micros": {
+      "sodiumMg": 105,
+      "potassiumMg": 673,
+      "ironMg": 3.4,
+      "calciumMg": 362,
+      "vitaminDUg": 1.0,
+      "vitaminB12Ug": 1.3
+    },
+    "image": "recipe-overnight-oats-blueberry"
+  },
+  {
+    "id": "protein-porridge-banana",
+    "name": "Protein porridge with banana",
+    "name_sv": "Proteingröt med banan",
+    "category": "breakfast",
+    "mealPrep": false,
+    "minutes": 10,
+    "servings": 1,
+    "tags": [
+      "vegetarian",
+      "high-fiber",
+      "quick",
+      "budget"
+    ],
+    "ingredients": [
+      {
+        "name": "Rolled oats",
+        "name_sv": "Havregryn",
+        "grams": 60,
+        "pantryKey": "oat"
+      },
+      {
+        "name": "Semi-skimmed milk",
+        "name_sv": "Mellanmjölk",
+        "grams": 200,
+        "pantryKey": "milk"
+      },
+      {
+        "name": "Plain quark",
+        "name_sv": "Kvarg naturell",
+        "grams": 100,
+        "pantryKey": "quark"
+      },
+      {
+        "name": "Banana",
+        "name_sv": "Banan",
+        "grams": 60,
+        "pantryKey": "banana"
+      },
+      {
+        "name": "Almonds",
+        "name_sv": "Mandlar",
+        "grams": 10,
+        "pantryKey": "almond"
+      }
+    ],
+    "steps": [
+      "Simmer oats and milk for 3–4 minutes, stirring.",
+      "Take off the heat and stir in the quark.",
+      "Top with sliced banana and chopped almonds."
+    ],
+    "steps_sv": [
+      "Koka havregryn och mjölk i 3–4 minuter under omrörning.",
+      "Dra av från värmen och rör ner kvargen.",
+      "Toppa med skivad banan och hackade mandlar."
+    ],
+    "calories": 489,
+    "proteinG": 28.6,
+    "carbsG": 61.7,
+    "fatG": 12.8,
+    "fiberG": 8.8,
+    "micros": {
+      "sodiumMg": 124,
+      "potassiumMg": 976,
+      "ironMg": 3.4,
+      "calciumMg": 399,
+      "vitaminDUg": 2.0,
+      "vitaminB12Ug": 1.4
+    },
+    "image": "recipe-protein-porridge-banana"
+  },
+  {
+    "id": "eggs-spinach-rye",
+    "name": "Scrambled eggs with spinach on wholegrain toast",
+    "name_sv": "Äggröra med spenat på fullkornsbröd",
+    "category": "breakfast",
+    "mealPrep": false,
+    "minutes": 10,
+    "servings": 1,
+    "tags": [
+      "vegetarian",
+      "quick"
+    ],
+    "ingredients": [
+      {
+        "name": "Egg",
+        "name_sv": "Ägg",
+        "grams": 150,
+        "pantryKey": "egg"
+      },
+      {
+        "name": "Baby spinach",
+        "name_sv": "Babyspenat",
+        "grams": 40,
+        "pantryKey": "spinach"
+      },
+      {
+        "name": "Wholegrain bread",
+        "name_sv": "Fullkornsbröd",
+        "grams": 60,
+        "pantryKey": "whole grain bread"
+      },
+      {
+        "name": "Tomatoes",
+        "name_sv": "Tomater",
+        "grams": 80,
+        "pantryKey": "tomato"
+      },
+      {
+        "name": "Rapeseed oil",
+        "name_sv": "Rapsolja",
+        "grams": 5,
+        "pantryKey": "rapeseed oil"
+      }
+    ],
+    "steps": [
+      "Toast the bread.",
+      "Wilt the spinach in the oil over medium heat.",
+      "Add the whisked eggs and stir gently until just set.",
+      "Serve on the toast with sliced tomato."
+    ],
+    "steps_sv": [
+      "Rosta brödet.",
+      "Fräs spenaten i oljan på medelvärme tills den mjuknat.",
+      "Häll i de vispade äggen och rör försiktigt tills de precis stannat.",
+      "Servera på brödet med skivad tomat."
+    ],
+    "calories": 422,
+    "proteinG": 26.0,
+    "carbsG": 27.6,
+    "fatG": 22.4,
+    "fiberG": 6.0,
+    "micros": {
+      "sodiumMg": 516,
+      "potassiumMg": 759,
+      "ironMg": 5.5,
+      "calciumMg": 166,
+      "vitaminDUg": 3.0,
+      "vitaminB12Ug": 1.6
+    },
+    "image": "recipe-eggs-spinach-rye"
+  },
+  {
+    "id": "quark-bowl-berries",
+    "name": "Quark bowl with berries and walnuts",
+    "name_sv": "Kvargbowl med bär och valnötter",
+    "category": "breakfast",
+    "mealPrep": false,
+    "minutes": 5,
+    "servings": 1,
+    "tags": [
+      "high-protein",
+      "vegetarian",
+      "quick"
+    ],
+    "ingredients": [
+      {
+        "name": "Plain quark",
+        "name_sv": "Kvarg naturell",
+        "grams": 250,
+        "pantryKey": "quark"
+      },
+      {
+        "name": "Raspberries",
+        "name_sv": "Hallon",
+        "grams": 80,
+        "pantryKey": "raspberry"
+      },
+      {
+        "name": "Blueberries",
+        "name_sv": "Blåbär",
+        "grams": 50,
+        "pantryKey": "blueberry"
+      },
+      {
+        "name": "Walnuts",
+        "name_sv": "Valnötter",
+        "grams": 15,
+        "pantryKey": "walnut"
+      },
+      {
+        "name": "Honey",
+        "name_sv": "Honung",
+        "grams": 8,
+        "pantryKey": "honey"
+      }
+    ],
+    "steps": [
+      "Spoon the quark into a bowl.",
+      "Top with the berries and chopped walnuts.",
+      "Finish with a drizzle of honey."
+    ],
+    "steps_sv": [
+      "Lägg kvargen i en skål.",
+      "Toppa med bären och hackade valnötter.",
+      "Ringla över lite honung."
+    ],
+    "calories": 353,
+    "proteinG": 31.1,
+    "carbsG": 27.5,
+    "fatG": 11.0,
+    "fiberG": 7.4,
+    "micros": {
+      "sodiumMg": 102,
+      "potassiumMg": 604,
+      "ironMg": 1.4,
+      "calciumMg": 288,
+      "vitaminDUg": 0.0,
+      "vitaminB12Ug": 1.5
+    },
+    "image": "recipe-quark-bowl-berries"
+  },
+  {
+    "id": "skyr-oats-mango",
+    "name": "Skyr with toasted oats and mango",
+    "name_sv": "Skyr med rostad havre och mango",
+    "category": "breakfast",
+    "mealPrep": false,
+    "minutes": 5,
+    "servings": 1,
+    "tags": [
+      "high-protein",
+      "vegetarian",
+      "quick"
+    ],
+    "ingredients": [
+      {
+        "name": "Plain skyr",
+        "name_sv": "Skyr naturell",
+        "grams": 250,
+        "pantryKey": "skyr"
+      },
+      {
+        "name": "Rolled oats",
+        "name_sv": "Havregryn",
+        "grams": 30,
+        "pantryKey": "oat"
+      },
+      {
+        "name": "Mango",
+        "name_sv": "Mango",
+        "grams": 100,
+        "pantryKey": "mango"
+      },
+      {
+        "name": "Pumpkin seeds",
+        "name_sv": "Pumpafrön",
+        "grams": 10,
+        "pantryKey": "pumpkin seed"
+      }
+    ],
+    "steps": [
+      "Toast the oats in a dry pan until golden.",
+      "Dice the mango.",
+      "Layer skyr, mango, oats and pumpkin seeds in a bowl."
+    ],
+    "steps_sv": [
+      "Rosta havregrynen i en torr panna tills de får färg.",
+      "Tärna mangon.",
+      "Varva skyr, mango, havre och pumpafrön i en skål."
+    ],
+    "calories": 384,
+    "proteinG": 35.2,
+    "carbsG": 42.2,
+    "fatG": 7.9,
+    "fiberG": 5.2,
+    "micros": {
+      "sodiumMg": 116,
+      "potassiumMg": 768,
+      "ironMg": 2.6,
+      "calciumMg": 331,
+      "vitaminDUg": 0.0,
+      "vitaminB12Ug": 1.2
+    },
+    "image": "recipe-skyr-oats-mango"
+  },
+  {
+    "id": "vegetable-omelette",
+    "name": "Vegetable omelette",
+    "name_sv": "Grönsaksomelett",
+    "category": "breakfast",
+    "mealPrep": false,
+    "minutes": 15,
+    "servings": 1,
+    "tags": [
+      "high-protein",
+      "vegetarian",
+      "quick"
+    ],
+    "ingredients": [
+      {
+        "name": "Egg",
+        "name_sv": "Ägg",
+        "grams": 150,
+        "pantryKey": "egg"
+      },
+      {
+        "name": "Bell pepper",
+        "name_sv": "Paprika",
+        "grams": 60,
+        "pantryKey": "bell pepper"
+      },
+      {
+        "name": "Mushrooms",
+        "name_sv": "Champinjoner",
+        "grams": 60,
+        "pantryKey": "mushroom"
+      },
+      {
+        "name": "Onion",
+        "name_sv": "Lök",
+        "grams": 30,
+        "pantryKey": "onion"
+      },
+      {
+        "name": "Cheese 17%",
+        "name_sv": "Ost 17 %",
+        "grams": 20,
+        "pantryKey": "cheese"
+      },
+      {
+        "name": "Rapeseed oil",
+        "name_sv": "Rapsolja",
+        "grams": 5,
+        "pantryKey": "rapeseed oil"
+      }
+    ],
+    "steps": [
+      "Slice the pepper, mushrooms and onion.",
+      "Fry the vegetables in the oil for 4 minutes.",
+      "Pour over the beaten eggs and cook on low heat.",
+      "Sprinkle with cheese, fold and serve."
+    ],
+    "steps_sv": [
+      "Skiva paprika, champinjoner och lök.",
+      "Fräs grönsakerna i oljan i 4 minuter.",
+      "Häll över de uppvispade äggen och låt stanna på låg värme.",
+      "Strö över osten, vik ihop och servera."
+    ],
+    "calories": 353,
+    "proteinG": 27.5,
+    "carbsG": 6.3,
+    "fatG": 23.8,
+    "fiberG": 2.3,
+    "micros": {
+      "sodiumMg": 347,
+      "potassiumMg": 575,
+      "ironMg": 3.3,
+      "calciumMg": 275,
+      "vitaminDUg": 3.2,
+      "vitaminB12Ug": 1.9
+    },
+    "image": "recipe-vegetable-omelette"
+  },
+  {
+    "id": "crispbread-smoked-salmon",
+    "name": "Crispbread with smoked salmon and egg",
+    "name_sv": "Knäckebröd med kallrökt lax och ägg",
+    "category": "breakfast",
+    "mealPrep": false,
+    "minutes": 10,
+    "servings": 1,
+    "tags": [
+      "high-protein",
+      "fish",
+      "quick"
+    ],
+    "ingredients": [
+      {
+        "name": "Crispbread",
+        "name_sv": "Knäckebröd",
+        "grams": 40,
+        "pantryKey": "crispbread"
+      },
+      {
+        "name": "Cottage cheese",
+        "name_sv": "Keso",
+        "grams": 50,
+        "pantryKey": "cottage cheese"
+      },
+      {
+        "name": "Cold-smoked salmon",
+        "name_sv": "Kallrökt lax",
+        "grams": 50,
+        "pantryKey": "smoked salmon"
+      },
+      {
+        "name": "Egg",
+        "name_sv": "Ägg",
+        "grams": 60,
+        "pantryKey": "egg"
+      },
+      {
+        "name": "Cucumber",
+        "name_sv": "Gurka",
+        "grams": 50,
+        "pantryKey": "cucumber"
+      }
+    ],
+    "steps": [
+      "Boil the egg for 8 minutes, cool and slice.",
+      "Spread cottage cheese on the crispbread.",
+      "Top with smoked salmon, egg and cucumber."
+    ],
+    "steps_sv": [
+      "Koka ägget i 8 minuter, kyl och skiva.",
+      "Bred keso på knäckebrödet.",
+      "Toppa med lax, ägg och gurka."
+    ],
+    "calories": 361,
+    "proteinG": 28.4,
+    "carbsG": 26.5,
+    "fatG": 13.9,
+    "fiberG": 7.5,
+    "micros": {
+      "sodiumMg": 920,
+      "potassiumMg": 532,
+      "ironMg": 2.7,
+      "calciumMg": 93,
+      "vitaminDUg": 5.2,
+      "vitaminB12Ug": 2.5
+    },
+    "image": "recipe-crispbread-smoked-salmon"
+  },
+  {
+    "id": "cottage-cheese-pancakes",
+    "name": "Cottage cheese pancakes with blueberries",
+    "name_sv": "Kesoplättar med blåbär",
+    "category": "breakfast",
+    "mealPrep": false,
+    "minutes": 20,
+    "servings": 1,
+    "tags": [
+      "high-protein",
+      "vegetarian"
+    ],
+    "ingredients": [
+      {
+        "name": "Cottage cheese",
+        "name_sv": "Keso",
+        "grams": 150,
+        "pantryKey": "cottage cheese"
+      },
+      {
+        "name": "Egg",
+        "name_sv": "Ägg",
+        "grams": 100,
+        "pantryKey": "egg"
+      },
+      {
+        "name": "Rolled oats",
+        "name_sv": "Havregryn",
+        "grams": 40,
+        "pantryKey": "oat"
+      },
+      {
+        "name": "Blueberries",
+        "name_sv": "Blåbär",
+        "grams": 60,
+        "pantryKey": "blueberry"
+      },
+      {
+        "name": "Rapeseed oil",
+        "name_sv": "Rapsolja",
+        "grams": 5,
+        "pantryKey": "rapeseed oil"
+      }
+    ],
+    "steps": [
+      "Blend cottage cheese, eggs and oats into a batter.",
+      "Rest the batter for 5 minutes.",
+      "Fry small pancakes in the oil, 2 minutes per side.",
+      "Serve with blueberries."
+    ],
+    "steps_sv": [
+      "Mixa keso, ägg och havregryn till en smet.",
+      "Låt smeten vila i 5 minuter.",
+      "Stek små plättar i oljan, 2 minuter per sida.",
+      "Servera med blåbär."
+    ],
+    "calories": 513,
+    "proteinG": 36.1,
+    "carbsG": 35.0,
+    "fatG": 24.0,
+    "fiberG": 5.4,
+    "micros": {
+      "sodiumMg": 668,
+      "potassiumMg": 486,
+      "ironMg": 3.9,
+      "calciumMg": 184,
+      "vitaminDUg": 2.1,
+      "vitaminB12Ug": 2.0
+    },
+    "image": "recipe-cottage-cheese-pancakes"
+  },
+  {
+    "id": "berry-protein-smoothie",
+    "name": "Berry protein smoothie",
+    "name_sv": "Bärsmoothie med protein",
+    "category": "breakfast",
+    "mealPrep": false,
+    "minutes": 5,
+    "servings": 1,
+    "tags": [
+      "vegetarian",
+      "high-fiber",
+      "quick",
+      "budget"
+    ],
+    "ingredients": [
+      {
+        "name": "Frozen mixed berries",
+        "name_sv": "Frysta blandade bär",
+        "grams": 150,
+        "pantryKey": "frozen berries"
+      },
+      {
+        "name": "Banana",
+        "name_sv": "Banan",
+        "grams": 60,
+        "pantryKey": "banana"
+      },
+      {
+        "name": "Plain quark",
+        "name_sv": "Kvarg naturell",
+        "grams": 150,
+        "pantryKey": "quark"
+      },
+      {
+        "name": "Semi-skimmed milk",
+        "name_sv": "Mellanmjölk",
+        "grams": 150,
+        "pantryKey": "milk"
+      },
+      {
+        "name": "Rolled oats",
+        "name_sv": "Havregryn",
+        "grams": 20,
+        "pantryKey": "oat"
+      }
+    ],
+    "steps": [
+      "Add everything to a blender.",
+      "Blend until smooth.",
+      "Pour into a glass and serve straight away."
+    ],
+    "steps_sv": [
+      "Lägg allt i en mixer.",
+      "Mixa slätt.",
+      "Häll upp och servera direkt."
+    ],
+    "calories": 358,
+    "proteinG": 26.2,
+    "carbsG": 48.7,
+    "fatG": 4.6,
+    "fiberG": 8.1,
+    "micros": {
+      "sodiumMg": 123,
+      "potassiumMg": 926,
+      "ironMg": 2.0,
+      "calciumMg": 373,
+      "vitaminDUg": 1.5,
+      "vitaminB12Ug": 1.5
+    },
+    "image": "recipe-berry-protein-smoothie"
+  },
+  {
+    "id": "avocado-egg-toast",
+    "name": "Avocado toast with egg",
+    "name_sv": "Avokadomacka med ägg",
+    "category": "breakfast",
+    "mealPrep": false,
+    "minutes": 10,
+    "servings": 1,
+    "tags": [
+      "vegetarian",
+      "high-fiber",
+      "quick"
+    ],
+    "ingredients": [
+      {
+        "name": "Wholegrain bread",
+        "name_sv": "Fullkornsbröd",
+        "grams": 70,
+        "pantryKey": "whole grain bread"
+      },
+      {
+        "name": "Avocado",
+        "name_sv": "Avokado",
+        "grams": 60,
+        "pantryKey": "avocado"
+      },
+      {
+        "name": "Egg",
+        "name_sv": "Ägg",
+        "grams": 100,
+        "pantryKey": "egg"
+      },
+      {
+        "name": "Tomatoes",
+        "name_sv": "Tomater",
+        "grams": 60,
+        "pantryKey": "tomato"
+      },
+      {
+        "name": "Lemon juice",
+        "name_sv": "Citronsaft",
+        "grams": 5,
+        "pantryKey": "lemon"
+      }
+    ],
+    "steps": [
+      "Boil or poach the eggs.",
+      "Mash the avocado with lemon juice.",
+      "Spread on toasted bread and top with egg and tomato."
+    ],
+    "steps_sv": [
+      "Koka eller pochera äggen.",
+      "Mosa avokadon med citronsaft.",
+      "Bred på rostat bröd och toppa med ägg och tomat."
+    ],
+    "calories": 416,
+    "proteinG": 20.6,
+    "carbsG": 31.8,
+    "fatG": 21.6,
+    "fiberG": 9.8,
+    "micros": {
+      "sodiumMg": 462,
+      "potassiumMg": 743,
+      "ironMg": 4.1,
+      "calciumMg": 110,
+      "vitaminDUg": 2.0,
+      "vitaminB12Ug": 1.1
+    },
+    "image": "recipe-avocado-egg-toast"
+  },
+  {
+    "id": "chia-pudding-raspberry",
+    "name": "Chia pudding with raspberries",
+    "name_sv": "Chiapudding med hallon",
+    "category": "breakfast",
+    "mealPrep": false,
+    "minutes": 5,
+    "servings": 1,
+    "tags": [
+      "vegetarian",
+      "high-fiber",
+      "quick"
+    ],
+    "ingredients": [
+      {
+        "name": "Chia seeds",
+        "name_sv": "Chiafrön",
+        "grams": 30,
+        "pantryKey": "chia seed"
+      },
+      {
+        "name": "Semi-skimmed milk",
+        "name_sv": "Mellanmjölk",
+        "grams": 200,
+        "pantryKey": "milk"
+      },
+      {
+        "name": "Plain skyr",
+        "name_sv": "Skyr naturell",
+        "grams": 100,
+        "pantryKey": "skyr"
+      },
+      {
+        "name": "Raspberries",
+        "name_sv": "Hallon",
+        "grams": 80,
+        "pantryKey": "raspberry"
+      },
+      {
+        "name": "Almonds",
+        "name_sv": "Mandlar",
+        "grams": 10,
+        "pantryKey": "almond"
+      }
+    ],
+    "steps": [
+      "Whisk chia seeds into the milk.",
+      "Chill for at least 2 hours or overnight.",
+      "Stir in the skyr and top with raspberries and almonds."
+    ],
+    "steps_sv": [
+      "Vispa ner chiafröna i mjölken.",
+      "Låt stå i kylen minst 2 timmar eller över natten.",
+      "Rör ner skyren och toppa med hallon och mandlar."
+    ],
+    "calories": 380,
+    "proteinG": 26.2,
+    "carbsG": 22.5,
+    "fatG": 18.3,
+    "fiberG": 16.6,
+    "micros": {
+      "sodiumMg": 131,
+      "potassiumMg": 771,
+      "ironMg": 3.3,
+      "calciumMg": 595,
+      "vitaminDUg": 2.0,
+      "vitaminB12Ug": 1.3
+    },
+    "image": "recipe-chia-pudding-raspberry"
+  },
+  {
+    "id": "breakfast-wrap-eggs-beans",
+    "name": "Breakfast wrap with eggs and beans",
+    "name_sv": "Frukostwrap med ägg och bönor",
+    "category": "breakfast",
+    "mealPrep": false,
+    "minutes": 15,
+    "servings": 1,
+    "tags": [
+      "vegetarian",
+      "legumes",
+      "high-fiber",
+      "quick"
+    ],
+    "ingredients": [
+      {
+        "name": "Wholewheat tortilla",
+        "name_sv": "Fullkornstortilla",
+        "grams": 60,
+        "pantryKey": "tortilla"
+      },
+      {
+        "name": "Egg",
+        "name_sv": "Ägg",
+        "grams": 100,
+        "pantryKey": "egg"
+      },
+      {
+        "name": "Black beans",
+        "name_sv": "Svarta bönor",
+        "grams": 60,
+        "pantryKey": "black bean"
+      },
+      {
+        "name": "Bell pepper",
+        "name_sv": "Paprika",
+        "grams": 40,
+        "pantryKey": "bell pepper"
+      },
+      {
+        "name": "Baby spinach",
+        "name_sv": "Babyspenat",
+        "grams": 20,
+        "pantryKey": "spinach"
+      },
+      {
+        "name": "Cheese 17%",
+        "name_sv": "Ost 17 %",
+        "grams": 15,
+        "pantryKey": "cheese"
+      }
+    ],
+    "steps": [
+      "Scramble the eggs with diced pepper.",
+      "Warm the beans.",
+      "Fill the tortilla with spinach, eggs, beans and cheese.",
+      "Roll up and toast in a dry pan."
+    ],
+    "steps_sv": [
+      "Gör äggröra med tärnad paprika.",
+      "Värm bönorna.",
+      "Fyll tortillan med spenat, ägg, bönor och ost.",
+      "Rulla ihop och rosta i en torr panna."
+    ],
+    "calories": 450,
+    "proteinG": 28.2,
+    "carbsG": 42.9,
+    "fatG": 17.2,
+    "fiberG": 9.9,
+    "micros": {
+      "sodiumMg": 735,
+      "potassiumMg": 670,
+      "ironMg": 5.2,
+      "calciumMg": 279,
+      "vitaminDUg": 2.0,
+      "vitaminB12Ug": 1.3
+    },
+    "image": "recipe-breakfast-wrap-eggs-beans"
+  },
+  {
+    "id": "tuna-chickpea-salad",
+    "name": "Tuna and chickpea salad",
+    "name_sv": "Tonfisksallad med kikärtor",
+    "category": "lunch",
+    "mealPrep": false,
+    "minutes": 10,
+    "servings": 1,
+    "tags": [
+      "high-protein",
+      "fish",
+      "legumes",
+      "high-fiber",
+      "quick",
+      "budget"
+    ],
+    "ingredients": [
+      {
+        "name": "Tuna in water",
+        "name_sv": "Tonfisk i vatten",
+        "grams": 120,
+        "pantryKey": "tuna"
+      },
+      {
+        "name": "Chickpeas",
+        "name_sv": "Kikärtor",
+        "grams": 120,
+        "pantryKey": "chickpea"
+      },
+      {
+        "name": "Tomatoes",
+        "name_sv": "Tomater",
+        "grams": 80,
+        "pantryKey": "tomato"
+      },
+      {
+        "name": "Cucumber",
+        "name_sv": "Gurka",
+        "grams": 80,
+        "pantryKey": "cucumber"
+      },
+      {
+        "name": "Mixed salad leaves",
+        "name_sv": "Sallad",
+        "grams": 40,
+        "pantryKey": "lettuce"
+      },
+      {
+        "name": "Onion",
+        "name_sv": "Lök",
+        "grams": 20,
+        "pantryKey": "onion"
+      },
+      {
+        "name": "Olive oil",
+        "name_sv": "Olivolja",
+        "grams": 10,
+        "pantryKey": "olive oil"
+      },
+      {
+        "name": "Lemon juice",
+        "name_sv": "Citronsaft",
+        "grams": 10,
+        "pantryKey": "lemon"
+      }
+    ],
+    "steps": [
+      "Rinse and drain the chickpeas.",
+      "Chop tomato, cucumber and onion.",
+      "Toss everything with the leaves, oil and lemon juice.",
+      "Top with the tuna."
+    ],
+    "steps_sv": [
+      "Skölj och låt kikärtorna rinna av.",
+      "Hacka tomat, gurka och lök.",
+      "Blanda allt med salladen, oljan och citronsaften.",
+      "Toppa med tonfisken."
+    ],
+    "calories": 429,
+    "proteinG": 41.0,
+    "carbsG": 30.9,
+    "fatG": 14.6,
+    "fiberG": 10.6,
+    "micros": {
+      "sodiumMg": 687,
+      "potassiumMg": 927,
+      "ironMg": 4.1,
+      "calciumMg": 108,
+      "vitaminDUg": 2.4,
+      "vitaminB12Ug": 3.0
+    },
+    "image": "recipe-tuna-chickpea-salad"
+  },
+  {
+    "id": "salmon-quinoa-bowl",
+    "name": "Salmon quinoa bowl",
+    "name_sv": "Laxbowl med quinoa",
+    "category": "lunch",
+    "mealPrep": false,
+    "minutes": 25,
+    "servings": 1,
+    "tags": [
+      "high-protein",
+      "fish",
+      "legumes",
+      "high-fiber"
+    ],
+    "ingredients": [
+      {
+        "name": "Salmon fillet",
+        "name_sv": "Laxfilé",
+        "grams": 125,
+        "pantryKey": "salmon"
+      },
+      {
+        "name": "Quinoa",
+        "name_sv": "Quinoa",
+        "grams": 60,
+        "pantryKey": "quinoa"
+      },
+      {
+        "name": "Edamame beans",
+        "name_sv": "Edamamebönor",
+        "grams": 50,
+        "pantryKey": "edamame"
+      },
+      {
+        "name": "Cucumber",
+        "name_sv": "Gurka",
+        "grams": 60,
+        "pantryKey": "cucumber"
+      },
+      {
+        "name": "Avocado",
+        "name_sv": "Avokado",
+        "grams": 40,
+        "pantryKey": "avocado"
+      },
+      {
+        "name": "Soy sauce",
+        "name_sv": "Soja",
+        "grams": 10,
+        "pantryKey": "soy sauce"
+      }
+    ],
+    "steps": [
+      "Cook the quinoa for 12–15 minutes.",
+      "Pan-fry or bake the salmon for 10–12 minutes.",
+      "Thaw the edamame and slice cucumber and avocado.",
+      "Build the bowl and drizzle with soy sauce."
+    ],
+    "steps_sv": [
+      "Koka quinoan i 12–15 minuter.",
+      "Stek eller ugnsbaka laxen i 10–12 minuter.",
+      "Tina edamamebönorna och skiva gurka och avokado.",
+      "Bygg bowlen och ringla över soja."
+    ],
+    "calories": 607,
+    "proteinG": 40.9,
+    "carbsG": 40.2,
+    "fatG": 28.4,
+    "fiberG": 9.9,
+    "micros": {
+      "sodiumMg": 632,
+      "potassiumMg": 1309,
+      "ironMg": 4.9,
+      "calciumMg": 87,
+      "vitaminDUg": 10.0,
+      "vitaminB12Ug": 4.0
+    },
+    "image": "recipe-salmon-quinoa-bowl"
+  },
+  {
+    "id": "chicken-caesar-light",
+    "name": "Lighter chicken Caesar salad",
+    "name_sv": "Lättare kycklingcaesar",
+    "category": "lunch",
+    "mealPrep": false,
+    "minutes": 20,
+    "servings": 1,
+    "tags": [
+      "high-protein"
+    ],
+    "ingredients": [
+      {
+        "name": "Chicken breast",
+        "name_sv": "Kycklingbröst",
+        "grams": 150,
+        "pantryKey": "chicken breast"
+      },
+      {
+        "name": "Mixed salad leaves",
+        "name_sv": "Sallad",
+        "grams": 80,
+        "pantryKey": "lettuce"
+      },
+      {
+        "name": "Wholegrain bread",
+        "name_sv": "Fullkornsbröd",
+        "grams": 30,
+        "pantryKey": "whole grain bread"
+      },
+      {
+        "name": "Cheese 17%",
+        "name_sv": "Ost 17 %",
+        "grams": 15,
+        "pantryKey": "cheese"
+      },
+      {
+        "name": "Natural yogurt",
+        "name_sv": "Naturell yoghurt",
+        "grams": 50,
+        "pantryKey": "yogurt"
+      },
+      {
+        "name": "Olive oil",
+        "name_sv": "Olivolja",
+        "grams": 5,
+        "pantryKey": "olive oil"
+      },
+      {
+        "name": "Lemon juice",
+        "name_sv": "Citronsaft",
+        "grams": 5,
+        "pantryKey": "lemon"
+      }
+    ],
+    "steps": [
+      "Fry the chicken for 5–6 minutes per side and slice.",
+      "Toast cubes of bread into croutons.",
+      "Whisk yogurt, lemon, oil and grated cheese into a dressing.",
+      "Toss the leaves with the dressing and top with chicken and croutons."
+    ],
+    "steps_sv": [
+      "Stek kycklingen 5–6 minuter per sida och skiva.",
+      "Rosta brödtärningar till krutonger.",
+      "Vispa yoghurt, citron, olja och riven ost till en dressing.",
+      "Blanda salladen med dressingen och toppa med kyckling och krutonger."
+    ],
+    "calories": 359,
+    "proteinG": 44.5,
+    "carbsG": 15.8,
+    "fatG": 12.5,
+    "fiberG": 3.2,
+    "micros": {
+      "sodiumMg": 369,
+      "potassiumMg": 929,
+      "ironMg": 2.2,
+      "calciumMg": 253,
+      "vitaminDUg": 0.2,
+      "vitaminB12Ug": 1.0
+    },
+    "image": "recipe-chicken-caesar-light"
+  },
+  {
+    "id": "red-lentil-soup",
+    "name": "Red lentil soup",
+    "name_sv": "Röd linssoppa",
+    "category": "lunch",
+    "mealPrep": false,
+    "minutes": 30,
+    "servings": 2,
+    "tags": [
+      "vegetarian",
+      "vegan",
+      "legumes",
+      "high-fiber",
+      "budget"
+    ],
+    "ingredients": [
+      {
+        "name": "Red lentils",
+        "name_sv": "Röda linser",
+        "grams": 70,
+        "pantryKey": "lentil"
+      },
+      {
+        "name": "Carrots",
+        "name_sv": "Morötter",
+        "grams": 80,
+        "pantryKey": "carrot"
+      },
+      {
+        "name": "Onion",
+        "name_sv": "Lök",
+        "grams": 50,
+        "pantryKey": "onion"
+      },
+      {
+        "name": "Crushed tomatoes",
+        "name_sv": "Krossade tomater",
+        "grams": 150,
+        "pantryKey": "crushed tomato"
+      },
+      {
+        "name": "Garlic",
+        "name_sv": "Vitlök",
+        "grams": 5,
+        "pantryKey": "garlic"
+      },
+      {
+        "name": "Rapeseed oil",
+        "name_sv": "Rapsolja",
+        "grams": 5,
+        "pantryKey": "rapeseed oil"
+      },
+      {
+        "name": "Wholegrain bread",
+        "name_sv": "Fullkornsbröd",
+        "grams": 40,
+        "pantryKey": "whole grain bread"
+      }
+    ],
+    "steps": [
+      "Soften chopped onion, garlic and carrot in the oil.",
+      "Add lentils, tomatoes and 400 ml water.",
+      "Simmer for 20 minutes and blend smooth.",
+      "Serve with the bread."
+    ],
+    "steps_sv": [
+      "Fräs hackad lök, vitlök och morot i oljan.",
+      "Tillsätt linser, tomater och 4 dl vatten.",
+      "Sjud i 20 minuter och mixa slätt.",
+      "Servera med brödet."
+    ],
+    "calories": 476,
+    "proteinG": 23.8,
+    "carbsG": 70.2,
+    "fatG": 8.0,
+    "fiberG": 15.5,
+    "micros": {
+      "sodiumMg": 468,
+      "potassiumMg": 1300,
+      "ironMg": 7.2,
+      "calciumMg": 136,
+      "vitaminDUg": 0.0,
+      "vitaminB12Ug": 0.0
+    },
+    "image": "recipe-red-lentil-soup"
+  },
+  {
+    "id": "open-shrimp-sandwich",
+    "name": "Open shrimp sandwich",
+    "name_sv": "Räkmacka",
+    "category": "lunch",
+    "mealPrep": false,
+    "minutes": 10,
+    "servings": 1,
+    "tags": [
+      "high-protein",
+      "fish",
+      "quick"
+    ],
+    "ingredients": [
+      {
+        "name": "Wholegrain bread",
+        "name_sv": "Fullkornsbröd",
+        "grams": 70,
+        "pantryKey": "whole grain bread"
+      },
+      {
+        "name": "Peeled shrimp",
+        "name_sv": "Skalade räkor",
+        "grams": 100,
+        "pantryKey": "shrimp"
+      },
+      {
+        "name": "Egg",
+        "name_sv": "Ägg",
+        "grams": 50,
+        "pantryKey": "egg"
+      },
+      {
+        "name": "Mixed salad leaves",
+        "name_sv": "Sallad",
+        "grams": 20,
+        "pantryKey": "lettuce"
+      },
+      {
+        "name": "Avocado",
+        "name_sv": "Avokado",
+        "grams": 40,
+        "pantryKey": "avocado"
+      },
+      {
+        "name": "Lemon juice",
+        "name_sv": "Citronsaft",
+        "grams": 5,
+        "pantryKey": "lemon"
+      }
+    ],
+    "steps": [
+      "Boil the egg for 9 minutes and slice.",
+      "Lay lettuce and sliced avocado on the bread.",
+      "Pile on the shrimp and egg and finish with lemon."
+    ],
+    "steps_sv": [
+      "Koka ägget i 9 minuter och skiva.",
+      "Lägg sallad och skivad avokado på brödet.",
+      "Toppa med räkor och ägg och pressa över citron."
+    ],
+    "calories": 405,
+    "proteinG": 35.6,
+    "carbsG": 29.7,
+    "fatG": 14.5,
+    "fiberG": 8.0,
+    "micros": {
+      "sodiumMg": 892,
+      "potassiumMg": 669,
+      "ironMg": 3.6,
+      "calciumMg": 143,
+      "vitaminDUg": 1.1,
+      "vitaminB12Ug": 1.8
+    },
+    "image": "recipe-open-shrimp-sandwich"
+  },
+  {
+    "id": "greek-chickpea-salad",
+    "name": "Greek salad with chickpeas",
+    "name_sv": "Grekisk sallad med kikärtor",
+    "category": "lunch",
+    "mealPrep": false,
+    "minutes": 10,
+    "servings": 1,
+    "tags": [
+      "vegetarian",
+      "legumes",
+      "high-fiber",
+      "quick",
+      "budget"
+    ],
+    "ingredients": [
+      {
+        "name": "Chickpeas",
+        "name_sv": "Kikärtor",
+        "grams": 150,
+        "pantryKey": "chickpea"
+      },
+      {
+        "name": "Feta",
+        "name_sv": "Fetaost",
+        "grams": 50,
+        "pantryKey": "feta"
+      },
+      {
+        "name": "Tomatoes",
+        "name_sv": "Tomater",
+        "grams": 100,
+        "pantryKey": "tomato"
+      },
+      {
+        "name": "Cucumber",
+        "name_sv": "Gurka",
+        "grams": 100,
+        "pantryKey": "cucumber"
+      },
+      {
+        "name": "Bell pepper",
+        "name_sv": "Paprika",
+        "grams": 50,
+        "pantryKey": "bell pepper"
+      },
+      {
+        "name": "Onion",
+        "name_sv": "Lök",
+        "grams": 20,
+        "pantryKey": "onion"
+      },
+      {
+        "name": "Olive oil",
+        "name_sv": "Olivolja",
+        "grams": 10,
+        "pantryKey": "olive oil"
+      }
+    ],
+    "steps": [
+      "Rinse the chickpeas.",
+      "Chop tomato, cucumber, pepper and onion.",
+      "Toss with the oil and crumble the feta on top."
+    ],
+    "steps_sv": [
+      "Skölj kikärtorna.",
+      "Hacka tomat, gurka, paprika och lök.",
+      "Blanda med oljan och smula fetaost över."
+    ],
+    "calories": 481,
+    "proteinG": 20.5,
+    "carbsG": 39.6,
+    "fatG": 25.2,
+    "fiberG": 13.5,
+    "micros": {
+      "sodiumMg": 920,
+      "potassiumMg": 804,
+      "ironMg": 3.5,
+      "calciumMg": 347,
+      "vitaminDUg": 0.2,
+      "vitaminB12Ug": 0.8
+    },
+    "image": "recipe-greek-chickpea-salad"
+  },
+  {
+    "id": "turkey-veggie-wrap",
+    "name": "Turkey wrap with crunchy vegetables",
+    "name_sv": "Kalkonwrap med krispiga grönsaker",
+    "category": "lunch",
+    "mealPrep": false,
+    "minutes": 10,
+    "servings": 1,
+    "tags": [
+      "high-protein",
+      "quick"
+    ],
+    "ingredients": [
+      {
+        "name": "Wholewheat tortilla",
+        "name_sv": "Fullkornstortilla",
+        "grams": 70,
+        "pantryKey": "tortilla"
+      },
+      {
+        "name": "Turkey breast",
+        "name_sv": "Kalkonbröst",
+        "grams": 100,
+        "pantryKey": "turkey breast"
+      },
+      {
+        "name": "Cottage cheese",
+        "name_sv": "Keso",
+        "grams": 50,
+        "pantryKey": "cottage cheese"
+      },
+      {
+        "name": "Baby spinach",
+        "name_sv": "Babyspenat",
+        "grams": 20,
+        "pantryKey": "spinach"
+      },
+      {
+        "name": "Bell pepper",
+        "name_sv": "Paprika",
+        "grams": 50,
+        "pantryKey": "bell pepper"
+      },
+      {
+        "name": "Cucumber",
+        "name_sv": "Gurka",
+        "grams": 40,
+        "pantryKey": "cucumber"
+      }
+    ],
+    "steps": [
+      "Spread cottage cheese over the tortilla.",
+      "Add spinach, sliced turkey, pepper and cucumber.",
+      "Roll tightly and cut in half."
+    ],
+    "steps_sv": [
+      "Bred keso över tortillan.",
+      "Lägg på spenat, skivad kalkon, paprika och gurka.",
+      "Rulla ihop hårt och dela på mitten."
+    ],
+    "calories": 394,
+    "proteinG": 36.3,
+    "carbsG": 39.4,
+    "fatG": 8.7,
+    "fiberG": 5.8,
+    "micros": {
+      "sodiumMg": 674,
+      "potassiumMg": 766,
+      "ironMg": 3.2,
+      "calciumMg": 131,
+      "vitaminDUg": 0.2,
+      "vitaminB12Ug": 0.8
+    },
+    "image": "recipe-turkey-veggie-wrap"
+  },
+  {
+    "id": "tofu-poke-bowl",
+    "name": "Tofu poke bowl",
+    "name_sv": "Pokebowl med tofu",
+    "category": "lunch",
+    "mealPrep": false,
+    "minutes": 25,
+    "servings": 1,
+    "tags": [
+      "high-protein",
+      "vegetarian",
+      "vegan",
+      "legumes"
+    ],
+    "ingredients": [
+      {
+        "name": "Firm tofu",
+        "name_sv": "Fast tofu",
+        "grams": 150,
+        "pantryKey": "tofu"
+      },
+      {
+        "name": "Brown rice",
+        "name_sv": "Fullkornsris",
+        "grams": 60,
+        "pantryKey": "brown rice"
+      },
+      {
+        "name": "Edamame beans",
+        "name_sv": "Edamamebönor",
+        "grams": 50,
+        "pantryKey": "edamame"
+      },
+      {
+        "name": "Carrots",
+        "name_sv": "Morötter",
+        "grams": 50,
+        "pantryKey": "carrot"
+      },
+      {
+        "name": "Cucumber",
+        "name_sv": "Gurka",
+        "grams": 50,
+        "pantryKey": "cucumber"
+      },
+      {
+        "name": "Soy sauce",
+        "name_sv": "Soja",
+        "grams": 10,
+        "pantryKey": "soy sauce"
+      }
+    ],
+    "steps": [
+      "Cook the rice.",
+      "Cube the tofu and marinate in soy sauce for 10 minutes.",
+      "Shred the carrot and slice the cucumber.",
+      "Arrange everything over the rice."
+    ],
+    "steps_sv": [
+      "Koka riset.",
+      "Tärna tofun och marinera i soja i 10 minuter.",
+      "Riv moroten och skiva gurkan.",
+      "Lägg upp allt på riset."
+    ],
+    "calories": 488,
+    "proteinG": 31.1,
+    "carbsG": 55.1,
+    "fatG": 14.8,
+    "fiberG": 7.8,
+    "micros": {
+      "sodiumMg": 616,
+      "potassiumMg": 850,
+      "ironMg": 6.3,
+      "calciumMg": 594,
+      "vitaminDUg": 0.0,
+      "vitaminB12Ug": 0.0
+    },
+    "image": "recipe-tofu-poke-bowl"
+  },
+  {
+    "id": "bean-spinach-quesadilla",
+    "name": "Bean and spinach quesadilla",
+    "name_sv": "Quesadilla med bönor och spenat",
+    "category": "lunch",
+    "mealPrep": false,
+    "minutes": 15,
+    "servings": 1,
+    "tags": [
+      "vegetarian",
+      "legumes",
+      "high-fiber",
+      "quick",
+      "budget"
+    ],
+    "ingredients": [
+      {
+        "name": "Wholewheat tortilla",
+        "name_sv": "Fullkornstortilla",
+        "grams": 70,
+        "pantryKey": "tortilla"
+      },
+      {
+        "name": "Black beans",
+        "name_sv": "Svarta bönor",
+        "grams": 100,
+        "pantryKey": "black bean"
+      },
+      {
+        "name": "Cheese 17%",
+        "name_sv": "Ost 17 %",
+        "grams": 30,
+        "pantryKey": "cheese"
+      },
+      {
+        "name": "Baby spinach",
+        "name_sv": "Babyspenat",
+        "grams": 30,
+        "pantryKey": "spinach"
+      },
+      {
+        "name": "Bell pepper",
+        "name_sv": "Paprika",
+        "grams": 40,
+        "pantryKey": "bell pepper"
+      },
+      {
+        "name": "Tomatoes",
+        "name_sv": "Tomater",
+        "grams": 40,
+        "pantryKey": "tomato"
+      }
+    ],
+    "steps": [
+      "Mash the beans lightly.",
+      "Spread over half the tortilla and add spinach, pepper and cheese.",
+      "Fold and fry in a dry pan for 3 minutes per side.",
+      "Serve with chopped tomato."
+    ],
+    "steps_sv": [
+      "Mosa bönorna lätt.",
+      "Bred över halva tortillan och lägg på spenat, paprika och ost.",
+      "Vik ihop och stek i torr panna 3 minuter per sida.",
+      "Servera med hackad tomat."
+    ],
+    "calories": 438,
+    "proteinG": 25.1,
+    "carbsG": 56.2,
+    "fatG": 10.8,
+    "fiberG": 14.6,
+    "micros": {
+      "sodiumMg": 842,
+      "potassiumMg": 864,
+      "ironMg": 4.9,
+      "calciumMg": 392,
+      "vitaminDUg": 0.1,
+      "vitaminB12Ug": 0.5
+    },
+    "image": "recipe-bean-spinach-quesadilla"
+  },
+  {
+    "id": "warm-potato-mackerel-salad",
+    "name": "Warm potato salad with mackerel",
+    "name_sv": "Varm potatissallad med makrill",
+    "category": "lunch",
+    "mealPrep": false,
+    "minutes": 25,
+    "servings": 1,
+    "tags": [
+      "fish",
+      "budget"
+    ],
+    "ingredients": [
+      {
+        "name": "Potatoes",
+        "name_sv": "Potatis",
+        "grams": 200,
+        "pantryKey": "potato"
+      },
+      {
+        "name": "Mackerel in tomato sauce",
+        "name_sv": "Makrill i tomatsås",
+        "grams": 100,
+        "pantryKey": "mackerel in tomato sauce"
+      },
+      {
+        "name": "Green beans",
+        "name_sv": "Haricots verts",
+        "grams": 80,
+        "pantryKey": "green bean"
+      },
+      {
+        "name": "Onion",
+        "name_sv": "Lök",
+        "grams": 20,
+        "pantryKey": "onion"
+      },
+      {
+        "name": "Natural yogurt",
+        "name_sv": "Naturell yoghurt",
+        "grams": 30,
+        "pantryKey": "yogurt"
+      }
+    ],
+    "steps": [
+      "Boil the potatoes for 15 minutes and halve.",
+      "Blanch the green beans for 3 minutes.",
+      "Toss with sliced onion and yogurt.",
+      "Top with the mackerel."
+    ],
+    "steps_sv": [
+      "Koka potatisen i 15 minuter och halvera.",
+      "Förväll bönorna i 3 minuter.",
+      "Blanda med skivad lök och yoghurt.",
+      "Toppa med makrillen."
+    ],
+    "calories": 395,
+    "proteinG": 19.7,
+    "carbsG": 42.6,
+    "fatG": 14.8,
+    "fiberG": 6.5,
+    "micros": {
+      "sodiumMg": 631,
+      "potassiumMg": 1385,
+      "ironMg": 2.9,
+      "calciumMg": 105,
+      "vitaminDUg": 5.0,
+      "vitaminB12Ug": 8.1
+    },
+    "image": "recipe-warm-potato-mackerel-salad"
+  },
+  {
+    "id": "cottage-cheese-egg-bowl",
+    "name": "Cottage cheese and egg salad bowl",
+    "name_sv": "Salladsbowl med keso och ägg",
+    "category": "lunch",
+    "mealPrep": false,
+    "minutes": 10,
+    "servings": 1,
+    "tags": [
+      "high-protein",
+      "vegetarian",
+      "quick",
+      "budget"
+    ],
+    "ingredients": [
+      {
+        "name": "Cottage cheese",
+        "name_sv": "Keso",
+        "grams": 150,
+        "pantryKey": "cottage cheese"
+      },
+      {
+        "name": "Egg",
+        "name_sv": "Ägg",
+        "grams": 100,
+        "pantryKey": "egg"
+      },
+      {
+        "name": "Mixed salad leaves",
+        "name_sv": "Sallad",
+        "grams": 50,
+        "pantryKey": "lettuce"
+      },
+      {
+        "name": "Tomatoes",
+        "name_sv": "Tomater",
+        "grams": 80,
+        "pantryKey": "tomato"
+      },
+      {
+        "name": "Cucumber",
+        "name_sv": "Gurka",
+        "grams": 60,
+        "pantryKey": "cucumber"
+      },
+      {
+        "name": "Crispbread",
+        "name_sv": "Knäckebröd",
+        "grams": 20,
+        "pantryKey": "crispbread"
+      },
+      {
+        "name": "Pumpkin seeds",
+        "name_sv": "Pumpafrön",
+        "grams": 10,
+        "pantryKey": "pumpkin seed"
+      }
+    ],
+    "steps": [
+      "Boil the eggs for 8 minutes and halve.",
+      "Chop the vegetables.",
+      "Arrange with cottage cheese, crushed crispbread and pumpkin seeds."
+    ],
+    "steps_sv": [
+      "Koka äggen i 8 minuter och halvera.",
+      "Hacka grönsakerna.",
+      "Lägg upp med keso, krossat knäckebröd och pumpafrön."
+    ],
+    "calories": 440,
+    "proteinG": 37.0,
+    "carbsG": 21.0,
+    "fatG": 21.6,
+    "fiberG": 6.1,
+    "micros": {
+      "sodiumMg": 761,
+      "potassiumMg": 853,
+      "ironMg": 4.2,
+      "calciumMg": 208,
+      "vitaminDUg": 2.1,
+      "vitaminB12Ug": 2.0
+    },
+    "image": "recipe-cottage-cheese-egg-bowl"
+  },
+  {
+    "id": "salmon-potatoes-broccoli",
+    "name": "Oven-baked salmon with potatoes and broccoli",
+    "name_sv": "Ugnsbakad lax med potatis och broccoli",
+    "category": "dinner",
+    "mealPrep": false,
+    "minutes": 30,
+    "servings": 2,
+    "tags": [
+      "high-protein",
+      "fish",
+      "high-fiber"
+    ],
+    "ingredients": [
+      {
+        "name": "Salmon fillet",
+        "name_sv": "Laxfilé",
+        "grams": 140,
+        "pantryKey": "salmon"
+      },
+      {
+        "name": "Potatoes",
+        "name_sv": "Potatis",
+        "grams": 250,
+        "pantryKey": "potato"
+      },
+      {
+        "name": "Broccoli",
+        "name_sv": "Broccoli",
+        "grams": 150,
+        "pantryKey": "broccoli"
+      },
+      {
+        "name": "Natural yogurt",
+        "name_sv": "Naturell yoghurt",
+        "grams": 50,
+        "pantryKey": "yogurt"
+      },
+      {
+        "name": "Lemon juice",
+        "name_sv": "Citronsaft",
+        "grams": 5,
+        "pantryKey": "lemon"
+      }
+    ],
+    "steps": [
+      "Heat the oven to 200 °C and boil the potatoes.",
+      "Bake the salmon for 12–15 minutes.",
+      "Steam the broccoli for 4 minutes.",
+      "Serve with yogurt and lemon sauce."
+    ],
+    "steps_sv": [
+      "Sätt ugnen på 200 °C och koka potatisen.",
+      "Baka laxen i 12–15 minuter.",
+      "Ånga broccolin i 4 minuter.",
+      "Servera med yoghurtsås med citron."
+    ],
+    "calories": 555,
+    "proteinG": 39.0,
+    "carbsG": 48.6,
+    "fatG": 20.6,
+    "fiberG": 8.9,
+    "micros": {
+      "sodiumMg": 157,
+      "potassiumMg": 2113,
+      "ironMg": 2.5,
+      "calciumMg": 170,
+      "vitaminDUg": 11.2,
+      "vitaminB12Ug": 4.7
+    },
+    "image": "recipe-salmon-potatoes-broccoli"
+  },
+  {
+    "id": "cod-tomato-rice",
+    "name": "Cod in tomato sauce with rice",
+    "name_sv": "Torsk i tomatsås med ris",
+    "category": "dinner",
+    "mealPrep": false,
+    "minutes": 30,
+    "servings": 2,
+    "tags": [
+      "high-protein",
+      "fish"
+    ],
+    "ingredients": [
+      {
+        "name": "Cod fillet",
+        "name_sv": "Torskfilé",
+        "grams": 160,
+        "pantryKey": "cod"
+      },
+      {
+        "name": "Crushed tomatoes",
+        "name_sv": "Krossade tomater",
+        "grams": 150,
+        "pantryKey": "crushed tomato"
+      },
+      {
+        "name": "Onion",
+        "name_sv": "Lök",
+        "grams": 40,
+        "pantryKey": "onion"
+      },
+      {
+        "name": "Garlic",
+        "name_sv": "Vitlök",
+        "grams": 5,
+        "pantryKey": "garlic"
+      },
+      {
+        "name": "Olive oil",
+        "name_sv": "Olivolja",
+        "grams": 5,
+        "pantryKey": "olive oil"
+      },
+      {
+        "name": "Brown rice",
+        "name_sv": "Fullkornsris",
+        "grams": 70,
+        "pantryKey": "brown rice"
+      },
+      {
+        "name": "Baby spinach",
+        "name_sv": "Babyspenat",
+        "grams": 40,
+        "pantryKey": "spinach"
+      }
+    ],
+    "steps": [
+      "Cook the rice.",
+      "Soften onion and garlic in the oil and add the tomatoes.",
+      "Lay the cod in the sauce and simmer covered for 8–10 minutes.",
+      "Stir the spinach into the rice and serve."
+    ],
+    "steps_sv": [
+      "Koka riset.",
+      "Fräs lök och vitlök i oljan och tillsätt tomaterna.",
+      "Lägg torsken i såsen och låt sjuda under lock i 8–10 minuter.",
+      "Rör ner spenaten i riset och servera."
+    ],
+    "calories": 490,
+    "proteinG": 37.8,
+    "carbsG": 63.1,
+    "fatG": 8.4,
+    "fiberG": 5.9,
+    "micros": {
+      "sodiumMg": 375,
+      "potassiumMg": 1492,
+      "ironMg": 3.5,
+      "calciumMg": 126,
+      "vitaminDUg": 1.6,
+      "vitaminB12Ug": 1.6
+    },
+    "image": "recipe-cod-tomato-rice"
+  },
+  {
+    "id": "chicken-vegetable-stirfry",
+    "name": "Chicken and vegetable stir-fry",
+    "name_sv": "Wok med kyckling och grönsaker",
+    "category": "dinner",
+    "mealPrep": false,
+    "minutes": 20,
+    "servings": 2,
+    "tags": [
+      "high-protein"
+    ],
+    "ingredients": [
+      {
+        "name": "Chicken breast",
+        "name_sv": "Kycklingbröst",
+        "grams": 150,
+        "pantryKey": "chicken breast"
+      },
+      {
+        "name": "Rice noodles",
+        "name_sv": "Risnudlar",
+        "grams": 60,
+        "pantryKey": "rice noodle"
+      },
+      {
+        "name": "Broccoli",
+        "name_sv": "Broccoli",
+        "grams": 100,
+        "pantryKey": "broccoli"
+      },
+      {
+        "name": "Bell pepper",
+        "name_sv": "Paprika",
+        "grams": 80,
+        "pantryKey": "bell pepper"
+      },
+      {
+        "name": "Carrots",
+        "name_sv": "Morötter",
+        "grams": 50,
+        "pantryKey": "carrot"
+      },
+      {
+        "name": "Soy sauce",
+        "name_sv": "Soja",
+        "grams": 15,
+        "pantryKey": "soy sauce"
+      },
+      {
+        "name": "Rapeseed oil",
+        "name_sv": "Rapsolja",
+        "grams": 8,
+        "pantryKey": "rapeseed oil"
+      }
+    ],
+    "steps": [
+      "Soak the noodles as the pack says.",
+      "Stir-fry strips of chicken in the oil for 5 minutes.",
+      "Add the vegetables and fry 3 more minutes.",
+      "Toss in the noodles and soy sauce."
+    ],
+    "steps_sv": [
+      "Blötlägg nudlarna enligt förpackningen.",
+      "Woka strimlad kyckling i oljan i 5 minuter.",
+      "Tillsätt grönsakerna och woka 3 minuter till.",
+      "Vänd ner nudlarna och sojan."
+    ],
+    "calories": 533,
+    "proteinG": 43.4,
+    "carbsG": 60.2,
+    "fatG": 11.4,
+    "fiberG": 6.6,
+    "micros": {
+      "sodiumMg": 1116,
+      "potassiumMg": 1249,
+      "ironMg": 2.4,
+      "calciumMg": 90,
+      "vitaminDUg": 0.1,
+      "vitaminB12Ug": 0.6
+    },
+    "image": "recipe-chicken-vegetable-stirfry"
+  },
+  {
+    "id": "shrimp-pasta-spinach",
+    "name": "Wholewheat pasta with shrimp and spinach",
+    "name_sv": "Fullkornspasta med räkor och spenat",
+    "category": "dinner",
+    "mealPrep": false,
+    "minutes": 20,
+    "servings": 2,
+    "tags": [
+      "high-protein",
+      "fish",
+      "high-fiber"
+    ],
+    "ingredients": [
+      {
+        "name": "Wholewheat pasta",
+        "name_sv": "Fullkornspasta",
+        "grams": 80,
+        "pantryKey": "wholegrain pasta"
+      },
+      {
+        "name": "Peeled shrimp",
+        "name_sv": "Skalade räkor",
+        "grams": 120,
+        "pantryKey": "shrimp"
+      },
+      {
+        "name": "Baby spinach",
+        "name_sv": "Babyspenat",
+        "grams": 60,
+        "pantryKey": "spinach"
+      },
+      {
+        "name": "Tomatoes",
+        "name_sv": "Tomater",
+        "grams": 100,
+        "pantryKey": "tomato"
+      },
+      {
+        "name": "Garlic",
+        "name_sv": "Vitlök",
+        "grams": 5,
+        "pantryKey": "garlic"
+      },
+      {
+        "name": "Olive oil",
+        "name_sv": "Olivolja",
+        "grams": 10,
+        "pantryKey": "olive oil"
+      },
+      {
+        "name": "Lemon juice",
+        "name_sv": "Citronsaft",
+        "grams": 5,
+        "pantryKey": "lemon"
+      }
+    ],
+    "steps": [
+      "Cook the pasta.",
+      "Fry garlic and halved tomatoes in the oil for 2 minutes.",
+      "Add spinach and shrimp and heat through.",
+      "Toss with the pasta and lemon."
+    ],
+    "steps_sv": [
+      "Koka pastan.",
+      "Fräs vitlök och halverade tomater i oljan i 2 minuter.",
+      "Tillsätt spenat och räkor och värm igenom.",
+      "Vänd ner pastan och citronen."
+    ],
+    "calories": 528,
+    "proteinG": 39.8,
+    "carbsG": 56.1,
+    "fatG": 13.7,
+    "fiberG": 9.0,
+    "micros": {
+      "sodiumMg": 660,
+      "potassiumMg": 1014,
+      "ironMg": 5.5,
+      "calciumMg": 183,
+      "vitaminDUg": 0.1,
+      "vitaminB12Ug": 1.4
+    },
+    "image": "recipe-shrimp-pasta-spinach"
+  },
+  {
+    "id": "pork-sweet-potato",
+    "name": "Pork tenderloin with sweet potato",
+    "name_sv": "Fläskfilé med sötpotatis",
+    "category": "dinner",
+    "mealPrep": false,
+    "minutes": 35,
+    "servings": 2,
+    "tags": [
+      "high-protein",
+      "high-fiber"
+    ],
+    "ingredients": [
+      {
+        "name": "Pork tenderloin",
+        "name_sv": "Fläskfilé",
+        "grams": 150,
+        "pantryKey": "pork tenderloin"
+      },
+      {
+        "name": "Sweet potato",
+        "name_sv": "Sötpotatis",
+        "grams": 200,
+        "pantryKey": "sweet potato"
+      },
+      {
+        "name": "Green beans",
+        "name_sv": "Haricots verts",
+        "grams": 100,
+        "pantryKey": "green bean"
+      },
+      {
+        "name": "Natural yogurt",
+        "name_sv": "Naturell yoghurt",
+        "grams": 40,
+        "pantryKey": "yogurt"
+      },
+      {
+        "name": "Rapeseed oil",
+        "name_sv": "Rapsolja",
+        "grams": 5,
+        "pantryKey": "rapeseed oil"
+      }
+    ],
+    "steps": [
+      "Roast wedges of sweet potato at 220 °C for 25 minutes.",
+      "Brown the pork in the oil and finish in the oven to 65 °C inside.",
+      "Steam the green beans.",
+      "Slice the pork and serve with yogurt."
+    ],
+    "steps_sv": [
+      "Rosta klyftor av sötpotatis i 220 °C i 25 minuter.",
+      "Bryn fläskfilén i oljan och låt den gå klart i ugnen till 65 °C inuti.",
+      "Ånga haricots verts.",
+      "Skiva filén och servera med yoghurt."
+    ],
+    "calories": 436,
+    "proteinG": 39.4,
+    "carbsG": 40.3,
+    "fatG": 10.4,
+    "fiberG": 8.7,
+    "micros": {
+      "sodiumMg": 216,
+      "potassiumMg": 1554,
+      "ironMg": 3.7,
+      "calciumMg": 152,
+      "vitaminDUg": 0.8,
+      "vitaminB12Ug": 1.1
+    },
+    "image": "recipe-pork-sweet-potato"
+  },
+  {
+    "id": "tofu-coconut-curry",
+    "name": "Tofu coconut curry",
+    "name_sv": "Kokoscurry med tofu",
+    "category": "dinner",
+    "mealPrep": false,
+    "minutes": 30,
+    "servings": 2,
+    "tags": [
+      "high-protein",
+      "vegetarian",
+      "vegan",
+      "legumes",
+      "high-fiber"
+    ],
+    "ingredients": [
+      {
+        "name": "Firm tofu",
+        "name_sv": "Fast tofu",
+        "grams": 150,
+        "pantryKey": "tofu"
+      },
+      {
+        "name": "Chickpeas",
+        "name_sv": "Kikärtor",
+        "grams": 60,
+        "pantryKey": "chickpea"
+      },
+      {
+        "name": "Coconut milk",
+        "name_sv": "Kokosmjölk",
+        "grams": 60,
+        "pantryKey": "coconut milk"
+      },
+      {
+        "name": "Baby spinach",
+        "name_sv": "Babyspenat",
+        "grams": 50,
+        "pantryKey": "spinach"
+      },
+      {
+        "name": "Bell pepper",
+        "name_sv": "Paprika",
+        "grams": 60,
+        "pantryKey": "bell pepper"
+      },
+      {
+        "name": "Onion",
+        "name_sv": "Lök",
+        "grams": 30,
+        "pantryKey": "onion"
+      },
+      {
+        "name": "Curry powder",
+        "name_sv": "Curry",
+        "grams": 3,
+        "pantryKey": "curry powder"
+      },
+      {
+        "name": "Brown rice",
+        "name_sv": "Fullkornsris",
+        "grams": 60,
+        "pantryKey": "brown rice"
+      }
+    ],
+    "steps": [
+      "Cook the rice.",
+      "Fry onion, pepper and curry powder for 3 minutes.",
+      "Add coconut milk, chickpeas and cubed tofu and simmer 10 minutes.",
+      "Stir in the spinach and serve with the rice."
+    ],
+    "steps_sv": [
+      "Koka riset.",
+      "Fräs lök, paprika och curry i 3 minuter.",
+      "Tillsätt kokosmjölk, kikärtor och tärnad tofu och låt sjuda i 10 minuter.",
+      "Rör ner spenaten och servera med riset."
+    ],
+    "calories": 640,
+    "proteinG": 32.4,
+    "carbsG": 67.3,
+    "fatG": 25.3,
+    "fiberG": 11.6,
+    "micros": {
+      "sodiumMg": 216,
+      "potassiumMg": 1106,
+      "ironMg": 8.8,
+      "calciumMg": 649,
+      "vitaminDUg": 0.0,
+      "vitaminB12Ug": 0.0
+    },
+    "image": "recipe-tofu-coconut-curry"
+  },
+  {
+    "id": "beef-taco-bowl",
+    "name": "Taco bowl with beef and beans",
+    "name_sv": "Tacobowl med nötfärs och bönor",
+    "category": "dinner",
+    "mealPrep": false,
+    "minutes": 25,
+    "servings": 2,
+    "tags": [
+      "high-protein",
+      "legumes",
+      "high-fiber"
+    ],
+    "ingredients": [
+      {
+        "name": "Minced beef 10%",
+        "name_sv": "Nötfärs 10 %",
+        "grams": 120,
+        "pantryKey": "minced beef"
+      },
+      {
+        "name": "Black beans",
+        "name_sv": "Svarta bönor",
+        "grams": 80,
+        "pantryKey": "black bean"
+      },
+      {
+        "name": "Brown rice",
+        "name_sv": "Fullkornsris",
+        "grams": 50,
+        "pantryKey": "brown rice"
+      },
+      {
+        "name": "Tomatoes",
+        "name_sv": "Tomater",
+        "grams": 80,
+        "pantryKey": "tomato"
+      },
+      {
+        "name": "Mixed salad leaves",
+        "name_sv": "Sallad",
+        "grams": 40,
+        "pantryKey": "lettuce"
+      },
+      {
+        "name": "Avocado",
+        "name_sv": "Avokado",
+        "grams": 40,
+        "pantryKey": "avocado"
+      },
+      {
+        "name": "Natural yogurt",
+        "name_sv": "Naturell yoghurt",
+        "grams": 30,
+        "pantryKey": "yogurt"
+      }
+    ],
+    "steps": [
+      "Cook the rice.",
+      "Brown the mince and season with taco spices.",
+      "Warm the beans and chop the vegetables.",
+      "Build the bowl and top with yogurt."
+    ],
+    "steps_sv": [
+      "Koka riset.",
+      "Bryn färsen och krydda med tacokryddor.",
+      "Värm bönorna och hacka grönsakerna.",
+      "Bygg bowlen och toppa med yoghurt."
+    ],
+    "calories": 582,
+    "proteinG": 37.6,
+    "carbsG": 57.4,
+    "fatG": 20.9,
+    "fiberG": 12.8,
+    "micros": {
+      "sodiumMg": 275,
+      "potassiumMg": 1321,
+      "ironMg": 5.9,
+      "calciumMg": 111,
+      "vitaminDUg": 0.3,
+      "vitaminB12Ug": 2.5
+    },
+    "image": "recipe-beef-taco-bowl"
+  },
+  {
+    "id": "lemon-chicken-bulgur",
+    "name": "Lemon chicken with bulgur and roasted vegetables",
+    "name_sv": "Citronkyckling med bulgur och rostade grönsaker",
+    "category": "dinner",
+    "mealPrep": false,
+    "minutes": 35,
+    "servings": 2,
+    "tags": [
+      "high-protein",
+      "high-fiber"
+    ],
+    "ingredients": [
+      {
+        "name": "Chicken breast",
+        "name_sv": "Kycklingbröst",
+        "grams": 150,
+        "pantryKey": "chicken breast"
+      },
+      {
+        "name": "Bulgur",
+        "name_sv": "Bulgur",
+        "grams": 60,
+        "pantryKey": "bulgur"
+      },
+      {
+        "name": "Zucchini",
+        "name_sv": "Zucchini",
+        "grams": 100,
+        "pantryKey": "zucchini"
+      },
+      {
+        "name": "Bell pepper",
+        "name_sv": "Paprika",
+        "grams": 80,
+        "pantryKey": "bell pepper"
+      },
+      {
+        "name": "Olive oil",
+        "name_sv": "Olivolja",
+        "grams": 8,
+        "pantryKey": "olive oil"
+      },
+      {
+        "name": "Lemon juice",
+        "name_sv": "Citronsaft",
+        "grams": 10,
+        "pantryKey": "lemon"
+      },
+      {
+        "name": "Natural yogurt",
+        "name_sv": "Naturell yoghurt",
+        "grams": 30,
+        "pantryKey": "yogurt"
+      }
+    ],
+    "steps": [
+      "Roast zucchini and pepper with half the oil at 220 °C for 20 minutes.",
+      "Cook the bulgur.",
+      "Fry the chicken in the remaining oil and squeeze over lemon.",
+      "Serve with the vegetables and yogurt."
+    ],
+    "steps_sv": [
+      "Rosta zucchini och paprika med hälften av oljan i 220 °C i 20 minuter.",
+      "Koka bulguren.",
+      "Stek kycklingen i resten av oljan och pressa över citron.",
+      "Servera med grönsakerna och yoghurt."
+    ],
+    "calories": 497,
+    "proteinG": 44.8,
+    "carbsG": 49.4,
+    "fatG": 12.5,
+    "fiberG": 9.8,
+    "micros": {
+      "sodiumMg": 133,
+      "potassiumMg": 1288,
+      "ironMg": 2.9,
+      "calciumMg": 87,
+      "vitaminDUg": 0.2,
+      "vitaminB12Ug": 0.7
+    },
+    "image": "recipe-lemon-chicken-bulgur"
+  },
+  {
+    "id": "cod-mash-peas",
+    "name": "Cod with mashed potatoes and peas",
+    "name_sv": "Torsk med potatismos och ärtor",
+    "category": "dinner",
+    "mealPrep": false,
+    "minutes": 30,
+    "servings": 2,
+    "tags": [
+      "high-protein",
+      "fish",
+      "legumes",
+      "high-fiber",
+      "budget"
+    ],
+    "ingredients": [
+      {
+        "name": "Cod fillet",
+        "name_sv": "Torskfilé",
+        "grams": 160,
+        "pantryKey": "cod"
+      },
+      {
+        "name": "Potatoes",
+        "name_sv": "Potatis",
+        "grams": 250,
+        "pantryKey": "potato"
+      },
+      {
+        "name": "Semi-skimmed milk",
+        "name_sv": "Mellanmjölk",
+        "grams": 50,
+        "pantryKey": "milk"
+      },
+      {
+        "name": "Green peas",
+        "name_sv": "Gröna ärtor",
+        "grams": 80,
+        "pantryKey": "green pea"
+      },
+      {
+        "name": "Rapeseed oil",
+        "name_sv": "Rapsolja",
+        "grams": 5,
+        "pantryKey": "rapeseed oil"
+      },
+      {
+        "name": "Lemon juice",
+        "name_sv": "Citronsaft",
+        "grams": 5,
+        "pantryKey": "lemon"
+      }
+    ],
+    "steps": [
+      "Boil the potatoes and mash with warm milk.",
+      "Pan-fry the cod in the oil for 3–4 minutes per side.",
+      "Heat the peas.",
+      "Serve with a squeeze of lemon."
+    ],
+    "steps_sv": [
+      "Koka potatisen och mosa med varm mjölk.",
+      "Stek torsken i oljan 3–4 minuter per sida.",
+      "Värm ärtorna.",
+      "Servera med en skvätt citron."
+    ],
+    "calories": 448,
+    "proteinG": 40.0,
+    "carbsG": 50.8,
+    "fatG": 7.3,
+    "fiberG": 9.0,
+    "micros": {
+      "sodiumMg": 151,
+      "potassiumMg": 1962,
+      "ironMg": 2.5,
+      "calciumMg": 129,
+      "vitaminDUg": 2.1,
+      "vitaminB12Ug": 1.8
+    },
+    "image": "recipe-cod-mash-peas"
+  },
+  {
+    "id": "lentil-bolognese",
+    "name": "Lentil bolognese",
+    "name_sv": "Linsbolognese",
+    "category": "dinner",
+    "mealPrep": false,
+    "minutes": 30,
+    "servings": 2,
+    "tags": [
+      "high-protein",
+      "vegetarian",
+      "legumes",
+      "high-fiber",
+      "budget"
+    ],
+    "ingredients": [
+      {
+        "name": "Red lentils",
+        "name_sv": "Röda linser",
+        "grams": 60,
+        "pantryKey": "lentil"
+      },
+      {
+        "name": "Wholewheat pasta",
+        "name_sv": "Fullkornspasta",
+        "grams": 75,
+        "pantryKey": "wholegrain pasta"
+      },
+      {
+        "name": "Crushed tomatoes",
+        "name_sv": "Krossade tomater",
+        "grams": 200,
+        "pantryKey": "crushed tomato"
+      },
+      {
+        "name": "Carrots",
+        "name_sv": "Morötter",
+        "grams": 50,
+        "pantryKey": "carrot"
+      },
+      {
+        "name": "Onion",
+        "name_sv": "Lök",
+        "grams": 40,
+        "pantryKey": "onion"
+      },
+      {
+        "name": "Garlic",
+        "name_sv": "Vitlök",
+        "grams": 5,
+        "pantryKey": "garlic"
+      },
+      {
+        "name": "Olive oil",
+        "name_sv": "Olivolja",
+        "grams": 5,
+        "pantryKey": "olive oil"
+      },
+      {
+        "name": "Cheese 17%",
+        "name_sv": "Ost 17 %",
+        "grams": 10,
+        "pantryKey": "cheese"
+      }
+    ],
+    "steps": [
+      "Soften chopped onion, garlic and carrot in the oil.",
+      "Add lentils, tomatoes and 200 ml water and simmer 20 minutes.",
+      "Cook the pasta.",
+      "Serve with grated cheese."
+    ],
+    "steps_sv": [
+      "Fräs hackad lök, vitlök och morot i oljan.",
+      "Tillsätt linser, tomater och 2 dl vatten och låt sjuda i 20 minuter.",
+      "Koka pastan.",
+      "Servera med riven ost."
+    ],
+    "calories": 632,
+    "proteinG": 30.8,
+    "carbsG": 95.2,
+    "fatG": 10.0,
+    "fiberG": 17.2,
+    "micros": {
+      "sodiumMg": 412,
+      "potassiumMg": 1343,
+      "ironMg": 8.4,
+      "calciumMg": 225,
+      "vitaminDUg": 0.0,
+      "vitaminB12Ug": 0.1
+    },
+    "image": "recipe-lentil-bolognese"
+  },
+  {
+    "id": "turkey-meatballs-quinoa",
+    "name": "Turkey meatballs with quinoa and broccoli",
+    "name_sv": "Kalkonköttbullar med quinoa och broccoli",
+    "category": "dinner",
+    "mealPrep": false,
+    "minutes": 35,
+    "servings": 2,
+    "tags": [
+      "high-protein",
+      "high-fiber"
+    ],
+    "ingredients": [
+      {
+        "name": "Turkey mince",
+        "name_sv": "Kalkonfärs",
+        "grams": 140,
+        "pantryKey": "turkey mince"
+      },
+      {
+        "name": "Egg",
+        "name_sv": "Ägg",
+        "grams": 25,
+        "pantryKey": "egg"
+      },
+      {
+        "name": "Rolled oats",
+        "name_sv": "Havregryn",
+        "grams": 10,
+        "pantryKey": "oat"
+      },
+      {
+        "name": "Quinoa",
+        "name_sv": "Quinoa",
+        "grams": 60,
+        "pantryKey": "quinoa"
+      },
+      {
+        "name": "Broccoli",
+        "name_sv": "Broccoli",
+        "grams": 120,
+        "pantryKey": "broccoli"
+      },
+      {
+        "name": "Natural yogurt",
+        "name_sv": "Naturell yoghurt",
+        "grams": 40,
+        "pantryKey": "yogurt"
+      }
+    ],
+    "steps": [
+      "Mix mince, egg and oats and roll into small balls.",
+      "Bake at 200 °C for 15 minutes.",
+      "Cook the quinoa and steam the broccoli.",
+      "Serve with yogurt."
+    ],
+    "steps_sv": [
+      "Blanda färs, ägg och havregryn och rulla små bullar.",
+      "Baka i 200 °C i 15 minuter.",
+      "Koka quinoan och ånga broccolin.",
+      "Servera med yoghurt."
+    ],
+    "calories": 558,
+    "proteinG": 45.6,
+    "carbsG": 46.8,
+    "fatG": 18.3,
+    "fiberG": 8.3,
+    "micros": {
+      "sodiumMg": 194,
+      "potassiumMg": 1272,
+      "ironMg": 5.9,
+      "calciumMg": 172,
+      "vitaminDUg": 0.8,
+      "vitaminB12Ug": 1.8
+    },
+    "image": "recipe-turkey-meatballs-quinoa"
+  },
+  {
+    "id": "chickpea-shakshuka",
+    "name": "Shakshuka with chickpeas",
+    "name_sv": "Shakshuka med kikärtor",
+    "category": "dinner",
+    "mealPrep": false,
+    "minutes": 25,
+    "servings": 2,
+    "tags": [
+      "high-protein",
+      "vegetarian",
+      "legumes",
+      "high-fiber",
+      "budget"
+    ],
+    "ingredients": [
+      {
+        "name": "Egg",
+        "name_sv": "Ägg",
+        "grams": 120,
+        "pantryKey": "egg"
+      },
+      {
+        "name": "Crushed tomatoes",
+        "name_sv": "Krossade tomater",
+        "grams": 200,
+        "pantryKey": "crushed tomato"
+      },
+      {
+        "name": "Chickpeas",
+        "name_sv": "Kikärtor",
+        "grams": 80,
+        "pantryKey": "chickpea"
+      },
+      {
+        "name": "Bell pepper",
+        "name_sv": "Paprika",
+        "grams": 60,
+        "pantryKey": "bell pepper"
+      },
+      {
+        "name": "Onion",
+        "name_sv": "Lök",
+        "grams": 40,
+        "pantryKey": "onion"
+      },
+      {
+        "name": "Feta",
+        "name_sv": "Fetaost",
+        "grams": 20,
+        "pantryKey": "feta"
+      },
+      {
+        "name": "Olive oil",
+        "name_sv": "Olivolja",
+        "grams": 5,
+        "pantryKey": "olive oil"
+      },
+      {
+        "name": "Wholegrain bread",
+        "name_sv": "Fullkornsbröd",
+        "grams": 40,
+        "pantryKey": "whole grain bread"
+      }
+    ],
+    "steps": [
+      "Soften onion and pepper in the oil.",
+      "Add tomatoes and chickpeas and simmer 10 minutes.",
+      "Make wells and crack in the eggs, cover and cook 6–8 minutes.",
+      "Top with feta and serve with bread."
+    ],
+    "steps_sv": [
+      "Fräs lök och paprika i oljan.",
+      "Tillsätt tomater och kikärtor och låt sjuda i 10 minuter.",
+      "Gör gropar, knäck i äggen och låt stå under lock i 6–8 minuter.",
+      "Toppa med fetaost och servera med bröd."
+    ],
+    "calories": 556,
+    "proteinG": 30.8,
+    "carbsG": 46.9,
+    "fatG": 25.4,
+    "fiberG": 12.7,
+    "micros": {
+      "sodiumMg": 1064,
+      "potassiumMg": 1089,
+      "ironMg": 6.1,
+      "calciumMg": 277,
+      "vitaminDUg": 2.5,
+      "vitaminB12Ug": 1.7
+    },
+    "image": "recipe-chickpea-shakshuka"
+  },
+  {
+    "id": "cottage-cheese-berries",
+    "name": "Cottage cheese with berries and almonds",
+    "name_sv": "Keso med bär och mandlar",
+    "category": "snack",
+    "mealPrep": false,
+    "minutes": 2,
+    "servings": 1,
+    "tags": [
+      "high-protein",
+      "vegetarian",
+      "quick",
+      "budget"
+    ],
+    "ingredients": [
+      {
+        "name": "Cottage cheese",
+        "name_sv": "Keso",
+        "grams": 150,
+        "pantryKey": "cottage cheese"
+      },
+      {
+        "name": "Frozen mixed berries",
+        "name_sv": "Frysta blandade bär",
+        "grams": 80,
+        "pantryKey": "frozen berries"
+      },
+      {
+        "name": "Almonds",
+        "name_sv": "Mandlar",
+        "grams": 10,
+        "pantryKey": "almond"
+      }
+    ],
+    "steps": [
+      "Thaw the berries briefly.",
+      "Spoon the cottage cheese into a bowl.",
+      "Top with berries and almonds."
+    ],
+    "steps_sv": [
+      "Tina bären en stund.",
+      "Lägg kesot i en skål.",
+      "Toppa med bär och mandlar."
+    ],
+    "calories": 242,
+    "proteinG": 20.7,
+    "carbsG": 11.1,
+    "fatG": 11.4,
+    "fiberG": 3.6,
+    "micros": {
+      "sodiumMg": 526,
+      "potassiumMg": 316,
+      "ironMg": 0.9,
+      "calciumMg": 147,
+      "vitaminDUg": 0.1,
+      "vitaminB12Ug": 0.9
+    },
+    "image": "recipe-cottage-cheese-berries"
+  },
+  {
+    "id": "apple-peanut-butter",
+    "name": "Apple with peanut butter",
+    "name_sv": "Äpple med jordnötssmör",
+    "category": "snack",
+    "mealPrep": false,
+    "minutes": 2,
+    "servings": 1,
+    "tags": [
+      "vegetarian",
+      "vegan",
+      "quick",
+      "budget"
+    ],
+    "ingredients": [
+      {
+        "name": "Apple",
+        "name_sv": "Äpple",
+        "grams": 150,
+        "pantryKey": "apple"
+      },
+      {
+        "name": "Peanut butter",
+        "name_sv": "Jordnötssmör",
+        "grams": 20,
+        "pantryKey": "peanut butter"
+      }
+    ],
+    "steps": [
+      "Core and slice the apple.",
+      "Spoon the peanut butter into a small dish.",
+      "Dip and enjoy, with a pinch of cinnamon if you like."
+    ],
+    "steps_sv": [
+      "Kärna ur och skiva äpplet.",
+      "Lägg jordnötssmöret i en liten skål.",
+      "Doppa och njut, gärna med en nypa kanel."
+    ],
+    "calories": 198,
+    "proteinG": 5.5,
+    "carbsG": 20.6,
+    "fatG": 10.3,
+    "fiberG": 4.8,
+    "micros": {
+      "sodiumMg": 5,
+      "potassiumMg": 290,
+      "ironMg": 0.5,
+      "calciumMg": 18,
+      "vitaminDUg": 0.0,
+      "vitaminB12Ug": 0.0
+    },
+    "image": "recipe-apple-peanut-butter"
+  },
+  {
+    "id": "eggs-veggie-sticks",
+    "name": "Boiled eggs with vegetable sticks",
+    "name_sv": "Kokta ägg med grönsaksstavar",
+    "category": "snack",
+    "mealPrep": false,
+    "minutes": 12,
+    "servings": 1,
+    "tags": [
+      "vegetarian",
+      "quick",
+      "budget"
+    ],
+    "ingredients": [
+      {
+        "name": "Egg",
+        "name_sv": "Ägg",
+        "grams": 100,
+        "pantryKey": "egg"
+      },
+      {
+        "name": "Carrots",
+        "name_sv": "Morötter",
+        "grams": 80,
+        "pantryKey": "carrot"
+      },
+      {
+        "name": "Cucumber",
+        "name_sv": "Gurka",
+        "grams": 80,
+        "pantryKey": "cucumber"
+      },
+      {
+        "name": "Bell pepper",
+        "name_sv": "Paprika",
+        "grams": 50,
+        "pantryKey": "bell pepper"
+      }
+    ],
+    "steps": [
+      "Boil the eggs for 8 minutes and cool.",
+      "Cut the vegetables into sticks.",
+      "Serve together."
+    ],
+    "steps_sv": [
+      "Koka äggen i 8 minuter och kyl.",
+      "Skär grönsakerna i stavar.",
+      "Servera tillsammans."
+    ],
+    "calories": 198,
+    "proteinG": 14.2,
+    "carbsG": 10.1,
+    "fatG": 10.4,
+    "fiberG": 3.6,
+    "micros": {
+      "sodiumMg": 199,
+      "potassiumMg": 609,
+      "ironMg": 2.5,
+      "calciumMg": 98,
+      "vitaminDUg": 2.0,
+      "vitaminB12Ug": 1.1
+    },
+    "image": "recipe-eggs-veggie-sticks"
+  },
+  {
+    "id": "roasted-chickpeas",
+    "name": "Crispy roasted chickpeas",
+    "name_sv": "Rostade kikärtor",
+    "category": "snack",
+    "mealPrep": false,
+    "minutes": 30,
+    "servings": 2,
+    "tags": [
+      "vegetarian",
+      "vegan",
+      "legumes",
+      "high-fiber",
+      "budget"
+    ],
+    "ingredients": [
+      {
+        "name": "Chickpeas",
+        "name_sv": "Kikärtor",
+        "grams": 120,
+        "pantryKey": "chickpea"
+      },
+      {
+        "name": "Olive oil",
+        "name_sv": "Olivolja",
+        "grams": 5,
+        "pantryKey": "olive oil"
+      }
+    ],
+    "steps": [
+      "Rinse and pat the chickpeas dry.",
+      "Toss with oil, salt and smoked paprika.",
+      "Roast at 220 °C for 25 minutes, shaking halfway."
+    ],
+    "steps_sv": [
+      "Skölj kikärtorna och torka dem.",
+      "Blanda med olja, salt och rökt paprika.",
+      "Rosta i 220 °C i 25 minuter och skaka om halvvägs."
+    ],
+    "calories": 212,
+    "proteinG": 9.0,
+    "carbsG": 24.0,
+    "fatG": 8.0,
+    "fiberG": 8.4,
+    "micros": {
+      "sodiumMg": 288,
+      "potassiumMg": 204,
+      "ironMg": 1.9,
+      "calciumMg": 54,
+      "vitaminDUg": 0.0,
+      "vitaminB12Ug": 0.0
+    },
+    "image": "recipe-roasted-chickpeas"
+  },
+  {
+    "id": "chocolate-quark-raspberries",
+    "name": "Chocolate quark with raspberries",
+    "name_sv": "Chokladkvarg med hallon",
+    "category": "snack",
+    "mealPrep": false,
+    "minutes": 5,
+    "servings": 1,
+    "tags": [
+      "high-protein",
+      "vegetarian",
+      "quick"
+    ],
+    "ingredients": [
+      {
+        "name": "Plain quark",
+        "name_sv": "Kvarg naturell",
+        "grams": 200,
+        "pantryKey": "quark"
+      },
+      {
+        "name": "Cocoa powder",
+        "name_sv": "Kakao",
+        "grams": 8,
+        "pantryKey": "cocoa"
+      },
+      {
+        "name": "Honey",
+        "name_sv": "Honung",
+        "grams": 5,
+        "pantryKey": "honey"
+      },
+      {
+        "name": "Raspberries",
+        "name_sv": "Hallon",
+        "grams": 60,
+        "pantryKey": "raspberry"
+      }
+    ],
+    "steps": [
+      "Stir cocoa and honey into the quark.",
+      "Spoon into a bowl.",
+      "Top with raspberries."
+    ],
+    "steps_sv": [
+      "Rör ner kakao och honung i kvargen.",
+      "Lägg upp i en skål.",
+      "Toppa med hallon."
+    ],
+    "calories": 193,
+    "proteinG": 24.3,
+    "carbsG": 16.0,
+    "fatG": 1.9,
+    "fiberG": 6.5,
+    "micros": {
+      "sodiumMg": 82,
+      "potassiumMg": 513,
+      "ironMg": 1.8,
+      "calciumMg": 226,
+      "vitaminDUg": 0.0,
+      "vitaminB12Ug": 1.2
+    },
+    "image": "recipe-chocolate-quark-raspberries"
+  },
+  {
+    "id": "crispbread-cottage-tomato",
+    "name": "Crispbread with cottage cheese and tomato",
+    "name_sv": "Knäckebröd med keso och tomat",
+    "category": "snack",
+    "mealPrep": false,
+    "minutes": 5,
+    "servings": 1,
+    "tags": [
+      "vegetarian",
+      "quick",
+      "budget"
+    ],
+    "ingredients": [
+      {
+        "name": "Crispbread",
+        "name_sv": "Knäckebröd",
+        "grams": 30,
+        "pantryKey": "crispbread"
+      },
+      {
+        "name": "Cottage cheese",
+        "name_sv": "Keso",
+        "grams": 100,
+        "pantryKey": "cottage cheese"
+      },
+      {
+        "name": "Tomatoes",
+        "name_sv": "Tomater",
+        "grams": 80,
+        "pantryKey": "tomato"
+      },
+      {
+        "name": "Cucumber",
+        "name_sv": "Gurka",
+        "grams": 40,
+        "pantryKey": "cucumber"
+      }
+    ],
+    "steps": [
+      "Spread cottage cheese on the crispbread.",
+      "Top with sliced tomato and cucumber.",
+      "Finish with black pepper."
+    ],
+    "steps_sv": [
+      "Bred keso på knäckebrödet.",
+      "Toppa med skivad tomat och gurka.",
+      "Avsluta med svartpeppar."
+    ],
+    "calories": 216,
+    "proteinG": 15.7,
+    "carbsG": 23.7,
+    "fatG": 4.8,
+    "fiberG": 6.6,
+    "micros": {
+      "sodiumMg": 475,
+      "potassiumMg": 483,
+      "ironMg": 1.4,
+      "calciumMg": 93,
+      "vitaminDUg": 0.1,
+      "vitaminB12Ug": 0.6
+    },
+    "image": "recipe-crispbread-cottage-tomato"
+  },
+  {
+    "id": "salted-edamame",
+    "name": "Salted edamame",
+    "name_sv": "Edamame med flingsalt",
+    "category": "snack",
+    "mealPrep": false,
+    "minutes": 8,
+    "servings": 1,
+    "tags": [
+      "vegetarian",
+      "vegan",
+      "legumes",
+      "quick"
+    ],
+    "ingredients": [
+      {
+        "name": "Edamame beans",
+        "name_sv": "Edamamebönor",
+        "grams": 150,
+        "pantryKey": "edamame"
+      },
+      {
+        "name": "Soy sauce",
+        "name_sv": "Soja",
+        "grams": 5,
+        "pantryKey": "soy sauce"
+      }
+    ],
+    "steps": [
+      "Boil the edamame for 4 minutes.",
+      "Drain and toss with soy sauce and flaky salt.",
+      "Serve warm and pop the beans from the pods."
+    ],
+    "steps_sv": [
+      "Koka edamamebönorna i 4 minuter.",
+      "Låt rinna av och vänd med soja och flingsalt.",
+      "Servera varma och tryck ut bönorna ur baljorna."
+    ],
+    "calories": 183,
+    "proteinG": 16.9,
+    "carbsG": 10.8,
+    "fatG": 7.5,
+    "fiberG": 7.5,
+    "micros": {
+      "sodiumMg": 288,
+      "potassiumMg": 670,
+      "ironMg": 3.5,
+      "calciumMg": 91,
+      "vitaminDUg": 0.0,
+      "vitaminB12Ug": 0.0
+    },
+    "image": "recipe-salted-edamame"
+  },
+  {
+    "id": "banana-skyr-shake",
+    "name": "Banana skyr shake",
+    "name_sv": "Bananshake med skyr",
+    "category": "snack",
+    "mealPrep": false,
+    "minutes": 5,
+    "servings": 1,
+    "tags": [
+      "high-protein",
+      "vegetarian",
+      "quick",
+      "budget"
+    ],
+    "ingredients": [
+      {
+        "name": "Plain skyr",
+        "name_sv": "Skyr naturell",
+        "grams": 200,
+        "pantryKey": "skyr"
+      },
+      {
+        "name": "Banana",
+        "name_sv": "Banan",
+        "grams": 100,
+        "pantryKey": "banana"
+      },
+      {
+        "name": "Semi-skimmed milk",
+        "name_sv": "Mellanmjölk",
+        "grams": 150,
+        "pantryKey": "milk"
+      }
+    ],
+    "steps": [
+      "Add everything to a blender.",
+      "Blend until smooth and frothy.",
+      "Serve cold."
+    ],
+    "steps_sv": [
+      "Lägg allt i en mixer.",
+      "Mixa slätt och skummigt.",
+      "Servera kall."
+    ],
+    "calories": 282,
+    "proteinG": 28.4,
+    "carbsG": 35.2,
+    "fatG": 3.0,
+    "fiberG": 2.6,
+    "micros": {
+      "sodiumMg": 151,
+      "potassiumMg": 905,
+      "ironMg": 0.5,
+      "calciumMg": 425,
+      "vitaminDUg": 1.5,
+      "vitaminB12Ug": 1.6
+    },
+    "image": "recipe-banana-skyr-shake"
+  },
+  {
+    "id": "prep-chicken-rice-broccoli",
+    "name": "Chicken, rice and broccoli boxes",
+    "name_sv": "Matlådor med kyckling, ris och broccoli",
+    "category": "lunch",
+    "mealPrep": true,
+    "minutes": 35,
+    "servings": 5,
+    "fridgeDays": 4,
+    "tags": [
+      "high-protein",
+      "budget",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Chicken breast",
+        "name_sv": "Kycklingbröst",
+        "grams": 150,
+        "pantryKey": "chicken breast"
+      },
+      {
+        "name": "Brown rice",
+        "name_sv": "Fullkornsris",
+        "grams": 70,
+        "pantryKey": "brown rice"
+      },
+      {
+        "name": "Broccoli",
+        "name_sv": "Broccoli",
+        "grams": 150,
+        "pantryKey": "broccoli"
+      },
+      {
+        "name": "Soy sauce",
+        "name_sv": "Soja",
+        "grams": 10,
+        "pantryKey": "soy sauce"
+      },
+      {
+        "name": "Rapeseed oil",
+        "name_sv": "Rapsolja",
+        "grams": 5,
+        "pantryKey": "rapeseed oil"
+      }
+    ],
+    "steps": [
+      "Cook the rice.",
+      "Fry the chicken in batches and slice.",
+      "Steam the broccoli for 3 minutes so it stays crisp.",
+      "Divide into boxes and drizzle with soy sauce."
+    ],
+    "steps_sv": [
+      "Koka riset.",
+      "Stek kycklingen i omgångar och skiva.",
+      "Ånga broccolin i 3 minuter så den håller sig krispig.",
+      "Fördela i lådor och ringla över soja."
+    ],
+    "calories": 512,
+    "proteinG": 44.8,
+    "carbsG": 58.3,
+    "fatG": 9.8,
+    "fiberG": 6.4,
+    "micros": {
+      "sodiumMg": 710,
+      "potassiumMg": 1225,
+      "ironMg": 2.9,
+      "calciumMg": 94,
+      "vitaminDUg": 0.1,
+      "vitaminB12Ug": 0.6
+    },
+    "image": "recipe-prep-chicken-rice-broccoli"
+  },
+  {
+    "id": "prep-bean-chili",
+    "name": "Bean chili sin carne",
+    "name_sv": "Chili sin carne",
+    "category": "dinner",
+    "mealPrep": true,
+    "minutes": 45,
+    "servings": 5,
+    "fridgeDays": 4,
+    "tags": [
+      "vegetarian",
+      "vegan",
+      "legumes",
+      "high-fiber",
+      "budget",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Black beans",
+        "name_sv": "Svarta bönor",
+        "grams": 120,
+        "pantryKey": "black bean"
+      },
+      {
+        "name": "Red lentils",
+        "name_sv": "Röda linser",
+        "grams": 30,
+        "pantryKey": "lentil"
+      },
+      {
+        "name": "Crushed tomatoes",
+        "name_sv": "Krossade tomater",
+        "grams": 200,
+        "pantryKey": "crushed tomato"
+      },
+      {
+        "name": "Bell pepper",
+        "name_sv": "Paprika",
+        "grams": 80,
+        "pantryKey": "bell pepper"
+      },
+      {
+        "name": "Onion",
+        "name_sv": "Lök",
+        "grams": 50,
+        "pantryKey": "onion"
+      },
+      {
+        "name": "Carrots",
+        "name_sv": "Morötter",
+        "grams": 50,
+        "pantryKey": "carrot"
+      },
+      {
+        "name": "Rapeseed oil",
+        "name_sv": "Rapsolja",
+        "grams": 5,
+        "pantryKey": "rapeseed oil"
+      },
+      {
+        "name": "Brown rice",
+        "name_sv": "Fullkornsris",
+        "grams": 60,
+        "pantryKey": "brown rice"
+      }
+    ],
+    "steps": [
+      "Soften onion, carrot and pepper in the oil.",
+      "Add chili spices, tomatoes, lentils and beans.",
+      "Simmer for 25 minutes.",
+      "Cook the rice and divide everything into boxes."
+    ],
+    "steps_sv": [
+      "Fräs lök, morot och paprika i oljan.",
+      "Tillsätt chilikryddor, tomater, linser och bönor.",
+      "Låt sjuda i 25 minuter.",
+      "Koka riset och fördela allt i lådor."
+    ],
+    "calories": 622,
+    "proteinG": 26.1,
+    "carbsG": 102.6,
+    "fatG": 8.5,
+    "fiberG": 21.9,
+    "micros": {
+      "sodiumMg": 585,
+      "potassiumMg": 1676,
+      "ironMg": 7.2,
+      "calciumMg": 137,
+      "vitaminDUg": 0.0,
+      "vitaminB12Ug": 0.0
+    },
+    "image": "recipe-prep-bean-chili"
+  },
+  {
+    "id": "prep-salmon-quinoa-beans",
+    "name": "Salmon, quinoa and green bean boxes",
+    "name_sv": "Matlådor med lax, quinoa och haricots verts",
+    "category": "lunch",
+    "mealPrep": true,
+    "minutes": 35,
+    "servings": 4,
+    "fridgeDays": 3,
+    "tags": [
+      "high-protein",
+      "fish",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Salmon fillet",
+        "name_sv": "Laxfilé",
+        "grams": 130,
+        "pantryKey": "salmon"
+      },
+      {
+        "name": "Quinoa",
+        "name_sv": "Quinoa",
+        "grams": 60,
+        "pantryKey": "quinoa"
+      },
+      {
+        "name": "Green beans",
+        "name_sv": "Haricots verts",
+        "grams": 120,
+        "pantryKey": "green bean"
+      },
+      {
+        "name": "Natural yogurt",
+        "name_sv": "Naturell yoghurt",
+        "grams": 40,
+        "pantryKey": "yogurt"
+      },
+      {
+        "name": "Lemon juice",
+        "name_sv": "Citronsaft",
+        "grams": 5,
+        "pantryKey": "lemon"
+      }
+    ],
+    "steps": [
+      "Bake the salmon at 200 °C for 15 minutes.",
+      "Cook the quinoa.",
+      "Blanch the green beans for 3 minutes.",
+      "Pack with lemon yogurt on the side."
+    ],
+    "steps_sv": [
+      "Baka laxen i 200 °C i 15 minuter.",
+      "Koka quinoan.",
+      "Förväll bönorna i 3 minuter.",
+      "Packa med citronyoghurt vid sidan."
+    ],
+    "calories": 543,
+    "proteinG": 38.0,
+    "carbsG": 41.8,
+    "fatG": 21.9,
+    "fiberG": 7.5,
+    "micros": {
+      "sodiumMg": 93,
+      "potassiumMg": 1125,
+      "ironMg": 4.4,
+      "calciumMg": 134,
+      "vitaminDUg": 10.4,
+      "vitaminB12Ug": 4.3
+    },
+    "image": "recipe-prep-salmon-quinoa-beans"
+  },
+  {
+    "id": "prep-chili-con-carne",
+    "name": "Beef and bean chili",
+    "name_sv": "Chili con carne",
+    "category": "dinner",
+    "mealPrep": true,
+    "minutes": 50,
+    "servings": 5,
+    "fridgeDays": 4,
+    "tags": [
+      "high-protein",
+      "legumes",
+      "high-fiber",
+      "budget",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Minced beef 10%",
+        "name_sv": "Nötfärs 10 %",
+        "grams": 110,
+        "pantryKey": "minced beef"
+      },
+      {
+        "name": "Black beans",
+        "name_sv": "Svarta bönor",
+        "grams": 80,
+        "pantryKey": "black bean"
+      },
+      {
+        "name": "Crushed tomatoes",
+        "name_sv": "Krossade tomater",
+        "grams": 200,
+        "pantryKey": "crushed tomato"
+      },
+      {
+        "name": "Onion",
+        "name_sv": "Lök",
+        "grams": 50,
+        "pantryKey": "onion"
+      },
+      {
+        "name": "Bell pepper",
+        "name_sv": "Paprika",
+        "grams": 70,
+        "pantryKey": "bell pepper"
+      },
+      {
+        "name": "Brown rice",
+        "name_sv": "Fullkornsris",
+        "grams": 55,
+        "pantryKey": "brown rice"
+      }
+    ],
+    "steps": [
+      "Brown the mince with the onion.",
+      "Add pepper, spices, tomatoes and beans.",
+      "Simmer for 30 minutes.",
+      "Serve over rice and pack into boxes."
+    ],
+    "steps_sv": [
+      "Bryn färsen med löken.",
+      "Tillsätt paprika, kryddor, tomater och bönor.",
+      "Låt sjuda i 30 minuter.",
+      "Lägg upp över ris och packa i lådor."
+    ],
+    "calories": 573,
+    "proteinG": 36.6,
+    "carbsG": 71.4,
+    "fatG": 13.5,
+    "fiberG": 13.4,
+    "micros": {
+      "sodiumMg": 545,
+      "potassiumMg": 1490,
+      "ironMg": 6.4,
+      "calciumMg": 102,
+      "vitaminDUg": 0.2,
+      "vitaminB12Ug": 2.2
+    },
+    "image": "recipe-prep-chili-con-carne"
+  },
+  {
+    "id": "prep-turkey-sweet-potato",
+    "name": "Turkey mince with sweet potato and spinach",
+    "name_sv": "Kalkonfärs med sötpotatis och spenat",
+    "category": "dinner",
+    "mealPrep": true,
+    "minutes": 40,
+    "servings": 4,
+    "fridgeDays": 4,
+    "tags": [
+      "high-protein",
+      "high-fiber",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Turkey mince",
+        "name_sv": "Kalkonfärs",
+        "grams": 140,
+        "pantryKey": "turkey mince"
+      },
+      {
+        "name": "Sweet potato",
+        "name_sv": "Sötpotatis",
+        "grams": 220,
+        "pantryKey": "sweet potato"
+      },
+      {
+        "name": "Baby spinach",
+        "name_sv": "Babyspenat",
+        "grams": 60,
+        "pantryKey": "spinach"
+      },
+      {
+        "name": "Onion",
+        "name_sv": "Lök",
+        "grams": 30,
+        "pantryKey": "onion"
+      },
+      {
+        "name": "Rapeseed oil",
+        "name_sv": "Rapsolja",
+        "grams": 5,
+        "pantryKey": "rapeseed oil"
+      }
+    ],
+    "steps": [
+      "Roast cubed sweet potato at 220 °C for 25 minutes.",
+      "Brown the mince with the onion in the oil.",
+      "Stir in the spinach until wilted.",
+      "Combine and divide into boxes."
+    ],
+    "steps_sv": [
+      "Rosta tärnad sötpotatis i 220 °C i 25 minuter.",
+      "Bryn färsen med löken i oljan.",
+      "Rör ner spenaten tills den mjuknat.",
+      "Blanda och fördela i lådor."
+    ],
+    "calories": 459,
+    "proteinG": 33.6,
+    "carbsG": 40.6,
+    "fatG": 15.3,
+    "fiberG": 8.4,
+    "micros": {
+      "sodiumMg": 268,
+      "potassiumMg": 1548,
+      "ironMg": 4.4,
+      "calciumMg": 153,
+      "vitaminDUg": 0.3,
+      "vitaminB12Ug": 1.4
+    },
+    "image": "recipe-prep-turkey-sweet-potato"
+  },
+  {
+    "id": "prep-red-lentil-dal",
+    "name": "Red lentil dal with rice",
+    "name_sv": "Röd linsdal med ris",
+    "category": "dinner",
+    "mealPrep": true,
+    "minutes": 40,
+    "servings": 5,
+    "fridgeDays": 4,
+    "tags": [
+      "vegetarian",
+      "vegan",
+      "legumes",
+      "high-fiber",
+      "budget",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Red lentils",
+        "name_sv": "Röda linser",
+        "grams": 70,
+        "pantryKey": "lentil"
+      },
+      {
+        "name": "Coconut milk",
+        "name_sv": "Kokosmjölk",
+        "grams": 40,
+        "pantryKey": "coconut milk"
+      },
+      {
+        "name": "Crushed tomatoes",
+        "name_sv": "Krossade tomater",
+        "grams": 120,
+        "pantryKey": "crushed tomato"
+      },
+      {
+        "name": "Baby spinach",
+        "name_sv": "Babyspenat",
+        "grams": 60,
+        "pantryKey": "spinach"
+      },
+      {
+        "name": "Onion",
+        "name_sv": "Lök",
+        "grams": 40,
+        "pantryKey": "onion"
+      },
+      {
+        "name": "Garlic",
+        "name_sv": "Vitlök",
+        "grams": 5,
+        "pantryKey": "garlic"
+      },
+      {
+        "name": "Curry powder",
+        "name_sv": "Curry",
+        "grams": 4,
+        "pantryKey": "curry powder"
+      },
+      {
+        "name": "Brown rice",
+        "name_sv": "Fullkornsris",
+        "grams": 55,
+        "pantryKey": "brown rice"
+      }
+    ],
+    "steps": [
+      "Fry onion, garlic and curry for 2 minutes.",
+      "Add lentils, tomatoes, coconut milk and 600 ml water.",
+      "Simmer 20 minutes and stir in the spinach.",
+      "Cook the rice and pack."
+    ],
+    "steps_sv": [
+      "Fräs lök, vitlök och curry i 2 minuter.",
+      "Tillsätt linser, tomater, kokosmjölk och 6 dl vatten.",
+      "Låt sjuda i 20 minuter och rör ner spenaten.",
+      "Koka riset och packa."
+    ],
+    "calories": 589,
+    "proteinG": 26.1,
+    "carbsG": 90.3,
+    "fatG": 10.8,
+    "fiberG": 14.5,
+    "micros": {
+      "sodiumMg": 246,
+      "potassiumMg": 1478,
+      "ironMg": 9.6,
+      "calciumMg": 173,
+      "vitaminDUg": 0.0,
+      "vitaminB12Ug": 0.0
+    },
+    "image": "recipe-prep-red-lentil-dal"
+  },
+  {
+    "id": "prep-chicken-pasta-salad",
+    "name": "Chicken pasta salad",
+    "name_sv": "Pastasallad med kyckling",
+    "category": "lunch",
+    "mealPrep": true,
+    "minutes": 25,
+    "servings": 4,
+    "fridgeDays": 3,
+    "tags": [
+      "high-protein",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Chicken breast",
+        "name_sv": "Kycklingbröst",
+        "grams": 130,
+        "pantryKey": "chicken breast"
+      },
+      {
+        "name": "Wholewheat pasta",
+        "name_sv": "Fullkornspasta",
+        "grams": 70,
+        "pantryKey": "wholegrain pasta"
+      },
+      {
+        "name": "Tomatoes",
+        "name_sv": "Tomater",
+        "grams": 80,
+        "pantryKey": "tomato"
+      },
+      {
+        "name": "Cucumber",
+        "name_sv": "Gurka",
+        "grams": 70,
+        "pantryKey": "cucumber"
+      },
+      {
+        "name": "Baby spinach",
+        "name_sv": "Babyspenat",
+        "grams": 30,
+        "pantryKey": "spinach"
+      },
+      {
+        "name": "Feta",
+        "name_sv": "Fetaost",
+        "grams": 25,
+        "pantryKey": "feta"
+      },
+      {
+        "name": "Olive oil",
+        "name_sv": "Olivolja",
+        "grams": 8,
+        "pantryKey": "olive oil"
+      }
+    ],
+    "steps": [
+      "Cook the pasta and rinse in cold water.",
+      "Fry and slice the chicken.",
+      "Chop the vegetables.",
+      "Toss everything with oil and feta and pack."
+    ],
+    "steps_sv": [
+      "Koka pastan och skölj i kallt vatten.",
+      "Stek och skiva kycklingen.",
+      "Hacka grönsakerna.",
+      "Blanda allt med olja och fetaost och packa."
+    ],
+    "calories": 548,
+    "proteinG": 44.5,
+    "carbsG": 48.6,
+    "fatG": 17.6,
+    "fiberG": 7.6,
+    "micros": {
+      "sodiumMg": 394,
+      "potassiumMg": 1132,
+      "ironMg": 4.4,
+      "calciumMg": 206,
+      "vitaminDUg": 0.2,
+      "vitaminB12Ug": 0.9
+    },
+    "image": "recipe-prep-chicken-pasta-salad"
+  },
+  {
+    "id": "prep-cod-vegetable-curry",
+    "name": "Cod and vegetable curry",
+    "name_sv": "Torskcurry med grönsaker",
+    "category": "dinner",
+    "mealPrep": true,
+    "minutes": 35,
+    "servings": 4,
+    "fridgeDays": 3,
+    "tags": [
+      "high-protein",
+      "fish",
+      "legumes",
+      "high-fiber",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Cod fillet",
+        "name_sv": "Torskfilé",
+        "grams": 150,
+        "pantryKey": "cod"
+      },
+      {
+        "name": "Coconut milk",
+        "name_sv": "Kokosmjölk",
+        "grams": 50,
+        "pantryKey": "coconut milk"
+      },
+      {
+        "name": "Cauliflower",
+        "name_sv": "Blomkål",
+        "grams": 120,
+        "pantryKey": "cauliflower"
+      },
+      {
+        "name": "Green peas",
+        "name_sv": "Gröna ärtor",
+        "grams": 60,
+        "pantryKey": "green pea"
+      },
+      {
+        "name": "Crushed tomatoes",
+        "name_sv": "Krossade tomater",
+        "grams": 100,
+        "pantryKey": "crushed tomato"
+      },
+      {
+        "name": "Curry powder",
+        "name_sv": "Curry",
+        "grams": 4,
+        "pantryKey": "curry powder"
+      },
+      {
+        "name": "Brown rice",
+        "name_sv": "Fullkornsris",
+        "grams": 55,
+        "pantryKey": "brown rice"
+      }
+    ],
+    "steps": [
+      "Simmer cauliflower in tomatoes, coconut milk and curry for 10 minutes.",
+      "Add chunks of cod and the peas and cook 6 minutes.",
+      "Cook the rice.",
+      "Divide into boxes."
+    ],
+    "steps_sv": [
+      "Sjud blomkålen i tomater, kokosmjölk och curry i 10 minuter.",
+      "Lägg i torskbitar och ärtor och låt koka 6 minuter.",
+      "Koka riset.",
+      "Fördela i lådor."
+    ],
+    "calories": 520,
+    "proteinG": 39.5,
+    "carbsG": 56.8,
+    "fatG": 12.7,
+    "fiberG": 9.8,
+    "micros": {
+      "sodiumMg": 306,
+      "potassiumMg": 1663,
+      "ironMg": 4.7,
+      "calciumMg": 122,
+      "vitaminDUg": 1.5,
+      "vitaminB12Ug": 1.5
+    },
+    "image": "recipe-prep-cod-vegetable-curry"
+  },
+  {
+    "id": "prep-meatballs-lingonberries",
+    "name": "Lean meatballs with potatoes and lingonberries",
+    "name_sv": "Köttbullar med potatis och lingon",
+    "category": "dinner",
+    "mealPrep": true,
+    "minutes": 45,
+    "servings": 5,
+    "fridgeDays": 4,
+    "tags": [
+      "high-protein",
+      "high-fiber",
+      "budget",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Minced beef 10%",
+        "name_sv": "Nötfärs 10 %",
+        "grams": 120,
+        "pantryKey": "minced beef"
+      },
+      {
+        "name": "Egg",
+        "name_sv": "Ägg",
+        "grams": 20,
+        "pantryKey": "egg"
+      },
+      {
+        "name": "Rolled oats",
+        "name_sv": "Havregryn",
+        "grams": 10,
+        "pantryKey": "oat"
+      },
+      {
+        "name": "Potatoes",
+        "name_sv": "Potatis",
+        "grams": 220,
+        "pantryKey": "potato"
+      },
+      {
+        "name": "Broccoli",
+        "name_sv": "Broccoli",
+        "grams": 100,
+        "pantryKey": "broccoli"
+      },
+      {
+        "name": "Lingonberries",
+        "name_sv": "Lingon",
+        "grams": 30,
+        "pantryKey": "lingonberry"
+      }
+    ],
+    "steps": [
+      "Mix mince, egg, oats and seasoning and roll into balls.",
+      "Bake at 225 °C for 12–15 minutes.",
+      "Boil the potatoes and steam the broccoli.",
+      "Pack with lingonberries."
+    ],
+    "steps_sv": [
+      "Blanda färs, ägg, havregryn och kryddor och rulla bullar.",
+      "Baka i 225 °C i 12–15 minuter.",
+      "Koka potatisen och ånga broccolin.",
+      "Packa med lingon."
+    ],
+    "calories": 486,
+    "proteinG": 35.2,
+    "carbsG": 47.6,
+    "fatG": 15.5,
+    "fiberG": 9.1,
+    "micros": {
+      "sodiumMg": 159,
+      "potassiumMg": 1714,
+      "ironMg": 5.2,
+      "calciumMg": 104,
+      "vitaminDUg": 0.6,
+      "vitaminB12Ug": 2.6
+    },
+    "image": "recipe-prep-meatballs-lingonberries"
+  },
+  {
+    "id": "prep-chicken-burrito-bowl",
+    "name": "Chicken burrito bowls",
+    "name_sv": "Burritobowls med kyckling",
+    "category": "lunch",
+    "mealPrep": true,
+    "minutes": 35,
+    "servings": 5,
+    "fridgeDays": 4,
+    "tags": [
+      "high-protein",
+      "legumes",
+      "high-fiber",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Chicken breast",
+        "name_sv": "Kycklingbröst",
+        "grams": 130,
+        "pantryKey": "chicken breast"
+      },
+      {
+        "name": "Brown rice",
+        "name_sv": "Fullkornsris",
+        "grams": 55,
+        "pantryKey": "brown rice"
+      },
+      {
+        "name": "Black beans",
+        "name_sv": "Svarta bönor",
+        "grams": 80,
+        "pantryKey": "black bean"
+      },
+      {
+        "name": "Bell pepper",
+        "name_sv": "Paprika",
+        "grams": 60,
+        "pantryKey": "bell pepper"
+      },
+      {
+        "name": "Tomatoes",
+        "name_sv": "Tomater",
+        "grams": 60,
+        "pantryKey": "tomato"
+      },
+      {
+        "name": "Natural yogurt",
+        "name_sv": "Naturell yoghurt",
+        "grams": 30,
+        "pantryKey": "yogurt"
+      }
+    ],
+    "steps": [
+      "Cook the rice.",
+      "Fry the chicken with taco spices and slice.",
+      "Fry the pepper and warm the beans.",
+      "Divide into boxes with tomato and yogurt."
+    ],
+    "steps_sv": [
+      "Koka riset.",
+      "Stek kycklingen med tacokryddor och skiva.",
+      "Fräs paprikan och värm bönorna.",
+      "Fördela i lådor med tomat och yoghurt."
+    ],
+    "calories": 479,
+    "proteinG": 43.0,
+    "carbsG": 62.1,
+    "fatG": 5.0,
+    "fiberG": 10.6,
+    "micros": {
+      "sodiumMg": 266,
+      "potassiumMg": 1215,
+      "ironMg": 3.4,
+      "calciumMg": 88,
+      "vitaminDUg": 0.2,
+      "vitaminB12Ug": 0.6
+    },
+    "image": "recipe-prep-chicken-burrito-bowl"
+  },
+  {
+    "id": "prep-tofu-broccoli-noodles",
+    "name": "Tofu, broccoli and noodle boxes",
+    "name_sv": "Matlådor med tofu, broccoli och nudlar",
+    "category": "lunch",
+    "mealPrep": true,
+    "minutes": 30,
+    "servings": 4,
+    "fridgeDays": 4,
+    "tags": [
+      "high-protein",
+      "vegetarian",
+      "vegan",
+      "legumes",
+      "high-fiber",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Firm tofu",
+        "name_sv": "Fast tofu",
+        "grams": 160,
+        "pantryKey": "tofu"
+      },
+      {
+        "name": "Rice noodles",
+        "name_sv": "Risnudlar",
+        "grams": 60,
+        "pantryKey": "rice noodle"
+      },
+      {
+        "name": "Broccoli",
+        "name_sv": "Broccoli",
+        "grams": 140,
+        "pantryKey": "broccoli"
+      },
+      {
+        "name": "Edamame beans",
+        "name_sv": "Edamamebönor",
+        "grams": 50,
+        "pantryKey": "edamame"
+      },
+      {
+        "name": "Soy sauce",
+        "name_sv": "Soja",
+        "grams": 15,
+        "pantryKey": "soy sauce"
+      },
+      {
+        "name": "Rapeseed oil",
+        "name_sv": "Rapsolja",
+        "grams": 5,
+        "pantryKey": "rapeseed oil"
+      }
+    ],
+    "steps": [
+      "Press and cube the tofu, then fry until crisp.",
+      "Soak the noodles.",
+      "Stir-fry broccoli and edamame for 3 minutes.",
+      "Toss with soy sauce and pack."
+    ],
+    "steps_sv": [
+      "Pressa och tärna tofun och stek den krispig.",
+      "Blötlägg nudlarna.",
+      "Woka broccoli och edamame i 3 minuter.",
+      "Vänd med soja och packa."
+    ],
+    "calories": 568,
+    "proteinG": 35.0,
+    "carbsG": 60.2,
+    "fatG": 19.6,
+    "fiberG": 8.8,
+    "micros": {
+      "sodiumMg": 1013,
+      "potassiumMg": 952,
+      "ironMg": 6.8,
+      "calciumMg": 670,
+      "vitaminDUg": 0.0,
+      "vitaminB12Ug": 0.0
+    },
+    "image": "recipe-prep-tofu-broccoli-noodles"
+  },
+  {
+    "id": "prep-pork-root-stew",
+    "name": "Pork and root vegetable stew",
+    "name_sv": "Fläskgryta med rotfrukter",
+    "category": "dinner",
+    "mealPrep": true,
+    "minutes": 50,
+    "servings": 5,
+    "fridgeDays": 4,
+    "tags": [
+      "high-protein",
+      "budget",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Pork tenderloin",
+        "name_sv": "Fläskfilé",
+        "grams": 130,
+        "pantryKey": "pork tenderloin"
+      },
+      {
+        "name": "Potatoes",
+        "name_sv": "Potatis",
+        "grams": 150,
+        "pantryKey": "potato"
+      },
+      {
+        "name": "Carrots",
+        "name_sv": "Morötter",
+        "grams": 80,
+        "pantryKey": "carrot"
+      },
+      {
+        "name": "Onion",
+        "name_sv": "Lök",
+        "grams": 40,
+        "pantryKey": "onion"
+      },
+      {
+        "name": "Crushed tomatoes",
+        "name_sv": "Krossade tomater",
+        "grams": 100,
+        "pantryKey": "crushed tomato"
+      },
+      {
+        "name": "Rapeseed oil",
+        "name_sv": "Rapsolja",
+        "grams": 5,
+        "pantryKey": "rapeseed oil"
+      }
+    ],
+    "steps": [
+      "Brown cubes of pork in the oil.",
+      "Add onion, potato and carrot.",
+      "Pour in tomatoes and 300 ml water and simmer 30 minutes.",
+      "Divide into boxes."
+    ],
+    "steps_sv": [
+      "Bryn tärnad fläskfilé i oljan.",
+      "Tillsätt lök, potatis och morot.",
+      "Häll i tomater och 3 dl vatten och låt sjuda i 30 minuter.",
+      "Fördela i lådor."
+    ],
+    "calories": 376,
+    "proteinG": 34.0,
+    "carbsG": 36.8,
+    "fatG": 8.8,
+    "fiberG": 7.1,
+    "micros": {
+      "sodiumMg": 287,
+      "potassiumMg": 1714,
+      "ironMg": 2.8,
+      "calciumMg": 77,
+      "vitaminDUg": 0.7,
+      "vitaminB12Ug": 0.8
+    },
+    "image": "recipe-prep-pork-root-stew"
+  },
+  {
+    "id": "prep-quinoa-chickpea-salad",
+    "name": "Quinoa and chickpea salad",
+    "name_sv": "Quinoasallad med kikärtor",
+    "category": "lunch",
+    "mealPrep": true,
+    "minutes": 25,
+    "servings": 4,
+    "fridgeDays": 4,
+    "tags": [
+      "vegetarian",
+      "legumes",
+      "high-fiber",
+      "budget",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Quinoa",
+        "name_sv": "Quinoa",
+        "grams": 55,
+        "pantryKey": "quinoa"
+      },
+      {
+        "name": "Chickpeas",
+        "name_sv": "Kikärtor",
+        "grams": 120,
+        "pantryKey": "chickpea"
+      },
+      {
+        "name": "Cucumber",
+        "name_sv": "Gurka",
+        "grams": 80,
+        "pantryKey": "cucumber"
+      },
+      {
+        "name": "Bell pepper",
+        "name_sv": "Paprika",
+        "grams": 70,
+        "pantryKey": "bell pepper"
+      },
+      {
+        "name": "Baby spinach",
+        "name_sv": "Babyspenat",
+        "grams": 30,
+        "pantryKey": "spinach"
+      },
+      {
+        "name": "Feta",
+        "name_sv": "Fetaost",
+        "grams": 30,
+        "pantryKey": "feta"
+      },
+      {
+        "name": "Olive oil",
+        "name_sv": "Olivolja",
+        "grams": 8,
+        "pantryKey": "olive oil"
+      },
+      {
+        "name": "Lemon juice",
+        "name_sv": "Citronsaft",
+        "grams": 8,
+        "pantryKey": "lemon"
+      }
+    ],
+    "steps": [
+      "Cook the quinoa and let it cool.",
+      "Rinse the chickpeas and chop the vegetables.",
+      "Toss with oil and lemon.",
+      "Top with feta and pack."
+    ],
+    "steps_sv": [
+      "Koka quinoan och låt svalna.",
+      "Skölj kikärtorna och hacka grönsakerna.",
+      "Blanda med olja och citron.",
+      "Toppa med fetaost och packa."
+    ],
+    "calories": 558,
+    "proteinG": 23.0,
+    "carbsG": 61.7,
+    "fatG": 21.3,
+    "fiberG": 14.7,
+    "micros": {
+      "sodiumMg": 649,
+      "potassiumMg": 972,
+      "ironMg": 6.0,
+      "calciumMg": 275,
+      "vitaminDUg": 0.1,
+      "vitaminB12Ug": 0.5
+    },
+    "image": "recipe-prep-quinoa-chickpea-salad"
+  },
+  {
+    "id": "prep-egg-spinach-muffins",
+    "name": "Egg and spinach muffins",
+    "name_sv": "Äggmuffins med spenat",
+    "category": "breakfast",
+    "mealPrep": true,
+    "minutes": 30,
+    "servings": 4,
+    "fridgeDays": 4,
+    "tags": [
+      "high-protein",
+      "vegetarian",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Egg",
+        "name_sv": "Ägg",
+        "grams": 150,
+        "pantryKey": "egg"
+      },
+      {
+        "name": "Cottage cheese",
+        "name_sv": "Keso",
+        "grams": 50,
+        "pantryKey": "cottage cheese"
+      },
+      {
+        "name": "Baby spinach",
+        "name_sv": "Babyspenat",
+        "grams": 40,
+        "pantryKey": "spinach"
+      },
+      {
+        "name": "Bell pepper",
+        "name_sv": "Paprika",
+        "grams": 40,
+        "pantryKey": "bell pepper"
+      },
+      {
+        "name": "Cheese 17%",
+        "name_sv": "Ost 17 %",
+        "grams": 20,
+        "pantryKey": "cheese"
+      }
+    ],
+    "steps": [
+      "Heat the oven to 180 °C.",
+      "Whisk eggs with cottage cheese.",
+      "Divide spinach, pepper and cheese into a muffin tin and pour over the egg.",
+      "Bake for 20 minutes and cool before packing."
+    ],
+    "steps_sv": [
+      "Sätt ugnen på 180 °C.",
+      "Vispa ägg med keso.",
+      "Fördela spenat, paprika och ost i en muffinsform och häll över äggsmeten.",
+      "Grädda i 20 minuter och låt svalna innan du packar."
+    ],
+    "calories": 335,
+    "proteinG": 32.3,
+    "carbsG": 4.4,
+    "fatG": 20.7,
+    "fiberG": 1.7,
+    "micros": {
+      "sodiumMg": 548,
+      "potassiumMg": 571,
+      "ironMg": 4.0,
+      "calciumMg": 340,
+      "vitaminDUg": 3.1,
+      "vitaminB12Ug": 2.2
+    },
+    "image": "recipe-prep-egg-spinach-muffins"
+  },
+  {
+    "id": "prep-overnight-oats-jars",
+    "name": "Overnight oats jars",
+    "name_sv": "Overnight oats i burk",
+    "category": "breakfast",
+    "mealPrep": true,
+    "minutes": 10,
+    "servings": 5,
+    "fridgeDays": 4,
+    "tags": [
+      "vegetarian",
+      "high-fiber",
+      "quick",
+      "budget",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Rolled oats",
+        "name_sv": "Havregryn",
+        "grams": 50,
+        "pantryKey": "oat"
+      },
+      {
+        "name": "Plain skyr",
+        "name_sv": "Skyr naturell",
+        "grams": 150,
+        "pantryKey": "skyr"
+      },
+      {
+        "name": "Semi-skimmed milk",
+        "name_sv": "Mellanmjölk",
+        "grams": 100,
+        "pantryKey": "milk"
+      },
+      {
+        "name": "Frozen mixed berries",
+        "name_sv": "Frysta blandade bär",
+        "grams": 80,
+        "pantryKey": "frozen berries"
+      },
+      {
+        "name": "Chia seeds",
+        "name_sv": "Chiafrön",
+        "grams": 8,
+        "pantryKey": "chia seed"
+      }
+    ],
+    "steps": [
+      "Line up five jars.",
+      "Add oats, chia, skyr and milk to each and stir.",
+      "Top with frozen berries.",
+      "Close and keep in the fridge."
+    ],
+    "steps_sv": [
+      "Ställ fram fem burkar.",
+      "Fördela havregryn, chiafrön, skyr och mjölk och rör om.",
+      "Toppa med frysta bär.",
+      "Skruva på locken och förvara i kylen."
+    ],
+    "calories": 394,
+    "proteinG": 28.5,
+    "carbsG": 47.7,
+    "fatG": 8.0,
+    "fiberG": 10.1,
+    "micros": {
+      "sodiumMg": 112,
+      "potassiumMg": 718,
+      "ironMg": 3.4,
+      "calciumMg": 391,
+      "vitaminDUg": 1.0,
+      "vitaminB12Ug": 1.1
+    },
+    "image": "recipe-prep-overnight-oats-jars"
+  },
+  {
+    "id": "prep-chicken-chickpea-curry",
+    "name": "Chicken and chickpea curry",
+    "name_sv": "Kycklingcurry med kikärtor",
+    "category": "dinner",
+    "mealPrep": true,
+    "minutes": 40,
+    "servings": 5,
+    "fridgeDays": 4,
+    "tags": [
+      "high-protein",
+      "legumes",
+      "high-fiber",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Chicken breast",
+        "name_sv": "Kycklingbröst",
+        "grams": 130,
+        "pantryKey": "chicken breast"
+      },
+      {
+        "name": "Chickpeas",
+        "name_sv": "Kikärtor",
+        "grams": 60,
+        "pantryKey": "chickpea"
+      },
+      {
+        "name": "Crushed tomatoes",
+        "name_sv": "Krossade tomater",
+        "grams": 120,
+        "pantryKey": "crushed tomato"
+      },
+      {
+        "name": "Natural yogurt",
+        "name_sv": "Naturell yoghurt",
+        "grams": 40,
+        "pantryKey": "yogurt"
+      },
+      {
+        "name": "Baby spinach",
+        "name_sv": "Babyspenat",
+        "grams": 50,
+        "pantryKey": "spinach"
+      },
+      {
+        "name": "Onion",
+        "name_sv": "Lök",
+        "grams": 40,
+        "pantryKey": "onion"
+      },
+      {
+        "name": "Curry powder",
+        "name_sv": "Curry",
+        "grams": 4,
+        "pantryKey": "curry powder"
+      },
+      {
+        "name": "Brown rice",
+        "name_sv": "Fullkornsris",
+        "grams": 55,
+        "pantryKey": "brown rice"
+      }
+    ],
+    "steps": [
+      "Fry onion and curry for 2 minutes.",
+      "Add cubed chicken and brown it.",
+      "Add tomatoes and chickpeas and simmer 15 minutes, then stir in spinach and yogurt.",
+      "Cook the rice and pack."
+    ],
+    "steps_sv": [
+      "Fräs lök och curry i 2 minuter.",
+      "Tillsätt tärnad kyckling och bryn.",
+      "Tillsätt tomater och kikärtor och låt sjuda i 15 minuter, rör sedan ner spenat och yoghurt.",
+      "Koka riset och packa."
+    ],
+    "calories": 514,
+    "proteinG": 43.8,
+    "carbsG": 64.2,
+    "fatG": 7.2,
+    "fiberG": 10.7,
+    "micros": {
+      "sodiumMg": 472,
+      "potassiumMg": 1484,
+      "ironMg": 5.3,
+      "calciumMg": 194,
+      "vitaminDUg": 0.2,
+      "vitaminB12Ug": 0.7
+    },
+    "image": "recipe-prep-chicken-chickpea-curry"
+  },
+  {
+    "id": "prep-salmon-root-vegetables",
+    "name": "Salmon with roasted root vegetables",
+    "name_sv": "Lax med rostade rotfrukter",
+    "category": "dinner",
+    "mealPrep": true,
+    "minutes": 40,
+    "servings": 4,
+    "fridgeDays": 3,
+    "tags": [
+      "high-protein",
+      "fish",
+      "high-fiber",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Salmon fillet",
+        "name_sv": "Laxfilé",
+        "grams": 130,
+        "pantryKey": "salmon"
+      },
+      {
+        "name": "Sweet potato",
+        "name_sv": "Sötpotatis",
+        "grams": 150,
+        "pantryKey": "sweet potato"
+      },
+      {
+        "name": "Beetroot",
+        "name_sv": "Rödbetor",
+        "grams": 100,
+        "pantryKey": "beetroot"
+      },
+      {
+        "name": "Carrots",
+        "name_sv": "Morötter",
+        "grams": 80,
+        "pantryKey": "carrot"
+      },
+      {
+        "name": "Olive oil",
+        "name_sv": "Olivolja",
+        "grams": 5,
+        "pantryKey": "olive oil"
+      }
+    ],
+    "steps": [
+      "Cube the root vegetables and roast with the oil at 220 °C for 25 minutes.",
+      "Add the salmon for the last 12–15 minutes.",
+      "Cool and divide into boxes."
+    ],
+    "steps_sv": [
+      "Tärna rotfrukterna och rosta med oljan i 220 °C i 25 minuter.",
+      "Lägg in laxen de sista 12–15 minuterna.",
+      "Låt svalna och fördela i lådor."
+    ],
+    "calories": 509,
+    "proteinG": 30.7,
+    "carbsG": 39.1,
+    "fatG": 22.4,
+    "fiberG": 9.5,
+    "micros": {
+      "sodiumMg": 281,
+      "potassiumMg": 1559,
+      "ironMg": 2.4,
+      "calciumMg": 100,
+      "vitaminDUg": 10.4,
+      "vitaminB12Ug": 4.2
+    },
+    "image": "recipe-prep-salmon-root-vegetables"
+  },
+  {
+    "id": "prep-turkey-bolognese",
+    "name": "Turkey bolognese with wholewheat pasta",
+    "name_sv": "Kalkonbolognese med fullkornspasta",
+    "category": "dinner",
+    "mealPrep": true,
+    "minutes": 40,
+    "servings": 5,
+    "fridgeDays": 4,
+    "tags": [
+      "high-protein",
+      "high-fiber",
+      "meal-prep"
+    ],
+    "ingredients": [
+      {
+        "name": "Turkey mince",
+        "name_sv": "Kalkonfärs",
+        "grams": 120,
+        "pantryKey": "turkey mince"
+      },
+      {
+        "name": "Wholewheat pasta",
+        "name_sv": "Fullkornspasta",
+        "grams": 70,
+        "pantryKey": "wholegrain pasta"
+      },
+      {
+        "name": "Crushed tomatoes",
+        "name_sv": "Krossade tomater",
+        "grams": 180,
+        "pantryKey": "crushed tomato"
+      },
+      {
+        "name": "Carrots",
+        "name_sv": "Morötter",
+        "grams": 50,
+        "pantryKey": "carrot"
+      },
+      {
+        "name": "Onion",
+        "name_sv": "Lök",
+        "grams": 40,
+        "pantryKey": "onion"
+      },
+      {
+        "name": "Zucchini",
+        "name_sv": "Zucchini",
+        "grams": 60,
+        "pantryKey": "zucchini"
+      }
+    ],
+    "steps": [
+      "Brown the mince with onion.",
+      "Add grated carrot, zucchini and tomatoes.",
+      "Simmer for 20 minutes.",
+      "Cook the pasta, combine and pack."
+    ],
+    "steps_sv": [
+      "Bryn färsen med löken.",
+      "Tillsätt riven morot, zucchini och tomater.",
+      "Låt sjuda i 20 minuter.",
+      "Koka pastan, blanda och packa."
+    ],
+    "calories": 508,
+    "proteinG": 36.9,
+    "carbsG": 59.5,
+    "fatG": 10.8,
+    "fiberG": 10.4,
+    "micros": {
+      "sodiumMg": 401,
+      "potassiumMg": 1359,
+      "ironMg": 5.2,
+      "calciumMg": 117,
+      "vitaminDUg": 0.2,
+      "vitaminB12Ug": 1.2
+    },
+    "image": "recipe-prep-turkey-bolognese"
+  }
+]
