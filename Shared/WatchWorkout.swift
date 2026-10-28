@@ -218,3 +218,43 @@ struct WatchTrainingSnapshot: Codable, Hashable, Sendable {
     let workoutsThisWeek: Int
     let lastWorkout: WidgetWorkoutSummary?
 }
+
+/// One exercise the Watch can log without the phone: what to call it, how
+/// many sets to lay out, and the load and reps to open at.
+struct WatchLift: Codable, Hashable, Sendable {
+    /// `Exercise.id` or `CustomExercise.id`, so the phone files the sets
+    /// logged on the wrist under the right exercise.
+    let exerciseID: String
+    let name: String
+    let restSeconds: Int
+    let sets: Int
+    /// Canonical kilograms, like every other weight on the wire.
+    let weightKg: Double
+    let reps: Int
+}
+
+/// A routine as the Watch starts it while the phone is out of reach.
+struct WatchRoutine: Codable, Hashable, Identifiable, Sendable {
+    let id: UUID
+    let name: String
+    let lifts: [WatchLift]
+}
+
+/// What the Watch can start on its own: the user's routines, seeded with
+/// their last weights, and the lifts they logged lately for a quick
+/// workout. The phone pushes it whenever either changes, so it is on the
+/// wrist before the phone is left behind.
+struct WatchTrainingCatalog: Codable, Hashable, Sendable {
+    let routines: [WatchRoutine]
+    /// Newest first.
+    let recentLifts: [WatchLift]
+
+    /// Every lift the Watch knows, once each: the recent ones first, then
+    /// any routine lift not logged lately. What a quick workout picks from.
+    var allLifts: [WatchLift] {
+        var seen = Set<String>()
+        return (recentLifts + routines.flatMap(\.lifts)).filter { seen.insert($0.exerciseID).inserted }
+    }
+
+    var isEmpty: Bool { routines.isEmpty && recentLifts.isEmpty }
+}

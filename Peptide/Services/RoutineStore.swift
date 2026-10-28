@@ -11,6 +11,9 @@ final class RoutineStore {
     static let shared = RoutineStore()
 
     private(set) var routines: [Routine] = []
+    /// False until the first `load()`, so an empty `routines` can be told
+    /// from an empty library.
+    private(set) var hasLoaded = false
 
     /// Blank routines this device opened from "New routine". Only these may
     /// be discarded as abandoned: an empty "New routine" synced from
@@ -26,6 +29,8 @@ final class RoutineStore {
     /// exercise list is a single JSON blob per routine.
     func load() {
         routines = repository.loadRoutines()
+        hasLoaded = true
+        DataStore.current?.pushTrainingCatalogToWatch()
     }
 
     // MARK: - Library
@@ -141,5 +146,6 @@ final class RoutineStore {
     private func persist(_ ordered: [Routine]) {
         repository.upsertRoutines(ordered)
         routines = ordered
+        DataStore.current?.pushTrainingCatalogToWatch()
     }
 }

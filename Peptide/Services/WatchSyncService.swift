@@ -153,6 +153,23 @@ final class WatchSyncService: NSObject {
         publish(last.forDisplay(at: now).replacingWorkout(workout, updatedAt: now))
     }
 
+    /// Replaces the routines and lifts the Watch can start on its own.
+    /// Skipped when nothing changed; otherwise the last snapshot goes out
+    /// again carrying it.
+    func updateTrainingCatalog(_ catalog: WatchTrainingCatalog) {
+        guard catalog != trainingCatalog else { return }
+        trainingCatalog = catalog
+        republishLatest()
+    }
+
+    /// Sends the last snapshot again, restamped, so a change every push
+    /// carries (the catalog, a receipt) reaches the Watch now.
+    private func republishLatest() {
+        guard let last = lastPublished ?? Self.readLastWritten() else { return }
+        let now = Date()
+        publish(last.forDisplay(at: now).stamped(now))
+    }
+
     /// Re-sends the latest snapshot. A push made before the session
     /// finished activating, or before the Watch app was installed, was
     /// dropped, and nothing else would send it again until the next edit.
@@ -164,6 +181,25 @@ final class WatchSyncService: NSObject {
     /// The snapshot most recently written, so `updateWorkout` can carry
     /// the other fields forward.
     private var lastPublished: WatchData?
+
+    /// What the Watch can start while the phone is out of reach. Seeded
+    /// from the last snapshot written, so a relaunch doesn't push an empty
+    /// catalog before `DataStore` rebuilds it.
+    private var trainingCatalog: WatchTrainingCatalog? = WatchSyncService.readLastWritten()?.trainingCatalog
+
+    private static let offlineReceiptsKey = "watchSync.offlineWorkoutReceipts"
+
+    /// Ids of the Watch-run workouts this phone has filed, newest last.
+    /// Every push carries them; the Watch holds a workout until it sees
+    /// its id here.
+    private var offlineReceipts: [UUID] {
+        get {
+            (UserDefaults.standard.stringArray(forKey: Self.offlineReceiptsKey) ?? []).compactMap(UUID.init(uuidString:))
+        }
+        set {
+            UserDefaults.standard.set(newValue.map(\.uuidString), forKey: Self.offlineReceiptsKey)
+        }
+    }
 
     /// Set while a Watch command waits for the push that answers it. The
     /// Watch shows its guess at once; only a push replaces the guess, so a
@@ -183,7 +219,8 @@ final class WatchSyncService: NSObject {
     /// saves change nothing the Watch shows, and every adopted push
     /// reloads all of the Watch's complications, which the system budgets.
     /// A new day or a Watch command awaiting its answer always goes out.
-    private func publish(_ data: WatchData) {
+    private func publish(_ snapshot: WatchData) {
+        let data = snapshot.replacingOfflineSync(catalog: trainingCatalog, syncedWorkoutIDs: offlineReceipts)
         let previous = lastPublished
         if let previous, !commandAwaitingEcho, data.hasSameContent(as: previous),
            Calendar.current.isDate(previous.lastUpdated, inSameDayAs: data.lastUpdated) {
@@ -317,6 +354,14 @@ extension WatchSyncService: WCSessionDelegate {
             return
         }
 
+        if action == WatchMessage.offlineWorkout {
+            guard let workout = WatchOfflineSyncEngine.workout(in: message) else { return }
+            Task { [weak self] in
+                await self?.handleOfflineWorkout(workout)
+            }
+            return
+        }
+
         if action == WatchMessage.logWater {
             // Older Watch builds send whole ounces only.
             guard let fluidOunces = message[WatchMessage.fluidOuncesKey] as? Double
@@ -367,6 +412,19 @@ extension WatchSyncService {
         guard isFirstDelivery(messageID) else { return }
         awaitEcho()
         WorkoutSessionService.shared.apply(request)
+    }
+
+    /// Files a workout the Watch ran without the phone and answers with a
+    /// receipt in the next push. Every copy is answered, so a Watch that
+    /// missed the first receipt still hears back; only the first is filed.
+    /// A failed save sends no receipt, so the Watch sends it again later.
+    func handleOfflineWorkout(_ workout: WatchOfflineWorkout) {
+        let receipts = offlineReceipts
+        guard receipts.contains(workout.id) || WorkoutSessionService.shared.importWatchWorkout(workout) else { return }
+        offlineReceipts = WatchOfflineSyncEngine.recordingReceipt(workout.id, in: receipts)
+        // A receipt already on the wire changes nothing, but must still go out.
+        commandAwaitingEcho = true
+        republishLatest()
     }
 
     /// Logged at the tap, never in the future: a water tap queued while the
