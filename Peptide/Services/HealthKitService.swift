@@ -28,7 +28,7 @@ final class HealthKitService {
     /// Asking for a type we never query is an App Review liability and
     /// costs the user a permission row they get nothing for. Computed, not
     /// a `static let`, because `HKObjectType` is non-Sendable.
-    private var readTypes: Set<HKObjectType> {
+    private var biologyReadTypes: Set<HKObjectType> {
         [
             HKQuantityType(.heartRateVariabilitySDNN),
             HKQuantityType(.restingHeartRate),
@@ -36,6 +36,33 @@ final class HealthKitService {
             HKQuantityType(.stepCount),
             HKCategoryType(.sleepAnalysis),
         ]
+    }
+
+    /// Workouts other apps record (Apple Watch, Strava, Garmin) for the
+    /// training history, plus the quantities their statistics carry —
+    /// HealthKit only fills a workout's statistics for types the app may
+    /// read.
+    private var workoutReadTypes: Set<HKObjectType> {
+        var types: Set<HKObjectType> = [
+            HKWorkoutType.workoutType(),
+            HKQuantityType(.activeEnergyBurned),
+            HKQuantityType(.heartRate),
+        ]
+        for identifier in Self.workoutDistanceTypes {
+            types.insert(HKQuantityType(identifier))
+        }
+        return types
+    }
+
+    /// Distance types a workout's distance is read from, in order.
+    private static let workoutDistanceTypes: [HKQuantityTypeIdentifier] = [
+        .distanceWalkingRunning,
+        .distanceCycling,
+        .distanceSwimming,
+    ]
+
+    private var readTypes: Set<HKObjectType> {
+        biologyReadTypes.union(workoutReadTypes)
     }
 
     func requestAuthorization() async -> Bool {
@@ -50,13 +77,21 @@ final class HealthKitService {
         }
     }
 
-    /// True when at least one read type has never been put to the user —
-    /// the case for someone who connected Health before VO2 max joined
-    /// `readTypes`. HealthKit only shows its sheet for undetermined types,
-    /// so this is the honest test for whether asking again does anything.
+    /// True when at least one Biology read type has never been put to the
+    /// user — the case for someone who connected Health before VO2 max
+    /// joined. HealthKit only shows its sheet for undetermined types, so
+    /// this is the honest test for whether asking again does anything.
     func hasUnrequestedReadTypes() async -> Bool {
         guard isAvailable else { return false }
-        return await requestStatus(read: readTypes) == .shouldRequest
+        return await requestStatus(read: biologyReadTypes) == .shouldRequest
+    }
+
+    /// The same test for workout reads, which joined after Health could
+    /// already be connected. `requestAuthorization()` then asks only for
+    /// them.
+    func hasUnrequestedWorkoutReadTypes() async -> Bool {
+        guard isAvailable else { return false }
+        return await requestStatus(read: workoutReadTypes) == .shouldRequest
     }
 
     /// True when this device has already put Health's read sheet to the
@@ -439,6 +474,48 @@ final class HealthKitService {
             AppLog.healthKit.error("externalWeights failed: \(error.localizedDescription, privacy: .private)")
             return []
         }
+    }
+
+    /// Workouts other apps and devices saved in the last `days` days,
+    /// newest first. Atlas's own strength sessions are skipped so history
+    /// doesn't list them twice.
+    func externalWorkouts(days: Int) async -> [ImportedCardioWorkout] {
+        guard isAvailable, days > 0 else { return [] }
+        let end = Date()
+        let start = Calendar.current.date(byAdding: .day, value: -days, to: end) ?? end
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: [.workout(HKQuery.predicateForSamples(withStart: start, end: end))],
+            sortDescriptors: [SortDescriptor(\.startDate, order: .reverse)]
+        )
+        do {
+            let ownBundleID = Bundle.main.bundleIdentifier
+            return try await descriptor.result(for: store)
+                .filter { $0.sourceRevision.source.bundleIdentifier != ownBundleID }
+                .map(Self.importedWorkout)
+        } catch {
+            AppLog.healthKit.error("externalWorkouts failed: \(error.localizedDescription, privacy: .private)")
+            return []
+        }
+    }
+
+    private static func importedWorkout(_ workout: HKWorkout) -> ImportedCardioWorkout {
+        let distance = workoutDistanceTypes.lazy
+            .compactMap { workout.statistics(for: HKQuantityType($0))?.sumQuantity()?.doubleValue(for: .meter()) }
+            .first
+        let energy = workout.statistics(for: HKQuantityType(.activeEnergyBurned))?
+            .sumQuantity()?.doubleValue(for: .kilocalorie())
+        let heartRate = workout.statistics(for: HKQuantityType(.heartRate))?
+            .averageQuantity()?.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
+        return ImportedCardioWorkout(
+            id: workout.uuid,
+            activity: CardioActivity(workout.workoutActivityType),
+            start: workout.startDate,
+            duration: workout.duration,
+            distanceMeters: distance,
+            activeKilocalories: energy,
+            averageHeartRate: heartRate,
+            sourceName: workout.sourceRevision.source.name
+        )
     }
 
     private func ownSamples(onDayOf date: Date) -> NSPredicate {
