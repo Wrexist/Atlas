@@ -10,6 +10,8 @@ enum StepGoalEngine {
     /// walking around the house; above 50 000 it's a typo.
     static let goalRange = 1_000...50_000
     static let goalIncrement = 500
+    /// How often Today re-reads its step count while it stays on screen.
+    static let liveRefreshSeconds = 300
     /// Days of Health step history fetched for today, so "Health has no
     /// step data at all" can be told apart from "no steps yet today".
     static let lookbackDays = 7

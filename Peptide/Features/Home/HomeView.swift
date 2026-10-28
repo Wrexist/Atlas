@@ -664,8 +664,15 @@ struct HomeView: View {
                 refreshDerived()
             }
             // Refetch steps for a newly browsed day and once Health connects.
+            // Today's count keeps moving while the screen stays open, so it
+            // is re-read every few minutes; past days are final.
             .task(id: StepsKey(dayOffset: dayOffset, healthConnected: dataStore.profile.healthConnected)) {
                 await refreshSteps()
+                while dayOffset == 0, !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(StepGoalEngine.liveRefreshSeconds))
+                    guard !Task.isCancelled, scenePhase == .active else { continue }
+                    await refreshSteps()
+                }
             }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { refreshForCurrentTime() }
