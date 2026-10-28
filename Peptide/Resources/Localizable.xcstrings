@@ -5962,16 +5962,6 @@
         }
       }
     },
-    "Ask AI what's moving your Biological Age": {
-      "localizations": {
-        "sv": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fråga AI vad som påverkar din biologiska ålder"
-          }
-        }
-      }
-    },
     "Ask Atlas": {
       "localizations": {
         "sv": {
@@ -43321,6 +43311,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ber Apple Hälsa om åtkomst till VO2 max och handledstemperatur"
+          }
+        }
+      }
+    },
+    "Opens an AI chat about today's biology": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar en AI-chatt om dagens biologi"
           }
         }
       }

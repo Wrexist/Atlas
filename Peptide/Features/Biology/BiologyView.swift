@@ -26,6 +26,9 @@ struct BiologyView: View {
     @State private var reloadID = 0
     @State private var sleepInsights: SleepInsightsEngine.Insights?
     @State private var wristTemperature: WristTemperatureEngine.Deviation?
+    /// True while the list is moving, so the Ask Atlas button folds to
+    /// its icon and stays out of the way of what is being read.
+    @State private var isScrolling = false
     /// Drives the per-biomarker detail sheet. Identifiable wrapper
     /// so `.sheet(item:)` lifecycle is clean across taps.
     @State private var detailItem: BiomarkerDetailItem?
@@ -69,15 +72,6 @@ struct BiologyView: View {
 
                     bioAgeDetail
 
-                    GlassEntryRow(
-                        icon: "sparkles",
-                        title: "Ask Atlas",
-                        subtitle: Text("Ask AI what's moving your Biological Age"),
-                        badge: storeService.canAccessAIFeatures ? nil : Badge("Pro"),
-                        action: openAskAtlas
-                    )
-                    .biologyCardReveal()
-
                     BiomarkerListSection(
                         visibleBiomarkers: visibleBiomarkers,
                         reloadID: reloadID,
@@ -112,10 +106,23 @@ struct BiologyView: View {
                     disclaimerFootnote
                 }
                 .padding(.horizontal, Spacing.screenPadding)
-                .padding(.bottom, Spacing.xxxxl)
+                // Clears the floating Ask Atlas button at the end.
+                .padding(.bottom, Spacing.scrollBottomInset)
                 .readableContentWidth()
             }
             .refreshable { await reload() }
+            .onScrollPhaseChange { _, phase in
+                isScrolling = phase.isScrolling
+            }
+            .overlay(alignment: .bottomTrailing) {
+                AskAtlasFloatingButton(
+                    isCollapsed: isScrolling,
+                    showsProBadge: !storeService.canAccessAIFeatures,
+                    action: openAskAtlas
+                )
+                .padding(.trailing, Spacing.screenPadding)
+                .padding(.bottom, Spacing.lg)
+            }
             .background {
                 CosmicBackdrop(intensity: 0.55)
                     .ignoresSafeArea()
