@@ -43694,6 +43694,546 @@
           }
         }
       }
+    },
+    "Weekly prep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veckoprep"
+          }
+        }
+      }
+    },
+    "Two dishes, one shopping list, boxes for the week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Två rätter, en inköpslista, matlådor för hela veckan"
+          }
+        }
+      }
+    },
+    "This week's boxes": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veckans matlådor"
+          }
+        }
+      }
+    },
+    "Suggest again": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Föreslå nya"
+          }
+        }
+      }
+    },
+    "Plan this week's prep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Planera veckans prep"
+          }
+        }
+      }
+    },
+    "Two dishes, a few boxes each, cooked in one go.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Två rätter, några lådor av varje, lagade i ett svep."
+          }
+        }
+      }
+    },
+    "Suggest a week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Föreslå vecka"
+          }
+        }
+      }
+    },
+    "Choose dishes myself": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj rätter själv"
+          }
+        }
+      }
+    },
+    "Add a dish": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till rätt"
+          }
+        }
+      }
+    },
+    "Prepped %@. Enjoy the week.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preppat %@. Smaklig vecka!"
+          }
+        }
+      }
+    },
+    "%lld min · %lld g protein per box": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld min · %lld g protein per låda"
+          }
+        }
+      }
+    },
+    "Swap dish": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Byt rätt"
+          }
+        }
+      }
+    },
+    "Fewer boxes": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Färre lådor"
+          }
+        }
+      }
+    },
+    "More boxes": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fler lådor"
+          }
+        }
+      }
+    },
+    "Shopping list": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inköpslista"
+          }
+        }
+      }
+    },
+    "All bought": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allt är handlat"
+          }
+        }
+      }
+    },
+    "%lld left to buy": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld kvar att handla"
+          }
+        }
+      }
+    },
+    "I have this at home": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Har hemma"
+          }
+        }
+      }
+    },
+    "Hold an item to mark it as at home.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Håll inne på en vara för att markera att du har den hemma."
+          }
+        }
+      }
+    },
+    "Bought": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Handlad"
+          }
+        }
+      }
+    },
+    "To buy": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Att handla"
+          }
+        }
+      }
+    },
+    "Prep day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prepdag"
+          }
+        }
+      }
+    },
+    "Done — boxes in the fridge": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klart – lådorna in i kylen"
+          }
+        }
+      }
+    },
+    "Start first": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starta först"
+          }
+        }
+      }
+    },
+    "Cook": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laga"
+          }
+        }
+      }
+    },
+    "Pack": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Packa"
+          }
+        }
+      }
+    },
+    "Let it cool, put the lids on and into the fridge": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Låt svalna, lägg på locken och ställ in i kylen"
+          }
+        }
+      }
+    },
+    "Boxes in the fridge": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lådor i kylen"
+          }
+        }
+      }
+    },
+    "×%lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "×%lld"
+          }
+        }
+      }
+    },
+    "Throw out": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Släng"
+          }
+        }
+      }
+    },
+    "Throw out one box": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Släng en låda"
+          }
+        }
+      }
+    },
+    "Eat a box": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ät en låda"
+          }
+        }
+      }
+    },
+    "Move one to the freezer": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flytta en till frysen"
+          }
+        }
+      }
+    },
+    "Logs one serving. Hold for more.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loggar en portion. Håll inne för fler val."
+          }
+        }
+      }
+    },
+    "Past its eat-by day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Har gått ut"
+          }
+        }
+      }
+    },
+    "Eat today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ät i dag"
+          }
+        }
+      }
+    },
+    "Eat by tomorrow": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ät senast i morgon"
+          }
+        }
+      }
+    },
+    "Frozen · keeps until %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fryst · håller till %@"
+          }
+        }
+      }
+    },
+    "Eat by %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ät senast %@"
+          }
+        }
+      }
+    },
+    "Choose a dish": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj en rätt"
+          }
+        }
+      }
+    },
+    "Fruit & veg": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frukt & grönt"
+          }
+        }
+      }
+    },
+    "Meat & fish": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kött & fisk"
+          }
+        }
+      }
+    },
+    "Dairy & chilled": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mejeri & kyl"
+          }
+        }
+      }
+    },
+    "Frozen": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fryst"
+          }
+        }
+      }
+    },
+    "Pantry": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skafferi"
+          }
+        }
+      }
+    },
+    "Meal prep boxes to eat by tomorrow": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Matlådor att äta senast i morgon"
+          }
+        }
+      }
+    },
+    "%lld boxes": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld box"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld boxes"
+                }
+              }
+            }
+          }
+        },
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld låda"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld lådor"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Divide into %lld boxes": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Divide into %lld box"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Divide into %lld boxes"
+                }
+              }
+            }
+          }
+        },
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Fördela i %lld låda"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Fördela i %lld lådor"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "version": "1.0"
