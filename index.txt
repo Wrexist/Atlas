@@ -1,5 +1,6 @@
 3_4_Sit-Up
 90_90_Hamstring
+Advanced_Kettlebell_Windmill
 Alternate_Hammer_Curl
 Alternate_Heel_Touchers
 Alternate_Incline_Dumbbell_Curl
@@ -55,6 +56,7 @@ Bent_Over_Two-Arm_Long_Bar_Row
 Bent_Over_Two-Dumbbell_Row
 Bent_Over_Two-Dumbbell_Row_With_Palms_In
 Board_Press
+Bodyweight_Mid_Row
 Bodyweight_Squat
 Bodyweight_Walking_Lunge
 Bosu_Ball_Cable_Crunch_With_Side_Bends
@@ -258,6 +260,8 @@ Incline_Push-Up_Medium
 Incline_Push-Up_Reverse_Grip
 Incline_Push-Up_Wide
 Intermediate_Hip_Flexor_and_Quad_Stretch
+Inverted_Row
+Inverted_Row_with_Straps
 Isometric_Neck_Exercise_-_Front_And_Back
 Isometric_Neck_Exercise_-_Sides
 JM_Press
@@ -270,6 +274,7 @@ Kettlebell_Arnold_Press
 Kettlebell_One-Legged_Deadlift
 Kettlebell_Seated_Press
 Kettlebell_Seesaw_Press
+Kettlebell_Windmill
 Knee_Hip_Raise_On_Parallel_Bars
 Knee_Tuck_Jump
 Kneeling_Cable_Crunch_With_Alternating_Oblique_Twists
@@ -370,6 +375,7 @@ Power_Snatch_from_Blocks
 Preacher_Curl
 Preacher_Hammer_Dumbbell_Curl
 Press_Sit-Up
+Prowler_Sprint
 Pull_Through
 Pullups
 Push-Up_Wide
@@ -456,6 +462,7 @@ Single_Leg_Butt_Kick
 Single_Leg_Glute_Bridge
 Sit-Up
 Sit_Squats
+Sled_Push
 Sled_Reverse_Flye
 Smith_Incline_Shoulder_Raise
 Smith_Machine_Behind_the_Back_Shrug
