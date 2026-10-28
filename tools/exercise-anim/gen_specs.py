@@ -999,8 +999,6 @@ ALIASES = {
     "Hip Lift with Band": "Butt Lift (Bridge)",
     "Hip Extension with Bands": "Rear Leg Raises",
     "Hip Flexion with Band": "Front Leg Raises",
-    "Stairmaster": "Step-up with Knee Raise",
-    "Step Mill": "Step-up with Knee Raise",
     "Elliptical Trainer": "Walking, Treadmill",
     "Standing Hamstring and Calf Stretch": "Standing Toe Touches",
     "Runner's Stretch": "Kneeling Hip Flexor",
