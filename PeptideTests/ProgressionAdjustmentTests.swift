@@ -62,4 +62,14 @@ final class ProgressionAdjustmentTests: XCTestCase {
         XCTAssertEqual(applied[0], logged, "Logged sets keep what was lifted")
         XCTAssertEqual(applied[1].weightKg, 90)
     }
+
+    func test_reseed_movesUntouchedSetsAndKeepsEditedOnes() {
+        let normal = ProgressionEngine.Suggestion(weightKg: 100, reps: 8, reason: .addWeight)
+        let lighter = adjusted(100, reps: 8, .lowRecovery)
+        let edited = SetEntry(index: 1, weightKg: 105, reps: 6)
+        let untouched = SetEntry(index: 2, weightKg: 100, reps: 8)
+        let reseeded = ProgressionEngine.reseed(from: normal, to: lighter, in: [edited, untouched])
+        XCTAssertEqual(reseeded[0], edited, "A hand-edited set keeps its values")
+        XCTAssertEqual(reseeded[1].weightKg, 90)
+    }
 }

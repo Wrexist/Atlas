@@ -136,6 +136,20 @@ enum ProgressionEngine {
         }
     }
 
+    /// Moves each pending working set that still shows `old` to `new`.
+    /// Sets the user edited keep their values, set by set.
+    static func reseed(from old: Suggestion, to new: Suggestion, in sets: [SetEntry]) -> [SetEntry] {
+        sets.map { set in
+            guard !set.completed, !set.isWarmup, set.supportsRepLogging,
+                  set.weightKg == old.weightKg, set.reps == old.reps
+            else { return set }
+            var updated = set
+            updated.weightKg = new.weightKg
+            updated.reps = new.reps
+            return updated
+        }
+    }
+
     /// True when some pending working set still differs from the suggestion,
     /// which is when offering "Use" makes sense.
     static func isPending(_ suggestion: Suggestion, in sets: [SetEntry]) -> Bool {

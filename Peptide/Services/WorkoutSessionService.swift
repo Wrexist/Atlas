@@ -625,10 +625,11 @@ final class WorkoutSessionService {
             let entry = session.exercises[idx]
             let target = targetReps(for: entry, in: routine)
             guard let before = progression(for: entry.exerciseID, targetReps: target, adjustment: old),
-                  !ProgressionEngine.isPending(before, in: entry.sets),
                   let after = progression(for: entry.exerciseID, targetReps: target, adjustment: new)
             else { continue }
-            session.exercises[idx].sets = ProgressionEngine.apply(after, to: entry.sets)
+            let reseeded = ProgressionEngine.reseed(from: before, to: after, in: entry.sets)
+            guard reseeded != entry.sets else { continue }
+            session.exercises[idx].sets = reseeded
             changed = true
         }
         if changed { persist(session) }
