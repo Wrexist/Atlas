@@ -533,6 +533,17 @@ final class NotificationService {
         currentIDs = currentIDs.filter { !$0.hasPrefix(Self.dailyIDPrefix) }.union(ids)
     }
 
+    /// Keeps the slot budget in step with a single-request scheduler
+    /// (the meal-prep box reminder) that adds or removes its request
+    /// outside this service.
+    func trackExternalReminder(_ id: String, isPending: Bool) {
+        if isPending {
+            currentIDs.insert(id)
+        } else {
+            currentIDs.remove(id)
+        }
+    }
+
     /// Returns the snooze duration (in seconds) for a notification
     /// action identifier, or nil when the identifier isn't a
     /// snooze. Lets `NotificationDelegate` share one
