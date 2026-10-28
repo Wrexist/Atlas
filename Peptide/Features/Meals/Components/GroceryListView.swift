@@ -66,6 +66,8 @@ struct GroceryListView: View {
             }
         }
         .onAppear { store.retain(Set(items.map(\.key))) }
+        // Ticks are per quantity: 1 day's milk bought isn't 7 days' worth.
+        .onChange(of: days) { store.startOver() }
     }
 
     // MARK: - Header
