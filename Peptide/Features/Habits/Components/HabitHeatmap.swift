@@ -34,52 +34,65 @@ struct HabitHeatmap: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if showsMonthLabels {
-                monthRow(perColumnWidth: cellSize + cellSpacing)
-                    .foregroundStyle(AppColor.textTertiary)
-                    .font(AppFont.badgeSmall)
-            }
+        VStack(alignment: .leading, spacing: 0) {
+            // Measured on an empty sibling, which takes the width offered
+            // to the heatmap whatever the grid draws. Measuring the grid
+            // itself fed its own width back into `cellSize`: a row a point
+            // wider than the offer widened the next pass, without end, and
+            // the Habits tab hung until the watchdog killed the app.
+            Color.clear
+                .frame(height: 0)
+                .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { availableWidth = $0 }
 
-            HStack(spacing: cellSpacing) {
-                ForEach(Array(columns.enumerated()), id: \.offset) { _, column in
-                    VStack(spacing: cellSpacing) {
-                        ForEach(0..<7, id: \.self) { row in
-                            cell(for: row < column.count ? column[row] : nil, size: cellSize)
+            VStack(alignment: .leading, spacing: 4) {
+                if showsMonthLabels {
+                    monthRow
+                        .foregroundStyle(AppColor.textTertiary)
+                        .font(AppFont.badgeSmall)
+                }
+
+                HStack(spacing: cellSpacing) {
+                    ForEach(Array(columns.enumerated()), id: \.offset) { _, column in
+                        VStack(spacing: cellSpacing) {
+                            ForEach(0..<7, id: \.self) { row in
+                                cell(for: row < column.count ? column[row] : nil, size: cellSize)
+                            }
                         }
                     }
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { availableWidth = $0 }
         .accessibilityElement()
         .accessibilityLabel(accessibilityLabel)
     }
 
-    private func monthRow(perColumnWidth: CGFloat) -> some View {
-        HStack(spacing: 0) {
-            ForEach(monthLabels(perColumnWidth: perColumnWidth), id: \.offset) { label in
-                // A month that spans under two columns (the partial
-                // first or last) has no room for its name.
-                Text(label.width >= perColumnWidth * 2 ? label.text : "")
+    private var monthRow: some View {
+        let perColumnWidth = cellSize + cellSpacing
+        let labels = Self.monthLabels(
+            firstColumnStart: firstColumnStart,
+            columnCount: columns.count,
+            cellSize: cellSize,
+            cellSpacing: cellSpacing,
+            calendar: .current
+        )
+        return HStack(spacing: 0) {
+            ForEach(labels, id: \.offset) { label in
+                // A month that spans a single column (the partial first
+                // or last) has no room for its name.
+                Text(label.width > perColumnWidth ? label.text : "")
                     .lineLimit(1)
                     .frame(width: label.width, alignment: .leading)
             }
         }
     }
 
-    private struct MonthLabel {
+    struct MonthLabel: Equatable {
         let offset: Int
         let text: String
         let width: CGFloat
     }
 
-    /// Pre-computes month labels and the column-widths each one
-    /// spans, given the actual per-column width computed from the
-    /// measured width. Previously used a hard-coded 14pt
-    /// which drifted from the real cell layout on narrow screens
-    /// and iPad split-screen (audit M5).
     /// Hoisted out of `monthLabels` — it runs on every render of the
     /// heatmap, and a per-render DateFormatter allocation is the costly part.
     private static let monthAbbrevFormatter: DateFormatter = {
@@ -88,45 +101,45 @@ struct HabitHeatmap: View {
         return f
     }()
 
-    private func monthLabels(perColumnWidth: CGFloat) -> [MonthLabel] {
-        guard let firstDate = firstColumnStart, !columns.isEmpty else {
-            return []
-        }
-        let calendar = Calendar.current
-        let formatter = Self.monthAbbrevFormatter
+    /// One label per month the columns cross, each as wide as the columns
+    /// it spans. The widths add up to exactly the grid's width — the last
+    /// column has no trailing spacing — so the label row never sticks out
+    /// past the cells under it.
+    static func monthLabels(
+        firstColumnStart: Date?,
+        columnCount: Int,
+        cellSize: CGFloat,
+        cellSpacing: CGFloat,
+        calendar: Calendar
+    ) -> [MonthLabel] {
+        guard let firstDate = firstColumnStart, columnCount > 0 else { return [] }
+        let perColumnWidth = cellSize + cellSpacing
+        let formatter = monthAbbrevFormatter
 
         var labels: [MonthLabel] = []
-        var lastMonth: Int = -1
-        var widthAccumulator: CGFloat = 0
+        var lastMonth: Int?
+        var width: CGFloat = 0
 
-        for columnIdx in 0..<columns.count {
+        func closeLabel() {
+            guard let open = labels.popLast() else { return }
+            labels.append(MonthLabel(offset: open.offset, text: open.text, width: width))
+        }
+
+        for columnIdx in 0..<columnCount {
             guard let columnDate = calendar.date(byAdding: .weekOfYear, value: columnIdx, to: firstDate) else {
                 continue
             }
             let month = calendar.component(.month, from: columnDate)
             if month != lastMonth {
-                if lastMonth != -1 {
-                    // Close the previous label's width
-                    labels[labels.count - 1] = MonthLabel(
-                        offset: labels[labels.count - 1].offset,
-                        text:   labels[labels.count - 1].text,
-                        width:  widthAccumulator
-                    )
-                }
+                closeLabel()
                 labels.append(MonthLabel(offset: columnIdx, text: formatter.string(from: columnDate), width: 0))
-                widthAccumulator = 0
+                width = 0
                 lastMonth = month
             }
-            widthAccumulator += perColumnWidth
+            width += perColumnWidth
         }
-        // Close the final label
-        if !labels.isEmpty {
-            labels[labels.count - 1] = MonthLabel(
-                offset: labels[labels.count - 1].offset,
-                text:   labels[labels.count - 1].text,
-                width:  widthAccumulator
-            )
-        }
+        width -= cellSpacing
+        closeLabel()
         return labels
     }
 
