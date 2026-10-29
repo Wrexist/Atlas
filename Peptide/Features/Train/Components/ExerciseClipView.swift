@@ -4,13 +4,15 @@ import SwiftUI
 /// The exercise's rendered animation, looping silently above the body map.
 /// Takes no space until the clip is on the device, so an exercise without
 /// one (or a phone offline on first view) shows the body map alone.
+/// The wrapper is a ZStack, not a Group: a Group passes its modifiers to its
+/// children, and with no clip yet there is no child, so `.task` never ran.
 struct ExerciseClipView: View {
     let exercise: Exercise
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var clipURL: URL?
 
     var body: some View {
-        Group {
+        ZStack {
             if let clipURL {
                 LoopingVideo(url: clipURL, playing: !reduceMotion)
                     .aspectRatio(4 / 5, contentMode: .fit)
