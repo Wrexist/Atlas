@@ -42,7 +42,7 @@ struct FridgeCookCard: View {
                             .foregroundStyle(AppColor.textPrimary)
                             .multilineTextAlignment(.leading)
                         Text("You have \(suggestion.have) of \(suggestion.total) ingredients")
-                            .font(AppFont.caption)
+                            .font(AppFont.footnote)
                             .monospacedDigit()
                             .foregroundStyle(suggestion.missing.isEmpty ? AppColor.positive : AppColor.textSecondary)
                         if suggestion.rescuesExpiring {
@@ -52,7 +52,7 @@ struct FridgeCookCard: View {
                         }
                         if !suggestion.missing.isEmpty {
                             Text("Buy: \(missingText(suggestion))")
-                                .font(AppFont.caption)
+                                .font(AppFont.footnote)
                                 .foregroundStyle(AppColor.textSecondary)
                                 .lineLimit(2)
                         }

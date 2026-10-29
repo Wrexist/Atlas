@@ -208,7 +208,7 @@ struct FridgeView: View {
                                 Text(product.place.label)
                             }
                         }
-                        .font(AppFont.caption)
+                        .font(AppFont.footnote)
                         .foregroundStyle(AppColor.textSecondary)
                     }
                     Spacer(minLength: 0)
@@ -428,7 +428,7 @@ private struct AddTile: View {
                     .background(isPrimary ? AppColor.accentFill : AppColor.accentPrimary.opacity(0.15), in: Circle())
                     .accessibilityHidden(true)
                 Text(title)
-                    .font(AppFont.caption.weight(.semibold))
+                    .font(AppFont.footnote.weight(.semibold))
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)

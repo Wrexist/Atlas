@@ -90,7 +90,7 @@ struct FridgeItemRow: View {
                             .accessibilityLabel("Used in recipes")
                     }
                 }
-                .font(AppFont.caption)
+                .font(AppFont.footnote)
                 .foregroundStyle(AppColor.textSecondary)
             }
             Spacer(minLength: Spacing.sm)
