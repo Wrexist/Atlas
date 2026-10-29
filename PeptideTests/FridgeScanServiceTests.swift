@@ -32,7 +32,10 @@ final class FridgeScanServiceTests: XCTestCase {
         XCTAssertEqual(item.place, .fridge)
         XCTAssertEqual(item.pantryKey, "milk")
         XCTAssertEqual(item.printedExpiry, calendar.date(from: DateComponents(year: 2026, month: 11, day: 3)))
-        XCTAssertEqual(item.box, CGRect(x: 0.1, y: 0.2, width: 0.2, height: 0.3))
+        XCTAssertEqual(item.box.minX, 0.1, accuracy: 0.0001)
+        XCTAssertEqual(item.box.minY, 0.2, accuracy: 0.0001)
+        XCTAssertEqual(item.box.width, 0.2, accuracy: 0.0001)
+        XCTAssertEqual(item.box.height, 0.3, accuracy: 0.0001)
         XCTAssertEqual(item.per100g?.calories, 46)
     }
 
