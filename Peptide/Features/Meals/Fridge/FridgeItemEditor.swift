@@ -23,6 +23,7 @@ struct FridgeItemEditor: View {
 
     @Environment(\.locale) private var locale
     @State private var store = FridgeStore.shared
+    @State private var storeService = StoreService.shared
 
     @State private var name = ""
     @State private var brand = ""

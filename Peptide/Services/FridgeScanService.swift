@@ -5,7 +5,7 @@ import UIKit
 /// the photo so `FridgeLiftEngine` can cut it out.
 enum FridgeScanService {
 
-    struct Found: Identifiable, Hashable, Sendable {
+    struct Found: Identifiable, Sendable {
         let id = UUID()
         let name: String
         let brand: String?
