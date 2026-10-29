@@ -361,8 +361,10 @@ struct TrainOverviewView: View {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 HStack(alignment: .top, spacing: Spacing.md) {
                     VStack(alignment: .leading, spacing: 2) {
+                        // Same weight as the other card titles on this tab; a
+                        // display-size title here out-shouted the CTA above.
                         Text("Muscles trained")
-                            .font(AppFont.title)
+                            .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
                         Text(weekHasTraining
                              ? "Completed working sets · \(selectedPeriod.detail.lowercased())"

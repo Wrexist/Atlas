@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// One library recipe: hero photo, servings, nutrition for the chosen
-/// servings, an ingredient list the user ticks off against what is at home,
-/// numbered steps, and one tap to log a serving to today's diary.
+/// One library recipe: an edge-to-edge hero photo with a heart (or a
+/// double tap) to save it, per-serving facts, nutrition for the servings
+/// being cooked, an ingredient list the user ticks off against what is at
+/// home, numbered steps, and one tap to log a serving to today's diary.
 struct RecipeDetailView: View {
     let recipe: LibraryRecipe
 
@@ -11,6 +12,8 @@ struct RecipeDetailView: View {
     @State private var pantry = PantryStore.shared
     @State private var servings: Int
     @State private var loggedSlot: MealCategory?
+    @State private var showsTitle = false
+    @State private var heartBurst = false
 
     init(recipe: LibraryRecipe) {
         self.recipe = recipe
@@ -18,6 +21,7 @@ struct RecipeDetailView: View {
     }
 
     private static let servingRange = 1...12
+    private static let heroHeight: CGFloat = 360
 
     private var coverage: (have: Int, total: Int) {
         RecipeLibraryEngine.pantryCoverage(recipe, pantry: pantry.keys)
@@ -27,21 +31,31 @@ struct RecipeDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.lg) {
                 hero
-                header
-                nutritionCard
-                ingredientsCard
-                stepsCard
-                Text("General guidance, not medical or dietetic advice.")
-                    .font(AppFont.caption2)
-                    .foregroundStyle(AppColor.textTertiary)
+                VStack(alignment: .leading, spacing: Spacing.lg) {
+                    header
+                    quickFacts
+                    nutritionCard
+                    ingredientsCard
+                    stepsCard
+                    Text("General guidance, not medical or dietetic advice.")
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.textTertiary)
+                }
+                .padding(.horizontal, Spacing.screenPadding)
+                .readableContentWidth()
             }
-            .padding(.horizontal, Spacing.screenPadding)
-            .padding(.top, Spacing.sm)
             .padding(.bottom, Spacing.xl)
-            .readableContentWidth()
         }
+        .ignoresSafeArea(edges: .top)
         .background(AppColor.background.ignoresSafeArea())
-        .navigationTitle(recipe.displayName(locale: locale))
+        // The big title under the photo names the screen; the bar only
+        // repeats it once that title has scrolled away.
+        .onScrollGeometryChange(for: Bool.self) { [heroHeight = Self.heroHeight] geometry in
+            geometry.contentOffset.y > heroHeight
+        } action: { _, pastHero in
+            AppAnimation.with(AppAnimation.quick) { showsTitle = pastHero }
+        }
+        .navigationTitle(showsTitle ? recipe.displayName(locale: locale) : "")
         .navigationBarTitleDisplayMode(.inline)
         .pinnedFooter {
             logButton
@@ -54,18 +68,72 @@ struct RecipeDetailView: View {
     // MARK: - Header
 
     private var hero: some View {
-        RecipeImage(recipe: recipe)
-            .aspectRatio(4 / 3, contentMode: .fit)
+        // Captured as a value: the visual-effect closure is @Sendable.
+        let heroHeight = Self.heroHeight
+        return RecipeImage(recipe: recipe, cornerRadius: 0)
+            .frame(height: Self.heroHeight)
+            .frame(maxWidth: .infinity)
             .overlay {
-                LinearGradient(
-                    colors: [AppColor.background.opacity(0), AppColor.background.opacity(0.35)],
-                    startPoint: .center,
-                    endPoint: .bottom
-                )
-                .clipShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous))
+                // Top: keeps the status bar and back button legible on a
+                // bright photo. Bottom: melts the photo into the page.
+                VStack(spacing: 0) {
+                    LinearGradient(
+                        colors: [AppColor.background.opacity(0.55), AppColor.background.opacity(0)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 120)
+                    Spacer(minLength: 0)
+                    LinearGradient(
+                        colors: [AppColor.background.opacity(0), AppColor.background],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 140)
+                }
                 .allowsHitTesting(false)
             }
-            .scrollReveal()
+            .overlay { heartBurstView }
+            .overlay(alignment: .bottomTrailing) {
+                // Clear of the title, which overlaps the photo's bottom edge.
+                RecipeFavoriteButton(recipe: recipe, diameter: 44)
+                    .padding(.trailing, Spacing.screenPadding)
+                    .padding(.bottom, Spacing.xxxxl + Spacing.sm)
+            }
+            // Pulling down past the top stretches the photo instead of
+            // showing a gap above it.
+            .visualEffect { content, proxy in
+                let pull = max(0, proxy.frame(in: .scrollView).minY)
+                return content
+                    .scaleEffect(1 + pull / heroHeight, anchor: .bottom)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture(count: 2, perform: doubleTapFavorite)
+    }
+
+    private var heartBurstView: some View {
+        Image(systemName: "heart.fill")
+            .font(AppFont.scaled(96, weight: .bold, relativeTo: .largeTitle))
+            .foregroundStyle(AppColor.metricHeartRate)
+            .scaleEffect(heartBurst ? 1 : 0.4)
+            .opacity(heartBurst ? 1 : 0)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+
+    /// Double tap only ever saves, like a photo app: un-saving stays on the
+    /// heart button so a stray double tap can't drop a favourite.
+    private func doubleTapFavorite() {
+        if !dataStore.isFavoriteRecipe(id: recipe.id) {
+            dataStore.toggleFavoriteRecipeWithFeedback(recipe)
+        } else {
+            Haptics.selection()
+        }
+        AppAnimation.with(AppAnimation.springBouncy) { heartBurst = true }
+        Task {
+            try? await Task.sleep(for: AppAnimation.confirmationHold)
+            AppAnimation.with(AppAnimation.fadeIn) { heartBurst = false }
+        }
     }
 
     private var header: some View {
@@ -78,16 +146,32 @@ struct RecipeDetailView: View {
                 .font(AppFont.title)
                 .foregroundStyle(AppColor.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: Spacing.lg) {
-                Label("\(recipe.minutes) min", systemImage: "clock")
-                if let fridgeDays = recipe.fridgeDays, recipe.mealPrep {
-                    Label("Makes \(recipe.servings) servings · keeps \(fridgeDays) days in the fridge", systemImage: "shippingbox")
-                }
+            if let fridgeDays = recipe.fridgeDays, recipe.mealPrep {
+                Label("Makes \(recipe.servings) servings · keeps \(fridgeDays) days in the fridge", systemImage: "shippingbox")
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
             }
-            .font(AppFont.subheadline)
-            .foregroundStyle(AppColor.textSecondary)
+        }
+        // Pulls the title up onto the photo's faded edge.
+        .padding(.top, -Spacing.xxxl)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// Time and one serving's energy and protein: the three things people
+    /// scan a recipe for before reading it.
+    private var quickFacts: some View {
+        HStack(spacing: Spacing.sm) {
+            RecipeFact(icon: "clock.fill", value: "\(recipe.minutes)", unit: "min", tint: AppColor.accentLight)
+            RecipeFact(icon: "flame.fill", value: "\(recipe.calories)", unit: "kcal", tint: AppColor.warning)
+            RecipeFact(
+                icon: "bolt.heart.fill",
+                value: "\(Int(recipe.proteinG.rounded()))",
+                unit: String(localized: "g protein"),
+                tint: AppColor.macroProtein
+            )
         }
         .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text("Per serving: \(recipe.minutes) min, \(recipe.calories) kcal, \(Int(recipe.proteinG.rounded())) g protein"))
     }
 
     // MARK: - Nutrition
@@ -97,17 +181,28 @@ struct RecipeDetailView: View {
         return VStack(alignment: .leading, spacing: Spacing.md) {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text("Servings")
-                        .font(AppFont.subheadline)
-                        .foregroundStyle(AppColor.textSecondary)
                     Text("\(recipe.calories * servings) kcal")
                         .font(AppFont.statValueSmall)
                         .monospacedDigit()
                         .contentTransition(.numericText())
                         .foregroundStyle(AppColor.textPrimary)
+                    Group {
+                        if servings == 1 {
+                            Text("For 1 serving")
+                        } else {
+                            Text("For \(servings) servings")
+                        }
+                    }
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
                 }
                 Spacer(minLength: Spacing.sm)
-                servingsStepper
+                VStack(spacing: Spacing.xxs) {
+                    Text("Cooking for")
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.textSecondary)
+                    servingsStepper
+                }
             }
             HStack(spacing: Spacing.sm) {
                 MacroChip.protein(Int((recipe.proteinG * factor).rounded()))
@@ -121,12 +216,6 @@ struct RecipeDetailView: View {
                 )
             }
             .contentTransition(.numericText())
-            if servings != 1 {
-                Text("Per serving: \(recipe.calories) kcal · \(Int(recipe.proteinG.rounded())) g protein")
-                    .font(AppFont.caption2)
-                    .monospacedDigit()
-                    .foregroundStyle(AppColor.textTertiary)
-            }
         }
         .padding(Spacing.cardPadding)
         .glassSurface(cornerRadius: Spacing.cardCornerRadius)
@@ -268,15 +357,42 @@ struct RecipeDetailView: View {
     }
 
     private func log() {
-        let now = Date()
-        let entry = RecipeLibraryEngine.entry(for: recipe, locale: locale, at: now, calendar: .current)
-        dataStore.logMealEntry(entry)
-        Haptics.success()
-        AppAnimation.with(AppAnimation.toast) { loggedSlot = entry.category }
+        let slot = dataStore.logServing(of: recipe, locale: locale)
+        AppAnimation.with(AppAnimation.toast) { loggedSlot = slot }
         Task {
             try? await Task.sleep(for: AppAnimation.logSuccessAutoCloseDelay)
             AppAnimation.with(AppAnimation.toast) { loggedSlot = nil }
         }
+    }
+}
+
+private struct RecipeFact: View {
+    let icon: String
+    let value: String
+    let unit: String
+    let tint: Color
+
+    var body: some View {
+        VStack(spacing: Spacing.xs) {
+            Image(systemName: icon)
+                .font(AppFont.scaled(16, weight: .semibold))
+                .foregroundStyle(tint)
+                .accessibilityHidden(true)
+            HStack(alignment: .firstTextBaseline, spacing: Spacing.xxs) {
+                Text(value)
+                    .font(AppFont.headline)
+                    .monospacedDigit()
+                    .foregroundStyle(AppColor.textPrimary)
+                Text(unit)
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, Spacing.md)
+        .glassSurface(cornerRadius: Spacing.controlCornerRadius)
     }
 }
 

@@ -12,6 +12,9 @@ import SwiftUI
 /// food taps land here: the router switches to `.meals` and the
 /// section opens the food library on the pending deep-link.
 ///
+/// Under today's meals sits the recipe shelf: hearted recipes, each one
+/// tap from the diary, with the full library behind "See all".
+///
 /// The fasting tracker, "Plan my day" and the diet coach live only
 /// here, not on the Today instance of the section — they are nutrition
 /// tools, and Today stays curated.
@@ -30,6 +33,8 @@ struct MealsContainerView: View {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
                     HomeMealsSection()
+                    MealsRecipeShelf()
+                        .scrollReveal()
                     FastingCard()
                         .scrollReveal()
                     planningTools
@@ -61,17 +66,8 @@ struct MealsContainerView: View {
     }
 
     private var planningTools: some View {
-        VStack(spacing: Spacing.sm) {
-            NavigationLink {
-                RecipeLibraryView()
-            } label: {
-                GlassEntryRowLabel(
-                    icon: "fork.knife",
-                    title: "Recipes & meal prep",
-                    subtitle: Text("Healthy recipes picked for your day")
-                )
-            }
-            .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            HomeSectionHeader(eyebrow: "Tools", title: "Plan ahead")
             NavigationLink {
                 WeeklyPrepView()
             } label: {

@@ -510,7 +510,11 @@ final class StoredProfile {
         try write(\.labsData, arrays: Self.labsArrays) { $0.labHistory }
         try write(\.outcomesData, arrays: Self.outcomesArrays) { $0.outcomeHistory }
         try write(\.foodLibraryData, arrays: Self.foodLibraryArrays) {
-            FoodLibrarySlice(customFoods: $0.customFoods, favoriteFoodIDs: Array($0.favoriteFoodIDs).sorted())
+            FoodLibrarySlice(
+                customFoods: $0.customFoods,
+                favoriteFoodIDs: Array($0.favoriteFoodIDs).sorted(),
+                favoriteRecipeIDs: Array($0.favoriteRecipeIDs).sorted()
+            )
         }
         // Never synced — see `summariesData`.
         set(\.summariesData, nil)
@@ -705,6 +709,7 @@ final class StoredProfile {
             primaryGoal: primaryGoal,
             customFoods: foodLibrary.customFoods,
             favoriteFoodIDs: Set(foodLibrary.favoriteFoodIDs),
+            favoriteRecipeIDs: Set(foodLibrary.favoriteRecipeIDs),
             mealHistory: meals.mealHistory,
             healthKitNutritionEnabled: ext.healthKitNutritionEnabled,
             outcomeHistory: slice(outcomesData, arrays: Self.outcomesArrays, legacy: ext.outcomeHistory),
@@ -888,6 +893,23 @@ struct FoodLibrarySlice: Codable, Equatable {
     /// `[String]` (sorted) for a deterministic on-disk shape; collapsed
     /// back to `Set<String>` on read.
     var favoriteFoodIDs: [String] = []
+    var favoriteRecipeIDs: [String] = []
+
+    private enum CodingKeys: String, CodingKey {
+        case customFoods, favoriteFoodIDs, favoriteRecipeIDs
+    }
+}
+
+extension FoodLibrarySlice {
+    /// Columns written before recipe favourites existed have no
+    /// `favoriteRecipeIDs` key; a strict decode would fail the whole
+    /// slice and fall back to the legacy blob's older custom foods.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        customFoods = try container.decodeIfPresent([CustomFood].self, forKey: .customFoods) ?? []
+        favoriteFoodIDs = try container.decodeIfPresent([String].self, forKey: .favoriteFoodIDs) ?? []
+        favoriteRecipeIDs = try container.decodeIfPresent([String].self, forKey: .favoriteRecipeIDs) ?? []
+    }
 }
 
 /// Sidecar blob persisted on `StoredProfile.extensionData`. Holds the

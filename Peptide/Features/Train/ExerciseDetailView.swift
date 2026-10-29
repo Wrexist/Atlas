@@ -9,6 +9,7 @@ struct ExerciseDetailView: View {
     /// Step-number column, scaled with the text so "10" never wraps.
     @ScaledMetric(relativeTo: .headline) private var stepNumberWidth: CGFloat = 22
     @State private var loading = true
+    @State private var showsTitle = false
 
     private var exercise: Exercise? {
         library.lookup(id: exerciseID)
@@ -54,7 +55,14 @@ struct ExerciseDetailView: View {
             }
         }
         .background(AppColor.background.ignoresSafeArea())
-        .navigationTitle(exercise?.name ?? "")
+        // The big title names the screen; the bar repeats it (truncated)
+        // only once that title has scrolled under it.
+        .onScrollGeometryChange(for: Bool.self) { geometry in
+            geometry.contentOffset.y + geometry.contentInsets.top > Spacing.xxxxl
+        } action: { _, scrolledPast in
+            AppAnimation.with(AppAnimation.quick) { showsTitle = scrolledPast }
+        }
+        .navigationTitle(showsTitle ? exercise?.name ?? "" : "")
         .navigationBarTitleDisplayMode(.inline)
         .task { await loadLibrary() }
     }

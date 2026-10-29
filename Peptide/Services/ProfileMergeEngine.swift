@@ -37,6 +37,7 @@ enum ProfileMergeEngine {
         merged.protocolNotes = union(primary.protocolNotes, other.protocolNotes)
         merged.supplements = mergeSupplements(primary.supplements, other.supplements)
         merged.favoriteFoodIDs.formUnion(other.favoriteFoodIDs)
+        merged.favoriteRecipeIDs.formUnion(other.favoriteRecipeIDs)
         merged.streakFreezeDays = StreakFreezeService.migratingLegacyKeys(
             primary.streakFreezeDays.union(other.streakFreezeDays)
         )
@@ -132,7 +133,7 @@ enum ProfileMergeEngine {
     static func rebasing(local: UserProfile, baseline: UserProfile, remote: UserProfile) -> UserProfile {
         var merged = rebasingMeals(local: local, baseline: baseline, remote: remote)
         for list in recordLists { list.rebase(&merged, baseline, remote) }
-        for field in blobFields where !field.changed(baseline, local) { field.adopt(&merged, remote) }
+        for field in blobFields { field.rebase(&merged, baseline, remote) }
         merged.weightHistory.sort { $0.date < $1.date }
         merged.outcomeHistory.sort { $0.date < $1.date }
         return merged
@@ -182,12 +183,33 @@ enum ProfileMergeEngine {
 
     private struct BlobField {
         let changed: (UserProfile, UserProfile) -> Bool
-        let adopt: (inout UserProfile, UserProfile) -> Void
+        /// (merged, baseline, remote): `merged` still holds this device's value.
+        let rebase: (inout UserProfile, UserProfile, UserProfile) -> Void
 
+        /// Taken from `remote` unless this device changed it.
         static func of<Value: Equatable>(_ keyPath: WritableKeyPath<UserProfile, Value>) -> BlobField {
             BlobField(
                 changed: { $0[keyPath: keyPath] != $1[keyPath: keyPath] },
-                adopt: { merged, remote in merged[keyPath: keyPath] = remote[keyPath: keyPath] }
+                rebase: { merged, baseline, remote in
+                    guard merged[keyPath: keyPath] == baseline[keyPath: keyPath] else { return }
+                    merged[keyPath: keyPath] = remote[keyPath: keyPath]
+                }
+            )
+        }
+
+        /// A set of ids (favourites): this device's adds and removals since
+        /// `baseline` replayed onto `remote`, so two devices hearting
+        /// different things both keep theirs.
+        static func idSet(_ keyPath: WritableKeyPath<UserProfile, Set<String>>) -> BlobField {
+            BlobField(
+                changed: { $0[keyPath: keyPath] != $1[keyPath: keyPath] },
+                rebase: { merged, baseline, remote in
+                    let local = merged[keyPath: keyPath]
+                    let base = baseline[keyPath: keyPath]
+                    merged[keyPath: keyPath] = remote[keyPath: keyPath]
+                        .union(local.subtracting(base))
+                        .subtracting(base.subtracting(local))
+                }
             )
         }
     }
@@ -205,7 +227,7 @@ enum ProfileMergeEngine {
     /// packs into one blob.
     private static var blobFields: [BlobField] {
         [
-            .of(\.favoriteFoodIDs),
+            .idSet(\.favoriteFoodIDs), .idSet(\.favoriteRecipeIDs),
             .of(\.nutritionTargets),
             .of(\.emailSubscription), .of(\.progressPhotoFilenames), .of(\.workoutHistory),
             .of(\.healthKitNutritionEnabled), .of(\.workoutLegacyMigrationCompleted),
