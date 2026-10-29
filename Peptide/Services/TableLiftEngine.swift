@@ -138,7 +138,7 @@ enum TableLiftEngine {
 
     /// The cut-out on a canvas padded for a white die-cut rim: the alpha
     /// is dilated, painted white, and the dish laid back on top.
-    private static func sticker(from cutout: CIImage, context: CIContext) -> UIImage? {
+    static func sticker(from cutout: CIImage, context: CIContext) -> UIImage? {
         let extent = cutout.extent
         let rim = max(3, min(extent.width, extent.height) * 0.025)
         let canvas = extent.insetBy(dx: -rim * 2, dy: -rim * 2)

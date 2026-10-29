@@ -286,6 +286,7 @@ struct RecipeDetailView: View {
                         name: ingredient.displayName(locale: locale),
                         grams: RecipeLibraryEngine.displayGrams(RecipeLibraryEngine.grams(ingredient, servings: servings)),
                         isAtHome: pantry.has(ingredient.pantryKey),
+                        isInFridge: pantry.isInFridge(ingredient.pantryKey),
                         toggle: { toggle(ingredient) }
                     )
                 }
@@ -400,12 +401,19 @@ private struct IngredientRow: View {
     let name: String
     let grams: Int
     let isAtHome: Bool
+    /// The fridge holds it, so the tick is the fridge's, not the user's.
+    let isInFridge: Bool
     let toggle: () -> Void
+
+    private var icon: String {
+        if isInFridge { return "refrigerator.fill" }
+        return isAtHome ? "checkmark.circle.fill" : "circle"
+    }
 
     var body: some View {
         Button(action: toggle) {
             HStack(spacing: Spacing.md) {
-                Image(systemName: isAtHome ? "checkmark.circle.fill" : "circle")
+                Image(systemName: icon)
                     .font(AppFont.scaled(20, weight: .semibold))
                     .foregroundStyle(isAtHome ? AppColor.positive : AppColor.textTertiary)
                     .contentTransition(.symbolEffect(.replace))
@@ -428,7 +436,7 @@ private struct IngredientRow: View {
         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("\(name), \(grams) g"))
-        .accessibilityValue(isAtHome ? Text("At home") : Text("Not at home"))
+        .accessibilityValue(isInFridge ? Text("In your fridge") : (isAtHome ? Text("At home") : Text("Not at home")))
         .accessibilityAddTraits(isAtHome ? .isSelected : [])
         .accessibilityHint(Text("Marks whether you have it at home"))
     }

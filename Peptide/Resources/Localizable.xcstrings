@@ -46322,6 +46322,1046 @@
           }
         }
       }
+    },
+    "Fridge": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kylskåp"
+          }
+        }
+      }
+    },
+    "Freezer": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frys"
+          }
+        }
+      }
+    },
+    "Cupboard": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skafferi"
+          }
+        }
+      }
+    },
+    "Use today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ät i dag"
+          }
+        }
+      }
+    },
+    "Use by tomorrow": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ät senast i morgon"
+          }
+        }
+      }
+    },
+    "Edit item": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redigera vara"
+          }
+        }
+      }
+    },
+    "Add to fridge": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg in i kylen"
+          }
+        }
+      }
+    },
+    "The cut-out photo of the product you add.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Det utklippta fotot av varan du lägger till."
+          }
+        }
+      }
+    },
+    "Camera access is off": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kameraåtkomst är av"
+          }
+        }
+      }
+    },
+    "Allow camera access in Settings, or pick a photo from your library.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tillåt kameran i Inställningar, eller välj ett foto från biblioteket."
+          }
+        }
+      }
+    },
+    "Barcode": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Streckkod"
+          }
+        }
+      }
+    },
+    "A photo loses its background automatically. A barcode gives the exact product.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ett foto får bakgrunden bortplockad automatiskt. En streckkod ger exakt rätt vara."
+          }
+        }
+      }
+    },
+    "Name (e.g. Milk)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Namn (t.ex. Mjölk)"
+          }
+        }
+      }
+    },
+    "Brand (optional)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Märke (valfritt)"
+          }
+        }
+      }
+    },
+    "Amount (e.g. 1 l, 500 g)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mängd (t.ex. 1 l, 500 g)"
+          }
+        }
+      }
+    },
+    "Kept in": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Förvaras i"
+          }
+        }
+      }
+    },
+    "How many": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antal"
+          }
+        }
+      }
+    },
+    "Use-by date": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bäst före-datum"
+          }
+        }
+      }
+    },
+    "Use by": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bäst före"
+          }
+        }
+      }
+    },
+    "Tomorrow": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I morgon"
+          }
+        }
+      }
+    },
+    "1 week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 vecka"
+          }
+        }
+      }
+    },
+    "2 weeks": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2 veckor"
+          }
+        }
+      }
+    },
+    "Atlas reminds you the evening before, and puts what is about to go off first.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atlas påminner kvällen innan och lägger det som snart går ut först."
+          }
+        }
+      }
+    },
+    "Counts as": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Räknas som"
+          }
+        }
+      }
+    },
+    "Nothing in recipes": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inget i recepten"
+          }
+        }
+      }
+    },
+    "Recipes and the weekly shopping list count it as at home while it's in date.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recept och veckans inköpslista räknar den som hemma så länge datumet håller."
+          }
+        }
+      }
+    },
+    "Used one": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Använde en"
+          }
+        }
+      }
+    },
+    "Used it up": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Använt upp"
+          }
+        }
+      }
+    },
+    "Forget this product": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glöm den här varan"
+          }
+        }
+      }
+    },
+    "Forget this product?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glömma den här varan?"
+          }
+        }
+      }
+    },
+    "Forget": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glöm"
+          }
+        }
+      }
+    },
+    "It leaves the fridge and your saved products.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Den försvinner ur kylen och dina sparade varor."
+          }
+        }
+      }
+    },
+    "No camera here. Pick a photo from your library.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingen kamera här. Välj ett foto från biblioteket."
+          }
+        }
+      }
+    },
+    "Removing the background…": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tar bort bakgrunden…"
+          }
+        }
+      }
+    },
+    "Reading the product…": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Läser av varan…"
+          }
+        }
+      }
+    },
+    "Couldn't name it. Type the name yourself.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kunde inte namnge den. Skriv namnet själv."
+          }
+        }
+      }
+    },
+    "Looking up the barcode…": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Söker upp streckkoden…"
+          }
+        }
+      }
+    },
+    "That barcode isn't in Open Food Facts. Name it yourself or take a photo.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Streckkoden finns inte i Open Food Facts. Namnge varan själv eller ta ett foto."
+          }
+        }
+      }
+    },
+    "From your fridge": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Från ditt kylskåp"
+          }
+        }
+      }
+    },
+    "Cook with what you have": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laga med det du har"
+          }
+        }
+      }
+    },
+    "Uses food about to go off": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Räddar mat som snart går ut"
+          }
+        }
+      }
+    },
+    "Buy: %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Köp: %@"
+          }
+        }
+      }
+    },
+    "In this week's prep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I veckans prep"
+          }
+        }
+      }
+    },
+    "Add to this week's prep": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till i veckans prep"
+          }
+        }
+      }
+    },
+    "What's in the fridge?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vad finns i kylen?"
+          }
+        }
+      }
+    },
+    "Look at all that.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titta vad mycket."
+          }
+        }
+      }
+    },
+    "The photo of your fridge or shopping you take or pick.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotot av ditt kylskåp eller dina inköp som du tar eller väljer."
+          }
+        }
+      }
+    },
+    "Nothing will be put in your fridge.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inget läggs in i kylen."
+          }
+        }
+      }
+    },
+    "Open the door, or lay out your shopping.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppna dörren, eller lägg upp dina inköp."
+          }
+        }
+      }
+    },
+    "No camera here. Import a photo of your fridge instead.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingen kamera här. Importera ett foto av kylen i stället."
+          }
+        }
+      }
+    },
+    "Taking stock…": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inventerar…"
+          }
+        }
+      }
+    },
+    "One photo of the whole shelf or bag.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ett foto av hela hyllan eller kassen."
+          }
+        }
+      }
+    },
+    "One photo of the whole shelf or bag. %lld free scans left this week.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ett foto av hela hyllan eller kassen. %lld gratis skanningar kvar den här veckan."
+          }
+        }
+      }
+    },
+    "Put in 1 item": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg in 1 vara"
+          }
+        }
+      }
+    },
+    "Put in %lld items": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg in %lld varor"
+          }
+        }
+      }
+    },
+    "Couldn't spot any groceries. Get the shelves in frame with the door wide open, or lay your shopping out.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hittade inga matvaror. Få med hyllorna med dörren vidöppen, eller lägg upp dina inköp."
+          }
+        }
+      }
+    },
+    "Expired yesterday": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gick ut i går"
+          }
+        }
+      }
+    },
+    "Expired %lld days ago": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gick ut för %lld dagar sedan"
+          }
+        }
+      }
+    },
+    "%lld ×": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld ×"
+          }
+        }
+      }
+    },
+    "Used in recipes": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Används i recept"
+          }
+        }
+      }
+    },
+    "Your groceries, floating. Tilt your phone or flick them.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dina varor svävar. Luta telefonen eller knuffa dem."
+          }
+        }
+      }
+    },
+    "Opens this item.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar varan."
+          }
+        }
+      }
+    },
+    "Use soon": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ät snart"
+          }
+        }
+      }
+    },
+    "Settle": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Samla"
+          }
+        }
+      }
+    },
+    "Float": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sväva"
+          }
+        }
+      }
+    },
+    "Scan the barcode": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skanna streckkoden"
+          }
+        }
+      }
+    },
+    "Hold the code inside the frame. Exact product data comes from Open Food Facts.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Håll koden i ramen. Exakta produktdata kommer från Open Food Facts."
+          }
+        }
+      }
+    },
+    "Barcode digits": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Streckkodens siffror"
+          }
+        }
+      }
+    },
+    "Item": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vara"
+          }
+        }
+      }
+    },
+    "Keeps or leaves out this item.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Behåller eller hoppar över varan."
+          }
+        }
+      }
+    },
+    "%lld×": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld×"
+          }
+        }
+      }
+    },
+    "How many: %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antal: %lld"
+          }
+        }
+      }
+    },
+    "No date": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inget datum"
+          }
+        }
+      }
+    },
+    "Search saved products": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sök sparade varor"
+          }
+        }
+      }
+    },
+    "Your fridge, kept track of": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ditt kylskåp, med koll på allt"
+          }
+        }
+      }
+    },
+    "Scan the fridge or your shopping and Atlas keeps an eye on use-by dates and cooks from what you have.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skanna kylen eller dina inköp så håller Atlas koll på datumen och lagar mat av det du har."
+          }
+        }
+      }
+    },
+    "Scan the fridge": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skanna kylen"
+          }
+        }
+      }
+    },
+    "%lld to use soon": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld att äta snart"
+          }
+        }
+      }
+    },
+    "Scan fridge": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skanna kylen"
+          }
+        }
+      }
+    },
+    "Or a shopping bag": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eller en kasse"
+          }
+        }
+      }
+    },
+    "One item": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En vara"
+          }
+        }
+      }
+    },
+    "Exact product": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exakt vara"
+          }
+        }
+      }
+    },
+    "Type": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skriv"
+          }
+        }
+      }
+    },
+    "By hand": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "För hand"
+          }
+        }
+      }
+    },
+    "Saved": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sparade"
+          }
+        }
+      }
+    },
+    "Bought it again?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Köpt igen?"
+          }
+        }
+      }
+    },
+    "Edit, then add": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redigera och lägg in"
+          }
+        }
+      }
+    },
+    "Puts it back in the fridge.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägger tillbaka den i kylen."
+          }
+        }
+      }
+    },
+    "Not saved yet": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inte sparad än"
+          }
+        }
+      }
+    },
+    "Add it once and it's here next time.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till den en gång så finns den här nästa gång."
+          }
+        }
+      }
+    },
+    "Add “%@”": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till ”%@”"
+          }
+        }
+      }
+    },
+    "%lld at home": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld hemma"
+          }
+        }
+      }
+    },
+    "Add %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lägg till %@"
+          }
+        }
+      }
+    },
+    "About to go off": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Går snart ut"
+          }
+        }
+      }
+    },
+    "In the kitchen": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I köket"
+          }
+        }
+      }
+    },
+    "Move to freezer": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flytta till frysen"
+          }
+        }
+      }
+    },
+    "%@ put in": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ inlagd"
+          }
+        }
+      }
+    },
+    "1 item put in": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 vara inlagd"
+          }
+        }
+      }
+    },
+    "%lld items put in": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld varor inlagda"
+          }
+        }
+      }
+    },
+    "Scan your fridge or shopping, track use-by dates": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skanna kylen eller inköpen och håll koll på datumen"
+          }
+        }
+      }
+    },
+    "1 item at home, cook from what you have": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 vara hemma, laga av det du har"
+          }
+        }
+      }
+    },
+    "%lld items at home, cook from what you have": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld varor hemma, laga av det du har"
+          }
+        }
+      }
+    },
+    "%lld use soon": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld ät snart"
+          }
+        }
+      }
+    },
+    "In your fridge": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I ditt kylskåp"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
