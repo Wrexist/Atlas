@@ -47362,6 +47362,16 @@
           }
         }
       }
+    },
+    "This week's free scans are used up. Type the name yourself.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veckans gratisskanningar är slut. Skriv namnet själv."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

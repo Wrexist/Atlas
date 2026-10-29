@@ -443,19 +443,28 @@ struct FridgeItemEditor: View {
     /// Names the product and fills its macros from the cut-out. Typed
     /// fields win: only empty ones are filled.
     private func read(_ sticker: UIImage) async {
+        guard MealScanQuota.remainingThisWeek(isPro: storeService.isProUser) != 0 else {
+            status = String(localized: "This week's free scans are used up. Type the name yourself.")
+            return
+        }
         isReading = true
         status = String(localized: "Reading the product…")
         defer { isReading = false }
         do {
             let scan = try await MealScannerService.shared.smartScan(
                 image: TableDishReader.flattened(sticker),
-                hint: "One grocery product, packaged or fresh, cut out of a photo of a kitchen."
+                hint: "One grocery product, packaged or fresh, cut out of a photo of a kitchen.",
+                metered: true
             )
+            if !scan.items.isEmpty, !storeService.isProUser { MealScanQuota.recordSuccessfulScan() }
             guard let found = scan.items.first else { throw MealScannerService.ScanError.noFoodDetected }
             if trimmedName.isEmpty { name = found.name }
             if brand.isEmpty, let foundBrand = found.brand { brand = foundBrand }
             if per100g == nil { per100g = found.per100g }
             status = nil
+        } catch MealScannerService.ScanError.scanAllowanceSpent {
+            MealScanQuota.recordAllowanceExhausted()
+            status = String(localized: "This week's free scans are used up. Type the name yourself.")
         } catch {
             status = String(localized: "Couldn't name it. Type the name yourself.")
         }
