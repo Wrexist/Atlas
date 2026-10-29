@@ -62,4 +62,18 @@ final class RecipeFavoritesTests: XCTestCase {
 
         XCTAssertEqual(merged.favoriteRecipeIDs, ["beef-taco-bowl", "tofu-coconut-curry"])
     }
+
+    func test_rebasing_twoDevicesHeartDifferentRecipes_keepsBoth() {
+        var baseline = UserProfile.fresh
+        baseline.favoriteRecipeIDs = ["salmon-potatoes-broccoli"]
+        var local = baseline
+        local.favoriteRecipeIDs.insert("beef-taco-bowl")
+        local.favoriteRecipeIDs.remove("salmon-potatoes-broccoli")
+        var remote = baseline
+        remote.favoriteRecipeIDs.insert("tofu-coconut-curry")
+
+        let merged = ProfileMergeEngine.rebasing(local: local, baseline: baseline, remote: remote)
+
+        XCTAssertEqual(merged.favoriteRecipeIDs, ["beef-taco-bowl", "tofu-coconut-curry"])
+    }
 }
