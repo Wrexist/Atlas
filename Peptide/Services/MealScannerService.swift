@@ -353,9 +353,15 @@ final class MealScannerService: Sendable {
     /// Posts to another route on the same proxy deployment (`lab-scan`),
     /// with this service's secret, App Attest headers, retry and status
     /// mapping, so a new vision route doesn't grow a second transport.
-    /// `proOnly` attaches the StoreKit Pro transaction the route demands.
-    func post(_ payload: [String: Any], toSiblingRoute route: String, proOnly: Bool = false) async throws -> Data {
-        try await post(payload, to: endpoint?.deletingLastPathComponent().appendingPathComponent(route), proOnly: proOnly)
+    /// `proOnly` attaches the StoreKit Pro transaction the route demands;
+    /// `metered` marks a scan that spends the free weekly allowance.
+    func post(_ payload: [String: Any], toSiblingRoute route: String, metered: Bool = false, proOnly: Bool = false) async throws -> Data {
+        try await post(
+            payload,
+            to: endpoint?.deletingLastPathComponent().appendingPathComponent(route),
+            metered: metered,
+            proOnly: proOnly
+        )
     }
 
     /// The JPEG this service would upload for `image`: same edge, quality

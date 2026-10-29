@@ -367,6 +367,7 @@ final class AuthService {
         HealthJournalStore.shared.deleteAll()
         WeeklyPrepStore.shared.deleteAll()
         PantryStore.shared.deleteAll()
+        FridgeStore.shared.deleteAll()
         TableMomentStore.shared.deleteAll()
         BackupSnapshotService.deleteAll()
         ExportService.shared.clearExports()

@@ -12,13 +12,13 @@ final class PantryStoreTests: XCTestCase {
     }
 
     func test_deleteAll_forgetsAtHomeIngredientsAcrossLaunches() {
-        let store = PantryStore(defaults: defaults)
+        let store = PantryStore(defaults: defaults, fridgeKeys: { [] })
         store.toggle("chicken")
         store.toggle("rice")
 
         store.deleteAll()
 
         XCTAssertFalse(store.has("chicken"))
-        XCTAssertTrue(PantryStore(defaults: defaults).keys.isEmpty)
+        XCTAssertTrue(PantryStore(defaults: defaults, fridgeKeys: { [] }).keys.isEmpty)
     }
 }
