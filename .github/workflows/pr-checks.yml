@@ -446,7 +446,7 @@ jobs:
         # this the xcresult bundle would stop uploading exactly when
         # someone needs it to diagnose the failure.
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results-${{ github.run_number }}
           path: |
