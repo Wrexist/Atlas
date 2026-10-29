@@ -69,4 +69,14 @@ final class FridgeScanServiceTests: XCTestCase {
         ]
         XCTAssertEqual(FridgeLiftEngine.centralInstances(boxes), IndexSet(integer: 1))
     }
+
+    func test_day_onABuddhistCalendarPhone_readsTheISODateAsGregorian() {
+        var buddhist = Calendar(identifier: .buddhist)
+        buddhist.timeZone = TimeZone(identifier: "UTC")!
+
+        XCTAssertEqual(
+            FridgeScanService.day(from: "2026-11-03", calendar: buddhist),
+            calendar.date(from: DateComponents(year: 2026, month: 11, day: 3))
+        )
+    }
 }

@@ -121,9 +121,13 @@ enum FridgeScanService {
         )
     }
 
+    /// The model writes ISO dates, which are Gregorian whatever calendar
+    /// the phone uses; only the time zone comes from `calendar`.
     static func day(from text: String, calendar: Calendar) -> Date? {
         let parts = text.split(separator: "-").compactMap { Int($0) }
         guard parts.count == 3 else { return nil }
-        return calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2]))
+        var gregorian = Calendar(identifier: .gregorian)
+        gregorian.timeZone = calendar.timeZone
+        return gregorian.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2]))
     }
 }
