@@ -45952,6 +45952,376 @@
           }
         }
       }
+    },
+    "Cooking for": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lagar till"
+          }
+        }
+      }
+    },
+    "For 1 serving": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "För 1 portion"
+          }
+        }
+      }
+    },
+    "For %lld servings": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "För %lld portioner"
+          }
+        }
+      }
+    },
+    "Per serving: %lld min, %lld kcal, %lld g protein": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Per portion: %lld min, %lld kcal, %lld g protein"
+          }
+        }
+      }
+    },
+    "Picked for now": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passar just nu"
+          }
+        }
+      }
+    },
+    "Plan ahead": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Planera framåt"
+          }
+        }
+      }
+    },
+    "Tap the heart on a recipe to keep it here.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck på hjärtat på ett recept så hamnar det här."
+          }
+        }
+      }
+    },
+    "Tap the heart on any recipe and it shows up here and on the Meals tab.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck på hjärtat på ett recept så syns det här och under Måltider."
+          }
+        }
+      }
+    },
+    "g protein": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "g protein"
+          }
+        }
+      }
+    },
+    "Plan my day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Planera min dag"
+          }
+        }
+      }
+    },
+    "Ask the diet coach": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fråga kostcoachen"
+          }
+        }
+      }
+    },
+    "Pro": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro"
+          }
+        }
+      }
+    },
+    "Both": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Båda"
+          }
+        }
+      }
+    },
+    "Best": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bäst"
+          }
+        }
+      }
+    },
+    "Analyze": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Analysera"
+          }
+        }
+      }
+    },
+    "Regenerate": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skapa ny"
+          }
+        }
+      }
+    },
+    "Log whole plan": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga hela planen"
+          }
+        }
+      }
+    },
+    "Icon and color": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ikon och färg"
+          }
+        }
+      }
+    },
+    "Rest day — no doses are due today.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vilodag – inga doser idag."
+          }
+        }
+      }
+    },
+    "Research-backed": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forskningsstött"
+          }
+        }
+      }
+    },
+    "Reset to default": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Återställ standard"
+          }
+        }
+      }
+    },
+    "Customize Today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anpassa Idag"
+          }
+        }
+      }
+    },
+    "Choose photos": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj bilder"
+          }
+        }
+      }
+    },
+    "Import PDF": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importera PDF"
+          }
+        }
+      }
+    },
+    "Read report": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Läs rapporten"
+          }
+        }
+      }
+    },
+    "Change pages": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Byt sidor"
+          }
+        }
+      }
+    },
+    "Keep reviewing": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fortsätt granska"
+          }
+        }
+      }
+    },
+    "Scan a lab report": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skanna ett labbsvar"
+          }
+        }
+      }
+    },
+    "How do you train?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hur tränar du?"
+          }
+        }
+      }
+    },
+    "How did you find Atlas?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hur hittade du Atlas?"
+          }
+        }
+      }
+    },
+    "Body metrics": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kroppsmått"
+          }
+        }
+      }
+    },
+    "Subscriptions run through Apple.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prenumerationer sköts via Apple."
+          }
+        }
+      }
+    },
+    "Save program": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spara programmet"
+          }
+        }
+      }
+    },
+    "Build program": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bygg program"
+          }
+        }
+      }
+    },
+    "Build my program": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bygg mitt program"
+          }
+        }
+      }
+    },
+    "Pick a workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj ett pass"
+          }
+        }
+      }
+    },
+    "Select a routine, exercise, or past session to see it here.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj en rutin, en övning eller ett tidigare pass för att se det här."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

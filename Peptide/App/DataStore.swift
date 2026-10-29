@@ -1880,6 +1880,20 @@ final class DataStore {
         profile.favoriteFoodIDs.contains(id)
     }
 
+    /// Hearts or un-hearts a library recipe (`LibraryRecipe.id`).
+    func toggleFavoriteRecipe(id: String) {
+        if profile.favoriteRecipeIDs.contains(id) {
+            profile.favoriteRecipeIDs.remove(id)
+        } else {
+            profile.favoriteRecipeIDs.insert(id)
+        }
+        save()
+    }
+
+    func isFavoriteRecipe(id: String) -> Bool {
+        profile.favoriteRecipeIDs.contains(id)
+    }
+
     /// Quick-log workout entry — kept for the freeform "Movement"
     /// surface on the Today scroll. Plan C reconciled the dual store
     /// split: this method no longer writes to the legacy

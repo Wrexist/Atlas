@@ -37,6 +37,7 @@ enum ProfileMergeEngine {
         merged.protocolNotes = union(primary.protocolNotes, other.protocolNotes)
         merged.supplements = mergeSupplements(primary.supplements, other.supplements)
         merged.favoriteFoodIDs.formUnion(other.favoriteFoodIDs)
+        merged.favoriteRecipeIDs.formUnion(other.favoriteRecipeIDs)
         merged.streakFreezeDays = StreakFreezeService.migratingLegacyKeys(
             primary.streakFreezeDays.union(other.streakFreezeDays)
         )
@@ -205,7 +206,7 @@ enum ProfileMergeEngine {
     /// packs into one blob.
     private static var blobFields: [BlobField] {
         [
-            .of(\.favoriteFoodIDs),
+            .of(\.favoriteFoodIDs), .of(\.favoriteRecipeIDs),
             .of(\.nutritionTargets),
             .of(\.emailSubscription), .of(\.progressPhotoFilenames), .of(\.workoutHistory),
             .of(\.healthKitNutritionEnabled), .of(\.workoutLegacyMigrationCompleted),

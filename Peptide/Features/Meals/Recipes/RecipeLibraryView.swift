@@ -23,10 +23,12 @@ struct RecipeLibraryView: View {
         searchText.isEmpty && filter == .all
     }
 
+    private var favoriteIDs: Set<String> { dataStore.profile.favoriteRecipeIDs }
+
     private var filteredRecipes: [LibraryRecipe] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         return recipes.filter { recipe in
-            guard filter.matches(recipe) else { return false }
+            guard filter.matches(recipe, favorites: favoriteIDs) else { return false }
             guard !query.isEmpty else { return true }
             return recipe.name.lowercased().contains(query)
                 || recipe.nameSV.lowercased().contains(query)
@@ -93,6 +95,11 @@ struct RecipeLibraryView: View {
                             )
                         }
                         .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+                        .overlay(alignment: .topTrailing) {
+                            RecipeFavoriteButton(recipe: recommendation.recipe)
+                                .padding(Spacing.lg)
+                        }
+                        .contextMenu { RecipeFavoriteMenuItem(recipe: recommendation.recipe) }
                         .containerRelativeFrame(.horizontal) { length, _ in length * 0.8 }
                         .scrollTransition { card, phase in
                             card
@@ -127,7 +134,15 @@ struct RecipeLibraryView: View {
     @ViewBuilder
     private var recipeGrid: some View {
         let shown = filteredRecipes
-        if shown.isEmpty {
+        if shown.isEmpty && filter == .favorites && searchText.isEmpty {
+            EmptyStateView(
+                icon: "heart",
+                title: "No favorites yet",
+                message: "Tap the heart on any recipe and it shows up here and on the Meals tab.",
+                style: .compact
+            )
+            .padding(.horizontal, Spacing.screenPadding)
+        } else if shown.isEmpty {
             EmptyStateView(
                 icon: "magnifyingglass",
                 title: "No recipes match",
@@ -150,6 +165,11 @@ struct RecipeLibraryView: View {
                         RecipeGridCard(recipe: recipe)
                     }
                     .buttonStyle(ScalePressStyle(pressedScale: 0.97))
+                    .overlay(alignment: .topTrailing) {
+                        RecipeFavoriteButton(recipe: recipe, diameter: 32)
+                            .padding(Spacing.md)
+                    }
+                    .contextMenu { RecipeFavoriteMenuItem(recipe: recipe) }
                     .scrollReveal()
                 }
             }
@@ -201,13 +221,14 @@ private struct RankingKey: Hashable {
 /// The library's category chips. Meal prep cuts across lunch and dinner,
 /// so it is a filter of its own rather than a fifth meal category.
 enum RecipeFilter: String, CaseIterable, Identifiable {
-    case all, breakfast, lunch, dinner, snack, mealPrep
+    case all, favorites, breakfast, lunch, dinner, snack, mealPrep
 
     var id: String { rawValue }
 
     var title: LocalizedStringKey {
         switch self {
         case .all:       "All"
+        case .favorites: "Favorites"
         case .breakfast: "Breakfast"
         case .lunch:     "Lunch"
         case .dinner:    "Dinner"
@@ -219,6 +240,7 @@ enum RecipeFilter: String, CaseIterable, Identifiable {
     var icon: String? {
         switch self {
         case .all:       nil
+        case .favorites: "heart.fill"
         case .breakfast: MealCategory.breakfast.icon
         case .lunch:     MealCategory.lunch.icon
         case .dinner:    MealCategory.dinner.icon
@@ -227,9 +249,10 @@ enum RecipeFilter: String, CaseIterable, Identifiable {
         }
     }
 
-    func matches(_ recipe: LibraryRecipe) -> Bool {
+    func matches(_ recipe: LibraryRecipe, favorites: Set<String>) -> Bool {
         switch self {
         case .all:       true
+        case .favorites: favorites.contains(recipe.id)
         case .breakfast: recipe.category == .breakfast
         case .lunch:     recipe.category == .lunch
         case .dinner:    recipe.category == .dinner

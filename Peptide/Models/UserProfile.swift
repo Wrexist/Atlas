@@ -430,6 +430,9 @@ struct UserProfile: Codable, Sendable {
     /// JSON ordering; decoded back into a Set so membership checks are
     /// O(1) in the result list.
     var favoriteFoodIDs: Set<String>
+    /// Library recipes the user hearted (`LibraryRecipe.id` slugs). They
+    /// lead the recipe library and the Meals tab's favourites row.
+    var favoriteRecipeIDs: Set<String>
     /// Individual meal log entries — the building block for the per-
     /// category breakdown card and (eventually) HealthKit dietary-
     /// energy samples. The aggregate `dailyConsumption` still drives
@@ -574,6 +577,7 @@ struct UserProfile: Codable, Sendable {
         primaryGoal: String? = nil,
         customFoods: [CustomFood] = [],
         favoriteFoodIDs: Set<String> = [],
+        favoriteRecipeIDs: Set<String> = [],
         mealHistory: [MealEntry] = [],
         healthKitNutritionEnabled: Bool = false,
         outcomeHistory: [OutcomeEntry] = [],
@@ -618,6 +622,7 @@ struct UserProfile: Codable, Sendable {
         self.primaryGoal = primaryGoal
         self.customFoods = customFoods
         self.favoriteFoodIDs = favoriteFoodIDs
+        self.favoriteRecipeIDs = favoriteRecipeIDs
         self.mealHistory = mealHistory
         self.healthKitNutritionEnabled = healthKitNutritionEnabled
         self.outcomeHistory = outcomeHistory
@@ -667,6 +672,9 @@ struct UserProfile: Codable, Sendable {
         customFoods = try container.decodeIfPresent([CustomFood].self, forKey: .customFoods) ?? []
         favoriteFoodIDs = Set(
             try container.decodeIfPresent([String].self, forKey: .favoriteFoodIDs) ?? []
+        )
+        favoriteRecipeIDs = Set(
+            try container.decodeIfPresent([String].self, forKey: .favoriteRecipeIDs) ?? []
         )
         mealHistory = try container.decodeIfPresent([MealEntry].self, forKey: .mealHistory) ?? []
         healthKitNutritionEnabled = try container.decodeIfPresent(Bool.self, forKey: .healthKitNutritionEnabled) ?? false
