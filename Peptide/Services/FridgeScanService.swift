@@ -85,12 +85,12 @@ enum FridgeScanService {
     /// throws `noFoodDetected`.
     static func parse(_ data: Data, pantryKeys: Set<String>, calendar: Calendar) throws -> [Found] {
         let result = try JSONDecoder().decode(Response.self, from: data).result
-        let found = result.items.compactMap { found(from: $0, pantryKeys: pantryKeys, calendar: calendar) }
+        let found = result.items.compactMap { grocery(from: $0, pantryKeys: pantryKeys, calendar: calendar) }
         guard result.isGroceries, !found.isEmpty else { throw MealScannerService.ScanError.noFoodDetected }
         return found
     }
 
-    private static func found(from item: Item, pantryKeys: Set<String>, calendar: Calendar) -> Found? {
+    private static func grocery(from item: Item, pantryKeys: Set<String>, calendar: Calendar) -> Found? {
         let name = item.name.trimmingCharacters(in: .whitespacesAndNewlines)
         let box = CGRect(x: item.box.x, y: item.box.y, width: item.box.width, height: item.box.height)
             .intersection(CGRect(x: 0, y: 0, width: 1, height: 1))
