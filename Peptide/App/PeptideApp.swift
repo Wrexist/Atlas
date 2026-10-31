@@ -16,6 +16,7 @@ struct PeptideApp: App {
     /// alive for the process.
     @State private var notificationDelegate: NotificationDelegate
     @State private var quickActionInbox = QuickActionInbox.shared
+    @State private var workoutSession = WorkoutSessionService.shared
     @State private var isUnlocked = false
     @State private var showLockReleasedNotice = false
     @Environment(\.scenePhase) private var scenePhase
@@ -610,12 +611,33 @@ struct PeptideApp: App {
     @ViewBuilder
     private var tabViewWithAccessory: some View {
         if #available(iOS 26.0, *) {
-            coreTabView.tabViewBottomAccessory {
-                TabAccessoryView(tab: appState.selectedTab)
-            }
+            accessoryTabView
         } else {
             coreTabView
         }
+    }
+
+    /// The strip shows only while it has something to act on: a workout in
+    /// progress, or doses to take. "No workout logged yet today" on every
+    /// screen was a permanent bar of noise over the content, and on Train
+    /// the tab draws its own resume banner.
+    @available(iOS 26.0, *)
+    @ViewBuilder
+    private var accessoryTabView: some View {
+        if #available(iOS 26.1, *) {
+            coreTabView.tabViewBottomAccessory(isEnabled: showsTabAccessory) {
+                TabAccessoryView(tab: appState.selectedTab)
+            }
+        } else {
+            coreTabView.tabViewBottomAccessory {
+                TabAccessoryView(tab: appState.selectedTab)
+            }
+        }
+    }
+
+    private var showsTabAccessory: Bool {
+        appState.selectedTab != .train
+            && (workoutSession.activeSession != nil || !dataStore.activeProtocols.isEmpty)
     }
 
     private var mainContent: some View {

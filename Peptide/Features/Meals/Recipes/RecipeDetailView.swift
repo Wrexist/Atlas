@@ -57,6 +57,9 @@ struct RecipeDetailView: View {
         }
         .navigationTitle(showsTitle ? recipe.displayName(locale: locale) : "")
         .navigationBarTitleDisplayMode(.inline)
+        // Over the photo the bar stays clear; once the title moves into it,
+        // the bar gets its backdrop so steps don't scroll legibly under it.
+        .toolbarBackground(showsTitle ? .visible : .hidden, for: .navigationBar)
         .pinnedFooter {
             logButton
                 .padding(.horizontal, Spacing.screenPadding)

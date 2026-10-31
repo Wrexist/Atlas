@@ -7,6 +7,9 @@ import SwiftUI
 /// they wander and can be flicked. Tapping one opens it.
 struct FridgeShelf: View {
     let entries: [Entry]
+    /// Owned by the host so the Float toggle can sit in the row under the
+    /// shelf instead of on top of the groceries.
+    @Binding var isFloating: Bool
     let open: (UUID) -> Void
 
     struct Entry: Identifiable {
@@ -20,7 +23,6 @@ struct FridgeShelf: View {
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
     @State private var store = FridgeStore.shared
     @State private var scene = PlateTableScene(size: CGSize(width: 1, height: 1))
-    @State private var isFloating = false
     @State private var isBobbing = false
     @State private var size: CGSize = .zero
 
@@ -42,11 +44,7 @@ struct FridgeShelf: View {
         .frame(height: 260)
         .clipShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous))
         .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
-        .overlay(alignment: .topTrailing) {
-            if canFloat {
-                floatToggle.padding(Spacing.md)
-            }
-        }
+        .onChange(of: isFloating) { _, floating in if floating { startPhysics() } }
         .onChange(of: shown.map(\.id)) { _, _ in if isFloating { startPhysics() } }
         .onChange(of: canFloat) { _, allowed in if !allowed { isFloating = false } }
     }
@@ -104,29 +102,9 @@ struct FridgeShelf: View {
         [-6, 4, -3, 5, -5, 3, -4, 6, -2][index % 9]
     }
 
-    private var floatToggle: some View {
-        Button {
-            Haptics.selection()
-            if !isFloating { startPhysics() }
-            AppAnimation.with(AppAnimation.fadeIn) { isFloating.toggle() }
-        } label: {
-            Label(isFloating ? "Settle" : "Float", systemImage: isFloating ? "square.grid.3x3.fill" : "wind")
-                .contentTransition(.symbolEffect(.replace))
-                .font(AppFont.footnote.weight(.semibold))
-                .foregroundStyle(isFloating ? AppColor.onAccent : AppColor.textPrimary)
-                .padding(.horizontal, Spacing.md)
-                .frame(minHeight: 36)
-                .background { if isFloating { Capsule().fill(AppColor.accentFill) } }
-                .glassControl(.capsule)
-        }
-        .buttonStyle(ScalePressStyle())
-        .minimumHitArea()
-        .accessibilityAddTraits(isFloating ? .isSelected : [])
-    }
-
     /// Drifting physics is motion Reduce Motion asks to avoid, and items
     /// in play can't be opened one by one with VoiceOver.
-    private var canFloat: Bool { !reduceMotion && !voiceOverEnabled && !shown.isEmpty }
+    private var canFloat: Bool { FridgeFloatToggle.isAllowed(reduceMotion: reduceMotion, voiceOver: voiceOverEnabled) && !shown.isEmpty }
 
     private func startPhysics() {
         let cells = PlateTableLayout.cells(count: shown.count, in: size, spacing: Spacing.md)
@@ -167,5 +145,37 @@ private struct FridgeShelfSurface: View {
                 }
             }
             .accessibilityHidden(true)
+    }
+}
+
+/// Float / Settle for the shelf. Hidden when floating isn't allowed:
+/// drifting physics is motion Reduce Motion asks to avoid, and items in
+/// play can't be opened one by one with VoiceOver.
+struct FridgeFloatToggle: View {
+    @Binding var isFloating: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
+
+    static func isAllowed(reduceMotion: Bool, voiceOver: Bool) -> Bool { !reduceMotion && !voiceOver }
+
+    var body: some View {
+        if Self.isAllowed(reduceMotion: reduceMotion, voiceOver: voiceOverEnabled) {
+            Button {
+                Haptics.selection()
+                AppAnimation.with(AppAnimation.fadeIn) { isFloating.toggle() }
+            } label: {
+                Label(isFloating ? "Settle" : "Float", systemImage: isFloating ? "square.grid.3x3.fill" : "wind")
+                    .contentTransition(.symbolEffect(.replace))
+                    .font(AppFont.footnote.weight(.semibold))
+                    .foregroundStyle(isFloating ? AppColor.onAccent : AppColor.textPrimary)
+                    .padding(.horizontal, Spacing.md)
+                    .frame(minHeight: 36)
+                    .background { if isFloating { Capsule().fill(AppColor.accentFill) } }
+                    .glassControl(.capsule)
+            }
+            .buttonStyle(ScalePressStyle())
+            .minimumHitArea()
+            .accessibilityAddTraits(isFloating ? .isSelected : [])
+        }
     }
 }
