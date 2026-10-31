@@ -170,3 +170,38 @@ extension View {
         ))
     }
 }
+
+// MARK: - Section swap
+
+/// The transition for a panel behind a tab or segmented control: the new
+/// panel arrives from the side of the tab that was tapped, settling out of
+/// a short blur, so switching sections reads as moving sideways rather
+/// than as one screen flashing into another. The old panel only fades;
+/// its removal transition was fixed when it last rendered, before the
+/// direction of the switch was known.
+extension AnyTransition {
+    static func sectionSwap(forward: Bool) -> AnyTransition {
+        .asymmetric(
+            insertion: .modifier(
+                active: SectionSwapModifier(offset: forward ? SectionSwapModifier.travel : -SectionSwapModifier.travel, blur: 4, opacity: 0),
+                identity: SectionSwapModifier(offset: 0, blur: 0, opacity: 1)
+            ),
+            removal: .opacity
+        )
+    }
+}
+
+private struct SectionSwapModifier: ViewModifier {
+    static let travel: CGFloat = 24
+
+    let offset: CGFloat
+    let blur: CGFloat
+    let opacity: Double
+
+    func body(content: Content) -> some View {
+        content
+            .offset(x: offset)
+            .blur(radius: blur)
+            .opacity(opacity)
+    }
+}
