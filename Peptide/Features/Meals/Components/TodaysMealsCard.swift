@@ -276,7 +276,7 @@ struct MealEntryRow: View {
                             .lineLimit(2)
                         Spacer(minLength: 0)
                         Text("\(entry.calories) kcal")
-                            .font(AppFont.scaled(13, weight: .heavy))
+                            .font(AppFont.scaled(13, weight: .semibold))
                             .monospacedDigit()
                             .foregroundStyle(AppColor.textPrimary)
                             .fixedSize()

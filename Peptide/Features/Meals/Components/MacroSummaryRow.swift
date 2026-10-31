@@ -283,7 +283,7 @@ struct MacroSummaryRow: View {
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     let shown = isRevealed ? value : 0
                     Text(String(shown))
-                        .font(AppFont.scaled(20, weight: .semibold, design: .rounded))
+                        .font(AppFont.scaled(20, weight: .semibold))
                         .foregroundStyle(overBy > 0 && targets.calories > 0 ? AppColor.warning : AppColor.textPrimary)
                         .monospacedDigit()
                         .contentTransition(.numericText(value: Double(shown)))

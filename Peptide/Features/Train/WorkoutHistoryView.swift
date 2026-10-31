@@ -141,7 +141,7 @@ struct WorkoutHistoryView: View {
             Spacer(minLength: Spacing.sm)
             if let duration = session.durationLabel {
                 Label(duration, systemImage: "clock")
-                    .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
                     .monospacedDigit()
             }
@@ -209,7 +209,7 @@ struct WorkoutHistoryView: View {
             }
             Spacer(minLength: Spacing.sm)
             Label(CardioWorkoutEngine.durationLabel(workout.duration), systemImage: "clock")
-                .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
                 .monospacedDigit()
             Image(systemName: "chevron.right")

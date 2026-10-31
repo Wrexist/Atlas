@@ -109,7 +109,7 @@ struct EmptyStateView: View {
                 .fill(accent)
                 .frame(width: 72, height: 72)
             Image(systemName: icon)
-                .font(AppFont.scaled(30, weight: .heavy, in: .large))
+                .font(AppFont.scaled(30, weight: .light, in: .large))
                 .foregroundStyle(AppColor.onAccent)
         }
         .padding(.top, Spacing.sm)

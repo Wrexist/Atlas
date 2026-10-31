@@ -673,7 +673,7 @@ struct MealScanFlow: View {
                     .foregroundStyle(AppColor.textPrimary)
             }
             Text("\(totalCalories) kcal")
-                .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(20, weight: .medium))
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
                 .contentTransition(.numericText())
@@ -1529,7 +1529,7 @@ private struct FoodItemEditCard: View {
 
             VStack(alignment: .trailing, spacing: 0) {
                 Text("\(item.calories)")
-                    .font(AppFont.scaled(20, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(20, weight: .medium))
                     .foregroundStyle(AppColor.textPrimary)
                     .monospacedDigit()
                     // Rolls rather than cuts when the portion changes, so the

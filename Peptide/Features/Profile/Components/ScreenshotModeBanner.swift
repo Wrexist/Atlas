@@ -32,14 +32,14 @@ struct ScreenshotModeBanner: View {
                                 .fill(accent.opacity(0.25))
                                 .frame(width: 26, height: 26)
                             Image(systemName: "camera.viewfinder")
-                                .font(AppFont.scaled(11, weight: .heavy))
+                                .font(AppFont.scaled(11, weight: .semibold))
                                 .foregroundStyle(accent)
                                 .accessibilityHidden(true)
                         }
 
                         VStack(alignment: .leading, spacing: 0) {
                             Text("Screenshot mode")
-                                .font(AppFont.scaled(13, weight: .heavy))
+                                .font(AppFont.scaled(13, weight: .semibold))
                                 .foregroundStyle(AppColor.textPrimary)
                             Text("Tap to exit · your real data is safe")
                                 .font(AppFont.scaled(11))
@@ -49,7 +49,7 @@ struct ScreenshotModeBanner: View {
                         Spacer(minLength: 0)
 
                         Text("Exit")
-                            .font(AppFont.scaled(11, weight: .heavy))
+                            .font(AppFont.scaled(11, weight: .semibold))
                             .tracking(0.5)
                             .textCase(.uppercase)
                             .padding(.horizontal, Spacing.md)
@@ -74,7 +74,7 @@ struct ScreenshotModeBanner: View {
                     }
                 } label: {
                     Image(systemName: "xmark")
-                        .font(AppFont.scaled(11, weight: .heavy))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textSecondary)
                         .frame(width: 28, height: 28)
                         .background {

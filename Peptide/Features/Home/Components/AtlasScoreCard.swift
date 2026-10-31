@@ -35,10 +35,10 @@ struct AtlasScoreCard: View {
             ) {
                 VStack(spacing: 0) {
                     Text("LV")
-                        .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textSecondary)
                     Text("\(momentum.level)")
-                        .font(AppFont.scaled(26, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
+                        .font(AppFont.scaled(26, weight: .medium, relativeTo: .largeTitle))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                         .contentTransition(.numericText())
@@ -55,7 +55,7 @@ struct AtlasScoreCard: View {
                         .foregroundStyle(AppColor.textPrimary)
                 }
                 Text("\(momentum.score) pts")
-                    .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
                     .contentTransition(.numericText())
                 Text(progressLine(momentum))

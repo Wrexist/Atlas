@@ -101,7 +101,7 @@ struct ReconstitutionCalculator: View {
                     .foregroundStyle(AppColor.textSecondary)
                 Spacer()
                 Text("\(formatted(value)) \(unit)")
-                    .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(20, weight: .medium))
                     .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
                     .contentTransition(.numericText())
@@ -146,7 +146,7 @@ struct ReconstitutionCalculator: View {
                     .accessibilityLabel("Amount in micrograms")
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
-                    .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(20, weight: .medium))
                     .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
                     .focused($amountFocused)
@@ -159,7 +159,7 @@ struct ReconstitutionCalculator: View {
                         }
                     }
                 Text("mcg")
-                    .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(20, weight: .medium))
                     .foregroundStyle(AppColor.textPrimary)
             }
             Text("A unit-conversion calculator for educational use. It doesn't recommend an amount. Follow your clinician's instructions.")
@@ -195,7 +195,7 @@ struct ReconstitutionCalculator: View {
                 .foregroundStyle(AppColor.accentLight.opacity(0.85))
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(unitsHeadline)
-                    .font(AppFont.scaled(44, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
+                    .font(AppFont.scaled(44, weight: .light, relativeTo: .largeTitle))
                     .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
                     .contentTransition(.numericText())

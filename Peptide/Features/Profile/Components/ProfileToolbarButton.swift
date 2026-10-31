@@ -28,7 +28,7 @@ struct ProfileToolbarButton: View {
                         .clipShape(Circle())
                 } else {
                     Image(systemName: "person.fill")
-                        .font(AppFont.scaled(13, weight: .heavy))
+                        .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }

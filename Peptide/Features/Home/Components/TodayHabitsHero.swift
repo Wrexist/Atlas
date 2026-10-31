@@ -155,7 +155,7 @@ struct TodayHabitsHero: View {
             if snapshot.dueCount > 0 {
                 VStack(spacing: 0) {
                     Text("\(snapshot.doneCount)/\(snapshot.dueCount)")
-                        .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                         .contentTransition(.numericText())
                     Text("done")

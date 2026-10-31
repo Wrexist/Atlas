@@ -246,12 +246,12 @@ struct TrialOfferView: View {
     private var headline: some View {
         VStack(spacing: Spacing.xs) {
             Text(headlineEyebrow)
-                .font(AppFont.scaled(11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .tracking(2)
                 .foregroundStyle(AppColor.textSecondary)
 
             Text(headlineHero)
-                .font(AppFont.scaled(44, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
+                .font(AppFont.scaled(44, weight: .light, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())
 
@@ -428,7 +428,7 @@ struct TrialOfferView: View {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(tierPrimaryPrice(for: tier))
-                        .font(AppFont.scaled(16, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                     Text(tierPriceUnit(for: tier))
                         .font(AppFont.caption2)

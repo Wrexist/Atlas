@@ -43,7 +43,7 @@ struct BiometricCard: View {
 
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
                     Text(value)
-                        .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(20, weight: .medium))
                         .foregroundStyle(AppColor.textPrimary)
                         .monospacedDigit()
                         .contentTransition(.numericText())
@@ -88,17 +88,17 @@ struct BiometricCard: View {
         HStack(spacing: 4) {
             if let sample {
                 Image(systemName: statusIcon(for: sample))
-                    .font(AppFont.scaled(11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .accessibilityHidden(true)
                 Text(statusLabel(for: sample))
-                    .font(AppFont.scaled(11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .accessibilityLabel(spokenStatus(for: sample))
             } else {
                 Image(systemName: "minus")
-                    .font(AppFont.scaled(11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .accessibilityHidden(true)
                 Text("No data")
-                    .font(AppFont.scaled(11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .semibold))
             }
         }
         .foregroundStyle(sample.map { tint(for: $0) } ?? AppColor.textSecondary)

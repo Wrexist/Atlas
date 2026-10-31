@@ -239,7 +239,7 @@ struct WorkoutSessionDetailView: View {
     private func stat(value: String, label: String) -> some View {
         VStack(alignment: .leading, spacing: Spacing.xxs) {
             Text(value)
-                .font(AppFont.scaled(20, weight: .bold, design: .rounded))
+                .font(AppFont.scaled(20, weight: .medium))
                 .foregroundStyle(AppColor.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
@@ -263,7 +263,7 @@ struct WorkoutSessionDetailView: View {
                 .foregroundStyle(AppColor.textSecondary)
             Spacer()
             Text("\(effort) / 5")
-                .font(AppFont.scaled(13, weight: .bold, design: .rounded))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.textPrimary)
         }
         .padding(Spacing.md)

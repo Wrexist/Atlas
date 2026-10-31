@@ -92,18 +92,18 @@ struct WeeklySummaryDetailView: View {
                         .fill(accent)
                         .frame(width: 64, height: 64)
                     Image(systemName: "chart.bar.doc.horizontal.fill")
-                        .font(AppFont.scaled(26, weight: .heavy, in: .large))
+                        .font(AppFont.scaled(26, weight: .medium, in: .large))
                         .foregroundStyle(AppColor.onAccent)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Weekly recap")
-                        .font(AppFont.scaled(11, weight: .heavy))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .tracking(1.2)
                         .textCase(.uppercase)
                         .foregroundStyle(accent)
                     Text(weekTitle(for: summary.weekStart))
-                        .font(AppFont.scaled(24, weight: .heavy, design: .rounded, relativeTo: .title2))
+                        .font(AppFont.scaled(24, weight: .medium, relativeTo: .title2))
                         .foregroundStyle(AppColor.textPrimary)
                 }
                 Spacer(minLength: 0)

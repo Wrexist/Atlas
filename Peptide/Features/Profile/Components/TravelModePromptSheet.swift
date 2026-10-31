@@ -92,7 +92,7 @@ struct TravelModePromptSheet: View {
                     )
                     GridRow {
                         Image(systemName: "arrow.down")
-                            .font(AppFont.scaled(11, weight: .heavy))
+                            .font(AppFont.scaled(11, weight: .semibold))
                             .foregroundStyle(AppColor.textTertiary)
                             .padding(.leading, 6)
                     }
@@ -109,7 +109,7 @@ struct TravelModePromptSheet: View {
                         .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.accentLight)
                     Text(change.deltaPhrase)
-                        .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(13, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                 }
@@ -120,7 +120,7 @@ struct TravelModePromptSheet: View {
     private func row(eyebrow: String, title: String, tint: Color) -> some View {
         GridRow(alignment: .firstTextBaseline) {
             Text(eyebrow)
-                .font(AppFont.scaled(11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .tracking(0.6)
                 .textCase(.uppercase)
                 .foregroundStyle(tint.opacity(0.85))
@@ -136,20 +136,20 @@ struct TravelModePromptSheet: View {
         GlassCard(tinted: true, padding: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text("Preview")
-                    .font(AppFont.scaled(11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.accentLight.opacity(0.85))
                 HStack(spacing: Spacing.sm) {
                     Text(original)
-                        .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textSecondary)
                     Image(systemName: "arrow.right")
                         .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                     Text(shifted)
-                        .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(20, weight: .medium))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                 }

@@ -54,7 +54,7 @@ struct FastingCard: View {
         ) {
             if let active = store.active {
                 Text(FastingEngine.clock(FastingEngine.elapsed(active, at: now)))
-                    .font(AppFont.scaled(13, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
             } else {

@@ -85,7 +85,7 @@ struct MealStreakBadge: View {
         if currentStreak > 0 {
             HStack(spacing: 4) {
                 Text("\(currentStreak)")
-                    .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
                     .contentTransition(.numericText())

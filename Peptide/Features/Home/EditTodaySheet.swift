@@ -26,7 +26,7 @@ struct EditTodaySheet: View {
                     }
                 } header: {
                     Text("Sections")
-                        .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .tracking(0.8)
                         .foregroundStyle(AppColor.textSecondary)
                 } footer: {

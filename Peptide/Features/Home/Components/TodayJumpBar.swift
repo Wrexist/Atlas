@@ -141,14 +141,14 @@ struct TodayJumpBar: View {
                 // Rotating "+" 45° draws the "×"; under Reduce Motion the
                 // glyph swaps instead so nothing spins.
                 Image(systemName: isQuickLogOpen && reduceMotion ? "xmark" : "plus")
-                    .font(AppFont.scaled(13, weight: .heavy))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .rotationEffect(.degrees(isQuickLogOpen && !reduceMotion ? 45 : 0))
                     .animation(
                         AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion),
                         value: isQuickLogOpen
                     )
                 Text("Log")
-                    .font(AppFont.scaled(13, weight: .heavy))
+                    .font(AppFont.scaled(13, weight: .semibold))
             }
             .foregroundStyle(AppColor.onAccent)
             .padding(.horizontal, Spacing.md)

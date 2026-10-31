@@ -426,7 +426,7 @@ struct BarcodeScanFlow: View {
             Spacer(minLength: 0)
             if manualOverride != nil {
                 Text("✏ Edited")
-                    .font(AppFont.scaled(11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.warning)
                     .padding(.horizontal, Spacing.xs)
                     .padding(.vertical, 2)
@@ -957,7 +957,7 @@ struct BarcodeScanFlow: View {
     private func nutriScorePill(_ score: String) -> some View {
         let palette = Self.nutriScorePalette(score)
         return Text(score.uppercased())
-            .font(AppFont.scaled(13, weight: .heavy))
+            .font(AppFont.scaled(13, weight: .semibold))
             .foregroundStyle(palette.ink)
             .frame(width: nutriScoreDiameter, height: nutriScoreDiameter)
             .background {

@@ -44,8 +44,8 @@ enum AppFont {
         static let all: [CGFloat] = [micro, badge, caption, body, title, heading]
     }
 
-    static let largeTitle  = Font.system(.largeTitle,  design: .rounded, weight: .bold)
-    static let title       = Font.system(.title,       design: .rounded, weight: .bold)
+    static let largeTitle  = Font.system(.largeTitle,                   weight: .semibold)
+    static let title       = Font.system(.title,                        weight: .semibold)
     static let title2      = Font.system(.title2,                        weight: .semibold)
     static let title3      = Font.system(.title3,                        weight: .semibold)
     static let headline    = Font.system(.headline,                      weight: .semibold)
@@ -55,9 +55,9 @@ enum AppFont {
     static let footnote    = Font.system(.footnote,                      weight: .regular)
     static let caption2    = Font.system(.caption2,                      weight: .regular)
 
-    /// The title under each section's marker label. Semibold, not bold
-    /// rounded: section titles are wayfinding, and the screen's one display
-    /// number should be the loudest thing on it.
+    /// The title under each section's marker label. Semibold in the plain
+    /// SF face like every title: section titles are wayfinding, and the
+    /// screen's one display number should be the loudest thing on it.
     static let sectionTitle = Font.system(.title2, weight: .semibold)
 
     // Hero stats. Computed so they re-read the content-size category on each
@@ -81,9 +81,9 @@ enum AppFont {
     static var badgeSmall: Font { scaled(Scale.badge, weight: .semibold, relativeTo: .caption1) }
     static var chipText: Font   { scaled(Scale.caption, weight: .semibold, relativeTo: .caption1) }
 
-    /// Tiny heavy uppercase-style eyebrow label used above stats and in
+    /// Tiny semibold uppercase-style eyebrow label used above stats and in
     /// dense list rows.
-    static var eyebrow: Font    { scaled(Scale.badge, weight: .heavy, relativeTo: .caption1) }
+    static var eyebrow: Font    { scaled(Scale.badge, weight: .semibold, relativeTo: .caption1) }
     /// Section/stat header that sits between `title2` and `statValueSmall`
     /// — used for the headline number on detail screens.
     static var statHeader: Font { scaled(28, weight: .regular, relativeTo: .title1) }

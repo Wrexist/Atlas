@@ -132,7 +132,7 @@ struct GoalCountdownCard: View {
                     appearAnimated: true
                 ) {
                     Text("\(Int((fraction * 100).rounded()))%")
-                        .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                         // The ring is a fixed 56pt; shrink rather than
                         // overflow it at accessibility text sizes.
@@ -158,7 +158,7 @@ struct GoalCountdownCard: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text("Goal reached!")
-                    .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(20, weight: .medium))
                     .foregroundStyle(AppColor.textPrimary)
                 Text("Time to set your next one.")
                     .font(AppFont.caption2)
@@ -176,7 +176,7 @@ struct GoalCountdownCard: View {
         let inFinalWeek = weeks == 0
         return HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
             Text("\(inFinalWeek ? days : weeks)")
-                .font(AppFont.scaled(44, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
+                .font(AppFont.scaled(44, weight: .light, relativeTo: .largeTitle))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())

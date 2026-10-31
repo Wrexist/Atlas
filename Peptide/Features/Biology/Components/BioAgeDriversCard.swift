@@ -82,7 +82,7 @@ struct BioAgeDriversCard: View {
                 Spacer(minLength: Spacing.sm)
 
                 Text(BioAgeFormat.years(shownDelta))
-                    .font(AppFont.scaled(16, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(tint(for: driver.deltaYears))
                     .monospacedDigit()
                     .contentTransition(.numericText(value: shownDelta))

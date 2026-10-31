@@ -11,7 +11,7 @@ struct OnDeviceSummaryToggleRow: View {
             Toggle(isOn: Binding(get: { service.isEnabled }, set: { service.setEnabled($0) })) {
                 HStack(spacing: Spacing.md) {
                     Image(systemName: "sparkles")
-                        .font(AppFont.scaled(16, weight: .heavy))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.accentPrimary)
                         .frame(width: 36, height: 36)
                         .background {

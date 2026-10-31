@@ -114,7 +114,7 @@ struct OutcomeCheckInSheet: View {
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer(minLength: 0)
                     Text("\(value.wrappedValue)")
-                        .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(20, weight: .medium))
                         .monospacedDigit()
                         .foregroundStyle(dimension.tint)
                         .contentTransition(.numericText())
@@ -158,7 +158,7 @@ struct OutcomeCheckInSheet: View {
         let active = rating == current
         return Button(action: action) {
             Text("\(rating)")
-                .font(AppFont.scaled(16, weight: active ? .heavy : .semibold, design: .rounded))
+                .font(AppFont.scaled(16, weight: active ? .heavy : .semibold))
                 .monospacedDigit()
                 .foregroundStyle(active ? AppColor.textPrimary : AppColor.textSecondary)
                 .frame(maxWidth: .infinity)

@@ -81,7 +81,7 @@ struct CardioWorkoutDetailSheet: View {
     private func stat(_ stat: Stat) -> some View {
         VStack(alignment: .leading, spacing: Spacing.xxs) {
             Text(stat.value)
-                .font(AppFont.scaled(20, weight: .bold, design: .rounded))
+                .font(AppFont.scaled(20, weight: .medium))
                 .foregroundStyle(AppColor.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)

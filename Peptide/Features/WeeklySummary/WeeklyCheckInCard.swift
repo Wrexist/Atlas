@@ -41,19 +41,19 @@ struct WeeklyCheckInCard: View {
                     .fill(AppColor.accentFill)
                     .frame(width: 44, height: 44)
                 Image(systemName: "list.bullet.clipboard.fill")
-                    .font(AppFont.scaled(16, weight: .heavy))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.onAccent)
             }
             .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Weekly check-in")
-                    .font(AppFont.scaled(11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .tracking(1.2)
                     .textCase(.uppercase)
                     .foregroundStyle(accent)
                 Text("Last 7 days")
-                    .font(AppFont.scaled(AppFont.Scale.title, weight: .heavy, design: .rounded, relativeTo: .title3))
+                    .font(AppFont.scaled(AppFont.Scale.title, weight: .semibold, relativeTo: .title3))
                     .foregroundStyle(AppColor.textPrimary)
             }
             Spacer(minLength: 0)
@@ -74,7 +74,7 @@ struct WeeklyCheckInCard: View {
                         .foregroundStyle(AppColor.textSecondary)
                     HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                         Text(unit.weightValue(weight.currentKg, fractionDigits: 1...1))
-                            .font(AppFont.scaled(28, weight: .heavy, design: .rounded, relativeTo: .title1))
+                            .font(AppFont.scaled(28, weight: .light, relativeTo: .title1))
                             .foregroundStyle(AppColor.textPrimary)
                             .contentTransition(.numericText())
                         Text(unit.weightSuffix)
@@ -104,7 +104,7 @@ struct WeeklyCheckInCard: View {
     private func changeChip(_ weight: WeeklyCheckIn.Weight) -> some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: changeSymbol(weight.changeKgPerWeek))
-                .font(AppFont.scaled(11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .semibold))
             Text(changeText(weight))
                 .font(AppFont.scaled(13, weight: .semibold))
                 .contentTransition(.numericText())
@@ -208,7 +208,7 @@ struct WeeklyCheckInCard: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text("Next week")
-                    .font(AppFont.scaled(11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .tracking(0.8)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.textSecondary)
@@ -341,7 +341,7 @@ private struct MetricRow: View {
                         .foregroundStyle(AppColor.textSecondary)
                     Spacer(minLength: Spacing.sm)
                     Text(value)
-                        .font(AppFont.scaled(16, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                         .contentTransition(.numericText())
                         .multilineTextAlignment(.trailing)

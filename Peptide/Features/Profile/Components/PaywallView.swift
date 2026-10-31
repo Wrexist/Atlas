@@ -140,7 +140,7 @@ struct PaywallView: View {
             MilestoneArtwork(size: 40, style: .emblem)
             if showsTitle {
                 Text("Atlas Pro")
-                    .font(AppFont.scaled(26, weight: .bold, design: .rounded, relativeTo: .title1))
+                    .font(AppFont.scaled(26, weight: .medium, relativeTo: .title1))
                     .foregroundStyle(AppColor.textPrimary)
             }
         }
@@ -152,7 +152,7 @@ struct PaywallView: View {
     private func contextHeadline(_ headline: String, subhead: String?) -> some View {
         VStack(spacing: Spacing.xs) {
             Text(headline)
-                .font(AppFont.scaled(24, weight: .bold, design: .rounded, relativeTo: .title2))
+                .font(AppFont.scaled(24, weight: .medium, relativeTo: .title2))
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.center)
             if let subhead {
@@ -194,12 +194,12 @@ struct PaywallView: View {
     private var offerHeadline: some View {
         VStack(spacing: Spacing.xs) {
             Text(headlineEyebrow)
-                .font(AppFont.scaled(11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .tracking(2)
                 .foregroundStyle(AppColor.accentLight)
 
             Text(headlineHero)
-                .font(AppFont.scaled(38, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
+                .font(AppFont.scaled(38, weight: .light, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())
                 .lineLimit(1)
@@ -351,7 +351,7 @@ struct PaywallView: View {
     private var featureList: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             Text("What you get")
-                .font(AppFont.scaled(13, weight: .heavy))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .tracking(1)
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -743,7 +743,7 @@ struct PaywallView: View {
     private func planPrice(_ price: String, unit: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 2) {
             Text(price)
-                .font(AppFont.scaled(20, weight: .bold, design: .rounded))
+                .font(AppFont.scaled(20, weight: .medium))
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
             Text(unit)
@@ -770,7 +770,7 @@ struct PaywallView: View {
     @ViewBuilder
     private func savingsPill(_ text: String, isEmphasized: Bool) -> some View {
         let label = Text(text)
-            .font(AppFont.scaled(11, weight: .heavy))
+            .font(AppFont.scaled(11, weight: .semibold))
             .lineLimit(1)
             .fixedSize()
             .padding(.horizontal, Spacing.sm)

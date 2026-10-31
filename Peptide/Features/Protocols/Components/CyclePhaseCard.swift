@@ -45,7 +45,7 @@ struct CyclePhaseCard: View {
                     .textCase(.uppercase)
                     .foregroundStyle(tint)
                 Text(labels.title)
-                    .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
                 Text(labels.subtitle)
                     .font(AppFont.scaled(13))

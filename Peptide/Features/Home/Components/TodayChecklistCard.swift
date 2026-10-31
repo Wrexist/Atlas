@@ -31,7 +31,7 @@ struct TodayChecklistCard: View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             HomeSectionHeader(eyebrow: dayTitle.map { LocalizedStringKey($0) } ?? "Today", title: "Daily checklist") {
                 Text("\(completedCount)/\(totalCount)")
-                    .font(AppFont.scaled(16, weight: .semibold, design: .rounded))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .monospacedDigit()
                     .contentTransition(.numericText())
                     .foregroundStyle(allDone ? AppColor.accentPrimary : AppColor.textSecondary)

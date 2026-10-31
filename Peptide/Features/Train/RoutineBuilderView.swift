@@ -138,7 +138,7 @@ struct RoutineBuilderView: View {
     private func stat(_ value: String, label: LocalizedStringKey) -> some View {
         VStack(spacing: Spacing.xxs) {
             Text(value)
-                .font(AppFont.scaled(24, weight: .bold, design: .rounded))
+                .font(AppFont.scaled(24, weight: .medium))
                 .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())
             Text(label)
@@ -464,7 +464,7 @@ private struct RoutineTargetSheet: View {
                 .foregroundStyle(AppColor.textPrimary)
             Spacer(minLength: 0)
             Text(value)
-                .font(AppFont.scaled(24, weight: .bold, design: .rounded))
+                .font(AppFont.scaled(24, weight: .medium))
                 .foregroundStyle(AppColor.accentLight)
                 .contentTransition(.numericText())
         }

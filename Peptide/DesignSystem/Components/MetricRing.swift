@@ -227,7 +227,7 @@ extension MetricRing where Center == EmptyView {
                 hatchedFraction: 0.30
             ) {
                 Text("17%")
-                    .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(20, weight: .medium))
                     .foregroundStyle(.white)
             }
             MetricRing(
@@ -237,7 +237,7 @@ extension MetricRing where Center == EmptyView {
                 celebrateAtCompletion: true
             ) {
                 Text("85")
-                    .font(AppFont.scaled(30, weight: .heavy, design: .rounded, in: .large))
+                    .font(AppFont.scaled(30, weight: .light, in: .large))
                     .foregroundStyle(.white)
             }
         }
