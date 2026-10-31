@@ -33,7 +33,7 @@ struct StarterRoutineSuggestions: View {
             HStack(spacing: Spacing.md) {
                 Image(systemName: template.symbolName)
                     .font(AppFont.scaled(16, weight: .semibold))
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.textSecondary)
                     .frame(width: 24)
                     .accessibilityHidden(true)
 
@@ -49,9 +49,9 @@ struct StarterRoutineSuggestions: View {
 
                 Spacer(minLength: 0)
 
-                Image(systemName: "plus.circle.fill")
-                    .font(AppFont.scaled(20))
-                    .foregroundStyle(AppColor.accentPrimary)
+                Image(systemName: "plus")
+                    .font(AppFont.scaled(16, weight: .medium))
+                    .foregroundStyle(AppColor.textTertiary)
                     .accessibilityHidden(true)
             }
             .padding(.horizontal, Spacing.md)

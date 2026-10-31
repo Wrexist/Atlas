@@ -423,14 +423,7 @@ struct ProtocolDetailView: View {
                 schedulingPeptide = peptide
             } label: {
                 HStack(spacing: Spacing.md) {
-                    Image(systemName: peptide.imageSystemName)
-                        .font(AppFont.scaled(16))
-                        .foregroundStyle(peptide.category.color)
-                        .frame(width: 32, height: 32)
-                        .background {
-                            RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
-                                .fill(peptide.category.color.opacity(0.15))
-                        }
+                    IconTile(peptide.imageSystemName, size: 32)
                         .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: Spacing.xxs) {

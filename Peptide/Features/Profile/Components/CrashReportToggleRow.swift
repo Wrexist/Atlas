@@ -8,14 +8,7 @@ struct CrashReportToggleRow: View {
     var body: some View {
         Toggle(isOn: $isEnabled) {
             HStack(spacing: Spacing.md) {
-                Image(systemName: "ladybug.fill")
-                    .font(AppFont.scaled(16, weight: .semibold))
-                    .foregroundStyle(AppColor.accentPrimary)
-                    .frame(width: 36, height: 36)
-                    .background {
-                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                            .fill(AppColor.accentPrimary.opacity(0.18))
-                    }
+                IconTile("ladybug.fill", size: 36)
                     .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {

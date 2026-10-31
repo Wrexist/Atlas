@@ -55,6 +55,12 @@ enum AppColor {
         highContrastDark: Color.white.opacity(0.2)
     )
 
+    /// An `IconTile`'s raised face: lit at the top, a step deeper at the
+    /// foot. Sits a shade below the card so the tile reads as a key set
+    /// into it rather than a white square on white.
+    static let tileTop = Color(light: 0xF7F7F4, dark: 0x2A2A27)
+    static let tileBottom = Color(light: 0xE9E8E3, dark: 0x1F1F1D)
+
     // MARK: - Exercise demonstration
 
     static let trainingSelection = Color(light: 0x2465DF, dark: 0x80ADFF)

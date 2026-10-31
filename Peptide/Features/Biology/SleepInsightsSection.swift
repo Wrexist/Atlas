@@ -188,14 +188,7 @@ struct SleepInsightsSection: View {
     }
 
     private func rowIcon(_ icon: String) -> some View {
-        Image(systemName: icon)
-            .font(AppFont.scaled(13, weight: .semibold))
-            .foregroundStyle(AppColor.metricSleep)
-            .frame(width: 28, height: 28)
-            .background {
-                RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
-                    .fill(AppColor.metricSleep.opacity(0.15))
-            }
+        IconTile(icon, size: 28)
             .accessibilityHidden(true)
     }
 

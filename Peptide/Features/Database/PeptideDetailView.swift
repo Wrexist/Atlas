@@ -478,7 +478,7 @@ struct MolecularInfoSection: View {
                                     HStack(spacing: Spacing.sm) {
                                         Image(systemName: "link")
                                             .font(AppFont.scaled(11))
-                                            .foregroundStyle(AppColor.accentPrimary)
+                                            .foregroundStyle(AppColor.textSecondary)
                                             .frame(width: 20)
 
                                         Text("PubChem")
@@ -517,7 +517,7 @@ private struct MolecularRow: View {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: icon)
                     .font(AppFont.scaled(11))
-                    .foregroundStyle(AppColor.accentPrimary)
+                    .foregroundStyle(AppColor.textSecondary)
                     .frame(width: 20)
 
                 Text(label)

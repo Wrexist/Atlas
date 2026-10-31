@@ -831,7 +831,7 @@ struct OnboardingView: View {
         HStack(spacing: Spacing.md) {
             Image(systemName: icon)
                 .font(AppFont.scaled(13, weight: .semibold))
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textSecondary)
                 .frame(width: 22)
             Text(text)
                 .font(AppFont.footnote)
@@ -1160,7 +1160,7 @@ struct OnboardingView: View {
             HStack(spacing: Spacing.md) {
                 Image(systemName: level.icon)
                     .font(AppFont.scaled(20, weight: .semibold))
-                    .foregroundStyle(AppColor.accentPrimary)
+                    .foregroundStyle(AppColor.textSecondary)
                     .frame(width: 40)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(level.title)
@@ -1636,7 +1636,7 @@ struct OnboardingView: View {
         HStack(alignment: .top, spacing: Spacing.md) {
             Image(systemName: icon)
                 .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(AppColor.accentPrimary)
+                .foregroundStyle(AppColor.textSecondary)
                 .frame(width: 24)
             Text(.init(text))
                 .font(AppFont.callout)
@@ -1707,7 +1707,7 @@ struct OnboardingView: View {
             HStack(spacing: Spacing.md) {
                 Image(systemName: icon)
                     .font(AppFont.scaled(20, weight: .semibold))
-                    .foregroundStyle(AppColor.accentPrimary)
+                    .foregroundStyle(AppColor.textSecondary)
                     .frame(width: 36)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)

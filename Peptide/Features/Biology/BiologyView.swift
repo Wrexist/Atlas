@@ -123,10 +123,7 @@ struct BiologyView: View {
                 .padding(.trailing, Spacing.screenPadding)
                 .padding(.bottom, Spacing.lg)
             }
-            .background {
-                CosmicBackdrop(intensity: 0.55)
-                    .ignoresSafeArea()
-            }
+            .pageBackground()
             .navigationTitle("Biology")
             .navigationBarTitleDisplayMode(.large)
             .toolbarBackground(.hidden, for: .navigationBar)

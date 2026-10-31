@@ -118,14 +118,7 @@ struct PeptideScheduleSheet: View {
     private var peptideHeader: some View {
         GlassCard {
             HStack(spacing: Spacing.md) {
-                Image(systemName: peptide.imageSystemName)
-                    .font(AppFont.scaled(16))
-                    .foregroundStyle(peptide.category.color)
-                    .frame(width: 40, height: 40)
-                    .background {
-                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                            .fill(peptide.category.color.opacity(0.15))
-                    }
+                IconTile(peptide.imageSystemName, size: 40)
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(peptide.name)

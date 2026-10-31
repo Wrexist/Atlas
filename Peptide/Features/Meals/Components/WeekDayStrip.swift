@@ -61,11 +61,11 @@ struct WeekDayStrip: View {
                     .font(AppFont.scaled(11, weight: .semibold, relativeTo: .caption1))
                     .foregroundStyle(ink(AppColor.textSecondary, isSelected: isSelected, isSelectable: isSelectable))
                 Text(day, format: .dateTime.day())
-                    .font(AppFont.scaled(16, weight: .bold, relativeTo: .headline))
+                    .font(AppFont.scaled(16, weight: .medium, relativeTo: .headline))
                     .monospacedDigit()
-                    .foregroundStyle(ink(isToday ? AppColor.accentLight : AppColor.textPrimary, isSelected: isSelected, isSelectable: isSelectable))
+                    .foregroundStyle(ink(AppColor.textPrimary, isSelected: isSelected, isSelectable: isSelectable))
                 Circle()
-                    .fill(isSelected ? AppColor.onAccent : AppColor.accentPrimary)
+                    .fill(isSelected ? AppColor.inverseInk : AppColor.accentPrimary)
                     .frame(width: Spacing.xs, height: Spacing.xs)
                     .opacity(hasMeals ? 1 : 0)
             }
@@ -76,7 +76,7 @@ struct WeekDayStrip: View {
             .background {
                 if isSelected {
                     Capsule(style: .continuous)
-                        .fill(AppColor.accentFill)
+                        .fill(AppColor.textPrimary)
                         .matchedGeometryEffect(id: "selectedDay", in: pillNamespace)
                 }
             }
@@ -99,7 +99,7 @@ struct WeekDayStrip: View {
     }
 
     private func ink(_ base: Color, isSelected: Bool, isSelectable: Bool) -> Color {
-        if isSelected { return AppColor.onAccent }
+        if isSelected { return AppColor.inverseInk }
         return isSelectable ? base : AppColor.textTertiary
     }
 

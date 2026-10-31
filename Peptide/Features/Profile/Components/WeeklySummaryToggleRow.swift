@@ -68,14 +68,7 @@ struct WeeklySummaryToggleRow: View {
 
     private func label(isPro: Bool) -> some View {
         HStack(spacing: Spacing.md) {
-            Image(systemName: "sparkles")
-                .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(AppColor.recap)
-                .frame(width: 36, height: 36)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .fill(AppColor.recap.opacity(0.18))
-                }
+            IconTile("sparkles", size: 36)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {

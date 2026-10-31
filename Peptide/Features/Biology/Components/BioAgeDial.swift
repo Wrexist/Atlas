@@ -223,14 +223,14 @@ struct BioAgeDial: View {
 
 #Preview("Locked (no marker)") {
     ZStack {
-        CosmicBackdrop(intensity: 0.55).ignoresSafeArea()
+        PageBackdrop().ignoresSafeArea()
         BioAgeDial(chronologicalAge: 26, bioAge: nil)
     }
 }
 
 #Preview("Unlocked, marker at 24.5") {
     ZStack {
-        CosmicBackdrop(intensity: 0.55).ignoresSafeArea()
+        PageBackdrop().ignoresSafeArea()
         BioAgeDial(chronologicalAge: 26, bioAge: 24.5)
     }
 }

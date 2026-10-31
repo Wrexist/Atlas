@@ -245,14 +245,7 @@ struct PeptideSelector: View {
                     .contentTransition(.symbolEffect(.replace))
                     .accessibilityHidden(true)
 
-                Image(systemName: peptide.imageSystemName)
-                    .font(AppFont.scaled(13))
-                    .foregroundStyle(peptide.category.color)
-                    .frame(width: 28, height: 28)
-                    .background {
-                        RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
-                            .fill(peptide.category.color.opacity(0.15))
-                    }
+                IconTile(peptide.imageSystemName, size: 28)
                     .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {

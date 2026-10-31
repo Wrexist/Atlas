@@ -193,7 +193,7 @@ struct WorkoutHistoryView: View {
         HStack(alignment: .center, spacing: Spacing.md) {
             Image(systemName: workout.activity.symbol)
                 .font(AppFont.scaled(20, weight: .semibold))
-                .foregroundStyle(AppColor.accentPrimary)
+                .foregroundStyle(AppColor.textSecondary)
                 .frame(width: activityIconWidth)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: Spacing.xxs) {

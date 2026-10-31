@@ -842,14 +842,7 @@ private struct PeptideScheduleRow: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: Spacing.md) {
-                Image(systemName: peptide.imageSystemName)
-                    .font(AppFont.scaled(13))
-                    .foregroundStyle(peptide.category.color)
-                    .frame(width: 32, height: 32)
-                    .background {
-                        RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
-                            .fill(peptide.category.color.opacity(0.15))
-                    }
+                IconTile(peptide.imageSystemName, size: 32)
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     HStack(spacing: Spacing.xs) {

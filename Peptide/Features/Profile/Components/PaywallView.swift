@@ -366,7 +366,7 @@ struct PaywallView: View {
         HStack(spacing: Spacing.md) {
             Image(systemName: icon)
                 .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(AppColor.accentLight)
+                .foregroundStyle(AppColor.textSecondary)
                 .frame(width: 24)
                 .accessibilityHidden(true)
 

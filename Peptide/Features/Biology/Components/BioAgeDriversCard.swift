@@ -52,14 +52,7 @@ struct BioAgeDriversCard: View {
         let shownDelta = grown ? driver.deltaYears : 0
         return VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack(spacing: Spacing.md) {
-                Image(systemName: kind.icon)
-                    .font(AppFont.scaled(13, weight: .semibold))
-                    .foregroundStyle(kind.tint)
-                    .frame(width: 32, height: 32)
-                    .background {
-                        RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
-                            .fill(kind.tint.opacity(0.15))
-                    }
+                IconTile(kind.icon, size: 32)
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(kind.displayName)
