@@ -16,31 +16,15 @@ struct BiomarkerSparkline: View {
     let tint: Color
     var height: CGFloat = 24
 
-    @Environment(\.colorScheme) private var colorScheme
-
-    /// Light mode draws the line in ink and keeps the colour for the
-    /// latest reading only: on paper a tinted line plus a tinted fill is
-    /// two washes of colour competing with the number above it.
-    private var lineColor: Color { colorScheme == .light ? AppColor.textPrimary.opacity(0.85) : tint.opacity(0.9) }
+    /// The line is ink and the colour is kept for the latest reading
+    /// only: a tinted line plus a tinted fill is two washes of colour
+    /// competing with the number above it.
+    private var lineColor: Color { AppColor.textPrimary.opacity(0.85) }
 
     var body: some View {
         GeometryReader { geo in
             let normalized = normalizedPoints(in: geo.size)
             ZStack {
-                // Gradient fill under the stroke for depth. Hidden
-                // when fewer than two points — the fill would
-                // render as a triangle, not a sparkline shape.
-                if normalized.count >= 2, colorScheme == .dark {
-                    fillPath(points: normalized, size: geo.size)
-                        .fill(
-                            LinearGradient(
-                                colors: [tint.opacity(0.35), tint.opacity(0.0)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                }
-
                 // The period's mean, so a glance answers "above or below
                 // my normal?" and not just "up or down".
                 if let meanY = meanY(in: geo.size) {
@@ -108,20 +92,6 @@ struct BiomarkerSparkline: View {
         guard let first = points.first else { return path }
         path.move(to: first)
         for point in points.dropFirst() { path.addLine(to: point) }
-        return path
-    }
-
-    /// Stroke path closed along the bottom so the gradient fill
-    /// reads as a soft tinted area below the line, not a random
-    /// polygon.
-    private func fillPath(points: [CGPoint], size: CGSize) -> Path {
-        var path = Path()
-        guard let first = points.first, let last = points.last else { return path }
-        path.move(to: CGPoint(x: first.x, y: size.height))
-        path.addLine(to: first)
-        for point in points.dropFirst() { path.addLine(to: point) }
-        path.addLine(to: CGPoint(x: last.x, y: size.height))
-        path.closeSubpath()
         return path
     }
 }

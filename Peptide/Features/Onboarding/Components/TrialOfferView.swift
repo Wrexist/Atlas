@@ -529,7 +529,7 @@ struct TrialOfferView: View {
                 VStack(spacing: 2) {
                     if isPurchasing {
                         ProgressView()
-                            .tint(AppColor.onAccent)
+                            .tint(AppColor.inverseInk)
                     } else {
                         HStack(spacing: Spacing.sm) {
                             Image(systemName: "sparkles")

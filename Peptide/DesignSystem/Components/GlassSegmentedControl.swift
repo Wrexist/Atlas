@@ -3,8 +3,8 @@ import SwiftUI
 /// The app's one segmented control. The selection pill slides between
 /// segments via `matchedGeometryEffect`, mirroring the system tab bar.
 ///
-/// - `.standard` sits on a glass track with a tinted pill — for picking a
-///   mode inside a card or sheet.
+/// - `.standard` sits on a card-surface track with an ink pill — for
+///   picking a mode inside a card or sheet.
 /// - `.prominent` drops the track and fills the pill with the accent — for
 ///   a screen's top-level section switcher.
 struct GlassSegmentedControl<T: Hashable>: View {
@@ -22,11 +22,6 @@ struct GlassSegmentedControl<T: Hashable>: View {
     @Namespace private var pillNamespace
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @Environment(\.colorScheme) private var colorScheme
-
-    /// Light mode selects with a solid ink pill on a paper track: on the
-    /// warm page a faint accent wash barely reads as "chosen".
-    private var inkSelection: Bool { style == .standard && colorScheme == .light }
 
     var body: some View {
         track
@@ -40,15 +35,9 @@ struct GlassSegmentedControl<T: Hashable>: View {
     private var track: some View {
         switch style {
         case .standard:
-            if inkSelection {
-                segments(spacing: 0)
-                    .padding(Spacing.xs)
-                    .glassSurfaceCapsule()
-            } else {
-                segments(spacing: 0)
-                    .padding(Spacing.xs)
-                    .glassControl(.capsule, interactive: false)
-            }
+            segments(spacing: 0)
+                .padding(Spacing.xs)
+                .glassSurfaceCapsule()
         case .prominent:
             segments(spacing: Spacing.sm)
         }
@@ -107,26 +96,18 @@ struct GlassSegmentedControl<T: Hashable>: View {
 
     private func foreground(isSelected: Bool) -> Color {
         guard isSelected else { return AppColor.textSecondary }
-        return style == .prominent || inkSelection ? AppColor.onAccent : AppColor.textPrimary
+        return style == .prominent ? AppColor.onAccent : AppColor.inverseInk
     }
 
-    /// The moving pill. On the standard track it's a plain tinted capsule
-    /// rather than a second glass surface — stacking `glassEffect` inside an
-    /// already-glass track is what made the control read as a muddy grey
-    /// slab on iOS 26.
+    /// The moving pill. On the standard track a solid ink capsule (a
+    /// faint accent wash barely read as "chosen"); on the prominent style
+    /// the accent itself.
     @ViewBuilder
     private var pill: some View {
         switch style {
-        case .standard where inkSelection:
-            Capsule(style: .continuous)
-                .fill(AppColor.textPrimary)
         case .standard:
             Capsule(style: .continuous)
-                .fill(AppColor.accentPrimary.opacity(0.18))
-                .overlay {
-                    Capsule(style: .continuous)
-                        .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
-                }
+                .fill(AppColor.textPrimary)
         case .prominent:
             Capsule(style: .continuous)
                 .fill(AppColor.accentFill)

@@ -29,16 +29,16 @@ enum AppColor {
     // Glass has something to refract; a true-black backdrop makes the iOS 26
     // material read as flat grey.
     //
-    // Light mode is a warm paper page (the Xeyo look): an off-white
-    // backdrop with near-white cards lifted by a soft shadow rather than
-    // glass. See `glassSurface`.
+    // Both schemes are one design: solid cards on a warm page, not glass.
+    // Light is warm paper with near-white cards lifted by a soft shadow;
+    // dark is warm near-black with charcoal cards. See `glassSurface`.
 
-    static let background = Color(light: 0xF4F4F2, dark: 0x101013)
-    static let surfaceElevated = Color(light: 0xFEFEFD, dark: 0x1C1C21)
+    static let background = Color(light: 0xF4F4F2, dark: 0x0D0D0C)
+    static let surfaceElevated = Color(light: 0xFEFEFD, dark: 0x1A1A18)
     /// Inset wells inside a card (inputs, set rows, chips at rest). In light
     /// mode a step darker than the page so a well still reads on a white
     /// paper card.
-    static let surfaceSecondary = Color(light: 0xF3F3F0, dark: 0x17171B)
+    static let surfaceSecondary = Color(light: 0xF3F3F0, dark: 0x151514)
 
     /// The warm peach wash at the top of a light-mode premium backdrop.
     static let paperGlow = Color(light: 0xF2A27A, dark: 0xF2A27A)
@@ -134,7 +134,7 @@ enum AppColor {
     /// drawn rather than printed. Firms up under Increase Contrast.
     static let paperEdge = Color.adaptive(
         light: Color.black.opacity(0.035),
-        dark: Color.white.opacity(0.08),
+        dark: Color.white.opacity(0.06),
         highContrastLight: Color.black.opacity(0.25),
         highContrastDark: Color.white.opacity(0.25)
     )
@@ -198,14 +198,15 @@ enum AppColor {
     /// across brand themes so the single most important button in the app
     /// is always the same button. Light mode paints it in ink, the black
     /// pill of the Xeyo look; dark mode keeps the violet.
-    static let ctaGradientStart = Color(light: 0x1A1A17, dark: 0x4F46E5)
-    static let ctaGradientEnd = Color(light: 0x34332E, dark: 0x7C3AED)
-    /// Drop shadow under the CTA fill, the same hue as the fill so a
-    /// theme-accent glow never sits under it.
-    static let ctaGlow = Color.adaptive(
-        light: Color.black.opacity(0.16),
-        dark: Color(hex: 0x7C3AED).opacity(0.3)
-    )
+    static let ctaGradientStart = Color(light: 0x1A1A17, dark: 0xF4F4F2)
+    static let ctaGradientEnd = Color(light: 0x34332E, dark: 0xE2E1DC)
+    /// Ink printed on a `textPrimary`-coloured fill: the CTA pill and the
+    /// selected segment. Light on the light-mode ink pill, dark on the
+    /// dark-mode near-white one.
+    static let inverseInk = Color(light: 0xFCFCFD, dark: 0x1A1A17)
+    /// Drop shadow under the CTA fill. Neutral, so no theme colour glows
+    /// under a neutral button.
+    static let ctaGlow = Color.black.opacity(0.18)
 
     /// Hero-ring identities. Adherence follows the brand accent; Recovery and
     /// Sleep get their own hues so the three rings stay tellable apart at a

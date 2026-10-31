@@ -934,7 +934,7 @@ struct PaywallView: View {
                 } else if isPurchasing {
                     ProgressView()
                         .progressViewStyle(.circular)
-                        .tint(AppColor.onAccent)
+                        .tint(AppColor.inverseInk)
                 } else {
                     Text(ctaTitle)
                         .font(AppFont.scaled(16, weight: .bold))
