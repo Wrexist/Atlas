@@ -22,11 +22,7 @@ struct MealDaySwitcher: View {
                 .simultaneousGesture(weekSwipe)
         }
         .padding(Spacing.xs)
-        .glassControl(
-            .rect(cornerRadius: Spacing.controlCornerRadius),
-            tint: AppColor.accentPrimary.opacity(0.08),
-            border: AppColor.glassBorder
-        )
+        .glassSurface(cornerRadius: Spacing.controlCornerRadius)
     }
 
     private var header: some View {

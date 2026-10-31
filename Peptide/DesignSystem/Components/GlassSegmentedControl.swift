@@ -5,8 +5,9 @@ import SwiftUI
 ///
 /// - `.standard` sits on a card-surface track with an ink pill — for
 ///   picking a mode inside a card or sheet.
-/// - `.prominent` drops the track and fills the pill with the accent — for
-///   a screen's top-level section switcher.
+/// - `.prominent` drops the track and keeps the same ink pill — for a
+///   screen's top-level section switcher. One pill colour everywhere, so
+///   "selected" reads the same at every level.
 struct GlassSegmentedControl<T: Hashable>: View {
     enum Style {
         case standard
@@ -95,23 +96,15 @@ struct GlassSegmentedControl<T: Hashable>: View {
     }
 
     private func foreground(isSelected: Bool) -> Color {
-        guard isSelected else { return AppColor.textSecondary }
-        return style == .prominent ? AppColor.onAccent : AppColor.inverseInk
+        isSelected ? AppColor.inverseInk : AppColor.textSecondary
     }
 
-    /// The moving pill. On the standard track a solid ink capsule (a
-    /// faint accent wash barely read as "chosen"); on the prominent style
-    /// the accent itself.
-    @ViewBuilder
+    /// The moving pill: a solid ink capsule on both styles (a faint
+    /// accent wash barely read as "chosen", and an accent pill on top of
+    /// an ink one below it looked like two different controls).
     private var pill: some View {
-        switch style {
-        case .standard:
-            Capsule(style: .continuous)
-                .fill(AppColor.textPrimary)
-        case .prominent:
-            Capsule(style: .continuous)
-                .fill(AppColor.accentFill)
-        }
+        Capsule(style: .continuous)
+            .fill(AppColor.textPrimary)
     }
 }
 

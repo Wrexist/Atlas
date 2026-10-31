@@ -164,7 +164,7 @@ struct HeroMetricDetailSheet: View {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(kind.label)
                     .font(AppFont.title)
-                    .fontWeight(.heavy)
+                    .fontWeight(.semibold)
                     .foregroundStyle(AppColor.textPrimary)
                 if let line = supportingLine {
                     Text(line)
