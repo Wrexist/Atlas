@@ -53,6 +53,6 @@ final class AppThemeColorTests: XCTestCase {
     }
 
     func test_appThemeColor_caseCount_matchesSpec() {
-        XCTAssertEqual(AppThemeColor.allCases.count, 5)
+        XCTAssertEqual(AppThemeColor.allCases.count, 6)
     }
 }
