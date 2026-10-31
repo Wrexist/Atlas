@@ -45,13 +45,6 @@ struct TodayJumpBar: View {
             }
         }
 
-        var accent: Color {
-            switch self {
-            case .doses:    AppColor.accentPrimary
-            case .wellness: AppColor.metricHRV
-            case .movement: AppColor.metricActivity
-            }
-        }
     }
 
     let activeAnchor: SectionAnchor?
@@ -104,23 +97,20 @@ struct TodayJumpBar: View {
         } label: {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: anchor.systemImage)
-                    .font(AppFont.scaled(11, weight: .bold))
-                    .foregroundStyle(isActive ? AppColor.onAccent : anchor.accent)
+                    .font(AppFont.scaled(11, weight: .medium))
+                    .symbolRenderingMode(.monochrome)
                 Text(anchor.label)
-                    .font(AppFont.scaled(13, weight: .semibold))
-                    .foregroundStyle(isActive ? AppColor.onAccent : AppColor.textPrimary)
+                    .font(AppFont.scaled(13, weight: .medium))
             }
+            .foregroundStyle(isActive ? AppColor.inverseInk : AppColor.textPrimary)
             .padding(.horizontal, Spacing.md)
             .frame(minHeight: 36)
             .background {
                 ZStack {
-                    Capsule()
-                        .fill(AppColor.surfaceSecondary.opacity(0.65))
-                        .overlay { Capsule().strokeBorder(AppColor.glassBorder, lineWidth: 0.5) }
+                    Color.clear.glassSurfaceCapsule()
                     if isActive {
                         Capsule()
-                            .fill(anchor.accent)
-                            .overlay { Capsule().strokeBorder(AppColor.onAccent.opacity(0.25), lineWidth: 0.5) }
+                            .fill(AppColor.textPrimary)
                             .matchedGeometryEffect(id: "activePill", in: activePill)
                     }
                 }
@@ -153,8 +143,7 @@ struct TodayJumpBar: View {
             .foregroundStyle(AppColor.onAccent)
             .padding(.horizontal, Spacing.md)
             .frame(minHeight: 36)
-            // The user's theme accent, not the fixed purple CTA
-            // gradient that clashed with every other theme.
+            // The one accent on the bar: the action, not the navigation.
             .background { Capsule().fill(AppColor.accentFill) }
             .minimumHitArea()
         }

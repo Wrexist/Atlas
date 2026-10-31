@@ -48,7 +48,7 @@ struct ResearchLinksSection: View {
         HStack(alignment: .top, spacing: Spacing.md) {
             Image(systemName: "doc.fill")
                 .font(AppFont.scaled(13))
-                .foregroundStyle(AppColor.accentPrimary)
+                .foregroundStyle(AppColor.textSecondary)
                 .frame(width: 20)
                 .accessibilityHidden(true)
 

@@ -588,24 +588,27 @@ struct PeptideApp: App {
     private var coreTabView: some View {
         TabView(selection: userTabSelection) {
             Tab("Today", systemImage: "house.fill", value: .today) {
-                HomeContainerView()
+                HomeContainerView().tint(AppColor.accentPrimary)
             }
             Tab("Train", systemImage: "dumbbell.fill", value: .train) {
-                TrainContainerView()
+                TrainContainerView().tint(AppColor.accentPrimary)
             }
             Tab("Meals", systemImage: "fork.knife", value: .meals) {
-                MealsContainerView()
+                MealsContainerView().tint(AppColor.accentPrimary)
             }
             Tab("Biology", systemImage: "heart.fill", value: .biology) {
-                BiologyView()
+                BiologyView().tint(AppColor.accentPrimary)
             }
             Tab("Habits", systemImage: "star.fill", value: .habits) {
-                HabitsView()
+                HabitsView().tint(AppColor.accentPrimary)
             }
         }
         // A tab bar on iPhone; on iPad, a top tab bar that expands into a
         // sidebar, so the wide screen isn't framed by a phone-style bar.
         .tabViewStyle(.sidebarAdaptable)
+        // The bar is navigation, so it is ink like the rest of the chrome;
+        // each tab's content takes the accent back for its own controls.
+        .tint(AppColor.textPrimary)
     }
 
     @ViewBuilder

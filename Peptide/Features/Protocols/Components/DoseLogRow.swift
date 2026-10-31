@@ -11,14 +11,7 @@ struct DoseLogRow: View {
                 .contentTransition(.symbolEffect(.replace))
                 .symbolEffect(.bounce, value: entry.completed)
 
-            Image(systemName: entry.peptide.imageSystemName)
-                .font(AppFont.scaled(11))
-                .foregroundStyle(entry.peptide.category.color)
-                .frame(width: 24, height: 24)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
-                        .fill(entry.peptide.category.color.opacity(0.15))
-                }
+            IconTile(entry.peptide.imageSystemName, size: 24)
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(entry.peptide.abbreviation)

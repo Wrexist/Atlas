@@ -21,9 +21,6 @@ struct EmptyStateView: View {
     let icon: String
     let title: LocalizedStringKey
     let message: LocalizedStringKey
-    /// Fills the hero medallion under an `onAccent` glyph, so pass a
-    /// fill-weight colour.
-    var accent: Color = AppColor.accentFill
     var action: Action? = nil
     /// Secondary hint or affordance below the primary CTA. Renders
     /// as a ghost text button without a background, so it reads as
@@ -100,20 +97,12 @@ struct EmptyStateView: View {
         }
     }
 
-    /// Accent-filled circle hosting the SF Symbol, so the hero card has a
+    /// A large raised key hosting the SF Symbol, so the hero card has a
     /// focal point without a custom illustration per empty-state surface.
     /// Decorative: the title below says what's empty.
     private var heroMedallion: some View {
-        ZStack {
-            Circle()
-                .fill(accent)
-                .frame(width: 72, height: 72)
-            Image(systemName: icon)
-                .font(AppFont.scaled(30, weight: .light, in: .large))
-                .foregroundStyle(AppColor.onAccent)
-        }
-        .padding(.top, Spacing.sm)
-        .accessibilityHidden(true)
+        IconTile(icon, size: 72)
+            .padding(.top, Spacing.sm)
     }
 
     // MARK: - Compact treatment (in-card)
@@ -179,21 +168,6 @@ struct EmptyStateView: View {
             message: "Create your first peptide protocol to start tracking doses, streaks, and adherence.",
             action: .init(title: "Create Protocol", icon: "plus", perform: {}),
             secondary: .init(title: "Browse the library", icon: "magnifyingglass", perform: {})
-        )
-        .padding(Spacing.screenPadding)
-    }
-    .preferredColorScheme(.dark)
-}
-
-#Preview("Tinted accent") {
-    ZStack {
-        AppColor.background.ignoresSafeArea()
-        EmptyStateView(
-            icon: "chart.line.uptrend.xyaxis",
-            title: "No data yet",
-            message: "Log a few doses to see adherence, streaks, and correlation trends here.",
-            accent: Color(red: 0.40, green: 0.74, blue: 0.92),
-            action: .init(title: "Create a Protocol", icon: "plus", perform: {})
         )
         .padding(Spacing.screenPadding)
     }

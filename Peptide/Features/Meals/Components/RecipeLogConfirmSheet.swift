@@ -74,14 +74,7 @@ struct RecipeLogConfirmSheet: View {
 
     private var headerCard: some View {
         HStack(spacing: Spacing.md) {
-            Image(systemName: "list.bullet.rectangle.fill")
-                .font(AppFont.scaled(20, weight: .semibold))
-                .foregroundStyle(AppColor.accentLight)
-                .frame(width: 56, height: 56)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.controlCornerRadius, style: .continuous)
-                        .fill(AppColor.accentPrimary.opacity(0.18))
-                }
+            IconTile("list.bullet.rectangle.fill", size: 56)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(recipe.name)

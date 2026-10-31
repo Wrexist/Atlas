@@ -13,6 +13,10 @@ enum AppShadow {
     /// lands on a near-black page.
     static let paperContact = Shadow(color: ink(light: 0.04, dark: 0.5), radius: 1.5, x: 0, y: 1)
     static let paperAmbient = Shadow(color: ink(light: 0.07, dark: 0.45), radius: 28, x: 0, y: 14)
+    /// An `IconTile`'s drop: the key's edge on the card, then a short lift.
+    static let tileContact = Shadow(color: ink(light: 0.08, dark: 0.6), radius: 0.5, x: 0, y: 0.5)
+    static let tileDrop = Shadow(color: ink(light: 0.06, dark: 0.35), radius: 4, x: 0, y: 2)
+    static var accentTile: Shadow { Shadow(color: AppColor.accentPrimary.opacity(0.28), radius: 6, x: 0, y: 3) }
     static var accentGlow: Shadow { Shadow(color: AppColor.accentPrimary.opacity(0.3), radius: 12, x: 0, y: 4) }
 
     private static func ink(light: Double, dark: Double) -> Color {

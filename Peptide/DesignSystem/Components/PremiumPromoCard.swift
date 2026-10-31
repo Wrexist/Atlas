@@ -79,11 +79,7 @@ struct PremiumPromoCard<Trailing: View>: View {
             }
             .padding(Spacing.lg)
             .background {
-                // Backdrop lifted to its own component so the
-                // Biology tab and future premium surfaces can sit
-                // on the same starfield without duplicating the
-                // gradient + Canvas dance.
-                CosmicBackdrop()
+                GlowBackdrop()
             }
             .clipShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous))
             .overlay {
@@ -161,10 +157,6 @@ struct BrandGlyphMark: View {
         MilestoneArtwork(size: 70, style: .emblem, isActive: false)
     }
 }
-
-// SplitMix64 + starfield Canvas moved to CosmicBackdrop.swift so
-// the Biology tab can sit on the same backdrop without each
-// premium surface re-implementing the math.
 
 #Preview {
     ZStack {

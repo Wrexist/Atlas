@@ -10,14 +10,7 @@ struct OnDeviceSummaryToggleRow: View {
         if service.isSupported {
             Toggle(isOn: Binding(get: { service.isEnabled }, set: { service.setEnabled($0) })) {
                 HStack(spacing: Spacing.md) {
-                    Image(systemName: "sparkles")
-                        .font(AppFont.scaled(16, weight: .semibold))
-                        .foregroundStyle(AppColor.accentPrimary)
-                        .frame(width: 36, height: 36)
-                        .background {
-                            RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                                .fill(AppColor.accentPrimary.opacity(0.18))
-                        }
+                    IconTile("sparkles", size: 36)
                         .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: Spacing.xxs) {

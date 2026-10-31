@@ -311,14 +311,7 @@ private struct DailyPlanDoseRow: View {
 
     private var topRow: some View {
         HStack(spacing: Spacing.sm) {
-            Image(systemName: dose.entry.peptide.imageSystemName)
-                .font(AppFont.scaled(13))
-                .foregroundStyle(dose.entry.peptide.category.color)
-                .frame(width: 26, height: 26)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
-                        .fill(dose.entry.peptide.category.color.opacity(0.15))
-                }
+            IconTile(dose.entry.peptide.imageSystemName, size: 26)
                 .symbolEffect(.bounce, value: dose.entry.completed)
                 .accessibilityHidden(true)
 
@@ -368,7 +361,7 @@ private struct DailyPlanDoseRow: View {
         HStack(alignment: .top, spacing: Spacing.xs) {
             Image(systemName: "link")
                 .font(AppFont.scaled(11, weight: .semibold))
-                .foregroundStyle(AppColor.accentPrimary)
+                .foregroundStyle(AppColor.textSecondary)
                 .frame(width: 14)
             VStack(alignment: .leading, spacing: 1) {
                 Text("Often researched with \(combo.withAbbreviation)")

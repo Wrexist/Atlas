@@ -414,7 +414,7 @@ struct BioAgeHeroSection: View {
 
 #Preview("Locked") {
     ZStack {
-        CosmicBackdrop(intensity: 0.55).ignoresSafeArea()
+        PageBackdrop().ignoresSafeArea()
         BioAgeHeroSection(
             state: .locked,
             chronologicalAge: 26
@@ -424,7 +424,7 @@ struct BioAgeHeroSection: View {
 
 #Preview("Building (4 of 15 days)") {
     ZStack {
-        CosmicBackdrop(intensity: 0.55).ignoresSafeArea()
+        PageBackdrop().ignoresSafeArea()
         BioAgeHeroSection(
             state: .building(days: 4, requiredDays: 15),
             chronologicalAge: 26
@@ -434,7 +434,7 @@ struct BioAgeHeroSection: View {
 
 #Preview("Unlocked") {
     ZStack {
-        CosmicBackdrop(intensity: 0.55).ignoresSafeArea()
+        PageBackdrop().ignoresSafeArea()
         BioAgeHeroSection(
             state: .unlocked(estimate: .init(
                 biologicalAge: 24.5,

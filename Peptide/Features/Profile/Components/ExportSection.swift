@@ -159,7 +159,7 @@ struct ExportSection: View {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: icon)
                     .font(AppFont.scaled(11, weight: .semibold))
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.textSecondary)
                     .frame(width: 18)
                 Text(title)
                     .font(AppFont.scaled(13, weight: .semibold))

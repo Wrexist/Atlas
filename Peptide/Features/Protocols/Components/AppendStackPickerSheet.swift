@@ -56,13 +56,7 @@ struct AppendStackPickerSheet: View {
         } label: {
             GlassCard(tinted: isSelected) {
                 HStack(spacing: Spacing.md) {
-                    Image(systemName: proto.status.iconName)
-                        .font(AppFont.scaled(16))
-                        .foregroundStyle(proto.status.color)
-                        .frame(width: 28, height: 28)
-                        .background {
-                            Circle().fill(proto.status.color.opacity(0.15))
-                        }
+                    IconTile(proto.status.iconName, size: 28, silhouette: .circle)
                         .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: Spacing.xxs) {

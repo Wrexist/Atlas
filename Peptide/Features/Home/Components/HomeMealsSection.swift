@@ -406,14 +406,7 @@ struct HomeMealsSection: View {
 
     private var targetsPrompt: some View {
         HStack(alignment: .top, spacing: Spacing.md) {
-            Image(systemName: "sparkles")
-                .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(AppColor.accentLight)
-                .frame(width: 36, height: 36)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .fill(AppColor.accentPrimary.opacity(0.18))
-                }
+            IconTile("sparkles", size: 36)
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text("Set your daily targets first")

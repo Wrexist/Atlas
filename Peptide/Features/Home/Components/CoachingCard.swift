@@ -82,13 +82,7 @@ struct CoachingCard: View {
     }
 
     private var iconBadge: some View {
-        Image(systemName: message.icon)
-            .font(AppFont.scaled(16, weight: .semibold))
-            .foregroundStyle(toneColor)
-            .frame(width: 38, height: 38)
-            .background {
-                Circle().fill(toneColor.opacity(0.18))
-            }
+        IconTile(message.icon, size: 38, silhouette: .circle)
     }
 
     private var toneColor: Color {

@@ -233,7 +233,7 @@ struct RecipeEditorSheet: View {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "fork.knife")
                     .font(AppFont.scaled(13, weight: .semibold))
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.textSecondary)
                     .frame(width: 22)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(food?.name ?? component.cachedName)

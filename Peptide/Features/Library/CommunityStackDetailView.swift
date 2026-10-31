@@ -227,14 +227,7 @@ struct CommunityStackDetailView: View {
 
     private func peptideRow(_ peptide: Peptide) -> some View {
         HStack(spacing: Spacing.md) {
-            Image(systemName: peptide.imageSystemName)
-                .font(AppFont.scaled(16))
-                .foregroundStyle(peptide.category.color)
-                .frame(width: 32, height: 32)
-                .background(
-                    RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
-                        .fill(peptide.category.color.opacity(0.15))
-                )
+            IconTile(peptide.imageSystemName, size: 32)
             VStack(alignment: .leading, spacing: 2) {
                 Text(peptide.abbreviation)
                     .font(AppFont.headline)
