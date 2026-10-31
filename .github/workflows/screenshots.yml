@@ -28,6 +28,12 @@ on:
         default: ""
         type: string
 
+      publish_branch:
+        description: "Also push the PNGs to this throwaway branch (blank = artifact only). Cloud sessions can't download artifacts but can fetch a branch."
+        required: false
+        default: ""
+        type: string
+
 permissions:
   contents: read
 
@@ -148,3 +154,30 @@ jobs:
           path: screenshots/**
           if-no-files-found: warn
           retention-days: 14
+
+  publish:
+    needs: screenshots
+    if: ${{ always() && inputs.publish_branch != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: app-screenshots
+          path: out
+
+      - name: Push screenshots to the throwaway branch
+        env:
+          BRANCH: ${{ inputs.publish_branch }}
+          REPO: ${{ github.repository }}
+          TOKEN: ${{ github.token }}
+        run: |
+          cd out
+          find . -type f ! -name '*.png' ! -name 'manifest.json' -delete
+          git init -q -b "$BRANCH"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Screenshots from run ${{ github.run_id }}"
+          git push -f "https://x-access-token:${TOKEN}@github.com/${REPO}.git" "HEAD:refs/heads/${BRANCH}"
