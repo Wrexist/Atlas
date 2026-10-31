@@ -31,7 +31,7 @@ struct WelcomeHeader: View {
 
                     Text(displayName)
                         .font(AppFont.largeTitle)
-                        .foregroundStyle(AppColor.accentLight)
+                        .foregroundStyle(AppColor.textPrimary)
                 }
 
                 Text(date)
@@ -76,22 +76,23 @@ struct WelcomeHeader: View {
                     }
             } else {
                 Circle()
-                    .fill(AppColor.accentPrimary.opacity(0.2))
+                    .fill(LinearGradient(colors: [AppColor.tileTop, AppColor.tileBottom], startPoint: .top, endPoint: .bottom))
                     .frame(width: 52, height: 52)
                     .overlay {
                         Circle()
-                            .strokeBorder(AppColor.glassBorderActive, lineWidth: 1)
+                            .strokeBorder(AppColor.paperEdge, lineWidth: 0.5)
                     }
+                    .appShadow(AppShadow.tileDrop)
 
                 if displayName.isEmpty {
                     Image(systemName: "person.fill")
                         .font(AppFont.scaled(20))
-                        .foregroundStyle(AppColor.accentLight)
+                        .foregroundStyle(AppColor.textPrimary)
                         .symbolEffect(.bounce, value: iconBounce)
                 } else {
                     Text(String(displayName.prefix(1)))
                         .font(AppFont.title2)
-                        .foregroundStyle(AppColor.accentLight)
+                        .foregroundStyle(AppColor.textPrimary)
                 }
             }
         }
