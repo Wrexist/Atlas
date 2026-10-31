@@ -9,7 +9,7 @@ struct WorkoutSaveStatusView: View {
         ScrollView {
             VStack(spacing: Spacing.xxl) {
                 if saving {
-                    ProgressView().controlSize(.large).tint(AppColor.recapAction)
+                    ProgressView().controlSize(.large).tint(AppColor.accentPrimary)
                     Text("Saving workout…").font(AppFont.title2)
                 } else {
                     Image(systemName: "exclamationmark.circle").font(AppFont.scaled(52, weight: .regular, relativeTo: .largeTitle))

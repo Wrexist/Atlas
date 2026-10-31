@@ -26,8 +26,8 @@ struct WorkoutSocialCanvas: View {
         .padding(.top, layout == .tall ? 48 : 24)
         .padding(.bottom, layout == .tall ? 64 : 24)
         .frame(width: options.format.logicalSize.width, height: options.format.logicalSize.height)
-        .foregroundStyle(AppColor.recapText)
-        .background(AppColor.recapBackground)
+        .foregroundStyle(AppColor.textPrimary)
+        .background(AppColor.background)
         .environment(\.colorScheme, .dark)
         .environment(\.dynamicTypeSize, .large)
     }
@@ -70,7 +70,7 @@ struct WorkoutSocialCanvas: View {
             Image("AtlasLogo").resizable().scaledToFit().frame(width: 22, height: 22)
             Text("ATLAS").font(.subheadline.weight(.semibold)).tracking(3)
             Spacer()
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(AppColor.recapSuccess)
+            Image(systemName: "checkmark.circle.fill").foregroundStyle(AppColor.positive)
         }
     }
 
@@ -81,7 +81,7 @@ struct WorkoutSocialCanvas: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             if options.includeDate, let date = summary.session.finishedAt {
                 Text(date.formatted(date: .abbreviated, time: .omitted))
-                    .font(.caption).foregroundStyle(AppColor.recapSecondary)
+                    .font(.caption).foregroundStyle(AppColor.textSecondary)
             }
         }
     }
@@ -95,7 +95,7 @@ struct WorkoutSocialCanvas: View {
             }
         }
         .padding(12)
-        .background(AppColor.recapCard, in: RoundedRectangle(cornerRadius: 16))
+        .background(AppColor.surfaceElevated, in: RoundedRectangle(cornerRadius: 16))
     }
 
     private var anatomy: some View {
@@ -121,7 +121,7 @@ struct WorkoutSocialCanvas: View {
     private func metric(_ value: String, label: String) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(value).font(.headline).monospacedDigit().fixedSize(horizontal: false, vertical: true)
-            Text(label).font(.caption2).foregroundStyle(AppColor.recapSecondary)
+            Text(label).font(.caption2).foregroundStyle(AppColor.textSecondary)
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
 

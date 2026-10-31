@@ -109,11 +109,11 @@ struct WeeklySummaryHeroCard: View {
 
                     HStack(spacing: Spacing.xs) {
                         Text("Read full recap")
-                            .font(AppFont.scaled(13, weight: .heavy))
+                            .font(AppFont.scaled(13, weight: .semibold))
                             .tracking(0.4)
                             .textCase(.uppercase)
                         Image(systemName: "arrow.right")
-                            .font(AppFont.scaled(11, weight: .heavy))
+                            .font(AppFont.scaled(11, weight: .semibold))
                     }
                     .foregroundStyle(accent)
                     .padding(.top, Spacing.xs)
@@ -163,9 +163,9 @@ struct WeeklySummaryHeroCard: View {
                     Button(action: onRetry) {
                         HStack(spacing: Spacing.xs) {
                             Image(systemName: "arrow.clockwise")
-                                .font(AppFont.scaled(11, weight: .heavy))
+                                .font(AppFont.scaled(11, weight: .semibold))
                             Text("Try again")
-                                .font(AppFont.scaled(13, weight: .heavy))
+                                .font(AppFont.scaled(13, weight: .semibold))
                                 .tracking(0.4)
                                 .textCase(.uppercase)
                         }
@@ -199,7 +199,7 @@ struct WeeklySummaryHeroCard: View {
     private func eyebrowRow(badge: String?) -> some View {
         HStack(spacing: Spacing.sm) {
             Text("Weekly recap")
-                .font(AppFont.scaled(11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .tracking(1.2)
                 .textCase(.uppercase)
                 .foregroundStyle(accent)
@@ -212,9 +212,9 @@ struct WeeklySummaryHeroCard: View {
                 // with an icon makes it unmissable without screaming.
                 HStack(spacing: 3) {
                     Image(systemName: "wifi.slash")
-                        .font(AppFont.scaled(8, weight: .heavy))
+                        .font(AppFont.scaled(8, weight: .semibold))
                     Text(badge)
-                        .font(AppFont.scaled(11, weight: .heavy))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .tracking(0.8)
                 }
                 .padding(.horizontal, 7)
@@ -239,20 +239,20 @@ struct WeeklySummaryHeroCard: View {
                     .fill(accent)
                     .frame(width: 44, height: 44)
                 Image(systemName: "chart.bar.doc.horizontal.fill")
-                    .font(AppFont.scaled(16, weight: .heavy))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.onAccent)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(AppFont.scaled(AppFont.Scale.title, weight: .heavy, design: .rounded, relativeTo: .title3))
+                    .font(AppFont.scaled(AppFont.Scale.title, weight: .semibold, relativeTo: .title3))
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.leading)
                     .lineLimit(2)
                 if aiBadge {
                     HStack(spacing: 4) {
                         Image(systemName: "sparkles")
-                            .font(AppFont.scaled(8, weight: .heavy))
+                            .font(AppFont.scaled(8, weight: .semibold))
                         Text("Personalized by AI")
                             .font(AppFont.scaled(11, weight: .semibold))
                     }

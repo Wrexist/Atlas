@@ -21,7 +21,7 @@ struct ScanInsightCard: View {
                 if let totalPrice {
                     VStack(alignment: .trailing, spacing: 0) {
                         Text(totalPrice.formatted)
-                            .font(AppFont.scaled(16, weight: .bold, design: .rounded))
+                            .font(AppFont.scaled(16, weight: .semibold))
                             .foregroundStyle(AppColor.textPrimary)
                             .monospacedDigit()
                             .contentTransition(.numericText())

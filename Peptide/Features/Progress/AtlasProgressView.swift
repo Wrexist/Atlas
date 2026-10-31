@@ -83,7 +83,7 @@ struct AtlasProgressView: View {
 
             HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
                 Text("\(momentum.score)")
-                    .font(AppFont.scaled(40, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
+                    .font(AppFont.scaled(40, weight: .light, relativeTo: .largeTitle))
                     .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
                     .contentTransition(.numericText())
@@ -163,7 +163,7 @@ struct AtlasProgressView: View {
                 .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(current > 0 ? tint : AppColor.textTertiary)
             Text("\(current)")
-                .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(20, weight: .medium))
                 .monospacedDigit()
                 .contentTransition(.numericText())
                 .foregroundStyle(AppColor.textPrimary)
@@ -174,7 +174,7 @@ struct AtlasProgressView: View {
             // its own number back.
             if current > 0 && current >= best {
                 Text("Personal best")
-                    .font(AppFont.scaled(11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
             } else {
                 Text("Best \(best)")
@@ -203,7 +203,7 @@ struct AtlasProgressView: View {
             if let rate30 {
                 HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
                     Text("\(Int((rate30 * 100).rounded()))%")
-                        .font(AppFont.scaled(36, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
+                        .font(AppFont.scaled(36, weight: .light, relativeTo: .largeTitle))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                     Text("last 30 days")

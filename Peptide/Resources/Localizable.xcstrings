@@ -6273,6 +6273,16 @@
         }
       }
     },
+    "Ember": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glöd"
+          }
+        }
+      }
+    },
     "Ends the fast that's running and tells you how long it lasted.": {
       "localizations": {
         "sv": {
@@ -6321,6 +6331,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fastan avslutades efter %@. Du nådde ditt mål på %lld timmar."
+          }
+        }
+      }
+    },
+    "Fewer": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Färre"
           }
         }
       }

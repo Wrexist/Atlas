@@ -119,13 +119,13 @@ struct BiomarkerDetailSheet: View {
         VStack(alignment: .leading, spacing: Spacing.xxs) {
             HStack(alignment: .lastTextBaseline, spacing: Spacing.sm) {
                 Text(latestValueString)
-                    .font(AppFont.scaled(48, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
+                    .font(AppFont.scaled(48, weight: .light, relativeTo: .largeTitle))
                     .foregroundStyle(AppColor.textPrimary)
                     .monospacedDigit()
                     .contentTransition(.numericText())
                 if let unitString = biomarker.displayUnit(for: unit) {
                     Text(unitString)
-                        .font(AppFont.scaled(16, weight: .heavy))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textSecondary)
                 }
                 Spacer(minLength: 0)
@@ -180,9 +180,9 @@ struct BiomarkerDetailSheet: View {
         }()
         return HStack(spacing: Spacing.xs) {
             Image(systemName: icon)
-                .font(AppFont.scaled(11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .semibold))
             Text(label)
-                .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(11, weight: .semibold))
         }
         .foregroundStyle(tint)
         .padding(.horizontal, Spacing.sm)
@@ -418,7 +418,7 @@ struct BiomarkerDetailSheet: View {
     ) -> some View {
         VStack(spacing: Spacing.xxs) {
             Text(calloutValue(for: sample))
-                .font(AppFont.scaled(13, weight: .bold, design: .rounded))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
             Text(dayLabel(for: sample.date))

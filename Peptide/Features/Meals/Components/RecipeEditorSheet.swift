@@ -161,7 +161,7 @@ struct RecipeEditorSheet: View {
     private func macroPill(value: String, label: LocalizedStringKey, tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(value)
-                .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())

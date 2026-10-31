@@ -3,10 +3,11 @@ import SwiftUI
 /// The app's one segmented control. The selection pill slides between
 /// segments via `matchedGeometryEffect`, mirroring the system tab bar.
 ///
-/// - `.standard` sits on a glass track with a tinted pill — for picking a
-///   mode inside a card or sheet.
-/// - `.prominent` drops the track and fills the pill with the accent — for
-///   a screen's top-level section switcher.
+/// - `.standard` sits on a card-surface track with an ink pill — for
+///   picking a mode inside a card or sheet.
+/// - `.prominent` drops the track and keeps the same ink pill — for a
+///   screen's top-level section switcher. One pill colour everywhere, so
+///   "selected" reads the same at every level.
 struct GlassSegmentedControl<T: Hashable>: View {
     enum Style {
         case standard
@@ -37,7 +38,7 @@ struct GlassSegmentedControl<T: Hashable>: View {
         case .standard:
             segments(spacing: 0)
                 .padding(Spacing.xs)
-                .glassControl(.capsule, interactive: false)
+                .glassSurfaceCapsule()
         case .prominent:
             segments(spacing: Spacing.sm)
         }
@@ -95,28 +96,15 @@ struct GlassSegmentedControl<T: Hashable>: View {
     }
 
     private func foreground(isSelected: Bool) -> Color {
-        guard isSelected else { return AppColor.textSecondary }
-        return style == .prominent ? AppColor.onAccent : AppColor.textPrimary
+        isSelected ? AppColor.inverseInk : AppColor.textSecondary
     }
 
-    /// The moving pill. On the standard track it's a plain tinted capsule
-    /// rather than a second glass surface — stacking `glassEffect` inside an
-    /// already-glass track is what made the control read as a muddy grey
-    /// slab on iOS 26.
-    @ViewBuilder
+    /// The moving pill: a solid ink capsule on both styles (a faint
+    /// accent wash barely read as "chosen", and an accent pill on top of
+    /// an ink one below it looked like two different controls).
     private var pill: some View {
-        switch style {
-        case .standard:
-            Capsule(style: .continuous)
-                .fill(AppColor.accentPrimary.opacity(0.18))
-                .overlay {
-                    Capsule(style: .continuous)
-                        .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
-                }
-        case .prominent:
-            Capsule(style: .continuous)
-                .fill(AppColor.accentFill)
-        }
+        Capsule(style: .continuous)
+            .fill(AppColor.textPrimary)
     }
 }
 

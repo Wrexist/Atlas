@@ -134,7 +134,7 @@ struct HabitsView: View {
             ) { _ in
                 day = Calendar.current.startOfDay(for: .now)
             }
-            .background(AppColor.background.ignoresSafeArea())
+            .pageBackground()
             .navigationTitle("Habits")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
@@ -229,7 +229,7 @@ struct HabitsView: View {
                 if due > 0 {
                     VStack(spacing: 0) {
                         Text("\(done)/\(due)")
-                            .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
+                            .font(AppFont.scaled(16, weight: .semibold))
                             .foregroundStyle(AppColor.textPrimary)
                             .monospacedDigit()
                             .contentTransition(.numericText())

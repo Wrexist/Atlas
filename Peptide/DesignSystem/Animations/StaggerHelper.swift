@@ -8,8 +8,8 @@ struct StaggeredAppear: ViewModifier {
     func body(content: Content) -> some View {
         content
             .opacity(appeared ? 1 : 0)
-            .offset(y: appeared || reduceMotion ? 0 : 20)
-            .scaleEffect(appeared || reduceMotion ? 1 : 0.95)
+            .offset(y: appeared || reduceMotion ? 0 : 10)
+            .scaleEffect(appeared || reduceMotion ? 1 : 0.98)
             .onAppear {
                 guard !appeared else { return }
                 AppAnimation.with(AppAnimation.staggered(index: index)) {
@@ -27,7 +27,7 @@ struct SectionAppear: ViewModifier {
     func body(content: Content) -> some View {
         content
             .opacity(appeared ? 1 : 0)
-            .offset(y: appeared || reduceMotion ? 0 : 30)
+            .offset(y: appeared || reduceMotion ? 0 : 14)
             .onAppear {
                 guard !appeared else { return }
                 AppAnimation.with(AppAnimation.sectionStaggered(index: index)) {

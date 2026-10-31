@@ -74,7 +74,7 @@ struct BioAgeTrendCard: View {
         return VStack(alignment: .leading, spacing: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(BioAgeFormat.years(change))
-                    .font(AppFont.scaled(24, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(24, weight: .medium))
                     .foregroundStyle(tint(for: change))
                     .monospacedDigit()
                     .contentTransition(.numericText(value: change))

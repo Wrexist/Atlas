@@ -402,7 +402,7 @@ private struct TableStatTile: View {
                 .foregroundStyle(AppColor.accentLight)
                 .accessibilityHidden(true)
             Text(value)
-                .font(AppFont.scaled(16, weight: .bold, design: .rounded, relativeTo: .headline))
+                .font(AppFont.scaled(16, weight: .semibold, relativeTo: .headline))
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
                 .contentTransition(.numericText())

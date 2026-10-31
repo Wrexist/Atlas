@@ -59,7 +59,6 @@ struct SleepInsightsSection: View {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(Self.duration(insights.averageAsleep))
                     .font(AppFont.scaled(28, weight: .light, relativeTo: .title1))
-                    .fontDesign(.rounded)
                     .foregroundStyle(AppColor.textPrimary)
                     .monospacedDigit()
                 Text("Average asleep")

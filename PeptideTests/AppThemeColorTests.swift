@@ -11,6 +11,7 @@ final class AppThemeColorTests: XCTestCase {
         XCTAssertEqual(AppThemeColor.resolving(rawValue: "teal"), .teal)
         XCTAssertEqual(AppThemeColor.resolving(rawValue: "amber"), .amber)
         XCTAssertEqual(AppThemeColor.resolving(rawValue: "onyx"), .onyx)
+        XCTAssertEqual(AppThemeColor.resolving(rawValue: "ember"), .ember)
     }
 
     // MARK: - Migration from the previous 6-theme palette
@@ -52,6 +53,6 @@ final class AppThemeColorTests: XCTestCase {
     }
 
     func test_appThemeColor_caseCount_matchesSpec() {
-        XCTAssertEqual(AppThemeColor.allCases.count, 5)
+        XCTAssertEqual(AppThemeColor.allCases.count, 6)
     }
 }

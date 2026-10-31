@@ -16,6 +16,7 @@ struct FridgeView: View {
     @State private var query = ""
     @State private var editor: EditorTarget?
     @State private var showScan = false
+    @State private var shelfFloating = false
     @State private var toast: LocalizedStringKey?
     @State private var toastTask: Task<Void, Never>?
 
@@ -37,7 +38,7 @@ struct FridgeView: View {
                     addActions
                     buyAgain
                 } else {
-                    FridgeShelf(entries: shelfEntries(items, products: products, now: now)) { id in
+                    FridgeShelf(entries: shelfEntries(items, products: products, now: now), isFloating: $shelfFloating) { id in
                         editor = .item(id)
                     }
                     .scrollReveal()
@@ -103,18 +104,22 @@ struct FridgeView: View {
                 StatChip(icon: "clock.badge.exclamationmark.fill", text: "\(soon) to use soon", tint: AppColor.warning)
             }
             Spacer(minLength: 0)
+            FridgeFloatToggle(isFloating: $shelfFloating)
         }
         .appAnimation(AppAnimation.settle, value: [total, soon])
     }
 
+    /// The scan leads on its own full-width row; the three single-item ways
+    /// share the row below. Four tiles across cut every label short
+    /// ("Skanna kyl…") and gave the main action the same weight as typing.
     private var addActions: some View {
-        HStack(spacing: Spacing.sm) {
-            AddTile(icon: "camera.viewfinder", title: "Scan fridge", subtitle: "Or a shopping bag", isPrimary: true) {
-                showScan = true
+        VStack(spacing: Spacing.sm) {
+            ScanFridgeRow { showScan = true }
+            HStack(spacing: Spacing.sm) {
+                AddTile(icon: "camera.fill", title: "Photo", subtitle: "One item") { editor = .new(.camera) }
+                AddTile(icon: "barcode.viewfinder", title: "Barcode", subtitle: "Exact product") { editor = .new(.barcode) }
+                AddTile(icon: "plus", title: "Type", subtitle: "By hand") { editor = .new(nil) }
             }
-            AddTile(icon: "camera.fill", title: "Photo", subtitle: "One item") { editor = .new(.camera) }
-            AddTile(icon: "barcode.viewfinder", title: "Barcode", subtitle: "Exact product") { editor = .new(.barcode) }
-            AddTile(icon: "plus", title: "Type", subtitle: "By hand") { editor = .new(nil) }
         }
     }
 
@@ -411,11 +416,44 @@ struct FridgeView: View {
 }
 
 /// One of the four ways in, as a small glass tile.
+private struct ScanFridgeRow: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: Spacing.md) {
+                Image(systemName: "camera.viewfinder")
+                    .font(AppFont.scaled(20, weight: .semibold))
+                    .foregroundStyle(AppColor.onAccent)
+                    .frame(width: 44, height: 44)
+                    .background(AppColor.accentFill, in: Circle())
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text("Scan fridge")
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text("Or a shopping bag")
+                        .font(AppFont.footnote)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(AppFont.footnote.weight(.semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                    .accessibilityHidden(true)
+            }
+            .padding(Spacing.cardPadding)
+            .glassSurface(cornerRadius: Spacing.cardCornerRadius, tinted: true)
+        }
+        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
+        .accessibilityElement(children: .combine)
+    }
+}
+
 private struct AddTile: View {
     let icon: String
     let title: LocalizedStringKey
     let subtitle: LocalizedStringKey
-    var isPrimary = false
     let action: () -> Void
 
     var body: some View {
@@ -423,9 +461,9 @@ private struct AddTile: View {
             VStack(spacing: Spacing.xs) {
                 Image(systemName: icon)
                     .font(AppFont.scaled(20, weight: .semibold))
-                    .foregroundStyle(isPrimary ? AppColor.onAccent : AppColor.accentLight)
+                    .foregroundStyle(AppColor.accentLight)
                     .frame(width: 40, height: 40)
-                    .background(isPrimary ? AppColor.accentFill : AppColor.accentPrimary.opacity(0.15), in: Circle())
+                    .background(AppColor.accentPrimary.opacity(0.15), in: Circle())
                     .accessibilityHidden(true)
                 Text(title)
                     .font(AppFont.footnote.weight(.semibold))
@@ -442,7 +480,7 @@ private struct AddTile: View {
             .padding(.vertical, Spacing.md)
             .glassSurface(cornerRadius: Spacing.cardCornerRadius)
         }
-        .buttonStyle(ScalePressStyle(pressedScale: 0.95))
+        .buttonStyle(ScalePressStyle(pressedScale: 0.97))
         .accessibilityElement(children: .combine)
     }
 }

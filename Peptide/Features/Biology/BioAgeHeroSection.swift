@@ -97,7 +97,7 @@ struct BioAgeHeroSection: View {
                 Image(systemName: "gauge.with.needle")
                     .font(AppFont.scaled(13, weight: .semibold))
                 Text("Biological Age")
-                    .font(AppFont.scaled(16, weight: .semibold, design: .rounded))
+                    .font(AppFont.scaled(16, weight: .semibold))
                 Image(systemName: "chevron.down")
                     .font(AppFont.scaled(11, weight: .bold))
                     .foregroundStyle(AppColor.textSecondary)
@@ -192,7 +192,7 @@ struct BioAgeHeroSection: View {
         let shown = displayedAge ?? estimate.biologicalAge
         return VStack(spacing: Spacing.xxs) {
             Text(BioAgeFormat.age(shown))
-                .font(AppFont.scaled(56, weight: .heavy, design: .rounded, relativeTo: .largeTitle, in: centreTypeSize))
+                .font(AppFont.scaled(56, weight: .light, relativeTo: .largeTitle, in: centreTypeSize))
                 .foregroundStyle(tint(for: estimate))
                 .monospacedDigit()
                 .lineLimit(1)
@@ -353,11 +353,11 @@ struct BioAgeHeroSection: View {
         }()
         return HStack(spacing: Spacing.xs) {
             Image(systemName: absDelta == 0 ? "equal" : (delta < 0 ? "sparkles" : "arrow.up.right"))
-                .font(AppFont.scaled(11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .symbolEffect(.bounce, value: hasPlayedReveal && !reduceMotion)
                 .accessibilityHidden(true)
             Text(label)
-                .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(13, weight: .semibold))
         }
         .foregroundStyle(badgeTint)
         .padding(.horizontal, Spacing.lg)

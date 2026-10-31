@@ -142,7 +142,7 @@ struct LabPanelDetailView: View {
                             .accessibilityAddTraits(.isHeader)
                         HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                             Text(LabValueFormat.string(latest.value))
-                                .font(AppFont.scaled(34, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
+                                .font(AppFont.scaled(34, weight: .light, relativeTo: .largeTitle))
                                 .monospacedDigit()
                                 .foregroundStyle(AppColor.textPrimary)
                                 .contentTransition(.numericText())
@@ -184,7 +184,7 @@ struct LabPanelDetailView: View {
 
     private func rangePill(_ status: LabRangeStatus) -> some View {
         Text(status.label)
-            .font(AppFont.scaled(11, weight: .heavy))
+            .font(AppFont.scaled(11, weight: .semibold))
             .foregroundStyle(status.tint)
             .padding(.horizontal, Spacing.sm)
             .padding(.vertical, Spacing.xs)
@@ -326,7 +326,7 @@ struct LabPanelDetailView: View {
     private func selectionCallout(_ entry: LabValue) -> some View {
         VStack(spacing: Spacing.xxs) {
             Text("\(LabValueFormat.string(entry.value)) \(panel.canonicalUnit)")
-                .font(AppFont.scaled(13, weight: .bold, design: .rounded))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
             Text(entry.date.formatted(.dateTime.day().month(.abbreviated).year()))
@@ -401,7 +401,7 @@ struct LabPanelDetailView: View {
                 HStack(alignment: .firstTextBaseline, spacing: Spacing.xxs) {
                     // Coloured by range, as on the Labs list and the chart.
                     Text(LabValueFormat.string(entry.value))
-                        .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(LabRangeStatus(value: entry.value, panel: panel, sex: userSex)?.tint ?? AppColor.textPrimary)
                     Text(panel.canonicalUnit)

@@ -115,7 +115,7 @@ struct ThemeChoicePage: View {
 
                 if isSelected {
                     Image(systemName: "checkmark")
-                        .font(AppFont.scaled(13, weight: .heavy))
+                        .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(AppColor.onAccent)
                         .transition(.scale.combined(with: .opacity))
                 }

@@ -124,7 +124,7 @@ struct ExportSection: View {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Divider().overlay(AppColor.glassBorder).padding(.vertical, Spacing.xxs)
                 Text("By section")
-                    .font(AppFont.scaled(11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .tracking(0.6)
                     .textCase(.uppercase)
                     .foregroundStyle(AppColor.textTertiary)

@@ -60,7 +60,7 @@ struct OutcomeCorrelationCard: View {
             }
             Spacer(minLength: 0)
             Text(deltaPhrase)
-                .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(20, weight: .medium))
                 .monospacedDigit()
                 .foregroundStyle(dimension.tint)
         }
@@ -115,7 +115,7 @@ struct OutcomeCorrelationCard: View {
             }
             .frame(height: 10)
             Text(value.formatted(.number.precision(.fractionLength(1))))
-                .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
                 .frame(width: 32, alignment: .trailing)

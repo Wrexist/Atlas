@@ -51,7 +51,7 @@ struct SyncToast: View {
                             .font(AppFont.scaled(13, weight: .bold))
                             .foregroundStyle(AppColor.success)
                         Text(message)
-                            .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
+                            .font(AppFont.scaled(13, weight: .semibold))
                             .foregroundStyle(AppColor.textPrimary)
                     }
                     .accessibilityElement(children: .ignore)
@@ -94,7 +94,7 @@ struct SyncToast: View {
                 Image(systemName: "arrow.uturn.backward")
             }
             .labelStyle(.titleAndIcon)
-            .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
+            .font(AppFont.scaled(13, weight: .semibold))
             .foregroundStyle(AppColor.textPrimary)
             .minimumHitArea()
         }

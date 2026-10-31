@@ -101,7 +101,7 @@ private struct MockEyebrow: View {
 
     var body: some View {
         Text(text)
-            .font(AppFont.scaled(8, weight: .heavy))
+            .font(AppFont.scaled(8, weight: .semibold))
             .tracking(0.8)
             .textCase(.uppercase)
             .foregroundStyle(AppColor.textSecondary)
@@ -216,7 +216,7 @@ private struct RecoveryMock: View {
                     .stroke(AppColor.positive, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                 Text("82")
-                    .font(AppFont.scaled(16, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
             }
             .frame(width: 64, height: 64)

@@ -40,7 +40,7 @@ struct EditBiomarkersSheet: View {
                     }
                 } header: {
                     Text("Showing")
-                        .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .tracking(0.8)
                         .foregroundStyle(AppColor.textSecondary)
                 } footer: {
@@ -56,7 +56,7 @@ struct EditBiomarkersSheet: View {
                         }
                     } header: {
                         Text("Available")
-                            .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
+                            .font(AppFont.scaled(11, weight: .semibold))
                             .tracking(0.8)
                             .foregroundStyle(AppColor.textSecondary)
                     } footer: {
@@ -73,7 +73,7 @@ struct EditBiomarkersSheet: View {
                         }
                     } header: {
                         Text("Hidden")
-                            .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
+                            .font(AppFont.scaled(11, weight: .semibold))
                             .tracking(0.8)
                             .foregroundStyle(AppColor.textSecondary)
                     }

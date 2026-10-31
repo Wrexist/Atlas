@@ -157,7 +157,7 @@ struct ProgressPhotoViewer: View {
 
     private func dateChip(filename: String) -> some View {
         Text(ProgressPhotoMetadata.displayDate(forFilename: filename))
-            .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
+            .font(AppFont.scaled(13, weight: .semibold))
             .monospacedDigit()
             .foregroundStyle(.white)
             .padding(.horizontal, Spacing.md)

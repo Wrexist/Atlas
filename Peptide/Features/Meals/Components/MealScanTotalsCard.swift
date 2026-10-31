@@ -99,7 +99,7 @@ struct MealScanTotalsCard: View {
 
             VStack(spacing: 0) {
                 Text("\(calories)")
-                    .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(20, weight: .medium))
                     .foregroundStyle(AppColor.textPrimary)
                     .monospacedDigit()
                     .lineLimit(1)

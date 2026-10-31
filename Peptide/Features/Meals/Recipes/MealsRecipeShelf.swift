@@ -88,7 +88,7 @@ private struct RecipeShelfCard: View {
                         .font(AppFont.caption2)
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textSecondary)
-                        .lineLimit(1)
+                        .lineLimit(2, reservesSpace: true)
                 }
                 // Room for the log button, which floats over this corner.
                 .padding(.trailing, Spacing.minimumHitTarget)

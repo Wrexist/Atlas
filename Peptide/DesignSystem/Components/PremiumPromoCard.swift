@@ -46,12 +46,12 @@ struct PremiumPromoCard<Trailing: View>: View {
                 VStack(alignment: .leading, spacing: Spacing.xs) {
                     if let eyebrow {
                         Text(eyebrow)
-                            .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
+                            .font(AppFont.scaled(11, weight: .semibold))
                             .tracking(1.0)
                             .foregroundStyle(AppColor.textPrimary.opacity(0.65))
                     }
                     Text(title)
-                        .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
@@ -96,7 +96,7 @@ struct PremiumPromoCard<Trailing: View>: View {
 
     private func ctaPill(label: LocalizedStringKey) -> some View {
         Text(label)
-            .font(AppFont.scaled(11, weight: .heavy))
+            .font(AppFont.scaled(11, weight: .semibold))
             .foregroundStyle(AppColor.textPrimary)
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, 6)
@@ -115,9 +115,9 @@ struct PremiumPromoCard<Trailing: View>: View {
     private func qualifierPill(label: LocalizedStringKey) -> some View {
         HStack(spacing: 4) {
             Image(systemName: "lock.fill")
-                .font(AppFont.scaled(8, weight: .heavy))
+                .font(AppFont.scaled(8, weight: .semibold))
             Text(label)
-                .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .tracking(0.3)
         }
         .foregroundStyle(AppColor.textPrimary.opacity(0.85))

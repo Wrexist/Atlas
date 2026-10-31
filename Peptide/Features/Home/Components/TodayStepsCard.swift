@@ -34,7 +34,7 @@ struct TodayStepsCard: View {
 
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text("\(stepCount.formatted()) / \(goal.formatted()) steps")
-                            .font(AppFont.scaled(16, weight: .semibold, design: .rounded))
+                            .font(AppFont.scaled(16, weight: .semibold))
                             .foregroundStyle(AppColor.textPrimary)
                             .monospacedDigit()
                             .contentTransition(.numericText())

@@ -110,7 +110,7 @@ struct SetEditorRow: View {
             .frame(minWidth: 24, minHeight: 24)
             .background(
                 Circle()
-                    .fill(isCurrent ? AppColor.trainingInput : AppColor.surfaceSecondary)
+                    .fill(AppColor.surfaceSecondary)
             )
             .overlay(
                 Circle().stroke(AppColor.glassBorder, lineWidth: 0.5)
@@ -174,7 +174,7 @@ struct SetEditorRow: View {
             .padding(.horizontal, focusStyle ? Spacing.sm : 0)
             .background(
                 RoundedRectangle(cornerRadius: focusStyle ? Spacing.sheetCornerRadius : Spacing.chipCornerRadius, style: .continuous)
-                    .fill(focusStyle ? AppColor.trainingInput : AppColor.surfaceSecondary.opacity(0.6))
+                    .fill(focusStyle ? AppColor.surfaceSecondary : AppColor.surfaceSecondary.opacity(0.6))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: focusStyle ? Spacing.sheetCornerRadius : Spacing.chipCornerRadius, style: .continuous)
@@ -201,7 +201,7 @@ struct SetEditorRow: View {
             .frame(maxWidth: focusStyle ? .infinity : nil)
             .background(
                 RoundedRectangle(cornerRadius: focusStyle ? Spacing.sheetCornerRadius : Spacing.chipCornerRadius, style: .continuous)
-                    .fill(focusStyle ? AppColor.trainingInput : AppColor.surfaceSecondary.opacity(0.6))
+                    .fill(focusStyle ? AppColor.surfaceSecondary : AppColor.surfaceSecondary.opacity(0.6))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: focusStyle ? Spacing.sheetCornerRadius : Spacing.chipCornerRadius, style: .continuous)

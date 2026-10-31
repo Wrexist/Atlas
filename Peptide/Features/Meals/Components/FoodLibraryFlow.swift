@@ -1007,7 +1007,7 @@ struct FoodLibraryFlow: View {
         HStack(spacing: 3) {
             if lettered {
                 Text(letter)
-                    .font(AppFont.scaled(11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(tint)
             } else {
                 Circle()

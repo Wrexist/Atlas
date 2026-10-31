@@ -41,7 +41,7 @@ struct ScreenshotModeRow: View {
                         .fill(accent.opacity(0.18))
                         .frame(width: 36, height: 36)
                     Image(systemName: "camera.viewfinder")
-                        .font(AppFont.scaled(16, weight: .heavy))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(accent)
                         .accessibilityHidden(true)
                 }

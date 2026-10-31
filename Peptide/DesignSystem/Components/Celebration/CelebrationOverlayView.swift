@@ -20,7 +20,7 @@ struct CelebrationOverlayView: View {
 
             VStack(spacing: Spacing.xxs) {
                 Text("LEVEL \(level)")
-                    .font(AppFont.scaled(34, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
+                    .font(AppFont.scaled(34, weight: .light, relativeTo: .largeTitle))
                     .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
                     .contentTransition(.numericText())

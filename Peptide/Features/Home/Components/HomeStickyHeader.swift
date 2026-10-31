@@ -30,7 +30,7 @@ struct HomeStickyHeader: View {
     var body: some View {
         HStack(spacing: Spacing.sm) {
             Text(displayText)
-                .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.textPrimary)
                 .lineLimit(1)
                 // Slight upward slide as the bar materialises —
@@ -90,7 +90,7 @@ struct HomeStickyHeader: View {
                         .clipShape(Circle())
                 } else {
                     Image(systemName: "person.fill")
-                        .font(AppFont.scaled(13, weight: .heavy))
+                        .font(AppFont.scaled(13, weight: .semibold))
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }

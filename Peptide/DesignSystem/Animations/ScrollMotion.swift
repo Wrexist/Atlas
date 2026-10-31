@@ -12,8 +12,8 @@ private struct ScrollReveal: ViewModifier {
         return content.scrollTransition { card, phase in
             card
                 .opacity(phase.isIdentity ? 1 : 0.35)
-                .scaleEffect(moves && !phase.isIdentity ? 0.96 : 1)
-                .offset(y: moves ? phase.value * 16 : 0)
+                .scaleEffect(moves && !phase.isIdentity ? 0.98 : 1)
+                .offset(y: moves ? phase.value * 12 : 0)
         }
     }
 }

@@ -183,7 +183,7 @@ struct HabitRowCard: View {
             Text(value)
                 .monospacedDigit()
                 .contentTransition(.numericText())
-                .font(AppFont.scaled(11, weight: .bold, design: .rounded))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textPrimary)
             Text(label)
                 .font(AppFont.scaled(11, weight: .semibold))

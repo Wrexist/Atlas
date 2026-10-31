@@ -60,7 +60,10 @@ struct FridgeScanCell: View {
     var body: some View {
         VStack(spacing: Spacing.sm) {
             sticker
-            TextField("Name", text: $grocery.name)
+            // Wraps instead of scrolling sideways, so a long name like
+            // "Proteinmilkshake" is read whole rather than cut mid-word.
+            TextField("Name", text: $grocery.name, axis: .vertical)
+                .lineLimit(1...2)
                 .font(AppFont.footnote.weight(.semibold))
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.center)
@@ -69,8 +72,8 @@ struct FridgeScanCell: View {
                 .frame(minHeight: Spacing.minimumHitTarget)
                 .glassControl(.capsule, interactive: false)
                 .accessibilityLabel("Item name")
+            countStepper
             HStack(spacing: Spacing.xs) {
-                countMenu
                 placeMenu
                 dateMenu
             }
@@ -117,15 +120,56 @@ struct FridgeScanCell: View {
         .accessibilityHint("Keeps or leaves out this item.")
     }
 
-    private var countMenu: some View {
-        Menu {
-            ForEach(1...12, id: \.self) { value in
-                Button("\(value)") { grocery.count = value }
-            }
-        } label: {
-            chip(Text("\(grocery.count)×").monospacedDigit())
+    /// Minus / count / plus in one capsule. A twelve-row menu covered half
+    /// the review for what is almost always a nudge of one.
+    private var countStepper: some View {
+        HStack(spacing: 0) {
+            stepButton("minus", by: -1)
+                .disabled(grocery.count <= 1)
+            Text("\(grocery.count)×")
+                .font(AppFont.footnote.weight(.semibold))
+                .monospacedDigit()
+                .foregroundStyle(AppColor.textPrimary)
+                .contentTransition(.numericText(value: Double(grocery.count)))
+                .frame(maxWidth: .infinity)
+            stepButton("plus", by: 1)
+                .disabled(grocery.count >= Self.maxCount)
         }
-        .accessibilityLabel(Text("How many: \(grocery.count)"))
+        .frame(minHeight: 36)
+        .glassControl(.capsule, interactive: false)
+        .appAnimation(AppAnimation.springSnappy, value: grocery.count)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("How many"))
+        .accessibilityValue(Text("\(grocery.count)"))
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: step(by: 1)
+            case .decrement: step(by: -1)
+            @unknown default: break
+            }
+        }
+    }
+
+    private static let maxCount = 99
+
+    private func stepButton(_ symbol: String, by delta: Int) -> some View {
+        Button {
+            step(by: delta)
+        } label: {
+            Image(systemName: symbol)
+                .font(AppFont.caption2.weight(.bold))
+                .foregroundStyle(AppColor.accentPrimary)
+                .minimumHitArea()
+        }
+        .buttonStyle(ScalePressStyle(pressedScale: 0.9))
+        .accessibilityLabel(delta < 0 ? Text("Fewer") : Text("More"))
+    }
+
+    private func step(by delta: Int) {
+        let next = min(max(grocery.count + delta, 1), Self.maxCount)
+        guard next != grocery.count else { return }
+        grocery.count = next
+        Haptics.selection()
     }
 
     private var placeMenu: some View {
@@ -135,6 +179,7 @@ struct FridgeScanCell: View {
             }
         } label: {
             chip(Image(systemName: grocery.place.icon))
+                .frame(width: Spacing.minimumHitTarget + Spacing.sm)
         }
         .accessibilityLabel(Text(grocery.place.label))
     }

@@ -12,7 +12,7 @@ struct OnboardingHeader: View {
     var body: some View {
         VStack(spacing: Spacing.sm) {
             Text(title)
-                .font(AppFont.scaled(32, weight: .bold, design: .rounded, relativeTo: .largeTitle))
+                .font(AppFont.scaled(32, weight: .light, relativeTo: .largeTitle))
                 .foregroundStyle(AppColor.textPrimary)
                 .accessibilityAddTraits(.isHeader)
             if let subtitle {

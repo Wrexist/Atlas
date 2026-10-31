@@ -499,7 +499,7 @@ struct OnboardingView: View {
             .frame(width: 160)
 
             Text("\(page.rawValue + 1) / \(totalPages)")
-                .font(AppFont.scaled(11, weight: .semibold, design: .rounded))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textTertiary)
                 .contentTransition(.numericText())
                 .animation(AppAnimation.motionAware(AppAnimation.springSmooth, reduceMotion: reduceMotion), value: page)
@@ -702,7 +702,7 @@ struct OnboardingView: View {
                 .staggeredAppear(index: 0)
                 VStack(spacing: Spacing.md) {
                     Text("Welcome to\nAtlas.")
-                        .font(AppFont.scaled(56, weight: .bold, design: .rounded, relativeTo: .largeTitle))
+                        .font(AppFont.scaled(56, weight: .light, relativeTo: .largeTitle))
                         .foregroundStyle(AppColor.textPrimary)
                         .multilineTextAlignment(.center)
                         .accessibilityAddTraits(.isHeader)
@@ -1067,7 +1067,7 @@ struct OnboardingView: View {
             AppAnimation.with(AppAnimation.springSnappy) { goalDate = candidate }
         } label: {
             Text(label)
-                .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textPrimary)
                 .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
                 .onboardingFilledChoice(isSelected: isSelected)
@@ -1809,7 +1809,7 @@ private struct SocialProofPill: View {
                 .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.accentPrimary)
             Text("Private by design")
-                .font(AppFont.scaled(13, weight: .bold, design: .rounded))
+                .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.textPrimary)
             Text("·")
                 .foregroundStyle(AppColor.textTertiary)

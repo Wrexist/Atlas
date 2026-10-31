@@ -38,7 +38,7 @@ struct RoutinesView: View {
             }
         }
         .appAnimation(AppAnimation.springSmooth, value: store.routines.isEmpty)
-        .background(AppColor.background.ignoresSafeArea())
+        .pageBackground()
         .toolbar {
             if !store.routines.isEmpty {
                 ToolbarItem(placement: .topBarLeading) { EditButton() }

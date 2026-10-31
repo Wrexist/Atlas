@@ -118,7 +118,7 @@ struct HeroMetricTrio: View {
                 }
 
                 Text(kind.label)
-                    .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
@@ -144,14 +144,14 @@ struct HeroMetricTrio: View {
                     celebrateAtCompletion: true
                 ) {
                     Text("\(done)/\(target)")
-                        .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(20, weight: .medium))
                         .foregroundStyle(AppColor.textPrimary)
                         .monospacedDigit()
                         .contentTransition(.numericText())
                 }
 
                 Text("Workouts")
-                    .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
+                    .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
@@ -168,7 +168,7 @@ struct HeroMetricTrio: View {
     private func ringCenter(kind: HeroMetricKind, value: HeroMetricValue) -> some View {
         if value.isAvailable {
             Text("\(value.displayPercent)%")
-                .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(20, weight: .medium))
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
                 .contentTransition(.numericText())

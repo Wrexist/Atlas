@@ -52,46 +52,20 @@ private struct LegacyGlassFill<S: Shape>: View {
 }
 
 extension View {
-    /// The app's standard rounded-rect glass surface.
+    /// The app's standard rounded-rect card surface: solid, in both schemes.
     ///
-    /// On iOS 26+ this renders the real Liquid Glass material and
-    /// nothing else. On earlier OSes it falls back to the legacy
-    /// translucent-fill recipe (an opaque-ish fill + overlay tint +
-    /// hairline border).
+    /// A near-white card with a soft drop on the warm light page; a
+    /// charcoal card on the warm near-black dark page. Both carry a barely
+    /// visible edge that firms up under Increase Contrast. Cards used to be
+    /// Liquid Glass, which on a flat backdrop reads as grey frosting and
+    /// made every card look the same as every control; solid cards let the
+    /// glass stay where it means something, on controls and bars.
     ///
-    /// Neither path clips the content: `glassEffect` doesn't, so the
-    /// legacy recipe doesn't either, and a badge or shadow that overflows
-    /// the card looks the same on every OS. Callers that need clipping
-    /// add their own `clipShape`.
-    ///
-    /// The two are deliberately mutually exclusive. `GlassCard` used to
-    /// paint the fake recipe
-    /// *and then* composited real `glassEffect` on top — so on iOS 26
-    /// every card stacked two materials and the genuine translucency
-    /// never showed. Routing every card surface through this single
-    /// modifier fixes that without changing the pre-iOS-26 look.
-    @ViewBuilder
+    /// The surface doesn't clip its content, so a badge or shadow that
+    /// overflows the card looks the same everywhere. Callers that need
+    /// clipping add their own `clipShape`.
     func glassSurface(cornerRadius: CGFloat, tinted: Bool = false) -> some View {
-        if #available(iOS 26.0, *) {
-            let glass: Glass = tinted ? Glass.regular.tint(AppColor.glassTint) : .regular
-            self.glassEffect(glass, in: .rect(cornerRadius: cornerRadius))
-        } else {
-            self
-                .background {
-                    LegacyGlassFill(shape: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                                .fill(tinted ? AppColor.glassTint : AppColor.cardOverlay)
-                        }
-                        .overlay {
-                            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                                .strokeBorder(
-                                    tinted ? AppColor.glassBorderActive : AppColor.glassBorder,
-                                    lineWidth: 0.5
-                                )
-                        }
-                }
-        }
+        modifier(CardSurface(shape: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous), tinted: tinted))
     }
 
     /// The app's one glass **control** surface — buttons, icon buttons,
@@ -156,29 +130,56 @@ extension View {
         }
     }
 
-    /// Capsule-shaped companion to `glassSurface` — same mutually
-    /// exclusive real-glass / legacy-recipe split, for pills, search
+    /// Capsule-shaped companion to `glassSurface`, for pills, search
     /// fields, and capsule buttons.
-    @ViewBuilder
     func glassSurfaceCapsule(tinted: Bool = false) -> some View {
-        if #available(iOS 26.0, *) {
-            let glass: Glass = tinted ? Glass.regular.tint(AppColor.glassTint) : .regular
-            self.glassEffect(glass, in: .capsule)
-        } else {
-            self
-                .background {
-                    LegacyGlassFill(shape: Capsule())
-                        .overlay {
-                            Capsule().fill(tinted ? AppColor.glassTint : AppColor.cardOverlay)
-                        }
-                        .overlay {
-                            Capsule().strokeBorder(
-                                tinted ? AppColor.glassBorderActive : AppColor.glassBorder,
-                                lineWidth: 0.5
-                            )
-                        }
-                }
+        modifier(CardSurface(shape: Capsule(style: .continuous), tinted: tinted))
+    }
+}
+
+/// See `glassSurface`.
+private struct CardSurface<S: InsettableShape>: ViewModifier {
+    let shape: S
+    let tinted: Bool
+
+    func body(content: Content) -> some View {
+        content.background { PaperFill(shape: shape, tinted: tinted) }
+    }
+}
+
+/// The card itself: a top-lit fill, a lit rim along the upper edge, a
+/// hairline, and a two-layer drop (a tight contact edge plus a wide
+/// ambient lift). Together they read as an object resting on the page
+/// rather than a flat panel printed on it. A tinted card takes a faint
+/// accent wash so it reads as a pastel card, not a coloured slab.
+private struct PaperFill<S: InsettableShape>: View {
+    let shape: S
+    let tinted: Bool
+
+    var body: some View {
+        shape.fill(
+            LinearGradient(
+                colors: [AppColor.surfaceElevated, AppColor.surfaceElevatedLow],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+        .overlay { if tinted { shape.fill(AppColor.paperTint) } }
+        .overlay {
+            shape.strokeBorder(tinted ? AppColor.glassBorderActive : AppColor.paperEdge, lineWidth: 0.5)
         }
+        .overlay {
+            shape.strokeBorder(
+                LinearGradient(
+                    colors: [AppColor.cardRim, .clear],
+                    startPoint: .top,
+                    endPoint: .center
+                ),
+                lineWidth: 1
+            )
+        }
+        .appShadow(AppShadow.paperContact)
+        .appShadow(AppShadow.paperAmbient)
     }
 }
 

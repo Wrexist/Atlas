@@ -58,14 +58,14 @@ struct EmptyStateView: View {
     // MARK: - Hero treatment
 
     private var heroContent: some View {
-        GlassCard(tinted: true) {
+        GlassCard {
             VStack(spacing: Spacing.lg) {
                 heroMedallion
 
                 VStack(spacing: Spacing.sm) {
                     Text(title)
                         .font(AppFont.title2)
-                        .fontWeight(.heavy)
+                        .fontWeight(.semibold)
                         .foregroundStyle(AppColor.textPrimary)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
@@ -109,7 +109,7 @@ struct EmptyStateView: View {
                 .fill(accent)
                 .frame(width: 72, height: 72)
             Image(systemName: icon)
-                .font(AppFont.scaled(30, weight: .heavy, in: .large))
+                .font(AppFont.scaled(30, weight: .light, in: .large))
                 .foregroundStyle(AppColor.onAccent)
         }
         .padding(.top, Spacing.sm)
