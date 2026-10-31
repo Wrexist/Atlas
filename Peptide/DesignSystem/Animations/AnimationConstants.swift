@@ -2,8 +2,12 @@ import SwiftUI
 import UIKit
 
 enum AppAnimation {
-    static let springSnappy = Animation.spring(response: 0.35, dampingFraction: 0.75)
-    static let springBouncy = Animation.spring(response: 0.5, dampingFraction: 0.7)
+    // Damped close to critical on purpose: a clean, premium UI lands its
+    // motion with at most a hair of overshoot. A visible wobble on every
+    // tap reads as playful, not precise; `celebrate`-style moments that
+    // want bounce say so with `springBouncy`.
+    static let springSnappy = Animation.spring(response: 0.32, dampingFraction: 0.86)
+    static let springBouncy = Animation.spring(response: 0.5, dampingFraction: 0.76)
     static let springSmooth = Animation.spring(response: 0.6, dampingFraction: 0.85)
     static let springGentle = Animation.spring(response: 0.8, dampingFraction: 0.9)
 
@@ -46,8 +50,11 @@ enum AppAnimation {
     /// slow enough to read as "still working" without feeling stalled.
     static let loadingSweep = Animation.linear(duration: 1.4)
 
-    static let staggerDelay: Double = 0.05
-    static let sectionDelay: Double = 0.15
+    // Short cascades: the page should feel like it arrives together with a
+    // touch of order, not like sections queueing up. At 0.15 s a fifth
+    // section waited 0.6 s before moving.
+    static let staggerDelay: Double = 0.04
+    static let sectionDelay: Double = 0.06
 
     /// Canonical "wait for a presented sheet to finish its dismiss
     /// animation before presenting the next one" delay. SwiftUI
@@ -90,7 +97,7 @@ enum AppAnimation {
     private static let maxSectionIndex = 4
 
     static func staggered(index: Int) -> Animation {
-        springBouncy.delay(Double(min(index, maxStaggerIndex)) * staggerDelay)
+        springSmooth.delay(Double(min(index, maxStaggerIndex)) * staggerDelay)
     }
 
     static func sectionStaggered(index: Int) -> Animation {
