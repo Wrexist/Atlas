@@ -16,12 +16,13 @@ struct HomeSectionHeader<Trailing: View>: View {
 
     var body: some View {
         HStack(alignment: .lastTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(eyebrow)
-                    .font(AppFont.eyebrow)
-                    .tracking(0.8)
-                    .textCase(.uppercase)
-                    .foregroundStyle(AppColor.accentLight)
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                HStack(spacing: Spacing.sm) {
+                    AccentMarker()
+                    Text(eyebrow)
+                        .font(AppFont.footnote.weight(.medium))
+                        .foregroundStyle(AppColor.textSecondary)
+                }
                 Text(title)
                     .font(AppFont.sectionTitle)
                     .foregroundStyle(AppColor.textPrimary)

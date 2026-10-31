@@ -22,6 +22,11 @@ struct GlassSegmentedControl<T: Hashable>: View {
     @Namespace private var pillNamespace
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.colorScheme) private var colorScheme
+
+    /// Light mode selects with a solid ink pill on a paper track: on the
+    /// warm page a faint accent wash barely reads as "chosen".
+    private var inkSelection: Bool { style == .standard && colorScheme == .light }
 
     var body: some View {
         track
@@ -35,9 +40,15 @@ struct GlassSegmentedControl<T: Hashable>: View {
     private var track: some View {
         switch style {
         case .standard:
-            segments(spacing: 0)
-                .padding(Spacing.xs)
-                .glassControl(.capsule, interactive: false)
+            if inkSelection {
+                segments(spacing: 0)
+                    .padding(Spacing.xs)
+                    .glassSurfaceCapsule()
+            } else {
+                segments(spacing: 0)
+                    .padding(Spacing.xs)
+                    .glassControl(.capsule, interactive: false)
+            }
         case .prominent:
             segments(spacing: Spacing.sm)
         }
@@ -96,7 +107,7 @@ struct GlassSegmentedControl<T: Hashable>: View {
 
     private func foreground(isSelected: Bool) -> Color {
         guard isSelected else { return AppColor.textSecondary }
-        return style == .prominent ? AppColor.onAccent : AppColor.textPrimary
+        return style == .prominent || inkSelection ? AppColor.onAccent : AppColor.textPrimary
     }
 
     /// The moving pill. On the standard track it's a plain tinted capsule
@@ -106,6 +117,9 @@ struct GlassSegmentedControl<T: Hashable>: View {
     @ViewBuilder
     private var pill: some View {
         switch style {
+        case .standard where inkSelection:
+            Capsule(style: .continuous)
+                .fill(AppColor.textPrimary)
         case .standard:
             Capsule(style: .continuous)
                 .fill(AppColor.accentPrimary.opacity(0.18))

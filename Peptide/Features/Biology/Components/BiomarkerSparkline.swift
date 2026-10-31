@@ -16,6 +16,13 @@ struct BiomarkerSparkline: View {
     let tint: Color
     var height: CGFloat = 24
 
+    @Environment(\.colorScheme) private var colorScheme
+
+    /// Light mode draws the line in ink and keeps the colour for the
+    /// latest reading only: on paper a tinted line plus a tinted fill is
+    /// two washes of colour competing with the number above it.
+    private var lineColor: Color { colorScheme == .light ? AppColor.textPrimary.opacity(0.85) : tint.opacity(0.9) }
+
     var body: some View {
         GeometryReader { geo in
             let normalized = normalizedPoints(in: geo.size)
@@ -23,7 +30,7 @@ struct BiomarkerSparkline: View {
                 // Gradient fill under the stroke for depth. Hidden
                 // when fewer than two points — the fill would
                 // render as a triangle, not a sparkline shape.
-                if normalized.count >= 2 {
+                if normalized.count >= 2, colorScheme == .dark {
                     fillPath(points: normalized, size: geo.size)
                         .fill(
                             LinearGradient(
@@ -34,9 +41,19 @@ struct BiomarkerSparkline: View {
                         )
                 }
 
+                // The period's mean, so a glance answers "above or below
+                // my normal?" and not just "up or down".
+                if let meanY = meanY(in: geo.size) {
+                    Path { path in
+                        path.move(to: CGPoint(x: 0, y: meanY))
+                        path.addLine(to: CGPoint(x: geo.size.width, y: meanY))
+                    }
+                    .stroke(AppColor.textTertiary.opacity(0.6), style: StrokeStyle(lineWidth: 0.75, dash: [3, 3]))
+                }
+
                 strokePath(points: normalized)
                     .stroke(
-                        tint.opacity(0.9),
+                        lineColor,
                         style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
                     )
 
@@ -45,8 +62,9 @@ struct BiomarkerSparkline: View {
                 // affordance.
                 if let last = normalized.last {
                     Circle()
-                        .fill(tint)
-                        .frame(width: 4, height: 4)
+                        .fill(tint.opacity(0.22))
+                        .frame(width: 10, height: 10)
+                        .overlay { Circle().fill(tint).frame(width: 5, height: 5) }
                         .position(x: last.x, y: last.y)
                 }
             }
@@ -76,6 +94,13 @@ struct BiomarkerSparkline: View {
             let normalized = (sample.value - minValue) / range
             return CGPoint(x: x, y: size.height - CGFloat(normalized) * size.height)
         }
+    }
+
+    private func meanY(in size: CGSize) -> CGFloat? {
+        let values = samples.map(\.value)
+        guard values.count >= 2, let minValue = values.min(), let maxValue = values.max(), maxValue > minValue else { return nil }
+        let mean = values.reduce(0, +) / Double(values.count)
+        return size.height - CGFloat((mean - minValue) / (maxValue - minValue)) * size.height
     }
 
     private func strokePath(points: [CGPoint]) -> Path {

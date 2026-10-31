@@ -55,8 +55,10 @@ enum AppFont {
     static let footnote    = Font.system(.footnote,                      weight: .regular)
     static let caption2    = Font.system(.caption2,                      weight: .regular)
 
-    /// The bold rounded title under each Today section's eyebrow.
-    static let sectionTitle = Font.system(.title2, design: .rounded, weight: .bold)
+    /// The title under each section's marker label. Semibold, not bold
+    /// rounded: section titles are wayfinding, and the screen's one display
+    /// number should be the loudest thing on it.
+    static let sectionTitle = Font.system(.title2, weight: .semibold)
 
     // Hero stats. Computed so they re-read the content-size category on each
     // `body` pass; scaled along `.largeTitle`, whose ramp grows gently.
