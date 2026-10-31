@@ -13,6 +13,9 @@ struct TrainContainerView: View {
     @State private var overviewScroll = ScrollPosition(edge: .top)
     @Namespace private var exerciseTransition
     @State private var section: Section = .overview
+    /// Whether the last switch moved to a section further right, so the
+    /// new panel arrives from that side.
+    @State private var sectionMovedForward = true
     /// Owned here rather than per-section so a screen can push
     /// programmatically — creating a routine goes straight into its
     /// builder instead of leaving the user to find the new empty row.
@@ -130,10 +133,13 @@ struct TrainContainerView: View {
         VStack(spacing: 0) {
             sectionPicker
             // Keyed on the section so the body moves with the pill
-            // instead of swapping under it.
-            content
-                .id(section)
-                .transition(.opacity.combined(with: .offset(y: 8)))
+            // instead of swapping under it. A ZStack, so the outgoing and
+            // incoming panels overlap rather than splitting the height.
+            ZStack {
+                content
+                    .id(section)
+                    .transition(.sectionSwap(forward: sectionMovedForward))
+            }
         }
         .pageBackground()
         .overlay(alignment: .top) {
@@ -263,21 +269,50 @@ struct TrainContainerView: View {
         // under one word does not. `.segmented` Picker still reads too
         // "system settings" for this surface.
         //
-        // Horizontally scrollable because four pills at the largest
-        // Dynamic Type sizes are wider than an iPhone — a fixed HStack
-        // would clip the last section rather than let the user reach it.
-        ScrollView(.horizontal, showsIndicators: false) {
-            GlassSegmentedControl(
-                options: Section.allCases,
-                selected: $section,
-                style: .prominent,
-                label: { $0.displayName }
-            )
-            .padding(.horizontal, Spacing.screenPadding)
+        // Four pills fit an iPhone at default sizes; at the largest
+        // Dynamic Type sizes they don't, so the row falls back to scrolling
+        // and keeps the chosen section in view rather than clipping it.
+        ViewThatFits(in: .horizontal) {
+            sectionControl
+                .padding(.horizontal, Spacing.screenPadding)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    sectionControl
+                        .padding(.horizontal, Spacing.screenPadding)
+                }
+                .scrollClipDisabled()
+                .onChange(of: section) { _, newSection in
+                    AppAnimation.with(AppAnimation.springSnappy) {
+                        proxy.scrollTo(newSection, anchor: .center)
+                    }
+                }
+            }
         }
-        .scrollClipDisabled()
         .padding(.top, Spacing.xs)
         .padding(.bottom, Spacing.sm)
+    }
+
+    private var sectionControl: some View {
+        GlassSegmentedControl(
+            options: Section.allCases,
+            selected: sectionSelection,
+            style: .prominent,
+            label: { $0.displayName }
+        )
+    }
+
+    /// Records the direction before the section changes, inside the same
+    /// animation, so the incoming panel's transition already knows it.
+    private var sectionSelection: Binding<Section> {
+        Binding(
+            get: { section },
+            set: { newSection in
+                let order = Section.allCases
+                sectionMovedForward = (order.firstIndex(of: newSection) ?? 0) > (order.firstIndex(of: section) ?? 0)
+                section = newSection
+            }
+        )
     }
 
     @ViewBuilder
