@@ -45,10 +45,13 @@ struct CosmicBackdrop: View {
     /// in the same near-black palette as the rest of the app.
     private var glow: some View {
         let i = max(0, min(1, intensity))
+        // Light mode is the warm paper page: a soft peach dawn at the top
+        // instead of an accent glow, which on off-white reads as a stain.
+        let tint = colorScheme == .dark ? AppColor.accentPrimary : AppColor.paperGlow
         return RadialGradient(
             colors: [
-                AppColor.accentPrimary.opacity(0.18 * i),
-                AppColor.accentPrimary.opacity(0.05 * i),
+                tint.opacity(0.18 * i),
+                tint.opacity(0.05 * i),
                 .clear,
             ],
             center: .top,

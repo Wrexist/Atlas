@@ -31,7 +31,7 @@ struct WorkoutShareView: View {
                         label: { LocalizedStringKey($0.title) }
                     ).disabled(model.busy).accessibilityIdentifier("workout-share-style")
                     preview
-                    Text(options.format.detail).font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
+                    Text(options.format.detail).font(AppFont.subheadline).foregroundStyle(AppColor.textSecondary)
                     if options.style == .highlight && !summary.entries.isEmpty {
                         Picker("Featured exercise", selection: $options.featuredEntryID) {
                             Text("First logged exercise").tag(nil as UUID?)
@@ -42,9 +42,9 @@ struct WorkoutShareView: View {
                     Toggle("Include date", isOn: $options.includeDate).disabled(model.busy)
                     if summary.volumeKg != nil { Toggle("Include volume", isOn: $options.includeVolume).disabled(model.busy) }
                     Text("Only this card is shared. Private notes, account details and exact times are excluded.")
-                        .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
+                        .font(AppFont.subheadline).foregroundStyle(AppColor.textSecondary)
                     Text("Choose Instagram in Share if available, or save to Photos and select the file in Instagram. Add music and stickers there before posting.")
-                        .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
+                        .font(AppFont.subheadline).foregroundStyle(AppColor.textSecondary)
                 }.padding(Spacing.screenPadding)
             }
             .safeAreaInset(edge: .bottom) { actions }
@@ -92,7 +92,7 @@ struct WorkoutShareView: View {
                     if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
                 }.minimumHitArea()
             }
-            if let notice = model.notice { Text(notice).foregroundStyle(AppColor.recapSuccess) }
+            if let notice = model.notice { Text(notice).foregroundStyle(AppColor.positive) }
             if model.busy {
                 ProgressView(value: options.format.isVideo && !model.savingToPhotos ? model.progress : nil)
                 Text(model.savingToPhotos ? "Saving to Photos…" : "Preparing share file…").font(AppFont.subheadline)
@@ -111,7 +111,7 @@ struct WorkoutShareView: View {
         .font(AppFont.subheadline)
         .padding(.horizontal, Spacing.screenPadding)
         .padding(.vertical, Spacing.sm)
-        .background(AppColor.recapBackground)
+        .background(AppColor.background)
     }
 
     private var previewAccessibilityLabel: String {
@@ -135,7 +135,7 @@ struct WorkoutShareView: View {
                     .accessibilityLabel(previewAccessibilityLabel)
                     .accessibilityIdentifier("workout-share-rendered-\(options.style.rawValue)-\(options.format.rawValue)")
             } else {
-                AppColor.recapCard
+                AppColor.surfaceElevated
                 if previewError == nil { ProgressView("Preparing preview…") }
             }
         }

@@ -203,7 +203,7 @@ private struct PaperFill<S: InsettableShape>: View {
         shape.fill(AppColor.surfaceElevated)
             .overlay { if tinted { shape.fill(AppColor.paperTint) } }
             .overlay {
-                shape.strokeBorder(tinted ? AppColor.glassBorderActive : AppColor.glassBorder, lineWidth: 0.5)
+                shape.strokeBorder(tinted ? AppColor.glassBorderActive : AppColor.paperEdge, lineWidth: 0.5)
             }
             .appShadow(AppShadow.paperContact)
             .appShadow(AppShadow.paperAmbient)

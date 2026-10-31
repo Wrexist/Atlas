@@ -23,17 +23,6 @@ import UIKit
 /// concept, not the brand — but they still carry a light variant where the
 /// dark-mode value would fail contrast on a light surface.
 enum AppColor {
-    // Quiet workout recap palette. Explicit surface tokens, no glass layers.
-    static let recapBackground = Color(light: 0xF4F6F8, dark: 0x0B0F12)
-    static let recapCard = Color(light: 0xFCFCFD, dark: 0x151A1E)
-    static let recapRaised = Color(light: 0xEDF1F5, dark: 0x1B2228)
-    static let recapBorder = Color(light: 0xCDD5DD, dark: 0x2A333B)
-    static let recapText = Color(light: 0x18212A, dark: 0xF5F7FA)
-    static let recapSecondary = Color(light: 0x4B5965, dark: 0xB5BEC7)
-    static let recapAction = Color(light: 0x007287, dark: 0x12CDEA)
-    static let recapButton = Color(light: 0x12CDEA, dark: 0x12CDEA)
-    static let recapButtonInk = Color(light: 0x0B0F12, dark: 0x0B0F12)
-    static let recapSuccess = Color(light: 0x187848, dark: 0x59D99B)
     // MARK: - Surfaces
     //
     // The dark values are lifted off pure black (was `0x0A0A0A`) so Liquid
@@ -46,13 +35,16 @@ enum AppColor {
 
     static let background = Color(light: 0xF4F4F2, dark: 0x101013)
     static let surfaceElevated = Color(light: 0xFEFEFD, dark: 0x1C1C21)
-    static let surfaceSecondary = Color(light: 0xF9F9F7, dark: 0x17171B)
+    /// Inset wells inside a card (inputs, set rows, chips at rest). In light
+    /// mode a step darker than the page so a well still reads on a white
+    /// paper card.
+    static let surfaceSecondary = Color(light: 0xF3F3F0, dark: 0x17171B)
+
+    /// The warm peach wash at the top of a light-mode premium backdrop.
+    static let paperGlow = Color(light: 0xF2A27A, dark: 0xF2A27A)
 
     // MARK: - Exercise demonstration
 
-    static let trainingBackground = Color(light: 0xEAF3F9, dark: 0x151D27)
-    static let trainingPanel = Color(light: 0xFCFCFD, dark: 0x232A34)
-    static let trainingInput = Color(light: 0xF3F4F8, dark: 0x303845)
     static let trainingSelection = Color(light: 0x2465DF, dark: 0x80ADFF)
     static let trainingComplete = Color(light: 0x19843D, dark: 0x238943)
     static let trainingPrimaryMuscle = Color(light: 0xB84813, dark: 0xFFAC73)
@@ -137,6 +129,15 @@ enum AppColor {
         highContrastLight: Color.black.opacity(0.25),
         highContrastDark: Color.white.opacity(0.25)
     )
+    /// The light-mode paper card's edge. Barely there: the soft shadow
+    /// carries the lift, and a visible outline is what makes a card look
+    /// drawn rather than printed. Firms up under Increase Contrast.
+    static let paperEdge = Color.adaptive(
+        light: Color.black.opacity(0.035),
+        dark: Color.white.opacity(0.08),
+        highContrastLight: Color.black.opacity(0.25),
+        highContrastDark: Color.white.opacity(0.25)
+    )
     static var glassBorderActive: Color { ThemeManager.shared.theme.primary.opacity(0.3) }
     /// The accent wash on a tinted light-mode paper card. Fainter than
     /// `glassTint`: painted over an opaque white card it would otherwise
@@ -193,14 +194,18 @@ enum AppColor {
     /// view, past-weeks list) and the screenshot/demo chrome.
     static let recap = Color(light: 0x5A5FCF, dark: 0x7A80EB)
 
-    /// The two stops of the paywall / quick-log call-to-action gradient. A
-    /// deliberate violet that stays constant across brand themes so the
-    /// single most important button in the app is always the same button.
-    static let ctaGradientStart = Color(light: 0x4238C4, dark: 0x4F46E5)
-    static let ctaGradientEnd = Color(light: 0x6620C0, dark: 0x7C3AED)
-    /// Drop shadow under the CTA gradient — violet like the fill, so a
-    /// theme-accent glow never sits under a fixed-violet button.
-    static let ctaGlow = ctaGradientEnd.opacity(0.3)
+    /// The two stops of the paywall / quick-log call-to-action fill. Constant
+    /// across brand themes so the single most important button in the app
+    /// is always the same button. Light mode paints it in ink, the black
+    /// pill of the Xeyo look; dark mode keeps the violet.
+    static let ctaGradientStart = Color(light: 0x1A1A17, dark: 0x4F46E5)
+    static let ctaGradientEnd = Color(light: 0x34332E, dark: 0x7C3AED)
+    /// Drop shadow under the CTA fill, the same hue as the fill so a
+    /// theme-accent glow never sits under it.
+    static let ctaGlow = Color.adaptive(
+        light: Color.black.opacity(0.16),
+        dark: Color(hex: 0x7C3AED).opacity(0.3)
+    )
 
     /// Hero-ring identities. Adherence follows the brand accent; Recovery and
     /// Sleep get their own hues so the three rings stay tellable apart at a

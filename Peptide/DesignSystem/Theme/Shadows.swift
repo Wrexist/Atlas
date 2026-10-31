@@ -10,8 +10,8 @@ enum AppShadow {
     static let toast = Shadow(color: ink(light: 0.1, dark: 0.2), radius: 12, x: 0, y: 4)
     /// The light-mode paper card's drop: a tight contact edge plus a wide,
     /// faint ambient lift. Light only; dark-mode cards are glass.
-    static let paperContact = Shadow(color: ink(light: 0.04, dark: 0), radius: 1.5, x: 0, y: 1)
-    static let paperAmbient = Shadow(color: ink(light: 0.06, dark: 0), radius: 18, x: 0, y: 8)
+    static let paperContact = Shadow(color: ink(light: 0.03, dark: 0), radius: 1.5, x: 0, y: 1)
+    static let paperAmbient = Shadow(color: ink(light: 0.05, dark: 0), radius: 24, x: 0, y: 10)
     static var accentGlow: Shadow { Shadow(color: AppColor.accentPrimary.opacity(0.3), radius: 12, x: 0, y: 4) }
 
     private static func ink(light: Double, dark: Double) -> Color {

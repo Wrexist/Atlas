@@ -70,7 +70,7 @@ struct WorkoutFinishView: View {
                         VStack(alignment: .leading, spacing: Spacing.md) {
                             Text("Muscle focus").font(AppFont.headline)
                             Text("Estimated from your logged exercises")
-                                .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
+                                .font(AppFont.subheadline).foregroundStyle(AppColor.textSecondary)
                             RecapAnatomy(muscles: summary.muscles, animatesReveal: true)
                                 .frame(maxWidth: 250).frame(maxWidth: .infinity)
                             RecapMuscleNames(muscles: summary.muscles)
@@ -102,8 +102,8 @@ struct WorkoutFinishView: View {
                     }
             } else { ProgressView("Loading workout…").padding(Spacing.xxl) }
         }
-        .background(AppColor.recapBackground.ignoresSafeArea())
-        .foregroundStyle(AppColor.recapText).tint(AppColor.recapAction)
+        .background(AppColor.background.ignoresSafeArea())
+        .foregroundStyle(AppColor.textPrimary).tint(AppColor.accentPrimary)
         .navigationTitle("Summary").navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -118,7 +118,7 @@ struct WorkoutFinishView: View {
                         .font(AppFont.subheadline).frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
                 }.disabled(store.summary == nil)
             }.padding(.horizontal, Spacing.screenPadding).padding(.top, Spacing.sm)
-                .background(AppColor.recapBackground)
+                .background(AppColor.background)
         }
         .sheet(isPresented: $editing) {
             WorkoutSavedEditor(session: store.session, unit: unit) { edited in
@@ -141,7 +141,7 @@ struct WorkoutFinishView: View {
         .refreshWorkoutRecap(store)
         .overlay {
             if showsConfetti {
-                ConfettiView(colors: [AppColor.achievement, AppColor.recapSuccess, AppColor.recapAction])
+                ConfettiView(colors: [AppColor.achievement, AppColor.positive, AppColor.accentPrimary])
                     .ignoresSafeArea()
             }
         }
@@ -168,19 +168,19 @@ struct WorkoutFinishView: View {
             if celebratesSave {
                 Image(systemName: "checkmark.circle")
                     .font(AppFont.scaled(52, weight: .regular, relativeTo: .largeTitle))
-                    .foregroundStyle(AppColor.recapSuccess).accessibilityHidden(true)
+                    .foregroundStyle(AppColor.positive).accessibilityHidden(true)
                     .symbolEffect(.bounce, value: celebrated)
                 Text("Workout saved").font(AppFont.title)
                 Text(summary.name).font(AppFont.headline).multilineTextAlignment(.center)
                 if let date = summary.session.finishedAt {
                     Text(date.formatted(date: .abbreviated, time: .shortened))
-                        .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
+                        .font(AppFont.subheadline).foregroundStyle(AppColor.textSecondary)
                 }
             } else {
                 Text(summary.name).font(AppFont.title).multilineTextAlignment(.center)
                 if let date = summary.session.finishedAt {
                     Text(date.formatted(date: .complete, time: .shortened))
-                        .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
+                        .font(AppFont.subheadline).foregroundStyle(AppColor.textSecondary)
                         .multilineTextAlignment(.center)
                 }
             }
@@ -207,12 +207,12 @@ private struct RecapNavigationRow<Title: View>: View {
         RecapCard {
             HStack(spacing: Spacing.md) {
                 Image(systemName: icon)
-                    .foregroundStyle(AppColor.recapSuccess)
+                    .foregroundStyle(AppColor.positive)
                     .accessibilityHidden(true)
                 title.font(AppFont.subheadline)
                 Spacer(minLength: Spacing.sm)
                 Image(systemName: "chevron.right")
-                    .foregroundStyle(AppColor.recapSecondary)
+                    .foregroundStyle(AppColor.textSecondary)
                     .accessibilityHidden(true)
             }
             .frame(minHeight: Spacing.minimumHitTarget)
@@ -241,7 +241,7 @@ struct RecapNewPRs: View {
                         VStack(alignment: .leading, spacing: Spacing.xxs) {
                             Text(exerciseName(pr.exerciseID)).font(AppFont.subheadline)
                             Text(kindLabel(pr.kind))
-                                .font(AppFont.caption2).foregroundStyle(AppColor.recapSecondary)
+                                .font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
                         }
                         Spacer(minLength: Spacing.sm)
                         Text(valueLabel(pr)).font(AppFont.headline).monospacedDigit()
@@ -280,7 +280,7 @@ struct RecapMissingMapping: View {
     var body: some View {
         if count > 0 {
             Text("Muscle mapping unavailable for ^[\(count) exercise](inflect: true)")
-                .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
+                .font(AppFont.subheadline).foregroundStyle(AppColor.textSecondary)
         }
     }
 }

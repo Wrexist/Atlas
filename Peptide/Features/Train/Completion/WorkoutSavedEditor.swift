@@ -60,7 +60,7 @@ struct WorkoutSavedEditor: View {
                 }
             }
             .interactiveDismissDisabled(saving)
-        }.tint(AppColor.recapAction)
+        }.tint(AppColor.accentPrimary)
     }
 
     private var validationIssue: String? {

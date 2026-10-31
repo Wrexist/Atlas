@@ -5,9 +5,7 @@ struct RecapCard<Content: View>: View {
     var body: some View {
         content.padding(Spacing.cardPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(AppColor.recapCard, in: RoundedRectangle(cornerRadius: Spacing.cardCornerRadius))
-            .overlay(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius)
-                .stroke(AppColor.recapBorder, lineWidth: 1))
+            .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 }
 
@@ -60,10 +58,10 @@ struct RecapSummaryLine: View {
         Label {
             Text(text).fixedSize(horizontal: false, vertical: true)
         } icon: {
-            Image(systemName: "sparkles").foregroundStyle(AppColor.recapAction)
+            Image(systemName: "sparkles").foregroundStyle(AppColor.accentPrimary)
         }
         .font(AppFont.body)
-        .foregroundStyle(AppColor.recapSecondary)
+        .foregroundStyle(AppColor.textSecondary)
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("Summary written on device: \(text)"))
@@ -77,8 +75,8 @@ struct RecapAction: View {
         Button(action: action) {
             Text(title).font(AppFont.headline)
                 .frame(maxWidth: .infinity, minHeight: 52)
-                .foregroundStyle(AppColor.recapButtonInk)
-                .background(AppColor.recapButton, in: RoundedRectangle(cornerRadius: Spacing.controlCornerRadius))
+                .foregroundStyle(AppColor.onAccent)
+                .background(AppColor.accentFill, in: RoundedRectangle(cornerRadius: Spacing.controlCornerRadius))
         }
         .buttonStyle(.plain)
     }
@@ -146,10 +144,10 @@ struct RecapMetrics: View {
     }
     private func metric(_ title: String, value: String, icon: String) -> some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            Image(systemName: icon).foregroundStyle(AppColor.recapAction).accessibilityHidden(true)
+            Image(systemName: icon).foregroundStyle(AppColor.accentPrimary).accessibilityHidden(true)
             valueText(value).monospacedDigit().contentTransition(.numericText())
                 .fixedSize(horizontal: false, vertical: true)
-            Text(title).font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
+            Text(title).font(AppFont.subheadline).foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -199,7 +197,7 @@ struct RecapAnatomy: View {
                 .accessibilityHidden(true)
         } else {
             Label(muscles.isEmpty ? "No mapped muscles" : "Muscle illustration unavailable", systemImage: "figure.stand")
-                .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
+                .font(AppFont.subheadline).foregroundStyle(AppColor.textSecondary)
         }
     }
 }
@@ -218,7 +216,7 @@ struct RecapMuscleNames: View {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Label(role.displayName, systemImage: role == .primary ? "circle.fill" : "circle.lefthalf.filled")
                     .foregroundStyle(role == .primary ? AppColor.trainingPrimaryMuscle : AppColor.trainingSecondaryMuscle)
-                Text(names.joined(separator: ", ")).foregroundStyle(AppColor.recapText)
+                Text(names.joined(separator: ", ")).foregroundStyle(AppColor.textPrimary)
             }.font(AppFont.subheadline)
         }
     }

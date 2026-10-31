@@ -45,7 +45,7 @@ struct WorkoutFocusView: View {
             }
         }
         .scrollDismissesKeyboard(.interactively)
-        .background(AppColor.trainingBackground.ignoresSafeArea())
+        .background(AppColor.background.ignoresSafeArea())
         .task { await library.load() }
         .sheet(item: $detailExercise) { exercise in
                 NavigationStack {
@@ -116,7 +116,7 @@ struct WorkoutFocusView: View {
             .frame(width: 56, height: 56)
             .clipShape(Circle())
             .padding(Spacing.xs)
-            .background(Circle().fill(AppColor.trainingPanel))
+            .background(Circle().fill(AppColor.surfaceElevated))
             .overlay(Circle().stroke(selected ? AppColor.trainingSelection : AppColor.glassBorder, lineWidth: selected ? 3 : 1))
             .overlay(
                 Circle()
@@ -129,7 +129,7 @@ struct WorkoutFocusView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .symbolRenderingMode(.palette)
                         .foregroundStyle(AppColor.onAccent, AppColor.trainingComplete)
-                        .background(Circle().fill(AppColor.trainingPanel))
+                        .background(Circle().fill(AppColor.surfaceElevated))
                         .symbolEffect(.bounce, value: complete)
                         .transition(.scale.combined(with: .opacity))
                         .accessibilityHidden(true)
@@ -253,7 +253,7 @@ struct WorkoutFocusView: View {
         }
         .padding(Spacing.xl)
         .foregroundStyle(AppColor.textPrimary)
-        .background(AppColor.trainingPanel, in: RoundedRectangle(cornerRadius: Spacing.sheetCornerRadius, style: .continuous))
+        .background(AppColor.surfaceElevated, in: RoundedRectangle(cornerRadius: Spacing.sheetCornerRadius, style: .continuous))
     }
 
     /// The painted "Finish workout" above, shown once every set is logged.
@@ -408,7 +408,7 @@ private struct WorkoutFocusRestHeader: View {
                 .monospacedDigit()
                 .padding(.horizontal, Spacing.md)
                 .minimumHitArea()
-                .background(AppColor.trainingInput, in: Capsule())
+                .background(AppColor.surfaceSecondary, in: Capsule())
         }
         .buttonStyle(ScalePressStyle())
         .accessibilityLabel(label)
@@ -424,7 +424,7 @@ private struct RestCountdownRing: View {
         TimelineView(.animation(minimumInterval: 1.0 / 30, paused: rest.frozenSeconds != nil)) { context in
             ZStack {
                 Circle()
-                    .stroke(AppColor.trainingInput, lineWidth: 6)
+                    .stroke(AppColor.track, lineWidth: 6)
                 Circle()
                     .trim(from: 0, to: rest.remainingFraction(at: context.date))
                     .stroke(AppColor.trainingSelection, style: StrokeStyle(lineWidth: 6, lineCap: .round))

@@ -45,7 +45,7 @@ struct PlateLoadStrip: View {
             .padding(.vertical, Spacing.xs)
             .frame(minHeight: Spacing.minimumHitTarget)
             .background(
-                AppColor.trainingInput,
+                AppColor.surfaceSecondary,
                 in: RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
             )
         }

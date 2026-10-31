@@ -246,14 +246,13 @@ def main() -> int:
                 rows.append((scheme, f"{ramp}.accentFill", "on", surface,
                              ratio, AA_LARGE, ratio >= AA_LARGE))
 
-    # Completion uses its own quiet surfaces rather than the app's glass ramp.
+    # The muscle tints are drawn as ink on the shared surfaces (training
+    # focus and the workout recap use the app's own ramp now).
     for index, scheme in enumerate(("light", "dark")):
-        for surface in ("recapBackground", "recapCard", "recapRaised"):
-            for ink in ("recapText", "recapSecondary", "recapAction", "trainingPrimaryMuscle", "trainingSecondaryMuscle"):
+        for surface in SURFACES:
+            for ink in ("trainingPrimaryMuscle", "trainingSecondaryMuscle"):
                 ratio = contrast(tokens[ink][index], tokens[surface][index])
                 rows.append((scheme, ink, "on", surface, ratio, AA_TEXT, ratio >= AA_TEXT))
-        ratio = contrast(tokens["recapButtonInk"][index], tokens["recapButton"][index])
-        rows.append((scheme, "recapButtonInk", "on", "recapButton", ratio, AA_TEXT, ratio >= AA_TEXT))
 
     failures = [r for r in rows if not r[6]]
     for scheme, ink, _, bg, ratio, threshold, ok in (rows if args.all else failures):
