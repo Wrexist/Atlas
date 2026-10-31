@@ -49,7 +49,7 @@ struct MealsContainerView: View {
                 .padding(.bottom, Spacing.xxxxl)
                 .readableContentWidth()
             }
-            .background(AppColor.background.ignoresSafeArea())
+            .pageBackground()
             .overlay { TableSaveToast() }
             .navigationTitle("Meals")
             .navigationBarTitleDisplayMode(.large)

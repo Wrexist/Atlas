@@ -8,10 +8,11 @@ enum AppShadow {
     static let glassDeep = Shadow(color: ink(light: 0.16, dark: 0.4), radius: 24, x: 0, y: 12)
     /// Floating toasts and banners that hover over scrolling content.
     static let toast = Shadow(color: ink(light: 0.1, dark: 0.2), radius: 12, x: 0, y: 4)
-    /// The light-mode paper card's drop: a tight contact edge plus a wide,
-    /// faint ambient lift. Light only; dark-mode cards are glass.
-    static let paperContact = Shadow(color: ink(light: 0.03, dark: 0), radius: 1.5, x: 0, y: 1)
-    static let paperAmbient = Shadow(color: ink(light: 0.05, dark: 0), radius: 24, x: 0, y: 10)
+    /// The card's drop: a tight contact edge plus a wide, faint ambient
+    /// lift. Dark mode needs more alpha for the same lift, since the drop
+    /// lands on a near-black page.
+    static let paperContact = Shadow(color: ink(light: 0.04, dark: 0.5), radius: 1.5, x: 0, y: 1)
+    static let paperAmbient = Shadow(color: ink(light: 0.07, dark: 0.45), radius: 28, x: 0, y: 14)
     static var accentGlow: Shadow { Shadow(color: AppColor.accentPrimary.opacity(0.3), radius: 12, x: 0, y: 4) }
 
     private static func ink(light: Double, dark: Double) -> Color {

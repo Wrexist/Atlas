@@ -147,21 +147,39 @@ private struct CardSurface<S: InsettableShape>: ViewModifier {
     }
 }
 
-/// The card itself: a solid fill, a hairline, and a two-layer drop (a
-/// tight contact edge plus a wide ambient lift). A tinted card takes a
-/// faint accent wash so it reads as a pastel card, not a coloured slab.
+/// The card itself: a top-lit fill, a lit rim along the upper edge, a
+/// hairline, and a two-layer drop (a tight contact edge plus a wide
+/// ambient lift). Together they read as an object resting on the page
+/// rather than a flat panel printed on it. A tinted card takes a faint
+/// accent wash so it reads as a pastel card, not a coloured slab.
 private struct PaperFill<S: InsettableShape>: View {
     let shape: S
     let tinted: Bool
 
     var body: some View {
-        shape.fill(AppColor.surfaceElevated)
-            .overlay { if tinted { shape.fill(AppColor.paperTint) } }
-            .overlay {
-                shape.strokeBorder(tinted ? AppColor.glassBorderActive : AppColor.paperEdge, lineWidth: 0.5)
-            }
-            .appShadow(AppShadow.paperContact)
-            .appShadow(AppShadow.paperAmbient)
+        shape.fill(
+            LinearGradient(
+                colors: [AppColor.surfaceElevated, AppColor.surfaceElevatedLow],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+        .overlay { if tinted { shape.fill(AppColor.paperTint) } }
+        .overlay {
+            shape.strokeBorder(tinted ? AppColor.glassBorderActive : AppColor.paperEdge, lineWidth: 0.5)
+        }
+        .overlay {
+            shape.strokeBorder(
+                LinearGradient(
+                    colors: [AppColor.cardRim, .clear],
+                    startPoint: .top,
+                    endPoint: .center
+                ),
+                lineWidth: 1
+            )
+        }
+        .appShadow(AppShadow.paperContact)
+        .appShadow(AppShadow.paperAmbient)
     }
 }
 

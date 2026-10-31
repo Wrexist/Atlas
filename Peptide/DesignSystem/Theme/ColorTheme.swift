@@ -42,6 +42,18 @@ enum AppColor {
 
     /// The warm peach wash at the top of a light-mode premium backdrop.
     static let paperGlow = Color(light: 0xF2A27A, dark: 0xF2A27A)
+    /// The foot of a card's top-lit fill. `surfaceElevated` is the top, so
+    /// text contrast is checked against the lighter end; the card darkens a
+    /// step towards the bottom the way a lit object does.
+    static let surfaceElevatedLow = Color(light: 0xF8F8F5, dark: 0x161614)
+    /// The lit top rim of a card. A light catching the upper edge is what
+    /// makes a flat fill read as a raised object, in both schemes.
+    static let cardRim = Color.adaptive(
+        light: Color.white.opacity(0.95),
+        dark: Color.white.opacity(0.09),
+        highContrastLight: Color.white.opacity(0.95),
+        highContrastDark: Color.white.opacity(0.2)
+    )
 
     // MARK: - Exercise demonstration
 

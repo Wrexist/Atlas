@@ -135,7 +135,7 @@ struct TrainContainerView: View {
                 .id(section)
                 .transition(.opacity.combined(with: .offset(y: 8)))
         }
-        .background(AppColor.background.ignoresSafeArea())
+        .pageBackground()
         .overlay(alignment: .top) {
             SyncToast(
                 isShowing: $showStaleNotice,

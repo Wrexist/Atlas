@@ -510,7 +510,7 @@ struct HomeView: View {
                     activeJumpAnchor = picked
                 }
             }
-            .background(AppColor.background)
+            .pageBackground()
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .safeAreaInset(edge: .top, spacing: 0) {

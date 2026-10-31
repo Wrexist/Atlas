@@ -134,7 +134,7 @@ struct HabitsView: View {
             ) { _ in
                 day = Calendar.current.startOfDay(for: .now)
             }
-            .background(AppColor.background.ignoresSafeArea())
+            .pageBackground()
             .navigationTitle("Habits")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
