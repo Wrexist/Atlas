@@ -45,6 +45,9 @@ struct FridgeShelf: View {
         .clipShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous))
         .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
         .onChange(of: isFloating) { _, floating in if floating { startPhysics() } }
+        // The host owns the flag and outlives the shelf (search, an empty
+        // fridge). A fresh shelf has an empty scene, so it starts settled.
+        .onDisappear { isFloating = false }
         .onChange(of: shown.map(\.id)) { _, _ in if isFloating { startPhysics() } }
         .onChange(of: canFloat) { _, allowed in if !allowed { isFloating = false } }
     }
