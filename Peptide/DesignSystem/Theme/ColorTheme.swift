@@ -38,12 +38,15 @@ enum AppColor {
     //
     // The dark values are lifted off pure black (was `0x0A0A0A`) so Liquid
     // Glass has something to refract; a true-black backdrop makes the iOS 26
-    // material read as flat grey. The light values are a warm neutral rather
-    // than pure white for the same reason.
+    // material read as flat grey.
+    //
+    // Light mode is a warm paper page (the Xeyo look): an off-white
+    // backdrop with near-white cards lifted by a soft shadow rather than
+    // glass. See `glassSurface`.
 
-    static let background = Color(light: 0xF4F4F7, dark: 0x101013)
-    static let surfaceElevated = Color(light: 0xFCFCFD, dark: 0x1C1C21)
-    static let surfaceSecondary = Color(light: 0xFAFAFC, dark: 0x17171B)
+    static let background = Color(light: 0xF4F4F2, dark: 0x101013)
+    static let surfaceElevated = Color(light: 0xFEFEFD, dark: 0x1C1C21)
+    static let surfaceSecondary = Color(light: 0xF9F9F7, dark: 0x17171B)
 
     // MARK: - Exercise demonstration
 
@@ -78,16 +81,18 @@ enum AppColor {
 
     // MARK: - Ink
 
-    static let textPrimary = Color(light: 0x111114, dark: 0xF7F7FA)
+    // Light inks are warm like the paper they sit on; a blue-grey ink on a
+    // warm page looks like a different app's text pasted in.
+    static let textPrimary = Color(light: 0x1A1A17, dark: 0xF7F7FA)
     static let textSecondary = Color(
-        light: 0x5B5B63, dark: 0xA0A0A0,
-        highContrastLight: 0x45454C, highContrastDark: 0xC4C4C4
+        light: 0x5E5D58, dark: 0xA0A0A0,
+        highContrastLight: 0x46453F, highContrastDark: 0xC4C4C4
     )
     /// Deepened from `#666666` to clear WCAG AA (4.5:1) against the dark
     /// background and elevated surfaces. The previous value sat at ~3:1.
     static let textTertiary = Color(
-        light: 0x6E6E76, dark: 0x888888,
-        highContrastLight: 0x52525A, highContrastDark: 0xADADAD
+        light: 0x6E6D67, dark: 0x888888,
+        highContrastLight: 0x52514C, highContrastDark: 0xADADAD
     )
     static var textHighlight: Color { ThemeManager.shared.theme.highlight }
     /// Ink for text on the accent's own translucent wash (`.tinted` badges,
@@ -127,12 +132,16 @@ enum AppColor {
     /// borrows a dark hairline; dark mode a light one. Under Increase
     /// Contrast it is the only edge a card has, so it firms up.
     static let glassBorder = Color.adaptive(
-        light: Color.black.opacity(0.10),
+        light: Color.black.opacity(0.07),
         dark: Color.white.opacity(0.08),
         highContrastLight: Color.black.opacity(0.25),
         highContrastDark: Color.white.opacity(0.25)
     )
     static var glassBorderActive: Color { ThemeManager.shared.theme.primary.opacity(0.3) }
+    /// The accent wash on a tinted light-mode paper card. Fainter than
+    /// `glassTint`: painted over an opaque white card it would otherwise
+    /// read as a coloured slab instead of a pastel.
+    static var paperTint: Color { ThemeManager.shared.theme.primary.opacity(0.07) }
     /// The faint wash that lifts a card off the backdrop on pre-iOS-26 OSes.
     static let cardOverlay = Color.adaptive(
         light: Color.black.opacity(0.03),
