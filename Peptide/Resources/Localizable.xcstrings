@@ -3667,6 +3667,16 @@
         }
       }
     },
+    "%lld of %lld sets": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld av %2$lld set"
+          }
+        }
+      }
+    },
     "%lld of %lld sets this week": {
       "localizations": {
         "sv": {
@@ -7075,6 +7085,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Uppvakning"
+          }
+        }
+      }
+    },
+    "Weekly volume": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veckovolym"
           }
         }
       }

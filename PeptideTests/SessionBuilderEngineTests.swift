@@ -33,6 +33,13 @@ final class SessionBuilderEngineTests: XCTestCase {
         XCTAssertEqual(Engine.Target(.lowerBack), .hamstrings)
     }
 
+    func test_targetsOfExercise_namesOnlyTheMainMuscles() throws {
+        let curl = try XCTUnwrap(byID["Dumbbell_Bicep_Curl"])
+        let squat = try XCTUnwrap(byID["Barbell_Full_Squat"])
+        XCTAssertEqual(Engine.targets(of: curl), [.biceps])
+        XCTAssertEqual(Engine.targets(of: squat), [.quads])
+    }
+
     func test_lengthenedFavourites_areAllOnTheShortlist() {
         let shortlist = Set(MovementPattern.allCases.flatMap(ProgramGeneratorEngine.candidates(for:)))
         XCTAssertTrue(Engine.lengthenedFavourites.isSubset(of: shortlist),

@@ -108,6 +108,13 @@ enum SessionBuilderEngine {
         })
     }
 
+    /// The muscles an exercise mainly trains, as the user names them.
+    static func targets(of exercise: Exercise) -> Set<Target> {
+        Set(WeeklyMuscleHeatmap.stimulusHeads(for: exercise).primary
+            .filter { $0.value >= 0.5 && !$0.key.isAccessoryHead }
+            .map { Target($0.key) })
+    }
+
     // MARK: - Companion muscles
 
     struct Companions: Equatable, Sendable {

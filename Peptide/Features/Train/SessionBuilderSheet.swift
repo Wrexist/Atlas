@@ -18,6 +18,7 @@ struct SessionBuilderSheet: View {
     @State private var companions: [Target] = []
     @State private var resting: [Target] = []
     @State private var routine: Routine?
+    @State private var isSaved = false
 
     private typealias Target = SessionBuilderEngine.Target
     private static let minuteOptions = [30, 45, 60, 75]
@@ -53,8 +54,11 @@ struct SessionBuilderSheet: View {
                 Button("Back") { AppAnimation.with(AppAnimation.springSnappy) { routine = nil } }
             }
         }
-        if routine == nil {
-            ToolbarItem(placement: .topBarTrailing) {
+        ToolbarItem(placement: .topBarTrailing) {
+            if let routine {
+                Button(isSaved ? LocalizedStringKey("Saved") : "Save as routine") { save(routine) }
+                    .disabled(isSaved)
+            } else {
                 Button("Pick for me", systemImage: "wand.and.stars") { pickForMe() }
                     .disabled(states.isEmpty)
             }
@@ -299,7 +303,14 @@ struct SessionBuilderSheet: View {
             isDeload: isDeload
         )
         let built = SessionBuilderEngine.build(request, catalog: library.bundled)
+        isSaved = false
         AppAnimation.with(AppAnimation.springSnappy) { routine = built }
+    }
+
+    private func save(_ routine: Routine) {
+        Haptics.success()
+        RoutineStore.shared.add([routine])
+        isSaved = true
     }
 
     private func start(_ routine: Routine) {
