@@ -20,6 +20,12 @@ Counts only real user-facing sentences — capitalised, multi-word, no string
 interpolation — since fragments and format strings are not separately
 translatable keys.
 
+`Text("…")` is not the only way a literal becomes a catalog lookup: custom
+views and helpers that take a `LocalizedStringKey` (`title:`, `eyebrow:`,
+`subtitle:`, …) and String enums whose `rawValue` is wrapped in one do too,
+and they let English section headings leak into the Swedish UI. Every such
+literal must have a catalog key translated into each shipped language.
+
     python3 scripts/check-localization.py [--min-coverage 80]
 """
 from __future__ import annotations
@@ -88,6 +94,203 @@ def ui_sentences() -> set[str]:
                     continue
                 found.add(unescape(t))
     return found
+
+
+def strip_comments(code: str) -> str:
+    """`code` with comments blanked, string literals intact, offsets kept."""
+    out, i, n = list(code), 0, len(code)
+    while i < n:
+        if code.startswith('"""', i):
+            end = code.find('"""', i + 3)
+            i = n if end < 0 else end + 3
+        elif code[i] == '"':
+            i += 1
+            while i < n and code[i] not in '"\n':
+                i += 2 if code[i] == "\\" else 1
+            i += 1
+        elif code.startswith("//", i) or code.startswith("/*", i):
+            end = code.find("\n" if code[i + 1] == "/" else "*/", i)
+            end = n if end < 0 else end + (0 if code[i + 1] == "/" else 2)
+            out[i:end] = re.sub(r"[^\n]", " ", code[i:end])
+            i = end
+        else:
+            i += 1
+    return "".join(out)
+
+
+def closing(code: str, open_at: int) -> int:
+    """Index of the bracket closing the one at `open_at`, skipping strings."""
+    depth, i = 0, open_at
+    while i < len(code):
+        c = code[i]
+        if c == '"':
+            i += 1
+            while i < len(code) and code[i] != '"':
+                i += 2 if code[i] == "\\" else 1
+        elif c in "([{":
+            depth += 1
+        elif c in ")]}":
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    return len(code)
+
+
+def split_top_level(text: str) -> list[str]:
+    """`text` split at commas outside brackets and strings."""
+    parts, depth, start, i = [], 0, 0, 0
+    while i < len(text):
+        c = text[i]
+        if c == '"':
+            i += 1
+            while i < len(text) and text[i] != '"':
+                i += 2 if text[i] == "\\" else 1
+        elif c in "([{<":
+            depth += 1
+        elif c in ")]}>" and not (c == ">" and text[i - 1] == "-"):
+            depth -= 1
+        elif c == "," and depth == 0:
+            parts.append(text[start:i])
+            start = i + 1
+        i += 1
+    parts.append(text[start:])
+    return [p.strip() for p in parts if p.strip()]
+
+
+LSK_TYPE = re.compile(r"^LocalizedStringKey\??$")
+PLAIN_STRING_TYPE = re.compile(r"^(?:String|Substring)\??$")
+TYPE_DECL = re.compile(r"\b(struct|class|enum|actor|extension)\s+(\w+)[^{;]*?\{")
+INIT_OR_FUNC = re.compile(r"(?<!\.)\b(?:init[?!]?|func\s+(\w+))\s*(?:<[^>(]*>)?\s*\(")
+STORED_PROPERTY = re.compile(r"^[ \t]*(?:(?:private|fileprivate|internal|public)\s+)?"
+                             r"(?:let|var)\s+(\w+)\s*:\s*([\w?.]+)", re.MULTILINE)
+
+
+def swift_sources(roots: tuple[str, ...]):
+    for root in roots:
+        for p in sorted((REPO / root).rglob("*.swift")):
+            yield p, strip_comments(blank_previews(p.read_text()))
+
+
+def parameter_types(signature: str) -> dict[str, str]:
+    """External label → declared type; an unlabeled first parameter is `_0`."""
+    out = {}
+    for index, param in enumerate(split_top_level(signature)):
+        m = re.match(r"(\w+)(?:\s+\w+)?\s*:\s*(?:@\w+\s+)*([^=]+)", param)
+        if not m:
+            continue
+        label = m.group(1)
+        if label == "_":
+            if index:
+                continue
+            label = "_0"
+        out[label] = m.group(2).strip()
+    return out
+
+
+def lsk_parameters(sources) -> dict[str, set[str]]:
+    """Callee name → labels typed `LocalizedStringKey` in every overload that has them.
+
+    Callees are view types (explicit or memberwise inits) and functions. A
+    label that some overload of the same name takes as a plain `String` is
+    dropped: a literal picks the `String` overload, so it is never looked up.
+    """
+    seen: dict[str, dict[str, set[str]]] = {}
+
+    def record(callee: str, types: dict[str, str]):
+        for label, type_ in types.items():
+            seen.setdefault(callee, {}).setdefault(label, set()).add(type_)
+
+    for _, code in sources:
+        bodies = [(m.group(1), m.group(2), m.end() - 1, closing(code, m.end() - 1))
+                  for m in TYPE_DECL.finditer(code)]
+        for m in INIT_OR_FUNC.finditer(code):
+            types = parameter_types(code[m.end():closing(code, m.end() - 1)])
+            if m.group(1):
+                record(m.group(1), types)
+                continue
+            owner = min((b for b in bodies if b[2] < m.start() < b[3]),
+                        key=lambda b: b[3] - b[2], default=None)
+            if owner:
+                record(owner[1], types)
+        for kind, name, start, end in bodies:
+            if kind != "struct":
+                continue
+            members = [m for m in STORED_PROPERTY.finditer(code, start, end)
+                       if code.count("{", start, m.start()) - code.count("}", start, m.start()) == 1]
+            explicit_init = any(code.count("{", start, i.start()) - code.count("}", start, i.start()) == 1
+                                for i in re.finditer(r"(?<!\.)\binit[?!]?\s*\(", code[:end])
+                                if i.start() > start)
+            if not explicit_init:
+                record(name, {m.group(1): m.group(2) for m in members
+                              if not code[m.end():code.find("\n", m.end())].lstrip().startswith("{")})
+    return {callee: {label for label, types in labels.items()
+                     if any(LSK_TYPE.match(t) for t in types)
+                     and not any(PLAIN_STRING_TYPE.match(t) for t in types)}
+            for callee, labels in seen.items()}
+
+
+LITERAL = r'"((?:[^"\\]|\\.)*)"'
+
+
+def argument_literals(value: str) -> list[str]:
+    """The literals a `LocalizedStringKey` argument can render: `"A"` or `c ? "A" : "B"`."""
+    m = re.fullmatch(LITERAL, value) or re.fullmatch(rf"[^\"]+\?\s*{LITERAL}\s*:\s*{LITERAL}", value)
+    return [g for g in (m.groups() if m else ()) if "\\(" not in g and re.search(r"[A-Za-z]", g)]
+
+
+def enum_raw_values(code: str, name: str) -> list[str]:
+    m = re.search(rf"\benum\s+{name}\s*:\s*String\b[^{{]*\{{", code)
+    if not m:
+        return []
+    body = code[m.end():closing(code, m.end() - 1)]
+    return re.findall(rf"\bcase\s+\w+\s*=\s*{LITERAL}", body) + \
+        re.findall(rf",\s*\w+\s*=\s*{LITERAL}", body)
+
+
+def localized_key_arguments(roots: tuple[str, ...] = ("Peptide",)) -> dict[str, set[str]]:
+    """Literals that reach a `LocalizedStringKey` parameter, each with where it is used.
+
+    `Text("…")` is already counted by `ui_sentences`; this covers the custom
+    views and helpers that take a `LocalizedStringKey` (`title:`, `eyebrow:`,
+    `subtitle:`, …) and String-backed enums whose `rawValue` is wrapped in
+    `LocalizedStringKey(…)` for a `GlassSegmentedControl`. Each one is
+    looked up in the catalog at runtime, so a missing key renders English.
+    """
+    sources = list(swift_sources(roots))
+    params = {k: v for k, v in lsk_parameters(sources).items() if v}
+    found: dict[str, set[str]] = {}
+    for path, code in sources:
+        where = path.relative_to(REPO).as_posix()
+        for m in re.finditer(r"(?<![\w])(\w+)\s*\(", code):
+            labels = params.get(m.group(1))
+            if not labels or re.search(r"\b(?:func|init|struct|class|enum)\s*$", code[:m.start()]):
+                continue
+            args = split_top_level(code[m.end():closing(code, m.end() - 1)])
+            for index, arg in enumerate(args):
+                labelled = re.match(r"(\w+)\s*:(?!:)\s*(.*)$", arg, re.DOTALL)
+                label, value = (labelled.groups() if labelled else (f"_{index}", arg))
+                if label in labels:
+                    for literal in argument_literals(value.strip()):
+                        found.setdefault(unescape(literal), set()).add(where)
+        for m in re.finditer(r"LocalizedStringKey\(\s*\$0\.rawValue\s*\)", code):
+            enum = re.findall(r"options:\s*(\w+)\.allCases", code[max(0, m.start() - 400):m.start()])
+            if enum:
+                for raw in enum_raw_values(code, enum[-1]):
+                    found.setdefault(unescape(raw), set()).add(where)
+    return found
+
+
+def untranslated_arguments(arguments: dict[str, set[str]], strings: dict,
+                           languages: set[str]) -> list[str]:
+    """One line per argument literal the catalog lacks, or lacks in a shipped language."""
+    gaps = []
+    for key in sorted(arguments):
+        have = set((strings.get(key) or {}).get("localizations") or {})
+        missing = ["catalog key"] if key not in strings else sorted(languages - have)
+        if missing:
+            gaps.append(f"  {key!r} — no {', '.join(missing)} — {', '.join(sorted(arguments[key]))}")
+    return gaps
 
 
 def specifiers(s: str, subs: dict | None = None) -> list[tuple[int, str]]:
@@ -160,7 +363,11 @@ def main() -> int:
     print(f"  UI sentences in code:    {len(sentences)}")
     print(f"  covered by the catalog:  {len(covered)}  ({pct:.0f}%)")
 
-    orphans = sorted(k for k in keys if k not in sentences and " " in k and re.match(r"^[A-Z]", k))
+    arguments = localized_key_arguments()
+    print(f"  literals passed as LocalizedStringKey: {len(arguments)}")
+
+    orphans = sorted(k for k in keys if k not in sentences and k not in arguments
+                     and " " in k and re.match(r"^[A-Z]", k))
     print(f"  catalog keys no longer in the UI: {len(orphans)}")
 
     shipped = shipped_languages(list(catalogs.values()))
@@ -185,6 +392,15 @@ def main() -> int:
                   "localization/Localizable.translated.xcstrings and drop it from "
                   "CFBundleLocalizations.")
             failed = True
+
+    # Held to every key, not a share: these are titles and eyebrows, so a
+    # single miss is an English heading in the middle of a translated screen.
+    gaps = untranslated_arguments(arguments, strings, shipped - {"en", "Base"})
+    if gaps:
+        print(f"\n{len(gaps)} literal(s) passed to a LocalizedStringKey parameter render "
+              "in English (add them to Localizable.xcstrings):")
+        print("\n".join(gaps))
+        failed = True
 
     mismatches = [e for name, c in catalogs.items() for e in specifier_mismatches(name, c)]
     if mismatches:

@@ -5872,6 +5872,16 @@
         }
       }
     },
+    "7-fast avg": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Snitt 7 fastor"
+          }
+        }
+      }
+    },
     "8 weeks": {
       "localizations": {
         "sv": {
@@ -6303,6 +6313,16 @@
         }
       }
     },
+    "DAYS PER WEEK": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DAGAR PER VECKA"
+          }
+        }
+      }
+    },
     "Deep sleep": {
       "localizations": {
         "sv": {
@@ -6343,6 +6363,26 @@
         }
       }
     },
+    "EQUIPMENT": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "UTRUSTNING"
+          }
+        }
+      }
+    },
+    "EXPERIENCE": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ERFARENHET"
+          }
+        }
+      }
+    },
     "Efficiency": {
       "localizations": {
         "sv": {
@@ -6369,6 +6409,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tomt pass"
+          }
+        }
+      }
+    },
+    "End": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avsluta"
           }
         }
       }
@@ -6441,6 +6491,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hitta mönster i din dagbok"
+          }
+        }
+      }
+    },
+    "GOAL": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MÅL"
           }
         }
       }
@@ -6608,6 +6668,16 @@
         }
       }
     },
+    "MINUTES PER SESSION": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MINUTER PER PASS"
+          }
+        }
+      }
+    },
     "MUSCLE": {
       "localizations": {
         "sv": {
@@ -6768,6 +6838,16 @@
         }
       }
     },
+    "Plan": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plan"
+          }
+        }
+      }
+    },
     "Private by design — no ads, no tracking": {
       "localizations": {
         "sv": {
@@ -6804,6 +6884,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Återhämtad"
+          }
+        }
+      }
+    },
+    "Regular": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Regelbundet"
           }
         }
       }
@@ -6928,6 +7018,26 @@
         }
       }
     },
+    "Stages": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faser"
+          }
+        }
+      }
+    },
+    "Start": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starta"
+          }
+        }
+      }
+    },
     "Start Workout": {
       "localizations": {
         "sv": {
@@ -6979,6 +7089,16 @@
         }
       }
     },
+    "Still not for you? Cancel anytime in Settings → your name → Subscriptions and keep the rest of the trial.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fortfarande inte något för dig? Avsluta när du vill under Inställningar → ditt namn → Prenumerationer och behåll resten av provperioden."
+          }
+        }
+      }
+    },
     "Systolic": {
       "localizations": {
         "sv": {
@@ -7019,6 +7139,16 @@
         }
       }
     },
+    "The photos or PDF pages of the lab report you scan.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotona eller PDF-sidorna i labbrapporten du skannar."
+          }
+        }
+      }
+    },
     "The routine to train. Leave empty for an empty workout.": {
       "localizations": {
         "sv": {
@@ -7055,6 +7185,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dagens vikt, i kilo eller pund enligt inställningen i Atlas."
+          }
+        }
+      }
+    },
+    "Training experience": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Träningserfarenhet"
           }
         }
       }
@@ -7139,6 +7279,16 @@
         }
       }
     },
+    "Workout reminders and recovery insights.\nBoth optional.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passpåminnelser och återhämtningsinsikter.\nBåda valfria."
+          }
+        }
+      }
+    },
     "You don't have a fast running.": {
       "comment": "Siri response to “End fast” when no fast is open.",
       "localizations": {
@@ -7217,6 +7367,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dina meddelanden i den här chatten, plus en sammanfattning av din biologiska ålder: uppskattningen, trenden och signalerna bakom den, som HRV, vilopuls, sömn, steg, kondition, vikt och labbvärden."
+          }
+        }
+      }
+    },
+    "Your plan": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Din plan"
           }
         }
       }
