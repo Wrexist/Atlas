@@ -30,6 +30,18 @@ enum RecipeLibraryEngine {
         try JSONDecoder().decode([LibraryRecipe].self, from: data)
     }
 
+    /// The bundled recipe whose English or Swedish name is `name`, ignoring
+    /// case, so a meal logged from a recipe can show that recipe's plate.
+    static func recipe(named name: String) -> LibraryRecipe? {
+        byName[name.trimmingCharacters(in: .whitespaces).lowercased()]
+    }
+
+    private static let byName: [String: LibraryRecipe] = bundled.reduce(into: [:]) { index, recipe in
+        for key in [recipe.name.lowercased(), recipe.nameSV.lowercased()] where index[key] == nil {
+            index[key] = recipe
+        }
+    }
+
     // MARK: - Context
 
     /// Micronutrients a recipe can be "rich in". Sodium is left out: the

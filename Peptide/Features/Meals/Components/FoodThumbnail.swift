@@ -1,20 +1,24 @@
 import SwiftUI
 
-/// The picture a food gets when it has no product photo: an emoji for
-/// what it is, read from its name in English or Swedish, on a tile in
-/// a matching colour. Every food in the library, the diary and the
-/// scanners then has an image, not a grey box.
+/// The picture a food gets when it has no product photo: a studio photo
+/// of what it is (`Assets.xcassets/Foods`, see tools/food-images), read
+/// from its name in English or Swedish, on a tile in a matching colour.
+/// Every food in the library, the diary and the scanners then has an
+/// image, not a grey box.
 struct FoodArtwork: Equatable {
-    let emoji: String
+    /// Asset id; the image is `food-<image>`.
+    let image: String
     let tint: Color
 
-    static let fallback = FoodArtwork(emoji: "🍽️", tint: AppColor.accentPrimary)
+    static let fallback = FoodArtwork(image: "meal", tint: AppColor.accentPrimary)
+
+    var assetName: String { "food-" + image }
 
     static func match(_ name: String) -> FoodArtwork {
         let lowered = name.lowercased()
         let words = lowered.split(whereSeparator: { !$0.isLetter }).map(String.init)
         for entry in catalog where entry.keywords.contains(where: { matches($0, words: words, text: lowered) }) {
-            return FoodArtwork(emoji: entry.emoji, tint: entry.tint)
+            return FoodArtwork(image: entry.image, tint: entry.tint)
         }
         return fallback
     }
@@ -32,15 +36,15 @@ struct FoodArtwork: Equatable {
     }
 
     private struct Entry {
-        let emoji: String
+        let image: String
         let tint: Color
         let keywords: [String]
 
         /// `keywords` is "|"-separated, so the catalog stays one flat
         /// literal the compiler can type-check quickly. Split once here;
         /// `catalog` is a static let, so this runs once per entry.
-        init(emoji: String, tint: Color, keywords: String) {
-            self.emoji = emoji
+        init(image: String, tint: Color, keywords: String) {
+            self.image = image
             self.tint = tint
             self.keywords = keywords.split(separator: "|").map(String.init)
         }
@@ -49,80 +53,81 @@ struct FoodArtwork: Equatable {
     /// Most specific first: "chocolate milk" is chocolate, "fish burger"
     /// is a burger.
     private static let catalog: [Entry] = [
-        Entry(emoji: "🍬", tint: AppColor.destructive,
+        Entry(image: "candy", tint: AppColor.destructive,
               keywords: "candy|godis|gummy|gummies|bilar|ferrari|lakrits|licorice|sweets|skumgodis|geléhall|marshmallow"),
-        Entry(emoji: "🍫", tint: AppColor.macroFat,
+        Entry(image: "chocolate", tint: AppColor.macroFat,
               keywords: "chocolate|choklad|cocoa|kakao|marabou|snickers|twix|kitkat"),
-        Entry(emoji: "🍦", tint: AppColor.macroWater,
+        Entry(image: "ice-cream", tint: AppColor.macroWater,
               keywords: "ice cream|gelato|sorbet"),
-        Entry(emoji: "🍪", tint: AppColor.macroCarbs,
+        Entry(image: "cookie", tint: AppColor.macroCarbs,
               keywords: "cookie|kaka|kakor|kex|biscuit|digestive|brownie"),
-        Entry(emoji: "🍰", tint: AppColor.macroCarbs,
+        Entry(image: "cake", tint: AppColor.macroCarbs,
               keywords: "cake|tårta|bakelse|muffin|bulle|kanelbulle|cheesecake|donut|munk"),
-        Entry(emoji: "🍿", tint: AppColor.warning,
+        Entry(image: "chips", tint: AppColor.warning,
               keywords: "chips|popcorn|crisps|snacks|nachos|ostbågar"),
-        Entry(emoji: "🥜", tint: AppColor.macroFat,
+        Entry(image: "nuts", tint: AppColor.macroFat,
               keywords: "nut|nuts|nöt|nötter|peanut|jordnöt|almond|mandel|cashew|walnut|valnöt"),
-        Entry(emoji: "🍕", tint: AppColor.destructive, keywords: "pizza"),
-        Entry(emoji: "🍔", tint: AppColor.macroProtein, keywords: "burger|hamburgare|hamburger"),
-        Entry(emoji: "🌮", tint: AppColor.warning, keywords: "taco|tacos|burrito|wrap|quesadilla"),
-        Entry(emoji: "🍣", tint: AppColor.macroWater, keywords: "sushi|maki|nigiri|poke"),
-        Entry(emoji: "🍜", tint: AppColor.macroCarbs, keywords: "ramen|noodle|noodles|nudlar|glassnudlar|pho|soup|soppa"),
-        Entry(emoji: "🍝", tint: AppColor.macroCarbs, keywords: "pasta|spaghetti|penne|lasagne|lasagna|makaroner|fusilli"),
-        Entry(emoji: "🍚", tint: AppColor.macroCarbs, keywords: "rice|ris|risotto|basmati|jasminris"),
-        Entry(emoji: "🥣", tint: AppColor.macroCarbs,
+        Entry(image: "pizza", tint: AppColor.destructive, keywords: "pizza"),
+        Entry(image: "burger", tint: AppColor.macroProtein, keywords: "burger|hamburgare|hamburger"),
+        Entry(image: "taco", tint: AppColor.warning, keywords: "taco|tacos|burrito|wrap|quesadilla"),
+        Entry(image: "sushi", tint: AppColor.macroWater, keywords: "sushi|maki|nigiri|poke"),
+        Entry(image: "noodle-soup", tint: AppColor.macroCarbs, keywords: "ramen|noodle|noodles|nudlar|glassnudlar|pho|soup|soppa"),
+        Entry(image: "pasta", tint: AppColor.macroCarbs, keywords: "pasta|spaghetti|penne|lasagne|lasagna|makaroner|fusilli"),
+        Entry(image: "rice", tint: AppColor.macroCarbs, keywords: "rice|ris|risotto|basmati|jasminris"),
+        Entry(image: "porridge", tint: AppColor.macroCarbs,
               keywords: "oat|oats|havre|havregryn|gröt|porridge|müsli|muesli|granola|cereal|flingor"),
-        Entry(emoji: "🍞", tint: AppColor.macroCarbs,
+        Entry(image: "bread", tint: AppColor.macroCarbs,
               keywords: "bread|bröd|toast|bagel|knäcke|limpa|fralla|baguette|tortilla|pita"),
-        Entry(emoji: "🥓", tint: AppColor.macroProtein, keywords: "bacon"),
-        Entry(emoji: "🌭", tint: AppColor.macroProtein, keywords: "sausage|korv|hotdog|chorizo|salami"),
-        Entry(emoji: "🍗", tint: AppColor.macroProtein,
+        Entry(image: "bacon", tint: AppColor.macroProtein, keywords: "bacon"),
+        Entry(image: "sausage", tint: AppColor.macroProtein, keywords: "sausage|korv|hotdog|chorizo|salami"),
+        Entry(image: "chicken", tint: AppColor.macroProtein,
               keywords: "chicken|kyckling|karaage|turkey|kalkon|wings"),
-        Entry(emoji: "🥩", tint: AppColor.macroProtein,
+        Entry(image: "beef", tint: AppColor.macroProtein,
               keywords: "beef|nötkött|biff|steak|meat|kött|köttfärs|fläsk|pork|mince|lamm|lamb|skinka|ham"),
-        Entry(emoji: "🐟", tint: AppColor.macroWater,
+        Entry(image: "fish", tint: AppColor.macroWater,
               keywords: "fish|fisk|salmon|lax|tuna|tonfisk|torsk|cod|sill|makrill|mackerel"),
-        Entry(emoji: "🍤", tint: AppColor.warning, keywords: "shrimp|räkor|räka|prawn|prawns|scampi"),
-        Entry(emoji: "🥚", tint: AppColor.warning, keywords: "egg|eggs|ägg|omelett|omelette"),
-        Entry(emoji: "🧀", tint: AppColor.warning,
+        Entry(image: "shrimp", tint: AppColor.warning, keywords: "shrimp|räkor|räka|prawn|prawns|scampi"),
+        Entry(image: "egg", tint: AppColor.warning, keywords: "egg|eggs|ägg|omelett|omelette"),
+        Entry(image: "cheese", tint: AppColor.warning,
               keywords: "cheese|ost|cheddar|mozzarella|parmesan|brie|feta|halloumi"),
-        Entry(emoji: "🧈", tint: AppColor.warning, keywords: "butter|smör|margarine|bregott"),
-        Entry(emoji: "🫒", tint: AppColor.success, keywords: "olive|oliv|oil|olja|rapsolja"),
-        Entry(emoji: "🥛", tint: AppColor.macroWater,
+        Entry(image: "butter", tint: AppColor.warning, keywords: "butter|smör|margarine|bregott"),
+        Entry(image: "olive-oil", tint: AppColor.success, keywords: "olive|oliv|oil|olja|rapsolja"),
+        Entry(image: "milk", tint: AppColor.macroWater,
               keywords: "milk|mjölk|skummjölk|yoghurt|yogurt|kvarg|quark|filmjölk|cottage|skyr|fil|kefir"),
-        Entry(emoji: "🍵", tint: AppColor.success, keywords: "tea|te|matcha|chai"),
-        Entry(emoji: "☕", tint: AppColor.macroFat,
+        Entry(image: "tea", tint: AppColor.success, keywords: "tea|te|matcha|chai"),
+        Entry(image: "coffee", tint: AppColor.macroFat,
               keywords: "coffee|kaffe|latte|espresso|cappuccino|americano|flat white"),
-        Entry(emoji: "🍺", tint: AppColor.warning, keywords: "beer|öl|lager|ipa|cider"),
-        Entry(emoji: "🍷", tint: AppColor.destructive, keywords: "wine|vin|prosecco|champagne"),
-        Entry(emoji: "🥤", tint: AppColor.accentPrimary,
+        Entry(image: "beer", tint: AppColor.warning, keywords: "beer|öl|lager|ipa|cider"),
+        Entry(image: "wine", tint: AppColor.destructive, keywords: "wine|vin|prosecco|champagne"),
+        Entry(image: "soft-drink", tint: AppColor.accentPrimary,
               keywords: "soda|läsk|cola|juice|saft|energy|shake|smoothie|sprite|fanta|pepsi|nocco"),
-        Entry(emoji: "💧", tint: AppColor.macroWater, keywords: "=water|=vatten|mineralvatten"),
-        Entry(emoji: "🍓", tint: AppColor.destructive,
+        Entry(image: "water", tint: AppColor.macroWater, keywords: "=water|=vatten|mineralvatten"),
+        Entry(image: "berries", tint: AppColor.destructive,
               keywords: "strawberry|strawberries|jordgubb|jordgubbar|hallon|raspberry|raspberries|berry|berries|bär|blåbär|blueberry|blueberries|lingon"),
-        Entry(emoji: "🍌", tint: AppColor.warning, keywords: "banana|bananas|banan|bananer"),
-        Entry(emoji: "🍎", tint: AppColor.destructive, keywords: "apple|apples|äpple|äpplen|päron|pear"),
-        Entry(emoji: "🍊", tint: AppColor.warning,
+        Entry(image: "banana", tint: AppColor.warning, keywords: "banana|bananas|banan|bananer"),
+        Entry(image: "apple", tint: AppColor.destructive, keywords: "apple|apples|äpple|äpplen|päron|pear"),
+        Entry(image: "orange", tint: AppColor.warning,
               keywords: "orange|oranges|apelsin|clementin|mandarin|citrus|lemon|citron"),
-        Entry(emoji: "🍇", tint: AppColor.metricSleep, keywords: "grape|grapes|druva|druvor|russin|raisin"),
-        Entry(emoji: "🍍", tint: AppColor.warning, keywords: "pineapple|ananas|mango|melon|watermelon|vattenmelon|kiwi"),
-        Entry(emoji: "🥑", tint: AppColor.success, keywords: "avocado|avokado|guacamole"),
-        Entry(emoji: "🥕", tint: AppColor.warning, keywords: "carrot|carrots|morot|morötter"),
-        Entry(emoji: "🍅", tint: AppColor.destructive, keywords: "tomato|tomatoes|tomat|tomater|ketchup"),
-        Entry(emoji: "🥔", tint: AppColor.macroCarbs,
+        Entry(image: "grapes", tint: AppColor.metricSleep, keywords: "grape|grapes|druva|druvor|russin|raisin"),
+        Entry(image: "tropical-fruit", tint: AppColor.warning, keywords: "pineapple|ananas|mango|melon|watermelon|vattenmelon|kiwi"),
+        Entry(image: "avocado", tint: AppColor.success, keywords: "avocado|avokado|guacamole"),
+        Entry(image: "carrot", tint: AppColor.warning, keywords: "carrot|carrots|morot|morötter"),
+        Entry(image: "tomato", tint: AppColor.destructive, keywords: "tomato|tomatoes|tomat|tomater|ketchup"),
+        Entry(image: "potato", tint: AppColor.macroCarbs,
               keywords: "potato|potatoes|potatis|pommes|fries|mos|sweet potato|sötpotatis"),
-        Entry(emoji: "🥦", tint: AppColor.success,
+        Entry(image: "vegetables", tint: AppColor.success,
               keywords: "broccoli|kål|spinach|spenat|salad|sallad|vegetable|vegetables|grönsak|grönsaker|kale|ärtor|peas|bönor|beans|linser|lentils|gurka|cucumber|paprika"),
-        Entry(emoji: "🥟", tint: AppColor.macroCarbs, keywords: "gyoza|dumpling|dumplings"),
+        Entry(image: "dumplings", tint: AppColor.macroCarbs, keywords: "gyoza|dumpling|dumplings"),
         // Last: Swedish "glass" (ice cream) is also the English serving
         // word, so "Glass of milk" and "Glass noodles" match their food first.
-        Entry(emoji: "🍦", tint: AppColor.macroWater, keywords: "=glass"),
+        Entry(image: "ice-cream", tint: AppColor.macroWater, keywords: "=glass"),
     ]
 }
 
 /// A food's picture at a fixed size: the product cut out of its photo on
 /// the food's own tint, the whole photo on a white card when Vision found
-/// no clean edge, else its `FoodArtwork`.
+/// no clean edge, the plate of the library recipe it was logged from,
+/// else its `FoodArtwork`.
 ///
 /// A diary entry only remembers its barcode, so `barcode` looks the
 /// packshot up in the scan cache when no `imageURL` is given.
@@ -146,6 +151,10 @@ struct FoodThumbnail: View {
         Group {
             if let photo {
                 picture(photo)
+            } else if let recipe = RecipeLibraryEngine.recipe(named: name) {
+                RecipeCutout(recipe: recipe)
+                    .padding(size * 0.06)
+                    .background { tint(RecipeImage.artwork(for: recipe).tint) }
             } else {
                 artwork
             }
@@ -194,10 +203,8 @@ struct FoodThumbnail: View {
 
     private var artwork: some View {
         let art = FoodArtwork.match(name)
-        return Text(art.emoji)
-            .font(AppFont.scaled(size >= 52 ? 24 : 20))
-            .lineLimit(1)
-            .minimumScaleFactor(0.5)
+        return FoodArtworkImage(artwork: art)
+            .padding(size * 0.1)
             .frame(width: size, height: size)
             .background { tint(art.tint) }
     }
@@ -208,5 +215,25 @@ struct FoodThumbnail: View {
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
+    }
+}
+
+/// A food's studio cut-out, or a fork-and-knife glyph in its tint until the
+/// asset is in the catalog.
+struct FoodArtworkImage: View {
+    let artwork: FoodArtwork
+
+    var body: some View {
+        if let image = UIImage(named: artwork.assetName) {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+        } else {
+            Image(systemName: "fork.knife")
+                .resizable()
+                .scaledToFit()
+                .padding(4)
+                .foregroundStyle(artwork.tint)
+        }
     }
 }
