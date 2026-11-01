@@ -36,10 +36,13 @@ final class WorkoutSessionService {
         .string(forKey: WorkoutSessionService.normalSuggestionsKey).flatMap(UUID.init(uuidString:))
 
     private static let normalSuggestionsKey = "workout.normalSuggestionsSessionID"
-    /// The routine this launch started the active workout from, for its
-    /// targets when the session links no stored routine (a template, or
-    /// one deleted mid-workout).
-    private var seedRoutine: (sessionID: UUID, routine: Routine)?
+    /// The routine the active workout was started from, for its targets
+    /// when the session links no stored routine (a builder session, a
+    /// template, or one deleted mid-workout). Saved so a relaunch mid-workout
+    /// keeps its targets and in-workout adaptation.
+    @ObservationIgnored private var seedRoutine: SeedRoutine? = SeedRoutine.load() {
+        didSet { SeedRoutine.save(seedRoutine) }
+    }
 
     /// How recently a session must have started for a second `startWorkout`
     /// to be treated as a duplicate tap rather than a fresh workout. Roughly
@@ -125,7 +128,7 @@ final class WorkoutSessionService {
             focus: WorkoutFocusState(selectedEntryID: exercises.first?.id)
         )
         activeSession = session
-        seedRoutine = routine.map { (session.id, $0) }
+        seedRoutine = routine.map { SeedRoutine(sessionID: session.id, routine: $0) }
         SwiftDataRepository.shared.upsertWorkoutSession(session)
         WorkoutLiveActivityService.shared.start(session)
         DataStore.current?.refreshTrainingGlanceables()
@@ -882,5 +885,26 @@ enum RestTimeOptions {
         if seconds % 60 == 0 { return String(localized: "\(seconds / 60) min") }
         let minutesSeconds = Duration.seconds(seconds).formatted(.time(pattern: .minuteSecond))
         return String(localized: "\(minutesSeconds) min")
+    }
+}
+
+/// The routine a workout was started from, kept on this device so its
+/// targets outlive a relaunch. Device-local like the active session itself.
+struct SeedRoutine: Codable, Equatable {
+    let sessionID: UUID
+    let routine: Routine
+
+    static let defaultsKey = "workout.seedRoutine.v1"
+
+    static func load(from defaults: UserDefaults = .standard) -> SeedRoutine? {
+        defaults.data(forKey: defaultsKey).flatMap { try? JSONDecoder().decode(SeedRoutine.self, from: $0) }
+    }
+
+    static func save(_ seed: SeedRoutine?, to defaults: UserDefaults = .standard) {
+        guard let seed, let data = try? JSONEncoder().encode(seed) else {
+            defaults.removeObject(forKey: defaultsKey)
+            return
+        }
+        defaults.set(data, forKey: defaultsKey)
     }
 }
