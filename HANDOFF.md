@@ -114,16 +114,16 @@ Still owed, none of it possible without hardware:
   author has no linked Vercel account, so Claude-authored commits show it
   red. Allow unlinked authors in that project's Git settings, or ignore it.
 
-### Deferred: paywall Close off-screen at accessibility sizes (A049)
+### Paywall Close at accessibility sizes (A049)
 
-At accessibility XXXL `PaywallView` lays out wider than the screen and its
-top-trailing Close button lands off-screen. The cause is not confirmed: the
-likeliest suspects are the `.fixedSize()` plan name, savings pill and price
-in `pricingRow`, which together refuse to shrink. It needs a device or
-simulator to reproduce, so it was not changed blind. `capturePaywall` in
-`PeptideUITests/ScreenshotTests.swift` still wraps the miss in
-`XCTExpectFailure`; once Close stays hittable, replace that block with
-`XCTAssertTrue(closeButton.isHittable)`.
+At accessibility XXXL `PaywallView` laid out wider than the screen and its
+top-trailing Close button landed off-screen. Close is now overlaid on a
+frame clamped to the offered width (`minWidth: 0, maxWidth: .infinity`),
+so it stays on the screen edge however wide the content lays out. Not yet
+confirmed on a simulator: the `xxxl` pass of `ScreenshotTests` asserts
+`closeButton.isHittable` in `capturePaywall` and is the check to watch.
+Content that still overflows at XXXL would now clip at the screen edges
+instead of moving Close; the screenshot shows whether any row does.
 
 ### Earlier: September 2026 audit
 

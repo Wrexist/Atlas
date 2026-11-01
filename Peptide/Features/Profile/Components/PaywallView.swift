@@ -53,7 +53,7 @@ struct PaywallView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
+        ZStack {
             AppColor.background
                 .ignoresSafeArea()
 
@@ -96,7 +96,15 @@ struct PaywallView: View {
                     .padding(.top, Spacing.lg)
                     .padding(.bottom, Spacing.sm)
             }
-
+        }
+        // Both width bounds, not just `maxWidth`: with both set, a frame
+        // adopts exactly the width it is offered even when a child lays out
+        // wider. Close is overlaid on that frame, so it is anchored to the
+        // screen edge rather than to the content — at accessibility sizes a
+        // row that refused to shrink used to widen the ZStack it shared with
+        // Close and carry the button off-screen (A049).
+        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+        .overlay(alignment: .topTrailing) {
             closeButton
                 .padding(Spacing.lg)
         }
