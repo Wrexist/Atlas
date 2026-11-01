@@ -188,26 +188,29 @@ def parameter_types(signature: str) -> dict[str, str]:
     return out
 
 
-def lsk_parameters(sources) -> dict[str, set[str]]:
-    """Callee name → labels typed `LocalizedStringKey` in every overload that has them.
+def lsk_parameters(sources) -> dict:
+    """Callee → labels typed `LocalizedStringKey` in every overload that has them.
 
     Callees are view types (explicit or memberwise inits) and functions. A
     label that some overload of the same name takes as a plain `String` is
     dropped: a literal picks the `String` overload, so it is never looked up.
+    Functions are also keyed `(file, name)`, so a call resolves against the
+    helpers declared in its own file before unrelated same-named ones.
     """
-    seen: dict[str, dict[str, set[str]]] = {}
+    seen: dict = {}
 
-    def record(callee: str, types: dict[str, str]):
+    def record(callee, types: dict[str, str]):
         for label, type_ in types.items():
             seen.setdefault(callee, {}).setdefault(label, set()).add(type_)
 
-    for _, code in sources:
+    for path, code in sources:
         bodies = [(m.group(1), m.group(2), m.end() - 1, closing(code, m.end() - 1))
                   for m in TYPE_DECL.finditer(code)]
         for m in INIT_OR_FUNC.finditer(code):
             types = parameter_types(code[m.end():closing(code, m.end() - 1)])
             if m.group(1):
                 record(m.group(1), types)
+                record((path, m.group(1)), types)
                 continue
             owner = min((b for b in bodies if b[2] < m.start() < b[3]),
                         key=lambda b: b[3] - b[2], default=None)
@@ -258,12 +261,12 @@ def localized_key_arguments(roots: tuple[str, ...] = ("Peptide",)) -> dict[str, 
     looked up in the catalog at runtime, so a missing key renders English.
     """
     sources = list(swift_sources(roots))
-    params = {k: v for k, v in lsk_parameters(sources).items() if v}
+    params = {k: v for k, v in lsk_parameters(sources).items() if v or isinstance(k, tuple)}
     found: dict[str, set[str]] = {}
     for path, code in sources:
         where = path.relative_to(REPO).as_posix()
         for m in re.finditer(r"(?<![\w])(\w+)\s*\(", code):
-            labels = params.get(m.group(1))
+            labels = params.get((path, m.group(1)), params.get(m.group(1)))
             if not labels or re.search(r"\b(?:func|init|struct|class|enum)\s*$", code[:m.start()]):
                 continue
             args = split_top_level(code[m.end():closing(code, m.end() - 1)])

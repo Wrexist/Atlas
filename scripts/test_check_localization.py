@@ -18,10 +18,15 @@ struct SectionHeader: View {
 
 
 def scan(source: str) -> set[str]:
+    return scan_files({"View.swift": source})
+
+
+def scan_files(files: dict[str, str]) -> set[str]:
     real_repo = loc.REPO
     with tempfile.TemporaryDirectory() as tmp:
         (Path(tmp) / "App").mkdir()
-        (Path(tmp) / "App" / "View.swift").write_text(source)
+        for name, source in files.items():
+            (Path(tmp) / "App" / name).write_text(source)
         loc.REPO = Path(tmp)
         try:
             return set(loc.localized_key_arguments(("App",)))
@@ -64,6 +69,15 @@ private func sectionEyebrow(_ text: LocalizedStringKey) -> some View { Text(text
 let e = sectionEyebrow("Your plan")
 """
         self.assertEqual(scan(source), {"Your plan"})
+
+    def test_same_named_helper_in_another_file_does_not_hide_a_key(self):
+        found = scan_files({
+            "Detail.swift": 'private func sectionHeader(_ t: LocalizedStringKey) -> some View { Text(t) }\n'
+                            'let a = sectionHeader("TODAY\'S DOSES")',
+            "History.swift": 'private func sectionHeader(_ t: String, detail: String) -> some View { Text(t) }\n'
+                             'let b = sectionHeader("Raw", detail: "x")',
+        })
+        self.assertEqual(found, {"TODAY'S DOSES"})
 
     def test_both_branches_of_a_literal_ternary_are_found(self):
         source = """
