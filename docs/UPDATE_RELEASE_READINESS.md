@@ -32,7 +32,7 @@ Status: release verification in progress; no release-ready claim. No release or 
 2. Capture and inspect Meals, incomplete recipe repair, exact portions, saved/Undo, scanner recovery, workout recap, and sharing on small/large iPhones, light/dark, large text, VoiceOver, and Reduce Motion. Confirm denied camera/photo/Health permissions and offline lookup behavior. Screenshots must come from the final build.
 3. Verify an upgrade from the currently distributed build on a test account with existing workouts, meals, custom foods, recipes, favorites, and settings. Compare totals before/after; force quit and reopen. Do not reset storage. Test optional CloudKit and Health behavior on hardware using `CLOUDKIT_HARDWARE_TEST_PLAN.md`.
 4. Premium-motion changes are integrated at e152d83. Native compilation exposed a read-only accessibility preview override; ed1b7e8 removes it. Runtime motion/accessibility review remains required.
-5. Version: the last successful TestFlight run (32755808510, 2026-08-24) uploaded 1.2.137 against a live 1.2.0. Use **1.3.0** as `marketing_version` unless App Store Connect shows something higher. Check the latest approved and TestFlight versions in App Store Connect. Supply an explicit valid higher marketing version to `ios-testflight.yml`; do not use the stale local `project.yml` version as release authority. Confirm matching app/watch/widget versions, signing, entitlements, privacy declarations, and release-service configuration. Credentials and store status have not been verified here.
+5. Version: leave `marketing_version` blank in `ios-testflight.yml`. The workflow then runs `fastlane/auto_version.rb`, which picks a version above the highest one Apple already has (App Store or TestFlight), never below the `AUTO_VERSION_FLOOR` of **1.6**. Only type an explicit version to start a new line on purpose; do not use the stale local `project.yml` version as release authority. Confirm matching app/watch/widget versions, signing, entitlements, privacy declarations, and release-service configuration. Credentials and store status have not been verified here.
 6. Build and distribute an internal TestFlight candidate only after tests pass. Smoke-test install, sign-in, purchase/restore, logging, editing, recovery, share/cancel, account deletion, and offline relaunch. Review crash reports before wider rollout.
 7. Finalize release notes, real-device App Store screenshots, support/privacy links, reviewer instructions, and privacy labels against the actual build. Submit and release through the established process after acceptance; no automatic publishing is part of this work.
 
@@ -53,7 +53,7 @@ Manual food regression: create two custom ingredients and a recipe; delete one i
 
 ## Customer release notes
 
-Final 1.3.0 "What's New" copy lives in `APP_STORE_METADATA.md`. The earlier food-only draft below is superseded.
+Final "What's New" copy lives in `APP_STORE_METADATA.md` (no version number in it — the workflow picks the version at upload). The earlier food-only draft below is superseded.
 
 ### Earlier draft
 

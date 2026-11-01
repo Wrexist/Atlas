@@ -14,8 +14,8 @@ service, so the review checklist's grep stays clean. On by default;
 Settings → "Share crash reports" turns it off.
 
 Manual steps before this ships:
-- Vercel: set `SENTRY_DSN` (the Sentry project's DSN) on the proxy
-  project. Until then the route answers 204 and drops reports.
+- ~~Vercel: set `SENTRY_DSN` on the proxy project.~~ Done — `SENTRY_DSN`
+  is set in Vercel, so the route forwards reports instead of answering 204.
 - App Store Connect → App Privacy: add Diagnostics → **Crash Data** and
   **Performance Data**, each not linked to identity, not used for
   tracking, purpose App Functionality. `PrivacyInfo.xcprivacy` and
@@ -26,7 +26,9 @@ Manual steps before this ships:
 
 Sentry symbolication needs the build's dSYMs uploaded to the project
 (e.g. `sentry-cli debug-files upload` in the TestFlight lane); without
-them events show addresses and binary names only.
+them events show addresses and binary names only. **Deferred by the
+owner's choice** — not a release blocker; revisit if unsymbolicated
+reports get in the way.
 
 ### Design-system audit (branch `claude/audit-design-system`)
 
@@ -112,16 +114,16 @@ Still owed, none of it possible without hardware:
   author has no linked Vercel account, so Claude-authored commits show it
   red. Allow unlinked authors in that project's Git settings, or ignore it.
 
-### Deferred: paywall Close off-screen at accessibility sizes (A049)
+### Paywall Close at accessibility sizes (A049)
 
-At accessibility XXXL `PaywallView` lays out wider than the screen and its
-top-trailing Close button lands off-screen. The cause is not confirmed: the
-likeliest suspects are the `.fixedSize()` plan name, savings pill and price
-in `pricingRow`, which together refuse to shrink. It needs a device or
-simulator to reproduce, so it was not changed blind. `capturePaywall` in
-`PeptideUITests/ScreenshotTests.swift` still wraps the miss in
-`XCTExpectFailure`; once Close stays hittable, replace that block with
-`XCTAssertTrue(closeButton.isHittable)`.
+At accessibility XXXL `PaywallView` laid out wider than the screen and its
+top-trailing Close button landed off-screen. Close is now overlaid on a
+frame clamped to the offered width (`minWidth: 0, maxWidth: .infinity`),
+so it stays on the screen edge however wide the content lays out. Not yet
+confirmed on a simulator: the `xxxl` pass of `ScreenshotTests` asserts
+`closeButton.isHittable` in `capturePaywall` and is the check to watch.
+Content that still overflows at XXXL would now clip at the screen edges
+instead of moving Close; the screenshot shows whether any row does.
 
 ### Earlier: September 2026 audit
 
@@ -163,9 +165,9 @@ calculator on an iPhone SE and a Pro Max, plus Dynamic Type and VoiceOver.
    so a green `build-check` means the suite passed.
 3. Verify Liquid Glass surfaces on an iOS 26 simulator/device — the design
    work cannot be validated on older OSes.
-4. Check the app in **all three** display modes. Light mode has never been
-   run; the tokens are correct by construction, but no screen has been seen
-   in it.
+4. Check the app in **all three** display modes. Light mode shipped in
+   #312 (Xeyo-style light palette); keep checking new screens in light,
+   dark and system.
 
 ## Project basics
 
