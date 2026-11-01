@@ -71,3 +71,4 @@ scripts/peptide-dataset/build.log
 
 # Recipe image generation working files
 tools/recipe-images/raw/
+tools/food-images/raw/
