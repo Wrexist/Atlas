@@ -4,7 +4,7 @@ import UIKit
 /// The plated photo of a library recipe, from the asset `recipe-<id>`
 /// (`Assets.xcassets/Recipes`). Until a photo is added the recipe gets a
 /// plate drawn in its lead ingredient's colour with that ingredient's
-/// emoji, so the screens read finished either way. Dropping an image with
+/// food photo, so the screens read finished either way. Dropping an image with
 /// the right name into the catalog is the whole swap.
 struct RecipeImage: View {
     let recipe: LibraryRecipe
@@ -81,8 +81,8 @@ private struct RecipePlatePlaceholder: View {
                     }
                     .appShadow(AppShadow.glassSubtle)
                     .frame(width: side * (showsBackdrop ? 0.68 : 0.96), height: side * (showsBackdrop ? 0.68 : 0.96))
-                Text(artwork.emoji)
-                    .font(AppFont.scaled(max(28, side * 0.26), relativeTo: .largeTitle, in: .large))
+                FoodArtworkImage(artwork: artwork)
+                    .frame(width: side * 0.4, height: side * 0.4)
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
         }

@@ -91,20 +91,8 @@ enum AppLanguage: String, CaseIterable, Identifiable, Hashable {
         }
     }
 
-    var flag: String {
-        switch self {
-        case .english: "🇺🇸"
-        case .spanish: "🇪🇸"
-        case .chineseSimplified: "🇨🇳"
-        case .japanese: "🇯🇵"
-        case .german: "🇩🇪"
-        case .french: "🇫🇷"
-        case .portugueseBrazil: "🇧🇷"
-        case .korean: "🇰🇷"
-        case .russian: "🇷🇺"
-        case .arabic: "🇸🇦"
-        }
-    }
+    /// Two-letter badge for the language picker ("EN", "SV").
+    var monogram: String { String(rawValue.prefix(2)).uppercased() }
 
     var isRTL: Bool { self == .arabic }
 

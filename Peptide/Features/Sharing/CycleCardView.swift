@@ -284,7 +284,7 @@ struct CycleCardView: View {
         HStack(spacing: 18) {
             statCard(value: dosesValue, label: String(localized: "Doses logged"))
             statCard(value: adherenceValue, label: String(localized: "Adherence"))
-            statCard(value: streakLabel, label: String(localized: "Streak"), trailingGlyph: "🔥")
+            statCard(value: streakLabel, label: String(localized: "Streak"), trailingSymbol: "flame.fill")
         }
         .padding(.top, metrics.statsTop)
     }
@@ -295,16 +295,16 @@ struct CycleCardView: View {
         VStack(spacing: 12) {
             statRow(value: dosesValue, label: "Doses logged")
             statRow(value: adherenceValue, label: "Adherence")
-            statRow(value: streakLabel, label: "Streak", trailingGlyph: "🔥")
+            statRow(value: streakLabel, label: "Streak", trailingSymbol: "flame.fill")
         }
     }
 
     private var dosesValue: String { "\(model.dosesLogged)" }
     private var adherenceValue: String { "\(model.adherencePercent)%" }
 
-    private func statCard(value: String, label: String, trailingGlyph: String? = nil) -> some View {
+    private func statCard(value: String, label: String, trailingSymbol: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            statValue(value, size: 42, trailingGlyph: trailingGlyph)
+            statValue(value, size: 42, trailingSymbol: trailingSymbol)
             statLabel(label)
         }
         .padding(24)
@@ -312,27 +312,29 @@ struct CycleCardView: View {
         .background { statBackground }
     }
 
-    private func statRow(value: String, label: String, trailingGlyph: String? = nil) -> some View {
+    private func statRow(value: String, label: String, trailingSymbol: String? = nil) -> some View {
         HStack(alignment: .firstTextBaseline) {
             statLabel(label)
             Spacer(minLength: 16)
-            statValue(value, size: 36, trailingGlyph: trailingGlyph)
+            statValue(value, size: 36, trailingSymbol: trailingSymbol)
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 20)
         .background { statBackground }
     }
 
-    private func statValue(_ value: String, size: CGFloat, trailingGlyph: String?) -> some View {
+    private func statValue(_ value: String, size: CGFloat, trailingSymbol: String?) -> some View {
         HStack(spacing: 6) {
             Text(value)
                 .font(AppFont.scaled(size, weight: .bold, design: .rounded, in: .large))
                 .foregroundStyle(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
-            if let trailingGlyph {
-                Text(trailingGlyph)
-                    .font(AppFont.scaled(size * 5 / 7, in: .large))
+            if let trailingSymbol {
+                Image(systemName: trailingSymbol)
+                    .font(AppFont.scaled(size * 4 / 7, weight: .semibold, in: .large))
+                    .foregroundStyle(AppColor.warning)
+                    .accessibilityHidden(true)
             }
         }
     }

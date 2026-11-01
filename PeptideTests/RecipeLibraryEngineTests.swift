@@ -322,4 +322,12 @@ final class RecipeLibraryEngineTests: XCTestCase {
         XCTAssertEqual(entry.fiberG ?? 0, 9, accuracy: 0.01)
         XCTAssertEqual(entry.components?.first?.macros?.calories, 520)
     }
+
+    func test_recipeNamed_findsALoggedRecipeByEitherLanguage_ignoringCase() throws {
+        let recipe = try XCTUnwrap(RecipeLibraryEngine.bundled.first)
+
+        XCTAssertEqual(RecipeLibraryEngine.recipe(named: recipe.nameSV.uppercased())?.id, recipe.id)
+        XCTAssertEqual(RecipeLibraryEngine.recipe(named: " \(recipe.name) ")?.id, recipe.id)
+        XCTAssertNil(RecipeLibraryEngine.recipe(named: "Light Protein Cheese"))
+    }
 }
