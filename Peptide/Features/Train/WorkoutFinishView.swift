@@ -92,6 +92,8 @@ struct WorkoutFinishView: View {
                         }
                     }
                     .sectionAppear(index: 5)
+                    RecapWeeklyVolume(session: summary.session)
+                        .sectionAppear(index: 6)
                     if store.metadataUnavailable {
                         Text("Exercise metadata is unavailable. Your saved sets are still shown.").font(AppFont.subheadline)
                         Button("Retry exercise metadata") { Task { await store.load() } }.frame(minHeight: Spacing.minimumHitTarget)

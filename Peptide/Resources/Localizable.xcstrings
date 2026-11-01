@@ -3667,6 +3667,26 @@
         }
       }
     },
+    "%lld of %lld sets": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld av %2$lld set"
+          }
+        }
+      }
+    },
+    "%lld of %lld sets this week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld av %2$lld set denna vecka"
+          }
+        }
+      }
+    },
     "%lld of %lld signals": {
       "localizations": {
         "sv": {
@@ -4673,12 +4693,52 @@
         }
       }
     },
+    "%lld × %lld · RPE %@ · %@ rest": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld × %2$lld · RPE %3$@ · %4$@ vila"
+          }
+        }
+      }
+    },
+    "%lld × %lld · RPE %@ · %@ rest · Superset": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld × %2$lld · RPE %3$@ · %4$@ vila · Superset"
+          }
+        }
+      }
+    },
     "%lld%%": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
             "value": "%lld%%"
+          }
+        }
+      }
+    },
+    "%lld%% recovered, a little less volume today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld%% återhämtad, lite mindre volym i dag"
+          }
+        }
+      }
+    },
+    "%lld%% recovered, best to rest it today. You can still train it, lighter.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld%% återhämtad, bäst att vila den i dag. Du kan ändå träna den, lättare."
           }
         }
       }
@@ -6122,6 +6182,16 @@
         }
       }
     },
+    "Build workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bygg pass"
+          }
+        }
+      }
+    },
     "Card size": {
       "localizations": {
         "sv": {
@@ -6253,6 +6323,16 @@
         }
       }
     },
+    "Deload week: lighter on purpose so you come back stronger.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deloadvecka: lättare med flit så att du kommer tillbaka starkare."
+          }
+        }
+      }
+    },
     "Diastolic": {
       "localizations": {
         "sv": {
@@ -6279,6 +6359,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Glöd"
+          }
+        }
+      }
+    },
+    "Empty workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tomt pass"
           }
         }
       }
@@ -6508,6 +6598,26 @@
         }
       }
     },
+    "MINUTES": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MINUTER"
+          }
+        }
+      }
+    },
+    "MUSCLE": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MUSKEL"
+          }
+        }
+      }
+    },
     "Measured": {
       "localizations": {
         "sv": {
@@ -6524,6 +6634,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mellan"
+          }
+        }
+      }
+    },
+    "Needs rest": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Behöver vila"
           }
         }
       }
@@ -6638,6 +6758,16 @@
         }
       }
     },
+    "Pick for me": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Välj åt mig"
+          }
+        }
+      }
+    },
     "Private by design — no ads, no tracking": {
       "localizations": {
         "sv": {
@@ -6658,6 +6788,26 @@
         }
       }
     },
+    "Ready to train": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redo att träna"
+          }
+        }
+      }
+    },
+    "Recovered": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Återhämtad"
+          }
+        }
+      }
+    },
     "Report not on this device": {
       "localizations": {
         "sv": {
@@ -6674,6 +6824,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Researchchatten, kostcoachen, Fråga Atlas, loggning med matfoto och text, förpackningsskanning, Fyll i med AI, prisuppskattning via streckkod och veckosammanfattningen skickar det du skickar in till Claude, från Anthropic, via Atlas server – bara när du använder dem och bara efter att du har tillåtit det. Stänger du av delningen stängs även veckosammanfattningen av."
+          }
+        }
+      }
+    },
+    "Resting today: %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vilar i dag: %@"
           }
         }
       }
@@ -6829,6 +6989,16 @@
         }
       }
     },
+    "TRAIN WITH IT": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TRÄNA MED"
+          }
+        }
+      }
+    },
     "Tap to log a reading": {
       "localizations": {
         "sv": {
@@ -6915,6 +7085,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Uppvakning"
+          }
+        }
+      }
+    },
+    "Weekly volume": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veckovolym"
           }
         }
       }
@@ -7067,6 +7247,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dina sovtider varierar med upp till en timme. Jämnare tider hjälper återhämtningen."
+          }
+        }
+      }
+    },
+    "Your workout": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ditt pass"
           }
         }
       }
