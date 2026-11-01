@@ -139,4 +139,42 @@ final class ProgressionEngineTests: XCTestCase {
         XCTAssertTrue(ProgressionEngine.isPending(suggestion, in: [pending]))
         XCTAssertFalse(ProgressionEngine.isPending(suggestion, in: applied))
     }
+
+    // MARK: - In-session tuning
+
+    private func logged(_ weight: Double, _ reps: Int, rpe: Double? = nil) -> SetEntry {
+        SetEntry(index: 1, weightKg: weight, reps: reps, rpe: rpe, completed: true)
+    }
+
+    func test_setTwoRepsShortOfTarget_dropsOneStep() {
+        XCTAssertEqual(ProgressionEngine.nextSetLoad(after: logged(80, 6), targetReps: 8, incrementKg: 2.5), 77.5)
+    }
+
+    func test_setTwoRepsOverTargetAtManageableEffort_addsOneStep() {
+        XCTAssertEqual(ProgressionEngine.nextSetLoad(after: logged(80, 10, rpe: 8), targetReps: 8, incrementKg: 2.5), 82.5)
+    }
+
+    func test_setOverTargetButAGrind_keepsTheLoad() {
+        XCTAssertNil(ProgressionEngine.nextSetLoad(after: logged(80, 10, rpe: 10), targetReps: 8, incrementKg: 2.5))
+    }
+
+    func test_setOneRepOffTarget_keepsTheLoad() {
+        XCTAssertNil(ProgressionEngine.nextSetLoad(after: logged(80, 7), targetReps: 8, incrementKg: 2.5))
+        XCTAssertNil(ProgressionEngine.nextSetLoad(after: logged(80, 9), targetReps: 8, incrementKg: 2.5))
+    }
+
+    func test_bodyweightSet_keepsTheLoad() {
+        XCTAssertNil(ProgressionEngine.nextSetLoad(after: logged(0, 4), targetReps: 10, incrementKg: 0))
+    }
+
+    func test_retuned_movesOnlyPendingSetsStillAtTheOldLoad() {
+        let done = SetEntry(index: 1, weightKg: 80, reps: 6, completed: true)
+        let pending = SetEntry(index: 2, weightKg: 80, reps: 8, completed: false)
+        let edited = SetEntry(index: 3, weightKg: 70, reps: 8, completed: false)
+        let warmup = SetEntry(index: 0, weightKg: 80, reps: 5, completed: false, isWarmup: true)
+
+        let result = ProgressionEngine.retuned([warmup, done, pending, edited], fromKg: 80, toKg: 77.5)
+
+        XCTAssertEqual(result.map(\.weightKg), [80, 80, 77.5, 70])
+    }
 }

@@ -420,6 +420,7 @@ final class WorkoutSessionService {
         session.exercises[exIdx].sets[setIdx] = updated
         if session.focus == nil { session.focus = WorkoutFocusState(selectedEntryID: entryID) }
         if !prior.completed && updated.completed && !updated.isWarmup {
+            session.exercises[exIdx].sets = retunedSets(after: updated, in: session.exercises[exIdx])
             session.focus?.rest = nil
             let seconds = session.exercises[exIdx].restSeconds
                 ?? DataStore.current?.profile.trainingPreferences?.restTimerDefault ?? 90
@@ -566,10 +567,7 @@ final class WorkoutSessionService {
         for id: String, targetReps target: Int?, adjustment: ProgressionEngine.Adjustment?
     ) -> ProgressionEngine.Suggestion? {
         let exercise = ExerciseLibrary.shared.lookup(id: id)
-        let profile = DataStore.current?.profile
-        let unit = profile?.bodyMetrics.unit ?? .metric
-        let plates = (profile?.trainingPreferences ?? TrainingPreferences()).plates(for: unit)
-        let increment = ProgressionEngine.incrementKg(for: exercise?.equipmentKind ?? .other, unit: unit, plates: plates)
+        let increment = incrementKg(forExerciseID: id)
         guard let suggestion = ProgressionEngine.suggestion(
             previous: previousSessionSets(forExerciseID: id),
             repRange: ProgressionEngine.repRange(targetReps: target, mechanic: exercise?.mechanic),
@@ -577,6 +575,25 @@ final class WorkoutSessionService {
         ) else { return nil }
         guard let adjustment, let increment else { return suggestion }
         return ProgressionEngine.adjusted(suggestion, for: adjustment, incrementKg: increment)
+    }
+
+    private func incrementKg(forExerciseID id: String) -> Double? {
+        let profile = DataStore.current?.profile
+        let unit = profile?.bodyMetrics.unit ?? .metric
+        let plates = (profile?.trainingPreferences ?? TrainingPreferences()).plates(for: unit)
+        let equipment = ExerciseLibrary.shared.lookup(id: id)?.equipmentKind ?? .other
+        return ProgressionEngine.incrementKg(for: equipment, unit: unit, plates: plates)
+    }
+
+    /// A planned set missed or beaten by two reps moves the exercise's
+    /// untouched sets one load step, so the rest of the workout fits today.
+    private func retunedSets(after set: SetEntry, in entry: WorkoutExerciseEntry) -> [SetEntry] {
+        guard autoProgression,
+              let target = targetReps(for: entry, in: activeRoutine),
+              let increment = incrementKg(forExerciseID: entry.exerciseID),
+              let load = ProgressionEngine.nextSetLoad(after: set, targetReps: target, incrementKg: increment)
+        else { return entry.sets }
+        return ProgressionEngine.retuned(entry.sets, fromKg: set.weightKg, toKg: load)
     }
 
     private var autoProgression: Bool {

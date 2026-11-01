@@ -150,6 +150,37 @@ enum ProgressionEngine {
         }
     }
 
+    /// Reps off a planned target that move the load mid-workout.
+    static let inSessionRepMargin = 2
+
+    /// Mid-workout tuning from a set just logged: two or more reps short of
+    /// the target drops the remaining sets one step, two or more over at a
+    /// manageable effort adds one. Nil keeps the load.
+    static func nextSetLoad(after set: SetEntry, targetReps: Int, incrementKg: Double) -> Double? {
+        guard incrementKg > 0, set.weightKg > 0, !set.isWarmup, set.supportsRepLogging else { return nil }
+        if set.reps <= targetReps - inSessionRepMargin {
+            let lighter = set.weightKg - incrementKg
+            return lighter > 0 ? lighter : nil
+        }
+        if set.reps >= targetReps + inSessionRepMargin, (set.rpe ?? 0) < grindRPE {
+            return SetEntryLimits.clampWeightKg(set.weightKg + incrementKg)
+        }
+        return nil
+    }
+
+    /// Moves the pending working sets still at `fromKg` to `toKg`; sets the
+    /// user already changed keep their load.
+    static func retuned(_ sets: [SetEntry], fromKg: Double, toKg: Double) -> [SetEntry] {
+        sets.map { set in
+            guard !set.completed, !set.isWarmup, set.supportsRepLogging,
+                  abs(set.weightKg - fromKg) < 0.01
+            else { return set }
+            var updated = set
+            updated.weightKg = toKg
+            return updated
+        }
+    }
+
     /// True when some pending working set still differs from the suggestion,
     /// which is when offering "Use" makes sense.
     static func isPending(_ suggestion: Suggestion, in sets: [SetEntry]) -> Bool {
