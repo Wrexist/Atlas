@@ -587,11 +587,14 @@ final class WorkoutSessionService {
 
     /// A planned set missed or beaten by two reps moves the exercise's
     /// untouched sets one load step, so the rest of the workout fits today.
+    /// The target is what the next set still prescribes, so a deload or
+    /// today's suggestion counts, not the routine's usual reps.
     private func retunedSets(after set: SetEntry, in entry: WorkoutExerciseEntry) -> [SetEntry] {
-        guard autoProgression,
-              let target = targetReps(for: entry, in: activeRoutine),
+        guard autoProgression, activeRoutine != nil,
+              let next = entry.sets.first(where: { !$0.completed && !$0.isWarmup && $0.supportsRepLogging
+                      && abs($0.weightKg - set.weightKg) < 0.01 }),
               let increment = incrementKg(forExerciseID: entry.exerciseID),
-              let load = ProgressionEngine.nextSetLoad(after: set, targetReps: target, incrementKg: increment)
+              let load = ProgressionEngine.nextSetLoad(after: set, targetReps: next.reps, incrementKg: increment)
         else { return entry.sets }
         return ProgressionEngine.retuned(entry.sets, fromKg: set.weightKg, toKg: load)
     }

@@ -522,6 +522,27 @@ final class WorkoutSessionServiceTests: XCTestCase {
         XCTAssertEqual(sets.dropFirst().map(\.reps), [8, 8])
     }
 
+    func test_plannedSetTwoRepsShort_dropsTheRemainingSetsOneStep() throws {
+        let saved = DataStore.current
+        DataStore.current = nil
+        defer { DataStore.current = saved }
+        logBenchWorkout(weightKg: 80, reps: 8)
+
+        let session = service.startWorkout(routine: Routine(name: "Push", exercises: [
+            RoutineExercise(exerciseID: bench().id, index: 0, targetSets: 3, targetReps: 8),
+        ]))
+        let entry = session.exercises[0]
+        let planned = try XCTUnwrap(entry.sets.first?.weightKg)
+
+        var logged = entry.sets[0]
+        logged.reps = entry.sets[0].reps - 2
+        logged.completed = true
+        service.updateSet(logged, inExerciseEntryID: entry.id)
+
+        let sets = try XCTUnwrap(service.activeSession?.exercises.first?.sets)
+        XCTAssertEqual(sets.map(\.weightKg), [planned, planned - 2.5, planned - 2.5])
+    }
+
     func test_startWorkout_routineListingAnExerciseTwice_keepsEachSlotsTarget() {
         let saved = DataStore.current
         DataStore.current = nil
