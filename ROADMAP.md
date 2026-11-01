@@ -44,7 +44,7 @@ CI/CD to TestFlight via Fastlane.
 | **Watch app** | Redesigned | watchOS 10-style vertical pages (Today rings, Recovery, Sleep Score, Nutrition, Protocol) plus Recovery and Sleep complications. Vitals are computed on the phone (no watch HealthKit entitlement). **Needs a manual Xcode build and on-device check** |
 | **Achievements** | Complete | 14 achievements (dose milestones, streaks, protocol, logging), toast notifications |
 | **Export** | Complete | CSV, JSON and a paginated PDF report (`ExportService.exportPDF`) |
-| **Onboarding** | Complete | 16-page flow: welcome → Sign in with Apple → attribution → name → goal → experience → body metrics → schedule → equipment → demo set → projection → disclaimer → notifications → Health → ready |
+| **Onboarding** | Complete | 9 steps: welcome → name → goal & experience → body metrics → training → permissions → referral → disclaimer → plan |
 | **HealthKit** | Complete | Reads 7 data types (HR, HRV, sleep, weight, steps, energy); observer-based background delivery wired; daily-series helpers for HRV / RHR / Sleep used by Health Monitor grid |
 | **Biometric lock** | Complete | LocalAuthentication-backed lock screen with auto-Face-ID on appear, scene-phase re-lock on background, Reduce-Motion respect, haptic feedback, toggle in AppearanceSettings, `NSFaceIDUsageDescription` in project.yml |
 | **Persistence** | Complete | SwiftData @Model classes, CloudKit-backed private container with local + in-memory fallbacks |
@@ -54,7 +54,7 @@ CI/CD to TestFlight via Fastlane.
 | **Siri shortcuts** | Complete | AppIntents bundle including "Log my BPC-157" and "What are my macros today?" |
 | **Premium promo card** | Complete | Cosmic-backdrop reusable component for Pro upsells (used by future Bio Age tab, etc.) |
 | **Sync toast** | Complete | Top-of-screen "Sync Complete" pill auto-dismissing after fresh HealthKit pull |
-| **Localization** | English only | Strings are extracted to `Localizable.xcstrings` and `CFBundleLocalizations` declares `en` only. Draft translations live in `localization/` but are not shipped |
+| **Localization** | English + Swedish | Swedish shipped in #242 (full `Localizable.xcstrings` catalog). Other draft translations live in `localization/` but are not shipped |
 | **Testing** | 150 test files, 1,904 test methods | `PeptideTests`: network services (MockURLProtocol), data integrity, recommendation/insight engines, persistence round-trip, schedule cadence, achievement service, vial palette, recovery score, coaching messages, health range percentiles |
 | **Crash reporting** | Complete | MetricKit subscriber (`DiagnosticsService`) captures crash, hang and disk-write diagnostics; `CrashReportUploader` sends them through the proxy's `/api/crash-report` to Sentry (opt-out in Settings) |
 | **CI/CD** | Complete | XcodeGen, SwiftLint, build + test in GitHub Actions (macos-15 pinned), TestFlight via Fastlane, binary-size delta gate |
@@ -79,8 +79,8 @@ CI/CD to TestFlight via Fastlane.
 
 | # | Feature | Effort | Description |
 |---|---------|--------|-------------|
-| 2.2 | **Date scrubber** | 2 days | Tap the date pill → date picker → render Today's snapshot for any historical day. Requires HomeView to support past-state rendering |
-| 2.3 | **Edit Home customization** | 1 day | Section visibility toggles in Profile → Customize Today, with drag-to-reorder; stored on `UserProfile.todaySectionOrder: [SectionID]` |
+| 2.2 | **Date scrubber** | Shipped | Today's day switcher browses earlier days read-only, with `PastDayBanner` as the one-tap way back |
+| 2.3 | **Edit Home customization** | Shipped | "Customize Today" opens `EditTodaySheet`: section visibility toggles with drag-to-reorder |
 | 2.4 | **MetricRing consolidation** | 1 day | Migrate `GlassProgressRing` and `SegmentedCalorieRing` to the unified `MetricRing` primitive; port the celebration-at-100% animation in once, not twice |
 | 2.5 | **Hero detail sheets** | 1 day | Tap any of the trio's rings → expanded sheet (HRV trend, sleep stages, today's dose timeline) |
 
@@ -94,8 +94,8 @@ CI/CD to TestFlight via Fastlane.
 |---|---------|--------|-------------|
 | 3.1 | **Tab restructure** | Shipped | Shipped as Today / Train / Meals / Biology / Habits; Library + Protocols open as a modal |
 | 3.2 | **Performance Age engine** | Shipped (`PerformanceAgeEngine`) | Pure-function bio-age estimate from HRV + RHR + sleep + weight trend + lab markers; confidence-gated UI (hide if confidence < 60%) |
-| 3.3 | **Biomarker trend cards** | 2 days | 90-day charts for HRV / RHR / Sleep efficiency on the Biology tab |
-| 3.4 | **Lab photo OCR ingestion** | 3 days | Snap bloodwork PDF → Claude vision extracts markers → writes to existing Labs feature |
+| 3.3 | **Biomarker trend cards** | Shipped (#282, #287) | 90-day charts for HRV / RHR / Sleep efficiency on the Biology tab |
+| 3.4 | **Lab photo OCR ingestion** | Shipped (`LabScanFlow`, #285) | Camera, photo or PDF pages → Claude vision extracts markers → user confirms each → Labs; pages kept on device (Pro) |
 | 3.5 | **Stack-effectiveness score** | 2 days | Atlas-unique: map each lab marker movement to active compounds in the cycle; surfaces "BPC-157 may be helping your IGF-1 trend" |
 
 ---
@@ -109,7 +109,7 @@ CI/CD to TestFlight via Fastlane.
 | 4.1 | **SwiftData migration** (feature-flagged) | Shipped | Replace JSON persistence with `@Model` classes via opt-in flag for one TestFlight cycle, then promote to default |
 | 4.2 | **CloudKit sync** | Shipped | SwiftData's CloudKit-backed private container (not `CKSyncEngine`) |
 | 4.3 | **Sign in with Apple** | Shipped | `AuthenticationServices`. Identifier in Keychain. Optional — app works without sign-in |
-| 4.4 | **iPad pass** | 2 days | `NavigationSplitView` treatment on Home / Lifestyle / Profile (PeptideListView already done) |
+| 4.4 | **iPad pass** | Partly shipped | Train and PeptideListView use `NavigationSplitView`; other screens cap at `Spacing.readableContentWidth`. Split views on Home / Meals / Profile still open |
 
 ---
 
@@ -117,11 +117,11 @@ CI/CD to TestFlight via Fastlane.
 
 | # | Feature | Effort | Description |
 |---|---------|--------|-------------|
-| 5.2 | **Onboarding compression** | 2 days | 16 pages → ≤9. Show first-dose value before paywall |
+| 5.2 | **Onboarding compression** | Shipped | 16 pages → 9 steps (`OnboardingStep`) |
 | 5.3 | **Empty-state day 0** | 1 day | First-install dashboard ("0/4, 0%, 0 days") reads as failure; replace with curiosity copy + first-dose preview |
 | 5.4 | **Referrals via Universal Links** | 2 days | Share Atlas → personal link → install attributed to the sharer |
-| 5.5 | **Streak recovery** | 1 day | Streak-freeze Pro perk: 1 per week, auto-applied to a missed day |
-| 5.6 | **Share-card formats** | 1 day | Add 1080×1080 (Instagram) and 1200×630 (Twitter) using the existing renderer |
+| 5.5 | **Streak recovery** | Shipped (`StreakFreezeService`) | One free freeze per month, applied only when the user taps it on the Habits at-risk banner |
+| 5.6 | **Share-card formats** | Shipped (`ShareFormat`) | Story 1080×1920, square 1080×1080 and landscape 1200×630 |
 
 ---
 

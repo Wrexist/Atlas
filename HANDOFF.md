@@ -14,8 +14,8 @@ service, so the review checklist's grep stays clean. On by default;
 Settings → "Share crash reports" turns it off.
 
 Manual steps before this ships:
-- Vercel: set `SENTRY_DSN` (the Sentry project's DSN) on the proxy
-  project. Until then the route answers 204 and drops reports.
+- ~~Vercel: set `SENTRY_DSN` on the proxy project.~~ Done — `SENTRY_DSN`
+  is set in Vercel, so the route forwards reports instead of answering 204.
 - App Store Connect → App Privacy: add Diagnostics → **Crash Data** and
   **Performance Data**, each not linked to identity, not used for
   tracking, purpose App Functionality. `PrivacyInfo.xcprivacy` and
@@ -26,7 +26,9 @@ Manual steps before this ships:
 
 Sentry symbolication needs the build's dSYMs uploaded to the project
 (e.g. `sentry-cli debug-files upload` in the TestFlight lane); without
-them events show addresses and binary names only.
+them events show addresses and binary names only. **Deferred by the
+owner's choice** — not a release blocker; revisit if unsymbolicated
+reports get in the way.
 
 ### Design-system audit (branch `claude/audit-design-system`)
 
@@ -163,9 +165,9 @@ calculator on an iPhone SE and a Pro Max, plus Dynamic Type and VoiceOver.
    so a green `build-check` means the suite passed.
 3. Verify Liquid Glass surfaces on an iOS 26 simulator/device — the design
    work cannot be validated on older OSes.
-4. Check the app in **all three** display modes. Light mode has never been
-   run; the tokens are correct by construction, but no screen has been seen
-   in it.
+4. Check the app in **all three** display modes. Light mode shipped in
+   #312 (Xeyo-style light palette); keep checking new screens in light,
+   dark and system.
 
 ## Project basics
 
