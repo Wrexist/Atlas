@@ -68,24 +68,26 @@ curl -sI https://wrexist.github.io/Atlas/terms.html   | head -1
 ## Promotional Text *(170 chars — update anytime without a new build)*
 
 ```
-Train one exercise at a time, log sets from your Apple Watch, and scan a meal in one photo. Wake up to your recovery score. Free to start, no ads.
+Tap a muscle for a session built to grow it, plan meal prep from 163 recipes, and scan a meal in one photo. Wake up to your recovery score. Free to start, no ads.
 ```
-*(146 / 170)*
+*(162 / 170)*
 
 > Swap this out for launch events, seasonal campaigns, or new-feature
 > announcements without needing a build review. Keep the hook punchy
 > and lead with a free-tier action so the preview isn't gated. Leave the
-> version number out: What's New already carries it, and a "New in 1.x"
-> here goes stale the day the next build ships.
+> version number out — here and in What's New. The TestFlight workflow
+> picks the version at upload time (above Apple's highest, floor 1.6 —
+> `AUTO_VERSION_FLOOR` in `ios-testflight.yml`), so any "New in 1.x"
+> written ahead of the build can name the wrong number.
 
 ---
 
 ## Keywords *(100 char limit — comma-separated, NO spaces after commas)*
 
 ```
-calorie counter,gym,nutrition,hrv,sleep,strength,protein,food,lifting,meal,barcode,muscle,weight
+calorie counter,gym,nutrition,hrv,sleep,strength,protein,food,recipe,meal,prep,barcode,muscle,weight
 ```
-*(96 / 100)*
+*(100 / 100)*
 
 > **ASO rationale — no keyword is wasted:**
 > The Name field already indexes *atlas*, *fitness*, *recovery*.
@@ -103,8 +105,9 @@ calorie counter,gym,nutrition,hrv,sleep,strength,protein,food,lifting,meal,barco
 > | `strength` | Differentiates from cardio/yoga apps; weight-training intent |
 > | `protein` | High-volume macro-tracking sub-term |
 > | `food` | Catches food-diary and food-log queries |
-> | `lifting` / `strength` / `muscle` | Weight-training intent the 1.3 training screens serve |
+> | `strength` / `muscle` | Weight-training intent the session builder and training screens serve |
 > | `meal` / `barcode` | Food-logging queries ("meal log", "barcode scanner") |
+> | `recipe` / `prep` | Recipe library and weekly meal prep; Apple combines `meal` + `prep` |
 > | `weight` | Weight-tracking and weight-loss discovery |
 >
 > `peptide`, `supplement` and `biohacker` were dropped in 1.3: they invite
@@ -115,7 +118,7 @@ calorie counter,gym,nutrition,hrv,sleep,strength,protein,food,lifting,meal,barco
 ## Description *(4000 char limit)*
 
 ```
-Train one exercise at a time and see every muscle you work. Log food by barcode, photo or exact grams. Wake up to a Recovery Score built from your HRV, sleep and resting heart rate.
+Tap a muscle and get a session built for growth. Log food by barcode, photo or exact grams, and cook from 163 recipes. Wake up to a Recovery Score built from your HRV, sleep and resting heart rate.
 
 Your logs stay on your device and in your iCloud. No account, no ads, no tracking.
 
@@ -123,11 +126,11 @@ Your logs stay on your device and in your iCloud. No account, no ads, no trackin
 
 WORKOUTS
 Atlas pre-fills your last weight and reps — confirm or adjust and move on.
-• 870+ exercises plus unlimited custom lifts
-• Automatic PR detection — weight, rep, and bodyweight records
-• Rest timer with Lock Screen notification
-• Weekly muscle volume heatmap by muscle group
-• Full workout history with month-grouped browsing and set detail
+• Session builder: tap a muscle, or let Atlas pick one that's recovered and short of weekly volume
+• Remaining sets adapt as you train, with lighter targets on low-recovery days and deload weeks
+• 870+ exercises with animated demos, plus unlimited custom lifts
+• Automatic PR detection, supersets and a rest timer on your Lock Screen
+• Muscle volume heatmap and full history, including Apple Health cardio
 
 ——
 
@@ -135,16 +138,19 @@ NUTRITION
 Snap a photo or scan a barcode — macros are logged in seconds.
 • AI photo meal scanner — 3 free scans a week, never stored by Atlas
 • Barcode database with millions of products (Open Food Facts)
-• Daily calorie and macro rings with TDEE-based targets
-• Custom food library and recipe tracking
+• Daily calorie and macro rings with TDEE-based targets, plus micronutrients
 • Optional one-way sync to Apple Health
 
 ——
 
+RECIPES, MEAL PREP & FRIDGE
+• 163 recipes ranked for what you still need today — heart your favourites
+• Weekly meal prep that plans your boxes and builds the grocery list
+• Fridge inventory by photo or barcode, with use-by reminders and recipes from what you have
+
+——
+
 RECOVERY
-HRV, resting heart rate, and sleep — pulled from Apple Health every morning
-and blended into a single Recovery Score. Know whether to push or pull back
-before you leave the house.
 • Daily Recovery Score (HRV + resting HR + sleep)
 • Biological Age metric
 • Biomarker trending: weight, body fat, waist, blood pressure
@@ -152,25 +158,23 @@ before you leave the house.
 
 ——
 
-HABITS
-Track any daily routine with a 6-month momentum heatmap. Set daily, weekday,
-or X-per-week schedules — optional reminders fire on the days they're due.
+EVERY DAY
+Habits with a 6-month momentum heatmap, daily supplement check-offs, a step
+goal, a fasting timer on your Lock Screen, a weekly check-in and Siri shortcuts.
 
 ——
 
 APPLE WATCH
-Recovery with your resting heart rate and HRV, a Sleep Score with every
-stage, today's habit and calorie rings, and one-tap dose and water logging.
-Recovery and Sleep Score complications for your watch face.
+Run a full workout from your wrist, even with your iPhone at home. Recovery,
+Sleep Score, habit and calorie rings, one-tap dose and water logging, and
+watch-face complications.
 
 ——
 
 PEPTIDE PROTOCOL TRACKING  (Advanced)
 For users following clinician-advised protocols. 208-compound research
 database with citations, dose logging, and a cycle calendar.
-• 208 peptides with research citations across 6 categories
 • Up to 3 active protocols (free) — unlimited with Atlas Pro
-• Dose logging with site, time, and notes
 
 Atlas does not prescribe, recommend, or calculate doses for any compound.
 Research and self-tracking only. Medical disclaimer required at first launch.
@@ -203,9 +207,8 @@ Privacy Policy: https://wrexist.github.io/Atlas/privacy.html
 ——
 
 PRIVATE BY DEFAULT
-• No ads, no tracking, no data brokers — NSPrivacyTracking = false
+• No ads, no tracking, no data brokers
 • Your logs stay on-device or in your private iCloud — we cannot see them
-• No account required — every feature works without signing in
 • AI features send only what's needed (a meal photo, weekly averages), never stored by Atlas
 
 ——
@@ -218,7 +221,7 @@ provider before starting, changing, or stopping any training, nutrition,
 supplement, or peptide protocol.
 ```
 
-*(3 977 / 4 000 — 23 chars of headroom. The SUBSCRIPTION TERMS block and
+*(3 989 / 4 000 — 11 chars of headroom. The SUBSCRIPTION TERMS block and
 both links are required by Guideline 3.1.2 — do not trim them to make room
 for copy.)*
 
@@ -227,40 +230,48 @@ for copy.)*
 ## "What's New" *(4000 char limit)*
 
 ```
-Atlas 1.5: log from your wrist, your lock screen and a single photo.
+A coach for every set, a kitchen that plans the week, and a whole new look.
 
-SMARTER FOOD SCANNING
-• Photo scans now ask a quick follow-up when a dish is unclear, and one tap updates the numbers
-• Values are checked against your own foods and Open Food Facts when there's a match
-• Describe or dictate a meal in your own words instead of taking a photo
-• The scanner learns from the names and portions you correct
-• On iPhone Pro models, the LiDAR camera measures distance for better portion estimates
-• Can't find a barcode? Snap the package and Atlas reads it for you
+SMARTER TRAINING
+• Tap a muscle, or let Atlas pick, and get a session built around what's recovered and short of weekly volume
+• Your remaining sets adjust while you train when a set lands under or over target
+• Lighter suggestions on low-recovery days and deload weeks
+• Routines carry supersets and progress your weights for you
+• Animated exercise demos above the muscle map
+• Apple Health workouts, cardio included, now show in your history
+• Run a whole workout on Apple Watch with your iPhone left at home
+• Export your workouts as CSV for a coach (Pro)
 
-TRAINING
-• Log sets from your Apple Watch while your phone stays on the bench
-• Skip rest and complete a set straight from the Live Activity on your lock screen
-• A muscle map shows what each exercise works
+RECIPES, MEAL PREP AND FRIDGE
+• 163 recipes ranked for what you still need today, with one-tap favourites
+• Weekly meal prep: plan your boxes, shop from one grocery list, get a nudge before they expire
+• Fridge: add food by photo or barcode, get use-by reminders, cook from what you have
+• Copy a meal or a whole day onto today
+• Track sodium, potassium, iron, calcium, vitamin D and B12, read from scans and labels
 
 EVERY DAY
-• Gentle reminders for meals, training days and weigh-ins, with "Same as yesterday" and quick weight replies
-• A Today checklist for meals, workout, water and weight
-• Quick actions from the Home Screen, Control Center and interactive widgets
-• Optional Apple Health sync: workouts, weight and water
+• Daily supplements with one-tap check-offs on Today
+• A daily step goal
+• Your running fast on the Lock Screen and in a widget
+• A weekly check-in with your weight trend and how closely you kept to plan
+• Siri shortcuts for workouts, weigh-ins and fasting
 
-NEW COMPLICATIONS AND WIDGETS
-• Workout and Calories & Protein complications for your watch face
-• Redesigned widgets, now on the Lock Screen too
+BIOLOGY
+• Ask Atlas: chat about your Biological Age (Pro)
+• Two weeks of sleep stages, timing and sleep debt
+• Log body fat, waist, blood pressure and temperature, on charts with a range picker
+• See how your VO2 max and resting heart rate compare with people your age
+• A health journal, and scanned lab reports that stay on your device
 
-ALSO
-• Smoother motion and a cleaner look across the app
-• Biological Age and Protocol named the same way everywhere
-• Reliability fixes throughout
+A NEW LOOK
+• A premium redesign with a new light mode
+• New icons and sliding tabs
+• Atlas now speaks Swedish
 
 Feedback → support@peptidesai.com
 ```
 
-*(1 412 / 4 000)*
+*(1 806 / 4 000)*
 ---
 
 ## Age Rating
