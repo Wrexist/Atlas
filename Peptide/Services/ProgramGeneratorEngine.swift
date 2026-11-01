@@ -256,7 +256,7 @@ enum ProgramGeneratorEngine {
 
     /// Links neighbouring antagonists (curl + pushdown) into supersets.
     /// The pair rests once per round, at the longer of the two rests.
-    private static func pairingAntagonists(
+    static func pairingAntagonists(
         _ slots: [RoutineExercise],
         patterns: [UUID: MovementPattern]
     ) -> [RoutineExercise] {
@@ -302,7 +302,7 @@ enum ProgramGeneratorEngine {
     /// implies — an EZ bar with a barbell, a Smith with machines), no
     /// bench, rack, pull-up bar or box that kit doesn't vouch for, and
     /// nothing above their experience level.
-    private struct Pool {
+    struct Pool {
         let byID: [String: Exercise]
         let equipment: Set<EquipmentKind>
         let accessories: Set<EquipmentAccessory>
