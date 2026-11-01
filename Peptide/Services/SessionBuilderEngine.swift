@@ -143,6 +143,20 @@ enum SessionBuilderEngine {
         return Companions(suggested: suggested, resting: resting)
     }
 
+    /// "Pick for me": the most recovered muscle furthest from its weekly
+    /// target. Nil only when every muscle should rest.
+    static func smartFocus(states: [Target: State], experience: Exercise.Level) -> Target? {
+        let target = MuscleVolumeTargets.weeklySets(for: experience).lowerBound
+        func score(_ candidate: Target) -> Double {
+            guard let state = states[candidate] else { return 1 }
+            let gap = MuscleVolumeTargets.remainingSets(done: state.weeklySets, experience: experience) / target
+            return 0.5 * state.recovery.fraction + 0.5 * gap
+        }
+        return Target.allCases
+            .filter { states[$0]?.recovery.status != .rest }
+            .max { score($0) < score($1) }
+    }
+
     // MARK: - Building the session
 
     struct Request: Sendable {

@@ -58,6 +58,15 @@ final class SessionBuilderEngineTests: XCTestCase {
         XCTAssertLessThanOrEqual(result.suggested.count, Engine.maxCompanions)
     }
 
+    func test_smartFocus_picksRecoveredMuscleWithMostVolumeLeft() {
+        var states = Dictionary(uniqueKeysWithValues: Engine.Target.allCases.map { ($0, state(fraction: 1, weeklySets: 12)) })
+        states[.glutes] = state(fraction: 1, weeklySets: 0)
+        states[.chest] = state(fraction: 0.2, weeklySets: 0)
+        XCTAssertEqual(Engine.smartFocus(states: states, experience: .intermediate), .glutes)
+        let allResting = states.mapValues { _ in state(fraction: 0.1) }
+        XCTAssertNil(Engine.smartFocus(states: allResting, experience: .intermediate))
+    }
+
     func test_states_leastRecoveredHeadDecides() {
         let recovery: [AnatomicalMuscle: MuscleRecoveryEngine.Recovery] = [
             .hamstringLateral: .init(fraction: 1, lastTrained: nil),
