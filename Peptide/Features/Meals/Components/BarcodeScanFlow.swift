@@ -425,7 +425,8 @@ struct BarcodeScanFlow: View {
                 .foregroundStyle(AppColor.textSecondary)
             Spacer(minLength: 0)
             if manualOverride != nil {
-                Text("✏ Edited")
+                Label("Edited", systemImage: "pencil")
+                    .labelStyle(.titleAndIcon)
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.warning)
                     .padding(.horizontal, Spacing.xs)

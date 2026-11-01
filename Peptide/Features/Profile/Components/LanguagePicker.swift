@@ -23,8 +23,6 @@ struct LanguagePickerRow: View {
                 Spacer()
 
                 HStack(spacing: Spacing.xs) {
-                    Text(currentFlag)
-                        .font(AppFont.scaled(16))
                     Text(currentName)
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
@@ -41,10 +39,6 @@ struct LanguagePickerRow: View {
             LanguagePickerSheet()
                 .liquidGlassPresentation(detents: [.large])
         }
-    }
-
-    private var currentFlag: String {
-        localization.selectedLanguage?.flag ?? "🌐"
     }
 
     private var currentName: String {
@@ -64,7 +58,7 @@ struct LanguagePickerSheet: View {
                 ScrollView {
                     VStack(spacing: Spacing.sm) {
                         LanguageRow(
-                            flag: "🌐",
+                            monogram: nil,
                             nativeName: String(localized: "System Default"),
                             englishName: nil,
                             isSelected: localization.selectedCode == nil,
@@ -78,7 +72,7 @@ struct LanguagePickerSheet: View {
 
                         ForEach(AppLanguage.shipped) { language in
                             LanguageRow(
-                                flag: language.flag,
+                                monogram: language.monogram,
                                 nativeName: language.nativeName,
                                 englishName: language.englishName,
                                 isSelected: localization.selectedCode == language.rawValue,
@@ -117,7 +111,8 @@ struct LanguagePickerSheet: View {
 }
 
 private struct LanguageRow: View {
-    let flag: String
+    /// Nil for "System Default", which shows a globe.
+    let monogram: String?
     let nativeName: String
     let englishName: String?
     let isSelected: Bool
@@ -128,13 +123,21 @@ private struct LanguageRow: View {
         Button(action: action) {
             GlassCardCompact(tinted: isSelected) {
                 HStack(spacing: Spacing.md) {
-                    Text(flag)
-                        .font(AppFont.scaled(28, relativeTo: .largeTitle))
-                        .frame(width: 44, height: 44)
-                        .background(
-                            Circle().fill(AppColor.cardOverlay)
-                        )
-                        .accessibilityHidden(true)
+                    Group {
+                        if let monogram {
+                            Text(monogram)
+                                .font(AppFont.scaled(16, weight: .semibold))
+                        } else {
+                            Image(systemName: "globe")
+                                .font(AppFont.scaled(20, weight: .medium))
+                        }
+                    }
+                    .foregroundStyle(isSelected ? AppColor.accentPrimary : AppColor.textSecondary)
+                    .frame(width: 44, height: 44)
+                    .background(
+                        Circle().fill(AppColor.cardOverlay)
+                    )
+                    .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text(nativeName)

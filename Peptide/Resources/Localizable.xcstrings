@@ -42770,12 +42770,12 @@
         }
       }
     },
-    "✏ Edited": {
+    "Edited": {
       "localizations": {
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "✏ Redigerad"
+            "value": "Redigerad"
           }
         }
       }
