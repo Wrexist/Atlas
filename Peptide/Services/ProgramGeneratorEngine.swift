@@ -53,7 +53,7 @@ enum ProgramGeneratorEngine {
                 picks,
                 request: request,
                 name: titles[number],
-                subtitle: "\(request.goal.displayName) · day \(number + 1) of \(templates.count)"
+                subtitle: String(localized: "\(request.goal.displayName) · day \(number + 1) of \(templates.count)")
             )
             usedInProgram.formUnion(day.routine.exercises.map(\.exerciseID))
             days.append(day)

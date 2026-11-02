@@ -137,6 +137,7 @@ struct LiftedDishCell: View {
                     Text("· \(reading.calories) kcal")
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(1)
+                        .fixedSize()
                 }
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textPrimary)

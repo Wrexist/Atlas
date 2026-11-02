@@ -30,7 +30,7 @@ struct ProgressionHint: View {
                     Haptics.selection()
                     onApply()
                 } label: {
-                    Text("Use").font(AppFont.callout.weight(.semibold)).minimumHitArea()
+                    Text("Use").font(AppFont.callout.weight(.semibold)).fixedSize().minimumHitArea()
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(AppColor.accentPrimary)

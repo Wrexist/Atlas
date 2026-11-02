@@ -46,10 +46,13 @@ struct BiometricCard: View {
                         .font(AppFont.scaled(20, weight: .medium))
                         .foregroundStyle(AppColor.textPrimary)
                         .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                         .contentTransition(.numericText())
                     Text(unit)
                         .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textSecondary)
+                        .fixedSize()
                         .accessibilityLabel(spokenUnit)
                 }
 
@@ -60,7 +63,7 @@ struct BiometricCard: View {
                     Text(caption)
                         .font(AppFont.badgeSmall)
                         .foregroundStyle(AppColor.textSecondary)
-                        .lineLimit(1)
+                        .lineLimit(2)
                 }
             }
 

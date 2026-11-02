@@ -115,7 +115,7 @@ struct OnboardingView: View {
             case .youtube:  return "YouTube"
             case .reddit:   return String(localized: "Reddit")
             case .podcast:  return String(localized: "Podcast")
-            case .other:    return String(localized: "Other")
+            case .other:    return String(localized: "choice.other", defaultValue: "Other")
             }
         }
         var icon: String {
@@ -765,7 +765,7 @@ struct OnboardingView: View {
                             .font(AppFont.callout)
                             .foregroundStyle(AppColor.textSecondary)
                     }
-                    .frame(height: 50)
+                    .frame(minHeight: 50)
                 } else {
                     AppleSignInButton {
                         Haptics.impact(.medium)
@@ -1283,7 +1283,7 @@ struct OnboardingView: View {
                     .buttonStyle(ScalePressStyle())
                     .disabled(isFull)
                     // "T" and "S" are ambiguous spoken; say the day.
-                    .accessibilityLabel(day.rawValue.capitalized)
+                    .accessibilityLabel(Calendar.current.weekdaySymbols[day.calendarWeekdayValue - 1])
                     .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
                 }
             }
@@ -1293,24 +1293,34 @@ struct OnboardingView: View {
     private var timeOfDayPicker: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             sectionEyebrow("Preferred time")
-            HStack(spacing: Spacing.xs) {
-                ForEach(PreferredTimeOfDay.allCases) { slot in
-                    let isSelected = timeOfDay == slot
-                    Button {
-                        Haptics.selection()
-                        AppAnimation.with(AppAnimation.springSnappy) { timeOfDay = slot }
-                    } label: {
-                        Text(slot.displayName)
-                            .font(AppFont.footnote.weight(.semibold))
-                            .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textPrimary)
-                            .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
-                            .onboardingFilledChoice(isSelected: isSelected)
-                    }
-                    .buttonStyle(ScalePressStyle())
-                    .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+            // "Mitt på dagen" and "När som helst" don't fit a quarter of
+            // the row, so the slots stack rather than wrap mid-word.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Spacing.xs) {
+                    ForEach(PreferredTimeOfDay.allCases) { timeSlotButton($0) }
+                }
+                VStack(spacing: Spacing.xs) {
+                    ForEach(PreferredTimeOfDay.allCases) { timeSlotButton($0) }
                 }
             }
         }
+    }
+
+    private func timeSlotButton(_ slot: PreferredTimeOfDay) -> some View {
+        let isSelected = timeOfDay == slot
+        return Button {
+            Haptics.selection()
+            AppAnimation.with(AppAnimation.springSnappy) { timeOfDay = slot }
+        } label: {
+            Text(slot.displayName)
+                .font(AppFont.footnote.weight(.semibold))
+                .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textPrimary)
+                .padding(.horizontal, Spacing.xs)
+                .frame(maxWidth: .infinity, minHeight: Spacing.minimumHitTarget)
+                .onboardingFilledChoice(isSelected: isSelected)
+        }
+        .buttonStyle(ScalePressStyle())
+        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 
     /// One eyebrow style for every in-step section label, matching the
@@ -1804,18 +1814,23 @@ struct OnboardingView: View {
 /// real, current App Store figure.
 private struct SocialProofPill: View {
     var body: some View {
-        HStack(spacing: Spacing.sm) {
-            Image(systemName: "lock.shield.fill")
-                .font(AppFont.scaled(13, weight: .semibold))
-                .foregroundStyle(AppColor.accentPrimary)
-            Text("Private by design")
-                .font(AppFont.scaled(13, weight: .semibold))
-                .foregroundStyle(AppColor.textPrimary)
-            Text("·")
-                .foregroundStyle(AppColor.textTertiary)
-            Text("no ads, no tracking")
-                .font(AppFont.scaled(13, weight: .semibold))
-                .foregroundStyle(AppColor.textSecondary)
+        // One line when it fits; otherwise the claim stacks under the
+        // title instead of squeezing three columns side by side.
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: Spacing.sm) {
+                shield
+                title
+                Text("·")
+                    .foregroundStyle(AppColor.textTertiary)
+                claim
+            }
+            HStack(spacing: Spacing.sm) {
+                shield
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    title
+                    claim
+                }
+            }
         }
         .padding(.horizontal, Spacing.md)
         .padding(.vertical, Spacing.xs)
@@ -1831,6 +1846,24 @@ private struct SocialProofPill: View {
         // stops; the claim is one fact, so it's spoken as one.
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Private by design. No ads, no tracking.")
+    }
+
+    private var shield: some View {
+        Image(systemName: "lock.shield.fill")
+            .font(AppFont.scaled(13, weight: .semibold))
+            .foregroundStyle(AppColor.accentPrimary)
+    }
+
+    private var title: some View {
+        Text("Private by design")
+            .font(AppFont.scaled(13, weight: .semibold))
+            .foregroundStyle(AppColor.textPrimary)
+    }
+
+    private var claim: some View {
+        Text("no ads, no tracking")
+            .font(AppFont.scaled(13, weight: .semibold))
+            .foregroundStyle(AppColor.textSecondary)
     }
 }
 

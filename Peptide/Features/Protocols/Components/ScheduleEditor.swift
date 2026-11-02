@@ -304,9 +304,12 @@ private struct DayChip: View {
                 .font(AppFont.caption2)
                 .fontWeight(.semibold)
                 .lineLimit(1)
+                // Seven chips share a row; at large sizes "mån" shrinks
+                // rather than truncating to "m…".
+                .minimumScaleFactor(0.6)
                 .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textSecondary)
                 .frame(maxWidth: .infinity)
-                .frame(height: Spacing.minimumHitTarget)
+                .frame(minHeight: Spacing.minimumHitTarget)
                 .background { selectedFill }
                 .chipSurface(isSelected: isSelected)
         }

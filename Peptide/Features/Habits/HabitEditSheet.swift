@@ -15,6 +15,7 @@ struct HabitEditSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @State private var name: String
     @State private var iconSymbol: String
@@ -203,27 +204,15 @@ struct HabitEditSheet: View {
             sectionHeader("Schedule")
 
             settingCard {
-                HStack {
-                    Text("Frequency")
-                        .font(AppFont.body)
-                        .foregroundStyle(AppColor.textPrimary)
-                    Spacer(minLength: Spacing.sm)
-                    Menu {
-                        Picker("Frequency", selection: $scheduleKind) {
-                            ForEach(ScheduleKind.allCases) { kind in
-                                Text(kind.displayName).tag(kind)
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: Spacing.xs) {
-                            Text(scheduleKind.displayName)
-                                .font(AppFont.body)
-                                .fontWeight(.semibold)
-                            Image(systemName: "chevron.down")
-                                .font(AppFont.scaled(11, weight: .bold))
-                        }
-                        .foregroundStyle(AppColor.accentLight)
-                        .minimumHitArea()
+                ViewThatFits(in: .horizontal) {
+                    HStack {
+                        frequencyLabel
+                        Spacer(minLength: Spacing.sm)
+                        frequencyMenu
+                    }
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        frequencyLabel
+                        frequencyMenu
                     }
                 }
             }
@@ -246,6 +235,32 @@ struct HabitEditSheet: View {
             }
         }
         .appAnimation(AppAnimation.springSnappy, value: scheduleKind)
+    }
+
+    private var frequencyLabel: some View {
+        Text("Frequency")
+            .font(AppFont.body)
+            .foregroundStyle(AppColor.textPrimary)
+    }
+
+    private var frequencyMenu: some View {
+        Menu {
+            Picker("Frequency", selection: $scheduleKind) {
+                ForEach(ScheduleKind.allCases) { kind in
+                    Text(kind.displayName).tag(kind)
+                }
+            }
+        } label: {
+            HStack(spacing: Spacing.xs) {
+                Text(scheduleKind.displayName)
+                    .font(AppFont.body)
+                    .fontWeight(.semibold)
+                Image(systemName: "chevron.down")
+                    .font(AppFont.scaled(11, weight: .bold))
+            }
+            .foregroundStyle(AppColor.accentLight)
+            .minimumHitArea()
+        }
     }
 
     private var weekdayPicker: some View {
@@ -325,7 +340,11 @@ struct HabitEditSheet: View {
     private var reminderSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             sectionHeader("Reminder")
-            HStack(spacing: Spacing.sm) {
+            // Side by side, "Eftermiddag" no longer fits at accessibility sizes.
+            let chipLayout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(spacing: Spacing.sm))
+                : AnyLayout(HStackLayout(spacing: Spacing.sm))
+            chipLayout {
                 ForEach(HabitReminderSlot.allCases) { slot in
                     reminderChip(slot)
                 }

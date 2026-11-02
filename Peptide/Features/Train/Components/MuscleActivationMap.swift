@@ -71,6 +71,7 @@ struct MuscleActivationMap: View {
                     Text(row.role.displayName)
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textSecondary)
+                        .fixedSize()
                 }
                 involvementBar(share: row.share, tint: tint, index: index)
             }

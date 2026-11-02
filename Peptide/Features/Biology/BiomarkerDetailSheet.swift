@@ -117,19 +117,18 @@ struct BiomarkerDetailSheet: View {
 
     private var heroBlock: some View {
         VStack(alignment: .leading, spacing: Spacing.xxs) {
-            HStack(alignment: .lastTextBaseline, spacing: Spacing.sm) {
-                Text(latestValueString)
-                    .font(AppFont.scaled(48, weight: .light, relativeTo: .largeTitle))
-                    .foregroundStyle(AppColor.textPrimary)
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                if let unitString = biomarker.displayUnit(for: unit) {
-                    Text(unitString)
-                        .font(AppFont.scaled(16, weight: .semibold))
-                        .foregroundStyle(AppColor.textSecondary)
+            // The chip drops under the reading when both don't fit on
+            // one line, rather than squeezing the number.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .lastTextBaseline, spacing: Spacing.sm) {
+                    heroReading
+                    Spacer(minLength: 0)
+                    trendChip
                 }
-                Spacer(minLength: 0)
-                trendChip
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    heroReading
+                    trendChip
+                }
             }
             HStack(spacing: Spacing.sm) {
                 if let latestCaption {
@@ -144,6 +143,24 @@ struct BiomarkerDetailSheet: View {
             }
             .font(AppFont.caption2)
             .foregroundStyle(AppColor.textSecondary)
+        }
+    }
+
+    private var heroReading: some View {
+        HStack(alignment: .lastTextBaseline, spacing: Spacing.sm) {
+            Text(latestValueString)
+                .font(AppFont.scaled(48, weight: .light, relativeTo: .largeTitle))
+                .foregroundStyle(AppColor.textPrimary)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .contentTransition(.numericText())
+            if let unitString = biomarker.displayUnit(for: unit) {
+                Text(unitString)
+                    .font(AppFont.scaled(16, weight: .semibold))
+                    .foregroundStyle(AppColor.textSecondary)
+                    .fixedSize()
+            }
         }
     }
 
@@ -296,24 +313,38 @@ struct BiomarkerDetailSheet: View {
         return values.reduce(0, +) / Double(values.count)
     }
 
+    private var chartTitle: some View {
+        Text("Recent trend")
+            .textCase(.uppercase)
+            .font(AppFont.eyebrow)
+            .tracking(1.0)
+            .foregroundStyle(AppColor.textSecondary)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private var chartRangePicker: some View {
+        GlassSegmentedControl(
+            options: ChartRange.allCases,
+            selected: $range,
+            label: { $0.label }
+        )
+        .fixedSize()
+    }
+
     @ViewBuilder
     private var chartBlock: some View {
         if snapshot.samples.count >= Self.minimumSamples {
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text("Recent trend")
-                        .textCase(.uppercase)
-                        .font(AppFont.eyebrow)
-                        .tracking(1.0)
-                        .foregroundStyle(AppColor.textSecondary)
-                        .accessibilityAddTraits(.isHeader)
-                    Spacer(minLength: Spacing.sm)
-                    GlassSegmentedControl(
-                        options: ChartRange.allCases,
-                        selected: $range,
-                        label: { $0.label }
-                    )
-                    .fixedSize()
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline) {
+                        chartTitle
+                        Spacer(minLength: Spacing.sm)
+                        chartRangePicker
+                    }
+                    VStack(alignment: .leading, spacing: Spacing.sm) {
+                        chartTitle
+                        chartRangePicker
+                    }
                 }
 
                 if chartSamples.count >= 2 {
@@ -563,33 +594,48 @@ struct BiomarkerDetailSheet: View {
     /// Under the chart: how many days actually had a reading, and the
     /// dashed line's value, so a gappy series isn't mistaken for a full one.
     private var chartCaption: some View {
-        HStack(spacing: Spacing.sm) {
-            if let chartMean {
-                HStack(spacing: Spacing.xs) {
-                    HStack(spacing: 2) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            Rectangle().fill(AppColor.textTertiary).frame(width: 3, height: 1)
-                        }
-                    }
-                    .accessibilityHidden(true)
-                    Text("Average \(formattedWithUnit(chartMean))")
-                }
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: Spacing.sm) {
+                chartLegend
+                Spacer(minLength: 0)
+                readingCount
             }
-            if !journalMarkers.isEmpty {
-                HStack(spacing: Spacing.xs) {
-                    Circle()
-                        .fill(AppColor.textSecondary)
-                        .frame(width: 6, height: 6)
-                        .accessibilityHidden(true)
-                    Text("Journal")
-                }
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                HStack(spacing: Spacing.sm) { chartLegend }
+                readingCount
             }
-            Spacer(minLength: 0)
-            Text("^[\(chartSamples.count) day](inflect: true) with a reading")
         }
         .font(AppFont.caption2)
         .foregroundStyle(AppColor.textSecondary)
         .monospacedDigit()
+    }
+
+    private var readingCount: some View {
+        Text("^[\(chartSamples.count) day](inflect: true) with a reading")
+    }
+
+    @ViewBuilder
+    private var chartLegend: some View {
+        if let chartMean {
+            HStack(spacing: Spacing.xs) {
+                HStack(spacing: 2) {
+                    ForEach(0..<3, id: \.self) { _ in
+                        Rectangle().fill(AppColor.textTertiary).frame(width: 3, height: 1)
+                    }
+                }
+                .accessibilityHidden(true)
+                Text("Average \(formattedWithUnit(chartMean))")
+            }
+        }
+        if !journalMarkers.isEmpty {
+            HStack(spacing: Spacing.xs) {
+                Circle()
+                    .fill(AppColor.textSecondary)
+                    .frame(width: 6, height: 6)
+                    .accessibilityHidden(true)
+                Text("Journal")
+            }
+        }
     }
 
     private var emptyRangePlaceholder: some View {

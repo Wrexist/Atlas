@@ -66,7 +66,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld slag/min"
+            "value": "%lld spm"
           }
         }
       }
@@ -366,7 +366,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bål"
+            "value": "Kärna"
           }
         }
       }
@@ -516,7 +516,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nv %lld"
+            "value": "Niv. %lld"
           }
         }
       }
@@ -526,7 +526,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nv%lld"
+            "value": "Niv.%lld"
           }
         }
       }

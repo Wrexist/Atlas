@@ -847,6 +847,8 @@ struct WorkoutAccessoryView: View {
             Text(label)
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
             Spacer()
         }
         .padding(.horizontal, Spacing.lg)
@@ -897,15 +899,20 @@ struct NextDoseAccessoryView: View {
                 Text(summary(next, isOverdue: isOverdue))
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 Spacer()
                 Text(next.date.formatted(.dateTime.hour().minute()))
                     .font(AppFont.caption2)
                     .foregroundStyle(isOverdue ? AppColor.warning : AppColor.accentLight)
                     .contentTransition(.numericText())
+                    .fixedSize()
             } else {
                 Text("All doses completed for today")
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 Spacer()
             }
         }

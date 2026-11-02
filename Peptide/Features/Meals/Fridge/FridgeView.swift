@@ -143,6 +143,7 @@ struct FridgeView: View {
                                         .font(AppFont.caption2.weight(.semibold))
                                         .foregroundStyle(AppColor.textPrimary)
                                         .lineLimit(2)
+                                        .minimumScaleFactor(0.8)
                                         .multilineTextAlignment(.center)
                                         .frame(width: 80)
                                 }

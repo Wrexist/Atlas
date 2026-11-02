@@ -46,6 +46,8 @@ struct WorkoutLiveActivity: Widget {
                     Text("Idle")
                         .font(.system(size: 17, weight: .heavy, design: .rounded))
                         .foregroundStyle(.white.opacity(0.6))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 } else {
                     IslandTimer(
                         attributes: context.attributes,
@@ -64,6 +66,7 @@ struct WorkoutLiveActivity: Widget {
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(.white.opacity(0.65))
                         .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -84,6 +87,8 @@ struct WorkoutLiveActivity: Widget {
                 Text("Idle")
                     .font(.system(size: 11, weight: .heavy, design: .rounded))
                     .foregroundStyle(.white.opacity(0.55))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             } else {
                 CompactTiming(
                     attributes: context.attributes,
@@ -242,6 +247,7 @@ private struct WorkoutLockView: View {
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
             .accessibilityElement(children: .combine)
 
@@ -271,6 +277,8 @@ private struct WorkoutLockView: View {
                     Text(timerInterval: WorkoutActivityStyle.countdown(to: endsAt), countsDown: true)
                         .font(.system(size: 22, weight: .heavy, design: .rounded))
                         .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                         .multilineTextAlignment(.trailing)
                         .foregroundStyle(accent)
                         .frame(maxWidth: 78)
@@ -284,6 +292,8 @@ private struct WorkoutLockView: View {
                 Text(WorkoutActivityStyle.pausedTime(state))
                     .font(.system(size: 22, weight: .heavy, design: .rounded))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     .foregroundStyle(.primary)
                     .accessibilityLabel("Paused at \(WorkoutActivityStyle.pausedTime(state))")
                 Text("paused")
@@ -386,6 +396,8 @@ private struct WorkoutActionButton: View {
                     .accessibilityHidden(true)
                 Text(title)
                     .font(.system(size: 14, weight: .heavy, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
             // White fails contrast on the resting amber, which is light
             // in the dark scheme the Dynamic Island always draws in.
@@ -459,6 +471,8 @@ private struct IslandTimer: View {
                     Text(timerInterval: WorkoutActivityStyle.countdown(to: endsAt), countsDown: true)
                         .font(.system(size: 17, weight: .heavy, design: .rounded))
                         .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                         .multilineTextAlignment(.trailing)
                         .foregroundStyle(accent)
                         .frame(maxWidth: 64)
@@ -470,6 +484,8 @@ private struct IslandTimer: View {
                 Text(WorkoutActivityStyle.pausedTime(state))
                     .font(.system(size: 17, weight: .heavy, design: .rounded))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     .foregroundStyle(.white)
                     .accessibilityLabel("Paused at \(WorkoutActivityStyle.pausedTime(state))")
                 Text("paused")
@@ -512,6 +528,8 @@ private struct CompactTiming: View {
                 Text(timerInterval: WorkoutActivityStyle.countdown(to: endsAt), countsDown: true)
                     .font(.system(size: 13, weight: .bold))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     .foregroundStyle(accent)
                     .frame(maxWidth: 44)
             }

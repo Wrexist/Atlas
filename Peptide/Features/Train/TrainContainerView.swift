@@ -232,6 +232,7 @@ struct TrainContainerView: View {
                             // paused, and pauses don't count.
                             TimelineView(.animation(minimumInterval: 1, paused: active.isPaused)) { context in
                                 Text(WorkoutClock.label(active.elapsedSeconds(now: context.date)))
+                                    .fixedSize()
                                     .accessibilityLabel(WorkoutClock.spoken(active.elapsedSeconds(now: context.date)))
                             }
                             Text("·")

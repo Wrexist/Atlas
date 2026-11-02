@@ -299,6 +299,8 @@ private struct MediumProtocolView: View {
                     Text(entry.compliance.formatted(.percent.precision(.fractionLength(0))))
                         .font(.system(.headline, design: .rounded, weight: .bold))
                         .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                         .contentTransition(.numericText(value: entry.compliance))
                         .widgetAccentable()
                 }
@@ -339,6 +341,7 @@ private struct DoseRow: View {
                 .foregroundStyle(slot.completed ? .secondary : .primary)
                 .strikethrough(slot.completed, color: .secondary)
                 .privacySensitive()
+                .layoutPriority(1)
             if !slot.dose.isEmpty {
                 Text(slot.dose)
                     .font(.caption2)
@@ -349,6 +352,7 @@ private struct DoseRow: View {
             Text(slot.time, style: .time)
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(isOverdue ? AnyShapeStyle(WidgetPalette.over) : AnyShapeStyle(.secondary))
+                .fixedSize()
         }
         .lineLimit(1)
         .accessibilityElement(children: .combine)
@@ -394,6 +398,8 @@ private struct AdherenceMediumView: View {
             Text(entry.compliance.formatted(.percent.precision(.fractionLength(0))))
                 .font(.system(.title3, design: .rounded, weight: .bold))
                 .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
                 .contentTransition(.numericText(value: entry.compliance))
                 .widgetAccentable()
         } else {
@@ -490,6 +496,7 @@ private struct RectangularProtocolView: View {
             }
         }
         .lineLimit(1)
+        .minimumScaleFactor(0.8)
     }
 
     /// The dose and its time, led by "Overdue" once the time has passed

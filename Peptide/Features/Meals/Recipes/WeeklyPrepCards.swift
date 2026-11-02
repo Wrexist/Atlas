@@ -31,8 +31,8 @@ struct PrepDishCard: View {
                         .font(AppFont.caption2)
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textSecondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
+                        .lineLimit(2, reservesSpace: true)
+                        .multilineTextAlignment(.leading)
                 }
                 .accessibilityElement(children: .combine)
             }
@@ -201,10 +201,12 @@ private struct ShoppingRow: View {
                     Text("At home")
                         .font(AppFont.caption2.weight(.semibold))
                         .foregroundStyle(AppColor.positive)
+                        .fixedSize()
                 } else {
                     Text("\(grams) g")
                         .font(AppFont.subheadline)
                         .monospacedDigit()
+                        .fixedSize()
                         .contentTransition(.numericText())
                         .foregroundStyle(AppColor.textSecondary)
                 }
@@ -415,6 +417,7 @@ private struct PrepBoxRow: View {
             Text("×\(batch.count)")
                 .font(AppFont.headline)
                 .monospacedDigit()
+                .fixedSize()
                 .contentTransition(.numericText())
                 .foregroundStyle(AppColor.textPrimary)
                 .accessibilityLabel(Text("\(batch.count) boxes"))

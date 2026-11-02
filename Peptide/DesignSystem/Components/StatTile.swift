@@ -73,7 +73,10 @@ struct StatTile: View {
                 Text(footnote)
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
-                    .lineLimit(1)
+                    // A sentence, not a word: two lines read better than an
+                    // ellipsis once Swedish lengthens it.
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

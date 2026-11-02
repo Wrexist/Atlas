@@ -108,7 +108,7 @@ struct RoutineCard: View {
             Text(metaLine)
                 .font(AppFont.scaled(13))
                 .foregroundStyle(AppColor.textSecondary)
-                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
 
             if !exerciseLine.isEmpty {
                 Text(exerciseLine)

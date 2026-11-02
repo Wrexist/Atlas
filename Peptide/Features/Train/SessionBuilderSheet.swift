@@ -56,7 +56,7 @@ struct SessionBuilderSheet: View {
         }
         ToolbarItem(placement: .topBarTrailing) {
             if let routine {
-                Button(isSaved ? LocalizedStringKey("Saved") : "Save as routine") { save(routine) }
+                Button(isSaved ? LocalizedStringKey("routine.saved") : "Save as routine") { save(routine) }
                     .disabled(isSaved)
             } else {
                 Button("Pick for me", systemImage: "wand.and.stars") { pickForMe() }
@@ -188,7 +188,7 @@ struct SessionBuilderSheet: View {
             ? "\(slot.targetSets) × \(slot.targetReps) · RPE \(effort) · \(rest) rest"
             : "\(slot.targetSets) × \(slot.targetReps) · RPE \(effort) · \(rest) rest · Superset"
         return VStack(alignment: .leading, spacing: Spacing.xxs) {
-            Text(library.lookup(id: slot.exerciseID)?.name ?? slot.exerciseID)
+            Text(library.displayName(for: slot.exerciseID))
                 .font(AppFont.scaled(16))
                 .foregroundStyle(AppColor.textPrimary)
                 .lineLimit(2)

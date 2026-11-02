@@ -382,6 +382,28 @@ struct TrialOfferView: View {
         }
     }
 
+    private func tierName(_ tier: Tier) -> some View {
+        Text(tier.displayName)
+            .font(AppFont.headline)
+            .foregroundStyle(AppColor.textPrimary)
+    }
+
+    /// Inline, not offset above the card: the old floating badge collided
+    /// with the card above when the A/B order put yearly second. "Best
+    /// value" is what the savings maths supports; "most popular" was an
+    /// unverified claim.
+    private var bestValueBadge: some View {
+        Text(annualSavingsPercent.map { String(localized: "BEST VALUE · SAVE \($0)%") } ?? String(localized: "BEST VALUE"))
+            .font(AppFont.badge)
+            .tracking(0.6)
+            .foregroundStyle(AppColor.onAccent)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(
+                Capsule().fill(AppColor.accentFill)
+            )
+    }
+
     private func tierCard(_ tier: Tier) -> some View {
         let isSelected = selectedTier == tier
         let isAnnual = tier == .annual
@@ -399,25 +421,16 @@ struct TrialOfferView: View {
                         .frame(width: 22, height: 22)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: Spacing.xs) {
-                        Text(tier.displayName)
-                            .font(AppFont.headline)
-                            .foregroundStyle(AppColor.textPrimary)
-                        if isAnnual {
-                            // Inline, not offset above the card: the old
-                            // floating badge collided with the card above
-                            // when the A/B order put yearly second. "Best
-                            // value" is what the savings maths supports;
-                            // "most popular" was an unverified claim.
-                            Text(annualSavingsPercent.map { String(localized: "BEST VALUE · SAVE \($0)%") } ?? String(localized: "BEST VALUE"))
-                                .font(AppFont.badge)
-                                .tracking(0.6)
-                                .foregroundStyle(AppColor.onAccent)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(
-                                    Capsule().fill(AppColor.accentFill)
-                                )
+                    // The Swedish badge is long enough to squeeze the plan
+                    // name, so it drops under the name rather than wrap.
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: Spacing.xs) {
+                            tierName(tier)
+                            if isAnnual { bestValueBadge }
+                        }
+                        VStack(alignment: .leading, spacing: Spacing.xxs) {
+                            tierName(tier)
+                            if isAnnual { bestValueBadge }
                         }
                     }
                     Text(tierSubtitle(for: tier))
@@ -425,7 +438,7 @@ struct TrialOfferView: View {
                         .foregroundStyle(AppColor.textSecondary)
                         .loadingPlaceholder(!arePricesLoaded)
                 }
-                Spacer()
+                Spacer(minLength: Spacing.sm)
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(tierPrimaryPrice(for: tier))
                         .font(AppFont.scaled(16, weight: .semibold))
@@ -434,6 +447,7 @@ struct TrialOfferView: View {
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
                 }
+                .fixedSize()
                 .loadingPlaceholder(!arePricesLoaded)
             }
             .padding(Spacing.md)
@@ -661,8 +675,8 @@ struct TrialOfferView: View {
     private func planName(for tier: Tier) -> String {
         if let product = product(for: tier) { return product.displayName }
         switch tier {
-        case .annual:  return "Atlas Pro Annual"
-        case .monthly: return "Atlas Pro Monthly"
+        case .annual:  return String(localized: "Atlas Pro Annual")
+        case .monthly: return String(localized: "Atlas Pro Monthly")
         }
     }
 

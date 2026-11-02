@@ -258,6 +258,8 @@ private struct GoalProgress: View {
                         .font(.system(size: 11, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                         .frame(maxWidth: 64, alignment: .leading)
                     Text("left")
                         .font(.system(size: 11, weight: .semibold))

@@ -116,6 +116,7 @@ struct WorkoutHistoryView: View {
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .monospacedDigit()
+                    .fixedSize()
             }
         }
         .accessibilityElement(children: .combine)
@@ -144,6 +145,7 @@ struct WorkoutHistoryView: View {
                     .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
                     .monospacedDigit()
+                    .fixedSize()
             }
             Image(systemName: "chevron.right")
                 .font(AppFont.scaled(13, weight: .semibold))
@@ -212,6 +214,7 @@ struct WorkoutHistoryView: View {
                 .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
                 .monospacedDigit()
+                .fixedSize()
             Image(systemName: "chevron.right")
                 .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.textTertiary)

@@ -141,7 +141,7 @@ struct WorkoutFocusView: View {
         }
         .buttonStyle(ScalePressStyle())
         .accessibilityLabel(Text(library.displayName(for: item.exerciseID)))
-        .accessibilityValue(complete ? Text("Complete") : Text("Sets done: \(workingDone) of \(working.count)"))
+        .accessibilityValue(complete ? Text("status.complete") : Text("Sets done: \(workingDone) of \(working.count)"))
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
@@ -201,18 +201,16 @@ struct WorkoutFocusView: View {
                 }
             }
             .appAnimation(AppAnimation.springSnappy, value: entry.sets.count)
-            HStack {
-                Button {
-                    Haptics.impact(.light)
-                    service.addSet(toExerciseID: entry.id)
-                } label: {
-                    Label("Add set", systemImage: "plus").minimumHitArea()
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    addSetButton(entry).fixedSize()
+                    Spacer()
+                    restMenu(entry).fixedSize()
                 }
-                Spacer()
-                RestTimeMenu(overrideSeconds: entry.restSeconds, defaultSeconds: defaultRestSeconds) { seconds in
-                    service.setRestSeconds(seconds, forExerciseEntryID: entry.id)
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    addSetButton(entry)
+                    restMenu(entry)
                 }
-                .minimumHitArea()
             }
             .font(AppFont.callout)
             Group {
@@ -254,6 +252,22 @@ struct WorkoutFocusView: View {
         .padding(Spacing.xl)
         .foregroundStyle(AppColor.textPrimary)
         .background(AppColor.surfaceElevated, in: RoundedRectangle(cornerRadius: Spacing.sheetCornerRadius, style: .continuous))
+    }
+
+    private func addSetButton(_ entry: WorkoutExerciseEntry) -> some View {
+        Button {
+            Haptics.impact(.light)
+            service.addSet(toExerciseID: entry.id)
+        } label: {
+            Label("Add set", systemImage: "plus").minimumHitArea()
+        }
+    }
+
+    private func restMenu(_ entry: WorkoutExerciseEntry) -> some View {
+        RestTimeMenu(overrideSeconds: entry.restSeconds, defaultSeconds: defaultRestSeconds) { seconds in
+            service.setRestSeconds(seconds, forExerciseEntryID: entry.id)
+        }
+        .minimumHitArea()
     }
 
     /// The painted "Finish workout" above, shown once every set is logged.

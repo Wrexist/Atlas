@@ -82,6 +82,7 @@ struct HabitHeatmap: View {
                 // or last) has no room for its name.
                 Text(label.width > perColumnWidth ? label.text : "")
                     .lineLimit(1)
+                    .minimumScaleFactor(0.6)
                     .frame(width: label.width, alignment: .leading)
             }
         }

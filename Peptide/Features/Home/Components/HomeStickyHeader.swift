@@ -33,6 +33,7 @@ struct HomeStickyHeader: View {
                 .font(AppFont.scaled(16, weight: .semibold))
                 .foregroundStyle(AppColor.textPrimary)
                 .lineLimit(1)
+                .minimumScaleFactor(0.8)
                 // Slight upward slide as the bar materialises —
                 // sells the "I'm taking over from the welcome card"
                 // beat without a hard pop-in.

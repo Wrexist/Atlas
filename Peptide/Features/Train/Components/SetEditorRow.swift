@@ -140,7 +140,9 @@ struct SetEditorRow: View {
                     .minimumHitArea()
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text("Previous: \(unit.weightValue(prev.weightKg, fractionDigits: 0...2)) \(unit.weightSpokenUnit) for ^[\(prev.reps) rep](inflect: true)"))
+            .accessibilityLabel(prev.weightKg > 0
+                ? Text("Previous: \(unit.weightValue(prev.weightKg, fractionDigits: 0...2)) \(unit.weightSpokenUnit) for ^[\(prev.reps) rep](inflect: true)")
+                : Text("Previous: \(prev.reps) reps"))
             .accessibilityHint(Text("Fills this set with the same weight and reps"))
         } else {
             Text("—")

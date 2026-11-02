@@ -202,12 +202,14 @@ struct WidgetHeader: View {
                 .tracking(0.5)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+                .minimumScaleFactor(0.7)
             Spacer(minLength: 4)
             if let trailing {
                 Text(trailing)
                     .font(.caption2.weight(.semibold).monospacedDigit())
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     .accessibilityLabel(trailingAccessibilityLabel ?? Text(trailing))
             }
         }

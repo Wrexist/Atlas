@@ -91,6 +91,7 @@ struct BiomarkerTile: View {
                 Text(unitText)
                     .font(AppFont.scaled(13, weight: .medium))
                     .foregroundStyle(AppColor.textSecondary)
+                    .fixedSize()
             }
         }
     }

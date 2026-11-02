@@ -32,17 +32,20 @@ struct BioAgeTrendCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            HStack(alignment: .firstTextBaseline) {
-                BiologySectionHeader(title: "Trend")
-                // A range choice means nothing until there is a line.
-                if points.count >= 2 {
-                    GlassSegmentedControl(
-                        options: Window.allCases,
-                        selected: $range,
-                        label: { $0.label }
-                    )
-                    .fixedSize()
+            // A range choice means nothing until there is a line.
+            if points.count >= 2 {
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline) {
+                        BiologySectionHeader(title: "Trend")
+                        rangePicker
+                    }
+                    VStack(alignment: .leading, spacing: Spacing.sm) {
+                        BiologySectionHeader(title: "Trend")
+                        rangePicker
+                    }
                 }
+            } else {
+                BiologySectionHeader(title: "Trend")
             }
 
             GlassCard {
@@ -63,6 +66,15 @@ struct BioAgeTrendCard: View {
             withTransaction(reset) { drawProgress = 0 }
             Task { draw() }
         }
+    }
+
+    private var rangePicker: some View {
+        GlassSegmentedControl(
+            options: Window.allCases,
+            selected: $range,
+            label: { $0.label }
+        )
+        .fixedSize()
     }
 
     // MARK: - Chart

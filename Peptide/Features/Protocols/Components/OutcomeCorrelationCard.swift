@@ -103,7 +103,11 @@ struct OutcomeCorrelationCard: View {
             Text(label)
                 .font(AppFont.scaled(11, weight: .semibold))
                 .foregroundStyle(AppColor.textSecondary)
-                .frame(width: 84, alignment: .leading)
+                // Minimums keep the two bars aligned; fixedSize lets a
+                // longer Swedish label or a large-type number grow rather
+                // than break mid-word.
+                .fixedSize()
+                .frame(minWidth: 84, alignment: .leading)
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 4, style: .continuous)
@@ -118,12 +122,14 @@ struct OutcomeCorrelationCard: View {
                 .font(AppFont.scaled(11, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
-                .frame(width: 32, alignment: .trailing)
+                .fixedSize()
+                .frame(minWidth: 32, alignment: .trailing)
             Text("\(count)d")
                 .font(AppFont.scaled(11))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textTertiary)
-                .frame(width: 28, alignment: .trailing)
+                .fixedSize()
+                .frame(minWidth: 28, alignment: .trailing)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(label) average \(value.formatted(.number.precision(.fractionLength(1)))) over \(count) days")

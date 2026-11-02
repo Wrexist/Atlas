@@ -570,7 +570,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cykelkort för %@. %@."
+            "value": "Cykelkort för %1$@. %2$@. "
           }
         }
       }
@@ -1605,29 +1605,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@, %#@arg2@"
-          },
-          "substitutions": {
-            "arg2": {
-              "argNum": 2,
-              "formatSpecifier": "lld",
-              "variations": {
-                "plural": {
-                  "one": {
-                    "stringUnit": {
-                      "state": "translated",
-                      "value": "%arg pass"
-                    }
-                  },
-                  "other": {
-                    "stringUnit": {
-                      "state": "translated",
-                      "value": "%arg pass"
-                    }
-                  }
-                }
-              }
-            }
+            "value": "%1$@, %2$lld pass"
           }
         }
       }
@@ -6107,7 +6085,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Atlas ser din Biological Age, dess trend över 90 dagar, 30-dagarsvärdena bakom den och dina dagboksanteckningar från de senaste två veckorna – inte dina råa hälsodata."
+            "value": "Atlas ser din biologiska ålder, dess trend över 90 dagar, 30-dagarsvärdena bakom den och dina dagboksanteckningar från de senaste två veckorna – inte dina råa hälsodata."
           }
         }
       }
@@ -7356,7 +7334,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dina meddelanden i den här chatten, plus en sammanfattning av din Biological Age: uppskattningen, trenden och signalerna bakom den, som HRV, vilopuls, sömn, steg, kondition, vikt och labbvärden, samt dina dagboksanteckningar från de senaste två veckorna."
+            "value": "Dina meddelanden i den här chatten, plus en sammanfattning av din biologiska ålder: uppskattningen, trenden och signalerna bakom den, som HRV, vilopuls, sömn, steg, kondition, vikt och labbvärden, samt dina dagboksanteckningar från de senaste två veckorna."
           }
         }
       }
@@ -9681,7 +9659,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Atlas-poäng: nivå %lld, klass %@,"
+            "value": "Atlas-poäng: nivå %1$lld, klass %2$@, "
           }
         }
       }
@@ -10453,7 +10431,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Före sänggåendet"
+            "value": "Före läggdags"
           }
         }
       }
@@ -12907,7 +12885,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mål och Atlas Score"
+            "value": "Mål och Atlas-poäng"
           }
         }
       }
@@ -13933,7 +13911,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Substans"
+            "value": "Substans "
           }
         }
       }
@@ -16545,7 +16523,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Loggade doser: %lld. Följsamhet: %lld procent."
+            "value": "Loggade doser: %1$lld. Följsamhet: %2$lld procent. "
           }
         }
       }
@@ -16795,7 +16773,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tidig bedömning:"
+            "value": "Tidig bedömning: "
           }
         }
       }
@@ -17475,7 +17453,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Var"
+            "value": "Intervall"
           }
         }
       }
@@ -20209,7 +20187,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hybrid omformning"
+            "value": "Hybrid-recomp"
           }
         }
       }
@@ -21073,7 +21051,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "NV"
+            "value": "NIVÅ"
           }
         }
       }
@@ -21363,7 +21341,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lär sig"
+            "value": "Lärande"
           }
         }
       }
@@ -21663,7 +21641,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vikt saknas ·"
+            "value": "Vikt saknas · "
           }
         }
       }
@@ -22565,7 +22543,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gå ner i fett"
+            "value": "Bränna fett"
           }
         }
       }
@@ -27419,7 +27397,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Peptider: %@."
+            "value": "Peptider: %@. "
           }
         }
       }
@@ -27849,7 +27827,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Viktskiva"
+            "value": "Tallrik"
           }
         }
       }
@@ -28221,7 +28199,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Primär:"
+            "value": "Primär: "
           }
         }
       }
@@ -28771,7 +28749,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dragdag"
+            "value": "Pulldag"
           }
         }
       }
@@ -29261,7 +29239,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Läser rätt"
+            "value": "Analyserar rätten"
           }
         }
       }
@@ -30431,7 +30409,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Research"
+            "value": "Forskning"
           }
         }
       }
@@ -34514,7 +34492,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stödjande:"
+            "value": "Stödjande: "
           }
         }
       }
@@ -35709,7 +35687,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sedan"
+            "value": "Sedan "
           }
         }
       }
@@ -36669,7 +36647,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Uppföljning"
+            "value": "Matloggare"
           }
         }
       }
@@ -37131,7 +37109,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Inställd"
+            "value": "Första incheckningen"
           }
         }
       }
@@ -40673,7 +40651,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ditt egna livsmedel"
+            "value": "Ditt eget livsmedel"
           }
         }
       }
@@ -47771,6 +47749,1076 @@
           "stringUnit": {
             "state": "translated",
             "value": "Baksida"
+          }
+        }
+      }
+    },
+    "Previous: %lld reps": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Förra: %lld rep"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Förra: %lld reps"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Superset": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Superset"
+          }
+        }
+      }
+    },
+    "Unfinished": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ej slutfört"
+          }
+        }
+      }
+    },
+    "%@, highlighted: %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, markerade: %2$@"
+          }
+        }
+      }
+    },
+    "Upper / lower": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Över-/underkropp"
+          }
+        }
+      }
+    },
+    "Push / pull / legs": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Push / pull / ben"
+          }
+        }
+      }
+    },
+    "Squat": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Knäböj"
+          }
+        }
+      }
+    },
+    "Hinge": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Höftfällning"
+          }
+        }
+      }
+    },
+    "Single leg": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enbensövning"
+          }
+        }
+      }
+    },
+    "Horizontal push": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Horisontell press"
+          }
+        }
+      }
+    },
+    "Horizontal pull": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Horisontellt drag"
+          }
+        }
+      }
+    },
+    "Vertical push": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vertikal press"
+          }
+        }
+      }
+    },
+    "Vertical pull": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vertikalt drag"
+          }
+        }
+      }
+    },
+    "General fitness": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allmän form"
+          }
+        }
+      }
+    },
+    "Advanced": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avancerad"
+          }
+        }
+      }
+    },
+    "exercise.mechanic.compound": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compound"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flerledsövning"
+          }
+        }
+      }
+    },
+    "exercise.mechanic.isolation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Isolation"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Isolationsövning"
+          }
+        }
+      }
+    },
+    "exercise.force.push": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Push"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tryck"
+          }
+        }
+      }
+    },
+    "exercise.force.pull": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pull"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag"
+          }
+        }
+      }
+    },
+    "exercise.force.static": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Static"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Statisk"
+          }
+        }
+      }
+    },
+    "Atlas Pro Annual": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atlas Pro År"
+          }
+        }
+      }
+    },
+    "How did my week go against my targets?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hur gick min vecka jämfört med mina mål?"
+          }
+        }
+      }
+    },
+    "How can I hit my protein target more often?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hur kan jag nå mitt proteinmål oftare?"
+          }
+        }
+      }
+    },
+    "What simple swaps would keep me within my calories?": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vilka enkla byten skulle hålla mig inom mitt kaloriintag?"
+          }
+        }
+      }
+    },
+    "%lldx per dose day": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld× per dosdag"
+          }
+        }
+      }
+    },
+    "Heart Rate": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puls"
+          }
+        }
+      }
+    },
+    "One payment. Your logs, workouts and photos stay yours.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En betalning. Dina loggar, pass och bilder förblir dina."
+          }
+        }
+      }
+    },
+    "Cancel anytime in Settings → your name → Subscriptions. Your logs, workouts and photos stay yours either way.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avsluta när du vill i Inställningar → ditt namn → Prenumerationer. Dina loggar, pass och bilder förblir dina oavsett."
+          }
+        }
+      }
+    },
+    "Apple handles payment. RevenueCat receives your purchase history under an anonymous ID — never your name, email, or health data — to keep Pro status in sync.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple sköter betalningen. RevenueCat tar emot din köphistorik under ett anonymt ID – aldrig ditt namn, din e-post eller dina hälsodata – för att hålla Pro-statusen synkad."
+          }
+        }
+      }
+    },
+    "If you sign in, your Apple-issued identifier and the name and email Apple shares are stored only on this device, in the iOS Keychain.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Om du loggar in sparas ditt Apple-ID-nummer och det namn och den e-post som Apple delar bara på den här enheten, i iOS-nyckelringen."
+          }
+        }
+      }
+    },
+    "You own Atlas Pro for life. Your subscription still renews, so cancel it to stop being charged.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du äger Atlas Pro livet ut. Din prenumeration förnyas fortfarande, så avsluta den för att slippa debiteras."
+          }
+        }
+      }
+    },
+    "Atlas Pro is paused until your payment goes through.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atlas Pro är pausat tills din betalning har gått igenom."
+          }
+        }
+      }
+    },
+    "Ready": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redo"
+          }
+        }
+      }
+    },
+    "Ended early": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avslutad i förtid"
+          }
+        }
+      }
+    },
+    "Opens fasting presets, stages and history.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar fasteförval, faser och historik."
+          }
+        }
+      }
+    },
+    "Swap %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Byt %@"
+          }
+        }
+      }
+    },
+    "Log %@": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logga %@"
+          }
+        }
+      }
+    },
+    "%@ logged": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ loggad"
+          }
+        }
+      }
+    },
+    "choice.other": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Annat"
+          }
+        }
+      }
+    },
+    "activity.light": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Light"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lätt aktiv"
+          }
+        }
+      }
+    },
+    "routine.saved": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sparad"
+          }
+        }
+      }
+    },
+    "status.complete": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Complete"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klart"
+          }
+        }
+      }
+    },
+    "effort.moderate": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moderate"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Måttligt"
+          }
+        }
+      }
+    },
+    "program.day.fullBody": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full body"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Helkropp"
+          }
+        }
+      }
+    },
+    "program.day.upper": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upper"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Överkropp"
+          }
+        }
+      }
+    },
+    "program.day.lower": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lower"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Underkropp"
+          }
+        }
+      }
+    },
+    "program.day.push": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Push"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Push"
+          }
+        }
+      }
+    },
+    "program.day.pull": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pull"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pull"
+          }
+        }
+      }
+    },
+    "program.day.legs": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Legs"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ben"
+          }
+        }
+      }
+    },
+    "%@ · day %lld of %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · dag %2$lld av %3$lld"
+          }
+        }
+      }
+    },
+    "Offline": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline"
+          }
+        }
+      }
+    },
+    "%lld×/week": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld×/vecka"
+          }
+        }
+      }
+    },
+    "Edit Today": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redigera Idag"
+          }
+        }
+      }
+    },
+    "Customize profile": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anpassa profil"
+          }
+        }
+      }
+    },
+    "no data": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "inga data"
+          }
+        }
+      }
+    },
+    "Opens the icon and color pickers": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öppnar ikon- och färgväljarna"
+          }
+        }
+      }
+    },
+    "Keep on This iPhone": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Behåll på den här iPhonen"
+          }
+        }
+      }
+    },
+    "Remove from This iPhone": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ta bort från den här iPhonen"
+          }
+        }
+      }
+    },
+    "Scan lab report": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skanna labbrapport"
+          }
+        }
+      }
+    },
+    "Page %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sida %lld"
+          }
+        }
+      }
+    },
+    "Remove page %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ta bort sida %lld"
+          }
+        }
+      }
+    },
+    "Save %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spara %lld"
+          }
+        }
+      }
+    },
+    "%lld doses": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dose"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld doses"
+                }
+              }
+            }
+          }
+        },
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dos"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld doser"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "^[%lld reminder](inflect: true) scheduled": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld påminnelse schemalagd"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld påminnelser schemalagda"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Level %lld · ^[%lld point](inflect: true)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nivå %1$lld · %2$lld poäng"
+          }
+        }
+      }
+    },
+    "^[%lld ingredient](inflect: true) · %lld kcal": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%#@arg1@ · %2$lld kcal"
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg ingrediens"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg ingredienser"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "^[%lld week](inflect: true) cycle": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld veckas cykel"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld veckors cykel"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "^[%lld time](inflect: true) per day": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld gång per dag"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld gånger per dag"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "^[%lld day](inflect: true) per week": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dag per vecka"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dagar per vecka"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "^[%lld exercise](inflect: true) · ^[%lld set](inflect: true) · ~%lld min": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%#@arg1@ · %2$lld set · ~%3$lld min"
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg övning"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg övningar"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Previous: %@ %@ for ^[%lld rep](inflect: true)": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Förra: %1$@ %2$@ för %#@arg3@"
+          },
+          "substitutions": {
+            "arg3": {
+              "argNum": 3,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg rep"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg reps"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "^[%lld rep](inflect: true)": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld rep"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld reps"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "^[%lld day](inflect: true) left": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dag kvar"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dagar kvar"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "^[%lld week](inflect: true) left": {
+      "localizations": {
+        "sv": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld vecka kvar"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld veckor kvar"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "^[%lld result](inflect: true) found": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld resultat hittades"
+          }
+        }
+      }
+    },
+    "^[%lld day](inflect: true) streak, best %lld": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Svit: %#@arg1@, bästa %2$lld"
+          },
+          "substitutions": {
+            "arg1": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg dag"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg dagar"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

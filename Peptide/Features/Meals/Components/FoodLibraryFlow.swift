@@ -172,7 +172,7 @@ struct FoodLibraryFlow: View {
             get: { mealSaveError != nil }, set: { if !$0 { mealSaveError = nil } }
         )) {
             Button("OK", role: .cancel) { mealSaveError = nil }
-        } message: { Text(mealSaveError ?? "Please retry.") }
+        } message: { Text(mealSaveError ?? String(localized: "Please retry.")) }
         .task(id: favoritesTaskID) {
             // Single task driving the Favorites tab's data refresh.
             // Re-fires on either tab change or favorite-set change
@@ -515,7 +515,7 @@ struct FoodLibraryFlow: View {
                     Text(name)
                         .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
-                        .lineLimit(1)
+                        .lineLimit(2)
                     Text(summary)
                         .font(AppFont.scaled(11))
                         .foregroundStyle(AppColor.textSecondary)
@@ -822,7 +822,7 @@ struct FoodLibraryFlow: View {
                     Text(product.name)
                         .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
-                        .lineLimit(1)
+                        .lineLimit(2)
                     if let brand = product.brand, brand != product.name {
                         Text(brand)
                             .font(AppFont.scaled(11))
@@ -876,8 +876,8 @@ struct FoodLibraryFlow: View {
                     Text(food.name)
                         .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
-                        .lineLimit(1)
-                    Text([food.brand ?? "Custom food", food.typicalPrice?.formatted].compactMap { $0 }.joined(separator: " · "))
+                        .lineLimit(2)
+                    Text([food.brand ?? String(localized: "Custom food"), food.typicalPrice?.formatted].compactMap { $0 }.joined(separator: " · "))
                         .font(AppFont.scaled(11))
                         .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(1)
@@ -937,7 +937,7 @@ struct FoodLibraryFlow: View {
                     Text(meal.name)
                         .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
-                        .lineLimit(1)
+                        .lineLimit(2)
                     Text(meal.category.displayName)
                         .font(AppFont.scaled(11))
                         .foregroundStyle(AppColor.textSecondary)

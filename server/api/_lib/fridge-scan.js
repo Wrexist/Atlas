@@ -85,7 +85,7 @@ List every distinct food or drink product you can identify, at most ${MAX_ITEMS}
 
 name: a short everyday name in the user's language ("Mellanmjölk", "Kycklingfilé", "Greek yoghurt"), without the brand.
 brand: the brand when it is legible, else null.
-amount: the package size when printed or obvious ("1 l", "500 g", "6-pack"), else null.
+amount: the package size when printed or obvious ("1 l", "500 g", "6-pack"), in the user's language, else null.
 place: where it belongs — freezer for frozen goods, pantry for dry goods, tins and unopened shelf-stable items on a counter, fridge for everything else. Use what the photo shows when it shows a fridge or freezer.
 shelf_days: how many days it typically keeps from today if stored as in the photo, assuming it was just bought. Fresh meat and fish 2–3, minced meat 1–2, milk 7, yoghurt 10, hard cheese 30, fresh produce by kind, frozen goods 90. Null for shelf-stable goods that keep for many months.
 printed_expiry: only when a use-by or best-before date is clearly legible on the pack, as YYYY-MM-DD; never guess.
@@ -124,7 +124,7 @@ export function buildFridgeScanRequest(raw) {
 
   const effort = EFFORTS.has(process.env.FRIDGE_SCAN_EFFORT) ? process.env.FRIDGE_SCAN_EFFORT : 'low';
   const lines = [
-    `User locale: ${localeOf(raw)}. Write names in this locale's language.`,
+    `User locale: ${localeOf(raw)}. Write names and amounts in this locale's language.`,
     keys.length ? `Ingredient keys: ${keys.join(', ')}` : 'Ingredient keys: none; pantry_key is always null.',
   ];
   return {

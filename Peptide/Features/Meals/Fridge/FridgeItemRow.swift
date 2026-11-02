@@ -31,6 +31,8 @@ struct FridgeFreshnessBadge: View {
                 .font(AppFont.caption2.weight(.semibold))
                 .monospacedDigit()
                 .foregroundStyle(color)
+                .lineLimit(1)
+                .fixedSize()
                 .padding(.horizontal, Spacing.sm)
                 .padding(.vertical, Spacing.xxs)
                 .background(color.opacity(0.15), in: Capsule())
@@ -68,7 +70,12 @@ struct FridgeItemRow: View {
     let product: FridgeProduct
     let freshness: FridgeEngine.Freshness
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
+        // At accessibility sizes the badge moves under the name, so a
+        // long "Gick ut för 3 dagar sedan" never squeezes the name into
+        // a column narrow enough to break words.
         HStack(spacing: Spacing.md) {
             FridgeProductImage(product: product)
             VStack(alignment: .leading, spacing: Spacing.xxs) {
@@ -92,9 +99,14 @@ struct FridgeItemRow: View {
                 }
                 .font(AppFont.footnote)
                 .foregroundStyle(AppColor.textSecondary)
+                if dynamicTypeSize.isAccessibilitySize {
+                    FridgeFreshnessBadge(freshness: freshness)
+                }
             }
             Spacer(minLength: Spacing.sm)
-            FridgeFreshnessBadge(freshness: freshness)
+            if !dynamicTypeSize.isAccessibilitySize {
+                FridgeFreshnessBadge(freshness: freshness)
+            }
         }
         .padding(.vertical, Spacing.sm)
         .frame(minHeight: Spacing.minimumHitTarget)

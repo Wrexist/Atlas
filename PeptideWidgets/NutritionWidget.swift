@@ -199,6 +199,8 @@ private struct CalorieCenter: View {
             Text(entry.headlineCaption)
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(entry.isOver ? WidgetPalette.over : .secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
         .padding(.horizontal, 8)
     }
@@ -276,6 +278,8 @@ private struct MacroRow: View {
                     .contentTransition(.numericText(value: Double(macro.grams)))
             }
             .lineLimit(1)
+            // "Kolhydrater" next to "180 / 250 g" outgrows the column.
+            .minimumScaleFactor(0.7)
             WidgetBar(progress: macro.progress, tint: macro.tint)
         }
         .accessibilityElement(children: .ignore)
@@ -453,6 +457,7 @@ private struct RectangularNutritionView: View {
         VStack(alignment: .leading, spacing: 2) {
             Label {
                 Text(entry.budgetLine)
+                .minimumScaleFactor(0.8)
             } icon: {
                 Image(systemName: "fork.knife")
             }

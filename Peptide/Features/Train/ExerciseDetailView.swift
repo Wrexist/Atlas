@@ -103,13 +103,13 @@ struct ExerciseDetailView: View {
             if let mechanic = exercise.mechanic {
                 metadataPill(
                     glyph: .system("gearshape.fill"),
-                    label: mechanic.rawValue.capitalized
+                    label: mechanicLabel(mechanic)
                 )
             }
             if let force = exercise.force {
                 metadataPill(
                     glyph: .system("arrow.up.right.circle.fill"),
-                    label: force.rawValue.capitalized
+                    label: forceLabel(force)
                 )
             }
         }
@@ -138,6 +138,21 @@ struct ExerciseDetailView: View {
         case .beginner:     return String(localized: "Beginner")
         case .intermediate: return String(localized: "Intermediate")
         case .expert:       return String(localized: "Expert")
+        }
+    }
+
+    private func mechanicLabel(_ mechanic: Exercise.Mechanic) -> String {
+        switch mechanic {
+        case .compound:  return String(localized: "exercise.mechanic.compound", defaultValue: "Compound")
+        case .isolation: return String(localized: "exercise.mechanic.isolation", defaultValue: "Isolation")
+        }
+    }
+
+    private func forceLabel(_ force: Exercise.Force) -> String {
+        switch force {
+        case .push:     return String(localized: "exercise.force.push", defaultValue: "Push")
+        case .pull:     return String(localized: "exercise.force.pull", defaultValue: "Pull")
+        case .static:   return String(localized: "exercise.force.static", defaultValue: "Static")
         }
     }
 

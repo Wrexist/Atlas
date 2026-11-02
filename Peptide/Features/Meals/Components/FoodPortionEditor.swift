@@ -116,6 +116,8 @@ struct FoodPortionEditor: View {
             Text(verbatim: label)
                 .font(AppFont.scaled(13, weight: .semibold))
                 .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.bordered)

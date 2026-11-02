@@ -198,7 +198,7 @@ struct MuscleMapView: View {
         if lit.isEmpty {
             return Text("\(view), no muscles highlighted")
         } else {
-            return Text("\(view), highlighted: " + lit.joined(separator: ", "))
+            return Text("\(view), highlighted: \(lit.joined(separator: ", "))")
         }
     }
 }

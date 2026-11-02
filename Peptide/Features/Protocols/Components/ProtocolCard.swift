@@ -41,6 +41,8 @@ struct ProtocolCard: View {
                                 .monospacedDigit()
                                 .foregroundStyle(AppColor.textTertiary)
                         }
+                        // Short counters: the name wraps, these never do.
+                        .fixedSize()
                     } else if protocol_.status == .active {
                         VStack(alignment: .trailing, spacing: Spacing.xxs) {
                             Text("Week \(protocol_.weekNumber)")
@@ -52,6 +54,7 @@ struct ProtocolCard: View {
                                 .font(AppFont.caption2)
                                 .foregroundStyle(AppColor.textTertiary)
                         }
+                        .fixedSize()
                     }
                 }
 
@@ -89,7 +92,7 @@ struct ProtocolCard: View {
                             .padding(.leading, Spacing.sm)
                     }
 
-                    Spacer()
+                    Spacer(minLength: Spacing.sm)
 
                     if let washout {
                         Text("\(CyclePhaseEngine.daysUntilPhaseEnd(washout.status))d to next cycle")

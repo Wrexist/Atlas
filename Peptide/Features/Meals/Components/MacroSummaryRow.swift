@@ -89,7 +89,7 @@ struct MacroSummaryRow: View {
                     legend(
                         title: "Calories",
                         value: consumed.caloriesKcal,
-                        target: "/\(targets.calories) kcal",
+                        target: Self.targetText(targets.calories, unit: "kcal"),
                         // The outer ring is split by meal colour, so a single
                         // accent dot would name a colour the ring doesn't use.
                         color: breakdown == nil ? AppColor.accentPrimary : AppColor.textTertiary,
@@ -100,7 +100,7 @@ struct MacroSummaryRow: View {
                     legend(
                         title: "Protein",
                         value: consumed.proteinG,
-                        target: "/\(targets.proteinG) g",
+                        target: Self.targetText(targets.proteinG, unit: "g"),
                         color: AppColor.macroProtein,
                         index: 1,
                         goalMet: targets.proteinG > 0 && consumed.proteinG >= targets.proteinG
@@ -142,8 +142,7 @@ struct MacroSummaryRow: View {
         }
     }
 
-    /// Same legend style as the ring rows; a zero target shows the
-    /// consumed grams alone.
+    /// Same legend style as the ring rows.
     private var carbsAndFat: some View {
         let layout = dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.sm))
@@ -152,7 +151,7 @@ struct MacroSummaryRow: View {
             legend(
                 title: "Carbs",
                 value: consumed.carbsG,
-                target: Self.gramsTarget(targets.carbsG),
+                target: Self.targetText(targets.carbsG, unit: "g"),
                 color: AppColor.macroCarbs,
                 index: 3,
                 progress: Self.fraction(consumed.carbsG, of: targets.carbsG)
@@ -161,7 +160,7 @@ struct MacroSummaryRow: View {
             legend(
                 title: "Fat",
                 value: consumed.fatG,
-                target: Self.gramsTarget(targets.fatG),
+                target: Self.targetText(targets.fatG, unit: "g"),
                 color: AppColor.macroFat,
                 index: 4,
                 progress: Self.fraction(consumed.fatG, of: targets.fatG)
@@ -170,8 +169,9 @@ struct MacroSummaryRow: View {
         }
     }
 
-    private static func gramsTarget(_ grams: Int) -> String {
-        grams > 0 ? "/\(grams) g" : " g"
+    /// "/2400 kcal", or just the unit when no target is set — never "/0".
+    private static func targetText(_ target: Int, unit: String) -> String {
+        target > 0 ? "/\(target) \(unit)" : " \(unit)"
     }
 
     /// Carbs and fat have no ring, so a bar shows how far along they
@@ -286,6 +286,7 @@ struct MacroSummaryRow: View {
                         .font(AppFont.scaled(20, weight: .semibold))
                         .foregroundStyle(overBy > 0 && targets.calories > 0 ? AppColor.warning : AppColor.textPrimary)
                         .monospacedDigit()
+                        .fixedSize()
                         .contentTransition(.numericText(value: Double(shown)))
                         .animation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion), value: value)
                         .animation(revealAnimation(index: index), value: isRevealed)
@@ -293,6 +294,8 @@ struct MacroSummaryRow: View {
                         .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textTertiary)
                         .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                     if goalMet && isRevealed {
                         Image(systemName: "checkmark.circle.fill")
                             .font(AppFont.scaled(11, weight: .bold))
@@ -371,6 +374,8 @@ struct MacroSummaryRow: View {
                     .completionPulse(trigger: waterFeedback, isActive: selectedWaterAmount == option.fluidOunces)
                 Text(option.label)
                     .font(AppFont.scaled(11, weight: .semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
             .foregroundStyle(AppColor.macroWaterLight)
             .padding(.horizontal, Spacing.md)

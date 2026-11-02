@@ -154,6 +154,7 @@ struct TodaysMealsCard: View {
                     .font(AppFont.scaled(11, weight: .semibold))
                     .monospacedDigit()
                     .foregroundStyle(AppColor.textSecondary)
+                    .fixedSize()
                     .contentTransition(.numericText())
             }
             .accessibilityElement(children: .combine)
@@ -166,8 +167,11 @@ struct TodaysMealsCard: View {
     /// An empty meal slot the previous day filled: one tap copies it.
     private func copySuggestion(_ category: MealCategory) -> some View {
         HStack(spacing: Spacing.xs) {
+            // The meal name keeps its width; the longer copy action wraps
+            // between words instead of breaking "Mellanmål" mid-word.
             categoryLabel(category)
                 .accessibilityElement(children: .combine)
+                .layoutPriority(1)
             Spacer(minLength: 0)
             Button {
                 onCopyFromPreviousDay(category)
@@ -175,6 +179,7 @@ struct TodaysMealsCard: View {
                 Label(String(localized: "Copy from \(previousDayName)"), systemImage: "doc.on.doc")
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.accentLight)
+                    .multilineTextAlignment(.trailing)
                     .minimumHitArea()
             }
             .buttonStyle(.plain)

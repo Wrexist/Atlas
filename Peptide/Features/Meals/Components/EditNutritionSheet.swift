@@ -97,11 +97,16 @@ struct EditNutritionSheet: View {
         }
     }
 
+    /// A product without nutrition data arrives as all zeros; blank
+    /// fields ask for the label's values instead of offering "0 kcal".
     private func hydrate() {
-        calories = String(initial?.calories ?? 0)
-        protein  = String(initial?.proteinG ?? 0)
-        carbs    = String(initial?.carbsG ?? 0)
-        fat      = String(initial?.fatG ?? 0)
+        let known = initial.flatMap { meal -> LoggableMeal? in
+            [meal.calories, meal.proteinG, meal.carbsG, meal.fatG] == [0, 0, 0, 0] ? nil : meal
+        }
+        calories = known.map { String($0.calories) } ?? ""
+        protein  = known.map { String($0.proteinG) } ?? ""
+        carbs    = known.map { String($0.carbsG) } ?? ""
+        fat      = known.map { String($0.fatG) } ?? ""
         openedFields = [calories, protein, carbs, fat]
     }
 

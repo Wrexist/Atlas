@@ -350,7 +350,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "SLAG/MIN"
+            "value": "SPM"
           }
         }
       }
@@ -390,7 +390,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bål"
+            "value": "Kärna"
           }
         }
       }
@@ -680,7 +680,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nv %lld"
+            "value": "Niv. %lld"
           }
         }
       }

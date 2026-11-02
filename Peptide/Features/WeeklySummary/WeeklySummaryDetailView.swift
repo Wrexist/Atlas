@@ -165,7 +165,7 @@ struct WeeklySummaryDetailView: View {
             if let calories = summary.keyStats.avgCalories {
                 StatTile(
                     label: "Avg kcal",
-                    value: "\(calories)",
+                    value: calories.formatted(),
                     tint: AppColor.macroProtein,
                     footnote: String(localized: "per day"),
                     size: .large
