@@ -101,7 +101,8 @@ struct EditNutritionSheet: View {
     /// fields ask for the label's values instead of offering "0 kcal".
     private func hydrate() {
         let known = initial.flatMap { meal -> LoggableMeal? in
-            [meal.calories, meal.proteinG, meal.carbsG, meal.fatG] == [0, 0, 0, 0] ? nil : meal
+            let isEmpty = meal.calories == 0 && meal.proteinG == 0 && meal.carbsG == 0 && meal.fatG == 0
+            return isEmpty ? nil : meal
         }
         calories = known.map { String($0.calories) } ?? ""
         protein  = known.map { String($0.proteinG) } ?? ""
