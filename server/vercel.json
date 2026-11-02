@@ -4,6 +4,7 @@
     "api/meal-scan.js":      { "maxDuration": 30 },
     "api/food-scan.js":      { "maxDuration": 60 },
     "api/lab-scan.js":       { "maxDuration": 60 },
+    "api/fridge-scan.js":    { "maxDuration": 60 },
     "api/ai-research.js":    { "maxDuration": 30 },
     "api/weekly-summary.js": { "maxDuration": 30 },
     "api/apple-revoke.js":   { "maxDuration": 20 },

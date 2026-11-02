@@ -109,7 +109,7 @@ private struct DailyReminderRow: View {
         HStack(spacing: Spacing.md) {
             Image(systemName: kind.systemImage)
                 .font(AppFont.scaled(13))
-                .foregroundStyle(AppColor.accentPrimary)
+                .foregroundStyle(AppColor.textSecondary)
                 .frame(width: settingsIconColumnWidth)
                 .accessibilityHidden(true)
 

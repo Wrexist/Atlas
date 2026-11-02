@@ -5,9 +5,12 @@ import SwiftUI
 /// stages, the regularity of bedtime and wake time, and sleep debt.
 /// The parent shows it only once `load()` finds at least
 /// `SleepInsightsEngine.minNights` nights, so a new user never sees a
-/// card of dashes.
+/// card of dashes. Last night's wrist temperature, when Apple Watch has
+/// recorded enough nights for a baseline, rides along as one quiet row.
 struct SleepInsightsSection: View {
     let insights: SleepInsightsEngine.Insights
+    var wristTemperature: WristTemperatureEngine.Deviation?
+    var unit: MeasurementUnit = .metric
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
@@ -24,6 +27,10 @@ struct SleepInsightsSection: View {
                     Divider().overlay(AppColor.glassBorder)
                     clock(insights)
                     debt(insights)
+                    if let wristTemperature {
+                        wristTemperatureRow(wristTemperature)
+                            .transition(.opacity)
+                    }
                 }
             }
         }
@@ -38,29 +45,47 @@ struct SleepInsightsSection: View {
         return SleepInsightsEngine.insights(nights: nights, targetHours: targetHours, calendar: .current)
     }
 
+    /// Last night's wrist temperature against the user's baseline, or nil
+    /// without an Apple Watch reading from last night or enough nights before it.
+    static func loadWristTemperature() async -> WristTemperatureEngine.Deviation? {
+        let readings = await HealthKitService.shared.sleepingWristTemperatures(days: WristTemperatureEngine.readDays)
+        return WristTemperatureEngine.deviation(readings: readings, now: .now, calendar: .current)
+    }
+
     // MARK: - Rows
 
     private func summary(_ insights: SleepInsightsEngine.Insights) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(Self.duration(insights.averageAsleep))
-                    .font(AppFont.scaled(28, weight: .light, relativeTo: .title1))
-                    .fontDesign(.rounded)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .monospacedDigit()
-                Text("Average asleep")
-                    .font(AppFont.scaled(13))
-                    .foregroundStyle(AppColor.textSecondary)
+        let asleep = VStack(alignment: .leading, spacing: Spacing.xxs) {
+            Text(Self.duration(insights.averageAsleep))
+                .font(AppFont.scaled(28, weight: .light, relativeTo: .title1))
+                .foregroundStyle(AppColor.textPrimary)
+                .monospacedDigit()
+            Text("Average asleep")
+                .font(AppFont.scaled(13))
+                .foregroundStyle(AppColor.textSecondary)
+        }
+        let efficiency = Text(insights.efficiency.formatted(.percent.precision(.fractionLength(0))))
+            .font(AppFont.scaled(20, weight: .semibold))
+            .foregroundStyle(AppColor.textPrimary)
+            .monospacedDigit()
+        let efficiencyLabel = Text("Efficiency")
+            .font(AppFont.scaled(13))
+            .foregroundStyle(AppColor.textSecondary)
+        return ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline) {
+                asleep
+                Spacer()
+                VStack(alignment: .trailing, spacing: Spacing.xxs) {
+                    efficiency
+                    efficiencyLabel
+                }
             }
-            Spacer()
-            VStack(alignment: .trailing, spacing: Spacing.xxs) {
-                Text(insights.efficiency.formatted(.percent.precision(.fractionLength(0))))
-                    .font(AppFont.scaled(20, weight: .semibold))
-                    .foregroundStyle(AppColor.textPrimary)
-                    .monospacedDigit()
-                Text("Efficiency")
-                    .font(AppFont.scaled(13))
-                    .foregroundStyle(AppColor.textSecondary)
+            VStack(alignment: .leading, spacing: Spacing.md) {
+                asleep
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    efficiency
+                    efficiencyLabel
+                }
             }
         }
         .accessibilityElement(children: .combine)
@@ -85,28 +110,41 @@ struct SleepInsightsSection: View {
             .frame(height: 8)
             .accessibilityHidden(true)
 
-            HStack(alignment: .top, spacing: Spacing.md) {
-                ForEach(parts.indices, id: \.self) { index in
-                    VStack(alignment: .leading, spacing: Spacing.xxs) {
-                        Text(parts[index].1.formatted(.percent.precision(.fractionLength(0))))
-                            .font(AppFont.scaled(16, weight: .semibold))
-                            .foregroundStyle(AppColor.textPrimary)
-                            .monospacedDigit()
-                        HStack(spacing: Spacing.xs) {
-                            Circle()
-                                .fill(parts[index].2)
-                                .frame(width: 8, height: 8)
-                                .accessibilityHidden(true)
-                            Text(parts[index].0)
-                                .font(AppFont.scaled(13))
-                                .foregroundStyle(AppColor.textSecondary)
-                        }
+            // Three columns while the names fit; stacked rows otherwise,
+            // so "Kärnsömn" never breaks mid-word.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: Spacing.md) {
+                    ForEach(parts.indices, id: \.self) { index in
+                        stageLegend(name: parts[index].0, share: parts[index].1, tint: parts[index].2)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityElement(children: .combine)
+                }
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    ForEach(parts.indices, id: \.self) { index in
+                        stageLegend(name: parts[index].0, share: parts[index].1, tint: parts[index].2)
+                    }
                 }
             }
         }
+    }
+
+    private func stageLegend(name: LocalizedStringKey, share: Double, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
+            Text(share.formatted(.percent.precision(.fractionLength(0))))
+                .font(AppFont.scaled(16, weight: .semibold))
+                .foregroundStyle(AppColor.textPrimary)
+                .monospacedDigit()
+            HStack(spacing: Spacing.xs) {
+                Circle()
+                    .fill(tint)
+                    .frame(width: 8, height: 8)
+                    .accessibilityHidden(true)
+                Text(name)
+                    .font(AppFont.scaled(13))
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+        }
+        .accessibilityElement(children: .combine)
     }
 
     private func clock(_ insights: SleepInsightsEngine.Insights) -> some View {
@@ -138,30 +176,76 @@ struct SleepInsightsSection: View {
         )
     }
 
-    private func row(icon: String, title: LocalizedStringKey, value: Text) -> some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: icon)
-                .font(AppFont.scaled(13, weight: .semibold))
-                .foregroundStyle(AppColor.metricSleep)
-                .frame(width: 28, height: 28)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
-                        .fill(AppColor.metricSleep.opacity(0.15))
-                }
-                .accessibilityHidden(true)
-            Text(title)
+    private func wristTemperatureRow(_ deviation: WristTemperatureEngine.Deviation) -> some View {
+        let title = VStack(alignment: .leading, spacing: Spacing.xxs) {
+            Text("Wrist temperature")
                 .font(AppFont.scaled(16))
                 .foregroundStyle(AppColor.textPrimary)
-            Spacer(minLength: Spacing.sm)
-            value
-                .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(AppColor.textPrimary)
-                .monospacedDigit()
+            Text("Last night vs your baseline")
+                .font(AppFont.scaled(13))
+                .foregroundStyle(AppColor.textSecondary)
+        }
+        let value = Text(Self.temperatureDelta(deviation.celsius, unit: unit))
+            .font(AppFont.scaled(16, weight: .semibold))
+            .foregroundStyle(AppColor.textPrimary)
+            .monospacedDigit()
+        return HStack(spacing: Spacing.md) {
+            rowIcon("thermometer.medium")
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Spacing.sm) {
+                    title
+                    Spacer(minLength: Spacing.sm)
+                    value
+                }
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    title
+                    value
+                }
+            }
         }
         .accessibilityElement(children: .combine)
     }
 
+    /// Title and value on one line while both fit; the value drops
+    /// below the title otherwise instead of wrapping into a column.
+    private func row(icon: String, title: LocalizedStringKey, value: Text) -> some View {
+        let titleText = Text(title)
+            .font(AppFont.scaled(16))
+            .foregroundStyle(AppColor.textPrimary)
+        let valueText = value
+            .font(AppFont.scaled(16, weight: .semibold))
+            .foregroundStyle(AppColor.textPrimary)
+            .monospacedDigit()
+        return HStack(spacing: Spacing.md) {
+            rowIcon(icon)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Spacing.sm) {
+                    titleText
+                    Spacer(minLength: Spacing.sm)
+                    valueText
+                }
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    titleText
+                    valueText
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func rowIcon(_ icon: String) -> some View {
+        IconTile(icon, size: 28)
+            .accessibilityHidden(true)
+    }
+
     // MARK: - Formatting
+
+    /// Signed, one decimal, in the user's unit: "+0.3 °C", "−0.5 °F".
+    private static func temperatureDelta(_ celsius: Double, unit: MeasurementUnit) -> String {
+        let delta = WristTemperatureEngine.displayDelta(celsius, unit: unit)
+        let number = delta.formatted(.number.precision(.fractionLength(1)).sign(strategy: .always(includingZero: false)))
+        return number + (unit == .imperial ? " °F" : " °C")
+    }
 
     private static func duration(_ seconds: TimeInterval) -> String {
         Duration.seconds(seconds.rounded()).formatted(.units(allowed: [.hours, .minutes], width: .abbreviated))

@@ -51,13 +51,7 @@ struct SmartCyclePlannerCard: View {
 
     private func row(for suggestion: SmartCyclePlanner.Suggestion) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
-            Image(systemName: glyph(for: suggestion.kind))
-                .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(AppColor.accentPrimary)
-                .frame(width: 28, height: 28)
-                .background {
-                    Circle().fill(AppColor.accentPrimary.opacity(0.15))
-                }
+            IconTile(glyph(for: suggestion.kind), size: 28, silhouette: .circle)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {

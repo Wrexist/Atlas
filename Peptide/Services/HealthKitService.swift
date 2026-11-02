@@ -24,18 +24,47 @@ final class HealthKitService {
 
     /// Exactly the types the app reads back: HRV and resting heart rate
     /// (Recovery, Biological Age, correlations), VO2 max (Biological Age),
-    /// steps (the home health summary and Biological Age) and sleep.
+    /// steps (the home health summary and Biological Age), sleep, and
+    /// sleeping wrist temperature (the Biology sleep card).
     /// Asking for a type we never query is an App Review liability and
     /// costs the user a permission row they get nothing for. Computed, not
     /// a `static let`, because `HKObjectType` is non-Sendable.
-    private var readTypes: Set<HKObjectType> {
+    private var biologyReadTypes: Set<HKObjectType> {
         [
             HKQuantityType(.heartRateVariabilitySDNN),
             HKQuantityType(.restingHeartRate),
             HKQuantityType(.vo2Max),
             HKQuantityType(.stepCount),
             HKCategoryType(.sleepAnalysis),
+            HKQuantityType(.appleSleepingWristTemperature),
         ]
+    }
+
+    /// Workouts other apps record (Apple Watch, Strava, Garmin) for the
+    /// training history, plus the quantities their statistics carry —
+    /// HealthKit only fills a workout's statistics for types the app may
+    /// read.
+    private var workoutReadTypes: Set<HKObjectType> {
+        var types: Set<HKObjectType> = [
+            HKWorkoutType.workoutType(),
+            HKQuantityType(.activeEnergyBurned),
+            HKQuantityType(.heartRate),
+        ]
+        for identifier in Self.workoutDistanceTypes {
+            types.insert(HKQuantityType(identifier))
+        }
+        return types
+    }
+
+    /// Distance types a workout's distance is read from, in order.
+    private static let workoutDistanceTypes: [HKQuantityTypeIdentifier] = [
+        .distanceWalkingRunning,
+        .distanceCycling,
+        .distanceSwimming,
+    ]
+
+    private var readTypes: Set<HKObjectType> {
+        biologyReadTypes.union(workoutReadTypes)
     }
 
     func requestAuthorization() async -> Bool {
@@ -50,13 +79,21 @@ final class HealthKitService {
         }
     }
 
-    /// True when at least one read type has never been put to the user —
-    /// the case for someone who connected Health before VO2 max joined
-    /// `readTypes`. HealthKit only shows its sheet for undetermined types,
-    /// so this is the honest test for whether asking again does anything.
+    /// True when at least one Biology read type has never been put to the
+    /// user — the case for someone who connected Health before VO2 max
+    /// joined. HealthKit only shows its sheet for undetermined types, so
+    /// this is the honest test for whether asking again does anything.
     func hasUnrequestedReadTypes() async -> Bool {
         guard isAvailable else { return false }
-        return await requestStatus(read: readTypes) == .shouldRequest
+        return await requestStatus(read: biologyReadTypes) == .shouldRequest
+    }
+
+    /// The same test for workout reads, which joined after Health could
+    /// already be connected. `requestAuthorization()` then asks only for
+    /// them.
+    func hasUnrequestedWorkoutReadTypes() async -> Bool {
+        guard isAvailable else { return false }
+        return await requestStatus(read: workoutReadTypes) == .shouldRequest
     }
 
     /// True when this device has already put Health's read sheet to the
@@ -441,6 +478,48 @@ final class HealthKitService {
         }
     }
 
+    /// Workouts other apps and devices saved in the last `days` days,
+    /// newest first. Atlas's own strength sessions are skipped so history
+    /// doesn't list them twice.
+    func externalWorkouts(days: Int) async -> [ImportedCardioWorkout] {
+        guard isAvailable, days > 0 else { return [] }
+        let end = Date()
+        let start = Calendar.current.date(byAdding: .day, value: -days, to: end) ?? end
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: [.workout(HKQuery.predicateForSamples(withStart: start, end: end))],
+            sortDescriptors: [SortDescriptor(\.startDate, order: .reverse)]
+        )
+        do {
+            let ownBundleID = Bundle.main.bundleIdentifier
+            return try await descriptor.result(for: store)
+                .filter { $0.sourceRevision.source.bundleIdentifier != ownBundleID }
+                .map(Self.importedWorkout)
+        } catch {
+            AppLog.healthKit.error("externalWorkouts failed: \(error.localizedDescription, privacy: .private)")
+            return []
+        }
+    }
+
+    private static func importedWorkout(_ workout: HKWorkout) -> ImportedCardioWorkout {
+        let distance = workoutDistanceTypes.lazy
+            .compactMap { workout.statistics(for: HKQuantityType($0))?.sumQuantity()?.doubleValue(for: .meter()) }
+            .first
+        let energy = workout.statistics(for: HKQuantityType(.activeEnergyBurned))?
+            .sumQuantity()?.doubleValue(for: .kilocalorie())
+        let heartRate = workout.statistics(for: HKQuantityType(.heartRate))?
+            .averageQuantity()?.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
+        return ImportedCardioWorkout(
+            id: workout.uuid,
+            activity: CardioActivity(workout.workoutActivityType),
+            start: workout.startDate,
+            duration: workout.duration,
+            distanceMeters: distance,
+            activeKilocalories: energy,
+            averageHeartRate: heartRate,
+            sourceName: workout.sourceRevision.source.name
+        )
+    }
+
     private func ownSamples(onDayOf date: Date) -> NSPredicate {
         let start = Calendar.current.startOfDay(for: date)
         let end = Calendar.current.date(byAdding: .day, value: 1, to: start) ?? date
@@ -570,6 +649,31 @@ final class HealthKitService {
 
     private func dailyAverage(type: HKQuantityTypeIdentifier, unit: HKUnit, days: Int) async -> [(date: Date, value: Double)] {
         await dailyQuantity(type: type, unit: unit, days: days, options: .discreteAverage, extract: { $0.averageQuantity() })
+    }
+
+    // MARK: - Wrist temperature
+
+    /// Apple Watch's nightly wrist temperature readings over the last
+    /// `days` days, dated by when each night's sample ended.
+    func sleepingWristTemperatures(days: Int) async -> [WristTemperatureEngine.Reading] {
+        guard isAvailable, days > 0 else { return [] }
+        let end = Date()
+        let start = Calendar.current.date(byAdding: .day, value: -days, to: end) ?? end
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: [.quantitySample(
+                type: HKQuantityType(.appleSleepingWristTemperature),
+                predicate: HKQuery.predicateForSamples(withStart: start, end: end)
+            )],
+            sortDescriptors: [SortDescriptor(\.endDate)]
+        )
+        do {
+            return try await descriptor.result(for: store).map {
+                WristTemperatureEngine.Reading(date: $0.endDate, celsius: $0.quantity.doubleValue(for: .degreeCelsius()))
+            }
+        } catch {
+            AppLog.healthKit.error("sleepingWristTemperatures failed: \(error.localizedDescription, privacy: .private)")
+            return []
+        }
     }
 
     // MARK: - Heart Rate

@@ -89,7 +89,7 @@ enum HabitSchedule: Codable, Hashable, Sendable {
                 .sorted(by: { $0.calendarOrder < $1.calendarOrder })
                 .map(\.shortName)
                 .joined(separator: " ")
-        case .timesPerWeek(let n):            return "\(n)×/week"
+        case .timesPerWeek(let n):            return String(localized: "\(n)×/week")
         }
     }
 
@@ -128,16 +128,9 @@ enum HabitWeekday: Int, Codable, Hashable, Sendable, CaseIterable {
         HabitWeekday(rawValue: calendar.component(.weekday, from: date))
     }
 
+    /// Locale-aware initial, e.g. "W" in English, "O" (onsdag) in Swedish.
     var shortName: String {
-        switch self {
-        case .sunday:    return "S"
-        case .monday:    return "M"
-        case .tuesday:   return "T"
-        case .wednesday: return "W"
-        case .thursday:  return "T"
-        case .friday:    return "F"
-        case .saturday:  return "S"
-        }
+        Calendar.current.veryShortStandaloneWeekdaySymbols[rawValue - 1]
     }
 
     var fullName: String {

@@ -201,6 +201,68 @@ final class ExportService {
         return csv
     }
 
+    // MARK: - Workouts
+
+    /// CSV of every completed set in every finished workout, one row per
+    /// set; a finished workout without logged sets gets one row of its own. Workout-level columns (name, duration, note) repeat on each
+    /// row so a coach can filter or pivot by exercise without losing the
+    /// session context. Date is ISO 8601 with the local offset so the
+    /// column sorts correctly and still reads as the lifter's wall clock.
+    /// `exerciseName` resolves library ids; the caller passes
+    /// `ExerciseLibrary.displayName(for:)` once the library has loaded.
+    func exportWorkoutsCSV(
+        sessions: [WorkoutSession],
+        exerciseName: (String) -> String,
+        timeZone: TimeZone = .current
+    ) -> String {
+        var csv = "Date,Workout,Exercise,Set,Reps,Weight (kg),RPE,Set Type,Superset,Duration (min),Set Note,Workout Note\n"
+        let dateStyle = Date.ISO8601FormatStyle(timeZoneSeparator: .colon, timeZone: timeZone)
+        let finished = sessions.filter { !$0.isActive }.sorted { $0.startedAt > $1.startedAt }
+        for session in finished {
+            let dateStr = session.startedAt.formatted(dateStyle)
+            let minutes = "\(session.elapsedSeconds() / 60)"
+            // Quick-logged workouts carry no sets, only a note; keep them
+            // as one session-level row so the export doesn't drop them.
+            if !session.exercises.contains(where: { $0.sets.contains(where: \.completed) }) {
+                let fields = [dateStr, csvQuote(session.displayName), "", "", "", "", "", "", "", minutes, "", csvQuote(session.note ?? "")]
+                csv += fields.joined(separator: ",") + "\n"
+                continue
+            }
+            for entry in session.exercises.sorted(by: { $0.index < $1.index }) {
+                let superset = session.supersetLetter(for: entry.id) ?? ""
+                for set in entry.sets.sorted(by: { $0.index < $1.index }) where set.completed {
+                    let fields = [
+                        dateStr,
+                        csvQuote(session.displayName),
+                        csvQuote(exerciseName(entry.exerciseID)),
+                        "\(set.index)",
+                        "\(set.reps)",
+                        formatPlainNumber(set.weightKg),
+                        set.rpe.map { formatPlainNumber($0) } ?? "",
+                        set.isWarmup ? "Warm-up" : "Working",
+                        superset,
+                        minutes,
+                        csvQuote(set.note ?? ""),
+                        csvQuote(session.note ?? ""),
+                    ]
+                    csv += fields.joined(separator: ",") + "\n"
+                }
+            }
+        }
+        return csv
+    }
+
+    /// Up to two decimals with a `.` separator whatever the user's locale:
+    /// a Swedish "62,5" would split into two cells.
+    private func formatPlainNumber(_ value: Double) -> String {
+        value.formatted(
+            .number
+                .precision(.fractionLength(0...2))
+                .grouping(.never)
+                .locale(Locale(identifier: "en_US_POSIX"))
+        )
+    }
+
     /// Smart number formatter for lab CSV cells. Whole numbers
     /// drop the decimal so "600" exports as "600" not "600.0";
     /// fractional values keep two decimals so a 0.85 ng/mL TSH

@@ -11,14 +11,7 @@ struct WorkoutCard: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: Spacing.md) {
-                Image(systemName: "dumbbell.fill")
-                    .font(AppFont.scaled(16, weight: .semibold))
-                    .foregroundStyle(AppColor.accentLight)
-                    .frame(width: 40, height: 40)
-                    .background {
-                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                            .fill(AppColor.accentPrimary.opacity(0.18))
-                    }
+                IconTile("dumbbell.fill", size: 40)
                     .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 2) {

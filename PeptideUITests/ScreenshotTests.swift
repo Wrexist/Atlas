@@ -335,7 +335,7 @@ final class ScreenshotTests: XCTestCase {
             train.tap()
             app.dismissOverlaysIfNeeded()
             discardLeftoverWorkout()
-            let start = app.buttons["Start workout"]
+            let start = app.buttons["Empty workout"]
             reveal(start)
             start.tap()
             let add = app.buttons["Add exercise"].firstMatch
@@ -428,7 +428,7 @@ final class ScreenshotTests: XCTestCase {
             app.tabBars.buttons["Train"].tap()
             app.dismissOverlaysIfNeeded()
             discardLeftoverWorkout()
-            let start = app.buttons["Start workout"]
+            let start = app.buttons["Empty workout"]
             reveal(start)
             start.tap()
             for name in ["Barbell Full Squat", "Dumbbell Bicep Curl", "Pullups", "90/90 Hamstring"] {
@@ -469,7 +469,7 @@ final class ScreenshotTests: XCTestCase {
             capture(named: "body-\(appearance)-01-today")
             period.buttons["30 days"].tap()
             capture(named: "body-\(appearance)-02-month")
-            let start = app.buttons["Start workout"]
+            let start = app.buttons["Empty workout"]
             reveal(start)
             start.tap()
             let add = app.buttons["Add exercise"].firstMatch
@@ -624,7 +624,7 @@ final class ScreenshotTests: XCTestCase {
         return XCTWaiter.wait(for: [expectation], timeout: 5) == .completed
     }
 
-    /// Waits for "Start workout" to return before the caller terminates the
+    /// Waits for "Empty workout" to return before the caller terminates the
     /// app. Terminating straight after the alert tap can kill the process
     /// before the delete lands, and the session then survives into the next
     /// launch.
@@ -632,12 +632,12 @@ final class ScreenshotTests: XCTestCase {
         app.buttons["workout-options"].tap()
         app.buttons["Discard workout"].tap()
         app.alerts.buttons["Discard"].tap()
-        XCTAssertTrue(app.buttons["Start workout"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Empty workout"].waitForExistence(timeout: 10))
     }
 
     /// A test that stops mid-workout leaves its session persisted, and the
     /// Train tab re-presents it full screen on the next launch, hiding
-    /// "Start workout" from every later test.
+    /// "Empty workout" from every later test.
     private func discardLeftoverWorkout() {
         if app.buttons["workout-options"].waitForExistence(timeout: 3) {
             discardActiveWorkout()

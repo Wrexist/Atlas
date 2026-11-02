@@ -425,8 +425,9 @@ struct BarcodeScanFlow: View {
                 .foregroundStyle(AppColor.textSecondary)
             Spacer(minLength: 0)
             if manualOverride != nil {
-                Text("✏ Edited")
-                    .font(AppFont.scaled(11, weight: .heavy))
+                Label("Edited", systemImage: "pencil")
+                    .labelStyle(.titleAndIcon)
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.warning)
                     .padding(.horizontal, Spacing.xs)
                     .padding(.vertical, 2)
@@ -556,17 +557,25 @@ struct BarcodeScanFlow: View {
         return manualOverride != nil || product.hasNutrition
     }
 
+    /// Side by side while both titles fit on one line; stacked otherwise,
+    /// so a long Swedish day name never breaks a title mid-word.
     private var actionButtons: some View {
-        HStack(spacing: Spacing.sm) {
-            GlassButton(title: "Scan another", style: .secondary, isFullWidth: true) {
-                resetForRescan()
-            }
-
-            GlassButton(title: addButtonTitle, style: .primary, isFullWidth: true) {
-                confirm()
-            }
-            .disabled(!canLog(product))
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: Spacing.sm) { actionButtonPair }
+            VStack(spacing: Spacing.sm) { actionButtonPair }
         }
+    }
+
+    @ViewBuilder
+    private var actionButtonPair: some View {
+        GlassButton(title: "Scan another", style: .secondary, isFullWidth: true) {
+            resetForRescan()
+        }
+
+        GlassButton(title: addButtonTitle, style: .primary, isFullWidth: true) {
+            confirm()
+        }
+        .disabled(!canLog(product))
     }
 
     private var loggedCard: some View {
@@ -914,7 +923,7 @@ struct BarcodeScanFlow: View {
             Text("Couldn't add this product")
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.textPrimary)
-            Text(errorText ?? "Unknown error")
+            Text(errorText ?? String(localized: "Unknown error"))
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
@@ -957,7 +966,7 @@ struct BarcodeScanFlow: View {
     private func nutriScorePill(_ score: String) -> some View {
         let palette = Self.nutriScorePalette(score)
         return Text(score.uppercased())
-            .font(AppFont.scaled(13, weight: .heavy))
+            .font(AppFont.scaled(13, weight: .semibold))
             .foregroundStyle(palette.ink)
             .frame(width: nutriScoreDiameter, height: nutriScoreDiameter)
             .background {

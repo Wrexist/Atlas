@@ -4,7 +4,7 @@ import SwiftUI
 /// food) or the photo-based meal scanner (for plates and fresh meals),
 /// with a full-width tile under them for scanning a whole shared table.
 ///
-/// A paired Liquid Glass card: the icon sits on the same flat tinted tile
+/// A paired Liquid Glass card: the icon sits on the same raised `IconTile`
 /// as `GlassEntryRow` (the food-library entry above it), with the title +
 /// subtitle stack underneath. The two tiles share one
 /// `LiquidGlassContainer` so their glass renders as a single group.
@@ -21,7 +21,6 @@ struct LogMealEntryPicker: View {
                         icon: "barcode.viewfinder",
                         title: "Scan barcode",
                         subtitle: "Packaged food",
-                        accent: AppColor.accentLight,
                         accessibilityHint: "Opens the camera to scan a food barcode and log its nutrition.",
                         action: onScanBarcode
                     )
@@ -29,7 +28,6 @@ struct LogMealEntryPicker: View {
                         icon: "viewfinder.circle.fill",
                         title: "Scan meal photo",
                         subtitle: "Meals & plates",
-                        accent: AppColor.accentPrimary,
                         accessibilityHint: "Opens the camera to photograph a meal for an AI-estimated nutrition breakdown.",
                         action: onSnapPhoto
                     )
@@ -44,14 +42,7 @@ struct LogMealEntryPicker: View {
     private func tableTile(action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: Spacing.md) {
-                Image(systemName: "square.grid.2x2.fill")
-                    .font(AppFont.scaled(16, weight: .semibold))
-                    .foregroundStyle(AppColor.accentPrimary)
-                    .frame(width: 40, height: 40)
-                    .background {
-                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                            .fill(AppColor.accentPrimary.opacity(0.18))
-                    }
+                IconTile("square.grid.2x2.fill", size: 40)
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("Scan the whole table")
                         .font(AppFont.headline)
@@ -80,20 +71,12 @@ struct LogMealEntryPicker: View {
         icon: String,
         title: LocalizedStringKey,
         subtitle: LocalizedStringKey,
-        accent: Color,
         accessibilityHint: LocalizedStringKey,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                Image(systemName: icon)
-                    .font(AppFont.scaled(16, weight: .semibold))
-                    .foregroundStyle(accent)
-                    .frame(width: 40, height: 40)
-                    .background {
-                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                            .fill(accent.opacity(0.18))
-                    }
+                IconTile(icon, size: 40)
 
                 Spacer(minLength: 0)
 

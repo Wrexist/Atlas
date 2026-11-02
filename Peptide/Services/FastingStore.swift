@@ -29,10 +29,12 @@ final class FastingStore {
     }
 
     /// Pulls history out of SwiftData and re-arms the end-of-fast
-    /// reminder, which a reinstall or another device may not have.
+    /// reminder, Live Activity and widget, which a reinstall or another
+    /// device may not have.
     func load() {
         sessions = repository.loadFasts()
         syncReminder()
+        syncGlanceables()
     }
 
     @discardableResult
@@ -77,6 +79,7 @@ final class FastingStore {
         repository.deleteFast(id: id)
         sessions.removeAll { $0.id == id }
         syncReminder()
+        syncGlanceables()
     }
 
     // MARK: - Internals
@@ -87,6 +90,14 @@ final class FastingStore {
         repository.upsertFast(fast)
         sessions = repository.loadFasts()
         syncReminder()
+        syncGlanceables()
+    }
+
+    /// The lock screen, Dynamic Island and widget follow the open fast
+    /// through every start, end, cancel and edited start time.
+    private func syncGlanceables() {
+        FastingLiveActivityService.shared.reconcile(active: active)
+        FastingWidgetPublisher.shared.publish(active: active)
     }
 
     /// One reminder slot, rescheduled from scratch on every change so an

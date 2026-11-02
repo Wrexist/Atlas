@@ -121,7 +121,7 @@ private struct DosageRow: View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: icon)
                 .font(AppFont.scaled(11))
-                .foregroundStyle(AppColor.accentPrimary)
+                .foregroundStyle(AppColor.textSecondary)
                 .frame(width: 20)
                 .accessibilityHidden(true)
 

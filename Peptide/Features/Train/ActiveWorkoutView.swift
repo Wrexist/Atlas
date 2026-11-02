@@ -11,6 +11,7 @@ struct ActiveWorkoutView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
     @Environment(\.requestReview) private var requestReview
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var sessionService = WorkoutSessionService.shared
     @State private var library = ExerciseLibrary.shared
     @State private var showExercisePicker = false
@@ -322,7 +323,10 @@ struct ActiveWorkoutView: View {
                         sessionService.renameWorkout(workoutName)
                     }
 
-                HStack(spacing: Spacing.lg) {
+                let statsLayout = dynamicTypeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.md))
+                    : AnyLayout(HStackLayout(spacing: Spacing.lg))
+                statsLayout {
                     // TimelineView redraws only this tile each second, and
                     // stops ticking when the view leaves the screen — an
                     // autoconnected Timer.publish re-rendered the whole
@@ -448,7 +452,7 @@ private struct FinishWorkoutSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     /// `WorkoutSession.perceivedEffort` is a 1–5 rating; label n names n.
-    private static let effortLabels = [String(localized: "Easy"), String(localized: "Moderate"), String(localized: "Hard"), String(localized: "Very hard"), String(localized: "Max")]
+    private static let effortLabels = [String(localized: "Easy"), String(localized: "effort.moderate", defaultValue: "Moderate"), String(localized: "Hard"), String(localized: "Very hard"), String(localized: "Max")]
     private static let noteLimit = 500
 
     var body: some View {
@@ -553,13 +557,14 @@ private struct FinishWorkoutSheet: View {
     }
 
     private func sectionTitle(_ title: LocalizedStringKey) -> some View {
-        HStack(spacing: Spacing.xs) {
+        HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
             Text(title)
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.textPrimary)
             Text("Optional")
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textTertiary)
+                .fixedSize()
         }
     }
 }

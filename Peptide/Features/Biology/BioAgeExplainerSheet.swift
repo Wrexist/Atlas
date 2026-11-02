@@ -62,14 +62,7 @@ struct BioAgeExplainerSheet: View {
 
     private func signalRow(_ kind: PerformanceAgeEngine.Driver.Kind) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
-            Image(systemName: kind.icon)
-                .font(AppFont.scaled(16, weight: .semibold))
-                .foregroundStyle(kind.tint)
-                .frame(width: 32, height: 32)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
-                        .fill(kind.tint.opacity(0.15))
-                }
+            IconTile(kind.icon, size: 32)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {

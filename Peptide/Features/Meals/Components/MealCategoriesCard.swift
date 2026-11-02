@@ -92,6 +92,7 @@ struct MealCategoriesCard: View {
                         .font(AppFont.scaled(13, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(totals.calories == 0 ? AppColor.textSecondary : AppColor.textPrimary)
+                        .fixedSize()
                         .contentTransition(.numericText())
                 }
                 progressBar(width: barWidth(for: totals.calories), tint: tint)

@@ -47,7 +47,7 @@ struct RoutineBuilderView: View {
             }
         }
         .background(AppColor.background.ignoresSafeArea())
-        .navigationTitle(routine?.name ?? "Routine")
+        .navigationTitle(routine?.name ?? String(localized: "Routine"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if let routine, !routine.exercises.isEmpty {
@@ -138,7 +138,7 @@ struct RoutineBuilderView: View {
     private func stat(_ value: String, label: LocalizedStringKey) -> some View {
         VStack(spacing: Spacing.xxs) {
             Text(value)
-                .font(AppFont.scaled(24, weight: .bold, design: .rounded))
+                .font(AppFont.scaled(24, weight: .medium))
                 .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())
             Text(label)
@@ -146,6 +146,8 @@ struct RoutineBuilderView: View {
                 .tracking(0.6)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.textTertiary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)
@@ -303,7 +305,7 @@ private struct RoutineSlotRow: View {
                 Text(detail)
                     .font(AppFont.scaled(11))
                     .foregroundStyle(AppColor.textSecondary)
-                    .lineLimit(1)
+                    .lineLimit(2)
             }
             .accessibilityElement(children: .combine)
 
@@ -313,6 +315,7 @@ private struct RoutineSlotRow: View {
                 Text("\(sets) × \(reps)")
                     .font(AppFont.scaled(13, weight: .bold))
                     .foregroundStyle(AppColor.accentLight)
+                    .fixedSize()
                     .padding(.horizontal, Spacing.md)
                     .frame(minHeight: Spacing.minimumHitTarget)
                     .background(Capsule().fill(AppColor.accentPrimary.opacity(0.15)))
@@ -464,7 +467,7 @@ private struct RoutineTargetSheet: View {
                 .foregroundStyle(AppColor.textPrimary)
             Spacer(minLength: 0)
             Text(value)
-                .font(AppFont.scaled(24, weight: .bold, design: .rounded))
+                .font(AppFont.scaled(24, weight: .medium))
                 .foregroundStyle(AppColor.accentLight)
                 .contentTransition(.numericText())
         }

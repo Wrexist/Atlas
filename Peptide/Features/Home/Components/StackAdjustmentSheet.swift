@@ -384,14 +384,7 @@ struct StackAdjustmentSheet: View {
         let current = moveChoices[relocation.peptide.id] ?? relocation.recommended
         return VStack(alignment: .leading, spacing: Spacing.xs) {
             HStack(spacing: Spacing.sm) {
-                Image(systemName: relocation.peptide.imageSystemName)
-                    .font(AppFont.scaled(13))
-                    .foregroundStyle(relocation.peptide.category.color)
-                    .frame(width: 26, height: 26)
-                    .background {
-                        RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
-                            .fill(relocation.peptide.category.color.opacity(0.15))
-                    }
+                IconTile(relocation.peptide.imageSystemName, size: 26)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(relocation.peptide.abbreviation)
                         .font(AppFont.subheadline)

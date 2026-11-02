@@ -11,7 +11,7 @@ struct CommunityStackCard: View {
                         Text(stack.name)
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
-                            .lineLimit(1)
+                            .lineLimit(2)
                         HStack(spacing: 6) {
                             Image(systemName: "person.crop.circle.fill")
                                 .font(AppFont.scaled(11))

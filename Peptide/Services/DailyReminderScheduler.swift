@@ -39,14 +39,15 @@ enum DailyReminderScheduler {
             .filter { $0.hasPrefix(NotificationService.dailyIDPrefix) }
         center.removePendingNotificationRequests(withIdentifiers: stale)
 
-        let settings = DailyReminderSettings.load(training: dataStore.profile.trainingPreferences)
-        guard settings.hasAnyEnabled, await isAuthorised else {
+        let profile = dataStore.profile
+        let calendar = Calendar.current
+        let settings = DailyReminderSettings.load(training: profile.trainingPreferences)
+        let supplementReminders = SupplementEngine.reminderPlan(profile.supplements, now: Date(), calendar: calendar)
+        guard settings.hasAnyEnabled || !supplementReminders.isEmpty, await isAuthorised else {
             NotificationService.shared.trackDailyReminders([])
             return
         }
 
-        let profile = dataStore.profile
-        let calendar = Calendar.current
         let trainingWeekdays = Set((profile.trainingPreferences?.preferredDays ?? []).map(\.calendarWeekdayValue))
         let today = calendar.startOfDay(for: Date())
         let trainedDays = (0..<DailyReminderEngine.lookaheadDays)
@@ -62,16 +63,22 @@ enum DailyReminderScheduler {
         }
 
         for reminder in planned {
-            let content = content(for: reminder, profile: profile, calendar: calendar)
-            let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: reminder.fireDate)
-            let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
-            do {
-                try await center.add(UNNotificationRequest(identifier: reminder.id, content: content, trigger: trigger))
-            } catch {
-                AppLog.notifications.error("Daily reminder add failed: \(error.localizedDescription, privacy: .public)")
-            }
+            await add(reminder.id, content: content(for: reminder, profile: profile, calendar: calendar), at: reminder.fireDate, calendar: calendar)
         }
-        NotificationService.shared.trackDailyReminders(Set(planned.map(\.id)))
+        for reminder in supplementReminders {
+            await add(reminder.id, content: supplementContent(for: reminder.supplement), at: reminder.fireDate, calendar: calendar)
+        }
+        NotificationService.shared.trackDailyReminders(Set(planned.map(\.id) + supplementReminders.map(\.id)))
+    }
+
+    private static func add(_ id: String, content: UNMutableNotificationContent, at fireDate: Date, calendar: Calendar) async {
+        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        do {
+            try await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+        } catch {
+            AppLog.notifications.error("Daily reminder add failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     /// Whether `kind` is already logged on the day containing `day`, so
@@ -171,6 +178,18 @@ enum DailyReminderScheduler {
                 content.categoryIdentifier = mealRepeatCategoryID
             }
         }
+        return content
+    }
+
+    private static func supplementContent(for supplement: Supplement) -> UNMutableNotificationContent {
+        let content = UNMutableNotificationContent()
+        content.sound = .default
+        content.threadIdentifier = NotificationService.dailyIDPrefix + "supplement"
+        content.title = supplement.name
+        content.body = supplement.dose.isEmpty
+            ? String(localized: "Time for today's supplement.", comment: "Supplement reminder body without a dose")
+            : String(localized: "Time for today's dose: \(supplement.dose)", comment: "Supplement reminder body. The value is the dose, e.g. 5 g.")
+        content.userInfo = ["deeplink": "peptidex://today"]
         return content
     }
 

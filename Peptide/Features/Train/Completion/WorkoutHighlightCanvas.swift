@@ -25,13 +25,13 @@ struct WorkoutHighlightCanvas: View {
     var body: some View {
         content
             .padding(compact ? 16 : 20)
-            .background(AppColor.trainingBackground, in: RoundedRectangle(cornerRadius: 28))
+            .background(AppColor.background, in: RoundedRectangle(cornerRadius: 28))
             .padding(.horizontal, 20)
             .padding(.top, verticalInsets.top)
             .padding(.bottom, verticalInsets.bottom)
             .frame(width: options.format.logicalSize.width, height: options.format.logicalSize.height)
-            .foregroundStyle(AppColor.recapText)
-            .background(AppColor.recapBackground)
+            .foregroundStyle(AppColor.textPrimary)
+            .background(AppColor.background)
             .environment(\.colorScheme, .light)
             .environment(\.dynamicTypeSize, .large)
     }
@@ -73,14 +73,14 @@ struct WorkoutHighlightCanvas: View {
                 Text(entry.name).font(.subheadline.weight(.semibold)).lineLimit(compact ? 1 : 2)
                 if let set = entry.sets.last {
                     Text("Logged set · \(RecapFormat.set(set, unit: unit))")
-                        .font(.caption).foregroundStyle(AppColor.recapSecondary)
+                        .font(.caption).foregroundStyle(AppColor.textSecondary)
                         .lineLimit(layout == .wide ? 1 : 2)
                 }
             }
             .fixedSize(horizontal: false, vertical: true)
             .padding(Spacing.md)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(AppColor.recapCard, in: RoundedRectangle(cornerRadius: 16))
+            .background(AppColor.surfaceElevated, in: RoundedRectangle(cornerRadius: 16))
         }
     }
 
@@ -106,7 +106,7 @@ struct WorkoutHighlightCanvas: View {
     private var headline: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(options.includeVolume && summary.volumeKg != nil ? "Recorded volume" : "Working sets")
-                .font(.caption).foregroundStyle(AppColor.recapSecondary)
+                .font(.caption).foregroundStyle(AppColor.textSecondary)
             Text(options.includeVolume && summary.volumeKg != nil
                  ? RecapFormat.volume(summary.volumeKg, unit: unit) : summary.workingSetLabel)
                 .font(compact ? .title2.weight(.bold) : .largeTitle.weight(.bold)).monospacedDigit()

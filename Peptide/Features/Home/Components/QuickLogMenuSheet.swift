@@ -25,7 +25,6 @@ struct QuickLogMenuSheet: View {
                     title: "Snap a meal photo",
                     subtitle: Text("Snap or pick a photo, then fine-tune portions"),
                     systemImage: "camera.fill",
-                    tint: AppColor.macroCarbs,
                     index: 1,
                     action: onSnapMeal
                 )
@@ -34,7 +33,6 @@ struct QuickLogMenuSheet: View {
                         title: "Log next dose",
                         subtitle: Text("\(nextDose.peptide.abbreviation) at \(nextDose.date, format: .dateTime.hour().minute())"),
                         systemImage: "syringe.fill",
-                        tint: AppColor.accentPrimary,
                         index: 2,
                         action: onLogNextDose
                     )
@@ -68,7 +66,6 @@ struct QuickLogMenuSheet: View {
         title: LocalizedStringKey,
         subtitle: Text,
         systemImage: String,
-        tint: Color,
         index: Int,
         action: @escaping () -> Void
     ) -> some View {
@@ -77,14 +74,7 @@ struct QuickLogMenuSheet: View {
             action()
         } label: {
             HStack(spacing: Spacing.md) {
-                Image(systemName: systemImage)
-                    .font(AppFont.scaled(16, weight: .semibold))
-                    .foregroundStyle(tint)
-                    .frame(width: 40, height: 40)
-                    .background {
-                        RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                            .fill(tint.opacity(0.18))
-                    }
+                IconTile(systemImage, size: 40)
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(title)

@@ -214,7 +214,7 @@ struct WhatsNewTourSheet: View {
                     .fill(tint.opacity(0.22))
                     .frame(width: 22, height: 22)
                 Image(systemName: "checkmark")
-                    .font(AppFont.scaled(11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(tint)
             }
             .accessibilityHidden(true)

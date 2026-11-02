@@ -19,6 +19,7 @@ real Anthropic API is reached one hop away.
 | `POST /api/meal-scan`        | Meal photo → macros (Claude vision)| MealScannerService    |
 | `POST /api/food-scan`        | Smart scan: photo, barcode product or typed food → items, per-100g nutrition, portion options, price (structured output) | MealScannerService |
 | `POST /api/lab-scan`         | Blood-test report photos (1–4 JPEG pages) → transcribed markers, units, reference ranges, draw date (structured output) | LabScanService |
+| `POST /api/fridge-scan`      | One photo of a fridge, shelf or shopping haul → groceries with count, place, shelf life, recipe key, box and per-100 g macros (structured output; spends a free weekly scan) | FridgeScanService |
 | `POST /api/ai-research`      | Multi-turn research chat           | AIResearchService     |
 | `POST /api/weekly-summary`   | AI weekly recap (prompt-cached)    | WeeklySummaryService  |
 | `GET/POST /api/attest-register` | App Attest key registration     | AppAttestService      |
@@ -70,6 +71,8 @@ same auth, App Attest gate and limiter.
      - `FOOD_SCAN_EFFORT` — `low` (default), `medium` or `high`.
      - `LAB_SCAN_MODEL` / `LAB_SCAN_EFFORT` — the same pair for
        `/api/lab-scan`. Defaults `claude-opus-5-5` / `low`.
+     - `FRIDGE_SCAN_MODEL` / `FRIDGE_SCAN_EFFORT` — the same pair for
+       `/api/fridge-scan`. Defaults `claude-opus-5-5` / `low`.
      - `RATE_LIMIT_RPM` — per-principal request cap per minute per
        route. Default 20 (`WEEKLY_RPM`, default 6, for weekly-summary).
      - `DEVICE_DAILY_QUOTA` — per-principal cost units per UTC day.

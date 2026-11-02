@@ -134,7 +134,7 @@ struct HabitsView: View {
             ) { _ in
                 day = Calendar.current.startOfDay(for: .now)
             }
-            .background(AppColor.background.ignoresSafeArea())
+            .pageBackground()
             .navigationTitle("Habits")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
@@ -229,7 +229,7 @@ struct HabitsView: View {
                 if due > 0 {
                     VStack(spacing: 0) {
                         Text("\(done)/\(due)")
-                            .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
+                            .font(AppFont.scaled(16, weight: .semibold))
                             .foregroundStyle(AppColor.textPrimary)
                             .monospacedDigit()
                             .contentTransition(.numericText())
@@ -237,6 +237,8 @@ struct HabitsView: View {
                             .font(AppFont.badgeSmall)
                             .foregroundStyle(AppColor.textTertiary)
                     }
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
                 } else {
                     Image(systemName: "leaf.fill")
                         .font(AppFont.scaled(16, weight: .semibold))
@@ -326,6 +328,7 @@ struct HabitsView: View {
                     .minimumHitArea()
             }
             .buttonStyle(ScalePressStyle(pressedScale: 0.95))
+            .fixedSize()
         }
         .padding(Spacing.md)
         .background(

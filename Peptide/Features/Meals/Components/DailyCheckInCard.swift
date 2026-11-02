@@ -105,7 +105,7 @@ struct DailyCheckInCard: View {
                         .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(dim.tint)
                     Text("\(value)")
-                        .font(AppFont.scaled(13, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(13, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                 }

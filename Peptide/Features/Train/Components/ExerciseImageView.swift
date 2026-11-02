@@ -18,13 +18,13 @@ struct ExerciseImageView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(AppColor.trainingBackground)
+        .background(AppColor.background)
         .overlay(alignment: .bottomTrailing) {
             if let exercise {
                 GlyphImage(glyph: exercise.equipmentKind.glyph)
                     .foregroundStyle(AppColor.textSecondary)
                     .padding(3)
-                    .background(AppColor.trainingPanel, in: Circle())
+                    .background(AppColor.surfaceElevated, in: Circle())
                     .padding(2)
             }
         }

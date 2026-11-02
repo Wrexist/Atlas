@@ -29,7 +29,7 @@ struct HabitCompletionChip: View {
                     .lineLimit(1)
                 if let weeklyCount, let weeklyTarget {
                     Text("\(weeklyCount)/\(weeklyTarget)")
-                        .font(AppFont.scaled(11, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(habit.tint)
                         .monospacedDigit()
                         .contentTransition(.numericText())
@@ -39,7 +39,7 @@ struct HabitCompletionChip: View {
                         Image(systemName: "flame.fill")
                             .font(AppFont.scaled(8))
                         Text("\(currentStreak)")
-                            .font(AppFont.scaled(11, weight: .bold, design: .rounded))
+                            .font(AppFont.scaled(11, weight: .semibold))
                     }
                     .foregroundStyle(AppColor.streak)
                 }

@@ -288,7 +288,7 @@ final class WorkoutRecapTests: XCTestCase {
 
     private func attach<V: View>(_ view: V, name: String, width: CGFloat = 375) {
         let renderer = ImageRenderer(content: view.padding(20).frame(width: width)
-            .background(AppColor.recapBackground).environment(\.colorScheme, .dark))
+            .background(AppColor.background).environment(\.colorScheme, .dark))
         renderer.scale = 3
         guard let image = renderer.uiImage else { XCTFail("Image rendering failed: \(name)"); return }
         let attachment = XCTAttachment(image: image)

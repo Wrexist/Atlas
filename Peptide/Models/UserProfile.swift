@@ -8,7 +8,7 @@ enum BiologicalSex: String, Codable, CaseIterable, Identifiable, Sendable {
         switch self {
         case .male: String(localized: "Male")
         case .female: String(localized: "Female")
-        case .other: String(localized: "Other")
+        case .other: String(localized: "choice.other", defaultValue: "Other")
         case .unspecified: String(localized: "Prefer not to say")
         }
     }
@@ -19,7 +19,7 @@ enum BiologicalSex: String, Codable, CaseIterable, Identifiable, Sendable {
         switch self {
         case .male: String(localized: "Male")
         case .female: String(localized: "Female")
-        case .other: String(localized: "Other")
+        case .other: String(localized: "choice.other", defaultValue: "Other")
         case .unspecified: String(localized: "Skip")
         }
     }
@@ -38,7 +38,7 @@ enum ActivityLevel: String, Codable, CaseIterable, Identifiable, Sendable {
     var displayName: String {
         switch self {
         case .sedentary: String(localized: "Sedentary")
-        case .light: String(localized: "Light")
+        case .light: String(localized: "activity.light", defaultValue: "Light")
         case .moderate: String(localized: "Moderate")
         case .active: String(localized: "Active")
         case .athlete: String(localized: "Athlete")
@@ -430,6 +430,9 @@ struct UserProfile: Codable, Sendable {
     /// JSON ordering; decoded back into a Set so membership checks are
     /// O(1) in the result list.
     var favoriteFoodIDs: Set<String>
+    /// Library recipes the user hearted (`LibraryRecipe.id` slugs). They
+    /// lead the recipe library and the Meals tab's favourites row.
+    var favoriteRecipeIDs: Set<String>
     /// Individual meal log entries — the building block for the per-
     /// category breakdown card and (eventually) HealthKit dietary-
     /// energy samples. The aggregate `dailyConsumption` still drives
@@ -548,6 +551,10 @@ struct UserProfile: Codable, Sendable {
     /// Rolling per-day Atlas Score history for the progress trend chart.
     /// Capped to a recent window on write so the profile blob stays small.
     var momentumHistory: [MomentumDayPoint]
+    /// Daily supplements checked off on Today, each carrying its own
+    /// taken days. Older profiles decode to an empty list. See
+    /// `SupplementEngine` for the streak and reminder rules.
+    var supplements: [Supplement]
 
     init(
         name: String,
@@ -570,6 +577,7 @@ struct UserProfile: Codable, Sendable {
         primaryGoal: String? = nil,
         customFoods: [CustomFood] = [],
         favoriteFoodIDs: Set<String> = [],
+        favoriteRecipeIDs: Set<String> = [],
         mealHistory: [MealEntry] = [],
         healthKitNutritionEnabled: Bool = false,
         outcomeHistory: [OutcomeEntry] = [],
@@ -591,7 +599,8 @@ struct UserProfile: Codable, Sendable {
         atlasLevel: Int = 1,
         momentumAwardedToday: Int = 0,
         lastMomentumAwardDay: Date? = nil,
-        momentumHistory: [MomentumDayPoint] = []
+        momentumHistory: [MomentumDayPoint] = [],
+        supplements: [Supplement] = []
     ) {
         self.name = name
         self.goals = goals
@@ -613,6 +622,7 @@ struct UserProfile: Codable, Sendable {
         self.primaryGoal = primaryGoal
         self.customFoods = customFoods
         self.favoriteFoodIDs = favoriteFoodIDs
+        self.favoriteRecipeIDs = favoriteRecipeIDs
         self.mealHistory = mealHistory
         self.healthKitNutritionEnabled = healthKitNutritionEnabled
         self.outcomeHistory = outcomeHistory
@@ -635,6 +645,7 @@ struct UserProfile: Codable, Sendable {
         self.momentumAwardedToday = momentumAwardedToday
         self.lastMomentumAwardDay = lastMomentumAwardDay
         self.momentumHistory = momentumHistory
+        self.supplements = supplements
     }
 
     init(from decoder: Decoder) throws {
@@ -662,6 +673,9 @@ struct UserProfile: Codable, Sendable {
         favoriteFoodIDs = Set(
             try container.decodeIfPresent([String].self, forKey: .favoriteFoodIDs) ?? []
         )
+        favoriteRecipeIDs = Set(
+            try container.decodeIfPresent([String].self, forKey: .favoriteRecipeIDs) ?? []
+        )
         mealHistory = try container.decodeIfPresent([MealEntry].self, forKey: .mealHistory) ?? []
         healthKitNutritionEnabled = try container.decodeIfPresent(Bool.self, forKey: .healthKitNutritionEnabled) ?? false
         outcomeHistory = try container.decodeIfPresent([OutcomeEntry].self, forKey: .outcomeHistory) ?? []
@@ -686,6 +700,7 @@ struct UserProfile: Codable, Sendable {
         momentumAwardedToday = try container.decodeIfPresent(Int.self, forKey: .momentumAwardedToday) ?? 0
         lastMomentumAwardDay = try container.decodeIfPresent(Date.self, forKey: .lastMomentumAwardDay)
         momentumHistory = try container.decodeIfPresent([MomentumDayPoint].self, forKey: .momentumHistory) ?? []
+        supplements = try container.decodeIfPresent([Supplement].self, forKey: .supplements) ?? []
     }
 
     static var fresh: UserProfile {

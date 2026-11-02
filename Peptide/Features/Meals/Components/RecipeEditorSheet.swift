@@ -161,7 +161,7 @@ struct RecipeEditorSheet: View {
     private func macroPill(value: String, label: LocalizedStringKey, tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(value)
-                .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(16, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())
@@ -171,6 +171,8 @@ struct RecipeEditorSheet: View {
                 .textCase(.uppercase)
                 .tracking(0.4)
         }
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
     }
 
     private var livePreview: Recipe {
@@ -233,7 +235,7 @@ struct RecipeEditorSheet: View {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "fork.knife")
                     .font(AppFont.scaled(13, weight: .semibold))
-                    .foregroundStyle(AppColor.accentLight)
+                    .foregroundStyle(AppColor.textSecondary)
                     .frame(width: 22)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(food?.name ?? component.cachedName)

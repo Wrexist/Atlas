@@ -21,6 +21,17 @@ enum ProgressionEngine {
         let weightKg: Double
         let reps: Int
         let reason: Reason
+        /// Set when today's readiness or a deload week lowered the target.
+        var adjustment: Adjustment?
+    }
+
+    /// Why today's target sits below the plain progression.
+    enum Adjustment: Equatable, Sendable {
+        /// Low recovery: about 10% less load, same reps.
+        case lowRecovery
+        /// Deload week: the same lighter load and a third fewer reps,
+        /// about 60% of the usual volume without dropping sets.
+        case deload
     }
 
     /// At or above this RPE the last session was a grind, so the load holds.
@@ -86,6 +97,33 @@ enum ProgressionEngine {
         return Suggestion(weightKg: topWeight, reps: reps, reason: reps == fewestReps + 1 ? .addRep : .reachRange)
     }
 
+    static let reducedLoadFactor = 0.9
+    static let deloadRepFactor = 2.0 / 3.0
+
+    /// Lowers a suggestion for `adjustment`, landing the load on a step the
+    /// equipment can make. Bodyweight work keeps its load.
+    static func adjusted(_ suggestion: Suggestion, for adjustment: Adjustment, incrementKg: Double) -> Suggestion {
+        let reps = adjustment == .deload
+            ? max(1, Int((Double(suggestion.reps) * deloadRepFactor).rounded()))
+            : suggestion.reps
+        return Suggestion(
+            weightKg: reducedLoad(suggestion.weightKg, stepKg: incrementKg),
+            reps: reps,
+            reason: suggestion.reason,
+            adjustment: adjustment
+        )
+    }
+
+    /// About 10% lighter, rounded to the nearest step; at least one step
+    /// down so the change is visible, and never down to nothing.
+    static func reducedLoad(_ weightKg: Double, stepKg: Double) -> Double {
+        guard weightKg > 0, stepKg > 0 else { return weightKg }
+        let rounded = (weightKg * reducedLoadFactor / stepKg).rounded() * stepKg
+        if rounded > 0, rounded < weightKg - 0.01 { return rounded }
+        let oneStepDown = weightKg - stepKg
+        return oneStepDown > 0 ? oneStepDown : weightKg
+    }
+
     /// Writes the suggestion into every working set the user hasn't
     /// checked off yet. Logged sets and warm-ups are never touched.
     static func apply(_ suggestion: Suggestion, to sets: [SetEntry]) -> [SetEntry] {
@@ -94,6 +132,51 @@ enum ProgressionEngine {
             var updated = set
             updated.weightKg = suggestion.weightKg
             updated.reps = suggestion.reps
+            return updated
+        }
+    }
+
+    /// Moves each pending working set that still shows `old` to `new`.
+    /// Sets the user edited keep their values, set by set.
+    static func reseed(from old: Suggestion, to new: Suggestion, in sets: [SetEntry]) -> [SetEntry] {
+        sets.map { set in
+            guard !set.completed, !set.isWarmup, set.supportsRepLogging,
+                  set.weightKg == old.weightKg, set.reps == old.reps
+            else { return set }
+            var updated = set
+            updated.weightKg = new.weightKg
+            updated.reps = new.reps
+            return updated
+        }
+    }
+
+    /// Reps off a planned target that move the load mid-workout.
+    static let inSessionRepMargin = 2
+
+    /// Mid-workout tuning from a set just logged: two or more reps short of
+    /// the target drops the remaining sets one step, two or more over at a
+    /// manageable effort adds one. Nil keeps the load.
+    static func nextSetLoad(after set: SetEntry, targetReps: Int, incrementKg: Double) -> Double? {
+        guard incrementKg > 0, set.weightKg > 0, !set.isWarmup, set.supportsRepLogging else { return nil }
+        if set.reps <= targetReps - inSessionRepMargin {
+            let lighter = set.weightKg - incrementKg
+            return lighter > 0 ? lighter : nil
+        }
+        if set.reps >= targetReps + inSessionRepMargin, (set.rpe ?? 0) < grindRPE {
+            return SetEntryLimits.clampWeightKg(set.weightKg + incrementKg)
+        }
+        return nil
+    }
+
+    /// Moves the pending working sets still at `fromKg` to `toKg`; sets the
+    /// user already changed keep their load.
+    static func retuned(_ sets: [SetEntry], fromKg: Double, toKg: Double) -> [SetEntry] {
+        sets.map { set in
+            guard !set.completed, !set.isWarmup, set.supportsRepLogging,
+                  abs(set.weightKg - fromKg) < 0.01
+            else { return set }
+            var updated = set
+            updated.weightKg = toKg
             return updated
         }
     }

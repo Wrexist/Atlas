@@ -12,6 +12,9 @@ struct MealFoodComponent: Codable, Hashable, Identifiable, Sendable {
 
     var fiberG: Double? { scaled(per100g.fiberG) }
     var sugarsG: Double? { scaled(per100g.sugarsG) }
+    func micronutrient(_ nutrient: KeyPath<Micronutrients, Double?>) -> Double? {
+        scaled(per100g.micros?[keyPath: nutrient])
+    }
     var macros: LoggableMeal? {
         let values = [per100g.calories, per100g.proteinG, per100g.carbsG, per100g.fatG]
             .map { $0 * grams / 100 }

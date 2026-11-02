@@ -9,6 +9,7 @@ struct ExerciseDetailView: View {
     /// Step-number column, scaled with the text so "10" never wraps.
     @ScaledMetric(relativeTo: .headline) private var stepNumberWidth: CGFloat = 22
     @State private var loading = true
+    @State private var showsTitle = false
 
     private var exercise: Exercise? {
         library.lookup(id: exerciseID)
@@ -20,8 +21,8 @@ struct ExerciseDetailView: View {
                 VStack(alignment: .leading, spacing: Spacing.lg) {
                     header(for: exercise)
                         .sectionAppear(index: 0)
-                    // The exercise's visual is its body map: the muscles it
-                    // trains, marked on the Atlas figure, front and back.
+                    // The exercise's visual: its rendered animation when one
+                    // exists, over the body map of the muscles it trains.
                     muscleSection(for: exercise)
                         .sectionAppear(index: 1)
                     // How to do it sits right under what it trains: below
@@ -54,7 +55,14 @@ struct ExerciseDetailView: View {
             }
         }
         .background(AppColor.background.ignoresSafeArea())
-        .navigationTitle(exercise?.name ?? "")
+        // The big title names the screen; the bar repeats it (truncated)
+        // only once that title has scrolled under it.
+        .onScrollGeometryChange(for: Bool.self) { geometry in
+            geometry.contentOffset.y + geometry.contentInsets.top > Spacing.xxxxl
+        } action: { _, scrolledPast in
+            AppAnimation.with(AppAnimation.quick) { showsTitle = scrolledPast }
+        }
+        .navigationTitle(showsTitle ? exercise?.name ?? "" : "")
         .navigationBarTitleDisplayMode(.inline)
         .task { await loadLibrary() }
     }
@@ -95,13 +103,13 @@ struct ExerciseDetailView: View {
             if let mechanic = exercise.mechanic {
                 metadataPill(
                     glyph: .system("gearshape.fill"),
-                    label: mechanic.rawValue.capitalized
+                    label: mechanicLabel(mechanic)
                 )
             }
             if let force = exercise.force {
                 metadataPill(
                     glyph: .system("arrow.up.right.circle.fill"),
-                    label: force.rawValue.capitalized
+                    label: forceLabel(force)
                 )
             }
         }
@@ -133,6 +141,21 @@ struct ExerciseDetailView: View {
         }
     }
 
+    private func mechanicLabel(_ mechanic: Exercise.Mechanic) -> String {
+        switch mechanic {
+        case .compound:  return String(localized: "exercise.mechanic.compound", defaultValue: "Compound")
+        case .isolation: return String(localized: "exercise.mechanic.isolation", defaultValue: "Isolation")
+        }
+    }
+
+    private func forceLabel(_ force: Exercise.Force) -> String {
+        switch force {
+        case .push:     return String(localized: "exercise.force.push", defaultValue: "Push")
+        case .pull:     return String(localized: "exercise.force.pull", defaultValue: "Pull")
+        case .static:   return String(localized: "exercise.force.static", defaultValue: "Static")
+        }
+    }
+
     // MARK: - Muscles
 
     private func muscleSection(for exercise: Exercise) -> some View {
@@ -142,6 +165,7 @@ struct ExerciseDetailView: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
 
+                ExerciseClipView(exercise: exercise)
                 MuscleActivationMap(exercise: exercise)
             }
         }

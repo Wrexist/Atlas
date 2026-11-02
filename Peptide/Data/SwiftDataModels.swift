@@ -510,7 +510,11 @@ final class StoredProfile {
         try write(\.labsData, arrays: Self.labsArrays) { $0.labHistory }
         try write(\.outcomesData, arrays: Self.outcomesArrays) { $0.outcomeHistory }
         try write(\.foodLibraryData, arrays: Self.foodLibraryArrays) {
-            FoodLibrarySlice(customFoods: $0.customFoods, favoriteFoodIDs: Array($0.favoriteFoodIDs).sorted())
+            FoodLibrarySlice(
+                customFoods: $0.customFoods,
+                favoriteFoodIDs: Array($0.favoriteFoodIDs).sorted(),
+                favoriteRecipeIDs: Array($0.favoriteRecipeIDs).sorted()
+            )
         }
         // Never synced — see `summariesData`.
         set(\.summariesData, nil)
@@ -531,6 +535,7 @@ final class StoredProfile {
             .of(Recipe.self, at: "recipes"),
             .of(ProtocolNote.self, at: "protocolNotes"),
             .of(WorkoutEntry.self, at: "workoutHistory"),
+            .of(Supplement.self, at: "supplements"),
         ]
     }
 
@@ -704,6 +709,7 @@ final class StoredProfile {
             primaryGoal: primaryGoal,
             customFoods: foodLibrary.customFoods,
             favoriteFoodIDs: Set(foodLibrary.favoriteFoodIDs),
+            favoriteRecipeIDs: Set(foodLibrary.favoriteRecipeIDs),
             mealHistory: meals.mealHistory,
             healthKitNutritionEnabled: ext.healthKitNutritionEnabled,
             outcomeHistory: slice(outcomesData, arrays: Self.outcomesArrays, legacy: ext.outcomeHistory),
@@ -725,7 +731,8 @@ final class StoredProfile {
             atlasLevel: momentum.atlasLevel,
             momentumAwardedToday: momentum.momentumAwardedToday,
             lastMomentumAwardDay: momentum.lastMomentumAwardDay,
-            momentumHistory: momentum.momentumHistory
+            momentumHistory: momentum.momentumHistory,
+            supplements: ext.supplements
         )
     }
 }
@@ -886,6 +893,23 @@ struct FoodLibrarySlice: Codable, Equatable {
     /// `[String]` (sorted) for a deterministic on-disk shape; collapsed
     /// back to `Set<String>` on read.
     var favoriteFoodIDs: [String] = []
+    var favoriteRecipeIDs: [String] = []
+
+    private enum CodingKeys: String, CodingKey {
+        case customFoods, favoriteFoodIDs, favoriteRecipeIDs
+    }
+}
+
+extension FoodLibrarySlice {
+    /// Columns written before recipe favourites existed have no
+    /// `favoriteRecipeIDs` key; a strict decode would fail the whole
+    /// slice and fall back to the legacy blob's older custom foods.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        customFoods = try container.decodeIfPresent([CustomFood].self, forKey: .customFoods) ?? []
+        favoriteFoodIDs = try container.decodeIfPresent([String].self, forKey: .favoriteFoodIDs) ?? []
+        favoriteRecipeIDs = try container.decodeIfPresent([String].self, forKey: .favoriteRecipeIDs) ?? []
+    }
 }
 
 /// Sidecar blob persisted on `StoredProfile.extensionData`. Holds the
@@ -958,6 +982,10 @@ private struct ProfileExtension: Codable {
     var momentumAwardedToday: Int = 0
     var lastMomentumAwardDay: Date? = nil
     var momentumHistory: [MomentumDayPoint] = []
+    /// Daily supplements and their taken days. Small and rarely edited on
+    /// two devices at once, so it rides the residual blob rather than a
+    /// column of its own — a new column would mean a CloudKit schema deploy.
+    var supplements: [Supplement] = []
 
     static let empty = ProfileExtension()
 
@@ -1003,6 +1031,7 @@ private struct ProfileExtension: Codable {
         momentumAwardedToday = try c.decodeIfPresent(Int.self, forKey: .momentumAwardedToday) ?? 0
         lastMomentumAwardDay = try c.decodeIfPresent(Date.self, forKey: .lastMomentumAwardDay)
         momentumHistory = try c.decodeIfPresent([MomentumDayPoint].self, forKey: .momentumHistory) ?? []
+        supplements = try c.decodeIfPresent([Supplement].self, forKey: .supplements) ?? []
     }
 
     /// Snapshot of everything that still lives in the blob. The split
@@ -1030,6 +1059,7 @@ private struct ProfileExtension: Codable {
         ext.weeklySummaryEnabled = profile.weeklySummaryEnabled
         ext.weeklySummaryOptInConfirmed = profile.weeklySummaryOptInConfirmed
         ext.goalDate = profile.goalDate
+        ext.supplements = profile.supplements
         return ext
     }
 }

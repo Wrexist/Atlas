@@ -15,13 +15,7 @@ struct ResearchAssistantRow: View {
             onTap()
         } label: {
             HStack(spacing: Spacing.md) {
-                Image(systemName: "sparkles")
-                    .font(AppFont.scaled(16, weight: .semibold))
-                    .foregroundStyle(AppColor.accentLight)
-                    .frame(width: 32, height: 32)
-                    .background {
-                        Circle().fill(AppColor.accentPrimary.opacity(0.15))
-                    }
+                IconTile("sparkles", size: 32, silhouette: .circle)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Research assistant")

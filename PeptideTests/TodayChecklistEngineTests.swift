@@ -22,6 +22,7 @@ final class TodayChecklistEngineTests: XCTestCase {
         profile: UserProfile = .fresh,
         waterOz: Int = 0,
         trainedToday: Bool = false,
+        steps: Double? = nil,
         hour: Int = 12
     ) -> TodayChecklistEngine.State {
         TodayChecklistEngine.state(
@@ -32,6 +33,7 @@ final class TodayChecklistEngineTests: XCTestCase {
                 return day
             }(),
             trainedToday: trainedToday,
+            steps: steps,
             now: monday(hour),
             calendar: calendar
         )
@@ -106,6 +108,42 @@ final class TodayChecklistEngineTests: XCTestCase {
             WeightEntry(date: monday(9), kg: 81.5),
         ]
         XCTAssertEqual(state(profile: profile).weightTodayKg, 81.5)
+    }
+
+    func test_steps_withoutHealthData_rowDroppedAndNotCounted() {
+        let s = state()
+        XCTAssertNil(s.steps)
+        XCTAssertFalse(s.items.contains(.steps))
+        XCTAssertEqual(s.items.count, TodayChecklistEngine.Item.allCases.count - 1)
+    }
+
+    func test_steps_belowGoal_notDone() {
+        let s = state(steps: 6_240)
+        XCTAssertTrue(s.items.contains(.steps))
+        XCTAssertFalse(s.isDone(.steps))
+        XCTAssertEqual(s.stepProgress, 0.78, accuracy: 0.0001)
+    }
+
+    func test_steps_atDefaultGoal_done() {
+        let s = state(steps: Double(StepGoalEngine.defaultGoal))
+        XCTAssertTrue(s.isDone(.steps))
+        XCTAssertEqual(s.completedCount, 1)
+    }
+
+    func test_steps_usesProfileGoal() {
+        var profile = UserProfile.fresh
+        var prefs = TrainingPreferences()
+        prefs.dailyStepGoal = 5_000
+        profile.trainingPreferences = prefs
+        let s = state(profile: profile, steps: 5_500)
+        XCTAssertEqual(s.stepGoal, 5_000)
+        XCTAssertTrue(s.isDone(.steps))
+    }
+
+    func test_steps_zeroToday_rowShownNotDone() {
+        let s = state(steps: 0)
+        XCTAssertTrue(s.items.contains(.steps))
+        XCTAssertFalse(s.isDone(.steps))
     }
 
     func test_glass_matchesSmallestQuickAdd() {

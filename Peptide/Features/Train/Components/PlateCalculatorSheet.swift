@@ -115,7 +115,7 @@ struct PlateCalculatorSheet: View {
                 .keyboardType(.decimalPad)
                 .focused($focusedField, equals: field)
                 .multilineTextAlignment(.trailing)
-                .font(AppFont.scaled(24, weight: .bold, design: .rounded))
+                .font(AppFont.scaled(24, weight: .medium))
                 .foregroundStyle(AppColor.accentLight)
                 .monospacedDigit()
                 .frame(maxWidth: 140)

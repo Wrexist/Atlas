@@ -56,10 +56,18 @@ struct RecapSetRow: View {
     let unit: MeasurementUnit
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text("Set \(set.index)\(set.isWarmup ? " · Warm-up" : "")\(set.completed ? "" : " · Unfinished")")
-                .foregroundStyle(AppColor.recapSecondary)
+            Text(title).foregroundStyle(AppColor.textSecondary)
             Text(RecapFormat.set(set, unit: unit)).monospacedDigit()
         }.font(AppFont.subheadline).accessibilityElement(children: .combine)
+    }
+
+    /// "Set 2 · Warm-up · Unfinished".
+    private var title: String {
+        [
+            String(localized: "Set \(set.index)"),
+            set.isWarmup ? String(localized: "Warm-up") : nil,
+            set.completed ? nil : String(localized: "Unfinished"),
+        ].compactMap { $0 }.joined(separator: " · ")
     }
 }
 
@@ -74,7 +82,7 @@ struct WorkoutRecapExerciseDetail: View {
                     Text(ExerciseLibrary.shared.displayName(for: entry.exerciseID)).font(AppFont.title2)
                     Text("All logged sets").font(AppFont.headline)
                     Text("Warm-ups and unfinished sets are excluded from completion totals.")
-                        .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
+                        .font(AppFont.subheadline).foregroundStyle(AppColor.textSecondary)
                     ForEach(entry.sets.sorted { $0.index < $1.index }) { set in
                         RecapCard { RecapSetRow(set: set, unit: unit) }
                     }
@@ -132,7 +140,7 @@ struct WorkoutMuscleDetailsView: View {
                         VStack(alignment: .leading, spacing: Spacing.xs) {
                             Text(muscle.displayName).font(AppFont.headline)
                             Text("\(muscle.role.displayName) · ^[\(muscle.setCount) contributing set](inflect: true)")
-                                .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
+                                .font(AppFont.subheadline).foregroundStyle(AppColor.textSecondary)
                         }
                         Spacer(minLength: 0)
                         Image(systemName: "chevron.right").accessibilityHidden(true)
@@ -202,7 +210,7 @@ struct WorkoutWeeklyProgressView: View {
                                 VStack(spacing: Spacing.sm) {
                                     Text(day.count.formatted()).font(AppFont.subheadline).monospacedDigit()
                                     RoundedRectangle(cornerRadius: 4)
-                                        .fill(day.count > 0 ? AppColor.recapButton : AppColor.recapRaised)
+                                        .fill(day.count > 0 ? AppColor.accentFill : AppColor.surfaceSecondary)
                                         .frame(height: day.count == 0 ? 2 : 100 * CGFloat(day.count) / CGFloat(max(1, week.days.map(\.count).max() ?? 1)))
                                     Text(day.date.formatted(.dateTime.weekday(.narrow))).font(AppFont.subheadline)
                                 }.frame(maxWidth: .infinity)
@@ -218,7 +226,7 @@ struct WorkoutWeeklyProgressView: View {
                             Text("Recorded volume \(week.phrase)").font(AppFont.headline)
                             Text(RecapFormat.volume(volume, unit: unit)).font(AppFont.title2).monospacedDigit()
                             Text("Supported external-load sets only. More logged volume is not a direct measure of strength.")
-                                .font(AppFont.subheadline).foregroundStyle(AppColor.recapSecondary)
+                                .font(AppFont.subheadline).foregroundStyle(AppColor.textSecondary)
                         }
                     }
                 }
@@ -254,8 +262,8 @@ extension View {
         modifier(RecapRefreshModifier(store: store))
     }
     func recapScreen(title: String) -> some View {
-        background(AppColor.recapBackground.ignoresSafeArea())
-            .foregroundStyle(AppColor.recapText).tint(AppColor.recapAction)
+        background(AppColor.background.ignoresSafeArea())
+            .foregroundStyle(AppColor.textPrimary).tint(AppColor.accentPrimary)
             .navigationTitle(title).navigationBarTitleDisplayMode(.inline)
     }
 }

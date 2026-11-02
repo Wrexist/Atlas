@@ -4,6 +4,7 @@ struct ProtocolDetailView: View {
     let protocol_: PeptideProtocol
     @Environment(DataStore.self) private var dataStore
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var showDeleteConfirmation = false
     @State private var showCompleteConfirmation = false
     @State private var showEditSheet = false
@@ -135,19 +136,18 @@ struct ProtocolDetailView: View {
                 // Peptides in protocol — tap row to edit schedule, tap info icon to view details.
                 GlassCard {
                     VStack(alignment: .leading, spacing: Spacing.md) {
-                        HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
-                            Label("Peptides", systemImage: "flask.fill")
-                                .font(AppFont.headline)
-                                .foregroundStyle(AppColor.textPrimary)
-                            if customScheduleCount > 0 {
-                                Badge("\(customScheduleCount) custom")
+                        // The hint drops under the title when the row can't
+                        // hold both — Swedish ran it into an ellipsis.
+                        ViewThatFits(in: .horizontal) {
+                            HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
+                                peptidesTitle
+                                Spacer()
+                                editScheduleHint
                             }
-                            Spacer()
-                            Text("Tap to edit schedule")
-                                .font(AppFont.caption2)
-                                .foregroundStyle(AppColor.textTertiary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
+                            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                                peptidesTitle
+                                editScheduleHint
+                            }
                         }
 
                         let peptides = liveProtocol.peptides
@@ -175,7 +175,7 @@ struct ProtocolDetailView: View {
 
                         Rectangle().fill(AppColor.glassBorder).frame(height: 0.5)
 
-                        scheduleDetailRow(label: "Times/Day", value: "\(liveProtocol.schedule.timesPerDay)x")
+                        scheduleDetailRow(label: String(localized: "Times/Day"), value: "\(liveProtocol.schedule.timesPerDay)x")
 
                         // Interval protocols imported from the library carry
                         // no preferred times; an empty row reads as broken.
@@ -411,6 +411,23 @@ struct ProtocolDetailView: View {
         }
     }
 
+    private var peptidesTitle: some View {
+        HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
+            Label("Peptides", systemImage: "flask.fill")
+                .font(AppFont.headline)
+                .foregroundStyle(AppColor.textPrimary)
+            if customScheduleCount > 0 {
+                Badge("\(customScheduleCount) custom")
+            }
+        }
+    }
+
+    private var editScheduleHint: some View {
+        Text("Tap to edit schedule")
+            .font(AppFont.caption2)
+            .foregroundStyle(AppColor.textTertiary)
+    }
+
     @ViewBuilder
     private func peptideRow(_ peptide: Peptide, in proto: PeptideProtocol) -> some View {
         let schedule = proto.schedule(for: peptide.id)
@@ -423,14 +440,7 @@ struct ProtocolDetailView: View {
                 schedulingPeptide = peptide
             } label: {
                 HStack(spacing: Spacing.md) {
-                    Image(systemName: peptide.imageSystemName)
-                        .font(AppFont.scaled(16))
-                        .foregroundStyle(peptide.category.color)
-                        .frame(width: 32, height: 32)
-                        .background {
-                            RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
-                                .fill(peptide.category.color.opacity(0.15))
-                        }
+                    IconTile(peptide.imageSystemName, size: 32)
                         .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
@@ -458,19 +468,18 @@ struct ProtocolDetailView: View {
                                     .foregroundStyle(AppColor.textSecondary)
                             }
                         }
+                        if dynamicTypeSize.isAccessibilitySize {
+                            cadenceSummary(schedule, isCustom: isCustom, alignment: .leading)
+                        }
                     }
 
                     Spacer(minLength: Spacing.sm)
 
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text(schedule.compactDaysDescription)
-                            .font(AppFont.caption2)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(isCustom ? AppColor.accentLight : AppColor.textPrimary)
-                            .lineLimit(1)
-                        Text(schedule.isInterval ? "\(schedule.timesPerDay)x per dose day" : "\(schedule.timesPerDay)x daily")
-                            .font(AppFont.caption2)
-                            .foregroundStyle(AppColor.textTertiary)
+                    // At accessibility sizes the cadence column squeezed the
+                    // dose into a sliver; it moves under the name instead.
+                    if !dynamicTypeSize.isAccessibilitySize {
+                        cadenceSummary(schedule, isCustom: isCustom, alignment: .trailing)
+                            .fixedSize()
                     }
                 }
                 .padding(.vertical, Spacing.xs)
@@ -487,6 +496,18 @@ struct ProtocolDetailView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("\(peptide.name) details")
+        }
+    }
+
+    private func cadenceSummary(_ schedule: ProtocolSchedule, isCustom: Bool, alignment: HorizontalAlignment) -> some View {
+        VStack(alignment: alignment, spacing: 2) {
+            Text(schedule.compactDaysDescription)
+                .font(AppFont.caption2)
+                .fontWeight(.semibold)
+                .foregroundStyle(isCustom ? AppColor.accentLight : AppColor.textPrimary)
+            Text(schedule.isInterval ? "\(schedule.timesPerDay)x per dose day" : "\(schedule.timesPerDay)x daily")
+                .font(AppFont.caption2)
+                .foregroundStyle(AppColor.textTertiary)
         }
     }
 
@@ -572,6 +593,7 @@ private struct MiniStat: View {
             Text(label)
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
     }

@@ -103,15 +103,15 @@ struct CommunityStackDetailView: View {
                         spoken: Text("^[\(stack.peptideAbbreviations.count) peptide](inflect: true)")
                     )
                     miniStat(
-                        value: "\(stack.cycleLengthWeeks)w", label: "Cycle",
+                        value: String(localized: "\(stack.cycleLengthWeeks) wk"), label: "Cycle",
                         spoken: Text("^[\(stack.cycleLengthWeeks) week](inflect: true) cycle")
                     )
                     miniStat(
-                        value: "\(stack.scheduleTimesPerDay)x", label: "Per day",
+                        value: String(localized: "\(stack.scheduleTimesPerDay)x"), label: "Per day",
                         spoken: Text("^[\(stack.scheduleTimesPerDay) time](inflect: true) per day")
                     )
                     miniStat(
-                        value: "\(stack.scheduleDaysOfWeek.count)d", label: "Per week",
+                        value: String(localized: "\(stack.scheduleDaysOfWeek.count)d"), label: "Per week",
                         spoken: Text("^[\(stack.scheduleDaysOfWeek.count) day](inflect: true) per week")
                     )
                 }
@@ -131,7 +131,7 @@ struct CommunityStackDetailView: View {
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.textPrimary)
-                Text(stack.authorHandle ?? stack.authorTitle ?? "Atlas Editorial")
+                Text(stack.authorHandle ?? stack.authorTitle ?? String(localized: "Atlas Editorial"))
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
             }
@@ -227,14 +227,7 @@ struct CommunityStackDetailView: View {
 
     private func peptideRow(_ peptide: Peptide) -> some View {
         HStack(spacing: Spacing.md) {
-            Image(systemName: peptide.imageSystemName)
-                .font(AppFont.scaled(16))
-                .foregroundStyle(peptide.category.color)
-                .frame(width: 32, height: 32)
-                .background(
-                    RoundedRectangle(cornerRadius: Spacing.chipCornerRadius, style: .continuous)
-                        .fill(peptide.category.color.opacity(0.15))
-                )
+            IconTile(peptide.imageSystemName, size: 32)
             VStack(alignment: .leading, spacing: 2) {
                 Text(peptide.abbreviation)
                     .font(AppFont.headline)

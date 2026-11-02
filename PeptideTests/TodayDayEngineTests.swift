@@ -71,7 +71,7 @@ final class TodayDayEngineTests: XCTestCase {
     }
 
     func test_isVisible_pastDay_keepsPerDayRecords() {
-        let kept: [TodayDayEngine.Section] = [.habits, .checklist, .doses, .movement, .overview, .timeline]
+        let kept: [TodayDayEngine.Section] = [.habits, .checklist, .doses, .movement, .steps, .overview, .timeline]
         for section in kept {
             XCTAssertTrue(TodayDayEngine.isVisible(section, isToday: false), "\(section) hidden on a past day")
         }

@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The canonical tappable "entry row" used across the app — an icon on a
-/// tinted tile, a title + optional subtitle, an optional trailing `Badge`
+/// raised `IconTile`, a title + optional subtitle, an optional trailing `Badge`
 /// and a chevron, on the standard inset surface. One source of truth so
 /// these rows are pixel-identical everywhere instead of each surface
 /// re-implementing the same chrome (Profile tools, Library and Protocol
@@ -16,13 +16,12 @@ struct GlassEntryRow: View {
 
     init(
         icon: String,
-        tint: Color? = nil,
         title: LocalizedStringKey,
         subtitle: Text? = nil,
         badge: Badge? = nil,
         action: @escaping () -> Void
     ) {
-        label = GlassEntryRowLabel(icon: icon, tint: tint, title: title, subtitle: subtitle, badge: badge)
+        label = GlassEntryRowLabel(icon: icon, title: title, subtitle: subtitle, badge: badge)
         self.action = action
     }
 
@@ -37,11 +36,9 @@ struct GlassEntryRow: View {
 ///
 /// Subtitle is passed as a `Text` so callers keep their own localisation
 /// (a `LocalizedStringResource`, a literal key, an interpolated string)
-/// while the row owns the styling. `tint` colours the icon tile; leave it
-/// `nil` for the theme accent.
+/// while the row owns the styling.
 struct GlassEntryRowLabel: View {
     let icon: String
-    var tint: Color?
     let title: LocalizedStringKey
     var subtitle: Text?
     var badge: Badge?
@@ -55,15 +52,7 @@ struct GlassEntryRowLabel: View {
     var body: some View {
         let tileSize = AppFont.scaledValue(40, in: iconTypeSize)
         HStack(spacing: Spacing.md) {
-            Image(systemName: icon)
-                .font(AppFont.scaled(16, weight: .semibold, in: iconTypeSize))
-                .foregroundStyle(tint ?? AppColor.accentLight)
-                .frame(width: tileSize, height: tileSize)
-                .background {
-                    RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-                        .fill((tint ?? AppColor.accentPrimary).opacity(0.18))
-                }
-                .accessibilityHidden(true)
+            IconTile(icon, size: tileSize)
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(title)
@@ -145,7 +134,7 @@ private struct InsetRowFill: View {
                 badge: Badge("Get started", style: .solid),
                 action: {}
             )
-            GlassEntryRow(icon: "gearshape.fill", tint: AppColor.recap, title: "Settings", action: {})
+            GlassEntryRow(icon: "gearshape.fill", title: "Settings", action: {})
         }
         .padding(Spacing.screenPadding)
     }

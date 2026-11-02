@@ -664,7 +664,8 @@ private extension OpenFoodFactsService {
                 carbsG:   carbs ?? 0,
                 fatG:     fat ?? 0,
                 fiberG:   n?.fiber100g.plausiblePer100g,
-                sugarsG:  n?.sugars100g.plausiblePer100g
+                sugarsG:  n?.sugars100g.plausiblePer100g,
+                micros:   n?.micronutrients(servingGrams: servingQuantity?.value?.positiveOrNil)
             )
 
             return ScannedProduct(
@@ -709,6 +710,20 @@ private extension OpenFoodFactsService {
         let fat100g: FlexibleDouble?
         let fiber100g: FlexibleDouble?
         let sugars100g: FlexibleDouble?
+        let sodium100g: FlexibleDouble?
+        let sodiumServing: FlexibleDouble?
+        let salt100g: FlexibleDouble?
+        let saltServing: FlexibleDouble?
+        let potassium100g: FlexibleDouble?
+        let potassiumServing: FlexibleDouble?
+        let iron100g: FlexibleDouble?
+        let ironServing: FlexibleDouble?
+        let calcium100g: FlexibleDouble?
+        let calciumServing: FlexibleDouble?
+        let vitaminD100g: FlexibleDouble?
+        let vitaminDServing: FlexibleDouble?
+        let vitaminB12100g: FlexibleDouble?
+        let vitaminB12Serving: FlexibleDouble?
 
         enum CodingKeys: String, CodingKey {
             case energyKcal100g     = "energy-kcal_100g"
@@ -718,6 +733,49 @@ private extension OpenFoodFactsService {
             case fat100g            = "fat_100g"
             case fiber100g          = "fiber_100g"
             case sugars100g         = "sugars_100g"
+            case sodium100g         = "sodium_100g"
+            case sodiumServing      = "sodium_serving"
+            case salt100g           = "salt_100g"
+            case saltServing        = "salt_serving"
+            case potassium100g      = "potassium_100g"
+            case potassiumServing   = "potassium_serving"
+            case iron100g           = "iron_100g"
+            case ironServing        = "iron_serving"
+            case calcium100g        = "calcium_100g"
+            case calciumServing     = "calcium_serving"
+            case vitaminD100g       = "vitamin-d_100g"
+            case vitaminDServing    = "vitamin-d_serving"
+            case vitaminB12100g     = "vitamin-b12_100g"
+            case vitaminB12Serving  = "vitamin-b12_serving"
+        }
+
+        /// OFF normalises every mineral and vitamin to grams, per 100 g
+        /// and per serving. The per-100 g value wins; a per-serving one
+        /// is rescaled when the serving weight is known. Sodium falls
+        /// back to salt, which labels state far more often (salt = 2.5 ×
+        /// sodium).
+        func micronutrients(servingGrams: Double?) -> Micronutrients? {
+            func grams(_ per100g: FlexibleDouble?, _ perServing: FlexibleDouble?) -> Double? {
+                if let value = per100g?.value.flatMap(Self.plausibleGrams) { return value }
+                guard let servingGrams, let value = perServing?.value else { return nil }
+                return Self.plausibleGrams(value / servingGrams * 100)
+            }
+            let sodium = grams(sodium100g, sodiumServing)
+                ?? grams(salt100g, saltServing).map { $0 / 2.5 }
+            return Micronutrients(
+                sodiumMg: sodium.map { $0 * 1_000 },
+                potassiumMg: grams(potassium100g, potassiumServing).map { $0 * 1_000 },
+                ironMg: grams(iron100g, ironServing).map { $0 * 1_000 },
+                calciumMg: grams(calcium100g, calciumServing).map { $0 * 1_000 },
+                vitaminDUg: grams(vitaminD100g, vitaminDServing).map { $0 * 1_000_000 },
+                vitaminB12Ug: grams(vitaminB12100g, vitaminB12Serving).map { $0 * 1_000_000 }
+            ).nonEmpty
+        }
+
+        /// No vitamin or mineral outweighs the 100 g it is part of; a
+        /// crowd entry typed in mg into a gram field lands above that.
+        private static func plausibleGrams(_ value: Double) -> Double? {
+            value.isFinite && (0...100).contains(value) ? value : nil
         }
     }
 }

@@ -385,7 +385,7 @@ struct ProtocolNoteEditorSheet: View {
             mood = rating
         } label: {
             Text("\(rating)")
-                .font(AppFont.scaled(16, weight: active ? .heavy : .semibold, design: .rounded))
+                .font(AppFont.scaled(16, weight: active ? .heavy : .semibold))
                 .monospacedDigit()
                 .foregroundStyle(active ? AppColor.textPrimary : AppColor.textSecondary)
                 .frame(maxWidth: .infinity)

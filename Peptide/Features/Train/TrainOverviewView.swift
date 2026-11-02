@@ -50,6 +50,7 @@ struct TrainOverviewView: View {
     @State private var inspectedPeriodLabel = String(localized: "Last 7 days")
     @SceneStorage("train.overview.details") private var showsTrainingDetails = false
     @State private var showsMapInfo = false
+    @State private var showsSessionBuilder = false
 
     private enum TrainingMapPeriod: Int, CaseIterable {
         case today = 1, week = 7, month = 30
@@ -187,21 +188,36 @@ struct TrainOverviewView: View {
     private var startWorkoutButton: some View {
         if sessionService.activeSession == nil {
             VStack(spacing: Spacing.sm) {
-                PrimaryCTAButton(title: "Start workout", icon: "play.fill", shape: .rounded) {
+                PrimaryCTAButton(title: "Build workout", icon: "wand.and.stars", shape: .rounded) {
                     Haptics.impact(.medium)
-                    sessionService.startWorkout()
+                    showsSessionBuilder = true
                 }
-                // The routine that comes next in the user's rotation, one
-                // tap from here instead of via the Routines tab.
-                if let routine = Self.suggestedRoutine(from: routineStore.routines, history: sessions) {
-                    GlassButton(title: "Start \(routine.name)", icon: "list.bullet.rectangle.portrait",
-                                style: .secondary, isFullWidth: true) {
-                        Haptics.impact(.medium)
-                        routineStore.startWorkout(from: routine)
-                    }
-                    .accessibilityIdentifier("train-start-next-routine")
+                .accessibilityIdentifier("train-build-workout")
+                // Side by side only while both titles fit on one line each.
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: Spacing.sm) { startButtons }
+                    VStack(spacing: Spacing.sm) { startButtons }
                 }
             }
+            .sheet(isPresented: $showsSessionBuilder) { SessionBuilderSheet() }
+        }
+    }
+
+    @ViewBuilder
+    private var startButtons: some View {
+        GlassButton(title: "Empty workout", icon: "play.fill", style: .secondary, isFullWidth: true) {
+            Haptics.impact(.medium)
+            sessionService.startWorkout()
+        }
+        // The routine that comes next in the user's rotation, one
+        // tap from here instead of via the Routines tab.
+        if let routine = Self.suggestedRoutine(from: routineStore.routines, history: sessions) {
+            GlassButton(title: "Start \(routine.name)", icon: "list.bullet.rectangle.portrait",
+                        style: .secondary, isFullWidth: true) {
+                Haptics.impact(.medium)
+                routineStore.startWorkout(from: routine)
+            }
+            .accessibilityIdentifier("train-start-next-routine")
         }
     }
 
@@ -247,6 +263,7 @@ struct TrainOverviewView: View {
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
                             .monospacedDigit()
+                            .fixedSize()
                             .contentTransition(.numericText())
                     }
                     // One connected track, a segment per planned day.
@@ -361,8 +378,10 @@ struct TrainOverviewView: View {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 HStack(alignment: .top, spacing: Spacing.md) {
                     VStack(alignment: .leading, spacing: 2) {
+                        // Same weight as the other card titles on this tab; a
+                        // display-size title here out-shouted the CTA above.
                         Text("Muscles trained")
-                            .font(AppFont.title)
+                            .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
                         Text(weekHasTraining
                              ? "Completed working sets · \(selectedPeriod.detail.lowercased())"
@@ -439,11 +458,18 @@ struct TrainOverviewView: View {
 
     private var topMusclesRow: some View {
         let top = topMuscleGroups()
-        return HStack(spacing: Spacing.sm) {
-            ForEach(top, id: \.muscle) { item in
-                topMusclePill(for: item.muscle, count: item.count)
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: Spacing.sm) {
+                ForEach(top, id: \.muscle) { item in
+                    topMusclePill(for: item.muscle, count: item.count)
+                }
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
+            VStack(spacing: Spacing.sm) {
+                ForEach(top, id: \.muscle) { item in
+                    topMusclePill(for: item.muscle, count: item.count)
+                }
+            }
         }
     }
 

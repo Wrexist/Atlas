@@ -38,6 +38,9 @@ struct TrainingPreferences: Codable, Hashable, Sendable {
     /// Defaults to `[.bodyweight]` — sensible floor that still lets
     /// the app function before onboarding completes.
     var equipmentAccess: Set<EquipmentKind>
+    /// Daily step target, nil until edited. Read through `stepGoal`,
+    /// which falls back to `StepGoalEngine.defaultGoal`.
+    var dailyStepGoal: Int?
 
     init(
         daysPerWeek: Int = 3,
@@ -60,6 +63,8 @@ struct TrainingPreferences: Codable, Hashable, Sendable {
     /// Plates that ship pre-selected for a typical commercial gym (kg).
     /// The user can edit them in Profile → Training.
     static let defaultPlatesKg: [Double] = PlateCalculatorEngine.kilogramPlates
+
+    var stepGoal: Int { StepGoalEngine.goal(stored: dailyStepGoal) }
 
     /// Plates available in `unit`, in that unit.
     func plates(for unit: MeasurementUnit) -> [Double] {

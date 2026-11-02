@@ -11,6 +11,7 @@ enum AppThemeColor: String, CaseIterable, Codable, Identifiable {
     case ocean
     case amber
     case onyx
+    case ember
 
     var id: String { rawValue }
 
@@ -21,6 +22,7 @@ enum AppThemeColor: String, CaseIterable, Codable, Identifiable {
         case .ocean: String(localized: "Ocean")
         case .amber: String(localized: "Amber")
         case .onyx: String(localized: "Graphite")
+        case .ember: String(localized: "Ember")
         }
     }
 
@@ -86,6 +88,16 @@ enum AppThemeColor: String, CaseIterable, Codable, Identifiable {
         washInk:   Color(light: 0x1F1F1D, dark: 0xDEDEDC)
     )
 
+    /// The warm orange of the Xeyo-style light look: a soft ember on the
+    /// warm paper page, deepened in light mode so accent ink clears AA.
+    private static let emberRamp = Ramp(
+        primary:   Color(light: 0xB04A17, dark: 0xF08A4B),
+        light:     Color(light: 0xA3441A, dark: 0xFFB27A),
+        dark:      Color(light: 0x9A3F12, dark: 0xB34B14),
+        highlight: Color(light: 0x8F3D12, dark: 0xFFD3B5),
+        washInk:   Color(light: 0x7E3510, dark: 0xFFB27A)
+    )
+
     private var ramp: Ramp {
         switch self {
         case .teal: Self.tealRamp
@@ -93,6 +105,7 @@ enum AppThemeColor: String, CaseIterable, Codable, Identifiable {
         case .ocean: Self.oceanRamp
         case .amber: Self.amberRamp
         case .onyx: Self.onyxRamp
+        case .ember: Self.emberRamp
         }
     }
 

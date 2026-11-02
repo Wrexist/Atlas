@@ -130,6 +130,42 @@ final class OpenFoodFactsServiceTests: XCTestCase {
         XCTAssertEqual(results.last?.per100g.fatG, 0)
     }
 
+    // MARK: - fetch: micronutrients
+
+    func test_fetch_micronutrients_convertGramsToLabelUnits() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.fortifiedMilk.utf8))
+        }
+        let product = try await service.fetch(barcode: "7310865004703")
+        let micros = try XCTUnwrap(product.per100g.micros)
+        XCTAssertEqual(try XCTUnwrap(micros.sodiumMg), 40, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(micros.potassiumMg), 150, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(micros.calciumMg), 120, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(micros.ironMg), 0.03, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(micros.vitaminDUg), 1, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(micros.vitaminB12Ug), 0.45, accuracy: 0.0001)
+    }
+
+    func test_fetch_micronutrients_deriveSodiumFromSalt_andRescaleServingValues() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.saltAndServingOnly.utf8))
+        }
+        let product = try await service.fetch(barcode: "7300400118115")
+        let micros = try XCTUnwrap(product.per100g.micros)
+        XCTAssertEqual(try XCTUnwrap(micros.sodiumMg), 500, accuracy: 0.001, "1.25 g salt is 0.5 g sodium")
+        XCTAssertEqual(try XCTUnwrap(micros.ironMg), 4, accuracy: 0.001, "1 mg per 25 g serving")
+        XCTAssertNil(micros.calciumMg, "250 g of calcium per 100 g is a unit mistake")
+        XCTAssertNil(micros.vitaminDUg)
+    }
+
+    func test_fetch_noMicronutrients_storesNone() async throws {
+        MockURLProtocol.handler = { request in
+            (Self.ok(for: request), Data(Fixtures.cocaCola.utf8))
+        }
+        let product = try await service.fetch(barcode: "5449000000996")
+        XCTAssertNil(product.per100g.micros)
+    }
+
     // MARK: - fetch: OFF data quirks
 
     func test_fetch_fallsBackToKilojoules_whenKcalAbsent() async throws {
@@ -801,6 +837,42 @@ private enum Fixtures {
     {
       "status": 0,
       "status_verbose": "product not found"
+    }
+    """
+
+    /// OFF states minerals and vitamins in grams per 100 g.
+    static let fortifiedMilk = """
+    {
+      "status": 1,
+      "product": {
+        "product_name": "Mellanmjölk",
+        "nutriments": {
+          "energy-kcal_100g": 46,
+          "sodium_100g": 0.04,
+          "potassium_100g": 0.15,
+          "calcium_100g": 0.12,
+          "iron_100g": "0.00003",
+          "vitamin-d_100g": 0.000001,
+          "vitamin-b12_100g": 4.5e-7
+        }
+      }
+    }
+    """
+
+    /// Salt only, and iron only per 25 g serving.
+    static let saltAndServingOnly = """
+    {
+      "status": 1,
+      "product": {
+        "product_name": "Knäckebröd",
+        "serving_quantity": 25,
+        "nutriments": {
+          "energy-kcal_100g": 350,
+          "salt_100g": 1.25,
+          "iron_serving": 0.001,
+          "calcium_100g": 250
+        }
+      }
     }
     """
 }

@@ -297,3 +297,13 @@ final class WatchWorkoutServiceTests: XCTestCase {
         XCTAssertEqual(service.activeSession?.isPaused, false)
     }
 }
+
+/// One alert per session on both devices; a drift here splits the namespace.
+final class RestNotificationIDTests: XCTestCase {
+    func test_watchRestNotificationID_matchesPhoneRequestID() {
+        let sessionID = UUID()
+        let phoneID = NotificationService.adHocIDPrefix
+            + WorkoutSessionService.restNotificationPrefix + sessionID.uuidString
+        XCTAssertEqual(WatchWorkoutSnapshot.restNotificationID(sessionID: sessionID), phoneID)
+    }
+}

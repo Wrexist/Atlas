@@ -156,7 +156,17 @@ enum NutritionLabelParser {
                 carbsG:   nutriments.carbsG * factor,
                 fatG:     nutriments.fatG * factor,
                 fiberG:   nutriments.fiberG.map { $0 * factor },
-                sugarsG:  nutriments.sugarsG.map { $0 * factor }
+                sugarsG:  nutriments.sugarsG.map { $0 * factor },
+                micros:   nutriments.micros.map { micros in
+                    Micronutrients(
+                        sodiumMg:     micros.sodiumMg.map { $0 * factor },
+                        potassiumMg:  micros.potassiumMg.map { $0 * factor },
+                        ironMg:       micros.ironMg.map { $0 * factor },
+                        calciumMg:    micros.calciumMg.map { $0 * factor },
+                        vitaminDUg:   micros.vitaminDUg.map { $0 * factor },
+                        vitaminB12Ug: micros.vitaminB12Ug.map { $0 * factor }
+                    )
+                }
             )
         }
     }
@@ -200,7 +210,8 @@ enum NutritionLabelParser {
                 fatG:     fat     ?? 0,
                 fiberG:   parseMacro(keyword: "fiber", in: normalized)
                        ?? parseMacro(keyword: "fibre", in: normalized),
-                sugarsG:  parseMacro(keyword: "sugar", in: normalized)
+                sugarsG:  parseMacro(keyword: "sugar", in: normalized),
+                micros:   parseMicros(in: normalized)
             ),
             isPer100gPanel: normalized.contains(where: isPer100gHeader)
         )
@@ -260,6 +271,74 @@ enum NutritionLabelParser {
                 let after = trimmed.dropFirst(prefix.count)
                 if let value = firstNumber(in: String(after)) {
                     return value
+                }
+            }
+        }
+        return nil
+    }
+
+    // MARK: - Micronutrient extractors
+
+    /// Sodium, potassium, iron, calcium, vitamin D and B12, in English
+    /// and Swedish. EU panels print salt in grams instead of sodium
+    /// (salt = sodium × 2.5).
+    private static func parseMicros(in lines: [String]) -> Micronutrients? {
+        let salt = parseAmount(keywords: ["salt"], in: lines).map { $0.inMilligrams(defaultUnit: "g") * 0.4 }
+        return Micronutrients(
+            sodiumMg:     parseAmount(keywords: ["sodium", "natrium"], in: lines)?.inMilligrams(defaultUnit: "mg") ?? salt,
+            potassiumMg:  parseAmount(keywords: ["potassium", "kalium"], in: lines)?.inMilligrams(defaultUnit: "mg"),
+            ironMg:       parseAmount(keywords: ["iron", "järn"], in: lines)?.inMilligrams(defaultUnit: "mg"),
+            calciumMg:    parseAmount(keywords: ["calcium", "kalcium"], in: lines)?.inMilligrams(defaultUnit: "mg"),
+            vitaminDUg:   parseAmount(keywords: ["vitamin d", "d-vitamin"], in: lines)?.inMicrograms(defaultUnit: "µg"),
+            vitaminB12Ug: parseAmount(keywords: ["vitamin b12", "b12-vitamin", "b12"], in: lines)?.inMicrograms(defaultUnit: "µg")
+        ).nonEmpty
+    }
+
+    struct LabelAmount: Equatable {
+        let value: Double
+        /// Lowercased unit as printed ("mg", "µg", "g", "iu"), nil if none.
+        let unit: String?
+
+        func inMilligrams(defaultUnit: String) -> Double {
+            switch unit ?? defaultUnit {
+            case "g":                    value * 1000
+            case "µg", "μg", "mcg", "ug": value / 1000
+            default:                     value
+            }
+        }
+
+        /// Vitamin D in IU: 40 IU = 1 µg.
+        func inMicrograms(defaultUnit: String) -> Double {
+            switch unit ?? defaultUnit {
+            case "mg":       value * 1000
+            case "iu", "ie": value / 40
+            default:         value
+            }
+        }
+    }
+
+    nonisolated(unsafe) private static let amountRegex = try? NSRegularExpression(
+        pattern: #"([0-9]+(?:[.,][0-9]+)?)\s*(mg|µg|μg|mcg|ug|iu|ie|g)?(?![a-zà-ö0-9%])"#
+    )
+
+    /// The first amount after any of `keywords` as a whole word, with
+    /// its unit. Skips percent-daily-value numbers.
+    static func parseAmount(keywords: [String], in lines: [String]) -> LabelAmount? {
+        guard let regex = amountRegex else { return nil }
+        for keyword in keywords {
+            let word = "(?<![a-zà-ö])" + NSRegularExpression.escapedPattern(for: keyword) + "(?![a-zà-ö0-9])"
+            for line in lines {
+                guard let range = line.range(of: word, options: .regularExpression) else { continue }
+                let tail = String(line[range.upperBound...])
+                let nsTail = tail as NSString
+                for match in regex.matches(in: tail, range: NSRange(location: 0, length: nsTail.length)) {
+                    let end = match.range.location + match.range.length
+                    if end < nsTail.length, nsTail.character(at: end) == 37 /* % */ { continue }
+                    let raw = nsTail.substring(with: match.range(at: 1)).replacingOccurrences(of: ",", with: ".")
+                    guard let value = Double(raw) else { continue }
+                    let unitRange = match.range(at: 2)
+                    let unit = unitRange.location == NSNotFound ? nil : nsTail.substring(with: unitRange)
+                    return LabelAmount(value: value, unit: unit)
                 }
             }
         }

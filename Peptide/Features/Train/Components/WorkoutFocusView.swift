@@ -22,6 +22,7 @@ struct WorkoutFocusView: View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(spacing: Spacing.md) {
+                    adjustmentBanner
                     if let entry {
                         ExerciseHeroView(exercise: exercise)
                             .id(exercise?.id)
@@ -44,7 +45,7 @@ struct WorkoutFocusView: View {
             }
         }
         .scrollDismissesKeyboard(.interactively)
-        .background(AppColor.trainingBackground.ignoresSafeArea())
+        .background(AppColor.background.ignoresSafeArea())
         .task { await library.load() }
         .sheet(item: $detailExercise) { exercise in
                 NavigationStack {
@@ -55,6 +56,20 @@ struct WorkoutFocusView: View {
                             }
                         }
                 }
+        }
+    }
+
+    @ViewBuilder
+    private var adjustmentBanner: some View {
+        if let proposed = service.proposedAdjustment {
+            let applied = service.activeAdjustment != nil
+            TrainingAdjustmentBanner(
+                adjustment: proposed, readiness: service.readiness.reason, deload: service.deload,
+                isApplied: applied
+            ) {
+                service.useNormalSuggestions(applied)
+            }
+            .padding(.top, Spacing.sm)
         }
     }
 
@@ -101,7 +116,7 @@ struct WorkoutFocusView: View {
             .frame(width: 56, height: 56)
             .clipShape(Circle())
             .padding(Spacing.xs)
-            .background(Circle().fill(AppColor.trainingPanel))
+            .background(Circle().fill(AppColor.surfaceElevated))
             .overlay(Circle().stroke(selected ? AppColor.trainingSelection : AppColor.glassBorder, lineWidth: selected ? 3 : 1))
             .overlay(
                 Circle()
@@ -114,7 +129,7 @@ struct WorkoutFocusView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .symbolRenderingMode(.palette)
                         .foregroundStyle(AppColor.onAccent, AppColor.trainingComplete)
-                        .background(Circle().fill(AppColor.trainingPanel))
+                        .background(Circle().fill(AppColor.surfaceElevated))
                         .symbolEffect(.bounce, value: complete)
                         .transition(.scale.combined(with: .opacity))
                         .accessibilityHidden(true)
@@ -126,7 +141,7 @@ struct WorkoutFocusView: View {
         }
         .buttonStyle(ScalePressStyle())
         .accessibilityLabel(Text(library.displayName(for: item.exerciseID)))
-        .accessibilityValue(complete ? Text("Complete") : Text("Sets done: \(workingDone) of \(working.count)"))
+        .accessibilityValue(complete ? Text("status.complete") : Text("Sets done: \(workingDone) of \(working.count)"))
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
@@ -186,18 +201,16 @@ struct WorkoutFocusView: View {
                 }
             }
             .appAnimation(AppAnimation.springSnappy, value: entry.sets.count)
-            HStack {
-                Button {
-                    Haptics.impact(.light)
-                    service.addSet(toExerciseID: entry.id)
-                } label: {
-                    Label("Add set", systemImage: "plus").minimumHitArea()
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    addSetButton(entry).fixedSize()
+                    Spacer()
+                    restMenu(entry).fixedSize()
                 }
-                Spacer()
-                RestTimeMenu(overrideSeconds: entry.restSeconds, defaultSeconds: defaultRestSeconds) { seconds in
-                    service.setRestSeconds(seconds, forExerciseEntryID: entry.id)
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    addSetButton(entry)
+                    restMenu(entry)
                 }
-                .minimumHitArea()
             }
             .font(AppFont.callout)
             Group {
@@ -238,7 +251,23 @@ struct WorkoutFocusView: View {
         }
         .padding(Spacing.xl)
         .foregroundStyle(AppColor.textPrimary)
-        .background(AppColor.trainingPanel, in: RoundedRectangle(cornerRadius: Spacing.sheetCornerRadius, style: .continuous))
+        .background(AppColor.surfaceElevated, in: RoundedRectangle(cornerRadius: Spacing.sheetCornerRadius, style: .continuous))
+    }
+
+    private func addSetButton(_ entry: WorkoutExerciseEntry) -> some View {
+        Button {
+            Haptics.impact(.light)
+            service.addSet(toExerciseID: entry.id)
+        } label: {
+            Label("Add set", systemImage: "plus").minimumHitArea()
+        }
+    }
+
+    private func restMenu(_ entry: WorkoutExerciseEntry) -> some View {
+        RestTimeMenu(overrideSeconds: entry.restSeconds, defaultSeconds: defaultRestSeconds) { seconds in
+            service.setRestSeconds(seconds, forExerciseEntryID: entry.id)
+        }
+        .minimumHitArea()
     }
 
     /// The painted "Finish workout" above, shown once every set is logged.
@@ -348,52 +377,85 @@ private struct WorkoutFocusRestHeader: View {
         TimelineView(.animation(minimumInterval: 1, paused: rest.frozenSeconds != nil)) { context in
             let seconds = Int(ceil(rest.remaining(at: context.date)))
             let remaining = WorkoutClock.label(seconds)
-            let isAccessibilitySize = dynamicTypeSize.isAccessibilitySize
-            let headerLayout = isAccessibilitySize
-                ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.sm))
-                : AnyLayout(HStackLayout(spacing: Spacing.lg))
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                headerLayout {
-                    RestCountdownRing(rest: rest)
-                        .frame(width: 64, height: 64)
-                    VStack(alignment: .leading, spacing: Spacing.xxs) {
-                        Text(target)
-                            .font(AppFont.callout).foregroundStyle(AppColor.textSecondary)
-                            .lineLimit(isAccessibilitySize ? nil : 2)
-                        Text(remaining)
-                            .font(AppFont.statValueSmall).monospacedDigit()
-                            .contentTransition(.numericText(countsDown: true))
-                            .appAnimation(AppAnimation.quick, value: remaining)
-                            .accessibilityLabel("Rest remaining")
-                            .accessibilityValue(WorkoutClock.spoken(seconds))
+                // The title gets the full width so a long "Up next" line
+                // never squeezes the countdown into one digit per line.
+                Text(target)
+                    .font(AppFont.callout).foregroundStyle(AppColor.textSecondary)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: Spacing.lg) {
+                        countdown(remaining, seconds: seconds)
+                        Spacer(minLength: Spacing.xs)
+                        skipButton
                     }
-                    Spacer(minLength: Spacing.xs)
-                    GlassButton(title: "Skip", icon: "forward.end.fill", style: .secondary, action: onSkip)
-                        .fixedSize()
+                    VStack(alignment: .leading, spacing: Spacing.sm) {
+                        countdown(remaining, seconds: seconds)
+                        skipButton
+                    }
                 }
-                HStack(spacing: Spacing.sm) {
-                    Button(action: onUndo) {
-                        Label("Undo set", systemImage: "arrow.uturn.backward")
-                            .minimumHitArea()
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: Spacing.sm) {
+                        undoButton
+                        Spacer()
+                        adjustButtons
                     }
-                    .accessibilityLabel("Undo last completed set")
-                    .accessibilityIdentifier("workout-undo-rest-set")
-                    Spacer()
-                    adjustButton("−15s", seconds: -15, label: "Remove 15 seconds")
-                    adjustButton("+15s", seconds: 15, label: "Add 15 seconds")
+                    VStack(alignment: .leading, spacing: Spacing.sm) {
+                        undoButton
+                        HStack(spacing: Spacing.sm) { adjustButtons }
+                    }
                 }
                 .font(AppFont.subheadline)
             }
         }
     }
 
+    private func countdown(_ remaining: String, seconds: Int) -> some View {
+        HStack(spacing: Spacing.lg) {
+            RestCountdownRing(rest: rest)
+                .frame(width: 64, height: 64)
+            Text(remaining)
+                .font(AppFont.statValueSmall).monospacedDigit()
+                .lineLimit(1)
+                .fixedSize()
+                .contentTransition(.numericText(countsDown: true))
+                .appAnimation(AppAnimation.quick, value: remaining)
+                .accessibilityLabel("Rest remaining")
+                .accessibilityValue(WorkoutClock.spoken(seconds))
+        }
+    }
+
+    private var skipButton: some View {
+        GlassButton(title: "Skip", icon: "forward.end.fill", style: .secondary, action: onSkip)
+            .fixedSize()
+    }
+
+    private var undoButton: some View {
+        Button(action: onUndo) {
+            Label("Undo set", systemImage: "arrow.uturn.backward")
+                .lineLimit(1)
+                .fixedSize()
+                .minimumHitArea()
+        }
+        .accessibilityLabel("Undo last completed set")
+        .accessibilityIdentifier("workout-undo-rest-set")
+    }
+
+    @ViewBuilder private var adjustButtons: some View {
+        adjustButton("−15s", seconds: -15, label: "Remove 15 seconds")
+        adjustButton("+15s", seconds: 15, label: "Add 15 seconds")
+    }
+
     private func adjustButton(_ title: String, seconds: TimeInterval, label: LocalizedStringKey) -> some View {
         Button { onAdjust(seconds) } label: {
             Text(title)
                 .monospacedDigit()
+                .lineLimit(1)
+                .fixedSize()
                 .padding(.horizontal, Spacing.md)
                 .minimumHitArea()
-                .background(AppColor.trainingInput, in: Capsule())
+                .background(AppColor.surfaceSecondary, in: Capsule())
         }
         .buttonStyle(ScalePressStyle())
         .accessibilityLabel(label)
@@ -409,7 +471,7 @@ private struct RestCountdownRing: View {
         TimelineView(.animation(minimumInterval: 1.0 / 30, paused: rest.frozenSeconds != nil)) { context in
             ZStack {
                 Circle()
-                    .stroke(AppColor.trainingInput, lineWidth: 6)
+                    .stroke(AppColor.track, lineWidth: 6)
                 Circle()
                     .trim(from: 0, to: rest.remainingFraction(at: context.date))
                     .stroke(AppColor.trainingSelection, style: StrokeStyle(lineWidth: 6, lineCap: .round))

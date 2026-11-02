@@ -12,7 +12,7 @@ extension PeptideCategory {
         case .antiAging: "Anti-Aging"
         case .immune: "Immune"
         case .metabolic: "Metabolic"
-        case .other: "Other"
+        case .other: "choice.other"
         }
     }
 }
@@ -22,7 +22,7 @@ extension BiologicalSex {
         switch self {
         case .male: "Male"
         case .female: "Female"
-        case .other: "Other"
+        case .other: "choice.other"
         case .unspecified: "Prefer not to say"
         }
     }
@@ -31,7 +31,7 @@ extension BiologicalSex {
         switch self {
         case .male: "Male"
         case .female: "Female"
-        case .other: "Other"
+        case .other: "choice.other"
         case .unspecified: "Skip"
         }
     }
@@ -41,7 +41,7 @@ extension ActivityLevel {
     var localizedDisplay: LocalizedStringKey {
         switch self {
         case .sedentary: "Sedentary"
-        case .light: "Light"
+        case .light: "activity.light"
         case .moderate: "Moderate"
         case .active: "Active"
         case .athlete: "Athlete"

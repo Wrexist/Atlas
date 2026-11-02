@@ -43,13 +43,21 @@ struct ExerciseMuscleLegend: View {
     let highlights: [AnatomicalMuscle: MuscleHighlight]
 
     var body: some View {
-        HStack(spacing: Spacing.md) {
-            tier(.primary, color: AppColor.trainingPrimaryMuscle)
-            tier(.secondary, color: AppColor.trainingSecondaryMuscle)
+        // Side by side while both lists fit whole; otherwise one tier per
+        // line, so long (Swedish) names get the full width before any "…".
+        // One line each: the hero has a fixed height.
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: Spacing.md) { tiers }
+            VStack(alignment: .leading, spacing: Spacing.xxs) { tiers }
         }
         .font(AppFont.caption2)
-        .lineLimit(1)
         .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private var tiers: some View {
+        tier(.primary, color: AppColor.trainingPrimaryMuscle)
+        tier(.secondary, color: AppColor.trainingSecondaryMuscle)
     }
 
     @ViewBuilder
@@ -60,9 +68,8 @@ struct ExerciseMuscleLegend: View {
                 Circle().fill(color).frame(width: 8, height: 8)
                 Text(names.joined(separator: ", "))
                     .foregroundStyle(AppColor.textSecondary)
-                    .truncationMode(.tail)
+                    .lineLimit(1)
             }
-            .layoutPriority(tier == .primary ? 1 : 0)
         }
     }
 

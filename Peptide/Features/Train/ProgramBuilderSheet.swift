@@ -188,11 +188,10 @@ struct ProgramBuilderSheet: View {
     }
 
     private func slotRow(_ slot: RoutineExercise, in day: GeneratedDay) -> some View {
-        let name = library.lookup(id: slot.exerciseID)?.name ?? slot.exerciseID
-        let pattern = day.patterns[slot.id]?.displayName ?? ""
-        let detail = slot.supersetGroup == nil
-            ? "\(slot.targetSets) × \(slot.targetReps) · \(pattern)"
-            : "\(slot.targetSets) × \(slot.targetReps) · \(pattern) · Superset"
+        let name = library.displayName(for: slot.exerciseID)
+        let scheme = String(localized: "\(slot.targetSets) × \(slot.targetReps)")
+        let parts = [scheme, day.patterns[slot.id]?.displayName, slot.supersetGroup == nil ? nil : String(localized: "Superset")]
+        let detail = parts.compactMap { $0 }.joined(separator: " · ")
         let options = alternatives[slot.id] ?? []
         return HStack(spacing: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
@@ -211,7 +210,7 @@ struct ProgramBuilderSheet: View {
             if !options.isEmpty {
                 Menu {
                     ForEach(options, id: \.self) { exerciseID in
-                        Button(library.lookup(id: exerciseID)?.name ?? exerciseID) {
+                        Button(library.displayName(for: exerciseID)) {
                             swap(slot.id, to: exerciseID)
                         }
                     }

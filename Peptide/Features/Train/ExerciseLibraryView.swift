@@ -25,7 +25,7 @@ struct ExerciseLibraryView: View {
 
             content
         }
-        .background(AppColor.background)
+        .pageBackground()
         .searchable(
             text: $browsing.query,
             placement: .navigationBarDrawer(displayMode: .always),

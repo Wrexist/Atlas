@@ -93,7 +93,7 @@ struct SettingsToggleRow: View {
             HStack(spacing: Spacing.md) {
                 Image(systemName: icon)
                     .font(AppFont.scaled(13))
-                    .foregroundStyle(AppColor.accentPrimary)
+                    .foregroundStyle(AppColor.textSecondary)
                     .frame(width: settingsIconColumnWidth)
                     .accessibilityHidden(true)
 
@@ -119,7 +119,7 @@ private struct ThemePickerRow: View {
             HStack(spacing: Spacing.md) {
                 Image(systemName: "paintpalette.fill")
                     .font(AppFont.scaled(13))
-                    .foregroundStyle(AppColor.accentPrimary)
+                    .foregroundStyle(AppColor.textSecondary)
                     .frame(width: settingsIconColumnWidth)
                     .accessibilityHidden(true)
 
@@ -211,7 +211,7 @@ struct SettingsPickerRow<Control: View>: View {
             HStack(spacing: Spacing.md) {
                 Image(systemName: icon)
                     .font(AppFont.scaled(13))
-                    .foregroundStyle(AppColor.accentPrimary)
+                    .foregroundStyle(AppColor.textSecondary)
                     .frame(width: settingsIconColumnWidth)
                     .accessibilityHidden(true)
 

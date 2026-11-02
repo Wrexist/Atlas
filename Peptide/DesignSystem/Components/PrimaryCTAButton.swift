@@ -5,8 +5,9 @@ import SwiftUI
 /// one action a screen exists for, painted rather than glazed, so it
 /// outranks every glass control around it.
 ///
-/// The fill is `ctaGradientStart → ctaGradientEnd`, the pair tuned to carry
-/// `onAccent` ink at 4.5:1 in both schemes and every theme. An accent
+/// The fill is `ctaGradientStart → ctaGradientEnd`: an ink pill in light
+/// mode, a near-white pill in dark, carrying `inverseInk` well past 4.5:1 in
+/// both schemes and every theme. An accent
 /// gradient cannot do this job — `accentPrimary` and `accentLight` are ink
 /// colours, and near-white on them lands as low as 1.3:1, which is why
 /// `design-lint`'s `accent-gradient-fill` rule rejects that construct.
@@ -59,7 +60,7 @@ private struct PrimaryCTAChrome: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .foregroundStyle(AppColor.onAccent)
+            .foregroundStyle(AppColor.inverseInk)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.md)

@@ -10,8 +10,10 @@ import SwiftUI
 /// selection is bound to a stable tag so a page arriving mid-session
 /// doesn't throw the pager back to the top. The one exception is the
 /// Workout page: a workout starting on the phone brings it to the front,
-/// since that is why the user raised their wrist. A complication tap
-/// opens the page that complication summarises.
+/// since that is why the user raised their wrist. While the phone is out
+/// of reach and runs no workout, the Workout page follows Today instead,
+/// offering to start one on the wrist. A complication tap opens the page
+/// that complication summarises.
 struct WatchRootView: View {
     @EnvironmentObject private var store: WatchStore
     @Environment(\.scenePhase) private var scenePhase
@@ -19,7 +21,8 @@ struct WatchRootView: View {
 
     private var pages: [WatchPage] {
         let data = store.watchData
-        var pages: [WatchPage] = data.workout == nil ? [.today] : [.workout, .today]
+        var pages: [WatchPage] = store.displayedWorkout != nil ? [.workout, .today]
+            : store.canStartOfflineWorkout ? [.today, .workout] : [.today]
         if data.vitals != nil { pages.append(.recovery) }
         if data.vitals?.sleep != nil { pages.append(.sleep) }
         if data.nutrition != nil { pages.append(.nutrition) }
@@ -39,9 +42,9 @@ struct WatchRootView: View {
             .tabViewStyle(.verticalPage)
         }
         .onAppear {
-            if store.watchData.workout != nil { selection = .workout }
+            if store.displayedWorkout != nil { selection = .workout }
         }
-        .onChange(of: store.watchData.workout?.sessionId) { _, session in
+        .onChange(of: store.displayedWorkout?.sessionId) { _, session in
             if session != nil { selection = .workout }
         }
         .onOpenURL { url in
@@ -65,7 +68,11 @@ struct WatchRootView: View {
         let data = store.watchData
         switch page {
         case .workout:
-            if let workout = data.workout { WorkoutPage(workout: workout) }
+            if let workout = store.displayedWorkout {
+                WorkoutPage(workout: workout)
+            } else {
+                OfflineStartPage()
+            }
         case .today:
             TodayPage()
         case .recovery:

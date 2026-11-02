@@ -46,12 +46,12 @@ struct PremiumPromoCard<Trailing: View>: View {
                 VStack(alignment: .leading, spacing: Spacing.xs) {
                     if let eyebrow {
                         Text(eyebrow)
-                            .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
+                            .font(AppFont.scaled(11, weight: .semibold))
                             .tracking(1.0)
                             .foregroundStyle(AppColor.textPrimary.opacity(0.65))
                     }
                     Text(title)
-                        .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .foregroundStyle(AppColor.textPrimary)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
@@ -79,11 +79,7 @@ struct PremiumPromoCard<Trailing: View>: View {
             }
             .padding(Spacing.lg)
             .background {
-                // Backdrop lifted to its own component so the
-                // Biology tab and future premium surfaces can sit
-                // on the same starfield without duplicating the
-                // gradient + Canvas dance.
-                CosmicBackdrop()
+                GlowBackdrop()
             }
             .clipShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous))
             .overlay {
@@ -96,7 +92,7 @@ struct PremiumPromoCard<Trailing: View>: View {
 
     private func ctaPill(label: LocalizedStringKey) -> some View {
         Text(label)
-            .font(AppFont.scaled(11, weight: .heavy))
+            .font(AppFont.scaled(11, weight: .semibold))
             .foregroundStyle(AppColor.textPrimary)
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, 6)
@@ -115,9 +111,9 @@ struct PremiumPromoCard<Trailing: View>: View {
     private func qualifierPill(label: LocalizedStringKey) -> some View {
         HStack(spacing: 4) {
             Image(systemName: "lock.fill")
-                .font(AppFont.scaled(8, weight: .heavy))
+                .font(AppFont.scaled(8, weight: .semibold))
             Text(label)
-                .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .tracking(0.3)
         }
         .foregroundStyle(AppColor.textPrimary.opacity(0.85))
@@ -161,10 +157,6 @@ struct BrandGlyphMark: View {
         MilestoneArtwork(size: 70, style: .emblem, isActive: false)
     }
 }
-
-// SplitMix64 + starfield Canvas moved to CosmicBackdrop.swift so
-// the Biology tab can sit on the same backdrop without each
-// premium surface re-implementing the math.
 
 #Preview {
     ZStack {

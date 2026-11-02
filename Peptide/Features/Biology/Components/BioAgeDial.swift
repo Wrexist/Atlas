@@ -191,7 +191,7 @@ struct BioAgeDial: View {
         let x = sin(radians) * radius
         let y = -cos(radians) * radius
         return Text(Self.yearLabel(value))
-            .font(AppFont.scaled(13, weight: .semibold, design: .rounded))
+            .font(AppFont.scaled(13, weight: .semibold))
             .foregroundStyle(AppColor.textSecondary)
             .offset(x: x, y: y)
     }
@@ -223,14 +223,14 @@ struct BioAgeDial: View {
 
 #Preview("Locked (no marker)") {
     ZStack {
-        CosmicBackdrop(intensity: 0.55).ignoresSafeArea()
+        PageBackdrop().ignoresSafeArea()
         BioAgeDial(chronologicalAge: 26, bioAge: nil)
     }
 }
 
 #Preview("Unlocked, marker at 24.5") {
     ZStack {
-        CosmicBackdrop(intensity: 0.55).ignoresSafeArea()
+        PageBackdrop().ignoresSafeArea()
         BioAgeDial(chronologicalAge: 26, bioAge: 24.5)
     }
 }

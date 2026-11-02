@@ -43,6 +43,7 @@ run "Checker self-tests (copy claims)" python3 scripts/test_copy_claims.py
 run "Checker self-tests (contrast)" python3 scripts/test_contrast_check.py
 run "Checker self-tests (store metadata)" python3 scripts/test_store_metadata.py
 run "Checker self-tests (ratchet)" python3 scripts/test_ratchet.py
+run "Checker self-tests (localization)" python3 scripts/test_check_localization.py
 run "Design system (20 rules)" python3 scripts/design-lint.py --all
 run "Colour contrast (token pairs, WCAG AA)" python3 scripts/contrast-check.py
 

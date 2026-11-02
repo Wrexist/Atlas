@@ -121,12 +121,12 @@ extension ProgramGeneratorEngine {
 
         var title: String {
             switch self {
-            case .fullBodyA, .fullBodyB, .fullBodyC: return "Full body"
-            case .upperA, .upperB:                   return "Upper"
-            case .lowerA, .lowerB:                   return "Lower"
-            case .push:                              return "Push"
-            case .pull:                              return "Pull"
-            case .legs:                              return "Legs"
+            case .fullBodyA, .fullBodyB, .fullBodyC: return String(localized: "program.day.fullBody", defaultValue: "Full body")
+            case .upperA, .upperB:                   return String(localized: "program.day.upper", defaultValue: "Upper")
+            case .lowerA, .lowerB:                   return String(localized: "program.day.lower", defaultValue: "Lower")
+            case .push:                              return String(localized: "program.day.push", defaultValue: "Push")
+            case .pull:                              return String(localized: "program.day.pull", defaultValue: "Pull")
+            case .legs:                              return String(localized: "program.day.legs", defaultValue: "Legs")
             }
         }
 

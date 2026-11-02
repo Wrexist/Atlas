@@ -198,6 +198,12 @@ struct WatchData: Codable, Equatable, Sendable {
     /// The phone's Haptic Feedback setting, so the wrist honours it too.
     /// Nil from an older phone build, which reads as on.
     let hapticsEnabled: Bool?
+    /// Routines and recent lifts the Watch can start while the phone is
+    /// out of reach. Nil from an older phone build.
+    private(set) var trainingCatalog: WatchTrainingCatalog?
+    /// Workouts the Watch ran on its own that the phone has filed, most
+    /// recent last, so the Watch can stop holding them for delivery.
+    private(set) var syncedWorkoutIDs: [UUID]?
 
     var compliance: Double {
         totalToday > 0 ? Double(completedToday) / Double(totalToday) : 0
@@ -226,7 +232,9 @@ struct WatchData: Codable, Equatable, Sendable {
         vitals: WatchVitalsSnapshot? = nil,
         workout: WatchWorkoutSnapshot? = nil,
         training: WatchTrainingSnapshot? = nil,
-        hapticsEnabled: Bool? = nil
+        hapticsEnabled: Bool? = nil,
+        trainingCatalog: WatchTrainingCatalog? = nil,
+        syncedWorkoutIDs: [UUID]? = nil
     ) {
         self.todayEntries = todayEntries
         self.completedToday = completedToday
@@ -251,6 +259,8 @@ struct WatchData: Codable, Equatable, Sendable {
         self.workout = workout
         self.training = training
         self.hapticsEnabled = hapticsEnabled
+        self.trainingCatalog = trainingCatalog
+        self.syncedWorkoutIDs = syncedWorkoutIDs
     }
 
     init(from decoder: Decoder) throws {
@@ -278,6 +288,8 @@ struct WatchData: Codable, Equatable, Sendable {
         workout = try c.decodeIfPresent(WatchWorkoutSnapshot.self, forKey: .workout)
         training = try c.decodeIfPresent(WatchTrainingSnapshot.self, forKey: .training)
         hapticsEnabled = try c.decodeIfPresent(Bool.self, forKey: .hapticsEnabled)
+        trainingCatalog = try c.decodeIfPresent(WatchTrainingCatalog.self, forKey: .trainingCatalog)
+        syncedWorkoutIDs = try c.decodeIfPresent([UUID].self, forKey: .syncedWorkoutIDs)
     }
 
     /// The same snapshot with a new dose list — what an optimistic Watch
@@ -300,6 +312,16 @@ struct WatchData: Codable, Equatable, Sendable {
         var copy = self
         copy.workout = workout
         if let updatedAt { copy.lastUpdated = updatedAt }
+        return copy
+    }
+
+    /// The same snapshot carrying the phone's current catalog and receipts
+    /// for Watch-run workouts. Every push takes them from one place on the
+    /// phone, so no push path can drop them.
+    func replacingOfflineSync(catalog: WatchTrainingCatalog?, syncedWorkoutIDs: [UUID]) -> WatchData {
+        var copy = self
+        copy.trainingCatalog = catalog
+        copy.syncedWorkoutIDs = syncedWorkoutIDs.isEmpty ? nil : syncedWorkoutIDs
         return copy
     }
 
@@ -384,6 +406,7 @@ struct WatchData: Codable, Equatable, Sendable {
         case vitals
         case workout, training
         case hapticsEnabled
+        case trainingCatalog, syncedWorkoutIDs
     }
 
     static let empty = WatchData(
@@ -416,6 +439,15 @@ enum WatchMessage {
     /// delivered twice (live send, then the `transferUserInfo` fallback)
     /// is applied once.
     static let messageIdKey = "messageId"
+    /// Watch → phone: a workout the Watch ran on its own while the phone
+    /// was out of reach, finished and ready to file. Carries
+    /// `offlineWorkoutKey` with a JSON-encoded `WatchOfflineWorkout` and
+    /// `offlineWorkoutIdKey` with its id, so the Watch can tell which are
+    /// still in flight without decoding them. Always sent with
+    /// `transferUserInfo`, which survives either app being closed.
+    static let offlineWorkout = "offlineWorkout"
+    static let offlineWorkoutKey = "offlineWorkoutData"
+    static let offlineWorkoutIdKey = "offlineWorkoutId"
     /// When the user tapped, as seconds since 1970. A queued command can
     /// arrive hours later; the phone logs it at the tap, not at delivery.
     static let issuedAtKey = "issuedAt"

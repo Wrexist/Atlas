@@ -82,7 +82,6 @@ struct BiomarkerTile: View {
         HStack(alignment: .firstTextBaseline, spacing: Spacing.xxs) {
             Text(valueText)
                 .font(AppFont.scaled(size == .small ? 32 : 40, weight: .light, relativeTo: .largeTitle))
-                .fontDesign(.rounded)
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
                 .lineLimit(1)
@@ -92,6 +91,7 @@ struct BiomarkerTile: View {
                 Text(unitText)
                     .font(AppFont.scaled(13, weight: .medium))
                     .foregroundStyle(AppColor.textSecondary)
+                    .fixedSize()
             }
         }
     }

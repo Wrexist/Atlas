@@ -25,6 +25,25 @@ final class WorkoutSessionService {
         case discarded, finished
     }
 
+    /// Today's readiness from Health, read when a workout starts. Normal
+    /// until then, and whenever Health has nothing to say.
+    private(set) var readiness = ReadinessEngine.Assessment.unknown
+    /// Why this week calls for a deload, read from finished workouts when
+    /// a workout starts.
+    private(set) var deload: DeloadEngine.Reason?
+    /// The workout the user switched back to normal suggestions for.
+    private(set) var normalSuggestionsSessionID: UUID? = UserDefaults.standard
+        .string(forKey: WorkoutSessionService.normalSuggestionsKey).flatMap(UUID.init(uuidString:))
+
+    private static let normalSuggestionsKey = "workout.normalSuggestionsSessionID"
+    /// The routine the active workout was started from, for its targets
+    /// when the session links no stored routine (a builder session, a
+    /// template, or one deleted mid-workout). Saved so a relaunch mid-workout
+    /// keeps its targets and in-workout adaptation.
+    @ObservationIgnored private var seedRoutine: SeedRoutine? = SeedRoutine.load() {
+        didSet { SeedRoutine.save(seedRoutine) }
+    }
+
     /// How recently a session must have started for a second `startWorkout`
     /// to be treated as a duplicate tap rather than a fresh workout. Roughly
     /// the SwiftUI re-render window.
@@ -45,9 +64,16 @@ final class WorkoutSessionService {
             // one whose workout is long gone — or lose one whose workout isn't.
             WorkoutLiveActivityService.shared.reconcile(active: self.activeSession)
             DataStore.current?.pushWorkoutToWatch()
+            DataStore.current?.pushTrainingCatalogToWatch()
             self.reconcileRest()
             self.closeIfStale()
             self.closeStaleOrphans()
+            if let session = self.activeSession {
+                self.deload = DeloadEngine.reason(
+                    history: SwiftDataRepository.shared.loadWorkoutSessions(), now: session.startedAt, calendar: .current
+                )
+                await self.refreshReadiness()
+            }
         }
     }
 
@@ -84,13 +110,14 @@ final class WorkoutSessionService {
         // the rest of this workout — reads history as it stands right now.
         cancelFinishAttempt()
         invalidatePreviousSetCache()
+        deload = DeloadEngine.reason(history: SwiftDataRepository.shared.loadWorkoutSessions(), now: now, calendar: .current)
         // Seed from the routine before the session exists, so the weight
         // lookup below still sees the *previous* workout as the newest one.
         let exercises: [WorkoutExerciseEntry] = routine.map { routine in
             RoutineSeedEngine.sessionExercises(for: routine) { exerciseID in
                 lastCompletedSet(forExerciseID: exerciseID)
             }
-            .map { entry in progressed(entry, routine: routine) }
+            .map { entry in progressed(entry, routine: routine, adjustment: proposedAdjustment) }
         } ?? []
 
         let session = WorkoutSession(
@@ -101,10 +128,12 @@ final class WorkoutSessionService {
             focus: WorkoutFocusState(selectedEntryID: exercises.first?.id)
         )
         activeSession = session
+        seedRoutine = routine.map { SeedRoutine(sessionID: session.id, routine: $0) }
         SwiftDataRepository.shared.upsertWorkoutSession(session)
         WorkoutLiveActivityService.shared.start(session)
         DataStore.current?.refreshTrainingGlanceables()
         AppLog.training.info("Workout started (id: \(session.id, privacy: .public))")
+        Task { await refreshReadiness() }
         return session
     }
 
@@ -241,6 +270,32 @@ final class WorkoutSessionService {
         }
     }
 
+    /// Files a workout the Watch ran on its own while the phone was out of
+    /// reach, through the same durable save, PR detection, HealthKit write
+    /// and reward as a phone finish. Keyed by the Watch's id, so a copy
+    /// delivered twice is filed once. True once the workout is on file
+    /// (or had nothing worth filing), so the Watch can let it go; false
+    /// when the save failed and the Watch should send it again.
+    func importWatchWorkout(_ workout: WatchOfflineWorkout) -> Bool {
+        let repo = SwiftDataRepository.shared
+        guard repo.loadWorkoutSession(id: workout.id) == nil else { return true }
+        guard let session = WatchWorkoutImportEngine.session(from: workout) else { return true }
+        do { try repo.saveWorkoutDurably(session) }
+        catch {
+            AppLog.training.error("Watch workout import failed: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+        let detections = PRDetectionEngine.shared.ingest(session: session)
+        invalidatePreviousSetCache()
+        if HealthSyncSettings.isEnabled {
+            Task { await HealthKitService.shared.writeWorkout(session) }
+        }
+        DataStore.current?.recordWorkoutFinished(detectedPRCount: detections.count)
+        DataStore.current?.refreshTrainingGlanceables()
+        AppLog.training.info("Watch workout imported (id: \(session.id, privacy: .public), sets: \(session.completedSetCount, privacy: .public))")
+        return true
+    }
+
     /// Re-reads the in-progress session after an iCloud account switch,
     /// so the previous account's workout doesn't stay on screen.
     func reloadActiveSession() {
@@ -271,7 +326,7 @@ final class WorkoutSessionService {
                 reps: seed?.reps ?? 8,
                 measurement: seed?.measurement
             )]
-        ), routine: nil)
+        ), routine: nil, adjustment: activeAdjustment)
         session.exercises.append(entry)
         if session.focus == nil { session.focus = WorkoutFocusState() }
         session.focus?.selectedEntryID = entry.id
@@ -366,8 +421,14 @@ final class WorkoutSessionService {
             updated.completedAt = nil
         }
         session.exercises[exIdx].sets[setIdx] = updated
+        if !prior.completed && !updated.isWarmup && abs(prior.weightKg - updated.weightKg) >= 0.01 {
+            session.exercises[exIdx].sets = SetCarryEngine.carryingWeight(
+                session.exercises[exIdx].sets, after: updated, fromKg: prior.weightKg
+            )
+        }
         if session.focus == nil { session.focus = WorkoutFocusState(selectedEntryID: entryID) }
         if !prior.completed && updated.completed && !updated.isWarmup {
+            session.exercises[exIdx].sets = retunedSets(after: updated, in: session.exercises[exIdx])
             session.focus?.rest = nil
             let seconds = session.exercises[exIdx].restSeconds
                 ?? DataStore.current?.profile.trainingPreferences?.restTimerDefault ?? 90
@@ -475,12 +536,10 @@ final class WorkoutSessionService {
     // MARK: - Progression
 
     /// The next step for an exercise in the active workout, read from the
-    /// last session that logged it. Nil without history or comparable load.
+    /// last session that logged it, lowered when today calls for it. Nil
+    /// without history or comparable load.
     func progression(for entry: WorkoutExerciseEntry) -> ProgressionEngine.Suggestion? {
-        let routine = activeSession?.routineID.flatMap { id in
-            RoutineStore.shared.routines.first { $0.id == id }
-        }
-        return progression(for: entry.exerciseID, targetReps: targetReps(for: entry, in: routine))
+        progression(for: entry.exerciseID, targetReps: targetReps(for: entry, in: activeRoutine), adjustment: activeAdjustment)
     }
 
     /// Fills the exercise's unchecked working sets with its suggestion.
@@ -491,6 +550,14 @@ final class WorkoutSessionService {
         else { return }
         session.exercises[idx].sets = ProgressionEngine.apply(suggestion, to: session.exercises[idx].sets)
         persist(session)
+    }
+
+    private var activeRoutine: Routine? {
+        guard let session = activeSession else { return nil }
+        if let id = session.routineID, let stored = RoutineStore.shared.routines.first(where: { $0.id == id }) {
+            return stored
+        }
+        return seedRoutine?.sessionID == session.id ? seedRoutine?.routine : nil
     }
 
     /// The slot this entry was seeded from. Entries take their slot's
@@ -504,27 +571,130 @@ final class WorkoutSessionService {
         return slots.first(where: { $0.exerciseID == entry.exerciseID })?.targetReps
     }
 
-    private func progression(for id: String, targetReps target: Int?) -> ProgressionEngine.Suggestion? {
+    private func progression(
+        for id: String, targetReps target: Int?, adjustment: ProgressionEngine.Adjustment?
+    ) -> ProgressionEngine.Suggestion? {
         let exercise = ExerciseLibrary.shared.lookup(id: id)
+        let increment = incrementKg(forExerciseID: id)
+        guard let suggestion = ProgressionEngine.suggestion(
+            previous: previousSessionSets(forExerciseID: id),
+            repRange: ProgressionEngine.repRange(targetReps: target, mechanic: exercise?.mechanic),
+            incrementKg: increment
+        ) else { return nil }
+        guard let adjustment, let increment else { return suggestion }
+        return ProgressionEngine.adjusted(suggestion, for: adjustment, incrementKg: increment)
+    }
+
+    private func incrementKg(forExerciseID id: String) -> Double? {
         let profile = DataStore.current?.profile
         let unit = profile?.bodyMetrics.unit ?? .metric
         let plates = (profile?.trainingPreferences ?? TrainingPreferences()).plates(for: unit)
-        return ProgressionEngine.suggestion(
-            previous: previousSessionSets(forExerciseID: id),
-            repRange: ProgressionEngine.repRange(targetReps: target, mechanic: exercise?.mechanic),
-            incrementKg: ProgressionEngine.incrementKg(for: exercise?.equipmentKind ?? .other, unit: unit, plates: plates)
-        )
+        let equipment = ExerciseLibrary.shared.lookup(id: id)?.equipmentKind ?? .other
+        return ProgressionEngine.incrementKg(for: equipment, unit: unit, plates: plates)
+    }
+
+    /// A planned set missed or beaten by two reps moves the exercise's
+    /// untouched sets one load step, so the rest of the workout fits today.
+    /// The target is what the next set still prescribes, so a deload or
+    /// today's suggestion counts, not the routine's usual reps.
+    private func retunedSets(after set: SetEntry, in entry: WorkoutExerciseEntry) -> [SetEntry] {
+        guard autoProgression, activeRoutine != nil,
+              let next = entry.sets.first(where: { !$0.completed && !$0.isWarmup && $0.supportsRepLogging
+                      && abs($0.weightKg - set.weightKg) < 0.01 }),
+              let increment = incrementKg(forExerciseID: entry.exerciseID),
+              let load = ProgressionEngine.nextSetLoad(after: set, targetReps: next.reps, incrementKg: increment)
+        else { return entry.sets }
+        return ProgressionEngine.retuned(entry.sets, fromKg: set.weightKg, toKg: load)
+    }
+
+    private var autoProgression: Bool {
+        DataStore.current?.profile.trainingPreferences?.autoProgression ?? true
     }
 
     /// Seeds a new entry at its suggested load when auto-progression is on
     /// (the default), so the workout opens at the weight to beat.
-    private func progressed(_ entry: WorkoutExerciseEntry, routine: Routine?) -> WorkoutExerciseEntry {
-        guard DataStore.current?.profile.trainingPreferences?.autoProgression ?? true,
-              let suggestion = progression(for: entry.exerciseID, targetReps: targetReps(for: entry, in: routine))
+    private func progressed(
+        _ entry: WorkoutExerciseEntry, routine: Routine?, adjustment: ProgressionEngine.Adjustment?
+    ) -> WorkoutExerciseEntry {
+        guard autoProgression,
+              let suggestion = progression(for: entry.exerciseID, targetReps: targetReps(for: entry, in: routine), adjustment: adjustment)
         else { return entry }
         var seeded = entry
         seeded.sets = ProgressionEngine.apply(suggestion, to: entry.sets)
         return seeded
+    }
+
+    // MARK: - Readiness and deload
+
+    /// What today's suggestions would be lowered for. A due deload outranks
+    /// low recovery, being the lighter of the two.
+    var proposedAdjustment: ProgressionEngine.Adjustment? {
+        if deload != nil { return .deload }
+        return readiness.level == .low ? .lowRecovery : nil
+    }
+
+    /// The adjustment the active workout's suggestions carry, after the
+    /// user's choice.
+    var activeAdjustment: ProgressionEngine.Adjustment? {
+        guard let id = activeSession?.id, id != normalSuggestionsSessionID else { return nil }
+        return proposedAdjustment
+    }
+
+    /// The banner's toggle. Only suggestions move: logged sets and sets the
+    /// user edited keep their values.
+    func useNormalSuggestions(_ normal: Bool) {
+        guard let id = activeSession?.id else { return }
+        let before = activeAdjustment
+        normalSuggestionsSessionID = normal ? id : nil
+        UserDefaults.standard.set(normalSuggestionsSessionID?.uuidString, forKey: Self.normalSuggestionsKey)
+        reseedUntouchedSets(from: before)
+    }
+
+    func refreshReadiness() async {
+        let connected = DataStore.current?.profile.healthConnected ?? false
+        let assessment = connected ? await Self.todaysReadiness() : .unknown
+        guard assessment != readiness else { return }
+        let before = activeAdjustment
+        readiness = assessment
+        reseedUntouchedSets(from: before)
+    }
+
+    /// Same windows as the Today screen's Recovery %, so both agree.
+    private static func todaysReadiness() async -> ReadinessEngine.Assessment {
+        let kit = HealthKitService.shared
+        async let recentHRV = kit.averageHRV(days: 3)
+        async let baseHRV = kit.averageHRV(days: 30)
+        async let recentRHR = kit.averageRestingHeartRate(days: 3)
+        async let baseRHR = kit.averageRestingHeartRate(days: 30)
+        async let sleepHours = kit.lastNightSleepHours()
+        return ReadinessEngine.assess(RecoveryScoreEngine.Inputs(
+            recentHRV: await recentHRV,
+            baselineHRV: await baseHRV,
+            recentRHR: await recentRHR,
+            baselineRHR: await baseRHR,
+            lastSleepHours: await sleepHours
+        ))
+    }
+
+    /// Moves sets still at the old suggestion to the new one when the
+    /// adjustment changes, the way starting the workout seeded them.
+    private func reseedUntouchedSets(from old: ProgressionEngine.Adjustment?) {
+        let new = activeAdjustment
+        guard old != new, autoProgression, var session = activeSession else { return }
+        let routine = activeRoutine
+        var changed = false
+        for idx in session.exercises.indices {
+            let entry = session.exercises[idx]
+            let target = targetReps(for: entry, in: routine)
+            guard let before = progression(for: entry.exerciseID, targetReps: target, adjustment: old),
+                  let after = progression(for: entry.exerciseID, targetReps: target, adjustment: new)
+            else { continue }
+            let reseeded = ProgressionEngine.reseed(from: before, to: after, in: entry.sets)
+            guard reseeded != entry.sets else { continue }
+            session.exercises[idx].sets = reseeded
+            changed = true
+        }
+        if changed { persist(session) }
     }
 
     // MARK: - Focus and session clocks
@@ -702,6 +872,22 @@ enum PreviousSetEngine {
     }
 }
 
+/// Typing a weight into one set fills the working sets still to do below
+/// it that still hold the old value, so a new lift typed once doesn't leave
+/// every later set at 0 kg. Sets the user already changed keep their value.
+enum SetCarryEngine {
+    static func carryingWeight(_ sets: [SetEntry], after edited: SetEntry, fromKg: Double) -> [SetEntry] {
+        sets.map { set in
+            guard set.index > edited.index, !set.completed, !set.isWarmup,
+                  abs(set.weightKg - fromKg) < 0.01
+            else { return set }
+            var updated = set
+            updated.weightKg = edited.weightKg
+            return updated
+        }
+    }
+}
+
 /// The rest durations offered by the active workout and routine editor.
 enum RestTimeOptions {
     static let seconds = [30, 60, 90, 120, 180, 240]
@@ -720,5 +906,26 @@ enum RestTimeOptions {
         if seconds % 60 == 0 { return String(localized: "\(seconds / 60) min") }
         let minutesSeconds = Duration.seconds(seconds).formatted(.time(pattern: .minuteSecond))
         return String(localized: "\(minutesSeconds) min")
+    }
+}
+
+/// The routine a workout was started from, kept on this device so its
+/// targets outlive a relaunch. Device-local like the active session itself.
+struct SeedRoutine: Codable, Equatable {
+    let sessionID: UUID
+    let routine: Routine
+
+    static let defaultsKey = "workout.seedRoutine.v1"
+
+    static func load(from defaults: UserDefaults = .standard) -> SeedRoutine? {
+        defaults.data(forKey: defaultsKey).flatMap { try? JSONDecoder().decode(SeedRoutine.self, from: $0) }
+    }
+
+    static func save(_ seed: SeedRoutine?, to defaults: UserDefaults = .standard) {
+        guard let seed, let data = try? JSONEncoder().encode(seed) else {
+            defaults.removeObject(forKey: defaultsKey)
+            return
+        }
+        defaults.set(data, forKey: defaultsKey)
     }
 }

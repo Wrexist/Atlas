@@ -71,6 +71,10 @@ struct CelebrationHostView: View {
                     .id(burst.id)
             }
         }
+        // Full-screen even when empty: the toast overlay takes this size,
+        // and a collapsed ZStack (no confetti, no level-up) squeezed the
+        // toast to its minimum width in the middle of the screen.
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         // Only the level-up dim is interactive; confetti must never steal
         // touches from the app behind it.
         .allowsHitTesting(levelUp != nil)

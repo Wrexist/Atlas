@@ -49,7 +49,7 @@ struct LoggedCaloriePanel: View {
                     .rotationEffect(.degrees(-90))
                 VStack(spacing: Spacing.xxs) {
                     Text("\(Int(displayed))")
-                        .font(AppFont.scaled(20, weight: .heavy))
+                        .font(AppFont.scaled(20, weight: .medium))
                         .monospacedDigit()
                         .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(1)

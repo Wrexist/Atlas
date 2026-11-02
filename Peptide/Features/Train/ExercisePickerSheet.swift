@@ -15,6 +15,7 @@ struct ExercisePickerSheet: View {
     var existingIDs: Set<String> = []
     let onSelect: (Exercise) -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @State private var library = ExerciseLibrary.shared
     @State private var query: String = ""
@@ -240,18 +241,23 @@ struct ExercisePickerSheet: View {
         return Button {
             toggle(exercise)
         } label: {
-            HStack(spacing: Spacing.sm) {
-                ExerciseRow(exercise: exercise, showsChevron: false)
-                if isExisting && !isSelected {
-                    Text("Already added")
-                        .font(AppFont.caption2)
-                        .foregroundStyle(AppColor.textSecondary)
+            // At accessibility sizes the note drops under the row so it
+            // never squeezes the exercise name into a narrow column.
+            VStack(alignment: .trailing, spacing: 0) {
+                HStack(spacing: Spacing.sm) {
+                    ExerciseRow(exercise: exercise, showsChevron: false)
+                    if isExisting && !isSelected && !dynamicTypeSize.isAccessibilitySize {
+                        alreadyAddedNote
+                    }
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "plus.circle")
+                        .font(AppFont.scaled(20, weight: .semibold))
+                        .foregroundStyle(AppColor.accentPrimary)
+                        .contentTransition(.symbolEffect(.replace))
+                        .accessibilityHidden(true)
                 }
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "plus.circle")
-                    .font(AppFont.scaled(20, weight: .semibold))
-                    .foregroundStyle(AppColor.accentPrimary)
-                    .contentTransition(.symbolEffect(.replace))
-                    .accessibilityHidden(true)
+                if isExisting && !isSelected && dynamicTypeSize.isAccessibilitySize {
+                    alreadyAddedNote
+                }
             }
         }
         .buttonStyle(.plain)
@@ -263,6 +269,13 @@ struct ExercisePickerSheet: View {
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityValue(isExisting ? "Already added" : "")
         .accessibilityHint(isSelected ? "Removes from selection" : "Adds to selection")
+    }
+
+    private var alreadyAddedNote: some View {
+        Text("Already added")
+            .font(AppFont.caption2)
+            .foregroundStyle(AppColor.textSecondary)
+            .fixedSize()
     }
 
     // MARK: - Selection

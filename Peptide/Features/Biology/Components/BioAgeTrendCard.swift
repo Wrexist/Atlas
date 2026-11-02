@@ -32,17 +32,20 @@ struct BioAgeTrendCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            HStack(alignment: .firstTextBaseline) {
-                BiologySectionHeader(title: "Trend")
-                // A range choice means nothing until there is a line.
-                if points.count >= 2 {
-                    GlassSegmentedControl(
-                        options: Window.allCases,
-                        selected: $range,
-                        label: { $0.label }
-                    )
-                    .fixedSize()
+            // A range choice means nothing until there is a line.
+            if points.count >= 2 {
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline) {
+                        BiologySectionHeader(title: "Trend")
+                        rangePicker
+                    }
+                    VStack(alignment: .leading, spacing: Spacing.sm) {
+                        BiologySectionHeader(title: "Trend")
+                        rangePicker
+                    }
                 }
+            } else {
+                BiologySectionHeader(title: "Trend")
             }
 
             GlassCard {
@@ -65,6 +68,15 @@ struct BioAgeTrendCard: View {
         }
     }
 
+    private var rangePicker: some View {
+        GlassSegmentedControl(
+            options: Window.allCases,
+            selected: $range,
+            label: { $0.label }
+        )
+        .fixedSize()
+    }
+
     // MARK: - Chart
 
     private var chartContent: some View {
@@ -74,7 +86,7 @@ struct BioAgeTrendCard: View {
         return VStack(alignment: .leading, spacing: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(BioAgeFormat.years(change))
-                    .font(AppFont.scaled(24, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(24, weight: .medium))
                     .foregroundStyle(tint(for: change))
                     .monospacedDigit()
                     .contentTransition(.numericText(value: change))

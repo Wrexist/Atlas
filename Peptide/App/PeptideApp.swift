@@ -16,6 +16,7 @@ struct PeptideApp: App {
     /// alive for the process.
     @State private var notificationDelegate: NotificationDelegate
     @State private var quickActionInbox = QuickActionInbox.shared
+    @State private var workoutSession = WorkoutSessionService.shared
     @State private var isUnlocked = false
     @State private var showLockReleasedNotice = false
     @Environment(\.scenePhase) private var scenePhase
@@ -172,6 +173,12 @@ struct PeptideApp: App {
                 // Starts the workout's activity if Live Activities were
                 // switched on, or a start failed, since the workout began.
                 WorkoutLiveActivityService.shared.reconcile(active: WorkoutSessionService.shared.activeSession)
+                // An End fast tapped on the lock screen while suspended,
+                // then a reload that restarts the fast's activity once
+                // iOS has ended it at its eight-hour limit, and keeps the
+                // fasting widget current.
+                FastingActivityActionProcessor.drain()
+                FastingStore.shared.load()
                 // Re-evaluate which scheduled doses are in their
                 // active window so the lock-screen Live Activities
                 // start / end without needing the user to open the
@@ -581,35 +588,59 @@ struct PeptideApp: App {
     private var coreTabView: some View {
         TabView(selection: userTabSelection) {
             Tab("Today", systemImage: "house.fill", value: .today) {
-                HomeContainerView()
+                HomeContainerView().tint(AppColor.accentPrimary)
             }
             Tab("Train", systemImage: "dumbbell.fill", value: .train) {
-                TrainContainerView()
+                TrainContainerView().tint(AppColor.accentPrimary)
             }
             Tab("Meals", systemImage: "fork.knife", value: .meals) {
-                MealsContainerView()
+                MealsContainerView().tint(AppColor.accentPrimary)
             }
             Tab("Biology", systemImage: "heart.fill", value: .biology) {
-                BiologyView()
+                BiologyView().tint(AppColor.accentPrimary)
             }
             Tab("Habits", systemImage: "star.fill", value: .habits) {
-                HabitsView()
+                HabitsView().tint(AppColor.accentPrimary)
             }
         }
         // A tab bar on iPhone; on iPad, a top tab bar that expands into a
         // sidebar, so the wide screen isn't framed by a phone-style bar.
         .tabViewStyle(.sidebarAdaptable)
+        // The bar is navigation, so it is ink like the rest of the chrome;
+        // each tab's content takes the accent back for its own controls.
+        .tint(AppColor.textPrimary)
     }
 
     @ViewBuilder
     private var tabViewWithAccessory: some View {
         if #available(iOS 26.0, *) {
-            coreTabView.tabViewBottomAccessory {
-                TabAccessoryView(tab: appState.selectedTab)
-            }
+            accessoryTabView
         } else {
             coreTabView
         }
+    }
+
+    /// The strip shows only while it has something to act on: a workout in
+    /// progress, or doses to take. "No workout logged yet today" on every
+    /// screen was a permanent bar of noise over the content, and on Train
+    /// the tab draws its own resume banner.
+    @available(iOS 26.0, *)
+    @ViewBuilder
+    private var accessoryTabView: some View {
+        if #available(iOS 26.1, *) {
+            coreTabView.tabViewBottomAccessory(isEnabled: showsTabAccessory) {
+                TabAccessoryView(tab: appState.selectedTab)
+            }
+        } else {
+            coreTabView.tabViewBottomAccessory {
+                TabAccessoryView(tab: appState.selectedTab)
+            }
+        }
+    }
+
+    private var showsTabAccessory: Bool {
+        appState.selectedTab != .train
+            && (workoutSession.activeSession != nil || !dataStore.activeProtocols.isEmpty)
     }
 
     private var mainContent: some View {
@@ -816,6 +847,8 @@ struct WorkoutAccessoryView: View {
             Text(label)
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
             Spacer()
         }
         .padding(.horizontal, Spacing.lg)
@@ -866,15 +899,20 @@ struct NextDoseAccessoryView: View {
                 Text(summary(next, isOverdue: isOverdue))
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 Spacer()
                 Text(next.date.formatted(.dateTime.hour().minute()))
                     .font(AppFont.caption2)
                     .foregroundStyle(isOverdue ? AppColor.warning : AppColor.accentLight)
                     .contentTransition(.numericText())
+                    .fixedSize()
             } else {
                 Text("All doses completed for today")
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 Spacer()
             }
         }

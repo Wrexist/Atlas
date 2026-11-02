@@ -94,7 +94,7 @@ struct BioAgeParticleCluster: View {
 
 #Preview {
     ZStack {
-        CosmicBackdrop(intensity: 0.55).ignoresSafeArea()
+        PageBackdrop().ignoresSafeArea()
         BioAgeParticleCluster()
     }
     .preferredColorScheme(.dark)

@@ -200,7 +200,7 @@ struct TrackCalendarSection: View {
         HStack(alignment: .center, spacing: Spacing.md) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(monthDate.formatted(.dateTime.month(.wide)))
-                    .font(AppFont.scaled(20, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(20, weight: .medium))
                     .foregroundStyle(AppColor.textPrimary)
                     .contentTransition(.numericText())
                 Text(monthDate.formatted(.dateTime.year()))

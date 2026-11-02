@@ -281,6 +281,11 @@ struct TodayMacrosIntent: AppIntent {
 /// dose-shortcuts + nutrition-shortcuts surfaces here keeps that
 /// constraint satisfied while letting both sets share the same
 /// pleasant invocation phrases.
+///
+/// iOS caps an app at 10 App Shortcuts and this list is at that cap.
+/// `StartFastIntent` and `EndFastIntent` stay out of it: they're still
+/// in the Shortcuts app, Spotlight and the Action button, just without
+/// a built-in Siri phrase. Adding another entry means dropping one.
 struct PeptideShortcuts: AppShortcutsProvider {
 
     static let shortcutTileColor: ShortcutTileColor = .lightBlue
@@ -295,6 +300,26 @@ struct PeptideShortcuts: AppShortcutsProvider {
             ],
             shortTitle: "Log Water",
             systemImageName: "drop.fill"
+        )
+        AppShortcut(
+            intent: StartWorkoutIntent(),
+            phrases: [
+                "Start a workout in \(.applicationName)",
+                "Start my workout in \(.applicationName)",
+                "Start training in \(.applicationName)",
+            ],
+            shortTitle: "Start Workout",
+            systemImageName: "figure.strengthtraining.traditional"
+        )
+        AppShortcut(
+            intent: LogWeightIntent(),
+            phrases: [
+                "Log my weight in \(.applicationName)",
+                "Log weight in \(.applicationName)",
+                "Add a weigh-in in \(.applicationName)",
+            ],
+            shortTitle: "Log Weight",
+            systemImageName: "scalemass.fill"
         )
         AppShortcut(
             intent: TodayMacrosIntent(),

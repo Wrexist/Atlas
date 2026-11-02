@@ -58,16 +58,24 @@ struct BioAgeCoverageCard: View {
     private var confidenceHeader: some View {
         let total = PerformanceAgeEngine.Driver.Kind.allCases.count
         let ready = confidence >= PerformanceAgeEngine.minConfidence
+        let title = Text(ready ? BioAgeHeroSection.confidenceLabel(confidence) : String(localized: "Not enough data yet"))
+            .font(AppFont.scaled(16, weight: .semibold))
+            .foregroundStyle(AppColor.textPrimary)
+        let count = Text("\(presentKinds.count) of \(total) signals")
+            .font(AppFont.scaled(13, weight: .medium))
+            .foregroundStyle(AppColor.textSecondary)
+            .monospacedDigit()
         return VStack(alignment: .leading, spacing: Spacing.sm) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(ready ? BioAgeHeroSection.confidenceLabel(confidence) : String(localized: "Not enough data yet"))
-                    .font(AppFont.scaled(16, weight: .semibold))
-                    .foregroundStyle(AppColor.textPrimary)
-                Spacer()
-                Text("\(presentKinds.count) of \(total) signals")
-                    .font(AppFont.scaled(13, weight: .medium))
-                    .foregroundStyle(AppColor.textSecondary)
-                    .monospacedDigit()
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline) {
+                    title
+                    Spacer()
+                    count
+                }
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    title
+                    count
+                }
             }
             GlassProgressBar(progress: confidence)
             Text("\(min(inputs.healthDataDays, PerformanceAgeEngine.windowDays)) of \(PerformanceAgeEngine.windowDays) days of heart and sleep data")

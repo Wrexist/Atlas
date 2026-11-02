@@ -43,6 +43,7 @@ struct BiomarkerListSection: View {
                             .minimumHitArea()
                     }
                     .buttonStyle(.plain)
+                    .fixedSize()
                 }
             }
 

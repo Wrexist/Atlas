@@ -283,4 +283,53 @@ final class NutritionLabelOCRTests: XCTestCase {
         XCTAssertEqual(NutritionLabelParser.firstNumber(in: "salt 0,125 g", commaGroupsThousands: true), 0.125)
         XCTAssertEqual(NutritionLabelParser.firstNumber(in: "1,050"), 1.05)
     }
+
+    // MARK: - Micronutrients
+
+    func test_parse_usLabel_readsMicronutrientsPer100g() throws {
+        let lines = [
+            "Serving size 1 cup (200g)",
+            "Calories 250",
+            "Total Fat 12g",
+            "Sodium 470mg 20%",
+            "Protein 5g",
+            "Vitamin D 2mcg 10%",
+            "Calcium 260mg 20%",
+            "Iron 8mg 45%",
+            "Potassium 235mg 6%",
+        ]
+        let micros = try XCTUnwrap(NutritionLabelParser.parse(lines: lines)?.per100g.micros)
+        XCTAssertEqual(try XCTUnwrap(micros.sodiumMg), 235, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(micros.vitaminDUg), 1, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(micros.calciumMg), 130, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(micros.ironMg), 4, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(micros.potassiumMg), 117.5, accuracy: 0.001)
+        XCTAssertNil(micros.vitaminB12Ug)
+    }
+
+    func test_parse_swedishPer100gLabel_turnsSaltIntoSodium() throws {
+        let lines = [
+            "Näringsvärde per 100 g",
+            "Energi 1050 kJ / 250 kcal",
+            "Fett 9 g",
+            "Protein 20 g",
+            "Salt 1,2 g",
+            "Kalcium 120 mg",
+            "Vitamin B12 0,8 µg",
+        ]
+        let micros = try XCTUnwrap(NutritionLabelParser.parse(lines: lines)?.per100g.micros)
+        XCTAssertEqual(try XCTUnwrap(micros.sodiumMg), 480, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(micros.calciumMg), 120, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(micros.vitaminB12Ug), 0.8, accuracy: 0.001)
+    }
+
+    func test_parse_labelWithoutMicronutrients_leavesMicrosNil() {
+        let lines = ["Calories 250", "Protein 5g", "Total Fat 12g"]
+        XCTAssertNil(NutritionLabelParser.parse(lines: lines)?.nutriments.micros)
+    }
+
+    func test_parseAmount_convertsVitaminDFromIU() throws {
+        let amount = try XCTUnwrap(NutritionLabelParser.parseAmount(keywords: ["vitamin d"], in: ["vitamin d 400 iu"]))
+        XCTAssertEqual(amount.inMicrograms(defaultUnit: "µg"), 10, accuracy: 0.001)
+    }
 }

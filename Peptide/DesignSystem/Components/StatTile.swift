@@ -63,7 +63,7 @@ struct StatTile: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
             Text(label)
-                .font(AppFont.scaled(AppFont.Scale.badge, weight: .heavy, relativeTo: .caption1, in: dynamicTypeSize))
+                .font(AppFont.scaled(AppFont.Scale.badge, weight: .semibold, relativeTo: .caption1, in: dynamicTypeSize))
                 .tracking(0.5)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.textSecondary)
@@ -73,7 +73,10 @@ struct StatTile: View {
                 Text(footnote)
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
-                    .lineLimit(1)
+                    // A sentence, not a word: two lines read better than an
+                    // ellipsis once Swedish lengthens it.
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -95,8 +98,8 @@ struct StatTile: View {
 
     private var valueFont: Font {
         switch size {
-        case .regular: AppFont.scaled(20, weight: .heavy, design: .rounded, relativeTo: .title1, in: dynamicTypeSize)
-        case .large: AppFont.scaled(28, weight: .bold, design: .rounded, relativeTo: .title1, in: dynamicTypeSize)
+        case .regular: AppFont.scaled(20, weight: .medium, relativeTo: .title1, in: dynamicTypeSize)
+        case .large: AppFont.scaled(28, weight: .light, relativeTo: .title1, in: dynamicTypeSize)
         }
     }
 
@@ -119,7 +122,7 @@ struct StatTile: View {
                     .fill(tint.opacity(0.18))
             }
             Image(systemName: icon)
-                .font(AppFont.scaled(11, weight: .heavy, in: iconTypeSize))
+                .font(AppFont.scaled(11, weight: .semibold, in: iconTypeSize))
                 .foregroundStyle(tint)
         }
         .frame(width: ringSize, height: ringSize)

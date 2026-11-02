@@ -185,7 +185,7 @@ struct TodayOverviewCard: View {
                     .font(AppFont.subheadline)
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.textPrimary)
-                    .lineLimit(1)
+                    .lineLimit(2)
                 Text(insight.body)
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)

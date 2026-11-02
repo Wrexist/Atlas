@@ -40,12 +40,12 @@ struct CoachingCard: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(message.eyebrow)
-                    .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .tracking(1.0)
                     .foregroundStyle(toneColor.opacity(0.85))
 
                 Text(message.title)
-                    .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(16, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -82,13 +82,7 @@ struct CoachingCard: View {
     }
 
     private var iconBadge: some View {
-        Image(systemName: message.icon)
-            .font(AppFont.scaled(16, weight: .semibold))
-            .foregroundStyle(toneColor)
-            .frame(width: 38, height: 38)
-            .background {
-                Circle().fill(toneColor.opacity(0.18))
-            }
+        IconTile(message.icon, size: 38, silhouette: .circle)
     }
 
     private var toneColor: Color {

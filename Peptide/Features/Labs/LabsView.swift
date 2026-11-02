@@ -228,7 +228,7 @@ struct LabsView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text(category.displayName)
-                .font(AppFont.scaled(11, weight: .heavy))
+                .font(AppFont.scaled(11, weight: .semibold))
                 .tracking(0.8)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.textTertiary)
@@ -326,7 +326,7 @@ struct LabSummaryRow: View {
                 )
                 .fill(panel.tint.opacity(0.20))
                 Text(panel.shortName)
-                    .font(AppFont.scaled(11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(panel.tint)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
@@ -370,7 +370,7 @@ struct LabSummaryRow: View {
             VStack(alignment: .trailing, spacing: Spacing.xxs) {
                 HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                     Text(LabValueFormat.string(summary.latest.value))
-                        .font(AppFont.scaled(16, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(16, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(rangeStatus?.tint ?? AppColor.textPrimary)
                     Text(panel.canonicalUnit)
@@ -386,7 +386,7 @@ struct LabSummaryRow: View {
             // A single draw has nothing to compare against.
             if let trend = summary.trend {
                 Image(systemName: trendSymbol(trend))
-                    .font(AppFont.scaled(11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(AppColor.textSecondary)
                     .padding(Spacing.xs)
                     .background { Circle().fill(AppColor.textSecondary.opacity(0.12)) }

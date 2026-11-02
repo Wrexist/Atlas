@@ -145,9 +145,11 @@ struct HeroMetricDetailSheet: View {
                         .accessibilityHidden(true)
                     if valueForRing.isAvailable {
                         Text("\(valueForRing.displayPercent)%")
-                            .font(AppFont.scaled(36, weight: .heavy, design: .rounded, relativeTo: .largeTitle))
+                            .font(AppFont.scaled(36, weight: .light, relativeTo: .largeTitle))
                             .foregroundStyle(AppColor.textPrimary)
                             .monospacedDigit()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
                     } else {
                         Text("—")
                             .font(AppFont.scaled(36, weight: .bold, relativeTo: .largeTitle))
@@ -162,10 +164,14 @@ struct HeroMetricDetailSheet: View {
             // ring is the hero here on size and stroke weight instead.
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
+                // Beside a 140pt ring, "Återhämtning" breaks mid-word at
+                // larger sizes; shrink it instead.
                 Text(kind.label)
                     .font(AppFont.title)
-                    .fontWeight(.heavy)
+                    .fontWeight(.semibold)
                     .foregroundStyle(AppColor.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
                 if let line = supportingLine {
                     Text(line)
                         .font(AppFont.subheadline)
@@ -241,7 +247,7 @@ struct HeroMetricDetailSheet: View {
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text("WHY IT MATTERS")
-                    .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .tracking(1.0)
                     .foregroundStyle(ringTint)
                 Text(explainerBody)
@@ -287,7 +293,7 @@ struct HeroMetricDetailSheet: View {
 
     private func sectionHeader(_ title: LocalizedStringKey) -> some View {
         Text(title)
-            .font(AppFont.scaled(11, weight: .heavy, design: .rounded))
+            .font(AppFont.scaled(11, weight: .semibold))
             .tracking(1.0)
             .foregroundStyle(AppColor.textSecondary)
     }
@@ -599,12 +605,15 @@ struct HeroMetricDetailSheet: View {
                 .foregroundStyle(ringTint)
                 .accessibilityHidden(true)
             Text(value)
-                .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                .font(AppFont.scaled(20, weight: .medium))
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
             Text(label)
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
         }
         .padding(.vertical, Spacing.lg)
         .frame(maxWidth: .infinity)

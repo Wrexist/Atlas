@@ -22,13 +22,23 @@ struct PeptideWidgetBundle: WidgetBundle {
     var body: some Widget {
         TrainingWidget()
         NutritionWidget()
+        FastingWidget()
         NextDoseWidget()
         ComplianceWidget()
-        DoseWindowLiveActivity()
-        WorkoutLiveActivity()
+        // Nested: a bundle builder takes at most ten widgets directly.
+        LiveActivityBundle().body
         ScanMealControl()
         LogWaterControl()
         StartWorkoutControl()
         LogWeightControl()
+    }
+}
+
+/// The Live Activities, folded into the main bundle through `body`.
+struct LiveActivityBundle: WidgetBundle {
+    var body: some Widget {
+        DoseWindowLiveActivity()
+        WorkoutLiveActivity()
+        FastingLiveActivity()
     }
 }

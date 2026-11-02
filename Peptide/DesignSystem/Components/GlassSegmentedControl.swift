@@ -1,12 +1,18 @@
 import SwiftUI
 
-/// The app's one segmented control. The selection pill slides between
-/// segments via `matchedGeometryEffect`, mirroring the system tab bar.
+/// The app's one segmented control.
 ///
-/// - `.standard` sits on a glass track with a tinted pill — for picking a
-///   mode inside a card or sheet.
-/// - `.prominent` drops the track and fills the pill with the accent — for
-///   a screen's top-level section switcher.
+/// The selection pill is a window, not a sticker: the row is drawn twice,
+/// once in quiet ink and once inverted on a solid ink fill, and the
+/// inverted copy is masked to a capsule that glides to the chosen
+/// segment's measured frame. So the label colour flips exactly at the
+/// pill's edge while it moves, instead of cross-fading out of step.
+///
+/// - `.standard` sits on a card-surface track — for picking a mode inside
+///   a card or sheet.
+/// - `.prominent` drops the track — for a screen's top-level section
+///   switcher. The pill is the same everywhere, so "selected" reads the
+///   same at every level.
 struct GlassSegmentedControl<T: Hashable>: View {
     enum Style {
         case standard
@@ -19,7 +25,6 @@ struct GlassSegmentedControl<T: Hashable>: View {
     let label: (T) -> LocalizedStringKey
     var icon: ((T) -> String)?
 
-    @Namespace private var pillNamespace
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -35,23 +40,39 @@ struct GlassSegmentedControl<T: Hashable>: View {
     private var track: some View {
         switch style {
         case .standard:
-            segments(spacing: 0)
+            row
                 .padding(Spacing.xs)
-                .glassControl(.capsule, interactive: false)
+                .glassSurfaceCapsule()
         case .prominent:
-            segments(spacing: Spacing.sm)
+            row
         }
     }
 
-    private func segments(spacing: CGFloat) -> some View {
+    private var spacing: CGFloat { style == .prominent ? Spacing.xs : 0 }
+
+    private var row: some View {
         HStack(spacing: spacing) {
             ForEach(options, id: \.self) { option in
-                segment(for: option)
+                segmentButton(for: option)
+            }
+        }
+        .backgroundPreferenceValue(SelectedSegmentKey.self) { anchor in
+            GeometryReader { proxy in
+                if let anchor {
+                    pillShadow(in: proxy[anchor])
+                }
+            }
+        }
+        .overlayPreferenceValue(SelectedSegmentKey.self) { anchor in
+            GeometryReader { proxy in
+                if let anchor {
+                    selectedCopy(pill: proxy[anchor])
+                }
             }
         }
     }
 
-    private func segment(for option: T) -> some View {
+    private func segmentButton(for option: T) -> some View {
         let isSelected = selected == option
         return Button {
             guard !isSelected else { return }
@@ -60,63 +81,93 @@ struct GlassSegmentedControl<T: Hashable>: View {
                 selected = option
             }
         } label: {
-            HStack(spacing: Spacing.xs) {
-                if let icon {
-                    Image(systemName: icon(option))
-                        .font(AppFont.scaled(11, weight: .semibold))
-                        .accessibilityHidden(true)
-                }
-                Text(label(option))
-                    .font(AppFont.subheadline)
-                    .fontWeight(.semibold)
-                    // Equal-width segments can't fit a grown label on one
-                    // line; at accessibility sizes it wraps instead of
-                    // shrinking into an ellipsis.
-                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
-                    .multilineTextAlignment(.center)
-                    .minimumScaleFactor(0.75)
-            }
-            .foregroundStyle(foreground(isSelected: isSelected))
-            // Tight sides on the track so four labels like "Favorites"
-            // fit a phone's width without truncating.
-            .padding(.horizontal, style == .prominent ? Spacing.lg : Spacing.xs)
-            .padding(.vertical, Spacing.sm)
-            .frame(maxWidth: style == .prominent ? nil : CGFloat.infinity)
-            .frame(minHeight: Spacing.minimumHitTarget)
-            .background {
-                if isSelected {
-                    pill.matchedGeometryEffect(id: "segment", in: pillNamespace)
-                }
-            }
-            .contentShape(Capsule())
+            segmentLabel(for: option)
+                .foregroundStyle(AppColor.textSecondary)
+                .contentShape(Capsule())
         }
-        .buttonStyle(ScalePressStyle())
+        .buttonStyle(.plain)
+        .anchorPreference(key: SelectedSegmentKey.self, value: .bounds) { isSelected ? $0 : nil }
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    private func foreground(isSelected: Bool) -> Color {
-        guard isSelected else { return AppColor.textSecondary }
-        return style == .prominent ? AppColor.onAccent : AppColor.textPrimary
+    /// The inverted row, visible only through the capsule at `pill`.
+    private func selectedCopy(pill: CGRect) -> some View {
+        HStack(spacing: spacing) {
+            ForEach(options, id: \.self) { option in
+                segmentLabel(for: option)
+                    .foregroundStyle(AppColor.inverseInk)
+            }
+        }
+        .background(AppColor.textPrimary)
+        .mask(alignment: .topLeading) { capsule(at: pill) }
+        .overlay(alignment: .topLeading) {
+            Self.pillRim
+                .frame(width: pill.width, height: pill.height)
+                .offset(x: pill.minX, y: pill.minY)
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
-    /// The moving pill. On the standard track it's a plain tinted capsule
-    /// rather than a second glass surface — stacking `glassEffect` inside an
-    /// already-glass track is what made the control read as a muddy grey
-    /// slab on iOS 26.
-    @ViewBuilder
-    private var pill: some View {
-        switch style {
-        case .standard:
-            Capsule(style: .continuous)
-                .fill(AppColor.accentPrimary.opacity(0.18))
-                .overlay {
-                    Capsule(style: .continuous)
-                        .strokeBorder(AppColor.glassBorderActive, lineWidth: 0.5)
-                }
-        case .prominent:
-            Capsule(style: .continuous)
-                .fill(AppColor.accentFill)
+    /// The pill's drop, drawn under the row so the lifted capsule casts
+    /// it onto the track rather than onto its own label.
+    private func pillShadow(in pill: CGRect) -> some View {
+        capsule(at: pill)
+            .appShadow(AppShadow.tileContact)
+            .appShadow(AppShadow.tileDrop)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private func capsule(at rect: CGRect) -> some View {
+        Capsule(style: .continuous)
+            .fill(AppColor.textPrimary)
+            .frame(width: rect.width, height: rect.height)
+            .offset(x: rect.minX, y: rect.minY)
+    }
+
+    /// Light catching the pill's upper edge: the same lit rim the cards
+    /// and icon tiles carry, so the pill reads as a raised key.
+    private static var pillRim: some View {
+        Capsule(style: .continuous)
+            .strokeBorder(
+                LinearGradient(colors: [Color.white.opacity(0.22), .clear], startPoint: .top, endPoint: .center),
+                lineWidth: 1
+            )
+    }
+
+    private func segmentLabel(for option: T) -> some View {
+        HStack(spacing: Spacing.xs) {
+            if let icon {
+                Image(systemName: icon(option))
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .accessibilityHidden(true)
+            }
+            Text(label(option))
+                .font(AppFont.subheadline)
+                .fontWeight(.medium)
+                // Equal-width segments can't fit a grown label on one
+                // line; at accessibility sizes it wraps instead of
+                // shrinking into an ellipsis.
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                .multilineTextAlignment(.center)
+                .minimumScaleFactor(0.75)
         }
+        // Tight sides on the track so four labels like "Favorites" fit a
+        // phone's width without truncating.
+        .padding(.horizontal, style == .prominent ? Spacing.md : Spacing.xs)
+        .padding(.vertical, Spacing.sm)
+        .frame(maxWidth: style == .prominent ? nil : CGFloat.infinity)
+        .frame(minHeight: Spacing.minimumHitTarget)
+    }
+}
+
+/// The selected segment's bounds, so the pill and its masked copy can sit
+/// exactly on it and glide when the selection changes.
+private struct SelectedSegmentKey: PreferenceKey {
+    static var defaultValue: Anchor<CGRect>? { nil }
+
+    static func reduce(value: inout Anchor<CGRect>?, nextValue: () -> Anchor<CGRect>?) {
+        value = value ?? nextValue()
     }
 }
 

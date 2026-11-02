@@ -43,13 +43,16 @@ struct BiometricCard: View {
 
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
                     Text(value)
-                        .font(AppFont.scaled(20, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(20, weight: .medium))
                         .foregroundStyle(AppColor.textPrimary)
                         .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                         .contentTransition(.numericText())
                     Text(unit)
                         .font(AppFont.scaled(11, weight: .semibold))
                         .foregroundStyle(AppColor.textSecondary)
+                        .fixedSize()
                         .accessibilityLabel(spokenUnit)
                 }
 
@@ -60,7 +63,7 @@ struct BiometricCard: View {
                     Text(caption)
                         .font(AppFont.badgeSmall)
                         .foregroundStyle(AppColor.textSecondary)
-                        .lineLimit(1)
+                        .lineLimit(2)
                 }
             }
 
@@ -88,17 +91,17 @@ struct BiometricCard: View {
         HStack(spacing: 4) {
             if let sample {
                 Image(systemName: statusIcon(for: sample))
-                    .font(AppFont.scaled(11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .accessibilityHidden(true)
                 Text(statusLabel(for: sample))
-                    .font(AppFont.scaled(11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .accessibilityLabel(spokenStatus(for: sample))
             } else {
                 Image(systemName: "minus")
-                    .font(AppFont.scaled(11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .semibold))
                     .accessibilityHidden(true)
                 Text("No data")
-                    .font(AppFont.scaled(11, weight: .heavy))
+                    .font(AppFont.scaled(11, weight: .semibold))
             }
         }
         .foregroundStyle(sample.map { tint(for: $0) } ?? AppColor.textSecondary)

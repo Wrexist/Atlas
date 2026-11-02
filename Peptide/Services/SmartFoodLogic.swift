@@ -51,7 +51,8 @@ enum SmartFoodLogic {
     /// database's label data beats an estimate.
     static func product(_ product: ScannedProduct, fillingFrom scan: MealScannerService.SmartScan) -> ScannedProduct {
         let package = scan.package
-        let nutriments = product.hasNutrition ? product.per100g : scan.items.first.map(Self.per100g(of:)) ?? product.per100g
+        var nutriments = product.hasNutrition ? product.per100g : scan.items.first.map(Self.per100g(of:)) ?? product.per100g
+        if nutriments.micros == nil { nutriments.micros = scan.items.first?.per100g?.micros }
         return ScannedProduct(
             barcode: product.barcode,
             name: product.name,
@@ -108,7 +109,7 @@ enum SmartFoodLogic {
         func r(_ value: Double) -> Double { (value * 10).rounded() / 10 }
         return ScannedProduct.Nutriments(
             calories: n.calories.rounded(), proteinG: r(n.proteinG), carbsG: r(n.carbsG), fatG: r(n.fatG),
-            fiberG: n.fiberG.map(r), sugarsG: n.sugarsG.map(r)
+            fiberG: n.fiberG.map(r), sugarsG: n.sugarsG.map(r), micros: n.micros
         )
     }
 }

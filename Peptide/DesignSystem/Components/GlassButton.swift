@@ -21,15 +21,24 @@ struct GlassButton: View {
     /// looks fully enabled while silently ignoring taps — the state the
     /// bordered-prominent CTAs it replaced got for free from the system.
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var wrapsTitle: Bool { isFullWidth || dynamicTypeSize.isAccessibilitySize }
 
     var body: some View {
         Button(action: action) {
             // `.ghost` is a bare text button — it gets no surface at all, so
             // it skips `glassControl` rather than passing a clear tint (which
             // would still paint the pre-iOS-26 fill).
-            if style == .ghost {
+            switch style {
+            case .ghost:
                 label
-            } else {
+            case .primary:
+                // A solid ink pill, the same "do this" mark as
+                // PrimaryCTAButton and the selected segment. A tinted-glass
+                // primary read as one more pastel chip on a calm page.
+                label.background(Capsule(style: .continuous).fill(AppColor.textPrimary))
+            case .secondary, .destructive:
                 // ScalePressStyle owns the press response; interactive
                 // glass would run a second, competing scale on iOS 26.
                 label.glassControl(.capsule, tint: tint, border: border, interactive: false)
@@ -49,6 +58,12 @@ struct GlassButton: View {
             Text(title)
                 .font(AppFont.headline)
                 .multilineTextAlignment(.center)
+                // A hugging button squeezed by a sibling (two in an HStack)
+                // broke a single Swedish word mid-word ("Ryg/g"); it shrinks
+                // a little instead. Accessibility sizes keep wrapping, since
+                // a long title there can't fit one line at any scale.
+                .lineLimit(wrapsTitle ? nil : 1)
+                .minimumScaleFactor(wrapsTitle ? 1 : 0.75)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: isFullWidth ? .infinity : nil)
@@ -63,7 +78,7 @@ struct GlassButton: View {
     /// values were the reason tinted controls looked opaque on iOS 26.
     private var tint: Color? {
         switch style {
-        case .primary: AppColor.accentPrimary.opacity(0.18)
+        case .primary: nil
         case .secondary: nil
         case .ghost: nil
         case .destructive: AppColor.destructive.opacity(0.15)
@@ -81,7 +96,7 @@ struct GlassButton: View {
 
     private var foregroundColor: Color {
         switch style {
-        case .primary: AppColor.accentInkOnWash
+        case .primary: AppColor.inverseInk
         case .secondary: AppColor.textPrimary
         case .ghost: AppColor.accentPrimary
         case .destructive: AppColor.destructive

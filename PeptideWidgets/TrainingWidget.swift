@@ -322,6 +322,7 @@ private struct StatPair: View {
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(label))

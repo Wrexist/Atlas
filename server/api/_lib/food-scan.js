@@ -54,6 +54,23 @@ const NUTRIENTS = {
   },
 };
 
+// Vitamins and minerals per 100 g. One nullable object rather than six
+// nullable numbers keeps the schema's union count low; the app treats
+// the whole object as optional, so older proxies and apps still agree.
+const MICRONUTRIENTS = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['sodium_mg', 'potassium_mg', 'iron_mg', 'calcium_mg', 'vitamin_d_ug', 'vitamin_b12_ug'],
+  properties: {
+    sodium_mg: { type: 'number' },
+    potassium_mg: { type: 'number' },
+    iron_mg: { type: 'number' },
+    calcium_mg: { type: 'number' },
+    vitamin_d_ug: { type: 'number' },
+    vitamin_b12_ug: { type: 'number' },
+  },
+};
+
 const PORTION = {
   type: 'object',
   additionalProperties: false,
@@ -102,7 +119,7 @@ export const FOOD_SCAN_SCHEMA = {
         additionalProperties: false,
         required: [
           'name', 'brand', 'portion_label', 'grams', 'portion_options',
-          'per_100g', 'confidence', 'price',
+          'per_100g', 'micros_per_100g', 'confidence', 'price',
         ],
         properties: {
           name: { type: 'string' },
@@ -111,6 +128,7 @@ export const FOOD_SCAN_SCHEMA = {
           grams: { type: 'number' },
           portion_options: { type: 'array', items: PORTION },
           per_100g: NUTRIENTS,
+          micros_per_100g: nullable(MICRONUTRIENTS),
           confidence: { type: 'number' },
           price: nullable(PRICE),
         },
@@ -139,6 +157,8 @@ Identify before you estimate. Many foods look alike — watermelon and tomato, c
 
 Nutrition is per 100 g of the food as eaten (cooked weight for cooked food, including absorbed oil and sauce). Use typical database values for that food; never invent precision you don't have.
 
+micros_per_100g gives sodium, potassium, iron and calcium in mg and vitamin D and B12 in µg, per 100 g like the macros. Read them off a nutrition panel when printed (sodium is salt ÷ 2.5); otherwise use typical database values for that food. Null only when you cannot reasonably estimate them.
+
 grams is the amount shown or described. Estimate it from visual references: plate diameter (~26 cm dinner plate), cutlery, hands, packaging, can and bottle sizes. portion_label names that amount the way a person would ("1 bowl", "2 slices", "1 can (330 ml)").
 
 portion_options are 2–4 alternative amounts that suit THIS food, so the user can correct the portion with one tap: pieces for countable food ("1 slice", "2 slices"), sizes for drinks ("small glass 200 ml", "pint 500 ml"), fractions for dishes ("half the plate", "the whole plate"), and the whole package for packaged food. Give grams for each.
@@ -151,7 +171,7 @@ tips are at most two short, specific, useful notes — a hidden calorie source (
 
 questions are at most three one-tap questions about a detail the photo cannot show that changes an item's calories by roughly 15 % or more: cooking fat ("Fried in oil?"), sauce or dressing, milk type in a coffee, sugar in a drink, skin on or off. Each targets one item by item_index, at most one question per item. Give 2–3 short answer labels. The first option must repeat exactly the grams and per_100g you gave that item; every other option carries the complete grams and per_100g the item would have with that answer. Don't repeat a question as a tip. Empty for product lookups and when no detail would move the numbers much.
 
-summary is one short sentence in the user's language describing what you found. title is the dish name for a meal, the product name for a package. Write title, summary, names, labels and tips in the user's language.
+summary is one short sentence in the user's language describing what you found. title is the dish name for a meal, the product name for a package. Write title, summary, item names, portion_label, every portion_options label, the package serving label, tips, questions and every question's answer labels in the user's language (the language part of the user locale), even when the package or menu is in another language.
 
 If there is no food or drink at all, return kind "not_food", an empty items array and a summary saying what you see instead.`;
 
