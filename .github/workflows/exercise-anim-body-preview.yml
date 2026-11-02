@@ -1,0 +1,91 @@
+name: Exercise animation body preview
+
+# Quick stills (32 samples, half size) of the body builds in gen_human.py, so a
+# new body can be picked before any clip is re-rendered. Rebuilds human.blend
+# with MPFB from extensions.blender.org. Results land on the
+# exercise-body-preview branch.
+on:
+  push:
+    branches: [claude/project-thread-9vj9pu]
+    paths: [tools/exercise-anim/body_preview.json]
+  workflow_dispatch:
+
+jobs:
+  stills:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        body: [bulky, athletic, fit]
+    env:
+      BLENDER_VERSION: 5.2.1
+      ATLAS_PYTHON: python3
+      ATLAS_ALPHA: "1"
+      ATLAS_BODY: ${{ matrix.body }}
+      ATLAS_RES: 896x1120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install system packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -yq ffmpeg jq libxi6 libxkbcommon0 libsm6 libgl1 libegl1 libxrender1 libxxf86vm1 libxfixes3
+          python3 -m pip install --break-system-packages -q numpy scipy pillow
+      - uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/blender
+          key: blender-${{ env.BLENDER_VERSION }}
+      - name: Install Blender
+        run: |
+          dir="$RUNNER_TEMP/blender/blender-${BLENDER_VERSION}-linux-x64"
+          if [ ! -x "$dir/blender" ]; then
+            mkdir -p "$RUNNER_TEMP/blender"
+            curl -fsSL "https://download.blender.org/release/Blender${BLENDER_VERSION%.*}/blender-${BLENDER_VERSION}-linux-x64.tar.xz" | tar -xJ -C "$RUNNER_TEMP/blender"
+          fi
+          echo "BLENDER=$dir/blender" >> "$GITHUB_ENV"
+      - name: Install MPFB
+        run: |
+          url=$(curl -fsSL "https://extensions.blender.org/api/v1/extensions/" | jq -r '.data[] | select(.id == "mpfb") | .archive_url' | head -1)
+          echo "MPFB archive: $url"
+          curl -fsSL "$url" -o mpfb.zip
+          "$BLENDER" -b --command extension install-file -r user_default -e mpfb.zip
+      - name: Build body and render stills
+        working-directory: tools/exercise-anim
+        run: |
+          "$BLENDER" -b -P gen_human.py
+          python3 gen_specs.py
+          mkdir -p "$RUNNER_TEMP/stills"
+          for slug in Barbell_Squat Dumbbell_Bicep_Curl 3_4_Sit-Up; do
+            "$BLENDER" -b human.blend -P kit.py -- "$slug" --preview
+            for f in out/preview_${slug}_*.png; do cp "$f" "$RUNNER_TEMP/stills/${ATLAS_BODY}_$(basename "$f")"; done
+          done
+          ls -la "$RUNNER_TEMP/stills"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: body-${{ matrix.body }}
+          path: ${{ runner.temp }}/stills
+          retention-days: 7
+
+  publish:
+    needs: stills
+    if: always()
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: stills
+          pattern: body-*
+          merge-multiple: true
+      - name: Publish to exercise-body-preview
+        run: |
+          repo="https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          git init -q -b exercise-body-preview site
+          cp stills/*.png site/
+          cd site
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "Body preview stills (run ${{ github.run_id }})"
+          git push -fq "$repo" exercise-body-preview

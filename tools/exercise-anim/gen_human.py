@@ -1,30 +1,49 @@
 # Generates the MPFB muscular male + default rig (with finger bones) and saves human.blend.
-import bpy, sys, os
-from bl_ext.blender_org import mpfb
-from bl_ext.blender_org.mpfb.services.humanservice import HumanService
-from bl_ext.blender_org.mpfb.services.targetservice import TargetService
+import bpy, sys, os, importlib
+
+mpfb = importlib.import_module(next(f"bl_ext.{repo}.mpfb" for repo in ("blender_org", "user_default")
+                                    if importlib.util.find_spec(f"bl_ext.{repo}.mpfb")))
+HumanService = importlib.import_module(mpfb.__name__ + ".services.humanservice").HumanService
+TargetService = importlib.import_module(mpfb.__name__ + ".services.targetservice").TargetService
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "human.blend")
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 macro = TargetService.get_default_macro_info_dict()
 print("DEFAULT MACRO", macro)
-macro.update({"gender": 1.0, "age": 0.5, "muscle": 1.0, "weight": 0.6, "proportions": 1.0, "height": 0.6})
+# ATLAS_BODY picks the build. "bulky" is the original (exaggerated V-taper, lats, glutes and thighs that read as
+# inhuman on a light card); "athletic" and "fit" keep real-world proportions with less added muscle.
+BODIES = {
+    "bulky": ({"muscle": 1.0, "weight": 0.6, "height": 0.6},
+              {"dorsi": 0.9, "pectoral": 0.8, "vshape": 0.7, "shoulder": 0.35, "abs": 1.0, "upperarm": 0.45,
+               "thigh": 0.3, "calf": 0.3, "glutes": 1.0, "head": 0.3, "limb_muscle": 1.0}),
+    "athletic": ({"muscle": 0.8, "weight": 0.5, "height": 0.6},
+                 {"dorsi": 0.25, "pectoral": 0.4, "vshape": 0.2, "shoulder": 0.15, "abs": 0.8, "upperarm": 0.2,
+                  "thigh": 0.0, "calf": 0.1, "glutes": 0.35, "head": 0.1, "limb_muscle": 0.5}),
+    "fit": ({"muscle": 0.7, "weight": 0.45, "height": 0.6},
+            {"dorsi": 0.0, "pectoral": 0.2, "vshape": 0.0, "shoulder": 0.0, "abs": 0.6, "upperarm": 0.0,
+             "thigh": 0.0, "calf": 0.0, "glutes": 0.2, "head": 0.05, "limb_muscle": 0.3}),
+}
+build, d = BODIES[os.environ.get("ATLAS_BODY", "athletic")]
+macro.update({"gender": 1.0, "age": 0.5, "proportions": 1.0, **build})
 basemesh = HumanService.create_human(macro_detail_dict=macro, scale=0.1)
 
-# athletic detail on top of the macros, to approach the Atlas anatomy sculpt
 TARGETS = os.path.join(os.path.dirname(mpfb.__file__), "data", "targets")
-DETAIL = {"torso/torso-muscle-dorsi-incr": 0.9, "torso/torso-muscle-pectoral-incr": 0.8,
-          "torso/torso-vshape-incr": 0.7, "torso/measure-shoulder-dist-incr": 0.35,
-          "stomach/stomach-tone-incr": 1.0, "neck/neck-scale-horiz-incr": 0.1,
-          "arms/measure-upperarm-circ-incr": 0.45, "legs/measure-thigh-circ-incr": 0.3,
-          "legs/measure-calf-circ-incr": 0.3, "buttocks/buttocks-volume-incr": 1.0,
-          "head/head-scale-horiz-incr": 0.3, "head/head-scale-vert-incr": 0.3, "head/head-scale-depth-incr": 0.3}
+DETAIL = {"torso/torso-muscle-dorsi-incr": d["dorsi"], "torso/torso-muscle-pectoral-incr": d["pectoral"],
+          "torso/torso-vshape-incr": d["vshape"], "torso/measure-shoulder-dist-incr": d["shoulder"],
+          "stomach/stomach-tone-incr": d["abs"], "neck/neck-scale-horiz-incr": 0.1,
+          "arms/measure-upperarm-circ-incr": d["upperarm"], "legs/measure-thigh-circ-incr": d["thigh"],
+          "legs/measure-calf-circ-incr": d["calf"], "buttocks/buttocks-volume-incr": d["glutes"],
+          "head/head-scale-horiz-incr": d["head"], "head/head-scale-vert-incr": d["head"],
+          "head/head-scale-depth-incr": d["head"]}
 for side in ("l", "r"):
-    DETAIL.update({f"arms/{side}-upperarm-muscle-incr": 1.0, f"arms/{side}-upperarm-shoulder-muscle-incr": 1.0,
-                   f"arms/{side}-lowerarm-muscle-incr": 0.8, f"legs/{side}-upperleg-muscle-incr": 1.0,
-                   f"legs/{side}-lowerleg-muscle-incr": 0.8})
+    m = d["limb_muscle"]
+    DETAIL.update({f"arms/{side}-upperarm-muscle-incr": m, f"arms/{side}-upperarm-shoulder-muscle-incr": m,
+                   f"arms/{side}-lowerarm-muscle-incr": 0.8 * m, f"legs/{side}-upperleg-muscle-incr": m,
+                   f"legs/{side}-lowerleg-muscle-incr": 0.8 * m})
 for name, w in DETAIL.items():
+    if not w:
+        continue
     TargetService.load_target(basemesh, os.path.join(TARGETS, name + ".target.gz"), weight=w)
 rig = HumanService.add_builtin_rig(basemesh, "default")
 SHOES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dl", "shoes02", "clothes", "punkduck_running_shoes_01", "punkduck_running_shoes_01.mhclo")

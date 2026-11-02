@@ -168,6 +168,9 @@ def stand(p):
         for c in A.P["foot." + free].constraints:
             c.mute = True
     lean0 = math.radians(p.get("lean", 0))
+    # knees track the toes; without this the leg IK kept its default pole angle and squats caved the knees sideways
+    p.setdefault("knees_point", {s: (sx * 0.3, -1, 0) for s, sx in SIDES})
+    p["_crouch_for_poles"] = True
     if p.get("feet_move"):
         p["_move"] = feet_mover(lean0)
     return (0, 0, lean0), []
@@ -1054,7 +1057,13 @@ def build(spec):
         body(1)
         gear.place(1)
     gear.grip() if isinstance(gear, Bar) else None
+    crouch = spec["posture"].get("_crouch_for_poles") and not spec["posture"].get("free_leg")
+    if crouch:
+        A.set_root(d0 + 0.25, b0, l0)            # straight legs give the knee no direction to score; bend them
     A.solve_pole_angles({s: arms.pole_dir(sx) for s, sx in SIDES}, spec["posture"].get("knees_point"))
+    if crouch:
+        A.set_root(d0, b0, l0)
+        body(1)
     gear.place(1)
     if isinstance(gear, Bar):
         gear.finish_grip()

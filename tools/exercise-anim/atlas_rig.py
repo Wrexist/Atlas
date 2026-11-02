@@ -1153,7 +1153,7 @@ def setup_render():
         m.show_viewport = True
     for o in (body, shoes):
         sub = o.modifiers.new("Subdiv", 'SUBSURF')
-        sub.levels, sub.render_levels = 0, 1
+        sub.levels, sub.render_levels = 0, 2 if ALPHA else 1     # smoother silhouette on a light card
     world = bpy.data.worlds.new("Black")
     world.use_nodes = True
     world.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.0

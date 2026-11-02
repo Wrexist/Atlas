@@ -106,6 +106,9 @@ def composite(rgba, tiers=None, pool=None):
 
 def still(src, dst):
     rgba, tiers = read_rgba(src), read_tiers(src)
+    if os.environ.get("ATLAS_ALPHA") == "1":
+        Image.fromarray(over(cutout(rgba, tiers), CARDS["light"])).save(dst)
+        return
     shadow = floor_shadow(rgba, tiers)
     Image.fromarray(composite(rgba, tiers, pool_from(shadow) if shadow is not None else None)).save(dst)
 
