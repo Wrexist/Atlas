@@ -27302,6 +27302,16 @@
         }
       }
     },
+    "Pause animation": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausa animering"
+          }
+        }
+      }
+    },
     "Pause workout": {
       "localizations": {
         "sv": {
@@ -27878,6 +27888,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Spela upp"
+          }
+        }
+      }
+    },
+    "Play animation": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spela animering"
           }
         }
       }
@@ -45657,6 +45677,118 @@
           "stringUnit": {
             "state": "translated",
             "value": "Räcker %lld portioner · håller %lld dagar i kylen"
+          }
+        }
+      }
+    },
+    "exercise.detail.accessories": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accessories"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tillbehör"
+          }
+        }
+      }
+    },
+    "exercise.detail.equipment": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Equipment"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utrustning"
+          }
+        }
+      }
+    },
+    "exercise.detail.force": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Force"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kraft"
+          }
+        }
+      }
+    },
+    "exercise.detail.level": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Level"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nivå"
+          }
+        }
+      }
+    },
+    "exercise.detail.type": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Typ"
+          }
+        }
+      }
+    },
+    "exercise.showcase.movement": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Movement"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rörelse"
+          }
+        }
+      }
+    },
+    "exercise.showcase.muscles": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muscles"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muskler"
           }
         }
       }
