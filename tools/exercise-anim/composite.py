@@ -45,12 +45,10 @@ def glow_from(alpha):
 PRIMARY = np.array((0xFF, 0xAC, 0x73)) / 255         # AppColor.trainingPrimaryMuscle (dark)
 SECONDARY = np.array((0x80, 0xAD, 0xFF)) / 255       # AppColor.trainingSecondaryMuscle (dark)
 TINT = ((1, SECONDARY, 0.85), (0, PRIMARY, 0.92))
-OUTLINE = 0.0                                        # how much a worked muscle's outline darkens (0 = none)
 if os.environ.get("ATLAS_ALPHA") == "1":                 # one clip for light and dark cards: saturated mid tones that
-    PRIMARY = np.array((0xF2, 0x78, 0x2E)) / 255         # read on both, full strength, and a crisp outline round
-    SECONDARY = np.array((0x3E, 0x82, 0xF5)) / 255       # every worked muscle so it pops off the grey clay
+    PRIMARY = np.array((0xF2, 0x78, 0x2E)) / 255         # read on both, at full strength, so worked muscles pop off
+    SECONDARY = np.array((0x3E, 0x82, 0xF5)) / 255       # the grey clay without an outline
     TINT = ((1, SECONDARY, 1.0), (0, PRIMARY, 1.0))
-    OUTLINE = 0.45
 LIT = 0.72                                           # display grey of the lit clay: multiply gain so lit muscle = the hex
 
 
@@ -60,17 +58,7 @@ def tint(rgba, tiers):
     for ch, col, k in TINT:
         f = tiers[..., ch:ch + 1] * k
         rgb = rgb * (1 - f) + np.clip(rgb.mean(-1, keepdims=True) / LIT * col, 0, 1) * f
-        if OUTLINE:
-            rgb = rgb * (1 - OUTLINE * edge(tiers[..., ch]) * rgba[..., 3:4])
     return np.concatenate([rgb, rgba[..., 3:]], -1)
-
-
-def edge(mask):
-    """Soft ~1.5 px line along a tier mask's border (scaled to the frame width)."""
-    k = max(1, round(1.5 * mask.shape[1] / REF_WIDTH))
-    m = ndimage.gaussian_filter(mask, 0.6 * k)
-    line = ndimage.grey_dilation(m, size=(2 * k + 1,) * 2) - ndimage.grey_erosion(m, size=(2 * k + 1,) * 2)
-    return np.clip(line * 1.6, 0, 1)[..., None]
 
 
 def read_tiers(path):
