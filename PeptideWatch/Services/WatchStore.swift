@@ -297,9 +297,10 @@ final class WatchStore: NSObject, ObservableObject {
     /// cancelled rest withdraws it.
     private var armedRestNotificationID: String?
 
-    /// Taps the wrist when the rest ends while the app is open, and leaves
-    /// a local "Time to lift" notification for when it isn't, so a dark
-    /// screen still hears about it. Plays regardless of the Haptic Feedback
+    /// Taps the wrist when the rest ends while the app is open. With the app
+    /// suspended, a phone-run workout reaches the wrist through the phone's
+    /// own "Time to lift" alert (forwarded while the phone is locked), and a
+    /// Watch-run workout through a local alert scheduled here. Plays regardless of the Haptic Feedback
     /// setting: it is the alert itself, not a tap confirmation. A wait that
     /// resumes after the app was suspended past the rest end stays silent
     /// rather than buzzing minutes late.
@@ -308,7 +309,7 @@ final class WatchStore: NSObject, ObservableObject {
         guard endsAt != armedRestEnd else { return }
         armedRestEnd = endsAt
         restHapticTask?.cancel()
-        scheduleRestEndNotification(endsAt: endsAt, sessionID: workout?.sessionId)
+        scheduleRestEndNotification(endsAt: offlineWorkout == nil ? nil : endsAt, sessionID: workout?.sessionId)
         guard let endsAt else { return }
         restHapticTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .seconds(endsAt.timeIntervalSinceNow))
@@ -318,9 +319,10 @@ final class WatchStore: NSObject, ObservableObject {
         }
     }
 
-    /// Uses the phone's identifier (see `WatchWorkoutSnapshot.restNotificationID`)
-    /// so the two never both buzz. Without a delegate the system keeps it
-    /// off screen while the app is open, where the haptic above covers it.
+    /// Only for workouts the Watch runs itself: the phone schedules none for
+    /// those, and scheduling one for a phone-run workout would buzz twice
+    /// when the phone forwards its own. Without a delegate the system keeps
+    /// it off screen while the app is open, where the haptic above covers it.
     private func scheduleRestEndNotification(endsAt: Date?, sessionID: UUID?) {
         let center = UNUserNotificationCenter.current()
         if let armed = armedRestNotificationID {

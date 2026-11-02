@@ -298,8 +298,7 @@ final class WatchWorkoutServiceTests: XCTestCase {
     }
 }
 
-/// watchOS drops the duplicate only when both devices use the same id, so
-/// a drift here means two "Time to lift" buzzes on a locked phone.
+/// One alert per session on both devices; a drift here splits the namespace.
 final class RestNotificationIDTests: XCTestCase {
     func test_watchRestNotificationID_matchesPhoneRequestID() {
         let sessionID = UUID()
