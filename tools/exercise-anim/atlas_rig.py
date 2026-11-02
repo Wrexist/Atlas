@@ -130,7 +130,20 @@ def cavity_shading(nt, bsdf):
     ao.inputs["Distance"].default_value = 0.05
     shade = nt.nodes.new("ShaderNodeMapRange")
     shade.inputs["To Min"].default_value, shade.inputs["To Max"].default_value = 0.45, 1.0
-    nt.links.new(ao.outputs["AO"], shade.inputs["Value"])
+    groove = nt.nodes.new("ShaderNodeAttribute")
+    groove.attribute_name = "atlas_groove"
+    carve = nt.nodes.new("ShaderNodeMath")
+    carve.operation, carve.inputs[1].default_value = 'MULTIPLY', 0.35
+    nt.links.new(groove.outputs["Fac"], carve.inputs[0])
+    dim = nt.nodes.new("ShaderNodeMath")
+    dim.operation = 'SUBTRACT'
+    dim.inputs[0].default_value = 1.0
+    nt.links.new(carve.outputs[0], dim.inputs[1])
+    both = nt.nodes.new("ShaderNodeMath")
+    both.operation = 'MULTIPLY'
+    nt.links.new(ao.outputs["AO"], both.inputs[0])
+    nt.links.new(dim.outputs[0], both.inputs[1])
+    nt.links.new(both.outputs[0], shade.inputs["Value"])
     mul = nt.nodes.new("ShaderNodeMix")
     mul.data_type, mul.blend_type = 'RGBA', 'MULTIPLY'
     mul.inputs["Factor"].default_value = 1.0
@@ -338,6 +351,8 @@ def setup():
     body_mask = group_weights(body, ["body"]) > 0
     hand_mask = group_weights(body, [g.name for g in body.vertex_groups
                                      if g.name.startswith(("finger", "metacarpal", "wrist"))]) > 0.2
+    if ALPHA:
+        define_muscles()
     skin = clay()
     fabric = material("AtlasFabric", (0.035, 0.035, 0.038), rough=0.9)    # near-black training kit
     solid_aov(fabric)
@@ -533,6 +548,29 @@ def muscle_mask(name):
     field = np.where(member, np.clip(0.5 + margin(g) / MUSCLE_EDGE, 0, 1), 0.0)
     left = co[:, 0] >= 0
     return np.where(left, field, field[_mirror])
+
+
+GROOVE_DEPTH = 0.004            # m pressed in along each muscle outline, so the anatomy reads like a sculpt
+GROOVE_WIDTH = 0.12             # in muscle-field units round the 0.5 outline (~ 7 mm either side)
+
+
+def define_muscles():
+    """Sculpt shallow grooves along every muscle region's outline (rest mesh, before the armature) and keep them in
+    an 'atlas_groove' attribute the clay shader darkens: separates pecs, delts, abs, quads... on the plain mesh."""
+    groove = np.zeros(len(body.data.vertices))
+    for name in _muscle_rules():
+        f = muscle_mask(name)
+        groove = np.maximum(groove, np.where(f > 0, np.exp(-((f - 0.5) / GROOVE_WIDTH) ** 2), 0.0))
+    vg = body.vertex_groups.new(name="AtlasGroove")
+    for i in np.nonzero(groove > 0.02)[0]:
+        vg.add([int(i)], float(groove[i]), 'REPLACE')
+    d = body.modifiers.new("Groove", 'DISPLACE')
+    d.direction, d.mid_level, d.strength, d.vertex_group = 'NORMAL', 0.0, -GROOVE_DEPTH, vg.name
+    with bpy.context.temp_override(object=body):
+        bpy.ops.object.modifier_move_to_index(modifier=d.name, index=0)
+    a = body.data.attributes.new("atlas_groove", 'FLOAT', 'POINT')
+    a.data.foreach_set("value", groove.astype(np.float32))
+    print(f"DEFINE {len(_muscle_rules())} muscles, {(groove > 0.5).sum()} groove verts")
 
 
 def train(primary=(), secondary=()):
