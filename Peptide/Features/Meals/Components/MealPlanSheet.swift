@@ -238,8 +238,15 @@ private struct MealPlanRow: View {
     let onLog: () -> Void
     let onSwap: () -> Void
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    /// At accessibility sizes the buttons move under the meal, so the
+    /// food name keeps the full row width instead of a sliver of it.
     var body: some View {
-        HStack(spacing: Spacing.md) {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.sm))
+            : AnyLayout(HStackLayout(spacing: Spacing.md))
+        layout {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Label(meal.slot.displayName, systemImage: meal.slot.icon)
                     .font(AppFont.eyebrow)
@@ -256,6 +263,14 @@ private struct MealPlanRow: View {
             }
             .accessibilityElement(children: .combine)
             Spacer(minLength: 0)
+            actions
+        }
+        .padding(Spacing.md)
+        .insetRowBackground(cornerRadius: Spacing.smallCornerRadius)
+    }
+
+    private var actions: some View {
+        HStack(spacing: Spacing.md) {
             Button(action: onSwap) {
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .font(AppFont.scaled(16, weight: .semibold))
@@ -273,8 +288,6 @@ private struct MealPlanRow: View {
             .disabled(isLogged)
             .accessibilityLabel(isLogged ? "\(meal.food.name) logged" : "Log \(meal.food.name)")
         }
-        .padding(Spacing.md)
-        .insetRowBackground(cornerRadius: Spacing.smallCornerRadius)
     }
 
     private var portionText: String {

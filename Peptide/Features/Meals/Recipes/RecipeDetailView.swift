@@ -187,6 +187,8 @@ struct RecipeDetailView: View {
                     Text("\(recipe.calories * servings) kcal")
                         .font(AppFont.statValueSmall)
                         .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                         .contentTransition(.numericText())
                         .foregroundStyle(AppColor.textPrimary)
                     Group {
@@ -207,21 +209,29 @@ struct RecipeDetailView: View {
                     servingsStepper
                 }
             }
-            HStack(spacing: Spacing.sm) {
-                MacroChip.protein(Int((recipe.proteinG * factor).rounded()))
-                MacroChip.carbs(Int((recipe.carbsG * factor).rounded()))
-                MacroChip.fat(Int((recipe.fatG * factor).rounded()))
-                MacroChip(
-                    symbol: "leaf.circle.fill",
-                    name: String(localized: "fibre"),
-                    grams: Int((recipe.fiberG * factor).rounded()),
-                    tint: AppColor.positive
-                )
+            // Four chips overflow one line at large text sizes; stack
+            // them rather than clip the grams.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Spacing.sm) { macroChips(factor: factor) }
+                VStack(alignment: .leading, spacing: Spacing.xs) { macroChips(factor: factor) }
             }
             .contentTransition(.numericText())
         }
         .padding(Spacing.cardPadding)
         .glassSurface(cornerRadius: Spacing.cardCornerRadius)
+    }
+
+    @ViewBuilder
+    private func macroChips(factor: Double) -> some View {
+        MacroChip.protein(Int((recipe.proteinG * factor).rounded()))
+        MacroChip.carbs(Int((recipe.carbsG * factor).rounded()))
+        MacroChip.fat(Int((recipe.fatG * factor).rounded()))
+        MacroChip(
+            symbol: "leaf.circle.fill",
+            name: String(localized: "fibre"),
+            grams: Int((recipe.fiberG * factor).rounded()),
+            tint: AppColor.positive
+        )
     }
 
     private var servingsStepper: some View {
@@ -429,6 +439,7 @@ private struct IngredientRow: View {
                 Text("\(grams) g")
                     .font(AppFont.subheadline)
                     .monospacedDigit()
+                    .fixedSize()
                     .contentTransition(.numericText())
                     .foregroundStyle(AppColor.textSecondary)
             }

@@ -180,6 +180,7 @@ struct GoalCountdownCard: View {
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
                 .contentTransition(.numericText())
+                .fixedSize()
             VStack(alignment: .leading, spacing: 0) {
                 Text(heroUnit(weeks: weeks, days: days))
                     .font(AppFont.subheadline.weight(.semibold))

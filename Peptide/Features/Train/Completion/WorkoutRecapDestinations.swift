@@ -56,10 +56,18 @@ struct RecapSetRow: View {
     let unit: MeasurementUnit
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text("Set \(set.index)\(set.isWarmup ? " · Warm-up" : "")\(set.completed ? "" : " · Unfinished")")
-                .foregroundStyle(AppColor.textSecondary)
+            Text(title).foregroundStyle(AppColor.textSecondary)
             Text(RecapFormat.set(set, unit: unit)).monospacedDigit()
         }.font(AppFont.subheadline).accessibilityElement(children: .combine)
+    }
+
+    /// "Set 2 · Warm-up · Unfinished".
+    private var title: String {
+        [
+            String(localized: "Set \(set.index)"),
+            set.isWarmup ? String(localized: "Warm-up") : nil,
+            set.completed ? nil : String(localized: "Unfinished"),
+        ].compactMap { $0 }.joined(separator: " · ")
     }
 }
 

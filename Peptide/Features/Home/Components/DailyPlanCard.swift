@@ -227,10 +227,11 @@ struct DailyPlanCard: View {
             Text("\(count)")
                 .font(AppFont.scaled(11, weight: .bold))
                 .foregroundStyle(AppColor.textSecondary)
+                .fixedSize()
                 .padding(.horizontal, Spacing.sm)
                 .padding(.vertical, 2)
                 .background { Capsule().fill(AppColor.surfaceElevated) }
-                .accessibilityLabel(count == 1 ? "1 dose" : "\(count) doses")
+                .accessibilityLabel("\(count) doses")
         }
     }
 }
@@ -344,6 +345,7 @@ private struct DailyPlanDoseRow: View {
                 .foregroundStyle(
                     dose.entry.completed ? AppColor.textTertiary : AppColor.accentLight
                 )
+                .fixedSize()
         }
     }
 
@@ -352,6 +354,7 @@ private struct DailyPlanDoseRow: View {
             .textCase(.uppercase)
             .font(AppFont.badgeSmall)
             .foregroundStyle(AppColor.warning)
+            .fixedSize()
             .padding(.horizontal, 5)
             .padding(.vertical, 1)
             .background { Capsule().fill(AppColor.warning.opacity(0.15)) }

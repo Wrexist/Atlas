@@ -301,6 +301,7 @@ struct TodayChecklistCard: View {
             Text("+\(unit.volumeLabel(TodayChecklistEngine.glassFluidOunces(for: unit)))")
                 .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.accentPrimary)
+                .fixedSize()
                 .padding(.horizontal, Spacing.sm)
                 .padding(.vertical, Spacing.xs)
                 .glassControl(.capsule, tint: AppColor.accentPrimary.opacity(0.15), interactive: false)

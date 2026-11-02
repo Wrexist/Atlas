@@ -89,9 +89,15 @@ struct RoutinesView: View {
 
     private var routineList: some View {
         VStack(spacing: 0) {
-            HStack(spacing: Spacing.sm) {
-                newRoutineButton
-                buildProgramButton
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Spacing.sm) {
+                    newRoutineButton
+                    buildProgramButton
+                }
+                VStack(spacing: Spacing.sm) {
+                    newRoutineButton
+                    buildProgramButton
+                }
             }
             .padding(.horizontal, Spacing.screenPadding)
             .padding(.bottom, Spacing.sm)

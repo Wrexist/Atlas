@@ -1000,7 +1000,7 @@ struct MealScanFlow: View {
         if logAsOneMeal {
             let name = mealName.trimmingCharacters(in: .whitespacesAndNewlines)
             pendingEntries = [MealEntry(date: logDate, category: category,
-                name: name.isEmpty ? (suggestedMealName ?? "Meal") : name,
+                name: name.isEmpty ? (suggestedMealName ?? String(localized: "Meal")) : name,
                 calories: totalCalories, proteinG: totalProtein, carbsG: totalCarbs, fatG: totalFat,
                 source: .photo, components: toLog.map(\.component))]
         } else {
@@ -1513,7 +1513,7 @@ private struct FoodItemEditCard: View {
                     Text(item.quantityLabel)
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.textTertiary)
-                        .lineLimit(1)
+                        .lineLimit(2)
                 }
                 if let verified = item.activeVerification {
                     Label(verified.displayName, systemImage: "checkmark.circle.fill")
@@ -1532,6 +1532,7 @@ private struct FoodItemEditCard: View {
                     .font(AppFont.scaled(20, weight: .medium))
                     .foregroundStyle(AppColor.textPrimary)
                     .monospacedDigit()
+                    .fixedSize()
                     // Rolls rather than cuts when the portion changes, so the
                     // stepper visibly drives this number.
                     .contentTransition(.numericText())
@@ -1573,27 +1574,34 @@ private struct FoodItemEditCard: View {
             Label(question.question, systemImage: "sparkles")
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
-            HStack(spacing: Spacing.xs) {
-                ForEach(Array(question.answers.enumerated()), id: \.offset) { index, answer in
-                    let isActive = index == item.selectedAnswer
-                    Button {
-                        Haptics.selection()
-                        AppAnimation.with(AppAnimation.springSnappy) { item.answer(index) }
-                    } label: {
-                        Text(answer.label)
-                            .font(AppFont.scaled(11, weight: .semibold))
-                            .foregroundStyle(isActive ? AppColor.onAccent : AppColor.textSecondary)
-                            .padding(.horizontal, Spacing.sm)
-                            .padding(.vertical, Spacing.xs)
-                            .background {
-                                Capsule().fill(isActive ? AppColor.accentFill : AppColor.surfaceElevated)
-                            }
-                    }
-                    .buttonStyle(.plain)
-                    .minimumHitArea()
-                    .accessibilityAddTraits(isActive ? .isSelected : [])
-                }
+            // Answers stay one-line capsules; they stack when a longer
+            // translation would not fit side by side.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Spacing.xs) { answerChips(question) }
+                VStack(alignment: .leading, spacing: Spacing.xs) { answerChips(question) }
             }
+        }
+    }
+
+    private func answerChips(_ question: ScanQuestion) -> some View {
+        ForEach(Array(question.answers.enumerated()), id: \.offset) { index, answer in
+            let isActive = index == item.selectedAnswer
+            Button {
+                Haptics.selection()
+                AppAnimation.with(AppAnimation.springSnappy) { item.answer(index) }
+            } label: {
+                Text(answer.label)
+                    .font(AppFont.scaled(11, weight: .semibold))
+                    .foregroundStyle(isActive ? AppColor.onAccent : AppColor.textSecondary)
+                    .padding(.horizontal, Spacing.sm)
+                    .padding(.vertical, Spacing.xs)
+                    .background {
+                        Capsule().fill(isActive ? AppColor.accentFill : AppColor.surfaceElevated)
+                    }
+            }
+            .buttonStyle(.plain)
+            .minimumHitArea()
+            .accessibilityAddTraits(isActive ? .isSelected : [])
         }
     }
 
@@ -1648,8 +1656,7 @@ private struct FoodItemEditCard: View {
                 Text("1 serving = \(item.quantityLabel)")
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
+                    .lineLimit(2)
             }
         }
     }
@@ -1667,6 +1674,7 @@ private struct FoodItemEditCard: View {
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
+                .fixedSize()
                 .contentTransition(.numericText(value: item.grams))
                 .frame(minWidth: 64)
             stepperButton(icon: "plus.circle.fill", label: String(localized: "Increase grams")) {

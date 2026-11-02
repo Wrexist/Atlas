@@ -263,6 +263,7 @@ private struct BarWeightsRow: View {
                                 .font(AppFont.subheadline.weight(.semibold))
                                 .monospacedDigit()
                                 .foregroundStyle(AppColor.textSecondary)
+                                .fixedSize()
                         }
                     }
                     .onChange(of: weight(bar).wrappedValue) { _, _ in Haptics.selection() }

@@ -193,24 +193,31 @@ struct TrainOverviewView: View {
                     showsSessionBuilder = true
                 }
                 .accessibilityIdentifier("train-build-workout")
-                HStack(spacing: Spacing.sm) {
-                    GlassButton(title: "Empty workout", icon: "play.fill", style: .secondary, isFullWidth: true) {
-                        Haptics.impact(.medium)
-                        sessionService.startWorkout()
-                    }
-                    // The routine that comes next in the user's rotation, one
-                    // tap from here instead of via the Routines tab.
-                    if let routine = Self.suggestedRoutine(from: routineStore.routines, history: sessions) {
-                        GlassButton(title: "Start \(routine.name)", icon: "list.bullet.rectangle.portrait",
-                                    style: .secondary, isFullWidth: true) {
-                            Haptics.impact(.medium)
-                            routineStore.startWorkout(from: routine)
-                        }
-                        .accessibilityIdentifier("train-start-next-routine")
-                    }
+                // Side by side only while both titles fit on one line each.
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: Spacing.sm) { startButtons }
+                    VStack(spacing: Spacing.sm) { startButtons }
                 }
             }
             .sheet(isPresented: $showsSessionBuilder) { SessionBuilderSheet() }
+        }
+    }
+
+    @ViewBuilder
+    private var startButtons: some View {
+        GlassButton(title: "Empty workout", icon: "play.fill", style: .secondary, isFullWidth: true) {
+            Haptics.impact(.medium)
+            sessionService.startWorkout()
+        }
+        // The routine that comes next in the user's rotation, one
+        // tap from here instead of via the Routines tab.
+        if let routine = Self.suggestedRoutine(from: routineStore.routines, history: sessions) {
+            GlassButton(title: "Start \(routine.name)", icon: "list.bullet.rectangle.portrait",
+                        style: .secondary, isFullWidth: true) {
+                Haptics.impact(.medium)
+                routineStore.startWorkout(from: routine)
+            }
+            .accessibilityIdentifier("train-start-next-routine")
         }
     }
 
@@ -256,6 +263,7 @@ struct TrainOverviewView: View {
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.textPrimary)
                             .monospacedDigit()
+                            .fixedSize()
                             .contentTransition(.numericText())
                     }
                     // One connected track, a segment per planned day.
@@ -450,11 +458,18 @@ struct TrainOverviewView: View {
 
     private var topMusclesRow: some View {
         let top = topMuscleGroups()
-        return HStack(spacing: Spacing.sm) {
-            ForEach(top, id: \.muscle) { item in
-                topMusclePill(for: item.muscle, count: item.count)
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: Spacing.sm) {
+                ForEach(top, id: \.muscle) { item in
+                    topMusclePill(for: item.muscle, count: item.count)
+                }
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
+            VStack(spacing: Spacing.sm) {
+                ForEach(top, id: \.muscle) { item in
+                    topMusclePill(for: item.muscle, count: item.count)
+                }
+            }
         }
     }
 

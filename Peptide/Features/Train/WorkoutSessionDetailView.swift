@@ -265,6 +265,7 @@ struct WorkoutSessionDetailView: View {
             Text("\(effort) / 5")
                 .font(AppFont.scaled(13, weight: .semibold))
                 .foregroundStyle(AppColor.textPrimary)
+                .fixedSize()
         }
         .padding(Spacing.md)
         .glassSurface(cornerRadius: Spacing.smallCornerRadius)
@@ -322,6 +323,7 @@ struct WorkoutSessionDetailView: View {
                         Text("RPE \(rpe.formatted(.number.precision(.fractionLength(0...1))))")
                             .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textSecondary)
+                            .fixedSize()
                     }
                     Spacer()
                     if set.isWarmup {
@@ -360,14 +362,18 @@ struct WorkoutSessionDetailView: View {
         let label = HStack {
             ExerciseImageView(exercise: exercise)
                 .frame(width: 44, height: 44)
-            Text(exercise?.name ?? String(localized: "Unknown exercise"))
-                .font(AppFont.headline)
-                .foregroundStyle(AppColor.textPrimary)
-                .multilineTextAlignment(.leading)
-            Spacer()
-            Text("^[\(entry.completedWorkingSets.count) working set](inflect: true)")
-                .font(AppFont.caption2)
-                .foregroundStyle(AppColor.textSecondary)
+            // The count sits under the name so it never squeezes the name
+            // into a narrow column.
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(exercise?.name ?? String(localized: "Unknown exercise"))
+                    .font(AppFont.headline)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .multilineTextAlignment(.leading)
+                Text("^[\(entry.completedWorkingSets.count) working set](inflect: true)")
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+            Spacer(minLength: 0)
             if exercise != nil {
                 Image(systemName: "chevron.right")
                     .font(AppFont.scaled(13, weight: .semibold))

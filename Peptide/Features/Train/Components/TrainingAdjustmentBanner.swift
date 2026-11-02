@@ -9,23 +9,32 @@ struct TrainingAdjustmentBanner: View {
     let isApplied: Bool
     let onToggle: () -> Void
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
-            Image(systemName: adjustment == .deload ? "arrow.down.circle.fill" : "battery.25percent")
-                .foregroundStyle(AppColor.warning)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(title)
-                    .font(AppFont.callout.weight(.semibold))
-                    .foregroundStyle(AppColor.textPrimary)
-                if let detail {
-                    Text(detail)
-                        .font(AppFont.caption2)
-                        .foregroundStyle(AppColor.textSecondary)
+        // At accessibility sizes the toggle drops below the text so it
+        // can't squeeze the title into a narrow column.
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.sm))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: Spacing.sm))
+        layout {
+            HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
+                Image(systemName: adjustment == .deload ? "arrow.down.circle.fill" : "battery.25percent")
+                    .foregroundStyle(AppColor.warning)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text(title)
+                        .font(AppFont.callout.weight(.semibold))
+                        .foregroundStyle(AppColor.textPrimary)
+                    if let detail {
+                        Text(detail)
+                            .font(AppFont.caption2)
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
                 }
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityElement(children: .combine)
             }
-            .fixedSize(horizontal: false, vertical: true)
-            .accessibilityElement(children: .combine)
             Spacer(minLength: Spacing.xs)
             Button {
                 Haptics.selection()
@@ -33,6 +42,7 @@ struct TrainingAdjustmentBanner: View {
             } label: {
                 Text(toggleTitle)
                     .font(AppFont.callout.weight(.semibold))
+                    .fixedSize()
                     .minimumHitArea()
             }
             .buttonStyle(.plain)

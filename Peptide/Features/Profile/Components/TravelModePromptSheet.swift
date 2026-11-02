@@ -128,7 +128,9 @@ struct TravelModePromptSheet: View {
             Text(title)
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textPrimary)
-                .lineLimit(1)
+                // Swedish zone names ("Centraleuropeisk normaltid") ran
+                // into an ellipsis on one line.
+                .lineLimit(2)
         }
     }
 

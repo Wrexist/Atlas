@@ -118,7 +118,7 @@ struct WorkoutSocialCanvas: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func metric(_ value: String, label: String) -> some View {
+    private func metric(_ value: String, label: LocalizedStringKey) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(value).font(.headline).monospacedDigit().fixedSize(horizontal: false, vertical: true)
             Text(label).font(.caption2).foregroundStyle(AppColor.textSecondary)

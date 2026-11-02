@@ -127,13 +127,22 @@ struct SetEditorRow: View {
             Button {
                 fill(from: prev)
             } label: {
-                Text("\(unit.weightValue(prev.weightKg, fractionDigits: 0...2)) × \(prev.reps)")
+                // A previous set with no load reads as reps alone, not "0 × 8".
+                Group {
+                    if prev.weightKg > 0 {
+                        Text("\(unit.weightValue(prev.weightKg, fractionDigits: 0...2)) × \(prev.reps)")
+                    } else {
+                        Text("\(prev.reps) reps")
+                    }
+                }
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .minimumHitArea()
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text("Previous: \(unit.weightValue(prev.weightKg, fractionDigits: 0...2)) \(unit.weightSpokenUnit) for ^[\(prev.reps) rep](inflect: true)"))
+            .accessibilityLabel(prev.weightKg > 0
+                ? Text("Previous: \(unit.weightValue(prev.weightKg, fractionDigits: 0...2)) \(unit.weightSpokenUnit) for ^[\(prev.reps) rep](inflect: true)")
+                : Text("Previous: \(prev.reps) reps"))
             .accessibilityHint(Text("Fills this set with the same weight and reps"))
         } else {
             Text("—")

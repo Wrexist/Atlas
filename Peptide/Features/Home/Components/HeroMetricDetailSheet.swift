@@ -148,6 +148,8 @@ struct HeroMetricDetailSheet: View {
                             .font(AppFont.scaled(36, weight: .light, relativeTo: .largeTitle))
                             .foregroundStyle(AppColor.textPrimary)
                             .monospacedDigit()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
                     } else {
                         Text("—")
                             .font(AppFont.scaled(36, weight: .bold, relativeTo: .largeTitle))
@@ -162,10 +164,14 @@ struct HeroMetricDetailSheet: View {
             // ring is the hero here on size and stroke weight instead.
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
+                // Beside a 140pt ring, "Återhämtning" breaks mid-word at
+                // larger sizes; shrink it instead.
                 Text(kind.label)
                     .font(AppFont.title)
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColor.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
                 if let line = supportingLine {
                     Text(line)
                         .font(AppFont.subheadline)
@@ -602,9 +608,12 @@ struct HeroMetricDetailSheet: View {
                 .font(AppFont.scaled(20, weight: .medium))
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
             Text(label)
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
         }
         .padding(.vertical, Spacing.lg)
         .frame(maxWidth: .infinity)

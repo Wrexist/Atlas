@@ -246,7 +246,7 @@ struct RecapNewPRs: View {
                                 .font(AppFont.caption2).foregroundStyle(AppColor.textSecondary)
                         }
                         Spacer(minLength: Spacing.sm)
-                        Text(valueLabel(pr)).font(AppFont.headline).monospacedDigit()
+                        Text(valueLabel(pr)).font(AppFont.headline).monospacedDigit().fixedSize()
                     }
                     .accessibilityElement(children: .combine)
                 }

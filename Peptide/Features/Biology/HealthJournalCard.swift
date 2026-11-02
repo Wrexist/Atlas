@@ -23,6 +23,7 @@ struct HealthJournalCard: View {
                         .foregroundStyle(AppColor.accentLight)
                         .minimumHitArea()
                         .buttonStyle(.plain)
+                        .fixedSize()
                 }
             }
 

@@ -421,6 +421,11 @@ final class WorkoutSessionService {
             updated.completedAt = nil
         }
         session.exercises[exIdx].sets[setIdx] = updated
+        if !prior.completed && !updated.isWarmup && abs(prior.weightKg - updated.weightKg) >= 0.01 {
+            session.exercises[exIdx].sets = SetCarryEngine.carryingWeight(
+                session.exercises[exIdx].sets, after: updated, fromKg: prior.weightKg
+            )
+        }
         if session.focus == nil { session.focus = WorkoutFocusState(selectedEntryID: entryID) }
         if !prior.completed && updated.completed && !updated.isWarmup {
             session.exercises[exIdx].sets = retunedSets(after: updated, in: session.exercises[exIdx])
@@ -864,6 +869,22 @@ enum PreviousSetEngine {
             position += 1
         }
         return hints
+    }
+}
+
+/// Typing a weight into one set fills the working sets still to do below
+/// it that still hold the old value, so a new lift typed once doesn't leave
+/// every later set at 0 kg. Sets the user already changed keep their value.
+enum SetCarryEngine {
+    static func carryingWeight(_ sets: [SetEntry], after edited: SetEntry, fromKg: Double) -> [SetEntry] {
+        sets.map { set in
+            guard set.index > edited.index, !set.completed, !set.isWarmup,
+                  abs(set.weightKg - fromKg) < 0.01
+            else { return set }
+            var updated = set
+            updated.weightKg = edited.weightKg
+            return updated
+        }
     }
 }
 

@@ -109,11 +109,19 @@ struct MuscleGainsCard: View {
     // MARK: - Top groups
 
     private var topGroupsRow: some View {
-        HStack(spacing: Spacing.sm) {
-            ForEach(topGroups(), id: \.muscle) { item in
-                statPill(for: item.muscle, value: item.value)
+        let groups = topGroups()
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: Spacing.sm) {
+                ForEach(groups, id: \.muscle) { item in
+                    statPill(for: item.muscle, value: item.value)
+                }
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
+            VStack(spacing: Spacing.sm) {
+                ForEach(groups, id: \.muscle) { item in
+                    statPill(for: item.muscle, value: item.value)
+                }
+            }
         }
     }
 

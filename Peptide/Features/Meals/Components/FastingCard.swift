@@ -8,6 +8,7 @@ struct FastingCard: View {
     @State private var store = FastingStore.shared
     @State private var showSheet = false
     @State private var confirmsEarlyEnd = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
@@ -23,8 +24,13 @@ struct FastingCard: View {
         .endFastEarlyConfirmation(isPresented: $confirmsEarlyEnd) { endFast() }
     }
 
+    /// At accessibility sizes Start / End moves under the summary, so the
+    /// stage name keeps the card's width instead of breaking mid-word.
     private func content(now: Date) -> some View {
-        HStack(spacing: Spacing.md) {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.md))
+            : AnyLayout(HStackLayout(spacing: Spacing.md))
+        return layout {
             Button {
                 showSheet = true
             } label: {
@@ -57,6 +63,9 @@ struct FastingCard: View {
                     .font(AppFont.scaled(13, weight: .semibold))
                     .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .padding(.horizontal, Spacing.xs)
             } else {
                 Image(systemName: "moon.zzz.fill")
                     .font(AppFont.scaled(20, weight: .semibold))

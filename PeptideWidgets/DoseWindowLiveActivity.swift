@@ -265,6 +265,8 @@ private struct DoseWindowLockView: View {
                 Text(state.doseTime, style: .timer)
                     .font(.system(size: 22, weight: .heavy, design: .rounded))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     .foregroundStyle(accent)
                 Text("late")
                     .font(.system(size: 12, weight: .semibold))
@@ -287,6 +289,8 @@ private struct DoseWindowLockView: View {
                 Text(timerInterval: state.countdownInterval(), countsDown: true)
                     .font(.system(size: 22, weight: .heavy, design: .rounded))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     .foregroundStyle(.primary)
                 Text("Due at \(Text(state.doseTime, style: .time))")
                     .font(.system(size: 11, weight: .medium))
@@ -403,6 +407,7 @@ private struct StatusPill: View {
                 .textCase(.uppercase)
                 .tracking(0.6)
                 .foregroundStyle(.primary)
+                .fixedSize()
         }
         .padding(.horizontal, 9)
         .padding(.vertical, 5)
@@ -468,6 +473,8 @@ private struct CompactTrailing: View {
             Text(timerInterval: state.countdownInterval(), countsDown: true)
                 .font(.system(size: 11, weight: .heavy, design: .rounded))
                 .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
                 .foregroundStyle(.white)
                 .padding(.trailing, 2)
         }
@@ -532,6 +539,8 @@ private struct IslandTrailingTimer: View {
                 .foregroundStyle(.white.opacity(0.55))
                 .textCase(.uppercase)
                 .tracking(0.5)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity, alignment: .trailing)
     }
@@ -551,6 +560,8 @@ private struct IslandTrailingTimer: View {
             Text(state.doseTime, style: .time)
         case .upcoming:
             Text(timerInterval: state.countdownInterval(), countsDown: true)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
     }
 }

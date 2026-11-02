@@ -116,31 +116,43 @@ struct WeeklyCheckInCard: View {
     }
 
     private var noWeightRow: some View {
-        HStack(spacing: Spacing.md) {
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text("Weight trend")
-                    .font(AppFont.scaled(13, weight: .semibold))
-                    .foregroundStyle(AppColor.textSecondary)
-                Text("No weigh-ins in two weeks")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.textPrimary)
+        let message = VStack(alignment: .leading, spacing: Spacing.xxs) {
+            Text("Weight trend")
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(AppColor.textSecondary)
+            Text("No weigh-ins in two weeks")
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.textPrimary)
+        }
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: Spacing.md) {
+                message
+                Spacer(minLength: 0)
+                logWeightButton
             }
-            Spacer(minLength: 0)
-            if let onLogWeight {
-                Button {
-                    Haptics.impact(.light)
-                    onLogWeight()
-                } label: {
-                    Text("Log weight")
-                        .font(AppFont.chipText)
-                        .foregroundStyle(AppColor.accentInkOnWash)
-                        .padding(.horizontal, Spacing.md)
-                        .padding(.vertical, Spacing.sm)
-                        .glassControl(.capsule, tint: accent.opacity(0.15), interactive: false)
-                }
-                .buttonStyle(ScalePressStyle())
-                .minimumHitArea()
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                message
+                logWeightButton
             }
+        }
+    }
+
+    @ViewBuilder
+    private var logWeightButton: some View {
+        if let onLogWeight {
+            Button {
+                Haptics.impact(.light)
+                onLogWeight()
+            } label: {
+                Text("Log weight")
+                    .font(AppFont.chipText)
+                    .foregroundStyle(AppColor.accentInkOnWash)
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.sm)
+                    .glassControl(.capsule, tint: accent.opacity(0.15), interactive: false)
+            }
+            .buttonStyle(ScalePressStyle())
+            .minimumHitArea()
         }
     }
 
@@ -335,16 +347,16 @@ private struct MetricRow: View {
                 .frame(width: 24)
                 .padding(.top, Spacing.xxs)
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(title)
-                        .font(AppFont.scaled(13, weight: .semibold))
-                        .foregroundStyle(AppColor.textSecondary)
-                    Spacer(minLength: Spacing.sm)
-                    Text(value)
-                        .font(AppFont.scaled(16, weight: .semibold))
-                        .foregroundStyle(AppColor.textPrimary)
-                        .contentTransition(.numericText())
-                        .multilineTextAlignment(.trailing)
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline) {
+                        titleText
+                        Spacer(minLength: Spacing.sm)
+                        valueText
+                    }
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
+                        titleText
+                        valueText
+                    }
                 }
                 if let progress {
                     ProgressBar(value: revealed ? progress : 0, tint: tint)
@@ -357,6 +369,19 @@ private struct MetricRow: View {
             }
         }
         .accessibilityElement(children: .combine)
+    }
+
+    private var titleText: some View {
+        Text(title)
+            .font(AppFont.scaled(13, weight: .semibold))
+            .foregroundStyle(AppColor.textSecondary)
+    }
+
+    private var valueText: some View {
+        Text(value)
+            .font(AppFont.scaled(16, weight: .semibold))
+            .foregroundStyle(AppColor.textPrimary)
+            .contentTransition(.numericText())
     }
 }
 

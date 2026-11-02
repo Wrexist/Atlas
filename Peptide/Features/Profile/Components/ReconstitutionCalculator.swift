@@ -105,6 +105,7 @@ struct ReconstitutionCalculator: View {
                     .monospacedDigit()
                     .foregroundStyle(AppColor.textPrimary)
                     .contentTransition(.numericText())
+                    .fixedSize()
             }
             Slider(value: bind, in: range, step: step)
                 .tint(AppColor.accentPrimary)

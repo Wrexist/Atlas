@@ -30,6 +30,7 @@ struct RecapWeeklyVolume: View {
                                 Spacer()
                                 Text("\(row.sets) of \(goal) sets")
                                     .foregroundStyle(row.sets >= goal ? AppColor.positive : AppColor.textSecondary)
+                                    .fixedSize()
                             }
                             .font(AppFont.subheadline)
                             .accessibilityElement(children: .combine)

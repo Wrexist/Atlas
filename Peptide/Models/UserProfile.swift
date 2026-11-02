@@ -8,7 +8,7 @@ enum BiologicalSex: String, Codable, CaseIterable, Identifiable, Sendable {
         switch self {
         case .male: String(localized: "Male")
         case .female: String(localized: "Female")
-        case .other: String(localized: "Other")
+        case .other: String(localized: "choice.other", defaultValue: "Other")
         case .unspecified: String(localized: "Prefer not to say")
         }
     }
@@ -19,7 +19,7 @@ enum BiologicalSex: String, Codable, CaseIterable, Identifiable, Sendable {
         switch self {
         case .male: String(localized: "Male")
         case .female: String(localized: "Female")
-        case .other: String(localized: "Other")
+        case .other: String(localized: "choice.other", defaultValue: "Other")
         case .unspecified: String(localized: "Skip")
         }
     }
@@ -38,7 +38,7 @@ enum ActivityLevel: String, Codable, CaseIterable, Identifiable, Sendable {
     var displayName: String {
         switch self {
         case .sedentary: String(localized: "Sedentary")
-        case .light: String(localized: "Light")
+        case .light: String(localized: "activity.light", defaultValue: "Light")
         case .moderate: String(localized: "Moderate")
         case .active: String(localized: "Active")
         case .athlete: String(localized: "Athlete")

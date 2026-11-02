@@ -34,7 +34,9 @@ struct HomeSectionHeader<Trailing: View>: View {
             // Today sections on the long merged scroll (Deep Audit II C15).
             .accessibilityAddTraits(.isHeader)
             Spacer(minLength: 0)
+            // Short counters and actions; the title wraps instead.
             trailing()
+                .fixedSize()
         }
         .padding(.top, Spacing.xs)
         .frame(maxWidth: .infinity, alignment: .leading)

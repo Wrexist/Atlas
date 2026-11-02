@@ -471,9 +471,9 @@ struct AIResearchView: View {
     ]
 
     private static let coachPrompts: [String] = [
-        "How did my week go against my targets?",
-        "How can I hit my protein target more often?",
-        "What simple swaps would keep me within my calories?",
+        String(localized: "How did my week go against my targets?"),
+        String(localized: "How can I hit my protein target more often?"),
+        String(localized: "What simple swaps would keep me within my calories?"),
     ]
 }
 

@@ -237,6 +237,8 @@ struct HabitsView: View {
                             .font(AppFont.badgeSmall)
                             .foregroundStyle(AppColor.textTertiary)
                     }
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
                 } else {
                     Image(systemName: "leaf.fill")
                         .font(AppFont.scaled(16, weight: .semibold))
@@ -326,6 +328,7 @@ struct HabitsView: View {
                     .minimumHitArea()
             }
             .buttonStyle(ScalePressStyle(pressedScale: 0.95))
+            .fixedSize()
         }
         .padding(Spacing.md)
         .background(

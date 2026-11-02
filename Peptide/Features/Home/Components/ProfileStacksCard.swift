@@ -155,12 +155,12 @@ struct ProfileStacksCard: View {
                             .font(AppFont.subheadline)
                             .fontWeight(.semibold)
                             .foregroundStyle(AppColor.textPrimary)
-                            .lineLimit(1)
+                            .lineLimit(2)
 
                         Text(subtitle(for: stack))
                             .font(AppFont.caption2)
                             .foregroundStyle(AppColor.textTertiary)
-                            .lineLimit(1)
+                            .lineLimit(2)
                     }
 
                     Spacer(minLength: Spacing.sm)
@@ -169,6 +169,7 @@ struct ProfileStacksCard: View {
                         .font(AppFont.caption2)
                         .fontWeight(.semibold)
                         .foregroundStyle(color(for: stack.status))
+                        .fixedSize()
                         .padding(.horizontal, Spacing.sm)
                         .padding(.vertical, 4)
                         .background {

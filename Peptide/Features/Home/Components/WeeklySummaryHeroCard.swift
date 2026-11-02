@@ -90,7 +90,7 @@ struct WeeklySummaryHeroCard: View {
         Button(action: onTap) {
             GlassCard(tinted: true) {
                 VStack(alignment: .leading, spacing: Spacing.md) {
-                    eyebrowRow(badge: summary.kind == .offline ? "OFFLINE" : nil)
+                    eyebrowRow(badge: summary.kind == .offline ? "Offline" : nil)
                     heroRow(
                         title: weekTitle(for: summary.weekStart),
                         aiBadge: summary.kind == .ai
@@ -196,7 +196,7 @@ struct WeeklySummaryHeroCard: View {
         .clipShape(RoundedRectangle(cornerRadius: Spacing.cardCornerRadius, style: .continuous))
     }
 
-    private func eyebrowRow(badge: String?) -> some View {
+    private func eyebrowRow(badge: LocalizedStringKey?) -> some View {
         HStack(spacing: Spacing.sm) {
             Text("Weekly recap")
                 .font(AppFont.scaled(11, weight: .semibold))
@@ -216,6 +216,7 @@ struct WeeklySummaryHeroCard: View {
                     Text(badge)
                         .font(AppFont.scaled(11, weight: .semibold))
                         .tracking(0.8)
+                        .textCase(.uppercase)
                 }
                 .padding(.horizontal, 7)
                 .padding(.vertical, 3)
@@ -295,7 +296,7 @@ struct WeeklySummaryHeroCard: View {
             if let calories = stats.avgCalories {
                 StatTile(
                     label: "Avg kcal",
-                    value: "\(calories)",
+                    value: calories.formatted(),
                     tint: AppColor.macroProtein
                 )
             }

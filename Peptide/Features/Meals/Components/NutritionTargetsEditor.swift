@@ -206,6 +206,10 @@ struct NutritionTargetsEditor: View {
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textPrimary)
         }
+        // "Kolhydrater" in a third of the card broke mid-word at larger
+        // text sizes; shrink a little rather than wrap.
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
         .frame(maxWidth: .infinity)
     }
 
@@ -370,11 +374,14 @@ struct NutritionTargetsEditor: View {
                 Text(preset.title)
                     .font(AppFont.scaled(11, weight: .semibold))
                     .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textPrimary)
-                    .lineLimit(1)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
                     .minimumScaleFactor(0.8)
                 Text("\(targets.calories)")
                     .font(AppFont.scaled(13, weight: .semibold))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     .foregroundStyle(isSelected ? AppColor.onAccent : AppColor.textSecondary)
                 if isRecommended {
                     Text("Recommended")

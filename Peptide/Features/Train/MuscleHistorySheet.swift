@@ -109,9 +109,10 @@ struct MuscleHistorySheet: View {
                         .foregroundStyle(AppColor.textSecondary)
                 }
                 Spacer(minLength: Spacing.sm)
-                Text("\(item.sets) sets")
+                Text("^[\(item.sets) set](inflect: true)")
                     .font(AppFont.subheadline.weight(.semibold))
                     .foregroundStyle(AppColor.textPrimary)
+                    .fixedSize()
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }

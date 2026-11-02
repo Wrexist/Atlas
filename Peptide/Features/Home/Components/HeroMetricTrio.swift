@@ -121,7 +121,7 @@ struct HeroMetricTrio: View {
                     .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.85)
+                    .minimumScaleFactor(0.7)
             }
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
@@ -147,6 +147,8 @@ struct HeroMetricTrio: View {
                         .font(AppFont.scaled(20, weight: .medium))
                         .foregroundStyle(AppColor.textPrimary)
                         .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
                         .contentTransition(.numericText())
                 }
 
@@ -154,7 +156,7 @@ struct HeroMetricTrio: View {
                     .font(AppFont.scaled(13, weight: .semibold))
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.85)
+                    .minimumScaleFactor(0.7)
             }
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
@@ -171,6 +173,8 @@ struct HeroMetricTrio: View {
                 .font(AppFont.scaled(20, weight: .medium))
                 .foregroundStyle(AppColor.textPrimary)
                 .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
                 .contentTransition(.numericText())
         } else {
             Text("—")

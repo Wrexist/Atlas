@@ -21,6 +21,9 @@ struct GlassButton: View {
     /// looks fully enabled while silently ignoring taps — the state the
     /// bordered-prominent CTAs it replaced got for free from the system.
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var wrapsTitle: Bool { isFullWidth || dynamicTypeSize.isAccessibilitySize }
 
     var body: some View {
         Button(action: action) {
@@ -55,6 +58,12 @@ struct GlassButton: View {
             Text(title)
                 .font(AppFont.headline)
                 .multilineTextAlignment(.center)
+                // A hugging button squeezed by a sibling (two in an HStack)
+                // broke a single Swedish word mid-word ("Ryg/g"); it shrinks
+                // a little instead. Accessibility sizes keep wrapping, since
+                // a long title there can't fit one line at any scale.
+                .lineLimit(wrapsTitle ? nil : 1)
+                .minimumScaleFactor(wrapsTitle ? 1 : 0.75)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: isFullWidth ? .infinity : nil)

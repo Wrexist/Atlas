@@ -201,7 +201,7 @@ struct AtlasProgressView: View {
         return VStack(alignment: .leading, spacing: Spacing.md) {
             sectionHeader("Habit consistency", systemImage: "checkmark.seal.fill")
             if let rate30 {
-                HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
+                let rate = HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
                     Text("\(Int((rate30 * 100).rounded()))%")
                         .font(AppFont.scaled(36, weight: .light, relativeTo: .largeTitle))
                         .monospacedDigit()
@@ -209,9 +209,22 @@ struct AtlasProgressView: View {
                     Text("last 30 days")
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
-                    Spacer()
-                    if let ratePrev, ratePrev > 0 {
-                        deltaBadge(now: rate30, prev: ratePrev)
+                }
+                // The badge drops below the rate once the Swedish copy
+                // no longer fits beside it.
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
+                        rate
+                        Spacer()
+                        if let ratePrev, ratePrev > 0 {
+                            deltaBadge(now: rate30, prev: ratePrev)
+                        }
+                    }
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        rate
+                        if let ratePrev, ratePrev > 0 {
+                            deltaBadge(now: rate30, prev: ratePrev)
+                        }
                     }
                 }
             } else {

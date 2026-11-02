@@ -9,10 +9,10 @@ enum TrainingGoal: String, CaseIterable, Identifiable, Sendable {
 
     var displayName: String {
         switch self {
-        case .strength:    return "Get stronger"
-        case .hypertrophy: return "Build muscle"
-        case .fatLoss:     return "Lose fat"
-        case .general:     return "General fitness"
+        case .strength:    return String(localized: "Get stronger")
+        case .hypertrophy: return String(localized: "Build muscle")
+        case .fatLoss:     return String(localized: "Lose fat")
+        case .general:     return String(localized: "General fitness")
         }
     }
 
@@ -44,9 +44,9 @@ enum TrainingSplit: String, CaseIterable, Sendable {
 
     var displayName: String {
         switch self {
-        case .fullBody:     return "Full body"
-        case .upperLower:   return "Upper / lower"
-        case .pushPullLegs: return "Push / pull / legs"
+        case .fullBody:     return String(localized: "Full body")
+        case .upperLower:   return String(localized: "Upper / lower")
+        case .pushPullLegs: return String(localized: "Push / pull / legs")
         }
     }
 }
@@ -61,22 +61,22 @@ enum MovementPattern: String, CaseIterable, Sendable {
 
     var displayName: String {
         switch self {
-        case .squat:              return "Squat"
-        case .hinge:              return "Hinge"
-        case .lunge:              return "Single leg"
-        case .horizontalPush:     return "Horizontal push"
-        case .horizontalPull:     return "Horizontal pull"
-        case .verticalPush:       return "Vertical push"
-        case .verticalPull:       return "Vertical pull"
-        case .chestIsolation:     return "Chest"
-        case .lateralDelt:        return "Side delts"
-        case .rearDelt:           return "Rear delts"
-        case .biceps:             return "Biceps"
-        case .triceps:            return "Triceps"
-        case .quadIsolation:      return "Quads"
-        case .hamstringIsolation: return "Hamstrings"
-        case .calves:             return "Calves"
-        case .core:               return "Core"
+        case .squat:              return String(localized: "Squat")
+        case .hinge:              return String(localized: "Hinge")
+        case .lunge:              return String(localized: "Single leg")
+        case .horizontalPush:     return String(localized: "Horizontal push")
+        case .horizontalPull:     return String(localized: "Horizontal pull")
+        case .verticalPush:       return String(localized: "Vertical push")
+        case .verticalPull:       return String(localized: "Vertical pull")
+        case .chestIsolation:     return String(localized: "Chest")
+        case .lateralDelt:        return String(localized: "Side delts")
+        case .rearDelt:           return String(localized: "Rear delts")
+        case .biceps:             return String(localized: "Biceps")
+        case .triceps:            return String(localized: "Triceps")
+        case .quadIsolation:      return String(localized: "Quads")
+        case .hamstringIsolation: return String(localized: "Hamstrings")
+        case .calves:             return String(localized: "Calves")
+        case .core:               return String(localized: "Core")
         }
     }
 
@@ -108,9 +108,9 @@ extension Exercise.Level {
     /// Onboarding calls the top tier "advanced"; the dataset says "expert".
     var displayName: String {
         switch self {
-        case .beginner:     return "Beginner"
-        case .intermediate: return "Intermediate"
-        case .expert:       return "Advanced"
+        case .beginner:     return String(localized: "Beginner")
+        case .intermediate: return String(localized: "Intermediate")
+        case .expert:       return String(localized: "Advanced")
         }
     }
 }

@@ -77,7 +77,8 @@ struct HabitRowCard: View {
             Text(habit.name)
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.textPrimary)
-                .lineLimit(1)
+                .lineLimit(2)
+                .layoutPriority(1)
             Spacer(minLength: Spacing.sm)
             scheduleBadge
             Color.clear
@@ -105,6 +106,8 @@ struct HabitRowCard: View {
     private var scheduleBadge: some View {
         Text(habit.schedule.displayName)
             .font(AppFont.scaled(11, weight: .bold))
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
             .foregroundStyle(AppColor.accentLight)
             .padding(.horizontal, Spacing.sm)
             .padding(.vertical, 3)

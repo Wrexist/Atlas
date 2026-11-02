@@ -171,6 +171,8 @@ struct RecipeEditorSheet: View {
                 .textCase(.uppercase)
                 .tracking(0.4)
         }
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
     }
 
     private var livePreview: Recipe {
