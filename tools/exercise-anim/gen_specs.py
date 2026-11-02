@@ -652,7 +652,7 @@ def legcurl_ext(n, eq):
 def core(n, eq):
     if has(n, "^crunch|^crunches|floor crunch|basic crunch"):
         return {"posture": {"type": "floor_supine", "knees": 90}, "implement": "none",
-                "body": {"keys": [{"curl": 0}, {"curl": 38}], "head_level": 0}, "arm": {"keys": HEAD_HANDS},
+                "body": {"keys": [{"curl": 0}, {"curl": 38}], "head_level": 0}, "arm": {"keys": HEAD_HANDS, "on_head": True},
                 "camera": {"az": 70, "el": 14}}
     if has(n, "^plank$"):
         return {"posture": {"type": "plank", "alpha": 10}, "implement": "floor", "bottom": 45, "hold": 30,
@@ -675,7 +675,7 @@ def core(n, eq):
     if has(n, "^sit-up|^3/4 sit-up|^sit up|weighted sit-ups|press sit-up"):
         return {"posture": {"type": "floor_supine", "knees": 90}, "implement": "none",
                 "body": {"keys": [{"lean": 0, "curl": 0}, {"lean": 62, "curl": 20}], "head_level": 0},
-                "arm": {"keys": HEAD_HANDS}, "camera": {"az": 70, "el": 12}}
+                "arm": {"keys": HEAD_HANDS, "on_head": True}, "camera": {"az": 70, "el": 12}}
     if has(n, "russian twist|seated barbell twist|plate twist"):
         keys = [key((0.15, 0.5, -0.85), (-0.65, 0.75, -0.1), (0, 0, 1))]
         return {"posture": {"type": "floor_supine", "knees": 80}, "implement": "none",
@@ -701,7 +701,7 @@ def core(n, eq):
         twist = 0 if has(n, "weighted|tuck") else 25
         return {"posture": {"type": "floor_supine", "knees": 90}, "implement": "none",
                 "body": {"keys": [{"curl": 0}, {"curl": 34, "twist": twist}], "head_level": 0},
-                "arm": {"keys": HEAD_HANDS}, "camera": {"az": 70, "el": 14}}
+                "arm": {"keys": HEAD_HANDS, "on_head": True}, "camera": {"az": 70, "el": 14}}
     if has(n, "^leg raise|lying leg raise|flat bench leg raise"):
         return {"posture": {"type": "floor_supine", "feet_free": True}, "implement": "none",
                 "body": {"keys": [{"hip": 5}, {"hip": 85}], "head_level": 0},

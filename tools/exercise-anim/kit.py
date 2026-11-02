@@ -448,8 +448,32 @@ class PerHand:
         for s, _ in SIDES:
             A.grip_on(s, self.h[s], (0, 0, 0), thumbward=(1, 0, 0), palm_to_handle=(0, 0, 1), radius=self.radius)
         self.cables = Cables(spec, {s: self.h[s] for s in self.hands}) if impl.startswith("cable") else None
+        self.on_head = spec.get("arm", {}).get("on_head", False)
+
+    HEAD_R = 0.095              # back of the skull, approximated as a sphere round the head bone's middle
+
+    def place_on_head(self, fr):
+        """Hands behind the head (sit-ups, crunches): palms flat on the back of the skull, fingers pointing in to
+        meet behind it, thumbs down the neck; tracks the head every frame so the hands stay in contact."""
+        A.update()
+        _, fwd, _ = torso_frame()
+        up = (A.tail("head") - A.head("head")).normalized()
+        fwd = (fwd - fwd.dot(up) * up).normalized()
+        lat = up.cross(fwd)                     # toward the figure's left, as in torso_frame
+        centre = A.head("head").lerp(A.tail("head"), 0.45)
+        for s, sx in SIDES:
+            x = 0.05
+            palm = centre + lat * (sx * x) - fwd * (math.sqrt(self.HEAD_R ** 2 - x ** 2) + 0.012)
+            fingers = (-lat * sx - fwd * 0.35).normalized()
+            wrist = palm - fingers * 0.05 - fwd * 0.012
+            self.h[s].matrix_world = A.holder_for_hand(s, wrist, fingers, -up)
+        self.arms.set_poles(fr)
+        A.update()
 
     def place(self, fr):
+        if self.on_head:
+            self.place_on_head(fr)
+            return
         for s, sx in SIDES:
             _, wrist, F, thumb = self.arms.target(fr, s, sx)
             self.h[s].matrix_world = A.holder_for_hand(s, wrist, F, thumb)
