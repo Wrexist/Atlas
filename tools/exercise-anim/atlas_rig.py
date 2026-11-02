@@ -11,6 +11,7 @@ os.makedirs(OUT, exist_ok=True)
 
 PYTHON = os.environ.get("ATLAS_PYTHON", "python")     # system Python with numpy, scipy, Pillow (for composite.py)
 FPS = 30
+ALPHA = os.environ.get("ATLAS_ALPHA") == "1"    # transparent clip for the app card instead of black + glow
 LOOP = 90                       # frames 1..90 rendered, frame 91 == frame 1
 SKIN_GAP = 0.0008
 
@@ -1201,10 +1202,12 @@ def setup_render():
         aim.target = look_target
     # light rig moves with the look target so every exercise gets the same lighting
     shadow_floor()
-    area("Key", (2.2, -2.6, 2.2), 190, 2.4)
-    area("Fill", (-2.8, -1.8, 0.4), 40, 3.0, (0.95, 0.97, 1.0))
-    area("Rim", (-0.8, 3.0, 1.9), 300, 1.6)
-    area("RimR", (1.9, 2.4, 0.3), 120, 1.2)
+    # on a light or dark card the strong rim (made to pop off black) reads as a halo: softer studio light instead
+    k = (230, 70, 150, 60) if ALPHA else (190, 40, 300, 120)
+    area("Key", (2.2, -2.6, 2.2), k[0], 2.4)
+    area("Fill", (-2.8, -1.8, 0.4), k[1], 3.0, (0.95, 0.97, 1.0))
+    area("Rim", (-0.8, 3.0, 1.9), k[2], 1.6)
+    area("RimR", (1.9, 2.4, 0.3), k[3], 1.2)
 
 
 TIERS = None                    # compositor File Output node writing the muscle tier map
@@ -1376,6 +1379,12 @@ def finish(name, cam, hands_cam, mid_frame, extra_cams=()):
         t = time.time()
         bpy.ops.render.render(animation=True)
         print(f"RENDERED animation {name} ({LOOP} frames) in {time.time() - t:.0f} s")
+        if ALPHA:
+            stem = os.path.join(OUT, name)
+            subprocess.run([PYTHON, "-P", os.path.join(HERE, "composite.py"), "alpha", frames, stem, str(FPS)],
+                           check=True)
+            print(f"VIDEO {stem}.mov {os.path.getsize(stem + '.mov') / 1e6:.1f} MB")
+            return
         mp4 = os.path.join(OUT, f"{name}.mp4")
         subprocess.run([PYTHON, "-P", os.path.join(HERE, "composite.py"), "video", frames, mp4, str(FPS)], check=True)
         print(f"VIDEO {mp4} {os.path.getsize(mp4) / 1e6:.1f} MB")

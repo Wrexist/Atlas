@@ -127,8 +127,67 @@ def video(frames_dir, mp4, fps):
         sys.exit("ffmpeg failed")
 
 
+# ---------------------------------------------------------------- transparent clips (no black box, no glow)
+SHADOW_ALPHA = 0.32                      # contact shadow opacity on the app card
+CARDS = {"light": (0xFF, 0xFF, 0xFF), "dark": (0x1A, 0x1A, 0x18)}   # AppColor card fills the clip sits on
+
+
+def cutout(rgba, tiers):
+    """Straight-alpha RGBA (float, display-encoded): the tinted figure over its own soft contact shadow."""
+    shadow = np.zeros_like(rgba[..., 3:4])
+    if tiers is not None:
+        rgba = tint(rgba, tiers)
+        solid = tiers[..., 2:3]
+        if solid.max() > 0:
+            shadow = rgba[..., 3:4] * (1 - solid)
+            rgba = np.concatenate([rgba[..., :3], rgba[..., 3:4] * solid], -1)
+    a = rgba[..., 3:4]
+    sa = SHADOW_ALPHA * shadow * (1 - a)                   # black shadow under the figure, never over it
+    alpha = a + sa
+    lin = to_linear(rgba[..., :3]) * a                     # premultiplied in linear light; shadow adds black
+    rgb = to_display(np.divide(lin, alpha, out=np.zeros_like(lin), where=alpha > 1e-6))
+    return np.concatenate([rgb, alpha], -1)
+
+
+def over(rgba, card):
+    """Preview only: the cutout over a flat card colour, as AVPlayerLayer will draw it."""
+    a = rgba[..., 3:4]
+    bg = to_linear(np.array(card, np.float32) / 255)
+    out = to_linear(rgba[..., :3]) * a + bg * (1 - a)
+    return (to_display(out) * 255).round().astype(np.uint8)
+
+
+def ffmpeg_sink(w, h, pix_fmt, fps, args, out):
+    return subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", pix_fmt,
+                             "-s", f"{w}x{h}", "-framerate", str(fps), "-i", "-", *args, out], stdin=subprocess.PIPE)
+
+
+def alpha_video(frames_dir, stem, fps):
+    """<stem>.mov: ProRes 4444 master with alpha (re-encoded to HEVC-with-alpha on macOS);
+    <stem>_light.mp4 / <stem>_dark.mp4: the same clip over the app's card colours, for review."""
+    import glob
+    frames = sorted(glob.glob(os.path.join(frames_dir, "*.png")))
+    w, h = Image.open(frames[0]).size
+    sinks = [(None, ffmpeg_sink(w, h, "rgba64le", fps, ["-c:v", "prores_ks", "-profile:v", "4444", "-pix_fmt",
+                                                         "yuva444p10le", "-alpha_bits", "16"], stem + ".mov"))]
+    for name, card in CARDS.items():
+        sinks.append((card, ffmpeg_sink(w, h, "rgb24", fps, ["-pix_fmt", "yuv420p", "-c:v", "libx264", "-crf", "16",
+                                                              "-movflags", "+faststart"], f"{stem}_{name}.mp4")))
+    for f in frames:
+        c = cutout(read_rgba(f), read_tiers(f))
+        for card, sink in sinks:
+            data = (c * 65535).round().astype("<u2") if card is None else over(c, card)
+            sink.stdin.write(data.tobytes())
+    for _, sink in sinks:
+        sink.stdin.close()
+        if sink.wait():
+            sys.exit("ffmpeg failed")
+
+
 if __name__ == "__main__":
     if sys.argv[1] == "still":
         still(sys.argv[2], sys.argv[3])
+    elif sys.argv[1] == "alpha":
+        alpha_video(sys.argv[2], sys.argv[3], int(sys.argv[4]))
     else:
         video(sys.argv[2], sys.argv[3], int(sys.argv[4]))
