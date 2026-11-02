@@ -133,7 +133,7 @@ def cavity_shading(nt, bsdf):
     groove = nt.nodes.new("ShaderNodeAttribute")
     groove.attribute_name = "atlas_groove"
     carve = nt.nodes.new("ShaderNodeMath")
-    carve.operation, carve.inputs[1].default_value = 'MULTIPLY', 0.35
+    carve.operation, carve.inputs[1].default_value = 'MULTIPLY', 0.6
     nt.links.new(groove.outputs["Fac"], carve.inputs[0])
     dim = nt.nodes.new("ShaderNodeMath")
     dim.operation = 'SUBTRACT'
@@ -550,8 +550,8 @@ def muscle_mask(name):
     return np.where(left, field, field[_mirror])
 
 
-GROOVE_DEPTH = 0.004            # m pressed in along each muscle outline, so the anatomy reads like a sculpt
-GROOVE_WIDTH = 0.12             # in muscle-field units round the 0.5 outline (~ 7 mm either side)
+GROOVE_DEPTH = 0.009            # m pressed in along each muscle outline, so the anatomy reads like a sculpt
+GROOVE_WIDTH = 0.2              # in muscle-field units round the 0.5 outline (~ 1 cm either side)
 
 
 def define_muscles():
