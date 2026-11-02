@@ -1,9 +1,11 @@
 import Foundation
 
 /// Rendered exercise animations: 3-second loops of the Atlas figure doing
-/// the movement, trained muscles tinted. They are too big to bundle, so they
-/// stream from the repo's `exercise-videos` branch and each clip is saved to
-/// Caches after its first download.
+/// the movement, trained muscles tinted, on a transparent background (HEVC
+/// with alpha) so the figure sits straight on the card in light and dark
+/// mode. They are too big to bundle, so they stream from the repo's
+/// `exercise-videos-alpha` branch and each clip is saved to Caches after its
+/// first download.
 ///
 /// The branch's `index.txt` lists the exercise ids that have a clip. Any
 /// other id (a custom exercise, one not rendered yet) or a failed fetch
@@ -12,7 +14,7 @@ import Foundation
 final class ExerciseClipStore {
     static let shared = ExerciseClipStore()
 
-    nonisolated static let defaultBaseURL = URL.staticHTTPS("https://raw.githubusercontent.com/Wrexist/Atlas/exercise-videos/")
+    nonisolated static let defaultBaseURL = URL.staticHTTPS("https://raw.githubusercontent.com/Wrexist/Atlas/exercise-videos-alpha/")
 
     private let baseURL: URL
     private let session: URLSession
@@ -23,7 +25,7 @@ final class ExerciseClipStore {
     init(
         baseURL: URL = ExerciseClipStore.defaultBaseURL,
         session: URLSession = .shared,
-        cacheDirectory: URL = URL.cachesDirectory.appending(path: "exercise-clips", directoryHint: .isDirectory)
+        cacheDirectory: URL = URL.cachesDirectory.appending(path: "exercise-clips-alpha", directoryHint: .isDirectory)
     ) {
         self.baseURL = baseURL
         self.session = session
@@ -33,10 +35,10 @@ final class ExerciseClipStore {
     /// A local file URL for the exercise's clip, downloading it first if
     /// needed; nil when there is no clip or the network is unavailable.
     func clip(for exerciseID: String) async -> URL? {
-        let file = cacheDirectory.appending(path: "\(exerciseID).mp4")
+        let file = cacheDirectory.appending(path: "\(exerciseID).mov")
         if FileManager.default.fileExists(atPath: file.path) { return file }
         guard let ids = await index(), ids.contains(exerciseID) else { return nil }
-        return await download(baseURL.appending(path: "\(exerciseID).mp4"), to: file)
+        return await download(baseURL.appending(path: "\(exerciseID).mov"), to: file)
     }
 
     /// One line per exercise id; blank lines and whitespace are ignored.

@@ -39,7 +39,7 @@ final class ExerciseClipStoreTests: XCTestCase {
     func test_clip_listedExercise_downloadsOnceThenServesFromCache() async throws {
         let video = Data([0, 0, 0, 24])
         let requests = AttemptCounter()
-        let store = store(serving: ["index.txt": Data("Barbell_Squat\n".utf8), "Barbell_Squat.mp4": video],
+        let store = store(serving: ["index.txt": Data("Barbell_Squat\n".utf8), "Barbell_Squat.mov": video],
                           requests: requests)
 
         let downloaded = await store.clip(for: "Barbell_Squat")
