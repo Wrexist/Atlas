@@ -44,7 +44,9 @@ def glow_from(alpha):
 
 PRIMARY = np.array((0xFF, 0xAC, 0x73)) / 255         # AppColor.trainingPrimaryMuscle (dark)
 SECONDARY = np.array((0x80, 0xAD, 0xFF)) / 255       # AppColor.trainingSecondaryMuscle (dark)
-TINT = ((1, SECONDARY, 0.85), (0, PRIMARY, 0.92))     # tier channel, colour, strength (app: 0.75 / 0.88 over a grey photo)
+TINT = ((1, SECONDARY, 0.85), (0, PRIMARY, 0.92))
+if os.environ.get("ATLAS_ALPHA") == "1":                 # on a light card: full-strength, so worked muscles pop
+    TINT = ((1, SECONDARY, 1.0), (0, PRIMARY, 1.0))     # tier channel, colour, strength (app: 0.75 / 0.88 over a grey photo)
 LIT = 0.72                                           # display grey of the lit clay: multiply gain so lit muscle = the hex
 
 

@@ -18,8 +18,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {name: athletic-shorts, body: athletic, clothes: "short"}
-          - {name: athletic-shorts-top, body: athletic, clothes: "short,tank|tshirt|shirt"}
+          - {name: athletic-hair, body: athletic, clothes: "^short01"}
+          - {name: defined-hair, body: defined, clothes: "^short01"}
     env:
       BLENDER_VERSION: 5.2.1
       ATLAS_PYTHON: python3

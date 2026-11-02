@@ -114,9 +114,29 @@ def clay():
     nt.links.new(lw.outputs["Facing"], rim.inputs[0])
     b.inputs["Emission Color"].default_value = (0.6, 0.6, 0.6, 1)
     nt.links.new(rim.outputs[0], b.inputs["Emission Strength"])
+    if ALPHA:
+        cavity_shading(nt, b)
     muscle_tint(nt, b, rim)
     solid_aov(m)
     return m
+
+
+def cavity_shading(nt, bsdf):
+    """Darken the grooves between muscles (local ambient occlusion over a few cm), so the anatomy reads on a light
+    card where there is no rim glow to carve the shapes."""
+    ao = nt.nodes.new("ShaderNodeAmbientOcclusion")
+    ao.only_local = True
+    ao.samples = 16
+    ao.inputs["Distance"].default_value = 0.05
+    shade = nt.nodes.new("ShaderNodeMapRange")
+    shade.inputs["To Min"].default_value, shade.inputs["To Max"].default_value = 0.45, 1.0
+    nt.links.new(ao.outputs["AO"], shade.inputs["Value"])
+    mul = nt.nodes.new("ShaderNodeMix")
+    mul.data_type, mul.blend_type = 'RGBA', 'MULTIPLY'
+    mul.inputs["Factor"].default_value = 1.0
+    mul.inputs[6].default_value = bsdf.inputs["Base Color"].default_value
+    nt.links.new(shade.outputs["Result"], mul.inputs[7])
+    nt.links.new(mul.outputs[2], bsdf.inputs["Base Color"])
 
 
 def srgb_to_linear(rgb):
