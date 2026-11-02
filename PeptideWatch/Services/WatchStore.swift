@@ -1,4 +1,5 @@
 import Foundation
+import UserNotifications
 @preconcurrency import WatchConnectivity
 import WatchKit
 import WidgetKit
@@ -292,23 +293,55 @@ final class WatchStore: NSObject, ObservableObject {
     private var armedRestEnd: Date?
     private var restHapticTask: Task<Void, Never>?
 
-    /// Taps the wrist when the rest ends while the app is open. With the
-    /// app suspended, only the phone's "Time to lift" notification can
-    /// reach the wrist, and only while the phone is locked. Plays regardless of the Haptic Feedback setting: it
-    /// is the alert itself, not a tap confirmation. A wait that resumes
-    /// after the app was suspended past the rest end stays silent rather
-    /// than buzzing minutes late.
+    /// The rest-end notification currently pending, so a changed or
+    /// cancelled rest withdraws it.
+    private var armedRestNotificationID: String?
+
+    /// Taps the wrist when the rest ends while the app is open. With the app
+    /// suspended, a phone-run workout reaches the wrist through the phone's
+    /// own "Time to lift" alert (forwarded while the phone is locked), and a
+    /// Watch-run workout through a local alert scheduled here. Plays regardless of the Haptic Feedback
+    /// setting: it is the alert itself, not a tap confirmation. A wait that
+    /// resumes after the app was suspended past the rest end stays silent
+    /// rather than buzzing minutes late.
     private func scheduleRestEndHaptic(for workout: WatchWorkoutSnapshot?) {
         let endsAt = workout.flatMap { $0.isResting(at: Date()) ? $0.rest?.endsAt : nil }
         guard endsAt != armedRestEnd else { return }
         armedRestEnd = endsAt
         restHapticTask?.cancel()
+        scheduleRestEndNotification(endsAt: offlineWorkout == nil ? nil : endsAt, sessionID: workout?.sessionId)
         guard let endsAt else { return }
         restHapticTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .seconds(endsAt.timeIntervalSinceNow))
             guard !Task.isCancelled, self?.armedRestEnd == endsAt,
                   endsAt.timeIntervalSinceNow > -2 else { return }
             WKInterfaceDevice.current().play(.notification)
+        }
+    }
+
+    /// Only for workouts the Watch runs itself: the phone schedules none for
+    /// those, and scheduling one for a phone-run workout would buzz twice
+    /// when the phone forwards its own. Without a delegate the system keeps
+    /// it off screen while the app is open, where the haptic above covers it.
+    private func scheduleRestEndNotification(endsAt: Date?, sessionID: UUID?) {
+        let center = UNUserNotificationCenter.current()
+        if let armed = armedRestNotificationID {
+            center.removePendingNotificationRequests(withIdentifiers: [armed])
+            armedRestNotificationID = nil
+        }
+        guard let endsAt, let sessionID else { return }
+        let id = WatchWorkoutSnapshot.restNotificationID(sessionID: sessionID)
+        armedRestNotificationID = id
+        let content = UNMutableNotificationContent()
+        content.title = String(localized: "Time to lift")
+        content.body = String(localized: "Rest is over. Your next set is ready.")
+        content.sound = .default
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, endsAt.timeIntervalSinceNow), repeats: false)
+        let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+        Task { @MainActor [weak self] in
+            guard (try? await center.requestAuthorization(options: [.alert, .sound])) == true,
+                  self?.armedRestEnd == endsAt else { return }
+            try? await center.add(request)
         }
     }
 

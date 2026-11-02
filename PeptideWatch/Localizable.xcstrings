@@ -947,6 +947,16 @@
         }
       }
     },
+    "Rest is over. Your next set is ready.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vilan är över. Ditt nästa set är redo."
+          }
+        }
+      }
+    },
     "Resting": {
       "localizations": {
         "sv": {
@@ -1103,6 +1113,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Svit"
+          }
+        }
+      }
+    },
+    "Time to lift": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dags att lyfta"
           }
         }
       }

@@ -61,6 +61,12 @@ struct WatchWorkoutSnapshot: Codable, Hashable, Sendable {
 
     var isPaused: Bool { pausedElapsedSeconds != nil }
 
+    /// The rest-end notification's identifier, the same on the phone and the
+    /// Watch so both name one alert per session.
+    static func restNotificationID(sessionID: UUID) -> String {
+        "adhoc-atlas.workout.rest.\(sessionID.uuidString)"
+    }
+
     var completedSets: Int { exercises.reduce(0) { $0 + $1.completedWorkingSets } }
     var totalSets: Int { exercises.reduce(0) { $0 + $1.workingSets.count } }
 
