@@ -291,6 +291,10 @@ def hip_corrective():
     body.modifiers.move(len(body.modifiers) - 1, arm + 1)
 
 
+def clothes():
+    return [o for o in bpy.data.objects if o.name.startswith("Clothes")]
+
+
 def setup():
     global scene, rig, body, shoes, P, D, body_mask, hand_mask, masks, look_target
     scene = bpy.context.scene
@@ -315,9 +319,11 @@ def setup():
     hand_mask = group_weights(body, [g.name for g in body.vertex_groups
                                      if g.name.startswith(("finger", "metacarpal", "wrist"))]) > 0.2
     skin = clay()
-    for o in (body, shoes):
+    fabric = material("AtlasFabric", (0.035, 0.035, 0.038), rough=0.9)    # near-black training kit
+    solid_aov(fabric)
+    for o in (body, shoes, *clothes()):
         o.data.materials.clear()
-        o.data.materials.append(skin)
+        o.data.materials.append(fabric if o.name.startswith("Clothes") else skin)
         for poly in o.data.polygons:
             poly.material_index = 0
             poly.use_smooth = True
@@ -1151,7 +1157,7 @@ def report(frames):
 def setup_render():
     for m in masks:
         m.show_viewport = True
-    for o in (body, shoes):
+    for o in (body, shoes, *clothes()):
         sub = o.modifiers.new("Subdiv", 'SUBSURF')
         sub.levels, sub.render_levels = 0, 2 if ALPHA else 1     # smoother silhouette on a light card
     world = bpy.data.worlds.new("Black")
@@ -1281,7 +1287,7 @@ def main_camera(equipment, fill=0.80, az_deg=35, el_deg=6, lens=65):
     cam = bpy.data.objects.new("Cam", cd)
     scene.collection.objects.link(cam)
     scene.camera = cam
-    pts = frame_points([body, shoes] + list(equipment), range(1, LOOP + 1, 9))
+    pts = frame_points([body, shoes, *clothes()] + list(equipment), range(1, LOOP + 1, 9))
     lo3, hi3 = pts.min(0), pts.max(0)
     look_target.location = Vector(((lo3[0] + hi3[0]) / 2, (lo3[1] + hi3[1]) / 2, (lo3[2] + hi3[2]) / 2))
     az, el = math.radians(az_deg), math.radians(el_deg)

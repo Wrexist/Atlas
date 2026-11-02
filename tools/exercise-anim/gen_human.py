@@ -50,5 +50,18 @@ SHOES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dl", "shoes02"
 shoes = HumanService.add_mhclo_asset(SHOES, basemesh, asset_type="Clothes", subdiv_levels=0, material_type="MAKESKIN")
 shoes.name = "Shoes"
 print("SHOES", shoes.name, len(shoes.data.vertices), [m.type for m in shoes.modifiers], [m.name for m in basemesh.modifiers])
+# ATLAS_CLOTHES: comma-separated name patterns of MakeHuman system clothes (CC0) under ATLAS_CLOTHES_DIR,
+# e.g. "short,tank". Training clothes make the figure read as a person instead of a mannequin.
+import glob, re
+clothes_dir = os.environ.get("ATLAS_CLOTHES_DIR", "")
+available = sorted(glob.glob(os.path.join(clothes_dir, "**", "*.mhclo"), recursive=True)) if clothes_dir else []
+print("CLOTHES AVAILABLE", [os.path.basename(c) for c in available])
+for i, pattern in enumerate(filter(None, os.environ.get("ATLAS_CLOTHES", "").split(","))):
+    match = next((c for c in available if re.search(pattern, os.path.basename(c), re.I)), None)
+    if not match:
+        sys.exit(f"no clothes match {pattern!r}")
+    item = HumanService.add_mhclo_asset(match, basemesh, asset_type="Clothes", subdiv_levels=0, material_type="MAKESKIN")
+    item.name = f"Clothes.{i}"
+    print("CLOTHES", item.name, os.path.basename(match), len(item.data.vertices))
 print("DIMS", basemesh.dimensions[:])
 bpy.ops.wm.save_as_mainfile(filepath=OUT)
