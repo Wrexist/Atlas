@@ -49,7 +49,9 @@ HANG_W = [key((0.12, 0.03, -1), (0.04, 0.04, -1), (0, 1, 0))]            # world
 HANG_OUT = [key((0.24, 0, -1), (0.06, 0, -1), (0, 1, 0))]              # world: hanging clear of the thighs
 HANG_BAR = [key((0.1, 0.04, -1), (0.03, 0.05, -1), (-1, 0, 0))]          # world: hanging onto a bar, overhand
 HANG_T = [key((0.12, 0.03, -1), (0.04, 0.04, -1), (0, 1, 0))]           # torso: arms hanging at the sides
-HEAD_HANDS = [key((0.95, 0.05, 0.35), (-0.75, 0.25, 0.6), (0, 0, 1))]   # torso: hands behind the head
+# torso: elbows wide, forearms level and pointing in, so the hands lie flat on the back of the head at ear height
+# (fingertips meeting behind it, palms forward, thumbs down the neck) instead of reaching up past it
+HEAD_HANDS = [key((0.6, -0.3, 0.74), (-0.99, -0.04, -0.1), (0, 0, -1))]
 STAND = {"type": "stand"}
 
 
