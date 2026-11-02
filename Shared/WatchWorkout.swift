@@ -61,6 +61,13 @@ struct WatchWorkoutSnapshot: Codable, Hashable, Sendable {
 
     var isPaused: Bool { pausedElapsedSeconds != nil }
 
+    /// The rest-end notification's identifier, shared by the phone and the
+    /// Watch. watchOS shows one alert when both schedule the same id, so
+    /// the wrist buzzes once whether or not the phone is locked.
+    static func restNotificationID(sessionID: UUID) -> String {
+        "adhoc-atlas.workout.rest.\(sessionID.uuidString)"
+    }
+
     var completedSets: Int { exercises.reduce(0) { $0 + $1.completedWorkingSets } }
     var totalSets: Int { exercises.reduce(0) { $0 + $1.workingSets.count } }
 

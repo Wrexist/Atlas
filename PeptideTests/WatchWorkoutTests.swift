@@ -297,3 +297,14 @@ final class WatchWorkoutServiceTests: XCTestCase {
         XCTAssertEqual(service.activeSession?.isPaused, false)
     }
 }
+
+/// watchOS drops the duplicate only when both devices use the same id, so
+/// a drift here means two "Time to lift" buzzes on a locked phone.
+final class RestNotificationIDTests: XCTestCase {
+    func test_watchRestNotificationID_matchesPhoneRequestID() {
+        let sessionID = UUID()
+        let phoneID = NotificationService.adHocIDPrefix
+            + WorkoutSessionService.restNotificationPrefix + sessionID.uuidString
+        XCTAssertEqual(WatchWorkoutSnapshot.restNotificationID(sessionID: sessionID), phoneID)
+    }
+}
