@@ -1,0 +1,39 @@
+{
+ "primary": [
+  "glutes"
+ ],
+ "secondary": [
+  "hamstrings"
+ ],
+ "posture": {
+  "type": "bridge",
+  "shoulders_z": 0.42
+ },
+ "implement": "barbell_back",
+ "body": {
+  "keys": [
+   {
+    "lift": 0
+   },
+   {
+    "lift": 1
+   }
+  ],
+  "head_level": 0.7
+ },
+ "arm": {
+  "frame": "torso",
+  "bar_at": "hips",
+  "grip": 0.45,
+  "elbow_out": [
+   1,
+   0.2,
+   0
+  ]
+ },
+ "camera": {
+  "az": 80,
+  "el": 10
+ },
+ "name": "test_hip_thrust"
+}

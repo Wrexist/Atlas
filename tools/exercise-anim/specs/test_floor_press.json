@@ -1,0 +1,62 @@
+{
+ "primary": [
+  "chest"
+ ],
+ "secondary": [
+  "triceps",
+  "front_delts"
+ ],
+ "posture": {
+  "type": "floor_supine",
+  "knees": 90
+ },
+ "implement": "dumbbell",
+ "arm": {
+  "keys": [
+   {
+    "upper": [
+     0.85,
+     -0.3,
+     -0.25
+    ],
+    "fore": [
+     0.05,
+     1,
+     0.05
+    ],
+    "thumb": [
+     -1,
+     0,
+     0.2
+    ]
+   },
+   {
+    "upper": [
+     0.18,
+     1,
+     0.02
+    ],
+    "fore": [
+     0.1,
+     1,
+     0.02
+    ],
+    "thumb": [
+     -1,
+     0,
+     0.2
+    ]
+   }
+  ],
+  "elbow_out": [
+   0.6,
+   -1,
+   -0.3
+  ]
+ },
+ "camera": {
+  "az": 56,
+  "el": 30
+ },
+ "name": "test_floor_press"
+}

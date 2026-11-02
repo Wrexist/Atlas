@@ -1,0 +1,51 @@
+{
+ "primary": [
+  "quads",
+  "glutes"
+ ],
+ "secondary": [
+  "hamstrings"
+ ],
+ "posture": {
+  "type": "split"
+ },
+ "implement": "dumbbell",
+ "body": {
+  "keys": [
+   {
+    "drop": 0.03
+   },
+   {
+    "drop": 0.38,
+    "back": 0.0
+   }
+  ]
+ },
+ "arm": {
+  "frame": "world",
+  "keys": [
+   {
+    "upper": [
+     0.12,
+     0,
+     -1
+    ],
+    "fore": [
+     0.08,
+     0,
+     -1
+    ],
+    "thumb": [
+     0,
+     1,
+     0
+    ]
+   }
+  ]
+ },
+ "camera": {
+  "az": 75,
+  "el": 5
+ },
+ "name": "test_lunge"
+}

@@ -1,0 +1,63 @@
+{
+ "primary": [
+  "lats"
+ ],
+ "secondary": [
+  "biceps",
+  "middle_back"
+ ],
+ "posture": {
+  "type": "hang",
+  "bar_z": 2.6
+ },
+ "implement": "pullup_bar",
+ "body": {
+  "keys": [
+   {
+    "drop": 0
+   },
+   {
+    "drop": -0.5
+   }
+  ],
+  "head_level": 0
+ },
+ "arm": {
+  "frame": "world",
+  "grip": 0.34,
+  "palm": [
+   0,
+   -1,
+   0
+  ],
+  "keys": [
+   {
+    "upper": [
+     0.3,
+     0,
+     1
+    ],
+    "fore": [
+     0.08,
+     0,
+     1
+    ],
+    "thumb": [
+     -1,
+     0,
+     0
+    ]
+   }
+  ],
+  "elbow_out": [
+   1,
+   -0.4,
+   0
+  ]
+ },
+ "camera": {
+  "az": 160,
+  "el": 5
+ },
+ "name": "test_pullup"
+}

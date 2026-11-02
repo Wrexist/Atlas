@@ -557,9 +557,9 @@ final class ScreenshotTests: XCTestCase {
             ).firstMatch
             XCTAssertTrue(exercise.waitForExistence(timeout: 10))
             exercise.tap()
-            // Section headings can report isHittable == false under the
-            // glass card, so position by frame instead of reveal().
-            let heading = app.staticTexts["Muscles worked"]
+            // The title sits right above the showcase card; position by
+            // frame (headings can report isHittable == false).
+            let heading = app.staticTexts["Barbell Bench Press - Medium Grip"].firstMatch
             scrollOnScreen(heading)
             // Lift the card to the top so the whole figure clears the tab bar.
             drag(by: -min(heading.frame.minY - 110, 280))

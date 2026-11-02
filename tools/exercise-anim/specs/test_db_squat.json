@@ -1,0 +1,56 @@
+{
+ "primary": [
+  "quads",
+  "glutes"
+ ],
+ "secondary": [
+  "hamstrings",
+  "forearms"
+ ],
+ "posture": {
+  "type": "stand",
+  "width": 0.17,
+  "toe_out": 15
+ },
+ "implement": "dumbbell",
+ "body": {
+  "keys": [
+   {
+    "drop": 0
+   },
+   {
+    "drop": 0.38,
+    "back": 0.12,
+    "lean": 28
+   }
+  ],
+  "head_level": 0.8
+ },
+ "arm": {
+  "frame": "world",
+  "keys": [
+   {
+    "upper": [
+     0.12,
+     0,
+     -1
+    ],
+    "fore": [
+     0.08,
+     0,
+     -1
+    ],
+    "thumb": [
+     0,
+     1,
+     0
+    ]
+   }
+  ]
+ },
+ "camera": {
+  "az": 40,
+  "el": 6
+ },
+ "name": "test_db_squat"
+}

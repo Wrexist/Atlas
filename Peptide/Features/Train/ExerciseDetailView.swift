@@ -1,13 +1,15 @@
 import SwiftUI
 
-/// Shared exercise body map and muscle breakdown, metadata and instructions.
+/// One exercise: what it is (eyebrow and title), how it moves (the
+/// transparent animation, or the body map), how to do it, your results and
+/// its details.
 struct ExerciseDetailView: View {
     let exerciseID: String
     @State private var library = ExerciseLibrary.shared
     /// Follows the in-app language picker, so the steps match the UI.
     @Environment(\.locale) private var locale
-    /// Step-number column, scaled with the text so "10" never wraps.
-    @ScaledMetric(relativeTo: .headline) private var stepNumberWidth: CGFloat = 22
+    /// Step-number circle, scaled with the text so "10" still fits.
+    @ScaledMetric(relativeTo: .headline) private var stepNumberWidth: CGFloat = 26
     @State private var loading = true
     @State private var showsTitle = false
 
@@ -21,17 +23,15 @@ struct ExerciseDetailView: View {
                 VStack(alignment: .leading, spacing: Spacing.lg) {
                     header(for: exercise)
                         .sectionAppear(index: 0)
-                    // The exercise's visual: its rendered animation when one
-                    // exists, over the body map of the muscles it trains.
-                    muscleSection(for: exercise)
+                    ExerciseShowcaseCard(exercise: exercise)
                         .sectionAppear(index: 1)
                     // How to do it sits right under what it trains: below
                     // the history it was a scroll away and read as missing.
                     instructionsSection(for: exercise)
                         .sectionAppear(index: 2)
-                    metadataRow(for: exercise)
-                        .sectionAppear(index: 3)
                     ExerciseHistorySection(exercise: exercise)
+                        .sectionAppear(index: 3)
+                    detailsSection(for: exercise)
                         .sectionAppear(index: 4)
                 }
                 .padding(.horizontal, Spacing.screenPadding)
@@ -76,98 +76,116 @@ struct ExerciseDetailView: View {
     // MARK: - Header
 
     private func header(for exercise: Exercise) -> some View {
-        Text(exercise.name)
-            .font(AppFont.title)
-            .foregroundStyle(AppColor.textPrimary)
-            .multilineTextAlignment(.leading)
-            .padding(.top, Spacing.sm)
-    }
-
-    // MARK: - Metadata pills
-
-    private func metadataRow(for exercise: Exercise) -> some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), alignment: .leading)], alignment: .leading, spacing: Spacing.xs) {
-            metadataPill(
-                glyph: exercise.equipmentKind.glyph,
-                label: exercise.equipmentKind.displayName
-            )
-            ForEach(EquipmentAccessory.allCases.filter { exercise.equipmentAccessories.contains($0) }) { accessory in
-                metadataPill(glyph: accessory.glyph, label: accessory.displayName)
-            }
-            if !exercise.isCustom {
-                metadataPill(
-                    glyph: .system("figure.run"),
-                    label: levelLabel(exercise.level)
-                )
-            }
-            if let mechanic = exercise.mechanic {
-                metadataPill(
-                    glyph: .system("gearshape.fill"),
-                    label: mechanicLabel(mechanic)
-                )
-            }
-            if let force = exercise.force {
-                metadataPill(
-                    glyph: .system("arrow.up.right.circle.fill"),
-                    label: forceLabel(force)
-                )
-            }
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Text(eyebrow(for: exercise))
+                .font(AppFont.eyebrow)
+                .tracking(1)
+                .foregroundStyle(AppColor.textSecondary)
+            Text(exercise.name)
+                .font(AppFont.scaled(30, weight: .regular, relativeTo: .title1))
+                .foregroundStyle(AppColor.textPrimary)
+                .multilineTextAlignment(.leading)
+                .accessibilityAddTraits(.isHeader)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, Spacing.sm)
     }
 
-    private func metadataPill(glyph: AppGlyph, label: String) -> some View {
-        HStack(spacing: Spacing.xs) {
-            GlyphImage(glyph: glyph)
-            Text(label)
-                .font(AppFont.chipText)
-        }
-        .foregroundStyle(AppColor.textPrimary)
-        .padding(.horizontal, Spacing.sm)
-        .padding(.vertical, Spacing.xs)
-        .background(
-            Capsule().fill(AppColor.surfaceSecondary.opacity(0.6))
-        )
-        .overlay(
-            Capsule().stroke(AppColor.glassBorder, lineWidth: 0.5)
-        )
+    /// "QUADS · BARBELL": the prime mover and the kit, above the name.
+    private func eyebrow(for exercise: Exercise) -> String {
+        let prime = MuscleInvolvementEngine.rows(for: exercise).first { $0.role == .primary }?.name
+        return [prime, exercise.equipmentKind.displayName]
+            .compactMap { $0 }
+            .joined(separator: " · ")
+            .uppercased(with: locale)
     }
 
-    private func levelLabel(_ level: Exercise.Level) -> String {
-        switch level {
-        case .beginner:     return String(localized: "Beginner")
-        case .intermediate: return String(localized: "Intermediate")
-        case .expert:       return String(localized: "Expert")
-        }
-    }
+    // MARK: - Details
 
-    private func mechanicLabel(_ mechanic: Exercise.Mechanic) -> String {
-        switch mechanic {
-        case .compound:  return String(localized: "exercise.mechanic.compound", defaultValue: "Compound")
-        case .isolation: return String(localized: "exercise.mechanic.isolation", defaultValue: "Isolation")
-        }
-    }
-
-    private func forceLabel(_ force: Exercise.Force) -> String {
-        switch force {
-        case .push:     return String(localized: "exercise.force.push", defaultValue: "Push")
-        case .pull:     return String(localized: "exercise.force.pull", defaultValue: "Pull")
-        case .static:   return String(localized: "exercise.force.static", defaultValue: "Static")
-        }
-    }
-
-    // MARK: - Muscles
-
-    private func muscleSection(for exercise: Exercise) -> some View {
+    private func detailsSection(for exercise: Exercise) -> some View {
         GlassCard {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                Text("Muscles worked")
+                Text("Details")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.textPrimary)
-
-                ExerciseClipView(exercise: exercise)
-                MuscleActivationMap(exercise: exercise)
+                LazyVGrid(columns: [GridItem(.flexible(), alignment: .topLeading), GridItem(.flexible(), alignment: .topLeading)],
+                          alignment: .leading, spacing: Spacing.md) {
+                    ForEach(Array(details(for: exercise).enumerated()), id: \.offset) { _, detail in
+                        detailTile(detail)
+                    }
+                }
             }
+        }
+    }
+
+    /// Label and value resolve through `Text`, so they follow the in-app
+    /// language (`\.locale`), not the device's.
+    private struct Detail {
+        let label: LocalizedStringKey
+        let value: Text
+        let glyph: AppGlyph
+    }
+
+    private func details(for exercise: Exercise) -> [Detail] {
+        var details = [Detail(label: "exercise.detail.equipment", value: Text(exercise.equipmentKind.displayName),
+                              glyph: exercise.equipmentKind.glyph)]
+        let accessories = EquipmentAccessory.allCases.filter { exercise.equipmentAccessories.contains($0) }
+        if !accessories.isEmpty {
+            details.append(Detail(label: "exercise.detail.accessories",
+                                  value: Text(accessories.map(\.displayName).formatted(.list(type: .and).locale(locale))),
+                                  glyph: accessories[0].glyph))
+        }
+        if !exercise.isCustom {
+            details.append(Detail(label: "exercise.detail.level", value: Text(levelLabel(exercise.level)),
+                                  glyph: .system("figure.run")))
+        }
+        if let mechanic = exercise.mechanic {
+            details.append(Detail(label: "exercise.detail.type", value: Text(mechanicLabel(mechanic)),
+                                  glyph: .system("gearshape.fill")))
+        }
+        if let force = exercise.force {
+            details.append(Detail(label: "exercise.detail.force", value: Text(forceLabel(force)),
+                                  glyph: .system("arrow.up.right.circle.fill")))
+        }
+        return details
+    }
+
+    private func detailTile(_ detail: Detail) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
+            GlyphImage(glyph: detail.glyph)
+                .foregroundStyle(AppColor.textSecondary)
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(detail.label)
+                    .font(AppFont.caption2)
+                    .foregroundStyle(AppColor.textSecondary)
+                detail.value
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func levelLabel(_ level: Exercise.Level) -> LocalizedStringKey {
+        switch level {
+        case .beginner:     return "Beginner"
+        case .intermediate: return "Intermediate"
+        case .expert:       return "Expert"
+        }
+    }
+
+    private func mechanicLabel(_ mechanic: Exercise.Mechanic) -> LocalizedStringKey {
+        switch mechanic {
+        case .compound:  return "exercise.mechanic.compound"
+        case .isolation: return "exercise.mechanic.isolation"
+        }
+    }
+
+    private func forceLabel(_ force: Exercise.Force) -> LocalizedStringKey {
+        switch force {
+        case .push:     return "exercise.force.push"
+        case .pull:     return "exercise.force.pull"
+        case .static:   return "exercise.force.static"
         }
     }
 
@@ -190,10 +208,11 @@ struct ExerciseDetailView: View {
                         ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
                             HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
                                 Text("\(index + 1)")
-                                    .font(AppFont.headline)
-                                    .foregroundStyle(AppColor.accentPrimary)
-                                    .frame(minWidth: stepNumberWidth, alignment: .leading)
-                                    .fixedSize()
+                                    .font(AppFont.chipText)
+                                    .monospacedDigit()
+                                    .foregroundStyle(AppColor.textPrimary)
+                                    .frame(width: stepNumberWidth, height: stepNumberWidth)
+                                    .background(Circle().fill(AppColor.surfaceSecondary))
                                 Text(step)
                                     .font(AppFont.callout)
                                     .foregroundStyle(AppColor.textPrimary)

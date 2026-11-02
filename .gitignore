@@ -68,6 +68,12 @@ scripts/peptide-dataset/.venv/
 scripts/peptide-dataset/peptides.json
 scripts/peptide-dataset/peptides.partial.json
 scripts/peptide-dataset/build.log
+tools/exercise-anim/out/
+tools/exercise-anim/*.blend
+!tools/exercise-anim/human.blend
+tools/exercise-anim/*.blend1
+/sheet.png
+tools/exercise-anim/specs/gen/
 
 # Recipe image generation working files
 tools/recipe-images/raw/

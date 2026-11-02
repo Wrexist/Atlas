@@ -1,0 +1,72 @@
+{
+ "primary": [
+  "lats",
+  "middle_back"
+ ],
+ "secondary": [
+  "biceps",
+  "rear_delts"
+ ],
+ "posture": {
+  "type": "stand",
+  "lean": 45,
+  "width": 0.14
+ },
+ "implement": "dumbbell",
+ "body": {
+  "keys": [
+   {
+    "drop": 0.08
+   }
+  ]
+ },
+ "arm": {
+  "frame": "world",
+  "keys": [
+   {
+    "upper": [
+     0.16,
+     0.05,
+     -1
+    ],
+    "fore": [
+     0.02,
+     0.05,
+     -1
+    ],
+    "thumb": [
+     0,
+     1,
+     0
+    ]
+   },
+   {
+    "upper": [
+     0.26,
+     -0.75,
+     -0.45
+    ],
+    "fore": [
+     0.03,
+     0.08,
+     -1
+    ],
+    "thumb": [
+     0,
+     1,
+     0
+    ]
+   }
+  ],
+  "elbow_out": [
+   0.3,
+   -1,
+   0
+  ]
+ },
+ "camera": {
+  "az": 70,
+  "el": 10
+ },
+ "name": "test_dbrow"
+}

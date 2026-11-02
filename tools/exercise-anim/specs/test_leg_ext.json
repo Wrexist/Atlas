@@ -1,0 +1,51 @@
+{
+ "primary": [
+  "quads"
+ ],
+ "secondary": [],
+ "posture": {
+  "type": "seat",
+  "feet_free": true,
+  "backrest": 75
+ },
+ "implement": "handle",
+ "body": {
+  "keys": [
+   {
+    "hip": 88,
+    "knee": 95
+   },
+   {
+    "hip": 88,
+    "knee": 5
+   }
+  ]
+ },
+ "arm": {
+  "keys": [
+   {
+    "upper": [
+     0.2,
+     -0.1,
+     -1
+    ],
+    "fore": [
+     0.1,
+     0.6,
+     -0.6
+    ],
+    "thumb": [
+     0,
+     1,
+     0
+    ]
+   }
+  ]
+ },
+ "camera": {
+  "az": 80,
+  "el": 6
+ },
+ "name": "test_leg_ext",
+ "pad": "front"
+}
