@@ -25,7 +25,7 @@ jobs:
       ATLAS_PYTHON: python3
       ATLAS_ALPHA: "1"
       ATLAS_SAMPLES: 96
-      ATLAS_RES: 900x1125
+      ATLAS_RES: 896x1120   # 4:5, both sides even (yuv420p and HEVC need it)
     steps:
       - uses: actions/checkout@v4
       - name: Install system packages
@@ -50,6 +50,9 @@ jobs:
         run: |
           python3 gen_specs.py
           "$BLENDER" -b human.blend -P kit.py -- "${{ matrix.slug }}" --anim
+          for f in out/${{ matrix.slug }}.mov out/${{ matrix.slug }}_light.mp4 out/${{ matrix.slug }}_dark.mp4; do
+            [ -s "$f" ] || { echo "::error::$f is missing or empty"; exit 1; }
+          done
           mkdir -p "$RUNNER_TEMP/clip"
           cp out/${{ matrix.slug }}.mov out/${{ matrix.slug }}_light.mp4 out/${{ matrix.slug }}_dark.mp4 "$RUNNER_TEMP/clip/"
       - uses: actions/upload-artifact@v4
