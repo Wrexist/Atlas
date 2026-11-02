@@ -132,9 +132,13 @@ def cavity_shading(nt, bsdf):
     shade.inputs["To Min"].default_value, shade.inputs["To Max"].default_value = 0.45, 1.0
     groove = nt.nodes.new("ShaderNodeAttribute")
     groove.attribute_name = "atlas_groove"
+    line = nt.nodes.new("ShaderNodeMapRange")              # sharpen the soft per-vertex falloff into a contour line
+    line.interpolation_type = 'SMOOTHSTEP'
+    line.inputs["From Min"].default_value, line.inputs["From Max"].default_value = 0.35, 0.85
+    nt.links.new(groove.outputs["Fac"], line.inputs["Value"])
     carve = nt.nodes.new("ShaderNodeMath")
-    carve.operation, carve.inputs[1].default_value = 'MULTIPLY', 0.6
-    nt.links.new(groove.outputs["Fac"], carve.inputs[0])
+    carve.operation, carve.inputs[1].default_value = 'MULTIPLY', 0.45
+    nt.links.new(line.outputs["Result"], carve.inputs[0])
     dim = nt.nodes.new("ShaderNodeMath")
     dim.operation = 'SUBTRACT'
     dim.inputs[0].default_value = 1.0
