@@ -109,7 +109,7 @@ struct ExerciseDetailView: View {
                     .foregroundStyle(AppColor.textPrimary)
                 LazyVGrid(columns: [GridItem(.flexible(), alignment: .topLeading), GridItem(.flexible(), alignment: .topLeading)],
                           alignment: .leading, spacing: Spacing.md) {
-                    ForEach(details(for: exercise), id: \.label) { detail in
+                    ForEach(Array(details(for: exercise).enumerated()), id: \.offset) { _, detail in
                         detailTile(detail)
                     }
                 }
@@ -117,31 +117,33 @@ struct ExerciseDetailView: View {
         }
     }
 
+    /// Label and value resolve through `Text`, so they follow the in-app
+    /// language (`\.locale`), not the device's.
     private struct Detail {
-        let label: String
-        let value: String
+        let label: LocalizedStringKey
+        let value: Text
         let glyph: AppGlyph
     }
 
     private func details(for exercise: Exercise) -> [Detail] {
-        var details = [Detail(label: String(localized: "exercise.detail.equipment", defaultValue: "Equipment"), value: exercise.equipmentKind.displayName,
+        var details = [Detail(label: "exercise.detail.equipment", value: Text(exercise.equipmentKind.displayName),
                               glyph: exercise.equipmentKind.glyph)]
         let accessories = EquipmentAccessory.allCases.filter { exercise.equipmentAccessories.contains($0) }
         if !accessories.isEmpty {
-            details.append(Detail(label: String(localized: "exercise.detail.accessories", defaultValue: "Accessories"),
-                                  value: accessories.map(\.displayName).formatted(.list(type: .and)),
+            details.append(Detail(label: "exercise.detail.accessories",
+                                  value: Text(accessories.map(\.displayName).formatted(.list(type: .and).locale(locale))),
                                   glyph: accessories[0].glyph))
         }
         if !exercise.isCustom {
-            details.append(Detail(label: String(localized: "exercise.detail.level", defaultValue: "Level"), value: levelLabel(exercise.level),
+            details.append(Detail(label: "exercise.detail.level", value: Text(levelLabel(exercise.level)),
                                   glyph: .system("figure.run")))
         }
         if let mechanic = exercise.mechanic {
-            details.append(Detail(label: String(localized: "exercise.detail.type", defaultValue: "Type"), value: mechanicLabel(mechanic),
+            details.append(Detail(label: "exercise.detail.type", value: Text(mechanicLabel(mechanic)),
                                   glyph: .system("gearshape.fill")))
         }
         if let force = exercise.force {
-            details.append(Detail(label: String(localized: "exercise.detail.force", defaultValue: "Force"), value: forceLabel(force),
+            details.append(Detail(label: "exercise.detail.force", value: Text(forceLabel(force)),
                                   glyph: .system("arrow.up.right.circle.fill")))
         }
         return details
@@ -155,7 +157,7 @@ struct ExerciseDetailView: View {
                 Text(detail.label)
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textSecondary)
-                Text(detail.value)
+                detail.value
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -164,26 +166,26 @@ struct ExerciseDetailView: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func levelLabel(_ level: Exercise.Level) -> String {
+    private func levelLabel(_ level: Exercise.Level) -> LocalizedStringKey {
         switch level {
-        case .beginner:     return String(localized: "Beginner")
-        case .intermediate: return String(localized: "Intermediate")
-        case .expert:       return String(localized: "Expert")
+        case .beginner:     return "Beginner"
+        case .intermediate: return "Intermediate"
+        case .expert:       return "Expert"
         }
     }
 
-    private func mechanicLabel(_ mechanic: Exercise.Mechanic) -> String {
+    private func mechanicLabel(_ mechanic: Exercise.Mechanic) -> LocalizedStringKey {
         switch mechanic {
-        case .compound:  return String(localized: "exercise.mechanic.compound", defaultValue: "Compound")
-        case .isolation: return String(localized: "exercise.mechanic.isolation", defaultValue: "Isolation")
+        case .compound:  return "exercise.mechanic.compound"
+        case .isolation: return "exercise.mechanic.isolation"
         }
     }
 
-    private func forceLabel(_ force: Exercise.Force) -> String {
+    private func forceLabel(_ force: Exercise.Force) -> LocalizedStringKey {
         switch force {
-        case .push:     return String(localized: "exercise.force.push", defaultValue: "Push")
-        case .pull:     return String(localized: "exercise.force.pull", defaultValue: "Pull")
-        case .static:   return String(localized: "exercise.force.static", defaultValue: "Static")
+        case .push:     return "exercise.force.push"
+        case .pull:     return "exercise.force.pull"
+        case .static:   return "exercise.force.static"
         }
     }
 
