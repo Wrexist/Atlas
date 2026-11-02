@@ -20,7 +20,7 @@ enum MuscleGroup: String, CaseIterable, Codable, Identifiable, Sendable {
     var displayName: String {
         switch self {
         case .chest:          return String(localized: "Chest")
-        case .back:           return String(localized: "Back")
+        case .back:           return String(localized: "muscle.back", defaultValue: "Back")
         case .shoulders:      return String(localized: "Shoulders")
         case .arms:           return String(localized: "Arms")
         case .legs:           return String(localized: "Legs")

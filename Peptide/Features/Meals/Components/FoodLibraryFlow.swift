@@ -1253,16 +1253,14 @@ struct FoodLibraryFlow: View {
     }
 
     private func reviewActions(_ product: ScannedProduct) -> some View {
-        HStack(spacing: Spacing.sm) {
-            GlassButton(title: "Back", style: .secondary) { backToBrowse() }
-
-            GlassButton(title: addButtonTitle, style: .primary) {
-                confirmLog(for: product)
-            }
-            // Block logging an OFF product without usable nutrition despite
-            // the warning above — it would push zeros into today's rings.
-            .disabled(product.loggable(for: portion) == nil || !FoodLibraryLogic.hasUsableNutrition(product))
+        // One full-width action: "Back" already sits in the toolbar, and a
+        // second copy here squeezed both buttons until their words broke.
+        GlassButton(title: addButtonTitle, style: .primary, isFullWidth: true) {
+            confirmLog(for: product)
         }
+        // Block logging an OFF product without usable nutrition despite
+        // the warning above — it would push zeros into today's rings.
+        .disabled(product.loggable(for: portion) == nil || !FoodLibraryLogic.hasUsableNutrition(product))
     }
 
     // MARK: - Logged phase

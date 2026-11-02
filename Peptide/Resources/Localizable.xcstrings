@@ -10141,7 +10141,7 @@
         "sv": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rygg"
+            "value": "Tillbaka"
           }
         }
       }
@@ -47739,6 +47739,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Veckans gratisskanningar är slut. Skriv namnet själv."
+          }
+        }
+      }
+    },
+    "muscle.back": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rygg"
+          }
+        }
+      }
+    },
+    "body.side.back": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back"
+          }
+        },
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Baksida"
           }
         }
       }

@@ -36,12 +36,18 @@ struct MealScanTotalsCard: View {
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.textPrimary)
 
-            HStack(spacing: Spacing.lg) {
-                ring
-                Grid(alignment: .leading, horizontalSpacing: Spacing.sm, verticalSpacing: Spacing.sm) {
-                    macroRow("Protein", grams: proteinG, share: shares.protein, tint: AppColor.macroProtein)
-                    macroRow("Carbs", grams: carbsG, share: shares.carbs, tint: AppColor.macroCarbs)
-                    macroRow("Fat", grams: fatG, share: shares.fat, tint: AppColor.macroFat)
+            // The macro names never truncate: when ring and grid can't
+            // share a row (long words, large Dynamic Type), the grid moves
+            // under the ring instead of cutting "Kolhydrater" to "Kolh…".
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Spacing.lg) {
+                    ring
+                    Spacer(minLength: 0)
+                    macroGrid.fixedSize(horizontal: true, vertical: false)
+                }
+                VStack(spacing: Spacing.md) {
+                    ring
+                    macroGrid
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -52,6 +58,14 @@ struct MealScanTotalsCard: View {
         .accessibilityLabel(
             "Total \(calories) kilocalories. Protein \(proteinG) grams, carbohydrate \(carbsG) grams, fat \(fatG) grams."
         )
+    }
+
+    private var macroGrid: some View {
+        Grid(alignment: .leading, horizontalSpacing: Spacing.md, verticalSpacing: Spacing.sm) {
+            macroRow("Protein", grams: proteinG, share: shares.protein, tint: AppColor.macroProtein)
+            macroRow("Carbs", grams: carbsG, share: shares.carbs, tint: AppColor.macroCarbs)
+            macroRow("Fat", grams: fatG, share: shares.fat, tint: AppColor.macroFat)
+        }
     }
 
     /// One grid row: name, grams and energy share each sit in their own
@@ -66,6 +80,7 @@ struct MealScanTotalsCard: View {
                     .font(AppFont.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
                     .lineLimit(1)
+                    .fixedSize()
             }
             .gridColumnAlignment(.leading)
             Text("\(grams) g")
@@ -74,7 +89,8 @@ struct MealScanTotalsCard: View {
                 .monospacedDigit()
                 .contentTransition(.numericText())
                 .animation(AppAnimation.motionAware(AppAnimation.springSnappy, reduceMotion: reduceMotion), value: grams)
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                .lineLimit(1)
+                .fixedSize()
                 .gridColumnAlignment(.trailing)
             Text(share.formatted(.percent.precision(.fractionLength(0))))
                 .font(AppFont.caption2)

@@ -15,6 +15,13 @@ struct TrainingBodyExplorer: View {
 
     private enum Side: String, CaseIterable {
         case both = "Both", front = "Front", back = "Back"
+        var title: String {
+            switch self {
+            case .both: String(localized: "Both")
+            case .front: String(localized: "Front")
+            case .back: String(localized: "body.side.back", defaultValue: "Back")
+            }
+        }
         var orientation: MuscleMapView.Orientation {
             switch self {
             case .both: .both
@@ -49,7 +56,7 @@ struct TrainingBodyExplorer: View {
             GlassSegmentedControl(
                 options: Side.allCases,
                 selected: $side,
-                label: { LocalizedStringKey($0.rawValue) }
+                label: { LocalizedStringKey($0.title) }
             )
             .accessibilityIdentifier("training-body-side")
 
@@ -67,7 +74,7 @@ struct TrainingBodyExplorer: View {
 
             HStack {
                 if side != .back { Text("Front").frame(maxWidth: .infinity) }
-                if side != .front { Text("Back").frame(maxWidth: .infinity) }
+                if side != .front { Text(Side.back.title).frame(maxWidth: .infinity) }
             }
             .font(AppFont.caption2)
             .foregroundStyle(AppColor.textSecondary)

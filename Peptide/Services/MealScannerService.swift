@@ -381,9 +381,13 @@ final class MealScannerService: Sendable {
 
     /// Language plus region, e.g. "sv_SE". `Locale.current.identifier` can
     /// carry keywords ("en_US@rg=sezzzz") whose region override the proxy
-    /// would drop along with the rest of the keyword.
+    /// would drop along with the rest of the keyword. The language is the
+    /// one the app's UI actually runs in: a phone set to English with Atlas
+    /// switched to Swedish otherwise got English portion labels on a
+    /// Swedish screen.
     static var localeIdentifier: String {
-        [Locale.current.language.languageCode?.identifier, Locale.current.region?.identifier]
+        let uiLanguage = Bundle.main.preferredLocalizations.first.flatMap { Locale.Language(identifier: $0).languageCode?.identifier }
+        return [uiLanguage ?? Locale.current.language.languageCode?.identifier, Locale.current.region?.identifier]
             .compactMap { $0 }
             .joined(separator: "_")
     }

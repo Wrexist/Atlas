@@ -34,7 +34,7 @@ enum SessionBuilderEngine {
         var displayName: String {
             switch self {
             case .chest: String(localized: "Chest")
-            case .back: String(localized: "Back")
+            case .back: String(localized: "muscle.back", defaultValue: "Back")
             case .shoulders: String(localized: "Shoulders")
             case .rearDelts: String(localized: "Rear delts")
             case .biceps: String(localized: "Biceps")

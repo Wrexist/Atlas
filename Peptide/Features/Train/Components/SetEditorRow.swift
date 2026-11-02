@@ -127,7 +127,14 @@ struct SetEditorRow: View {
             Button {
                 fill(from: prev)
             } label: {
-                Text("\(unit.weightValue(prev.weightKg, fractionDigits: 0...2)) × \(prev.reps)")
+                // A previous set with no load reads as reps alone, not "0 × 8".
+                Group {
+                    if prev.weightKg > 0 {
+                        Text("\(unit.weightValue(prev.weightKg, fractionDigits: 0...2)) × \(prev.reps)")
+                    } else {
+                        Text("\(prev.reps) reps")
+                    }
+                }
                     .font(AppFont.caption2)
                     .foregroundStyle(AppColor.textTertiary)
                     .minimumHitArea()
