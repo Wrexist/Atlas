@@ -329,6 +329,106 @@ def decline_band_situp(spec):
 
 
 
+NEUTRAL = (0, 1, 0)
+
+
+def cable(impl, anchor=None, **extra):
+    """Swap the implement for a cable attachment (`cable` handles, `cable_bar`, `cable_rope`) on a pulley at
+    `anchor` (torso-frame offset from the shoulders at frame 1)."""
+    def patch(spec):
+        spec["implement"] = impl
+        if anchor is not None:
+            spec["cable"] = dict({"anchor": list(anchor)}, **extra)
+        spec.pop("bar_floor", None)
+        if impl != "cable_bar":
+            for k in ("grip", "palm", "slide"):
+                spec.get("arm", {}).pop(k, None)
+        return spec
+    return patch
+
+
+def thumbs(t):
+    def patch(spec):
+        for k in spec["arm"]["keys"]:
+            k["thumb"] = list(t)
+        return spec
+    return patch
+
+
+def close_hands(x=0.04):
+    """Hands a V-handle apart: the keys' outward reach is cut so the wrists nearly meet in front."""
+    def patch(spec):
+        for k in spec["arm"]["keys"]:
+            k["fore"][0] = -abs(x * 3)
+        return spec
+    return patch
+
+
+def v_handle(spec):
+    spec["lines"] = spec.get("lines", []) + [{"a": {"obj": "L"}, "b": {"obj": "R"}, "steel": True}]
+    return spec
+
+
+def keys(*ks, frame=None, **arm):
+    def patch(spec):
+        spec["arm"] = dict(spec.get("arm", {}), keys=list(ks), **arm)
+        if frame:
+            spec["arm"]["frame"] = frame
+        return spec
+    return patch
+
+
+def posture(**p):
+    def patch(spec):
+        spec["posture"] = p
+        return spec
+    return patch
+
+
+def camera(az, el=8):
+    def patch(spec):
+        spec["camera"] = {"az": az, "el": el}
+        return spec
+    return patch
+
+
+ROPE_ROW = [key((0.15, 1, 0.05), (0.1, 1, 0.05), (0, 0, 1)), key((1, -0.25, 0.05), (0.15, 1, 0.1), (0, 0, 1))]
+NECK_ROW = key((1, -0.3, 0.15), (0.1, 1, 0.45), (0, 0, 1))
+CHEST_PRESS = [key((0.85, -0.35, -0.2), (0.1, 1, 0.05), (0, 0, 1)), key((0.22, 1, 0.02), (0.1, 1, 0.02), (0, 0, 1))]
+PULL_THROUGH = [key((0.05, 0.25, -1), (-0.05, 0.15, -1), NEUTRAL)]
+TWIST_HANDS = key((0.15, 0.6, -0.8), (-0.75, 0.65, -0.1), (0, 0, 1))
+
+
+def levers(pivot, ref="upperarm01", post=True):
+    """Lever-machine arms: a steel arm from a fixed pivot (world offset from the `ref` joint at frame 1) to each
+    handle, standing on a post. The handles move on the hands' key poses; the arms swing with them."""
+    def patch(spec):
+        lines = []
+        for h, sx in (("L", 1), ("R", -1)):
+            if h not in spec.get("hands", "LR"):
+                continue
+            end = {"world": [sx * pivot[0], pivot[1], pivot[2]], "under": {"bone": f"{ref}.{h}"}, "rel": True}
+            if post:
+                end["post"] = "in"
+            lines.append({"a": {"obj": h}, "b": end, "steel": True, "r": 0.022})
+        spec["lines"] = spec.get("lines", []) + lines
+        return spec
+    return patch
+
+
+def machine_seat(back=85):
+    return posture(type="seat", backrest=back) if back else posture(type="seat")
+
+
+PRESS_KEYS = [key((0.85, -0.35, -0.2), (0.1, 1, 0.05), (0, 0, 1)), key((0.22, 1, 0.02), (0.1, 1, 0.02), (0, 0, 1))]
+OVERHEAD_KEYS = [key((0.9, 0.1, -0.35), (0.05, 0.15, 1), (0, -1, 0)), key((0.3, 0.1, 0.95), (0.2, 0.05, 1), (0, -1, 0))]
+
+
+def machine_press(top, pivot=(0.3, 0.35, 0.55)):
+    return compose(machine_seat(), cable("handle"), keys(PRESS_KEYS[0], top, elbow_out=[0.6, -1, -0.3]),
+                   levers(pivot), camera(55, 10))
+
+
 BAR_BANDS = {
     "Squat_with_Bands": ("Barbell Squat", "band"), "Squat_with_Chains": ("Barbell Squat", "chain"),
     "Reverse_Band_Power_Squat": ("Barbell Squat", "reverse"),
@@ -405,6 +505,124 @@ PATCHES.update({
     "Flat_Bench_Leg_Pull-In": ("Flat Bench Lying Leg Raise", compose(on_bench, leg_pull_in)),
     "Seated_Leg_Tucks": (None, seated_tucks),
     "Weighted_Sit-Ups_-_With_Bands": ("Sit-Up", decline_band_situp),
+    "Triceps_Pushdown_-_V-Bar_Attachment": ("Triceps Pushdown", compose(
+        cable("cable"), thumbs((0, 0.3, 0.95)), close_hands(), v_handle)),
+    "V-Bar_Pulldown": ("Close-Grip Front Lat Pulldown", compose(
+        cable("cable"), thumbs((0, -1, 0)), close_hands(), v_handle)),
+    "Rope_Straight-Arm_Pulldown": ("Straight-Arm Pulldown", compose(cable("cable_rope"), thumbs((0, 1, 0)))),
+    "Cable_Hammer_Curls_-_Rope_Attachment": ("Standing Biceps Cable Curl", compose(
+        cable("cable_rope", (0, 0.45, -1.45)), keys(
+            key((0.1, -0.03, -1), (0.05, 0.2, -1), (0, 1, 0.2)), key((0.1, -0.03, -1), (0.02, 0.74, 0.67), (0, 0.67, -0.74)),
+            elbow_out=[0.1, -1, -0.2]))),
+    "Standing_One-Arm_Cable_Curl": ("Standing Biceps Cable Curl", compose(
+        cable("cable", (0.15, 0.45, -1.45)), keys(key((0.1, -0.03, -1), (0.2, 0.21, -0.98), (1, 0, 0)),
+                                                  key((0.1, -0.03, -1), (0.2, 0.74, 0.67), (1, 0, 0)),
+                                                  elbow_out=[0.1, -1, -0.2]), one_arm)),
+    "One_Arm_Lat_Pulldown": ("Close-Grip Front Lat Pulldown", compose(
+        cable("cable", (0.3, 0.05, 1.5)), keys(key((0.45, 0.05, 1), (0.25, 0, 1), (0, -1, 0)),
+                                               key((0.7, -0.35, -0.62), (0.12, 0.2, 1), (0, -1, 0)),
+                                               frame="world", elbow_out=[1, -0.3, -0.2]), one_arm)),
+    "Upright_Cable_Row": ("Upright Barbell Row", cable("cable_bar", (0, 0.35, -1.45))),
+    "Cable_Shrugs": ("Barbell Shrug", cable("cable_bar", (0, 0.4, -1.45))),
+    "Cable_Deadlifts": ("Romanian Deadlift", cable("cable_bar", (0, 0.55, -1.5))),
+    "Cable_Rope_Rear-Delt_Rows": (None, compose(
+        posture(type="stand", width=0.14, lean=5), cable("cable_rope", (0, 1.4, -0.05)),
+        keys(*ROPE_ROW, elbow_out=[1, -0.2, 0.3]), camera(40))),
+    "Low_Pulley_Row_To_Neck": ("Seated Cable Rows", lambda s: dict(s, arm=dict(
+        s["arm"], keys=[s["arm"]["keys"][0], NECK_ROW], elbow_out=[1, -0.2, 0.3]))),
+    "Cable_Chest_Press": (None, compose(
+        posture(type="stand", lean=8, width=0.14), cable("cable", (0.55, -0.7, -0.05)),
+        keys(*CHEST_PRESS, elbow_out=[0.6, -1, -0.3]), camera(72))),
+    "Standing_Cable_Chest_Press": (None, compose(
+        posture(type="stand", lean=8, width=0.14), cable("cable", (0.55, -0.7, -0.05)),
+        keys(*CHEST_PRESS, elbow_out=[0.6, -1, -0.3]), camera(72))),
+    "Incline_Cable_Chest_Press": (None, compose(
+        posture(type="seat", back_deg=40), cable("cable", (0.6, -0.4, -0.9)),
+        keys(*CHEST_PRESS, elbow_out=[0.6, -1, -0.3]), camera(56, 20))),
+    "Flat_Bench_Cable_Flyes": ("Dumbbell Flyes", cable("cable", (1.1, -0.2, -0.3))),
+    "Incline_Cable_Flye": ("Incline Dumbbell Flyes", cable("cable", (1.1, -0.2, -0.6))),
+    "Low_Cable_Crossover": ("Cable Crossover", compose(cable("cable", (0.9, 0.1, -1.35)), keys(
+        key((0.95, 0.2, -0.3), (0.95, 0.3, -0.25), (0, 1, 0)), key((0.2, 1, 0.35), (-0.05, 1, 0.45), (0, 0.4, 1)),
+        elbow_out=[0.3, -0.6, -1]))),
+    "Cable_Rear_Delt_Fly": (None, compose(
+        posture(type="stand", width=0.13), cable("cable", (-0.7, 1.0, 0.25)),
+        keys(key((-0.1, 1, 0.08), (-0.1, 1, 0.08), (-1, 0, 0)), key((1, 0.12, 0.05), (1, 0.12, 0.05), (0, 1, 0)),
+             elbow_out=[0.3, -0.3, -1]), camera(30))),
+    "Bent_Over_Low-Pulley_Side_Lateral": ("Bent Over Dumbbell Rear Delt Raise With Head On Bench", compose(
+        cable("cable", (-0.5, 0.25, -1.1)),
+        posture(type="stand", lean=55, width=0.14))),
+    "Cable_Preacher_Curl": ("Preacher Curl", cable("cable_bar", (0, 1.0, -0.9))),
+    "Cable_Lying_Triceps_Extension": ("EZ-Bar Skullcrusher", cable("cable_bar", (0, -0.35, 1.25))),
+    "Cable_Incline_Triceps_Extension": ("Incline Barbell Triceps Extension", cable("cable_bar", (0, -0.5, 1.25))),
+    "Kneeling_Cable_Triceps_Extension": ("Cable Rope Overhead Triceps Extension", lambda s: dict(
+        s, posture={"type": "kneel", "lean": 20})),
+    "Pull_Through": (None, compose(
+        posture(type="stand", width=0.3, toe_out=20), cable("cable_rope", (0, -0.8, -1.45)),
+        lambda s: dict(s, body={"keys": [{"drop": 0.12, "back": 0.14, "lean": 70}, {}], "head_level": 0.5}),
+        keys(*PULL_THROUGH, frame="world", elbow_out=[1, 0, 0]), camera(75))),
+    "Band_Good_Morning_Pull_Through": (None, compose(
+        posture(type="stand", width=0.3, toe_out=20),
+        lambda s: dict(s, body={"keys": [{"drop": 0.12, "back": 0.14, "lean": 70}, {}], "head_level": 0.5},
+                       implement="band_handle",
+                       lines=[{"a": {"obj": h}, "b": {"world": [0, 0.9, 0.05], "under": {"bone": "root"}}}
+                              for h in "LR"]),
+        keys(*PULL_THROUGH, frame="world", elbow_out=[1, 0, 0]), camera(75))),
+    "Cable_Russian_Twists": ("Russian Twist", compose(cable("cable", (1.3, 0.35, -0.25), mirror=False),
+                                                       keys(TWIST_HANDS, elbow_out=[1, 0, -0.4]))),
+    "One-Arm_High-Pulley_Cable_Side_Bends": ("Dumbbell Side Bend", compose(
+        cable("cable", (0.35, 0.05, 1.3)), keys(key((0.6, 0.0, 0.8), (0.2, 0.0, 1), (0, -1, 0)), sides="L",
+                                                rest=key((0.9, -0.1, 0.4), (-0.75, 0.25, 0.6), (0, 0, 1)),
+                                                frame="torso"),
+        lambda s: dict(s, body={"keys": [{"side": -10}, {"side": 22}]}))),
+    "Leverage_Chest_Press": (None, machine_press(PRESS_KEYS[1])),
+    "Machine_Bench_Press": (None, machine_press(PRESS_KEYS[1])),
+    "Leverage_Incline_Chest_Press": (None, machine_press(key((0.22, 0.8, 0.55), (0.1, 0.8, 0.55), (0, 0, 1)),
+                                                         (0.3, 0.45, 0.2))),
+    "Leverage_Decline_Chest_Press": (None, machine_press(key((0.22, 0.9, -0.4), (0.1, 0.9, -0.4), (0, 0, 1)),
+                                                         (0.3, 0.3, 0.75))),
+    "Leverage_Shoulder_Press": (None, compose(machine_seat(), cable("handle"), keys(*OVERHEAD_KEYS, elbow_out=[1, 0, -0.3]),
+                                              levers((0.32, 0.55, -0.05)), camera(50, 8))),
+    "Machine_Shoulder_Military_Press": (None, compose(machine_seat(), cable("handle"),
+                                                      keys(*OVERHEAD_KEYS, elbow_out=[1, 0, -0.3]),
+                                                      levers((0.32, 0.55, -0.05)), camera(50, 8))),
+    "Leverage_High_Row": (None, compose(machine_seat(0), cable("handle"), keys(
+        key((0.2, 0.75, 0.65), (0.15, 0.75, 0.65), (0, 0, 1)), key((0.35, -0.65, -0.65), (0.05, 0.55, 0.85), (0, 0, 1)),
+        elbow_out=[0.6, -0.3, -1]), levers((0.3, -0.85, 0.3)), camera(70, 8))),
+    "Leverage_Iso_Row": (None, compose(machine_seat(0), cable("handle"), keys(
+        key((0.12, 1, -0.2), (0.05, 1, -0.05), (0, 0, 1)), key((0.2, -0.7, -0.7), (0.03, 1, 0.05), (0, 0, 1)),
+        elbow_out=[0.4, -0.3, -1]), levers((0.3, -0.95, -0.55)),
+        lambda s: dict(s, boxes=[{"size": [0.34, 0.08, 0.4], "at": [0, -0.32, 0.95]}]), camera(70, 8))),
+    "Leverage_Shrug": ("Dumbbell Shrug", compose(cable("handle"), levers((0.1, -0.75, -0.55), ref="lowerarm02"),
+                                                 camera(40, 8))),
+    "Leverage_Deadlift": ("Barbell Deadlift", compose(
+        cable("handle"), keys(key((0.25, 0.03, -1), (0.12, 0.04, -1), NEUTRAL), frame="world", elbow_out=[1, 0, 0]),
+        levers((0.12, -0.8, 0.05), ref="lowerarm02"), camera(40, 8))),
+    "Dip_Machine": (None, compose(machine_seat(), cable("handle"), keys(
+        key((0.25, -0.75, -0.6), (0.05, 0.6, -0.8), NEUTRAL), key((0.2, -0.1, -1), (0.12, 0.05, -1), NEUTRAL),
+        elbow_out=[0.3, 1, 0]), levers((0.3, 0.55, -0.5)), camera(60, 8))),
+    "Reverse_Machine_Flyes": (None, compose(
+        posture(type="seat"), cable("handle"),
+        keys(key((0.1, 1, 0.05), (0.1, 1, 0.05), (0, 0, 1)), key((1, 0.12, 0.05), (1, 0.12, 0.05), (0, 0, 1)),
+             elbow_out=[0.3, -0.3, -1]), levers((0.05, 0.0, 0.45)),
+        lambda s: dict(s, boxes=[{"size": [0.34, 0.08, 0.45], "at": [0, -0.3, 1.0]}]), camera(150, 14))),
+    "Butterfly": (None, compose(
+        machine_seat(), cable("handle"),
+        keys(key((1, 0.1, 0.05), (0.75, 0.3, 0.6), (0, 1, 0)), key((0.3, 1, 0.05), (-0.2, 0.6, 0.75), (0, 0, 1)),
+             elbow_out=[0.3, -0.3, -1]), levers((0.05, 0.05, 0.5)), camera(40, 14))),
+    "Hack_Squat": (None, compose(
+        posture(type="stand", width=0.16, lean=-32, toe_out=12), cable("handle"),
+        lambda s: dict(s, body={"keys": [{"back": 0.18}, {"back": 0.5, "drop": 0.42}], "head_level": 0.4},
+                       pads=[{"bone": "spine03", "off": [0, -0.16, 0.05], "size": [0.4, 0.08, 0.7]},
+                             {"bone": "clavicle.L", "off": [0, -0.02, 0.07], "size": [0.12, 0.25, 0.06]},
+                             {"bone": "clavicle.R", "off": [0, -0.02, 0.07], "size": [0.12, 0.25, 0.06]}]),
+        keys(key((0.5, 0.35, -0.8), (-0.05, 0.3, 1), (-1, 0, 0)), elbow_out=[0.4, 0.2, -1]), camera(75, 6))),
+    "Narrow_Stance_Hack_Squats": (None, compose(
+        posture(type="stand", width=0.09, lean=-32, toe_out=8), cable("handle"),
+        lambda s: dict(s, body={"keys": [{"back": 0.18}, {"back": 0.5, "drop": 0.42}], "head_level": 0.4},
+                       pads=[{"bone": "spine03", "off": [0, -0.16, 0.05], "size": [0.4, 0.08, 0.7]},
+                             {"bone": "clavicle.L", "off": [0, -0.02, 0.07], "size": [0.12, 0.25, 0.06]},
+                             {"bone": "clavicle.R", "off": [0, -0.02, 0.07], "size": [0.12, 0.25, 0.06]}]),
+        keys(key((0.5, 0.35, -0.8), (-0.05, 0.3, 1), (-1, 0, 0)), elbow_out=[0.4, 0.2, -1]), camera(75, 6))),
     "Band_Assisted_Pull-Up": ("Pullups", lambda s: dict(s, camera={"az": 25, "el": 6}, lines=[
         {"a": {"obj": h, "at": [x, 0, 0]}, "b": {"bone": f"lowerleg01.{h}", "t": 0.1, "off": [0, -0.06, 0]},
          "via": [{"bone": "spine03", "t": 0.5, "off": [x, -0.2, 0]}]}       # hangs clear of the chest
