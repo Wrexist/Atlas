@@ -1107,8 +1107,11 @@ def build(spec):
     A.setup_render()
     cam_spec = spec.get("camera", {})
     cam = A.main_camera(gear.meshes() + props, az_deg=cam_spec.get("az", 35), el_deg=cam_spec.get("el", 6))
+    mid = spec.get("bottom", 40) + 2
     hands = A.closeup_camera("L", 1, offset=(0.14, -0.45, 0.12), lens=70)
-    A.finish(spec["slug"], cam, hands, mid_frame=spec.get("bottom", 40) + 2)
+    extra = [("handsmid", A.closeup_camera("L", mid, offset=(0.14, -0.45, 0.12), lens=70)),
+             ("handsback", A.closeup_camera("L", mid, offset=(0.3, 0.4, 0.15), lens=70))]
+    A.finish(spec["slug"], cam, hands, mid_frame=mid, extra_cams=extra)
 
 
 if __name__ == "__main__":

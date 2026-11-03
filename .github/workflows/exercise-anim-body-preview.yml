@@ -17,16 +17,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - {name: athletic-hair, body: athletic, clothes: "^short01"}
-          - {name: defined-hair, body: defined, clothes: "^short01"}
+        shard: [0, 1, 2, 3, 4, 5]
     env:
       BLENDER_VERSION: 5.2.1
       ATLAS_PYTHON: python3
       ATLAS_ALPHA: "1"
-      ATLAS_BODY: ${{ matrix.body }}
-      ATLAS_CLOTHES: ${{ matrix.clothes }}
-      VARIANT: ${{ matrix.name }}
+      ATLAS_BODY: athletic
+      ATLAS_CLOTHES: "^short01"
+      SHARD: ${{ matrix.shard }}
       ATLAS_RES: 896x1120
     steps:
       - uses: actions/checkout@v4
@@ -73,14 +71,14 @@ jobs:
           "$BLENDER" -b -P gen_human.py
           python3 gen_specs.py
           mkdir -p "$RUNNER_TEMP/stills"
-          for slug in Barbell_Squat Dumbbell_Bicep_Curl 3_4_Sit-Up; do
-            "$BLENDER" -b human.blend -P kit.py -- "$slug" --preview
-            for f in out/preview_${slug}_*.png; do cp "$f" "$RUNNER_TEMP/stills/${VARIANT}_$(basename "$f")"; done
+          for slug in $(jq -r --argjson n "$SHARD" '.slugs | to_entries[] | select(.key % 6 == $n) | .value' body_preview.json); do
+            "$BLENDER" -b human.blend -P kit.py -- "$slug" --preview || echo "FAILED $slug"
+            for f in out/preview_${slug}_*.png; do [ -f "$f" ] && cp "$f" "$RUNNER_TEMP/stills/$(basename "$f")"; done
           done
           ls -la "$RUNNER_TEMP/stills"
       - uses: actions/upload-artifact@v4
         with:
-          name: body-${{ matrix.name }}
+          name: body-${{ matrix.shard }}
           path: ${{ runner.temp }}/stills
           retention-days: 7
 
