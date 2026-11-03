@@ -4,8 +4,12 @@ name: Exercise animation alpha render
 # hair) and publishes HEVC-with-alpha .mov files to the exercise-videos-alpha
 # branch, which the app streams from. One clip per job (~3 h at 96 samples),
 # 20 at a time, in three chunks (a matrix holds at most 256 jobs); each chunk
-# is published as soon as it is done. Clips already on the branch are
-# skipped, so pushing tools/exercise-anim/alpha_render.json again resumes.
+# is published as soon as it is done. alpha_render.json names the round;
+# clips already rendered in that round (rendered-r<round>.txt on the branch)
+# are skipped, so pushing it again resumes, and bumping the round re-renders
+# everything. Clips whose exercise no longer has a spec are deleted at the
+# start, and index.txt carries a hash per clip so the app replaces stale
+# cached copies.
 on:
   push:
     branches: [claude/project-thread-9vj9pu]
@@ -17,7 +21,10 @@ concurrency: exercise-anim-alpha-render
 jobs:
   plan:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     outputs:
+      round: ${{ steps.plan.outputs.round }}
       a: ${{ steps.plan.outputs.a }}
       b: ${{ steps.plan.outputs.b }}
       c: ${{ steps.plan.outputs.c }}
@@ -27,9 +34,11 @@ jobs:
         working-directory: tools/exercise-anim
         run: |
           python3 gen_specs.py
-          curl -fsSL "https://raw.githubusercontent.com/${{ github.repository }}/exercise-videos-alpha/index.txt" -o done.txt \
-            || touch done.txt
-          echo "$(wc -l < done.txt) clips already on exercise-videos-alpha"
+          round=$(python3 -c "import json; print(json.load(open('alpha_render.json'))['round'])")
+          echo "round=$round" >> "$GITHUB_OUTPUT"
+          curl -fsSL "https://raw.githubusercontent.com/${{ github.repository }}/exercise-videos-alpha/rendered-r$round.txt" \
+            -o done.txt || touch done.txt
+          echo "$(wc -l < done.txt) clips already rendered in round $round"
           DONE=done.txt BATCH=0 BATCH_SIZE=100000 python3 render_plan.py --flat > todo.json
           python3 - <<'PY'
           import json, os
@@ -40,6 +49,21 @@ jobs:
               for k, name in enumerate("abc"):
                   out.write(f"{name}={json.dumps(todo[k * third:(k + 1) * third])}\n")
           PY
+          ls specs/gen | sed 's/\.json$//' > "$RUNNER_TEMP/keep.txt"
+      - name: Drop clips without a spec
+        run: |
+          repo="https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          git ls-remote --exit-code --heads "$repo" exercise-videos-alpha >/dev/null || exit 0
+          git clone -q --depth 1 --branch exercise-videos-alpha "$repo" site
+          cd site
+          for f in *.mov; do grep -qxF "${f%.mov}" "$RUNNER_TEMP/keep.txt" || git rm -q "$f"; done
+          for f in *.mov; do echo "${f%.mov} $(shasum -a 1 "$f" | cut -c1-10)"; done | sort > index.txt
+          git add -A
+          git diff --cached --quiet && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -qm "Drop clips without a spec, version the index (run ${{ github.run_id }})"
+          git push -q origin exercise-videos-alpha
 
   render_a:
     needs: plan
@@ -148,7 +172,8 @@ jobs:
           cd site
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          ls *.mov | sed 's/\.mov$//' | sort > index.txt
+          for f in *.mov; do echo "${f%.mov} $(shasum -a 1 "$f" | cut -c1-10)"; done | sort > index.txt
+          ls ../hevc | sed 's/\.mov$//' >> "rendered-r${{ needs.plan.outputs.round }}.txt"
           git add -A
           git commit -qm "Add $(ls ../hevc | wc -l) transparent clips (run ${{ github.run_id }})"
           for i in 1 2 3 4; do git push -q origin exercise-videos-alpha && exit 0; sleep $((i * 5)); git pull -q --rebase origin exercise-videos-alpha; done
@@ -261,7 +286,8 @@ jobs:
           cd site
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          ls *.mov | sed 's/\.mov$//' | sort > index.txt
+          for f in *.mov; do echo "${f%.mov} $(shasum -a 1 "$f" | cut -c1-10)"; done | sort > index.txt
+          ls ../hevc | sed 's/\.mov$//' >> "rendered-r${{ needs.plan.outputs.round }}.txt"
           git add -A
           git commit -qm "Add $(ls ../hevc | wc -l) transparent clips (run ${{ github.run_id }})"
           for i in 1 2 3 4; do git push -q origin exercise-videos-alpha && exit 0; sleep $((i * 5)); git pull -q --rebase origin exercise-videos-alpha; done
@@ -374,7 +400,8 @@ jobs:
           cd site
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          ls *.mov | sed 's/\.mov$//' | sort > index.txt
+          for f in *.mov; do echo "${f%.mov} $(shasum -a 1 "$f" | cut -c1-10)"; done | sort > index.txt
+          ls ../hevc | sed 's/\.mov$//' >> "rendered-r${{ needs.plan.outputs.round }}.txt"
           git add -A
           git commit -qm "Add $(ls ../hevc | wc -l) transparent clips (run ${{ github.run_id }})"
           for i in 1 2 3 4; do git push -q origin exercise-videos-alpha && exit 0; sleep $((i * 5)); git pull -q --rebase origin exercise-videos-alpha; done

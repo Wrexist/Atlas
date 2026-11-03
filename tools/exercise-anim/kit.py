@@ -598,7 +598,13 @@ class Cables:
 
 
 def ezbar(h):
-    A.cylinder(h, A.BAR_R, 0.95, mat=A.STEEL, verts=48)
+    """A cambered curl bar: straight where the hands grip (|x| >= 0.12), with the W-bend in the middle."""
+    for sx in (1, -1):
+        A.cylinder(h, A.BAR_R, 0.36, x=sx * 0.295, mat=A.STEEL, verts=48)
+        pts = [Vector((sx * 0.115, 0, 0)), Vector((sx * 0.075, 0, 0.035)), Vector((0, 0, 0))]
+        for a, b in zip(pts, pts[1:]):
+            seg = A.cylinder(h, A.BAR_R, (b - a).length + 0.012, mat=A.STEEL, verts=48)
+            seg.matrix_basis = Matrix.Translation((a + b) / 2) @ (b - a).to_track_quat('Z', 'Y').to_matrix().to_4x4()
     for sx in (1, -1):
         A.cylinder(h, 0.03, 0.03, x=sx * 0.49, mat=A.STEEL)
         A.cylinder(h, 0.025, 0.13, x=sx * 0.56, mat=A.STEEL)

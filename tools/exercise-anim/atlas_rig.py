@@ -472,9 +472,11 @@ def _muscle_rules():
         return np.minimum.reduce([x - 0.012, 0.19 - x, z - bottom, clav - 0.012 - z,
                                   -(g["co"][:, 1] - float(rest_head("spine03").y)) - 0.02])
 
-    def abs_(g):
-        x = np.abs(g["co"][:, 0])
-        return np.minimum.reduce([0.085 - x, box(g, 2, hip[2] + 0.03, nip - 0.08),
+    def abs_(g):                               # rectus sheet: widest under the ribs, narrowing to a rounded base
+        x, z = np.abs(g["co"][:, 0]), g["co"][:, 2]
+        lo, hi = hip[2] + 0.03, nip - 0.08
+        width = 0.05 + 0.035 * np.clip((z - lo) / (hi - lo), 0, 1)
+        return np.minimum.reduce([width - x, z - (lo + 0.05 * (x / 0.085) ** 2), hi + 0.02 * (x / 0.085) - z,
                                   -(g["co"][:, 1] - float(rest_head("spine03").y)) - 0.03])
 
     def delt(lo, hi):
