@@ -66,6 +66,14 @@ def pullup_bar(z, half=0.7):
     return props
 
 
+def rubber():
+    m = bpy.data.materials.get("BandRubber")         # "Rubber" is the shoe soles' material in human.blend
+    if m is None:
+        m = A.material("BandRubber", (0.03, 0.03, 0.033), rough=0.85)
+        A.solid_aov(m)                              # equipment, not body: the composite keeps it dark
+    return m
+
+
 # ---------------------------------------------------------------- frames + poses
 def torso_frame():
     """(lateral toward the figure's left, forward out of the chest, up the spine) in world space."""
@@ -437,6 +445,8 @@ class PerHand:
                 continue
             if impl == "kettlebell":
                 kettlebell(h, s, rack=spec.get("kb") == "rack")
+            elif impl == "band_handle":                # the band's end wrapped in the fist
+                A.cylinder(h, 0.013, 0.1, mat=rubber(), verts=32)
             elif impl in ("cable", "cable_handle", "handle"):
                 cable_handle(h)
             elif impl == "cable_rope":
@@ -1027,6 +1037,89 @@ class Heels:
             t.keyframe_insert("rotation_quaternion" if t.rotation_mode == 'QUATERNION' else "rotation_euler", frame=fr)
 
 
+class Lines:
+    """Elastic bands and chains (spec `lines`). Each line joins two ends; an end is `{"obj": "L"|"R"|"bar", "at":
+    local offset}` (a hand's implement or the bar), `{"bone": name, "t": 0..1}` (a point along a bone), or
+    `{"world": [x, y, z]}`, where x/y may be given relative to another end at frame 1 with `"under": <end>` (that
+    end's floor point plus the world offset). Bands stretch straight between their ends; a chain (`"chain": true`,
+    `"length"`) hangs from its top end and piles up on the floor in front."""
+
+    BAND_R = 0.012
+    LINK = 0.05
+
+    def __init__(self, spec, gear):
+        self.gear = gear
+        self.items = []
+        for i, ln in enumerate(spec.get("lines", [])):
+            if ln.get("chain"):
+                links = []
+                for j in range(int(ln.get("length", 1.3) / self.LINK)):
+                    bpy.ops.mesh.primitive_torus_add(major_radius=0.022, minor_radius=0.006, major_segments=16,
+                                                     minor_segments=8)
+                    o = bpy.context.object
+                    o.name = f"Chain{i}"
+                    o.rotation_mode = 'QUATERNION'
+                    o.data.materials.append(A.STEEL)
+                    links.append(o)
+                self.items.append((ln, links))
+            else:
+                n = 1 + len(ln.get("via", []))          # a band bent round `via` points is several straight runs
+                segs = [rod(f"Band{i}", (0, 0, 0), (0, 0, 1), self.BAND_R, mat=rubber()) for _ in range(n)]
+                self.items.append((ln, segs))
+        self.fixed = {}
+        self.posts = []
+
+    def end(self, e, key):
+        if "obj" in e:
+            o = self.gear.bar if e["obj"] == "bar" else self.gear.h[e["obj"]]
+            return o.matrix_world @ Vector(e.get("at", (0, 0, 0)))
+        if "bone" in e:
+            return A.head(e["bone"]).lerp(A.tail(e["bone"]), e.get("t", 0.5)) + Vector(e.get("off", (0, 0, 0)))
+        if key not in self.fixed:                       # world ends are fixed at their frame-1 place
+            v = Vector(e["world"])
+            if "under" in e:
+                ref = self.end(e["under"], key + "u")
+                v = Vector((ref.x + v.x, ref.y + v.y, v.z))
+            self.fixed[key] = v
+            if e.get("post"):                           # hung from a rack upright beside the anchor
+                x = v.x + math.copysign(0.09, v.x)
+                self.posts.append(box("RackPost", (0.07, 0.07, v.z + 0.05), (x, v.y, (v.z + 0.05) / 2)))
+                self.posts.append(box("RackPeg", (abs(x - v.x) + 0.03, 0.03, 0.03), ((x + v.x) / 2, v.y, v.z)))
+        return self.fixed[key]
+
+    def key(self, fr):
+        for i, (ln, o) in enumerate(self.items):
+            if ln.get("chain"):
+                self.key_chain(o, self.end(ln["a"], f"{i}a"), fr)
+                continue
+            pts = [ln["a"]] + ln.get("via", []) + [ln["b"]]
+            pts = [self.end(e, f"{i}p{j}") for j, e in enumerate(pts)]
+            for seg, a, b in zip(o, pts, pts[1:]):
+                seg.location = (a + b) / 2
+                seg.rotation_quaternion = (b - a).to_track_quat('Z', 'Y')
+                seg.scale = (1, 1, (b - a).length)
+                for path in ("location", "rotation_quaternion", "scale"):
+                    seg.keyframe_insert(path, frame=fr)
+
+    def key_chain(self, links, top, fr):
+        lay = Vector((0, -1, 0))                     # the slack lies on the floor toward the camera side
+        for j, o in enumerate(links):
+            d = (j + 0.5) * self.LINK
+            if d < top.z - 0.01:
+                o.location = top - Vector((0, 0, d))
+                q = Quaternion((1, 0, 0), math.pi / 2)  # ring plane vertical
+            else:
+                o.location = Vector((top.x, top.y, 0.008)) + lay * (d - top.z) * 0.55 + \
+                    Vector(((j % 4 - 1.5) * 0.012, 0, 0))
+                q = Quaternion()
+            o.rotation_quaternion = q @ Quaternion((0, 0, 1), math.pi / 2 * (j % 2))
+            o.keyframe_insert("location", frame=fr)
+            o.keyframe_insert("rotation_quaternion", frame=fr)
+
+    def meshes(self):
+        return [m for _, o in self.items for m in o] + self.posts
+
+
 SMITH_X = 0.6           # rails inside the inner collars (+-0.655), outside any grip
 
 
@@ -1214,6 +1307,7 @@ def build(spec):
     else:
         gear.grip()
     lock = SmithLock(gear) if spec.get("smith") else None
+    lines = Lines(spec, gear) if spec.get("lines") else None
 
     def shift_body(dy):
         shift["back"] += dy
@@ -1228,11 +1322,13 @@ def build(spec):
             for _ in range(3):
                 lock.apply(fr, shift_body)
         gear.key(fr)
+        if lines:
+            lines.key(fr)
         arms.key_poles(fr)
         if body_keys:
             key_body(fr)
 
-    framed = gear.meshes() + props
+    framed = gear.meshes() + props + (lines.meshes() if lines else [])
     if lock:
         sleeves, rails = smith_frame(gear.bar)
         framed += sleeves

@@ -3,12 +3,7 @@
 # the kit can draw them; delete a line once its clip is right.
 Adductor_Groin
 Alternate_Heel_Touchers
-Back_Flyes_-_With_Bands
-Band_Assisted_Pull-Up
-Band_Good_Morning
 Band_Good_Morning_Pull_Through
-Band_Pull_Apart
-Band_Skull_Crusher
 Barbell_Curls_Lying_Against_An_Incline
 Barbell_Hack_Squat
 Barbell_Seated_Calf_Raise
@@ -20,8 +15,6 @@ Bent_Over_One-Arm_Long_Bar_Row
 Bent_Over_Two-Arm_Long_Bar_Row
 Bosu_Ball_Cable_Crunch_With_Side_Bends
 Box_Jump_Multiple_Response
-Box_Squat_with_Bands
-Box_Squat_with_Chains
 Cable_Chest_Press
 Cable_Deadlifts
 Cable_Incline_Pushdown
@@ -35,11 +28,9 @@ Cable_Russian_Twists
 Cable_Shrugs
 Calf-Machine_Shoulder_Shrug
 Calf_Raise_On_A_Dumbbell
-Calf_Raises_-_With_Bands
 Car_Deadlift
 Car_Drivers
 Clean_from_Blocks
-Close-Grip_EZ-Bar_Curl_with_Band
 Close-Grip_Push-Up_off_of_a_Dumbbell
 Cocoons
 Crunch_-_Legs_On_Exercise_Ball
@@ -88,7 +79,6 @@ Jefferson_Squats
 Knee_Hip_Raise_On_Parallel_Bars
 Kneeling_Squat
 Lateral_Box_Jump
-Lateral_Raise_-_With_Bands
 Leg-Over_Floor_Press
 Leverage_Chest_Press
 Leverage_Deadlift
@@ -130,7 +120,6 @@ Push-Ups_With_Feet_Elevated
 Push-Ups_With_Feet_On_An_Exercise_Ball
 Push_Up_to_Side_Plank
 Rack_Pull_with_Bands
-Reverse_Band_Power_Squat
 Reverse_Machine_Flyes
 Reverse_Plate_Curls
 Rickshaw_Carry
@@ -154,11 +143,7 @@ Smith_Machine_Leg_Press
 Smith_Machine_One-Arm_Upright_Row
 Smith_Machine_Reverse_Calf_Raises
 Snatch_from_Blocks
-Speed_Band_Overhead_Triceps
 Spider_Curl
-Squat_with_Bands
-Squat_with_Chains
-Squats_-_With_Bands
 Standing_Cable_Chest_Press
 Standing_One-Arm_Cable_Curl
 Standing_Towel_Triceps_Extension
@@ -173,7 +158,6 @@ The_Straddle
 Trap_Bar_Deadlift
 Triceps_Pushdown_-_V-Bar_Attachment
 Upright_Cable_Row
-Upright_Row_-_With_Bands
 V-Bar_Pulldown
 V-Bar_Pullup
 Weighted_Ball_Hyperextension
@@ -239,9 +223,6 @@ Chest_Push_from_3_point_stance
 One-Arm_Medicine_Ball_Slam
 Fast_Skipping
 Wind_Sprints
-Reverse_Band_Sumo_Deadlift
-Sumo_Deadlift_with_Bands
-Sumo_Deadlift_with_Chains
 Kneeling_Cable_Triceps_Extension
 Seated_Bent-Over_One-Arm_Dumbbell_Triceps_Extension
 Seated_Bent-Over_Two-Arm_Dumbbell_Triceps_Extension

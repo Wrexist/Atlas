@@ -17,7 +17,7 @@ MUSCLES = {"abdominals": "abs", "lats": "lats", "middle back": "middle_back", "l
 
 def delts(name, family):
     n = name.lower()
-    if re.search(r"rear|reverse fl|face pull|bent.over.*(raise|fly)|back fly", n):
+    if re.search(r"rear|reverse fl|face pull|bent.over.*(raise|fly)|back fly|pull.?apart", n):
         return "rear_delts"
     if family in ("raise",) and not re.search(r"front", n):
         return "side_delts"
@@ -1386,6 +1386,8 @@ def main():
     exercises = json.load(open(DATA))
     by_name = {e["name"]: e for e in exercises}
     os.makedirs(OUT, exist_ok=True)
+    for f in os.listdir(OUT):
+        os.remove(os.path.join(OUT, f))
     made, missing = [], []
     path = os.path.join(HERE, "dropped.txt")
     dropped = {line.strip() for line in open(path) if not line.startswith("#")} if os.path.exists(path) else set()
