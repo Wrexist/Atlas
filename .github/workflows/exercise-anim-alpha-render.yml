@@ -34,7 +34,8 @@ jobs:
         working-directory: tools/exercise-anim
         run: |
           python3 gen_specs.py
-          round=$(python3 -c "import json; print(json.load(open('alpha_render.json'))['round'])")
+          # alpha_render.json is added (or its round bumped) to start a render; a manual run without it is round 1
+          round=$(python3 -c "import json, os; print(json.load(open('alpha_render.json'))['round'] if os.path.exists('alpha_render.json') else 1)")
           echo "round=$round" >> "$GITHUB_OUTPUT"
           curl -fsSL "https://raw.githubusercontent.com/${{ github.repository }}/exercise-videos-alpha/rendered-r$round.txt" \
             -o done.txt || touch done.txt
