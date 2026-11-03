@@ -202,7 +202,7 @@ def hpress(n, eq):
 
 def vpress(n, eq):
     if has(n, "^dumbbell one-arm shoulder press|^standing palm-in one-arm"):
-        spec = vpress("dumbbell shoulder press", "dumbbell")
+        spec = vpress("dumbbell shoulder press" + (" palm-in" if has(n, "palm-in") else ""), "dumbbell")
         spec["hands"] = "L"
         spec["arm"].update(sides="L", rest=HIPS_HANDS)
         return spec
@@ -211,7 +211,7 @@ def vpress(n, eq):
         return None
     seated = has(n, "seated|machine")
     posture = {"type": "seat", "backrest": 85} if seated else STAND
-    thumb = (-1, 0.1, 0)
+    thumb = (0, -1, 0) if has(n, "palm.?in|palms.?in|neutral|hammer") else (-1, 0.1, 0)   # neutral: palms face
     if has(n, "arnold"):
         keys = [key((0.25, 0.6, -0.75), (0.1, 0.1, 1), (1, 0.2, 0)), key((0.7, 0.3, -0.2), (0.05, 0.1, 1), (0, 1, 0)),
                 key((0.3, 0.05, 1), (0.1, 0, 1), thumb)]
@@ -356,7 +356,7 @@ def row(n, eq):
         thumb = (1, 0, 0) if under else (-1, 0, 0)
         spec["implement"] = "barbell"
         spec["arm"]["keys"] = [dict(k, thumb=list(thumb)) for k in spec["arm"]["keys"]]
-        spec["arm"].update(grip=0.1 if has(n, "t-bar") else 0.24, palm=[0, 1, 0])
+        spec["arm"].update(grip=0.1 if has(n, "t-bar") else 0.24, palm=[0, -1, 0] if under else [0, 1, 0])
     elif eq in ("dumbbell", "kettlebells") or has(n, "dumbbell"):
         spec["implement"] = "kettlebell" if eq == "kettlebells" else "dumbbell"
         spec["arm"]["keys"] = [dict(k, thumb=[0, 1, 0]) for k in spec["arm"]["keys"]]
@@ -414,7 +414,7 @@ def triceps(n, eq):
             spec["implement"] = "cable_rope"
         else:
             spec["implement"] = "cable_bar"
-            spec["arm"].update(grip=0.12, palm=[0, 0.3, -1])
+            spec["arm"].update(grip=0.12, palm=[0, -0.3, 1] if has(n, "reverse|underhand") else [0, 0.3, -1])
         return spec
     if has(n, "parallel bar dip|ring dips"):
         return hpress("dips - triceps version", eq)
@@ -1376,6 +1376,8 @@ def aliased(e, by_name):
         spec["implement"] = "kettlebell"
     primary, secondary = muscles(e, family)
     spec = dict(copy.deepcopy(spec), name=e["name"], slug=e["id"], primary=primary, secondary=secondary)
+    if has(e["name"].lower(), "snatch") and spec.get("implement") == "barbell":
+        spec["arm"]["grip"] = 0.4               # snatch grip: hands wide, bar in the hip crease
     return one_arm(kb_rack(spec, family)), family
 
 
@@ -1384,7 +1386,12 @@ def main():
     by_name = {e["name"]: e for e in exercises}
     os.makedirs(OUT, exist_ok=True)
     made, missing = [], []
+    path = os.path.join(HERE, "dropped.txt")
+    dropped = {line.strip() for line in open(path) if not line.startswith("#")} if os.path.exists(path) else set()
     for e in exercises:
+        if e["id"] in dropped:
+            missing.append(("dropped", e["name"]))
+            continue
         spec, family = aliased(e, by_name) if e["name"] in ALIASES else generate(e)
         if spec:
             with open(os.path.join(OUT, e["id"] + ".json"), "w") as f:
