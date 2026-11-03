@@ -343,6 +343,15 @@ def seated_calf(pad):
             "camera": {"az": 60, "el": 8}}
 
 
+def wrist_curl(palm):
+    """Seated, forearms along the thighs with the wrists past the knees; only the wrists move (palm 1 = up)."""
+    def k(flex):
+        return dict(key((0.12, 0.45, -0.88), (0.0, 1, -0.2), (palm, 0, 0)), flex=flex)
+    return {"posture": {"type": "seat", "knees_apart": 0.24}, "implement": "dumbbell",
+            "body": {"keys": [{"lean": 25}]},
+            "arm": {"keys": [k(-45 * palm), k(40 * palm)], "elbow_out": [1, 0, -0.3]}, "camera": {"az": 55, "el": 10}}
+
+
 MB_UP = key((0.2, 0.2, 0.96), (-0.35, 0.15, 0.92), (0, -1, 0))   # ball overhead between the palms
 
 
@@ -738,6 +747,31 @@ PATCHES.update({
     "Wind_Sprints": ("Trail Running/Walking", lambda s: dict(s, body=dict(s["body"], keys=[
         dict(k, lean=16, **{a: v * (1.35 if a.startswith("fy") else 1.2) for a, v in k.items() if a[:2] in ("fy", "fz")})
         for k in s["body"]["keys"]]))),
+    "Frog_Sit-Ups": ("Crunches", lambda s: dict(
+        s, posture={"type": "floor_supine", "knees": 110, "knees_out": 0.75, "feet_apart": 0.04},
+        body={"keys": [{"curl": 0}, {"curl": 45, "lean": 25}], "head_level": 0})),
+    "Cocoons": ("Crunches", lambda s: dict(
+        s, posture={"type": "floor_supine", "knees": 0, "feet_free": True},
+        body={"keys": [{"hip": 5, "knee": 5}, {"hip": 105, "knee": 115, "curl": 40}], "head_level": 0},
+        arm={"keys": [key((0.15, 0.1, 0.98), (0.1, 0.12, 1), (-1, 0, 0)), key((0.2, 0.9, 0.35), (0.1, 0.95, 0.3), (-1, 0, 0))],
+             "elbow_out": [1, 0, 0]})),
+    "Weighted_Jump_Squat": ("Freehand Jump Squat", lambda s: dict(
+        s, implement="dumbbell", arm={"frame": "world", "keys": [key((0.12, 0.03, -1), (0.04, 0.04, -1), NEUTRAL)],
+                                      "elbow_out": [1, 0, 0]})),
+    "Weighted_Squat": ("Bodyweight Squat", lambda s: dict(s, pads=[
+        {"bone": "upperleg01.L", "t": 0.2, "off": [-0.1, 0.05, -0.35], "disc": 0.2, "face_fwd": True}])),
+    "Standing_Concentration_Curl": (None, lambda s: one_arm(dict(
+        s, posture={"type": "stand", "width": 0.22, "toe_out": 10}, implement="dumbbell",
+        body={"keys": [{"lean": 55, "drop": 0.12, "back": 0.08}]},
+        arm={"frame": "world", "keys": [key((0.06, 0.05, -1), (0.04, 0.08, -1), (1, 0, 0)),
+                                        key((0.06, 0.05, -1), (0.0, -0.2, 0.98), (1, 0, 0))], "elbow_out": [1, 0, 0]},
+        camera={"az": 60, "el": 8}))),
+    "Cross_Body_Hammer_Curl": ("Hammer Curls", lambda s: dict(s, arm=dict(s["arm"], keys=[
+        s["arm"]["keys"][0], key((0.035, -0.02, -1), (-0.65, 0.45, 0.62), (0, -0.6, 0.8))]))),
+    "Seated_Dumbbell_Palms-Up_Wrist_Curl": (None, lambda s: dict(s, **wrist_curl(1))),
+    "Seated_Dumbbell_Palms-Down_Wrist_Curl": (None, lambda s: dict(s, **wrist_curl(-1))),
+    "Seated_One-Arm_Dumbbell_Palms-Up_Wrist_Curl": (None, lambda s: one_arm(dict(s, **wrist_curl(1)))),
+    "Seated_One-Arm_Dumbbell_Palms-Down_Wrist_Curl": (None, lambda s: one_arm(dict(s, **wrist_curl(-1)))),
     "Band_Assisted_Pull-Up": ("Pullups", lambda s: dict(s, camera={"az": 25, "el": 6}, lines=[
         {"a": {"obj": h, "at": [x, 0, 0]}, "b": {"bone": f"lowerleg01.{h}", "t": 0.1, "off": [0, -0.06, 0]},
          "via": [{"bone": "spine03", "t": 0.5, "off": [x, -0.2, 0]}]}       # hangs clear of the chest

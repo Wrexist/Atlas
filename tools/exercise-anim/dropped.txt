@@ -8,7 +8,6 @@ Bosu_Ball_Cable_Crunch_With_Side_Bends
 Cable_Incline_Pushdown
 Cable_Reverse_Crunch
 Calf_Raise_On_A_Dumbbell
-Cocoons
 Drop_Push
 Dumbbell_Seated_Box_Jump
 Dumbbell_Seated_One-Leg_Calf_Raise
@@ -55,8 +54,6 @@ Suspended_Split_Squat
 The_Straddle
 V-Bar_Pullup
 Weighted_Ball_Hyperextension
-Weighted_Jump_Squat
-Weighted_Squat
 Zercher_Squats
 Mixed_Grip_Chin
 Side_To_Side_Chins
@@ -70,17 +67,10 @@ Single_Leg_Glute_Bridge
 Shotgun_Row
 Frankenstein_Squat
 Plie_Dumbbell_Squat
-Standing_Concentration_Curl
 Standing_One-Arm_Dumbbell_Curl_Over_Incline_Bench
 Lying_Supine_Dumbbell_Curl
-Cross_Body_Hammer_Curl
 Palms-Down_Dumbbell_Wrist_Curl_Over_A_Bench
 Palms-Up_Dumbbell_Wrist_Curl_Over_A_Bench
-Seated_Dumbbell_Palms-Down_Wrist_Curl
-Seated_Dumbbell_Palms-Up_Wrist_Curl
-Seated_One-Arm_Dumbbell_Palms-Down_Wrist_Curl
-Seated_One-Arm_Dumbbell_Palms-Up_Wrist_Curl
-Frog_Sit-Ups
 Elbow_to_Knee
 90_90_Hamstring
 Chest_And_Front_Of_Shoulder_Stretch
