@@ -39,7 +39,7 @@ final class ExerciseClipStoreTests: XCTestCase {
     func test_clip_listedExercise_downloadsOnceThenServesFromCache() async throws {
         let video = Data([0, 0, 0, 24])
         let requests = AttemptCounter()
-        let store = store(serving: ["index.txt": Data("Barbell_Squat\n".utf8), "Barbell_Squat.mov": video],
+        let store = store(serving: ["clips.txt": Data("Barbell_Squat\n".utf8), "Barbell_Squat.mov": video],
                           requests: requests)
 
         let downloaded = await store.clip(for: "Barbell_Squat")
@@ -54,7 +54,7 @@ final class ExerciseClipStoreTests: XCTestCase {
 
     func test_clip_exerciseNotInIndex_returnsNilWithoutFetchingVideo() async {
         let requests = AttemptCounter()
-        let store = store(serving: ["index.txt": Data("Barbell_Squat\n".utf8)], requests: requests)
+        let store = store(serving: ["clips.txt": Data("Barbell_Squat\n".utf8)], requests: requests)
 
         let clip = await store.clip(for: "Pushups")
 
@@ -64,10 +64,10 @@ final class ExerciseClipStoreTests: XCTestCase {
 
     func test_clip_newVersionInIndex_replacesCachedClip() async throws {
         let old = Data([1]), new = Data([2])
-        let first = store(serving: ["index.txt": Data("Pushups aaaa\n".utf8), "Pushups.mov": old])
+        let first = store(serving: ["clips.txt": Data("Pushups aaaa\n".utf8), "Pushups.mov": old])
         _ = await first.clip(for: "Pushups")
 
-        let second = store(serving: ["index.txt": Data("Pushups bbbb\n".utf8), "Pushups.mov": new])
+        let second = store(serving: ["clips.txt": Data("Pushups bbbb\n".utf8), "Pushups.mov": new])
         let fetched = await second.clip(for: "Pushups")
         let clip = try XCTUnwrap(fetched)
 
@@ -77,17 +77,17 @@ final class ExerciseClipStoreTests: XCTestCase {
     }
 
     func test_clip_droppedFromIndex_returnsNilEvenWhenCached() async {
-        let first = store(serving: ["index.txt": Data("Pushups aaaa\n".utf8), "Pushups.mov": Data([1])])
+        let first = store(serving: ["clips.txt": Data("Pushups aaaa\n".utf8), "Pushups.mov": Data([1])])
         _ = await first.clip(for: "Pushups")
 
-        let second = store(serving: ["index.txt": Data("Barbell_Squat\n".utf8)])
+        let second = store(serving: ["clips.txt": Data("Barbell_Squat\n".utf8)])
         let clip = await second.clip(for: "Pushups")
 
         XCTAssertNil(clip)
     }
 
     func test_clip_indexUnavailable_servesCachedClip() async throws {
-        let first = store(serving: ["index.txt": Data("Pushups aaaa\n".utf8), "Pushups.mov": Data([1])])
+        let first = store(serving: ["clips.txt": Data("Pushups aaaa\n".utf8), "Pushups.mov": Data([1])])
         let downloaded = await first.clip(for: "Pushups")
         let cached = try XCTUnwrap(downloaded)
 

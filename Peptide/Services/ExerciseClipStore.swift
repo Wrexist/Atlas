@@ -7,7 +7,7 @@ import Foundation
 /// `exercise-videos-alpha` branch and each clip is saved to Caches after its
 /// first download.
 ///
-/// The branch's `index.txt` lists the exercise ids that have a clip, each
+/// The branch's `clips.txt` lists the exercise ids that have a clip, each
 /// optionally followed by a version (a hash of the clip). A re-rendered clip
 /// gets a new version, so the cached copy is replaced; an id dropped from the
 /// index stops showing even if it is cached. Any other id (a custom exercise,
@@ -96,7 +96,7 @@ final class ExerciseClipStore {
     }
 
     private func fetchIndex() async -> [String: String]? {
-        guard let data = await fetch(baseURL.appending(path: "index.txt")) else { return nil }
+        guard let data = await fetch(baseURL.appending(path: "clips.txt")) else { return nil }
         return Self.parseIndex(String(decoding: data, as: UTF8.self))
     }
 

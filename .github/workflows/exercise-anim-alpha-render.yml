@@ -8,8 +8,8 @@ name: Exercise animation alpha render
 # clips already rendered in that round (rendered-r<round>.txt on the branch)
 # are skipped, so pushing it again resumes, and bumping the round re-renders
 # everything. Clips whose exercise no longer has a spec are deleted at the
-# start, and index.txt carries a hash per clip so the app replaces stale
-# cached copies.
+# start. index.txt lists the ids (read by older app builds); clips.txt adds
+# a hash per clip so newer builds replace stale cached copies.
 on:
   push:
     branches: [claude/project-thread-9vj9pu]
@@ -57,7 +57,8 @@ jobs:
           git clone -q --depth 1 --branch exercise-videos-alpha "$repo" site
           cd site
           for f in *.mov; do grep -qxF "${f%.mov}" "$RUNNER_TEMP/keep.txt" || git rm -q "$f"; done
-          for f in *.mov; do echo "${f%.mov} $(shasum -a 1 "$f" | cut -c1-10)"; done | sort > index.txt
+          ls *.mov | sed 's/\.mov$//' | sort > index.txt
+          for f in *.mov; do echo "${f%.mov} $(shasum -a 1 "$f" | cut -c1-10)"; done | sort > clips.txt
           git add -A
           git diff --cached --quiet && exit 0
           git config user.name "github-actions[bot]"
@@ -172,7 +173,8 @@ jobs:
           cd site
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          for f in *.mov; do echo "${f%.mov} $(shasum -a 1 "$f" | cut -c1-10)"; done | sort > index.txt
+          ls *.mov | sed 's/\.mov$//' | sort > index.txt
+          for f in *.mov; do echo "${f%.mov} $(shasum -a 1 "$f" | cut -c1-10)"; done | sort > clips.txt
           ls ../hevc | sed 's/\.mov$//' >> "rendered-r${{ needs.plan.outputs.round }}.txt"
           git add -A
           git commit -qm "Add $(ls ../hevc | wc -l) transparent clips (run ${{ github.run_id }})"
@@ -286,7 +288,8 @@ jobs:
           cd site
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          for f in *.mov; do echo "${f%.mov} $(shasum -a 1 "$f" | cut -c1-10)"; done | sort > index.txt
+          ls *.mov | sed 's/\.mov$//' | sort > index.txt
+          for f in *.mov; do echo "${f%.mov} $(shasum -a 1 "$f" | cut -c1-10)"; done | sort > clips.txt
           ls ../hevc | sed 's/\.mov$//' >> "rendered-r${{ needs.plan.outputs.round }}.txt"
           git add -A
           git commit -qm "Add $(ls ../hevc | wc -l) transparent clips (run ${{ github.run_id }})"
@@ -400,7 +403,8 @@ jobs:
           cd site
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          for f in *.mov; do echo "${f%.mov} $(shasum -a 1 "$f" | cut -c1-10)"; done | sort > index.txt
+          ls *.mov | sed 's/\.mov$//' | sort > index.txt
+          for f in *.mov; do echo "${f%.mov} $(shasum -a 1 "$f" | cut -c1-10)"; done | sort > clips.txt
           ls ../hevc | sed 's/\.mov$//' >> "rendered-r${{ needs.plan.outputs.round }}.txt"
           git add -A
           git commit -qm "Add $(ls ../hevc | wc -l) transparent clips (run ${{ github.run_id }})"
