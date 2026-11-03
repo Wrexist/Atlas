@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1, 2, 3, 4, 5]
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
     env:
       BLENDER_VERSION: 5.2.1
       ATLAS_PYTHON: python3
@@ -71,11 +71,30 @@ jobs:
           "$BLENDER" -b -P gen_human.py
           python3 gen_specs.py
           mkdir -p "$RUNNER_TEMP/stills"
-          for slug in $(jq -r --argjson n "$SHARD" '.slugs | to_entries[] | select(.key % 6 == $n) | .value' body_preview.json); do
+          if [ "$(jq -r '.slugs | type' body_preview.json)" = "string" ]; then    # "all": every generated spec
+            ls specs/gen | sed 's/\.json$//' | sort | jq -R . | jq -s '{slugs: .}' > slugs.json
+            export ATLAS_PREVIEW_TAGS=$(jq -r '.tags // "top,mid,handsmid"' body_preview.json) ATLAS_PREVIEW_PCT=35
+          else
+            jq '{slugs: .slugs}' body_preview.json > slugs.json
+          fi
+          for slug in $(jq -r --argjson n "$SHARD" '.slugs | to_entries[] | select(.key % 20 == $n) | .value' slugs.json); do
             "$BLENDER" -b human.blend -P kit.py -- "$slug" --preview || echo "FAILED $slug"
             for f in out/preview_${slug}_*.png; do [ -f "$f" ] && cp "$f" "$RUNNER_TEMP/stills/$(basename "$f")"; done
           done
           ls -la "$RUNNER_TEMP/stills"
+      - name: Shrink stills
+        run: |
+          python3 - "$RUNNER_TEMP/stills" <<'PY'
+          import sys, os
+          from PIL import Image
+          d = sys.argv[1]
+          for f in os.listdir(d):
+              im = Image.open(os.path.join(d, f)).convert("RGBA")
+              bg = Image.new("RGBA", im.size, (236, 236, 236, 255))
+              bg.alpha_composite(im)
+              bg.convert("RGB").save(os.path.join(d, f[:-4] + ".jpg"), quality=82)
+              os.remove(os.path.join(d, f))
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: body-${{ matrix.shard }}
@@ -98,7 +117,7 @@ jobs:
         run: |
           repo="https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
           git init -q -b exercise-body-preview site
-          cp stills/*.png site/
+          cp stills/*.jpg site/
           cd site
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

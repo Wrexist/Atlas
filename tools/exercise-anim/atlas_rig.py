@@ -1425,9 +1425,11 @@ def finish(name, cam, hands_cam, mid_frame, extra_cams=()):
         scene.cycles.samples = 32
         extra = [(f"f{f}", int(f), cam) for f in os.environ.get("ATLAS_PREVIEW_FRAMES", "").split(",") if f]
         extra += [(tag, c["frame"], c) for tag, c in extra_cams]
-        for tag, fr, c in [("top", 1, cam), ("mid", mid_frame, cam), ("hands", hands_cam["frame"], hands_cam)] + extra:
+        shots = [("top", 1, cam), ("mid", mid_frame, cam), ("hands", hands_cam["frame"], hands_cam)] + extra
+        keep = [t for t in os.environ.get("ATLAS_PREVIEW_TAGS", "").split(",") if t]   # full-library audit: fewer shots
+        for tag, fr, c in [x for x in shots if not keep or x[0] in keep]:
             raw = os.path.join(OUT, f"raw_preview_{name}_{tag}.png")
-            render_still(raw, fr, c, 50)
+            render_still(raw, fr, c, int(os.environ.get("ATLAS_PREVIEW_PCT", 50)))
             composite_still(raw, os.path.join(OUT, f"preview_{name}_{tag}.png"))
     if "--stills" in ARGS:
         shots = [("top", 1, cam), ("mid", mid_frame, cam), ("hands", hands_cam["frame"], hands_cam)]
