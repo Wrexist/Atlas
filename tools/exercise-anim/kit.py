@@ -622,6 +622,7 @@ class HeldFrame(Ball):
         PerHand.__init__(self, spec, arms, "handle")
         self.ball = A.holder("frame")
         self.kind = spec.get("frame", "hex")
+        self.pivot = Vector(spec.get("pivot", (0, 0.9, 0.04)))      # tbar: floor pivot behind the lifter
         self.built = False
 
     def build(self, d):
@@ -637,6 +638,10 @@ class HeldFrame(Ball):
                     parts.append(rod("HexArm", (sx * d, sy * 0.06, 0), (sx * 0.42, sy * 0.14, 0), 0.014))
                 parts.append(rod("Sleeve", (sx * 0.42, 0, 0), (sx * 0.85, 0, 0), 0.025))
             plate_x = 0.62
+        elif self.kind == "tbar":                   # landmine bar: x runs from the floor pivot through the hands
+            parts.append(rod("TBar", (-self.reach, 0, 0), (0.32, 0, 0), 0.025))
+            parts.append(rod("VHandle", (0.0, d, 0), (0.0, -d, 0), 0.016))
+            plate_x = 0.2
         else:                                       # rickshaw / car frame: long side rails run on ahead
             for sx in (1, -1):
                 parts.append(rod("Rail", (sx * d, 0.25, 0), (sx * d, -1.1, 0), 0.02))
@@ -648,7 +653,10 @@ class HeldFrame(Ball):
         for o in parts:
             o.parent = self.ball
             o.matrix_parent_inverse = Matrix.Identity(4)
-        if plate_x:
+        if self.kind == "tbar":
+            for x in (plate_x, plate_x + 0.06):
+                A.cylinder(self.ball, 0.225, 0.05, x=x, mat=A.PLATE, verts=96, bevel=0.006)
+        elif plate_x:
             for sx in (1, -1):
                 A.cylinder(self.ball, 0.225, 0.05, x=sx * plate_x, mat=A.PLATE, verts=96, bevel=0.006)
                 A.cylinder(self.ball, 0.225, 0.05, x=sx * (plate_x + 0.06), mat=A.PLATE, verts=96, bevel=0.006)
@@ -663,6 +671,17 @@ class HeldFrame(Ball):
         ends = [self.arms.target(fr, s, sx) for s, sx in SIDES]
         palms = [w + F * 0.05 for _, w, F, _ in ends]
         across = palms[0] - palms[1]
+        mid = (palms[0] + palms[1]) / 2
+        if self.kind == "tbar":
+            if not self.built:
+                self.reach = (mid - self.pivot).length
+                self.build(across.length / 2)
+            x = (mid - self.pivot).normalized()
+            z = Vector((0, 0, 1))
+            z = (z - z.dot(x) * x).normalized()
+            self.ball.location = mid
+            self.ball.rotation_quaternion = Matrix((x, z.cross(x), z)).transposed().to_quaternion()
+            return
         if not self.built:
             self.build(across.length / 2)
         x = across.normalized()
@@ -1496,6 +1515,18 @@ def build(spec):
         lat, fwd, up = torso_frame()
         o = bp.get("off", (0, -0.15, 0))
         c = c + lat * o[0] + fwd * o[1] + up * o[2]
+        if bp.get("disc"):                      # a weight plate on the lap / hanging off a belt
+            bpy.ops.mesh.primitive_cylinder_add(vertices=96, radius=bp["disc"], depth=0.035, location=c,
+                                                rotation=(math.pi / 2 if bp.get("face_fwd") else 0, 0, 0))
+            pad = bpy.context.object
+            pad.data.materials.append(A.PLATE)
+            bpy.ops.object.shade_smooth_by_angle(angle=math.radians(40))
+            follow = pad.constraints.new('COPY_LOCATION')     # follows the bone point, keeps its own tilt (the
+            follow.target, follow.subtarget = A.rig, bone       # leg's IK twist would otherwise tip it on edge)
+            follow.head_tail, follow.use_offset = bp.get("t", 0.5), True
+            pad.location = c - A.head(bone).lerp(A.tail(bone), bp.get("t", 0.5))
+            props.append(pad)
+            continue
         pad = box("BodyPad", bp.get("size", (0.36, 0.08, 0.6)), c,
                   rot_x=math.atan2(-fwd.z, -fwd.y) if bp.get("tilt", True) else 0.0)
         A.update()

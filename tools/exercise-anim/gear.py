@@ -338,8 +338,8 @@ def seated_calf(pad):
     """Seated calf raise: heels rise under a pad (or bar) across the knees, hands resting on it."""
     return {"posture": {"type": "seat", "feet_fwd": 0.9}, "implement": "none",
             "body": {"keys": [{"heel": 0}, {"heel": 32}]},
-            "pads": [{"bone": "upperleg01.L", "t": 0.88, "off": [-0.1, 0, 0.1], "size": pad, "tilt": False}],
-            "arm": {"keys": [key((0.15, 0.55, -0.8), (0.05, 0.95, -0.25), (0, 0, 1))], "elbow_out": [1, 0, -0.3]},
+            "pads": [{"bone": "upperleg02.L", "t": 0.85, "off": [-0.1, 0, 0.1], "size": pad, "tilt": False}],
+            "arm": {"keys": [key((0.12, 0.35, -0.93), (0.02, 0.6, -0.8), (0, 0, 1))], "elbow_out": [1, 0, -0.3]},
             "camera": {"az": 60, "el": 8}}
 
 
@@ -682,8 +682,62 @@ PATCHES.update({
         body={"keys": [{"shrug": 0}, {"shrug": 30}]},
         pads=[{"bone": f"clavicle.{h}", "off": [0, -0.02, 0.07], "size": [0.12, 0.25, 0.06]} for h in "LR"],
         boxes=[{"size": [0.1, 0.1, 1.7], "at": [0, 0.35, 0.85]}, {"size": [0.6, 0.08, 0.08], "at": [0, 0.3, 1.62]}],
-        arm={"keys": [key((0.5, 0.35, -0.8), (-0.05, 0.3, 1), (-1, 0, 0))], "elbow_out": [0.4, 0.2, -1]},
-        camera={"az": 40, "el": 8})),
+        arm={"keys": [ARMS_DOWN]}, camera={"az": 40, "el": 8})),
+    "T-Bar_Row_with_Handle": ("Bent Over Barbell Row", lambda s: dict(
+        s, implement="frame", frame="tbar", arm={"frame": "world", "elbow_out": [0.4, -1, 0], "keys": [
+            key((0.02, 0.1, -1), (-0.03, 0.08, -1), NEUTRAL), key((0.3, -0.85, -0.1), (-0.03, 0.25, -1), NEUTRAL)]})),
+    "Barbell_Hack_Squat": ("Barbell Deadlift", lambda s: dict(
+        s, body={"keys": [{"drop": 0.42, "back": 0.04, "lean": 22}, {}], "head_level": 0.8},
+        arm=dict(s["arm"], palm=[0, -1, 0], keys=[key((0.1, -0.2, -1), (0.04, -0.12, -1), (-1, 0, 0))]),
+        camera={"az": 80, "el": 6})),
+    "Weighted_Pull_Ups": ("Pullups", lambda s: dict(s, camera={"az": 25, "el": 5}, pads=[
+        {"bone": "upperleg01.L", "t": 0.45, "off": [-0.1, 0.12, -0.05], "disc": 0.17, "face_fwd": True}])),
+    "Weighted_Bench_Dip": ("Bench Dips", lambda s: dict(s, pads=[
+        {"bone": "upperleg01.L", "t": 0.5, "off": [-0.1, 0, 0.08], "disc": 0.2}])),
+    "Knee_Hip_Raise_On_Parallel_Bars": ("Dips - Triceps Version", lambda s: dict(
+        s, body={"keys": [{"hip": 5, "knee": 20}, {"hip": 100, "knee": 95}], "head_level": 0.5})),
+    "Weighted_Crunches": ("Crunches", lambda s: dict(s, implement="plate", arm={
+        "keys": [key((0.35, 0.45, -0.82), (-0.55, 0.8, 0.25), (0, 0, 1))], "elbow_out": [1, 0, -0.4]})),
+    "Crunch_-_Hands_Overhead": ("Crunches", lambda s: dict(s, arm={
+        "keys": [key((0.15, 0.1, 0.98), (0.1, 0.12, 1), (-1, 0, 0))], "elbow_out": [1, 0, 0]})),
+    "Tuck_Crunch": ("Crunches", lambda s: dict(s, posture={"type": "floor_supine", "feet_free": True},
+        body={"keys": [{"hip": 70, "knee": 80}, {"hip": 105, "knee": 110, "curl": 34}], "head_level": 0})),
+    "Leg_Pull-In": ("Reverse Crunch", lambda s: dict(s, body={"keys": [{"hip": 25, "knee": 20},
+                                                                      {"hip": 105, "knee": 115}], "head_level": 0})),
+    "Hanging_Pike": ("Hanging Leg Raise", lambda s: dict(s, body={"keys": [{"hip": 0, "knee": 0},
+                                                                          {"hip": 150, "knee": 0, "curl": 20}],
+                                                                 "head_level": 0})),
+    "Gorilla_Chin_Crunch": ("Pullups", lambda s: dict(s, body={"keys": [{"drop": 0, "hip": 10, "knee": 20},
+                                                                       {"drop": -0.45, "hip": 105, "knee": 115}],
+                                                              "head_level": 0})),
+    "Scapular_Pull-Up": ("Pullups", lambda s: dict(s, body={"keys": [{"drop": 0.02}, {"drop": -0.07}],
+                                                           "head_level": 0})),
+    "Gironda_Sternum_Chins": ("Pullups", lambda s: dict(s, body={"keys": [{"drop": 0}, {"drop": -0.42, "lean": -28}],
+                                                                "head_level": 0.3})),
+    "Jackknife_Sit-Up": ("Crunches", lambda s: dict(
+        s, posture={"type": "floor_supine", "knees": 0, "feet_free": True},
+        body={"keys": [{"hip": 0}, {"hip": 70, "curl": 45}], "head_level": 0},
+        arm={"keys": [key((0.15, 0.1, 0.98), (0.1, 0.12, 1), (-1, 0, 0)), key((0.15, 0.95, 0.25), (0.1, 1, 0.2), (-1, 0, 0))],
+             "elbow_out": [1, 0, 0]})),
+    "Alternate_Heel_Touchers": ("Crunches", lambda s: dict(
+        s, cycle=True, body={"keys": [{"curl": 22, "side": 18}, {"curl": 22, "side": -18}, {"curl": 22, "side": 18}],
+                             "head_level": 0},
+        arm={"keys": [key((0.25, 0.25, -0.93), (0.15, 0.3, -0.94), (0, 1, 0))], "elbow_out": [1, 0, 0]})),
+    "Clean_Pull": ("Barbell Deadlift", lambda s: dict(s, body={"keys": [{"drop": 0.24, "back": 0.16, "lean": 62},
+                                                                     {"heel": 28, "shrug": 25, "lean": -4}],
+                                                              "head_level": 0.5})),
+    "Snatch_Pull": ("Barbell Deadlift", lambda s: dict(s, arm=dict(s["arm"], grip=0.42),
+                                                      body={"keys": [{"drop": 0.28, "back": 0.16, "lean": 58},
+                                                                     {"heel": 28, "shrug": 25, "lean": -4}],
+                                                            "head_level": 0.5})),
+    "Drag_Curl": ("Barbell Curl", lambda s: dict(s, arm=dict(s["arm"], keys=[
+        s["arm"]["keys"][0], key((0.15, -0.75, -0.6), (0.1, 0.25, 0.96), (1, 0, 0))]))),
+    "Reverse_Triceps_Bench_Press": ("Close-Grip Barbell Bench Press", thumbs((1, 0, 0.1))),
+    "Reverse_Barbell_Preacher_Curls": ("Preacher Curl", thumbs((-1, 0, 0))),
+    "One_Arm_Floor_Press": ("Dumbbell Floor Press", one_arm),
+    "Wind_Sprints": ("Trail Running/Walking", lambda s: dict(s, body=dict(s["body"], keys=[
+        dict(k, lean=16, **{a: v * (1.35 if a.startswith("fy") else 1.2) for a, v in k.items() if a[:2] in ("fy", "fz")})
+        for k in s["body"]["keys"]]))),
     "Band_Assisted_Pull-Up": ("Pullups", lambda s: dict(s, camera={"az": 25, "el": 6}, lines=[
         {"a": {"obj": h, "at": [x, 0, 0]}, "b": {"bone": f"lowerleg01.{h}", "t": 0.1, "off": [0, -0.06, 0]},
          "via": [{"bone": "spine03", "t": 0.5, "off": [x, -0.2, 0]}]}       # hangs clear of the chest
