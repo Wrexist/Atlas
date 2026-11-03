@@ -1027,6 +1027,63 @@ class Heels:
             t.keyframe_insert("rotation_quaternion" if t.rotation_mode == 'QUATERNION' else "rotation_euler", frame=fr)
 
 
+SMITH_X = 0.6           # rails inside the inner collars (+-0.655), outside any grip
+
+
+def smith_frame(bar):
+    """Smith machine round a keyed bar: two upright rails at the bar's (fixed) depth, a carriage sleeve on each
+    rail riding with the bar, a top beam and floor feet. Returns (framing meshes, other meshes)."""
+    zs, ys = [], []
+    for fr in range(1, A.LOOP + 1):
+        A.scene.frame_set(fr)
+        t = bar.matrix_world.translation
+        zs.append(t.z)
+        ys.append(t.y)
+    y = sum(ys) / len(ys)
+    top = max(2.1, max(zs) + 0.45)
+    rails, sleeves = [], []
+    for sx in (1, -1):
+        rails.append(rod("SmithRail", (sx * SMITH_X, y, 0), (sx * SMITH_X, y, top), 0.022))
+        rails.append(box("SmithPost", (0.07, 0.07, top), (sx * (SMITH_X + 0.13), y + 0.06, top / 2)))
+        rails.append(box("SmithFoot", (0.09, 0.9, 0.05), (sx * (SMITH_X + 0.13), y, 0.025)))
+        sleeve = box("SmithSleeve", (0.07, 0.07, 0.16), (sx * SMITH_X, y, 0))     # box() bakes the location
+        hook = box("SmithHook", (0.025, 0.07, 0.05), (sx * (SMITH_X - 0.045), y - 0.05, 0.05))
+        hook.parent = sleeve
+        for fr, z in enumerate(zs, 1):
+            sleeve.location.z = z
+            sleeve.keyframe_insert("location", frame=fr)
+        sleeve.location.z = zs[0]
+        sleeve.keyframe_insert("location", frame=A.LOOP + 1)
+        sleeves += [sleeve, hook]
+    rails.append(box("SmithBeam", (2 * SMITH_X + 0.33, 0.08, 0.08), (0, y + 0.06, top)))
+    return sleeves, rails
+
+
+class SmithLock:
+    """Keeps a Smith bar on its vertical track: the bar's depth is pinned to frame 1. A bar in the hands just
+    moves (the arms follow by IK); a bar on the back moves the body instead, so it stays on the shoulders."""
+
+    def __init__(self, gear):
+        self.gear, self.y = gear, None
+
+    def apply(self, fr, body_shift):
+        bar = self.gear.bar
+        t = bar.matrix_world.translation
+        if self.y is None:
+            self.y = t.y
+        dy = t.y - self.y
+        if abs(dy) < 1e-5:
+            return
+        if isinstance(self.gear, BackBar):
+            body_shift(-dy)
+            self.gear.place(fr)
+        else:
+            m = bar.matrix_world.copy()
+            m.translation.y = self.y
+            bar.matrix_world = m
+            A.update()
+
+
 # ---------------------------------------------------------------- build
 def load(slug):
     path = os.path.join(HERE, "specs", slug + ".json")
@@ -1077,6 +1134,8 @@ def build(spec):
             keyed += [f"{b}.{s}" for b in ("upperleg01", "lowerleg01") for s, _ in SIDES]
     heel = Heels() if body_keys and any("heel" in k for k in body_keys) else None
 
+    shift = {"back": 0.0}
+
     def body(fr):
         if not body_keys:
             return
@@ -1085,7 +1144,7 @@ def build(spec):
             lean = move(k)
         else:
             lean = l0 + math.radians(k.get("lean", 0))
-            A.set_root(d0 + k.get("drop", 0), b0 + k.get("back", 0), lean)
+            A.set_root(d0 + k.get("drop", 0), b0 + k.get("back", 0) + shift["back"], lean)
         nod = -head_level * (lean - l0) - math.radians(k.get("curl", 0)) * 0.3 + math.radians(k.get("nod", 0))
         if "tilt" in k or "turn" in k:
             spine_bend("neck01", math.degrees(nod), k.get("turn", 0), k.get("tilt", 0))
@@ -1154,19 +1213,33 @@ def build(spec):
         gear.solve_rolls(body)
     else:
         gear.grip()
+    lock = SmithLock(gear) if spec.get("smith") else None
+
+    def shift_body(dy):
+        shift["back"] += dy
+        body(fr)
+
     for fr in range(1, A.LOOP + 2):
         A.scene.frame_set(fr)
+        shift["back"] = 0.0
         body(fr)
         gear.place(fr)
+        if lock:
+            for _ in range(3):
+                lock.apply(fr, shift_body)
         gear.key(fr)
         arms.key_poles(fr)
         if body_keys:
             key_body(fr)
 
+    framed = gear.meshes() + props
+    if lock:
+        sleeves, rails = smith_frame(gear.bar)
+        framed += sleeves
     A.report([1, 23, 45, 68])
     A.setup_render()
     cam_spec = spec.get("camera", {})
-    cam = A.main_camera(gear.meshes() + props, az_deg=cam_spec.get("az", 35), el_deg=cam_spec.get("el", 6))
+    cam = A.main_camera(framed, az_deg=cam_spec.get("az", 35), el_deg=cam_spec.get("el", 6))
     mid = spec.get("bottom", 40) + 2
     hands = A.closeup_camera("L", 1, offset=(0.14, -0.45, 0.12), lens=70)
     extra = [("handsmid", A.closeup_camera("L", mid, offset=(0.14, -0.45, 0.12), lens=70)),

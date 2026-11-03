@@ -2,6 +2,7 @@
 # and lists the rest, which keep the muscle map in the app.
 # python3 gen_specs.py [--list-missing]
 import copy, json, math, os, re, sys
+import gear
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, "..", "..", "Peptide", "Resources", "exercises.json")
@@ -1388,7 +1389,17 @@ def main():
     made, missing = [], []
     path = os.path.join(HERE, "dropped.txt")
     dropped = {line.strip() for line in open(path) if not line.startswith("#")} if os.path.exists(path) else set()
+    def base_spec(entry):
+        return (aliased(entry, by_name) if entry["name"] in ALIASES else generate(entry))[0]
+
     for e in exercises:
+        spec = gear.build(e, by_name, base_spec)
+        if spec:
+            spec["primary"], spec["secondary"] = muscles(e, FAMILIES.get(gear.base_name(e)))
+            with open(os.path.join(OUT, e["id"] + ".json"), "w") as f:
+                json.dump(spec, f, indent=1)
+            made.append(e["id"])
+            continue
         if e["id"] in dropped:
             missing.append(("dropped", e["name"]))
             continue
