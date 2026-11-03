@@ -2,7 +2,7 @@
 # then alphabetical), less those already on the exercise-videos branch, sliced to one batch and dealt round-robin
 # into 20 shards. Skipping rendered clips keeps batches stable as templates add exercises mid-order.
 # env: BATCH, BATCH_SIZE, SLUGS (comma list overrides the batch), DONE (path to the branch's index.txt)
-import json, os
+import json, os, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SHARDS = 20
@@ -30,6 +30,9 @@ def main():
         start = int(os.environ.get("BATCH", 0)) * size
         done = rendered()
         slugs = [s for s in ordered() if s not in done][start:start + size]
+    if "--flat" in sys.argv:                        # one job per clip (exercise-anim-alpha-render.yml)
+        print(json.dumps(slugs, separators=(",", ":")))
+        return
     shards = [{"id": i, "slugs": slugs[i::SHARDS]} for i in range(SHARDS) if slugs[i::SHARDS]]
     print(json.dumps(shards, separators=(",", ":")))
 

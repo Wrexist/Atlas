@@ -472,9 +472,11 @@ def _muscle_rules():
         return np.minimum.reduce([x - 0.012, 0.19 - x, z - bottom, clav - 0.012 - z,
                                   -(g["co"][:, 1] - float(rest_head("spine03").y)) - 0.02])
 
-    def abs_(g):
-        x = np.abs(g["co"][:, 0])
-        return np.minimum.reduce([0.085 - x, box(g, 2, hip[2] + 0.03, nip - 0.08),
+    def abs_(g):                               # rectus sheet: widest under the ribs, narrowing to a rounded base
+        x, z = np.abs(g["co"][:, 0]), g["co"][:, 2]
+        lo, hi = hip[2] + 0.03, nip - 0.08
+        width = 0.05 + 0.035 * np.clip((z - lo) / (hi - lo), 0, 1)
+        return np.minimum.reduce([width - x, z - (lo + 0.05 * (x / 0.085) ** 2), hi + 0.02 * (x / 0.085) - z,
                                   -(g["co"][:, 1] - float(rest_head("spine03").y)) - 0.03])
 
     def delt(lo, hi):
@@ -977,7 +979,7 @@ def wrap_hand(s):
 
 # thumb joint waypoints around the handle, in mm of (fingers, thumb side, palm-to-handle) from the handle axis:
 # MCP below the handle on the wrist side, IP round the far side; sets which way the thumb winds before closing
-THUMB_PATH = ((-36, 20, -14), (-30, 25, 14), (-12, 17, 35))
+THUMB_PATH = ((-30, 16, -16), (-12, 14, 22), (8, 2, 30))
 
 
 def aim(bone, target):
@@ -1072,7 +1074,7 @@ def wrap_thumb(s):
 FINGER_BONES = [f"finger{k}-{j}" for k in range(1, 6) for j in (1, 2, 3)]
 
 
-def regrip(s, h, centre, thumbward, palm_guess, slide=0.012, radius=BAR_R, span=70):
+def regrip(s, h, centre, thumbward, palm_guess, slide=0.012, radius=BAR_R, span=70, squares=(-1.0, 2.0)):
     """Per-frame grip: pick the hand's roll round the bar and its angle across the palm (`square`) that keep the
     wrist straightest for the current arm pose, seat the palm, and wrap the fingers and thumb afresh.
 
@@ -1087,9 +1089,10 @@ def regrip(s, h, centre, thumbward, palm_guess, slide=0.012, radius=BAR_R, span=
         update()
         return wrist_bend(s)
 
-    best = min(((sq, deg) for sq in np.arange(-1.0, 2.01, 0.25) for deg in range(-span, span + 1, 5)),
+    lo, hi = squares
+    best = min(((sq, deg) for sq in np.arange(lo, hi + 0.01, 0.25) for deg in range(-span, span + 1, 5)),
                key=lambda c: bend(*c))
-    best = min(((min(2.0, max(-1.0, best[0] + dq)), best[1] + dd) for dq in (-0.1, 0, 0.1) for dd in (-2, 0, 2)),
+    best = min(((min(hi, max(lo, best[0] + dq)), best[1] + dd) for dq in (-0.1, 0, 0.1) for dd in (-2, 0, 2)),
                key=lambda c: bend(*c))
     wb = bend(*best)
     seat_palm(s)
@@ -1423,9 +1426,12 @@ def finish(name, cam, hands_cam, mid_frame, extra_cams=()):
     if "--preview" in ARGS:
         scene.cycles.samples = 32
         extra = [(f"f{f}", int(f), cam) for f in os.environ.get("ATLAS_PREVIEW_FRAMES", "").split(",") if f]
-        for tag, fr, c in [("top", 1, cam), ("mid", mid_frame, cam), ("hands", hands_cam["frame"], hands_cam)] + extra:
+        extra += [(tag, c["frame"], c) for tag, c in extra_cams]
+        shots = [("top", 1, cam), ("mid", mid_frame, cam), ("hands", hands_cam["frame"], hands_cam)] + extra
+        keep = [t for t in os.environ.get("ATLAS_PREVIEW_TAGS", "").split(",") if t]   # full-library audit: fewer shots
+        for tag, fr, c in [x for x in shots if not keep or x[0] in keep]:
             raw = os.path.join(OUT, f"raw_preview_{name}_{tag}.png")
-            render_still(raw, fr, c, 50)
+            render_still(raw, fr, c, int(os.environ.get("ATLAS_PREVIEW_PCT", 50)))
             composite_still(raw, os.path.join(OUT, f"preview_{name}_{tag}.png"))
     if "--stills" in ARGS:
         shots = [("top", 1, cam), ("mid", mid_frame, cam), ("hands", hands_cam["frame"], hands_cam)]

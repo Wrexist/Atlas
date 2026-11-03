@@ -1,7 +1,7 @@
 # Writes a kit.py spec (specs/gen/<id>.json) for every exercise in exercises.json that a movement template covers,
 # and lists the rest, which keep the muscle map in the app.
 # python3 gen_specs.py [--list-missing]
-import json, math, os, re, sys
+import copy, json, math, os, re, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, "..", "..", "Peptide", "Resources", "exercises.json")
@@ -80,7 +80,7 @@ def curl(n, eq):
         return None
     thumb = (0, 1, 0) if has(n, "hammer", "cross body", "rope") else (-1, 0, 0) if has(n, "reverse") else (1, 0, 0)
     if has(n, "preacher") and not has(n, "machine|cable|one arm|reverse|hammer|zottman"):
-        keys = [key((0.12, 0.75, -0.65), fore(55), thumb), key((0.12, 0.75, -0.65), fore(160), thumb)]
+        keys = [key((0.12, 0.75, -0.65), fore(55), thumb), key((0.12, 0.75, -0.65), fore(125), thumb)]   # stop short of the face
         spec = {"posture": {"type": "seat"}, "camera": {"az": 70, "el": 8},
                 "arm": {"keys": keys, "elbow_out": [0.1, -0.6, -1], "pad": True}}
         if eq == "dumbbell" or has(n, "dumbbell"):
@@ -97,6 +97,7 @@ def curl(n, eq):
     if has(n, "preacher", "concentration", "spider", "drag", "zottman", "prone", "lying", "high cable",
            "overhead", "machine", "plate", "towel", "21"):
         return None
+    palm = [0, 1, 0] if has(n, "reverse") else [0, -1, 0]       # overhand: the bar sits under the knuckles
     upper = (0.035, -0.02, -1) if eq == "dumbbell" else (0.1, -0.03, -1)
     keys = [key(upper, fore(12), thumb), key(upper, fore(132), thumb)]
     spec = {"arm": {"keys": keys, "elbow_out": [0.1, -1, -0.2]}, "camera": {"az": 35, "el": 6}}
@@ -110,10 +111,10 @@ def curl(n, eq):
         spec["posture"] = STAND
     if eq in ("barbell", "e-z curl bar") or has(n, "barbell", "ez"):
         spec.update(implement="ezbar" if has(n, "ez", "e-z") or eq == "e-z curl bar" else "barbell")
-        spec["arm"].update(grip=0.17 if has(n, "close") else 0.3 if has(n, "wide") else 0.24, palm=[0, -1, 0])
+        spec["arm"].update(grip=0.17 if has(n, "close") else 0.3 if has(n, "wide") else 0.24, palm=palm)
     elif eq == "cable" or has(n, "cable"):
         spec.update(implement="cable_rope" if has(n, "rope") else "cable_bar", cable={"anchor": [0, 0.45, -1.45]})
-        spec["arm"].update(grip=0.2, palm=[0, -1, 0])
+        spec["arm"].update(grip=0.2, palm=palm)
     elif eq == "kettlebells":
         spec.update(implement="kettlebell")
     elif eq == "dumbbell" or has(n, "dumbbell"):
@@ -144,13 +145,13 @@ def hpress(n, eq):
         if has(n, "clap|plyo|single|\\bone\\b|knee|handstand|dive|spider|isometric|medicine|reverse grip"):
             return None
         wide = 0.34 if has(n, "wide") else 0.14 if has(n, "close|diamond|triangle") else 0.22
-        alpha, posture, arm = 22, {"type": "plank"}, {}
-        if has(n, "incline"):
-            alpha, arm = 40, {"hand_z": 0.45, "hand_box": True}
+        alpha, posture, arm, depth = 22, {"type": "plank"}, {}, -15
+        if has(n, "incline"):                   # chest stops just above the box edge
+            alpha, arm, depth = 40, {"hand_z": 0.45, "hand_box": True}, -10
         elif has(n, "decline"):
             alpha, posture = 4, {"type": "plank", "feet_z": 0.5}
         return {"posture": dict(posture, alpha=alpha), "implement": "floor",
-                "body": {"keys": [{"alpha": 0}, {"alpha": -15}], "head_level": 0},
+                "body": {"keys": [{"alpha": 0}, {"alpha": depth}], "head_level": 0},
                 "arm": dict(arm, frame="world", keys=[key((wide, 0.02, -1), (0.05, 0.03, -1), (-1, 0, 0))],
                             elbow_out=[0.7, -0.5, 0.2]), "camera": {"az": 65, "el": 14}}
     if has(n, "^dips|dip -|dips -|parallel bar dip"):
@@ -201,7 +202,7 @@ def hpress(n, eq):
 
 def vpress(n, eq):
     if has(n, "^dumbbell one-arm shoulder press|^standing palm-in one-arm"):
-        spec = vpress("dumbbell shoulder press", "dumbbell")
+        spec = vpress("dumbbell shoulder press" + (" palm-in" if has(n, "palm-in") else ""), "dumbbell")
         spec["hands"] = "L"
         spec["arm"].update(sides="L", rest=HIPS_HANDS)
         return spec
@@ -210,7 +211,7 @@ def vpress(n, eq):
         return None
     seated = has(n, "seated|machine")
     posture = {"type": "seat", "backrest": 85} if seated else STAND
-    thumb = (-1, 0.1, 0)
+    thumb = (0, -1, 0) if has(n, "palm.?in|palms.?in|neutral|hammer") else (-1, 0.1, 0)   # neutral: palms face
     if has(n, "arnold"):
         keys = [key((0.25, 0.6, -0.75), (0.1, 0.1, 1), (1, 0.2, 0)), key((0.7, 0.3, -0.2), (0.05, 0.1, 1), (0, 1, 0)),
                 key((0.3, 0.05, 1), (0.1, 0, 1), thumb)]
@@ -248,9 +249,11 @@ def raise_(n, eq):
         return face_pull() if eq == "cable" else None
     if has(n, "shrug"):
         impl = "barbell" if eq == "barbell" or has(n, "barbell") else "dumbbell"
+        behind = has(n, "behind")
+        hang = [key((0.1, -0.12, -1), (0.03, -0.1, -1), (-1, 0, 0))] if behind else HANG_BAR
         spec = {"posture": STAND, "implement": impl, "body": {"keys": [{"shrug": 0}, {"shrug": 30}]},
-                "arm": {"frame": "world", "keys": HANG_BAR if impl == "barbell" else HANG_W,
-                        "elbow_out": [1, -0.2, 0]}, "camera": {"az": 150, "el": 10}}
+                "arm": {"frame": "world", "keys": hang if impl == "barbell" else HANG_W,
+                        "elbow_out": [1, -0.2, 0]}, "camera": {"az": 150 if behind else 35, "el": 10}}
         if impl == "barbell":
             spec["arm"].update(grip=0.24, palm=[0, 1, 0])
         return spec if eq in ("barbell", "dumbbell") else None
@@ -279,7 +282,7 @@ def raise_(n, eq):
     if has(n, "front"):
         keys = [key((0.12, 0.15, -1), (0.12, 0.2, -1), (-1, 0, 0)), key((0.15, 1, 0.12), (0.15, 1, 0.18), (-1, 0, 0))]
         spec = {"posture": STAND, "implement": impl, "arm": {"keys": keys, "elbow_out": [1, -0.3, 0]},
-                "camera": {"az": 55, "el": 6}}
+                "camera": {"az": 75, "el": 6}}          # from the side: both arms read as straight, not foreshortened
         anchor = [0, -0.2, -1.4]
     elif has(n, "rear|reverse|bent"):
         keys = [key((0.15, 0.05, -1), (0.3, 0.1, -1), (0, 1, 0)), key((1, 0.05, -0.15), (1, 0.2, -0.2), (0, 1, 0))]
@@ -321,7 +324,7 @@ def fly(n, eq):
 
 
 ROW_BOTTOM = key((0.08, 0.05, -1), (0.03, 0.05, -1), (-1, 0, 0))
-ROW_TOP = key((0.25, -0.7, -0.45), (0.05, 0.1, -1), (-1, 0, 0))
+ROW_TOP = key((0.3, -0.85, 0.0), (0.03, 0.2, -1), (-1, 0, 0))     # bar to the lower ribs
 
 
 def row(n, eq):
@@ -344,7 +347,7 @@ def row(n, eq):
            "alternating|gorilla|meadows|sled|plate|leverage|elevated|face|suspended|bodyweight|shotgun|rope|"
            "kneeling|pulley|upright|iso"):
         return None
-    lean = 50 if eq == "barbell" else 60
+    lean = 62 if eq == "barbell" else 60
     spec = {"posture": {"type": "stand", "lean": lean, "width": 0.14}, "body": {"keys": [{"drop": 0.08}]},
             "arm": {"frame": "world", "keys": [ROW_BOTTOM, ROW_TOP], "elbow_out": [0.4, -1, 0]},
             "camera": {"az": 70, "el": 10}}
@@ -353,7 +356,7 @@ def row(n, eq):
         thumb = (1, 0, 0) if under else (-1, 0, 0)
         spec["implement"] = "barbell"
         spec["arm"]["keys"] = [dict(k, thumb=list(thumb)) for k in spec["arm"]["keys"]]
-        spec["arm"].update(grip=0.1 if has(n, "t-bar") else 0.24, palm=[0, 1, 0])
+        spec["arm"].update(grip=0.1 if has(n, "t-bar") else 0.24, palm=[0, -1, 0] if under else [0, 1, 0])
     elif eq in ("dumbbell", "kettlebells") or has(n, "dumbbell"):
         spec["implement"] = "kettlebell" if eq == "kettlebells" else "dumbbell"
         spec["arm"]["keys"] = [dict(k, thumb=[0, 1, 0]) for k in spec["arm"]["keys"]]
@@ -393,7 +396,7 @@ def vpull(n, eq):
         under = has(n, "underhand|reverse|supinat")
         grip = 0.42 if has(n, "wide") else 0.15 if has(n, "close|narrow") else 0.32
         thumb = (1, 0, 0) if under else (-1, 0, 0)
-        keys = [key((0.45, 0.05, 1), (0.2, 0, 1), thumb), key((0.9, -0.15, -0.4), (0.12, 0.05, 1), thumb)]
+        keys = [key((0.45, 0.05, 1), (0.2, 0, 1), thumb), key((0.7, -0.35, -0.62), (0.12, 0.2, 1), thumb)]   # bar to the upper chest
         return {"posture": {"type": "seat"}, "implement": "cable_bar", "cable": {"anchor": [0, 0.05, 1.5]},
                 "arm": {"frame": "world", "grip": grip, "palm": [0, 1, 0] if under else [0, -1, 0], "keys": keys,
                         "elbow_out": [1, -0.3, -0.2]}, "camera": {"az": 30, "el": 6}}
@@ -411,7 +414,7 @@ def triceps(n, eq):
             spec["implement"] = "cable_rope"
         else:
             spec["implement"] = "cable_bar"
-            spec["arm"].update(grip=0.12, palm=[0, 0.3, -1])
+            spec["arm"].update(grip=0.12, palm=[0, -0.3, 1] if has(n, "reverse|underhand") else [0, 0.3, -1])
         return spec
     if has(n, "parallel bar dip|ring dips"):
         return hpress("dips - triceps version", eq)
@@ -562,15 +565,16 @@ def hinge(n, eq):
            "reeves|clean|stiff leg barbell good"):
         return None
     if has(n, "sumo"):
-        body = [{"drop": 0.38, "back": 0.05, "lean": 30}, {}]
+        body = [{"drop": 0.3, "back": 0.08, "lean": 40}, {}]       # hips just above the knees, chest up
         posture = {"type": "stand", "width": 0.33, "toe_out": 35}
         grip = 0.17
     elif has(n, "romanian|rdl|stiff"):
-        body = [{}, {"lean": 75 if has(n, "stiff") else 68, "back": 0.15, "drop": 0.06}]
+        body = [{}, {"lean": 75, "back": 0.17, "drop": 0.01} if has(n, "stiff") else
+                {"lean": 68, "back": 0.15, "drop": 0.06}]      # stiff-legged: knees nearly straight
         posture = {"type": "stand", "width": 0.12}
         grip = 0.24
     else:
-        body = [{"drop": 0.32, "back": 0.1, "lean": 48}, {}]
+        body = [{"drop": 0.24, "back": 0.16, "lean": 62}, {}]      # hips above the knees, shoulders over the bar
         posture = {"type": "stand", "width": 0.12}
         grip = 0.24
     spec = {"posture": posture, "body": {"keys": body, "head_level": 0.5}, "camera": {"az": 70, "el": 6}}
@@ -1002,9 +1006,16 @@ def olympic(n, eq):
     stand = {}
     snatch = has(n, "snatch")
     jerk = has(n, "jerk|and press")
-    if has(n, "^(power |squat |split )?jerk$"):
+    if has(n, "^(power |squat |split )?jerk$|^push press$|^jerk dip squat$"):
         dip = {"drop": 0.1, "lean": 2}
-        catch = {"drop": 0.16, "fy_L": -0.3, "fy_R": 0.35} if has(n, "split") else {"drop": 0.14}
+        catch = {"drop": 0.16, "fy_L": -0.3, "fy_R": 0.35} if has(n, "split") else \
+            {"drop": 0.42, "back": 0.06, "lean": 8} if has(n, "squat jerk") else \
+            stand if has(n, "push press") else {"drop": 0.14}
+        if has(n, "dip squat"):                 # the dip and drive alone, bar staying in the front rack
+            return {"posture": {"type": "stand", "width": 0.14, "toe_out": 10}, "implement": implement,
+                    "body": {"keys": [stand, dip], "head_level": 0.8},
+                    "arm": {"frame": "world", "grip": 0.26, "palm": [0, 1, 0], "keys": [OLY_RACK],
+                            "elbow_out": [1, 0, -0.4]}, "camera": {"az": 50, "el": 6}}
         return {"posture": {"type": "stand", "width": 0.14, "toe_out": 10, "feet_move": True}, "implement": implement,
                 "bottom": 30, "hold": 8, "body": {"keys": [stand, dip, {"heel": 10}, catch, stand], "head_level": 0.8},
                 "arm": {"frame": "world", "grip": 0.26, "palm": [0, 1, 0],
@@ -1014,10 +1025,10 @@ def olympic(n, eq):
         return None
     if has(n, "below the knees|below knees|from blocks"):
         start = {"drop": 0.2, "back": 0.08, "lean": 40}
-    elif has(n, "hang"):
-        start = {"drop": 0.08, "back": 0.04, "lean": 25}
+    elif has(n, "hang"):                        # hip hinge, bar at mid-thigh
+        start = {"drop": 0.06, "back": 0.1, "lean": 38}
     else:
-        start = {"drop": 0.32, "back": 0.1, "lean": 48}
+        start = {"drop": 0.27, "back": 0.13, "lean": 52}
     if has(n, "muscle"):
         catch = {"drop": 0.02}
     elif has(n, "split"):
@@ -1111,11 +1122,7 @@ ALIASES = {
     "Snatch Pull": "Barbell Deadlift",
     "Clean Shrug": "Barbell Shrug",
     "Snatch Shrug": "Barbell Shrug",
-    "Push Press": "Standing Military Press",
     "Push Press - Behind the Neck": "Standing Military Press",
-    "Power Jerk": "Standing Military Press",
-    "Jerk Dip Squat": "Standing Military Press",
-    "Squat Jerk": "Standing Military Press",
     "Olympic Squat": "Barbell Full Squat",
     "Frankenstein Squat": "Front Barbell Squat",
     "Wide Stance Stiff Legs": "Stiff-Legged Barbell Deadlift",
@@ -1299,8 +1306,61 @@ def generate(e):
     if not spec:
         return None, family
     primary, secondary = muscles(e, family)
-    spec = dict(spec, name=e["name"], slug=e["id"], primary=primary, secondary=secondary)
-    return spec, family
+    spec = dict(copy.deepcopy(spec), name=e["name"], slug=e["id"], primary=primary, secondary=secondary)
+    return one_arm(kb_rack(sagittal_thumbs(palm_grip(spec, family)), family)), family
+
+
+PRESS_SLIDE = 0.034     # m from the knuckles toward the wrist: bar across the heel of the palm, over the forearm
+
+
+def sagittal_thumbs(spec):
+    """A neutral grip (thumb forward with the arm hanging) turns with the forearm as the elbow bends, so its thumb
+    stays square to the forearm. Keys written with a fixed thumb would put it along the forearm at the far end of
+    the rep (a kickback's thumb pointing forward with the forearm pointing back, a hammer curl's at the top), which
+    leaves the solver no way to close the hand. Those keys get the thumb square to the forearm in the sagittal
+    plane instead."""
+    arm = spec.get("arm")
+    if not arm or spec.get("implement") in ("none", "floor", None):
+        return spec
+    for k in arm.get("keys", []) + ([arm["rest"]] if "rest" in arm else []):
+        f, t = k["fore"], k["thumb"]
+        if abs(t[0]) > 0.3:
+            continue
+        cos = sum(a * b for a, b in zip(f, t)) / math.hypot(*f) / math.hypot(*t)
+        if abs(cos) > 0.64:                     # within 50 degrees of the forearm line
+            k["thumb"] = [0, round(-f[2], 4), round(f[1], 4)]
+    return spec
+
+
+def one_arm(spec):
+    """A one-arm variant of a two-hand dumbbell, kettlebell or cable move: the left arm works, the right one hangs."""
+    arm = spec.get("arm")
+    n = spec.get("name", "").lower()
+    if (arm and arm.get("sides", "both") == "both" and has(n, "one.arm|single.arm|one arm")
+            and spec.get("implement") in ("dumbbell", "kettlebell", "cable", "cable_rope")):
+        hang = HANG_W[0] if arm.get("frame") == "world" else HANG_T[0]
+        arm.update(sides="L", rest=hang)
+        spec["hands"] = "L"
+        spec.pop("alternate", None)
+    return spec
+
+
+def kb_rack(spec, family):
+    """A kettlebell held up (pressed, racked, overhead) rests on the back of the forearm, not on top of the fist."""
+    if spec.get("implement") == "kettlebell" and (family in ("vpress", "windmill", "olympic") or
+                                                   has(spec.get("name", "").lower(), "press|jerk|rack|front squat")):
+        spec["kb"] = "rack"
+    return spec
+
+
+def palm_grip(spec, family):
+    """Pressing grips (bench, overhead, skull crusher) carry the bar low in the palm, stacked over the forearm;
+    pulls and curls keep it at the base of the fingers."""
+    arm = spec.get("arm")
+    presses = family in ("hpress", "vpress") or (family == "triceps" and spec.get("implement") in ("barbell", "ezbar"))
+    if arm is not None and presses and spec.get("implement") not in ("floor", "dip_bars", "barbell_back"):
+        arm.setdefault("slide", PRESS_SLIDE)
+    return spec
 
 
 def aliased(e, by_name):
@@ -1315,7 +1375,10 @@ def aliased(e, by_name):
     if e.get("equipment") == "kettlebells" and spec.get("implement") == "dumbbell":
         spec["implement"] = "kettlebell"
     primary, secondary = muscles(e, family)
-    return dict(spec, name=e["name"], slug=e["id"], primary=primary, secondary=secondary), family
+    spec = dict(copy.deepcopy(spec), name=e["name"], slug=e["id"], primary=primary, secondary=secondary)
+    if has(e["name"].lower(), "snatch") and spec.get("implement") == "barbell":
+        spec["arm"]["grip"] = 0.4               # snatch grip: hands wide, bar in the hip crease
+    return one_arm(kb_rack(spec, family)), family
 
 
 def main():
@@ -1323,7 +1386,12 @@ def main():
     by_name = {e["name"]: e for e in exercises}
     os.makedirs(OUT, exist_ok=True)
     made, missing = [], []
+    path = os.path.join(HERE, "dropped.txt")
+    dropped = {line.strip() for line in open(path) if not line.startswith("#")} if os.path.exists(path) else set()
     for e in exercises:
+        if e["id"] in dropped:
+            missing.append(("dropped", e["name"]))
+            continue
         spec, family = aliased(e, by_name) if e["name"] in ALIASES else generate(e)
         if spec:
             with open(os.path.join(OUT, e["id"] + ".json"), "w") as f:

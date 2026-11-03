@@ -7,9 +7,12 @@ import Foundation
 /// `exercise-videos-alpha` branch and each clip is saved to Caches after its
 /// first download.
 ///
-/// The branch's `index.txt` lists the exercise ids that have a clip. Any
-/// other id (a custom exercise, one not rendered yet) or a failed fetch
-/// gives nil, and the detail screen keeps showing the body map alone.
+/// The branch's `clips.txt` lists the exercise ids that have a clip, each
+/// optionally followed by a version (a hash of the clip). A re-rendered clip
+/// gets a new version, so the cached copy is replaced; an id dropped from the
+/// index stops showing even if it is cached. Any other id (a custom exercise,
+/// one not rendered yet) gives nil, and the detail screen keeps showing the
+/// body map alone. Offline, a cached clip is still shown.
 @MainActor
 final class ExerciseClipStore {
     static let shared = ExerciseClipStore()
@@ -19,8 +22,8 @@ final class ExerciseClipStore {
     private let baseURL: URL
     private let session: URLSession
     private let cacheDirectory: URL
-    private var available: Set<String>?
-    private var indexTask: Task<Set<String>?, Never>?
+    private var available: [String: String]?
+    private var indexTask: Task<[String: String]?, Never>?
 
     init(
         baseURL: URL = ExerciseClipStore.defaultBaseURL,
@@ -33,24 +36,55 @@ final class ExerciseClipStore {
     }
 
     /// A local file URL for the exercise's clip, downloading it first if
-    /// needed; nil when there is no clip or the network is unavailable.
+    /// needed; nil when there is no clip or the network is unavailable and
+    /// nothing is cached.
     func clip(for exerciseID: String) async -> URL? {
-        let file = cacheDirectory.appending(path: "\(exerciseID).mov")
+        guard let ids = await index() else { return cachedClip(for: exerciseID) }
+        guard let version = ids[exerciseID] else { return nil }
+        let file = cacheDirectory.appending(path: Self.fileName(exerciseID, version: version))
         if FileManager.default.fileExists(atPath: file.path) { return file }
-        guard let ids = await index(), ids.contains(exerciseID) else { return nil }
-        return await download(baseURL.appending(path: "\(exerciseID).mov"), to: file)
+        guard let downloaded = await download(baseURL.appending(path: "\(exerciseID).mov"), to: file) else { return nil }
+        removeCachedClips(for: exerciseID, except: file)
+        return downloaded
     }
 
-    /// One line per exercise id; blank lines and whitespace are ignored.
-    nonisolated static func parseIndex(_ text: String) -> Set<String> {
-        Set(text.split(whereSeparator: \.isNewline)
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty })
+    /// One line per exercise id, optionally followed by whitespace and a
+    /// version; blank lines and surrounding whitespace are ignored.
+    nonisolated static func parseIndex(_ text: String) -> [String: String] {
+        var ids: [String: String] = [:]
+        for line in text.split(whereSeparator: \.isNewline) {
+            let fields = line.split(whereSeparator: \.isWhitespace)
+            guard let id = fields.first else { continue }
+            ids[String(id)] = fields.count > 1 ? String(fields[1]) : ""
+        }
+        return ids
+    }
+
+    nonisolated static func fileName(_ exerciseID: String, version: String) -> String {
+        version.isEmpty ? "\(exerciseID).mov" : "\(exerciseID)@\(version).mov"
+    }
+
+    private func cachedFiles(for exerciseID: String) -> [URL] {
+        let files = (try? FileManager.default.contentsOfDirectory(at: cacheDirectory, includingPropertiesForKeys: nil)) ?? []
+        return files.filter {
+            let name = $0.lastPathComponent
+            return name == "\(exerciseID).mov" || (name.hasPrefix("\(exerciseID)@") && name.hasSuffix(".mov"))
+        }
+    }
+
+    private func cachedClip(for exerciseID: String) -> URL? {
+        cachedFiles(for: exerciseID).first
+    }
+
+    private func removeCachedClips(for exerciseID: String, except keep: URL) {
+        for file in cachedFiles(for: exerciseID) where file.lastPathComponent != keep.lastPathComponent {
+            try? FileManager.default.removeItem(at: file)
+        }
     }
 
     /// Fetched once per launch. A failed fetch isn't remembered, so the next
     /// screen tries again.
-    private func index() async -> Set<String>? {
+    private func index() async -> [String: String]? {
         if let available { return available }
         if let indexTask { return await indexTask.value }
         let task = Task { await fetchIndex() }
@@ -61,8 +95,8 @@ final class ExerciseClipStore {
         return ids
     }
 
-    private func fetchIndex() async -> Set<String>? {
-        guard let data = await fetch(baseURL.appending(path: "index.txt")) else { return nil }
+    private func fetchIndex() async -> [String: String]? {
+        guard let data = await fetch(baseURL.appending(path: "clips.txt")) else { return nil }
         return Self.parseIndex(String(decoding: data, as: UTF8.self))
     }
 
