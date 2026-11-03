@@ -440,16 +440,29 @@ def levers(pivot, ref="upperarm01", post=True):
 
 
 def machine_seat(back=85):
-    return posture(type="seat", backrest=back) if back else posture(type="seat")
+    return posture(type="seat", backrest=back, machine=True) if back else posture(type="seat", machine=True)
+
+
+def lever(pivot, **opts):
+    """Lever arms on an axle at `pivot` (out, forward, up from the shoulder, torso frame). opts: column
+    ("back"/"front"), base ("ground": standing deck), stack (selectorized weight stack instead of plates)."""
+    def patch(spec):
+        spec["implement"] = "lever"
+        spec["lever"] = dict({"pivot": list(pivot)}, **opts)
+        spec.pop("bar_floor", None)
+        for k in ("grip", "palm", "slide"):
+            spec.get("arm", {}).pop(k, None)
+        return spec
+    return patch
 
 
 PRESS_KEYS = [key((0.85, -0.35, -0.2), (0.1, 1, 0.05), (0, 0, 1)), key((0.22, 1, 0.02), (0.1, 1, 0.02), (0, 0, 1))]
 OVERHEAD_KEYS = [key((0.9, 0.1, -0.35), (0.05, 0.15, 1), (0, -1, 0)), key((0.3, 0.1, 0.95), (0.2, 0.05, 1), (0, -1, 0))]
 
 
-def machine_press(top, pivot=(0.3, 0.35, 0.55)):
-    return compose(machine_seat(), cable("handle"), keys(PRESS_KEYS[0], top, elbow_out=[0.6, -1, -0.3]),
-                   levers(pivot), camera(55, 10))
+def machine_press(top, pivot=(0.4, 0.25, 0.85)):
+    return compose(machine_seat(80), keys(PRESS_KEYS[0], top, elbow_out=[0.6, -1, -0.3]), lever(pivot),
+                   camera(55, 10))
 
 
 BAR_BANDS = {
@@ -600,38 +613,36 @@ PATCHES.update({
     "Leverage_Chest_Press": (None, machine_press(PRESS_KEYS[1])),
     "Machine_Bench_Press": (None, machine_press(PRESS_KEYS[1])),
     "Leverage_Incline_Chest_Press": (None, machine_press(key((0.22, 0.8, 0.55), (0.1, 0.8, 0.55), (0, 0, 1)),
-                                                         (0.3, 0.45, 0.2))),
+                                                         (0.4, -0.12, 0.88))),
     "Leverage_Decline_Chest_Press": (None, machine_press(key((0.22, 0.9, -0.4), (0.1, 0.9, -0.4), (0, 0, 1)),
-                                                         (0.3, 0.3, 0.75))),
-    "Leverage_Shoulder_Press": (None, compose(machine_seat(), cable("handle"), keys(*OVERHEAD_KEYS, elbow_out=[1, 0, -0.3]),
-                                              levers((0.32, 0.55, -0.05)), camera(50, 8))),
-    "Machine_Shoulder_Military_Press": (None, compose(machine_seat(), cable("handle"),
-                                                      keys(*OVERHEAD_KEYS, elbow_out=[1, 0, -0.3]),
-                                                      levers((0.32, 0.55, -0.05)), camera(50, 8))),
-    "Leverage_High_Row": (None, compose(machine_seat(0), cable("handle"), keys(
+                                                         (0.4, 0.65, 0.55))),
+    "Leverage_Shoulder_Press": (None, compose(machine_seat(), keys(*OVERHEAD_KEYS, elbow_out=[1, 0, -0.3]),
+                                              lever((0.4, -0.7, 0.3)), camera(50, 8))),
+    "Machine_Shoulder_Military_Press": (None, compose(machine_seat(), keys(*OVERHEAD_KEYS, elbow_out=[1, 0, -0.3]),
+                                                      lever((0.4, -0.7, 0.3)), camera(50, 8))),
+    "Leverage_High_Row": (None, compose(machine_seat(0), keys(
         key((0.2, 0.75, 0.65), (0.15, 0.75, 0.65), (0, 0, 1)), key((0.4, -0.6, -0.7), (0.05, 0.75, 0.65), (0, 0, 1)),
-        elbow_out=[0.6, -0.3, -1]), levers((0.35, 0.55, 0.85)), camera(70, 8))),
-    "Leverage_Iso_Row": (None, compose(machine_seat(0), cable("handle"), keys(
+        elbow_out=[0.6, -0.3, -1]), lever((0.4, 1.0, -0.45), column="front"), camera(70, 8))),
+    "Leverage_Iso_Row": (None, compose(machine_seat(0), keys(
         key((0.12, 1, -0.2), (0.05, 1, -0.05), (0, 0, 1)), key((0.2, -0.7, -0.7), (0.03, 1, 0.05), (0, 0, 1)),
-        elbow_out=[0.4, -0.3, -1]), levers((0.3, -0.95, -0.55)),
-        lambda s: dict(s, boxes=[{"size": [0.34, 0.08, 0.4], "at": [0, -0.32, 0.95]}]), camera(70, 8))),
-    "Leverage_Shrug": ("Dumbbell Shrug", compose(cable("handle"), levers((0.1, -0.75, -0.55), ref="lowerarm02"),
-                                                 camera(40, 8))),
+        elbow_out=[0.4, -0.3, -1]), lever((0.4, 0.45, -0.95), column="front"),
+        lambda s: dict(s, boxes=[{"size": [0.34, 0.09, 0.42], "at": [0, -0.33, 0.95], "pad": True}]), camera(70, 8))),
+    "Leverage_Shrug": ("Dumbbell Shrug", compose(lever((0.15, -0.5, -0.95), base="ground"), camera(40, 8))),
     "Leverage_Deadlift": ("Barbell Deadlift", compose(
-        cable("handle"), keys(key((0.25, 0.03, -1), (0.12, 0.04, -1), NEUTRAL), frame="world", elbow_out=[1, 0, 0]),
-        levers((0.12, -0.8, 0.05), ref="lowerarm02"), camera(40, 8))),
-    "Dip_Machine": (None, compose(machine_seat(), cable("handle"), keys(
+        keys(key((0.25, 0.03, -1), (0.12, 0.04, -1), NEUTRAL), frame="world", elbow_out=[1, 0, 0]),
+        lever((0.2, -0.9, -1.1), base="ground"), camera(40, 8))),
+    "Dip_Machine": (None, compose(machine_seat(), keys(
         key((0.25, -0.75, -0.6), (0.05, 0.6, -0.8), NEUTRAL), key((0.2, -0.1, -1), (0.12, 0.05, -1), NEUTRAL),
-        elbow_out=[0.3, 1, 0]), levers((0.3, 0.55, -0.5)), camera(60, 8))),
+        elbow_out=[0.3, 1, 0]), lever((0.35, -0.75, -0.3)), camera(60, 8))),
     "Reverse_Machine_Flyes": (None, compose(
-        posture(type="seat"), cable("handle"),
+        posture(type="seat", machine=True),
         keys(key((0.1, 1, 0.05), (0.1, 1, 0.05), (0, 0, 1)), key((1, 0.12, 0.05), (1, 0.12, 0.05), (0, 0, 1)),
-             elbow_out=[0.3, -0.3, -1]), levers((0.05, 0.0, 0.45)),
-        lambda s: dict(s, boxes=[{"size": [0.34, 0.08, 0.45], "at": [0, -0.3, 1.0]}]), camera(150, 14))),
+             elbow_out=[0.3, -0.3, -1]), lever((0.05, 0.05, 0.5), column="front", stack=True),
+        lambda s: dict(s, boxes=[{"size": [0.34, 0.09, 0.45], "at": [0, -0.31, 1.0], "pad": True}]), camera(150, 14))),
     "Butterfly": (None, compose(
-        machine_seat(), cable("handle"),
+        machine_seat(),
         keys(key((1, 0.1, 0.05), (0.75, 0.3, 0.6), (0, 1, 0)), key((0.3, 1, 0.05), (-0.2, 0.6, 0.75), (0, 0, 1)),
-             elbow_out=[0.3, -0.3, -1]), levers((0.05, 0.05, 0.5)), camera(40, 14))),
+             elbow_out=[0.3, -0.3, -1]), lever((0.05, 0.05, 0.5), stack=True), camera(40, 14))),
     "Hack_Squat": (None, compose(
         posture(type="stand", width=0.16, lean=-32, toe_out=12), cable("handle"),
         lambda s: dict(s, body={"keys": [{"back": 0.18}, {"back": 0.5, "drop": 0.42}], "head_level": 0.4},

@@ -7,6 +7,7 @@ import numpy as np
 from mathutils import Vector, Matrix, Quaternion
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import atlas_rig as A
+import equip as E
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SIDES = (("L", 1), ("R", -1))
@@ -16,16 +17,27 @@ HAND_TO_HANDLE = 0.085          # wrist joint to the handle axis along the finge
 
 
 # ---------------------------------------------------------------- props
+PADDED = ("Pad", "Bench", "Seat")                        # upholstered: soft rounded foam
+SOFT_BOX = ("Box", "Step", "Platform", "Block")         # plyo boxes, blocks, platforms: firm foam, rounded edges
+STEELWORK = ("Post", "Strut", "Foot", "Leg", "Beam", "Rail", "Base", "Upright", "Skid")
+
+
 def box(name, size, loc, rot_x=0.0, mat=None):
+    """A prop block, finished by role: pads upholstered, plyo boxes in firm foam, everything else formed steel."""
     bpy.ops.mesh.primitive_cube_add(size=1, location=loc, rotation=(rot_x, 0, 0))
     o = bpy.context.object
     o.name = name
     o.scale = size
     bpy.ops.object.transform_apply(scale=True)
-    b = o.modifiers.new("bevel", 'BEVEL')
-    b.width, b.segments = 0.012, 3
-    o.data.materials.append(mat or A.BLACK)
-    return o
+    if mat is not None:
+        return E._finish(o, mat, 0.012, 3)
+    if any(name.endswith(w) for w in STEELWORK):
+        return E._finish(o, E.frame_mat(), min(size) * 0.28, 4)
+    if any(w in name for w in PADDED):
+        return E._finish(o, E.pad_mat(), min(size) * 0.42, 6)
+    if any(w in name for w in SOFT_BOX):
+        return E._finish(o, E.pad_mat(), min(0.03, min(size) * 0.3), 5)
+    return E._finish(o, E.frame_mat(), min(size) * 0.28, 4)
 
 
 def rod(name, a, b, radius, mat=None):
@@ -36,26 +48,41 @@ def rod(name, a, b, radius, mat=None):
     o.name = name
     o.rotation_mode = 'QUATERNION'
     o.rotation_quaternion = (b - a).to_track_quat('Z', 'Y')
-    o.data.materials.append(mat or A.STEEL)
+    o.data.materials.append(mat or (E.metal_mat() if radius < 0.03 else E.frame_mat()))
     bpy.ops.object.shade_smooth()
     return o
 
 
-def bench(seat_y0, seat_y1, back_deg=None, back_len=0.85, top=BENCH_TOP):
-    """Pad from y0 to y1 (y1 behind the figure) + optional backrest hinged at y1, `back_deg` above level."""
-    props = [box("BenchSeat", (0.30, seat_y1 - seat_y0, 0.07), (0, (seat_y0 + seat_y1) / 2, top - 0.035))]
+def bench(seat_y0, seat_y1, back_deg=None, back_len=0.85, top=BENCH_TOP, legs=True):
+    """Upholstered pad from y0 to y1 (y1 behind the figure) + optional backrest hinged at y1, `back_deg` above level,
+    on a commercial bench frame: a spine tube under the pad, two uprights and floor feet. `legs` False leaves
+    only the pads (a machine's own frame carries them)."""
+    T = 0.075
+    seat = E.cushion("BenchSeat", (0.30, seat_y1 - seat_y0, T), (0, (seat_y0 + seat_y1) / 2, top - T / 2))
+    props = [seat]
+    back = None
     if back_deg is not None:
         a = math.radians(back_deg)
         d = Vector((0, math.cos(a), math.sin(a)))
         n = Vector((0, -math.sin(a), math.cos(a)))
-        c = Vector((0, seat_y1, top)) + d * (back_len / 2) - n * 0.035
-        props.append(box("BenchBack", (0.30, back_len, 0.07), c, rot_x=a))
-        foot = Vector((0, seat_y1, top)) + d * back_len * 0.8
-        if foot.z > 0.1:
-            props.append(box("BenchStrut", (0.06, 0.06, foot.z), (0, foot.y, foot.z / 2)))
-    for y in (seat_y0 + 0.08, seat_y1 - 0.04):
-        props.append(box("BenchLeg", (0.06, 0.06, top - 0.07), (0, y, (top - 0.07) / 2)))
-        props.append(box("BenchFoot", (0.40, 0.07, 0.04), (0, y, 0.02)))
+        c = Vector((0, seat_y1, top)) + d * (back_len / 2) - n * (T / 2)
+        back = E.cushion("BenchBack", (0.30, back_len, T), c, rot_x=a)
+        props.append(back)
+    if not legs:
+        return props
+    z = top - T - 0.03
+    props.append(E.tube("BenchSpine", (0, seat_y0 + 0.04, z), (0, seat_y1 - 0.02, z), 0.09, 0.05))
+    for y in (seat_y0 + 0.1, seat_y1 - 0.06):
+        props.append(E.tube("BenchLeg", (0, y, 0.07), (0, y, z), 0.07, 0.07))
+        props += E.foot("BenchFoot", (0, y, 0), 0.46)
+    if back is not None:
+        a = math.radians(back_deg)
+        d = Vector((0, math.cos(a), math.sin(a)))
+        n = Vector((0, -math.sin(a), math.cos(a)))
+        under = Vector((0, seat_y1, top)) + d * back_len * 0.55 - n * (T + 0.03)
+        if under.z > z + 0.1:
+            props.append(E.tube("BenchStrut", (0, seat_y1 - 0.06, z), under, 0.06, 0.05))
+            props.append(E.tube("BenchRail", Vector((0, seat_y1, top - T - 0.03)) + d * 0.05, under, 0.07, 0.04))
     return props
 
 
@@ -234,7 +261,8 @@ def seat(p):
     A.set_root(drop, 0, lean)
     hip_y = A.head("upperleg01.L").y
     props = [] if p.get("no_bench") else bench(hip_y - (0.22 if back_deg is None else 0.30), hip_y + 0.16,
-                                               back_deg=back_deg if back_deg is not None else p.get("backrest"))
+                                               back_deg=back_deg if back_deg is not None else p.get("backrest"),
+                                               legs=not p.get("machine"))
     return (drop, 0, lean), props
 
 
@@ -470,6 +498,8 @@ class PerHand:
                 A.cylinder(h, 0.013, 0.1, mat=rubber(), verts=32)
             elif impl in ("cable", "cable_handle", "handle"):
                 cable_handle(h)
+            elif impl == "lever":
+                E.grip(h)
             elif impl == "cable_rope":
                 A.cylinder(h, 0.017, 0.11, mat=A.BLACK, verts=32)
             else:
@@ -537,6 +567,164 @@ class PerHand:
     def meshes(self):
         return [o for h in self.h.values() for o in h.children if o.type == 'MESH'] + \
                (self.cables.meshes() if self.cables else [])
+
+
+class LeverArms(PerHand):
+    """Plate-loaded lever machine (Hammer Strength style): each handle sits on a rigid arm turning about a fixed
+    axle. spec "lever": {"pivot": [out, fwd, up] from the shoulder in the torso frame}. The arm keys only pick
+    where the arc starts and which way it runs; the handle stays on the arc and the hand turns with the arm."""
+
+    def __init__(self, spec, arms, impl):
+        super().__init__(spec, arms, "lever")
+        A.update()
+        lat, fwd, up = torso_frame()
+        p = spec["lever"]["pivot"]
+        self.axle, self.arm = {}, {}
+        for s, sx in SIDES:
+            if s not in self.hands:
+                continue
+            P = A.head("upperarm01." + s) + lat * (p[0] * sx) + fwd * p[1] + up * p[2]
+            m1 = self.raw(1, s, sx)
+            far = max((self.raw(fr, s, sx) for fr in range(1, A.LOOP + 1, 4)),
+                      key=lambda m: (m.translation - m1.translation).length)
+            a, b = m1.translation - P, far.translation - P
+            n = a.cross(b)
+            n = n.normalized() if n.length > 1e-6 else lat * sx
+            if n.dot(lat * sx) < 0:
+                n = -n                                  # axle points out of the machine on each side
+            self.axle[s] = (P, n, a.normalized(), m1)
+            self.arm[s] = A.holder("LeverArm." + s)
+            self.arm[s].location = P
+            A.update()
+            E.parent_keep(lever_arm(P, n, m1, lat * sx, horn=not spec["lever"].get("stack")), self.arm[s])
+
+    def raw(self, fr, s, sx):
+        _, wrist, F, thumb = self.arms.target(fr, s, sx)
+        return A.holder_for_hand(s, wrist, F, thumb)
+
+    def turn(self, fr, s, sx):
+        P, n, d1, m1 = self.axle[s]
+        v = self.raw(fr, s, sx).translation - P
+        v = (v - n * v.dot(n)).normalized()
+        return math.atan2(n.dot(d1.cross(v)), d1.dot(v))
+
+    def place(self, fr):
+        for s, sx in SIDES:
+            if s not in self.hands:
+                continue
+            P, n, _, m1 = self.axle[s]
+            rot = Matrix.Rotation(self.turn(fr, s, sx), 4, n)
+            self.h[s].matrix_world = Matrix.Translation(P) @ rot @ Matrix.Translation(-P) @ m1
+            self.arm[s].rotation_quaternion = rot.to_quaternion()
+        self.arms.set_poles(fr)
+        A.update()
+
+    def key(self, fr):
+        super().key(fr)
+        for o in self.arm.values():
+            A.key_holder(o, fr)
+
+    def meshes(self):
+        return super().meshes() + [c for o in self.arm.values() for c in o.children]
+
+
+def machine_frame(spec, gear, props):
+    """Static frame of a lever machine: hubs carried on a top beam from a central column standing beyond the
+    axles (behind the backrest for presses, in front for rows), a floor rail with feet, a seat post and a
+    backrest bracket."""
+    hubs = list(gear.axle.values())
+    if not hubs:
+        return []
+    if spec["lever"].get("base") == "ground":
+        return ground_base(hubs)
+    py = sum(P.y for P, *_ in hubs) / len(hubs)
+    pz = sum(P.z for P, *_ in hubs) / len(hubs)
+    named = {o.name.split(".")[0]: o for o in props}
+    seat, back = named.get("BenchSeat"), named.get("BenchBack")
+    hip_y = A.head("upperleg01.L").y
+    behind = spec["lever"].get("column", "back" if back is not None else "front") == "back"
+    if back is not None and behind:
+        back_rear = max((back.matrix_world @ Vector(c)).y for c in back.bound_box)
+        ys = max(py, back_rear) + 0.14
+    else:
+        ys = py + (0.14 if behind else -0.14)
+    top = Vector((0, ys, pz + 0.08))
+    parts = [E.tube("Column", (0, ys, 0.07), top, 0.1, 0.1), E.joint("ColumnTop", top, 0.065)]
+    reach = Vector((0, py, pz + 0.08))                  # the beam runs over to sit between the two hubs
+    if (reach - top).length > 0.05:
+        parts += [E.tube("Boom", top, reach, 0.1, 0.08), E.joint("BoomEnd", reach, 0.055)]
+    for P, n, *_ in hubs:
+        parts.append(E.tube("Beam", P - n * 0.045, reach, 0.08, 0.08))
+    if seat is not None:
+        sc = seat.matrix_world.translation
+        front = sc.y - (0.3 if behind else -0.3)
+        parts.append(E.tube("Rail", (0, ys, 0.07), (0, front, 0.07), 0.1, 0.06))
+        parts += E.foot("Foot", (0, ys, 0), 0.7) + E.foot("Foot", (0, front, 0), 0.6)
+        low = min((seat.matrix_world @ Vector(c)).z for c in seat.bound_box)
+        parts.append(E.tube("SeatPost", (0, sc.y, 0.1), (0, sc.y, low), 0.08, 0.08))
+        parts.append(E.tube("SeatArm", (0, sc.y, low - 0.04), (0, ys, low - 0.04), 0.07, 0.05))
+    if spec["lever"].get("stack"):
+        parts += weight_stack(Vector((0, ys + (0.2 if behind else -0.2), 0)), pz + 0.08)
+    if back is not None:
+        bc = back.matrix_world.translation
+        n = back.matrix_world.to_3x3().col[2].normalized()
+        if n.y < 0:
+            n = -n
+        rear = bc + n * 0.06
+        parts.append(E.tube("BackBracket", rear, (0, ys, rear.z), 0.07, 0.05))
+    return parts
+
+
+def ground_base(hubs):
+    """Ground-based lever machine (shrug, deadlift): a rubber-topped deck under the feet, the axles on short
+    towers off its rear edge, tied by a crossbeam."""
+    feet = (A.head("foot.L") + A.head("foot.R")) / 2
+    parts = [E.tube("Deck", (0, feet.y - 0.45, 0.03), (0, feet.y + 0.45, 0.03), 1.1, 0.06),
+             E.cushion("DeckTop", (1.0, 0.8, 0.02), (0, feet.y, 0.065))]
+    for P, n, *_ in hubs:
+        base = Vector((P.x, P.y, 0.06))
+        if P.z > 0.12:
+            parts.append(E.tube("Tower", base, P - Vector((0, 0, 0.06)), 0.09, 0.09))
+    if len(hubs) == 2:
+        (a, na, *_), (b, nb, *_) = hubs
+        parts.append(E.tube("Cross", a - na * 0.045, b - nb * 0.045, 0.08, 0.08))
+    return parts
+
+
+def weight_stack(at, top_z):
+    """Selectorized stack: guide rods, a column of plates with a steel top plate, and a cap beam."""
+    parts = []
+    for dx in (-0.12, 0.12):
+        parts.append(E.round_tube("GuideRod", at + Vector((dx, 0, 0.06)), at + Vector((dx, 0, top_z)), 0.012,
+                                  mat=E.metal_mat()))
+    z = 0.1
+    for i in range(14):
+        parts.append(E.tube("StackPlate", at + Vector((-0.17, 0, z)), at + Vector((0.17, 0, z)), 0.15, 0.022,
+                            mat=E.plate_mat()))
+        z += 0.026
+    parts.append(E.tube("TopPlate", at + Vector((-0.17, 0, z + 0.02)), at + Vector((0.17, 0, z + 0.02)), 0.15, 0.04,
+                        mat=E.metal_mat()))
+    parts.append(E.tube("StackCap", at + Vector((-0.22, 0, top_z)), at + Vector((0.22, 0, top_z)), 0.1, 0.08))
+    parts.append(E.tube("StackBase", at + Vector((-0.22, 0, 0.04)), at + Vector((0.22, 0, 0.04)), 0.2, 0.08))
+    return parts
+
+
+def lever_arm(P, n, m1, out, horn=True):
+    """Arm from the axle at P to the handle on holder matrix m1: formed rectangular tube bowing out round the
+    shoulder, a steel plate horn with two plates, and the axle hub."""
+    h = m1.translation
+    x = m1.to_3x3().col[0].normalized()                 # handle axis
+    end = h + x * (0.085 if x.dot(P - h) > 0 else -0.085)   # the arm meets the handle at the end nearer the axle
+    knee = end + (P - end) * 0.4 + out * 0.1
+    parts = [E.tube("Arm", end, knee, 0.055, 0.085), E.joint("ArmKnee", knee, 0.045),
+             E.tube("Arm", knee, P, 0.055, 0.085), E.joint("ArmEnd", end, 0.034)]
+    if horn:
+        horn_at = P + (knee - P) * 0.22                 # horn sticks out sideways near the axle, plates clear of the lifter
+        parts.append(E.round_tube("HornSleeve", horn_at, horn_at + out * 0.2, 0.034))
+        parts.append(E.round_tube("Horn", horn_at + out * 0.2, horn_at + out * 0.42, 0.025, mat=E.metal_mat()))
+        parts += E.plates("Plate", horn_at + out * 0.24, out, n=2, r=0.2)
+    parts += E.hub("Hub", P, n)
+    return parts
 
 
 def kettlebell(h, s, rack=False):
@@ -1069,7 +1257,7 @@ def leg_pad(side_of_shin):
     bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=0.05, depth=0.42, location=c, rotation=(0, math.pi / 2, 0))
     pad = bpy.context.object
     pad.name = "LegPad"
-    pad.data.materials.append(A.BLACK)
+    pad.data.materials.append(E.pad_mat())
     bpy.ops.object.shade_smooth()
     A.update()
     attach(pad, "lowerleg01.L")
@@ -1544,7 +1732,13 @@ def build(spec):
             c = props[-1].matrix_world.translation
             props.append(box("PadPost", (0.06, 0.06, c.z), (0, c.y, c.z / 2)))
     for b in spec.get("boxes", []):
-        props.append(box("Box", b["size"], b["at"], rot_x=math.radians(b.get("rot_x", 0))))
+        if b.get("pad"):                        # an upholstered chest pad on its own post
+            at = Vector(b["at"])
+            props.append(E.cushion("ChestPad", b["size"], at, rot_x=math.radians(b.get("rot_x", 0))))
+            props.append(E.tube("PadPost", (0, at.y - b["size"][1] / 2 - 0.05, 0.07),
+                                (0, at.y - b["size"][1] / 2 - 0.05, at.z), 0.07, 0.07))
+        else:
+            props.append(box("Box", b["size"], b["at"], rot_x=math.radians(b.get("rot_x", 0))))
     impl = spec.get("implement", "dumbbell")
     arms = Arms(spec, ph)
     if impl == "barbell_back":
@@ -1560,6 +1754,9 @@ def build(spec):
         gear = HeldPlate(spec, arms, impl)
     elif impl == "frame":
         gear = HeldFrame(spec, arms, impl)
+    elif impl == "lever":
+        gear = LeverArms(spec, arms, impl)
+        props += machine_frame(spec, gear, props)
     else:
         gear = PerHand(spec, arms, impl)
     props += gear.cables.props if gear.cables else []
