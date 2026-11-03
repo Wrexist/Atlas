@@ -1300,7 +1300,20 @@ def generate(e):
         return None, family
     primary, secondary = muscles(e, family)
     spec = dict(spec, name=e["name"], slug=e["id"], primary=primary, secondary=secondary)
-    return spec, family
+    return palm_grip(spec, family), family
+
+
+PRESS_SLIDE = 0.034     # m from the knuckles toward the wrist: bar across the heel of the palm, over the forearm
+
+
+def palm_grip(spec, family):
+    """Pressing grips (bench, overhead, skull crusher) carry the bar low in the palm, stacked over the forearm;
+    pulls and curls keep it at the base of the fingers."""
+    arm = spec.get("arm")
+    presses = family in ("hpress", "vpress") or (family == "triceps" and spec.get("implement") in ("barbell", "ezbar"))
+    if arm is not None and presses and spec.get("implement") not in ("floor", "dip_bars", "barbell_back"):
+        arm.setdefault("slide", PRESS_SLIDE)
+    return spec
 
 
 def aliased(e, by_name):

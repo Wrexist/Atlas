@@ -977,7 +977,7 @@ def wrap_hand(s):
 
 # thumb joint waypoints around the handle, in mm of (fingers, thumb side, palm-to-handle) from the handle axis:
 # MCP below the handle on the wrist side, IP round the far side; sets which way the thumb winds before closing
-THUMB_PATH = ((-36, 20, -14), (-30, 25, 14), (-12, 17, 35))
+THUMB_PATH = ((-30, 16, -16), (-12, 14, 22), (8, 2, 30))
 
 
 def aim(bone, target):
@@ -1072,7 +1072,7 @@ def wrap_thumb(s):
 FINGER_BONES = [f"finger{k}-{j}" for k in range(1, 6) for j in (1, 2, 3)]
 
 
-def regrip(s, h, centre, thumbward, palm_guess, slide=0.012, radius=BAR_R, span=70):
+def regrip(s, h, centre, thumbward, palm_guess, slide=0.012, radius=BAR_R, span=70, squares=(-1.0, 2.0)):
     """Per-frame grip: pick the hand's roll round the bar and its angle across the palm (`square`) that keep the
     wrist straightest for the current arm pose, seat the palm, and wrap the fingers and thumb afresh.
 
@@ -1087,9 +1087,10 @@ def regrip(s, h, centre, thumbward, palm_guess, slide=0.012, radius=BAR_R, span=
         update()
         return wrist_bend(s)
 
-    best = min(((sq, deg) for sq in np.arange(-1.0, 2.01, 0.25) for deg in range(-span, span + 1, 5)),
+    lo, hi = squares
+    best = min(((sq, deg) for sq in np.arange(lo, hi + 0.01, 0.25) for deg in range(-span, span + 1, 5)),
                key=lambda c: bend(*c))
-    best = min(((min(2.0, max(-1.0, best[0] + dq)), best[1] + dd) for dq in (-0.1, 0, 0.1) for dd in (-2, 0, 2)),
+    best = min(((min(hi, max(lo, best[0] + dq)), best[1] + dd) for dq in (-0.1, 0, 0.1) for dd in (-2, 0, 2)),
                key=lambda c: bend(*c))
     wb = bend(*best)
     seat_palm(s)

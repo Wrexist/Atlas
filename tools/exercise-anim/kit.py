@@ -446,7 +446,8 @@ class PerHand:
         self.radius = A.DB_R
         A.ik_arms(self.h, {s: (sx * 0.4, 0.6, 0.9) for s, sx in SIDES}, poles_in_world=True)
         for s, _ in SIDES:
-            A.grip_on(s, self.h[s], (0, 0, 0), thumbward=(1, 0, 0), palm_to_handle=(0, 0, 1), radius=self.radius)
+            A.grip_on(s, self.h[s], (0, 0, 0), thumbward=(1, 0, 0), palm_to_handle=(0, 0, 1), radius=self.radius,
+                      slide=spec.get("arm", {}).get("slide", 0.012))
         self.cables = Cables(spec, {s: self.h[s] for s in self.hands}) if impl.startswith("cable") else None
         self.on_head = spec.get("arm", {}).get("on_head", False)
 
@@ -604,8 +605,8 @@ def ezbar(h):
         A.cylinder(h, 0.17, 0.035, x=sx * 0.53, mat=A.PLATE, verts=96, bevel=0.006)
 
 
-def short_bar(h):
-    A.cylinder(h, A.BAR_R, 0.55, mat=A.STEEL, verts=48)
+def short_bar(h, length=0.55):
+    A.cylinder(h, A.BAR_R, length, mat=A.STEEL, verts=48)
 
 
 class Bar:
@@ -615,9 +616,13 @@ class Bar:
     def __init__(self, spec, arms, impl):
         self.arms = arms
         self.bar = A.holder("Bar")
-        {"barbell": A.barbell, "ezbar": ezbar, "cable_bar": short_bar}[impl](self.bar)
         a = spec.get("arm", {})
+        if impl == "cable_bar":                 # a lat bar when the grip is wide: both hands always on the bar
+            short_bar(self.bar, max(0.55, 2 * a.get("grip", 0.22) + 0.3))
+        else:
+            {"barbell": A.barbell, "ezbar": ezbar}[impl](self.bar)
         self.gx = a.get("grip", 0.22)
+        self.slide = a.get("slide", 0.012)
         self.palm = a.get("palm", (0, -1, 0))
         self.tsign = 1 if arms.keys[0]["thumb"][0] > 0 else -1     # thumbs out (underhand) or in (overhand)
         A.ik_arms(self.bar, {s: (sx * 0.4, 0.6, 0.9) for s, sx in SIDES}, poles_in_world=True)
@@ -649,13 +654,14 @@ class Bar:
 
     def grip(self):
         for s, sx in SIDES:
-            A.grip_on(s, self.bar, (sx * self.gx, 0, 0), thumbward=(sx * self.tsign, 0, 0), palm_to_handle=self.palm)
+            A.grip_on(s, self.bar, (sx * self.gx, 0, 0), thumbward=(sx * self.tsign, 0, 0), palm_to_handle=self.palm,
+                      slide=self.slide)
         A.update()
 
     def finish_grip(self):
         for s, sx in SIDES:
             A.grip_neutral(s, self.bar, (sx * self.gx, 0, 0), thumbward=(sx * self.tsign, 0, 0),
-                           palm_guess=self.palm)
+                           palm_guess=self.palm, slide=self.slide)
         for s, _ in SIDES:
             A.seat_palm(s)
         for s, _ in SIDES:
@@ -679,12 +685,16 @@ class Bar:
         return [o for o in self.bar.children if o.type == 'MESH'] + (self.cables.meshes() if self.cables else [])
 
 
+RACK_SLIDE = 0.04      # bar this far from the knuckles toward the wrist: across the heel of the palm, over the forearm
+
+
 class BackBar:
     """Barbell resting on the upper back (back squat, good morning, lunge): rides with the torso, hands hold it."""
 
     def __init__(self, spec, arms, impl):
         self.arms = arms
         a = spec.get("arm", {})
+        self.spec_arm = a
         self.gx = a.get("grip", 0.42)
         self.at = a.get("bar_at", "back")
         default = (0, 0.17, -0.02) if self.at == "hips" else (0, -0.085, 0.035)
@@ -693,6 +703,7 @@ class BackBar:
         self.bar = A.holder("Bar")
         A.barbell(self.bar)
         self.cables = None
+        self.pole = {}
         self.place(1)
         A.ik_arms(self.bar, {s: (sx * 0.4, 0.6, 0.9) for s, sx in SIDES}, poles_in_world=True)
         for s, sx in SIDES:
@@ -709,16 +720,59 @@ class BackBar:
             for s, sx in SIDES:
                 hand = A.hand_targets[s].matrix_world.translation
                 shoulder = A.head("upperarm01." + s)
-                bpy.data.objects["ElbowPole." + s].location = (shoulder + hand) / 2 + self.arms.pole_dir(sx) * 0.6
+                pole = tdir(self.pole[s], sx) if s in self.pole else self.arms.pole_dir(sx)
+                bpy.data.objects["ElbowPole." + s].location = (shoulder + hand) / 2 + pole * 0.6
         A.update()
 
     def grip(self):
-        for s, sx in SIDES:
-            A.grip_neutral(s, self.bar, (sx * self.gx, 0, 0), thumbward=(-sx, 0, 0), palm_guess=self.palm)
+        if self.at == "hips" or "bar_on" in self.spec_arm:          # hip thrust, front rack: keep the rolled grip
+            for s, sx in SIDES:
+                A.grip_neutral(s, self.bar, (sx * self.gx, 0, 0), thumbward=(-sx, 0, 0), palm_guess=self.palm)
+        else:
+            self.rack_grip()
+            return
         for s, _ in SIDES:
             A.seat_palm(s)
         for s, _ in SIDES:
             A.wrap_hand(s)
+
+    def rack_grip(self):
+        """Bar on the back: elbows down and back under the bar, forearms pointing at it, bar across the heel of the
+        palm with the hand on the forearm's line (wrist straight), as in a real back-squat grip.
+
+        Each elbow is the point upper-arm length from the shoulder and forearm-plus-hand length from its handle,
+        on the side the spec's `elbow_out` asks for; the fingers then continue the forearm."""
+        A.update()
+        m = self.bar.matrix_world
+        inv = m.to_3x3().inverted()
+        lat, fwd, up = torso_frame()
+        palms = {}
+        for s, sx in SIDES:
+            handle = m @ Vector((sx * self.gx, 0, 0))
+            a = (m.to_3x3() @ Vector((-sx, 0, 0))).normalized()
+            upper, fore = A.arm_lengths(s)
+            rest = A.handle_in_hand(s, RACK_SLIDE, A.BAR_R, square=1)
+            reach_ = fore + (rest.translation - A.D["wrist." + s].matrix_local.translation).length * 0.9
+            shoulder = A.head("upperarm01." + s)
+            want = self.arms.pole_dir(sx)
+            axis = handle - shoulder
+            dist = axis.length
+            axis.normalize()
+            along = (dist ** 2 + upper ** 2 - reach_ ** 2) / (2 * dist)
+            out = (want - want.dot(axis) * axis).normalized()
+            elbow = shoulder + axis * along + out * math.sqrt(max(upper ** 2 - along ** 2, 0.0))
+            f = handle - elbow
+            f = (f - f.dot(a) * a).normalized()
+            palms[s] = inv @ (f.cross(a) if s == "L" else a.cross(f))
+            d = (elbow - (shoulder + handle) / 2).normalized()
+            self.pole[s] = (d.dot(lat) * sx, d.dot(fwd), d.dot(up))
+            A.grip_on(s, self.bar, (sx * self.gx, 0, 0), (-sx, 0, 0), palms[s], slide=RACK_SLIDE, square=1)
+        for _ in range(2):
+            self.place(1)
+            A.solve_pole_angles({s: tdir(self.pole[s], sx) for s, sx in SIDES})
+            for s, sx in SIDES:
+                A.regrip(s, self.bar, (sx * self.gx, 0, 0), (-sx, 0, 0), palms[s], slide=RACK_SLIDE, span=30,
+                         squares=(0.0, 1.0))
 
     def key(self, fr):
         A.key_holder(self.bar, fr)
