@@ -241,9 +241,13 @@ def seat(p):
 def floor_supine(p):
     """Lying on the floor face up, knees bent (`knees` deg) with feet flat, or legs straight (knees 0)."""
     rest_hip = A.rest_head("upperleg01.L")
-    drop = rest_hip.z - 0.11                            # spine joints ~11 cm above the floor
+    on = p.get("bench_z", 0.0)                          # lying on a flat bench instead of the floor
+    drop = rest_hip.z - 0.11 - on                       # spine joints ~11 cm above the floor (or pad)
     A.set_root(drop, 0, -math.pi / 2)
     hip = A.head("upperleg01.L")
+    if on:
+        head_y = A.head("head").y
+        p["_bench"] = bench(hip.y - p.get("bench_past_hip", 0.08), head_y + 0.12, top=on)
     knees = p.get("knees", 90)
     thigh = (A.rest_head("lowerleg01.L") - rest_hip).length
     shin = (A.rest_head("foot.L") - A.rest_head("lowerleg01.L")).length
@@ -252,7 +256,7 @@ def floor_supine(p):
     ankle_z = A.rest_head("foot.L").z
     run = math.sqrt(max(run ** 2 - (hip.z - ankle_z) ** 2, 0.0))
     if p.get("feet_free"):
-        return (drop, 0, -math.pi / 2), []
+        return (drop, 0, -math.pi / 2), p.get("_bench", [])
     apart, reach = p.get("feet_apart", 0.15), p.get("feet_reach", 0.99)
     A.plant_feet(toe_out_deg=6, ankles={s: (sx * apart, hip.y - run * reach, ankle_z) for s, sx in SIDES},
                  knee_up=1.0)
@@ -262,7 +266,7 @@ def floor_supine(p):
     p["knees_point"] = {s: (sx * out, 0, 1) for s, sx in SIDES}
     if knees < 30:
         pitch_feet(-80)                         # straight legs: toes up
-    return (drop, 0, -math.pi / 2), []
+    return (drop, 0, -math.pi / 2), p.get("_bench", [])
 
 
 def pitch_feet(deg):
@@ -1020,6 +1024,42 @@ def leg_press(p):
 POSTURES["leg_press"] = leg_press
 
 
+def prone_incline(p):
+    """Chest down on an incline bench `incline` deg above level (chest-supported rows, spider curls, prone raises):
+    hips at the pad's low end `hip_z` m up, legs reaching back to the balls of the feet on the floor."""
+    a = math.radians(p.get("incline", 35))
+    hip = A.rest_head("upperleg01.L")
+    hz = p.get("hip_z", 0.86)
+    lean = math.pi / 2 - a
+    drop = hip.z - hz
+    A.set_root(drop, 0, lean)
+    leg = (A.rest_head("lowerleg01.L") - hip).length + (A.rest_head("foot.L") - A.rest_head("lowerleg01.L")).length
+    hip_w = A.head("upperleg01.L")
+    ankle_z = A.rest_head("foot.L").z + 0.05
+    run = math.sqrt(max((leg * 0.96) ** 2 - (hip_w.z - ankle_z) ** 2, 0.01))
+    A.plant_feet(toe_out_deg=4, ankles={s: (sx * 0.14, hip_w.y + run, ankle_z) for s, sx in SIDES})
+    pitch_feet(50)                                      # up on the balls of the feet
+    p["knees_point"] = {s: (0, -0.3, -1) for s, _ in SIDES}
+    A.update()
+    _, fwd, up = torso_frame()
+    shoulders = (A.head("upperarm01.L") + A.head("upperarm01.R")) / 2
+    mid = (hip_w + shoulders) / 2
+    spine = (shoulders - hip_w).normalized()
+    length = (shoulders - hip_w).length + p.get("pad_past", -0.02)
+    centre = mid + fwd * 0.155 + spine * (p.get("pad_past", -0.02) / 2)
+    tilt = math.atan2(spine.z, -spine.y)
+    pad = box("InclinePad", (0.32, length, 0.07), centre, rot_x=-tilt)
+    low = centre - spine * (length / 2) + fwd * 0.04
+    high = centre + spine * (length * 0.3) + fwd * 0.04
+    props = [pad, box("PadPost", (0.07, 0.07, low.z), (0, low.y, low.z / 2)),
+             box("PadStrut", (0.06, 0.06, high.z), (0, high.y, high.z / 2)),
+             box("PadFoot", (0.42, 0.07, 0.04), (0, low.y, 0.02)), box("PadFoot", (0.42, 0.07, 0.04), (0, high.y, 0.02))]
+    return (drop, 0, lean), props
+
+
+POSTURES["prone_incline"] = prone_incline
+
+
 SPINE = ["spine04", "spine03", "spine02", "spine01"]
 
 
@@ -1270,7 +1310,7 @@ def build(spec):
         names = set().union(*body_keys)
         if names & {"curl", "twist", "side"}:
             keyed += SPINE
-        if "shrug" in names:
+        if names & {"shrug", "retract"}:
             keyed += ["clavicle.L", "clavicle.R"]
         if any(n.startswith(("hip", "knee")) for n in names):
             keyed += [f"{b}.{s}" for b in ("upperleg01", "lowerleg01") for s, _ in SIDES]
@@ -1304,6 +1344,9 @@ def build(spec):
         if "shrug" in k:
             for s, sx in SIDES:
                 A.rotate_local("clavicle." + s, (0, 1, 0), -sx * math.radians(k["shrug"]))
+        elif "retract" in k:                    # shoulder blades squeezed back (+) or reached forward (-)
+            for s, sx in SIDES:
+                A.rotate_local("clavicle." + s, (0, 0, 1), -sx * math.radians(k["retract"]))
         if heel:
             heel.set(k.get("heel", 0))
         A.update()
@@ -1317,6 +1360,9 @@ def build(spec):
     A.update()
     if spec.get("pad"):
         props.append(leg_pad(spec["pad"]))
+        if spec.get("pad_post"):                # a fixed hook pad (legs don't move): stand it on a post
+            c = props[-1].matrix_world.translation
+            props.append(box("PadPost", (0.06, 0.06, c.z), (0, c.y, c.z / 2)))
     for b in spec.get("boxes", []):
         props.append(box("Box", b["size"], b["at"], rot_x=math.radians(b.get("rot_x", 0))))
     impl = spec.get("implement", "dumbbell")

@@ -190,6 +190,145 @@ def elevated_lunge(spec):
     return spec
 
 
+def prone(incline=35, **extra):
+    """Chest down on an incline bench: the free-standing bent-over lean comes off, arms keep their world keys."""
+    def patch(spec):
+        spec["posture"] = dict({"type": "prone_incline", "incline": incline}, **extra)
+        spec.pop("body", None)
+        cam = spec.setdefault("camera", {})
+        cam.update(az=cam.get("az", 60), el=max(cam.get("el", 8), 10))
+        return spec
+    return patch
+
+
+def one_arm(spec):
+    spec["arm"].update(sides="L", rest=key((0.15, 0.05, -1), (0.1, 0.05, -1), (0, 1, 0)))
+    spec["hands"] = "L"
+    return spec
+
+
+def compose(*fns):
+    def patch(spec):
+        for f in fns:
+            spec = f(spec)
+        return spec
+    return patch
+
+
+CURL_HANG = key((0.1, 0.03, -1), (0.12, 0.08, -1), (1, 0, 0))            # world: arm hanging, palm forward
+CURL_TOP = key((0.1, 0.03, -1), (0.1, 0.55, 0.83), (1, 0, 0))            # forearm curled up in front
+
+
+def spider_curl(spec):
+    spec = prone(45)(spec)
+    spec.update(implement="dumbbell", arm={"frame": "world", "keys": [CURL_HANG, CURL_TOP], "elbow_out": [0.2, -1, 0]},
+                camera={"az": 75, "el": 10})
+    return spec
+
+
+def incline_raises(spec):
+    """Prone on the incline, straight arms swing from hanging up in line with the body."""
+    spec = prone(35)(spec)
+    spec.update(implement="dumbbell", arm={"frame": "world", "keys": [
+        key((0.12, 0.05, -1), (0.12, 0.08, -1), (0, 1, 0.05)),
+        key((0.3, 0.8, 0.55), (0.3, 0.82, 0.55), (0, -0.55, 0.82))], "elbow_out": [1, 0, 0.3]},
+        camera={"az": 70, "el": 12})
+    return spec
+
+
+def middle_back_shrug(spec):
+    spec = prone(35)(spec)
+    spec.update(implement="dumbbell", body={"keys": [{"retract": -10}, {"retract": 22}], "head_level": 0},
+                arm={"frame": "world", "keys": [key((0.1, 0.03, -1), (0.06, 0.05, -1), (0, 1, 0))],
+                     "elbow_out": [1, 0, 0]}, camera={"az": 160, "el": 25})
+    return spec
+
+
+def incline_back(deg):
+    """Lying back on an incline bench, arms hanging straight down (world keys), as for incline / lying curls."""
+    def patch(spec):
+        spec["posture"] = {"type": "seat", "back_deg": deg}
+        spec.pop("body", None)
+        spec["arm"]["frame"] = "world"
+        spec["camera"] = {"az": 70, "el": 8}
+        return spec
+    return patch
+
+
+def front_incline_raise(spec):
+    spec.update(posture={"type": "seat", "back_deg": 45}, implement="dumbbell",
+                arm={"keys": [key((0.12, 0.1, -1), (0.12, 0.15, -1), (-1, 0, 0)),
+                              key((0.15, 1, 0.1), (0.15, 1, 0.15), (-1, 0, 0))], "elbow_out": [1, -0.3, 0]},
+                camera={"az": 75, "el": 10})
+    return spec
+
+
+def seated_lean(lean=55):
+    """Sitting on the end of a bench, chest leaning out over the thighs (seated bent-over raises/extensions)."""
+    def patch(spec):
+        spec["posture"] = {"type": "seat", "lean": lean, "feet_fwd": 1.1}
+        spec.pop("body", None)
+        return spec
+    return patch
+
+
+def decline(spec, deg=-22):
+    """On a decline bench: head down, knees hooked over the pad (thighs up the seat, shins hanging under the
+    roller)."""
+    spec["posture"] = {"type": "seat", "back_deg": deg, "feet_free": True}
+    keys = spec["body"]["keys"]
+    for k in keys:
+        k.setdefault("hip", 35 + k.get("lean", 0))      # thighs stay on the pad while the trunk rises
+        k.setdefault("knee", 105)
+    spec["pad"] = "front"
+    spec["pad_post"] = True
+    spec["camera"] = {"az": 70, "el": 12}
+    return spec
+
+
+def on_bench(spec):
+    spec["posture"].update(bench_z=0.45)
+    spec["camera"] = {"az": 70, "el": 12}
+    return spec
+
+
+def pullover(back_deg=0, grip=0.2, bent=True):
+    """Lying across the bench line, the bar travels from over the chest back over the head and returns."""
+    if bent:
+        keys = [key((0.3, 1, 0.15), (0.1, 0.55, 0.83), (-1, 0, 0)), key((0.3, 0.25, 1), (0.1, -0.6, 0.8), (-1, 0, 0))]
+    else:
+        keys = [key((0.25, 1, 0.1), (0.25, 1, 0.12), (-1, 0, 0)), key((0.25, 0.15, 1), (0.25, 0.1, 1), (-1, 0, 0))]
+
+    def patch(spec):
+        spec.update(posture={"type": "seat", "back_deg": back_deg}, implement="barbell",
+                    arm={"grip": grip, "palm": [0, -1, 0], "keys": keys, "elbow_out": [0.6, -0.2, -1]},
+                    camera={"az": 75, "el": 14})
+        return spec
+    return patch
+
+
+def leg_pull_in(spec):
+    spec["body"]["keys"] = [{"hip": 8, "knee": 5}, {"hip": 105, "knee": 115, "curl": -6}]
+    return spec
+
+
+def seated_tucks(spec):
+    spec.update(posture={"type": "seat", "lean": -35, "feet_free": True, "feet_fwd": 1.2}, implement="none",
+                body={"keys": [{"hip": 20, "knee": 10}, {"hip": 110, "knee": 120}], "head_level": 0.4},
+                arm={"keys": [key((0.4, -0.55, -0.75), (0.1, -0.35, -0.95), (0, 1, 0))], "elbow_out": [0.2, -1, 0]},
+                camera={"az": 75, "el": 8})
+    return spec
+
+
+def decline_band_situp(spec):
+    spec = decline(spec, -20)
+    spec["lines"] = [{"a": {"obj": h}, "b": {"world": [sx * 0.2, 0.6, 0.05], "under": {"bone": "spine05"}}}
+                     for h, sx in (("L", 1), ("R", -1))]
+    return spec
+
+
+
+
 BAR_BANDS = {
     "Squat_with_Bands": ("Barbell Squat", "band"), "Squat_with_Chains": ("Barbell Squat", "chain"),
     "Reverse_Band_Power_Squat": ("Barbell Squat", "reverse"),
@@ -240,6 +379,32 @@ PATCHES.update({
     "Push-Ups_With_Feet_Elevated": ("Decline Push-Up", lambda s: s),
     "Close-Grip_Push-Up_off_of_a_Dumbbell": ("Push-Ups - Close Triceps Position", on_dumbbell),
     "Elevated_Back_Lunge": ("Barbell Lunge", elevated_lunge),
+    "Dumbbell_Incline_Row": ("Bent Over Two-Dumbbell Row", prone(35)),
+    "Incline_Bench_Pull": ("Bent Over Barbell Row", prone(40)),
+    "Lying_Cambered_Barbell_Row": ("Bent Over Barbell Row", prone(8, hip_z=0.98)),
+    "Dumbbell_Lying_Rear_Lateral_Raise": ("Bent Over Dumbbell Rear Delt Raise With Head On Bench", prone(30)),
+    "Lying_Rear_Delt_Raise": ("Bent Over Dumbbell Rear Delt Raise With Head On Bench", prone(30)),
+    "Dumbbell_Lying_One-Arm_Rear_Lateral_Raise": ("Bent Over Dumbbell Rear Delt Raise With Head On Bench",
+                                                  compose(prone(30), one_arm)),
+    "Seated_Bent-Over_Rear_Delt_Raise": ("Bent Over Dumbbell Rear Delt Raise With Head On Bench", seated_lean()),
+    "Seated_Bent-Over_One-Arm_Dumbbell_Triceps_Extension": ("Standing Bent-Over One-Arm Dumbbell Triceps Extension",
+                                                            seated_lean()),
+    "Seated_Bent-Over_Two-Arm_Dumbbell_Triceps_Extension": ("Standing Bent-Over Two-Arm Dumbbell Triceps Extension",
+                                                            seated_lean()),
+    "Spider_Curl": (None, spider_curl),
+    "Straight_Raises_on_Incline_Bench": (None, incline_raises),
+    "Middle_Back_Shrug": (None, middle_back_shrug),
+    "Barbell_Curls_Lying_Against_An_Incline": ("Barbell Curl", incline_back(45)),
+    "Front_Incline_Dumbbell_Raise": (None, front_incline_raise),
+    "Decline_Crunch": ("Crunches", decline),
+    "Decline_Oblique_Crunch": ("Oblique Crunches", decline),
+    "Decline_Reverse_Crunch": ("Reverse Crunch", lambda s: {k: v for k, v in decline(s, -15).items() if k != "pad"}),
+    "Flat_Bench_Lying_Leg_Raise": ("Flat Bench Lying Leg Raise", on_bench),
+    "Bent-Arm_Barbell_Pullover": (None, pullover()),
+    "Wide-Grip_Decline_Barbell_Pullover": (None, pullover(-15, 0.36, bent=False)),
+    "Flat_Bench_Leg_Pull-In": ("Flat Bench Lying Leg Raise", compose(on_bench, leg_pull_in)),
+    "Seated_Leg_Tucks": (None, seated_tucks),
+    "Weighted_Sit-Ups_-_With_Bands": ("Sit-Up", decline_band_situp),
     "Band_Assisted_Pull-Up": ("Pullups", lambda s: dict(s, camera={"az": 25, "el": 6}, lines=[
         {"a": {"obj": h, "at": [x, 0, 0]}, "b": {"bone": f"lowerleg01.{h}", "t": 0.1, "off": [0, -0.06, 0]},
          "via": [{"bone": "spine03", "t": 0.5, "off": [x, -0.2, 0]}]}       # hangs clear of the chest
