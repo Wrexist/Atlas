@@ -330,6 +330,20 @@ def decline_band_situp(spec):
 
 
 NEUTRAL = (0, 1, 0)
+SIDE_HANDLE = key((0.14, 0.02, -1), (0.06, 0.02, -1), NEUTRAL)          # world: arms hang, palms in
+TRAP_BAR = {"posture": {"type": "stand", "width": 0.12}, "implement": "frame", "frame": "hex",
+            "body": {"keys": [{"drop": 0.34, "back": 0.1, "lean": 38}, {}], "head_level": 0.5},
+            "arm": {"frame": "world", "keys": [SIDE_HANDLE], "elbow_out": [1, 0, 0]}, "camera": {"az": 35, "el": 8}}
+def seated_calf(pad):
+    """Seated calf raise: heels rise under a pad (or bar) across the knees, hands resting on it."""
+    return {"posture": {"type": "seat", "feet_fwd": 0.9}, "implement": "none",
+            "body": {"keys": [{"heel": 0}, {"heel": 32}]},
+            "pads": [{"bone": "upperleg01.L", "t": 0.88, "off": [-0.1, 0, 0.1], "size": pad, "tilt": False}],
+            "arm": {"keys": [key((0.15, 0.55, -0.8), (0.05, 0.95, -0.25), (0, 0, 1))], "elbow_out": [1, 0, -0.3]},
+            "camera": {"az": 60, "el": 8}}
+
+
+MB_UP = key((0.2, 0.2, 0.96), (-0.35, 0.15, 0.92), (0, -1, 0))   # ball overhead between the palms
 
 
 def cable(impl, anchor=None, **extra):
@@ -586,8 +600,8 @@ PATCHES.update({
                                                       keys(*OVERHEAD_KEYS, elbow_out=[1, 0, -0.3]),
                                                       levers((0.32, 0.55, -0.05)), camera(50, 8))),
     "Leverage_High_Row": (None, compose(machine_seat(0), cable("handle"), keys(
-        key((0.2, 0.75, 0.65), (0.15, 0.75, 0.65), (0, 0, 1)), key((0.35, -0.65, -0.65), (0.05, 0.55, 0.85), (0, 0, 1)),
-        elbow_out=[0.6, -0.3, -1]), levers((0.3, -0.85, 0.3)), camera(70, 8))),
+        key((0.2, 0.75, 0.65), (0.15, 0.75, 0.65), (0, 0, 1)), key((0.4, -0.6, -0.7), (0.05, 0.75, 0.65), (0, 0, 1)),
+        elbow_out=[0.6, -0.3, -1]), levers((0.35, 0.55, 0.85)), camera(70, 8))),
     "Leverage_Iso_Row": (None, compose(machine_seat(0), cable("handle"), keys(
         key((0.12, 1, -0.2), (0.05, 1, -0.05), (0, 0, 1)), key((0.2, -0.7, -0.7), (0.03, 1, 0.05), (0, 0, 1)),
         elbow_out=[0.4, -0.3, -1]), levers((0.3, -0.95, -0.55)),
@@ -612,17 +626,64 @@ PATCHES.update({
     "Hack_Squat": (None, compose(
         posture(type="stand", width=0.16, lean=-32, toe_out=12), cable("handle"),
         lambda s: dict(s, body={"keys": [{"back": 0.18}, {"back": 0.5, "drop": 0.42}], "head_level": 0.4},
-                       pads=[{"bone": "spine03", "off": [0, -0.16, 0.05], "size": [0.4, 0.08, 0.7]},
+                       pads=[{"bone": "spine03", "off": [0, -0.16, 0.05], "size": [0.4, 0.08, 0.7], "rail": 1.5},
                              {"bone": "clavicle.L", "off": [0, -0.02, 0.07], "size": [0.12, 0.25, 0.06]},
                              {"bone": "clavicle.R", "off": [0, -0.02, 0.07], "size": [0.12, 0.25, 0.06]}]),
         keys(key((0.5, 0.35, -0.8), (-0.05, 0.3, 1), (-1, 0, 0)), elbow_out=[0.4, 0.2, -1]), camera(75, 6))),
     "Narrow_Stance_Hack_Squats": (None, compose(
         posture(type="stand", width=0.09, lean=-32, toe_out=8), cable("handle"),
         lambda s: dict(s, body={"keys": [{"back": 0.18}, {"back": 0.5, "drop": 0.42}], "head_level": 0.4},
-                       pads=[{"bone": "spine03", "off": [0, -0.16, 0.05], "size": [0.4, 0.08, 0.7]},
+                       pads=[{"bone": "spine03", "off": [0, -0.16, 0.05], "size": [0.4, 0.08, 0.7], "rail": 1.5},
                              {"bone": "clavicle.L", "off": [0, -0.02, 0.07], "size": [0.12, 0.25, 0.06]},
                              {"bone": "clavicle.R", "off": [0, -0.02, 0.07], "size": [0.12, 0.25, 0.06]}]),
         keys(key((0.5, 0.35, -0.8), (-0.05, 0.3, 1), (-1, 0, 0)), elbow_out=[0.4, 0.2, -1]), camera(75, 6))),
+    "Front_Plate_Raise": ("Front Dumbbell Raise", lambda s: dict(s, implement="plate", arm={
+        "keys": [key((-0.1, 0.25, -1), (-0.15, 0.3, -1), (0, 0, 1)), key((-0.1, 1, 0.12), (-0.15, 1, 0.18), (0, 0, 1))],
+        "elbow_out": [1, -0.3, 0]})),
+    "Plate_Twist": ("Russian Twist", lambda s: dict(s, implement="plate", arm={
+        "keys": [key((0.12, 0.6, -0.8), (-0.3, 0.95, 0.05), (0, 0, 1))], "elbow_out": [1, 0, -0.4]})),
+    "Car_Drivers": (None, lambda s: dict(s, posture={"type": "stand", "width": 0.14}, implement="plate", cycle=True,
+        arm={"keys": [key((-0.05, 1, 0.22), (-0.1, 1, 0.25), (0, 0, 1)), key((-0.05, 1, -0.12), (-0.1, 1, -0.1), (0, 0, 1)),
+                      key((-0.05, 1, 0.22), (-0.1, 1, 0.25), (0, 0, 1))], "offset_R": 0.5, "elbow_out": [1, -0.3, 0]},
+        camera={"az": 40, "el": 6})),
+    "Reverse_Plate_Curls": (None, lambda s: dict(s, posture={"type": "stand", "width": 0.14}, implement="plate",
+        arm={"frame": "world", "keys": [key((0.0, 0.08, -1), (-0.12, 0.25, -1), (0, 0, 1)),
+                                        key((0.0, 0.08, -1), (-0.12, 0.6, 0.8), (0, 0, 1))], "elbow_out": [0.3, -1, 0]},
+        camera={"az": 70, "el": 6})),
+    "Weighted_Ball_Side_Bend": (None, lambda s: dict(s, posture={"type": "stand", "width": 0.16}, implement="ball",
+        body={"keys": [{"side": 22}, {"side": -22}], "head_level": 0.6}, cycle=False,
+        arm={"keys": [MB_UP], "elbow_out": [1, 0, 0.2]}, camera={"az": 10, "el": 6})),
+    "Push-Ups_With_Feet_On_An_Exercise_Ball": ("Push-Ups With Feet Elevated", lambda s: dict(
+        s, posture=dict(s["posture"], feet_z=0.6, feet_ball=0.3))),
+    "Crunch_-_Legs_On_Exercise_Ball": ("Crunches", lambda s: dict(
+        s, posture={"type": "floor_supine", "feet_free": True},
+        body={"keys": [{"hip": 90, "knee": 90}, {"hip": 90, "knee": 90, "curl": 38}], "head_level": 0},
+        spheres=[{"r": 0.3, "bone": "lowerleg01.L", "t": 0.7, "off": [0, 0, -0.33], "x": 0}])),
+    "Trap_Bar_Deadlift": (None, lambda s: dict(s, **TRAP_BAR)),
+    "Car_Deadlift": (None, lambda s: dict(s, **dict(TRAP_BAR, frame="rickshaw", camera={"az": 60, "el": 8}))),
+    "Rickshaw_Deadlift": (None, lambda s: dict(s, **dict(TRAP_BAR, frame="rickshaw", camera={"az": 60, "el": 8}))),
+    "Rickshaw_Carry": ("Farmer's Walk", lambda s: dict(s, implement="frame", frame="rickshaw",
+                                                      arm=dict(s["arm"], keys=[SIDE_HANDLE]))),
+    "Sled_Push": ("Prowler Sprint", lambda s: s),
+    "Ring_Dips": ("Dips - Triceps Version", lambda s: dict(s, arm=dict(s["arm"], rings=True), camera={"az": 40, "el": 8})),
+    "Suspended_Push-Up": ("Pushups", lambda s: dict(s, implement="dip_bars", posture=dict(s["posture"], alpha=38),
+                                                   arm=dict(s["arm"], rings=True))),
+    "Inverted_Row_with_Straps": ("Inverted Row", lambda s: dict(s, implement="dip_bars", arm=dict(
+        s["arm"], rings=True, hang=True, keys=[key((0.2, 0.15, 1), (0.04, 0.15, 1), NEUTRAL)]))),
+    "Seated_Calf_Raise": (None, lambda s: dict(s, **seated_calf([0.45, 0.16, 0.08]))),
+    "Barbell_Seated_Calf_Raise": (None, lambda s: dict(s, **seated_calf([1.3, 0.035, 0.035]))),
+    "Donkey_Calf_Raises": (None, lambda s: dict(
+        s, posture={"type": "stand", "width": 0.13}, implement="floor",
+        body={"keys": [{"lean": 78, "heel": 0}, {"lean": 78, "heel": 32, "drop": -0.08}], "head_level": 0.4},
+        arm={"frame": "world", "hand_z": 1.0, "hand_box": True, "elbow_out": [0.6, -0.5, -0.4],
+             "keys": [key((0.12, 0.3, -0.95), (0.08, 0.98, 0.0), (-1, 0, 0))]}, camera={"az": 75, "el": 6})),
+    "Calf-Machine_Shoulder_Shrug": (None, lambda s: dict(
+        s, posture={"type": "stand", "width": 0.13}, implement="none",
+        body={"keys": [{"shrug": 0}, {"shrug": 30}]},
+        pads=[{"bone": f"clavicle.{h}", "off": [0, -0.02, 0.07], "size": [0.12, 0.25, 0.06]} for h in "LR"],
+        boxes=[{"size": [0.1, 0.1, 1.7], "at": [0, 0.35, 0.85]}, {"size": [0.6, 0.08, 0.08], "at": [0, 0.3, 1.62]}],
+        arm={"keys": [key((0.5, 0.35, -0.8), (-0.05, 0.3, 1), (-1, 0, 0))], "elbow_out": [0.4, 0.2, -1]},
+        camera={"az": 40, "el": 8})),
     "Band_Assisted_Pull-Up": ("Pullups", lambda s: dict(s, camera={"az": 25, "el": 6}, lines=[
         {"a": {"obj": h, "at": [x, 0, 0]}, "b": {"bone": f"lowerleg01.{h}", "t": 0.1, "off": [0, -0.06, 0]},
          "via": [{"bone": "spine03", "t": 0.5, "off": [x, -0.2, 0]}]}       # hangs clear of the chest

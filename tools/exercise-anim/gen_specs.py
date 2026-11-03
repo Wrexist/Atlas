@@ -891,10 +891,10 @@ def gait(stride, lift, swing, drop, lean, treadmill):
 
 def sled_push():
     """Driving the legs while leaning into a sled; the sled is a box under the hands."""
-    spec = gait(0.34, 0.22, 0, 0.12, 52, False)
+    spec = gait(0.42, 0.3, 0, 0.12, 52, False)
     spec["body"]["head_level"] = 0.45
     return dict(spec, implement="floor", camera={"az": 75, "el": 6},
-                arm={"frame": "world", "hand_z": 0.85, "hand_box": True, "elbow_out": [0.6, -0.5, -0.4],
+                arm={"frame": "world", "hand_z": 0.85, "prowler": True, "elbow_out": [0.6, -0.5, -0.4],
                      "keys": [key((0.2, 0.95, -0.2), (0.12, 0.97, 0.0), (-1, 0, 0))]})
 
 
@@ -936,8 +936,8 @@ def medball(n):
     if has(n, "scoop throw|backward medicine ball"):
         return spec([squat, {"heel": 10, "lean": -8}], [MB_LOW, MB_OVERHEAD], az=55)
     if has(n, "full twist"):
-        return spec([{"twist": 0}, {"twist": 55}, {"twist": 0}, {"twist": -55}, {"twist": 0}],
-                    [key((0.4, 0.8, -0.45), (-0.3, 0.95, 0), (0, 0, 1))], az=20, cycle=True)
+        return spec([{"twist": 55}, {"twist": 0}, {"twist": -55}, {"twist": 0}, {"twist": 55}],
+                    [key((0.3, 0.85, -0.4), (-0.15, 1, 0.05), (0, 0, 1))], az=20, cycle=True)
     return None
 
 

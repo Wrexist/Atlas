@@ -422,7 +422,10 @@ def plank(p):
             return move(k)
         p["_move"] = move_feet
     props = []
-    if ankle_z > 0.2:
+    if p.get("feet_ball"):                              # shins on an exercise ball
+        r = p["feet_ball"]
+        props.append(solid_prop("Ball", (0, ankle_y - 0.1, r), r))
+    elif ankle_z > 0.2:
         props.append(box("FeetBox", (0.5, 0.4, ankle_z - 0.08), (0, ankle_y + 0.05, (ankle_z - 0.08) / 2)))
     return (0, 0, lean0), props
 
@@ -589,6 +592,96 @@ class Ball(PerHand):
         return super().meshes() + list(self.ball.children)
 
 
+class HeldPlate(Ball):
+    """A weight plate held in both hands at its rim (plate raises, twists, weighted crunches): centred between the
+    palms, its face toward the chest."""
+    R = 0.2
+
+    def __init__(self, spec, arms, impl):
+        PerHand.__init__(self, spec, arms, "none")
+        self.ball = A.holder("plate")
+        A.cylinder(self.ball, self.R, 0.035, mat=A.PLATE, verts=96, bevel=0.006)
+        A.cylinder(self.ball, 0.03, 0.04, mat=A.STEEL)
+
+    def place(self, fr):
+        super().place(fr)
+        lat, fwd, up = torso_frame()
+        ends = [self.arms.target(fr, s, sx) for s, sx in SIDES]
+        across = (ends[0][1] - ends[1][1]).normalized()         # wrist to wrist: the plate's x axis
+        z = fwd - fwd.dot(across) * across
+        self.ball.rotation_quaternion = Matrix((across, z.cross(across).normalized(),
+                                                z.normalized())).transposed().to_quaternion()
+        self.ball.rotation_quaternion = self.ball.rotation_quaternion @ Quaternion((0, 1, 0), math.pi / 2)
+
+
+class HeldFrame(Ball):
+    """A frame held by neutral handles at the sides (trap bar, rickshaw, car-deadlift frame). The handles are per
+    hand; the frame follows the hands' midpoint, its x axis wrist to wrist, its z axis up."""
+
+    def __init__(self, spec, arms, impl):
+        PerHand.__init__(self, spec, arms, "handle")
+        self.ball = A.holder("frame")
+        self.kind = spec.get("frame", "hex")
+        self.built = False
+
+    def build(self, d):
+        """Frame geometry in the holder's space, handles at x = +-d along y (+y is behind the lifter)."""
+        parts = []
+        if self.kind == "hex":
+            hexa = [(0.42, 0.18), (0.22, 0.45), (-0.22, 0.45), (-0.42, 0.18),
+                    (-0.42, -0.18), (-0.22, -0.45), (0.22, -0.45), (0.42, -0.18)]
+            for a, b in zip(hexa, hexa[1:] + hexa[:1]):
+                parts.append(rod("Hex", (*a, 0), (*b, 0), 0.016))
+            for sx in (1, -1):
+                for sy in (1, -1):
+                    parts.append(rod("HexArm", (sx * d, sy * 0.06, 0), (sx * 0.42, sy * 0.14, 0), 0.014))
+                parts.append(rod("Sleeve", (sx * 0.42, 0, 0), (sx * 0.85, 0, 0), 0.025))
+            plate_x = 0.62
+        else:                                       # rickshaw / car frame: long side rails run on ahead
+            for sx in (1, -1):
+                parts.append(rod("Rail", (sx * d, 0.25, 0), (sx * d, -1.1, 0), 0.02))
+                parts.append(rod("Leg", (sx * d, -1.1, 0), (sx * d, -1.1, -0.35), 0.025))
+                parts.append(rod("Sleeve", (sx * d, -1.0, -0.2), (sx * (d + 0.3), -1.0, -0.2), 0.025))
+            parts.append(rod("Cross", (d, -1.1, 0), (-d, -1.1, 0), 0.02))
+            parts.append(rod("Cross", (d, 0.25, 0), (-d, 0.25, 0), 0.02))
+            plate_x = None
+        for o in parts:
+            o.parent = self.ball
+            o.matrix_parent_inverse = Matrix.Identity(4)
+        if plate_x:
+            for sx in (1, -1):
+                A.cylinder(self.ball, 0.225, 0.05, x=sx * plate_x, mat=A.PLATE, verts=96, bevel=0.006)
+                A.cylinder(self.ball, 0.225, 0.05, x=sx * (plate_x + 0.06), mat=A.PLATE, verts=96, bevel=0.006)
+        else:
+            for sx in (1, -1):
+                o = A.cylinder(self.ball, 0.225, 0.05, mat=A.PLATE, verts=96, bevel=0.006)
+                o.location = (sx * (d + 0.2), -1.0, -0.2)
+        self.built = True
+
+    def place(self, fr):
+        PerHand.place(self, fr)
+        ends = [self.arms.target(fr, s, sx) for s, sx in SIDES]
+        palms = [w + F * 0.05 for _, w, F, _ in ends]
+        across = palms[0] - palms[1]
+        if not self.built:
+            self.build(across.length / 2)
+        x = across.normalized()
+        z = Vector((0, 0, 1))
+        z = (z - z.dot(x) * x).normalized()
+        self.ball.location = (palms[0] + palms[1]) / 2
+        self.ball.rotation_quaternion = Matrix((x, z.cross(x), z)).transposed().to_quaternion()
+
+
+def solid_prop(kind, at, r):
+    """A static ball (exercise ball, medicine ball) at world point `at`."""
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=r, segments=64, ring_count=32, location=at)
+    o = bpy.context.object
+    o.name = kind
+    o.data.materials.append(A.BLACK)
+    bpy.ops.object.shade_smooth()
+    return o
+
+
 class Cables:
     """A cable from a pulley (`cable.anchor`, torso-frame offset from the shoulders at frame 1) to each handle."""
 
@@ -603,7 +696,8 @@ class Cables:
             if s not in ends:
                 continue
             off = c.get("anchor", (0, 1.2, -1.2))
-            a = mid + lat * off[0] * sx + fwd * off[1] + up * off[2]
+            m = sx if c.get("mirror", True) else 1          # one pulley off to one side for both hands
+            a = mid + lat * off[0] * m + fwd * off[1] + up * off[2]
             a.z = max(a.z, 0.12)
             self.anchor[s] = a
             box("Pulley." + s, (0.09, 0.09, 0.09), a)
@@ -815,6 +909,19 @@ class BackBar:
         return [o for o in self.bar.children if o.type == 'MESH']
 
 
+def suspension_ring(h, r=0.09):
+    """A gymnastic ring gripped at its lower arc (the holder's origin, x along the grip) on a strap to the ceiling."""
+    bpy.ops.mesh.primitive_torus_add(major_radius=r, minor_radius=0.016, major_segments=64, minor_segments=16,
+                                     location=(0, 0, r), rotation=(math.pi / 2, 0, 0))
+    ring = bpy.context.object
+    ring.data.materials.append(A.BLACK)
+    bpy.ops.object.shade_smooth()
+    ring.parent = h
+    ring.matrix_parent_inverse = Matrix.Identity(4)
+    top = Vector(h.location) + Vector((0, 0, 2 * r))
+    return [ring, rod("Strap", top, (top.x, top.y, 2.8), 0.012, mat=A.BLACK)]
+
+
 class Anchored:
     """Hands fixed in the world (floor, pull-up bar): set from the arm key pose at frame 1, then the body moves and
     the arms follow by IK."""
@@ -827,18 +934,23 @@ class Anchored:
         self.props = []
         if impl == "dip_bars":
             self.h = {}
+            hang = a.get("hang", False)                 # hands under the handle (rows) instead of on top
             for s, sx in SIDES:
                 w = pts[s][1]
                 h = A.holder("Dip." + s)
-                h.location = (w.x + sx * 0.02, w.y, w.z - 0.03)
+                h.location = (w.x + sx * 0.02, w.y, w.z + (0.03 if hang else -0.03))
                 h.rotation_quaternion = Vector((0, 1, 0)).to_track_quat('X', 'Z')
-                A.cylinder(h, 0.02, 1.0, mat=A.STEEL, verts=48)
-                self.props.append(box("DipPost", (0.05, 0.05, h.location.z), (h.location.x, w.y + 0.4,
-                                                                                h.location.z / 2)))
+                if a.get("rings"):
+                    self.props += suspension_ring(h)
+                else:
+                    A.cylinder(h, 0.02, 1.0, mat=A.STEEL, verts=48)
+                    self.props.append(box("DipPost", (0.05, 0.05, h.location.z), (h.location.x, w.y + 0.4,
+                                                                                    h.location.z / 2)))
                 self.h[s] = h
             A.ik_arms(self.h, {s: (sx * 0.5, 0, 1) for s, sx in SIDES}, poles_in_world=True)
             for s, sx in SIDES:
-                A.grip_on(s, self.h[s], (0, 0, 0), thumbward=(-1, 0, 0), palm_to_handle=(0, 0, -1), radius=0.02)
+                A.grip_on(s, self.h[s], (0, 0, 0), thumbward=(-1, 0, 0), palm_to_handle=(0, 0, 1 if hang else -1),
+                          radius=0.02)
         elif impl == "floor":
             self.h = {}
             for s, sx in SIDES:
@@ -858,6 +970,14 @@ class Anchored:
             if a.get("hand_box"):
                 z, y = a["hand_z"], sum(h.location.y for h in self.h.values()) / 2
                 self.props.append(box("HandBox", (0.75, 0.35, z), (0, y, z / 2)))
+            if a.get("prowler"):                            # hands on the two uprights, sled runs on ahead
+                y = sum(h.location.y for h in self.h.values()) / 2 - 0.035
+                for h in self.h.values():
+                    self.props.append(box("Upright", (0.045, 0.045, 1.3), (h.location.x, y, 0.65)))
+                self.props.append(box("Sled", (0.7, 0.9, 0.06), (0, y - 0.42, 0.06)))
+                self.props.append(box("Skid", (0.06, 1.0, 0.03), (0.32, y - 0.42, 0.015)))
+                self.props.append(box("Skid", (0.06, 1.0, 0.03), (-0.32, y - 0.42, 0.015)))
+                self.props.append(box("PlatePost", (0.06, 0.06, 0.4), (0, y - 0.55, 0.29)))
         else:
             bar = A.holder("Bar")
             centre = sum((w + F * HAND_TO_HANDLE for _, w, F, _ in pts.values()), Vector()) / 2
@@ -1123,7 +1243,9 @@ class Lines:
                 self.items.append((ln, links))
             else:
                 n = 1 + len(ln.get("via", []))          # a band bent round `via` points is several straight runs
-                segs = [rod(f"Band{i}", (0, 0, 0), (0, 0, 1), self.BAND_R, mat=rubber()) for _ in range(n)]
+                steel = ln.get("steel")                 # a rigid handle (V-bar) or steel cable instead of a band
+                segs = [rod(f"Band{i}", (0, 0, 0), (0, 0, 1), ln.get("r", 0.014) if steel else self.BAND_R,
+                            mat=A.STEEL if steel else rubber()) for _ in range(n)]
                 self.items.append((ln, segs))
         self.fixed = {}
         self.posts = []
@@ -1138,10 +1260,10 @@ class Lines:
             v = Vector(e["world"])
             if "under" in e:
                 ref = self.end(e["under"], key + "u")
-                v = Vector((ref.x + v.x, ref.y + v.y, v.z))
+                v = ref + v if e.get("rel") else Vector((ref.x + v.x, ref.y + v.y, v.z))
             self.fixed[key] = v
             if e.get("post"):                           # hung from a rack upright beside the anchor
-                x = v.x + math.copysign(0.09, v.x)
+                x = v.x + math.copysign(0.09, v.x) * (-1 if e.get("post") == "in" else 1)
                 self.posts.append(box("RackPost", (0.07, 0.07, v.z + 0.05), (x, v.y, (v.z + 0.05) / 2)))
                 self.posts.append(box("RackPeg", (abs(x - v.x) + 0.03, 0.03, 0.03), ((x + v.x) / 2, v.y, v.z)))
         return self.fixed[key]
@@ -1358,6 +1480,33 @@ def build(spec):
 
     body(1)
     A.update()
+    for b in spec.get("spheres", []):          # exercise balls: static, placed off a joint at frame 1
+        A.update()
+        ref = A.head(b["bone"]).lerp(A.tail(b["bone"]), b.get("t", 0.5)) if "bone" in b else Vector((0, 0, 0))
+        at = ref + Vector(b.get("off", (0, 0, 0)))
+        if b.get("floor"):
+            at.z = b["r"]
+        if "x" in b:
+            at.x = b["x"]
+        props.append(solid_prop("Ball", at, b["r"]))
+    for bp in spec.get("pads", []):             # pads riding on the body (hack-squat back pad, shoulder pads)
+        A.update()
+        bone = bp["bone"]
+        c = A.head(bone).lerp(A.tail(bone), bp.get("t", 0.5))
+        lat, fwd, up = torso_frame()
+        o = bp.get("off", (0, -0.15, 0))
+        c = c + lat * o[0] + fwd * o[1] + up * o[2]
+        pad = box("BodyPad", bp.get("size", (0.36, 0.08, 0.6)), c,
+                  rot_x=math.atan2(-fwd.z, -fwd.y) if bp.get("tilt", True) else 0.0)
+        A.update()
+        attach(pad, bone)
+        props.append(pad)
+        if bp.get("rail"):                      # the sled's rails: fixed, behind the pad, from the floor up
+            mid = c - fwd * 0.09 + up * 0.15
+            top = mid + up * bp["rail"] / 2
+            props.append(box("Rail", (bp["size"][0] * 0.9, 0.05, bp["rail"]), mid,
+                             rot_x=math.atan2(-fwd.z, -fwd.y)))
+            props.append(box("RailPost", (0.08, 0.08, top.z), (0, top.y - fwd.y * 0.03, top.z / 2)))
     if spec.get("pad"):
         props.append(leg_pad(spec["pad"]))
         if spec.get("pad_post"):                # a fixed hook pad (legs don't move): stand it on a post
@@ -1376,6 +1525,10 @@ def build(spec):
         gear = Bar(spec, arms, impl)
     elif impl == "ball":
         gear = Ball(spec, arms, impl)
+    elif impl == "plate":
+        gear = HeldPlate(spec, arms, impl)
+    elif impl == "frame":
+        gear = HeldFrame(spec, arms, impl)
     else:
         gear = PerHand(spec, arms, impl)
     props += gear.cables.props if gear.cables else []
