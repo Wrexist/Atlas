@@ -67,7 +67,7 @@ def tube(name, a, b, w=0.075, h=0.075, mat=None, roll=0.0):
     o.rotation_mode = 'QUATERNION'
     o.rotation_quaternion = _orient(a, b) @ Quaternion((0, 0, 1), roll)
     o.scale = (w, h, (b - a).length)
-    bpy.ops.object.transform_apply(scale=True)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     return _finish(o, mat or frame_mat(), min(w, h) * 0.28)
 
 
@@ -97,7 +97,7 @@ def cushion(name, size, at, rot_x=0.0, rot_z=0.0):
     o = bpy.context.object
     o.name = name
     o.scale = size
-    bpy.ops.object.transform_apply(scale=True)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     return _finish(o, pad_mat(), min(size) * 0.42, 6)
 
 
@@ -142,6 +142,7 @@ def grip(h, length=0.13):
 
 def parent_keep(objs, holder):
     """Parent objects built in world space to `holder`, keeping where they are."""
+    bpy.context.view_layer.update()                     # a fresh object's matrix_world is stale until then
     inv = holder.matrix_world.inverted()
     for o in objs:
         o.parent = holder
