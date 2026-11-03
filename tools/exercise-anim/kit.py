@@ -169,7 +169,12 @@ class Arms:
 # ---------------------------------------------------------------- postures
 # Each sets the feet/legs and the base root offset (drop, back, lean in rad) and returns its props.
 def stand(p):
-    A.plant_feet(toe_out_deg=p.get("toe_out", 8), ankles=stance(p.get("width")))
+    """Standing; `floor_z` stands on a platform that high (deficit lifts)."""
+    h = p.get("floor_z", 0.0)
+    ankles = stance(p.get("width", 0.1 if h else None))
+    if h:
+        ankles = {s: (x, y, z + h) for s, (x, y, z) in ankles.items()}
+    A.plant_feet(toe_out_deg=p.get("toe_out", 8), ankles=ankles)
     free = p.get("free_leg")
     if free:                                    # that leg is posed by hip/knee keys instead (quad stretch, leg swings)
         A.P["lowerleg02." + free].constraints["IK"].mute = True
@@ -180,11 +185,12 @@ def stand(p):
     p.setdefault("knees_point", {s: (sx * 0.3, -1, 0) for s, sx in SIDES})
     p["_crouch_for_poles"] = True
     if p.get("feet_move"):
-        p["_move"] = feet_mover(lean0)
-    return (0, 0, lean0), []
+        p["_move"] = feet_mover(lean0, -h)
+    props = [box("Platform", (0.9, 0.6, h), (0, -0.09, h / 2))] if h else []
+    return (-h, 0, lean0), props
 
 
-def feet_mover(lean0):
+def feet_mover(lean0, drop0=0.0):
     """Body keys that also move the feet: `air` lifts the whole body and both feet (jumps), `fx_`/`fy_`/`fz_<side>`
     offset one foot (strides, tucks, star jumps); the foot targets are keyed every frame."""
     feet = {s: bpy.data.objects["FootIK." + s] for s, _ in SIDES}
@@ -192,7 +198,10 @@ def feet_mover(lean0):
 
     def move(k):
         lean = lean0 + math.radians(k.get("lean", 0))
-        A.set_root(k.get("drop", 0) - k.get("air", 0), k.get("back", 0), lean)
+        A.set_root(drop0 + k.get("drop", 0) - k.get("air", 0), k.get("back", 0), lean)
+        if k.get("side"):                       # sideways travel (lateral jumps): toward the figure's left
+            A.P["root"].matrix = Matrix.Translation((k["side"], 0, 0)) @ A.P["root"].matrix
+            A.update()
         for s, o in feet.items():
             o.location = start[s] + Vector((k.get("fx_" + s, 0), k.get("fy_" + s, 0),
                                             k.get("air", 0) + k.get("fz_" + s, 0)))
@@ -305,8 +314,9 @@ def split(p):
     z = A.rest_head("foot.L").z
     lead = p.get("lead", "L")
     ankles = {}
+    up = p.get("front_z", 0.0)                          # lead foot on a step (deficit / elevated lunges)
     for s, sx in SIDES:
-        ankles[s] = (sx * 0.12, hip.y - p.get("front", 0.45), z) if s == lead else \
+        ankles[s] = (sx * 0.12, hip.y - p.get("front", 0.45), z + up) if s == lead else \
             (sx * 0.12, hip.y + p.get("back", 0.5), z + 0.06)
     A.plant_feet(toe_out_deg=4, ankles=ankles)
     rear = "R" if lead == "L" else "L"
@@ -316,7 +326,11 @@ def split(p):
     p["knees_point"] = {lead: (0, -1, 0), rear: (0, -0.3, -1)}
     lean = math.radians(p.get("lean", 0))
     A.set_root(0, 0, lean)
-    return (0, 0, lean), []
+    props = []
+    if up:
+        x, y, _ = ankles[lead]
+        props.append(box("Step", (0.4, 0.45, up), (x, y - 0.08, up / 2)))
+    return (0, 0, lean), props
 
 
 def bridge(p):
@@ -832,6 +846,11 @@ class Anchored:
             for s, sx in SIDES:
                 A.grip_on(s, self.h[s], (0, 0, 0), thumbward=(-sx, 0, 0), palm_to_handle=(0, 0, -1), slide=0.0,
                           radius=0.0)
+            if a.get("on_dumbbell"):                    # hands on a dumbbell lying on the floor
+                db = A.holder("FloorDB")
+                db.location = (0, sum(h.location.y for h in self.h.values()) / 2, 0.06)
+                A.dumbbell(db, handle=0.135, head_r=0.06, head_w=0.07)
+                self.props += [o for o in db.children if o.type == 'MESH']
             if a.get("hand_box"):
                 z, y = a["hand_z"], sum(h.location.y for h in self.h.values()) / 2
                 self.props.append(box("HandBox", (0.75, 0.35, z), (0, y, z / 2)))
@@ -1152,6 +1171,36 @@ def smith_frame(bar):
     return sleeves, rails
 
 
+def bar_supports(bar, kind):
+    """Blocks under the plates or rack pins under the bar at its lowest point, where the lift starts or touches."""
+    low, fr_low = None, 1
+    for fr in range(1, A.LOOP + 1):
+        A.scene.frame_set(fr)
+        t = bar.matrix_world.translation.copy()
+        if low is None or t.z < low.z:
+            low = t
+    props = []
+    if kind == "blocks":
+        top = low.z - PLATE_R
+        for sx in (1, -1):
+            props.append(box("Block", (0.3, 0.5, top), (sx * 0.78, low.y, top / 2)))
+    elif kind == "straps":                      # bar hung in strap loops from the rack's top beam
+        top = 2.2
+        for sx in (1, -1):
+            props.append(box("RackPost", (0.07, 0.07, top), (sx * 0.62, low.y + 0.1, top / 2)))
+            for dx in (-0.025, 0.025):
+                props.append(rod("Strap", (sx * 0.55 + dx, low.y, top), (sx * 0.55, low.y, low.z - A.BAR_R - 0.01),
+                                 0.012, mat=rubber()))
+        props.append(box("RackBeam", (1.38, 0.07, 0.07), (0, low.y + 0.1, top)))
+    else:
+        top = low.z - A.BAR_R
+        for sx in (1, -1):
+            props.append(box("RackPost", (0.07, 0.07, max(top + 0.6, 1.9)), (sx * 0.62, low.y + 0.1,
+                                                                             max(top + 0.6, 1.9) / 2)))
+            props.append(box("RackPin", (0.04, 0.4, 0.04), (sx * 0.62, low.y, top - 0.02)))
+    return props
+
+
 class SmithLock:
     """Keeps a Smith bar on its vertical track: the bar's depth is pinned to frame 1. A bar in the hands just
     moves (the arms follow by IK); a bar on the back moves the body instead, so it stays on the shoulders."""
@@ -1332,6 +1381,8 @@ def build(spec):
     if lock:
         sleeves, rails = smith_frame(gear.bar)
         framed += sleeves
+    if spec.get("rests_on"):
+        framed += bar_supports(gear.bar, spec["rests_on"])
     A.report([1, 23, 45, 68])
     A.setup_render()
     cam_spec = spec.get("camera", {})
