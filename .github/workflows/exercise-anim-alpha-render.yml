@@ -1,0 +1,381 @@
+name: Exercise animation alpha render
+
+# Renders the whole clip library in the transparent style (athletic body with
+# hair) and publishes HEVC-with-alpha .mov files to the exercise-videos-alpha
+# branch, which the app streams from. One clip per job (~3 h at 96 samples),
+# 20 at a time, in three chunks (a matrix holds at most 256 jobs); each chunk
+# is published as soon as it is done. Clips already on the branch are
+# skipped, so pushing tools/exercise-anim/alpha_render.json again resumes.
+on:
+  push:
+    branches: [claude/project-thread-9vj9pu]
+    paths: [tools/exercise-anim/alpha_render.json]
+  workflow_dispatch:
+
+concurrency: exercise-anim-alpha-render
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      a: ${{ steps.plan.outputs.a }}
+      b: ${{ steps.plan.outputs.b }}
+      c: ${{ steps.plan.outputs.c }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: plan
+        working-directory: tools/exercise-anim
+        run: |
+          python3 gen_specs.py
+          curl -fsSL "https://raw.githubusercontent.com/${{ github.repository }}/exercise-videos-alpha/index.txt" -o done.txt \
+            || touch done.txt
+          echo "$(wc -l < done.txt) clips already on exercise-videos-alpha"
+          DONE=done.txt BATCH=0 BATCH_SIZE=100000 python3 render_plan.py --flat > todo.json
+          python3 - <<'PY'
+          import json, os
+          todo = json.load(open("todo.json"))
+          print(len(todo), "clips to render")
+          third = -(-len(todo) // 3) or 1
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              for k, name in enumerate("abc"):
+                  out.write(f"{name}={json.dumps(todo[k * third:(k + 1) * third])}\n")
+          PY
+
+  render_a:
+    needs: plan
+    if: needs.plan.outputs.a != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        slug: ${{ fromJson(needs.plan.outputs.a) }}
+    env:
+      BLENDER_VERSION: 5.2.1
+      ATLAS_PYTHON: python3
+      ATLAS_ALPHA: "1"
+      ATLAS_SAMPLES: 96
+      ATLAS_RES: 896x1120   # 4:5, both sides even (yuv420p and HEVC need it)
+      ATLAS_BODY: athletic  # the body Isac picked (gen_human.py BODIES), with short hair
+      ATLAS_CLOTHES: "^short01"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install system packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -yq ffmpeg jq libxi6 libxkbcommon0 libsm6 libgl1 libegl1 libxrender1 libxxf86vm1 libxfixes3
+          python3 -m pip install --break-system-packages -q numpy scipy pillow
+      - uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/blender
+          key: blender-${{ env.BLENDER_VERSION }}
+      - name: Install Blender
+        run: |
+          dir="$RUNNER_TEMP/blender/blender-${BLENDER_VERSION}-linux-x64"
+          if [ ! -x "$dir/blender" ]; then
+            mkdir -p "$RUNNER_TEMP/blender"
+            curl -fsSL "https://download.blender.org/release/Blender${BLENDER_VERSION%.*}/blender-${BLENDER_VERSION}-linux-x64.tar.xz" | tar -xJ -C "$RUNNER_TEMP/blender"
+          fi
+          echo "BLENDER=$dir/blender" >> "$GITHUB_ENV"
+      - name: Install MPFB
+        run: |
+          url=$(curl -fsSL "https://extensions.blender.org/api/v1/extensions/" | jq -r '.data[] | select(.id == "mpfb") | .archive_url' | head -1)
+          echo "MPFB archive: $url"
+          curl -fsSL "$url" -o mpfb.zip
+          "$BLENDER" -b --command extension install-file -r user_default -e mpfb.zip
+      - name: Download MakeHuman system clothes (CC0)
+        run: |
+          mkdir -p "$RUNNER_TEMP/mh"
+          for url in \
+            http://files.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip \
+            https://files.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip; do
+            curl -fsSL "$url" -o mh.zip && break
+          done
+          if [ -s mh.zip ]; then unzip -q mh.zip -d "$RUNNER_TEMP/mh"; else
+            git clone -q --depth 1 https://github.com/makehumancommunity/makehuman-assets "$RUNNER_TEMP/mh"
+            (cd "$RUNNER_TEMP/mh" && git lfs pull 2>/dev/null || true)
+          fi
+          find "$RUNNER_TEMP/mh" -name "*.mhclo" | head -80
+          echo "ATLAS_CLOTHES_DIR=$RUNNER_TEMP/mh" >> "$GITHUB_ENV"
+      - name: Render clip
+        working-directory: tools/exercise-anim
+        run: |
+          "$BLENDER" -b -P gen_human.py
+          python3 gen_specs.py
+          "$BLENDER" -b human.blend -P kit.py -- "${{ matrix.slug }}" --anim
+          [ -s "out/${{ matrix.slug }}.mov" ] || { echo "::error::no clip"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/clip" && cp "out/${{ matrix.slug }}.mov" "$RUNNER_TEMP/clip/"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: alpha-a-${{ matrix.slug }}
+          path: ${{ runner.temp }}/clip
+          retention-days: 7
+
+  publish_a:
+    needs: [plan, render_a]
+    if: always() && needs.plan.outputs.a != '[]'
+    runs-on: macos-15
+    concurrency: exercise-videos-alpha-publish
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: clips
+          pattern: alpha-a-*
+          merge-multiple: true
+      - name: HEVC with alpha
+        run: |
+          mkdir -p hevc
+          for src in clips/*.mov; do
+            [ -e "$src" ] || continue
+            avconvert --source "$src" --preset PresetHEVCHighestQualityWithAlpha --output "hevc/$(basename "$src")" \
+              --replace || echo "::warning::avconvert failed for $src"
+          done
+          ls hevc | wc -l
+      - name: Commit clips to exercise-videos-alpha
+        run: |
+          [ -n "$(ls hevc)" ] || { echo "::error::no clips in this chunk"; exit 1; }
+          repo="https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          if git ls-remote --exit-code --heads "$repo" exercise-videos-alpha >/dev/null; then
+            git clone -q --depth 1 --branch exercise-videos-alpha "$repo" site
+          else
+            git init -q -b exercise-videos-alpha site
+            git -C site remote add origin "$repo"
+          fi
+          cp hevc/*.mov site/
+          cd site
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          ls *.mov | sed 's/\.mov$//' | sort > index.txt
+          git add -A
+          git commit -qm "Add $(ls ../hevc | wc -l) transparent clips (run ${{ github.run_id }})"
+          for i in 1 2 3 4; do git push -q origin exercise-videos-alpha && exit 0; sleep $((i * 5)); git pull -q --rebase origin exercise-videos-alpha; done
+          exit 1
+
+  render_b:
+    needs: [plan, render_a]
+    if: needs.plan.outputs.b != '[]' && always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        slug: ${{ fromJson(needs.plan.outputs.b) }}
+    env:
+      BLENDER_VERSION: 5.2.1
+      ATLAS_PYTHON: python3
+      ATLAS_ALPHA: "1"
+      ATLAS_SAMPLES: 96
+      ATLAS_RES: 896x1120   # 4:5, both sides even (yuv420p and HEVC need it)
+      ATLAS_BODY: athletic  # the body Isac picked (gen_human.py BODIES), with short hair
+      ATLAS_CLOTHES: "^short01"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install system packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -yq ffmpeg jq libxi6 libxkbcommon0 libsm6 libgl1 libegl1 libxrender1 libxxf86vm1 libxfixes3
+          python3 -m pip install --break-system-packages -q numpy scipy pillow
+      - uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/blender
+          key: blender-${{ env.BLENDER_VERSION }}
+      - name: Install Blender
+        run: |
+          dir="$RUNNER_TEMP/blender/blender-${BLENDER_VERSION}-linux-x64"
+          if [ ! -x "$dir/blender" ]; then
+            mkdir -p "$RUNNER_TEMP/blender"
+            curl -fsSL "https://download.blender.org/release/Blender${BLENDER_VERSION%.*}/blender-${BLENDER_VERSION}-linux-x64.tar.xz" | tar -xJ -C "$RUNNER_TEMP/blender"
+          fi
+          echo "BLENDER=$dir/blender" >> "$GITHUB_ENV"
+      - name: Install MPFB
+        run: |
+          url=$(curl -fsSL "https://extensions.blender.org/api/v1/extensions/" | jq -r '.data[] | select(.id == "mpfb") | .archive_url' | head -1)
+          echo "MPFB archive: $url"
+          curl -fsSL "$url" -o mpfb.zip
+          "$BLENDER" -b --command extension install-file -r user_default -e mpfb.zip
+      - name: Download MakeHuman system clothes (CC0)
+        run: |
+          mkdir -p "$RUNNER_TEMP/mh"
+          for url in \
+            http://files.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip \
+            https://files.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip; do
+            curl -fsSL "$url" -o mh.zip && break
+          done
+          if [ -s mh.zip ]; then unzip -q mh.zip -d "$RUNNER_TEMP/mh"; else
+            git clone -q --depth 1 https://github.com/makehumancommunity/makehuman-assets "$RUNNER_TEMP/mh"
+            (cd "$RUNNER_TEMP/mh" && git lfs pull 2>/dev/null || true)
+          fi
+          find "$RUNNER_TEMP/mh" -name "*.mhclo" | head -80
+          echo "ATLAS_CLOTHES_DIR=$RUNNER_TEMP/mh" >> "$GITHUB_ENV"
+      - name: Render clip
+        working-directory: tools/exercise-anim
+        run: |
+          "$BLENDER" -b -P gen_human.py
+          python3 gen_specs.py
+          "$BLENDER" -b human.blend -P kit.py -- "${{ matrix.slug }}" --anim
+          [ -s "out/${{ matrix.slug }}.mov" ] || { echo "::error::no clip"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/clip" && cp "out/${{ matrix.slug }}.mov" "$RUNNER_TEMP/clip/"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: alpha-b-${{ matrix.slug }}
+          path: ${{ runner.temp }}/clip
+          retention-days: 7
+
+  publish_b:
+    needs: [plan, render_b]
+    if: always() && needs.plan.outputs.b != '[]'
+    runs-on: macos-15
+    concurrency: exercise-videos-alpha-publish
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: clips
+          pattern: alpha-b-*
+          merge-multiple: true
+      - name: HEVC with alpha
+        run: |
+          mkdir -p hevc
+          for src in clips/*.mov; do
+            [ -e "$src" ] || continue
+            avconvert --source "$src" --preset PresetHEVCHighestQualityWithAlpha --output "hevc/$(basename "$src")" \
+              --replace || echo "::warning::avconvert failed for $src"
+          done
+          ls hevc | wc -l
+      - name: Commit clips to exercise-videos-alpha
+        run: |
+          [ -n "$(ls hevc)" ] || { echo "::error::no clips in this chunk"; exit 1; }
+          repo="https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          if git ls-remote --exit-code --heads "$repo" exercise-videos-alpha >/dev/null; then
+            git clone -q --depth 1 --branch exercise-videos-alpha "$repo" site
+          else
+            git init -q -b exercise-videos-alpha site
+            git -C site remote add origin "$repo"
+          fi
+          cp hevc/*.mov site/
+          cd site
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          ls *.mov | sed 's/\.mov$//' | sort > index.txt
+          git add -A
+          git commit -qm "Add $(ls ../hevc | wc -l) transparent clips (run ${{ github.run_id }})"
+          for i in 1 2 3 4; do git push -q origin exercise-videos-alpha && exit 0; sleep $((i * 5)); git pull -q --rebase origin exercise-videos-alpha; done
+          exit 1
+
+  render_c:
+    needs: [plan, render_b]
+    if: needs.plan.outputs.c != '[]' && always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        slug: ${{ fromJson(needs.plan.outputs.c) }}
+    env:
+      BLENDER_VERSION: 5.2.1
+      ATLAS_PYTHON: python3
+      ATLAS_ALPHA: "1"
+      ATLAS_SAMPLES: 96
+      ATLAS_RES: 896x1120   # 4:5, both sides even (yuv420p and HEVC need it)
+      ATLAS_BODY: athletic  # the body Isac picked (gen_human.py BODIES), with short hair
+      ATLAS_CLOTHES: "^short01"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install system packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -yq ffmpeg jq libxi6 libxkbcommon0 libsm6 libgl1 libegl1 libxrender1 libxxf86vm1 libxfixes3
+          python3 -m pip install --break-system-packages -q numpy scipy pillow
+      - uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/blender
+          key: blender-${{ env.BLENDER_VERSION }}
+      - name: Install Blender
+        run: |
+          dir="$RUNNER_TEMP/blender/blender-${BLENDER_VERSION}-linux-x64"
+          if [ ! -x "$dir/blender" ]; then
+            mkdir -p "$RUNNER_TEMP/blender"
+            curl -fsSL "https://download.blender.org/release/Blender${BLENDER_VERSION%.*}/blender-${BLENDER_VERSION}-linux-x64.tar.xz" | tar -xJ -C "$RUNNER_TEMP/blender"
+          fi
+          echo "BLENDER=$dir/blender" >> "$GITHUB_ENV"
+      - name: Install MPFB
+        run: |
+          url=$(curl -fsSL "https://extensions.blender.org/api/v1/extensions/" | jq -r '.data[] | select(.id == "mpfb") | .archive_url' | head -1)
+          echo "MPFB archive: $url"
+          curl -fsSL "$url" -o mpfb.zip
+          "$BLENDER" -b --command extension install-file -r user_default -e mpfb.zip
+      - name: Download MakeHuman system clothes (CC0)
+        run: |
+          mkdir -p "$RUNNER_TEMP/mh"
+          for url in \
+            http://files.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip \
+            https://files.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip; do
+            curl -fsSL "$url" -o mh.zip && break
+          done
+          if [ -s mh.zip ]; then unzip -q mh.zip -d "$RUNNER_TEMP/mh"; else
+            git clone -q --depth 1 https://github.com/makehumancommunity/makehuman-assets "$RUNNER_TEMP/mh"
+            (cd "$RUNNER_TEMP/mh" && git lfs pull 2>/dev/null || true)
+          fi
+          find "$RUNNER_TEMP/mh" -name "*.mhclo" | head -80
+          echo "ATLAS_CLOTHES_DIR=$RUNNER_TEMP/mh" >> "$GITHUB_ENV"
+      - name: Render clip
+        working-directory: tools/exercise-anim
+        run: |
+          "$BLENDER" -b -P gen_human.py
+          python3 gen_specs.py
+          "$BLENDER" -b human.blend -P kit.py -- "${{ matrix.slug }}" --anim
+          [ -s "out/${{ matrix.slug }}.mov" ] || { echo "::error::no clip"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/clip" && cp "out/${{ matrix.slug }}.mov" "$RUNNER_TEMP/clip/"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: alpha-c-${{ matrix.slug }}
+          path: ${{ runner.temp }}/clip
+          retention-days: 7
+
+  publish_c:
+    needs: [plan, render_c]
+    if: always() && needs.plan.outputs.c != '[]'
+    runs-on: macos-15
+    concurrency: exercise-videos-alpha-publish
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: clips
+          pattern: alpha-c-*
+          merge-multiple: true
+      - name: HEVC with alpha
+        run: |
+          mkdir -p hevc
+          for src in clips/*.mov; do
+            [ -e "$src" ] || continue
+            avconvert --source "$src" --preset PresetHEVCHighestQualityWithAlpha --output "hevc/$(basename "$src")" \
+              --replace || echo "::warning::avconvert failed for $src"
+          done
+          ls hevc | wc -l
+      - name: Commit clips to exercise-videos-alpha
+        run: |
+          [ -n "$(ls hevc)" ] || { echo "::error::no clips in this chunk"; exit 1; }
+          repo="https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          if git ls-remote --exit-code --heads "$repo" exercise-videos-alpha >/dev/null; then
+            git clone -q --depth 1 --branch exercise-videos-alpha "$repo" site
+          else
+            git init -q -b exercise-videos-alpha site
+            git -C site remote add origin "$repo"
+          fi
+          cp hevc/*.mov site/
+          cd site
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          ls *.mov | sed 's/\.mov$//' | sort > index.txt
+          git add -A
+          git commit -qm "Add $(ls ../hevc | wc -l) transparent clips (run ${{ github.run_id }})"
+          for i in 1 2 3 4; do git push -q origin exercise-videos-alpha && exit 0; sleep $((i * 5)); git pull -q --rebase origin exercise-videos-alpha; done
+          exit 1
