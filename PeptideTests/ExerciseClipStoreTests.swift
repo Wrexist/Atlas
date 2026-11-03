@@ -32,8 +32,8 @@ final class ExerciseClipStoreTests: XCTestCase {
     }
 
     func test_parseIndex_ignoresBlankLinesAndWhitespace() {
-        let ids = ExerciseClipStore.parseIndex("Barbell_Squat\n\n  Side_Lateral_Raise \r\nPushups\n")
-        XCTAssertEqual(ids, ["Barbell_Squat", "Side_Lateral_Raise", "Pushups"])
+        let ids = ExerciseClipStore.parseIndex("Barbell_Squat\n\n  Side_Lateral_Raise \r\nPushups 1a2b3c4d\n")
+        XCTAssertEqual(ids, ["Barbell_Squat": "", "Side_Lateral_Raise": "", "Pushups": "1a2b3c4d"])
     }
 
     func test_clip_listedExercise_downloadsOnceThenServesFromCache() async throws {
@@ -60,6 +60,41 @@ final class ExerciseClipStoreTests: XCTestCase {
 
         XCTAssertNil(clip)
         XCTAssertEqual(requests.value, 1)
+    }
+
+    func test_clip_newVersionInIndex_replacesCachedClip() async throws {
+        let old = Data([1]), new = Data([2])
+        let first = store(serving: ["index.txt": Data("Pushups aaaa\n".utf8), "Pushups.mov": old])
+        _ = await first.clip(for: "Pushups")
+
+        let second = store(serving: ["index.txt": Data("Pushups bbbb\n".utf8), "Pushups.mov": new])
+        let fetched = await second.clip(for: "Pushups")
+        let clip = try XCTUnwrap(fetched)
+
+        XCTAssertEqual(try Data(contentsOf: clip), new)
+        let cached = try FileManager.default.contentsOfDirectory(atPath: cacheDirectory.path)
+        XCTAssertEqual(cached, ["Pushups@bbbb.mov"])
+    }
+
+    func test_clip_droppedFromIndex_returnsNilEvenWhenCached() async {
+        let first = store(serving: ["index.txt": Data("Pushups aaaa\n".utf8), "Pushups.mov": Data([1])])
+        _ = await first.clip(for: "Pushups")
+
+        let second = store(serving: ["index.txt": Data("Barbell_Squat\n".utf8)])
+        let clip = await second.clip(for: "Pushups")
+
+        XCTAssertNil(clip)
+    }
+
+    func test_clip_indexUnavailable_servesCachedClip() async throws {
+        let first = store(serving: ["index.txt": Data("Pushups aaaa\n".utf8), "Pushups.mov": Data([1])])
+        let downloaded = await first.clip(for: "Pushups")
+        let cached = try XCTUnwrap(downloaded)
+
+        let offline = store(serving: [:])
+        let clip = await offline.clip(for: "Pushups")
+
+        XCTAssertEqual(clip?.lastPathComponent, cached.lastPathComponent)
     }
 
     func test_clip_indexUnavailable_returnsNilAndRetriesNextTime() async {
