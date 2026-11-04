@@ -130,6 +130,7 @@ def curl(n, eq):
     return spec
 
 
+HINGE = {"lean": 72, "back": 0.27, "drop": 0.03}      # hips pushed back, torso near parallel, soft knees
 BENCH_BOTTOM_DB = key((0.85, -0.3, -0.25), (0.05, 1, 0.05), (-1, 0, 0.2))
 BENCH_TOP_DB = key((0.18, 1, 0.02), (0.1, 1, 0.02), (-1, 0, 0.2))
 
@@ -196,10 +197,10 @@ def hpress(n, eq):
     if eq == "barbell" or has(n, "barbell|bench press"):
         close = has(n, "close")
         wide = has(n, "wide")
-        upper_b = (0.3, -0.45, -0.6) if close else (0.65, -0.4, -0.55)          # elbows tucked, bar to mid-chest
+        upper_b = (0.3, -0.45, -0.85) if close else (0.65, -0.4, -0.8)          # elbows tucked, bar to mid-chest
         return {"posture": posture, "implement": "barbell",
                 "arm": {"grip": 0.17 if close else 0.38 if wide else 0.31, "palm": [0, -1, 0],
-                        "keys": [key(upper_b, (0.1, 1, 0.1), (-1, 0, 0.1)), key((0.22, 1, 0.05), (0.1, 1, 0.02),
+                        "keys": [key(upper_b, (0.1, 1, -0.2), (-1, 0, 0.1)), key((0.22, 1, -0.1), (0.1, 1, -0.06),
                                                                                 (-1, 0, 0.1))],
                         "elbow_out": [0.6, -1, -0.3]}, "camera": cam}
     return None
@@ -292,9 +293,9 @@ def raise_(n, eq):
         anchor = [0, -0.2, -1.4]
     elif has(n, "rear|reverse|bent"):
         keys = [key((0.15, 0.05, -1), (0.3, 0.1, -1), (0, 1, 0)), key((1, 0.05, -0.15), (1, 0.2, -0.2), (0, 1, 0))]
-        spec = {"posture": {"type": "stand", "lean": 55, "width": 0.14}, "body": {"keys": [{"drop": 0.08}]},
+        spec = {"posture": {"type": "stand", "width": 0.14}, "body": {"keys": [HINGE], "head_level": 0.85},
                 "implement": impl, "arm": {"frame": "world", "keys": keys, "elbow_out": [0.3, 0, 1]},
-                "camera": {"az": 30, "el": 12}}
+                "camera": {"az": 55, "el": 14}}
         anchor = [-0.9, 0.6, -0.5]
     else:
         keys = [key((0.2, 0.08, -1), (0.3, 0.15, -1), (0, 1, 0)), key((1, 0.1, -0.05), (1, 0.25, 0), (0, 1, -0.1))]
@@ -330,7 +331,7 @@ def fly(n, eq):
 
 
 ROW_BOTTOM = key((0.08, 0.05, -1), (0.03, 0.05, -1), (-1, 0, 0))
-ROW_TOP = key((0.35, -0.75, 0.35), (0.03, 0.15, -1), (-1, 0, 0))   # elbows driven back: bar to the lower ribs
+ROW_TOP = key((0.3, -0.9, -0.15), (0.03, 0.15, -1), (-1, 0, 0))   # elbows driven back: bar to the lower ribs
 
 
 def row(n, eq):
@@ -354,10 +355,10 @@ def row(n, eq):
            "kneeling|pulley|upright|iso"):
         return None
     lean = 62 if eq == "barbell" else 60
-    spec = {"posture": {"type": "stand", "lean": lean, "width": 0.14},
-            "body": {"keys": [{"drop": 0.08}], "head_level": 0.85},        # neck neutral, gaze ahead of the feet
+    spec = {"posture": {"type": "stand", "width": 0.14},      # hinge from the hips, soft knees, shins near vertical
+            "body": {"keys": [dict(HINGE, lean=lean)], "head_level": 0.85},
             "arm": {"frame": "world", "keys": [ROW_BOTTOM, ROW_TOP], "elbow_out": [0.4, -1, 0]},
-            "camera": {"az": 120, "el": 15}}
+            "camera": {"az": 100, "el": 15}}
     if eq == "barbell" or has(n, "barbell|t-bar"):
         under = has(n, "reverse|underhand")
         thumb = (1, 0, 0) if under else (-1, 0, 0)
@@ -477,7 +478,7 @@ def triceps(n, eq):
         if eq != "dumbbell":
             return None
         keys = [key((0.1, -1, 0.2), (0.05, 0.1, -1), (0, 1, 0)), key((0.1, -1, 0.2), (0.05, -1, 0.25), (0, 1, 0))]
-        spec = {"posture": {"type": "stand", "lean": 55, "width": 0.14}, "body": {"keys": [{"drop": 0.08}]},
+        spec = {"posture": {"type": "stand", "width": 0.14}, "body": {"keys": [HINGE], "head_level": 0.85},
                 "implement": "dumbbell", "arm": {"frame": "world", "keys": keys, "elbow_out": [0, 0, 1]},
                 "camera": {"az": 80, "el": 8}}
         if has(n, "one arm"):
@@ -584,11 +585,11 @@ def hinge(n, eq):
         posture = {"type": "stand", "width": 0.12}
         grip = 0.24
     else:
-        body = [{"drop": 0.22, "back": 0.32, "lean": 58}, {}]      # hips above the knees, shoulders over the bar
+        body = [{"drop": 0.18, "back": 0.3, "lean": 68}, {}]      # hips above the knees, shoulders over the bar
         posture = {"type": "stand", "width": 0.12}
         grip = 0.24
     spec = {"posture": posture, "body": {"keys": body, "head_level": 0.7},
-            "camera": {"az": 125, "el": 10}}            # rear 3/4: the back, hips and bar path, plates clear of the legs
+            "camera": {"az": 125, "el": 12}}
     if eq in ("barbell", "bands") or has(n, "barbell|smith"):
         spec["implement"] = "barbell"
         spec["bar_floor"] = not has(n, "romanian|rdl|stiff")
@@ -616,7 +617,7 @@ def lunge(n, eq):
     if eq == "barbell" or has(n, "barbell"):
         spec.update(implement="barbell_back", arm={"frame": "torso", "elbow_out": [0.3, -1, -1]})
     elif eq == "dumbbell" or has(n, "dumbbell"):
-        spec.update(implement="dumbbell", arm={"frame": "world", "keys": [key((0.22, -0.04, -1), (0.07, -0.04, -1), (0, 1, 0))]})
+        spec.update(implement="dumbbell", arm={"frame": "world", "keys": [key((0.3, -0.04, -1), (0.12, -0.04, -1), (0, 1, 0))]})
     elif eq == "body only" or eq is None:
         spec.update(implement="none", arm={"keys": [key((0.6, 0.2, -0.75), (-0.75, 0.6, 0.1), (0, 0, 1))],
                                            "elbow_out": [1, -0.3, 0]})
@@ -635,7 +636,7 @@ def calf(n, eq):
         return calf("barbell calf raise", "barbell")
     if has(n, "donkey|press|single|\\bone\\b|smith|rocking|toe|tibialis|ankle|leg press"):
         return None
-    spec = {"posture": {"type": "stand", "width": 0.13}, "body": {"keys": [{"heel": 0}, {"heel": 32, "drop": -0.08}]},
+    spec = {"posture": {"type": "stand", "width": 0.13}, "body": {"keys": [{"heel": 0}, {"heel": 45, "drop": -0.11}]},
             "camera": {"az": 70, "el": 4}}
     if eq == "barbell":
         spec.update(implement="barbell_back", arm={"frame": "torso", "elbow_out": [0.3, -1, -1]})
