@@ -224,6 +224,8 @@ def feet_mover(lean0, drop0=0.0):
     offset one foot (strides, tucks, star jumps); the foot targets are keyed every frame."""
     feet = {s: bpy.data.objects["FootIK." + s] for s, _ in SIDES}
     start = {s: o.location.copy() for s, o in feet.items()}
+    base = {s: o.matrix_world.copy() for s, o in feet.items()}
+    ball = {s: base[s] @ (A.D["foot." + s].matrix_local.inverted() @ A.rest_head("toe1-1." + s)) for s in feet}
 
     def move(k):
         lean = lean0 + math.radians(k.get("lean", 0))
@@ -232,8 +234,15 @@ def feet_mover(lean0, drop0=0.0):
             A.P["root"].matrix = Matrix.Translation((k["side"], 0, 0)) @ A.P["root"].matrix
             A.update()
         for s, o in feet.items():
-            o.location = start[s] + Vector((k.get("fx_" + s, 0), k.get("fy_" + s, 0),
-                                            k.get("air", 0) + k.get("fz_" + s, 0)))
+            off = Vector((k.get("fx_" + s, 0), k.get("fy_" + s, 0), k.get("air", 0) + k.get("fz_" + s, 0)))
+            if "rh_" + s in k:                  # heel raised (deg) about the ball of the foot: a lunge's rear foot
+                b = ball[s] + off
+                o.matrix_world = Matrix.Translation(b) @ Matrix.Rotation(math.radians(k["rh_" + s]), 4, 'X') @ \
+                    Matrix.Translation(-ball[s]) @ base[s]
+                o.keyframe_insert("rotation_quaternion" if o.rotation_mode == 'QUATERNION' else "rotation_euler",
+                                  frame=A.scene.frame_current)
+            else:
+                o.location = start[s] + off
             o.keyframe_insert("location", frame=A.scene.frame_current)
         return lean
     return move
@@ -275,6 +284,7 @@ def seat(p):
     hip_y = A.head("upperleg01.L").y
     props = [] if p.get("no_bench") else bench(hip_y - p.get("seat_front", 0.2 if back_deg is None else 0.30), hip_y + 0.16,
                                                back_deg=back_deg if back_deg is not None else p.get("backrest"),
+                                               back_len=1.05 if back_deg is not None and back_deg < 10 else 0.85,
                                                legs=not p.get("machine"))
     return (drop, 0, lean), props
 
@@ -639,9 +649,10 @@ class LeverArms(PerHand):
             far = max((self.raw(fr, s, sx) for fr in range(1, A.LOOP + 1, 4)),
                       key=lambda m: (m.translation - m1.translation).length)
             d = far.translation - m1.translation
-            if d.length > 1e-3:                         # slide the axle so both arc ends sit at one radius
-                P = P + d.normalized() * ((far.translation.length_squared - m1.translation.length_squared) / 2
-                                          - P.dot(d)) / d.length
+            u = d - lat * d.dot(lat)                    # slide only fore/aft and up/down: the axle stays beside
+            if d.length > 1e-3 and u.length > 1e-3 and abs(u.normalized().dot(d)) > 1e-3:   # the seat, levers parallel
+                u.normalize()                           # ... so both arc ends sit at one radius
+                P = P + u * ((far.translation.length_squared - m1.translation.length_squared) / 2 - P.dot(d)) / u.dot(d)
             a, b = m1.translation - P, far.translation - P
             n = a.cross(b)
             n = n.normalized() if n.length > 1e-6 else lat * sx
@@ -871,6 +882,24 @@ class HeldPlate(Ball):
         self.ball.rotation_quaternion = self.ball.rotation_quaternion @ Quaternion((0, 1, 0), math.pi / 2)
 
 
+class HeldGoblet(Ball):
+    """One dumbbell held upright against the chest in both hands (goblet squat): the palms cup the underside of
+    the top head, the handle hangs below them, centred on the sternum."""
+
+    def __init__(self, spec, arms, impl):
+        PerHand.__init__(self, spec, arms, "none")
+        self.ball = A.holder("goblet")
+        A.cylinder(self.ball, A.DB_R, 0.17, x=-0.085, mat=A.STEEL, verts=48)
+        for x in (0.04, -0.21):
+            A.cylinder(self.ball, 0.075, 0.08, x=x, mat=A.PLATE, verts=6, bevel=0.008)
+
+    def place(self, fr):
+        super().place(fr)
+        lat, fwd, up = torso_frame()
+        self.ball.location += fwd * 0.02
+        self.ball.rotation_quaternion = Matrix((up, -lat, fwd)).transposed().to_quaternion()
+
+
 class HeldFrame(Ball):
     """A frame held by neutral handles at the sides (trap bar, rickshaw, car-deadlift frame). The handles are per
     hand; the frame follows the hands' midpoint, its x axis wrist to wrist, its z axis up."""
@@ -1066,8 +1095,11 @@ class Cables:
         self.props = cable_tower(pulleys, hips, world_fwd)
         self.strands = {}
         if spec.get("implement") == "cable_rope" and len(pulleys) == 1 and len(self.anchor) == 2:
-            self.strands = {s: rod("Rope." + s, Vector((0, 0, 0)), Vector((0, 0, 1)), 0.013, mat=A.BLACK)
+            self.strands = {s: rod("Rope." + s, Vector((0, 0, 0)), Vector((0, 0, 1)), 0.011, mat=A.BLACK)
                             for s in self.anchor}       # one cable to a clip, then the rope's two tails
+            self.knobs = {s: rod("RopeEnd." + s, Vector((0, 0, 0)), Vector((0, 0, 1)), 0.021, mat=A.BLACK)
+                          for s in self.anchor}         # rubber stoppers just past the hands
+            self.clip = rod("RopeClip", Vector((0, 0, 0)), Vector((0, 0, 1)), 0.016, mat=A.STEEL)
 
     def _span(self, line, a, b, fr):
         line.location = (a + b) / 2
@@ -1084,13 +1116,17 @@ class Cables:
             clip = mid + (a - mid).normalized() * min(0.24, (a - mid).length * 0.5)
             for s, line in self.lines.items():
                 self._span(line, a, clip, fr)
-                self._span(self.strands[s], clip, hands[s], fr)
+                d = (hands[s] - clip).normalized()
+                self._span(self.strands[s], clip, hands[s] + d * 0.05, fr)
+                self._span(self.knobs[s], hands[s] + d * 0.05, hands[s] + d * 0.1, fr)
+            self._span(self.clip, clip + (a - clip).normalized() * 0.05, clip - (a - clip).normalized() * 0.01, fr)
             return
         for s, line in self.lines.items():
             self._span(line, self.anchor[s], self.ends[s].matrix_world.translation, fr)
 
     def meshes(self):
-        return list(self.lines.values()) + list(self.strands.values()) + self.props
+        extra = list(self.knobs.values()) + [self.clip] if self.strands else []
+        return list(self.lines.values()) + list(self.strands.values()) + extra + self.props
 
 
 def ezbar(h):
@@ -1203,7 +1239,7 @@ class BackBar:
         self.spec_arm = a
         self.gx = a.get("grip", 0.42)
         self.at = a.get("bar_at", "back")
-        default = (0, 0.17, -0.02) if self.at == "hips" else (0, -0.085, 0.035)
+        default = (0, 0.17, -0.02) if self.at == "hips" else (0, -0.095, 0.01)     # on the upper traps, below the neck
         self.palm = a.get("palm", (0, 1, 0) if self.at == "hips" else (0, -1, 0.3))
         self.on = a.get("bar_on", default)                  # bar centre from mid-shoulders/hips: (_, forward, up)
         self.bar = A.holder("Bar")
@@ -1378,6 +1414,7 @@ class Anchored:
                 for dy in (-0.5, 0.5):
                     self.props.append(E.tube("Strut", (x, centre.y + dy, 0.08), (x, centre.y, 0.95), 0.05, 0.05))
             self.props.append(E.tube("TopBeam", (-0.74, centre.y, top), (0.74, centre.y, top), 0.08, 0.08))
+            self.props.append(E.tube("BaseRail", (-0.74, centre.y + 0.5, 0.05), (0.74, centre.y + 0.5, 0.05), 0.07, 0.07))
             self.h = {s: bar for s, _ in SIDES}
             A.ik_arms(bar, {s: (sx * 0.5, 0, 1) for s, sx in SIDES}, poles_in_world=True)
             self.gx = a.get("grip", 0.3)
@@ -1883,13 +1920,13 @@ def bench_uprights(bar):
         t = bar.matrix_world.translation.copy()
         if top is None or t.z > top.z:
             top = t
-    y, z = top.y + 0.1, top.z - A.BAR_R - 0.035
+    y, z = top.y + 0.24, top.z - A.BAR_R - 0.035            # behind the head end: the bar racks over the eyes
     parts = []
     for sx in (1, -1):
         x = sx * 0.6
         parts.append(E.tube("Upright", (x, y, 0.07), (x, y, z + 0.12), 0.07, 0.07))
-        parts.append(E.tube("JHook", (x, y - 0.02, z), (x, y - 0.1, z), 0.05, 0.035))
-        parts.append(E.tube("JLip", (x, y - 0.1, z), (x, y - 0.1, z + 0.045), 0.05, 0.02))
+        parts.append(E.tube("JHook", (x, y - 0.02, z), (x, y - 0.16, z), 0.05, 0.035))
+        parts.append(E.tube("JLip", (x, y - 0.16, z), (x, y - 0.16, z + 0.045), 0.05, 0.02))
         parts += E.foot("UprightFoot", (x, y, 0), 0.55, 'y')
     parts.append(E.tube("UprightCross", (-0.6, y, 0.07), (0.6, y, 0.07), 0.07, 0.05))
     return parts
@@ -2120,6 +2157,8 @@ def build(spec):
         gear = Ball(spec, arms, impl)
     elif impl == "plate":
         gear = HeldPlate(spec, arms, impl)
+    elif impl == "goblet":
+        gear = HeldGoblet(spec, arms, impl)
     elif impl == "frame":
         gear = HeldFrame(spec, arms, impl)
     elif impl == "lever":
@@ -2191,7 +2230,9 @@ def build(spec):
     A.report([1, 23, 45, 68])
     A.setup_render()
     cam_spec = spec.get("camera", {})
-    cam = A.main_camera(framed, az_deg=cam_spec.get("az", 35), el_deg=cam_spec.get("el", 6))
+    tower = set(gear.cables.props) if gear.cables else set()
+    fit = [o for o in gear.meshes() if o not in tower] if cam_spec.get("tight") else framed   # tight: crop the tower
+    cam = A.main_camera(fit, az_deg=cam_spec.get("az", 35), el_deg=cam_spec.get("el", 6))
     mid = spec.get("bottom", 40) + 2
     hands = A.closeup_camera("L", 1, offset=(0.14, -0.45, 0.12), lens=70)
     extra = [("handsmid", A.closeup_camera("L", mid, offset=(0.14, -0.45, 0.12), lens=70)),

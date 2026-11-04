@@ -617,9 +617,9 @@ PATCHES.update({
     "Leverage_Decline_Chest_Press": (None, machine_press(key((0.22, 0.9, -0.4), (0.1, 0.9, -0.4), (0, 0, 1)),
                                                          (0.4, 0.65, 0.55))),
     "Leverage_Shoulder_Press": (None, compose(machine_seat(), keys(*OVERHEAD_KEYS, elbow_out=[1, 0, -0.3]),
-                                              lever((0.4, -0.7, 0.3)), camera(50, 8))),
+                                              lever((0.22, -0.6, -0.05)), camera(65, 10))),
     "Machine_Shoulder_Military_Press": (None, compose(machine_seat(), keys(*OVERHEAD_KEYS, elbow_out=[1, 0, -0.3]),
-                                                      lever((0.4, -0.7, 0.3)), camera(50, 8))),
+                                                      lever((0.22, -0.6, -0.05)), camera(65, 10))),
     "Leverage_High_Row": (None, compose(machine_seat(0), keys(
         key((0.2, 0.75, 0.65), (0.15, 0.75, 0.65), (0, 0, 1)), key((0.4, -0.6, -0.7), (0.05, 0.75, 0.65), (0, 0, 1)),
         elbow_out=[0.6, -0.3, -1]), lever((0.4, 1.0, -0.45), column="front"), camera(70, 8))),

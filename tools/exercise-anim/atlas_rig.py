@@ -630,6 +630,7 @@ def barbell(h, length=2.2, plates=((0.225, 0.055), (0.225, 0.055))):
             cylinder(h, rad, w, x=sx * (x + w / 2), mat=PLATE, verts=96, bevel=0.006)
             cylinder(h, 0.03, w + 0.004, x=sx * (x + w / 2), mat=STEEL)
             x += w + 0.002
+        cylinder(h, 0.042, 0.035, x=sx * (x + 0.0175), mat=STEEL)        # spring collar outside the plates
 
 
 DB_R = 0.015                    # ~30 mm dumbbell handle
