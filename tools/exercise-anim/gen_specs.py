@@ -228,7 +228,7 @@ def vpress(n, eq):
     elif eq == "barbell" or has(n, "barbell|military"):
         spec["implement"] = "barbell"
         spec["arm"].update(grip=0.26, palm=[0, -1, 0.2],
-                           keys=[key((0.35, 0.55, -0.75), (0.05, -0.1, 1), thumb),      # bar on the front delts
+                           keys=[key((0.2, 0.4, -0.9), (0.02, 0, 1), thumb),      # bar on the front delts at the collarbones
                                  key((0.25, 0.1, 1), (0.1, 0, 1), thumb)])
     elif eq == "dumbbell" or has(n, "dumbbell|arnold"):
         spec["implement"] = "dumbbell"
@@ -501,8 +501,8 @@ def goblet(n):
     """One dumbbell held upright against the chest in both hands."""
     return {"posture": {"type": "stand", "width": 0.2, "toe_out": 18}, "implement": "goblet",
             "body": {"keys": [{"drop": 0}, {"drop": 0.5, "back": 0.1, "lean": 18}], "head_level": 0.9},
-            "arm": {"keys": [key((0.12, 0.45, -0.9), (-0.7, 0.4, 0.6), (0, 0, 1))], "elbow_out": [0.2, 0, -1]},
-            "camera": {"az": 40, "el": 6}}
+            "arm": {"keys": [key((0.12, 0.4, -0.95), (-0.7, 0.4, 0.6), (0, 0, 1))], "elbow_out": [0.2, 0, -1]},
+            "camera": {"az": 25, "el": 6}}
 
 
 def squat(n, eq):
@@ -584,7 +584,7 @@ def hinge(n, eq):
         posture = {"type": "stand", "width": 0.12}
         grip = 0.24
     else:
-        body = [{"drop": 0.22, "back": 0.25, "lean": 56}, {}]      # hips above the knees, shoulders over the bar
+        body = [{"drop": 0.22, "back": 0.32, "lean": 58}, {}]      # hips above the knees, shoulders over the bar
         posture = {"type": "stand", "width": 0.12}
         grip = 0.24
     spec = {"posture": posture, "body": {"keys": body, "head_level": 0.7},
@@ -690,7 +690,7 @@ def core(n, eq):
         return {"posture": {"type": "kneel", "lean": 25}, "implement": "cable_rope",
                 "cable": {"anchor": [0, 0.5, 1.1]}, "body": {"keys": [{"curl": 0}, {"curl": 62}],   # hips stay put
                                                              "head_level": 0},
-                "arm": {"keys": keys, "elbow_out": [0.3, 1, -0.5]}, "camera": {"az": 235, "el": 8}}   # front 3/4: the abs
+                "arm": {"keys": keys, "elbow_out": [0.3, 1, -0.5]}, "camera": {"az": 320, "el": 8}}   # front 3/4: the abs
     if has(n, "^sit-up|^3/4 sit-up|^sit up|weighted sit-ups|press sit-up"):
         return {"posture": {"type": "floor_supine", "knees": 90}, "implement": "none",
                 "body": {"keys": [{"lean": 0, "curl": 0}, {"lean": 62, "curl": 20}], "head_level": 0},
