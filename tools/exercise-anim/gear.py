@@ -336,9 +336,9 @@ TRAP_BAR = {"posture": {"type": "stand", "width": 0.12}, "implement": "frame", "
             "arm": {"frame": "world", "keys": [SIDE_HANDLE], "elbow_out": [1, 0, 0]}, "camera": {"az": 35, "el": 8}}
 def seated_calf(pad):
     """Seated calf raise: heels rise under a pad (or bar) across the knees, hands resting on it."""
-    return {"posture": {"type": "seat", "feet_fwd": 0.9}, "implement": "none",
+    return {"posture": {"type": "seat", "feet_fwd": 0.9, "seat_front": 0.08}, "implement": "none",
             "body": {"keys": [{"heel": 0}, {"heel": 32}]},
-            "pads": [{"bone": "upperleg02.L", "t": 0.85, "off": [-0.1, 0, 0.1], "size": pad, "tilt": False}],
+            "pads": [{"bone": "upperleg02.L", "t": 0.85, "off": [-0.1, 0, 0.14], "size": pad, "tilt": False}],
             "arm": {"keys": [key((0.12, 0.35, -0.93), (0.02, 0.6, -0.8), (0, 0, 1))], "elbow_out": [1, 0, -0.3]},
             "camera": {"az": 60, "el": 8}}
 
@@ -627,13 +627,13 @@ PATCHES.update({
         key((0.12, 1, -0.2), (0.05, 1, -0.05), (0, 0, 1)), key((0.2, -0.7, -0.7), (0.03, 1, 0.05), (0, 0, 1)),
         elbow_out=[0.4, -0.3, -1]), lever((0.4, 0.45, -0.95), column="front"),
         lambda s: dict(s, boxes=[{"size": [0.34, 0.09, 0.42], "at": [0, -0.33, 0.95], "pad": True}]), camera(70, 8))),
-    "Leverage_Shrug": ("Dumbbell Shrug", compose(lever((0.15, -0.5, -0.95), base="ground"), camera(40, 8))),
+    "Leverage_Shrug": ("Dumbbell Shrug", compose(lever((0.24, -0.5, -0.95), base="ground"), camera(40, 8))),
     "Leverage_Deadlift": ("Barbell Deadlift", compose(
         keys(key((0.25, 0.03, -1), (0.12, 0.04, -1), NEUTRAL), frame="world", elbow_out=[1, 0, 0]),
         lever((0.2, -0.9, -1.1), base="ground"), camera(40, 8))),
     "Dip_Machine": (None, compose(machine_seat(), keys(
         key((0.25, -0.75, -0.6), (0.05, 0.6, -0.8), NEUTRAL), key((0.2, -0.1, -1), (0.12, 0.05, -1), NEUTRAL),
-        elbow_out=[0.3, 1, 0]), lever((0.35, -0.75, -0.3)), camera(60, 8))),
+        elbow_out=[0.3, 1, 0]), lever((0.45, -0.75, -0.3)), camera(60, 8))),
     "Reverse_Machine_Flyes": (None, compose(
         posture(type="seat", machine=True),
         keys(key((0.1, 1, 0.05), (0.1, 1, 0.05), (0, 0, 1)), key((1, 0.12, 0.05), (1, 0.12, 0.05), (0, 0, 1)),
@@ -645,14 +645,14 @@ PATCHES.update({
              elbow_out=[0.3, -0.3, -1]), lever((0.05, 0.05, 0.5), stack=True), camera(40, 14))),
     "Hack_Squat": (None, compose(
         posture(type="stand", width=0.16, lean=-32, toe_out=12), cable("handle"),
-        lambda s: dict(s, body={"keys": [{"back": 0.18}, {"back": 0.5, "drop": 0.42}], "head_level": 0.4},
+        lambda s: dict(s, body={"keys": [{"back": 0.18}, {"back": -0.06, "drop": 0.42}], "head_level": 0.4},
                        pads=[{"bone": "spine03", "off": [0, -0.16, 0.05], "size": [0.4, 0.08, 0.7], "rail": 1.5},
                              {"bone": "clavicle.L", "off": [0, -0.02, 0.07], "size": [0.12, 0.25, 0.06]},
                              {"bone": "clavicle.R", "off": [0, -0.02, 0.07], "size": [0.12, 0.25, 0.06]}]),
         keys(key((0.5, 0.35, -0.8), (-0.05, 0.3, 1), (-1, 0, 0)), elbow_out=[0.4, 0.2, -1]), camera(75, 6))),
     "Narrow_Stance_Hack_Squats": (None, compose(
         posture(type="stand", width=0.09, lean=-32, toe_out=8), cable("handle"),
-        lambda s: dict(s, body={"keys": [{"back": 0.18}, {"back": 0.5, "drop": 0.42}], "head_level": 0.4},
+        lambda s: dict(s, body={"keys": [{"back": 0.18}, {"back": -0.06, "drop": 0.42}], "head_level": 0.4},
                        pads=[{"bone": "spine03", "off": [0, -0.16, 0.05], "size": [0.4, 0.08, 0.7], "rail": 1.5},
                              {"bone": "clavicle.L", "off": [0, -0.02, 0.07], "size": [0.12, 0.25, 0.06]},
                              {"bone": "clavicle.R", "off": [0, -0.02, 0.07], "size": [0.12, 0.25, 0.06]}]),

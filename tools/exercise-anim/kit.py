@@ -71,8 +71,10 @@ def bench(seat_y0, seat_y1, back_deg=None, back_len=0.85, top=BENCH_TOP, legs=Tr
     if not legs:
         return props
     z = top - T - 0.03
-    props.append(E.tube("BenchSpine", (0, seat_y0 + 0.04, z), (0, seat_y1 - 0.02, z), 0.09, 0.05))
-    for y in (seat_y0 + 0.1, seat_y1 - 0.06):
+    props.append(E.tube("BenchSpine", (0, seat_y0 + min(0.18, (seat_y1 - seat_y0) * 0.3), z), (0, seat_y1 - 0.02, z),
+                        0.09, 0.05))
+    front_leg = seat_y0 + min(0.22, (seat_y1 - seat_y0) * 0.4)    # set back under the pad, clear of the shins
+    for y in (front_leg, seat_y1 - 0.06):
         props.append(E.tube("BenchLeg", (0, y, 0.07), (0, y, z), 0.07, 0.07))
         props += E.foot("BenchFoot", (0, y, 0), 0.46)
     if back is not None:
@@ -248,19 +250,29 @@ def seat(p):
     """Sitting on a bench, feet under the knees; `back_deg` lies back on a backrest at that angle (0 = flat bench)."""
     hip = A.rest_head("upperleg01.L")
     thigh = (A.rest_head("lowerleg01.L") - hip).length
-    drop = hip.z - (BENCH_TOP + 0.105)
+    drop = hip.z - (BENCH_TOP + 0.12)                   # hip joint over the cushion: seat flesh rests on it, not in it
     back_deg = p.get("back_deg")
     lean = -math.radians(90 - back_deg) if back_deg is not None else math.radians(p.get("lean", 0))
-    width = p.get("knees_apart", 0.2)
+    width = p.get("knees_apart", 0.15)                 # feet about hip width, as people sit on a machine seat
     reach = p.get("feet_fwd", 0.98)
     if not p.get("feet_free"):
-        A.plant_feet(toe_out_deg=12, ankles={s: (sx * width, hip.y - thigh * reach, A.rest_head("foot.L").z)
-                                             for s, sx in SIDES})
+        A.plant_feet(toe_out_deg=8, ankles={s: (sx * width, hip.y - thigh * reach, A.rest_head("foot.L").z)
+                                            for s, sx in SIDES})
         for s, sx in SIDES:
-            bpy.data.objects["KneePole." + s].location = (sx * width * 1.3, hip.y - thigh, 1.2)
+            bpy.data.objects["KneePole." + s].location = (sx * width * 1.05, hip.y - thigh, 1.2)
     A.set_root(drop, 0, lean)
+    if not p.get("no_bench") and not p.get("feet_free"):   # glutes rest on the cushion, compressing it ~1 cm
+        # (free legs still hang straight here, so there is nothing to measure the glutes by: keep the fixed drop)
+        A.update()
+        hip_now = A.head("upperleg01.L")
+        pts = A.world_coords(A.body)[A.body_mask]
+        seat_pts = pts[(np.abs(pts[:, 1] - hip_now.y) < 0.09) & (np.abs(pts[:, 0]) < 0.2) & (pts[:, 2] < hip_now.z) &
+                       (pts[:, 2] > hip_now.z - 0.17)]       # the glutes, not legs hanging below
+        if len(seat_pts):
+            drop += float(seat_pts[:, 2].min()) - (BENCH_TOP - 0.012)
+            A.set_root(drop, 0, lean)
     hip_y = A.head("upperleg01.L").y
-    props = [] if p.get("no_bench") else bench(hip_y - (0.22 if back_deg is None else 0.30), hip_y + 0.16,
+    props = [] if p.get("no_bench") else bench(hip_y - p.get("seat_front", 0.2 if back_deg is None else 0.30), hip_y + 0.16,
                                                back_deg=back_deg if back_deg is not None else p.get("backrest"),
                                                legs=not p.get("machine"))
     return (drop, 0, lean), props
@@ -411,10 +423,20 @@ def prone(p):
     lean = math.radians(90 - p.get("incline", 0))
     A.set_root(drop, 0, lean)
     hip_y = A.head("upperleg01.L").y
+    if not p.get("no_bench"):                           # lie on the pad, compressing it ~1 cm, not sunk into it
+        y0, y1 = (hip_y + 0.16, hip_y + 0.74) if p.get("pad_under") == "thighs" else \
+            (hip_y - 0.62, hip_y + p.get("pad_past_hip", 0.3))
+        A.update()
+        pts = A.world_coords(A.body)[A.body_mask]
+        on = pts[(pts[:, 1] > y0) & (pts[:, 1] < y1) & (np.abs(pts[:, 0]) < 0.15)]
+        if len(on):
+            drop += float(on[:, 2].min()) - (top - 0.012)
+            A.set_root(drop, 0, lean)
+            hip_y = A.head("upperleg01.L").y
     if p.get("no_bench"):
         props = []
     elif p.get("pad_under") == "thighs":                # hyperextension: hips over the pad's front edge
-        props = bench(hip_y + 0.04, hip_y + 0.62, top=top)
+        props = bench(hip_y + 0.16, hip_y + 0.74, top=top)
     else:
         props = bench(hip_y - 0.62, hip_y + p.get("pad_past_hip", 0.3), top=top)
     return (drop, 0, lean), props
@@ -648,6 +670,14 @@ def machine_frame(spec, gear, props):
         ys = max(py, back_rear) + 0.14
     else:
         ys = py + (0.14 if behind else -0.14)
+    if not behind:                                      # stand clear in front of the lifter and any chest pad
+        pts = A.world_coords(A.body)
+        torso = pts[(pts[:, 2] > 0.25) & (np.abs(pts[:, 0]) < 0.3)]     # chest, thighs and knees
+        front = torso[:, 1].min() if len(torso) else ys
+        for o in props:
+            if o.name.startswith("ChestPad"):
+                front = min(front, min((o.matrix_world @ Vector(c)).y for c in o.bound_box))
+        ys = min(ys, front - 0.15)
     top = Vector((0, ys, pz + 0.08))
     parts = [E.tube("Column", (0, ys, 0.07), top, 0.1, 0.1), E.joint("ColumnTop", top, 0.065)]
     reach = Vector((0, py, pz + 0.08))                  # the beam runs over to sit between the two hubs
@@ -659,12 +689,15 @@ def machine_frame(spec, gear, props):
         sc = seat.matrix_world.translation
         front = sc.y - (0.3 if behind else -0.3)
         parts.append(E.tube("Rail", (0, ys, 0.07), (0, front, 0.07), 0.1, 0.06))
-        parts += E.foot("Foot", (0, ys, 0), 0.7) + E.foot("Foot", (0, front, 0), 0.6)
+        parts += E.foot("Foot", (0, ys, 0), 0.7, 'x' if behind else 'y') + E.foot("Foot", (0, front, 0), 0.6)
         low = min((seat.matrix_world @ Vector(c)).z for c in seat.bound_box)
         parts.append(E.tube("SeatPost", (0, sc.y, 0.1), (0, sc.y, low), 0.08, 0.08))
         parts.append(E.tube("SeatArm", (0, sc.y, low - 0.04), (0, ys, low - 0.04), 0.07, 0.05))
     if spec["lever"].get("stack"):
-        parts += weight_stack(Vector((0, ys + (0.2 if behind else -0.2), 0)), pz + 0.08)
+        at = Vector((0, ys + 0.2, 0)) if behind else Vector((0.45, ys, 0))   # in front: beside the column, clear of the feet
+        parts += weight_stack(at, pz + 0.08, None if behind else Vector((0, 1, 0)))
+        if not behind:
+            parts.append(E.tube("StackArm", (0, ys, pz - 0.2), (0.45, ys, pz - 0.2), 0.07, 0.07))
     if back is not None:
         bc = back.matrix_world.translation
         n = back.matrix_world.to_3x3().col[2].normalized()
@@ -679,10 +712,9 @@ def ground_base(hubs):
     """Ground-based lever machine (shrug, deadlift): a rubber-topped deck under the feet, the axles on short
     towers off its rear edge, tied by a crossbeam."""
     feet = (A.head("foot.L") + A.head("foot.R")) / 2
-    parts = [E.tube("Deck", (0, feet.y - 0.45, 0.03), (0, feet.y + 0.45, 0.03), 1.1, 0.06),
-             E.cushion("DeckTop", (1.0, 0.8, 0.02), (0, feet.y, 0.065))]
+    parts = [E.tube("Deck", (0, feet.y - 0.45, 0.005), (0, feet.y + 0.45, 0.005), 1.1, 0.01)]   # flush deck plate
     for P, n, *_ in hubs:
-        base = Vector((P.x, P.y, 0.06))
+        base = Vector((P.x, P.y, 0.01))
         if P.z > 0.12:
             parts.append(E.tube("Tower", base, P - Vector((0, 0, 0.06)), 0.09, 0.09))
     if len(hubs) == 2:
@@ -718,6 +750,7 @@ def lever_arm(P, n, m1, out, horn=True):
     h = m1.translation
     x = m1.to_3x3().col[0].normalized()                 # handle axis
     end = h + x * (0.085 if x.dot(P - h) > 0 else -0.085)   # the arm meets the handle at the end nearer the axle
+    end = end + out * 0.07                              # the arm takes the handle on its outer side
     knee = end + (P - end) * 0.4 + out * 0.1
     parts = [E.tube("Arm", end, knee, 0.055, 0.085), E.joint("ArmKnee", knee, 0.045),
              E.tube("Arm", knee, P, 0.055, 0.085), E.joint("ArmEnd", end, 0.034)]
@@ -902,6 +935,14 @@ def pulley(name, at, axis):
     return parts
 
 
+def _near_body(col, top):
+    """Horizontal distance from a vertical column at `col` (up to `top`) to the nearest body point."""
+    pts = A.world_coords(A.body)
+    pts = pts[pts[:, 2] < top]
+    d = np.hypot(pts[:, 0] - col.x, pts[:, 1] - col.y)
+    return float(d.min()) if len(d) else 9.0
+
+
 def cable_tower(anchors, body_c, fwd):
     """Commercial cable station round its pulleys: an upright column just beyond each pulley with the pulley on
     a short bracket, a weight stack behind it, floor feet, and a top beam when two towers face each other. A
@@ -924,6 +965,8 @@ def cable_tower(anchors, body_c, fwd):
             top = max(top, boom_z + 0.05)
         else:
             col = Vector((a.x, a.y, 0)) + h * 0.2
+            while _near_body(col, top) < 0.16:         # never stand the tower in or against the lifter
+                col += h * 0.05
             parts.append(E.tube("Bracket", a + h * 0.07, (col.x, col.y, a.z), 0.06, 0.06))
         parts += [E.tube("Column", col + Vector((0, 0, 0.07)), col + Vector((0, 0, top)), 0.11, 0.11),
                   E.joint("ColumnCap", col + Vector((0, 0, top)), 0.07)]
@@ -1310,7 +1353,7 @@ def leg_pad(side_of_shin):
     along = posed_dir("lowerleg01.L", (0, 0, 1))
     front = posed_dir("lowerleg01.L", (0, -1, 0)) * (1 if side_of_shin == "front" else -1)
     c = mid + along * 0.07 + front * 0.085
-    bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=0.05, depth=0.42, location=c, rotation=(0, math.pi / 2, 0))
+    bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=0.05, depth=0.36, location=c, rotation=(0, math.pi / 2, 0))
     pad = bpy.context.object
     pad.name = "LegPad"
     pad.data.materials.append(E.pad_mat())
@@ -1341,7 +1384,7 @@ def leg_lever(pad, props):
     parts = arm + [E.tube("Column", col + Vector((0, 0, 0.07)), (col.x, col.y, hub_at.z), 0.09, 0.09),
                    E.tube("HubArm", (col.x, col.y, hub_at.z), hub_at, 0.08, 0.08)]
     parts += E.hub("Hub", hub_at, Vector((sx, 0, 0)), r=0.07, depth=0.1)
-    parts += E.foot("Foot", col, 0.6, 'x')
+    parts += E.foot("Foot", col, 0.6, 'y')
     parts.append(E.tube("Rail", col + Vector((0, 0, 0.05)), stack_at + Vector((0, 0, 0.05)), 0.09, 0.06))
     parts += weight_stack(stack_at, 1.55, Vector((0, 1, 0)))
     parts += [E.tube("StackPost", stack_at + Vector((0, -0.28, 0.07)), stack_at + Vector((0, -0.28, 1.6)), 0.08,
@@ -1350,27 +1393,41 @@ def leg_lever(pad, props):
     return parts
 
 
-def hack_frame(mid, up, fwd, length):
-    """Hack squat frame: two steel guide rails behind the back pad along the sled's travel on rail beams, a
-    rear tower holding their top, and floor rails out to a foot deck."""
+def hack_frame(pad, length, fwd):
+    """Hack squat frame: two steel guide rails behind the back pad along the sled's actual travel (the pad's
+    path over the loop) on rail beams, a rear tower holding their top, and floor rails out to the feet."""
+    path = []
+    for fr in range(1, A.LOOP + 1, 3):
+        A.scene.frame_set(fr)
+        corners = [pad.matrix_world @ Vector(v) for v in pad.bound_box]
+        path.append(sum(corners, Vector()) / 8)
+    A.scene.frame_set(1)
+    top_p = max(path, key=lambda p: p.z)
+    low_p = min(path, key=lambda p: p.z)
+    up = (top_p - low_p).normalized() if (top_p - low_p).length > 0.05 else Vector((0, 0, 1))
+    back = -(fwd - fwd.dot(up) * up).normalized()
+    print("HACK path up", tuple(round(v, 2) for v in up), "fwd", tuple(round(v, 2) for v in fwd),
+          "top", tuple(round(v, 2) for v in top_p), "low", tuple(round(v, 2) for v in low_p))
+    mid = (top_p + low_p) / 2 + back * 0.17
+    length = max(length, (top_p - low_p).length + 0.9)
     lo, hi = mid - up * length / 2, mid + up * length / 2
     if lo.z < 0.15:
         lo = lo + up * ((0.15 - lo.z) / up.z)
     feet = (A.head("foot.L") + A.head("foot.R")) / 2
     parts = []
-    for x in (-0.2, 0.2):
+    for x in (-0.14, 0.14):
         dx = Vector((x, 0, 0))
         parts.append(E.round_tube("HackRail", lo + dx, hi + dx, 0.022, mat=E.metal_mat()))
-        parts.append(E.tube("HackBeam", lo + dx - fwd * 0.06, hi + dx - fwd * 0.06, 0.07, 0.07))
-        top = hi + dx - fwd * 0.06
-        parts.append(E.tube("HackPost", (x, top.y, 0.07), top, 0.09, 0.09))
-        low = lo + dx - fwd * 0.06
+        parts.append(E.tube("HackBeam", lo + dx + back * 0.06, hi + dx + back * 0.06, 0.07, 0.07))
+        top = lo + (hi - lo) * 0.55 + dx + back * 0.06   # tower meets the beam mid-rail, below the hands
+        post_x = x * 4.0                            # outside the elbows
+        parts.append(E.tube("HackPost", (post_x, top.y, 0.07), (post_x, top.y, top.z), 0.09, 0.09))
+        parts.append(E.tube("HackArm", (post_x, top.y, top.z), top, 0.07, 0.07))
+        low = lo + dx + back * 0.06
         parts.append(E.tube("HackLeg", (x, low.y, 0.07), low, 0.08, 0.08))
-        parts.append(E.tube("HackBase", (x * 2.2, feet.y - 0.35, 0.05), (x * 2.2, top.y + 0.1, 0.05), 0.09, 0.07))
+        parts.append(E.tube("HackBase", (post_x, feet.y - 0.35, 0.05), (post_x, top.y + 0.1, 0.05), 0.09, 0.07))
     for y in (feet.y - 0.3, top.y):
-        parts.append(E.tube("HackCross", (-0.47, y, 0.05), (0.47, y, 0.05), 0.08, 0.07))
-    parts.append(E.tube("HackCross", Vector((-0.2, 0, 0)) + hi - fwd * 0.06, Vector((0.2, 0, 0)) + hi - fwd * 0.06,
-                        0.07, 0.07))
+        parts.append(E.tube("HackCross", (-0.6, y, 0.05), (0.6, y, 0.05), 0.08, 0.07))
     return parts
 
 
@@ -1379,24 +1436,35 @@ def calf_machine(pad, bone):
     the heels and carries a plate horn out front."""
     A.update()
     corners = [pad.matrix_world @ Vector(v) for v in pad.bound_box]
+    lo = np.min(np.array(corners), axis=0)
+    hi = np.max(np.array(corners), axis=0)
+    pts = A.world_coords(A.body)[A.body_mask]
+    under = pts[(pts[:, 0] > lo[0]) & (pts[:, 0] < hi[0]) & (pts[:, 1] > lo[1]) & (pts[:, 1] < hi[1]) &
+                (pts[:, 2] > lo[2] - 0.25) & (pts[:, 2] < hi[2] + 0.06)]    # the thighs, not the hands above
+    if len(under):                                      # rest the pad on top of the thighs, not in them
+        lift = float(under[:, 2].max()) + 0.006 - lo[2]
+        if lift > 0:
+            pad.matrix_world = Matrix.Translation((0, 0, lift)) @ pad.matrix_world
+            A.update()
+    corners = [pad.matrix_world @ Vector(v) for v in pad.bound_box]
     c = sum(corners, Vector()) / 8
     sx = -1                                         # far side: the camera sees the calves
     knee = A.head("lowerleg01.L")
     ankle = A.head("foot.L")
-    pivot = Vector((sx * 0.3, ankle.y + 0.18, 0.2))
-    top = Vector((sx * 0.3, c.y, c.z))
+    pivot = Vector((sx * 0.52, ankle.y + 0.18, 0.2))
+    top = Vector((sx * 0.52, c.y, c.z))
     front = top + Vector((0, -0.38, -0.05))
     arm = [E.tube("CalfArm", pivot, top, 0.06, 0.08), E.joint("CalfKnee", top, 0.045),
            E.tube("CalfArm", top, front, 0.06, 0.08), E.joint("CalfEnd", front, 0.04),
-           E.tube("CalfBar", Vector((0, c.y, c.z)), top, 0.05, 0.05),
+           E.tube("CalfBar", Vector((sx * 0.22, c.y, c.z + 0.03)), top + Vector((0, 0, 0.03)), 0.05, 0.05),
            E.round_tube("Horn", front, front + Vector((sx * 0.3, 0, 0)), 0.025, mat=E.metal_mat())]
     arm += E.plates("Plate", front + Vector((sx * 0.08, 0, 0)), Vector((sx, 0, 0)), n=2, r=0.2)
     for o in arm:
         attach(o, bone)
     parts = arm + E.hub("Hub", pivot, Vector((sx, 0, 0)))
-    parts.append(E.tube("CalfTower", (sx * 0.38, pivot.y, 0.07), pivot + Vector((sx * 0.08, 0, 0)), 0.08, 0.08))
-    parts += E.foot("CalfFoot", (sx * 0.38, pivot.y, 0), 0.7, 'y')
-    parts.append(E.tube("CalfBase", (sx * 0.38, pivot.y, 0.05), (-sx * 0.3, pivot.y, 0.05), 0.08, 0.06))
+    parts.append(E.tube("CalfTower", (sx * 0.6, pivot.y, 0.07), pivot + Vector((sx * 0.08, 0, 0)), 0.08, 0.08))
+    parts += E.foot("CalfFoot", (sx * 0.6, pivot.y, 0), 0.7, 'y')
+    parts.append(E.tube("CalfBase", (sx * 0.6, pivot.y, 0.05), (-sx * 0.3, pivot.y, 0.05), 0.08, 0.06))
     return parts
 
 
@@ -1412,12 +1480,16 @@ def arm_pad(arms):
     normal = Vector((0, along.z, -along.y))             # perpendicular in the sagittal plane, pointing back/up
     if normal.z < 0:
         normal = -normal
-    centre = elbow - along * 0.12 - normal * 0.075
+    centre = elbow - along * 0.12 - normal * 0.11
     tilt = math.atan2(along.z, -along.y)                # pad's long axis from level toward the figure's front
     pad = box("PreacherPad", (0.55, 0.34, 0.07), centre, rot_x=-tilt)
-    foot = centre - normal * 0.05
-    post = E.tube("PreacherPost", (0, foot.y, 0.07), foot, 0.08, 0.08)
-    return [pad, post] + E.foot("PreacherFoot", (0, foot.y, 0), 0.55)
+    foot = centre + along * 0.15 - normal * 0.05       # under the pad's front edge, clear of the chest
+    knee_y = sum(A.head("lowerleg01." + s).y for s, _ in SIDES) / 2
+    base = Vector((0, min(knee_y - 0.24, foot.y), 0))            # the stand rises in front of the shins
+    bend = Vector((0, base.y, foot.z - 0.06))
+    parts = [pad, E.tube("PreacherPost", base + Vector((0, 0, 0.07)), bend, 0.08, 0.08), E.joint("PreacherBend", bend, 0.05),
+             E.tube("PreacherArm", bend, foot, 0.07, 0.07)]
+    return parts + E.foot("PreacherFoot", base + Vector((0, 0.12, 0)), 0.5, 'y')     # between the feet
 
 
 def bench_dip(p):
@@ -1796,6 +1868,8 @@ def phases(spec):
 def build(spec):
     A.setup()
     A.train(primary=spec["primary"], secondary=spec.get("secondary", []))
+    if spec.get("arm", {}).get("pad"):                  # preacher: knees apart round the pad's stand
+        spec["posture"].setdefault("knees_apart", 0.24)
     (d0, b0, l0), props = POSTURES[spec["posture"]["type"]](spec["posture"])
     ph = phases(spec)
     body_keys = spec.get("body", {}).get("keys")
@@ -1864,6 +1938,7 @@ def build(spec):
         if "x" in b:
             at.x = b["x"]
         props.append(solid_prop("Ball", at, b["r"]))
+    rail_req = []
     for bp in spec.get("pads", []):             # pads riding on the body (hack-squat back pad, shoulder pads)
         A.update()
         bone = bp["bone"]
@@ -1889,8 +1964,9 @@ def build(spec):
         attach(pad, bone)
         props.append(pad)
         if bp.get("rail"):                      # the sled's rails: fixed, behind the pad, from the floor up
-            props += hack_frame(c - fwd * 0.1 + up * 0.15, up, fwd, bp["rail"])
-        if bone.startswith("upperleg") and spec["posture"]["type"] == "seat":
+            rail_req.append((pad, bp["rail"], fwd.copy()))
+        if bone.startswith("upperleg") and spec["posture"]["type"] == "seat" and spec.get("implement") == "none" \
+                and bp.get("size", (0.36,))[0] < 1.0:
             props += calf_machine(pad, bone)
     if spec.get("pad"):
         props.append(leg_pad(spec["pad"]))
@@ -1979,6 +2055,13 @@ def build(spec):
         framed += sleeves
     if spec.get("rests_on"):
         framed += bar_supports(gear.bar, spec["rests_on"])
+    for pad, length, fwd in rail_req:
+        framed += hack_frame(pad, length, fwd)
+    if os.environ.get("ATLAS_COLLIDE") == "1":
+        import collide
+        collide.check([o for o in bpy.data.objects if o.type == 'MESH' and o.name not in ("Human", "Shoes")],
+                      range(1, A.LOOP + 1, 6))
+        return
     A.report([1, 23, 45, 68])
     A.setup_render()
     cam_spec = spec.get("camera", {})

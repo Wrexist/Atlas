@@ -93,3 +93,4 @@ Standing_Long_Jump
 Side_Standing_Long_Jump
 Lying_Leg_Curls
 Exercise_Ball_Crunch
+One_Arm_Dumbbell_Preacher_Curl
