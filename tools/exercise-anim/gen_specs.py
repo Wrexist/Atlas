@@ -17,7 +17,7 @@ MUSCLES = {"abdominals": "abs", "lats": "lats", "middle back": "middle_back", "l
 
 def delts(name, family):
     n = name.lower()
-    if re.search(r"rear|reverse fl|face pull|bent.over.*(raise|fly)|back fly|pull.?apart", n):
+    if re.search(r"rear|reverse.*fl[yi]|face pull|bent.over.*(raise|fly)|back fly|pull.?apart", n):
         return "rear_delts"
     if family in ("raise",) and not re.search(r"front", n):
         return "side_delts"
@@ -91,10 +91,10 @@ def curl(n, eq):
             spec["arm"].update(grip=0.2, palm=[0, -1, 0])
         return spec
     if has(n, "^concentration curl"):
-        keys = [key((-0.05, 0.35, -1), (0.05, 0.25, -1), (1, 0, 0)), key((-0.05, 0.35, -1), (-0.1, -0.2, 1), (1, 0, 0))]
+        keys = [key((-0.05, 0.35, -1), (0.05, 0.25, -1), (1, 0, 0)), key((-0.05, 0.35, -1), (-0.15, 0.6, 0.78), (1, 0, 0))]
         return {"posture": {"type": "seat", "lean": 35, "knees_apart": 0.3}, "implement": "dumbbell", "hands": "L",
-                "arm": {"frame": "world", "sides": "L", "keys": keys, "elbow_out": [1, 0, 0],
-                        "rest": key((0.1, 0.4, -1), (0.0, 0.5, -1), (0, 1, 0))}, "camera": {"az": 40, "el": 10}}
+                "arm": {"frame": "world", "sides": "L", "keys": keys, "elbow_out": [0.3, 0.3, -1],
+                        "rest": key((0.12, 0.55, -0.85), (0.0, 0.85, -0.5), (0, 0, 1))}, "camera": {"az": 40, "el": 10}}
     if has(n, "preacher", "concentration", "spider", "drag", "zottman", "prone", "lying", "high cable",
            "overhead", "machine", "plate", "towel", "21"):
         return None

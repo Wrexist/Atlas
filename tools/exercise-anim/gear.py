@@ -632,13 +632,13 @@ PATCHES.update({
         keys(key((0.25, 0.03, -1), (0.12, 0.04, -1), NEUTRAL), frame="world", elbow_out=[1, 0, 0]),
         lever((0.2, -0.9, -1.1), base="ground"), camera(40, 8))),
     "Dip_Machine": (None, compose(machine_seat(), keys(
-        key((0.25, -0.75, -0.6), (0.05, 0.6, -0.8), NEUTRAL), key((0.2, -0.1, -1), (0.12, 0.05, -1), NEUTRAL),
-        elbow_out=[0.3, 1, 0]), lever((0.45, -0.75, -0.3)), camera(60, 8))),
+        key((0.15, -0.8, -0.6), (0.08, 1, 0.05), NEUTRAL), key((0.18, -0.05, -1), (0.16, 0.08, -1), NEUTRAL),
+        elbow_out=[0.15, -1, 0]), lever((0.45, -0.75, -0.3)), camera(60, 8))),
     "Reverse_Machine_Flyes": (None, compose(
         posture(type="seat", machine=True),
-        keys(key((0.1, 1, 0.05), (0.1, 1, 0.05), (0, 0, 1)), key((1, 0.12, 0.05), (1, 0.12, 0.05), (0, 0, 1)),
+        keys(key((0.1, 1, 0.05), (0.08, 1, 0.12), (0, 0, 1)), key((1, 0.35, 0.02), (0.95, 0.45, 0.08), (0, 0, 1)),
              elbow_out=[0.3, -0.3, -1]), lever((0.05, 0.05, 0.5), column="front", stack=True),
-        lambda s: dict(s, boxes=[{"size": [0.34, 0.09, 0.45], "at": [0, -0.31, 1.0], "pad": True}]), camera(150, 14))),
+        lambda s: dict(s, boxes=[{"size": [0.34, 0.09, 0.45], "at": [0, -0.31, 1.0], "pad": True}]), camera(125, 10))),
     "Butterfly": (None, compose(
         machine_seat(),
         keys(key((1, 0.1, 0.05), (0.75, 0.3, 0.6), (0, 1, 0)), key((0.3, 1, 0.05), (-0.2, 0.6, 0.75), (0, 0, 1)),

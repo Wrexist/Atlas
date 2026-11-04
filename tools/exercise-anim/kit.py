@@ -107,7 +107,7 @@ def rubber():
 def torso_frame():
     """(lateral toward the figure's left, forward out of the chest, up the spine) in world space."""
     up = (A.head("spine01") - A.head("spine05")).normalized()
-    lat = A.head("upperarm01.L") - A.head("upperarm01.R")
+    lat = A.head("clavicle.L") - A.head("clavicle.R")     # clavicle roots ride the chest, not the moving arms
     lat = (lat - lat.dot(up) * up).normalized()
     return lat, lat.cross(up), up
 
@@ -260,6 +260,7 @@ def seat(p):
                                             for s, sx in SIDES})
         for s, sx in SIDES:
             bpy.data.objects["KneePole." + s].location = (sx * width * 1.05, hip.y - thigh, 1.2)
+        p.setdefault("knees_point", {s: (sx * (0.15 + width), -1, 0.2) for s, sx in SIDES})   # knees over the toes
     A.set_root(drop, 0, lean)
     if not p.get("no_bench") and not p.get("feet_free"):   # glutes rest on the cushion, compressing it ~1 cm
         # (free legs still hang straight here, so there is nothing to measure the glutes by: keep the fixed drop)
@@ -287,7 +288,7 @@ def floor_supine(p):
     hip = A.head("upperleg01.L")
     if on:
         head_y = A.head("head").y
-        p["_bench"] = bench(hip.y - p.get("bench_past_hip", 0.08), head_y + 0.12, top=on)
+        p["_bench"] = bench(hip.y - p.get("bench_past_hip", 0.22), head_y + 0.2, top=on)
     knees = p.get("knees", 90)
     thigh = (A.rest_head("lowerleg01.L") - rest_hip).length
     shin = (A.rest_head("foot.L") - A.rest_head("lowerleg01.L")).length
@@ -297,7 +298,7 @@ def floor_supine(p):
     run = math.sqrt(max(run ** 2 - (hip.z - ankle_z) ** 2, 0.0))
     if p.get("feet_free"):
         return (drop, 0, -math.pi / 2), p.get("_bench", [])
-    apart, reach = p.get("feet_apart", 0.15), p.get("feet_reach", 0.99)
+    apart, reach = p.get("feet_apart", 0.26 if on else 0.15), p.get("feet_reach", 0.99)
     A.plant_feet(toe_out_deg=6, ankles={s: (sx * apart, hip.y - run * reach, ankle_z) for s, sx in SIDES},
                  knee_up=1.0)
     out = p.get("knees_out", 0.2)
@@ -609,6 +610,10 @@ class LeverArms(PerHand):
             m1 = self.raw(1, s, sx)
             far = max((self.raw(fr, s, sx) for fr in range(1, A.LOOP + 1, 4)),
                       key=lambda m: (m.translation - m1.translation).length)
+            d = far.translation - m1.translation
+            if d.length > 1e-3:                         # slide the axle so both arc ends sit at one radius
+                P = P + d.normalized() * ((far.translation.length_squared - m1.translation.length_squared) / 2
+                                          - P.dot(d)) / d.length
             a, b = m1.translation - P, far.translation - P
             n = a.cross(b)
             n = n.normalized() if n.length > 1e-6 else lat * sx
@@ -694,10 +699,10 @@ def machine_frame(spec, gear, props):
         parts.append(E.tube("SeatPost", (0, sc.y, 0.1), (0, sc.y, low), 0.08, 0.08))
         parts.append(E.tube("SeatArm", (0, sc.y, low - 0.04), (0, ys, low - 0.04), 0.07, 0.05))
     if spec["lever"].get("stack"):
-        at = Vector((0, ys + 0.2, 0)) if behind else Vector((0.45, ys, 0))   # in front: beside the column, clear of the feet
-        parts += weight_stack(at, pz + 0.08, None if behind else Vector((0, 1, 0)))
+        at = Vector((0, ys + (0.2 if behind else -0.22), 0))     # in line with the column, on the far side
+        parts += weight_stack(at, pz + 0.08)
         if not behind:
-            parts.append(E.tube("StackArm", (0, ys, pz - 0.2), (0.45, ys, pz - 0.2), 0.07, 0.07))
+            parts.append(E.tube("StackArm", (0, ys, pz - 0.2), (0, at.y, pz - 0.2), 0.07, 0.07))
     if back is not None:
         bc = back.matrix_world.translation
         n = back.matrix_world.to_3x3().col[2].normalized()
@@ -1406,8 +1411,6 @@ def hack_frame(pad, length, fwd):
     low_p = min(path, key=lambda p: p.z)
     up = (top_p - low_p).normalized() if (top_p - low_p).length > 0.05 else Vector((0, 0, 1))
     back = -(fwd - fwd.dot(up) * up).normalized()
-    print("HACK path up", tuple(round(v, 2) for v in up), "fwd", tuple(round(v, 2) for v in fwd),
-          "top", tuple(round(v, 2) for v in top_p), "low", tuple(round(v, 2) for v in low_p))
     mid = (top_p + low_p) / 2 + back * 0.17
     length = max(length, (top_p - low_p).length + 0.9)
     lo, hi = mid - up * length / 2, mid + up * length / 2
@@ -1780,6 +1783,27 @@ def smith_frame(bar):
     return sleeves, rails
 
 
+def bench_uprights(bar):
+    """Press bench uprights: two posts outside the grip with J-hooks just under the lockout, set a hand's width
+    toward the head so the bar racks behind where it is pressed."""
+    top = None
+    for fr in range(1, A.LOOP + 1):
+        A.scene.frame_set(fr)
+        t = bar.matrix_world.translation.copy()
+        if top is None or t.z > top.z:
+            top = t
+    y, z = top.y + 0.1, top.z - A.BAR_R - 0.035
+    parts = []
+    for sx in (1, -1):
+        x = sx * 0.6
+        parts.append(E.tube("Upright", (x, y, 0.07), (x, y, z + 0.12), 0.07, 0.07))
+        parts.append(E.tube("JHook", (x, y - 0.02, z), (x, y - 0.1, z), 0.05, 0.035))
+        parts.append(E.tube("JLip", (x, y - 0.1, z), (x, y - 0.1, z + 0.045), 0.05, 0.02))
+        parts += E.foot("UprightFoot", (x, y, 0), 0.55, 'y')
+    parts.append(E.tube("UprightCross", (-0.6, y, 0.07), (0.6, y, 0.07), 0.07, 0.05))
+    return parts
+
+
 def bar_supports(bar, kind):
     """Blocks under the plates or rack pins under the bar at its lowest point, where the lift starts or touches."""
     low, fr_low = None, 1
@@ -2055,6 +2079,9 @@ def build(spec):
         framed += sleeves
     if spec.get("rests_on"):
         framed += bar_supports(gear.bar, spec["rests_on"])
+    elif impl == "barbell" and not lock and spec["posture"]["type"] == "seat" and \
+            spec["posture"].get("back_deg") is not None and spec["posture"]["back_deg"] < 60:
+        framed += bench_uprights(gear.bar)
     for pad, length, fwd in rail_req:
         framed += hack_frame(pad, length, fwd)
     if os.environ.get("ATLAS_COLLIDE") == "1":
