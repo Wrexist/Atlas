@@ -2,7 +2,7 @@
 # A spec (specs/<slug>.json) gives a posture, optional whole-body key poses, an implement, and arm key poses as
 # segment directions; everything is interpolated over one rep and keyed.
 # blender -b human.blend -P kit.py -- <slug> [--preview] [--stills] [--anim]
-import bpy, json, math, sys, os
+import bpy, json, math, re, sys, os
 import numpy as np
 from mathutils import Vector, Matrix, Quaternion
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -953,12 +953,22 @@ def cable_tower(anchors, body_c, fwd):
     a short bracket, a weight stack behind it, floor feet, and a top beam when two towers face each other. A
     pulley high over the lifter (pulldowns) hangs from a boom off a column standing past the knees."""
     parts, cols = [], []
+    hs = []
     for a in anchors:
         h = Vector((a.x - body_c.x, a.y - body_c.y, 0))
-        overhead = h.length < 0.35 and a.z > 1.5
-        if h.length < 0.25:
-            h = Vector((fwd.x, fwd.y, 0))
-        h.normalize()
+        hs.append((h.length < 0.35 and a.z > 1.5, (h if h.length >= 0.25 else Vector((fwd.x, fwd.y, 0))).normalized()))
+    pair = len(anchors) == 2 and abs(anchors[0].x + anchors[1].x - 2 * body_c.x) < 0.12 and \
+        abs(anchors[0].y - anchors[1].y) < 0.12 and not hs[0][0]
+    if pair:                                            # a crossover: the two towers mirror each other exactly
+        hx = (abs(hs[0][1].x) + abs(hs[1][1].x)) / 2
+        hy = (hs[0][1].y + hs[1][1].y) / 2
+        hs = [(o, Vector((math.copysign(hx, h.x), hy, 0)).normalized()) for o, h in hs]
+    reach = 0.2
+    if pair:
+        for a, (_, h) in zip(anchors, hs):
+            while _near_body(Vector((a.x, a.y, 0)) + h * reach, max(2.2, a.z + 0.25)) < 0.16:
+                reach += 0.05
+    for a, (overhead, h) in zip(anchors, hs):
         side = Vector((-h.y, h.x, 0))
         top = max(2.2, a.z + 0.25)
         if overhead:
@@ -969,14 +979,26 @@ def cable_tower(anchors, body_c, fwd):
                                    mat=E.metal_mat())]
             top = max(top, boom_z + 0.05)
         else:
-            col = Vector((a.x, a.y, 0)) + h * 0.2
+            col = Vector((a.x, a.y, 0)) + h * reach
             while _near_body(col, top) < 0.16:         # never stand the tower in or against the lifter
                 col += h * 0.05
             parts.append(E.tube("Bracket", a + h * 0.07, (col.x, col.y, a.z), 0.06, 0.06))
         parts += [E.tube("Column", col + Vector((0, 0, 0.07)), col + Vector((0, 0, top)), 0.11, 0.11),
                   E.joint("ColumnCap", col + Vector((0, 0, top)), 0.07)]
         parts += E.foot("Foot", col + h * 0.12, 0.75, 'x' if abs(side.x) > abs(side.y) else 'y')
-        parts += weight_stack(col + h * 0.24, top - 0.1, side)
+        sc = col + h * 0.24
+        parts += weight_stack(sc, top - 0.1, side)
+        up = Vector((0, 0, 1))
+        parts.append(E.tube("StackTie", col + up * (top - 0.1), sc + up * (top - 0.1), 0.07, 0.07))
+        parts.append(E.tube("StackTie", col + up * 0.12, sc + up * 0.12, 0.07, 0.05))
+        face = col - h * 0.075                          # the cable runs down the column face toward the lifter
+        head = sc + up * (top - 0.19)
+        route = [sc + up * 0.55, head, face + up * (top - 0.19)]
+        route += [Vector((a.x, a.y, boom_z - 0.05)) - h * 0.06, a] if overhead else [face + up * a.z, a]
+        parts += pulley("HeadPulley", head, side)
+        for p0, p1 in zip(route, route[1:]):
+            if (p1 - p0).length > 0.02:
+                parts.append(rod("StackCable", p0, p1, 0.0035))
         axis = side if abs(h.z) < 0.5 else Vector((1, 0, 0))
         parts += pulley("Pulley", a, axis)
         cols.append((col, top))
@@ -1014,20 +1036,33 @@ class Cables:
         hips = (A.head("upperleg01.L") + A.head("upperleg01.R")) / 2
         world_fwd = fwd if abs(fwd.z) < 0.9 else up
         self.props = cable_tower(pulleys, hips, world_fwd)
+        self.strands = {}
+        if spec.get("implement") == "cable_rope" and len(pulleys) == 1 and len(self.anchor) == 2:
+            self.strands = {s: rod("Rope." + s, Vector((0, 0, 0)), Vector((0, 0, 1)), 0.013, mat=A.BLACK)
+                            for s in self.anchor}       # one cable to a clip, then the rope's two tails
+
+    def _span(self, line, a, b, fr):
+        line.location = (a + b) / 2
+        line.rotation_quaternion = (b - a).to_track_quat('Z', 'Y')
+        line.scale = (1, 1, max((b - a).length, 1e-3))
+        for path in ("location", "rotation_quaternion", "scale"):
+            line.keyframe_insert(path, frame=fr)
 
     def key(self, fr):
+        if self.strands:
+            hands = {s: self.ends[s].matrix_world.translation.copy() for s in self.strands}
+            mid = sum(hands.values(), Vector()) / 2
+            a = next(iter(self.anchor.values()))
+            clip = mid + (a - mid).normalized() * min(0.24, (a - mid).length * 0.5)
+            for s, line in self.lines.items():
+                self._span(line, a, clip, fr)
+                self._span(self.strands[s], clip, hands[s], fr)
+            return
         for s, line in self.lines.items():
-            b = self.ends[s].matrix_world.translation
-            a = self.anchor[s]
-            line.location = (a + b) / 2
-            line.rotation_quaternion = (b - a).to_track_quat('Z', 'Y')
-            line.scale = (1, 1, (b - a).length)
-            line.keyframe_insert("location", frame=fr)
-            line.keyframe_insert("rotation_quaternion", frame=fr)
-            line.keyframe_insert("scale", frame=fr)
+            self._span(line, self.anchor[s], self.ends[s].matrix_world.translation, fr)
 
     def meshes(self):
-        return list(self.lines.values()) + self.props
+        return list(self.lines.values()) + list(self.strands.values()) + self.props
 
 
 def ezbar(h):
@@ -1059,7 +1094,11 @@ class Bar:
         if impl == "cable_bar":                 # a lat bar when the grip is wide: both hands always on the bar
             short_bar(self.bar, max(0.55, 2 * a.get("grip", 0.22) + 0.3))
         else:
-            {"barbell": A.barbell, "ezbar": ezbar}[impl](self.bar)
+            small = re.search(r"curl|skull|extension|preacher|upright|raise|shrug|press to chin|drag", spec["name"], re.I)
+            if impl == "ezbar":
+                ezbar(self.bar)
+            else:                               # arm work carries 2x10 kg, the big lifts 2x20 kg a side
+                A.barbell(self.bar, plates=((0.17, 0.04), (0.17, 0.04)) if small else ((0.225, 0.055), (0.225, 0.055)))
         self.gx = a.get("grip", 0.22)
         self.slide = a.get("slide", 0.012)
         self.palm = a.get("palm", (0, -1, 0))
@@ -1253,10 +1292,18 @@ class Anchored:
                 h.rotation_quaternion = Vector((0, 1, 0)).to_track_quat('X', 'Z')
                 if a.get("rings"):
                     self.props += suspension_ring(h)
-                else:
+                else:                                   # a dip station: each bar on two posts, joined at the floor
                     A.cylinder(h, 0.02, 1.0, mat=A.STEEL, verts=48)
-                    self.props.append(box("DipPost", (0.05, 0.05, h.location.z), (h.location.x, w.y + 0.4,
-                                                                                    h.location.z / 2)))
+                    x, z = h.location.x + sx * 0.035, h.location.z
+                    for dy in (-0.42, 0.42):
+                        self.props.append(E.tube("DipPost", (x, w.y + dy, 0.07), (x, w.y + dy, z), 0.07, 0.07))
+                        self.props.append(E.joint("DipKnuckle", Vector((x, w.y + dy, z)), 0.045))
+                        self.props.append(E.tube("DipArm", (x, w.y + dy, z - 0.03), (h.location.x, w.y + dy, z - 0.03),
+                                                 0.05, 0.04))
+                    self.props.append(E.tube("DipRail", (x, w.y - 0.5, 0.04), (x, w.y + 0.5, 0.04), 0.09, 0.06))
+                    self.props += E.foot("DipFoot", (x, w.y - 0.42, 0), 0.3, 'x') + E.foot("DipFoot", (x, w.y + 0.42, 0), 0.3, 'x')
+                    if sx == 1:
+                        self.props.append(E.tube("DipCross", (x, w.y + 0.42, 0.25), (-x, w.y + 0.42, 0.25), 0.07, 0.07))
                 self.h[s] = h
             A.ik_arms(self.h, {s: (sx * 0.5, 0, 1) for s, sx in SIDES}, poles_in_world=True)
             for s, sx in SIDES:
@@ -1293,10 +1340,16 @@ class Anchored:
             bar = A.holder("Bar")
             centre = sum((w + F * HAND_TO_HANDLE for _, w, F, _ in pts.values()), Vector()) / 2
             bar.location = centre
-            A.cylinder(bar, A.BAR_R, 1.44, mat=A.STEEL, verts=48)
-            for sx in (1, -1):                              # bar runs into the posts, which stop just above it
-                self.props.append(box("Upright", (0.07, 0.07, centre.z + 0.05),
-                                      (sx * 0.69, centre.y, (centre.z + 0.05) / 2)))
+            A.cylinder(bar, A.BAR_R, 1.5, mat=A.STEEL, verts=48)
+            top = centre.z + 0.14
+            for sx in (1, -1):                              # a free-standing pull-up station: posts, feet, braces
+                x = sx * 0.74
+                self.props.append(E.tube("Upright", (x, centre.y, 0.07), (x, centre.y, top), 0.08, 0.08))
+                self.props.append(E.joint("UprightCap", Vector((x, centre.y, top)), 0.05))
+                self.props += E.foot("Foot", (x, centre.y, 0), 1.2, 'y')
+                for dy in (-0.5, 0.5):
+                    self.props.append(E.tube("Strut", (x, centre.y + dy, 0.08), (x, centre.y, 0.95), 0.05, 0.05))
+            self.props.append(E.tube("TopBeam", (-0.74, centre.y, top), (0.74, centre.y, top), 0.08, 0.08))
             self.h = {s: bar for s, _ in SIDES}
             A.ik_arms(bar, {s: (sx * 0.5, 0, 1) for s, sx in SIDES}, poles_in_world=True)
             self.gx = a.get("grip", 0.3)
@@ -1495,6 +1548,16 @@ def arm_pad(arms):
     return parts + E.foot("PreacherFoot", base + Vector((0, 0.12, 0)), 0.5, 'y')     # between the feet
 
 
+def bench_frame_x(y, top):
+    """Steel frame under a pad that runs across the lifter (along x): a spine tube, two legs and floor feet."""
+    z = top - 0.075 - 0.03
+    parts = [E.tube("BenchSpine", (-0.38, y, z), (0.38, y, z), 0.05, 0.09)]
+    for x in (-0.36, 0.36):
+        parts.append(E.tube("BenchLeg", (x, y, 0.07), (x, y, z), 0.07, 0.07))
+        parts += E.foot("BenchFoot", (x, y, 0), 0.42, 'y')
+    return parts
+
+
 def bench_dip(p):
     """Hands on a bench behind the hips, legs straight out in front, heels on the floor."""
     hip = A.rest_head("upperleg01.L")
@@ -1508,7 +1571,7 @@ def bench_dip(p):
     pitch_feet(-35)
     p["knees_point"] = {s: (0, 0, 1) for s, _ in SIDES}
     return (drop, p.get("back", 0.0), math.radians(p.get("lean", 5))), [
-        box("DipBench", (0.9, 0.36, top), (0, hip.y + 0.32, top / 2))]
+        E.cushion("BenchSeat", (0.95, 0.3, 0.075), (0, hip.y + 0.32, top - 0.0375))] + bench_frame_x(hip.y + 0.32, top)
 
 
 POSTURES["bench_dip"] = bench_dip

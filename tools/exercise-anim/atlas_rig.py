@@ -453,7 +453,8 @@ def _muscle_rules():
 
     def middle_back(g):                        # rhomboids, between the shoulder blades
         x, z = np.abs(g["co"][:, 0]), g["co"][:, 2]
-        return np.minimum.reduce([0.085 - x, z - (sp3 + 0.1 + 0.5 * x), shoulder_z - z, behind_spine(g, 0.02)])
+        return np.minimum.reduce([0.1 - x, x - 0.008, z - (sp3 + 0.05 + 0.9 * x), (shoulder_z + 0.01 - 0.45 * x) - z,
+                                  behind_spine(g, 0.02)])   # rhomboids: slanting down and out from the spine
 
     def lats(g):                               # V from the armpit down to the lower spine
         x, z = np.abs(g["co"][:, 0]), g["co"][:, 2]
@@ -464,7 +465,10 @@ def _muscle_rules():
     def traps(g):                              # diamond: narrow at mid-back, widest at the shoulders, up the neck
         x, z = np.abs(g["co"][:, 0]), g["co"][:, 2]
         width = np.minimum(0.02 + 0.75 * (z - sp3), np.maximum(0.045, 0.2 - 1.6 * (z - shoulder_z)))
-        return np.minimum.reduce([width - x, box(g, 2, sp3, neck), behind_spine(g, 0.0)])
+        back_ = np.minimum.reduce([width - x, box(g, 2, sp3, neck), behind_spine(g, 0.0)])
+        upper = np.minimum.reduce([z - (shoulder_z - 0.01), 0.16 - x, x - 0.03, neck + 0.02 - z,
+                                   behind_spine(g, -0.06)])    # the upper traps over the shoulders, seen from the front
+        return np.maximum(back_, upper)
 
     def chest(g):
         x, z = np.abs(g["co"][:, 0]), g["co"][:, 2]
@@ -479,12 +483,13 @@ def _muscle_rules():
         return np.minimum.reduce([width - x, z - (lo + 0.05 * (x / 0.085) ** 2), hi + 0.02 * (x / 0.085) - z,
                                   -(g["co"][:, 1] - float(rest_head("spine03").y)) - 0.03])
 
-    def delt(lo, hi):
+    def delt(lo, hi, start=-0.3):
         def m(g):
-            tp = taper(g["t"], -0.3, 0.55, 0.15)
+            tp = taper(g["t"], start, 0.55, 0.15)
             mid, half = (lo + hi) / 2, (hi - lo) / 2
             th = (g["th"] - mid + 180) % 360 - 180
-            return np.minimum((half * tp - np.abs(th)) * g["rad"] * np.pi / 180, along(g, -0.3, 0.55))
+            out = np.abs(g["co"][:, 0]) - (abs(float(rest_head("upperarm01.L").x)) - 0.065)   # lateral of the pec
+            return np.minimum.reduce([(half * tp - np.abs(th)) * g["rad"] * np.pi / 180, along(g, start, 0.55), out])
         return m
 
     def biceps(g):                             # both heads, front of the upper arm, narrowing to the tendon
@@ -503,7 +508,7 @@ def _muscle_rules():
             "lower_back": (TRUNK, None, lower_back), "middle_back": (TRUNK, None, middle_back),
             "lats": (TRUNK + ["upperarm01"], None, lats), "traps": (TRUNK, None, traps),
             "chest": (TRUNK, None, chest), "abs": (TRUNK, None, abs_),
-            "front_delts": (arm, "upperarm", delt(-60, 30)), "side_delts": (arm, "upperarm", delt(25, 140)),
+            "front_delts": (arm, "upperarm", delt(-25, 50, start=-0.2)), "side_delts": (arm, "upperarm", delt(25, 140)),
             "rear_delts": (arm, "upperarm", delt(125, 215)),
             "biceps": (arm, "upperarm", biceps), "triceps": (arm, "upperarm", triceps),
             "forearms": (fore, "forearm", forearms)}
@@ -613,15 +618,15 @@ def cylinder(parent, radius, depth, x=0.0, mat=None, verts=64, bevel=0.0):
 BAR_R = 0.0145
 
 
-def barbell(h, length=2.2):
+def barbell(h, length=2.2, plates=((0.225, 0.055), (0.225, 0.055))):
     """Olympic bar along the holder's X axis, centred on it: 28-29 mm shaft, 1.31 m between the inner collars,
-    2x20 kg + 1x10 kg per side (plate radius 0.225)."""
+    `plates` (radius, width) per side, 2x20 kg by default (plate radius 0.225)."""
     cylinder(h, BAR_R, 1.31, mat=STEEL, verts=48)
     for sx in (1, -1):
         cylinder(h, 0.035, 0.03, x=sx * 0.67, mat=STEEL)
         cylinder(h, 0.025, length / 2 - 0.685, x=sx * (0.685 + length / 2) / 2, mat=STEEL)
         x = 0.69
-        for rad, w in ((0.225, 0.055), (0.225, 0.055), (0.17, 0.035)):
+        for rad, w in plates:
             cylinder(h, rad, w, x=sx * (x + w / 2), mat=PLATE, verts=96, bevel=0.006)
             cylinder(h, 0.03, w + 0.004, x=sx * (x + w / 2), mat=STEEL)
             x += w + 0.002

@@ -48,7 +48,7 @@ def key(upper, fore_, thumb):
 
 HANG_W = [key((0.12, 0.03, -1), (0.04, 0.04, -1), (0, 1, 0))]            # world: arms hanging, neutral hands
 HANG_OUT = [key((0.24, 0, -1), (0.06, 0, -1), (0, 1, 0))]              # world: hanging clear of the thighs
-HANG_BAR = [key((0.1, 0.04, -1), (0.03, 0.05, -1), (-1, 0, 0))]          # world: hanging onto a bar, overhand
+HANG_BAR = [key((0.1, 0.17, -1), (0.03, 0.2, -1), (-1, 0, 0))]          # world: hanging onto a bar, overhand
 HANG_T = [key((0.12, 0.03, -1), (0.04, 0.04, -1), (0, 1, 0))]           # torso: arms hanging at the sides
 # torso: elbows wide, forearms level and pointing in, so the hands lie flat on the back of the head at ear height
 # (fingertips meeting behind it, palms forward, thumbs down the neck) instead of reaching up past it
@@ -990,7 +990,7 @@ def plyo(n, eq):
             "arm": {"keys": arms, "elbow_out": [1, -0.3, 0]}, "camera": {"az": 50, "el": 6}}
 
 
-OLY_HANG = key((0.1, 0.04, -1), (0.03, 0.05, -1), (-1, 0, 0))
+OLY_HANG = key((0.1, 0.17, -1), (0.03, 0.2, -1), (-1, 0, 0))   # bar hangs just in front of the thighs
 OLY_PULL = key((0.35, 0.2, -0.9), (0.0, 0.3, -0.95), (-1, 0, 0))
 OLY_RACK = key((0.45, 0.6, -0.65), (0.1, 0.25, 1), (-1, 0.1, 0))
 OLY_OVERHEAD = key((0.35, 0.05, 0.95), (0.2, 0.0, 1), (-1, 0.1, 0))
