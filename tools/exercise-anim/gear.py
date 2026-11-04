@@ -634,6 +634,12 @@ PATCHES.update({
     "Dip_Machine": (None, compose(machine_seat(), keys(
         key((0.15, -0.8, -0.6), (0.08, 1, 0.05), NEUTRAL), key((0.18, -0.05, -1), (0.16, 0.08, -1), NEUTRAL),
         elbow_out=[0.15, -1, 0]), lever((0.45, -0.75, -0.3)), camera(60, 8))),
+    "One-Arm_Dumbbell_Row": (None, compose(
+        lambda s: dict({k: v for k, v in s.items() if k != "body"}, posture={"type": "bench_row", "knee": "R", "lean": 78},
+                       implement="dumbbell", hands="L", secondary=["biceps", "lats", "rear_delts"]),
+        keys(key((-0.05, 0.2, -1), (-0.02, 0.15, -1), (0, 1, 0)), key((0.3, -0.85, 0.0), (0.03, 0.2, -1), (0, 1, 0)),
+             frame="world", sides="L", elbow_out=[0.4, -1, 0],
+             rest=key((0.05, 0.35, -1), (0.0, 0.3, -1), (0, 1, 0))), camera(70, 12))),
     "Reverse_Machine_Flyes": (None, compose(
         posture(type="seat", machine=True),
         keys(key((0.1, 1, 0.05), (0.08, 1, 0.12), (0, 0, 1)), key((1, 0.35, 0.02), (0.95, 0.45, 0.08), (0, 0, 1)),

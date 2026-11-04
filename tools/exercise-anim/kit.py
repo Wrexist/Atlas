@@ -335,6 +335,32 @@ def kneel(p):
     return (drop, 0, lean), []
 
 
+def bench_row(p):
+    """One knee and the same-side hand braced on a flat bench, the other foot planted beside it (one-arm row)."""
+    k, kx = ("R", -1) if p.get("knee", "R") == "R" else ("L", 1)
+    f, fx = ("L", 1) if k == "R" else ("R", -1)
+    hip = A.rest_head("upperleg01.L")
+    thigh = (A.rest_head("lowerleg01.L") - hip).length
+    shin = (A.rest_head("foot.L") - A.rest_head("lowerleg01.L")).length
+    want = BENCH_TOP + 0.05 + thigh * 0.97              # knee on the pad, thigh near vertical under the hip
+    lean = math.radians(p.get("lean", 75))
+    drop = hip.z - want
+    A.set_root(drop, 0, lean)
+    drop += A.head("upperleg01.L").z - want
+    A.set_root(drop, 0, lean)
+    hip = A.head("upperleg01.L")
+    ankle_z = A.rest_head("foot.L").z
+    A.plant_feet(toe_out_deg=6, ankles={k: (kx * 0.1, hip.y + shin * 0.93, BENCH_TOP + 0.06),
+                                        f: (fx * 0.4, hip.y + 0.05, ankle_z)})
+    bpy.data.objects["KneePole." + k].location = (kx * 0.1, hip.y - 1.0, 0.0)
+    bpy.data.objects["KneePole." + f].location = (fx * 0.45, hip.y - 1.0, 1.0)
+    p["knees_point"] = {k: (0, -1, -1), f: (fx * 0.3, -1, 0)}
+    props = bench(hip.y - 0.85, hip.y + shin + 0.12)
+    for o in props:
+        o.matrix_world = Matrix.Translation((kx * 0.17, 0, 0)) @ o.matrix_world
+    return (drop, 0, lean), props
+
+
 def support(p):
     """Held up on straight arms between dip bars at `bar_z`, knees bent so the feet clear the floor."""
     reach = sum(A.arm_lengths("L")) + 0.03
@@ -412,7 +438,9 @@ def bridge(p):
     props = []
     if p.get("shoulders_z"):
         top_z = p["shoulders_z"]
-        props.append(box("ThrustBench", (1.1, 0.36, top_z), (0, shoulders.y + 0.1, top_z / 2)))
+        y = shoulders.y + 0.1                   # a flat bench side-on behind the shoulder blades
+        props.append(E.cushion("BenchSeat", (1.1, 0.3, 0.075), (0, y, top_z - 0.0375)))
+        props += bench_frame_x(y, top_z)
     return (0, 0, math.radians(-90 + base)), props
 
 
@@ -499,7 +527,7 @@ def hang(p):
 
 
 POSTURES = {"stand": stand, "seat": seat, "floor_supine": floor_supine, "plank": plank, "hang": hang, "kneel": kneel,
-            "support": support, "split": split, "bridge": bridge,
+            "support": support, "split": split, "bridge": bridge, "bench_row": bench_row,
             "prone": prone}
 
 
@@ -2060,6 +2088,14 @@ def build(spec):
         if spec["posture"]["type"] in ("seat", "prone") and not spec.get("pad_post") and \
                 spec["posture"].get("pad_under") != "thighs":
             props += leg_lever(props[-1], props)
+        if spec["posture"].get("pad_under") == "thighs":   # hyperextension: the ankle roller on its own frame
+            c = props[-1].matrix_world.translation
+            for x in (-0.22, 0.22):
+                props.append(E.tube("RollerPost", (x, c.y, 0.07), (x, c.y, c.z), 0.06, 0.06))
+                props.append(E.joint("RollerKnuckle", Vector((x, c.y, c.z)), 0.04))
+                props += E.foot("RollerFoot", (x, c.y, 0), 0.5, 'y')
+            props.append(E.round_tube("RollerAxle", Vector((-0.22, c.y, c.z)), Vector((0.22, c.y, c.z)), 0.016,
+                                      mat=E.metal_mat()))
         if spec.get("pad_post"):                # a fixed hook pad (legs don't move): stand it on a post
             c = props[-1].matrix_world.translation
             props.append(box("PadPost", (0.06, 0.06, c.z), (0, c.y, c.z / 2)))
