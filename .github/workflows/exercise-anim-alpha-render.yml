@@ -29,7 +29,7 @@ jobs:
       b: ${{ steps.plan.outputs.b }}
       c: ${{ steps.plan.outputs.c }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: plan
         working-directory: tools/exercise-anim
         run: |
@@ -86,7 +86,7 @@ jobs:
       ATLAS_BODY: athletic  # the body Isac picked (gen_human.py BODIES), with short hair
       ATLAS_CLOTHES: "^short01"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install system packages
         run: |
           sudo apt-get update -q
@@ -201,7 +201,7 @@ jobs:
       ATLAS_BODY: athletic  # the body Isac picked (gen_human.py BODIES), with short hair
       ATLAS_CLOTHES: "^short01"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install system packages
         run: |
           sudo apt-get update -q
@@ -316,7 +316,7 @@ jobs:
       ATLAS_BODY: athletic  # the body Isac picked (gen_human.py BODIES), with short hair
       ATLAS_CLOTHES: "^short01"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install system packages
         run: |
           sudo apt-get update -q
