@@ -40,7 +40,7 @@ jobs:
           echo "TOTAL $(( $(date +%s) - start )) s incl. pose solve" | tee -a times.txt
           mkdir -p "$RUNNER_TEMP/res/${{ matrix.label }}"
           cp out/squat_*.png times.txt "$RUNNER_TEMP/res/${{ matrix.label }}/"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: bench-${{ matrix.label }}
           path: ${{ runner.temp }}/res
