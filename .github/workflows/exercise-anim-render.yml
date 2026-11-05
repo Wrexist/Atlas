@@ -26,7 +26,7 @@ jobs:
     outputs:
       shards: ${{ steps.plan.outputs.shards }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: plan
         working-directory: tools/exercise-anim
         env:
@@ -60,7 +60,7 @@ jobs:
       ATLAS_SAMPLES: 64
       ATLAS_RES: 720x900
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install system packages
         run: |
           sudo apt-get update -q
