@@ -125,7 +125,8 @@ enum WatchWorkoutSnapshotBuilder {
                     logsReps: set.supportsRepLogging,
                     measurement: set.measurement.map { WatchSetMeasurement($0) }
                 )
-            }
+            },
+            supersetGroup: entry.supersetGroup
         )
     }
 }

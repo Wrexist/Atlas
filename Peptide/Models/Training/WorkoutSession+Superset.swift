@@ -28,12 +28,13 @@ extension WorkoutSession {
     /// waits. Counting sets rather than comparing positions keeps a round
     /// started on a later member (B, then A) rest-free too.
     func continuesSuperset(from entryID: UUID, to targetID: UUID) -> Bool {
-        guard entryID != targetID,
-              let source = exercises.first(where: { $0.id == entryID }),
-              let target = exercises.first(where: { $0.id == targetID }),
-              let group = source.supersetGroup, target.supersetGroup == group
+        guard let source = exercises.first(where: { $0.id == entryID }),
+              let target = exercises.first(where: { $0.id == targetID })
         else { return false }
-        return target.completedWorkingSets.count < source.completedWorkingSets.count
+        return SupersetOrder.continuesRound(
+            sourceID: source.id, sourceGroup: source.supersetGroup, sourceCompleted: source.completedWorkingSets.count,
+            targetID: target.id, targetGroup: target.supersetGroup, targetCompleted: target.completedWorkingSets.count
+        )
     }
 
     /// The exercise below `entryID` in the workout, if any.

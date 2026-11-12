@@ -18,6 +18,9 @@ struct WatchWorkoutSnapshot: Codable, Hashable, Sendable {
         /// exercise's override or the user's default. Zero means no rest.
         let restSeconds: Int
         var sets: [SetRow]
+        /// `WorkoutExerciseEntry.supersetGroup`. Nil for a standalone
+        /// exercise, and on payloads older than the field.
+        var supersetGroup: UUID?
 
         var workingSets: [SetRow] { sets.filter { !$0.isWarmup } }
         var completedWorkingSets: Int { workingSets.filter(\.completed).count }
@@ -156,8 +159,13 @@ struct WatchWorkoutSnapshot: Codable, Hashable, Sendable {
         selectedExerciseID = exerciseID
         guard !exercises[e].sets[s].isWarmup else { return }
         rest = nil
+        let target = nextPendingWorkingSet(after: exerciseID)
+        if let target, continuesSuperset(from: exerciseID, to: target.exercise) {
+            selectedExerciseID = target.exercise
+            return
+        }
         let seconds = exercises[e].restSeconds
-        if seconds > 0, let target = nextPendingWorkingSet(preferring: exerciseID) {
+        if seconds > 0, let target {
             rest = Rest(
                 endsAt: now.addingTimeInterval(Double(seconds)),
                 totalSeconds: Double(seconds),
@@ -176,14 +184,25 @@ struct WatchWorkoutSnapshot: Codable, Hashable, Sendable {
 
     /// `WorkoutSession.nextPendingSet(after:)` over the snapshot. Exercises
     /// arrive in display order, so no sort is needed here.
-    private func nextPendingWorkingSet(preferring exerciseID: UUID) -> (exercise: UUID, set: UUID)? {
-        let preferred = exercises.filter { $0.id == exerciseID } + exercises.filter { $0.id != exerciseID }
+    private func nextPendingWorkingSet(after exerciseID: UUID) -> (exercise: UUID, set: UUID)? {
+        let preferred = SupersetOrder.searchOrder(after: exerciseID, in: exercises, id: \.id, group: \.supersetGroup)
         for exercise in preferred {
             if let set = exercise.sets.first(where: { !$0.completed && !$0.isWarmup }) {
                 return (exercise.id, set.id)
             }
         }
         return nil
+    }
+
+    /// `WorkoutSession.continuesSuperset(from:to:)` over the snapshot.
+    private func continuesSuperset(from sourceID: UUID, to targetID: UUID) -> Bool {
+        guard let source = exercises.first(where: { $0.id == sourceID }),
+              let target = exercises.first(where: { $0.id == targetID })
+        else { return false }
+        return SupersetOrder.continuesRound(
+            sourceID: source.id, sourceGroup: source.supersetGroup, sourceCompleted: source.completedWorkingSets,
+            targetID: target.id, targetGroup: target.supersetGroup, targetCompleted: target.completedWorkingSets
+        )
     }
 }
 

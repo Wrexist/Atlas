@@ -77,24 +77,13 @@ extension WorkoutSession {
     /// Inside a superset the round comes first, so sets alternate A, B, A, B.
     func nextPendingSet(after entryID: UUID) -> (entry: UUID, set: UUID)? {
         let ordered = exercises.sorted { $0.index < $1.index }
-        let round = supersetRound(after: entryID, in: ordered)
-        let preferred = round + ordered.filter { entry in !round.contains { $0.id == entry.id } }
+        let preferred = SupersetOrder.searchOrder(after: entryID, in: ordered, id: \.id, group: \.supersetGroup)
         for entry in preferred {
             if let set = entry.sets.first(where: { !$0.completed && !$0.isWarmup }) {
                 return (entry.id, set.id)
             }
         }
         return nil
-    }
-
-    /// The source alone, or its superset partners after it wrapping round
-    /// to the source itself.
-    private func supersetRound(after entryID: UUID, in ordered: [WorkoutExerciseEntry]) -> [WorkoutExerciseEntry] {
-        guard let source = ordered.first(where: { $0.id == entryID }) else { return [] }
-        guard let group = source.supersetGroup else { return [source] }
-        let members = ordered.filter { $0.supersetGroup == group }
-        let start = members.firstIndex { $0.id == entryID } ?? 0
-        return Array(members[(start + 1)...]) + Array(members[...start])
     }
 
     mutating func repairFocus() {
