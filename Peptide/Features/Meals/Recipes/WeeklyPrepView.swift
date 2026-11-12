@@ -9,7 +9,10 @@ struct WeeklyPrepView: View {
     @State private var prep = WeeklyPrepStore.shared
     @State private var pantry = PantryStore.shared
     @State private var picker: DishPickerTarget?
-    @State private var loggedSlot: MealCategory?
+    @State private var showLoggedToast = false
+    @State private var loggedMessage: LocalizedStringResource = ""
+    @State private var loggedMealID: UUID?
+    @State private var loggedToastID = 0
 
     private var calendar: Calendar { .current }
 
@@ -65,7 +68,16 @@ struct WeeklyPrepView: View {
         .background(AppColor.background.ignoresSafeArea())
         .navigationTitle("Weekly prep")
         .navigationBarTitleDisplayMode(.large)
-        .overlay(alignment: .bottom) { loggedToast }
+        .overlay(alignment: .top) {
+            SyncToast(
+                isShowing: $showLoggedToast,
+                message: loggedMessage,
+                autoDismissAfter: AppAnimation.logSuccessAutoCloseDelay,
+                action: .init(label: "Undo", perform: undoEat),
+                presentationID: loggedToastID
+            )
+            .padding(.top, Spacing.sm)
+        }
         .sheet(item: $picker) { target in
             PrepDishPicker(
                 recipes: prep.ranked(context: context(now: Date())),
@@ -165,20 +177,6 @@ struct WeeklyPrepView: View {
         .glassSurface(cornerRadius: Spacing.cardCornerRadius)
     }
 
-    @ViewBuilder
-    private var loggedToast: some View {
-        if let loggedSlot {
-            Label("Logged to \(loggedSlot.displayName)", systemImage: "checkmark.circle.fill")
-                .font(AppFont.headline)
-                .foregroundStyle(AppColor.positive)
-                .padding(.horizontal, Spacing.xl)
-                .frame(minHeight: Spacing.minimumHitTarget)
-                .glassSurfaceCapsule()
-                .padding(.bottom, Spacing.lg)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-        }
-    }
-
     // MARK: - Actions
 
     private func context(now: Date) -> RecipeLibraryEngine.Context {
@@ -248,17 +246,25 @@ struct WeeklyPrepView: View {
     }
 
     /// Logs one serving to today's diary and takes the box out of the fridge.
+    /// Deleting that meal, here with Undo or later from the diary, puts
+    /// the box back.
     private func eat(_ batch: PrepBoxBatch) {
         guard let recipe = prep.recipes[batch.recipeID] else { return }
         let entry = RecipeLibraryEngine.entry(for: recipe, locale: locale, at: Date(), calendar: calendar)
         dataStore.logMealEntry(entry)
-        AppAnimation.with(AppAnimation.springSnappy) { prep.removeOne(batch.id) }
+        AppAnimation.with(AppAnimation.springSnappy) { prep.eatOne(batch.id, loggedAs: entry.id, calendar: calendar) }
         Haptics.success()
-        AppAnimation.with(AppAnimation.toast) { loggedSlot = entry.category }
-        Task {
-            try? await Task.sleep(for: AppAnimation.logSuccessAutoCloseDelay)
-            AppAnimation.with(AppAnimation.toast) { loggedSlot = nil }
-        }
+        loggedMealID = entry.id
+        loggedMessage = LocalizedStringResource("Logged to \(entry.category.displayName)")
+        loggedToastID += 1
+        AppAnimation.with(AppAnimation.toast) { showLoggedToast = true }
+    }
+
+    private func undoEat() {
+        guard let loggedMealID else { return }
+        self.loggedMealID = nil
+        AppAnimation.with(AppAnimation.springSnappy) { dataStore.unlogMealEntry(id: loggedMealID) }
+        Haptics.impact(.light)
     }
 
     private func freeze(_ batch: PrepBoxBatch) {

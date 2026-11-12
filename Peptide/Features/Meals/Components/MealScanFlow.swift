@@ -1023,7 +1023,7 @@ struct MealScanFlow: View {
                 return
             }
             do {
-                try dataStore.commitScannedMeals(pendingEntries, undo: undoRequested)
+                let draftCleared = try MealScanDraftStore.shared.commit(pendingEntries, undo: undoRequested, to: dataStore)
                 if undoRequested {
                     pendingEntries = []
                     undoRequested = false
@@ -1035,6 +1035,9 @@ struct MealScanFlow: View {
                 } else {
                     hasLogged = true
                     phase = .logged
+                    if !draftCleared {
+                        draftError = String(localized: "The meal is saved, but draft cleanup failed. Retry Done.")
+                    }
                     rememberCorrections()
                     Haptics.success()
                 }

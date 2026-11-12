@@ -387,6 +387,20 @@ enum WeeklyPrepEngine {
         }
     }
 
+    /// Puts back one box taken from `box`'s batch, bringing the batch back
+    /// when its last box was the one taken.
+    static func returningOne(_ box: PrepBoxBatch, to batches: [PrepBoxBatch]) -> [PrepBoxBatch] {
+        var result = batches
+        if let index = result.firstIndex(where: { $0.id == box.id }) {
+            result[index].count += 1
+        } else {
+            var restored = box
+            restored.count = 1
+            result.append(restored)
+        }
+        return result
+    }
+
     /// Moves one box of a fridge batch into the freezer, joining the frozen
     /// boxes from the same cook when there are any.
     static func freezingOne(from batches: [PrepBoxBatch], id: UUID, at now: Date) -> [PrepBoxBatch] {
