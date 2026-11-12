@@ -150,9 +150,9 @@ final class WeeklyPrepStore {
             !WeeklyPrepEngine.pruned([$0.value], recipes: recipes, now: now, calendar: calendar).isEmpty
         }
         persist()
-        let boxes = boxes
-        let recipes = recipes
-        Task { await PrepBoxReminderScheduler.reconcile(boxes: boxes, recipes: recipes) }
+        let scheduledBoxes = boxes
+        let scheduledRecipes = recipes
+        Task { await PrepBoxReminderScheduler.reconcile(boxes: scheduledBoxes, recipes: scheduledRecipes) }
     }
 
     // MARK: - Storage
