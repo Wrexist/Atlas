@@ -3378,6 +3378,7 @@ final class DataStore {
         }
         guard !alreadyHasToday else { return }
         let newEntries = Self.generateTodayEntries(for: proto)
+        guard !newEntries.isEmpty else { return }
         entries.append(contentsOf: newEntries)
     }
 }
