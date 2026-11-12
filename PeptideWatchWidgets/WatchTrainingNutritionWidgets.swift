@@ -214,7 +214,7 @@ struct WatchWorkoutEntryView: View {
 
     private var lastWorkoutLine: String {
         guard let last = entry.training?.lastWorkout else { return String(localized: "No workouts yet") }
-        let day = last.finishedAt.formatted(.dateTime.weekday(.abbreviated))
+        let day = last.day.formatted(.dateTime.weekday(.abbreviated))
         return last.name.isEmpty ? String(localized: "Last: \(day)") : "\(last.name) · \(day)"
     }
 

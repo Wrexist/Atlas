@@ -79,8 +79,8 @@ struct WorkoutSocialCanvas: View {
             Text(options.includeName ? summary.name : String(localized: "Workout"))
                 .font(.title2.weight(.bold)).lineLimit(layout == .wide ? 1 : 2)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            if options.includeDate, let date = summary.session.finishedAt {
-                Text(date.formatted(date: .abbreviated, time: .omitted))
+            if options.includeDate, summary.session.finishedAt != nil {
+                Text(summary.session.dayAnchor.formatted(date: .abbreviated, time: .omitted))
                     .font(.caption).foregroundStyle(AppColor.textSecondary)
             }
         }

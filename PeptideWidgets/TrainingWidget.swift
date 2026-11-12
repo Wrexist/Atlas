@@ -21,7 +21,7 @@ struct TrainingEntry: TimelineEntry {
     let unitSuffix: String
     let week: [TrainingDay]
     let lastName: String
-    let lastFinishedAt: Date?
+    let lastWorkoutDay: Date?
     let lastSets: Int
     let lastVolume: Double
     let lastDurationMinutes: Int
@@ -32,13 +32,13 @@ struct TrainingEntry: TimelineEntry {
 
     /// Nothing to look back on yet — the widget offers the first
     /// workout instead of an empty stat block.
-    var hasHistory: Bool { lastFinishedAt != nil }
+    var hasHistory: Bool { lastWorkoutDay != nil }
 
     /// An unnamed session falls back to the weekday it happened on — the
     /// payload carries "" rather than a second optional.
     var lastTitle: String {
-        guard let finished = lastFinishedAt else { return "" }
-        return lastName.isEmpty ? finished.formatted(.dateTime.weekday(.wide)) : lastName
+        guard let day = lastWorkoutDay else { return "" }
+        return lastName.isEmpty ? day.formatted(.dateTime.weekday(.wide)) : lastName
     }
 
     static var empty: TrainingEntry {
@@ -46,7 +46,7 @@ struct TrainingEntry: TimelineEntry {
             date: .now, clockStart: nil, pausedElapsed: nil, workoutsThisWeek: 0,
             weeklySets: 0, weeklyVolume: 0, unitSuffix: "kg",
             week: TrainingDay.week(containing: .now, trained: []),
-            lastName: "", lastFinishedAt: nil, lastSets: 0, lastVolume: 0,
+            lastName: "", lastWorkoutDay: nil, lastSets: 0, lastVolume: 0,
             lastDurationMinutes: 0
         )
     }
@@ -67,7 +67,7 @@ struct TrainingEntry: TimelineEntry {
             unitSuffix: "kg",
             week: TrainingDay.week(containing: .now, trained: trained),
             lastName: "Push A",
-            lastFinishedAt: .now.addingTimeInterval(-86_400),
+            lastWorkoutDay: .now.addingTimeInterval(-86_400),
             lastSets: 16,
             lastVolume: 4_320,
             lastDurationMinutes: 58
@@ -83,7 +83,7 @@ struct TrainingDay: Hashable {
     let isFuture: Bool
 
     /// The seven days of the week containing `now`, in the user's
-    /// calendar, each marked against the days a session finished on.
+    /// calendar, each marked against the days a session started on.
     static func week(
         containing now: Date,
         trained: [Date],
@@ -152,7 +152,7 @@ struct TrainingTimelineProvider: TimelineProvider {
             unitSuffix: data.weightSuffix,
             week: TrainingDay.week(containing: date, trained: data.trainingDaysThisWeek),
             lastName: last?.name ?? "",
-            lastFinishedAt: last?.finishedAt,
+            lastWorkoutDay: last?.day,
             lastSets: last?.setCount ?? 0,
             lastVolume: data.volumeInUserUnit(last?.volumeKg ?? 0),
             lastDurationMinutes: last?.durationMinutes ?? 0
@@ -165,7 +165,7 @@ struct TrainingTimelineProvider: TimelineProvider {
 private let trainingTint = WidgetPalette.training
 private let trainingGlyph = "figure.strengthtraining.traditional"
 
-/// Monday to Sunday, a dot per day: filled where a session finished,
+/// Monday to Sunday, a dot per day: filled where a session started,
 /// ringed for today, faded for days still to come. The week's rhythm at
 /// a glance, which a count alone can't show.
 private struct WeekStrip: View {
@@ -279,8 +279,8 @@ private struct FreshWeekBlock: View {
         VStack(alignment: .leading, spacing: 2) {
             Text("Fresh week")
                 .font(.headline)
-            if let finished = entry.lastFinishedAt {
-                Text("Last: \(entry.lastTitle), \(finished.formatted(.relative(presentation: .named)))")
+            if let day = entry.lastWorkoutDay {
+                Text("Last: \(entry.lastTitle), \(day.formatted(.relative(presentation: .named)))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
@@ -420,12 +420,12 @@ private struct MediumTrainingView: View {
                 .textCase(.uppercase)
                 .tracking(0.5)
                 .foregroundStyle(.secondary)
-            if let finished = entry.lastFinishedAt {
+            if let day = entry.lastWorkoutDay {
                 Text(entry.lastTitle)
                     .font(.headline)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                Text(finished.formatted(.relative(presentation: .named)))
+                Text(day.formatted(.relative(presentation: .named)))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

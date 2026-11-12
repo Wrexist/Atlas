@@ -68,8 +68,8 @@ enum MuscleGainsEngine {
         else { return [:] }
 
         var weeksHit: [AnatomicalMuscle: Set<Date>] = [:]
-        for session in sessions where session.startedAt >= windowStart {
-            guard let week = calendar.dateInterval(of: .weekOfYear, for: session.startedAt)?.start
+        for session in sessions where session.dayAnchor >= windowStart {
+            guard let week = calendar.dateInterval(of: .weekOfYear, for: session.dayAnchor)?.start
             else { continue }
             for entry in session.exercises {
                 guard let exercise = library.lookup(id: entry.exerciseID) else { continue }

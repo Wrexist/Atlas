@@ -267,10 +267,10 @@ struct WorkoutHistoryView: View {
 
     /// Newest month first, newest session first within each month.
     private static func group(_ sessions: [WorkoutSession], calendar: Calendar = .current) -> [MonthGroup] {
-        let sorted = sessions.sorted { $0.historyDate > $1.historyDate }
+        let sorted = sessions.sorted { $0.dayAnchor > $1.dayAnchor }
         var groups: [MonthGroup] = []
         for session in sorted {
-            let month = calendar.dateInterval(of: .month, for: session.historyDate)?.start ?? session.historyDate
+            let month = calendar.dateInterval(of: .month, for: session.dayAnchor)?.start ?? session.day(in: calendar)
             if groups.last?.month == month {
                 groups[groups.count - 1].sessions.append(session)
             } else {
@@ -289,11 +289,9 @@ struct WorkoutHistoryView: View {
 }
 
 private extension WorkoutSession {
-    var historyDate: Date { finishedAt ?? startedAt }
-
     /// "Mon, Aug 12" in the user's locale — the row header.
     var displayDate: String {
-        historyDate.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())
+        dayAnchor.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())
     }
 
     /// The recap's duration, so history, detail and recap agree. Nil when

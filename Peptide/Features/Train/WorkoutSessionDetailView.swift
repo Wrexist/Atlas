@@ -397,8 +397,7 @@ struct WorkoutSessionDetailView: View {
         // `EEEE · MMMM d, yyyy`. Non-Latin locales (ja, zh, ar)
         // render their own canonical week/month strings rather than
         // forcing an English shape onto them (audit Biology L18).
-        let date = session.finishedAt ?? session.startedAt
-        return date.formatted(
+        session.dayAnchor.formatted(
             .dateTime
                 .weekday(.wide)
                 .month(.wide)

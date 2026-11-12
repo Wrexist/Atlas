@@ -2077,7 +2077,7 @@ final class DataStore {
         let now = Date()
         let cal = Calendar.current
         guard let start = cal.date(byAdding: .day, value: -days, to: cal.startOfDay(for: now)) else { return [] }
-        return repo.loadWorkoutSessions(startedBetween: start..<now).map(\.startedAt)
+        return repo.loadWorkoutSessions(startedBetween: start..<now).map(\.dayAnchor)
     }
 
     /// (count, totalMinutes) for finished workout sessions on `date`'s
