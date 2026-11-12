@@ -648,6 +648,60 @@ final class WorkoutSessionServiceTests: XCTestCase {
         XCTAssertEqual(sets.map(\.weightKg), [planned, planned, planned - 10])
     }
 
+    /// Pending sets the user put back to the planned load by hand (the edit
+    /// carries down) stay there when the short set is saved again without
+    /// new values, such as a note.
+    func test_unchangedResave_keepsAPendingSetEditedBackByHand() throws {
+        let saved = DataStore.current
+        DataStore.current = nil
+        defer { DataStore.current = saved }
+        logBenchWorkout(weightKg: 80, reps: 8)
+
+        let session = service.startWorkout(routine: Routine(name: "Push", exercises: [
+            RoutineExercise(exerciseID: bench().id, index: 0, targetSets: 3, targetReps: 8),
+        ]))
+        let entry = session.exercises[0]
+        let planned = try XCTUnwrap(entry.sets.first?.weightKg)
+
+        var logged = entry.sets[0]
+        logged.reps = entry.sets[0].reps - 2
+        logged.completed = true
+        service.updateSet(logged, inExerciseEntryID: entry.id)
+        var manual = try XCTUnwrap(service.currentSet(id: entry.sets[1].id, inExerciseEntryID: entry.id))
+        manual.weightKg = planned
+        service.updateSet(manual, inExerciseEntryID: entry.id)
+        var noted = try XCTUnwrap(service.currentSet(id: logged.id, inExerciseEntryID: entry.id))
+        noted.note = "Felt heavy"
+        service.updateSet(noted, inExerciseEntryID: entry.id)
+
+        let sets = try XCTUnwrap(service.activeSession?.exercises.first?.sets)
+        XCTAssertEqual(sets.map(\.weightKg), [planned, planned, planned])
+    }
+
+    /// Unchecking keeps a typed load on the sets below, so checking again
+    /// still finds them at the logged weight.
+    func test_uncheckAfterTypedWeight_keepsTheCarriedLoad() throws {
+        _ = service.startWorkout()
+        service.addExercise(bench())
+        let entryID = try XCTUnwrap(service.activeSession?.exercises.first?.id)
+        service.addSet(toExerciseID: entryID)
+        let first = try XCTUnwrap(service.activeSession?.exercises.first?.sets.first)
+        let planned = first.weightKg
+
+        var checked = first
+        checked.completed = true
+        service.updateSet(checked, inExerciseEntryID: entryID)
+        var typed = try XCTUnwrap(service.currentSet(id: first.id, inExerciseEntryID: entryID))
+        typed.weightKg = planned + 20
+        service.updateSet(typed, inExerciseEntryID: entryID)
+        var unchecked = try XCTUnwrap(service.currentSet(id: first.id, inExerciseEntryID: entryID))
+        unchecked.completed = false
+        service.updateSet(unchecked, inExerciseEntryID: entryID)
+
+        let sets = try XCTUnwrap(service.activeSession?.exercises.first?.sets)
+        XCTAssertEqual(sets.map(\.weightKg), [planned + 20, planned + 20])
+    }
+
     func test_startWorkout_routineListingAnExerciseTwice_keepsEachSlotsTarget() {
         let saved = DataStore.current
         DataStore.current = nil

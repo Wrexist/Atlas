@@ -180,6 +180,7 @@ final class WorkoutSessionService {
         NotificationService.cancelOneShot(id: restNotificationID(for: session.id))
         let detections = PRDetectionEngine.shared.ingest(session: session)
         activeSession = nil
+        lastCompletion = nil
         invalidatePreviousSetCache()
         WorkoutLiveActivityService.shared.finish(session)
         if HealthSyncSettings.isEnabled {
@@ -206,6 +207,7 @@ final class WorkoutSessionService {
         NotificationService.cancelOneShot(id: restNotificationID(for: session.id))
         SwiftDataRepository.shared.deleteWorkoutSession(id: session.id)
         activeSession = nil
+        lastCompletion = nil
         invalidatePreviousSetCache()
         WorkoutLiveActivityService.shared.endAll()
         DataStore.current?.refreshTrainingGlanceables()
@@ -430,7 +432,12 @@ final class WorkoutSessionService {
         // commits on focus loss just after the check, a correction during
         // rest, or an uncheck — first takes those moves back, so the pending
         // sets follow what was actually logged.
-        let effect = lastCompletion.flatMap { $0.entryID == entryID && $0.setID == updated.id ? $0 : nil }
+        // A save that changes none of the logged values (a note, a commit of
+        // unchanged text) re-decides nothing, so a pending set the user
+        // moved by hand since is left alone.
+        let effect = Self.changesLoggedValues(prior, updated)
+            ? lastCompletion.flatMap { $0.entryID == entryID && $0.setID == updated.id ? $0 : nil }
+            : nil
         if prior.completed, let effect {
             session.exercises[exIdx].sets = effect.reverted(session.exercises[exIdx].sets)
             lastCompletion = nil
@@ -438,7 +445,9 @@ final class WorkoutSessionService {
         let reapplies = !prior.completed || (effect != nil && updated.completed)
         let fromKg = effect?.fromKg ?? prior.weightKg
         let beforeEffects = session.exercises[exIdx].sets
-        if reapplies && !updated.isWarmup && abs(fromKg - updated.weightKg) >= 0.01 {
+        // An uncheck keeps the carry-forward (the typed load is still the
+        // load to do) and drops only the retune.
+        if (!prior.completed || effect != nil) && !updated.isWarmup && abs(fromKg - updated.weightKg) >= 0.01 {
             session.exercises[exIdx].sets = SetCarryEngine.carryingWeight(
                 session.exercises[exIdx].sets, after: updated, fromKg: fromKg
             )
@@ -468,6 +477,11 @@ final class WorkoutSessionService {
             }
         }
         persist(session)
+    }
+
+    private static func changesLoggedValues(_ old: SetEntry, _ new: SetEntry) -> Bool {
+        abs(old.weightKg - new.weightKg) >= 0.01 || old.reps != new.reps || old.rpe != new.rpe
+            || old.completed != new.completed || old.isWarmup != new.isWarmup
     }
 
     /// Undo only the set responsible for the currently displayed rest. Resolve
@@ -895,12 +909,11 @@ enum PreviousSetEngine {
     }
 }
 
-/// Typing a weight into one set fills the working sets still to do below
-/// it that still hold the old value, so a new lift typed once doesn't leave
-/// every later set at 0 kg. Sets the user already changed keep their value.
 /// What completing one set did to the pending sets of its exercise, so a
 /// later edit or uncheck of that set can take it back. Only sets still at
 /// the moved load are restored; a set the user changed since keeps its value.
+/// One slot: it covers the most recent completion, which is the set a
+/// focus-loss commit, a correction during rest or "Undo set" targets.
 struct SetCompletionEffect: Equatable {
     let entryID: UUID
     let setID: UUID
@@ -939,6 +952,9 @@ struct SetCompletionEffect: Equatable {
     }
 }
 
+/// Typing a weight into one set fills the working sets still to do below
+/// it that still hold the old value, so a new lift typed once doesn't leave
+/// every later set at 0 kg. Sets the user already changed keep their value.
 enum SetCarryEngine {
     static func carryingWeight(_ sets: [SetEntry], after edited: SetEntry, fromKg: Double) -> [SetEntry] {
         sets.map { set in
