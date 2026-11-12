@@ -120,7 +120,7 @@ enum WidgetSnapshotBuilder {
         let finished = workouts.filter { !$0.isActive }
         let thisWeek: [WorkoutSession]
         if let week = calendar.dateInterval(of: .weekOfYear, for: now) {
-            thisWeek = finished.filter { week.contains($0.finishedAt ?? $0.startedAt) }
+            thisWeek = finished.filter { $0.dayAnchor >= week.start && $0.dayAnchor < week.end }
         } else {
             thisWeek = []
         }
@@ -134,7 +134,7 @@ enum WidgetSnapshotBuilder {
             workoutsThisWeek: thisWeek.count,
             weeklySetCount: thisWeek.reduce(0) { $0 + $1.completedSetCount },
             weeklyVolumeKg: thisWeek.reduce(0) { $0 + $1.totalVolumeKg },
-            trainingDays: Set(thisWeek.map { midday(of: $0.finishedAt ?? $0.startedAt, in: calendar) })
+            trainingDays: Set(thisWeek.map { midday(of: $0.dayAnchor, in: calendar) })
                 .sorted()
         )
     }
@@ -164,6 +164,7 @@ enum WidgetSnapshotBuilder {
         let finishedAt = session.finishedAt ?? session.startedAt
         return WidgetWorkoutSummary(
             name: session.name ?? "",
+            startedAt: session.dayAnchor,
             finishedAt: finishedAt,
             setCount: session.completedSetCount,
             volumeKg: session.totalVolumeKg,

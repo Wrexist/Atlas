@@ -307,8 +307,8 @@ struct TrainOverviewView: View {
     ) -> Int {
         guard let week = calendar.dateInterval(of: .weekOfYear, for: now) else { return 0 }
         let days = sessions
-            .filter { !$0.isActive && $0.startedAt >= week.start && $0.startedAt < week.end }
-            .map { calendar.startOfDay(for: $0.startedAt) }
+            .filter { !$0.isActive && $0.dayAnchor >= week.start && $0.dayAnchor < week.end }
+            .map { $0.day(in: calendar) }
         return Set(days).count
     }
 
@@ -355,7 +355,7 @@ struct TrainOverviewView: View {
     /// their own confidence floors) — the view simply omits the line
     /// rather than showing a hedge-free guess.
     private static func trainingContextCaption(for sessions: [WorkoutSession]) -> String? {
-        let dates = sessions.map(\.startedAt)
+        let dates = sessions.map(\.dayAnchor)
         guard
             let baseline = TrainingPatternEngine.weeklyFrequencyBaseline(sessionDates: dates),
             baseline.confidence > .insufficientHistory
@@ -652,7 +652,7 @@ struct TrainingCalendarGrid: View {
         let cal = Calendar.current
         let now = Date()
         // Built once per render, not once per day cell.
-        let trainedDays = Set(sessions.map { cal.startOfDay(for: $0.startedAt) })
+        let trainedDays = Set(sessions.map { $0.day(in: cal) })
         guard let monthInterval = cal.dateInterval(of: .month, for: now),
               let firstDayWeekday = cal.dateComponents([.weekday], from: monthInterval.start).weekday
         else { return AnyView(EmptyView()) }

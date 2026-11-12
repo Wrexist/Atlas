@@ -186,12 +186,12 @@ enum WorkoutRecapEngine {
         var seen = Set<UUID>()
         let included = sessions.filter {
             guard let end = $0.finishedAt else { return false }
-            return end <= now && $0.startedAt >= interval.start && $0.startedAt < interval.end
+            return end <= now && $0.dayAnchor >= interval.start && $0.dayAnchor < interval.end
                 && seen.insert($0.id).inserted
         }.map { derive($0, catalog: catalog) }.filter(\.qualifiesForWeek)
         let days = (0..<7).compactMap { offset -> Day? in
             guard let date = calendar.date(byAdding: .day, value: offset, to: interval.start) else { return nil }
-            return Day(date: date, count: included.filter { calendar.isDate($0.session.startedAt, inSameDayAs: date) }.count)
+            return Day(date: date, count: included.filter { calendar.isDate($0.session.dayAnchor, inSameDayAs: date) }.count)
         }
         let volumes = included.compactMap(\.volumeKg)
         return Week(days: days, count: included.count, volumeKg: volumes.isEmpty ? nil : volumes.reduce(0, +),

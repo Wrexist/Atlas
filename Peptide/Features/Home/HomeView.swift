@@ -335,7 +335,7 @@ struct HomeView: View {
     private func finishedWorkoutSessions(on day: Date, thisWeek weekSessions: [WorkoutSession]) -> [WorkoutSession] {
         let calendar = Calendar.current
         if let week = calendar.dateInterval(of: .weekOfYear, for: Date()), week.contains(day) {
-            return weekSessions.filter { calendar.isDate($0.startedAt, inSameDayAs: day) }
+            return weekSessions.filter { calendar.isDate($0.dayAnchor, inSameDayAs: day) }
         }
         return SwiftDataRepository.shared
             .loadWorkoutSessions(startedBetween: TodayDayEngine.dayRange(for: day))

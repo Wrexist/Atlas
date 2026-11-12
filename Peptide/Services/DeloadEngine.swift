@@ -43,7 +43,7 @@ enum DeloadEngine {
         var end = weekStart
         while volumes.count < risingWeeks, let start = calendar.date(byAdding: .weekOfYear, value: -1, to: end) {
             let volume = sessions
-                .filter { $0.startedAt >= start && $0.startedAt < end }
+                .filter { $0.dayAnchor >= start && $0.dayAnchor < end }
                 .reduce(0) { $0 + $1.totalVolumeKg }
             guard volume > 0 else { break }
             volumes.append(volume)

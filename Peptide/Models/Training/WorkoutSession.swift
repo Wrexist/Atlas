@@ -164,3 +164,19 @@ struct WorkoutSession: Codable, Hashable, Identifiable, Sendable {
         }
     }
 }
+
+// MARK: - Day assignment
+
+extension WorkoutSession {
+    /// The instant that decides which day and week a workout counts
+    /// toward. A session that runs past midnight belongs to the day it
+    /// started, on every surface: history, calendar, streaks, weekly
+    /// totals and widgets. The repository's date-window fetches filter on
+    /// `startedAt` too, so a windowed read and this rule always agree.
+    var dayAnchor: Date { startedAt }
+
+    /// Start of the calendar day this workout belongs to.
+    func day(in calendar: Calendar) -> Date {
+        calendar.startOfDay(for: dayAnchor)
+    }
+}
