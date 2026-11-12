@@ -75,4 +75,54 @@ final class ReadinessEngineTests: XCTestCase {
     func test_highHRVButRacingHeart_isLow() {
         XCTAssertEqual(assess(hrv: 70, rhr: 62).level, .low)
     }
+
+    // MARK: - Keep last good reading
+
+    /// Stockholm, so the day boundary sits away from the UTC midnight CI runs on.
+    private var stockholm: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Stockholm")!
+        return calendar
+    }
+
+    private func date(_ day: Int, _ hour: Int, _ minute: Int = 0) -> Date {
+        stockholm.date(from: DateComponents(year: 2026, month: 3, day: day, hour: hour, minute: minute))!
+    }
+
+    private let low = ReadinessEngine.Assessment(level: .low, reason: .hrvBelowBaseline)
+
+    func test_emptyReadSameDay_keepsLastLowReading() {
+        let last = ReadinessEngine.Reading(assessment: low, measuredAt: date(10, 7))
+        let kept = ReadinessEngine.retained(fresh: .unknown, last: last, now: date(10, 18), calendar: stockholm)
+        XCTAssertEqual(kept, low)
+    }
+
+    func test_emptyReadNextDay_dropsYesterdaysReading() {
+        let last = ReadinessEngine.Reading(assessment: low, measuredAt: date(10, 23, 30))
+        let kept = ReadinessEngine.retained(fresh: .unknown, last: last, now: date(11, 0, 30), calendar: stockholm)
+        XCTAssertEqual(kept, .unknown)
+    }
+
+    func test_emptyReadAfterUTCMidnightBeforeLocalMidnight_keepsReading() {
+        // 00:30 in Stockholm is 23:30 on the 9th in UTC; the user's own day decides.
+        let last = ReadinessEngine.Reading(assessment: low, measuredAt: date(10, 0, 30))
+        let kept = ReadinessEngine.retained(fresh: .unknown, last: last, now: date(10, 22), calendar: stockholm)
+        XCTAssertEqual(kept, low)
+    }
+
+    func test_realReading_replacesLastReading() {
+        let last = ReadinessEngine.Reading(assessment: low, measuredAt: date(10, 7))
+        let fresh = ReadinessEngine.Assessment(level: .normal, reason: .typical)
+        XCTAssertEqual(ReadinessEngine.retained(fresh: fresh, last: last, now: date(10, 9), calendar: stockholm), fresh)
+    }
+
+    func test_emptyReadWithoutLastReading_isUnknown() {
+        XCTAssertEqual(ReadinessEngine.retained(fresh: .unknown, last: nil, now: date(10, 9), calendar: stockholm), .unknown)
+    }
+
+    func test_reading_roundTripsThroughJSON() throws {
+        let reading = ReadinessEngine.Reading(assessment: low, measuredAt: date(10, 7))
+        let decoded = try JSONDecoder().decode(ReadinessEngine.Reading.self, from: JSONEncoder().encode(reading))
+        XCTAssertEqual(decoded, reading)
+    }
 }

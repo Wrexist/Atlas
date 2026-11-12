@@ -1,5 +1,6 @@
 import Foundation
 import OSLog
+import UIKit
 
 /// Owns the user's single in-progress workout session. The invariant
 /// enforced here: at most one `WorkoutSession` has `finishedAt == nil`
@@ -28,6 +29,13 @@ final class WorkoutSessionService {
     /// Today's readiness from Health, read when a workout starts. Normal
     /// until then, and whenever Health has nothing to say.
     private(set) var readiness = ReadinessEngine.Assessment.unknown
+    /// The last readiness read from real Health data. Saved so a relaunch
+    /// in the background — where the locked device answers every Health
+    /// read with nothing — keeps today's low-recovery adjustment.
+    @ObservationIgnored private var lastReadiness: ReadinessEngine.Reading? = WorkoutSessionService.loadLastReadiness() {
+        didSet { Self.saveLastReadiness(lastReadiness) }
+    }
+    private nonisolated static let lastReadinessKey = "workout.lastReadiness.v1"
     /// Why this week calls for a deload, read from finished workouts when
     /// a workout starts.
     private(set) var deload: DeloadEngine.Reason?
@@ -57,6 +65,20 @@ final class WorkoutSessionService {
         // Re-hydrate any session that was active when the process was
         // suspended so the user picks up where they left off.
         activeSession = SwiftDataRepository.shared.loadActiveWorkoutSession()
+        // The restored workout's sets already carry this adjustment, so it is
+        // set directly rather than through a reseed.
+        readiness = ReadinessEngine.retained(fresh: .unknown, last: lastReadiness, now: Date(), calendar: .current)
+        // A background relaunch on a locked device couldn't read Health.
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.protectedDataDidBecomeAvailableNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, self.activeSession != nil else { return }
+                await self.refreshReadiness()
+            }
+        }
         // Deferred: clearing an expired rest and closing both reach
         // DataStore, which reads `.shared` — still mid-initialisation here.
         Task { [weak self] in
@@ -688,12 +710,40 @@ final class WorkoutSessionService {
     }
 
     func refreshReadiness() async {
-        let connected = DataStore.current?.profile.healthConnected ?? false
-        let assessment = connected ? await Self.todaysReadiness() : .unknown
+        guard DataStore.current?.profile.healthConnected ?? false else {
+            lastReadiness = nil
+            setReadiness(.unknown)
+            return
+        }
+        // Health refuses reads while the device is locked; the
+        // protected-data observer re-runs this once it unlocks.
+        guard UIApplication.shared.isProtectedDataAvailable else { return }
+        let fresh = await Self.todaysReadiness()
+        let now = Date()
+        if fresh.reason != .noData {
+            lastReadiness = ReadinessEngine.Reading(assessment: fresh, measuredAt: now)
+        }
+        setReadiness(ReadinessEngine.retained(fresh: fresh, last: lastReadiness, now: now, calendar: .current))
+    }
+
+    private func setReadiness(_ assessment: ReadinessEngine.Assessment) {
         guard assessment != readiness else { return }
         let before = activeAdjustment
         readiness = assessment
         reseedUntouchedSets(from: before)
+    }
+
+    private nonisolated static func loadLastReadiness(from defaults: UserDefaults = .standard) -> ReadinessEngine.Reading? {
+        defaults.data(forKey: lastReadinessKey)
+            .flatMap { try? JSONDecoder().decode(ReadinessEngine.Reading.self, from: $0) }
+    }
+
+    private nonisolated static func saveLastReadiness(_ reading: ReadinessEngine.Reading?, to defaults: UserDefaults = .standard) {
+        guard let reading, let data = try? JSONEncoder().encode(reading) else {
+            defaults.removeObject(forKey: lastReadinessKey)
+            return
+        }
+        defaults.set(data, forKey: lastReadinessKey)
     }
 
     /// Same windows as the Today screen's Recovery %, so both agree.

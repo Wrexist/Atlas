@@ -303,6 +303,7 @@ final class DataStore {
         ) { [weak self] _ in
             Task { @MainActor in
                 self?.retryUnreadableCustomPeptides()
+                self?.refreshHealthIfDue()
             }
         }
 
@@ -2809,8 +2810,12 @@ final class DataStore {
             updateWatchData()
             return
         }
+        // A locked device answers every Health read with nothing. Keeping
+        // the last snapshot lets the Watch age it out via `measuredAt`
+        // instead of losing today's Recovery to an unreadable store.
+        guard UIApplication.shared.isProtectedDataAvailable else { return }
         let vitals = await Self.buildWatchVitals(sleepTargetHours: RecoveryScoreEngine.defaultSleepTargetHours)
-        guard profile.healthConnected else { return }
+        guard profile.healthConnected, let vitals else { return }
         watchVitals = vitals
         updateWatchData()
     }
@@ -3101,6 +3106,8 @@ final class DataStore {
         if let last = lastHealthRefresh,
            now.timeIntervalSince(last) < Self.healthRefreshInterval,
            Calendar.current.isDate(last, inSameDayAs: now) { return }
+        // Not stamped while locked, so the unlock retries the reads.
+        guard UIApplication.shared.isProtectedDataAvailable else { return }
         lastHealthRefresh = now
         Task { await refreshWatchVitals() }
         Task { await importHealthWeights() }

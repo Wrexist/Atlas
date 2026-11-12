@@ -7,11 +7,11 @@ import Foundation
 /// never counts against the user: no reading means a normal day.
 enum ReadinessEngine {
 
-    enum Level: Equatable, Sendable {
+    enum Level: String, Codable, Equatable, Sendable {
         case ready, normal, low
     }
 
-    enum Reason: Equatable, Sendable {
+    enum Reason: String, Codable, Equatable, Sendable {
         case hrvBelowBaseline
         case restingHeartRateAboveBaseline
         case shortSleep
@@ -20,7 +20,7 @@ enum ReadinessEngine {
         case noData
     }
 
-    struct Assessment: Equatable, Sendable {
+    struct Assessment: Codable, Equatable, Sendable {
         let level: Level
         let reason: Reason
 
@@ -50,6 +50,23 @@ enum ReadinessEngine {
             return Assessment(level: .ready, reason: .hrvAboveBaseline)
         }
         return Assessment(level: .normal, reason: .typical)
+    }
+
+    /// An assessment that came from real Health data, and when.
+    struct Reading: Codable, Equatable, Sendable {
+        let assessment: Assessment
+        let measuredAt: Date
+    }
+
+    /// Keep-last-good: Health answers every read with nothing while the
+    /// device is locked, which `assess` turns into `.unknown`. An empty read
+    /// therefore never replaces a reading taken earlier the same day; a
+    /// reading from an earlier day is not today's readiness and is dropped.
+    static func retained(fresh: Assessment, last: Reading?, now: Date, calendar: Calendar) -> Assessment {
+        guard fresh.reason == .noData, let last, calendar.isDate(last.measuredAt, inSameDayAs: now) else {
+            return fresh
+        }
+        return last.assessment
     }
 
     private static func ratio(_ recent: Double?, to baseline: Double?) -> Double? {

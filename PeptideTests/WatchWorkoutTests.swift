@@ -118,6 +118,33 @@ final class WatchWorkoutSnapshotTests: XCTestCase {
         let data = WatchData.empty.replacingWorkout(workout).replacingEntries([])
         XCTAssertEqual(data.workout, workout)
     }
+
+    // MARK: - Supersets
+
+    func test_supersetSet_movesToPartnerWithoutRest() {
+        let group = UUID()
+        let curl = WatchWorkoutSnapshot.Exercise(id: UUID(), name: "Curl", restSeconds: 60, sets: [row(1), row(2)], supersetGroup: group)
+        let pushdown = WatchWorkoutSnapshot.Exercise(id: UUID(), name: "Pushdown", restSeconds: 60, sets: [row(1), row(2)], supersetGroup: group)
+        let next = snapshot([curl, pushdown]).applying(
+            .completeSet(exerciseID: curl.id, setID: curl.sets[0].id, weightKg: 20, reps: 10), at: now
+        )
+        XCTAssertNil(next.rest)
+        XCTAssertEqual(next.upNext?.exercise.id, pushdown.id)
+        XCTAssertEqual(next.upNext?.set.id, pushdown.sets[0].id)
+    }
+
+    func test_supersetRoundComplete_restsTowardFirstMember() {
+        let group = UUID()
+        let curl = WatchWorkoutSnapshot.Exercise(id: UUID(), name: "Curl", restSeconds: 60, sets: [row(1), row(2)], supersetGroup: group)
+        let pushdown = WatchWorkoutSnapshot.Exercise(id: UUID(), name: "Pushdown", restSeconds: 60, sets: [row(1), row(2)], supersetGroup: group)
+        let resting = snapshot([curl, pushdown])
+            .applying(.completeSet(exerciseID: curl.id, setID: curl.sets[0].id, weightKg: 20, reps: 10), at: now)
+            .applying(.completeSet(exerciseID: pushdown.id, setID: pushdown.sets[0].id, weightKg: 20, reps: 10), at: now)
+        XCTAssertEqual(resting.rest?.targetExerciseID, curl.id)
+        XCTAssertEqual(resting.rest?.targetSetID, curl.sets[1].id)
+        XCTAssertEqual(resting.upNext?.exercise.id, curl.id)
+    }
+
 }
 
 @MainActor
@@ -162,6 +189,32 @@ final class WatchWorkoutSnapshotBuilderTests: XCTestCase {
         XCTAssertTrue(snapshot.isPaused)
         XCTAssertEqual(snapshot.pausedElapsedSeconds, 330)
         XCTAssertNil(snapshot.rest)
+    }
+
+    func test_supersetSession_watchGuessMatchesPhonesNextSet() throws {
+        let group = UUID()
+        let curl = WorkoutExerciseEntry(exerciseID: "curl", index: 0, sets: [
+            SetEntry(index: 1, weightKg: 20, reps: 10), SetEntry(index: 2, weightKg: 20, reps: 10),
+        ], supersetGroup: group)
+        let pushdown = WorkoutExerciseEntry(exerciseID: "pushdown", index: 1, sets: [
+            SetEntry(index: 1, weightKg: 30, reps: 10), SetEntry(index: 2, weightKg: 30, reps: 10),
+        ], supersetGroup: group)
+        let row = WorkoutExerciseEntry(exerciseID: "row", index: 2, sets: [SetEntry(index: 1, weightKg: 50, reps: 10)])
+        var session = WorkoutSession(startedAt: start, exercises: [curl, pushdown, row],
+                                     focus: WorkoutFocusState(selectedEntryID: curl.id))
+
+        let snapshot = try XCTUnwrap(WatchWorkoutSnapshotBuilder.snapshot(of: session, defaultRestSeconds: 90))
+        XCTAssertEqual(snapshot.exercises.map(\.supersetGroup), [group, group, nil])
+
+        let wrist = snapshot.applying(
+            .completeSet(exerciseID: curl.id, setID: curl.sets[0].id, weightKg: 20, reps: 10), at: start
+        )
+        session.exercises[0].sets[0].completed = true
+        let phone = try XCTUnwrap(session.nextPendingSet(after: curl.id))
+
+        XCTAssertEqual(wrist.upNext?.exercise.id, phone.entry)
+        XCTAssertEqual(wrist.upNext?.set.id, phone.set)
+        XCTAssertEqual(phone.entry, pushdown.id)
     }
 
     func test_finishedOrMissingSession_sendsNoWorkout() {

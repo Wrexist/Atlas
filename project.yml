@@ -209,6 +209,7 @@ targets:
       - path: Shared/WatchData.swift
       - path: Shared/WatchOfflineWorkout.swift
       - path: Shared/WatchPalette.swift
+      - path: Shared/SupersetOrder.swift
       - path: Shared/WatchWorkout.swift
       - path: Shared/WidgetWorkoutSummary.swift
       - path: WatchShared
@@ -248,6 +249,7 @@ targets:
       - path: Shared/AppGroup.swift
       - path: Shared/WatchData.swift
       - path: Shared/WatchPalette.swift
+      - path: Shared/SupersetOrder.swift
       - path: Shared/WatchWorkout.swift
       - path: Shared/WidgetWorkoutSummary.swift
       - path: WatchShared

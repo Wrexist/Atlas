@@ -199,6 +199,19 @@ final class WatchStore: NSObject, ObservableObject {
         guard canStartOfflineWorkout else { return }
         play(.start)
         updateOffline(WatchOfflineWorkout(routine: routine, at: Self.tapTime()))
+        requestNotificationAuthorizationOnce()
+    }
+
+    /// Asked as a Watch-run workout starts rather than as its first rest
+    /// begins, when a prompt would cover the countdown mid-set. The rest-end
+    /// alert is the only notification the Watch posts, and only these
+    /// workouts schedule it. Once answered, the user is never asked again.
+    private func requestNotificationAuthorizationOnce() {
+        let center = UNUserNotificationCenter.current()
+        Task { @MainActor in
+            guard await center.notificationSettings().authorizationStatus == .notDetermined else { return }
+            _ = try? await center.requestAuthorization(options: [.alert, .sound])
+        }
     }
 
     func addOfflineLift(_ lift: WatchLift) {
@@ -339,7 +352,7 @@ final class WatchStore: NSObject, ObservableObject {
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, endsAt.timeIntervalSinceNow), repeats: false)
         let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
         Task { @MainActor [weak self] in
-            guard (try? await center.requestAuthorization(options: [.alert, .sound])) == true,
+            guard await center.notificationSettings().authorizationStatus == .authorized,
                   self?.armedRestEnd == endsAt else { return }
             try? await center.add(request)
         }
