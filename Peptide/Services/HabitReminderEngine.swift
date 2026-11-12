@@ -1,20 +1,18 @@
 import Foundation
 
-/// Plans the next few days of habit reminders as one-shot requests.
-///
-/// One-shots rather than repeating calendar triggers so a habit ticked
-/// off before its reminder silences that day only: meditate at 07:00 and
-/// the 20:00 "Meditate" nudge for today is dropped, tomorrow's stays. The
-/// same rolling window as `DailyReminderEngine`, re-planned on every
-/// foreground, background and habit change.
+/// Plans habit reminders as repeating triggers (see
+/// `ReminderTriggerEngine`), so they keep coming on days Atlas is not
+/// opened. A habit ticked off before its reminder silences that day
+/// only: meditate at 07:00 and today's 20:00 "Meditate" nudge is
+/// dropped, tomorrow's stays. Re-planned on every foreground, background
+/// and habit change.
 enum HabitReminderEngine {
-    /// Days covered by one plan, today included.
-    static let lookaheadDays = 3
-
     struct Planned: Equatable, Sendable {
         let habit: Habit
-        let fireDate: Date
+        let trigger: ReminderTriggerEngine.Trigger
         let id: String
+
+        var fireDate: Date { trigger.nextFireDate }
     }
 
     /// - Parameters:
@@ -32,6 +30,9 @@ enum HabitReminderEngine {
         limit: Int = NotificationService.habitRequestLimit
     ) -> [Planned] {
         let today = calendar.startOfDay(for: now)
+        let week = (0..<ReminderTriggerEngine.horizonDays).compactMap {
+            calendar.date(byAdding: .day, value: $0, to: today)
+        }
         var planned: [Planned] = []
 
         for habit in habits where !habit.archived {
@@ -39,28 +40,27 @@ enum HabitReminderEngine {
             let hour = calendar.component(.hour, from: reminderTime)
             let minute = calendar.component(.minute, from: reminderTime)
 
-            for offset in 0..<lookaheadDays {
-                guard let day = calendar.date(byAdding: .day, value: offset, to: today),
-                      habit.schedule.isDue(on: day, calendar: calendar),
-                      !isDone(habit, on: day, entries: entries, calendar: calendar)
-                else { continue }
-                let weekday = calendar.component(.weekday, from: day)
-                let resolved = NotificationService.resolvedHabitFireTime(
-                    hour: hour, minute: minute, weekday: weekday, avoiding: occupied
-                )
-                guard let fireDate = calendar.date(bySettingHour: resolved.hour, minute: resolved.minute, second: 0, of: day),
-                      fireDate > now
-                else { continue }
-                planned.append(Planned(habit: habit, fireDate: fireDate, id: identifier(habitID: habit.id, day: day, calendar: calendar)))
+            let slots = week
+                .filter { habit.schedule.isDue(on: $0, calendar: calendar) }
+                .map { day in
+                    let weekday = calendar.component(.weekday, from: day)
+                    let resolved = NotificationService.resolvedHabitFireTime(
+                        hour: hour, minute: minute, weekday: weekday, avoiding: occupied
+                    )
+                    return ReminderTriggerEngine.Slot(weekday: weekday, hour: resolved.hour, minute: resolved.minute)
+                }
+            let triggers = ReminderTriggerEngine.triggers(for: slots, now: now, calendar: calendar) {
+                isDone(habit, on: $0, entries: entries, calendar: calendar)
+            }
+            planned += triggers.map {
+                Planned(habit: habit, trigger: $0, id: identifier(habitID: habit.id, triggerKey: $0.key))
             }
         }
         return Array(planned.sorted { $0.fireDate < $1.fireDate }.prefix(limit))
     }
 
-    static func identifier(habitID: UUID, day: Date, calendar: Calendar = .current) -> String {
-        let c = calendar.dateComponents([.year, .month, .day], from: day)
-        let stamp = String(format: "%04d%02d%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
-        return "\(NotificationService.habitIDPrefix)\(habitID.uuidString)-\(stamp)"
+    static func identifier(habitID: UUID, triggerKey: String) -> String {
+        "\(NotificationService.habitIDPrefix)\(habitID.uuidString)-\(triggerKey)"
     }
 
     /// Done that day, or — for a times-per-week habit — done often

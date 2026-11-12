@@ -27,20 +27,33 @@ final class DailyReminderEngineTests: XCTestCase {
         XCTAssertTrue(plan.isEmpty)
     }
 
-    func test_enabledMeal_coversTodayAndLookahead() {
+    /// Reminders delivered over `days` days if Atlas stayed closed.
+    private func fired(_ plan: [DailyReminderEngine.Planned], after now: Date, days: Int) -> [Date] {
+        plan.map(\.trigger).fireDates(after: now, days: days, calendar: calendar)
+    }
+
+    func test_enabledMeal_isOneDailyRepeatFromToday() {
         let plan = DailyReminderEngine.plan(
             settings: settings(.lunch), trainingWeekdays: [], now: monday(6), calendar: calendar
         ) { _, _ in false }
-        XCTAssertEqual(plan.count, DailyReminderEngine.lookaheadDays)
+        XCTAssertEqual(plan.count, 1)
+        XCTAssertEqual(plan.first?.trigger.repeats, true)
         XCTAssertEqual(plan.first?.fireDate, monday(12, 30))
+    }
+
+    func test_appNotOpenedForThreeWeeks_mealAndWeighInKeepFiring() {
+        let plan = DailyReminderEngine.plan(
+            settings: settings(.lunch, .weighIn), trainingWeekdays: [], now: monday(6), calendar: calendar
+        ) { _, _ in false }
+        XCTAssertEqual(fired(plan, after: monday(6), days: 21).count, 2 * 21)
     }
 
     func test_timeAlreadyPassedToday_startsTomorrow() {
         let plan = DailyReminderEngine.plan(
             settings: settings(.lunch), trainingWeekdays: [], now: monday(13), calendar: calendar
         ) { _, _ in false }
-        XCTAssertEqual(plan.count, DailyReminderEngine.lookaheadDays - 1)
-        XCTAssertFalse(plan.contains { calendar.isDate($0.fireDate, inSameDayAs: monday(13)) })
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: monday(12, 30))
+        XCTAssertEqual(plan.first?.fireDate, tomorrow)
     }
 
     func test_alreadyLoggedToday_skipsOnlyToday() {
@@ -48,8 +61,9 @@ final class DailyReminderEngineTests: XCTestCase {
         let plan = DailyReminderEngine.plan(
             settings: settings(.lunch), trainingWeekdays: [], now: today, calendar: calendar
         ) { _, day in calendar.isDate(day, inSameDayAs: today) }
-        XCTAssertEqual(plan.count, DailyReminderEngine.lookaheadDays - 1)
-        XCTAssertFalse(plan.contains { calendar.isDate($0.fireDate, inSameDayAs: today) })
+        let dates = fired(plan, after: today, days: 14)
+        XCTAssertEqual(dates.count, 13)
+        XCTAssertFalse(dates.contains { calendar.isDate($0, inSameDayAs: today) })
     }
 
     func test_workout_onlyOnTrainingDays() {
@@ -58,16 +72,26 @@ final class DailyReminderEngineTests: XCTestCase {
             settings: settings(.workout), trainingWeekdays: [Weekday.tuesday.calendarWeekdayValue], now: monday(6), calendar: calendar
         ) { _, _ in false }
         XCTAssertEqual(plan.count, 1)
-        XCTAssertEqual(plan.first.map { calendar.component(.weekday, from: $0.fireDate) }, 3)
+        XCTAssertEqual(plan.first?.trigger.repeats, true)
+        XCTAssertEqual(plan.first?.trigger.components.weekday, 3)
     }
 
-    func test_identifiers_areUniquePerKindAndDay_andInDailyNamespace() {
+    func test_identifiers_areUniquePerKindAndSlot_andInDailyNamespace() {
         let plan = DailyReminderEngine.plan(
             settings: settings(.weighIn, .breakfast, .lunch, .dinner, .workout), trainingWeekdays: [], now: monday(0), calendar: calendar
         ) { _, _ in false }
-        XCTAssertEqual(plan.count, DailyReminderKind.allCases.count * DailyReminderEngine.lookaheadDays)
+        XCTAssertEqual(plan.count, DailyReminderKind.allCases.count)
         XCTAssertEqual(Set(plan.map(\.id)).count, plan.count)
         XCTAssertTrue(plan.allSatisfy { $0.id.hasPrefix(NotificationService.dailyIDPrefix) })
+        XCTAssertEqual(plan.map(\.fireDate), plan.map(\.fireDate).sorted())
+    }
+
+    func test_everyKindDoneToday_staysWithinRequestLimit() {
+        let today = monday(0)
+        let plan = DailyReminderEngine.plan(
+            settings: settings(.weighIn, .breakfast, .lunch, .dinner, .workout), trainingWeekdays: [], now: today, calendar: calendar
+        ) { _, day in calendar.isDate(day, inSameDayAs: today) }
+        XCTAssertEqual(plan.count, DailyReminderEngine.requestLimit)
         XCTAssertEqual(plan.map(\.fireDate), plan.map(\.fireDate).sorted())
     }
 

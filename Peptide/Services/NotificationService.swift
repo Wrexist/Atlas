@@ -404,8 +404,7 @@ final class NotificationService {
     @ObservationIgnored private var habitReminderPass: Task<Void, Never>?
 
     /// Replaces every pending habit reminder with `HabitReminderEngine`'s
-    /// plan: one-shot requests for the next few days, skipping a day the
-    /// habit is already done. Only habits with a `reminderTime` produce
+    /// plan: repeating triggers, skipping a day the habit is already done. Only habits with a `reminderTime` produce
     /// requests. Uses the `habit-` ID namespace so the dose scheduler's
     /// set-diff leaves them alone. Runs after any pass already in flight.
     func scheduleHabitReminders(for habits: [Habit], entries: [HabitEntry]) async {
@@ -437,8 +436,10 @@ final class NotificationService {
             occupied: doseReminderSlots
         )
         for reminder in planned {
-            let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: reminder.fireDate)
-            let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            let trigger = UNCalendarNotificationTrigger(
+                dateMatching: reminder.trigger.components,
+                repeats: reminder.trigger.repeats
+            )
             let request = UNNotificationRequest(
                 identifier: reminder.id,
                 content: habitReminderContent(for: reminder.habit),

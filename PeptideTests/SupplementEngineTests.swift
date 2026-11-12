@@ -131,20 +131,29 @@ final class SupplementEngineTests: XCTestCase {
 
     // MARK: - Reminders
 
-    func test_reminderPlan_notTakenToday_coversTodayAndLookahead() {
+    func test_reminderPlan_notTakenToday_isOneDailyRepeatFromToday() {
         let planned = SupplementEngine.reminderPlan(
             [supplement(minuteOfDay: 20 * 60, reminder: true)], now: october(28, 8), calendar: calendar
         )
-        XCTAssertEqual(planned.count, SupplementEngine.lookaheadDays)
+        XCTAssertEqual(planned.count, 1)
+        XCTAssertEqual(planned.first?.trigger.repeats, true)
         XCTAssertEqual(planned.first?.fireDate, october(28, 20))
+    }
+
+    func test_reminderPlan_appNotOpenedForThreeWeeks_keepsFiring() {
+        let planned = SupplementEngine.reminderPlan(
+            [supplement(minuteOfDay: 20 * 60, reminder: true)], now: october(28, 8), calendar: calendar
+        )
+        XCTAssertEqual(planned.map(\.trigger).fireDates(after: october(28, 8), days: 21, calendar: calendar).count, 21)
     }
 
     func test_reminderPlan_takenToday_dropsTodayKeepsTomorrow() {
         let planned = SupplementEngine.reminderPlan(
             [supplement(taken: [28], minuteOfDay: 20 * 60, reminder: true)], now: october(28, 8), calendar: calendar
         )
+        let dates = planned.map(\.trigger).fireDates(after: october(28, 8), days: 7, calendar: calendar)
         XCTAssertEqual(planned.first?.fireDate, october(29, 20))
-        XCTAssertEqual(planned.count, SupplementEngine.lookaheadDays - 1)
+        XCTAssertEqual(dates.count, 6)
     }
 
     func test_reminderPlan_timeAlreadyPassed_startsTomorrow() {
@@ -167,13 +176,13 @@ final class SupplementEngineTests: XCTestCase {
         XCTAssertEqual(planned.map(\.fireDate), (8..<13).map { october(28, $0) })
     }
 
-    func test_reminderIdentifier_isInTheDailyNamespaceAndUniquePerDay() {
+    func test_reminderIdentifier_isInTheDailyNamespaceAndUniquePerSlot() {
         let id = UUID()
-        let today = SupplementEngine.reminderIdentifier(supplementID: id, day: october(28), calendar: calendar)
-        let tomorrow = SupplementEngine.reminderIdentifier(supplementID: id, day: october(29), calendar: calendar)
-        XCTAssertTrue(today.hasPrefix(NotificationService.dailyIDPrefix))
-        XCTAssertTrue(today.hasSuffix("20261028"))
-        XCTAssertNotEqual(today, tomorrow)
+        let monday = SupplementEngine.reminderIdentifier(supplementID: id, triggerKey: "w2")
+        let tuesday = SupplementEngine.reminderIdentifier(supplementID: id, triggerKey: "w3")
+        XCTAssertTrue(monday.hasPrefix(NotificationService.dailyIDPrefix))
+        XCTAssertTrue(monday.hasSuffix("w2"))
+        XCTAssertNotEqual(monday, tuesday)
     }
 
     // MARK: - Sync merge
