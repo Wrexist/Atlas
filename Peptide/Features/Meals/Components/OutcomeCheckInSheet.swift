@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// 30-second daily wellness check-in. Five 1-5 sliders (energy /
-/// sleep / recovery / mood / focus) plus an optional note. Designed
-/// to be a one-screen, one-thumb interaction — the whole sheet
-/// fits on an iPhone 13 without scrolling so users actually fill
-/// it in instead of bouncing.
+/// 30-second daily wellness check-in. Five 1-5 ratings (energy /
+/// sleep / recovery / mood / focus) plus an optional note, as one card
+/// of rows: each row is a rising five-bar level you tap or drag across,
+/// with the rating named in words. One screen, one thumb, no scrolling
+/// on an iPhone 13, so people actually fill it in.
 ///
 /// Pre-fills with the prior day's values when the user is filling
 /// in fresh — the "stay still until you nudge it" pattern halves
@@ -28,7 +28,6 @@ struct OutcomeCheckInSheet: View {
     /// The values the sheet opened with, so a stray swipe can't throw
     /// away five ratings and a typed note.
     @State private var openedValues: [String] = []
-    @Namespace private var pillNamespace
 
     private var currentValues: [String] {
         [energy, sleepQuality, recovery, mood, focus].map(String.init) + [note]
@@ -41,11 +40,7 @@ struct OutcomeCheckInSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.lg) {
                     header
-                    sliderCard(for: .energy,       value: $energy)
-                    sliderCard(for: .sleepQuality, value: $sleepQuality)
-                    sliderCard(for: .recovery,    value: $recovery)
-                    sliderCard(for: .mood,        value: $mood)
-                    sliderCard(for: .focus,       value: $focus)
+                    ratingsCard
                     noteCard
                 }
                 .padding(.horizontal, Spacing.screenPadding)
@@ -76,11 +71,7 @@ struct OutcomeCheckInSheet: View {
                 .tracking(0.8)
                 .textCase(.uppercase)
                 .foregroundStyle(AppColor.accentLight)
-            Text("Where are you on a scale of 1 to 5?")
-                .font(AppFont.title2)
-                .foregroundStyle(AppColor.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text("Takes 30 seconds. Builds the correlation data that lets Atlas show you what's actually working.")
+            Text("Tap or drag the bars. Takes 30 seconds, and shows Atlas what actually works for you.")
                 .font(AppFont.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -96,94 +87,20 @@ struct OutcomeCheckInSheet: View {
         )
     }
 
-    private func sliderCard(for dimension: OutcomeDimension, value: Binding<Int>) -> some View {
+    private var ratingsCard: some View {
         GlassCard(padding: Spacing.md) {
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                HStack(spacing: Spacing.sm) {
-                    ZStack {
-                        Circle()
-                            .fill(dimension.tint.opacity(0.20))
-                            .frame(width: 32, height: 32)
-                        Image(systemName: dimension.icon)
-                            .font(AppFont.scaled(13, weight: .semibold))
-                            .foregroundStyle(dimension.tint)
-                    }
-                    Text(dimension.displayName)
-                        .font(AppFont.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(AppColor.textPrimary)
-                    Spacer(minLength: 0)
-                    Text("\(value.wrappedValue)")
-                        .font(AppFont.scaled(20, weight: .medium))
-                        .monospacedDigit()
-                        .foregroundStyle(dimension.tint)
-                        .contentTransition(.numericText())
-                }
-                fivePointPicker(value: value, tint: dimension.tint, dimension: dimension)
+            VStack(spacing: 0) {
+                OutcomeLevelRow(dimension: .energy, value: $energy)
+                Divider().overlay(AppColor.glassBorder)
+                OutcomeLevelRow(dimension: .sleepQuality, value: $sleepQuality)
+                Divider().overlay(AppColor.glassBorder)
+                OutcomeLevelRow(dimension: .recovery, value: $recovery)
+                Divider().overlay(AppColor.glassBorder)
+                OutcomeLevelRow(dimension: .mood, value: $mood)
+                Divider().overlay(AppColor.glassBorder)
+                OutcomeLevelRow(dimension: .focus, value: $focus)
             }
         }
-    }
-
-    /// Custom 1-5 segmented picker. Five tappable pills give a
-    /// faster, more accessible interaction than a continuous slider
-    /// for a 5-point scale — VoiceOver users can hit a specific
-    /// value directly instead of arrow-keying.
-    private func fivePointPicker(
-        value: Binding<Int>,
-        tint: Color,
-        dimension: OutcomeDimension
-    ) -> some View {
-        HStack(spacing: Spacing.xs) {
-            ForEach(1...5, id: \.self) { rating in
-                pill(rating: rating, current: value.wrappedValue, tint: tint, dimension: dimension) {
-                    if value.wrappedValue != rating {
-                        Haptics.selection()
-                        AppAnimation.with(AppAnimation.springSnappy) {
-                            value.wrappedValue = rating
-                        }
-                    }
-                }
-                .accessibilityLabel("\(dimension.displayName) \(rating) of 5")
-            }
-        }
-    }
-
-    private func pill(
-        rating: Int,
-        current: Int,
-        tint: Color,
-        dimension: OutcomeDimension,
-        action: @escaping () -> Void
-    ) -> some View {
-        let active = rating == current
-        return Button(action: action) {
-            Text("\(rating)")
-                .font(AppFont.scaled(16, weight: active ? .heavy : .semibold))
-                .monospacedDigit()
-                .foregroundStyle(active ? AppColor.textPrimary : AppColor.textSecondary)
-                .frame(maxWidth: .infinity)
-                .frame(minHeight: 44)
-                .background {
-                    // One selection fill per dimension that slides between
-                    // ratings instead of jumping.
-                    if active {
-                        pillShape(fill: tint.opacity(0.22), border: tint.opacity(0.65))
-                            .matchedGeometryEffect(id: dimension, in: pillNamespace)
-                    }
-                }
-                .background {
-                    pillShape(fill: AppColor.surfaceSecondary.opacity(0.5), border: AppColor.glassBorder)
-                }
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(active ? [.isButton, .isSelected] : .isButton)
-    }
-
-    private func pillShape(fill: Color, border: Color) -> some View {
-        let shape = RoundedRectangle(cornerRadius: Spacing.smallCornerRadius, style: .continuous)
-        return shape
-            .fill(fill)
-            .overlay { shape.strokeBorder(border, lineWidth: 1) }
     }
 
     private var noteCard: some View {
@@ -256,4 +173,98 @@ struct OutcomeCheckInSheet: View {
         f.timeStyle = .none
         return f
     }()
+}
+
+/// One rating: the dimension, its rating in words, and five bars rising
+/// left to right, filled up to the rating. Tap a bar or drag across them;
+/// VoiceOver swipes up and down.
+private struct OutcomeLevelRow: View {
+    let dimension: OutcomeDimension
+    @Binding var value: Int
+
+    @ScaledMetric(relativeTo: .body) private var barWidth: CGFloat = 22
+    @ScaledMetric(relativeTo: .body) private var barStep: CGFloat = 5
+    private static let barGap: CGFloat = 6
+    private static let range = 1...5
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: Spacing.md) {
+                label
+                Spacer(minLength: Spacing.sm)
+                bars
+            }
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                label
+                bars
+            }
+        }
+        .padding(.vertical, Spacing.sm)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(dimension.displayName))
+        .accessibilityValue(Text("\(Self.word(for: value)), \(value) of 5"))
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: set(value + 1)
+            case .decrement: set(value - 1)
+            @unknown default: break
+            }
+        }
+    }
+
+    private var label: some View {
+        HStack(spacing: Spacing.md) {
+            Image(systemName: dimension.icon)
+                .font(AppFont.scaled(13, weight: .semibold))
+                .foregroundStyle(dimension.tint)
+                .frame(width: AppFont.scaledValue(34), height: AppFont.scaledValue(34))
+                .background(dimension.tint.opacity(0.18), in: Circle())
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(dimension.displayName)
+                    .font(AppFont.headline)
+                    .foregroundStyle(AppColor.textPrimary)
+                Text(Self.word(for: value))
+                    .font(AppFont.footnote)
+                    .foregroundStyle(dimension.tint)
+                    .contentTransition(.numericText())
+            }
+        }
+    }
+
+    private var bars: some View {
+        HStack(alignment: .bottom, spacing: Self.barGap) {
+            ForEach(Self.range, id: \.self) { rating in
+                RoundedRectangle(cornerRadius: Spacing.iconCornerRadius, style: .continuous)
+                    .fill(rating <= value ? dimension.tint : AppColor.track)
+                    .frame(width: barWidth, height: barWidth * 0.5 + barStep * CGFloat(rating))
+            }
+        }
+        .frame(minHeight: Spacing.minimumHitTarget, alignment: .bottom)
+        .contentShape(Rectangle())
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { drag in
+                    let slot = Int(drag.location.x / (barWidth + Self.barGap))
+                    set(slot + 1)
+                }
+        )
+        .appAnimation(AppAnimation.springSnappy, value: value)
+    }
+
+    private func set(_ rating: Int) {
+        let clamped = min(Self.range.upperBound, max(Self.range.lowerBound, rating))
+        guard clamped != value else { return }
+        value = clamped
+        Haptics.selection()
+    }
+
+    static func word(for rating: Int) -> String {
+        switch rating {
+        case 1: String(localized: "Very low", comment: "Daily check-in rating 1 of 5")
+        case 2: String(localized: "Low", comment: "Daily check-in rating 2 of 5")
+        case 3: String(localized: "Okay", comment: "Daily check-in rating 3 of 5")
+        case 4: String(localized: "Good", comment: "Daily check-in rating 4 of 5")
+        default: String(localized: "Great", comment: "Daily check-in rating 5 of 5")
+        }
+    }
 }
