@@ -63,7 +63,7 @@ struct SessionBuilderSheet: View {
         ToolbarItem(placement: .topBarTrailing) {
             if let routine {
                 Button(isSaved ? LocalizedStringKey("routine.saved") : "Save as routine") { save(routine) }
-                    .disabled(isSaved)
+                    .disabled(isSaved || routine.exercises.isEmpty)
             } else {
                 Button("Pick for me", systemImage: "wand.and.stars") { pickForMe() }
                     .disabled(states.isEmpty)
