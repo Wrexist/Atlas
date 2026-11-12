@@ -164,11 +164,19 @@ enum DailyReminderScheduler {
         case .breakfast, .lunch, .dinner:
             guard let category = reminder.kind.mealCategory else { break }
             content.userInfo = ["deeplink": "peptidex://meals", "mealCategory": category.rawValue]
-            // A repeat fires on days whose yesterday is not known yet, so
-            // only a one-shot names yesterday's meals.
-            let previous = reminder.trigger.repeats
-                ? []
-                : DailyReminderEngine.previousDayMeals(category, before: reminder.fireDate, in: profile.mealHistory, calendar: calendar)
+            guard !reminder.trigger.repeats else {
+                // A repeat fires on days whose yesterday is not known yet,
+                // so it names no meals. The action still repeats the real
+                // previous day: the delegate reads the delivery date.
+                let invite = String(
+                    localized: "Or tap Same as yesterday to log it again.",
+                    comment: "Second line of a repeating meal reminder. 'Same as yesterday' is the notification action's title."
+                )
+                content.body = String(localized: "Snap your plate — logging takes a few seconds.") + "\n" + invite
+                content.categoryIdentifier = mealRepeatCategoryID
+                break
+            }
+            let previous = DailyReminderEngine.previousDayMeals(category, before: reminder.fireDate, in: profile.mealHistory, calendar: calendar)
             if previous.isEmpty {
                 content.body = String(localized: "Snap your plate — logging takes a few seconds.")
                 content.categoryIdentifier = mealCategoryID

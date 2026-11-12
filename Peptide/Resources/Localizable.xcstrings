@@ -48964,6 +48964,17 @@
           }
         }
       }
+    },
+    "Or tap Same as yesterday to log it again.": {
+      "comment": "Second line of a repeating meal reminder. 'Same as yesterday' is the notification action's title.",
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eller tryck på Samma som igår för att logga den igen."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
