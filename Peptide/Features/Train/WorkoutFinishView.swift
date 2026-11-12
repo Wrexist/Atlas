@@ -174,14 +174,14 @@ struct WorkoutFinishView: View {
                     .symbolEffect(.bounce, value: celebrated)
                 Text("Workout saved").font(AppFont.title)
                 Text(summary.name).font(AppFont.headline).multilineTextAlignment(.center)
-                if summary.session.finishedAt != nil {
-                    Text(summary.session.dayAnchor.formatted(date: .abbreviated, time: .shortened))
+                if let date = summary.session.finishedAt {
+                    Text(date.formatted(date: .abbreviated, time: .shortened))
                         .font(AppFont.subheadline).foregroundStyle(AppColor.textSecondary)
                 }
             } else {
                 Text(summary.name).font(AppFont.title).multilineTextAlignment(.center)
-                if summary.session.finishedAt != nil {
-                    Text(summary.session.dayAnchor.formatted(date: .complete, time: .shortened))
+                if let date = summary.session.finishedAt {
+                    Text(date.formatted(date: .complete, time: .shortened))
                         .font(AppFont.subheadline).foregroundStyle(AppColor.textSecondary)
                         .multilineTextAlignment(.center)
                 }
