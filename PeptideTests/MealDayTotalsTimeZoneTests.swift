@@ -118,12 +118,37 @@ final class MealDayTotalsTimeZoneTests: XCTestCase {
         let snack = try XCTUnwrap(profile.mealHistory.first { $0.name == "Snack" })
         let mondayKey = LifestyleDataLogic.consumptionKey(for: snack.date, calendar: stockholm)
 
-        LifestyleDataLogic.unlogMealEntry(from: &profile, id: snack.id)
+        LifestyleDataLogic.unlogMealEntry(from: &profile, id: snack.id, calendar: newYork)
 
         XCTAssertEqual(profile.dailyConsumption[mondayKey]?.caloriesKcal, 0)
         for day in [try date(newYork, day: 4, hour: 12), try date(newYork, day: 5, hour: 12)] {
             let total = LifestyleDataLogic.consumption(in: profile, for: day, calendar: newYork).caloriesKcal
             XCTAssertEqual(total, listedCalories(profile, on: day, newYork))
         }
+    }
+
+    func test_undoingAMealLoggedInNewYorkIntoAStockholmBucket_decrementsThatBucket() throws {
+        // Monday's bucket was created in Stockholm, so its stamped day ends
+        // at Tuesday 00:00 CEST. Dinner logged Monday 19:00 in New York is
+        // Tuesday 01:00 CEST: same key, outside the stamped day, and inside
+        // the window of Tuesday's Stockholm bucket.
+        let stockholm = try calendar("Europe/Stockholm")
+        let newYork = try calendar("America/New_York")
+        var profile = UserProfile.fresh
+        log(meal("Breakfast", at: try date(stockholm, day: 5, hour: 8), calories: 300, category: .breakfast),
+            into: &profile, calendar: stockholm)
+        log(meal("Brunch", at: try date(stockholm, day: 6, hour: 9), calories: 600, category: .lunch),
+            into: &profile, calendar: stockholm)
+        let dinner = meal("Dinner", at: try date(newYork, day: 5, hour: 19), calories: 400, category: .dinner)
+        log(dinner, into: &profile, calendar: newYork)
+        let mondayKey = LifestyleDataLogic.consumptionKey(for: try date(stockholm, day: 5, hour: 12), calendar: stockholm)
+        let tuesdayKey = LifestyleDataLogic.consumptionKey(for: try date(stockholm, day: 6, hour: 12), calendar: stockholm)
+        XCTAssertEqual(LifestyleDataLogic.consumptionKey(for: dinner.date, calendar: newYork), mondayKey)
+        XCTAssertEqual(profile.dailyConsumption[mondayKey]?.caloriesKcal, 700)
+
+        LifestyleDataLogic.unlogMealEntry(from: &profile, id: dinner.id, calendar: newYork)
+
+        XCTAssertEqual(profile.dailyConsumption[mondayKey]?.caloriesKcal, 300)
+        XCTAssertEqual(profile.dailyConsumption[tuesdayKey]?.caloriesKcal, 600)
     }
 }

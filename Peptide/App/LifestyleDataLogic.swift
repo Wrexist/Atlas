@@ -89,9 +89,11 @@ enum LifestyleDataLogic {
         proteinG: Int,
         carbsG: Int,
         fatG: Int,
-        date: Date
+        date: Date,
+        calendar: Calendar = .current
     ) {
-        let key = loggedKey(for: date, in: profile)
+        let amounts = CategoryTotals(calories: calories, proteinG: proteinG, carbsG: carbsG, fatG: fatG, entryCount: 1)
+        let key = loggedKey(for: date, amounts: amounts, in: profile, calendar: calendar)
         guard var bucket = profile.dailyConsumption[key] else { return }
         bucket.caloriesKcal = max(0, bucket.caloriesKcal - calories)
         bucket.proteinG    = max(0, bucket.proteinG    - proteinG)
@@ -100,19 +102,47 @@ enum LifestyleDataLogic {
         profile.dailyConsumption[key] = bucket
     }
 
-    /// The bucket a meal at `date` was added to: the one whose day, as
-    /// stamped when it was created, holds `date`. That is today's
-    /// `consumptionKey` unless the time zone changed since, and undoing
-    /// from the wrong bucket would leave the meal's macros behind.
-    private static func loggedKey(for date: Date, in profile: UserProfile) -> String {
-        let key = consumptionKey(for: date)
-        let calendar = Calendar.current
-        func holds(_ bucket: DailyConsumption) -> Bool {
-            guard let end = calendar.date(byAdding: .day, value: 1, to: bucket.date) else { return false }
-            return date >= bucket.date && date < end
+    /// The bucket a meal at `date` was most likely added to. Undoing from
+    /// the wrong one leaves the meal's macros behind as a phantom total.
+    ///
+    /// A bucket "covers" the meal when what's left after the other meals
+    /// stamped inside its day is at least the meal's macros. The bucket
+    /// under today's key wins when it covers: `logMeal` keeps adding to
+    /// that key after a time-zone change without re-stamping its date,
+    /// so its window can miss meals it holds. Otherwise the covering
+    /// bucket stamped nearest the meal wins (ties by key, so the pick
+    /// is deterministic); with none, today's key as before.
+    /// `mealHistory` must no longer contain the meal being undone.
+    private static func loggedKey(
+        for date: Date,
+        amounts: CategoryTotals,
+        in profile: UserProfile,
+        calendar: Calendar
+    ) -> String {
+        let key = consumptionKey(for: date, calendar: calendar)
+        func covers(_ bucket: DailyConsumption) -> Bool {
+            let end = calendar.date(byAdding: .day, value: 1, to: bucket.date) ?? bucket.date
+            var others = CategoryTotals.zero
+            for entry in profile.mealHistory where entry.date >= bucket.date && entry.date < end {
+                others.add(entry)
+            }
+            return bucket.caloriesKcal - others.calories >= amounts.calories
+                && bucket.proteinG - others.proteinG >= amounts.proteinG
+                && bucket.carbsG - others.carbsG >= amounts.carbsG
+                && bucket.fatG - others.fatG >= amounts.fatG
         }
-        if let bucket = profile.dailyConsumption[key], holds(bucket) { return key }
-        return profile.dailyConsumption.first { holds($0.value) }?.key ?? key
+        if let bucket = profile.dailyConsumption[key], covers(bucket) { return key }
+        func distance(_ bucket: DailyConsumption) -> TimeInterval { abs(bucket.date.timeIntervalSince(date)) }
+        // No time zone is more than 26 hours from another, so a bucket
+        // stamped two days away can't be where this meal went.
+        let nearest = profile.dailyConsumption
+            .filter { distance($0.value) < 2 * 86_400 && covers($0.value) }
+            .min { lhs, rhs in
+                distance(lhs.value) != distance(rhs.value)
+                    ? distance(lhs.value) < distance(rhs.value)
+                    : lhs.key < rhs.key
+            }
+        return nearest?.key ?? key
     }
 
     /// Adds (or, negative, removes) an exact amount of water. `waterOz`
@@ -156,13 +186,20 @@ enum LifestyleDataLogic {
     /// the day the list shows. Its macros only count for what no entry
     /// explains: an entry explains the bucket when it falls inside the
     /// bucket's own day (as stamped at log time) or inside the asked day.
+    ///
+    /// Known limits: legacy un-itemised macros can be under-counted when
+    /// entries from the asked day overlap the bucket without having been
+    /// logged into it (only possible after a time-zone change). Adaptive
+    /// TDEE, the weekly check-in and `WeeklySummaryEngine` still read the
+    /// raw buckets, so their per-day intake stays keyed by log-time zone.
     static func consumption(
         in profile: UserProfile,
         for date: Date,
         calendar: Calendar = .current
     ) -> DailyConsumption {
         var result = profile.dailyConsumption[consumptionKey(for: date, calendar: calendar)]
-            ?? DailyConsumption.empty(on: date)
+            ?? DailyConsumption(date: calendar.startOfDay(for: date),
+                                caloriesKcal: 0, proteinG: 0, carbsG: 0, fatG: 0, waterOz: 0)
         // Interval bounds, not `isDate(_:inSameDayAs:)` per entry: this
         // runs on every ring render and history holds up to 3 650 meals.
         let dayStart = calendar.startOfDay(for: date)
@@ -211,7 +248,7 @@ enum LifestyleDataLogic {
     /// second pass because the entry's already gone. Used by the
     /// Undo affordance on every review screen's success state, and
     /// (eventually) by a meal-history edit/delete UI.
-    static func unlogMealEntry(from profile: inout UserProfile, id: UUID) {
+    static func unlogMealEntry(from profile: inout UserProfile, id: UUID, calendar: Calendar = .current) {
         guard let entry = profile.mealHistory.first(where: { $0.id == id }) else { return }
         profile.mealHistory.removeAll { $0.id == id }
         unlogMeal(
@@ -220,7 +257,8 @@ enum LifestyleDataLogic {
             proteinG: entry.proteinG,
             carbsG: entry.carbsG,
             fatG: entry.fatG,
-            date: entry.date
+            date: entry.date,
+            calendar: calendar
         )
     }
 
@@ -234,8 +272,9 @@ enum LifestyleDataLogic {
     /// No-op when the id isn't in history.
     static func applyMealEntryEdit(into profile: inout UserProfile, updated: MealEntry) {
         guard let index = profile.mealHistory.firstIndex(where: { $0.id == updated.id }) else { return }
-        let previous = profile.mealHistory[index]
-        profile.mealHistory[index] = updated
+        // Out of history while undoing, so `unlogMeal` can tell which
+        // bucket held it (see `loggedKey`).
+        let previous = profile.mealHistory.remove(at: index)
         unlogMeal(
             from: &profile,
             calories: previous.calories,
@@ -244,6 +283,7 @@ enum LifestyleDataLogic {
             fatG: previous.fatG,
             date: previous.date
         )
+        profile.mealHistory.insert(updated, at: index)
         logMeal(
             into: &profile,
             calories: updated.calories,
