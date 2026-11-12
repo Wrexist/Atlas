@@ -25,11 +25,17 @@ enum IntentDataStore {
     /// disk-backed one if the app was just launched for an intent
     /// and the SwiftUI scene hasn't initialised its copy yet.
     static func resolve() -> DataStore {
-        let store = DataStore.current ?? DataStore()
-        DataStore.current = store
-        // A store kept alive in a suspended app since yesterday has no
-        // doses for today until the app is foregrounded; an intent can run
-        // without that ever happening. Idempotent.
+        if let existing = DataStore.current { return existing }
+        let fresh = DataStore()
+        DataStore.current = fresh
+        return fresh
+    }
+
+    /// `resolve()` for intents that read or log today's doses. A store kept
+    /// alive in a suspended app since yesterday has no doses for today until
+    /// the app is foregrounded, which an intent can run without. Idempotent.
+    static func resolveWithTodaysDoses() -> DataStore {
+        let store = resolve()
         store.regenerateTodayEntries()
         return store
     }
