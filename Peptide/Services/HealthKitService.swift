@@ -851,11 +851,12 @@ final class HealthKitService {
         return nights.reduce(0.0) { $0 + $1.value } / Double(nights.count)
     }
 
-    /// The most recent night's total. Looks back two wake-up days so
-    /// between midnight and waking (today's bucket still empty) it
-    /// returns last night instead of nothing.
-    func lastNightSleepHours() async -> Double? {
-        await dailySleepHours(days: 2).last?.value
+    /// Hours asleep in last night's main sleep. A nap after waking is not
+    /// added to it, and a missing night (the watch was charging) gives nil
+    /// instead of the night before. See `SleepScoreEngine.lastNight`.
+    func lastNightSleepHours(now: Date = Date()) async -> Double? {
+        let segments = await recentSleepSegments()
+        return SleepScoreEngine.lastNight(from: segments, now: now).map { $0.asleep / 3600 }
     }
 
     /// Every staged sleep segment from the last 30 hours, for

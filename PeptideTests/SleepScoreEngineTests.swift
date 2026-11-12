@@ -17,6 +17,35 @@ final class SleepScoreEngineTests: XCTestCase {
         return .init(stage: stage, start: start, end: start.addingTimeInterval(hours * 3600), source: source)
     }
 
+    // MARK: - Last night
+
+    func test_lastNight_inTheSmallHoursOfTheNextNight_isStillLastNight() throws {
+        let segments = [segment(.core, at: 0, for: 8)]
+        // Woke 06:00; it is 01:00 the next night, 19 h later.
+        let now = bedtime.addingTimeInterval(27 * 3600)
+        let night = try XCTUnwrap(SleepScoreEngine.lastNight(from: segments, now: now))
+        XCTAssertEqual(night.asleep, 8 * 3600)
+    }
+
+    /// No sleep recorded last night (the watch was charging): the night
+    /// before must not be shown as last night.
+    func test_lastNight_whenOnlyTheNightBeforeIsRecorded_isNil() {
+        let segments = [segment(.core, at: 0, for: 8)]
+        // 09:00 the following morning, 27 h after waking.
+        let now = bedtime.addingTimeInterval(35 * 3600)
+        XCTAssertNil(SleepScoreEngine.lastNight(from: segments, now: now))
+    }
+
+    func test_lastNight_napAfterWaking_isNotAddedToTheNight() throws {
+        let segments = [
+            segment(.core, at: 0, for: 7),
+            segment(.core, at: 16, for: 1),
+        ]
+        let now = bedtime.addingTimeInterval(18 * 3600)
+        let night = try XCTUnwrap(SleepScoreEngine.lastNight(from: segments, now: now))
+        XCTAssertEqual(night.asleep, 7 * 3600)
+    }
+
     // MARK: - Night selection
 
     func test_night_noSegments_returnsNil() {
