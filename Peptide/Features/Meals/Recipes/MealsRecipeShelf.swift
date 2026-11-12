@@ -1,9 +1,12 @@
 import SwiftUI
 
 /// The Meals tab's recipe row: the user's hearted recipes, each one tap
-/// from today's diary. Until something is hearted it shows recipes for
+/// from the diary day being viewed. Until something is hearted it shows recipes for
 /// the meal of the hour, with a hint on how to keep one here.
 struct MealsRecipeShelf: View {
+    /// The diary day being viewed; recipes log onto it.
+    var logDay = Date()
+
     @Environment(DataStore.self) private var dataStore
 
     private var favorites: [LibraryRecipe] {
@@ -40,7 +43,7 @@ struct MealsRecipeShelf: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(alignment: .top, spacing: Spacing.md) {
                     ForEach(favorites.isEmpty ? forNow : favorites) { recipe in
-                        RecipeShelfCard(recipe: recipe)
+                        RecipeShelfCard(recipe: recipe, logDay: logDay)
                     }
                 }
                 .scrollTargetLayout()
@@ -57,9 +60,10 @@ struct MealsRecipeShelf: View {
 }
 
 /// Photo card with a heart in the corner and, for logging without opening
-/// the recipe, a plus that adds one serving to today.
+/// the recipe, a plus that adds one serving to the viewed day.
 private struct RecipeShelfCard: View {
     let recipe: LibraryRecipe
+    let logDay: Date
 
     @Environment(DataStore.self) private var dataStore
     @Environment(\.locale) private var locale
@@ -70,7 +74,7 @@ private struct RecipeShelfCard: View {
 
     var body: some View {
         NavigationLink {
-            RecipeDetailView(recipe: recipe)
+            RecipeDetailView(recipe: recipe, logDay: logDay)
         } label: {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 RecipeImage(
@@ -115,7 +119,7 @@ private struct RecipeShelfCard: View {
     private var logButton: some View {
         Button {
             guard !justLogged else { return }
-            dataStore.logServing(of: recipe, locale: locale)
+            dataStore.logServing(of: recipe, locale: locale, on: logDay)
             AppAnimation.with(AppAnimation.springBouncy) { justLogged = true }
             Task {
                 try? await Task.sleep(for: AppAnimation.logSuccessAutoCloseDelay)
