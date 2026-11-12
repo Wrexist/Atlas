@@ -11,6 +11,9 @@ struct ExerciseShowcaseCard: View {
     let exercise: Exercise
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var clip: ExerciseClipStore.Clip?
+    /// The exercise `clip` belongs to, so coming back to the same page keeps
+    /// the animation up while the lookup reruns instead of flashing the map.
+    @State private var clipExerciseID: String?
     @State private var mode: Mode = .movement
     @State private var paused = false
 
@@ -36,7 +39,8 @@ struct ExerciseShowcaseCard: View {
         .appAnimation(AppAnimation.fadeIn, value: clip)
         .appAnimation(AppAnimation.quick, value: mode)
         .task(id: exercise.id) {
-            clip = nil
+            if clipExerciseID != exercise.id { clip = nil }
+            clipExerciseID = exercise.id
             guard !exercise.isCustom else { return }
             clip = await ExerciseClipStore.shared.clip(for: exercise.id)
         }
