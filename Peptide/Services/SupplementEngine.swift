@@ -5,12 +5,8 @@ import Foundation
 /// local calendar day of the injected calendar, so "today" resets at the
 /// user's midnight and tests can pin a time zone.
 enum SupplementEngine {
-    /// Days covered by one reminder plan, today included — the same
-    /// rolling window as `DailyReminderEngine`.
-    static let lookaheadDays = 3
-
-    /// Supplement share of iOS's 64 pending requests, beside habits (32)
-    /// and the daily meal / training / weigh-in nudges (15).
+    /// Supplement share of iOS's 64 pending requests, beside habits (26)
+    /// and the daily meal / training / weigh-in nudges (21).
     static let reminderLimit = 12
 
     /// Length of the dot row in a supplement's settings.
@@ -31,8 +27,10 @@ enum SupplementEngine {
 
     struct PlannedReminder: Equatable, Sendable {
         let supplement: Supplement
-        let fireDate: Date
+        let trigger: ReminderTriggerEngine.Trigger
         let id: String
+
+        var fireDate: Date { trigger.nextFireDate }
     }
 
     // MARK: - Days
@@ -119,41 +117,39 @@ enum SupplementEngine {
 
     // MARK: - Reminders
 
-    /// One-shot reminders for the next `lookaheadDays`, skipping a day the
-    /// supplement is already taken and any time already past. Soonest
-    /// first, capped at `limit`.
+    /// Repeating daily reminders (see `ReminderTriggerEngine`), skipping
+    /// a day the supplement is already taken. Soonest first; supplements
+    /// are kept whole, in the given order, while they fit in `limit`.
     static func reminderPlan(
         _ supplements: [Supplement],
         now: Date,
         calendar: Calendar,
         limit: Int = reminderLimit
     ) -> [PlannedReminder] {
-        let today = calendar.startOfDay(for: now)
-        var planned: [PlannedReminder] = []
+        var groups: [[PlannedReminder]] = []
         for supplement in supplements where supplement.reminderEnabled {
             guard let minuteOfDay = supplement.minuteOfDay else { continue }
-            for offset in 0..<lookaheadDays {
-                guard let day = calendar.date(byAdding: .day, value: offset, to: today),
-                      !isTaken(supplement, on: day, calendar: calendar),
-                      let fireDate = calendar.date(
-                          bySettingHour: minuteOfDay / 60, minute: minuteOfDay % 60, second: 0, of: day
-                      ),
-                      fireDate > now
-                else { continue }
-                planned.append(PlannedReminder(
-                    supplement: supplement,
-                    fireDate: fireDate,
-                    id: reminderIdentifier(supplementID: supplement.id, day: day, calendar: calendar)
-                ))
+            let slots = (1...7).map {
+                ReminderTriggerEngine.Slot(weekday: $0, hour: minuteOfDay / 60, minute: minuteOfDay % 60)
             }
+            let triggers = ReminderTriggerEngine.triggers(for: slots, now: now, calendar: calendar) {
+                isTaken(supplement, on: $0, calendar: calendar)
+            }
+            groups.append(triggers.map {
+                PlannedReminder(
+                    supplement: supplement,
+                    trigger: $0,
+                    id: reminderIdentifier(supplementID: supplement.id, triggerKey: $0.key)
+                )
+            })
         }
-        return Array(planned.sorted { $0.fireDate < $1.fireDate }.prefix(limit))
+        return ReminderTriggerEngine.capped(groups, limit: limit)
+            .sorted { ($0.fireDate, $0.id) < ($1.fireDate, $1.id) }
     }
 
     /// Lives in the daily-reminder namespace, so `DailyReminderScheduler`
     /// replaces it on every pass and the dose scheduler leaves it alone.
-    static func reminderIdentifier(supplementID: UUID, day: Date, calendar: Calendar) -> String {
-        let stamp = dayKey(for: day, calendar: calendar).replacingOccurrences(of: "-", with: "")
-        return "\(NotificationService.dailyIDPrefix)supplement-\(supplementID.uuidString)-\(stamp)"
+    static func reminderIdentifier(supplementID: UUID, triggerKey: String) -> String {
+        "\(NotificationService.dailyIDPrefix)supplement-\(supplementID.uuidString)-\(triggerKey)"
     }
 }

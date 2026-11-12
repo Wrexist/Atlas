@@ -765,7 +765,7 @@ struct PeptideApp: App {
             return
         }
 
-        NotificationService.shared.scheduleNotifications(for: dataStore.activeProtocols)
+        NotificationService.shared.scheduleNotifications(for: dataStore.activeProtocols, loggedSlots: dataStore.loggedDoseSlots)
     }
 }
 
