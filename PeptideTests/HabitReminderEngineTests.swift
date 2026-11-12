@@ -6,12 +6,18 @@ final class HabitReminderEngineTests: XCTestCase {
     private var calendar: Calendar = {
         var c = Calendar(identifier: .gregorian)
         c.timeZone = TimeZone(identifier: "Europe/Stockholm") ?? .current
+        c.firstWeekday = 2
         return c
     }()
 
     /// Monday 2026-10-19 at the given time.
     private func monday(_ hour: Int, _ minute: Int = 0) -> Date {
-        calendar.date(from: DateComponents(year: 2026, month: 10, day: 19, hour: hour, minute: minute)) ?? Date()
+        october(19, hour, minute)
+    }
+
+    /// 2026-10-`day` at the given time; the 19th is a Monday.
+    private func october(_ day: Int, _ hour: Int, _ minute: Int = 0) -> Date {
+        calendar.date(from: DateComponents(year: 2026, month: 10, day: day, hour: hour, minute: minute)) ?? Date()
     }
 
     private func habit(at hour: Int, schedule: HabitSchedule = .daily, target: Int? = nil) -> Habit {
@@ -99,5 +105,43 @@ final class HabitReminderEngineTests: XCTestCase {
             occupied: [(weekday: 2, hour: 8, minute: 0)]
         )
         XCTAssertEqual(planned.first?.fireDate, monday(8, NotificationService.crossTypeCooldownMinutes))
+    }
+
+    func test_timesPerWeekHabit_targetMetThisWeek_silencesRestOfWeek() {
+        let lift = habit(at: 18, schedule: .timesPerWeek(2))
+        let entries = [19, 20].map { HabitEntry(habitId: lift.id, date: october($0, 7), calendar: calendar) }
+
+        let planned = plan([lift], entries: entries, now: october(21, 8))
+
+        XCTAssertTrue(planned.isEmpty)
+    }
+
+    func test_timesPerWeekHabit_targetMet_resumesNextWeek() {
+        let lift = habit(at: 18, schedule: .timesPerWeek(2))
+        let entries = [19, 20].map { HabitEntry(habitId: lift.id, date: october($0, 7), calendar: calendar) }
+
+        // Saturday: the window is Saturday, Sunday and next Monday.
+        let planned = plan([lift], entries: entries, now: october(24, 8))
+
+        XCTAssertEqual(planned.map(\.fireDate), [october(26, 18)])
+    }
+
+    func test_timesPerWeekHabit_belowTarget_keepsReminding() {
+        let lift = habit(at: 18, schedule: .timesPerWeek(2))
+        let once = HabitEntry(habitId: lift.id, date: october(19, 7), calendar: calendar)
+
+        let planned = plan([lift], entries: [once], now: october(21, 8))
+
+        XCTAssertEqual(planned.count, HabitReminderEngine.lookaheadDays)
+    }
+
+    func test_timesPerWeekHabit_otherHabitsEntries_doNotCountTowardTarget() {
+        let lift = habit(at: 18, schedule: .timesPerWeek(2))
+        let other = UUID()
+        let entries = [19, 20].map { HabitEntry(habitId: other, date: october($0, 7), calendar: calendar) }
+
+        let planned = plan([lift], entries: entries, now: october(21, 8))
+
+        XCTAssertEqual(planned.count, HabitReminderEngine.lookaheadDays)
     }
 }

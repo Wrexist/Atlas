@@ -63,10 +63,18 @@ enum HabitReminderEngine {
         return "\(NotificationService.habitIDPrefix)\(habitID.uuidString)-\(stamp)"
     }
 
+    /// Done that day, or — for a times-per-week habit — done often
+    /// enough that week already, so the rest of the week stays quiet and
+    /// the next week starts nudging again.
     private static func isDone(_ habit: Habit, on day: Date, entries: [HabitEntry], calendar: Calendar) -> Bool {
         let target = habit.targetValue ?? 1
-        return entries.contains {
-            $0.habitId == habit.id && $0.value >= target && calendar.isDate($0.date, inSameDayAs: day)
+        let own = entries.filter { $0.habitId == habit.id }
+        if own.contains(where: { $0.value >= target && calendar.isDate($0.date, inSameDayAs: day) }) {
+            return true
         }
+        guard let weekly = HabitsService.weeklyProgress(for: habit, entries: own, on: day, calendar: calendar) else {
+            return false
+        }
+        return weekly.target > 0 && weekly.count >= weekly.target
     }
 }
