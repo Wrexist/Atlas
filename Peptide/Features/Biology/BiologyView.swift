@@ -8,6 +8,7 @@ import SwiftUI
 struct BiologyView: View {
     @Environment(DataStore.self) private var dataStore
     @Environment(AppState.self) private var appState
+    @Environment(\.scenePhase) private var scenePhase
     @State private var storeService = StoreService.shared
 
     /// `nil` until the first `refreshState()` lands. Defaulting to
@@ -24,6 +25,9 @@ struct BiologyView: View {
     /// Bumped by pull-to-refresh and a fresh Health grant so the
     /// biomarker list re-reads HealthKit without re-keying on config.
     @State private var reloadID = 0
+    /// Bumped on return to the foreground and on a new calendar day so the
+    /// Biological Age `.task(id:)` re-runs against today's Health data.
+    @State private var foregroundRefreshID = 0
     @State private var sleepInsights: SleepInsightsEngine.Insights?
     @State private var wristTemperature: WristTemperatureEngine.Deviation?
     /// True while the list is moving, so the Ask Atlas button folds to
@@ -170,13 +174,30 @@ struct BiologyView: View {
             .onChange(of: appState.pendingLabsOpen) { _, _ in
                 consumePendingLabsDeepLink()
             }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { refreshForCurrentTime() }
+            }
+            // Neither notification promises main-thread delivery.
+            .onReceive(
+                NotificationCenter.default.publisher(for: .NSCalendarDayChanged)
+                    .receive(on: DispatchQueue.main)
+            ) { _ in
+                refreshForCurrentTime()
+            }
+            .onReceive(
+                NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)
+                    .receive(on: DispatchQueue.main)
+            ) { _ in
+                refreshForCurrentTime()
+            }
         }
         .appAnimation(AppAnimation.springSmooth, value: healthPromptState)
         // Single `.task(id:)` keyed on the inputs `refreshState` reads.
         // It auto-cancels the prior run when either input changes, so
         // two near-simultaneous changes can't land out of order and
         // leave `resolved` reflecting stale inputs.
-        .task(id: RefreshKey(isPro: storeService.isProUser,
+        .task(id: RefreshKey(foregroundRefreshID: foregroundRefreshID,
+                             isPro: storeService.isProUser,
                              metrics: dataStore.profile.bodyMetrics,
                              weightHistory: dataStore.profile.weightHistory,
                              labHistory: dataStore.profile.labHistory,
@@ -268,6 +289,7 @@ struct BiologyView: View {
     /// Equatable key for the Biological Age refresh `.task(id:)`: every
     /// profile fact the estimate reads.
     private struct RefreshKey: Equatable {
+        let foregroundRefreshID: Int
         let isPro: Bool
         let metrics: BodyMetrics
         let weightHistory: [WeightEntry]
@@ -321,6 +343,15 @@ struct BiologyView: View {
             Haptics.success()
             await reload()
         }
+    }
+
+    /// Foreground return or a new day: HealthKit has new samples (last
+    /// night's sleep, this morning's HRV) that the tab would otherwise keep
+    /// showing stale until a pull-to-refresh. Both IDs are bumped so the
+    /// estimate, biomarker tiles and sleep card all re-read.
+    private func refreshForCurrentTime() {
+        foregroundRefreshID &+= 1
+        reloadID &+= 1
     }
 
     private func reload() async {
