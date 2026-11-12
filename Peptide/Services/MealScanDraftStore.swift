@@ -63,6 +63,23 @@ final class MealScanDraftStore {
         let data = try NSKeyedArchiver.archivedData(withRootObject: token, requiringSecureCoding: false)
         return Data(SHA256.hash(data: data))
     }
+    /// Logs the scan's pending meals, or takes them back out on Undo. A
+    /// completed log also deletes the draft: left on disk it locks the
+    /// camera behind "Unfinished meal scan", and resuming it offers a
+    /// Retry that logs the same meal again. Throws only when the meals
+    /// weren't committed; false means they were, but the draft stayed.
+    @discardableResult
+    func commit(_ entries: [MealEntry], undo: Bool, to dataStore: DataStore) throws -> Bool {
+        try dataStore.commitScannedMeals(entries, undo: undo)
+        guard !undo, !dataStore.isEphemeral else { return true }
+        do {
+            try discard()
+            return true
+        } catch {
+            return false
+        }
+    }
+
     func discard() throws {
         if FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }
         lastSaved = nil

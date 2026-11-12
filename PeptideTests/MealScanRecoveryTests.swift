@@ -102,6 +102,67 @@ final class MealScanRecoveryTests: XCTestCase {
         XCTAssertFalse(store!.profile.mealHistory.contains { $0.id == entry.id })
     }
 
+    func test_successfulScanLog_clearsDraftSoRetryCannotRelog() throws {
+        let folder = try temporaryFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        SwiftDataRepository.shared.configureForTesting()
+        defer {
+            DataStore.current?.flushPendingSave()
+            DataStore.current = nil
+        }
+        let healthKey = HealthSyncSettings.nutritionEnabledKey
+        let savedHealthFlag = UserDefaults.standard.object(forKey: healthKey)
+        defer { UserDefaults.standard.set(savedHealthFlag, forKey: healthKey) }
+        UserDefaults.standard.set(false, forKey: healthKey)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "Europe/Stockholm"))
+        let lunch = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 11, day: 12, hour: 12)))
+        let dataStore = DataStore(seedSampleData: false)
+        let drafts = MealScanDraftStore(url: folder.appending(path: "draft.json"))
+        var value = draft()
+        value.date = lunch
+        value.pendingEntries = [MealEntry(date: lunch, category: .lunch, name: "Oats", calories: 200,
+            proteinG: 10, carbsG: 30, fatG: 4, source: .photo, components: [food().component])]
+        try drafts.save(value)
+
+        XCTAssertTrue(try drafts.commit(value.pendingEntries, undo: false, to: dataStore))
+
+        XCTAssertNil(try drafts.load(), "a logged scan leaves no draft to resume or retry")
+        let id = value.pendingEntries[0].id
+        XCTAssertEqual(dataStore.profile.mealHistory.filter { $0.id == id }.count, 1)
+    }
+
+    func test_undoneScanLog_keepsDraftForReview() throws {
+        let folder = try temporaryFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        SwiftDataRepository.shared.configureForTesting()
+        defer {
+            DataStore.current?.flushPendingSave()
+            DataStore.current = nil
+        }
+        let healthKey = HealthSyncSettings.nutritionEnabledKey
+        let savedHealthFlag = UserDefaults.standard.object(forKey: healthKey)
+        defer { UserDefaults.standard.set(savedHealthFlag, forKey: healthKey) }
+        UserDefaults.standard.set(false, forKey: healthKey)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "Europe/Stockholm"))
+        let lunch = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 11, day: 12, hour: 12)))
+        let dataStore = DataStore(seedSampleData: false)
+        let drafts = MealScanDraftStore(url: folder.appending(path: "draft.json"))
+        let entry = MealEntry(date: lunch, category: .lunch, name: "Oats", calories: 200,
+                              proteinG: 10, carbsG: 30, fatG: 4, source: .photo, components: [food().component])
+        try dataStore.commitScannedMeals([entry])
+        var value = draft()
+        value.pendingEntries = [entry]
+        value.undoRequested = true
+        try drafts.save(value)
+
+        try drafts.commit([entry], undo: true, to: dataStore)
+
+        XCTAssertNotNil(try drafts.load(), "Undo returns to review, which still needs its draft")
+        XCTAssertFalse(dataStore.profile.mealHistory.contains { $0.id == entry.id })
+    }
+
     func testLegacyMealAndUnknownNutrientsStayUnknown() throws {
         let entry = MealEntry(date: Date(), category: .breakfast, name: "Legacy", calories: 200,
                               proteinG: 10, carbsG: 30, fatG: 4, source: .manual)
