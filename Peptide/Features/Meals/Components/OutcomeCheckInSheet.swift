@@ -226,7 +226,7 @@ private struct OutcomeLevelRow: View {
                 Text(Self.word(for: value))
                     .font(AppFont.footnote)
                     .foregroundStyle(dimension.tint)
-                    .contentTransition(.numericText())
+                    .contentTransition(.interpolate)
             }
         }
     }
@@ -241,14 +241,21 @@ private struct OutcomeLevelRow: View {
         }
         .frame(minHeight: Spacing.minimumHitTarget, alignment: .bottom)
         .contentShape(Rectangle())
-        .gesture(
-            DragGesture(minimumDistance: 0)
+        .onTapGesture { location in set(rating(at: location.x)) }
+        // Simultaneous and only when the finger moves sideways, so a
+        // vertical swipe that starts on the bars still scrolls the sheet.
+        .simultaneousGesture(
+            DragGesture(minimumDistance: Spacing.sm)
                 .onChanged { drag in
-                    let slot = Int(drag.location.x / (barWidth + Self.barGap))
-                    set(slot + 1)
+                    guard abs(drag.translation.width) > abs(drag.translation.height) else { return }
+                    set(rating(at: drag.location.x))
                 }
         )
         .appAnimation(AppAnimation.springSnappy, value: value)
+    }
+
+    private func rating(at x: CGFloat) -> Int {
+        Int(x / (barWidth + Self.barGap)) + 1
     }
 
     private func set(_ rating: Int) {

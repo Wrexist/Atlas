@@ -534,7 +534,7 @@ struct PrepDishPicker: View {
     ]
 
     private var shown: [LibraryRecipe] {
-        let query = searchText.trimmingCharacters(in: .whitespaces)
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return recipes }
         return recipes.filter { $0.displayName(locale: locale).localizedStandardContains(query) }
     }

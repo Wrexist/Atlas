@@ -44,23 +44,35 @@ enum RecipeStepEngine {
     /// Indices into `names` of the ingredients `step` mentions, in list
     /// order. Swedish names are compounds and inflect ("Kycklingbröst" is
     /// "kycklingen" in a step, "Fullkornsris" is "riset"), so a step word
-    /// matches when one stem equals, starts or ends an ingredient word's stem.
+    /// matches an ingredient word when a stem equals it, or is a whole part
+    /// of the compound. A word that names one ingredient exactly ("lök")
+    /// does not also pull in the compounds around it ("Vitlök").
     static func ingredientIndices(in step: String, names: [String], swedish: Bool) -> [Int] {
-        let stepStems = words(step)
-            .filter { !stopWords.contains($0) }
-            .map { stems(of: $0, swedish: swedish) }
-        return names.indices.filter { index in
-            let nameStems = words(names[index]).map { stems(of: $0, swedish: swedish) }
-            return stepStems.contains { stepWord in
-                nameStems.contains { nameWord in matches(stepWord, nameWord) }
+        let nameStems = names.map { words($0).map { stems(of: $0, swedish: swedish) } }
+        var found: Set<Int> = []
+        for word in words(step) where !stopWords.contains(word) {
+            let stepStems = stems(of: word, swedish: swedish)
+            let exact = names.indices.filter { index in
+                nameStems[index].contains { !$0.isDisjoint(with: stepStems) }
             }
+            if !exact.isEmpty {
+                found.formUnion(exact)
+                continue
+            }
+            found.formUnion(names.indices.filter { index in
+                nameStems[index].contains { isCompoundPart(stepStems, of: $0) }
+            })
         }
+        return found.sorted()
     }
 
-    private static func matches(_ stepWord: Set<String>, _ nameWord: Set<String>) -> Bool {
-        stepWord.contains { a in
-            nameWord.contains { b in
-                a == b || (a.count >= minimumStem && (b.hasPrefix(a) || b.hasSuffix(a)))
+    /// "spenat" in "babyspenat", "kyckling" in "kycklingbröst": the stem
+    /// must leave a real word beside it, so "färs" is not "färsk".
+    private static func isCompoundPart(_ stepWord: Set<String>, of nameWord: Set<String>) -> Bool {
+        stepWord.contains { part in
+            part.count >= minimumStem && nameWord.contains { whole in
+                (whole.hasPrefix(part) && whole.count - part.count >= minimumStem)
+                    || (whole.hasSuffix(part) && whole.count - part.count >= 2)
             }
         }
     }
@@ -97,7 +109,7 @@ enum RecipeStepEngine {
         "med", "och", "till", "tills", "den", "det", "som", "att", "för", "per", "över", "under", "lite",
         "allt", "alla", "sida", "sidan", "minuter", "lock", "värme", "ugnen", "lådor", "låda", "panna",
         "pannan", "vatten", "servera", "skiva", "koka", "stek", "blanda", "lägg", "tillsätt", "små",
-        "varm", "varmt", "kallt", "klart", "skvätt", "toppa", "rör",
+        "varm", "varmt", "kallt", "klart", "skvätt", "toppa", "rör", "ner", "upp", "sedan", "kött", "köttet",
         "the", "and", "with", "for", "until", "into", "over", "then", "each", "side", "minutes", "lid",
         "heat", "oven", "boxes", "box", "pan", "water", "serve", "slice", "cook", "fry", "mix", "add",
         "small", "warm", "cold", "done", "splash", "top", "stir", "brown", "season",

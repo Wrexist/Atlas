@@ -49,6 +49,12 @@ final class RecipeStepEngineTests: XCTestCase {
         XCTAssertEqual(RecipeStepEngine.ingredientIndices(in: step, names: names, swedish: false), [0])
     }
 
+    func test_ingredients_exactWordAndPartialCompound_doNotPullInNeighbours() {
+        let names = ["Lök", "Vitlök", "Färsk ingefära", "Nötfärs", "Champinjoner"]
+        let step = "Fräs lök och rör ner färsen."
+        XCTAssertEqual(RecipeStepEngine.ingredientIndices(in: step, names: names, swedish: true), [0, 3])
+    }
+
     func test_steps_scaleAmountsWithServings() throws {
         let recipe = try XCTUnwrap(RecipeLibraryEngine.bundled.first { recipe in
             recipe.steps.contains { !RecipeStepEngine.ingredientIndices(in: $0, names: recipe.ingredients.map(\.name), swedish: false).isEmpty }

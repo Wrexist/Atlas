@@ -49164,6 +49164,16 @@
           }
         }
       }
+    },
+    "Cooking timer done": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timern är klar"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

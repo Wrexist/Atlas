@@ -577,10 +577,10 @@ final class NotificationService {
     /// True for a pending request that the dose scheduler doesn't own:
     /// snoozes, habit / daily / ad-hoc reminders, the trial reminder, the
     /// Sunday recap, the meal-prep box reminder and the fridge's use-by
-    /// reminder. Shared by the dose set-diff, its slot reservation and
+    /// reminder, and recipe cooking timers. Shared by the dose set-diff, its slot reservation and
     /// `cancelProtocolReminders` so the three can never disagree.
     static func isOwnedByAnotherScheduler(_ identifier: String) -> Bool {
-        let prefixes = [Self.snoozeIDPrefix, Self.habitIDPrefix, Self.dailyIDPrefix, Self.adHocIDPrefix]
+        let prefixes = [Self.snoozeIDPrefix, Self.habitIDPrefix, Self.dailyIDPrefix, Self.adHocIDPrefix, CookingTimers.identifierPrefix]
         return prefixes.contains { identifier.hasPrefix($0) }
             || identifier == Self.trialReminderID
             || identifier == WeeklySummaryNotificationScheduler.identifier

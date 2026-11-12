@@ -123,7 +123,6 @@ struct CookingModeView: View {
                 .padding(.horizontal, Spacing.screenPadding)
             }
             .padding(.top, Spacing.md)
-            .transition(.opacity)
         }
     }
 
@@ -152,11 +151,13 @@ struct CookingModeView: View {
     /// back onto the recipe, where logging the serving is one tap.
     private func advance() {
         guard steps.indices.contains(index) else { return dismiss() }
+        // Read before the index moves: `isLast` follows `index`.
+        let wasLast = isLast
         AppAnimation.with(AppAnimation.springSnappy) {
             _ = done.insert(steps[index].id)
-            if !isLast { index += 1 }
+            if !wasLast { index += 1 }
         }
-        if isLast {
+        if wasLast {
             Haptics.success()
             dismiss()
         } else {

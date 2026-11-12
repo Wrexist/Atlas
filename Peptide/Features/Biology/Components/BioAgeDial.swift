@@ -96,8 +96,7 @@ struct BioAgeDial: View {
     }
 
     /// Convert sweep angle to a trim range. SwiftUI's Circle trim runs 0…1
-    /// clockwise from the right; we want our arc centred at the top with a
-    /// 240° sweep, so trim covers `(360 - sweep) / 720` to `1 - that`.
+    /// clockwise from the right; we want a 240° arc with a 120° gap, so trim covers `(360 - sweep) / 720` to `1 - that`.
     /// That leaves the gap facing right, and `arcRotation` turns it to face
     /// down. The marker, tick and labels place themselves with `angle(for:)`
     /// in the same frame, so the stroke and the marker always agree.

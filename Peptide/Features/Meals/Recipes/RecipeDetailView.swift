@@ -15,7 +15,7 @@ struct RecipeDetailView: View {
     @State private var loggedSlot: MealCategory?
     @State private var showsTitle = false
     @State private var heartBurst = false
-    @State private var steps: [RecipeStepEngine.Step] = []
+    @State private var steps: [RecipeStepEngine.Step]
     @State private var doneSteps: Set<Int> = []
     @State private var timers = CookingTimers()
     @State private var showsCookingMode = false
@@ -23,6 +23,13 @@ struct RecipeDetailView: View {
     init(recipe: LibraryRecipe) {
         self.recipe = recipe
         _servings = State(initialValue: recipe.servings)
+        // Built up front so the method card is there on the first frame.
+        // The app pins `\.locale` to this same locale.
+        _steps = State(initialValue: RecipeStepEngine.steps(
+            for: recipe,
+            servings: recipe.servings,
+            locale: LocalizationManager.shared.effectiveLocale
+        ))
     }
 
     private static let servingRange = 1...12
@@ -66,9 +73,8 @@ struct RecipeDetailView: View {
         // the bar gets its backdrop so steps don't scroll legibly under it.
         .toolbarBackground(showsTitle ? .visible : .hidden, for: .navigationBar)
         // Step amounts follow the servings stepper.
-        .task(id: servings) {
-            steps = RecipeStepEngine.steps(for: recipe, servings: servings, locale: locale)
-        }
+        .onChange(of: servings) { rebuildSteps() }
+        .onChange(of: locale) { rebuildSteps() }
         .fullScreenCover(isPresented: $showsCookingMode) {
             CookingModeView(
                 recipeName: recipe.displayName(locale: locale),
@@ -337,6 +343,10 @@ struct RecipeDetailView: View {
     }
 
     // MARK: - Method
+
+    private func rebuildSteps() {
+        steps = RecipeStepEngine.steps(for: recipe, servings: servings, locale: locale)
+    }
 
     private var methodCard: some View {
         RecipeMethodCard(

@@ -417,17 +417,23 @@ struct BiologyView: View {
 
     // MARK: - Ask Atlas
 
-    /// Same Pro gate as the research chat it reuses.
+    /// Free users see the Pro flag; the tap still opens the paywall.
     private var askAtlasButton: some View {
         Button(action: openAskAtlas) {
-            Label("Ask Atlas", systemImage: "sparkles")
-                .labelStyle(.titleAndIcon)
-                .font(AppFont.subheadline.weight(.semibold))
-                .foregroundStyle(AppColor.accentInkOnWash)
+            HStack(spacing: Spacing.xs) {
+                Label("Ask Atlas", systemImage: "sparkles")
+                    .labelStyle(.titleAndIcon)
+                if !storeService.canAccessAIFeatures {
+                    Badge("Pro")
+                }
+            }
+            .font(AppFont.subheadline.weight(.semibold))
+            .foregroundStyle(AppColor.accentInkOnWash)
         }
         .accessibilityHint(Text("Opens an AI chat about today's biology"))
     }
 
+    /// Same Pro gate as the research chat it reuses.
     private func openAskAtlas() {
         Haptics.impact(.light)
         if storeService.canAccessAIFeatures {
