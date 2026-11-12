@@ -8,6 +8,11 @@ import Foundation
 /// launch. A repeat cannot skip a single day, so a slot whose next
 /// occurrence is already done becomes a one-shot a week later instead;
 /// the next re-plan after that occurrence restores the repeat.
+///
+/// That one-shot is the limit of the approach: once it has fired, its
+/// weekday stays quiet until Atlas is opened again, so a skipped weekday
+/// goes silent after more than a week without a launch. Every other
+/// weekday keeps repeating.
 enum ReminderTriggerEngine {
     /// Every slot's next occurrence falls within this many days.
     static let horizonDays = 7
@@ -56,7 +61,19 @@ enum ReminderTriggerEngine {
         }
         return upcoming
             .compactMap { trigger(for: $0.slot, next: $0.next, skipped: $0.skipped, calendar: calendar) }
-            .sorted { $0.nextFireDate < $1.nextFireDate }
+            .sorted { ($0.nextFireDate, $0.key) < ($1.nextFireDate, $1.key) }
+    }
+
+    /// Keeps whole groups, in the given priority order, while their
+    /// combined size fits in `limit`, and drops a group that does not fit.
+    /// A reminder's triggers are one group: cutting it to some of its
+    /// weekdays would silence the rest until the next launch.
+    static func capped<Element>(_ groups: [[Element]], limit: Int) -> [Element] {
+        var kept: [Element] = []
+        for group in groups where kept.count + group.count <= limit {
+            kept += group
+        }
+        return kept
     }
 
     private static func trigger(for slot: Slot, next: Date, skipped: Bool, calendar: Calendar) -> Trigger? {

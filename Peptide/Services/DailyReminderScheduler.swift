@@ -164,14 +164,15 @@ enum DailyReminderScheduler {
         case .breakfast, .lunch, .dinner:
             guard let category = reminder.kind.mealCategory else { break }
             content.userInfo = ["deeplink": "peptidex://meals", "mealCategory": category.rawValue]
-            let previous = DailyReminderEngine.previousDayMeals(category, before: reminder.fireDate, in: profile.mealHistory, calendar: calendar)
+            // A repeat fires on days whose yesterday is not known yet, so
+            // only a one-shot names yesterday's meals.
+            let previous = reminder.trigger.repeats
+                ? []
+                : DailyReminderEngine.previousDayMeals(category, before: reminder.fireDate, in: profile.mealHistory, calendar: calendar)
             if previous.isEmpty {
                 content.body = String(localized: "Snap your plate — logging takes a few seconds.")
                 content.categoryIdentifier = mealCategoryID
             } else {
-                // Baked in for the next occurrence; the plan is rebuilt on
-                // every foreground, background and reminder action, so it
-                // tracks yesterday's log while Atlas is in use.
                 let names = previous.map(\.name).joined(separator: ", ")
                 let calories = previous.reduce(0) { $0 + $1.calories }
                 content.body = String(localized: "Same as yesterday? \(names) · \(calories) kcal")

@@ -86,13 +86,33 @@ final class DailyReminderEngineTests: XCTestCase {
         XCTAssertEqual(plan.map(\.fireDate), plan.map(\.fireDate).sorted())
     }
 
-    func test_everyKindDoneToday_staysWithinRequestLimit() {
+    func test_everyKindDoneToday_keepsWholeKindsWithinRequestLimit() {
         let today = monday(0)
         let plan = DailyReminderEngine.plan(
             settings: settings(.weighIn, .breakfast, .lunch, .dinner, .workout), trainingWeekdays: [], now: today, calendar: calendar
         ) { _, day in calendar.isDate(day, inSameDayAs: today) }
-        XCTAssertEqual(plan.count, DailyReminderEngine.requestLimit)
-        XCTAssertEqual(plan.map(\.fireDate), plan.map(\.fireDate).sorted())
+
+        XCTAssertLessThanOrEqual(plan.count, DailyReminderEngine.requestLimit)
+        let kept = Dictionary(grouping: plan, by: \.kind)
+        XCTAssertFalse(kept.isEmpty)
+        for (kind, reminders) in kept {
+            // Every day but today, the one already done.
+            let dates = fired(reminders, after: today, days: 14)
+            XCTAssertEqual(dates.count, 13, "\(kind) lost a weekday")
+            XCTAssertFalse(dates.contains { calendar.isDate($0, inSameDayAs: today) })
+        }
+    }
+
+    func test_overLimit_keepsKindsInPriorityOrder() {
+        let today = monday(0)
+        let plan = DailyReminderEngine.plan(
+            settings: settings(.weighIn, .breakfast, .lunch, .dinner, .workout),
+            trainingWeekdays: [], now: today, calendar: calendar, limit: 14
+        ) { _, day in calendar.isDate(day, inSameDayAs: today) }
+
+        let expected = Array(DailyReminderKind.allCases.prefix(2))
+        XCTAssertEqual(Set(plan.map(\.kind)), Set(expected))
+        XCTAssertEqual(plan.count, 14)
     }
 
     func test_previousDayMeals_matchesCategoryAndYesterdayOnly() {

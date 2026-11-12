@@ -7,10 +7,11 @@ import Foundation
 /// The plan is rebuilt every time the app comes to the foreground or
 /// leaves it.
 enum DailyReminderEngine {
-    /// Share of iOS's 64 pending slots, leaving dose, habit and
-    /// supplement reminders theirs. Usually one per kind; a kind already
-    /// done today takes one per weekday until the next re-plan.
-    static let requestLimit = 15
+    /// Share of iOS's 64 pending slots, beside habits (26) and
+    /// supplements (12); doses get what is left. Usually one per kind; a
+    /// kind already done today takes one per weekday until the next
+    /// re-plan, so this fits three such kinds whole.
+    static let requestLimit = 21
 
     struct Planned: Equatable, Sendable {
         let kind: DailyReminderKind
@@ -26,7 +27,8 @@ enum DailyReminderEngine {
     ///     who skipped picking days in onboarding still gets the nudge.
     ///   - isDone: whether `kind` is already logged on the day containing
     ///     the date. Only consulted for reminders still in the future.
-    ///   - limit: the soonest reminders are kept.
+    ///   - limit: kinds are kept whole, in `DailyReminderKind.allCases`
+    ///     order, while they fit (see `ReminderTriggerEngine.capped`).
     static func plan(
         settings: DailyReminderSettings,
         trainingWeekdays: Set<Int>,
@@ -35,16 +37,17 @@ enum DailyReminderEngine {
         limit: Int = requestLimit,
         isDone: (DailyReminderKind, Date) -> Bool
     ) -> [Planned] {
-        var planned: [Planned] = []
+        var groups: [[Planned]] = []
         for kind in DailyReminderKind.allCases {
             let slot = settings.slot(kind)
             guard slot.isEnabled else { continue }
             let weekdays = kind == .workout && !trainingWeekdays.isEmpty ? Array(trainingWeekdays) : Array(1...7)
             let slots = weekdays.map { ReminderTriggerEngine.Slot(weekday: $0, hour: slot.hour, minute: slot.minute) }
             let triggers = ReminderTriggerEngine.triggers(for: slots, now: now, calendar: calendar) { isDone(kind, $0) }
-            planned += triggers.map { Planned(kind: kind, trigger: $0, id: identifier(kind: kind, triggerKey: $0.key)) }
+            groups.append(triggers.map { Planned(kind: kind, trigger: $0, id: identifier(kind: kind, triggerKey: $0.key)) })
         }
-        return Array(planned.sorted { $0.fireDate < $1.fireDate }.prefix(limit))
+        return ReminderTriggerEngine.capped(groups, limit: limit)
+            .sorted { ($0.fireDate, $0.id) < ($1.fireDate, $1.id) }
     }
 
     static func identifier(kind: DailyReminderKind, triggerKey: String) -> String {

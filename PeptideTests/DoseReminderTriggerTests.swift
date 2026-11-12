@@ -14,7 +14,7 @@ final class DoseReminderTriggerTests: XCTestCase {
         calendar.date(from: DateComponents(year: 2026, month: 10, day: day, hour: hour, minute: minute)) ?? Date()
     }
 
-    private func mondayAtEight(now: Date, logged: [Date]) -> PlannedDoseTrigger? {
+    private func mondayAtEight(now: Date, logged: [Date]) -> ReminderTriggerEngine.Trigger? {
         NotificationService.weeklyDoseTrigger(weekday: 2, hour: 8, minute: 0, now: now, calendar: calendar) { date in
             logged.contains { calendar.isDate($0, equalTo: date, toGranularity: .minute) }
         }

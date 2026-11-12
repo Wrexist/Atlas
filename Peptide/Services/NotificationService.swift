@@ -29,14 +29,6 @@ struct ScheduleReport: Equatable {
     }
 }
 
-/// A dose reminder's trigger, as `NotificationService.weeklyDoseTrigger`
-/// plans it.
-struct PlannedDoseTrigger: Equatable, Sendable {
-    let components: DateComponents
-    let repeats: Bool
-    let nextFireDate: Date
-}
-
 @MainActor @Observable
 final class NotificationService {
     static let shared = NotificationService()
@@ -69,8 +61,10 @@ final class NotificationService {
     /// Habit reminders and dose reminders share iOS's global 64-slot
     /// budget; capping habits here (and reserving the remainder for
     /// doses in `scheduleNotifications`) stops a habit-heavy user from
-    /// silently evicting dose reminders past the limit.
-    nonisolated static let habitRequestLimit = 32
+    /// silently evicting dose reminders past the limit. With the daily
+    /// (21) and supplement (12) shares this leaves doses the same room
+    /// as before those reminders became repeating.
+    nonisolated static let habitRequestLimit = 26
 
     /// Prefix used by user-initiated snoozes. scheduleNotifications preserves
     /// IDs starting with this prefix when computing stale-dose removal.
@@ -180,11 +174,9 @@ final class NotificationService {
         return "\(protocolID.uuidString)-\(stamp)"
     }
 
-    /// Trigger for a weekly dose slot (Calendar `weekday`, 1 = Sunday).
-    /// Normally a weekly repeat. When the next occurrence is already
-    /// logged a repeat would still fire it, so the slot becomes a one-shot
-    /// a week later instead; the next re-plan after that occurrence has
-    /// passed restores the repeat.
+    /// Trigger for a weekly dose slot (Calendar `weekday`, 1 = Sunday):
+    /// a weekly repeat, or, when the next occurrence is already logged, a
+    /// one-shot a week later (see `ReminderTriggerEngine`).
     nonisolated static func weeklyDoseTrigger(
         weekday: Int,
         hour: Int,
@@ -192,20 +184,9 @@ final class NotificationService {
         now: Date,
         calendar: Calendar,
         isLogged: (Date) -> Bool
-    ) -> PlannedDoseTrigger? {
-        let weekly = DateComponents(hour: hour, minute: minute, weekday: weekday)
-        guard let next = calendar.nextDate(after: now, matching: weekly, matchingPolicy: .nextTime) else { return nil }
-        guard isLogged(next) else {
-            return PlannedDoseTrigger(components: weekly, repeats: true, nextFireDate: next)
-        }
-        guard let following = calendar.date(byAdding: .day, value: 7, to: next),
-              let fireDate = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: following)
-        else { return nil }
-        return PlannedDoseTrigger(
-            components: calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate),
-            repeats: false,
-            nextFireDate: fireDate
-        )
+    ) -> ReminderTriggerEngine.Trigger? {
+        let slot = ReminderTriggerEngine.Slot(weekday: weekday, hour: hour, minute: minute)
+        return ReminderTriggerEngine.triggers(for: [slot], now: now, calendar: calendar, isSkipped: isLogged).first
     }
 
     func requestAuthorization() async -> Bool {
@@ -404,9 +385,10 @@ final class NotificationService {
     @ObservationIgnored private var habitReminderPass: Task<Void, Never>?
 
     /// Replaces every pending habit reminder with `HabitReminderEngine`'s
-    /// plan: repeating triggers, skipping a day the habit is already done. Only habits with a `reminderTime` produce
-    /// requests. Uses the `habit-` ID namespace so the dose scheduler's
-    /// set-diff leaves them alone. Runs after any pass already in flight.
+    /// plan: repeating triggers, skipping a day the habit is already
+    /// done. Only habits with a `reminderTime` produce requests. Uses the
+    /// `habit-` ID namespace so the dose scheduler's set-diff leaves them
+    /// alone. Runs after any pass already in flight.
     func scheduleHabitReminders(for habits: [Habit], entries: [HabitEntry]) async {
         let previous = habitReminderPass
         let pass = Task {

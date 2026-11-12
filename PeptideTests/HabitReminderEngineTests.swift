@@ -31,7 +31,7 @@ final class HabitReminderEngineTests: XCTestCase {
         )
     }
 
-    private func plan(_ habits: [Habit], entries: [HabitEntry] = [], now: Date, limit: Int = 32) -> [HabitReminderEngine.Planned] {
+    private func plan(_ habits: [Habit], entries: [HabitEntry] = [], now: Date, limit: Int = NotificationService.habitRequestLimit) -> [HabitReminderEngine.Planned] {
         HabitReminderEngine.plan(habits: habits, entries: entries, now: now, calendar: calendar, limit: limit)
     }
 
@@ -99,6 +99,20 @@ final class HabitReminderEngineTests: XCTestCase {
         let planned = plan(habits, now: monday(7), limit: 4)
         XCTAssertEqual(planned.count, 4)
         XCTAssertEqual(planned.map(\.fireDate), [monday(10), monday(11), monday(12), monday(13)])
+    }
+
+    func test_overBudget_dropsWholeHabitsNeverSomeOfTheirWeekdays() {
+        let first = habit(at: 20)
+        let second = habit(at: 21)
+        let third = habit(at: 22)
+        let done = [first, second].map { HabitEntry(habitId: $0.id, date: monday(7), calendar: calendar) }
+
+        // Done today, the first two take seven slots each.
+        let planned = plan([first, second, third], entries: done, now: monday(8), limit: 10)
+
+        XCTAssertEqual(Set(planned.map(\.habit.id)), [first.id, third.id])
+        let firstDates = fired(planned.filter { $0.habit.id == first.id }, after: monday(8), days: 14)
+        XCTAssertEqual(firstDates.count, 13)
     }
 
     func test_identifiers_areUniquePerHabitAndSlot_andInHabitNamespace() {

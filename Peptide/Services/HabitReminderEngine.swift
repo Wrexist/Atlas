@@ -19,8 +19,9 @@ enum HabitReminderEngine {
     ///   - occupied: dose reminder slots (Calendar weekday, hour, minute) a
     ///     habit reminder steps past — see
     ///     `NotificationService.resolvedHabitFireTime`.
-    ///   - limit: the habit share of iOS's pending-request budget; the
-    ///     soonest reminders are kept.
+    ///   - limit: the habit share of iOS's pending-request budget. Habits
+    ///     are kept whole, in the given order, while they fit (see
+    ///     `ReminderTriggerEngine.capped`).
     static func plan(
         habits: [Habit],
         entries: [HabitEntry],
@@ -33,7 +34,7 @@ enum HabitReminderEngine {
         let week = (0..<ReminderTriggerEngine.horizonDays).compactMap {
             calendar.date(byAdding: .day, value: $0, to: today)
         }
-        var planned: [Planned] = []
+        var groups: [[Planned]] = []
 
         for habit in habits where !habit.archived {
             guard let reminderTime = habit.reminderTime else { continue }
@@ -52,11 +53,12 @@ enum HabitReminderEngine {
             let triggers = ReminderTriggerEngine.triggers(for: slots, now: now, calendar: calendar) {
                 isDone(habit, on: $0, entries: entries, calendar: calendar)
             }
-            planned += triggers.map {
+            groups.append(triggers.map {
                 Planned(habit: habit, trigger: $0, id: identifier(habitID: habit.id, triggerKey: $0.key))
-            }
+            })
         }
-        return Array(planned.sorted { $0.fireDate < $1.fireDate }.prefix(limit))
+        return ReminderTriggerEngine.capped(groups, limit: limit)
+            .sorted { ($0.fireDate, $0.id) < ($1.fireDate, $1.id) }
     }
 
     static func identifier(habitID: UUID, triggerKey: String) -> String {
