@@ -78,7 +78,7 @@ final class ExerciseClipStore {
         let file = cacheDirectory.appending(path: Self.fileName(exerciseID, version: version, fileExtension: source.fileExtension))
         let clip = Clip(url: file, isTransparent: source.isTransparent)
         if FileManager.default.fileExists(atPath: file.path) { return clip }
-        let remote = source.baseURL.appending(path: "\(exerciseID).\(source.fileExtension)")
+        let remote = Self.remoteURL(exerciseID, version: version, in: source)
         guard await download(remote, to: file) else { return nil }
         removeCachedClips(for: exerciseID, except: file, from: source)
         return clip
@@ -94,6 +94,15 @@ final class ExerciseClipStore {
             ids[String(id)] = fields.count > 1 ? String(fields[1]) : ""
         }
         return ids
+    }
+
+    /// The clip's download URL. The version rides along as a query so a
+    /// re-rendered clip is a new URL: raw.githubusercontent.com's CDN caches
+    /// each URL for minutes, and the old bytes would otherwise be saved under
+    /// the new version's name for good.
+    nonisolated static func remoteURL(_ exerciseID: String, version: String, in source: Source) -> URL {
+        let file = source.baseURL.appending(path: "\(exerciseID).\(source.fileExtension)")
+        return version.isEmpty ? file : file.appending(queryItems: [URLQueryItem(name: "v", value: version)])
     }
 
     nonisolated static func fileName(_ exerciseID: String, version: String, fileExtension: String) -> String {
