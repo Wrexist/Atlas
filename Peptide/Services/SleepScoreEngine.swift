@@ -64,6 +64,11 @@ enum SleepScoreEngine {
     /// waking, however long, never replaces it, while a night a full day
     /// earlier never competes.
     static let sameDayWindow: TimeInterval = 16 * 3600
+    /// The newest night still counts as "last night" until this long after
+    /// it ended: from waking until the small hours of the next night. Past
+    /// it (the watch was charging overnight) there is no last night, rather
+    /// than the night before passed off as it.
+    static let lastNightMaxAge: TimeInterval = 20 * 3600
 
     // MARK: - Public
 
@@ -80,6 +85,14 @@ enum SleepScoreEngine {
         let chosen = sameDay.max { asleepTime(in: $0) < asleepTime(in: $1) }
         guard let chosen, asleepTime(in: chosen) > 0 else { return nil }
         return summarize(chosen)
+    }
+
+    /// `night(from:)`, but only while it is recent enough to be last night.
+    static func lastNight(from segments: [Segment], now: Date) -> Night? {
+        guard let night = night(from: segments),
+              now.timeIntervalSince(night.end) <= lastNightMaxAge
+        else { return nil }
+        return night
     }
 
     /// One night per wake day, oldest first: the longest sleep that
