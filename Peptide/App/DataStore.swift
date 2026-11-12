@@ -644,14 +644,16 @@ final class DataStore {
             doseWasTaken(entries[index])
         } else {
             reconcileDoseLiveActivities()
+            rescheduleNotificationsIfEnabled()
         }
     }
 
     /// A dose just became taken. Pushes that into any open lock-screen
     /// activity so the countdown stops and the "Logged" badge appears
     /// before auto-dismiss. One reminder covers every peptide a protocol
-    /// doses at that minute, so its snoozes and its copy in Notification
-    /// Center are withdrawn only once the whole slot is logged.
+    /// doses at that minute, so its snoozes, its copy in Notification
+    /// Center and a reminder still to come today are withdrawn only once
+    /// the whole slot is logged.
     private func doseWasTaken(_ entry: ProtocolEntry) {
         DoseLiveActivityService.shared.markCompleted(entry.id)
         let slotLogged = entries
@@ -662,6 +664,17 @@ final class DataStore {
             .allSatisfy(\.completed)
         guard slotLogged else { return }
         Task { await NotificationService.shared.clearReminders(for: entry) }
+        rescheduleNotificationsIfEnabled()
+    }
+
+    /// `doseSlotKey`s of today's dose slots whose every entry is taken,
+    /// so the dose scheduler skips their reminder for today.
+    var loggedDoseSlots: Set<String> {
+        let calendar = Calendar.current
+        let bySlot = Dictionary(grouping: todayEntries) {
+            NotificationService.doseSlotKey(protocolID: $0.protocolId, date: $0.date, calendar: calendar)
+        }
+        return Set(bySlot.filter { $0.value.allSatisfy(\.completed) }.keys)
     }
 
     /// Starts and ends lock-screen dose activities for active protocols
@@ -743,6 +756,7 @@ final class DataStore {
         save()
         Haptics.warning()
         reconcileDoseLiveActivities()
+        rescheduleNotificationsIfEnabled()
     }
 
     func protocolsContaining(peptideId: UUID) -> [PeptideProtocol] {
@@ -2512,7 +2526,7 @@ final class DataStore {
 
     func rescheduleNotificationsIfEnabled() {
         guard profile.doseRemindersEnabled else { return }
-        NotificationService.shared.scheduleNotifications(for: activeProtocols)
+        NotificationService.shared.scheduleNotifications(for: activeProtocols, loggedSlots: loggedDoseSlots)
     }
 
     /// Re-plans habit reminders against the current habits and today's

@@ -50,7 +50,7 @@ enum DailyReminderScheduler {
 
         let trainingWeekdays = Set((profile.trainingPreferences?.preferredDays ?? []).map(\.calendarWeekdayValue))
         let today = calendar.startOfDay(for: Date())
-        let trainedDays = (0..<DailyReminderEngine.lookaheadDays)
+        let trainedDays = (0..<ReminderTriggerEngine.horizonDays)
             .compactMap { calendar.date(byAdding: .day, value: $0, to: today) }
             .filter { dataStore.workoutSummary(for: $0).count > 0 }
         let planned = DailyReminderEngine.plan(
@@ -63,17 +63,16 @@ enum DailyReminderScheduler {
         }
 
         for reminder in planned {
-            await add(reminder.id, content: content(for: reminder, profile: profile, calendar: calendar), at: reminder.fireDate, calendar: calendar)
+            await add(reminder.id, content: content(for: reminder, profile: profile, calendar: calendar), trigger: reminder.trigger)
         }
         for reminder in supplementReminders {
-            await add(reminder.id, content: supplementContent(for: reminder.supplement), at: reminder.fireDate, calendar: calendar)
+            await add(reminder.id, content: supplementContent(for: reminder.supplement), trigger: reminder.trigger)
         }
         NotificationService.shared.trackDailyReminders(Set(planned.map(\.id) + supplementReminders.map(\.id)))
     }
 
-    private static func add(_ id: String, content: UNMutableNotificationContent, at fireDate: Date, calendar: Calendar) async {
-        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
-        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+    private static func add(_ id: String, content: UNMutableNotificationContent, trigger planned: ReminderTriggerEngine.Trigger) async {
+        let trigger = UNCalendarNotificationTrigger(dateMatching: planned.components, repeats: planned.repeats)
         do {
             try await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
         } catch {
@@ -165,13 +164,23 @@ enum DailyReminderScheduler {
         case .breakfast, .lunch, .dinner:
             guard let category = reminder.kind.mealCategory else { break }
             content.userInfo = ["deeplink": "peptidex://meals", "mealCategory": category.rawValue]
+            guard !reminder.trigger.repeats else {
+                // A repeat fires on days whose yesterday is not known yet,
+                // so it names no meals. The action still repeats the real
+                // previous day: the delegate reads the delivery date.
+                let invite = String(
+                    localized: "Or tap Same as yesterday to log it again.",
+                    comment: "Second line of a repeating meal reminder. 'Same as yesterday' is the notification action's title."
+                )
+                content.body = String(localized: "Snap your plate — logging takes a few seconds.") + "\n" + invite
+                content.categoryIdentifier = mealRepeatCategoryID
+                break
+            }
             let previous = DailyReminderEngine.previousDayMeals(category, before: reminder.fireDate, in: profile.mealHistory, calendar: calendar)
             if previous.isEmpty {
                 content.body = String(localized: "Snap your plate — logging takes a few seconds.")
                 content.categoryIdentifier = mealCategoryID
             } else {
-                // Baked in at schedule time; the plan is rebuilt on every
-                // foreground and background, so it tracks yesterday's log.
                 let names = previous.map(\.name).joined(separator: ", ")
                 let calories = previous.reduce(0) { $0 + $1.calories }
                 content.body = String(localized: "Same as yesterday? \(names) · \(calories) kcal")

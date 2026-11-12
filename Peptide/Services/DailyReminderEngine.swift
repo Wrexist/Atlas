@@ -1,23 +1,24 @@
 import Foundation
 
-/// Plans the next few days of daily reminders as one-shot requests.
-///
-/// One-shots rather than repeating calendar triggers so a reminder can be
-/// dropped for a single day: log lunch at 12:10 and the 12:30 lunch nudge
-/// for today disappears, tomorrow's stays. The plan is rebuilt every time
-/// the app comes to the foreground or leaves it, so the window keeps
-/// rolling forward for anyone who opens Atlas at least every few days —
-/// and quietly stops nagging someone who has stopped.
+/// Plans the daily reminders as repeating triggers (see
+/// `ReminderTriggerEngine`), so they keep coming on days Atlas is not
+/// opened. A reminder can still be dropped for a single day: log lunch
+/// at 12:10 and today's 12:30 lunch nudge disappears, tomorrow's stays.
+/// The plan is rebuilt every time the app comes to the foreground or
+/// leaves it.
 enum DailyReminderEngine {
-    /// Days covered by one plan, today included. Five kinds × 3 days keeps
-    /// the worst case at 15 of iOS's 64 pending slots, leaving dose and
-    /// habit reminders their share.
-    static let lookaheadDays = 3
+    /// Share of iOS's 64 pending slots, beside habits (26) and
+    /// supplements (12); doses get what is left. Usually one per kind; a
+    /// kind already done today takes one per weekday until the next
+    /// re-plan, so this fits three such kinds whole.
+    static let requestLimit = 21
 
     struct Planned: Equatable, Sendable {
         let kind: DailyReminderKind
-        let fireDate: Date
+        let trigger: ReminderTriggerEngine.Trigger
         let id: String
+
+        var fireDate: Date { trigger.nextFireDate }
     }
 
     /// - Parameters:
@@ -26,38 +27,31 @@ enum DailyReminderEngine {
     ///     who skipped picking days in onboarding still gets the nudge.
     ///   - isDone: whether `kind` is already logged on the day containing
     ///     the date. Only consulted for reminders still in the future.
+    ///   - limit: kinds are kept whole, in `DailyReminderKind.allCases`
+    ///     order, while they fit (see `ReminderTriggerEngine.capped`).
     static func plan(
         settings: DailyReminderSettings,
         trainingWeekdays: Set<Int>,
         now: Date,
         calendar: Calendar = .current,
+        limit: Int = requestLimit,
         isDone: (DailyReminderKind, Date) -> Bool
     ) -> [Planned] {
-        let today = calendar.startOfDay(for: now)
-        var planned: [Planned] = []
-
-        for offset in 0..<lookaheadDays {
-            guard let day = calendar.date(byAdding: .day, value: offset, to: today) else { continue }
-            let weekday = calendar.component(.weekday, from: day)
-
-            for kind in DailyReminderKind.allCases {
-                let slot = settings.slot(kind)
-                guard slot.isEnabled,
-                      let fireDate = calendar.date(bySettingHour: slot.hour, minute: slot.minute, second: 0, of: day),
-                      fireDate > now
-                else { continue }
-                if kind == .workout, !trainingWeekdays.isEmpty, !trainingWeekdays.contains(weekday) { continue }
-                if isDone(kind, day) { continue }
-                planned.append(Planned(kind: kind, fireDate: fireDate, id: identifier(kind: kind, day: day, calendar: calendar)))
-            }
+        var groups: [[Planned]] = []
+        for kind in DailyReminderKind.allCases {
+            let slot = settings.slot(kind)
+            guard slot.isEnabled else { continue }
+            let weekdays = kind == .workout && !trainingWeekdays.isEmpty ? Array(trainingWeekdays) : Array(1...7)
+            let slots = weekdays.map { ReminderTriggerEngine.Slot(weekday: $0, hour: slot.hour, minute: slot.minute) }
+            let triggers = ReminderTriggerEngine.triggers(for: slots, now: now, calendar: calendar) { isDone(kind, $0) }
+            groups.append(triggers.map { Planned(kind: kind, trigger: $0, id: identifier(kind: kind, triggerKey: $0.key)) })
         }
-        return planned.sorted { $0.fireDate < $1.fireDate }
+        return ReminderTriggerEngine.capped(groups, limit: limit)
+            .sorted { ($0.fireDate, $0.id) < ($1.fireDate, $1.id) }
     }
 
-    static func identifier(kind: DailyReminderKind, day: Date, calendar: Calendar = .current) -> String {
-        let c = calendar.dateComponents([.year, .month, .day], from: day)
-        let stamp = String(format: "%04d%02d%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
-        return "\(NotificationService.dailyIDPrefix)\(kind.rawValue)-\(stamp)"
+    static func identifier(kind: DailyReminderKind, triggerKey: String) -> String {
+        "\(NotificationService.dailyIDPrefix)\(kind.rawValue)-\(triggerKey)"
     }
 
     /// Entries from the day before `day` in the given meal slot — what the
