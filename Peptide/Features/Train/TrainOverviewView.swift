@@ -51,6 +51,8 @@ struct TrainOverviewView: View {
     @SceneStorage("train.overview.details") private var showsTrainingDetails = false
     @State private var showsMapInfo = false
     @State private var showsSessionBuilder = false
+    /// The builder's routine, started once its sheet has finished dismissing.
+    @State private var builtWorkout: (routine: Routine, linksRoutine: Bool)?
 
     private enum TrainingMapPeriod: Int, CaseIterable {
         case today = 1, week = 7, month = 30
@@ -99,6 +101,12 @@ struct TrainOverviewView: View {
         }
         .scrollPosition($scrollPosition)
         .refreshable { refresh() }
+        // On the scroll view, not the start buttons: starting the workout
+        // hides those buttons, and a sheet attached inside them would be
+        // torn down mid-dismissal.
+        .sheet(isPresented: $showsSessionBuilder, onDismiss: startBuiltWorkout) {
+            SessionBuilderSheet { routine, linksRoutine in builtWorkout = (routine, linksRoutine) }
+        }
         // `recordWorkoutFinished` bumps `dataStore.revision` precisely
         // so mounted views can recompute — before this listener existed
         // the overview kept serving pre-workout data after the finish
@@ -199,8 +207,13 @@ struct TrainOverviewView: View {
                     VStack(spacing: Spacing.sm) { startButtons }
                 }
             }
-            .sheet(isPresented: $showsSessionBuilder) { SessionBuilderSheet() }
         }
+    }
+
+    private func startBuiltWorkout() {
+        guard let built = builtWorkout else { return }
+        builtWorkout = nil
+        sessionService.startWorkout(routine: built.routine, linksRoutine: built.linksRoutine)
     }
 
     @ViewBuilder

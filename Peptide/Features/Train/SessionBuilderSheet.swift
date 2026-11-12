@@ -5,6 +5,12 @@ import SwiftUI
 /// The map shows fatigue until a muscle is picked, then the session's
 /// primary and supporting muscles.
 struct SessionBuilderSheet: View {
+    /// Called with the built routine and whether the session should count
+    /// toward it (the user saved it as a routine). The presenter starts the
+    /// workout once this sheet is gone: starting it here would present the
+    /// workout cover while the sheet is still dismissing, which UIKit drops.
+    let onStart: (Routine, _ linksRoutine: Bool) -> Void
+
     @Environment(\.dismiss) private var dismiss
     @Environment(DataStore.self) private var dataStore
     @AppStorage("experienceLevel") private var storedExperience = "beginner"
@@ -57,7 +63,7 @@ struct SessionBuilderSheet: View {
         ToolbarItem(placement: .topBarTrailing) {
             if let routine {
                 Button(isSaved ? LocalizedStringKey("routine.saved") : "Save as routine") { save(routine) }
-                    .disabled(isSaved)
+                    .disabled(isSaved || routine.exercises.isEmpty)
             } else {
                 Button("Pick for me", systemImage: "wand.and.stars") { pickForMe() }
                     .disabled(states.isEmpty)
@@ -232,7 +238,15 @@ struct SessionBuilderSheet: View {
     private var footer: some View {
         Group {
             if let routine {
-                PrimaryCTAButton(title: "Start workout", icon: "play.fill") { start(routine) }
+                if routine.exercises.isEmpty {
+                    Text("No exercises fit your equipment for this. Pick another muscle, or add equipment in Profile.")
+                        .font(AppFont.scaled(13))
+                        .foregroundStyle(AppColor.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                } else {
+                    PrimaryCTAButton(title: "Start workout", icon: "play.fill") { start(routine) }
+                }
             } else {
                 GlassButton(title: "Build workout", icon: "wand.and.stars", isFullWidth: true) { build() }
                     .disabled(focus == nil || !library.isLoaded)
@@ -315,12 +329,12 @@ struct SessionBuilderSheet: View {
 
     private func start(_ routine: Routine) {
         Haptics.impact(.medium)
-        sessionService.startWorkout(routine: routine, linksRoutine: false)
+        onStart(routine, isSaved)
         dismiss()
     }
 }
 
 #Preview("Build workout") {
-    SessionBuilderSheet()
+    SessionBuilderSheet { _, _ in }
         .environment(DataStore(seedSampleData: true))
 }

@@ -48954,6 +48954,16 @@
           }
         }
       }
+    },
+    "No exercises fit your equipment for this. Pick another muscle, or add equipment in Profile.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga övningar passar din utrustning för det här. Välj en annan muskel eller lägg till utrustning i Profil."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
