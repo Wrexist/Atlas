@@ -482,7 +482,8 @@ enum LifestyleDataLogic {
     /// asset rather than failing the record). Older meals lose only their
     /// per-food breakdown, oldest first, and keep their name, time and
     /// macros, so the column grows ~270 KB a year instead of either
-    /// growing ~2 MB a year or deleting the user's history.
+    /// growing ~2 MB a year or deleting the user's history. Oldest is by
+    /// date, so a meal backfilled before all others is compacted at once.
     static let maxDetailedMealEntries: Int = 3650
 
     // MARK: - Outcome check-ins

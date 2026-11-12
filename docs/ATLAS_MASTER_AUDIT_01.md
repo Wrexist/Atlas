@@ -175,7 +175,7 @@ SwiftData/CloudKit · HealthKit · StoreKit 2 · WCSession · Vercel proxy → A
   unbounded arrays (mealHistory, habitEntries, weightHistory, labHistory, outcomeHistory,
   recipes, customFoods…) plus the avatar JPEG, persisted as ONE `StoredProfile` row whose long
   tail is a single JSON `extensionData` blob (`SwiftDataModels.swift:264-327, 427-518`). Only
-  momentumHistory (120) and weeklySummaries (26) are capped; mealHistory is capped at 3,650.
+  momentumHistory (120) and weeklySummaries (26) are capped; mealHistory keeps every meal; past 3,650 the oldest lose their per-food components.
 - **Protocols embed full `Peptide` value copies (P2)** — every protocol and every generated dose
   entry duplicates the complete database record (description, mechanism, citations)
   (`PeptideProtocol.swift:133`, `SwiftDataModels.swift:183`), bloating the blob and freezing

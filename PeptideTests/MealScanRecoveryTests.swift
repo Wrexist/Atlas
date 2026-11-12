@@ -109,6 +109,7 @@ final class MealScanRecoveryTests: XCTestCase {
         defer {
             DataStore.current?.flushPendingSave()
             DataStore.current = nil
+            SwiftDataRepository.shared.configureForTesting()
         }
         let healthKey = HealthSyncSettings.nutritionEnabledKey
         let savedHealthFlag = UserDefaults.standard.object(forKey: healthKey)
@@ -139,6 +140,7 @@ final class MealScanRecoveryTests: XCTestCase {
         defer {
             DataStore.current?.flushPendingSave()
             DataStore.current = nil
+            SwiftDataRepository.shared.configureForTesting()
         }
         let healthKey = HealthSyncSettings.nutritionEnabledKey
         let savedHealthFlag = UserDefaults.standard.object(forKey: healthKey)
