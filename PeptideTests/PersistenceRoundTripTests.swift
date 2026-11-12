@@ -340,24 +340,76 @@ final class PersistenceRoundTripTests: XCTestCase {
         XCTAssertEqual(today.proteinG, 0)
     }
 
-    func test_pruneMealHistory_backfilledEntry_dropsOldestByDateNotPosition() {
+    private static var stockholm: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Stockholm")!
+        return calendar
+    }
+
+    private static func scannedMeal(_ name: String, on date: Date) -> MealEntry {
+        let component = MealFoodComponent(
+            id: "scan:\(name)", name: name, grams: 200, servingGrams: nil, servingLabel: nil,
+            per100g: ScannedProduct.Nutriments(calories: 50, proteinG: 5, carbsG: 5, fatG: 1, fiberG: 2, sugarsG: 1),
+            sourceID: nil
+        )
+        return MealEntry(date: date, category: .lunch, name: name, calories: 100,
+                         proteinG: 10, carbsG: 10, fatG: 2, source: .photo, components: [component])
+    }
+
+    func test_logMealEntry_pastDetailCap_keepsEveryMeal() throws {
         var profile = UserProfile.fresh
-        let day: TimeInterval = 86_400
-        let start = Date().addingTimeInterval(-30 * day)
-        func meal(_ name: String, _ date: Date) -> MealEntry {
-            MealEntry(date: date, category: .lunch, name: name, calories: 100,
-                      proteinG: 0, carbsG: 0, fatG: 0, source: .photo)
+        let calendar = Self.stockholm
+        let start = try XCTUnwrap(calendar.date(from: DateComponents(year: 2024, month: 1, day: 1, hour: 12)))
+        let total = LifestyleDataLogic.maxDetailedMealEntries + 10
+        let meals = try (0..<total).map { index in
+            let date = try XCTUnwrap(calendar.date(byAdding: .hour, value: 5 * index, to: start))
+            return Self.scannedMeal("Meal \(index)", on: date)
         }
-        let newest = meal("Newest", start.addingTimeInterval(day))
-        let oldest = meal("Oldest", start.addingTimeInterval(-day))
+
+        for meal in meals { LifestyleDataLogic.logMealEntry(into: &profile, entry: meal) }
+
+        XCTAssertEqual(profile.mealHistory.count, total, "no meal is deleted past the cap")
+        XCTAssertEqual(Set(profile.mealHistory.map(\.id)), Set(meals.map(\.id)))
+        let first = try XCTUnwrap(profile.mealHistory.first { $0.id == meals[0].id })
+        XCTAssertEqual(first.name, "Meal 0")
+        XCTAssertEqual(first.calories, 100)
+        XCTAssertNil(first.components, "the oldest meals give up only their per-food detail")
+        XCTAssertEqual(profile.mealHistory.filter { $0.components != nil }.count,
+                       LifestyleDataLogic.maxDetailedMealEntries)
+        let newest = try XCTUnwrap(profile.mealHistory.first { $0.id == meals[total - 1].id })
+        XCTAssertEqual(newest.components, meals[total - 1].components)
+        let firstDay = LifestyleDataLogic.consumption(in: profile, for: meals[0].date)
+        XCTAssertGreaterThanOrEqual(firstDay.caloriesKcal, 100, "the oldest day's totals still count it")
+    }
+
+    func test_compactMealHistory_backfilledEntry_compactsOldestByDateNotPosition() throws {
+        var profile = UserProfile.fresh
+        let calendar = Self.stockholm
+        let start = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 10, day: 1, hour: 12)))
+        let later = try XCTUnwrap(calendar.date(byAdding: .day, value: 1, to: start))
+        let earlier = try XCTUnwrap(calendar.date(byAdding: .day, value: -1, to: start))
+        let newest = Self.scannedMeal("Newest", on: later)
+        let oldest = Self.scannedMeal("Oldest", on: earlier)
         profile.mealHistory = [newest]
-            + (1..<LifestyleDataLogic.maxMealHistoryEntries).map { _ in meal("Filler", start) }
+            + (1..<LifestyleDataLogic.maxDetailedMealEntries).map { _ in Self.scannedMeal("Filler", on: start) }
 
         LifestyleDataLogic.logMealEntry(into: &profile, entry: oldest)
 
-        XCTAssertEqual(profile.mealHistory.count, LifestyleDataLogic.maxMealHistoryEntries)
-        XCTAssertTrue(profile.mealHistory.contains { $0.id == newest.id })
-        XCTAssertFalse(profile.mealHistory.contains { $0.id == oldest.id })
+        XCTAssertEqual(profile.mealHistory.count, LifestyleDataLogic.maxDetailedMealEntries + 1)
+        XCTAssertNotNil(profile.mealHistory.first { $0.id == newest.id }?.components)
+        let compacted = try XCTUnwrap(profile.mealHistory.first { $0.id == oldest.id })
+        XCTAssertNil(compacted.components)
+    }
+
+    func test_logMealEntry_underDetailCap_leavesHistoryUntouched() throws {
+        var profile = UserProfile.fresh
+        let calendar = Self.stockholm
+        let day = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 11, day: 12, hour: 8)))
+        let meals = (0..<3).map { Self.scannedMeal("Meal \($0)", on: day) }
+
+        for meal in meals { LifestyleDataLogic.logMealEntry(into: &profile, entry: meal) }
+
+        XCTAssertEqual(profile.mealHistory, meals)
     }
 
     func test_mealsByCategory_bucketsEntriesAndCapturesLegacyAggregateAsOther() throws {
@@ -474,23 +526,6 @@ final class PersistenceRoundTripTests: XCTestCase {
 
         XCTAssertEqual(profile.mealHistory, history)
         XCTAssertEqual(profile.dailyConsumption, consumption)
-    }
-
-    func test_logMealEntry_overCap_keepsEveryEntryFromToday() throws {
-        var profile = UserProfile.fresh
-        let noon = Self.todayAtNoon
-        let lastWeek = try XCTUnwrap(Calendar.current.date(byAdding: .day, value: -7, to: noon))
-        let todays = (0..<3).map { _ in Self.meal(on: noon, calories: 100) }
-        profile.mealHistory = todays
-            + (0..<LifestyleDataLogic.maxMealHistoryEntries).map { _ in Self.meal(on: lastWeek, calories: 100) }
-
-        let latest = Self.meal(on: noon, calories: 200)
-        LifestyleDataLogic.logMealEntry(into: &profile, entry: latest)
-
-        XCTAssertEqual(profile.mealHistory.count, LifestyleDataLogic.maxMealHistoryEntries)
-        let kept = Set(profile.mealHistory.map(\.id))
-        XCTAssertTrue((todays + [latest]).allSatisfy { kept.contains($0.id) },
-                      "the cap trims older days, never today")
     }
 
     func test_dedupedWeightHistory_twoEntriesSameDay_keepsLatest() throws {

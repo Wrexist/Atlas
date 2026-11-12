@@ -146,12 +146,11 @@ enum LifestyleDataLogic {
     /// via this method — callers should never write one without the
     /// other.
     ///
-    /// Trims `mealHistory` to the most recent `maxMealHistoryEntries`
-    /// so very heavy users don't bloat the profile blob without
-    /// bound. Today's entries are always kept regardless of cap.
+    /// Compacts the oldest entries past `maxDetailedMealEntries` so the
+    /// profile blob grows slowly; no meal is ever dropped.
     static func logMealEntry(into profile: inout UserProfile, entry: MealEntry) {
         profile.mealHistory.append(entry)
-        pruneMealHistoryIfNeeded(into: &profile)
+        compactMealHistoryIfNeeded(into: &profile)
         logMeal(
             into: &profile,
             calories: entry.calories,
@@ -476,16 +475,15 @@ enum LifestyleDataLogic {
         return max(best, mealLoggingStreak(in: profile, asOf: reference))
     }
 
-    /// Soft cap on `mealHistory` so the profile blob can't grow
-    /// without bound: 5 meals/day × 365 days × 2 years = 3,650 entries.
-    /// A plain entry serialises to ~150 B, but a scanned meal carrying
-    /// `components` (per-100 g nutriments for each food) runs ~1 KB, so
-    /// a heavy scanner user can reach a few MB here. CloudKit moves an
-    /// oversized binary column to an asset rather than failing the
-    /// record, but the whole blob is still re-encoded on every save.
-    /// Today's entries are always preserved past the cap so the
-    /// rings can't lose data mid-day.
-    static let maxMealHistoryEntries: Int = 3650
+    /// How many meals keep their per-food `components`: 5 meals/day ×
+    /// 365 days × 2 years. A scanned meal carrying components runs ~1 KB
+    /// against ~150 B for the bare entry, and the whole meals column is
+    /// re-encoded on every save (CloudKit moves an oversized column to an
+    /// asset rather than failing the record). Older meals lose only their
+    /// per-food breakdown, oldest first, and keep their name, time and
+    /// macros, so the column grows ~270 KB a year instead of either
+    /// growing ~2 MB a year or deleting the user's history.
+    static let maxDetailedMealEntries: Int = 3650
 
     // MARK: - Outcome check-ins
 
@@ -530,28 +528,16 @@ enum LifestyleDataLogic {
         return profile.outcomeHistory.filter { $0.date >= cutoff }
     }
 
-    private static func pruneMealHistoryIfNeeded(into profile: inout UserProfile) {
-        guard profile.mealHistory.count > maxMealHistoryEntries else { return }
-        let today = Calendar.current.startOfDay(for: Date())
-        // Keep every entry from today regardless of cap so the rings
-        // are never wrong on the active day, then trim older entries
-        // to fit the remaining budget.
-        var todays: [MealEntry] = []
-        var older: [MealEntry] = []
-        todays.reserveCapacity(profile.mealHistory.count)
-        older.reserveCapacity(profile.mealHistory.count)
-        for entry in profile.mealHistory {
-            if Calendar.current.isDate(entry.date, inSameDayAs: today) {
-                todays.append(entry)
-            } else {
-                older.append(entry)
-            }
+    private static func compactMealHistoryIfNeeded(into profile: inout UserProfile) {
+        guard profile.mealHistory.count > maxDetailedMealEntries else { return }
+        let detailed = profile.mealHistory.indices.filter { profile.mealHistory[$0].components != nil }
+        guard detailed.count > maxDetailedMealEntries else { return }
+        // Back-filled and re-dated entries break append order, so go by
+        // date or a newer meal could lose its detail before an older one.
+        let oldestFirst = detailed.sorted { profile.mealHistory[$0].date < profile.mealHistory[$1].date }
+        for index in oldestFirst.prefix(detailed.count - maxDetailedMealEntries) {
+            profile.mealHistory[index].components = nil
         }
-        // Back-filled and re-dated entries break append order, so trim
-        // by date or a newer meal could go before an older one.
-        older.sort { $0.date < $1.date }
-        let trimmedOlder = older.suffix(max(0, maxMealHistoryEntries - todays.count))
-        profile.mealHistory = Array(trimmedOlder) + todays
     }
 
     // MARK: - Workouts
