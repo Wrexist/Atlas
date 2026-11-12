@@ -91,13 +91,28 @@ enum LifestyleDataLogic {
         fatG: Int,
         date: Date
     ) {
-        let key = consumptionKey(for: date)
+        let key = loggedKey(for: date, in: profile)
         guard var bucket = profile.dailyConsumption[key] else { return }
         bucket.caloriesKcal = max(0, bucket.caloriesKcal - calories)
         bucket.proteinG    = max(0, bucket.proteinG    - proteinG)
         bucket.carbsG      = max(0, bucket.carbsG      - carbsG)
         bucket.fatG        = max(0, bucket.fatG        - fatG)
         profile.dailyConsumption[key] = bucket
+    }
+
+    /// The bucket a meal at `date` was added to: the one whose day, as
+    /// stamped when it was created, holds `date`. That is today's
+    /// `consumptionKey` unless the time zone changed since, and undoing
+    /// from the wrong bucket would leave the meal's macros behind.
+    private static func loggedKey(for date: Date, in profile: UserProfile) -> String {
+        let key = consumptionKey(for: date)
+        let calendar = Calendar.current
+        func holds(_ bucket: DailyConsumption) -> Bool {
+            guard let end = calendar.date(byAdding: .day, value: 1, to: bucket.date) else { return false }
+            return date >= bucket.date && date < end
+        }
+        if let bucket = profile.dailyConsumption[key], holds(bucket) { return key }
+        return profile.dailyConsumption.first { holds($0.value) }?.key ?? key
     }
 
     /// Adds (or, negative, removes) an exact amount of water. `waterOz`
@@ -130,21 +145,50 @@ enum LifestyleDataLogic {
             : consumption.waterOz
     }
 
-    /// Convenience accessor used by the macro rings — returns the day's
-    /// bucket or an empty stub so callers don't have to optional-chain
-    /// the dictionary lookup at every render.
-    static func consumption(in profile: UserProfile, for date: Date) -> DailyConsumption {
-        profile.dailyConsumption[consumptionKey(for: date)]
+    /// The day's intake as the rings, widgets and Watch show it. Macros
+    /// are the sum of the same `mealHistory` entries `mealEntries(in:for:)`
+    /// lists, so the total and the list always agree. Water, and any
+    /// macros logged before meals were itemised, come from the stored
+    /// bucket.
+    ///
+    /// The bucket is keyed by the day in the time zone the meal was
+    /// logged in, so after a time-zone change it no longer lines up with
+    /// the day the list shows. Its macros only count for what no entry
+    /// explains: an entry explains the bucket when it falls inside the
+    /// bucket's own day (as stamped at log time) or inside the asked day.
+    static func consumption(
+        in profile: UserProfile,
+        for date: Date,
+        calendar: Calendar = .current
+    ) -> DailyConsumption {
+        var result = profile.dailyConsumption[consumptionKey(for: date, calendar: calendar)]
             ?? DailyConsumption.empty(on: date)
+        // Interval bounds, not `isDate(_:inSameDayAs:)` per entry: this
+        // runs on every ring render and history holds up to 3 650 meals.
+        let dayStart = calendar.startOfDay(for: date)
+        let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
+        let bucketEnd = calendar.date(byAdding: .day, value: 1, to: result.date) ?? result.date
+        var listed = CategoryTotals.zero
+        var explained = CategoryTotals.zero
+        for entry in profile.mealHistory {
+            let onDay = entry.date >= dayStart && entry.date < dayEnd
+            if onDay { listed.add(entry) }
+            if onDay || (entry.date >= result.date && entry.date < bucketEnd) { explained.add(entry) }
+        }
+        result.caloriesKcal = listed.calories + max(0, result.caloriesKcal - explained.calories)
+        result.proteinG = listed.proteinG + max(0, result.proteinG - explained.proteinG)
+        result.carbsG = listed.carbsG + max(0, result.carbsG - explained.carbsG)
+        result.fatG = listed.fatG + max(0, result.fatG - explained.fatG)
+        return result
     }
 
     // MARK: - Meal entries (per-meal history)
 
-    /// Appends a `MealEntry` AND updates the per-day aggregate so the
-    /// macro rings keep working without rewriting them to recompute
-    /// from history on every render. The two stores stay in lockstep
-    /// via this method — callers should never write one without the
-    /// other.
+    /// Appends a `MealEntry` AND updates the per-day aggregate. The
+    /// rings read the day's macros from history (see `consumption`);
+    /// the aggregate still feeds multi-day trends and tells legacy,
+    /// un-itemised logs apart. The two stores stay in lockstep via this
+    /// method — callers should never write one without the other.
     ///
     /// Trims `mealHistory` to the most recent `maxMealHistoryEntries`
     /// so very heavy users don't bloat the profile blob without
@@ -222,12 +266,10 @@ enum LifestyleDataLogic {
     /// show up in the totals without being mis-attributed.
     static func mealsByCategory(
         in profile: UserProfile,
-        for date: Date
+        for date: Date,
+        calendar: Calendar = .current
     ) -> CategoryBreakdown {
-        let day = Calendar.current.startOfDay(for: date)
-        let entries = profile.mealHistory.filter {
-            Calendar.current.isDate($0.date, inSameDayAs: day)
-        }
+        let entries = mealEntries(in: profile, for: date, calendar: calendar)
         var perCategory: [MealCategory: CategoryTotals] = [:]
         for category in MealCategory.allCases {
             perCategory[category] = .zero
@@ -235,7 +277,7 @@ enum LifestyleDataLogic {
         for entry in entries {
             perCategory[entry.category, default: .zero].add(entry)
         }
-        let aggregate = consumption(in: profile, for: date)
+        let aggregate = consumption(in: profile, for: date, calendar: calendar)
         let mealCalories = entries.reduce(0) { $0 + $1.calories }
         let otherCalories = max(0, aggregate.caloriesKcal - mealCalories)
         let mealProtein = entries.reduce(0) { $0 + $1.proteinG }
@@ -258,10 +300,11 @@ enum LifestyleDataLogic {
     }
 
     /// Returns `mealHistory` filtered to `date`'s calendar day, sorted
-    /// newest-first. Used by the (future) meal-history list.
-    static func mealEntries(in profile: UserProfile, for date: Date) -> [MealEntry] {
+    /// newest-first. The day's meal list, and the entries
+    /// `consumption(in:for:)` sums, so the two can't disagree.
+    static func mealEntries(in profile: UserProfile, for date: Date, calendar: Calendar = .current) -> [MealEntry] {
         profile.mealHistory
-            .filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
+            .filter { calendar.isDate($0.date, inSameDayAs: date) }
             .sorted { $0.date > $1.date }
     }
 
@@ -603,8 +646,8 @@ enum LifestyleDataLogic {
     /// Must match the user's local day, NOT the UTC day — a meal logged
     /// at 11:00 PM in Auckland would otherwise key under tomorrow's
     /// date and silently disappear from today's rings.
-    static func consumptionKey(for date: Date) -> String {
-        let day = Calendar.current.startOfDay(for: date)
+    static func consumptionKey(for date: Date, calendar: Calendar = .current) -> String {
+        let day = calendar.startOfDay(for: date)
         // Per-call formatter allocation. The previous shared
         // `nonisolated(unsafe)` instance was only safe while every
         // caller stayed on `@MainActor`; a widget timeline provider
@@ -613,7 +656,7 @@ enum LifestyleDataLogic {
         // microseconds and dominates none of the calling paths.
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withFullDate]
-        formatter.timeZone = Calendar.current.timeZone
+        formatter.timeZone = calendar.timeZone
         return formatter.string(from: day)
     }
 
