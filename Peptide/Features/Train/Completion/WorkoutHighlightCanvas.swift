@@ -137,8 +137,8 @@ struct WorkoutHighlightCanvas: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(options.includeName ? summary.name : String(localized: "Workout"))
                     .font(.subheadline.weight(.semibold)).lineLimit(compact ? 1 : 2)
-                if options.includeDate, let date = summary.session.finishedAt {
-                    Text(date.formatted(date: .abbreviated, time: .omitted)).font(.caption2)
+                if options.includeDate, summary.session.finishedAt != nil {
+                    Text(summary.session.dayAnchor.formatted(date: .abbreviated, time: .omitted)).font(.caption2)
                 }
             }
             Spacer(minLength: 8)

@@ -24,14 +24,14 @@ enum DeloadEngine {
     static func reason(history: [WorkoutSession], now: Date, calendar: Calendar) -> Reason? {
         guard let thisWeek = calendar.dateInterval(of: .weekOfYear, for: now) else { return nil }
         let finished = history
-            .filter { $0.finishedAt != nil && $0.startedAt < thisWeek.start }
-            .sorted { $0.startedAt < $1.startedAt }
+            .filter { $0.finishedAt != nil && $0.dayAnchor < thisWeek.start }
+            .sorted { $0.dayAnchor < $1.dayAnchor }
         if risingVolumeWeeks(finished, before: thisWeek.start, calendar: calendar) >= risingWeeks {
             return .risingVolume
         }
         guard let lookbackStart = calendar.date(byAdding: .weekOfYear, value: -stallLookbackWeeks, to: thisWeek.start)
         else { return nil }
-        let (stalled, tracked) = stalledLifts(finished.filter { $0.startedAt >= lookbackStart })
+        let (stalled, tracked) = stalledLifts(finished.filter { $0.dayAnchor >= lookbackStart })
         guard stalled >= stalledLiftCount, Double(stalled) >= Double(tracked) * stalledShare else { return nil }
         return .stalledLifts
     }
