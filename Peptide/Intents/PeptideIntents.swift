@@ -25,7 +25,7 @@ struct NextDoseIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let snapshot: NextDoseReadout = await MainActor.run {
-            let store = IntentDataStore.resolve()
+            let store = IntentDataStore.resolveWithTodaysDoses()
             guard let next = store.nextDose else { return .allDone }
             return .upcoming(name: next.peptide.name, dose: next.dose, date: next.date)
         }
@@ -162,7 +162,7 @@ struct LogDoseIntent: AppIntent {
         let chosenName = peptide.displayName
 
         let resolution: ToggleResolution = await MainActor.run {
-            Self.logEarliestDose(of: chosenID, in: IntentDataStore.resolve())
+            Self.logEarliestDose(of: chosenID, in: IntentDataStore.resolveWithTodaysDoses())
         }
 
         switch resolution {
