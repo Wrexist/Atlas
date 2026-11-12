@@ -25,10 +25,13 @@ enum IntentDataStore {
     /// disk-backed one if the app was just launched for an intent
     /// and the SwiftUI scene hasn't initialised its copy yet.
     static func resolve() -> DataStore {
-        if let existing = DataStore.current { return existing }
-        let fresh = DataStore()
-        DataStore.current = fresh
-        return fresh
+        let store = DataStore.current ?? DataStore()
+        DataStore.current = store
+        // A store kept alive in a suspended app since yesterday has no
+        // doses for today until the app is foregrounded; an intent can run
+        // without that ever happening. Idempotent.
+        store.regenerateTodayEntries()
+        return store
     }
 
     /// Run a synchronous mutation, then force a save so the change
