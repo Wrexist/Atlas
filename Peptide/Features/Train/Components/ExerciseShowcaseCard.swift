@@ -2,14 +2,15 @@ import AVFoundation
 import SwiftUI
 
 /// The top of the exercise page: the rendered animation standing straight
-/// on the card (the clip is transparent, so there is no video box), with a
+/// on the card (a transparent clip has no video box; an opaque one is shown
+/// as a rounded dark panel until the transparent set is published), with a
 /// Movement / Muscles switch to the interactive body map. An exercise
 /// without a clip (custom, not rendered yet, offline on first view) shows
 /// the body map alone and no switch.
 struct ExerciseShowcaseCard: View {
     let exercise: Exercise
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var clipURL: URL?
+    @State private var clip: ExerciseClipStore.Clip?
     @State private var mode: Mode = .movement
     @State private var paused = false
 
@@ -20,11 +21,11 @@ struct ExerciseShowcaseCard: View {
     var body: some View {
         GlassCard {
             VStack(spacing: Spacing.md) {
-                if clipURL != nil {
+                if clip != nil {
                     GlassSegmentedControl(options: Mode.allCases, selected: $mode, label: label)
                 }
-                if let clipURL, mode == .movement {
-                    movement(clipURL)
+                if let clip, mode == .movement {
+                    movement(clip)
                         .transition(.opacity)
                 } else {
                     MuscleActivationMap(exercise: exercise)
@@ -32,11 +33,11 @@ struct ExerciseShowcaseCard: View {
                 }
             }
         }
-        .appAnimation(AppAnimation.fadeIn, value: clipURL)
+        .appAnimation(AppAnimation.fadeIn, value: clip)
         .appAnimation(AppAnimation.quick, value: mode)
         .task(id: exercise.id) {
             guard !exercise.isCustom else { return }
-            clipURL = await ExerciseClipStore.shared.clip(for: exercise.id)
+            clip = await ExerciseClipStore.shared.clip(for: exercise.id)
         }
     }
 
@@ -47,10 +48,11 @@ struct ExerciseShowcaseCard: View {
         }
     }
 
-    private func movement(_ url: URL) -> some View {
+    private func movement(_ clip: ExerciseClipStore.Clip) -> some View {
         VStack(spacing: Spacing.md) {
-            LoopingVideo(url: url, playing: !reduceMotion && !paused)
+            LoopingVideo(url: clip.url, playing: !reduceMotion && !paused)
                 .aspectRatio(4 / 5, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: clip.isTransparent ? 0 : Spacing.controlCornerRadius, style: .continuous))
                 .frame(maxWidth: .infinity)
                 .overlay(alignment: .bottomTrailing) {
                     if !reduceMotion { pauseButton }

@@ -6,7 +6,12 @@ import XCTest
 @MainActor
 final class ExerciseClipStoreTests: XCTestCase {
 
-    private let base = URL(string: "https://clips.test/")!
+    private let transparent = ExerciseClipStore.Source(
+        baseURL: URL(string: "https://clips.test/alpha/")!, indexName: "clips.txt", fileExtension: "mov", isTransparent: true
+    )
+    private let opaque = ExerciseClipStore.Source(
+        baseURL: URL(string: "https://clips.test/opaque/")!, indexName: "index.txt", fileExtension: "mp4", isTransparent: false
+    )
     private var cacheDirectory: URL!
 
     override func setUp() {
@@ -28,7 +33,7 @@ final class ExerciseClipStoreTests: XCTestCase {
         }
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [MockURLProtocol.self]
-        return ExerciseClipStore(baseURL: base, session: URLSession(configuration: config), cacheDirectory: cacheDirectory)
+        return ExerciseClipStore(sources: [transparent, opaque], session: URLSession(configuration: config), cacheDirectory: cacheDirectory)
     }
 
     func test_parseIndex_ignoresBlankLinesAndWhitespace() {
@@ -44,7 +49,8 @@ final class ExerciseClipStoreTests: XCTestCase {
 
         let downloaded = await store.clip(for: "Barbell_Squat")
         let first = try XCTUnwrap(downloaded)
-        XCTAssertEqual(try Data(contentsOf: first), video)
+        XCTAssertTrue(first.isTransparent)
+        XCTAssertEqual(try Data(contentsOf: first.url), video)
         let fetchesAfterFirst = requests.value
 
         let second = await store.clip(for: "Barbell_Squat")
@@ -71,7 +77,7 @@ final class ExerciseClipStoreTests: XCTestCase {
         let fetched = await second.clip(for: "Pushups")
         let clip = try XCTUnwrap(fetched)
 
-        XCTAssertEqual(try Data(contentsOf: clip), new)
+        XCTAssertEqual(try Data(contentsOf: clip.url), new)
         let cached = try FileManager.default.contentsOfDirectory(atPath: cacheDirectory.path)
         XCTAssertEqual(cached, ["Pushups@bbbb.mov"])
     }
@@ -94,7 +100,7 @@ final class ExerciseClipStoreTests: XCTestCase {
         let offline = store(serving: [:])
         let clip = await offline.clip(for: "Pushups")
 
-        XCTAssertEqual(clip?.lastPathComponent, cached.lastPathComponent)
+        XCTAssertEqual(clip?.url.lastPathComponent, cached.url.lastPathComponent)
     }
 
     func test_clip_indexUnavailable_returnsNilAndRetriesNextTime() async {
@@ -106,6 +112,32 @@ final class ExerciseClipStoreTests: XCTestCase {
 
         XCTAssertNil(first)
         XCTAssertNil(second)
-        XCTAssertEqual(requests.value, 2)
+        XCTAssertEqual(requests.value, 4, "both indexes are tried on each attempt")
+    }
+
+    func test_clip_transparentSetMissing_fallsBackToOpaqueClips() async throws {
+        let video = Data([7])
+        let store = store(serving: ["index.txt": Data("Barbell_Squat\n".utf8), "Barbell_Squat.mp4": video])
+
+        let fetched = await store.clip(for: "Barbell_Squat")
+        let clip = try XCTUnwrap(fetched)
+
+        XCTAssertFalse(clip.isTransparent)
+        XCTAssertEqual(clip.url.pathExtension, "mp4")
+        XCTAssertEqual(try Data(contentsOf: clip.url), video)
+    }
+
+    func test_clip_transparentSetPublished_replacesTheCachedOpaqueClip() async throws {
+        let opaqueOnly = store(serving: ["index.txt": Data("Pushups\n".utf8), "Pushups.mp4": Data([1])])
+        _ = await opaqueOnly.clip(for: "Pushups")
+
+        let both = store(serving: ["clips.txt": Data("Pushups aaaa\n".utf8), "Pushups.mov": Data([2]),
+                                   "index.txt": Data("Pushups\n".utf8), "Pushups.mp4": Data([1])])
+        let fetched = await both.clip(for: "Pushups")
+        let clip = try XCTUnwrap(fetched)
+
+        XCTAssertTrue(clip.isTransparent)
+        let cached = try FileManager.default.contentsOfDirectory(atPath: cacheDirectory.path)
+        XCTAssertEqual(cached, ["Pushups@aaaa.mov"])
     }
 }

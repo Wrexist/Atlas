@@ -1,36 +1,61 @@
 import Foundation
 
 /// Rendered exercise animations: 3-second loops of the Atlas figure doing
-/// the movement, trained muscles tinted, on a transparent background (HEVC
-/// with alpha) so the figure sits straight on the card in light and dark
-/// mode. They are too big to bundle, so they stream from the repo's
-/// `exercise-videos-alpha` branch and each clip is saved to Caches after its
-/// first download.
+/// the movement, trained muscles tinted. They are too big to bundle, so they
+/// stream from the repo and each clip is saved to Caches after its first
+/// download.
 ///
-/// The branch's `clips.txt` lists the exercise ids that have a clip, each
-/// optionally followed by a version (a hash of the clip). A re-rendered clip
-/// gets a new version, so the cached copy is replaced; an id dropped from the
-/// index stops showing even if it is cached. Any other id (a custom exercise,
-/// one not rendered yet) gives nil, and the detail screen keeps showing the
-/// body map alone. Offline, a cached clip is still shown.
+/// Two sources are tried in order. The `exercise-videos-alpha` branch holds
+/// the transparent re-render (HEVC with alpha, so the figure sits straight on
+/// the card); until it is published, the `exercise-videos` branch's opaque
+/// clips (black background) are shown instead, so the page is never left
+/// with only the body map. The first source whose index loads wins for the
+/// launch, so the app switches to the new clips by itself once they exist.
+///
+/// A source's index lists the exercise ids that have a clip, each optionally
+/// followed by a version (a hash of the clip). A re-rendered clip gets a new
+/// version, so the cached copy is replaced; an id dropped from the index
+/// stops showing even if it is cached. Any other id (a custom exercise, one
+/// not rendered yet) gives nil, and the detail screen keeps showing the body
+/// map alone. Offline, a cached clip is still shown.
 @MainActor
 final class ExerciseClipStore {
     static let shared = ExerciseClipStore()
 
-    nonisolated static let defaultBaseURL = URL.staticHTTPS("https://raw.githubusercontent.com/Wrexist/Atlas/exercise-videos-alpha/")
+    struct Source: Sendable {
+        let baseURL: URL
+        let indexName: String
+        let fileExtension: String
+        let isTransparent: Bool
+    }
 
-    private let baseURL: URL
+    struct Clip: Equatable, Sendable {
+        let url: URL
+        /// False for the opaque clips, which the card frames as a panel.
+        let isTransparent: Bool
+    }
+
+    nonisolated static let alpha = Source(
+        baseURL: URL.staticHTTPS("https://raw.githubusercontent.com/Wrexist/Atlas/exercise-videos-alpha/"),
+        indexName: "clips.txt", fileExtension: "mov", isTransparent: true
+    )
+    nonisolated static let opaque = Source(
+        baseURL: URL.staticHTTPS("https://raw.githubusercontent.com/Wrexist/Atlas/exercise-videos/"),
+        indexName: "index.txt", fileExtension: "mp4", isTransparent: false
+    )
+
+    private let sources: [Source]
     private let session: URLSession
     private let cacheDirectory: URL
-    private var available: [String: String]?
-    private var indexTask: Task<[String: String]?, Never>?
+    private var available: (source: Source, ids: [String: String])?
+    private var indexTask: Task<(source: Source, ids: [String: String])?, Never>?
 
     init(
-        baseURL: URL = ExerciseClipStore.defaultBaseURL,
+        sources: [Source] = [ExerciseClipStore.alpha, ExerciseClipStore.opaque],
         session: URLSession = .shared,
         cacheDirectory: URL = URL.cachesDirectory.appending(path: "exercise-clips-alpha", directoryHint: .isDirectory)
     ) {
-        self.baseURL = baseURL
+        self.sources = sources
         self.session = session
         self.cacheDirectory = cacheDirectory
     }
@@ -38,14 +63,17 @@ final class ExerciseClipStore {
     /// A local file URL for the exercise's clip, downloading it first if
     /// needed; nil when there is no clip or the network is unavailable and
     /// nothing is cached.
-    func clip(for exerciseID: String) async -> URL? {
-        guard let ids = await index() else { return cachedClip(for: exerciseID) }
-        guard let version = ids[exerciseID] else { return nil }
-        let file = cacheDirectory.appending(path: Self.fileName(exerciseID, version: version))
-        if FileManager.default.fileExists(atPath: file.path) { return file }
-        guard let downloaded = await download(baseURL.appending(path: "\(exerciseID).mov"), to: file) else { return nil }
+    func clip(for exerciseID: String) async -> Clip? {
+        guard let index = await index() else { return cachedClip(for: exerciseID) }
+        let source = index.source
+        guard let version = index.ids[exerciseID] else { return nil }
+        let file = cacheDirectory.appending(path: Self.fileName(exerciseID, version: version, fileExtension: source.fileExtension))
+        let clip = Clip(url: file, isTransparent: source.isTransparent)
+        if FileManager.default.fileExists(atPath: file.path) { return clip }
+        let remote = source.baseURL.appending(path: "\(exerciseID).\(source.fileExtension)")
+        guard await download(remote, to: file) else { return nil }
         removeCachedClips(for: exerciseID, except: file)
-        return downloaded
+        return clip
     }
 
     /// One line per exercise id, optionally followed by whitespace and a
@@ -60,20 +88,24 @@ final class ExerciseClipStore {
         return ids
     }
 
-    nonisolated static func fileName(_ exerciseID: String, version: String) -> String {
-        version.isEmpty ? "\(exerciseID).mov" : "\(exerciseID)@\(version).mov"
+    nonisolated static func fileName(_ exerciseID: String, version: String, fileExtension: String) -> String {
+        version.isEmpty ? "\(exerciseID).\(fileExtension)" : "\(exerciseID)@\(version).\(fileExtension)"
     }
 
     private func cachedFiles(for exerciseID: String) -> [URL] {
         let files = (try? FileManager.default.contentsOfDirectory(at: cacheDirectory, includingPropertiesForKeys: nil)) ?? []
         return files.filter {
-            let name = $0.lastPathComponent
-            return name == "\(exerciseID).mov" || (name.hasPrefix("\(exerciseID)@") && name.hasSuffix(".mov"))
+            let stem = $0.deletingPathExtension().lastPathComponent
+            return stem == exerciseID || stem.hasPrefix("\(exerciseID)@")
         }
     }
 
-    private func cachedClip(for exerciseID: String) -> URL? {
-        cachedFiles(for: exerciseID).first
+    /// Offline fallback: a transparent clip wins over an opaque one.
+    private func cachedClip(for exerciseID: String) -> Clip? {
+        let clips = cachedFiles(for: exerciseID).map { file in
+            Clip(url: file, isTransparent: sources.contains { $0.isTransparent && $0.fileExtension == file.pathExtension })
+        }
+        return clips.first(where: \.isTransparent) ?? clips.first
     }
 
     private func removeCachedClips(for exerciseID: String, except keep: URL) {
@@ -84,30 +116,34 @@ final class ExerciseClipStore {
 
     /// Fetched once per launch. A failed fetch isn't remembered, so the next
     /// screen tries again.
-    private func index() async -> [String: String]? {
+    private func index() async -> (source: Source, ids: [String: String])? {
         if let available { return available }
         if let indexTask { return await indexTask.value }
         let task = Task { await fetchIndex() }
         indexTask = task
-        let ids = await task.value
-        available = ids
+        let loaded = await task.value
+        available = loaded
         indexTask = nil
-        return ids
+        return loaded
     }
 
-    private func fetchIndex() async -> [String: String]? {
-        guard let data = await fetch(baseURL.appending(path: "clips.txt")) else { return nil }
-        return Self.parseIndex(String(decoding: data, as: UTF8.self))
+    private func fetchIndex() async -> (source: Source, ids: [String: String])? {
+        for source in sources {
+            if let data = await fetch(source.baseURL.appending(path: source.indexName)) {
+                return (source, Self.parseIndex(String(decoding: data, as: UTF8.self)))
+            }
+        }
+        return nil
     }
 
-    private func download(_ url: URL, to file: URL) async -> URL? {
-        guard let data = await fetch(url) else { return nil }
+    private func download(_ url: URL, to file: URL) async -> Bool {
+        guard let data = await fetch(url) else { return false }
         do {
             try FileManager.default.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
             try data.write(to: file, options: .atomic)
-            return file
+            return true
         } catch {
-            return nil
+            return false
         }
     }
 
