@@ -14,6 +14,9 @@ final class WeeklyPrepStore {
 
     private(set) var plans: [PrepWeek]
     private(set) var boxes: [PrepBoxBatch]
+    /// The box each meal logged by "Eat" came from, by meal id, so
+    /// deleting that meal from the diary puts the box back.
+    private(set) var eatenBoxes: [UUID: PrepBoxBatch]
 
     /// The bundled library, and the same by id.
     let library: [LibraryRecipe]
@@ -22,6 +25,8 @@ final class WeeklyPrepStore {
     private struct State: Codable {
         var plans: [PrepWeek]
         var boxes: [PrepBoxBatch]
+        /// Optional so state saved before it existed still decodes.
+        var eatenBoxes: [UUID: PrepBoxBatch]?
     }
 
     init(defaults: UserDefaults = .standard, library: [LibraryRecipe] = RecipeLibraryEngine.bundled) {
@@ -32,6 +37,7 @@ final class WeeklyPrepStore {
             .flatMap { try? JSONDecoder().decode(State.self, from: $0) }
         plans = state?.plans ?? []
         boxes = state?.boxes ?? []
+        eatenBoxes = state?.eatenBoxes ?? [:]
     }
 
     // MARK: - Plan
@@ -90,7 +96,7 @@ final class WeeklyPrepStore {
         guard current.preppedAt == nil, !current.dishes.isEmpty else { return }
         boxes += WeeklyPrepEngine.boxes(for: current.dishes, cookedAt: now)
         update(now: now, calendar: calendar) { $0.preppedAt = now }
-        boxesChanged()
+        boxesChanged(now: now, calendar: calendar)
     }
 
     private func update(now: Date, calendar: Calendar, _ change: (inout PrepWeek) -> Void) {
@@ -116,13 +122,33 @@ final class WeeklyPrepStore {
         boxesChanged()
     }
 
+    /// Eaten and logged as `mealID`: one box fewer, remembered so deleting
+    /// the meal can give it back.
+    func eatOne(_ batchID: UUID, loggedAs mealID: UUID, now: Date = .now, calendar: Calendar = .current) {
+        guard let batch = boxes.first(where: { $0.id == batchID }) else { return }
+        eatenBoxes[mealID] = batch
+        boxes = WeeklyPrepEngine.removingOne(from: boxes, id: batchID)
+        boxesChanged(now: now, calendar: calendar)
+    }
+
+    /// The meal eaten from a box was deleted: the box goes back.
+    func returnBox(forMeal mealID: UUID, now: Date = .now, calendar: Calendar = .current) {
+        guard let batch = eatenBoxes.removeValue(forKey: mealID) else { return }
+        boxes = WeeklyPrepEngine.returningOne(batch, to: boxes)
+        boxesChanged(now: now, calendar: calendar)
+    }
+
     func freezeOne(_ batchID: UUID, now: Date = .now) {
         boxes = WeeklyPrepEngine.freezingOne(from: boxes, id: batchID, at: now)
         boxesChanged()
     }
 
-    private func boxesChanged() {
-        boxes = WeeklyPrepEngine.pruned(boxes, recipes: recipes, now: .now, calendar: .current)
+    private func boxesChanged(now: Date = .now, calendar: Calendar = .current) {
+        boxes = WeeklyPrepEngine.pruned(boxes, recipes: recipes, now: now, calendar: calendar)
+        // A box too old to show again needn't be remembered either.
+        eatenBoxes = eatenBoxes.filter {
+            !WeeklyPrepEngine.pruned([$0.value], recipes: recipes, now: now, calendar: calendar).isEmpty
+        }
         persist()
         let boxes = boxes
         let recipes = recipes
@@ -135,13 +161,14 @@ final class WeeklyPrepStore {
     func deleteAll() {
         plans = []
         boxes = []
+        eatenBoxes = [:]
         defaults.removeObject(forKey: Self.storageKey)
         PrepBoxReminderScheduler.cancel()
     }
 
     private func persist() {
         do {
-            defaults.set(try JSONEncoder().encode(State(plans: plans, boxes: boxes)), forKey: Self.storageKey)
+            defaults.set(try JSONEncoder().encode(State(plans: plans, boxes: boxes, eatenBoxes: eatenBoxes)), forKey: Self.storageKey)
         } catch {
             AppLog.persistence.error("Weekly prep not saved: \(error.localizedDescription, privacy: .public)")
         }

@@ -1444,6 +1444,7 @@ final class DataStore {
         LifestyleDataLogic.unlogMealEntry(from: &profile, id: id)
         save()
         TableMomentStore.shared.removeDish(id: id)
+        WeeklyPrepStore.shared.returnBox(forMeal: id)
         if HealthSyncSettings.isNutritionEnabled {
             // Queued behind pending writes, so an Undo right after a copy
             // can't delete before the copy's samples exist.

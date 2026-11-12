@@ -255,6 +255,23 @@ final class WeeklyPrepEngineTests: XCTestCase {
         XCTAssertTrue(twice.isEmpty)
     }
 
+    func test_returningOne_toLiveBatch_incrementsCount() {
+        let batch = PrepBoxBatch(id: UUID(), recipeID: "a", cookedAt: date(), frozenAt: nil, count: 3)
+        let eaten = WeeklyPrepEngine.removingOne(from: [batch], id: batch.id)
+        let returned = WeeklyPrepEngine.returningOne(batch, to: eaten)
+        XCTAssertEqual(returned, [batch])
+    }
+
+    func test_returningOne_afterLastBoxEaten_restoresBatchOfOne() {
+        let batch = PrepBoxBatch(id: UUID(), recipeID: "a", cookedAt: date(), frozenAt: nil, count: 1)
+        let eaten = WeeklyPrepEngine.removingOne(from: [batch], id: batch.id)
+        XCTAssertTrue(eaten.isEmpty)
+        let returned = WeeklyPrepEngine.returningOne(batch, to: eaten)
+        XCTAssertEqual(returned.map(\.id), [batch.id])
+        XCTAssertEqual(returned.first?.count, 1)
+        XCTAssertEqual(returned.first?.cookedAt, batch.cookedAt)
+    }
+
     func test_freezingOne_movesABoxAndJoinsFrozenBatch() {
         let fridge = PrepBoxBatch(id: UUID(), recipeID: "a", cookedAt: date(), frozenAt: nil, count: 4)
 
@@ -288,5 +305,87 @@ final class WeeklyPrepEngineTests: XCTestCase {
 
         XCTAssertEqual(reminder?.fireDate, date(day: 3, month: 11, hour: 18))
         XCTAssertEqual(reminder?.recipeIDs, ["a"])
+    }
+}
+
+@MainActor
+final class WeeklyPrepStoreTests: XCTestCase {
+    private var calendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        return calendar
+    }
+
+    private func date(day: Int, hour: Int = 12) -> Date {
+        calendar.date(from: DateComponents(year: 2026, month: 10, day: day, hour: hour))!
+    }
+
+    private func recipe() -> LibraryRecipe {
+        LibraryRecipe(
+            id: "chili", name: "Chili", nameSV: "Chili", category: .dinner, mealPrep: true,
+            minutes: 40, servings: 2, fridgeDays: 4, tags: ["meal-prep"],
+            ingredients: [LibraryRecipe.Ingredient(name: "Beans", nameSV: "Bönor", grams: 200, pantryKey: "beans")],
+            steps: ["Cook."], stepsSV: ["Koka."], calories: 500, proteinG: 40, carbsG: 50, fatG: 10, fiberG: 6,
+            micros: LibraryRecipe.Micros(sodiumMg: 0, potassiumMg: 0, ironMg: 0, calciumMg: 0, vitaminDUg: 0, vitaminB12Ug: 0),
+            image: "recipe-chili"
+        )
+    }
+
+    private func preppedStore(defaults: UserDefaults, cookedAt: Date) -> WeeklyPrepStore {
+        let store = WeeklyPrepStore(defaults: defaults, library: [recipe()])
+        store.replace(nil, with: recipe(), now: cookedAt, calendar: calendar)
+        store.finishPrep(now: cookedAt, calendar: calendar)
+        return store
+    }
+
+    private func scratchDefaults() -> (UserDefaults, String) {
+        let suite = "WeeklyPrepStoreTests-\(UUID().uuidString)"
+        return (UserDefaults(suiteName: suite)!, suite)
+    }
+
+    func test_deletingMealEatenFromBox_givesTheBoxBack() throws {
+        let (defaults, suite) = scratchDefaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let cooked = date(day: 26)
+        let store = preppedStore(defaults: defaults, cookedAt: cooked)
+        let batch = try XCTUnwrap(store.boxes.first)
+        XCTAssertEqual(batch.count, 2)
+        let meal = UUID()
+
+        store.eatOne(batch.id, loggedAs: meal, now: date(day: 27), calendar: calendar)
+        XCTAssertEqual(store.boxes.first?.count, 1)
+        store.returnBox(forMeal: meal, now: date(day: 27), calendar: calendar)
+
+        XCTAssertEqual(store.boxes.first?.count, 2)
+        store.returnBox(forMeal: meal, now: date(day: 27), calendar: calendar)
+        XCTAssertEqual(store.boxes.first?.count, 2, "a second delete of the same meal returns nothing")
+    }
+
+    func test_deletingMealFromLastBox_afterRelaunch_restoresBatch() throws {
+        let (defaults, suite) = scratchDefaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = preppedStore(defaults: defaults, cookedAt: date(day: 26))
+        let batch = try XCTUnwrap(store.boxes.first)
+        let first = UUID(), second = UUID()
+        store.eatOne(batch.id, loggedAs: first, now: date(day: 27), calendar: calendar)
+        store.eatOne(batch.id, loggedAs: second, now: date(day: 27), calendar: calendar)
+        XCTAssertTrue(store.boxes.isEmpty)
+
+        let relaunched = WeeklyPrepStore(defaults: defaults, library: [recipe()])
+        relaunched.returnBox(forMeal: second, now: date(day: 28), calendar: calendar)
+
+        XCTAssertEqual(relaunched.boxes.map(\.id), [batch.id])
+        XCTAssertEqual(relaunched.boxes.first?.count, 1)
+    }
+
+    func test_deletingUnrelatedMeal_leavesBoxesAlone() throws {
+        let (defaults, suite) = scratchDefaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = preppedStore(defaults: defaults, cookedAt: date(day: 26))
+        let before = store.boxes
+
+        store.returnBox(forMeal: UUID(), now: date(day: 27), calendar: calendar)
+
+        XCTAssertEqual(store.boxes, before)
     }
 }
