@@ -68,6 +68,16 @@ final class ExerciseClipStoreTests: XCTestCase {
         XCTAssertEqual(requests.value, 2, "only the two indexes are fetched")
     }
 
+    func test_remoteURL_versionedClip_carriesTheVersionSoTheCDNServesTheNewBytes() {
+        let url = ExerciseClipStore.remoteURL("Pushups", version: "bbbb", in: transparent)
+        XCTAssertEqual(url.absoluteString, "https://clips.test/alpha/Pushups.mov?v=bbbb")
+    }
+
+    func test_remoteURL_unversionedClip_isThePlainFile() {
+        let url = ExerciseClipStore.remoteURL("Pushups", version: "", in: opaque)
+        XCTAssertEqual(url.absoluteString, "https://clips.test/opaque/Pushups.mp4")
+    }
+
     func test_clip_newVersionInIndex_replacesCachedClip() async throws {
         let old = Data([1]), new = Data([2])
         let first = store(serving: ["clips.txt": Data("Pushups aaaa\n".utf8), "Pushups.mov": old])
