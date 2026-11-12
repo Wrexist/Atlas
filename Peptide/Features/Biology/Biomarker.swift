@@ -41,6 +41,24 @@ enum Biomarker: String, CaseIterable, Codable, Hashable, Sendable {
         }
     }
 
+    /// The tile's label. A half-width tile fits one short word at large
+    /// text sizes; "Sleep baseline" wrapped mid-word in Swedish
+    /// ("Sömnbaslin-je"). The tile's footer already says it's a baseline.
+    var shortName: String {
+        switch self {
+        case .weight:           String(localized: "Weight")
+        case .hrvBaseline:      String(localized: "HRV")
+        case .rhrBaseline:      String(localized: "Resting HR")
+        case .sleepBaseline:    String(localized: "Sleep")
+        case .stepsBaseline:    String(localized: "Steps")
+        case .bodyTemperature:  String(localized: "Temperature")
+        case .bodyFat:          String(localized: "Body fat")
+        case .waist:            String(localized: "Waist")
+        case .bloodPressure:    String(localized: "Blood pressure")
+        case .latestLabPanel:   String(localized: "Labs")
+        }
+    }
+
     /// SF Symbol shown on the biomarker's card. Prefer the `.fill`
     /// variants that hold their weight at small sizes.
     var icon: String {

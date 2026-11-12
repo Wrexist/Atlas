@@ -295,8 +295,12 @@ private struct RecommendedRecipeCard: View {
     }
 }
 
-private struct RecipeGridCard: View {
+/// A recipe as a photo tile: the plate, its name, time and macros. Used by
+/// the library grid and the weekly-prep dish picker.
+struct RecipeGridCard: View {
     let recipe: LibraryRecipe
+    /// Off where every recipe shown is meal prep, so the flag says nothing.
+    var showsMealPrepBadge = true
 
     @Environment(\.locale) private var locale
 
@@ -306,7 +310,7 @@ private struct RecipeGridCard: View {
                 .padding(Spacing.sm)
                 .aspectRatio(1, contentMode: .fit)
                 .overlay(alignment: .topLeading) {
-                    if recipe.mealPrep {
+                    if recipe.mealPrep && showsMealPrepBadge {
                         Label("Meal prep", systemImage: "shippingbox.fill")
                             .font(AppFont.badge)
                             .foregroundStyle(AppColor.textPrimary)

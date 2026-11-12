@@ -30,9 +30,6 @@ struct BiologyView: View {
     @State private var foregroundRefreshID = 0
     @State private var sleepInsights: SleepInsightsEngine.Insights?
     @State private var wristTemperature: WristTemperatureEngine.Deviation?
-    /// True while the list is moving, so the Ask Atlas button folds to
-    /// its icon and stays out of the way of what is being read.
-    @State private var isScrolling = false
     /// Drives the per-biomarker detail sheet. Identifiable wrapper
     /// so `.sheet(item:)` lifecycle is clean across taps.
     @State private var detailItem: BiomarkerDetailItem?
@@ -110,28 +107,18 @@ struct BiologyView: View {
                     disclaimerFootnote
                 }
                 .padding(.horizontal, Spacing.screenPadding)
-                // Clears the floating Ask Atlas button at the end.
-                .padding(.bottom, Spacing.scrollBottomInset)
+                .padding(.bottom, Spacing.xl)
                 .readableContentWidth()
             }
             .refreshable { await reload() }
-            .onScrollPhaseChange { _, phase in
-                isScrolling = phase.isScrolling
-            }
-            .overlay(alignment: .bottomTrailing) {
-                AskAtlasFloatingButton(
-                    isCollapsed: isScrolling,
-                    showsProBadge: !storeService.canAccessAIFeatures,
-                    action: openAskAtlas
-                )
-                .padding(.trailing, Spacing.screenPadding)
-                .padding(.bottom, Spacing.lg)
-            }
             .pageBackground()
             .navigationTitle("Biology")
             .navigationBarTitleDisplayMode(.large)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
+                // In the bar, not floating over the page: a floating pill
+                // covered card values ("-1,") wherever the list stopped.
+                ToolbarItem(placement: .topBarTrailing) { askAtlasButton }
                 ToolbarItem(placement: .topBarTrailing) { ProfileToolbarButton() }
             }
             .sheet(isPresented: $showPaywall) {
@@ -460,6 +447,22 @@ struct BiologyView: View {
     }
 
     // MARK: - Ask Atlas
+
+    /// Free users see the Pro flag; the tap still opens the paywall.
+    private var askAtlasButton: some View {
+        Button(action: openAskAtlas) {
+            HStack(spacing: Spacing.xs) {
+                Label("Ask Atlas", systemImage: "sparkles")
+                    .labelStyle(.titleAndIcon)
+                if !storeService.canAccessAIFeatures {
+                    Badge("Pro")
+                }
+            }
+            .font(AppFont.subheadline.weight(.semibold))
+            .foregroundStyle(AppColor.accentInkOnWash)
+        }
+        .accessibilityHint(Text("Opens an AI chat about today's biology"))
+    }
 
     /// Same Pro gate as the research chat it reuses.
     private func openAskAtlas() {

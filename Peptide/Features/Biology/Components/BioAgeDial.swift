@@ -30,9 +30,9 @@ struct BioAgeDial: View {
 
     private var lowerBound: Double { Double(chronologicalAge - rangeHalfSpan) }
     private var upperBound: Double { Double(chronologicalAge + rangeHalfSpan) }
-    /// Arc sweep in degrees. 240° gives the open-mouth-up look (180° =
-    /// exactly horizontal, 270° = too tight at the top, 240° splits the
-    /// difference).
+    /// Arc sweep in degrees. 240° leaves the opening at the bottom, with
+    /// the bound labels at its two ends (180° = exactly horizontal, 270° =
+    /// too tight, 240° splits the difference).
     private var sweep: Double { 240 }
     private var startAngle: Double { -90 - sweep / 2 }
 
@@ -76,7 +76,7 @@ struct BioAgeDial: View {
                 AppColor.glassBorder,
                 style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
             )
-            .rotationEffect(.degrees(startAngle + 90))
+            .rotationEffect(.degrees(Self.arcRotation))
     }
 
     private var progressArc: some View {
@@ -86,18 +86,21 @@ struct BioAgeDial: View {
                 AngularGradient(
                     colors: [AppColor.accentPrimary, AppColor.accentLight],
                     center: .center,
-                    startAngle: .degrees(startAngle),
-                    endAngle: .degrees(startAngle + sweep)
+                    startAngle: .degrees(Double(trimStart) * 360),
+                    endAngle: .degrees(Double(trimEnd) * 360)
                 ),
                 style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
             )
-            .rotationEffect(.degrees(startAngle + 90))
+            .rotationEffect(.degrees(Self.arcRotation))
             .appAnimation(AppAnimation.springSmooth, value: progress)
     }
 
     /// Convert sweep angle to a trim range. SwiftUI's Circle trim runs 0…1
-    /// clockwise from the right; we want our arc centred at the top with a
-    /// 240° sweep, so trim covers `(360 - sweep) / 720` to `1 - that`.
+    /// clockwise from the right; we want a 240° arc with a 120° gap, so trim covers `(360 - sweep) / 720` to `1 - that`.
+    /// That leaves the gap facing right, and `arcRotation` turns it to face
+    /// down. The marker, tick and labels place themselves with `angle(for:)`
+    /// in the same frame, so the stroke and the marker always agree.
+    private static let arcRotation: Double = 90
     private var trimStart: CGFloat { CGFloat((360 - sweep) / 720) }
     private var trimEnd: CGFloat { 1 - trimStart }
 
