@@ -49084,6 +49084,16 @@
           }
         }
       }
+    },
+    "Temperature": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Temperatur"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
