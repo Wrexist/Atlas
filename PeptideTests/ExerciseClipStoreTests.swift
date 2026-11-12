@@ -65,7 +65,7 @@ final class ExerciseClipStoreTests: XCTestCase {
         let clip = await store.clip(for: "Pushups")
 
         XCTAssertNil(clip)
-        XCTAssertEqual(requests.value, 1)
+        XCTAssertEqual(requests.value, 2, "only the two indexes are fetched")
     }
 
     func test_clip_newVersionInIndex_replacesCachedClip() async throws {
@@ -125,6 +125,28 @@ final class ExerciseClipStoreTests: XCTestCase {
         XCTAssertFalse(clip.isTransparent)
         XCTAssertEqual(clip.url.pathExtension, "mp4")
         XCTAssertEqual(try Data(contentsOf: clip.url), video)
+    }
+
+    func test_clip_exerciseNotYetRerendered_keepsItsOpaqueClip() async throws {
+        let store = store(serving: ["clips.txt": Data("Pushups\n".utf8), "Pushups.mov": Data([2]),
+                                    "index.txt": Data("Pushups\nBarbell_Squat\n".utf8), "Barbell_Squat.mp4": Data([1])])
+
+        let squat = await store.clip(for: "Barbell_Squat")
+        let pushups = await store.clip(for: "Pushups")
+
+        XCTAssertEqual(squat?.isTransparent, false)
+        XCTAssertEqual(pushups?.isTransparent, true)
+    }
+
+    func test_clip_transparentIndexFailsOnce_keepsTheCachedTransparentClip() async throws {
+        let both = store(serving: ["clips.txt": Data("Pushups\n".utf8), "Pushups.mov": Data([2])])
+        _ = await both.clip(for: "Pushups")
+
+        let opaqueOnly = store(serving: ["index.txt": Data("Pushups\n".utf8), "Pushups.mp4": Data([1])])
+        _ = await opaqueOnly.clip(for: "Pushups")
+
+        let cached = try FileManager.default.contentsOfDirectory(atPath: cacheDirectory.path).sorted()
+        XCTAssertEqual(cached, ["Pushups.mov", "Pushups.mp4"])
     }
 
     func test_clip_transparentSetPublished_replacesTheCachedOpaqueClip() async throws {

@@ -36,6 +36,7 @@ struct ExerciseShowcaseCard: View {
         .appAnimation(AppAnimation.fadeIn, value: clip)
         .appAnimation(AppAnimation.quick, value: mode)
         .task(id: exercise.id) {
+            clip = nil
             guard !exercise.isCustom else { return }
             clip = await ExerciseClipStore.shared.clip(for: exercise.id)
         }
@@ -50,7 +51,8 @@ struct ExerciseShowcaseCard: View {
 
     private func movement(_ clip: ExerciseClipStore.Clip) -> some View {
         VStack(spacing: Spacing.md) {
-            LoopingVideo(url: clip.url, playing: !reduceMotion && !paused)
+            LoopingVideo(url: clip.url, isTransparent: clip.isTransparent, playing: !reduceMotion && !paused)
+                .id(clip.url)
                 .aspectRatio(4 / 5, contentMode: .fit)
                 .clipShape(RoundedRectangle(cornerRadius: clip.isTransparent ? 0 : Spacing.controlCornerRadius, style: .continuous))
                 .frame(maxWidth: .infinity)
@@ -108,10 +110,12 @@ private struct MuscleChips: View {
 }
 
 /// AVPlayerLayer without playback controls, looping a short local clip.
-/// The clips are HEVC with alpha: the layer asks for BGRA frames and has no
-/// background of its own, so the card shows through around the figure.
+/// A transparent clip is HEVC with alpha: the layer asks for BGRA frames and
+/// has no background of its own, so the card shows through around the
+/// figure. An opaque clip keeps the cheaper native frame format.
 private struct LoopingVideo: UIViewRepresentable {
     let url: URL
+    let isTransparent: Bool
     let playing: Bool
 
     func makeUIView(context: Context) -> PlayerView {
@@ -121,7 +125,9 @@ private struct LoopingVideo: UIViewRepresentable {
         player.preventsDisplaySleepDuringVideoPlayback = false
         view.playerLayer.player = player
         view.playerLayer.videoGravity = .resizeAspect
-        view.playerLayer.pixelBufferAttributes = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
+        if isTransparent {
+            view.playerLayer.pixelBufferAttributes = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
+        }
         context.coordinator.looper = AVPlayerLooper(player: player, templateItem: AVPlayerItem(url: url))
         return view
     }

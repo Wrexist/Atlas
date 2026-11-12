@@ -5,12 +5,14 @@ import Foundation
 /// stream from the repo and each clip is saved to Caches after its first
 /// download.
 ///
-/// Two sources are tried in order. The `exercise-videos-alpha` branch holds
+/// Two sources, in priority order. The `exercise-videos-alpha` branch holds
 /// the transparent re-render (HEVC with alpha, so the figure sits straight on
-/// the card); until it is published, the `exercise-videos` branch's opaque
-/// clips (black background) are shown instead, so the page is never left
-/// with only the body map. The first source whose index loads wins for the
-/// launch, so the app switches to the new clips by itself once they exist.
+/// the card); the `exercise-videos` branch holds the older opaque clips
+/// (black background). Each exercise uses the first source that lists it, so
+/// while the re-render is published batch by batch, an exercise not yet in
+/// it keeps its opaque clip, and the app switches to the new clips by itself.
+/// The opaque index carries no versions, so an opaque clip is never refreshed
+/// once cached; that set is frozen.
 ///
 /// A source's index lists the exercise ids that have a clip, each optionally
 /// followed by a version (a hash of the clip). A re-rendered clip gets a new
@@ -27,6 +29,11 @@ final class ExerciseClipStore {
         let indexName: String
         let fileExtension: String
         let isTransparent: Bool
+    }
+
+    private struct LoadedIndex: Sendable {
+        let source: Source
+        let ids: [String: String]
     }
 
     struct Clip: Equatable, Sendable {
@@ -47,8 +54,8 @@ final class ExerciseClipStore {
     private let sources: [Source]
     private let session: URLSession
     private let cacheDirectory: URL
-    private var available: (source: Source, ids: [String: String])?
-    private var indexTask: Task<(source: Source, ids: [String: String])?, Never>?
+    private var available: [LoadedIndex]?
+    private var indexTask: Task<[LoadedIndex]?, Never>?
 
     init(
         sources: [Source] = [ExerciseClipStore.alpha, ExerciseClipStore.opaque],
@@ -64,15 +71,16 @@ final class ExerciseClipStore {
     /// needed; nil when there is no clip or the network is unavailable and
     /// nothing is cached.
     func clip(for exerciseID: String) async -> Clip? {
-        guard let index = await index() else { return cachedClip(for: exerciseID) }
+        guard let indexes = await indexes() else { return cachedClip(for: exerciseID) }
+        guard let index = indexes.first(where: { $0.ids[exerciseID] != nil }),
+              let version = index.ids[exerciseID] else { return nil }
         let source = index.source
-        guard let version = index.ids[exerciseID] else { return nil }
         let file = cacheDirectory.appending(path: Self.fileName(exerciseID, version: version, fileExtension: source.fileExtension))
         let clip = Clip(url: file, isTransparent: source.isTransparent)
         if FileManager.default.fileExists(atPath: file.path) { return clip }
         let remote = source.baseURL.appending(path: "\(exerciseID).\(source.fileExtension)")
         guard await download(remote, to: file) else { return nil }
-        removeCachedClips(for: exerciseID, except: file)
+        removeCachedClips(for: exerciseID, except: file, from: source)
         return clip
     }
 
@@ -108,15 +116,22 @@ final class ExerciseClipStore {
         return clips.first(where: \.isTransparent) ?? clips.first
     }
 
-    private func removeCachedClips(for exerciseID: String, except keep: URL) {
-        for file in cachedFiles(for: exerciseID) where file.lastPathComponent != keep.lastPathComponent {
+    /// Drops older copies from the same source and any opaque copy once a
+    /// transparent one is in. A transparent copy is never dropped for an
+    /// opaque one, since that only happens when the transparent index failed
+    /// to load this launch.
+    private func removeCachedClips(for exerciseID: String, except keep: URL, from source: Source) {
+        let rank = sources.firstIndex { $0.fileExtension == source.fileExtension } ?? 0
+        let replaceable = Set(sources[rank...].map(\.fileExtension))
+        for file in cachedFiles(for: exerciseID)
+        where file.lastPathComponent != keep.lastPathComponent && replaceable.contains(file.pathExtension) {
             try? FileManager.default.removeItem(at: file)
         }
     }
 
-    /// Fetched once per launch. A failed fetch isn't remembered, so the next
-    /// screen tries again.
-    private func index() async -> (source: Source, ids: [String: String])? {
+    /// The indexes that loaded, in priority order; fetched once per launch.
+    /// When none loads, nothing is remembered, so the next screen tries again.
+    private func indexes() async -> [LoadedIndex]? {
         if let available { return available }
         if let indexTask { return await indexTask.value }
         let task = Task { await fetchIndex() }
@@ -127,13 +142,14 @@ final class ExerciseClipStore {
         return loaded
     }
 
-    private func fetchIndex() async -> (source: Source, ids: [String: String])? {
+    private func fetchIndex() async -> [LoadedIndex]? {
+        var loaded: [LoadedIndex] = []
         for source in sources {
             if let data = await fetch(source.baseURL.appending(path: source.indexName)) {
-                return (source, Self.parseIndex(String(decoding: data, as: UTF8.self)))
+                loaded.append(LoadedIndex(source: source, ids: Self.parseIndex(String(decoding: data, as: UTF8.self))))
             }
         }
-        return nil
+        return loaded.isEmpty ? nil : loaded
     }
 
     private func download(_ url: URL, to file: URL) async -> Bool {
