@@ -428,6 +428,30 @@ final class DataStoreTests: XCTestCase {
         XCTAssertEqual(countAfterFirst, countAfterSecond)
     }
 
+    // MARK: - Meal reminder "Same as yesterday"
+
+    /// Yesterday's dinner reminder, tapped today, fills yesterday from the
+    /// day before it, not today. Production reads the device calendar, so
+    /// the test does too.
+    func test_repeatMeals_reminderTappedNextDay_fillsTheRemindersDay() throws {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let yesterday = try XCTUnwrap(calendar.date(byAdding: .day, value: -1, to: today))
+        let dayBefore = try XCTUnwrap(calendar.date(byAdding: .day, value: -2, to: today))
+        let reminder = try XCTUnwrap(calendar.date(bySettingHour: 19, minute: 0, second: 0, of: yesterday))
+        let sourceDinner = try XCTUnwrap(calendar.date(bySettingHour: 18, minute: 30, second: 0, of: dayBefore))
+        store.profile.mealHistory = []
+        LifestyleDataLogic.logMealEntry(into: &store.profile, entry: MealEntry(
+            date: sourceDinner, category: .dinner, name: "Salmon bowl",
+            calories: 600, proteinG: 45, carbsG: 50, fatG: 20, source: .manual
+        ))
+
+        store.repeatMeals(.dinner, from: reminder)
+
+        XCTAssertEqual(store.mealEntries(for: yesterday).map(\.name), ["Salmon bowl"])
+        XCTAssertTrue(store.mealEntries(for: today).isEmpty)
+    }
+
     // MARK: - Per-peptide schedule preservation
 
     /// Callers must pass the existing `peptideSchedules` dict when they don't

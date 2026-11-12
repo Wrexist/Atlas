@@ -57,11 +57,12 @@ extension DataStore {
         if adding { Haptics.impact(.medium) } else { Haptics.selection() }
     }
 
-    /// Logs one serving of a library recipe to today's diary and returns
-    /// the meal slot it landed in.
+    /// Logs one serving of a library recipe to `day`'s diary (now's clock
+    /// time on a past day) and returns the meal slot it landed in.
     @discardableResult
-    func logServing(of recipe: LibraryRecipe, locale: Locale) -> MealCategory {
-        let entry = RecipeLibraryEngine.entry(for: recipe, locale: locale, at: Date(), calendar: .current)
+    func logServing(of recipe: LibraryRecipe, locale: Locale, on day: Date = Date()) -> MealCategory {
+        let date = LifestyleDataLogic.logTimestamp(on: day)
+        let entry = RecipeLibraryEngine.entry(for: recipe, locale: locale, at: date, calendar: .current)
         logMealEntry(entry)
         Haptics.success()
         return entry.category

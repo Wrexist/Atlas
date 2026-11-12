@@ -15,8 +15,13 @@ struct RecipeDetailView: View {
     @State private var showsTitle = false
     @State private var heartBurst = false
 
-    init(recipe: LibraryRecipe) {
+    /// The diary day "Log 1 serving" lands on: the day the Meals tab was
+    /// showing when the recipe was opened, today from anywhere else.
+    private let logDay: Date
+
+    init(recipe: LibraryRecipe, logDay: Date = Date()) {
         self.recipe = recipe
+        self.logDay = logDay
         _servings = State(initialValue: recipe.servings)
     }
 
@@ -371,7 +376,7 @@ struct RecipeDetailView: View {
     }
 
     private func log() {
-        let slot = dataStore.logServing(of: recipe, locale: locale)
+        let slot = dataStore.logServing(of: recipe, locale: locale, on: logDay)
         AppAnimation.with(AppAnimation.toast) { loggedSlot = slot }
         Task {
             try? await Task.sleep(for: AppAnimation.logSuccessAutoCloseDelay)

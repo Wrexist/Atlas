@@ -29,7 +29,8 @@ struct HomeMealsSection: View {
     @State private var pendingFromLibrary: PendingLibraryHandoff?
     /// Day being viewed, as an offset from today (0 = today). An offset
     /// rather than a Date so the tab still means "today" after midnight.
-    @State private var dayOffset = 0
+    /// Owned by the Meals tab so the recipe shelf logs onto the same day.
+    @Binding var dayOffset: Int
     /// Most recent water quick-add, kept briefly so it can be undone.
     @State private var lastWaterLog: WaterLog?
     /// Open day picker for copying one meal, or the whole day.

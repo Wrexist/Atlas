@@ -1340,16 +1340,17 @@ final class DataStore {
         }
     }
 
-    /// Re-logs the previous day's `category` entries onto today at their
-    /// original clock times — the meal reminder's "Same as yesterday"
-    /// action. A no-op when that meal is already logged today, so a
-    /// second tap can't double it.
+    /// Re-logs `category` from the day before the reminder onto the
+    /// reminder's own day, at the original clock times — the meal
+    /// reminder's "Same as yesterday" action. Both days come from when the
+    /// reminder fired, not when it was tapped: Monday's reminder tapped on
+    /// Tuesday fills Monday from Sunday. A no-op when that meal is already
+    /// logged on the reminder's day, so a second tap can't double it.
     func repeatMeals(_ category: MealCategory, from reminderDate: Date) {
-        let today = Date()
-        guard !mealEntries(for: today).contains(where: { $0.category == category }),
+        guard !mealEntries(for: reminderDate).contains(where: { $0.category == category }),
               let previousDay = Calendar.current.date(byAdding: .day, value: -1, to: reminderDate)
         else { return }
-        copyMeals(from: previousDay, to: today, category: category)
+        copyMeals(from: previousDay, to: reminderDate, category: category)
     }
 
     /// Logs copies of `sourceDay`'s meals — one `category`, or the whole

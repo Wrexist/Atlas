@@ -31,13 +31,15 @@ struct MealsContainerView: View {
     @State private var fridge = FridgeStore.shared
     @State private var showMealPlan = false
     @State private var showCoach = false
+    /// The diary day being viewed, shared by the diary and the recipe shelf.
+    @State private var mealDayOffset = 0
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
-                    HomeMealsSection()
-                    MealsRecipeShelf()
+                    HomeMealsSection(dayOffset: $mealDayOffset)
+                    MealsRecipeShelf(logDay: LifestyleDataLogic.mealDay(offset: mealDayOffset))
                         .scrollReveal()
                     FastingCard()
                         .scrollReveal()
