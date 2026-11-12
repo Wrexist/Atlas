@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The Meals tab's recipe row: the user's hearted recipes, each one tap
-/// from today's diary. Until something is hearted it shows recipes for
+/// from the diary day being viewed. Until something is hearted it shows recipes for
 /// the meal of the hour, with a hint on how to keep one here.
 struct MealsRecipeShelf: View {
     /// The diary day being viewed; recipes log onto it.
@@ -60,7 +60,7 @@ struct MealsRecipeShelf: View {
 }
 
 /// Photo card with a heart in the corner and, for logging without opening
-/// the recipe, a plus that adds one serving to today.
+/// the recipe, a plus that adds one serving to the viewed day.
 private struct RecipeShelfCard: View {
     let recipe: LibraryRecipe
     let logDay: Date
