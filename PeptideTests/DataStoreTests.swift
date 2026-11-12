@@ -428,6 +428,31 @@ final class DataStoreTests: XCTestCase {
         XCTAssertEqual(countAfterFirst, countAfterSecond)
     }
 
+    /// On a protocol's off-day nothing is generated, so activation must not
+    /// touch `entries` — a no-op append still marks the whole dose history
+    /// dirty and runs a full save on the main thread every time the app opens.
+    func test_regenerateTodayEntries_onAnOffDay_leavesEntriesUntouched() {
+        // Production reads the device calendar, so the off-day is picked with it too.
+        let weekday = Calendar.current.component(.weekday, from: Date())
+        let isoToday = weekday == 1 ? 7 : weekday - 1
+        let proto = PeptideProtocol(
+            id: UUID(),
+            name: "Off today",
+            peptides: [MockPeptides.bpc157],
+            schedule: ProtocolSchedule(daysOfWeek: [isoToday % 7 + 1], timesPerDay: 1, preferredTimes: ["8:00 AM"]),
+            cycleLengthWeeks: 8,
+            startDate: Date(),
+            status: .active,
+            notes: ""
+        )
+        store.addProtocol(proto)
+        let revision = store.revision
+
+        store.regenerateTodayEntries()
+
+        XCTAssertEqual(store.revision, revision)
+    }
+
     // MARK: - Per-peptide schedule preservation
 
     /// Callers must pass the existing `peptideSchedules` dict when they don't

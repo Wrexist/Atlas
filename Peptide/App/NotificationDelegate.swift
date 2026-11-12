@@ -60,6 +60,10 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
                       let hour = scheduledHour,
                       let minute = scheduledMinute else { return }
 
+                // Today's doses are generated when the app comes to the
+                // foreground. A morning reminder tapped while Atlas sat
+                // suspended overnight reaches a store that has none yet.
+                dataStore.regenerateTodayEntries()
                 let due = Self.entriesDue(
                     in: dataStore.entries,
                     protocolId: protocolId,

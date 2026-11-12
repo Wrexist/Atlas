@@ -31,6 +31,15 @@ enum IntentDataStore {
         return fresh
     }
 
+    /// `resolve()` for intents that read or log today's doses. A store kept
+    /// alive in a suspended app since yesterday has no doses for today until
+    /// the app is foregrounded, which an intent can run without. Idempotent.
+    static func resolveWithTodaysDoses() -> DataStore {
+        let store = resolve()
+        store.regenerateTodayEntries()
+        return store
+    }
+
     /// Run a synchronous mutation, then force a save so the change
     /// is durable before the intent's `perform()` returns. Without
     /// the flush, the debounced auto-save can lose data when iOS

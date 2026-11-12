@@ -2806,15 +2806,14 @@ final class DataStore {
         async let baseHRV = kit.averageHRV(days: 30)
         async let recentRHR = kit.averageRestingHeartRate(days: 3)
         async let baseRHR = kit.averageRestingHeartRate(days: 30)
-        async let lastSleepHours = kit.lastNightSleepHours()
         async let segments = kit.recentSleepSegments()
 
         let hrv = await recentHRV
         let hrvBaseline = await baseHRV
         let rhr = await recentRHR
         let rhrBaseline = await baseRHR
-        let sleepHours = await lastSleepHours
-        let night = SleepScoreEngine.night(from: await segments)
+        let night = SleepScoreEngine.lastNight(from: await segments, now: Date())
+        let sleepHours = night.map { $0.asleep / 3600 }
 
         // Same inputs `HeroMetricSnapshot.build` uses, so the wrist and
         // the iPhone's Today screen show the same Recovery number.
@@ -3043,12 +3042,15 @@ final class DataStore {
         let existingProtocolIds = Set(
             entries.filter { calendar.isDateInToday($0.date) }.map(\.protocolId)
         )
-        var added = false
-        for proto in activeProtocols where !existingProtocolIds.contains(proto.id) {
-            entries.append(contentsOf: Self.generateTodayEntries(for: proto))
-            added = true
-        }
-        if added { save() }
+        // Off-days (weekly schedules, every-N-days, washout) generate nothing.
+        // Appending an empty list still fires `entries`' didSet, which would
+        // mark the history dirty and run a full save on every activation.
+        let generated = activeProtocols
+            .filter { !existingProtocolIds.contains($0.id) }
+            .flatMap { Self.generateTodayEntries(for: $0) }
+        guard !generated.isEmpty else { return }
+        entries.append(contentsOf: generated)
+        save()
     }
 
     /// Called when the app becomes active. Detects calendar-day changes since the
@@ -3375,6 +3377,7 @@ final class DataStore {
         }
         guard !alreadyHasToday else { return }
         let newEntries = Self.generateTodayEntries(for: proto)
+        guard !newEntries.isEmpty else { return }
         entries.append(contentsOf: newEntries)
     }
 }

@@ -44,6 +44,10 @@ final class WorkoutSessionService {
         didSet { SeedRoutine.save(seedRoutine) }
     }
 
+    /// What the most recent set completion did to its exercise's pending
+    /// sets, so editing or unchecking that set can take it back.
+    @ObservationIgnored private var lastCompletion: SetCompletionEffect?
+
     /// How recently a session must have started for a second `startWorkout`
     /// to be treated as a duplicate tap rather than a fresh workout. Roughly
     /// the SwiftUI re-render window.
@@ -176,6 +180,7 @@ final class WorkoutSessionService {
         NotificationService.cancelOneShot(id: restNotificationID(for: session.id))
         let detections = PRDetectionEngine.shared.ingest(session: session)
         activeSession = nil
+        lastCompletion = nil
         invalidatePreviousSetCache()
         WorkoutLiveActivityService.shared.finish(session)
         if HealthSyncSettings.isEnabled {
@@ -202,6 +207,7 @@ final class WorkoutSessionService {
         NotificationService.cancelOneShot(id: restNotificationID(for: session.id))
         SwiftDataRepository.shared.deleteWorkoutSession(id: session.id)
         activeSession = nil
+        lastCompletion = nil
         invalidatePreviousSetCache()
         WorkoutLiveActivityService.shared.endAll()
         DataStore.current?.refreshTrainingGlanceables()
@@ -421,14 +427,40 @@ final class WorkoutSessionService {
             updated.completedAt = nil
         }
         session.exercises[exIdx].sets[setIdx] = updated
-        if !prior.completed && !updated.isWarmup && abs(prior.weightKg - updated.weightKg) >= 0.01 {
+        // Completing a set moves the pending sets (carry-forward, in-session
+        // retune). An edit to that set afterwards — the typed value that
+        // commits on focus loss just after the check, a correction during
+        // rest, or an uncheck — first takes those moves back, so the pending
+        // sets follow what was actually logged.
+        // A save that changes none of the logged values (a note, a commit of
+        // unchanged text) re-decides nothing, so a pending set the user
+        // moved by hand since is left alone.
+        let effect = Self.changesLoggedValues(prior, updated)
+            ? lastCompletion.flatMap { $0.entryID == entryID && $0.setID == updated.id ? $0 : nil }
+            : nil
+        if prior.completed, let effect {
+            session.exercises[exIdx].sets = effect.reverted(session.exercises[exIdx].sets)
+            lastCompletion = nil
+        }
+        let reapplies = !prior.completed || (effect != nil && updated.completed)
+        let fromKg = effect?.fromKg ?? prior.weightKg
+        let beforeEffects = session.exercises[exIdx].sets
+        // An uncheck keeps the carry-forward (the typed load is still the
+        // load to do) and drops only the retune.
+        if (!prior.completed || effect != nil) && !updated.isWarmup && abs(fromKg - updated.weightKg) >= 0.01 {
             session.exercises[exIdx].sets = SetCarryEngine.carryingWeight(
-                session.exercises[exIdx].sets, after: updated, fromKg: prior.weightKg
+                session.exercises[exIdx].sets, after: updated, fromKg: fromKg
+            )
+        }
+        if reapplies && updated.completed && !updated.isWarmup {
+            session.exercises[exIdx].sets = retunedSets(after: updated, in: session.exercises[exIdx])
+            lastCompletion = SetCompletionEffect(
+                entryID: entryID, setID: updated.id, fromKg: fromKg,
+                before: beforeEffects, after: session.exercises[exIdx].sets
             )
         }
         if session.focus == nil { session.focus = WorkoutFocusState(selectedEntryID: entryID) }
         if !prior.completed && updated.completed && !updated.isWarmup {
-            session.exercises[exIdx].sets = retunedSets(after: updated, in: session.exercises[exIdx])
             session.focus?.rest = nil
             let seconds = session.exercises[exIdx].restSeconds
                 ?? DataStore.current?.profile.trainingPreferences?.restTimerDefault ?? 90
@@ -445,6 +477,11 @@ final class WorkoutSessionService {
             }
         }
         persist(session)
+    }
+
+    private static func changesLoggedValues(_ old: SetEntry, _ new: SetEntry) -> Bool {
+        abs(old.weightKg - new.weightKg) >= 0.01 || old.reps != new.reps || old.rpe != new.rpe
+            || old.completed != new.completed || old.isWarmup != new.isWarmup
     }
 
     /// Undo only the set responsible for the currently displayed rest. Resolve
@@ -869,6 +906,49 @@ enum PreviousSetEngine {
             position += 1
         }
         return hints
+    }
+}
+
+/// What completing one set did to the pending sets of its exercise, so a
+/// later edit or uncheck of that set can take it back. Only sets still at
+/// the moved load are restored; a set the user changed since keeps its value.
+/// One slot: it covers the most recent completion, which is the set a
+/// focus-loss commit, a correction during rest or "Undo set" targets.
+struct SetCompletionEffect: Equatable {
+    let entryID: UUID
+    let setID: UUID
+    /// The completed set's load before it was logged — what the carry-forward
+    /// moved the pending sets away from.
+    let fromKg: Double
+    let moves: [UUID: Move]
+
+    struct Move: Equatable {
+        let fromKg: Double
+        let toKg: Double
+    }
+
+    init(entryID: UUID, setID: UUID, fromKg: Double, before: [SetEntry], after: [SetEntry]) {
+        self.entryID = entryID
+        self.setID = setID
+        self.fromKg = fromKg
+        let old = Dictionary(before.map { ($0.id, $0.weightKg) }, uniquingKeysWith: { first, _ in first })
+        var moves: [UUID: Move] = [:]
+        for set in after where !set.completed {
+            if let was = old[set.id], abs(was - set.weightKg) >= 0.01 {
+                moves[set.id] = Move(fromKg: was, toKg: set.weightKg)
+            }
+        }
+        self.moves = moves
+    }
+
+    func reverted(_ sets: [SetEntry]) -> [SetEntry] {
+        sets.map { set in
+            guard !set.completed, let move = moves[set.id], abs(set.weightKg - move.toKg) < 0.01
+            else { return set }
+            var restored = set
+            restored.weightKg = move.fromKg
+            return restored
+        }
     }
 }
 
