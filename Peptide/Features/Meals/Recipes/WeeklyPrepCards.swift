@@ -516,7 +516,9 @@ private struct CardTitle: View {
 
 // MARK: - Picker
 
-/// Every meal-prep dish, best for this week first.
+/// Every meal-prep dish, best for this week first, as a two-column grid of
+/// plates with search. Dishes already planned stay in place, dimmed and
+/// ticked, so the order doesn't jump while you pick.
 struct PrepDishPicker: View {
     let recipes: [LibraryRecipe]
     let planned: Set<String>
@@ -524,47 +526,43 @@ struct PrepDishPicker: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.locale) private var locale
+    @State private var searchText = ""
+
+    private let columns = [
+        GridItem(.flexible(), spacing: Spacing.md, alignment: .top),
+        GridItem(.flexible(), spacing: Spacing.md, alignment: .top),
+    ]
+
+    private var shown: [LibraryRecipe] {
+        let query = searchText.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else { return recipes }
+        return recipes.filter { $0.displayName(locale: locale).localizedStandardContains(query) }
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                LazyVStack(spacing: Spacing.sm) {
-                    ForEach(recipes) { recipe in
-                        let isPlanned = planned.contains(recipe.id)
-                        Button {
-                            choose(recipe)
-                        } label: {
-                            HStack(spacing: Spacing.md) {
-                                RecipeCutout(recipe: recipe)
-                                    .frame(width: 56, height: 56)
-                                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                                    Text(recipe.displayName(locale: locale))
-                                        .font(AppFont.subheadline.weight(.semibold))
-                                        .foregroundStyle(AppColor.textPrimary)
-                                        .multilineTextAlignment(.leading)
-                                    RecipeMetaLine(recipe: recipe)
-                                }
-                                Spacer(minLength: Spacing.sm)
-                                if isPlanned {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(AppFont.scaled(20, weight: .semibold))
-                                        .foregroundStyle(AppColor.positive)
-                                        .accessibilityHidden(true)
-                                }
-                            }
-                            .padding(Spacing.md)
-                            .glassSurface(cornerRadius: Spacing.cardCornerRadius)
+                if shown.isEmpty {
+                    EmptyStateView(
+                        icon: "magnifyingglass",
+                        title: "No dishes match",
+                        message: "Try another word.",
+                        action: .init(title: "Clear search", icon: "xmark.circle.fill") { searchText = "" },
+                        style: .compact
+                    )
+                    .padding(.horizontal, Spacing.screenPadding)
+                } else {
+                    LazyVGrid(columns: columns, spacing: Spacing.lg) {
+                        ForEach(shown) { recipe in
+                            dishButton(recipe)
                         }
-                        .buttonStyle(ScalePressStyle(pressedScale: 0.98))
-                        .disabled(isPlanned)
-                        .accessibilityElement(children: .combine)
-                        .accessibilityAddTraits(isPlanned ? .isSelected : [])
                     }
+                    .padding(.horizontal, Spacing.screenPadding)
+                    .padding(.bottom, Spacing.xl)
                 }
-                .padding(.horizontal, Spacing.screenPadding)
-                .padding(.bottom, Spacing.xl)
             }
             .background(AppColor.background.ignoresSafeArea())
+            .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: Text("Search dishes"))
             .navigationTitle("Choose a dish")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -573,5 +571,30 @@ struct PrepDishPicker: View {
                 }
             }
         }
+    }
+
+    private func dishButton(_ recipe: LibraryRecipe) -> some View {
+        let isPlanned = planned.contains(recipe.id)
+        return Button {
+            choose(recipe)
+        } label: {
+            RecipeGridCard(recipe: recipe, showsMealPrepBadge: false)
+                .opacity(isPlanned ? 0.5 : 1)
+                .overlay(alignment: .topTrailing) {
+                    if isPlanned {
+                        Label("Planned", systemImage: "checkmark")
+                            .font(AppFont.badge)
+                            .foregroundStyle(AppColor.onAccent)
+                            .padding(.horizontal, Spacing.sm)
+                            .padding(.vertical, Spacing.xs)
+                            .background(AppColor.positive, in: Capsule(style: .continuous))
+                            .padding(Spacing.md)
+                    }
+                }
+        }
+        .buttonStyle(ScalePressStyle(pressedScale: 0.97))
+        .disabled(isPlanned)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isPlanned ? .isSelected : [])
     }
 }

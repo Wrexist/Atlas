@@ -49124,6 +49124,46 @@
           }
         }
       }
+    },
+    "No dishes match": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inga rätter matchar"
+          }
+        }
+      }
+    },
+    "Try another word.": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prova ett annat ord."
+          }
+        }
+      }
+    },
+    "Search dishes": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sök rätter"
+          }
+        }
+      }
+    },
+    "Planned": {
+      "localizations": {
+        "sv": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Planerad"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
